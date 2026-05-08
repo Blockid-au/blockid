@@ -1,0 +1,731 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>BlockID.au — Individual Idea-Stage Customer Journey</title>
+<style>
+  :root {
+    --ink: #0b1020;
+    --ink-2: #1a2240;
+    --paper: #fbf7ee;
+    --paper-2: #f3ecdb;
+    --accent: #e85d2a;
+    --accent-2: #1f6feb;
+    --teal: #0f766e;
+    --rose: #b91c1c;
+    --gold: #b45309;
+    --leaf: #166534;
+    --p1: #ffe1c4;
+    --p2: #ffd1a8;
+    --p3: #fbe7a3;
+    --p4: #d3edc4;
+    --p5: #bfe0d6;
+    --p6: #c5dcf3;
+    --p7: #e1d3f2;
+  }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Kalam", "Caveat", "Patrick Hand", "Comic Sans MS", "Segoe Print", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .canvas {
+    width: 2200px;
+    padding: 36px 40px 48px 40px;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 39px, rgba(40,50,80,.05) 39px 40px),
+      repeating-linear-gradient(90deg, transparent 0 39px, rgba(40,50,80,.04) 39px 40px),
+      var(--paper);
+    box-shadow: inset 0 0 120px rgba(120,90,30,.12);
+    position: relative;
+  }
+  .header {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    border-bottom: 3px dashed var(--ink); padding-bottom: 14px; margin-bottom: 24px;
+  }
+  h1 {
+    font-family: "Caveat", "Kalam", cursive;
+    font-size: 58px; line-height: 1; margin: 0 0 6px 0;
+    letter-spacing: 1px;
+  }
+  .subtitle { font-size: 22px; color: var(--ink-2); }
+  .meta { text-align: right; font-size: 18px; color: var(--ink-2); }
+  .meta b { color: var(--accent); }
+
+  .legend {
+    display: flex; gap: 18px; align-items: center; margin: 8px 0 20px 0;
+    font-size: 17px; flex-wrap: wrap;
+  }
+  .legend .chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 2px solid var(--ink); border-radius: 14px;
+    padding: 4px 12px; background: #fff;
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+  .dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ink); display: inline-block; }
+
+  .phases {
+    display: grid;
+    grid-template-columns: 220px repeat(7, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .phase-cell {
+    border: 3px solid var(--ink);
+    border-radius: 18px;
+    padding: 10px 12px 12px 12px;
+    box-shadow: 5px 5px 0 var(--ink);
+    transform: rotate(-0.4deg);
+    text-align: center;
+  }
+  .phase-cell:nth-child(odd) { transform: rotate(0.5deg); }
+  .phase-cell .num {
+    font-family: "Caveat", cursive;
+    font-size: 36px; line-height: 1; color: var(--accent);
+  }
+  .phase-cell .name {
+    font-family: "Caveat", cursive;
+    font-size: 27px; line-height: 1.05; margin-top: 2px;
+  }
+  .phase-cell .who { font-size: 13px; color: var(--ink-2); margin-top: 4px; }
+
+  .swimlane-title {
+    border: 2px dashed var(--ink); border-radius: 14px;
+    background: #fff; padding: 10px 12px;
+    font-family: "Caveat", cursive; font-size: 26px; line-height: 1.05;
+    box-shadow: 3px 3px 0 var(--ink);
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .swimlane-title small { font-size: 13px; font-family: inherit; color: var(--ink-2); display: block; margin-top: 4px; }
+
+  .row {
+    display: grid;
+    grid-template-columns: 220px repeat(7, 1fr);
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .cell {
+    border: 2px solid var(--ink);
+    border-radius: 14px;
+    padding: 10px 12px;
+    background: #fff;
+    box-shadow: 3px 3px 0 var(--ink);
+    font-size: 15px;
+    line-height: 1.25;
+  }
+  .cell.tilt-a { transform: rotate(-0.3deg); }
+  .cell.tilt-b { transform: rotate(0.3deg); }
+
+  .cell ul { margin: 4px 0 0 0; padding-left: 18px; }
+  .cell li { margin-bottom: 3px; }
+  .cell .tag {
+    display: inline-block; font-size: 12px;
+    padding: 1px 8px; border-radius: 999px; border: 1.5px solid var(--ink);
+    background: var(--paper-2); margin-right: 4px; margin-bottom: 4px;
+  }
+  .cell .feat {
+    display: inline-block; font-size: 11.5px; font-weight: 700;
+    padding: 1px 7px; border-radius: 6px; border: 1.5px solid var(--accent-2);
+    background: #eaf2ff; color: #1f3aa3; margin-right: 4px; margin-bottom: 4px;
+  }
+
+  .row.actions .cell { font-weight: 500; }
+  .row.actions .cell.p1 { background: var(--p1); }
+  .row.actions .cell.p2 { background: var(--p2); }
+  .row.actions .cell.p3 { background: var(--p3); }
+  .row.actions .cell.p4 { background: var(--p4); }
+  .row.actions .cell.p5 { background: var(--p5); }
+  .row.actions .cell.p6 { background: var(--p6); }
+  .row.actions .cell.p7 { background: var(--p7); }
+
+  .jobs   .cell { border-left: 8px solid var(--accent-2); }
+  .pains  .cell { border-left: 8px solid var(--rose); background: #fff6f5; }
+  .gains  .cell { border-left: 8px solid var(--leaf); background: #f3fbf3; }
+  .feats  .cell { border-left: 8px solid var(--teal); background: #f0fbf9; font-weight: 500; }
+  .opps   .cell { border-left: 8px solid var(--accent); background: #fff3e8; font-weight: 500; }
+  .emo    .cell { background: #fff; }
+
+  .emo .cell { padding: 6px 8px; }
+  .mood {
+    height: 56px; position: relative;
+    background: linear-gradient(180deg, #fff 0%, #fff 100%);
+    border-radius: 8px; overflow: hidden;
+  }
+  .mood svg { width: 100%; height: 100%; }
+
+  .arrows {
+    display: grid;
+    grid-template-columns: 220px repeat(7, 1fr);
+    gap: 10px;
+    margin: 6px 0 14px 0;
+  }
+  .arrow {
+    height: 36px; display: flex; align-items: center; justify-content: center;
+    font-family: "Caveat", cursive; font-size: 22px; color: var(--ink-2);
+  }
+  .arrow .ar {
+    flex: 1; height: 0; border-top: 3px dashed var(--ink); position: relative;
+  }
+  .arrow .ar::after {
+    content: ""; position: absolute; right: -2px; top: -9px;
+    border: 8px solid transparent; border-left-color: var(--ink);
+  }
+  .arrow.first { visibility: hidden; }
+
+  .footer {
+    margin-top: 22px;
+    display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 16px;
+  }
+  .note {
+    border: 2px solid var(--ink); border-radius: 16px;
+    background: #fff; padding: 14px 16px;
+    box-shadow: 5px 5px 0 var(--ink);
+  }
+  .note h3 {
+    margin: 0 0 6px 0; font-family: "Caveat", cursive; font-size: 30px;
+  }
+  .note ul { margin: 0; padding-left: 18px; font-size: 15.5px; }
+  .note .pill {
+    display: inline-block; font-size: 13px; font-weight: 700;
+    padding: 2px 8px; border-radius: 6px; border: 1.5px solid var(--accent-2);
+    background: #eaf2ff; color: #1f3aa3; margin-right: 4px;
+  }
+
+  .stamp {
+    position: absolute; right: 50px; top: 40px;
+    transform: rotate(-8deg);
+    border: 3px solid var(--rose); color: var(--rose);
+    border-radius: 10px; padding: 6px 14px;
+    font-family: "Caveat", cursive; font-size: 24px;
+    letter-spacing: 1px; opacity: .85;
+    background: rgba(255,255,255,.5);
+  }
+
+  .kpi-row {
+    display: grid; grid-template-columns: 220px repeat(7, 1fr); gap: 10px;
+    margin-top: 6px;
+  }
+  .kpi {
+    background: #0b1020; color: #fbf7ee; border-radius: 10px;
+    border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink);
+    padding: 8px 10px; font-size: 14px; line-height: 1.2;
+    font-family: "Caveat", cursive;
+  }
+  .kpi b { color: #fbbf24; }
+
+  .label-cell {
+    background: #0b1020; color: #fbf7ee; border-radius: 10px;
+    padding: 6px 10px; font-size: 14px; text-align: center;
+    border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink);
+    font-family: "Caveat", cursive;
+  }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <div class="stamp">INDIVIDUAL · IDEA STAGE · v1</div>
+  <div class="header">
+    <div>
+      <h1>BlockID.au — Individual Idea-Stage Customer Journey</h1>
+      <div class="subtitle">Persona: A solo individual in AU with a startup idea · no team, no Pty Ltd, often still has a day job · wants to figure out who, what, and how much before incorporating</div>
+    </div>
+    <div class="meta">
+      Free idea-stage suite: <b>Idea Valuation · Equity Split · Funding Plan · Cofounder Match</b><br/>
+      Goal: from <b>"I have an idea"</b> → incorporated team with Cap Table v0 in <b>30–90 days</b><br/>
+      Then graduates into the early-startup BlockID journey
+    </div>
+  </div>
+
+  <div class="legend">
+    <span class="chip"><span class="dot" style="background:var(--accent-2)"></span>Customer Jobs</span>
+    <span class="chip"><span class="dot" style="background:var(--rose)"></span>Pains</span>
+    <span class="chip"><span class="dot" style="background:var(--leaf)"></span>Gains</span>
+    <span class="chip"><span class="dot" style="background:var(--teal)"></span>BlockID feature support</span>
+    <span class="chip"><span class="dot" style="background:var(--accent)"></span>Opportunities to improve</span>
+  </div>
+
+  <!-- PHASES -->
+  <div class="phases">
+    <div class="swimlane-title">Phases →<small>(week 0 → 12 from idea spark)</small></div>
+    <div class="phase-cell" style="background:var(--p1)">
+      <div class="num">01</div><div class="name">Spark / Idea</div>
+      <div class="who">Solo · still has day job</div>
+    </div>
+    <div class="phase-cell" style="background:var(--p2)">
+      <div class="num">02</div><div class="name">Discover</div>
+      <div class="who">Finds BlockID free tools</div>
+    </div>
+    <div class="phase-cell" style="background:var(--p3)">
+      <div class="num">03</div><div class="name">Validate Idea</div>
+      <div class="who">Idea-stage valuation</div>
+    </div>
+    <div class="phase-cell" style="background:var(--p4)">
+      <div class="num">04</div><div class="name">Find Cofounder</div>
+      <div class="who">Match · pitch · meet</div>
+    </div>
+    <div class="phase-cell" style="background:var(--p5)">
+      <div class="num">05</div><div class="name">Define Roles &amp; Equity</div>
+      <div class="who">Equity Split v0</div>
+    </div>
+    <div class="phase-cell" style="background:var(--p6)">
+      <div class="num">06</div><div class="name">Plan Funding</div>
+      <div class="who">$ in vs raise · dilution</div>
+    </div>
+    <div class="phase-cell" style="background:var(--p7)">
+      <div class="num">07</div><div class="name">Incorporate / Bridge</div>
+      <div class="who">→ early-startup journey</div>
+    </div>
+  </div>
+
+  <!-- ARROWS -->
+  <div class="arrows">
+    <div></div>
+    <div class="arrow first"><div class="ar"></div></div>
+    <div class="arrow"><div class="ar"></div></div>
+    <div class="arrow"><div class="ar"></div></div>
+    <div class="arrow"><div class="ar"></div></div>
+    <div class="arrow"><div class="ar"></div></div>
+    <div class="arrow"><div class="ar"></div></div>
+    <div class="arrow"><div class="ar"></div></div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="row actions">
+    <div class="swimlane-title">User Actions<small>What the individual does</small></div>
+    <div class="cell p1 tilt-a">
+      <ul>
+        <li>Has an idea · jots in Notion / notebook</li>
+        <li>Talks to 3 friends, gets vague feedback</li>
+        <li>Googles "is my idea worth anything?"</li>
+        <li>Wonders: quit job? find cofounder? go solo?</li>
+      </ul>
+    </div>
+    <div class="cell p2 tilt-b">
+      <ul>
+        <li>Lands on blockid.au via SEO / accelerator / peer</li>
+        <li>Sees free Idea Valuation + Cofounder Match</li>
+        <li>Reads "from idea → incorporated" guide</li>
+        <li>Bookmarks · returns next weekend</li>
+      </ul>
+    </div>
+    <div class="cell p3 tilt-a">
+      <ul>
+        <li>Runs <b>/tools/idea-valuation</b> (Berkus + Scorecard, AU)</li>
+        <li>Gets a defensible pre-money range in AUD</li>
+        <li>Shares result with mentors / peers</li>
+        <li>Identifies "what would lift this most"</li>
+      </ul>
+    </div>
+    <div class="cell p4 tilt-b">
+      <ul>
+        <li>Posts profile on <b>/tools/cofounder-match</b></li>
+        <li>Browses anonymized AU directory</li>
+        <li>Coffee chats with 2–3 candidates</li>
+        <li>Aligns vision · agrees to "founder dating"</li>
+      </ul>
+    </div>
+    <div class="cell p5 tilt-a">
+      <ul>
+        <li>Runs <b>/tools/equity-split</b> with cofounder(s)</li>
+        <li>Weighs role / time / cash / sweat / IP / risk</li>
+        <li>Agrees on equity split + ESOP reserve</li>
+        <li>Saves Cap Table v0 + founder-agreement seeds</li>
+      </ul>
+    </div>
+    <div class="cell p6 tilt-b">
+      <ul>
+        <li>Runs <b>/tools/funding-plan</b> — total need $X</li>
+        <li>Decides cash-in vs F&amp;F SAFE vs pre-seed</li>
+        <li>Models dilution at idea-stage valuation</li>
+        <li>Picks a target: e.g. $150k @ $400k pre</li>
+      </ul>
+    </div>
+    <div class="cell p7 tilt-a">
+      <ul>
+        <li>Engages lawyer w/ Cap Table v0 + agreements</li>
+        <li>Registers Pty Ltd via ASIC · gets ABN</li>
+        <li>Creates <b>Persistent BlockID</b> · imports v0</li>
+        <li>Hands over to early-startup journey 🟢</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- JOBS -->
+  <div class="row jobs">
+    <div class="swimlane-title">Customer Jobs<small>Jobs-To-Be-Done</small></div>
+    <div class="cell"><span class="tag">Functional</span><span class="tag">Emotional</span>
+      <ul>
+        <li>Decide if idea is worth pursuing</li>
+        <li>Decide solo vs cofounder path</li>
+        <li>Stop feeling like an "imposter founder"</li>
+      </ul>
+    </div>
+    <div class="cell"><span class="tag">Functional</span>
+      <ul>
+        <li>Find AU-native, idea-stage-friendly tools</li>
+        <li>Validate via mentors / accelerator</li>
+        <li>Confirm "this is for me, not for VCs"</li>
+      </ul>
+    </div>
+    <div class="cell"><span class="tag">Functional</span><span class="tag">Social</span>
+      <ul>
+        <li>Get a defensible valuation range</li>
+        <li>Identify highest-leverage idea-stage moves</li>
+        <li>Have a number to discuss with cofounders</li>
+      </ul>
+    </div>
+    <div class="cell"><span class="tag">Social</span><span class="tag">Emotional</span>
+      <ul>
+        <li>Find a complementary cofounder fast</li>
+        <li>Avoid "cofounder lottery" mistakes</li>
+        <li>Pitch idea without leaking sensitive details</li>
+      </ul>
+    </div>
+    <div class="cell"><span class="tag">Functional</span><span class="tag">Emotional</span>
+      <ul>
+        <li>Split equity fairly &amp; transparently</li>
+        <li>Define roles before resentment shows up</li>
+        <li>Set up vesting that protects everyone</li>
+      </ul>
+    </div>
+    <div class="cell"><span class="tag">Economic</span>
+      <ul>
+        <li>Know exactly how much capital is needed</li>
+        <li>Decide $ in by each founder vs raise</li>
+        <li>Understand dilution before SAFE/seed</li>
+      </ul>
+    </div>
+    <div class="cell"><span class="tag">Functional</span>
+      <ul>
+        <li>Walk into a lawyer with paperwork ready</li>
+        <li>Land on BlockID Day-0 setup with zero rework</li>
+        <li>Start building trust history immediately</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- PAINS -->
+  <div class="row pains">
+    <div class="swimlane-title">Pains<small>What hurts right now</small></div>
+    <div class="cell">
+      <ul>
+        <li>"Is my idea any good?" anxiety</li>
+        <li>Friends are too kind to be honest</li>
+        <li>Don't know first practical step</li>
+        <li>Day job = limited time &amp; energy</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Most tools assume you've already incorporated</li>
+        <li>US-centric advice ignores AU reality</li>
+        <li>Crypto/blockchain branding feels risky</li>
+        <li>Free trials with credit card walls</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>"Valuation calculators" want revenue I don't have</li>
+        <li>No idea what AU pre-incorp ranges look like</li>
+        <li>Fear of committing to a number publicly</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Reddit / LinkedIn cofounder posts = noise</li>
+        <li>NDA awkwardness when sharing the idea</li>
+        <li>Time-zone mismatch with int'l candidates</li>
+        <li>Don't know what "good cofounder" looks like</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>50/50 split feels lazy but easier</li>
+        <li>Don't know how to value sweat vs cash</li>
+        <li>Vesting / IP / cliff feel intimidating</li>
+        <li>One cofounder might quit — then what?</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>F&amp;F SAFE caps feel arbitrary</li>
+        <li>Risk of giving away too much too early</li>
+        <li>No model for "how much runway is enough"</li>
+        <li>No one explains AU SAFE conventions</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>ASIC / lawyer / accountant overhead</li>
+        <li>Spreadsheet cap table = future tech debt</li>
+        <li>No continuity between idea work &amp; Pty Ltd</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- GAINS -->
+  <div class="row gains">
+    <div class="swimlane-title">Gains<small>What "great" looks like</small></div>
+    <div class="cell">
+      <ul>
+        <li>A clear "first 7 days" checklist</li>
+        <li>Confidence to either commit or kill idea</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>"Idea-stage friendly" obvious in 10 sec</li>
+        <li>Free, no signup wall, AU-native</li>
+        <li>Trust badges (SOC2, AU residency)</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Defensible AU range, low/mid/high band</li>
+        <li>"3 things to fix" actionable list</li>
+        <li>Shareable PDF — even pre-incorporation</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Curated AU profiles · safe pitching</li>
+        <li>Match by complementary skills + commitment</li>
+        <li>Faster to "first coffee" than Reddit</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Weighted, transparent split (FAST-style)</li>
+        <li>Vesting + IP + roles defined as v0</li>
+        <li>Cap Table v0 ready to import on Day 0</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Total need + monthly burn crystal clear</li>
+        <li>Dilution preview at multiple raise sizes</li>
+        <li>Reasonable AU SAFE cap suggestions</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Cap Table v0 → BlockID Persistent profile</li>
+        <li>Day-0 setup takes hours, not weeks</li>
+        <li>Trust history starts before incorporation</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- BLOCKID FEATURES -->
+  <div class="row feats">
+    <div class="swimlane-title">BlockID Feature Support<small>What we ship to support each phase</small></div>
+    <div class="cell">
+      <span class="feat">Idea Sandbox</span>
+      <ul>
+        <li>"Idea Stage" landing track</li>
+        <li>"From idea → incorporated" AU guide (SEO)</li>
+        <li>Email drip: 7-day "idea stress test"</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <span class="feat">Free tools hub</span>
+      <ul>
+        <li>blockid.au/idea — free tool index</li>
+        <li>Founder Dilution Calculator (existing)</li>
+        <li>Trust badges + AU residency above the fold</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <span class="feat">/tools/idea-valuation</span>
+      <ul>
+        <li>Berkus + Scorecard, AUD-native</li>
+        <li>Low / mid / high band + factor breakdown</li>
+        <li>"What would lift this most" — 3 actions</li>
+        <li>Comparable AU pre-incorp ranges shown</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <span class="feat">/tools/cofounder-match</span>
+      <ul>
+        <li>Profile (skills, looking-for, time, stage)</li>
+        <li>Anonymized AU directory · 12 latest</li>
+        <li>Email notification on submit + admin alert</li>
+        <li>Visibility: directory or private match-only</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <span class="feat">/tools/equity-split</span>
+      <ul>
+        <li>Weighted points: role / time / idea / cash / sweat / IP / risk</li>
+        <li>ESOP reserve + first-hire reserve</li>
+        <li>4-yr vesting w/ 1-yr cliff visualization</li>
+        <li>Fairness flags + founder-agreement seeds</li>
+        <li>Persists Cap Table v0 → import on Day 0</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <span class="feat">/tools/funding-plan</span>
+      <ul>
+        <li>12–18 mo burn model (wages, tools, marketing)</li>
+        <li>Founder cash-in vs F&amp;F SAFE vs pre-seed</li>
+        <li>Sensitivity table · dilution preview</li>
+        <li>SAFE cap / discount AU defaults</li>
+        <li>Reads idea-valuation + equity-split via session</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <span class="feat">Day-0 bridge</span>
+      <ul>
+        <li>One-click "Create Persistent BlockID"</li>
+        <li>ASIC/ABR sync + Cap Table v0 import</li>
+        <li>Auto-generated lawyer brief (PDF)</li>
+        <li>Hand-off into early-startup journey</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- OPPORTUNITIES -->
+  <div class="row opps">
+    <div class="swimlane-title">Opportunities to Improve<small>Where to invest next</small></div>
+    <div class="cell">
+      <ul>
+        <li>"7-day idea stress test" email course</li>
+        <li>Idea journaling lightweight CMS</li>
+        <li>SEO: "validate startup idea AU"</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Free tools hub w/ progress tracker</li>
+        <li>Accelerator pre-cohort partnerships</li>
+        <li>"No signup until you save" friction policy</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>AI mentor: "ask me about your idea"</li>
+        <li>Anonymous peer-review of valuations</li>
+        <li>Idea privacy (one-way hash sharing)</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Mutual-interest match (no public DM until both want)</li>
+        <li>Background-check / LinkedIn verification</li>
+        <li>City-based meetup partnerships</li>
+        <li>NDA-lite template baked in</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Multi-cofounder live collab editor</li>
+        <li>"What if X quits" scenario simulator</li>
+        <li>Lawyer marketplace for the agreement</li>
+        <li>IP assignment template wizard</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>F&amp;F SAFE generator (AU template)</li>
+        <li>"Bootstrap vs raise" decision aid</li>
+        <li>Investor heatmap of idea-stage angels AU</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>One-click Pty Ltd flow w/ ASIC partner</li>
+        <li>Auto-generated lawyer brief PDF</li>
+        <li>Day-0 success-coach call (paid concierge)</li>
+        <li>Early-startup journey upsell prompts</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- EMOTION -->
+  <div class="row emo">
+    <div class="swimlane-title">Emotion Curve<small>Mood across the journey</small></div>
+    <div class="cell" style="grid-column: 2 / span 7;">
+      <div class="mood">
+        <svg viewBox="0 0 1400 56" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="g" x1="0" x2="1" y1="0" y2="0">
+              <stop offset="0%"  stop-color="#b91c1c"/>
+              <stop offset="18%" stop-color="#d97706"/>
+              <stop offset="35%" stop-color="#16a34a"/>
+              <stop offset="55%" stop-color="#0f766e"/>
+              <stop offset="72%" stop-color="#1f6feb"/>
+              <stop offset="90%" stop-color="#16a34a"/>
+              <stop offset="100%" stop-color="#16a34a"/>
+            </linearGradient>
+          </defs>
+          <path d="M0,48 C 90,48 110,50 200,46
+                   C 280,42 300,34 400,30
+                   C 500,26 520,12 600,16
+                   C 680,20 720,30 800,22
+                   C 880,16 900,12 1000,14
+                   C 1100,16 1140,8 1200,10
+                   C 1280,14 1320,6 1400,6"
+                fill="none" stroke="url(#g)" stroke-width="5" stroke-linecap="round"/>
+          <g font-family="Caveat, cursive" font-size="20" fill="#0b1020">
+            <text x="40"   y="40">😟 anxious + alone</text>
+            <text x="260"  y="40">🤔 cautiously curious</text>
+            <text x="450"  y="22">😀 validated</text>
+            <text x="660"  y="32">🤝 not alone</text>
+            <text x="880"  y="22">🧮 organised</text>
+            <text x="1080" y="22">💪 ready to raise</text>
+            <text x="1280" y="22">🚀 incorporated</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI ROW -->
+  <div class="kpi-row">
+    <div class="label-cell">North-star KPIs by phase</div>
+    <div class="kpi"><b>Spark:</b> idea-stage SEO impressions / wk</div>
+    <div class="kpi"><b>Discover:</b> /idea hub visits · tool unlocks</div>
+    <div class="kpi"><b>Validate:</b> idea-valuation runs / wk · share rate</div>
+    <div class="kpi"><b>Find:</b> cofounder profiles posted · matches / wk</div>
+    <div class="kpi"><b>Equity:</b> equity-split saved · multi-founder sessions</div>
+    <div class="kpi"><b>Funding:</b> funding-plan runs · SAFE template grabs</div>
+    <div class="kpi"><b>Bridge:</b> Persistent BlockID creations · Day-0 conversions</div>
+  </div>
+
+  <!-- FOOTER NOTES -->
+  <div class="footer">
+    <div class="note">
+      <h3>Why idea-stage is the strategic upstream</h3>
+      <ul>
+        <li><span class="pill">Top of funnel</span> Captures founders 6–12 months <b>before</b> they would have searched for Carta/Pulley.</li>
+        <li><span class="pill">Sticky</span> Persistent BlockID = lifetime company DNA, started before incorporation.</li>
+        <li><span class="pill">Network</span> Cofounder Match doubles every founder's reach + creates a 2-sided marketplace.</li>
+        <li><span class="pill">Data moat</span> Every idea-valuation feeds AU SME comparables dataset.</li>
+        <li><span class="pill">Conversion</span> Each individual graduates into 1–N early-startup paying customers.</li>
+      </ul>
+    </div>
+    <div class="note">
+      <h3>Key moments of truth</h3>
+      <ul>
+        <li>First idea-valuation result lands in &lt; 60 sec — must "wow"</li>
+        <li>First cofounder profile match notification — magic</li>
+        <li>Equity-split agreement signed by all founders — viral moment</li>
+        <li>Day-0 import: Cap Table v0 → Persistent BlockID without rework</li>
+      </ul>
+    </div>
+    <div class="note">
+      <h3>Anti-patterns to avoid</h3>
+      <ul>
+        <li>Putting idea-stage tools behind signup walls</li>
+        <li>Over-promising valuations — always show range + disclaimer</li>
+        <li>Letting cofounder match become a Tinder of pitches (signal &gt; volume)</li>
+        <li>Forcing equity split decisions before mutual trust is built</li>
+        <li>Charging anything before incorporation — keep idea-stage 100% free</li>
+      </ul>
+    </div>
+  </div>
+</div>
+</body>
+</html>

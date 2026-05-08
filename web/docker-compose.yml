@@ -1,0 +1,75 @@
+# BlockID production stack.
+#
+# Two services on a private bridge network:
+#   - `web`   : Next.js 15 standalone server (no host ports — only Caddy talks to it).
+#   - `caddy` : TLS-terminating reverse proxy on host :80 / :443 with Let's Encrypt.
+#
+# Bring up:   docker compose up -d
+# Tail logs:  docker compose logs -f caddy web
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: blockid/web:latest
+    container_name: blockid-web
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+      # Phase 1.5 — Supabase / Resend / share links.
+      # All values come from .env (loaded via `env_file:` above). The lines
+      # below force-pass them through so docker-compose `config` shows the
+      # mapping explicitly, and so an unset var becomes empty (callers in
+      # src/lib/{supabase,email}.ts treat empty as "not configured" and
+      # gracefully degrade).
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://blockid.au}
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-BlockID <noreply@blockid.au>}
+      IP_HASH_SALT: ${IP_HASH_SALT:-}
+    expose:
+      - "3000"
+    networks:
+      - blockid-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: blockid-caddy
+    restart: unless-stopped
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3 (QUIC)
+    environment:
+      # Caddy auto-agrees to the ACME ToS, but we expose the variable
+      # for parity with other tooling that expects it.
+      ACME_AGREE: "true"
+    volumes:
+      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - blockid-net
+
+networks:
+  blockid-net:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:

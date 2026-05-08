@@ -1,0 +1,21 @@
+# Live deployment override for the current VPS.
+#
+# The host already runs a shared nginx proxy container (`bookedai-proxy-1`) on
+# ports 80/443, so BlockID should only run the Next.js web container and join
+# the proxy network. Nginx routes blockid.au -> http://blockid-web:3000.
+
+services:
+  web:
+    networks:
+      - blockid-net
+      - bookedai_internal
+
+  caddy:
+    image: alpine:3
+    command: ["sleep", "infinity"]
+    ports: []
+    volumes: []
+
+networks:
+  bookedai_internal:
+    external: true

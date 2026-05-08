@@ -1,0 +1,118 @@
+# =============================================================================
+# BlockID — Caddy reverse proxy
+#
+# Terminates TLS for blockid.au + www.blockid.au, forwards traffic to the
+# Next.js standalone server on the internal Docker network at web:3000.
+#
+# Local / staging tip:
+#   To run without DNS or ACME, replace `blockid.au` with `:80` (and drop the
+#   www redirect block) — Caddy will then serve plain HTTP on port 80.
+# =============================================================================
+
+{
+	# ACME contact for Let's Encrypt notifications (cert expiry, etc.).
+	email admin@blockid.au
+
+	# Structured logs to stdout — picked up by `docker logs` / journald.
+	log {
+		output stdout
+		format json
+		level  INFO
+	}
+}
+
+# -----------------------------------------------------------------------------
+# Caddy-local healthcheck on plain HTTP. Returns 200 directly without proxying
+# to the app, so external uptime checks can verify the edge is alive even if
+# `web` is down.
+# -----------------------------------------------------------------------------
+:80 {
+	@healthz path /healthz
+	handle @healthz {
+		respond "ok" 200
+	}
+}
+
+# -----------------------------------------------------------------------------
+# Canonical redirect: www.blockid.au -> https://blockid.au (308 Permanent).
+# -----------------------------------------------------------------------------
+www.blockid.au {
+	redir https://blockid.au{uri} 308
+}
+
+# -----------------------------------------------------------------------------
+# Primary site.
+# -----------------------------------------------------------------------------
+blockid.au {
+	encode zstd gzip
+
+	# Edge healthcheck (also exposed over TLS so https probes succeed).
+	@healthz path /healthz
+	handle @healthz {
+		respond "ok" 200
+	}
+
+	# -------------------------------------------------------------------------
+	# CORS for /api/* — accept requests only from https://blockid.au.
+	# Preflight (OPTIONS) is short-circuited with a 204 + headers.
+	# -------------------------------------------------------------------------
+	@apiPreflight {
+		path /api/*
+		method OPTIONS
+	}
+	handle @apiPreflight {
+		header Access-Control-Allow-Origin  "https://blockid.au"
+		header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+		header Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+		header Access-Control-Max-Age       "86400"
+		header Vary                         "Origin"
+		respond "" 204
+	}
+
+	@api path /api/*
+	header @api {
+		Access-Control-Allow-Origin  "https://blockid.au"
+		Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+		Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+		Vary                         "Origin"
+	}
+
+	# -------------------------------------------------------------------------
+	# Security headers applied to every response.
+	# -------------------------------------------------------------------------
+	header {
+		# HSTS — 2 years, all subdomains, preload-list eligible.
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+
+		# Browser hardening.
+		X-Content-Type-Options    "nosniff"
+		Referrer-Policy           "strict-origin-when-cross-origin"
+		Permissions-Policy        "geolocation=(), microphone=(), camera=()"
+
+		# Content Security Policy.
+		# - 'self' for scripts / connect / images.
+		# - Google Fonts CSS + font files allowed.
+		# - 'unsafe-inline' on style-src is required for Next.js + Tailwind's
+		#   inlined critical CSS and styled-jsx; script-src stays strict.
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+
+		# Strip Caddy's default banner.
+		-Server
+	}
+
+	# -------------------------------------------------------------------------
+	# Reverse proxy to the Next.js standalone server.
+	# -------------------------------------------------------------------------
+	reverse_proxy web:3000 {
+		header_up Host              {host}
+		header_up X-Real-IP         {remote_host}
+		header_up X-Forwarded-For   {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+
+	log {
+		output stdout
+		format json
+		level  INFO
+	}
+}

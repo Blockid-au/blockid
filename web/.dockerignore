@@ -1,0 +1,60 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Dependencies / build output (rebuilt inside the image)
+node_modules
+.next
+out
+dist
+build
+coverage
+
+# Local env files — secrets must be injected at runtime, never baked in.
+.env
+.env.*
+!.env.example
+
+# Editor / OS cruft
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Logs / caches
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm
+.pnpm-store
+.turbo
+.cache
+
+# Docs (built by another agent, not needed in image)
+README.md
+*.md
+docs
+
+# Sibling directories that shouldn't ship with the app image
+design-system
+
+# Infra / CI artifacts
+infra
+docker-compose.yml
+docker-compose.*.yml
+Dockerfile
+.dockerignore
+
+# Test files
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+__tests__
+e2e
+playwright-report
+test-results

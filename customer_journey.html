@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>BlockID.au — Customer Journey Map</title>
+<style>
+  :root {
+    --ink: #0b1020;
+    --ink-2: #1a2240;
+    --paper: #fbf7ee;
+    --paper-2: #f3ecdb;
+    --line: #2b2f4a;
+    --accent: #e85d2a;
+    --accent-2: #1f6feb;
+    --teal: #0f766e;
+    --rose: #b91c1c;
+    --gold: #b45309;
+    --leaf: #166534;
+    --p1: #fde2c4;
+    --p2: #ffd6b0;
+    --p3: #fbe7a3;
+    --p4: #cfe8c5;
+    --p5: #c5dcf3;
+    --p6: #d8c8f0;
+    --p7: #f4c0c0;
+  }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Kalam", "Caveat", "Patrick Hand", "Comic Sans MS", "Segoe Print", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .canvas {
+    width: 2200px;
+    padding: 36px 40px 48px 40px;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 39px, rgba(40,50,80,.05) 39px 40px),
+      repeating-linear-gradient(90deg, transparent 0 39px, rgba(40,50,80,.04) 39px 40px),
+      var(--paper);
+    box-shadow: inset 0 0 120px rgba(120,90,30,.12);
+    position: relative;
+  }
+  .header {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    border-bottom: 3px dashed var(--ink); padding-bottom: 14px; margin-bottom: 24px;
+  }
+  h1 {
+    font-family: "Caveat", "Kalam", cursive;
+    font-size: 64px; line-height: 1; margin: 0 0 6px 0;
+    letter-spacing: 1px;
+  }
+  .subtitle { font-size: 22px; color: var(--ink-2); }
+  .meta { text-align: right; font-size: 18px; color: var(--ink-2); }
+  .meta b { color: var(--accent); }
+
+  .legend {
+    display: flex; gap: 24px; align-items: center; margin: 8px 0 20px 0;
+    font-size: 18px;
+  }
+  .legend .chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 2px solid var(--ink); border-radius: 14px;
+    padding: 4px 12px; background: #fff;
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+  .dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ink); display: inline-block; }
+
+  /* phases header strip */
+  .phases {
+    display: grid;
+    grid-template-columns: 220px repeat(7, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .phase-cell {
+    border: 3px solid var(--ink);
+    border-radius: 18px;
+    padding: 10px 12px 12px 12px;
+    box-shadow: 5px 5px 0 var(--ink);
+    transform: rotate(-0.4deg);
+    text-align: center;
+  }
+  .phase-cell:nth-child(odd) { transform: rotate(0.5deg); }
+  .phase-cell .num {
+    font-family: "Caveat", cursive;
+    font-size: 36px; line-height: 1; color: var(--accent);
+  }
+  .phase-cell .name {
+    font-family: "Caveat", cursive;
+    font-size: 30px; line-height: 1; margin-top: 2px;
+  }
+  .phase-cell .who { font-size: 14px; color: var(--ink-2); margin-top: 4px; }
+
+  .swimlane-title {
+    border: 2px dashed var(--ink); border-radius: 14px;
+    background: #fff; padding: 10px 12px;
+    font-family: "Caveat", cursive; font-size: 28px; line-height: 1.05;
+    box-shadow: 3px 3px 0 var(--ink);
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .swimlane-title small { font-size: 14px; font-family: inherit; color: var(--ink-2); display: block; margin-top: 4px; }
+
+  .row {
+    display: grid;
+    grid-template-columns: 220px repeat(7, 1fr);
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .cell {
+    border: 2px solid var(--ink);
+    border-radius: 14px;
+    padding: 10px 12px;
+    background: #fff;
+    box-shadow: 3px 3px 0 var(--ink);
+    font-size: 16px;
+    line-height: 1.25;
+  }
+  .cell.tilt-a { transform: rotate(-0.3deg); }
+  .cell.tilt-b { transform: rotate(0.3deg); }
+
+  .cell ul { margin: 4px 0 0 0; padding-left: 18px; }
+  .cell li { margin-bottom: 3px; }
+  .cell .tag {
+    display: inline-block; font-size: 12px;
+    padding: 1px 8px; border-radius: 999px; border: 1.5px solid var(--ink);
+    background: var(--paper-2); margin-right: 4px; margin-bottom: 4px;
+  }
+
+  /* phase color strips on actions row */
+  .row.actions .cell { font-weight: 500; }
+  .row.actions .cell.p1 { background: var(--p1); }
+  .row.actions .cell.p2 { background: var(--p2); }
+  .row.actions .cell.p3 { background: var(--p3); }
+  .row.actions .cell.p4 { background: var(--p4); }
+  .row.actions .cell.p5 { background: var(--p5); }
+  .row.actions .cell.p6 { background: var(--p6); }
+  .row.actions .cell.p7 { background: var(--p7); }
+
+  .jobs   .cell { border-left: 8px solid var(--accent-2); }
+  .pains  .cell { border-left: 8px solid var(--rose); background: #fff6f5; }
+  .gains  .cell { border-left: 8px solid var(--leaf); background: #f3fbf3; }
+  .touch  .cell { border-left: 8px solid var(--gold); background: #fffaf0; }
+  .opps   .cell { border-left: 8px solid var(--accent); background: #fff3e8; font-weight: 500; }
+  .emo    .cell { background: #fff; }
+
+  /* emotion line */
+  .emo .cell { padding: 6px 8px; }
+  .emoji { font-size: 28px; line-height: 1; }
+  .mood {
+    height: 56px; position: relative;
+    background: linear-gradient(180deg, #fff 0%, #fff 100%);
+    border-radius: 8px; overflow: hidden;
+  }
+  .mood svg { width: 100%; height: 100%; }
+
+  /* arrow strip between phases */
+  .arrows {
+    display: grid;
+    grid-template-columns: 220px repeat(7, 1fr);
+    gap: 10px;
+    margin: 6px 0 14px 0;
+  }
+  .arrow {
+    height: 36px; display: flex; align-items: center; justify-content: center;
+    font-family: "Caveat", cursive; font-size: 22px; color: var(--ink-2);
+  }
+  .arrow .ar {
+    flex: 1; height: 0; border-top: 3px dashed var(--ink); position: relative;
+  }
+  .arrow .ar::after {
+    content: ""; position: absolute; right: -2px; top: -9px;
+    border: 8px solid transparent; border-left-color: var(--ink);
+  }
+  .arrow.first { visibility: hidden; }
+
+  /* footer notes */
+  .footer {
+    margin-top: 22px;
+    display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 16px;
+  }
+  .note {
+    border: 2px solid var(--ink); border-radius: 16px;
+    background: #fff; padding: 14px 16px;
+    box-shadow: 5px 5px 0 var(--ink);
+  }
+  .note h3 {
+    margin: 0 0 6px 0; font-family: "Caveat", cursive; font-size: 30px;
+  }
+  .note ul { margin: 0; padding-left: 18px; font-size: 16px; }
+
+  .stamp {
+    position: absolute; right: 50px; top: 40px;
+    transform: rotate(-8deg);
+    border: 3px solid var(--rose); color: var(--rose);
+    border-radius: 10px; padding: 6px 14px;
+    font-family: "Caveat", cursive; font-size: 26px;
+    letter-spacing: 1px; opacity: .85;
+    background: rgba(255,255,255,.5);
+  }
+
+  .kpi-row {
+    display: grid; grid-template-columns: 220px repeat(7, 1fr); gap: 10px;
+    margin-top: 6px;
+  }
+  .kpi {
+    background: #0b1020; color: #fbf7ee; border-radius: 10px;
+    border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink);
+    padding: 8px 10px; font-size: 14px; line-height: 1.2;
+    font-family: "Caveat", cursive;
+  }
+  .kpi b { color: #fbbf24; }
+
+  .label-cell {
+    background: #0b1020; color: #fbf7ee; border-radius: 10px;
+    padding: 6px 10px; font-size: 14px; text-align: center;
+    border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink);
+    font-family: "Caveat", cursive;
+  }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <div class="stamp">DRAFT v1 · sketched on paper</div>
+  <div class="header">
+    <div>
+      <h1>BlockID.au — Customer Journey Map</h1>
+      <div class="subtitle">Persona: Australian seed → Series A founder, mid-raise (Sydney / Parramatta / Melbourne)</div>
+    </div>
+    <div class="meta">
+      Wedge: <b>Investor-Ready Score™</b><br/>
+      Time-to-first-value target: <b>&lt; 5 minutes</b><br/>
+      First 100 paying logos · 1,000 free Score users
+    </div>
+  </div>
+
+  <div class="legend">
+    <span class="chip"><span class="dot" style="background:var(--accent-2)"></span>Customer Jobs</span>
+    <span class="chip"><span class="dot" style="background:var(--rose)"></span>Pains</span>
+    <span class="chip"><span class="dot" style="background:var(--leaf)"></span>Gains</span>
+    <span class="chip"><span class="dot" style="background:var(--gold)"></span>Touchpoints</span>
+    <span class="chip"><span class="dot" style="background:var(--accent)"></span>Opportunities to improve</span>
+  </div>
+
+  <!-- PHASES STRIP -->
+  <div class="phases">
+    <div class="swimlane-title">Phases →<small>(weeks 0 → 12+ from raise kickoff)</small></div>
+    <div class="phase-cell" style="background:var(--p1)">
+      <div class="num">01</div><div class="name">Trigger</div>
+      <div class="who">Decision to raise</div>
+    </div>
+    <div class="phase-cell" style="background:var(--p2)">
+      <div class="num">02</div><div class="name">Discover</div>
+      <div class="who">Finds BlockID</div>
+    </div>
+    <div class="phase-cell" style="background:var(--p3)">
+      <div class="num">03</div><div class="name">Try / Score</div>
+      <div class="who">Free Investor-Ready Score</div>
+    </div>
+    <div class="phase-cell" style="background:var(--p4)">
+      <div class="num">04</div><div class="name">Activate</div>
+      <div class="who">Stripe + Xero plug, full data</div>
+    </div>
+    <div class="phase-cell" style="background:var(--p5)">
+      <div class="num">05</div><div class="name">Convert</div>
+      <div class="who">Pilot / Growth tier paid</div>
+    </div>
+    <div class="phase-cell" style="background:var(--p6)">
+      <div class="num">06</div><div class="name">Raise &amp; Use</div>
+      <div class="who">Active fundraise w/ BlockID</div>
+    </div>
+    <div class="phase-cell" style="background:var(--p7)">
+      <div class="num">07</div><div class="name">Advocate / Expand</div>
+      <div class="who">Round closed → refer + grow</div>
+    </div>
+  </div>
+
+  <!-- ARROWS -->
+  <div class="arrows">
+    <div></div>
+    <div class="arrow first"><div class="ar"></div></div>
+    <div class="arrow"><div class="ar"></div></div>
+    <div class="arrow"><div class="ar"></div></div>
+    <div class="arrow"><div class="ar"></div></div>
+    <div class="arrow"><div class="ar"></div></div>
+    <div class="arrow"><div class="ar"></div></div>
+    <div class="arrow"><div class="ar"></div></div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="row actions">
+    <div class="swimlane-title">User Actions<small>What the founder does</small></div>
+    <div class="cell p1 tilt-a">
+      <ul>
+        <li>Decides to raise next round (SAFE / Series A)</li>
+        <li>Asks lawyer / accountant / peers for advice</li>
+        <li>Tries to "guess" valuation in a spreadsheet</li>
+        <li>Updates pitch deck &amp; cap table</li>
+      </ul>
+    </div>
+    <div class="cell p2 tilt-b">
+      <ul>
+        <li>Googles "startup dilution calculator AU"</li>
+        <li>Sees BlockID via accelerator (Startmate / Antler)</li>
+        <li>Peer founder shares an Investor-Ready link</li>
+        <li>Reads landing page · books a demo</li>
+      </ul>
+    </div>
+    <div class="cell p3 tilt-a">
+      <ul>
+        <li>Signs up free · runs Founder Dilution Calculator</li>
+        <li>Generates first Investor-Ready Score™</li>
+        <li>Answers 10-question intake</li>
+        <li>Downloads branded PDF &amp; share link</li>
+      </ul>
+    </div>
+    <div class="cell p4 tilt-b">
+      <ul>
+        <li>OAuths Stripe + Xero/MYOB (5-min plug)</li>
+        <li>Pulls ASIC/ABR data · imports SAFE / cap table</li>
+        <li>Runs AI Valuation Engine</li>
+        <li>Sees Comparable Companies Wall</li>
+      </ul>
+    </div>
+    <div class="cell p5 tilt-a">
+      <ul>
+        <li>Books founder-led demo (5-min script)</li>
+        <li>Buys Pilot Concierge $5k or Growth $499/mo</li>
+        <li>Signs design-partner / testimonial commitment</li>
+      </ul>
+    </div>
+    <div class="cell p6 tilt-b">
+      <ul>
+        <li>Sends Investor View Links to VCs / angels</li>
+        <li>Uses Term Sheet AI on incoming offers</li>
+        <li>One-Click Data Room for due diligence</li>
+        <li>Cap Table Diff before / after round</li>
+      </ul>
+    </div>
+    <div class="cell p7 tilt-a">
+      <ul>
+        <li>Closes the round · anchors snapshot on-chain</li>
+        <li>Records testimonial · introduces 3 peers</li>
+        <li>Upgrades to Growth · adds governance &amp; ESOP</li>
+        <li>Pushes BlockID into accelerator cohort</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- JOBS -->
+  <div class="row jobs">
+    <div class="swimlane-title">Customer Jobs<small>Jobs-To-Be-Done</small></div>
+    <div class="cell"><span class="tag">Functional</span><span class="tag">Emotional</span>
+      <ul>
+        <li>Get a defensible valuation I can defend to a VC</li>
+        <li>Look credible &amp; "investor-ready" fast</li>
+        <li>Avoid raising on a number I'll regret</li>
+      </ul>
+    </div>
+    <div class="cell"><span class="tag">Functional</span>
+      <ul>
+        <li>Find a tool that fits AU (ASIC / ESIC / R&amp;D)</li>
+        <li>Compare to peers &amp; alternatives (Carta, Pulley, spreadsheets)</li>
+        <li>Validate via accelerator / lawyer / accountant</li>
+      </ul>
+    </div>
+    <div class="cell"><span class="tag">Functional</span><span class="tag">Social</span>
+      <ul>
+        <li>See a real number in &lt; 5 minutes</li>
+        <li>Have something shareable today</li>
+      </ul>
+    </div>
+    <div class="cell"><span class="tag">Functional</span>
+      <ul>
+        <li>Connect operational data without rework</li>
+        <li>See range, multiples, comparables</li>
+        <li>Build the artifact investors will accept</li>
+      </ul>
+    </div>
+    <div class="cell"><span class="tag">Economic</span><span class="tag">Emotional</span>
+      <ul>
+        <li>Justify spend within CFO discretion ($5k)</li>
+        <li>Reduce risk before sending to investors</li>
+      </ul>
+    </div>
+    <div class="cell"><span class="tag">Functional</span><span class="tag">Social</span>
+      <ul>
+        <li>Track who's looking, for how long, at what</li>
+        <li>Negotiate term sheets confidently</li>
+        <li>Run a tight, professional data room</li>
+      </ul>
+    </div>
+    <div class="cell"><span class="tag">Social</span><span class="tag">Emotional</span>
+      <ul>
+        <li>Tell a credible "we raised" story to peers</li>
+        <li>Stay investor-ready between rounds</li>
+        <li>Help cohort / portfolio peers do the same</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- PAINS -->
+  <div class="row pains">
+    <div class="swimlane-title">Pains<small>What hurts right now</small></div>
+    <div class="cell">
+      <ul>
+        <li>"My valuation is made up" anxiety</li>
+        <li>Cap table lives in 3 spreadsheets &amp; PDFs</li>
+        <li>No confidence about market multiples</li>
+        <li>Lawyer fees stack up before any cash in</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Carta is US-centric · 3× the price</li>
+        <li>No AU SME comparables anywhere</li>
+        <li>Tools feel built for accountants, not founders</li>
+        <li>Trust: "is this just another crypto thing?"</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Long onboarding kills curiosity</li>
+        <li>Fear of giving sensitive data to a startup</li>
+        <li>Don't want to "fail" on first try in front of cofounder</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>OAuth scope anxiety on Stripe / Xero</li>
+        <li>Messy historical data inflates / depresses score</li>
+        <li>Score feels black-box without methodology</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Hard to expense without a champion-CFO</li>
+        <li>Worried it duplicates accountant's work</li>
+        <li>Procurement / contract friction</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Scattered DocSend + Notion + Dropbox links</li>
+        <li>Term sheet jargon &amp; $3–10k legal redlines</li>
+        <li>Dilution math errors mid-negotiation</li>
+        <li>Slow VC responses, no signal on engagement</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>BlockID gets parked after round closes</li>
+        <li>Onboarding new investors / employees still manual</li>
+        <li>No incentive to keep cap table fresh between rounds</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- GAINS -->
+  <div class="row gains">
+    <div class="swimlane-title">Gains<small>What "great" looks like</small></div>
+    <div class="cell">
+      <ul>
+        <li>One number / one page I trust to send</li>
+        <li>Quiet confidence walking into a VC meeting</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>"Built for AU founders" is obvious in 10 sec</li>
+        <li>Free tool I can try without a sales call</li>
+        <li>Peer / accelerator endorsement</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Wow moment: real Score in &lt; 5 min</li>
+        <li>Shareable PDF + link the same day</li>
+        <li>Founder-friendly tone (not auditor speak)</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Valuation lifts 10–25% vs guess</li>
+        <li>5 methodologies + comparables visible</li>
+        <li>ASIC / ESIC / R&amp;D auto-flagged</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Pilot Concierge fits CFO discretion</li>
+        <li>30-day money-back removes risk</li>
+        <li>Accountant sees value, not threat</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>"Sequoia partner viewed for 12 min" notification</li>
+        <li>Plain-English term sheet + dilution sim</li>
+        <li>One-click investor-grade data room</li>
+        <li>Faster, calmer raise</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Persistent BlockID = digital DNA &amp; trust history</li>
+        <li>Easy intros &amp; cohort onboarding</li>
+        <li>Ready before next raise — no scramble</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- TOUCHPOINTS -->
+  <div class="row touch">
+    <div class="swimlane-title">Touchpoints<small>Where it happens</small></div>
+    <div class="cell">
+      <ul>
+        <li>Slack / WhatsApp founder groups</li>
+        <li>Accelerator office hours</li>
+        <li>Lawyer &amp; accountant convos</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Google AU SEO (dilution calculator)</li>
+        <li>Accelerator white-label portal</li>
+        <li>Peer-shared Investor View Link</li>
+        <li>LinkedIn / founder podcasts</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>blockid.au landing &amp; Score wizard</li>
+        <li>Email: "Your Score is ready"</li>
+        <li>Branded PDF + share URL</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>OAuth flows (Stripe, Xero/MYOB, ASIC)</li>
+        <li>In-app dashboard · methodology drawer</li>
+        <li>Cap Table OS · Comparable Wall</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>5-min founder-led demo (Zoom)</li>
+        <li>Pricing page · Stripe checkout</li>
+        <li>Design-partner agreement</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Investor View Link + viewer notifications</li>
+        <li>Term Sheet AI · One-Click Data Room</li>
+        <li>Slack alerts · weekly raise digest</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Closed-round on-chain snapshot</li>
+        <li>Testimonial recording · case study</li>
+        <li>Investor Welcome Pack for VCs</li>
+        <li>Accelerator cohort dashboard</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- OPPORTUNITIES -->
+  <div class="row opps">
+    <div class="swimlane-title">Opportunities to Improve<small>Where to invest next</small></div>
+    <div class="cell">
+      <ul>
+        <li>"Raise Trigger" content series w/ AU VCs</li>
+        <li>Lawyer / accountant referral kits ($500/lead)</li>
+        <li>SEO play: "AU SAFE valuation guide"</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Free Founder Dilution Calculator → ranks #1 AU</li>
+        <li>Accelerator white-label rollout (Startmate / Antler)</li>
+        <li>Trust badges: SOC2 commitment, AU residency, ASIC sync</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Cut intake to 6 questions; pre-fill from ABN</li>
+        <li>"Score in 60s" demo mode w/ sample data</li>
+        <li>Fail-soft: partial Score even if data missing</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>"Score lift" coach: surface what to fix today</li>
+        <li>Methodology drawer: 5 valuation methods explained</li>
+        <li>Auto-flag ESIC / R&amp;D eligibility ($200–500k value)</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Frictionless "$5k Pilot — 7 spots left" CTA</li>
+        <li>Accountant-co-billed plan (Xero app store)</li>
+        <li>30-day money-back · auto-renewal preview</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Investor heatmap (which slides get read)</li>
+        <li>Term Sheet AI vs AU comps benchmarks</li>
+        <li>NDA-tracked, watermark-stamped data room v2</li>
+        <li>Slack/Email digest for cofounders &amp; board</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>"Always investor-ready" subscription value loop</li>
+        <li>Quarterly auto-reports for VCs (Welcome Pack)</li>
+        <li>Refer-a-founder credits + cohort upsell</li>
+        <li>Governance &amp; ESOP modules as expansion</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- EMOTION -->
+  <div class="row emo">
+    <div class="swimlane-title">Emotion Curve<small>Founder mood across the journey</small></div>
+    <div class="cell" colspan="7" style="grid-column: 2 / span 7;">
+      <div class="mood">
+        <svg viewBox="0 0 1400 56" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="g" x1="0" x2="1" y1="0" y2="0">
+              <stop offset="0%"  stop-color="#b91c1c"/>
+              <stop offset="20%" stop-color="#d97706"/>
+              <stop offset="35%" stop-color="#16a34a"/>
+              <stop offset="55%" stop-color="#0f766e"/>
+              <stop offset="70%" stop-color="#1f6feb"/>
+              <stop offset="90%" stop-color="#16a34a"/>
+              <stop offset="100%" stop-color="#16a34a"/>
+            </linearGradient>
+          </defs>
+          <path d="M0,42 C 90,42 110,46 200,46
+                   C 280,46 300,30 400,28
+                   C 500,26 520,8 600,12
+                   C 680,16 720,22 800,18
+                   C 880,14 900,8 1000,10
+                   C 1100,12 1140,4 1200,6
+                   C 1280,10 1320,4 1400,4"
+                fill="none" stroke="url(#g)" stroke-width="5" stroke-linecap="round"/>
+          <g font-family="Caveat, cursive" font-size="20" fill="#0b1020">
+            <text x="60"   y="38">😟 anxious</text>
+            <text x="260"  y="38">🤔 curious</text>
+            <text x="450"  y="22">😀 hopeful</text>
+            <text x="660"  y="32">😎 in control</text>
+            <text x="880"  y="22">💪 confident</text>
+            <text x="1100" y="22">🎉 closing</text>
+            <text x="1280" y="22">🤝 advocate</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI ROW -->
+  <div class="kpi-row">
+    <div class="label-cell">North-star KPIs by phase</div>
+    <div class="kpi"><b>Trigger:</b> # qualified raise-intent leads / wk</div>
+    <div class="kpi"><b>Discover:</b> SEO rank · accelerator-sourced signups / wk</div>
+    <div class="kpi"><b>Try:</b> Free Scores generated / wk · TTFV &lt; 5 min</div>
+    <div class="kpi"><b>Activate:</b> Stripe+Xero connect rate · methodology views</div>
+    <div class="kpi"><b>Convert:</b> Free → paid 8% in 30 days · Pilot $5k closes</div>
+    <div class="kpi"><b>Raise:</b> Investor View Link opens / wk · TS-AI uses</div>
+    <div class="kpi"><b>Advocate:</b> 2nd Score in 90d · referrals · ACV expansion</div>
+  </div>
+
+  <!-- FOOTER NOTES -->
+  <div class="footer">
+    <div class="note">
+      <h3>Wedge promise</h3>
+      <ul>
+        <li><b>Investor-Ready Score™</b> — one number, one page, one shareable link. Generated in 5 minutes by connecting Stripe + Xero/MYOB.</li>
+        <li>Designed to be <b>shared</b>: every founder becomes a marketer; every investor view = buy-side lead.</li>
+        <li>Naturally upsells into Cap Table OS, AI Valuation, Data Room, Governance.</li>
+      </ul>
+    </div>
+    <div class="note">
+      <h3>Key moments of truth</h3>
+      <ul>
+        <li>First Score appears (&lt; 5 min) — must "wow"</li>
+        <li>"Sequoia partner viewed your link for 12 min" — magic notification</li>
+        <li>Term Sheet AI saves $3–10k in lawyer fees in one demo</li>
+        <li>Closed-round on-chain anchor — trust artifact for next raise</li>
+      </ul>
+    </div>
+    <div class="note">
+      <h3>Anti-patterns to avoid</h3>
+      <ul>
+        <li>Talking blockchain before talking valuation</li>
+        <li>Long intake forms · gated downloads · sales-call walls</li>
+        <li>US-style copy ignoring ASIC / ESIC / R&amp;D context</li>
+        <li>Building marketplace / sovereign chain before 100 paying customers</li>
+      </ul>
+    </div>
+  </div>
+</div>
+</body>
+</html>

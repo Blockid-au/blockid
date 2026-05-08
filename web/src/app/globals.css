@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink-950: #0b1220;
+  --color-ink-900: #0f172a;
+  --color-ink-800: #172033;
+  --color-ink-700: #1f2a44;
+  --color-paper-50: #f8fafc;
+  --color-teal-300: #5eead4;
+  --color-teal-400: #2dd4bf;
+  --color-teal-500: #0fb5a9;
+  --color-teal-600: #0e9f94;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background-color: var(--color-ink-950);
+  color: var(--color-paper-50);
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.font-mono,
+[class*="tabular-nums"] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Subtle teal glow used by primary CTA and bento tile hover. */
+.cta-glow {
+  box-shadow: 0 8px 32px rgba(15, 181, 169, 0.25);
+}
+.tile-glow:hover {
+  box-shadow: 0 0 0 1px rgba(15, 181, 169, 0.2),
+    0 12px 32px -8px rgba(15, 181, 169, 0.18);
+}
+
+/* Honour reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.001ms !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* Scrollbar treatment on dark surfaces. */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.18);
+  border-radius: 9999px;
+}

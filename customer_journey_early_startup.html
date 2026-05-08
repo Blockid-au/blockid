@@ -1,0 +1,709 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>BlockID.au — Early Startup Customer Journey</title>
+<style>
+  :root {
+    --ink: #0b1020;
+    --ink-2: #1a2240;
+    --paper: #fbf7ee;
+    --paper-2: #f3ecdb;
+    --line: #2b2f4a;
+    --accent: #e85d2a;
+    --accent-2: #1f6feb;
+    --teal: #0f766e;
+    --rose: #b91c1c;
+    --gold: #b45309;
+    --leaf: #166534;
+    --p1: #ffe1c4;
+    --p2: #ffd1a8;
+    --p3: #fbe7a3;
+    --p4: #d3edc4;
+    --p5: #bfe0d6;
+    --p6: #c5dcf3;
+    --p7: #e1d3f2;
+  }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Kalam", "Caveat", "Patrick Hand", "Comic Sans MS", "Segoe Print", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .canvas {
+    width: 2200px;
+    padding: 36px 40px 48px 40px;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 39px, rgba(40,50,80,.05) 39px 40px),
+      repeating-linear-gradient(90deg, transparent 0 39px, rgba(40,50,80,.04) 39px 40px),
+      var(--paper);
+    box-shadow: inset 0 0 120px rgba(120,90,30,.12);
+    position: relative;
+  }
+  .header {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    border-bottom: 3px dashed var(--ink); padding-bottom: 14px; margin-bottom: 24px;
+  }
+  h1 {
+    font-family: "Caveat", "Kalam", cursive;
+    font-size: 60px; line-height: 1; margin: 0 0 6px 0;
+    letter-spacing: 1px;
+  }
+  .subtitle { font-size: 22px; color: var(--ink-2); }
+  .meta { text-align: right; font-size: 18px; color: var(--ink-2); }
+  .meta b { color: var(--accent); }
+
+  .legend {
+    display: flex; gap: 20px; align-items: center; margin: 8px 0 20px 0;
+    font-size: 17px; flex-wrap: wrap;
+  }
+  .legend .chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 2px solid var(--ink); border-radius: 14px;
+    padding: 4px 12px; background: #fff;
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+  .dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ink); display: inline-block; }
+
+  .phases {
+    display: grid;
+    grid-template-columns: 220px repeat(7, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .phase-cell {
+    border: 3px solid var(--ink);
+    border-radius: 18px;
+    padding: 10px 12px 12px 12px;
+    box-shadow: 5px 5px 0 var(--ink);
+    transform: rotate(-0.4deg);
+    text-align: center;
+  }
+  .phase-cell:nth-child(odd) { transform: rotate(0.5deg); }
+  .phase-cell .num {
+    font-family: "Caveat", cursive;
+    font-size: 36px; line-height: 1; color: var(--accent);
+  }
+  .phase-cell .name {
+    font-family: "Caveat", cursive;
+    font-size: 28px; line-height: 1; margin-top: 2px;
+  }
+  .phase-cell .who { font-size: 13px; color: var(--ink-2); margin-top: 4px; }
+
+  .swimlane-title {
+    border: 2px dashed var(--ink); border-radius: 14px;
+    background: #fff; padding: 10px 12px;
+    font-family: "Caveat", cursive; font-size: 28px; line-height: 1.05;
+    box-shadow: 3px 3px 0 var(--ink);
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .swimlane-title small { font-size: 13px; font-family: inherit; color: var(--ink-2); display: block; margin-top: 4px; }
+
+  .row {
+    display: grid;
+    grid-template-columns: 220px repeat(7, 1fr);
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .cell {
+    border: 2px solid var(--ink);
+    border-radius: 14px;
+    padding: 10px 12px;
+    background: #fff;
+    box-shadow: 3px 3px 0 var(--ink);
+    font-size: 15.5px;
+    line-height: 1.25;
+  }
+  .cell.tilt-a { transform: rotate(-0.3deg); }
+  .cell.tilt-b { transform: rotate(0.3deg); }
+
+  .cell ul { margin: 4px 0 0 0; padding-left: 18px; }
+  .cell li { margin-bottom: 3px; }
+  .cell .tag {
+    display: inline-block; font-size: 12px;
+    padding: 1px 8px; border-radius: 999px; border: 1.5px solid var(--ink);
+    background: var(--paper-2); margin-right: 4px; margin-bottom: 4px;
+  }
+
+  .row.actions .cell { font-weight: 500; }
+  .row.actions .cell.p1 { background: var(--p1); }
+  .row.actions .cell.p2 { background: var(--p2); }
+  .row.actions .cell.p3 { background: var(--p3); }
+  .row.actions .cell.p4 { background: var(--p4); }
+  .row.actions .cell.p5 { background: var(--p5); }
+  .row.actions .cell.p6 { background: var(--p6); }
+  .row.actions .cell.p7 { background: var(--p7); }
+
+  .jobs   .cell { border-left: 8px solid var(--accent-2); }
+  .pains  .cell { border-left: 8px solid var(--rose); background: #fff6f5; }
+  .gains  .cell { border-left: 8px solid var(--leaf); background: #f3fbf3; }
+  .touch  .cell { border-left: 8px solid var(--gold); background: #fffaf0; }
+  .opps   .cell { border-left: 8px solid var(--accent); background: #fff3e8; font-weight: 500; }
+  .emo    .cell { background: #fff; }
+
+  .emo .cell { padding: 6px 8px; }
+  .mood {
+    height: 56px; position: relative;
+    background: linear-gradient(180deg, #fff 0%, #fff 100%);
+    border-radius: 8px; overflow: hidden;
+  }
+  .mood svg { width: 100%; height: 100%; }
+
+  .arrows {
+    display: grid;
+    grid-template-columns: 220px repeat(7, 1fr);
+    gap: 10px;
+    margin: 6px 0 14px 0;
+  }
+  .arrow {
+    height: 36px; display: flex; align-items: center; justify-content: center;
+    font-family: "Caveat", cursive; font-size: 22px; color: var(--ink-2);
+  }
+  .arrow .ar {
+    flex: 1; height: 0; border-top: 3px dashed var(--ink); position: relative;
+  }
+  .arrow .ar::after {
+    content: ""; position: absolute; right: -2px; top: -9px;
+    border: 8px solid transparent; border-left-color: var(--ink);
+  }
+  .arrow.first { visibility: hidden; }
+
+  .footer {
+    margin-top: 22px;
+    display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 16px;
+  }
+  .note {
+    border: 2px solid var(--ink); border-radius: 16px;
+    background: #fff; padding: 14px 16px;
+    box-shadow: 5px 5px 0 var(--ink);
+  }
+  .note h3 {
+    margin: 0 0 6px 0; font-family: "Caveat", cursive; font-size: 30px;
+  }
+  .note ul { margin: 0; padding-left: 18px; font-size: 15.5px; }
+
+  .stamp {
+    position: absolute; right: 50px; top: 40px;
+    transform: rotate(-8deg);
+    border: 3px solid var(--rose); color: var(--rose);
+    border-radius: 10px; padding: 6px 14px;
+    font-family: "Caveat", cursive; font-size: 24px;
+    letter-spacing: 1px; opacity: .85;
+    background: rgba(255,255,255,.5);
+  }
+
+  .kpi-row {
+    display: grid; grid-template-columns: 220px repeat(7, 1fr); gap: 10px;
+    margin-top: 6px;
+  }
+  .kpi {
+    background: #0b1020; color: #fbf7ee; border-radius: 10px;
+    border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink);
+    padding: 8px 10px; font-size: 14px; line-height: 1.2;
+    font-family: "Caveat", cursive;
+  }
+  .kpi b { color: #fbbf24; }
+
+  .label-cell {
+    background: #0b1020; color: #fbf7ee; border-radius: 10px;
+    padding: 6px 10px; font-size: 14px; text-align: center;
+    border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink);
+    font-family: "Caveat", cursive;
+  }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <div class="stamp">EARLY STARTUP · v1</div>
+  <div class="header">
+    <div>
+      <h1>BlockID.au — Early-Startup Customer Journey</h1>
+      <div class="subtitle">Persona: Australian pre-seed → seed founder · 1–3 cofounders · 0–10 staff · spreadsheet cap table · no formal data room yet</div>
+    </div>
+    <div class="meta">
+      Free entry: <b>Investor-Ready Score™</b><br/>
+      Lifetime artifact: <b>Persistent BlockID</b><br/>
+      Goal: from "messy spreadsheet" → first Series A in 18–24 months
+    </div>
+  </div>
+
+  <div class="legend">
+    <span class="chip"><span class="dot" style="background:var(--accent-2)"></span>Customer Jobs</span>
+    <span class="chip"><span class="dot" style="background:var(--rose)"></span>Pains</span>
+    <span class="chip"><span class="dot" style="background:var(--leaf)"></span>Gains</span>
+    <span class="chip"><span class="dot" style="background:var(--gold)"></span>Touchpoints</span>
+    <span class="chip"><span class="dot" style="background:var(--accent)"></span>Opportunities to improve</span>
+  </div>
+
+  <!-- PHASES -->
+  <div class="phases">
+    <div class="swimlane-title">Phases →<small>(month 0 → 18+ from incorporation)</small></div>
+    <div class="phase-cell" style="background:var(--p1)">
+      <div class="num">01</div><div class="name">Day 0 / Setup</div>
+      <div class="who">Just incorporated · founder shares</div>
+    </div>
+    <div class="phase-cell" style="background:var(--p2)">
+      <div class="num">02</div><div class="name">Awareness</div>
+      <div class="who">Hears about BlockID</div>
+    </div>
+    <div class="phase-cell" style="background:var(--p3)">
+      <div class="num">03</div><div class="name">Free Try</div>
+      <div class="who">First Score · sign-up</div>
+    </div>
+    <div class="phase-cell" style="background:var(--p4)">
+      <div class="num">04</div><div class="name">Onboard</div>
+      <div class="who">Persistent BlockID created</div>
+    </div>
+    <div class="phase-cell" style="background:var(--p5)">
+      <div class="num">05</div><div class="name">Build Trust</div>
+      <div class="who">Daily ops · cap table · ESOP</div>
+    </div>
+    <div class="phase-cell" style="background:var(--p6)">
+      <div class="num">06</div><div class="name">First Raise</div>
+      <div class="who">SAFE / seed round</div>
+    </div>
+    <div class="phase-cell" style="background:var(--p7)">
+      <div class="num">07</div><div class="name">Grow / Series A-ready</div>
+      <div class="who">Compounding trust history</div>
+    </div>
+  </div>
+
+  <!-- ARROWS -->
+  <div class="arrows">
+    <div></div>
+    <div class="arrow first"><div class="ar"></div></div>
+    <div class="arrow"><div class="ar"></div></div>
+    <div class="arrow"><div class="ar"></div></div>
+    <div class="arrow"><div class="ar"></div></div>
+    <div class="arrow"><div class="ar"></div></div>
+    <div class="arrow"><div class="ar"></div></div>
+    <div class="arrow"><div class="ar"></div></div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="row actions">
+    <div class="swimlane-title">User Actions<small>What the founder does</small></div>
+    <div class="cell p1 tilt-a">
+      <ul>
+        <li>Registers Pty Ltd via ASIC · gets ABN</li>
+        <li>Splits founder equity, signs founders' agreement</li>
+        <li>Builds cap table v1 in Google Sheets</li>
+        <li>Pays lawyer for first SAFE template</li>
+      </ul>
+    </div>
+    <div class="cell p2 tilt-b">
+      <ul>
+        <li>Hears "BlockID" at accelerator office hours</li>
+        <li>Sees Founder Dilution Calculator on Google AU</li>
+        <li>Peer founder shares an Investor-Ready link</li>
+        <li>Visits blockid.au · reads landing page</li>
+      </ul>
+    </div>
+    <div class="cell p3 tilt-a">
+      <ul>
+        <li>Signs up free · 10-question intake</li>
+        <li>Generates first Investor-Ready Score™</li>
+        <li>Downloads PDF · shares with cofounder</li>
+        <li>Plays with public dilution calculator</li>
+      </ul>
+    </div>
+    <div class="cell p4 tilt-b">
+      <ul>
+        <li>ASIC/ABR sync auto-pulls company info</li>
+        <li>Imports Google Sheet cap table → AI Cap Table OS</li>
+        <li>OAuth Stripe + Xero/MYOB (5-min plug)</li>
+        <li>Persistent BlockID profile published</li>
+      </ul>
+    </div>
+    <div class="cell p5 tilt-a">
+      <ul>
+        <li>Issues founder + advisor shares · ESOP grants</li>
+        <li>Logs board resolutions · governance events</li>
+        <li>Tracks valuation trend · runway · burn</li>
+        <li>Invites cofounder, accountant, mentor as viewers</li>
+      </ul>
+    </div>
+    <div class="cell p6 tilt-b">
+      <ul>
+        <li>Auto-builds One-Click Data Room</li>
+        <li>Sends Investor View Links to angels / VCs</li>
+        <li>Pastes incoming term sheet → Term Sheet AI</li>
+        <li>Closes round · Cap Table Diff before/after</li>
+      </ul>
+    </div>
+    <div class="cell p7 tilt-a">
+      <ul>
+        <li>Anchors round + governance proofs on-chain</li>
+        <li>Auto-quarterly investor updates</li>
+        <li>Refers 3 peer founders · joins case study</li>
+        <li>Starts Series A pipeline · upgrades to Growth</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- JOBS -->
+  <div class="row jobs">
+    <div class="swimlane-title">Customer Jobs<small>Jobs-To-Be-Done</small></div>
+    <div class="cell"><span class="tag">Functional</span><span class="tag">Emotional</span>
+      <ul>
+        <li>Set up the company "the right way" from day 1</li>
+        <li>Avoid future cap-table disasters</li>
+        <li>Feel like a "real" company, not a side project</li>
+      </ul>
+    </div>
+    <div class="cell"><span class="tag">Functional</span>
+      <ul>
+        <li>Find an AU-native tool (not Carta)</li>
+        <li>Sanity-check from peers / accelerator</li>
+        <li>Confirm it's not "just another crypto thing"</li>
+      </ul>
+    </div>
+    <div class="cell"><span class="tag">Functional</span><span class="tag">Social</span>
+      <ul>
+        <li>See real value in &lt; 5 min, $0 spent</li>
+        <li>Get a baseline number for valuation</li>
+        <li>Have something to show cofounder &amp; advisors</li>
+      </ul>
+    </div>
+    <div class="cell"><span class="tag">Functional</span>
+      <ul>
+        <li>Replace the Google Sheet cap table</li>
+        <li>Get one source of truth for ownership</li>
+        <li>Connect ops data without data-entry</li>
+      </ul>
+    </div>
+    <div class="cell"><span class="tag">Functional</span><span class="tag">Emotional</span>
+      <ul>
+        <li>Issue ESOP / advisor shares cleanly</li>
+        <li>Build a verifiable history while small</li>
+        <li>Sleep at night knowing governance is logged</li>
+      </ul>
+    </div>
+    <div class="cell"><span class="tag">Functional</span><span class="tag">Social</span>
+      <ul>
+        <li>Look investor-ready without lawyer scramble</li>
+        <li>Negotiate term sheet without overpaying counsel</li>
+        <li>Track investor engagement in real time</li>
+      </ul>
+    </div>
+    <div class="cell"><span class="tag">Social</span><span class="tag">Emotional</span>
+      <ul>
+        <li>Tell a credible "we did it right" story</li>
+        <li>Stay raise-ready continuously, not in panic mode</li>
+        <li>Help next cohort of founders avoid my mistakes</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- PAINS -->
+  <div class="row pains">
+    <div class="swimlane-title">Pains<small>What hurts right now</small></div>
+    <div class="cell">
+      <ul>
+        <li>Don't know how to split equity fairly</li>
+        <li>Lawyer + accountant fees pile up before revenue</li>
+        <li>Cap table = a fragile spreadsheet</li>
+        <li>No clue what the company is "worth"</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Too many tools, all US-centric (Carta, Pulley)</li>
+        <li>Crypto/blockchain branding feels risky</li>
+        <li>Not sure if early enough to need this</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Long forms kill curiosity in 60s</li>
+        <li>Worried Score will "fail" with little data</li>
+        <li>Privacy fear — sharing financials with a startup</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>OAuth scope anxiety on Stripe / Xero</li>
+        <li>Existing cap table is messy → import errors</li>
+        <li>Doesn't feel like "their" tool yet</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>No incentive to keep updating without a raise</li>
+        <li>ESOP setup feels legally scary</li>
+        <li>Cofounder / advisor adoption lags</li>
+        <li>Tool can become "set &amp; forget"</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Investor jargon overwhelms first-time founders</li>
+        <li>Dilution math errors mid-negotiation</li>
+        <li>Scattered links (DocSend, Notion, Drive)</li>
+        <li>VC silence = no signal on engagement</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Quarterly updates become a chore</li>
+        <li>Series A bar (governance, audit) feels far</li>
+        <li>Unclear ROI of upgrading vs free tier</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- GAINS -->
+  <div class="row gains">
+    <div class="swimlane-title">Gains<small>What "great" looks like</small></div>
+    <div class="cell">
+      <ul>
+        <li>Founder agreement &amp; cap table done right once</li>
+        <li>"Investor-ready by default" mindset from day 0</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>"Built for AU founders" obvious in 10 sec</li>
+        <li>Free tier · no sales call required</li>
+        <li>Trust signals: SOC2, AU residency, ASIC sync</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>First Score in &lt; 5 min — wow moment</li>
+        <li>PDF + shareable link same day</li>
+        <li>Founder-friendly tone (not auditor-speak)</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>One source of truth replaces 3 spreadsheets</li>
+        <li>ASIC / ESIC / R&amp;D auto-flagged</li>
+        <li>Persistent BlockID = lifetime company DNA</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Trust history compounds while small</li>
+        <li>Governance log makes board prep painless</li>
+        <li>Cofounder &amp; advisor see live cap table</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Plain-English term sheet · dilution simulator</li>
+        <li>"VC viewed your link 12 min" notification</li>
+        <li>Round closes faster, calmer, with cleaner docs</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Auto-quarterly updates · investors stay warm</li>
+        <li>Series A audit takes days, not months</li>
+        <li>BlockID Trust Score lifts terms next round</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- TOUCHPOINTS -->
+  <div class="row touch">
+    <div class="swimlane-title">Touchpoints<small>Where it happens</small></div>
+    <div class="cell">
+      <ul>
+        <li>Lawyer / accountant convos</li>
+        <li>Cofounder pizza-night chat</li>
+        <li>ASIC / ABR registration sites</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Google AU SEO (dilution calculator)</li>
+        <li>Accelerator white-label portal</li>
+        <li>Peer-shared Investor View Link</li>
+        <li>LinkedIn · founder Slack groups</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>blockid.au landing &amp; Score wizard</li>
+        <li>Email: "Your Score is ready"</li>
+        <li>Branded PDF + share URL</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>OAuth flows (Stripe, Xero/MYOB, ASIC)</li>
+        <li>In-app dashboard · methodology drawer</li>
+        <li>AI Cap Table OS · ESOP wizard</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Governance Infrastructure module</li>
+        <li>Slack / email digest for cofounders</li>
+        <li>Accountant collaborator seat</li>
+        <li>Mobile push: "monthly Score update"</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Investor View Link + viewer notifications</li>
+        <li>Term Sheet AI · One-Click Data Room</li>
+        <li>Founder demo (5-min script)</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>On-chain round snapshot · Trust Score™</li>
+        <li>Investor Welcome Pack for VCs</li>
+        <li>Quarterly auto-report email</li>
+        <li>Refer-a-founder credits</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- OPPORTUNITIES -->
+  <div class="row opps">
+    <div class="swimlane-title">Opportunities to Improve<small>Where to invest next</small></div>
+    <div class="cell">
+      <ul>
+        <li>"Day 0 starter pack": founder-agreement + cap table template</li>
+        <li>Lawyer / accountant referral kit ($500/lead)</li>
+        <li>SEO play: "How to set up an AU startup the right way"</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Free Founder Dilution Calculator → rank #1 AU</li>
+        <li>Accelerator white-label rollout (Startmate / Antler / Cicada)</li>
+        <li>Trust badges above the fold (SOC2, AU residency)</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Cut intake to 6 questions; pre-fill from ABN</li>
+        <li>"Score in 60s" demo mode w/ sample data</li>
+        <li>Fail-soft Score with confidence band when data is thin</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Sheets → Cap Table OS one-click importer</li>
+        <li>Methodology drawer (5 valuation methods explained)</li>
+        <li>Auto-flag ESIC / R&amp;D eligibility ($200–500k value)</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>"Health pings": monthly Score delta + nudges</li>
+        <li>ESOP &amp; advisor-share wizard (template + docs)</li>
+        <li>Governance log auto-prompt after each board call</li>
+        <li>Cofounder / accountant collaborator seats free</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>Investor heatmap (which slides get read)</li>
+        <li>Term Sheet AI vs AU comps benchmarks</li>
+        <li>NDA-tracked, watermark-stamped data room v2</li>
+        <li>"$5k Pilot — 7 spots left" gentle CTA</li>
+      </ul>
+    </div>
+    <div class="cell">
+      <ul>
+        <li>"Always investor-ready" subscription value loop</li>
+        <li>Series A readiness checklist auto-tracked</li>
+        <li>Refer-a-founder credits + cohort upsell</li>
+        <li>Tier upgrade prompts tied to milestones</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- EMOTION -->
+  <div class="row emo">
+    <div class="swimlane-title">Emotion Curve<small>Founder mood across the journey</small></div>
+    <div class="cell" style="grid-column: 2 / span 7;">
+      <div class="mood">
+        <svg viewBox="0 0 1400 56" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="g" x1="0" x2="1" y1="0" y2="0">
+              <stop offset="0%"  stop-color="#b91c1c"/>
+              <stop offset="18%" stop-color="#d97706"/>
+              <stop offset="35%" stop-color="#16a34a"/>
+              <stop offset="55%" stop-color="#0f766e"/>
+              <stop offset="72%" stop-color="#1f6feb"/>
+              <stop offset="90%" stop-color="#16a34a"/>
+              <stop offset="100%" stop-color="#16a34a"/>
+            </linearGradient>
+          </defs>
+          <path d="M0,46 C 90,46 110,48 200,46
+                   C 280,44 300,32 400,30
+                   C 500,28 520,10 600,14
+                   C 680,18 720,24 800,20
+                   C 880,16 900,10 1000,12
+                   C 1100,14 1140,6 1200,8
+                   C 1280,12 1320,6 1400,6"
+                fill="none" stroke="url(#g)" stroke-width="5" stroke-linecap="round"/>
+          <g font-family="Caveat, cursive" font-size="20" fill="#0b1020">
+            <text x="40"   y="40">😵 overwhelmed</text>
+            <text x="260"  y="40">🤔 curious</text>
+            <text x="450"  y="22">😀 surprised</text>
+            <text x="660"  y="32">🙂 organised</text>
+            <text x="880"  y="22">💪 confident</text>
+            <text x="1080" y="22">🎉 funded!</text>
+            <text x="1280" y="22">🤝 advocate</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI ROW -->
+  <div class="kpi-row">
+    <div class="label-cell">North-star KPIs by phase</div>
+    <div class="kpi"><b>Setup:</b> # day-0 founder kits downloaded / wk</div>
+    <div class="kpi"><b>Awareness:</b> SEO rank · accelerator-sourced signups</div>
+    <div class="kpi"><b>Free Try:</b> Free Scores generated · TTFV &lt; 5 min</div>
+    <div class="kpi"><b>Onboard:</b> Stripe+Xero connect · Cap Table imported</div>
+    <div class="kpi"><b>Build Trust:</b> 30-day active · governance events / mo</div>
+    <div class="kpi"><b>First Raise:</b> View Link opens · TS-AI uses · close rate</div>
+    <div class="kpi"><b>Grow:</b> 2nd Score in 90d · referrals · expansion ACV</div>
+  </div>
+
+  <!-- FOOTER NOTES -->
+  <div class="footer">
+    <div class="note">
+      <h3>Why early startup is the right wedge</h3>
+      <ul>
+        <li>Sticky from day 0: persistent BlockID becomes the company's <b>lifetime trust spine</b>.</li>
+        <li>Low CAC via accelerators: one cohort = 20–50 founders onboarded at near-zero cost.</li>
+        <li>Compounding data moat: every early company adds to the AU SME comparable dataset.</li>
+        <li>Each founder graduates into a paying Growth / Series A customer over 12–18 months.</li>
+      </ul>
+    </div>
+    <div class="note">
+      <h3>Key moments of truth</h3>
+      <ul>
+        <li>First Score appears (&lt; 5 min) — must "wow"</li>
+        <li>"Sheets → Cap Table OS" import succeeds without errors</li>
+        <li>First governance event logged (board minute, advisor share)</li>
+        <li>"VC viewed your link 12 min" notification → first paid upgrade</li>
+        <li>Round closes &amp; gets anchored on-chain — trust artifact for next raise</li>
+      </ul>
+    </div>
+    <div class="note">
+      <h3>Anti-patterns to avoid</h3>
+      <ul>
+        <li>Talking blockchain / sovereign chains before talking valuation &amp; cap table</li>
+        <li>Long intake forms · gated downloads · sales-call walls on free tier</li>
+        <li>US-style copy ignoring ASIC / ESIC / R&amp;D context</li>
+        <li>Charging too early — early startups need free until 1st raise</li>
+        <li>Letting BlockID become "set &amp; forget" between rounds</li>
+      </ul>
+    </div>
+  </div>
+</div>
+</body>
+</html>

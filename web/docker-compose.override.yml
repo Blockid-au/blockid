@@ -1,0 +1,21 @@
+# Local-development override.
+#
+# Activated automatically by `docker compose up` (no extra flag needed). On
+# CI / production hosts you should remove this file or pass
+# `-f docker-compose.yml` only.
+#
+# Effect:
+#   - publish web on host :8080 so you can hit http://localhost:8080
+#   - replace caddy with a no-op so we don't try to acquire ACME certs
+#     against a non-real DNS name on a dev box.
+
+services:
+  web:
+    ports:
+      - "8080:3000"
+
+  caddy:
+    image: alpine:3
+    command: ["sleep", "infinity"]
+    ports: []
+    volumes: []
