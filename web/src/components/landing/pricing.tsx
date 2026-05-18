@@ -2,10 +2,12 @@ import Link from "next/link";
 import { Check, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { PricingCoupon } from "./pricing-coupon";
 
 interface Tier {
   name: string;
   price: string;
+  numericPrice?: number;
   cadence?: string;
   audience: string;
   features: string[];
@@ -25,11 +27,12 @@ const tiers: Tier[] = [
       "1 Stripe + Xero connection",
       "Basic dilution calculator",
     ],
-    cta: { label: "Get my score", href: "/score" },
+    cta: { label: "Get started free", href: "/score" },
   },
   {
     name: "Founder",
     price: "$99",
+    numericPrice: 99,
     cadence: "/ month",
     audience: "Pre-seed solo founder",
     features: [
@@ -38,11 +41,12 @@ const tiers: Tier[] = [
       "Investor View Link with read receipts",
       "Term Sheet AI (3 / month)",
     ],
-    cta: { label: "Start trial", href: "/score" },
+    cta: { label: "Start 14-day trial", href: "/auth/login?plan=founder" },
   },
   {
     name: "Growth",
     price: "$499",
+    numericPrice: 499,
     cadence: "/ month",
     audience: "Active fundraise · Seed → A",
     features: [
@@ -52,13 +56,14 @@ const tiers: Tier[] = [
       "Comparable Companies Wall",
       "30-day money back",
     ],
-    cta: { label: "Talk to founder", href: "#" },
+    cta: { label: "Start 14-day trial", href: "/auth/login?plan=growth" },
     highlight: true,
     badge: "Most popular",
   },
   {
     name: "Pilot Concierge",
     price: "$5,000",
+    numericPrice: 5000,
     cadence: "once-off",
     audience: "First 30 design partners",
     features: [
@@ -68,11 +73,12 @@ const tiers: Tier[] = [
       "Direct Slack channel",
       "30-day deal close commitment",
     ],
-    cta: { label: "Apply for a pilot", href: "#" },
+    cta: { label: "Apply for pilot", href: "/auth/login?plan=pilot" },
   },
   {
     name: "Accelerator",
     price: "$20–60k",
+    numericPrice: 20000,
     cadence: "/ year",
     audience: "Cohort programs & venture studios",
     features: [
@@ -81,31 +87,41 @@ const tiers: Tier[] = [
       "Bulk founder onboarding",
       "Investor Welcome Pack for LPs",
     ],
-    cta: { label: "Partner with us", href: "#" },
+    cta: {
+      label: "Partner with us",
+      href: "/auth/login?plan=accelerator",
+    },
   },
 ];
+
+/** Prices that can be discounted (keyed by plan name). */
+const discountablePrices: Record<string, number> = Object.fromEntries(
+  tiers
+    .filter((t) => t.numericPrice !== undefined)
+    .map((t) => [t.name, t.numericPrice!]),
+);
 
 export function Pricing() {
   return (
     <section
       id="pricing"
       aria-labelledby="pricing-title"
-      className="py-24 md:py-32 border-t border-ink-700"
+      className="py-24 md:py-32 border-t border-surface-300"
     >
       <div className="mx-auto max-w-7xl px-6">
         <div className="max-w-3xl">
-          <p className="text-xs uppercase tracking-[0.2em] text-teal-400 font-medium">
-            Pricing designed to close
+          <p className="text-xs uppercase tracking-[0.2em] text-gold-500 font-medium">
+            Pricing
           </p>
           <h2
             id="pricing-title"
-            className="mt-3 text-3xl md:text-5xl font-semibold tracking-tight text-slate-50"
+            className="mt-3 text-3xl md:text-5xl font-semibold tracking-tight text-brand-900"
           >
-            Free to start. The Pilot Concierge is the magic SKU.
+            Free to start. Pay when you raise.
           </h2>
-          <p className="mt-4 text-base md:text-lg leading-relaxed text-slate-400">
-            High enough to be real revenue. Low enough to fit a CFO&apos;s
-            discretionary budget. Limited to the next 30 founders.
+          <p className="mt-4 text-base md:text-lg leading-relaxed text-slate-600">
+            Every founder gets the Investor-Ready Score free. Upgrade when you
+            need tracking, reports and AI analysis.
           </p>
         </div>
 
@@ -116,36 +132,36 @@ export function Pricing() {
               className={cn(
                 "relative flex flex-col rounded-2xl border p-6 transition-colors duration-200",
                 tier.highlight
-                  ? "border-teal-500/50 bg-ink-800 ring-1 ring-teal-500/20"
-                  : "border-ink-700 bg-ink-900 hover:border-teal-500/40",
+                  ? "border-brand-500 bg-brand-50 ring-1 ring-brand-200"
+                  : "border-surface-300 bg-white shadow-sm hover:border-brand-500",
               )}
             >
               {tier.badge && (
-                <span className="absolute -top-3 left-6 inline-flex items-center gap-1 rounded-full border border-teal-500/40 bg-ink-950 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-teal-300">
+                <span className="absolute -top-3 left-6 inline-flex items-center gap-1 rounded-full border border-brand-500 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-brand-500">
                   <Star strokeWidth={1.75} className="h-3 w-3" />
                   {tier.badge}
                 </span>
               )}
-              <h3 className="text-base font-semibold text-slate-50">
+              <h3 className="text-base font-semibold text-brand-900">
                 {tier.name}
               </h3>
-              <p className="mt-1 text-xs text-slate-500">{tier.audience}</p>
+              <p className="mt-1 text-xs text-slate-400">{tier.audience}</p>
               <p className="mt-5 flex items-end gap-1">
-                <span className="font-mono tabular-nums text-3xl font-semibold text-slate-50">
+                <span className="font-mono tabular-nums text-3xl font-semibold text-brand-900">
                   {tier.price}
                 </span>
                 {tier.cadence && (
-                  <span className="text-xs text-slate-500 mb-1">
+                  <span className="text-xs text-slate-400 mb-1">
                     {tier.cadence}
                   </span>
                 )}
               </p>
-              <ul className="mt-5 space-y-2.5 text-sm text-slate-300 flex-1">
+              <ul className="mt-5 space-y-2.5 text-sm text-slate-700 flex-1">
                 {tier.features.map((f) => (
                   <li key={f} className="flex items-start gap-2">
                     <Check
                       strokeWidth={1.75}
-                      className="h-4 w-4 mt-0.5 shrink-0 text-teal-400"
+                      className="h-4 w-4 mt-0.5 shrink-0 text-brand-500"
                     />
                     <span>{f}</span>
                   </li>
@@ -165,10 +181,14 @@ export function Pricing() {
             </div>
           ))}
         </div>
-        <p className="mt-8 text-xs text-slate-500">
+
+        <p className="mt-8 text-xs text-slate-400">
           Enterprise / Sovereign chain (AUD $50k–$500k / yr) available for
           holding companies and family offices — contact us.
         </p>
+
+        {/* Coupon / partner discount section */}
+        <PricingCoupon prices={discountablePrices} />
       </div>
     </section>
   );

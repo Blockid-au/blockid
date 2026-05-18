@@ -1,26 +1,38 @@
-import { Hexagon } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-export function Logo({ className }: { className?: string }) {
+export function Logo({
+  className,
+  variant = "dark",
+}: {
+  className?: string;
+  variant?: "dark" | "light";
+}) {
   return (
     <Link
       href="/"
       aria-label="BlockID home"
       className={cn(
-        "inline-flex items-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60 rounded-md",
+        "inline-flex items-center gap-2.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 rounded-md",
         className,
       )}
     >
-      <span className="relative inline-flex h-8 w-8 items-center justify-center rounded-lg bg-teal-500/15 text-teal-300 ring-1 ring-teal-500/30">
-        <Hexagon strokeWidth={1.75} className="h-5 w-5" />
-        <span
-          aria-hidden
-          className="absolute inset-0 rounded-lg bg-teal-500/10 blur-md"
-        />
-      </span>
-      <span className="text-base font-semibold tracking-tight text-slate-50">
-        BlockID
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={variant === "light" ? "/images/logo.svg" : "/images/logo-dark.svg"}
+        alt=""
+        width={36}
+        height={36}
+        className="h-9 w-9"
+      />
+      <span
+        className={cn(
+          "text-lg font-bold tracking-tight",
+          variant === "light" ? "text-[#1B3A6B]" : "text-slate-50",
+        )}
+      >
+        BlockID<span className="text-gold-500">.au</span>
       </span>
     </Link>
   );

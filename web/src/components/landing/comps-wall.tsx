@@ -62,35 +62,35 @@ export function CompsWall() {
   return (
     <section
       aria-labelledby="comps-title"
-      className="py-24 md:py-32 border-y border-ink-700 bg-ink-900/40"
+      className="py-24 md:py-32 border-y border-surface-300 bg-surface-100"
     >
       <div className="mx-auto max-w-7xl px-6">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
           <div className="max-w-2xl">
-            <p className="text-xs uppercase tracking-[0.2em] text-teal-400 font-medium">
+            <p className="text-xs uppercase tracking-[0.2em] text-gold-500 font-medium">
               The data moat
             </p>
             <h2
               id="comps-title"
-              className="mt-3 text-3xl md:text-5xl font-semibold tracking-tight text-slate-50"
+              className="mt-3 text-3xl md:text-5xl font-semibold tracking-tight text-brand-900"
             >
               Comparable Companies Wall
             </h2>
-            <p className="mt-4 text-base md:text-lg leading-relaxed text-slate-400">
-              We have valuation data on 500+ Australian SMEs that nobody else has.
+            <p className="mt-4 text-base md:text-lg leading-relaxed text-slate-600">
+              We have valuation data on 500+ Australian SMEs that no US competitor has.
               The credibility line in every pitch.
             </p>
           </div>
-          <div className="text-sm text-slate-500">
-            <span className="font-mono tabular-nums text-slate-200">5</span> of{" "}
-            <span className="font-mono tabular-nums text-slate-200">523</span>{" "}
+          <div className="text-sm text-slate-400">
+            <span className="font-mono tabular-nums text-slate-700">5</span> of{" "}
+            <span className="font-mono tabular-nums text-slate-700">523</span>{" "}
             anonymised records · sector medians refreshed weekly
           </div>
         </div>
 
-        <div className="mt-10 overflow-x-auto rounded-2xl border border-ink-700 bg-ink-900">
+        <div className="mt-10 overflow-x-auto rounded-2xl border border-surface-300 bg-white">
           <table className="w-full text-sm">
-            <thead className="text-left text-xs uppercase tracking-[0.18em] text-slate-500 border-b border-ink-700">
+            <thead className="text-left text-xs uppercase tracking-[0.18em] text-slate-400 border-b border-surface-300">
               <tr>
                 <th className="px-5 py-3 font-medium">Reference</th>
                 <th className="px-5 py-3 font-medium">Sector</th>
@@ -100,24 +100,24 @@ export function CompsWall() {
                 <th className="px-5 py-3 font-medium text-right">vs. median</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-ink-700">
+            <tbody className="divide-y divide-surface-300">
               {rows.map((r) => (
-                <tr key={r.ref} className="hover:bg-ink-800/60 transition-colors">
-                  <td className="px-5 py-4 font-mono tabular-nums text-slate-300 text-xs">
+                <tr key={r.ref} className="hover:bg-surface-100 transition-colors">
+                  <td className="px-5 py-4 font-mono tabular-nums text-slate-500 text-xs">
                     {r.ref}
                   </td>
-                  <td className="px-5 py-4 text-slate-200">{r.sector}</td>
-                  <td className="px-5 py-4 text-slate-400">{r.stage}</td>
-                  <td className="px-5 py-4 text-right font-mono tabular-nums text-slate-100">
+                  <td className="px-5 py-4 text-slate-700">{r.sector}</td>
+                  <td className="px-5 py-4 text-slate-600">{r.stage}</td>
+                  <td className="px-5 py-4 text-right font-mono tabular-nums text-brand-900">
                     {r.arr}
                   </td>
-                  <td className="px-5 py-4 text-right font-mono tabular-nums text-teal-300">
+                  <td className="px-5 py-4 text-right font-mono tabular-nums text-brand-500">
                     {r.multiple}
                   </td>
                   <td className="px-5 py-4 text-right">
                     <span
                       className={`inline-flex items-center gap-1 font-mono tabular-nums text-xs ${
-                        r.positive ? "text-green-400" : "text-amber-300"
+                        r.positive ? "text-green-600" : "text-amber-600"
                       }`}
                     >
                       <TrendingUp

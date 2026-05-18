@@ -184,7 +184,7 @@ export default async function ShareScorePage({
             </div>
           )}
           <header className="max-w-3xl">
-            <p className="text-xs uppercase tracking-[0.2em] text-teal-400 font-medium inline-flex items-center gap-2">
+            <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium inline-flex items-center gap-2">
               <ShieldCheck strokeWidth={1.75} className="h-4 w-4" />
               Investor View Link
             </p>
@@ -211,7 +211,7 @@ export default async function ShareScorePage({
 
             <div className="rounded-2xl border border-ink-700 bg-ink-900 p-6">
               <h2 className="text-lg font-semibold text-slate-50 inline-flex items-center gap-2">
-                <Sparkles strokeWidth={1.75} className="h-5 w-5 text-teal-400" />
+                <Sparkles strokeWidth={1.75} className="h-5 w-5 text-brand-400" />
                 Get your own free score
               </h2>
               <p className="mt-2 text-sm text-slate-400 leading-relaxed">

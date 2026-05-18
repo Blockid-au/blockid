@@ -6,8 +6,12 @@ const faqs = [
     a: "Carta is US-centric, has no ASIC, ESIC, R&D or AUSTRAC modules, charges roughly 3× the price, and ships no AI valuation, investor trust score, or AU SME comparable data. BlockID is built for the AU raise.",
   },
   {
-    q: "Why blockchain? Isn't this a crypto product?",
-    a: "It is optional and audit-only. The chain anchor never touches your operational stack — it is the immutable audit trail your future Series B investor will ask for. We never lead with chain, tokens or marketplaces.",
+    q: "Is this a cap table tool?",
+    a: "BlockID goes beyond cap tables. It is ownership infrastructure \u2014 manage shares, track equity value, model dilution, and generate proof-backed investor-ready reports. Think of it as the trust layer between your startup and your investors.",
+  },
+  {
+    q: "Why does BlockID use tamper-evident proof?",
+    a: "We create an immutable audit trail for your score, reports and ownership records. It is optional, audit-only proof infrastructure. We never lead with blockchain, tokens or marketplaces.",
   },
   {
     q: "We use spreadsheets — we're fine.",
@@ -31,21 +35,21 @@ export function FAQ() {
   return (
     <section
       aria-labelledby="faq-title"
-      className="py-24 md:py-32 border-t border-ink-700"
+      className="py-24 md:py-32 border-t border-surface-300"
     >
       <div className="mx-auto max-w-4xl px-6">
         <div className="text-center">
-          <p className="text-xs uppercase tracking-[0.2em] text-teal-400 font-medium">
-            Objection handling
+          <p className="text-xs uppercase tracking-[0.2em] text-gold-500 font-medium">
+            FAQ
           </p>
           <h2
             id="faq-title"
-            className="mt-3 text-3xl md:text-5xl font-semibold tracking-tight text-slate-50"
+            className="mt-3 text-3xl md:text-5xl font-semibold tracking-tight text-brand-900"
           >
-            Questions every founder asks. Plain answers.
+            Questions founders ask. Plain answers.
           </h2>
         </div>
-        <div className="mt-12 rounded-2xl border border-ink-700 bg-ink-900 px-6">
+        <div className="mt-12 rounded-2xl border border-surface-300 bg-white px-6 shadow-sm">
           <Accordion type="single" defaultValue="0">
             {faqs.map((item, i) => (
               <AccordionItem

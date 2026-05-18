@@ -77,6 +77,87 @@ export async function sendScoreReady(args: {
   }
 }
 
+// ---------- magic-link --------------------------------------------------------
+//
+// Sent in two situations: (1) "Save Founder Pack" gate fires after a user
+// completes ≥2 idea-phase tools and submits their email; (2) plain login
+// for a returning user. Same template, intent-aware copy.
+
+export async function sendMagicLink(args: {
+  to: string;
+  token: string;
+  intent: "save_founder_pack" | "login";
+  ttlMinutes: number;
+}): Promise<SendResult> {
+  const resend = getResend();
+  if (!resend) {
+    console.warn(
+      "[blockid:email] sendMagicLink — Resend not configured, skipping",
+      { to: args.to, intent: args.intent },
+    );
+    return { ok: false, reason: "not_configured" };
+  }
+  const url = `${siteUrl()}/auth/verify?token=${encodeURIComponent(args.token)}`;
+  const html = magicLinkHtml({ ...args, url });
+  const subject =
+    args.intent === "save_founder_pack"
+      ? "Save your BlockID Founder Pack"
+      : "Sign in to BlockID";
+  try {
+    const res = await resend.emails.send({
+      from: fromAddress(),
+      to: args.to,
+      subject,
+      html,
+    });
+    if (res.error) throw res.error;
+    return { ok: true, id: res.data?.id ?? "" };
+  } catch (error) {
+    console.error("[blockid:email] sendMagicLink failed", error);
+    return { ok: false, reason: "send_error", error };
+  }
+}
+
+function magicLinkHtml(args: {
+  url: string;
+  intent: "save_founder_pack" | "login";
+  ttlMinutes: number;
+}): string {
+  const headline =
+    args.intent === "save_founder_pack"
+      ? "Save your Founder Pack"
+      : "Sign in to BlockID";
+  const sub =
+    args.intent === "save_founder_pack"
+      ? "Click the button below to save your Founder Pack and create your free BlockID account. The link is single-use and expires in " +
+        args.ttlMinutes +
+        " minutes."
+      : "Click the button below to sign in. The link is single-use and expires in " +
+        args.ttlMinutes +
+        " minutes.";
+  const cta =
+    args.intent === "save_founder_pack" ? "Save my Founder Pack" : "Sign in";
+  return shell(`
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+        <tr><td>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${escapeHtml(headline)}</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${escapeHtml(sub)}</p>
+          <p style="margin:0 0 24px 0;text-align:center;">
+            <a href="${args.url}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">${escapeHtml(cta)}</a>
+          </p>
+          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Or paste this URL</p>
+          <p style="margin:0 0 24px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#94A3B8;word-break:break-all;">${args.url}</p>
+          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">If you didn't request this email, you can safely ignore it — no account will be created.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>`);
+}
+
 // ---------- score-viewed -------------------------------------------------------
 
 export async function sendScoreViewed(args: {
@@ -112,7 +193,7 @@ export async function sendScoreViewed(args: {
 
 // ---------- HTML templates -----------------------------------------------------
 //
-// Inline-style only. BlockID navy/teal palette. No emoji. No external CSS so
+// Inline-style only. BlockID navy/brand-blue palette. No emoji. No external CSS so
 // it renders consistently in Gmail / Outlook / Apple Mail.
 
 function shell(body: string): string {
@@ -130,16 +211,16 @@ function scoreReadyHtml(args: {
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#0FB5A9;font-weight:500;">BlockID — Investor-Ready Score</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Investor-Ready Score</p>
           <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${escapeHtml(co)}</h1>
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Your Investor-Ready Score has been generated. Share the link below with investors — they can open it without signing up.</p>
           <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
-            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:64px;font-weight:600;color:#0FB5A9;line-height:1;">${args.totalScore}<span style="color:#64748B;font-size:24px;">/100</span></div>
+            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:64px;font-weight:600;color:#3B7DD8;line-height:1;">${args.totalScore}<span style="color:#64748B;font-size:24px;">/100</span></div>
           </div>
           <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Share link</p>
           <p style="margin:0 0 24px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:14px;color:#F8FAFC;word-break:break-all;">${args.url}</p>
           <p style="margin:0;text-align:center;">
-            <a href="${args.url}" style="display:inline-block;background:#0FB5A9;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View score</a>
+            <a href="${args.url}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View score</a>
           </p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:32px 0 16px 0;">
           <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">BlockID — Persistent Identity & Trust Infrastructure for Private Capital Markets. AU data residency.</p>
@@ -162,11 +243,11 @@ function scoreViewedHtml(args: {
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#0FB5A9;font-weight:500;">BlockID — Activity</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Activity</p>
           <h1 style="margin:0 0 8px 0;font-size:22px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${escapeHtml(co)} was just viewed</h1>
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Your Investor-Ready Score share link was opened ${escapeHtml(who)} at ${escapeHtml(when)}.</p>
           <p style="margin:0;text-align:center;">
-            <a href="${args.url}" style="display:inline-block;background:#0FB5A9;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">See activity</a>
+            <a href="${args.url}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">See activity</a>
           </p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:32px 0 16px 0;">
           <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">You're receiving this because you generated a BlockID Investor-Ready Score share link.</p>

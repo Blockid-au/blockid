@@ -29,7 +29,7 @@ export function InvestorPack() {
       <div className="mx-auto max-w-7xl px-6">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-teal-400 font-medium">
+            <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium">
               For VCs · Free
             </p>
             <h2
@@ -64,7 +64,7 @@ export function InvestorPack() {
                   key={b.title}
                   className="flex items-start gap-4 rounded-2xl border border-ink-700 bg-ink-900 p-6"
                 >
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-teal-500/15 text-teal-300 ring-1 ring-teal-500/30">
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-300 ring-1 ring-brand-500/30">
                     <Icon strokeWidth={1.75} className="h-5 w-5" />
                   </span>
                   <div>

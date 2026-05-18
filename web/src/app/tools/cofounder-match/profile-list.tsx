@@ -14,7 +14,7 @@ export async function ProfileList() {
       <div className="rounded-2xl border border-dashed border-ink-700 bg-ink-900/60 p-10 text-center">
         <Sparkles
           strokeWidth={1.75}
-          className="mx-auto h-8 w-8 text-teal-400"
+          className="mx-auto h-8 w-8 text-brand-400"
           aria-hidden
         />
         <h3 className="mt-4 text-lg font-semibold text-slate-50">
@@ -32,7 +32,7 @@ export async function ProfileList() {
       {profiles.map((p) => (
         <li
           key={p.id}
-          className="rounded-2xl border border-ink-700 bg-ink-900 p-5 transition-colors hover:border-teal-500/30"
+          className="rounded-2xl border border-ink-700 bg-ink-900 p-5 transition-colors hover:border-brand-500/30"
         >
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -48,7 +48,7 @@ export async function ProfileList() {
                 {p.location}
               </p>
             </div>
-            <Badge variant="teal">{p.stage}</Badge>
+            <Badge variant="brand">{p.stage}</Badge>
           </div>
 
           <Section title="I am">

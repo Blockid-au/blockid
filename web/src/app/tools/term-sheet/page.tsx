@@ -63,7 +63,7 @@ export default function TermSheetPage() {
       <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
         <div className="mx-auto max-w-7xl px-6">
           <header className="max-w-3xl">
-            <p className="text-xs uppercase tracking-[0.2em] text-teal-400 font-medium">
+            <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium">
               Free tool · No login · Saves AUD $3k–$10k in legal fees
             </p>
             <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-slate-50">
@@ -104,7 +104,7 @@ export default function TermSheetPage() {
                   key={b.title}
                   className="rounded-2xl border border-ink-700 bg-ink-900 p-6"
                 >
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-ink-700 bg-ink-800 text-teal-300">
+                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-ink-700 bg-ink-800 text-brand-300">
                     <Icon strokeWidth={1.75} className="h-5 w-5" aria-hidden />
                   </span>
                   <h3 className="mt-4 text-base font-semibold text-slate-50">

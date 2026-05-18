@@ -43,16 +43,16 @@ export function Compliance() {
     >
       <div className="mx-auto max-w-7xl px-6">
         <div className="max-w-3xl">
-          <p className="text-xs uppercase tracking-[0.2em] text-teal-400 font-medium">
+          <p className="text-xs uppercase tracking-[0.2em] text-gold-500 font-medium">
             The Australian moat
           </p>
           <h2
             id="compliance-title"
-            className="mt-3 text-3xl md:text-5xl font-semibold tracking-tight text-slate-50"
+            className="mt-3 text-3xl md:text-5xl font-semibold tracking-tight text-brand-900"
           >
             Compliance modules no US competitor ships
           </h2>
-          <p className="mt-4 text-base md:text-lg leading-relaxed text-slate-400">
+          <p className="mt-4 text-base md:text-lg leading-relaxed text-slate-600">
             Carta is US-centric. Pulley is US-centric. BlockID is built around
             the four AU regimes that decide whether a raise actually closes.
           </p>
@@ -64,20 +64,20 @@ export function Compliance() {
             return (
               <div
                 key={item.code}
-                className="group rounded-2xl border border-ink-700 bg-ink-800 p-6 transition-colors duration-200 hover:border-teal-500/40 tile-glow"
+                className="group rounded-2xl border border-surface-300 bg-white p-6 shadow-sm transition-colors duration-200 hover:border-brand-500"
               >
                 <div className="flex items-center gap-3">
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-teal-500/15 text-teal-300 ring-1 ring-teal-500/30">
+                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-500 ring-1 ring-brand-200">
                     <Icon strokeWidth={1.75} className="h-5 w-5" />
                   </span>
-                  <span className="font-mono tabular-nums text-sm text-slate-300">
+                  <span className="font-mono tabular-nums text-sm text-slate-500">
                     {item.code}
                   </span>
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-slate-50">
+                <h3 className="mt-4 text-lg font-semibold text-brand-900">
                   {item.title}
                 </h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">
                   {item.body}
                 </p>
               </div>

@@ -165,7 +165,7 @@ export function ScoreForm() {
                 onChange={(e) =>
                   update("sector", e.target.value as ScoreInput["sector"])
                 }
-                className="h-11 w-full rounded-[10px] border border-ink-700 bg-ink-900 px-3 py-3 text-slate-50 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30 cursor-pointer"
+                className="h-11 w-full rounded-[10px] border border-ink-700 bg-ink-900 px-3 py-3 text-slate-50 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 cursor-pointer"
               >
                 <option value="saas">SaaS</option>
                 <option value="fintech">Fintech</option>
@@ -181,7 +181,7 @@ export function ScoreForm() {
                 onChange={(e) =>
                   update("stage", e.target.value as ScoreInput["stage"])
                 }
-                className="h-11 w-full rounded-[10px] border border-ink-700 bg-ink-900 px-3 py-3 text-slate-50 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30 cursor-pointer"
+                className="h-11 w-full rounded-[10px] border border-ink-700 bg-ink-900 px-3 py-3 text-slate-50 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 cursor-pointer"
               >
                 <option value="pre-seed">Pre-seed</option>
                 <option value="seed">Seed</option>
@@ -257,7 +257,7 @@ export function ScoreForm() {
                 onChange={(e) =>
                   update("arrBand", e.target.value as ScoreInput["arrBand"])
                 }
-                className="h-11 w-full rounded-[10px] border border-ink-700 bg-ink-900 px-3 py-3 text-slate-50 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30 cursor-pointer"
+                className="h-11 w-full rounded-[10px] border border-ink-700 bg-ink-900 px-3 py-3 text-slate-50 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 cursor-pointer"
               >
                 <option value="pre-revenue">Pre-revenue</option>
                 <option value="0-250k">AUD 0-250k</option>
@@ -422,9 +422,9 @@ function Stepper({ current }: { current: number }) {
               <span
                 className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold font-mono tabular-nums ${
                   done
-                    ? "bg-teal-500 text-ink-950"
+                    ? "bg-brand-500 text-ink-950"
                     : active
-                      ? "bg-teal-500/20 text-teal-300 ring-1 ring-teal-500/40"
+                      ? "bg-brand-500/20 text-brand-300 ring-1 ring-brand-500/40"
                       : "bg-ink-800 text-slate-500"
                 }`}
               >
@@ -478,7 +478,7 @@ function Toggle({
   return (
     <label
       htmlFor={id}
-      className="flex items-center justify-between rounded-lg border border-ink-700 bg-ink-900 px-4 py-3 cursor-pointer hover:border-teal-500/40 transition-colors"
+      className="flex items-center justify-between rounded-lg border border-ink-700 bg-ink-900 px-4 py-3 cursor-pointer hover:border-brand-500/40 transition-colors"
     >
       <span className="text-sm text-slate-200">{label}</span>
       <span className="relative inline-flex h-6 w-11 items-center">
@@ -489,7 +489,7 @@ function Toggle({
           checked={checked}
           onChange={(e) => onChange(e.target.checked)}
         />
-        <span className="absolute inset-0 rounded-full bg-ink-700 transition-colors peer-checked:bg-teal-500" />
+        <span className="absolute inset-0 rounded-full bg-ink-700 transition-colors peer-checked:bg-brand-500" />
         <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-slate-50 transition-transform peer-checked:translate-x-5" />
       </span>
     </label>
@@ -609,7 +609,7 @@ function ResultPanel({
   return (
     <div className="grid lg:grid-cols-2 gap-8 items-start">
       <div>
-        <p className="text-xs uppercase tracking-[0.2em] text-teal-400 font-medium">
+        <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium">
           Your Investor-Ready Score
         </p>
         <h2 className="mt-2 text-2xl md:text-3xl font-semibold text-slate-50">
@@ -649,7 +649,7 @@ function ResultPanel({
         <ul className="mt-6 space-y-2 text-xs text-slate-400">
           {result.breakdown.subs.map((s) => (
             <li key={s.label} className="flex gap-2">
-              <span className="font-mono tabular-nums text-teal-300">
+              <span className="font-mono tabular-nums text-brand-300">
                 {Math.round(s.value)}
               </span>
               <span className="font-medium text-slate-300 w-44 shrink-0">
@@ -666,7 +666,7 @@ function ResultPanel({
           <ul className="mt-4 space-y-3">
             {result.actionPlan.map((action) => (
               <li key={action.title} className="flex gap-3">
-                <span className="mt-0.5 inline-flex h-5 min-w-12 items-center justify-center rounded-full border border-teal-500/30 bg-teal-500/10 px-2 text-[10px] uppercase tracking-wider text-teal-300">
+                <span className="mt-0.5 inline-flex h-5 min-w-12 items-center justify-center rounded-full border border-brand-500/30 bg-brand-500/10 px-2 text-[10px] uppercase tracking-wider text-brand-300">
                   {action.impact}
                 </span>
                 <span>
@@ -765,7 +765,7 @@ function ResultPanel({
           noValidate
         >
           <h3 className="text-lg font-semibold text-slate-50 inline-flex items-center gap-2">
-            <Mail strokeWidth={1.75} className="h-5 w-5 text-teal-400" />
+            <Mail strokeWidth={1.75} className="h-5 w-5 text-brand-400" />
             Send a per-investor link
           </h3>
           <p className="mt-1 text-sm text-slate-400">

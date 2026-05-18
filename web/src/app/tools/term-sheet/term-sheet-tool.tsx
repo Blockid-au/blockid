@@ -46,8 +46,8 @@ const SHARE_CLASS_OPTIONS: { value: ShareClass; label: string }[] = [
 ];
 
 const COLOR = {
-  founder: "#0FB5A9",
-  esop: "#5EEAD4",
+  founder: "#3B7DD8",
+  esop: "#5B9AEB",
   existing: "#94A3B8",
   newInvestor: "#F59E0B",
 } as const;
@@ -274,7 +274,7 @@ export function TermSheetTool() {
             >
               <ClipboardPaste
                 strokeWidth={1.75}
-                className="h-5 w-5 text-teal-400"
+                className="h-5 w-5 text-brand-400"
                 aria-hidden
               />
               Paste term sheet
@@ -282,7 +282,7 @@ export function TermSheetTool() {
             <button
               type="button"
               onClick={onLoadDemo}
-              className="inline-flex items-center gap-1.5 rounded-md border border-ink-700 bg-ink-800/60 px-2.5 py-1.5 text-xs font-medium text-slate-300 hover:border-teal-500/40 hover:text-slate-50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60"
+              className="inline-flex items-center gap-1.5 rounded-md border border-ink-700 bg-ink-800/60 px-2.5 py-1.5 text-xs font-medium text-slate-300 hover:border-brand-500/40 hover:text-slate-50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
             >
               <Sparkles
                 strokeWidth={1.75}
@@ -303,7 +303,7 @@ export function TermSheetTool() {
               onChange={(e) => setTermSheet(e.target.value)}
               placeholder={`Paste any SAFE, convertible note, or priced-round term sheet — for example:\n\n"BLOCKID INC. — SAFE — Investor amount: AUD $500,000. Valuation cap: $5M post-money. Discount: 20%. MFN: 24 month expiry. Pro-rata: yes. Board: no seat. Liquidation preference: 1x non-participating..."`}
               rows={14}
-              className="w-full rounded-[10px] border border-ink-700 bg-ink-950/40 px-4 py-3 text-sm text-slate-50 placeholder:text-slate-500 transition-colors duration-200 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30 font-mono leading-relaxed"
+              className="w-full rounded-[10px] border border-ink-700 bg-ink-950/40 px-4 py-3 text-sm text-slate-50 placeholder:text-slate-500 transition-colors duration-200 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 font-mono leading-relaxed"
               aria-invalid={overLimit || tooShort}
             />
             <div className="mt-2 flex items-center justify-between text-xs">
@@ -337,7 +337,7 @@ export function TermSheetTool() {
                 type="checkbox"
                 checked={includeCapTable}
                 onChange={(e) => setIncludeCapTable(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-ink-700 bg-ink-900 text-teal-500 focus:ring-teal-500/30 cursor-pointer"
+                className="mt-0.5 h-4 w-4 rounded border-ink-700 bg-ink-900 text-brand-500 focus:ring-brand-500/30 cursor-pointer"
               />
               <span className="flex-1">
                 <span className="text-sm font-medium text-slate-50">
@@ -364,7 +364,7 @@ export function TermSheetTool() {
                 <button
                   type="button"
                   onClick={addHolder}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-ink-700 bg-transparent px-3 py-2 text-xs font-medium text-slate-300 hover:border-teal-500/40 hover:text-slate-50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-ink-700 bg-transparent px-3 py-2 text-xs font-medium text-slate-300 hover:border-brand-500/40 hover:text-slate-50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
                 >
                   <Plus strokeWidth={1.75} className="h-3.5 w-3.5" />
                   Add holder
@@ -437,7 +437,7 @@ export function TermSheetTool() {
           <h2 className="text-lg font-semibold text-slate-50 flex items-center gap-2">
             <FileSignature
               strokeWidth={1.75}
-              className="h-5 w-5 text-teal-400"
+              className="h-5 w-5 text-brand-400"
               aria-hidden
             />
             Analyse
@@ -506,12 +506,12 @@ export function TermSheetTool() {
           {/* Email capture row */}
           <form
             onSubmit={onLeadSubmit}
-            className="mt-8 rounded-2xl border border-teal-500/30 bg-ink-900 p-6 md:p-8"
+            className="mt-8 rounded-2xl border border-brand-500/30 bg-ink-900 p-6 md:p-8"
             noValidate
           >
             <div className="grid lg:grid-cols-2 gap-8 items-center">
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-teal-400 font-medium">
+                <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium">
                   Save this analysis
                 </p>
                 <h3 className="mt-2 text-2xl font-semibold text-slate-50">
@@ -576,10 +576,10 @@ export function TermSheetTool() {
 function ModePill({ mode }: { mode: "live" | "demo" }) {
   if (mode === "live") {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-500/40 bg-teal-500/10 px-3 py-1 text-xs font-medium text-teal-300">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-500/40 bg-brand-500/10 px-3 py-1 text-xs font-medium text-brand-300">
         <span
           aria-hidden
-          className="h-1.5 w-1.5 rounded-full bg-teal-400"
+          className="h-1.5 w-1.5 rounded-full bg-brand-400"
         />
         Live analysis
       </span>
@@ -615,7 +615,7 @@ function ResultPanel({
       >
         <Sparkles
           strokeWidth={1.75}
-          className="h-5 w-5 text-teal-400"
+          className="h-5 w-5 text-brand-400"
           aria-hidden
         />
         Analysis
@@ -669,7 +669,7 @@ function SummaryTab({ analysis }: { analysis: TermSheetAnalysis }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
-        <span className="inline-flex items-center rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-1 text-xs font-medium text-teal-300">
+        <span className="inline-flex items-center rounded-full border border-brand-500/30 bg-brand-500/10 px-3 py-1 text-xs font-medium text-brand-300">
           {analysis.instrumentType}
         </span>
       </div>
@@ -690,8 +690,8 @@ function SummaryTab({ analysis }: { analysis: TermSheetAnalysis }) {
         </dl>
       </div>
 
-      <div className="rounded-xl border border-teal-500/30 bg-ink-800/40 p-5">
-        <p className="text-xs uppercase tracking-[0.2em] text-teal-400 font-medium flex items-center gap-2">
+      <div className="rounded-xl border border-brand-500/30 bg-ink-800/40 p-5">
+        <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium flex items-center gap-2">
           <Sparkles strokeWidth={1.75} className="h-3.5 w-3.5" aria-hidden />
           Plain English
         </p>
@@ -805,8 +805,8 @@ function RedlineCard({
         </span>
       </div>
       <p className="text-sm leading-relaxed text-slate-300">{item.issue}</p>
-      <blockquote className="rounded-lg border-l-2 border-teal-500/60 bg-ink-900 px-4 py-3 text-sm leading-relaxed text-slate-300">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-teal-400 font-medium">
+      <blockquote className="rounded-lg border-l-2 border-brand-500/60 bg-ink-900 px-4 py-3 text-sm leading-relaxed text-slate-300">
+        <p className="text-[11px] uppercase tracking-[0.18em] text-gold-400 font-medium">
           Suggested revision
         </p>
         <p className="mt-1.5">{item.suggestedRevision}</p>
@@ -835,7 +835,7 @@ function ComparisonTab({ analysis }: { analysis: TermSheetAnalysis }) {
             {analysis.auMarketComparison.deviations.map((d, i) => {
               const verdictTone = {
                 founder_friendly: {
-                  pill: "border-teal-500/40 bg-teal-500/10 text-teal-300",
+                  pill: "border-brand-500/40 bg-brand-500/10 text-brand-300",
                   label: "Founder-friendly",
                 },
                 neutral: {
@@ -893,12 +893,12 @@ function DilutionTab({ diff }: { diff: CapTableDiff }) {
         <SummaryTile
           label="Founder %"
           value={formatPercent(diff.summary.foundersAfterPct)}
-          tone="teal"
+          tone="brand"
         />
         <SummaryTile
           label="ESOP %"
           value={formatPercent(diff.summary.esopAfterPct)}
-          tone="teal-soft"
+          tone="brand-soft"
         />
       </div>
 
@@ -989,16 +989,16 @@ function SummaryTile({
 }: {
   label: string;
   value: string;
-  tone?: "default" | "teal" | "teal-soft";
+  tone?: "default" | "brand" | "brand-soft";
 }) {
   const valueClass =
-    tone === "teal"
-      ? "text-teal-300"
-      : tone === "teal-soft"
-        ? "text-teal-200"
+    tone === "brand"
+      ? "text-brand-300"
+      : tone === "brand-soft"
+        ? "text-brand-200"
         : "text-slate-50";
   return (
-    <div className="rounded-xl border border-ink-700 bg-ink-900 p-4 transition-colors hover:border-teal-500/40">
+    <div className="rounded-xl border border-ink-700 bg-ink-900 p-4 transition-colors hover:border-brand-500/40">
       <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
         {label}
       </p>
@@ -1184,7 +1184,7 @@ function MiniHolderRow({
             onChange={(e) =>
               onChange({ shareClass: e.target.value as ShareClass })
             }
-            className="mt-1 h-9 w-full rounded-[10px] border border-ink-700 bg-ink-900 px-2.5 text-sm text-slate-50 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30 cursor-pointer transition-colors"
+            className="mt-1 h-9 w-full rounded-[10px] border border-ink-700 bg-ink-900 px-2.5 text-sm text-slate-50 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 cursor-pointer transition-colors"
           >
             {SHARE_CLASS_OPTIONS.map((o) => (
               <option key={o.value} value={o.value} className="bg-ink-900">
@@ -1199,7 +1199,7 @@ function MiniHolderRow({
               type="button"
               onClick={onRemove}
               aria-label={`Remove ${holder.name}`}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-ink-700 bg-ink-900 text-slate-400 hover:border-red-500/40 hover:text-red-400 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-ink-700 bg-ink-900 text-slate-400 hover:border-red-500/40 hover:text-red-400 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
             >
               <Trash2 strokeWidth={1.75} className="h-4 w-4" />
             </button>
@@ -1212,7 +1212,7 @@ function MiniHolderRow({
           type="checkbox"
           checked={!!holder.isFounder}
           onChange={(e) => onChange({ isFounder: e.target.checked })}
-          className="h-4 w-4 rounded border-ink-700 bg-ink-900 text-teal-500 focus:ring-teal-500/30 cursor-pointer"
+          className="h-4 w-4 rounded border-ink-700 bg-ink-900 text-brand-500 focus:ring-brand-500/30 cursor-pointer"
         />
         <Label
           htmlFor={founderId}

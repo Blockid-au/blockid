@@ -191,14 +191,14 @@ export default async function InvestorViewLinkPage({
           )}
 
           <header className="max-w-3xl">
-            <p className="text-xs uppercase tracking-[0.2em] text-teal-400 font-medium inline-flex items-center gap-2">
+            <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium inline-flex items-center gap-2">
               <ShieldCheck strokeWidth={1.75} className="h-4 w-4" />
               Investor View Link
             </p>
             <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-slate-50">
               {companyName}
             </h1>
-            <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-1 text-xs text-teal-200">
+            <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-brand-500/30 bg-brand-500/10 px-3 py-1 text-xs text-brand-200">
               <BadgeCheck strokeWidth={1.75} className="h-3.5 w-3.5" />
               Prepared for {recipientLabel}
             </p>
@@ -222,7 +222,7 @@ export default async function InvestorViewLinkPage({
 
             <div className="rounded-2xl border border-ink-700 bg-ink-900 p-6">
               <h2 className="text-lg font-semibold text-slate-50 inline-flex items-center gap-2">
-                <Sparkles strokeWidth={1.75} className="h-5 w-5 text-teal-400" />
+                <Sparkles strokeWidth={1.75} className="h-5 w-5 text-brand-400" />
                 Get your own free score
               </h2>
               <p className="mt-2 text-sm text-slate-400 leading-relaxed">

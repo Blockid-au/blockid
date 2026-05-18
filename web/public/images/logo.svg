@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- Outer hexagon shell - left navy, right gold -->
+  <!-- Left side of hexagon (navy blue) -->
+  <path d="M100 15 L40 50 L40 140 L100 175" stroke="#1B3A6B" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Right side of hexagon (gold/amber) -->
+  <path d="M100 15 L160 50 L160 140 L100 175" stroke="#D4A843" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- 3D Cube inside -->
+  <!-- Top face - light blue -->
+  <path d="M70 75 L100 58 L130 75 L100 92 Z" fill="#5B9AEB"/>
+  <!-- Left face - medium blue -->
+  <path d="M70 75 L100 92 L100 125 L70 108 Z" fill="#3B7DD8"/>
+  <!-- Right face - dark navy blue -->
+  <path d="M130 75 L100 92 L100 125 L130 108 Z" fill="#1B3A6B"/>
+</svg>

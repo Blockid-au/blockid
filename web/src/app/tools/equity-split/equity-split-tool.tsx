@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { SaveFounderPackButton } from "@/components/save-founder-pack-button";
 import { cn, formatPercent } from "@/lib/utils";
 import {
   computeEquitySplit,
@@ -30,18 +31,19 @@ import {
   type RiskTaken,
   type TimeCommitment,
 } from "@/lib/equity-split";
+import { saveEquitySplitState } from "@/lib/idea-phase/session-state";
 
 const MAX_FOUNDERS = 5;
 
-/** Distinct, accessible per-founder swatches (teal-anchored). */
+/** Distinct, accessible per-founder swatches (brand-blue-anchored). */
 const FOUNDER_COLORS = [
-  "#0FB5A9", // teal-500
+  "#3B7DD8", // brand-500
   "#F59E0B", // amber-500
   "#A78BFA", // violet-400
   "#F472B6", // pink-400
   "#60A5FA", // sky-400
 ] as const;
-const ESOP_COLOR = "#5EEAD4"; // teal-300
+const ESOP_COLOR = "#5B9AEB"; // brand-300 (lighter blue)
 const FIRST_HIRE_COLOR = "#94A3B8"; // slate-400
 
 const ROLE_OPTIONS: FounderRole[] = [
@@ -83,6 +85,11 @@ export function EquitySplitTool() {
     [founders, settings],
   );
 
+  // Mirror inputs to sessionStorage for the Save Founder Pack modal.
+  React.useEffect(() => {
+    saveEquitySplitState(founders, settings);
+  }, [founders, settings]);
+
   const updateFounder = (id: string, patch: Partial<FounderInput>) =>
     setFounders((prev) =>
       prev.map((f) => (f.id === id ? { ...f, ...patch } : f)),
@@ -122,7 +129,7 @@ export function EquitySplitTool() {
           >
             <Users
               strokeWidth={1.75}
-              className="h-5 w-5 text-teal-400"
+              className="h-5 w-5 text-brand-400"
               aria-hidden
             />
             Founders ({founders.length})
@@ -130,7 +137,7 @@ export function EquitySplitTool() {
           <button
             type="button"
             onClick={resetDemo}
-            className="inline-flex items-center gap-1.5 rounded-md border border-ink-700 bg-ink-800/60 px-2.5 py-1.5 text-xs font-medium text-slate-300 hover:border-teal-500/40 hover:text-slate-50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60"
+            className="inline-flex items-center gap-1.5 rounded-md border border-ink-700 bg-ink-800/60 px-2.5 py-1.5 text-xs font-medium text-slate-300 hover:border-brand-500/40 hover:text-slate-50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
           >
             <RotateCcw strokeWidth={1.75} className="h-3.5 w-3.5" />
             Reset
@@ -152,7 +159,7 @@ export function EquitySplitTool() {
             type="button"
             onClick={addFounder}
             disabled={founders.length >= MAX_FOUNDERS}
-            className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-ink-700 bg-transparent px-3 py-2 text-xs font-medium text-slate-300 hover:border-teal-500/40 hover:text-slate-50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-ink-700 disabled:hover:text-slate-300"
+            className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-ink-700 bg-transparent px-3 py-2 text-xs font-medium text-slate-300 hover:border-brand-500/40 hover:text-slate-50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-ink-700 disabled:hover:text-slate-300"
           >
             <Plus strokeWidth={1.75} className="h-3.5 w-3.5" />
             Add founder
@@ -167,7 +174,7 @@ export function EquitySplitTool() {
         <h3 className="text-lg font-semibold text-slate-50 flex items-center gap-2">
           <ShieldCheck
             strokeWidth={1.75}
-            className="h-5 w-5 text-teal-400"
+            className="h-5 w-5 text-brand-400"
             aria-hidden
           />
           Reserves & vesting
@@ -181,7 +188,7 @@ export function EquitySplitTool() {
               onChange={(e) =>
                 updateSettings("esopEnabled", e.target.checked)
               }
-              className="mt-0.5 h-4 w-4 rounded border-ink-700 bg-ink-900 text-teal-500 focus:ring-teal-500/30 cursor-pointer"
+              className="mt-0.5 h-4 w-4 rounded border-ink-700 bg-ink-900 text-brand-500 focus:ring-brand-500/30 cursor-pointer"
             />
             <div className="flex-1">
               <Label
@@ -217,7 +224,7 @@ export function EquitySplitTool() {
               <Label htmlFor="first-hire" className="text-sm text-slate-200">
                 Reserve for first hire
               </Label>
-              <span className="font-mono tabular-nums text-sm text-teal-300">
+              <span className="font-mono tabular-nums text-sm text-brand-300">
                 {settings.firstHirePct}%
               </span>
             </div>
@@ -231,7 +238,7 @@ export function EquitySplitTool() {
               onChange={(e) =>
                 updateSettings("firstHirePct", Number(e.target.value) || 0)
               }
-              className="mt-2 w-full accent-teal-500 cursor-pointer"
+              className="mt-2 w-full accent-brand-500 cursor-pointer"
             />
             <p className="text-xs text-slate-500 mt-1">
               Optional dedicated slice for an anticipated key hire (e.g. CTO
@@ -240,7 +247,7 @@ export function EquitySplitTool() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Badge variant="teal">
+            <Badge variant="brand">
               <Info strokeWidth={1.75} className="h-3 w-3" aria-hidden />
               Vesting: 4 years · 1-year cliff
             </Badge>
@@ -260,7 +267,7 @@ export function EquitySplitTool() {
         >
           <PieIcon
             strokeWidth={1.75}
-            className="h-5 w-5 text-teal-400"
+            className="h-5 w-5 text-brand-400"
             aria-hidden
           />
           Recommended split
@@ -368,7 +375,7 @@ export function EquitySplitTool() {
                         {a.name || `Founder ${i + 1}`}
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-teal-300">
+                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-brand-300">
                       {formatPercent(a.pct)}
                     </td>
                     <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-200">
@@ -443,7 +450,7 @@ export function EquitySplitTool() {
                   "flex items-start gap-2 rounded-lg border p-3 text-sm",
                   f.level === "warn"
                     ? "border-amber-500/30 bg-amber-500/5 text-amber-200"
-                    : "border-teal-500/20 bg-teal-500/5 text-teal-200",
+                    : "border-brand-500/20 bg-brand-500/5 text-brand-200",
                 )}
               >
                 {f.level === "warn" ? (
@@ -466,8 +473,8 @@ export function EquitySplitTool() {
         </div>
 
         {/* Founder Agreement seeds */}
-        <div className="rounded-2xl border border-teal-500/30 bg-ink-900 p-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-teal-400 font-medium flex items-center gap-2">
+        <div className="rounded-2xl border border-brand-500/30 bg-ink-900 p-6">
+          <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium flex items-center gap-2">
             <Sparkles strokeWidth={1.75} className="h-3.5 w-3.5" aria-hidden />
             Founder Agreement seeds
           </p>
@@ -490,14 +497,11 @@ export function EquitySplitTool() {
               Save snapshot
             </p>
             <p className="mt-1 text-xs text-slate-500">
-              Sign up to persist this on your BlockID profile.
+              Bundle this split with your idea valuation and funding plan into
+              a shareable Founder Pack. Free, no password.
             </p>
           </div>
-          <span title="Sign up to persist this on your BlockID profile">
-            <Button variant="secondary" disabled aria-disabled="true">
-              Save snapshot (free signup needed)
-            </Button>
-          </span>
+          <SaveFounderPackButton />
         </div>
 
         <p className="text-center text-xs text-slate-500">
@@ -544,7 +548,7 @@ function FounderRow({
             type="button"
             onClick={onRemove}
             aria-label={`Remove ${founder.name || `Founder ${colorIdx + 1}`}`}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-ink-700 bg-ink-900 text-slate-400 hover:border-red-500/40 hover:text-red-400 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-ink-700 bg-ink-900 text-slate-400 hover:border-red-500/40 hover:text-red-400 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
           >
             <Trash2 strokeWidth={1.75} className="h-4 w-4" />
           </button>
@@ -679,7 +683,7 @@ function SelectInline({
       id={id}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="h-9 w-full rounded-[10px] border border-ink-700 bg-ink-900 px-2.5 text-sm text-slate-50 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30 cursor-pointer transition-colors"
+      className="h-9 w-full rounded-[10px] border border-ink-700 bg-ink-900 px-2.5 text-sm text-slate-50 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 cursor-pointer transition-colors"
     >
       {options.map((o) => (
         <option key={o} value={o} className="bg-ink-900">

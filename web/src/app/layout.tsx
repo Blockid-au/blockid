@@ -16,34 +16,38 @@ const plexMono = IBM_Plex_Mono({
   display: "swap",
 });
 
-const SITE_NAME = "BlockID — Trust Infrastructure for Private Capital";
+const SITE_NAME = "BlockID.au — Own It. Prove It. Grow It.";
 const SITE_DESCRIPTION =
-  "BlockID is the AI valuation and investor-ready platform built for Australian founders raising their next round. Get your Investor-Ready Score in 5 minutes — free.";
+  "Trusted Ownership. Smarter Fundraising. Real Value. BlockID.au is the all-in-one ownership and fundraising platform for startups and SMEs. Manage equity, simplify fundraising and unlock the true value of ownership from day one.";
 const SITE_URL = "https://blockid.au";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
     default: SITE_NAME,
-    template: "%s | BlockID",
+    template: "%s | BlockID.au",
   },
   description: SITE_DESCRIPTION,
-  applicationName: "BlockID",
+  applicationName: "BlockID.au",
   keywords: [
-    "Investor-Ready Score",
+    "Trusted Ownership",
     "Cap Table",
+    "Equity Management",
     "Australian startup",
-    "AU SAFE",
-    "Carta alternative",
+    "Investor-Ready Data Rooms",
+    "Valuation Intelligence",
+    "Fundraising",
     "ASIC",
     "ESIC",
-    "Dilution calculator Australia",
+    "ownership management",
+    "startup ownership",
+    "pre-diligence",
   ],
   openGraph: {
     type: "website",
     locale: "en_AU",
     url: SITE_URL,
-    siteName: "BlockID",
+    siteName: "BlockID.au",
     title: SITE_NAME,
     description: SITE_DESCRIPTION,
   },
@@ -68,7 +72,7 @@ export default function RootLayout({
       lang="en-AU"
       className={`${inter.variable} ${plexMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-ink-950 text-slate-50 font-sans flex flex-col">
+      <body className="min-h-full bg-surface-50 text-brand-900 font-sans flex flex-col">
         {children}
       </body>
     </html>

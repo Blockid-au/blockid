@@ -35,7 +35,7 @@ const tiles: Tile[] = [
   {
     eyebrow: "Distribution",
     title: "Investor View Link",
-    body: "Magic link with read-receipts. Get notified the moment a Sequoia partner opens your data room.",
+    body: "A secure link with read receipts. Know the moment an investor opens your pre-diligence pack.",
     icon: LinkIcon,
     span: "md:col-span-6 lg:col-span-4",
     visual: <ViewLinkVisual />,
@@ -79,7 +79,7 @@ const tiles: Tile[] = [
   {
     eyebrow: "5-minute onboarding",
     title: "Stripe + Xero / MYOB Plug",
-    body: "OAuth in. Instant valuation lift. Time-to-first-value under 5 minutes — the demo doesn&apos;t die.",
+    body: "Connect in seconds. Instant data import. Time-to-first-value under 5 minutes.",
     icon: Plug,
     span: "md:col-span-12 lg:col-span-12",
     visual: <PlugVisual />,
@@ -95,18 +95,18 @@ export function Bento() {
     >
       <div className="mx-auto max-w-7xl px-6">
         <div className="max-w-3xl">
-          <p className="text-xs uppercase tracking-[0.2em] text-teal-400 font-medium">
-            Engineered to close
+          <p className="text-xs uppercase tracking-[0.2em] text-gold-500 font-medium">
+            Product
           </p>
           <h2
             id="features-title"
-            className="mt-3 text-3xl md:text-5xl font-semibold tracking-tight text-slate-50"
+            className="mt-3 text-3xl md:text-5xl font-semibold tracking-tight text-brand-900"
           >
-            Seven features. Each one ends a deal-killing objection.
+            Every feature makes ownership visible and fundraising faster.
           </h2>
-          <p className="mt-4 text-base md:text-lg leading-relaxed text-slate-400">
-            We do not ship features that impress engineers. Every tile here maps
-            to a buyer ROI in under 30 days.
+          <p className="mt-4 text-base md:text-lg leading-relaxed text-slate-600">
+            From AI-powered readiness scoring to tamper-evident proof, every tool
+            helps you raise with evidence investors trust.
           </p>
         </div>
 
@@ -125,23 +125,23 @@ function BentoTile({ tile }: { tile: Tile }) {
   return (
     <article
       className={cn(
-        "group relative overflow-hidden rounded-2xl border border-ink-700 bg-ink-800 p-6 md:p-8 transition-colors duration-200 hover:border-teal-500/40 tile-glow cursor-default",
+        "group relative overflow-hidden rounded-2xl border border-surface-300 bg-white p-6 md:p-8 shadow-sm transition-colors duration-200 hover:border-brand-500 cursor-default",
         tile.span,
       )}
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-teal-400 font-medium">
+          <p className="text-xs uppercase tracking-[0.2em] text-gold-500 font-medium">
             {tile.eyebrow}
           </p>
-          <h3 className="mt-2 text-lg md:text-xl font-semibold text-slate-50">
+          <h3 className="mt-2 text-lg md:text-xl font-semibold text-brand-900">
             {tile.title}
           </h3>
-          <p className="mt-2 max-w-md text-sm md:text-base leading-relaxed text-slate-400">
+          <p className="mt-2 max-w-md text-sm md:text-base leading-relaxed text-slate-600">
             {tile.body}
           </p>
         </div>
-        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-ink-700 bg-ink-900 text-teal-300">
+        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-surface-300 bg-surface-100 text-brand-500">
           <Icon strokeWidth={1.75} className="h-5 w-5" />
         </span>
       </div>
@@ -150,7 +150,7 @@ function BentoTile({ tile }: { tile: Tile }) {
         <div className="mt-4">
           <Link
             href={tile.href}
-            className="inline-flex items-center gap-1 text-xs font-medium text-teal-300 hover:text-teal-200 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60 rounded-sm"
+            className="inline-flex items-center gap-1 text-xs font-medium text-gold-500 hover:text-gold-600 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 rounded-sm"
           >
             {tile.cta}
             <ArrowUpRight strokeWidth={1.75} className="h-3.5 w-3.5" aria-hidden />
@@ -163,32 +163,32 @@ function BentoTile({ tile }: { tile: Tile }) {
 
 function ScoreVisual() {
   return (
-    <div className="rounded-xl border border-ink-700 bg-ink-900 p-5">
+    <div className="rounded-xl border border-surface-300 bg-surface-100 p-5">
       <div className="flex items-end justify-between">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">
+          <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">
             Acme Co · Series A
           </p>
           <div className="mt-1 flex items-end gap-1">
-            <span className="font-mono tabular-nums text-5xl font-semibold text-teal-400 leading-none">
+            <span className="font-mono tabular-nums text-5xl font-semibold text-brand-500 leading-none">
               87
             </span>
-            <span className="font-mono tabular-nums text-base text-slate-500 leading-none mb-1.5">
+            <span className="font-mono tabular-nums text-base text-slate-400 leading-none mb-1.5">
               /100
             </span>
           </div>
         </div>
         <div className="text-right text-xs">
-          <p className="text-slate-500">Sector median</p>
-          <p className="font-mono tabular-nums text-slate-300">71</p>
+          <p className="text-slate-400">Sector median</p>
+          <p className="font-mono tabular-nums text-slate-700">71</p>
         </div>
       </div>
       <div className="mt-4 grid grid-cols-5 gap-2">
         {[88, 92, 81, 90, 84].map((v, i) => (
           <div key={i}>
-            <div className="h-1.5 w-full rounded-full bg-ink-700">
+            <div className="h-1.5 w-full rounded-full bg-surface-300">
               <div
-                className="h-full rounded-full bg-teal-500"
+                className="h-full rounded-full bg-brand-500"
                 style={{ width: `${v}%` }}
               />
             </div>
@@ -201,7 +201,7 @@ function ScoreVisual() {
 
 function ViewLinkVisual() {
   return (
-    <div className="rounded-xl border border-ink-700 bg-ink-900 p-4 space-y-2">
+    <div className="rounded-xl border border-surface-300 bg-surface-100 p-4 space-y-2">
       {[
         { who: "Blackbird Ventures", time: "12m 04s" },
         { who: "AirTree Partner", time: "06m 18s" },
@@ -211,8 +211,8 @@ function ViewLinkVisual() {
           key={row.who}
           className="flex items-center justify-between text-xs"
         >
-          <span className="text-slate-300">{row.who}</span>
-          <span className="font-mono tabular-nums text-teal-300">
+          <span className="text-slate-700">{row.who}</span>
+          <span className="font-mono tabular-nums text-brand-500">
             {row.time}
           </span>
         </div>
@@ -223,11 +223,11 @@ function ViewLinkVisual() {
 
 function TermSheetVisual() {
   return (
-    <div className="rounded-xl border border-ink-700 bg-ink-900 p-4 text-xs">
-      <p className="text-slate-500">SAFE valuation cap</p>
-      <p className="font-mono tabular-nums text-slate-50 text-lg">$8.0M</p>
-      <div className="mt-2 flex items-center gap-2 text-amber-300">
-        <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+    <div className="rounded-xl border border-surface-300 bg-surface-100 p-4 text-xs">
+      <p className="text-slate-400">SAFE valuation cap</p>
+      <p className="font-mono tabular-nums text-brand-900 text-lg">$8.0M</p>
+      <div className="mt-2 flex items-center gap-2 text-amber-600">
+        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
         <span>Above AU median (+18%)</span>
       </div>
     </div>
@@ -237,10 +237,10 @@ function TermSheetVisual() {
 function CapDiffVisual() {
   const before = [60, 25, 15];
   const after = [48, 22, 18, 12];
-  const colors = ["bg-teal-500", "bg-teal-500/70", "bg-teal-500/45", "bg-amber-400/80"];
+  const colors = ["bg-brand-500", "bg-brand-500/70", "bg-brand-500/45", "bg-amber-400/80"];
   return (
-    <div className="rounded-xl border border-ink-700 bg-ink-900 p-4">
-      <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">
+    <div className="rounded-xl border border-surface-300 bg-surface-100 p-4">
+      <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">
         Before → After Series A
       </p>
       <div className="mt-3 space-y-2">
@@ -255,9 +255,9 @@ function CapDiffVisual() {
           ))}
         </div>
       </div>
-      <p className="mt-2 text-xs text-slate-400">
-        Founders dilute <span className="font-mono tabular-nums text-amber-300">12%</span>
-        {" · "}ESOP top-up <span className="font-mono tabular-nums text-teal-300">+10%</span>
+      <p className="mt-2 text-xs text-slate-600">
+        Founders dilute <span className="font-mono tabular-nums text-amber-600">12%</span>
+        {" · "}ESOP top-up <span className="font-mono tabular-nums text-brand-500">+10%</span>
       </p>
     </div>
   );
@@ -270,11 +270,11 @@ function CompsVisual() {
     { label: "Sector median", mult: "3.8x" },
   ];
   return (
-    <div className="rounded-xl border border-ink-700 bg-ink-900 p-4 space-y-1.5">
+    <div className="rounded-xl border border-surface-300 bg-surface-100 p-4 space-y-1.5">
       {rows.map((r) => (
         <div key={r.label} className="flex items-center justify-between text-xs">
-          <span className="text-slate-400">{r.label}</span>
-          <span className="font-mono tabular-nums text-teal-300">{r.mult}</span>
+          <span className="text-slate-600">{r.label}</span>
+          <span className="font-mono tabular-nums text-brand-500">{r.mult}</span>
         </div>
       ))}
     </div>
@@ -287,7 +287,7 @@ function ComplianceVisual() {
       {["ASIC", "ESIC", "R&D", "AUSTRAC"].map((b) => (
         <span
           key={b}
-          className="inline-flex items-center rounded-md border border-ink-700 bg-ink-900 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wider text-slate-300"
+          className="inline-flex items-center rounded-md border border-surface-300 bg-surface-100 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wider text-slate-700"
         >
           {b}
         </span>
@@ -303,9 +303,9 @@ function PlugVisual() {
       {items.map((label) => (
         <div
           key={label}
-          className="rounded-lg border border-ink-700 bg-ink-900 px-4 py-3 text-sm font-medium text-slate-200"
+          className="rounded-lg border border-surface-300 bg-surface-100 px-4 py-3 text-sm font-medium text-slate-700"
         >
-          <p className="text-[10px] uppercase tracking-[0.2em] text-teal-400">OAuth</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-gold-500">OAuth</p>
           <p className="mt-1">{label}</p>
         </div>
       ))}

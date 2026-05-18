@@ -113,7 +113,7 @@ export function DilutionCalculator() {
           id="dilution-inputs"
           className="text-lg font-semibold text-slate-50 flex items-center gap-2"
         >
-          <Calculator strokeWidth={1.75} className="h-5 w-5 text-teal-400" />
+          <Calculator strokeWidth={1.75} className="h-5 w-5 text-brand-400" />
           Inputs
         </h2>
         <div className="mt-6 grid sm:grid-cols-2 gap-5">
@@ -195,7 +195,7 @@ export function DilutionCalculator() {
           <Stat
             label="Founder ownership after"
             value={formatPercent(out.founderPctAfter)}
-            tone="teal"
+            tone="brand"
           />
           <Stat
             label="Investor ownership"
@@ -230,12 +230,12 @@ export function DilutionCalculator() {
 
       <form
         onSubmit={onSubmit}
-        className="lg:col-span-2 rounded-2xl border border-teal-500/30 bg-ink-900 p-6 md:p-8"
+        className="lg:col-span-2 rounded-2xl border border-brand-500/30 bg-ink-900 p-6 md:p-8"
         noValidate
       >
         <div className="grid lg:grid-cols-2 gap-8 items-center">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-teal-400 font-medium">
+            <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium">
               Want the full picture?
             </p>
             <h3 className="mt-2 text-2xl font-semibold text-slate-50">
@@ -317,11 +317,11 @@ function Stat({
 }: {
   label: string;
   value: string;
-  tone?: "slate" | "teal" | "amber";
+  tone?: "slate" | "brand" | "amber";
 }) {
   const colour =
-    tone === "teal"
-      ? "text-teal-300"
+    tone === "brand"
+      ? "text-brand-300"
       : tone === "amber"
         ? "text-amber-300"
         : "text-slate-50";
@@ -350,10 +350,10 @@ function Stack({
   investor: number;
   esop: number;
 }) {
-  const before = [{ value: founderBefore, fill: "#0FB5A9", label: "Founders" }];
+  const before = [{ value: founderBefore, fill: "#3B7DD8", label: "Founders" }];
   const after = [
-    { value: founderAfter, fill: "#0FB5A9", label: "Founders" },
-    { value: investor, fill: "#5EEAD4", label: "Investors" },
+    { value: founderAfter, fill: "#3B7DD8", label: "Founders" },
+    { value: investor, fill: "#5B9AEB", label: "Investors" },
     { value: esop, fill: "#F59E0B", label: "ESOP" },
   ];
   return (

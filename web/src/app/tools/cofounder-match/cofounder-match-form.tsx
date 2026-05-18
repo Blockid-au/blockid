@@ -135,10 +135,10 @@ export function CofounderMatchForm() {
 
   if (status === "ok") {
     return (
-      <div className="rounded-2xl border border-teal-500/30 bg-ink-900 p-8 text-center">
+      <div className="rounded-2xl border border-brand-500/30 bg-ink-900 p-8 text-center">
         <CheckCircle2
           strokeWidth={1.75}
-          className="mx-auto h-10 w-10 text-teal-400"
+          className="mx-auto h-10 w-10 text-brand-400"
         />
         <h2 className="mt-4 text-2xl font-semibold text-slate-50">
           You&apos;re on the list
@@ -172,7 +172,7 @@ export function CofounderMatchForm() {
       className="rounded-2xl border border-ink-700 bg-ink-900 p-6 md:p-8"
     >
       <h2 className="text-lg font-semibold text-slate-50 flex items-center gap-2">
-        <Users strokeWidth={1.75} className="h-5 w-5 text-teal-400" />
+        <Users strokeWidth={1.75} className="h-5 w-5 text-brand-400" />
         Your profile
       </h2>
 
@@ -203,7 +203,7 @@ export function CofounderMatchForm() {
             id="location"
             value={form.location}
             onChange={(e) => update("location", e.target.value as Location)}
-            className="h-11 w-full rounded-[10px] border border-ink-700 bg-ink-900 px-4 py-3 text-slate-50 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+            className="h-11 w-full rounded-[10px] border border-ink-700 bg-ink-900 px-4 py-3 text-slate-50 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
           >
             {LOCATIONS.map((loc) => (
               <option key={loc} value={loc}>
@@ -251,7 +251,7 @@ export function CofounderMatchForm() {
             }
             rows={2}
             placeholder="Backend / Postgres / payments. Built and sold one B2B SaaS."
-            className="w-full rounded-[10px] border border-ink-700 bg-ink-900 px-4 py-3 text-slate-50 placeholder:text-slate-500 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+            className="w-full rounded-[10px] border border-ink-700 bg-ink-900 px-4 py-3 text-slate-50 placeholder:text-slate-500 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
           />
           <p className="mt-1 text-xs text-slate-500 font-mono tabular-nums">
             {form.skills.length}/280
@@ -264,7 +264,7 @@ export function CofounderMatchForm() {
               type="checkbox"
               checked={form.hasIdea}
               onChange={(e) => update("hasIdea", e.target.checked)}
-              className="h-4 w-4 accent-teal-500"
+              className="h-4 w-4 accent-brand-500"
             />
             <span className="text-sm font-medium text-slate-200">
               I have an idea
@@ -281,7 +281,7 @@ export function CofounderMatchForm() {
                 }
                 rows={3}
                 placeholder="One sentence on the problem, one on who it's for, one on why now."
-                className="mt-2 w-full rounded-[10px] border border-ink-700 bg-ink-900 px-4 py-3 text-slate-50 placeholder:text-slate-500 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                className="mt-2 w-full rounded-[10px] border border-ink-700 bg-ink-900 px-4 py-3 text-slate-50 placeholder:text-slate-500 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
               />
               <p className="mt-1 text-xs text-slate-500 font-mono tabular-nums">
                 {form.ideaPitch.length}/500
@@ -299,7 +299,7 @@ export function CofounderMatchForm() {
             onChange={(e) =>
               update("timeCommitment", e.target.value as TimeCommitment)
             }
-            className="h-11 w-full rounded-[10px] border border-ink-700 bg-ink-900 px-4 py-3 text-slate-50 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+            className="h-11 w-full rounded-[10px] border border-ink-700 bg-ink-900 px-4 py-3 text-slate-50 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
           >
             {TIME_COMMITMENTS.map((tc) => (
               <option key={tc} value={tc}>
@@ -313,7 +313,7 @@ export function CofounderMatchForm() {
             id="stage"
             value={form.stage}
             onChange={(e) => update("stage", e.target.value as Stage)}
-            className="h-11 w-full rounded-[10px] border border-ink-700 bg-ink-900 px-4 py-3 text-slate-50 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+            className="h-11 w-full rounded-[10px] border border-ink-700 bg-ink-900 px-4 py-3 text-slate-50 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
           >
             {STAGES.map((s) => (
               <option key={s} value={s}>
@@ -391,7 +391,7 @@ function Field({
     <div className="flex flex-col gap-2">
       <Label htmlFor={htmlFor}>
         {label}
-        {required && <span className="ml-1 text-teal-400">*</span>}
+        {required && <span className="ml-1 text-brand-400">*</span>}
       </Label>
       {children}
     </div>
@@ -415,7 +415,7 @@ function ChipsField({
     <div>
       <p className="text-sm font-medium text-slate-200">
         {label}
-        {required && <span className="ml-1 text-teal-400">*</span>}
+        {required && <span className="ml-1 text-brand-400">*</span>}
       </p>
       <div className="mt-2 flex flex-wrap gap-2">
         {options.map((opt) => {
@@ -427,10 +427,10 @@ function ChipsField({
               aria-pressed={on}
               onClick={() => onToggle(opt)}
               className={cn(
-                "inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60",
+                "inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60",
                 on
-                  ? "border-teal-500/50 bg-teal-500/15 text-teal-200"
-                  : "border-ink-700 bg-ink-800 text-slate-300 hover:border-teal-500/30 hover:text-slate-50",
+                  ? "border-brand-500/50 bg-brand-500/15 text-brand-200"
+                  : "border-ink-700 bg-ink-800 text-slate-300 hover:border-brand-500/30 hover:text-slate-50",
               )}
             >
               {opt}
@@ -461,8 +461,8 @@ function VisibilityRadio({
       className={cn(
         "flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 transition-colors",
         on
-          ? "border-teal-500/40 bg-teal-500/5"
-          : "border-ink-700 hover:border-teal-500/30",
+          ? "border-brand-500/40 bg-brand-500/5"
+          : "border-ink-700 hover:border-brand-500/30",
       )}
     >
       <input
@@ -471,7 +471,7 @@ function VisibilityRadio({
         value={value}
         checked={on}
         onChange={() => onChange(value)}
-        className="mt-1 h-4 w-4 accent-teal-500"
+        className="mt-1 h-4 w-4 accent-brand-500"
       />
       <span>
         <span className="block text-sm font-medium text-slate-100">

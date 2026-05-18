@@ -31,7 +31,7 @@ export default function ScorePage() {
       <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
         <div className="mx-auto max-w-5xl px-6">
           <header className="max-w-3xl">
-            <p className="text-xs uppercase tracking-[0.2em] text-teal-400 font-medium">
+            <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium">
               Free · 5 minutes · No credit card
             </p>
             <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-slate-50">

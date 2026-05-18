@@ -11,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { SaveFounderPackButton } from "@/components/save-founder-pack-button";
 import { cn, formatAud, formatPercent } from "@/lib/utils";
 import {
   AU_PRE_INCORP_BAND,
@@ -22,6 +23,7 @@ import {
   type TeamCompleteness,
   type TractionSignals,
 } from "@/lib/idea-valuation";
+import { saveIdeaEvalState } from "@/lib/idea-phase/session-state";
 
 const SEVERITY_LABELS: Record<Score1to5, string> = {
   1: "Mild",
@@ -117,7 +119,14 @@ const DEFAULTS: IdeaValuationInput = {
 
 export function IdeaValuationTool() {
   const [input, setInput] = React.useState<IdeaValuationInput>(DEFAULTS);
+  const [ideaName, setIdeaName] = React.useState<string>("");
   const out = React.useMemo(() => computeIdeaValuation(input), [input]);
+
+  // Mirror inputs to sessionStorage so the Save Founder Pack modal can pick
+  // them up when the user clicks "Save my Founder Pack" anywhere on the site.
+  React.useEffect(() => {
+    saveIdeaEvalState(input, ideaName || null);
+  }, [input, ideaName]);
 
   const setScore =
     <K extends keyof IdeaValuationInput>(key: K) =>
@@ -152,7 +161,7 @@ export function IdeaValuationTool() {
           id="idea-inputs"
           className="text-lg font-semibold text-slate-50 flex items-center gap-2"
         >
-          <Calculator strokeWidth={1.75} className="h-5 w-5 text-teal-400" />
+          <Calculator strokeWidth={1.75} className="h-5 w-5 text-brand-400" />
           Idea-stage signals
         </h2>
 
@@ -185,8 +194,8 @@ export function IdeaValuationTool() {
                   className={cn(
                     "rounded-full border px-3 py-1 text-xs transition-colors",
                     input.tamAud === preset.value
-                      ? "border-teal-500/60 bg-teal-500/10 text-teal-200"
-                      : "border-ink-700 bg-ink-900 text-slate-400 hover:border-teal-500/40 hover:text-slate-200",
+                      ? "border-brand-500/60 bg-brand-500/10 text-brand-200"
+                      : "border-ink-700 bg-ink-900 text-slate-400 hover:border-brand-500/40 hover:text-slate-200",
                   )}
                 >
                   {preset.label}
@@ -276,12 +285,12 @@ export function IdeaValuationTool() {
           id="idea-outputs"
           className="text-lg font-semibold text-slate-50 flex items-center gap-2"
         >
-          <Sparkles strokeWidth={1.75} className="h-5 w-5 text-teal-400" />
+          <Sparkles strokeWidth={1.75} className="h-5 w-5 text-brand-400" />
           Pre-money estimate
         </h2>
 
-        <div className="mt-6 rounded-xl border border-teal-500/30 bg-teal-500/5 p-5">
-          <p className="text-xs uppercase tracking-[0.2em] text-teal-300 font-medium">
+        <div className="mt-6 rounded-xl border border-brand-500/30 bg-brand-500/5 p-5">
+          <p className="text-xs uppercase tracking-[0.2em] text-brand-300 font-medium">
             Defensible band (AUD)
           </p>
           <p className="mt-2 font-mono tabular-nums text-3xl md:text-4xl font-semibold text-slate-50">
@@ -298,7 +307,7 @@ export function IdeaValuationTool() {
             </span>
           </p>
           <p className="mt-3 flex items-start gap-2 text-xs text-slate-400">
-            <Info strokeWidth={1.75} className="h-4 w-4 mt-0.5 text-teal-400" />
+            <Info strokeWidth={1.75} className="h-4 w-4 mt-0.5 text-brand-400" />
             <span>{out.confidence}</span>
           </p>
         </div>
@@ -320,7 +329,7 @@ export function IdeaValuationTool() {
                 </div>
                 <div className="mt-1.5 h-2 w-full rounded-full bg-ink-800 overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-teal-500"
+                    className="h-full rounded-full bg-brand-500"
                     style={{
                       width: `${Math.min(100, f.fillRatio * 100).toFixed(1)}%`,
                     }}
@@ -347,7 +356,7 @@ export function IdeaValuationTool() {
             <ol className="mt-3 space-y-3">
               {out.suggestions.map((s, i) => (
                 <li key={s.title} className="flex gap-3">
-                  <span className="font-mono tabular-nums text-xs text-teal-300 mt-0.5">
+                  <span className="font-mono tabular-nums text-xs text-brand-300 mt-0.5">
                     {i + 1}.
                   </span>
                   <div>
@@ -355,7 +364,7 @@ export function IdeaValuationTool() {
                       <span className="text-sm font-semibold text-slate-100">
                         {s.title}
                       </span>
-                      <span className="font-mono tabular-nums text-xs text-teal-300">
+                      <span className="font-mono tabular-nums text-xs text-brand-300">
                         +{formatAud(s.upliftAud)}
                       </span>
                     </div>
@@ -369,7 +378,7 @@ export function IdeaValuationTool() {
 
         <div className="mt-7 rounded-xl border border-ink-700 bg-ink-950/60 p-5">
           <p className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-slate-400 font-medium">
-            <TrendingUp strokeWidth={1.75} className="h-4 w-4 text-teal-400" />
+            <TrendingUp strokeWidth={1.75} className="h-4 w-4 text-brand-400" />
             How this compares
           </p>
           <p className="mt-2 text-sm text-slate-300">
@@ -395,6 +404,42 @@ export function IdeaValuationTool() {
           Idea-stage estimate. Real valuation is set by negotiation with your
           first investor — use this number as an anchor, not a quote.
         </p>
+
+        <div className="mt-7 rounded-xl border border-brand-500/40 bg-gradient-to-br from-ink-950 to-ink-900 p-5">
+          <div className="flex flex-col gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-300">
+                Lock this in
+              </p>
+              <p className="mt-2 text-sm text-slate-300">
+                Save this valuation as part of your{" "}
+                <span className="font-semibold text-slate-100">
+                  Founder Pack
+                </span>{" "}
+                — a shareable PDF + dashboard with view tracking. Free, no
+                password.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2">
+                <Label
+                  htmlFor="founder-pack-idea-name"
+                  className="text-xs text-slate-400"
+                >
+                  Idea name (optional)
+                </Label>
+                <Input
+                  id="founder-pack-idea-name"
+                  placeholder="e.g. Acme — AU SaaS for X"
+                  value={ideaName}
+                  onChange={(e) => setIdeaName(e.target.value)}
+                  maxLength={120}
+                />
+              </div>
+              <SaveFounderPackButton className="h-11 w-full sm:w-auto" />
+            </div>
+          </div>
+        </div>
       </section>
     </div>
   );
@@ -434,8 +479,8 @@ function RadioGroup({
               className={cn(
                 "cursor-pointer rounded-[10px] border px-2 py-2 text-center transition-colors",
                 selected
-                  ? "border-teal-500/60 bg-teal-500/10 text-teal-200"
-                  : "border-ink-700 bg-ink-900 text-slate-400 hover:border-teal-500/40 hover:text-slate-200",
+                  ? "border-brand-500/60 bg-brand-500/10 text-brand-200"
+                  : "border-ink-700 bg-ink-900 text-slate-400 hover:border-brand-500/40 hover:text-slate-200",
               )}
             >
               <input
@@ -487,15 +532,15 @@ function CheckboxGroup<T extends string>({
               className={cn(
                 "flex items-center gap-2.5 cursor-pointer rounded-[10px] border px-3 py-2.5 text-sm transition-colors",
                 checked
-                  ? "border-teal-500/60 bg-teal-500/10 text-slate-100"
-                  : "border-ink-700 bg-ink-900 text-slate-400 hover:border-teal-500/40 hover:text-slate-200",
+                  ? "border-brand-500/60 bg-brand-500/10 text-slate-100"
+                  : "border-ink-700 bg-ink-900 text-slate-400 hover:border-brand-500/40 hover:text-slate-200",
               )}
             >
               <input
                 type="checkbox"
                 checked={checked}
                 onChange={() => onToggle(f.key)}
-                className="h-4 w-4 rounded border-ink-700 bg-ink-900 text-teal-500 focus:ring-teal-500/40"
+                className="h-4 w-4 rounded border-ink-700 bg-ink-900 text-brand-500 focus:ring-brand-500/40"
               />
               <span>{f.label}</span>
             </label>
@@ -542,7 +587,7 @@ function CompareBar({
         y={6}
         width={Math.max(0.5, x(highAud) - x(lowAud))}
         height={12}
-        fill="#0FB5A9"
+        fill="#3B7DD8"
         rx={2}
       />
     </svg>

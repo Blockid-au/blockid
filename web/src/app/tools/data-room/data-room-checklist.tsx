@@ -165,7 +165,7 @@ function initialStatuses(): Record<string, ItemStatus> {
 
 function impactVariant(impact: Impact) {
   if (impact === "high") return "amber";
-  if (impact === "medium") return "teal";
+  if (impact === "medium") return "brand";
   return "default";
 }
 
@@ -247,21 +247,21 @@ export function DataRoomChecklist() {
         <section className="rounded-2xl border border-ink-700 bg-ink-900 p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-teal-400 font-medium">
+              <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium">
                 Readiness
               </p>
-              <p className="mt-3 font-mono text-6xl font-semibold tabular-nums text-teal-400 leading-none">
+              <p className="mt-3 font-mono text-6xl font-semibold tabular-nums text-brand-400 leading-none">
                 {readiness}
                 <span className="text-2xl text-slate-500">%</span>
               </p>
             </div>
-            <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-teal-500/30 bg-teal-500/10 text-teal-300">
+            <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-brand-500/30 bg-brand-500/10 text-brand-300">
               <LockKeyhole strokeWidth={1.75} className="h-6 w-6" />
             </span>
           </div>
           <div className="mt-6 h-2 rounded-full bg-ink-700 overflow-hidden">
             <div
-              className="h-full rounded-full bg-teal-500"
+              className="h-full rounded-full bg-brand-500"
               style={{ width: `${readiness}%` }}
             />
           </div>
@@ -284,10 +284,10 @@ export function DataRoomChecklist() {
 
         <form
           onSubmit={onSubmit}
-          className="rounded-2xl border border-teal-500/30 bg-ink-900 p-6"
+          className="rounded-2xl border border-brand-500/30 bg-ink-900 p-6"
           noValidate
         >
-          <p className="text-xs uppercase tracking-[0.2em] text-teal-400 font-medium">
+          <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium">
             Save checklist
           </p>
           <h2 className="mt-2 text-xl font-semibold text-slate-50">
@@ -346,12 +346,12 @@ export function DataRoomChecklist() {
             </p>
           </div>
           <label className="flex items-center gap-2 text-sm text-slate-400">
-            <Filter strokeWidth={1.75} className="h-4 w-4 text-teal-400" />
+            <Filter strokeWidth={1.75} className="h-4 w-4 text-brand-400" />
             <span className="sr-only">Filter section</span>
             <select
               value={section}
               onChange={(e) => setSection(e.target.value)}
-              className="h-10 rounded-[10px] border border-ink-700 bg-ink-800 px-3 text-slate-50 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30 cursor-pointer"
+              className="h-10 rounded-[10px] border border-ink-700 bg-ink-800 px-3 text-slate-50 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 cursor-pointer"
             >
               <option value="All">All sections</option>
               {SECTION_ORDER.map((s) => (
@@ -418,7 +418,7 @@ function ChecklistRow({
                 ? "border-green-500/40 bg-green-500/10 text-green-400"
                 : status === "in-progress"
                   ? "border-amber-500/40 bg-amber-500/10 text-amber-300"
-                  : "border-ink-700 bg-ink-900 text-slate-500 group-hover:border-teal-500/40",
+                  : "border-ink-700 bg-ink-900 text-slate-500 group-hover:border-brand-500/40",
             )}
           >
             {status === "ready" ? (
@@ -462,7 +462,7 @@ function ChecklistRow({
               type="button"
               onClick={() => onStatus(item.id, s)}
               className={cn(
-                "rounded-md px-2 py-2 text-xs font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60",
+                "rounded-md px-2 py-2 text-xs font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60",
                 status === s
                   ? s === "ready"
                     ? "bg-green-500/15 text-green-300"

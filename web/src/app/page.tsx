@@ -1,12 +1,13 @@
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
-import { WhyHowWhat } from "@/components/landing/why-how-what";
+import { Hero } from "@/components/landing/hero";
+import { IdeaTools } from "@/components/landing/idea-tools";
 import { LogoCloud } from "@/components/landing/logo-cloud";
+import { OwnershipVisibility } from "@/components/landing/ownership-visibility";
 import { Bento } from "@/components/landing/bento";
 import { CompsWall } from "@/components/landing/comps-wall";
 import { Compliance } from "@/components/landing/compliance";
 import { Pricing } from "@/components/landing/pricing";
-import { InvestorPack } from "@/components/landing/investor-pack";
 import { FAQ } from "@/components/landing/faq";
 import { CtaStrip } from "@/components/landing/cta-strip";
 
@@ -15,13 +16,14 @@ export default function HomePage() {
     <>
       <Navbar />
       <main id="main" className="flex-1">
-        <WhyHowWhat />
+        <Hero />
+        <IdeaTools />
         <LogoCloud />
+        <OwnershipVisibility />
         <Bento />
         <CompsWall />
         <Compliance />
         <Pricing />
-        <InvestorPack />
         <FAQ />
         <CtaStrip />
       </main>

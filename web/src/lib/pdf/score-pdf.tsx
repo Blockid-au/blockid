@@ -27,8 +27,8 @@ const C = {
   slate300: "#CBD5E1",
   slate400: "#94A3B8",
   slate500: "#64748B",
-  teal400: "#2DD4BF",
-  teal500: "#0FB5A9",
+  brand400: "#5B9AEB",
+  brand500: "#3B7DD8",
   white: "#FFFFFF",
 };
 
@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   logoSquare: {
     width: 18,
     height: 18,
-    backgroundColor: C.teal500,
+    backgroundColor: C.brand500,
     borderRadius: 4,
     marginRight: 8,
   },
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
   brandSub: { fontSize: 9, color: C.slate400, marginTop: 2 },
   eyebrow: {
     fontSize: 8,
-    color: C.teal400,
+    color: C.brand400,
     letterSpacing: 1.6,
     textTransform: "uppercase",
     fontWeight: 600,
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
   scoreNumber: {
     fontSize: 64,
     fontWeight: 700,
-    color: C.teal400,
+    color: C.brand400,
     fontFamily: "Helvetica-Bold",
   },
   scoreOutOf: {
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     overflow: "hidden",
   },
-  barFill: { height: 6, backgroundColor: C.teal500, borderRadius: 3 },
+  barFill: { height: 6, backgroundColor: C.brand500, borderRadius: 3 },
   sectionTitle: {
     fontSize: 12,
     fontWeight: 700,

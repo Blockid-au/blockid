@@ -5,13 +5,16 @@ import {
   Check,
   Clock3,
   FileText,
+  FolderLock,
   Link2,
   LockKeyhole,
+  PieChart,
   Play,
   QrCode,
   ShieldCheck,
   Sparkles,
   TrendingUp,
+  type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -31,44 +34,71 @@ const ACTIVITY = [
   ["Sarah Lee", "Downloaded report", "1d ago"],
 ];
 
+const PILLARS: { icon: LucideIcon; title: string; sub: string }[] = [
+  {
+    icon: ShieldCheck,
+    title: "Trusted Ownership",
+    sub: "Build trust from the idea stage",
+  },
+  {
+    icon: PieChart,
+    title: "Cap Table & Equity Management",
+    sub: "Manage shares, vesting and dilution",
+  },
+  {
+    icon: FolderLock,
+    title: "Investor-Ready Data Rooms",
+    sub: "Be investor-ready, always",
+  },
+  {
+    icon: BarChart3,
+    title: "Valuation & Equity Intelligence",
+    sub: "Track, understand and grow equity value",
+  },
+  {
+    icon: FileText,
+    title: "Fundraising Made Simple",
+    sub: "From idea to raise in minutes",
+  },
+];
+
 export function Hero() {
   return (
-    <section className="relative max-w-[100vw] overflow-hidden bg-[#f7f8ff] pt-32 md:pt-36 pb-8 text-[#07122f]">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_72%_16%,rgba(72,64,245,0.12),transparent_34%),linear-gradient(180deg,#ffffff_0%,#f7f8ff_72%,#eef2ff_100%)]"
-      />
+    <section className="relative max-w-[100vw] overflow-hidden bg-white pt-32 md:pt-36 pb-8 text-brand-900">
       <div className="relative mx-auto max-w-[1800px] px-6 lg:px-12">
         <div className="grid min-w-0 items-center gap-10 xl:grid-cols-[0.88fr_1.12fr]">
           <div className="w-full min-w-0 max-w-[calc(100vw-3rem)] sm:max-w-[760px]">
-            <p className="inline-flex items-center gap-2 rounded-xl border border-[#dedcff] bg-white/75 px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-[#3328e8] shadow-[0_10px_30px_rgba(50,40,220,0.08)]">
+            <p className="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-brand-600">
               <Sparkles strokeWidth={1.75} className="h-4 w-4" />
-              AI-powered fundraising intelligence
+              Trusted Ownership &amp; Fundraising Platform
             </p>
 
-            <h1 className="mt-8 font-semibold leading-[0.98] tracking-tight text-[#07122f]">
+            <h1 className="mt-8 font-semibold leading-[0.98] tracking-tight text-brand-800">
               <span className="block text-[clamp(2.5rem,10.5vw,3rem)] sm:hidden">
-                The trust layer
+                OWN IT.
                 <br />
-                for
+                <span className="text-gold-500">PROVE IT.</span>
                 <br />
-                <span className="bg-gradient-to-r from-[#4a35f5] via-[#3527ee] to-[#6058ff] bg-clip-text text-transparent">
-                  fundraising.
-                </span>
+                GROW IT.
               </span>
               <span className="hidden text-[clamp(3.6rem,8vw,7.25rem)] sm:block">
-                The trust layer
+                OWN IT.
                 <br />
-                for{" "}
-                <span className="bg-gradient-to-r from-[#4a35f5] via-[#3527ee] to-[#6058ff] bg-clip-text text-transparent">
-                  fundraising.
-                </span>
+                <span className="text-gold-500">PROVE IT.</span>
+                <br />
+                GROW IT.
               </span>
             </h1>
 
-            <p className="mt-7 max-w-2xl text-xl leading-relaxed text-[#4a5572] md:text-2xl">
-              AI-powered investor readiness, proof-backed diligence, and
-              fundraising intelligence for Australian startups.
+            <p className="mt-7 max-w-2xl text-xl leading-relaxed text-slate-600 md:text-2xl">
+              Trusted Ownership. Smarter Fundraising. Real Value.
+            </p>
+
+            <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-600 md:text-lg">
+              BlockID.au is the all-in-one ownership and fundraising platform for
+              startups and SMEs. We help founders, co-founders, and investors
+              securely manage equity, simplify fundraising, and unlock the true
+              value of ownership from day one.
             </p>
 
             <div className="mt-10 flex flex-col gap-4 sm:flex-row">
@@ -76,19 +106,19 @@ export function Hero() {
                 <Button
                   variant="primary"
                   size="lg"
-                  className="h-16 w-full rounded-xl bg-[#3b2ff4] px-4 text-sm text-white shadow-[0_18px_48px_rgba(59,47,244,0.28)] hover:bg-[#2f25d7] sm:w-auto sm:px-9 sm:text-base"
+                  className="h-16 w-full rounded-xl bg-brand-500 px-4 text-sm text-white shadow-[0_18px_48px_rgba(59,125,216,0.28)] hover:bg-brand-600 sm:w-auto sm:px-9 sm:text-base"
                 >
                   Get your Investor-Ready Score
                   <ArrowRight strokeWidth={1.75} className="h-5 w-5" />
                 </Button>
               </Link>
-              <Link href="/tools/data-room">
+              <Link href="/#product">
                 <Button
                   variant="secondary"
                   size="lg"
-                  className="h-16 w-full rounded-xl border-[#dfe4f2] bg-white px-9 text-base text-[#07122f] shadow-[0_12px_32px_rgba(15,23,42,0.06)] hover:bg-[#f7f8ff] sm:w-auto"
+                  className="h-16 w-full rounded-xl border-slate-200 bg-surface-100 px-9 text-base text-brand-700 hover:bg-surface-200 sm:w-auto"
                 >
-                  <Play strokeWidth={1.75} className="h-5 w-5 fill-[#3b2ff4] text-[#3b2ff4]" />
+                  <Play strokeWidth={1.75} className="h-5 w-5 fill-gold-500 text-gold-500" />
                   See how it works
                 </Button>
               </Link>
@@ -106,21 +136,21 @@ export function Hero() {
                 body="Tamper-evident reports and verified data."
               />
               <HeroBenefit
-                icon={BarChart3}
-                title="Raise with confidence"
-                body="Know what investors care about before they ask."
+                icon={TrendingUp}
+                title="Own something visible"
+                body="Track ownership value and company growth."
               />
             </div>
 
             <div className="mt-14">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#4f5a76]">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
                 Trusted by founders, advisors & investors
               </p>
               <div className="mt-6 flex flex-wrap items-center gap-x-10 gap-y-5">
                 {TRUSTED_BY.map((name) => (
                   <span
                     key={name}
-                    className="text-3xl font-semibold tracking-tight text-[#26314f]"
+                    className="text-3xl font-semibold tracking-tight text-slate-300"
                   >
                     {name}
                   </span>
@@ -132,27 +162,31 @@ export function Hero() {
           <DashboardMock />
         </div>
 
-        <div className="mt-12 grid rounded-2xl border border-[#dfe4f2] bg-white/75 shadow-[0_18px_48px_rgba(15,23,42,0.06)] backdrop-blur md:grid-cols-4">
-          <BottomTrust
-            icon={LockKeyhole}
-            title="Secure by design"
-            body="Enterprise-grade security and privacy."
-          />
-          <BottomTrust
-            icon={TrendingUp}
-            title="Built for Australia"
-            body="Local compliance, local support."
-          />
-          <BottomTrust
-            icon={FileText}
-            title="Investor trusted"
-            body="Used by founders, advisors and investors."
-          />
-          <BottomTrust
-            icon={ShieldCheck}
-            title="Tamper-evident"
-            body="Immutable records. Always verifiable."
-          />
+        {/* Five Pillars Strip */}
+        <div className="mt-12 grid rounded-2xl border border-brand-200 bg-brand-50 backdrop-blur sm:grid-cols-2 md:grid-cols-5">
+          {PILLARS.map((p, i) => {
+            const Icon = p.icon;
+            return (
+              <div
+                key={p.title}
+                className={`flex items-center gap-4 p-6 md:flex-col md:items-center md:text-center md:p-7 ${
+                  i < PILLARS.length - 1 ? "border-b sm:border-b-0 sm:border-r border-brand-200" : ""
+                }`}
+              >
+                <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-brand-200 bg-white text-brand-500">
+                  <Icon strokeWidth={1.75} className="h-6 w-6" />
+                </span>
+                <span className="md:mt-3">
+                  <span className="block text-sm font-semibold text-brand-800">
+                    {p.title}
+                  </span>
+                  <span className="mt-1 block text-xs leading-relaxed text-slate-500">
+                    {p.sub}
+                  </span>
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -170,14 +204,14 @@ function HeroBenefit({
 }) {
   return (
     <div className="flex gap-4">
-      <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#3b2ff4]/30 bg-white text-[#3b2ff4]">
+      <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-brand-200 bg-brand-50 text-brand-500">
         <Icon strokeWidth={1.75} className="h-6 w-6" />
       </span>
       <span>
-        <span className="block text-base font-semibold text-[#07122f]">
+        <span className="block text-base font-semibold text-brand-800">
           {title}
         </span>
-        <span className="mt-2 block text-sm leading-relaxed text-[#4f5a76]">
+        <span className="mt-2 block text-sm leading-relaxed text-slate-500">
           {body}
         </span>
       </span>
@@ -188,27 +222,27 @@ function HeroBenefit({
 function DashboardMock() {
   return (
     <div className="relative hidden min-h-[720px] min-w-0 overflow-hidden md:block xl:min-h-[860px]">
-      <div className="absolute left-0 top-0 w-[min(980px,100%)] rounded-3xl border border-[#dfe4f2] bg-white shadow-[0_30px_90px_rgba(30,41,80,0.14)]">
-        <div className="flex items-center justify-between border-b border-[#edf0f7] px-7 py-5">
+      <div className="absolute left-0 top-0 w-[min(980px,100%)] rounded-3xl border border-slate-200 bg-white shadow-lg">
+        <div className="flex items-center justify-between border-b border-slate-200 px-7 py-5">
           <div className="flex items-center gap-3">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#3b2ff4]/25 bg-[#f3f2ff] text-sm font-bold text-[#3b2ff4]">
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-brand-200 bg-brand-50 text-sm font-bold text-brand-500">
               B
             </span>
-            <span className="text-lg font-semibold text-[#07122f]">
-              BlockID.au
+            <span className="text-lg font-semibold text-brand-800">
+              BlockID<span className="text-gold-500">.au</span>
             </span>
           </div>
-          <nav className="hidden items-center gap-8 text-xs font-medium text-[#394260] md:flex">
-            <span className="border-b-4 border-[#3b2ff4] py-5 text-[#07122f]">
+          <nav className="hidden items-center gap-8 text-xs font-medium text-slate-400 md:flex">
+            <span className="border-b-4 border-brand-500 py-5 text-brand-700">
               Dashboard
             </span>
             <span>Score</span>
             <span>Data Room</span>
-            <span>Term Sheet AI</span>
+            <span>Ownership</span>
             <span>Cap Table</span>
             <span>Reports</span>
           </nav>
-          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#f0f2f8] text-sm font-semibold text-[#1e2743]">
+          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-500">
             JS
           </span>
         </div>
@@ -223,16 +257,16 @@ function DashboardMock() {
         </div>
       </div>
 
-      <div className="absolute right-0 top-24 hidden w-[285px] rounded-2xl border border-[#dff4e8] bg-[#f5fff9] p-6 shadow-[0_24px_64px_rgba(22,163,74,0.12)] xl:block">
+      <div className="absolute right-0 top-24 hidden w-[285px] rounded-2xl border border-emerald-200 bg-emerald-50 p-6 shadow-lg xl:block">
         <div className="flex gap-4">
-          <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#dffbea] text-[#16a34a]">
+          <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
             <Check strokeWidth={2} className="h-6 w-6" />
           </span>
           <span>
-            <span className="block text-sm font-semibold text-[#07122f]">
+            <span className="block text-sm font-semibold text-emerald-800">
               Proof Verified
             </span>
-            <span className="mt-2 block text-sm leading-relaxed text-[#42506d]">
+            <span className="mt-2 block text-sm leading-relaxed text-slate-500">
               This report is tamper-evident and time-stamped.
             </span>
           </span>
@@ -244,37 +278,37 @@ function DashboardMock() {
 
 function ScorePanel() {
   return (
-    <section className="rounded-2xl border border-[#edf0f7] bg-white p-7 shadow-[0_12px_36px_rgba(15,23,42,0.05)]">
-      <h2 className="text-lg font-semibold text-[#07122f]">
-        Investor-Ready Score™
+    <section className="rounded-2xl border border-slate-200 bg-surface-100 p-7">
+      <h2 className="text-lg font-semibold text-brand-800">
+        Investor-Ready Score
       </h2>
       <div className="mt-8 flex flex-col gap-8 md:flex-row md:items-center">
-        <div className="relative h-44 w-44 shrink-0 rounded-full bg-[conic-gradient(#3b2ff4_0_86%,#e4e7f2_86%_100%)] p-3">
-          <div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-white">
-            <span className="font-mono text-5xl font-semibold text-[#07122f]">
+        <div className="relative h-44 w-44 shrink-0 rounded-full bg-[conic-gradient(#3B7DD8_0_86%,#e2e8f0_86%_100%)] p-3">
+          <div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-surface-100">
+            <span className="font-mono text-5xl font-semibold text-brand-800">
               86
             </span>
-            <span className="mt-1 text-lg text-[#4f5a76]">/100</span>
+            <span className="mt-1 text-lg text-slate-400">/100</span>
           </div>
         </div>
         <div>
-          <p className="text-3xl font-semibold text-[#07122f]">Very Strong</p>
-          <p className="mt-3 text-base text-[#4f5a76]">
+          <p className="text-3xl font-semibold text-brand-800">Very Strong</p>
+          <p className="mt-3 text-base text-slate-500">
             You&apos;re well-prepared to raise.
           </p>
           <Link
             href="/score"
-            className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[#3b2ff4]"
+            className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-gold-500"
           >
             View score details
             <ArrowRight strokeWidth={1.75} className="h-4 w-4" />
           </Link>
         </div>
       </div>
-      <div className="mt-8 flex items-center justify-between border-t border-[#edf0f7] pt-5 text-xs text-[#4f5a76]">
+      <div className="mt-8 flex items-center justify-between border-t border-slate-200 pt-5 text-xs text-slate-400">
         <span>Score Version 2.1</span>
         <span>Updated 2 hours ago</span>
-        <span className="inline-flex items-center gap-1 text-[#3b2ff4]">
+        <span className="inline-flex items-center gap-1 text-brand-500">
           <ShieldCheck strokeWidth={1.75} className="h-4 w-4" />
           Verified
         </span>
@@ -285,20 +319,20 @@ function ScorePanel() {
 
 function BreakdownPanel() {
   return (
-    <section className="rounded-2xl border border-[#edf0f7] bg-white p-7 shadow-[0_12px_36px_rgba(15,23,42,0.05)]">
-      <h2 className="text-lg font-semibold text-[#07122f]">
+    <section className="rounded-2xl border border-slate-200 bg-surface-100 p-7">
+      <h2 className="text-lg font-semibold text-brand-800">
         Score Breakdown
       </h2>
       <div className="mt-7 space-y-5">
         {SCORE_ROWS.map(([label, value]) => (
           <div key={label as string}>
             <div className="flex items-center justify-between text-sm">
-              <span className="font-medium text-[#07122f]">{label}</span>
-              <span className="font-mono text-[#26314f]">{value}%</span>
+              <span className="font-medium text-brand-700">{label}</span>
+              <span className="font-mono text-slate-500">{value}%</span>
             </div>
-            <div className="mt-2 h-1.5 rounded-full bg-[#e4e7f2]">
+            <div className="mt-2 h-1.5 rounded-full bg-slate-200">
               <div
-                className="h-full rounded-full bg-[#3b2ff4]"
+                className="h-full rounded-full bg-brand-500"
                 style={{ width: `${value}%` }}
               />
             </div>
@@ -317,27 +351,27 @@ function InvestorPackPanel() {
     [QrCode, "Secure QR Code", "Share anywhere"],
   ];
   return (
-    <section className="rounded-2xl border border-[#edf0f7] bg-white p-6 shadow-[0_12px_36px_rgba(15,23,42,0.05)]">
-      <h2 className="text-lg font-semibold text-[#07122f]">
-        Investor Pack <span className="text-sm text-[#16a34a]">● Ready</span>
+    <section className="rounded-2xl border border-slate-200 bg-surface-100 p-6">
+      <h2 className="text-lg font-semibold text-brand-800">
+        Investor Pack <span className="text-sm text-emerald-500">● Ready</span>
       </h2>
-      <p className="mt-2 text-sm text-[#4f5a76]">
+      <p className="mt-2 text-sm text-slate-500">
         Share your investor-ready link or download.
       </p>
       <div className="mt-5 grid grid-cols-4 gap-3">
         {items.map(([Icon, label, sub]) => (
           <div
             key={label as string}
-            className="rounded-xl border border-[#edf0f7] bg-[#fbfcff] p-4 text-center"
+            className="rounded-xl border border-slate-200 bg-white p-4 text-center"
           >
             <Icon
               strokeWidth={1.75}
-              className="mx-auto h-7 w-7 text-[#3b2ff4]"
+              className="mx-auto h-7 w-7 text-brand-500"
             />
-            <p className="mt-3 text-xs font-semibold text-[#07122f]">
+            <p className="mt-3 text-xs font-semibold text-brand-700">
               {label as string}
             </p>
-            <p className="mt-1 text-xs text-[#4f5a76]">{sub as string}</p>
+            <p className="mt-1 text-xs text-slate-400">{sub as string}</p>
           </div>
         ))}
       </div>
@@ -347,16 +381,16 @@ function InvestorPackPanel() {
 
 function TermSheetPanel() {
   return (
-    <section className="rounded-2xl border border-[#edf0f7] bg-white p-7 shadow-[0_12px_36px_rgba(15,23,42,0.05)]">
+    <section className="rounded-2xl border border-slate-200 bg-surface-100 p-7">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-[#07122f]">Term Sheet AI</h2>
-        <span className="rounded-full bg-[#e9fff1] px-3 py-1 text-xs font-medium text-[#16a34a]">
+        <h2 className="text-lg font-semibold text-brand-800">Term Sheet AI</h2>
+        <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-600">
           Low Risk
         </span>
       </div>
       <div className="mt-6 flex items-center gap-4">
-        <FileText strokeWidth={1.75} className="h-8 w-8 text-[#3b2ff4]" />
-        <span className="text-sm font-semibold text-[#07122f]">
+        <FileText strokeWidth={1.75} className="h-8 w-8 text-brand-500" />
+        <span className="text-sm font-semibold text-brand-700">
           SAFE (Post-money)
         </span>
       </div>
@@ -366,7 +400,7 @@ function TermSheetPanel() {
       </div>
       <Link
         href="/tools/term-sheet"
-        className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#3b2ff4]"
+        className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-gold-500"
       >
         View analysis
         <ArrowRight strokeWidth={1.75} className="h-4 w-4" />
@@ -377,22 +411,22 @@ function TermSheetPanel() {
 
 function ProgressPanel() {
   return (
-    <section className="rounded-2xl border border-[#edf0f7] bg-white p-7 shadow-[0_12px_36px_rgba(15,23,42,0.05)]">
-      <h2 className="text-lg font-semibold text-[#07122f]">
-        Fundraising Progress
+    <section className="rounded-2xl border border-slate-200 bg-surface-100 p-7">
+      <h2 className="text-lg font-semibold text-brand-800">
+        Valuation Growth
       </h2>
-      <div className="mt-8 h-36 rounded-xl bg-[linear-gradient(to_top,#eef0ff_1px,transparent_1px)] bg-[size:100%_25%]">
+      <div className="mt-8 h-36 rounded-xl bg-[linear-gradient(to_top,rgba(0,0,0,0.04)_1px,transparent_1px)] bg-[size:100%_25%]">
         <svg viewBox="0 0 420 140" className="h-full w-full overflow-visible">
           <defs>
             <linearGradient id="heroChartFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#3b2ff4" stopOpacity="0.18" />
-              <stop offset="100%" stopColor="#3b2ff4" stopOpacity="0" />
+              <stop offset="0%" stopColor="#3B7DD8" stopOpacity="0.18" />
+              <stop offset="100%" stopColor="#3B7DD8" stopOpacity="0" />
             </linearGradient>
           </defs>
           <path
             d="M10 118 L55 104 L95 88 L135 102 L175 82 L215 68 L255 72 L295 58 L335 36 L385 18"
             fill="none"
-            stroke="#3b2ff4"
+            stroke="#3B7DD8"
             strokeWidth="4"
             strokeLinecap="round"
           />
@@ -406,7 +440,7 @@ function ProgressPanel() {
               cx={x}
               cy={[118, 104, 88, 102, 82, 68, 72, 58, 36, 18][i]}
               r="5"
-              fill="#3b2ff4"
+              fill="#3B7DD8"
             />
           ))}
         </svg>
@@ -417,26 +451,26 @@ function ProgressPanel() {
 
 function ActivityPanel() {
   return (
-    <section className="rounded-2xl border border-[#edf0f7] bg-white p-7 shadow-[0_12px_36px_rgba(15,23,42,0.05)]">
+    <section className="rounded-2xl border border-slate-200 bg-surface-100 p-7">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-[#07122f]">
+        <h2 className="text-lg font-semibold text-brand-800">
           Investor Activity
         </h2>
-        <span className="text-sm font-semibold text-[#3b2ff4]">View all</span>
+        <span className="text-sm font-semibold text-gold-500">View all</span>
       </div>
       <ul className="mt-6 space-y-5">
         {ACTIVITY.map(([name, action, time]) => (
           <li key={name} className="flex items-center gap-3">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#edfdf3]">
-              <span className="h-2.5 w-2.5 rounded-full bg-[#22c55e]" />
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100">
+              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold text-[#07122f]">
+              <span className="block truncate text-sm font-semibold text-brand-700">
                 {name}
               </span>
-              <span className="text-xs text-[#4f5a76]">{action}</span>
+              <span className="text-xs text-slate-400">{action}</span>
             </span>
-            <span className="text-xs text-[#4f5a76]">{time}</span>
+            <span className="text-xs text-slate-400">{time}</span>
           </li>
         ))}
       </ul>
@@ -446,33 +480,9 @@ function ActivityPanel() {
 
 function MetricLine({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between border-b border-[#edf0f7] pb-3">
-      <span className="text-[#4f5a76]">{label}</span>
-      <span className="font-mono font-semibold text-[#07122f]">{value}</span>
-    </div>
-  );
-}
-
-function BottomTrust({
-  icon: Icon,
-  title,
-  body,
-}: {
-  icon: typeof LockKeyhole;
-  title: string;
-  body: string;
-}) {
-  return (
-    <div className="flex items-center gap-5 border-[#dfe4f2] p-7 md:border-r last:border-r-0">
-      <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#3b2ff4]/25 bg-white text-[#3b2ff4]">
-        <Icon strokeWidth={1.75} className="h-6 w-6" />
-      </span>
-      <span>
-        <span className="block font-semibold text-[#07122f]">{title}</span>
-        <span className="mt-1 block text-sm leading-relaxed text-[#4f5a76]">
-          {body}
-        </span>
-      </span>
+    <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+      <span className="text-slate-500">{label}</span>
+      <span className="font-mono font-semibold text-brand-700">{value}</span>
     </div>
   );
 }

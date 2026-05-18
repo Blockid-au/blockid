@@ -58,7 +58,7 @@ export async function POST(request: Request) {
 export const dynamic = "force-dynamic";
 
 // -----------------------------------------------------------------------------
-// Notification emails — minimal inline HTML, navy/teal palette, no externals.
+// Notification emails — minimal inline HTML, navy/brand-blue palette, no externals.
 // We call resend directly here (rather than adding new exports to email.ts)
 // to keep this feature self-contained.
 // -----------------------------------------------------------------------------
@@ -147,11 +147,11 @@ function founderHtml(args: {
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#0FB5A9;font-weight:500;">BlockID — Cofounder Match</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Cofounder Match</p>
           <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">You're on the list, ${escapeHtml(input.fullName.split(/\s+/)[0] ?? "founder")}</h1>
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Thanks for joining the BlockID Cofounder Match directory. We'll reach out when we have profiles that look like a fit. In the meantime your anonymized card is live on the directory.</p>
           <p style="margin:0;text-align:center;">
-            <a href="${directoryUrl}" style="display:inline-block;background:#0FB5A9;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View the directory</a>
+            <a href="${directoryUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View the directory</a>
           </p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:32px 0 16px 0;">
           <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">BlockID — match before you incorporate, fight, or fork.</p>
@@ -191,7 +191,7 @@ function adminHtml(args: {
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#0FB5A9;font-weight:500;">BlockID — Internal</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Internal</p>
           <h1 style="margin:0 0 16px 0;font-size:20px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">New cofounder profile</h1>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
         </td></tr>

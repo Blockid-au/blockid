@@ -27,6 +27,10 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
+# NEXT_PUBLIC_* vars must be available at build time for Next.js inlining.
+ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID
+ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 

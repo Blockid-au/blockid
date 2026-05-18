@@ -12,6 +12,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
     image: blockid/web:latest
     container_name: blockid-web
     restart: unless-stopped

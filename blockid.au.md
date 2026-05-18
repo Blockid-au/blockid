@@ -2,7 +2,7 @@
 
 **Ngày cập nhật:** 2026-05-07  
 **Trạng thái:** Master planning document tổng hợp từ blueprint, GTM, upgrade plan và source hiện tại.  
-**Nguồn:** `blockid_master_project_blueprint_v1.md`, `blockid_gtm_sales_first_v1.md`, `blockid_upgrade_solution_plan_v2.md`, `web/README.md`
+**Nguồn:** `blockid_master_project_blueprint_v1.md`, `blockid_gtm_sales_first_v1.md`, `blockid_upgrade_solution_plan_v2.md`, `blockid_ownership_trust_infrastructure_requirements_v1.md`, `web/README.md`
 
 ---
 
@@ -31,6 +31,32 @@ Mục tiêu sản phẩm ngắn hạn:
 > **AI-powered fundraising, valuation and ownership infrastructure for private companies.**
 
 BlockID có thể được cung cấp như SaaS platform hoặc standalone/private deployment cho SME, startup, accelerator, advisor, investor, shareholder và các tổ chức cần quản lý private-company trust data. AI là lớp intelligence bên trong sản phẩm, không phải định vị thương hiệu chính.
+
+### Nguyên tắc sản phẩm cốt lõi
+
+Ownership phải trở thành: trusted, verifiable, trackable, understandable, valuable, transparent.
+
+Platform phải làm cho ownership cảm thấy như:
+
+> một digital asset thực, nhìn thấy được, quản lý được.
+
+### Lợi ích cốt lõi cho người dùng
+
+Người dùng phải ngay lập tức cảm nhận:
+
+> "I actually own something valuable and visible."
+
+không phải:
+
+> "I just have shares written somewhere."
+
+### Mục tiêu cảm xúc sản phẩm
+
+Người dùng phải cảm thấy: secure, confident, proud of ownership, transparent, investor-ready.
+
+Platform phải tạo ra:
+
+> emotional trust in ownership.
 
 ---
 
@@ -171,6 +197,69 @@ Founder nhận được:
 ---
 
 ## 6. Yêu Cầu Sản Phẩm
+
+### Product Pillar — Trusted Ownership Identity
+
+Mỗi startup phải có:
+
+- unique company identity
+- unique ownership registry
+- verified ownership records
+- tamper-evident ownership history
+
+Yêu cầu:
+
+- tạo startup identity từ idea stage
+- unique startup ownership profile
+- unique shareholder IDs
+- ownership timestamping
+- ownership proof records
+- immutable ownership history logs
+
+### Product Pillar — Ownership Dashboard & Value Visibility
+
+Đây là yêu cầu CRITICAL. Người dùng (founders, co-founders, investors) KHÔNG được cảm thấy "I invested but cannot see value."
+
+Dashboard phải hiển thị:
+
+- ownership %
+- total share value
+- estimated equity value
+- ownership growth
+- ownership changes
+- dilution impact
+
+Platform phải cho thấy:
+
+- estimated startup valuation
+- shareholder value growth
+- ownership performance
+- value increase over time
+- funding round impact
+- equity appreciation
+- future value scenarios
+
+Required visuals:
+
+- ownership charts
+- valuation growth charts
+- investor activity
+- share value trend
+- cap table visualization
+- future ownership simulations
+
+### Product Pillar — Share & Ownership Management
+
+Users phải có thể:
+
+- issue shares
+- allocate shares
+- manage ownership %
+- create share classes
+- track vesting
+- track dilution
+- manage option pools
+- manage shareholder records
 
 ### Product Pillar — BlockID Intelligence Layer
 
@@ -830,6 +919,12 @@ Phần này ghi nhận các yêu cầu đã được thống nhất để tránh
 | Proof infrastructure | Canonical hash, score proof, document proof, verify page, proof certificate. | Recorded | Planned |
 | Guardrails | No legal/tax/investment advice claim; no raw IP exposure; no sensitive personal data on-chain; valuation is estimate with assumptions. | Recorded | Partial |
 | Landing page | Why/How/What, audience, problems, solution, elevator pitch, value, share/manage, trust strip. | Recorded | Shipped |
+| Trusted Ownership Identity | Unique company identity, ownership registry, verified records, tamper-evident history, startup identity from idea stage, shareholder IDs, timestamping, proof records. | Recorded | Planned |
+| Ownership Dashboard & Value Visibility | Ownership %, total share value, equity value, growth, changes, dilution impact. Valuation growth charts, investor activity, share value trend, cap table visualization, future ownership simulations. | Recorded | Planned |
+| Share & Ownership Management | Issue shares, allocate shares, manage ownership %, create share classes, track vesting, track dilution, manage option pools, shareholder records. | Recorded | Dilution + cap table tools shipped light |
+| Investor & Co-Founder Value Visibility | CRITICAL: estimated valuation, shareholder value growth, ownership performance, value increase over time, funding round impact, equity appreciation, future value scenarios. | Recorded | Planned |
+| Product Emotional Goal | Users must feel secure, confident, proud of ownership, transparent, investor-ready. Emotional trust in ownership. | Recorded | Partial via landing page |
+| Core Product Principle | Ownership must become trusted, verifiable, trackable, understandable, valuable, transparent. Ownership as real visible manageable digital asset. | Recorded | Planned |
 
 ---
 

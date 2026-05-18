@@ -42,8 +42,8 @@ const SHARE_CLASS_OPTIONS: { value: ShareClass; label: string }[] = [
 
 // Color tokens for stacked bars / legend swatches. Matches MASTER.md palette.
 const COLOR = {
-  founder: "#0FB5A9", // teal-500
-  esop: "#5EEAD4", // teal-300 — lighter teal for ESOP
+  founder: "#3B7DD8", // brand-500
+  esop: "#5B9AEB", // brand-300 — lighter blue for ESOP
   existing: "#94A3B8", // slate-400
   newInvestor: "#F59E0B", // amber-500
 } as const;
@@ -166,7 +166,7 @@ export function CapTableDiffTool() {
           >
             <Users
               strokeWidth={1.75}
-              className="h-5 w-5 text-teal-400"
+              className="h-5 w-5 text-brand-400"
               aria-hidden
             />
             Current cap table
@@ -174,7 +174,7 @@ export function CapTableDiffTool() {
           <button
             type="button"
             onClick={resetDemo}
-            className="inline-flex items-center gap-1.5 rounded-md border border-ink-700 bg-ink-800/60 px-2.5 py-1.5 text-xs font-medium text-slate-300 hover:border-teal-500/40 hover:text-slate-50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60"
+            className="inline-flex items-center gap-1.5 rounded-md border border-ink-700 bg-ink-800/60 px-2.5 py-1.5 text-xs font-medium text-slate-300 hover:border-brand-500/40 hover:text-slate-50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
           >
             <RotateCcw strokeWidth={1.75} className="h-3.5 w-3.5" />
             Reset to demo
@@ -194,7 +194,7 @@ export function CapTableDiffTool() {
           <button
             type="button"
             onClick={addHolder}
-            className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-ink-700 bg-transparent px-3 py-2 text-xs font-medium text-slate-300 hover:border-teal-500/40 hover:text-slate-50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60"
+            className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-ink-700 bg-transparent px-3 py-2 text-xs font-medium text-slate-300 hover:border-brand-500/40 hover:text-slate-50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
           >
             <Plus strokeWidth={1.75} className="h-3.5 w-3.5" />
             Add holder
@@ -206,7 +206,7 @@ export function CapTableDiffTool() {
         <h3 className="text-lg font-semibold text-slate-50 flex items-center gap-2">
           <Calculator
             strokeWidth={1.75}
-            className="h-5 w-5 text-teal-400"
+            className="h-5 w-5 text-brand-400"
             aria-hidden
           />
           New round
@@ -279,7 +279,7 @@ export function CapTableDiffTool() {
           >
             <TrendingDown
               strokeWidth={1.75}
-              className="h-5 w-5 text-teal-400"
+              className="h-5 w-5 text-brand-400"
               aria-hidden
             />
             Diff
@@ -287,7 +287,7 @@ export function CapTableDiffTool() {
           <button
             type="button"
             onClick={onCopy}
-            className="inline-flex items-center gap-1.5 rounded-md border border-ink-700 bg-ink-800/60 px-2.5 py-1.5 text-xs font-medium text-slate-300 hover:border-teal-500/40 hover:text-slate-50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60"
+            className="inline-flex items-center gap-1.5 rounded-md border border-ink-700 bg-ink-800/60 px-2.5 py-1.5 text-xs font-medium text-slate-300 hover:border-brand-500/40 hover:text-slate-50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
             aria-live="polite"
           >
             <Copy strokeWidth={1.75} className="h-3.5 w-3.5" />
@@ -312,12 +312,12 @@ export function CapTableDiffTool() {
           <SummaryTile
             label="Founder %"
             value={formatPercent(diff.summary.foundersAfterPct)}
-            tone="teal"
+            tone="brand"
           />
           <SummaryTile
             label="ESOP %"
             value={formatPercent(diff.summary.esopAfterPct)}
-            tone="teal-soft"
+            tone="brand-soft"
           />
         </div>
 
@@ -374,7 +374,7 @@ export function CapTableDiffTool() {
                     kind === "founder"
                       ? "text-amber-300"
                       : kind === "esop"
-                        ? "text-teal-300"
+                        ? "text-brand-300"
                         : kind === "newInvestor"
                           ? "text-slate-200"
                           : "text-slate-300";
@@ -427,8 +427,8 @@ export function CapTableDiffTool() {
         </div>
 
         {/* Plain-English summary */}
-        <div className="rounded-2xl border border-teal-500/30 bg-ink-900 p-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-teal-400 font-medium flex items-center gap-2">
+        <div className="rounded-2xl border border-brand-500/30 bg-ink-900 p-6">
+          <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium flex items-center gap-2">
             <Sparkles strokeWidth={1.75} className="h-3.5 w-3.5" aria-hidden />
             Plain English
           </p>
@@ -441,12 +441,12 @@ export function CapTableDiffTool() {
       {/* Email capture (full-width row) */}
       <form
         onSubmit={onSubmit}
-        className="lg:col-span-12 rounded-2xl border border-teal-500/30 bg-ink-900 p-6 md:p-8"
+        className="lg:col-span-12 rounded-2xl border border-brand-500/30 bg-ink-900 p-6 md:p-8"
         noValidate
       >
         <div className="grid lg:grid-cols-2 gap-8 items-center">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-teal-400 font-medium">
+            <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium">
               Save this scenario
             </p>
             <h3 className="mt-2 text-2xl font-semibold text-slate-50">
@@ -585,7 +585,7 @@ function HolderRow({
               type="button"
               onClick={onRemove}
               aria-label={`Remove ${holder.name}`}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-ink-700 bg-ink-900 text-slate-400 hover:border-red-500/40 hover:text-red-400 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-ink-700 bg-ink-900 text-slate-400 hover:border-red-500/40 hover:text-red-400 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
             >
               <Trash2 strokeWidth={1.75} className="h-4 w-4" />
             </button>
@@ -598,7 +598,7 @@ function HolderRow({
           type="checkbox"
           checked={!!holder.isFounder}
           onChange={(e) => onChange({ isFounder: e.target.checked })}
-          className="h-4 w-4 rounded border-ink-700 bg-ink-900 text-teal-500 focus:ring-teal-500/30 cursor-pointer"
+          className="h-4 w-4 rounded border-ink-700 bg-ink-900 text-brand-500 focus:ring-brand-500/30 cursor-pointer"
         />
         <Label htmlFor={founderId} className="text-xs text-slate-400 cursor-pointer">
           Mark as founder
@@ -623,7 +623,7 @@ function ShareClassSelect({
       id={id}
       value={value}
       onChange={(e) => onChange(e.target.value as ShareClass)}
-      className="mt-1 h-9 w-full rounded-[10px] border border-ink-700 bg-ink-900 px-2.5 text-sm text-slate-50 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30 cursor-pointer transition-colors"
+      className="mt-1 h-9 w-full rounded-[10px] border border-ink-700 bg-ink-900 px-2.5 text-sm text-slate-50 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 cursor-pointer transition-colors"
     >
       {SHARE_CLASS_OPTIONS.map((o) => (
         <option key={o.value} value={o.value} className="bg-ink-900">
@@ -641,16 +641,16 @@ function SummaryTile({
 }: {
   label: string;
   value: string;
-  tone?: "default" | "teal" | "teal-soft";
+  tone?: "default" | "brand" | "brand-soft";
 }) {
   const valueClass =
-    tone === "teal"
-      ? "text-teal-300"
-      : tone === "teal-soft"
-        ? "text-teal-200"
+    tone === "brand"
+      ? "text-brand-300"
+      : tone === "brand-soft"
+        ? "text-brand-200"
         : "text-slate-50";
   return (
-    <div className="rounded-xl border border-ink-700 bg-ink-900 p-4 transition-colors hover:border-teal-500/40">
+    <div className="rounded-xl border border-ink-700 bg-ink-900 p-4 transition-colors hover:border-brand-500/40">
       <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
         {label}
       </p>

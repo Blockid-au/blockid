@@ -11,30 +11,49 @@ interface NavLink {
   label: string;
 }
 
+interface NavDropdownGroup {
+  heading: string;
+  items: NavLink[];
+}
+
 interface NavDropdown {
   label: string;
-  items: NavLink[];
+  groups: NavDropdownGroup[];
 }
 
 type NavEntry = NavLink | NavDropdown;
 
 const navItems: NavEntry[] = [
-  { href: "/#product", label: "Product" },
-  { href: "/#pricing", label: "Pricing" },
   {
-    label: "Tools",
-    items: [
-      { href: "/tools/dilution", label: "Dilution Calculator" },
-      { href: "/tools/cap-table", label: "Cap Table Diff" },
-      { href: "/tools/term-sheet", label: "Term Sheet AI" },
-      { href: "/tools/data-room", label: "Data Room Checklist" },
+    label: "Free Tools",
+    groups: [
+      {
+        heading: "Start with your idea",
+        items: [
+          { href: "/tools/idea-valuation", label: "Idea Valuation" },
+          { href: "/tools/equity-split", label: "Equity Split" },
+          { href: "/tools/cofounder-match", label: "Co-founder Match" },
+          { href: "/tools/funding-plan", label: "Funding Plan" },
+        ],
+      },
+      {
+        heading: "When you're raising",
+        items: [
+          { href: "/tools/dilution", label: "Dilution Calculator" },
+          { href: "/tools/cap-table", label: "Cap Table Diff" },
+          { href: "/tools/term-sheet", label: "Term Sheet AI" },
+          { href: "/tools/data-room", label: "Data Room Checklist" },
+        ],
+      },
     ],
   },
+  { href: "/#product", label: "Product" },
+  { href: "/#pricing", label: "Pricing" },
   { href: "#", label: "Login" },
 ];
 
 function isDropdown(item: NavEntry): item is NavDropdown {
-  return (item as NavDropdown).items !== undefined;
+  return (item as NavDropdown).groups !== undefined;
 }
 
 export function Navbar() {
@@ -42,9 +61,9 @@ export function Navbar() {
 
   return (
     <header className="fixed top-4 left-4 right-4 z-50">
-      <div className="mx-auto max-w-7xl rounded-2xl border border-white/10 bg-ink-900/70 px-4 py-3 backdrop-blur-xl backdrop-saturate-150 shadow-[0_8px_32px_rgba(0,0,0,0.35)]">
+      <div className="mx-auto max-w-7xl rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 backdrop-blur-xl backdrop-saturate-150 shadow-[0_8px_32px_rgba(0,0,0,0.08)]">
         <div className="flex items-center justify-between gap-4">
-          <Logo />
+          <Logo variant="light" />
           <nav className="hidden md:flex items-center gap-1" aria-label="Primary">
             {navItems.map((item) =>
               isDropdown(item) ? (
@@ -53,7 +72,7 @@ export function Navbar() {
                 <Link
                   key={item.label}
                   href={item.href}
-                  className="px-3 py-2 text-sm font-medium text-slate-300 hover:text-slate-50 cursor-pointer rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60"
+                  className="px-3 py-2 text-sm font-medium text-slate-600 hover:text-brand-700 cursor-pointer rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
                 >
                   {item.label}
                 </Link>
@@ -61,9 +80,15 @@ export function Navbar() {
             )}
           </nav>
           <div className="hidden md:flex items-center gap-2">
+            <Link
+              href="/#idea-tools"
+              className="hidden lg:inline-flex h-9 items-center px-3 text-sm font-medium text-slate-600 hover:text-brand-700 cursor-pointer rounded-md transition-colors"
+            >
+              Try free tools
+            </Link>
             <Link href="/score">
               <Button variant="primary" size="sm" className="h-9">
-                Get Score
+                Get your Score
               </Button>
             </Link>
           </div>
@@ -72,7 +97,7 @@ export function Navbar() {
             aria-label={open ? "Close menu" : "Open menu"}
             aria-expanded={open}
             onClick={() => setOpen((v) => !v)}
-            className="md:hidden inline-flex h-10 w-10 items-center justify-center rounded-md text-slate-200 hover:bg-white/5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60"
+            className="md:hidden inline-flex h-10 w-10 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
           >
             {open ? (
               <X strokeWidth={1.75} className="h-5 w-5" />
@@ -82,7 +107,7 @@ export function Navbar() {
           </button>
         </div>
         {open && (
-          <div className="md:hidden mt-3 border-t border-white/10 pt-3">
+          <div className="md:hidden mt-3 border-t border-slate-200 pt-3">
             <nav
               className="flex flex-col gap-1"
               aria-label="Mobile primary"
@@ -90,18 +115,25 @@ export function Navbar() {
               {navItems.map((item) =>
                 isDropdown(item) ? (
                   <div key={item.label} className="flex flex-col">
-                    <p className="px-3 pt-2 pb-1 text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                    <p className="px-3 pt-2 pb-1 text-[11px] uppercase tracking-[0.18em] text-slate-400">
                       {item.label}
                     </p>
-                    {item.items.map((sub) => (
-                      <Link
-                        key={sub.label}
-                        href={sub.href}
-                        onClick={() => setOpen(false)}
-                        className="px-3 py-2 text-sm font-medium text-slate-300 hover:text-slate-50 cursor-pointer rounded-md transition-colors"
-                      >
-                        {sub.label}
-                      </Link>
+                    {item.groups.map((group) => (
+                      <div key={group.heading} className="flex flex-col">
+                        <p className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold-500">
+                          {group.heading}
+                        </p>
+                        {group.items.map((sub) => (
+                          <Link
+                            key={sub.label}
+                            href={sub.href}
+                            onClick={() => setOpen(false)}
+                            className="px-3 py-2 text-sm font-medium text-slate-600 hover:text-brand-700 cursor-pointer rounded-md transition-colors"
+                          >
+                            {sub.label}
+                          </Link>
+                        ))}
+                      </div>
                     ))}
                   </div>
                 ) : (
@@ -109,7 +141,7 @@ export function Navbar() {
                     key={item.label}
                     href={item.href}
                     onClick={() => setOpen(false)}
-                    className="px-3 py-2 text-sm font-medium text-slate-300 hover:text-slate-50 cursor-pointer rounded-md transition-colors"
+                    className="px-3 py-2 text-sm font-medium text-slate-600 hover:text-brand-700 cursor-pointer rounded-md transition-colors"
                   >
                     {item.label}
                   </Link>
@@ -121,8 +153,15 @@ export function Navbar() {
                 className="mt-2"
               >
                 <Button variant="primary" size="md" className="w-full">
-                  Get Score
+                  Get your Score
                 </Button>
+              </Link>
+              <Link
+                href="/tools/idea-valuation"
+                onClick={() => setOpen(false)}
+                className="mt-2 px-3 py-2 text-center text-sm font-medium text-slate-600 hover:text-brand-700 cursor-pointer rounded-md transition-colors"
+              >
+                Or start free with your idea
               </Link>
             </nav>
           </div>
@@ -176,7 +215,7 @@ function ToolsDropdown({ entry }: { entry: NavDropdown }) {
             setOpen((v) => !v);
           }
         }}
-        className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-slate-300 hover:text-slate-50 cursor-pointer rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60"
+        className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-slate-600 hover:text-brand-700 cursor-pointer rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
       >
         {entry.label}
         <ChevronDown
@@ -188,19 +227,29 @@ function ToolsDropdown({ entry }: { entry: NavDropdown }) {
       {open && (
         <div
           role="menu"
-          className="absolute left-0 top-full pt-2 min-w-[220px]"
+          className="absolute left-0 top-full pt-2 min-w-[260px]"
         >
-          <div className="rounded-xl border border-white/10 bg-ink-900/95 p-1.5 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.45)]">
-            {entry.items.map((sub) => (
-              <Link
-                key={sub.label}
-                href={sub.href}
-                role="menuitem"
-                onClick={() => setOpen(false)}
-                className="block rounded-md px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-slate-50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60"
+          <div className="rounded-xl border border-slate-200 bg-white/95 p-2 backdrop-blur-xl shadow-lg">
+            {entry.groups.map((group, idx) => (
+              <div
+                key={group.heading}
+                className={idx > 0 ? "mt-1 border-t border-slate-100 pt-1" : ""}
               >
-                {sub.label}
-              </Link>
+                <p className="px-3 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold-500">
+                  {group.heading}
+                </p>
+                {group.items.map((sub) => (
+                  <Link
+                    key={sub.label}
+                    href={sub.href}
+                    role="menuitem"
+                    onClick={() => setOpen(false)}
+                    className="block rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-brand-700 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
+                  >
+                    {sub.label}
+                  </Link>
+                ))}
+              </div>
             ))}
           </div>
         </div>

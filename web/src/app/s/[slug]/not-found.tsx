@@ -9,7 +9,7 @@ export default function NotFound() {
       <Navbar />
       <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
         <div className="mx-auto max-w-2xl px-6 text-center">
-          <p className="text-xs uppercase tracking-[0.2em] text-teal-400 font-medium">
+          <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium">
             Score link not found
           </p>
           <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-slate-50">

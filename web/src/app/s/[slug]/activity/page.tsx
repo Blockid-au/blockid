@@ -214,7 +214,7 @@ export default async function ScoreActivityPage({
           </Link>
 
           <header className="mt-8 max-w-3xl">
-            <p className="text-xs uppercase tracking-[0.2em] text-teal-400 font-medium inline-flex items-center gap-2">
+            <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium inline-flex items-center gap-2">
               <BarChart3 strokeWidth={1.75} className="h-4 w-4" />
               Investor Link Activity
             </p>
@@ -257,7 +257,7 @@ export default async function ScoreActivityPage({
           {investorSummaries.length > 0 && (
             <section className="mt-8 rounded-2xl border border-ink-700 bg-ink-900 p-6">
               <h2 className="text-lg font-semibold text-slate-50 inline-flex items-center gap-2">
-                <Mail strokeWidth={1.75} className="h-5 w-5 text-teal-400" />
+                <Mail strokeWidth={1.75} className="h-5 w-5 text-brand-400" />
                 Per-investor links
               </h2>
               <p className="mt-1 text-sm text-slate-400">
@@ -304,7 +304,7 @@ export default async function ScoreActivityPage({
                             <td className="py-4 pr-4 text-slate-400">
                               {formatDate(link.createdAt)}
                             </td>
-                            <td className="py-4 pr-4 font-mono tabular-nums text-teal-300">
+                            <td className="py-4 pr-4 font-mono tabular-nums text-brand-300">
                               {totalViews}
                             </td>
                             <td className="py-4 pr-4 font-mono tabular-nums text-slate-300">
@@ -319,7 +319,7 @@ export default async function ScoreActivityPage({
                               <span
                                 className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wider ${
                                   status === "active"
-                                    ? "border-teal-500/30 bg-teal-500/10 text-teal-300"
+                                    ? "border-brand-500/30 bg-brand-500/10 text-brand-300"
                                     : "border-amber-500/30 bg-amber-500/10 text-amber-300"
                                 }`}
                               >
@@ -410,7 +410,7 @@ export default async function ScoreActivityPage({
                       className="flex items-center justify-between rounded-xl border border-ink-700 bg-ink-800/40 px-4 py-3"
                     >
                       <span className="text-sm text-slate-300">{host}</span>
-                      <span className="font-mono text-sm text-teal-300">
+                      <span className="font-mono text-sm text-brand-300">
                         {count}
                       </span>
                     </li>
@@ -439,7 +439,7 @@ function Metric({
 }) {
   return (
     <div className="rounded-2xl border border-ink-700 bg-ink-900 p-5">
-      <div className="flex items-center gap-2 text-teal-400">
+      <div className="flex items-center gap-2 text-brand-400">
         <Icon strokeWidth={1.75} className="h-4 w-4" />
         <p className="text-xs uppercase tracking-[0.16em]">{label}</p>
       </div>

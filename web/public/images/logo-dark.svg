@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- Dark variant - for dark backgrounds -->
+  <!-- Left side of hexagon (lighter blue) -->
+  <path d="M100 15 L40 50 L40 140 L100 175" stroke="#5B9AEB" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Right side of hexagon (gold) -->
+  <path d="M100 15 L160 50 L160 140 L100 175" stroke="#D4A843" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- 3D Cube inside -->
+  <path d="M70 75 L100 58 L130 75 L100 92 Z" fill="#7EB0F0"/>
+  <path d="M70 75 L100 92 L100 125 L70 108 Z" fill="#5B9AEB"/>
+  <path d="M130 75 L100 92 L100 125 L130 108 Z" fill="#3B7DD8"/>
+</svg>
