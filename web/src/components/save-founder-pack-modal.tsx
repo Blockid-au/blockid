@@ -40,53 +40,40 @@ export function SaveFounderPackModal({
   open,
   onClose,
 }: SaveFounderPackModalProps) {
+  if (!open) return null;
+
+  return <SaveFounderPackModalContent onClose={onClose} />;
+}
+
+function SaveFounderPackModalContent({ onClose }: { onClose: () => void }) {
   const [email, setEmail] = React.useState("");
   const [state, setState] = React.useState<State>("idle");
   const [error, setError] = React.useState<string | null>(null);
-  const [snapshot, setSnapshot] = React.useState<{
+  const [snapshot] = React.useState<{
     payload: PendingPackPayload;
     filledCount: number;
     hasIdeaEval: boolean;
     hasEquitySplit: boolean;
     hasFundingPlan: boolean;
-  }>({
-    payload: {},
-    filledCount: 0,
-    hasIdeaEval: false,
-    hasEquitySplit: false,
-    hasFundingPlan: false,
-  });
-
-  // Re-read sessionStorage every time the modal opens — state may have
-  // changed in another tab or the user may have completed another tool.
-  React.useEffect(() => {
-    if (!open) return;
-    setSnapshot(readPendingPayload());
-    setState("idle");
-    setError(null);
-  }, [open]);
+  }>(() => readPendingPayload());
 
   // Close on Escape.
   React.useEffect(() => {
-    if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [onClose]);
 
   // Lock body scroll while open.
   React.useEffect(() => {
-    if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [open]);
-
-  if (!open) return null;
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

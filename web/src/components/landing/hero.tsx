@@ -7,7 +7,6 @@ import {
   FileText,
   FolderLock,
   Link2,
-  LockKeyhole,
   PieChart,
   Play,
   QrCode,
