@@ -1,0 +1,71 @@
+stages:
+  - lint
+  - build
+  - deploy
+
+variables:
+  PROJECT_NAME: blockid
+  DEPLOY_PORT: "4001"
+
+lint:
+  stage: lint
+  image: node:22-alpine
+  before_script:
+    - cd web
+    - npm ci --prefer-offline
+  script:
+    - npx next lint
+  only:
+    - master
+
+build:
+  stage: build
+  tags:
+    - deploy
+  script:
+    - cd web
+    - docker build
+        --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID="${NEXT_PUBLIC_GOOGLE_CLIENT_ID}"
+        --build-arg NEXT_PUBLIC_SITE_URL="${NEXT_PUBLIC_SITE_URL}"
+        -t gitlab-deploy/${PROJECT_NAME}:latest .
+  only:
+    - master
+
+deploy:
+  stage: deploy
+  tags:
+    - deploy
+  script:
+    - docker stop deploy-${PROJECT_NAME} 2>/dev/null || true
+    - docker rm deploy-${PROJECT_NAME} 2>/dev/null || true
+    - docker run -d
+        --name deploy-${PROJECT_NAME}
+        --restart unless-stopped
+        --network supabase_default
+        -p 127.0.0.1:${DEPLOY_PORT}:3000
+        -e NODE_ENV=production
+        -e PORT=3000
+        -e HOSTNAME=0.0.0.0
+        -e SUPABASE_URL=${SUPABASE_URL}
+        -e SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+        -e NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
+        -e ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+        -e IP_HASH_SALT=${IP_HASH_SALT}
+        -e "RESEND_FROM_EMAIL=BlockID <noreply@blockid.au>"
+        gitlab-deploy/${PROJECT_NAME}:latest
+    - sleep 5
+    - |
+      if docker ps | grep -q deploy-${PROJECT_NAME}; then
+        echo "Container deploy-${PROJECT_NAME} is running!"
+        echo "Accessible at https://blockid.git.longcare.au"
+        docker logs deploy-${PROJECT_NAME} --tail 10
+      else
+        echo "ERROR: Container failed to start"
+        docker logs deploy-${PROJECT_NAME} 2>&1
+        exit 1
+      fi
+  environment:
+    name: production
+    url: https://blockid.git.longcare.au
+  only:
+    - master
