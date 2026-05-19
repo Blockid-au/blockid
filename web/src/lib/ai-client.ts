@@ -2,10 +2,14 @@
  * Unified AI client — priority chain:
  *   1. Claude CLI OAuth token (~/.claude/.credentials.json)
  *   2. ANTHROPIC_API_KEY env var
- *   3. Google Gemini (GOOGLE_GEMINI_API_KEY) — free quota fallback
+ *   3. OpenAI (OPENAI_API_KEY) — ChatGPT / GPT-4o-mini
+ *   4. Google Gemini (GOOGLE_GEMINI_API_KEY) — free quota fallback
  *
  * All AI routes use `callAI()` which returns a plain text response.
  * This abstracts away the provider so routes don't care which model runs.
+ *
+ * Fallback: if the primary provider fails (rate limit, auth error, etc.),
+ * the system automatically tries the next available provider in the chain.
  */
 
 import * as fs from "fs";
@@ -25,14 +29,14 @@ export interface AICallOptions {
   system: string;
   user: string;
   maxTokens?: number;
-  /** Tools for Claude (e.g. web_search). Ignored by Gemini. */
+  /** Tools for Claude (e.g. web_search). Ignored by OpenAI/Gemini. */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   tools?: any[];
 }
 
 interface AICallResult {
   text: string;
-  provider: "claude" | "gemini";
+  provider: "claude" | "openai" | "gemini";
   model: string;
 }
 
@@ -55,27 +59,26 @@ function readCliOAuthToken(): string | null {
 
 // ── Provider detection ─────────────────────────────────────────────────
 
-type Provider = "claude-oauth" | "claude-apikey" | "gemini" | "none";
+type Provider = "claude-oauth" | "claude-apikey" | "openai" | "gemini" | "none";
 
-function detectProvider(): Provider {
-  if (readCliOAuthToken()) return "claude-oauth";
-  if (process.env.ANTHROPIC_API_KEY) return "claude-apikey";
-  if (process.env.GOOGLE_GEMINI_API_KEY) return "gemini";
-  return "none";
+function getAvailableProviders(): Provider[] {
+  const providers: Provider[] = [];
+  if (readCliOAuthToken()) providers.push("claude-oauth");
+  if (process.env.ANTHROPIC_API_KEY) providers.push("claude-apikey");
+  if (process.env.OPENAI_API_KEY) providers.push("openai");
+  if (process.env.GOOGLE_GEMINI_API_KEY) providers.push("gemini");
+  return providers;
 }
 
 export function isAIConfigured(): boolean {
-  return detectProvider() !== "none";
+  return getAvailableProviders().length > 0;
 }
 
 // ── Claude call ────────────────────────────────────────────────────────
 
 async function callClaude(apiKey: string, opts: AICallOptions): Promise<AICallResult> {
   const Anthropic = (await import("@anthropic-ai/sdk")).default;
-  const client = new Anthropic({
-    apiKey,
-    authToken: apiKey,
-  });
+  const client = new Anthropic({ apiKey, authToken: apiKey });
 
   const model = opts.tools?.length ? "claude-sonnet-4-6" : "claude-haiku-4-5-20251001";
 
@@ -124,8 +127,28 @@ async function callClaude(apiKey: string, opts: AICallOptions): Promise<AICallRe
   for (const block of response.content) {
     if (block.type === "text") text = block.text;
   }
-
   return { text, provider: "claude", model };
+}
+
+// ── OpenAI call ────────────────────────────────────────────────────────
+
+async function callOpenAI(opts: AICallOptions): Promise<AICallResult> {
+  const OpenAI = (await import("openai")).default;
+  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+  const model = "gpt-4o-mini";
+
+  const response = await client.chat.completions.create({
+    model,
+    max_tokens: opts.maxTokens ?? 4096,
+    messages: [
+      { role: "system", content: opts.system },
+      { role: "user", content: opts.user },
+    ],
+  });
+
+  const text = response.choices[0]?.message?.content ?? "";
+  return { text, provider: "openai", model };
 }
 
 // ── Gemini call ────────────────────────────────────────────────────────
@@ -138,53 +161,59 @@ async function callGemini(opts: AICallOptions): Promise<AICallResult> {
   const result = await model.generateContent({
     systemInstruction: opts.system,
     contents: [{ role: "user", parts: [{ text: opts.user }] }],
-    generationConfig: {
-      maxOutputTokens: opts.maxTokens ?? 4096,
-    },
+    generationConfig: { maxOutputTokens: opts.maxTokens ?? 4096 },
   });
 
   const text = result.response.text();
   return { text, provider: "gemini", model: "gemini-2.0-flash" };
 }
 
-// ── Unified entry point ────────────────────────────────────────────────
+// ── Provider caller map ────────────────────────────────────────────────
+
+async function callProvider(provider: Provider, opts: AICallOptions): Promise<AICallResult> {
+  switch (provider) {
+    case "claude-oauth":
+      return callClaude(readCliOAuthToken()!, opts);
+    case "claude-apikey":
+      return callClaude(process.env.ANTHROPIC_API_KEY!, opts);
+    case "openai":
+      return callOpenAI({ ...opts, tools: undefined }); // OpenAI doesn't use Claude tools
+    case "gemini":
+      return callGemini({ ...opts, tools: undefined }); // Gemini doesn't use Claude tools
+    default:
+      throw new Error(`Unknown provider: ${provider}`);
+  }
+}
+
+// ── Unified entry point (with auto-fallback) ───────────────────────────
 
 export async function callAI(opts: AICallOptions): Promise<AICallResult> {
-  const provider = detectProvider();
+  const providers = getAvailableProviders();
 
-  if (provider === "none") {
-    throw new Error("No AI provider configured. Set up Claude CLI, ANTHROPIC_API_KEY, or GOOGLE_GEMINI_API_KEY.");
+  if (providers.length === 0) {
+    throw new Error(
+      "No AI provider configured. Set up Claude CLI, ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_GEMINI_API_KEY."
+    );
   }
 
-  // Try Claude first
-  if (provider === "claude-oauth" || provider === "claude-apikey") {
-    const apiKey = provider === "claude-oauth"
-      ? readCliOAuthToken()!
-      : process.env.ANTHROPIC_API_KEY!;
+  let lastError: Error | null = null;
 
+  for (const provider of providers) {
     try {
-      return await callClaude(apiKey, opts);
+      const result = await callProvider(provider, opts);
+      return result;
     } catch (err) {
-      console.warn(`[ai-client] Claude failed (${provider}), trying Gemini fallback:`, err instanceof Error ? err.message : err);
-
-      // Fallback to Gemini if available
-      if (process.env.GOOGLE_GEMINI_API_KEY) {
-        const geminiOpts = { ...opts, tools: undefined }; // Gemini doesn't support Claude tools
-        return await callGemini(geminiOpts);
-      }
-      throw err;
+      lastError = err instanceof Error ? err : new Error(String(err));
+      console.warn(`[ai-client] ${provider} failed: ${lastError.message}. Trying next provider...`);
     }
   }
 
-  // Gemini primary (no tools support)
-  const geminiOpts = { ...opts, tools: undefined };
-  return await callGemini(geminiOpts);
+  throw lastError ?? new Error("All AI providers failed");
 }
 
-// ── Legacy compat — keep getAnthropicClient for term-sheet (uses parse()) ──
+// ── Legacy compat — getAnthropicClient for term-sheet (uses parse() API) ──
 
 export function getAnthropicClient() {
-  // Dynamic import not possible here since term-sheet needs sync client
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const Anthropic = require("@anthropic-ai/sdk").default;
 
