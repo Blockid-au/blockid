@@ -66,11 +66,12 @@ export default function AboutPage() {
               Australian-Native
             </h2>
             <p className="mt-3 leading-relaxed text-ink-600">
-              Auschain PTY LTD is headquartered in Sydney, Australia. Our data
-              is hosted with Australian residency, our compliance frameworks
-              are built for ASIC and ATO requirements, and our tools speak the
-              language of Australian founders — from ESOP structures to SAFE
-              notes under local law.
+              Auschain Pty Ltd (ACN 659 615 111, ABN 79 659 615 111) is
+              headquartered in Sydney, NSW, Australia. Our data is hosted with
+              Australian residency, our compliance frameworks are built for
+              ASIC and ATO requirements, and our tools speak the language of
+              Australian founders — from ESOP structures to SAFE notes under
+              local law.
             </p>
           </section>
 
