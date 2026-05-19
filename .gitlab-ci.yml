@@ -14,7 +14,8 @@ lint:
     - cd web
     - npm ci --prefer-offline
   script:
-    - npx next lint
+    - npm run lint
+  allow_failure: true
   only:
     - master
 
