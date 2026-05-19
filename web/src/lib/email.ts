@@ -317,6 +317,121 @@ export async function sendSVIWeeklyReport(args: {
   return sendEmail({ to: args.to, subject: `Week ${args.weekNum} SVI Report — ${deltaStr} points`, html });
 }
 
+// ---------- SVI Report email -------------------------------------------------
+
+export async function sendSVIReport(args: {
+  to: string;
+  slug: string;
+  analysis: {
+    totalSVI: number;
+    stageLabel: string;
+    subs: { label: string; value: number }[];
+    evidenceGaps: { label: string; action: string }[];
+  };
+}): Promise<SendResult> {
+  const reportUrl = `${siteUrl()}/s/${args.slug}`;
+  const loginUrl = `${siteUrl()}/auth/login`;
+
+  const strengths = args.analysis.subs
+    .filter((s) => s.value >= 60)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 3);
+
+  const gaps = args.analysis.evidenceGaps.slice(0, 3);
+
+  const strengthRows = strengths
+    .map(
+      (s) =>
+        `<tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(s.label)} <span style="color:#64748B;">(${s.value}/100)</span></td></tr>`,
+    )
+    .join("");
+
+  const gapRows = gaps
+    .map(
+      (g) =>
+        `<tr><td style="padding:6px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(g.label)}: <span style="color:#94A3B8;">${escapeHtml(g.action)}</span></td></tr>`,
+    )
+    .join("");
+
+  const html = shell(`
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+        <tr><td>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Startup Value Report</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Your Startup Value Report is Ready</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Your SVI analysis is complete. Here is your headline score and key findings.</p>
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
+            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:64px;font-weight:600;color:#3B7DD8;line-height:1;">${args.analysis.totalSVI}</div>
+            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">SVI Score — ${escapeHtml(args.analysis.stageLabel)} Stage</p>
+          </div>
+          ${strengths.length > 0 ? `
+          <p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Strengths</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${strengthRows}</table>
+          ` : ""}
+          ${gaps.length > 0 ? `
+          <p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Evidence Gaps</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${gapRows}</table>
+          ` : ""}
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 0 0;">
+            <tr>
+              <td width="48%" style="text-align:center;padding:4px;">
+                <a href="${reportUrl}" style="display:inline-block;width:100%;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">View Full Report</a>
+              </td>
+              <td width="4%"></td>
+              <td width="48%" style="text-align:center;padding:4px;">
+                <a href="${loginUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">Sign in to Dashboard</a>
+              </td>
+            </tr>
+          </table>
+          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
+          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:11px;line-height:1.5;">You can sign in with Google or via a magic link sent to this email.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>`);
+  return sendEmail({ to: args.to, subject: "Your BlockID Startup Value Report is Ready", html });
+}
+
+// ---------- SVI Share email --------------------------------------------------
+
+export async function sendSVIShare(args: {
+  to: string;
+  senderName?: string | null;
+  slug: string;
+  svi: number;
+}): Promise<SendResult> {
+  const reportUrl = `${siteUrl()}/s/${args.slug}`;
+  const sender = args.senderName || "A founder";
+  const html = shell(`
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+        <tr><td>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Shared Report</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${escapeHtml(sender)} shared a Startup Value Report with you</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">You have been invited to view a BlockID Startup Value Index report. Click below to see the full analysis.</p>
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
+            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:64px;font-weight:600;color:#3B7DD8;line-height:1;">${args.svi}</div>
+            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">SVI Score</p>
+          </div>
+          <p style="margin:0 0 24px 0;text-align:center;">
+            <a href="${reportUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Full Report</a>
+          </p>
+          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>`);
+  return sendEmail({
+    to: args.to,
+    subject: `${escapeHtml(sender)} shared their BlockID Startup Value Report with you`,
+    html,
+  });
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")

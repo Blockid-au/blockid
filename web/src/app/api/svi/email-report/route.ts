@@ -1,0 +1,53 @@
+import { NextResponse } from "next/server";
+import { sendSVIReport } from "@/lib/email";
+
+// POST /api/svi/email-report
+// Body: { email, slug, analysis }
+// Sends the SVI report email to the given address.
+
+export async function POST(request: Request) {
+  let body: unknown = null;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ ok: false, error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const parsed = body as {
+    email?: string;
+    slug?: string;
+    analysis?: {
+      totalSVI: number;
+      stageLabel: string;
+      subs: { label: string; value: number }[];
+      evidenceGaps: { label: string; action: string }[];
+    };
+  } | null;
+
+  if (!parsed?.email || !parsed.email.includes("@")) {
+    return NextResponse.json({ ok: false, error: "Valid email is required" }, { status: 400 });
+  }
+  if (!parsed.slug) {
+    return NextResponse.json({ ok: false, error: "slug is required" }, { status: 400 });
+  }
+  if (!parsed.analysis || typeof parsed.analysis.totalSVI !== "number") {
+    return NextResponse.json({ ok: false, error: "analysis with totalSVI is required" }, { status: 400 });
+  }
+
+  const result = await sendSVIReport({
+    to: parsed.email,
+    slug: parsed.slug,
+    analysis: parsed.analysis,
+  });
+
+  if (result.ok) {
+    return NextResponse.json({ ok: true });
+  }
+
+  return NextResponse.json(
+    { ok: false, error: result.reason },
+    { status: result.reason === "not_configured" ? 503 : 500 },
+  );
+}
+
+export const dynamic = "force-dynamic";

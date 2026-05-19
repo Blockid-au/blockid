@@ -13,12 +13,8 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen bg-surface-100 text-ink-800 flex items-center justify-center px-6 py-16">
       <div className="max-w-md w-full bg-white border border-surface-200 rounded-2xl p-8 shadow-sm">
-        <p className="text-[11px] tracking-[0.2em] uppercase text-brand-600 font-medium mb-2">
+        <p className="text-[11px] tracking-[0.2em] uppercase text-brand-600 font-medium mb-4">
           BlockID<span className="text-gold-600">.au</span>
-        </p>
-        <h1 className="text-2xl font-semibold mb-2">Sign in</h1>
-        <p className="text-ink-600 text-sm leading-relaxed mb-6">
-          Own your cap table. Prove your equity. Raise with confidence.
         </p>
         <Suspense fallback={<div className="h-48 animate-pulse rounded-lg bg-surface-100" />}>
           <LoginForm />

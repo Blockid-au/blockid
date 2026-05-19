@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { extractSignals, computeSVI, type SVITextInput } from "@/lib/svi-analysis";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { newSlug } from "@/lib/slug";
+import { sendSVIReport } from "@/lib/email";
 
 // POST /api/svi
 // Body: { email, input: { rawText, fileName? } }
@@ -50,6 +51,9 @@ export async function POST(request: Request) {
       slug = `svi-demo-${slug.slice(0, 6)}`;
     }
   }
+
+  // After persisting, send report email (fire-and-forget)
+  void sendSVIReport({ to: parsed.email, slug, analysis }).catch(() => {});
 
   return NextResponse.json({
     ok: true,

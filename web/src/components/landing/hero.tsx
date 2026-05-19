@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -162,29 +161,33 @@ export function Hero() {
           {/* Platform overview banner */}
           <div className="hidden xl:block relative">
             <div className="rounded-2xl border border-surface-200 bg-white shadow-lg overflow-hidden">
-              <Image
-                src="/images/blockid-hero-banner.png"
-                alt="BlockID.au — Turn your idea into a valuable, investable business. Platform overview showing cap table, valuation intelligence, investor readiness, and AI workspace."
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://upload.blockid.au/blockID_banner_white.png"
+                alt="BlockID.au platform overview"
                 width={1560}
                 height={880}
                 className="w-full h-auto"
-                priority
+                loading="eager"
               />
             </div>
+            <p className="mt-2 text-center text-xs text-ink-500">Platform overview</p>
           </div>
 
           {/* Mobile banner */}
           <div className="xl:hidden">
             <div className="rounded-2xl border border-surface-200 bg-white shadow-lg overflow-hidden">
-              <Image
-                src="/images/blockid-hero-banner.png"
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://upload.blockid.au/blockID_banner_white.png"
                 alt="BlockID.au platform overview"
                 width={1560}
                 height={880}
                 className="w-full h-auto"
-                priority
+                loading="eager"
               />
             </div>
+            <p className="mt-2 text-center text-xs text-ink-500">Platform overview</p>
           </div>
         </div>
 
