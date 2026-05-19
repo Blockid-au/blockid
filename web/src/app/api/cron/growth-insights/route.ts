@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { callAI } from "@/lib/ai-client";
+import { sendGrowthReport } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -252,6 +253,26 @@ Focus on the FASTEST path to revenue. Be specific with numbers. If data is zero/
     }, { onConflict: "insight_date" });
 
     if (upsertError) throw upsertError;
+
+    // ── Send growth report email ────────────────────────────────────────
+
+    try {
+      await sendGrowthReport({
+        to: "admin@blockid.au",
+        date: today,
+        metrics: {
+          totalUsers, newUsersWeek, newUsersToday,
+          sviWeek, sviToday, leadsWeek, leadsToday,
+          totalAccounts, payingUsers, evidenceWeek,
+          scoresViewedWeek, avgSVI, avgDelta, uniqueEmails,
+          signupRate, paymentRate, planDist, toolUsage,
+          biggestDropOff, dropOffRate,
+        },
+        recommendations,
+      });
+    } catch (emailErr) {
+      console.error("[growth-insights] growth report email failed:", emailErr);
+    }
 
     // ── Also fetch yesterday's for comparison ───────────────────────────
 

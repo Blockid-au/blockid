@@ -3,8 +3,9 @@ import { NextResponse } from "next/server";
 import { extractSignals, computeSVI, type SVITextInput } from "@/lib/svi-analysis";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { newSlug } from "@/lib/slug";
-import { sendSVIReport } from "@/lib/email";
+import { sendSVIReport, sendMagicLink } from "@/lib/email";
 import { canAfford, spendCredits } from "@/lib/credits";
+import { requestMagicLink, MAGIC_LINK_TTL_MIN } from "@/lib/auth";
 
 // POST /api/svi
 // Body: { email, input: { rawText, fileName? } }
@@ -122,6 +123,39 @@ export async function POST(request: Request) {
 
   // After persisting, send report email (fire-and-forget)
   void sendSVIReport({ to: email, slug, analysis }).catch(() => {});
+
+  // ── Auto-send magic link for frictionless signup (unauthenticated only) ──
+  // If the user doesn't already have an account, send them a magic link so
+  // they can sign in with one click and auto-create their account.
+  if (!authenticatedUserId && supabase) {
+    void (async () => {
+      try {
+        const { data: existingUser } = await supabase
+          .from("app_users")
+          .select("id")
+          .eq("email", email)
+          .maybeSingle();
+
+        if (!existingUser) {
+          const result = await requestMagicLink({
+            email,
+            intent: "login",
+            pendingPayload: {},
+          });
+          if (result.ok) {
+            void sendMagicLink({
+              to: email,
+              token: result.token,
+              intent: "login",
+              ttlMinutes: MAGIC_LINK_TTL_MIN,
+            }).catch(() => {});
+          }
+        }
+      } catch {
+        // Fire-and-forget — don't block the SVI response
+      }
+    })();
+  }
 
   return NextResponse.json({
     ok: true,

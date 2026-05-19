@@ -17,6 +17,7 @@ import {
   Globe,
   LayoutDashboard,
   Lightbulb,
+  Lock,
   Mail,
   PieChart,
   Rocket,
@@ -519,6 +520,107 @@ function StageJourney({ currentStage }: { currentStage: number }) {
   );
 }
 
+/* ─── Signup Nudge Banner (shown to unauthenticated users) ───────────── */
+
+function SignupNudgeBanner() {
+  const [isLoggedIn, setIsLoggedIn] = React.useState<boolean | null>(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (!res.ok) { if (!cancelled) setIsLoggedIn(false); return; }
+        const data = await res.json();
+        if (!cancelled) setIsLoggedIn(data.ok && !!data.user);
+      } catch {
+        if (!cancelled) setIsLoggedIn(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Don't render while checking, or if user is logged in
+  if (isLoggedIn === null || isLoggedIn) return null;
+
+  return (
+    <div className="rounded-2xl border border-brand-200 bg-brand-50 px-6 py-5">
+      <div className="flex items-start gap-3">
+        <Lock strokeWidth={1.75} className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-ink-800">
+            Save your SVI score and track your progress over time
+          </p>
+          <p className="text-xs text-ink-600 mt-1 leading-relaxed">
+            Create your free account to unlock your dashboard, evidence vault, and growth roadmap.
+            Your score will be saved permanently.
+          </p>
+          <a
+            href="/auth/login?next=/dashboard/svi"
+            onClick={() => {
+              trackEvent("cta_clicked", { cta_id: "signup_nudge_banner", location: "svi_results_top" });
+            }}
+            className="mt-3 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+          >
+            Create Free Account
+            <ArrowRight strokeWidth={1.75} className="h-4 w-4" />
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Evidence Upload Prompt (shown to unauthenticated users on page 9) ─ */
+
+function EvidenceUploadPrompt() {
+  const [isLoggedIn, setIsLoggedIn] = React.useState<boolean | null>(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (!res.ok) { if (!cancelled) setIsLoggedIn(false); return; }
+        const data = await res.json();
+        if (!cancelled) setIsLoggedIn(data.ok && !!data.user);
+      } catch {
+        if (!cancelled) setIsLoggedIn(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  if (isLoggedIn === null || isLoggedIn) return null;
+
+  return (
+    <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-6 py-5 mt-6">
+      <div className="flex items-start gap-3">
+        <Upload strokeWidth={1.75} className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-ink-800">
+            Boost your SVI by up to +20 points
+          </p>
+          <p className="text-xs text-ink-600 mt-1 leading-relaxed">
+            Upload your pitch deck or financial model to start building your Evidence Vault.
+            Verified evidence directly increases your score and investor readiness.
+          </p>
+          <a
+            href="/auth/login?next=/workspace/evidence"
+            onClick={() => {
+              trackEvent("cta_clicked", { cta_id: "evidence_upload_prompt", location: "svi_results_evidence_gaps" });
+            }}
+            className="mt-3 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
+          >
+            Upload Evidence
+            <ArrowRight strokeWidth={1.75} className="h-4 w-4" />
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Sidebar Table of Contents ───────────────────────────────────────── */
 
 function DesktopTOC({
@@ -698,6 +800,11 @@ export function SVIResultsPanel({
 
   return (
     <div className="w-full max-w-6xl mx-auto">
+      {/* Signup nudge banner — only shown to unauthenticated users */}
+      <div className="mx-4 md:mx-0 mb-4">
+        <SignupNudgeBanner />
+      </div>
+
       {/* Mobile progress bar */}
       <MobileProgressDots activeId={activeId} />
 
@@ -1325,6 +1432,9 @@ export function SVIResultsPanel({
                 <p className="text-xs text-ink-600 mt-1">Your evidence base is comprehensive.</p>
               </div>
             )}
+
+            {/* Evidence Upload CTA — only shown to unauthenticated users */}
+            <EvidenceUploadPrompt />
 
             <PageNavigation currentPage={9} onNavigate={navigateToPageNum} />
           </PageSection>

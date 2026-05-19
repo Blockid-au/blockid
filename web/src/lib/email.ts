@@ -638,6 +638,138 @@ export async function sendCancellationEmail(args: {
   });
 }
 
+// ---------- Growth report email ------------------------------------------------
+
+export async function sendGrowthReport(args: {
+  to: string;
+  date: string;
+  metrics: {
+    totalUsers: number;
+    newUsersWeek: number;
+    newUsersToday: number;
+    sviWeek: number;
+    sviToday: number;
+    leadsWeek: number;
+    leadsToday: number;
+    totalAccounts: number;
+    payingUsers: number;
+    evidenceWeek: number;
+    scoresViewedWeek: number;
+    avgSVI: number;
+    avgDelta: number;
+    uniqueEmails: number;
+    signupRate: number;
+    paymentRate: number;
+    planDist: Record<string, number>;
+    toolUsage: Record<string, number>;
+    biggestDropOff: string;
+    dropOffRate: number;
+  };
+  recommendations: Array<{
+    priority: "critical" | "high" | "medium";
+    title: string;
+    detail: string;
+    impact: string;
+    action_type: string;
+  }>;
+}): Promise<SendResult> {
+  const dashUrl = `${siteUrl()}/admin/growth`;
+  const m = args.metrics;
+
+  const priorityColor: Record<string, string> = {
+    critical: "#F87171",
+    high: "#FBBF24",
+    medium: "#94A3B8",
+  };
+
+  const metricRows = [
+    { label: "Total Users", value: String(m.totalUsers), sub: `+${m.newUsersWeek} this week` },
+    { label: "SVI Analyses", value: String(m.sviWeek), sub: `${m.sviToday} today` },
+    { label: "Leads Captured", value: String(m.leadsWeek), sub: `${m.leadsToday} today` },
+    { label: "Paying Users", value: String(m.payingUsers), sub: `of ${m.totalAccounts} accounts` },
+    { label: "Avg SVI Score", value: String(m.avgSVI), sub: `${m.avgDelta >= 0 ? "+" : ""}${m.avgDelta} avg delta` },
+  ].map(
+    (r) =>
+      `<tr>
+        <td style="padding:8px 12px;color:#94A3B8;font-size:13px;border-bottom:1px solid #1F2A44;">${escapeHtml(r.label)}</td>
+        <td style="padding:8px 12px;font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:#F8FAFC;text-align:right;border-bottom:1px solid #1F2A44;">${escapeHtml(r.value)}</td>
+        <td style="padding:8px 12px;color:#64748B;font-size:12px;text-align:right;border-bottom:1px solid #1F2A44;">${escapeHtml(r.sub)}</td>
+      </tr>`,
+  ).join("");
+
+  const conversionRows = [
+    { label: "Signup Rate", value: `${m.signupRate}%` },
+    { label: "Payment Rate", value: `${m.paymentRate}%` },
+  ].map(
+    (r) =>
+      `<tr>
+        <td style="padding:6px 12px;color:#94A3B8;font-size:13px;">${escapeHtml(r.label)}</td>
+        <td style="padding:6px 12px;font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:#3B7DD8;text-align:right;">${escapeHtml(r.value)}</td>
+      </tr>`,
+  ).join("");
+
+  const dropOffHtml = m.biggestDropOff
+    ? `<p style="margin:16px 0 0 0;color:#F87171;font-size:13px;">Biggest drop-off: <strong style="color:#F8FAFC;">${escapeHtml(m.biggestDropOff)}</strong> (${m.dropOffRate}%)</p>`
+    : "";
+
+  const recRows = args.recommendations.map(
+    (r) =>
+      `<tr>
+        <td style="padding:8px 12px;vertical-align:top;width:70px;border-bottom:1px solid #1F2A44;">
+          <span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#0B1220;background:${priorityColor[r.priority] ?? "#94A3B8"};">${escapeHtml(r.priority)}</span>
+        </td>
+        <td style="padding:8px 12px;border-bottom:1px solid #1F2A44;">
+          <p style="margin:0 0 4px 0;color:#F8FAFC;font-size:14px;font-weight:600;">${escapeHtml(r.title)}</p>
+          <p style="margin:0 0 4px 0;color:#94A3B8;font-size:13px;line-height:1.5;">${escapeHtml(r.detail)}</p>
+          <p style="margin:0;color:#4ADE80;font-size:12px;">Impact: ${escapeHtml(r.impact)}</p>
+        </td>
+      </tr>`,
+  ).join("");
+
+  const html = shell(`
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+        <tr><td>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Growth Report</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Daily Growth Summary</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${escapeHtml(args.date)}</p>
+
+          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Key Metrics</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;margin:0 0 24px 0;">
+            ${metricRows}
+          </table>
+
+          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Conversion Rates</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;margin:0 0 8px 0;">
+            ${conversionRows}
+          </table>
+          ${dropOffHtml}
+
+          ${args.recommendations.length > 0 ? `
+          <p style="margin:24px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">AI Recommendations</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;margin:0 0 24px 0;">
+            ${recRows}
+          </table>
+          ` : ""}
+
+          <p style="margin:24px 0 0 0;text-align:center;">
+            <a href="${dashUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Growth Dashboard</a>
+          </p>
+          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>`);
+
+  return sendEmail({
+    to: args.to,
+    subject: `BlockID Growth Report \u2014 ${args.date}`,
+    html,
+  });
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
