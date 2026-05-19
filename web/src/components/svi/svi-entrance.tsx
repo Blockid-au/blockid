@@ -184,34 +184,34 @@ export function SVIEntrance() {
       <TopBar />
 
       {/* ── HERO SECTION ──────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-white via-brand-50/30 to-white">
-        <div className="mx-auto max-w-7xl px-6 pt-12 pb-16 md:pt-20 md:pb-24">
+      <section className="relative overflow-hidden gradient-hero pt-28 md:pt-32 pb-20 md:pb-28">
+        <div className="mx-auto max-w-7xl px-6">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left: copy */}
             <div>
-              <h1 className="text-4xl md:text-5xl lg:text-[56px] font-extrabold tracking-tight leading-[1.1] text-ink-800">
+              <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-[-0.02em] leading-[1.05] text-ink-900">
                 Turn Your Idea Into<br />
-                A <span className="text-brand-600">Valuable, Investable</span> Business.
+                A <span className="bg-gradient-to-r from-brand-600 to-brand-500 bg-clip-text text-transparent">Valuable, Investable</span> Business.
               </h1>
-              <p className="mt-4 text-lg md:text-xl font-semibold text-brand-600">
+              <p className="mt-5 text-lg md:text-xl font-medium text-brand-600/80">
                 Trusted Ownership. Intelligent Capital. Sustainable Growth.
               </p>
-              <p className="mt-4 text-base text-ink-600 leading-relaxed max-w-lg">
+              <p className="mt-5 text-base md:text-lg text-ink-500 leading-relaxed max-w-xl">
                 BlockID.au is the all-in-one platform for founders, co-founders and teams to
                 build, manage and grow your company with clarity, trust and intelligence.
                 From idea to investment — build right from the start.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <a href="#svi" className="inline-flex h-12 items-center gap-2 rounded-xl bg-brand-600 px-6 text-base font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
+                <a href="#svi" className="inline-flex h-14 items-center gap-2 rounded-2xl bg-brand-600 px-8 text-base font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
                   Start Your Journey <ArrowRight strokeWidth={2} className="h-4 w-4" />
                 </a>
-                <Link href="/tools/idea-valuation" className="inline-flex h-12 items-center gap-2 rounded-xl border border-surface-300 bg-white px-6 text-base font-semibold text-ink-700 hover:bg-surface-100 transition-colors">
+                <Link href="/tools/idea-valuation" className="inline-flex h-14 items-center gap-2 rounded-2xl border border-surface-300 bg-white px-8 text-base font-semibold text-ink-700 hover:bg-surface-100 transition-colors">
                   Explore Platform <Rocket strokeWidth={1.75} className="h-4 w-4" />
                 </Link>
               </div>
             </div>
             {/* Right: platform overview banner */}
-            <div className="relative rounded-2xl border border-surface-200 shadow-xl overflow-hidden bg-white">
+            <div className="relative rounded-3xl shadow-2xl overflow-hidden bg-white">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/images/blockid-hero-banner.png"
@@ -224,9 +224,9 @@ export function SVIEntrance() {
           </div>
 
           {/* 4 Pillars */}
-          <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-5">
             {PILLARS.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="text-center rounded-xl border border-surface-200 bg-white px-4 py-5 shadow-sm hover:shadow-md transition-shadow">
+              <div key={title} className="text-center rounded-2xl border border-surface-200/80 bg-white/80 backdrop-blur px-5 py-6 shadow-sm card-hover">
                 <div className="mx-auto mb-3 h-10 w-10 rounded-lg bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-600">
                   <Icon strokeWidth={1.75} className="h-5 w-5" />
                 </div>
@@ -239,21 +239,21 @@ export function SVIEntrance() {
       </section>
 
       {/* ── SVI SEARCH SECTION ────────────────────────────────────────────── */}
-      <section id="svi" className="bg-white py-16 md:py-20">
+      <section id="svi" className="gradient-section py-20 md:py-28">
         <div className="mx-auto max-w-[620px] px-6 flex flex-col items-center">
           <div className="flex flex-col items-center mb-8">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/images/logo-official.png" alt="BlockID.au" className="h-32 sm:h-36 md:h-[152px] w-auto mb-6" />
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-center text-ink-800">
+            <img src="/images/logo-official.png" alt="BlockID.au" className="h-32 sm:h-36 md:h-[152px] w-auto mb-6 animate-fade-in" />
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-center text-ink-900">
               Get Your <span className="text-brand-600">Startup Value Index</span>
             </h2>
-            <p className="mt-2 text-sm text-ink-600">Free AI-powered analysis in under 60 seconds</p>
+            <p className="mt-3 text-base text-ink-500">Free AI-powered analysis in under 60 seconds</p>
           </div>
 
           <form onSubmit={handleSubmit} className="w-full">
             <div className={cn(
-              "w-full rounded-3xl border transition-all duration-200",
-              searchFocused || text ? "border-brand-300 shadow-[0_1px_8px_rgba(37,99,235,0.15)]" : "border-surface-300 hover:shadow-[0_1px_6px_rgba(32,33,36,0.18)]",
+              "w-full rounded-[28px] border transition-all duration-200",
+              searchFocused || text ? "border-brand-400 shadow-[0_0_0_3px_rgba(37,99,235,0.1)]" : "border-surface-300 hover:shadow-[0_1px_6px_rgba(32,33,36,0.18)]",
             )}>
               <div className="flex items-center px-4 py-3 gap-3">
                 <Search strokeWidth={1.75} className="h-5 w-5 text-ink-600 shrink-0" />
@@ -292,7 +292,7 @@ export function SVIEntrance() {
 
             <div className="mt-5 flex items-center justify-center gap-3">
               <button type="submit" disabled={state === "submitting"}
-                className="h-10 px-5 rounded-xl bg-brand-600 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50 cta-glow">
+                className="h-11 px-6 rounded-2xl bg-brand-600 text-sm font-bold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50 cta-glow">
                 {state === "submitting" ? <span className="flex items-center gap-2"><span className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />Analyzing…</span> : "Get My SVI"}
               </button>
               <button type="button" onClick={() => { setText(QUICK_EXAMPLES[Math.floor(Math.random() * QUICK_EXAMPLES.length)]); textareaRef.current?.focus(); trackEvent("svi_form_started", { method: "example" }); }}
@@ -306,7 +306,7 @@ export function SVIEntrance() {
           <div className="mt-6 flex flex-wrap justify-center gap-2">
             {QUICK_EXAMPLES.map((ex) => (
               <button key={ex} type="button" onClick={() => { setText(ex); textareaRef.current?.focus(); }}
-                className="rounded-full border border-surface-200 bg-white px-3 py-1.5 text-xs text-ink-600 hover:border-brand-300 hover:text-brand-700 cursor-pointer transition-colors">
+                className="rounded-full border border-surface-200 bg-white px-4 py-2 text-xs font-medium text-ink-500 hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50 cursor-pointer transition-colors">
                 {ex}
               </button>
             ))}
@@ -315,12 +315,12 @@ export function SVIEntrance() {
       </section>
 
       {/* ── 5 VALUE PROPS ─────────────────────────────────────────────────── */}
-      <section className="bg-surface-100 py-14">
+      <section className="bg-white py-20 md:py-24">
         <div className="mx-auto max-w-6xl px-6">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {VALUE_PROPS.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="rounded-xl bg-white border border-surface-200 px-4 py-5 text-center shadow-sm card-hover">
-                <div className="mx-auto mb-3 h-10 w-10 rounded-full bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-600">
+              <div key={title} className="rounded-2xl bg-surface-50 border border-surface-200/60 px-5 py-6 text-center card-hover">
+                <div className="mx-auto mb-3 h-12 w-12 rounded-2xl bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-600">
                   <Icon strokeWidth={1.75} className="h-5 w-5" />
                 </div>
                 <p className="text-sm font-bold text-ink-800">{title}</p>
@@ -332,16 +332,16 @@ export function SVIEntrance() {
       </section>
 
       {/* ── FOUNDER'S ROADMAP ─────────────────────────────────────────────── */}
-      <section className="bg-white py-16 md:py-20">
+      <section className="gradient-section py-20 md:py-24">
         <div className="mx-auto max-w-6xl px-6">
-          <h2 className="text-center text-2xl md:text-3xl font-bold text-ink-800 mb-2">The Smart Founder&apos;s Roadmap</h2>
-          <p className="text-center text-sm text-ink-600 mb-10">10 steps from idea to investment — BlockID guides you at every stage.</p>
+          <h2 className="text-center text-3xl md:text-4xl font-bold text-ink-900 mb-2">The Smart Founder&apos;s Roadmap</h2>
+          <p className="text-center text-base text-ink-500 mb-10">10 steps from idea to investment — BlockID guides you at every stage.</p>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {ROADMAP_STEPS.map(({ num, icon: Icon, title, desc, href }) => (
               <Link key={num} href={href}
-                className="group rounded-xl border border-surface-200 bg-white px-4 py-4 hover:border-brand-300 hover:shadow-md transition-all">
+                className="group rounded-2xl border border-surface-200/80 bg-white px-5 py-5 hover:border-brand-200 hover:shadow-lg transition-all duration-300">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="h-6 w-6 rounded-full bg-brand-600 text-white text-xs font-bold flex items-center justify-center">{num}</span>
+                  <span className="h-7 w-7 rounded-lg bg-brand-600 text-white text-xs font-bold flex items-center justify-center">{num}</span>
                   <Icon strokeWidth={1.75} className="h-4 w-4 text-brand-600" />
                 </div>
                 <p className="text-sm font-semibold text-ink-800 group-hover:text-brand-700 transition-colors">{title}</p>

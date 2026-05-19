@@ -60,10 +60,10 @@ const VALUE_PROPS = [
 
 export function Footer() {
   return (
-    <footer className="mt-24">
+    <footer className="mt-0">
       {/* Main footer links */}
-      <div className="border-t border-ink-700 bg-ink-950">
-        <div className="mx-auto max-w-7xl px-6 py-16">
+      <div className="border-t border-ink-700 bg-gradient-to-b from-ink-900 to-ink-950">
+        <div className="mx-auto max-w-7xl px-6 py-20">
           <div className="grid grid-cols-2 gap-10 md:grid-cols-6">
             <div className="col-span-2">
               <Logo variant="dark" />
@@ -86,7 +86,7 @@ export function Footer() {
             </div>
             {columns.map((col) => (
               <div key={col.title}>
-                <h4 className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium">
+                <h4 className="text-[11px] uppercase tracking-[0.2em] text-brand-400 font-semibold">
                   {col.title}
                 </h4>
                 <ul className="mt-4 space-y-2.5">
@@ -94,7 +94,7 @@ export function Footer() {
                     <li key={item.label}>
                       <Link
                         href={item.href}
-                        className="text-sm text-slate-400 hover:text-slate-50 cursor-pointer transition-colors"
+                        className="text-sm text-slate-400 hover:text-white cursor-pointer transition-colors"
                       >
                         {item.label}
                       </Link>
@@ -104,7 +104,7 @@ export function Footer() {
               </div>
             ))}
           </div>
-          <div className="mt-12 flex flex-col gap-3 border-t border-ink-700 pt-6 text-xs text-slate-500 md:flex-row md:items-center md:justify-between">
+          <div className="mt-12 flex flex-col gap-3 border-t border-ink-800 pt-6 text-xs text-slate-500 md:flex-row md:items-center md:justify-between">
             <p>
               &copy; {new Date().getFullYear()} Auschain Pty Ltd (ACN 659 615 111). Sydney, NSW, Australia.
             </p>
@@ -138,11 +138,11 @@ export function Footer() {
                 const Icon = vp.icon;
                 return (
                   <div key={vp.title} className="flex items-center gap-3">
-                    <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-brand-500/25 bg-brand-500/10 text-brand-400">
+                    <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-brand-500/20 bg-brand-500/8 text-brand-400">
                       <Icon strokeWidth={1.75} className="h-4 w-4" />
                     </span>
                     <span>
-                      <span className="block text-xs font-semibold uppercase tracking-wider text-gold-400">
+                      <span className="block text-xs font-semibold uppercase tracking-wider text-brand-400">
                         {vp.title}
                       </span>
                       <span className="block text-xs text-slate-400">

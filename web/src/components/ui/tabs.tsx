@@ -55,7 +55,7 @@ export function TabsList({
     <div
       role="tablist"
       className={cn(
-        "inline-flex items-center gap-1 rounded-xl border border-surface-200 bg-surface-100 p-1",
+        "inline-flex items-center gap-1 rounded-2xl border border-surface-200 bg-surface-100 p-1.5",
         className,
       )}
     >
@@ -87,8 +87,8 @@ export function TabsTrigger({
       className={cn(
         "px-3.5 py-1.5 text-sm font-medium rounded-lg cursor-pointer transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500",
         active
-          ? "bg-white text-ink-800 shadow-sm"
-          : "text-ink-600 hover:text-ink-800 hover:bg-white/50",
+          ? "bg-white text-ink-900 shadow-sm font-semibold"
+          : "text-ink-500 hover:text-ink-800",
         className,
       )}
     >

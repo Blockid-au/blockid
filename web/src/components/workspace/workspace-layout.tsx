@@ -50,7 +50,7 @@ export function WorkspaceLayout({ children, user, startupName, notificationCount
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed top-0 left-0 h-full z-50 flex flex-col border-r border-surface-200 bg-white transition-all duration-200",
+        "fixed top-0 left-0 h-full z-50 flex flex-col border-r border-surface-200/80 bg-white transition-all duration-200",
         "lg:relative lg:flex",
         mobileOpen ? "flex" : "hidden lg:flex",
         sidebarOpen ? "w-56" : "w-14",
@@ -82,8 +82,8 @@ export function WorkspaceLayout({ children, user, startupName, notificationCount
                 className={cn(
                   "flex items-center gap-3 px-2.5 py-2 rounded-xl text-sm transition-all duration-150",
                   active
-                    ? "bg-brand-50 text-brand-700 font-medium shadow-sm"
-                    : "text-ink-600 hover:text-ink-800 hover:bg-surface-100",
+                    ? "bg-brand-50 text-brand-700 font-semibold shadow-sm border border-brand-100"
+                    : "text-ink-500 hover:text-ink-800 hover:bg-surface-50",
                 )}
               >
                 <Icon strokeWidth={1.75} className={cn("h-4 w-4 shrink-0", active ? "text-brand-600" : "")} />
@@ -105,7 +105,7 @@ export function WorkspaceLayout({ children, user, startupName, notificationCount
       {/* Main area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Topbar */}
-        <header className="h-14 border-b border-surface-200 bg-white px-4 flex items-center justify-between shrink-0 sticky top-0 z-30">
+        <header className="h-16 border-b border-surface-200/60 bg-white/90 backdrop-blur-sm px-4 flex items-center justify-between shrink-0 sticky top-0 z-30">
           <div className="flex items-center gap-3">
             {/* Mobile menu toggle */}
             <button
@@ -135,7 +135,7 @@ export function WorkspaceLayout({ children, user, startupName, notificationCount
             {/* Avatar */}
             <div className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-surface-100 transition-colors cursor-pointer">
               {user.avatarUrl ? (
-                <img src={user.avatarUrl} alt="" className="h-7 w-7 rounded-full ring-2 ring-surface-200" />
+                <img src={user.avatarUrl} alt="" className="h-7 w-7 rounded-full ring-2 ring-brand-100" />
               ) : (
                 <div className="h-7 w-7 rounded-full bg-brand-600 flex items-center justify-center text-xs font-bold text-white ring-2 ring-brand-100">
                   {(user.displayName ?? user.email)[0].toUpperCase()}

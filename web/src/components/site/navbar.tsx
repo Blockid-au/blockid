@@ -60,8 +60,8 @@ export function Navbar() {
   const [open, setOpen] = React.useState(false);
 
   return (
-    <header className="fixed top-4 left-4 right-4 z-50">
-      <div className="mx-auto max-w-7xl rounded-2xl border border-surface-200 glass px-4 py-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
+    <header className="fixed top-0 left-0 right-0 z-50 px-4 pt-4">
+      <div className="mx-auto max-w-7xl rounded-2xl glass border border-white/20 px-5 py-3.5 shadow-[0_2px_16px_rgba(0,0,0,0.06)]">
         <div className="flex items-center justify-between gap-4">
           <Logo variant="light" />
           <nav className="hidden md:flex items-center gap-1" aria-label="Primary">
@@ -72,7 +72,7 @@ export function Navbar() {
                 <Link
                   key={item.label}
                   href={item.href}
-                  className="px-3 py-2 text-sm font-medium text-slate-600 hover:text-brand-700 cursor-pointer rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
+                  className="px-3.5 py-2 text-sm font-medium text-ink-600 hover:text-ink-900 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 cursor-pointer"
                 >
                   {item.label}
                 </Link>
@@ -82,12 +82,12 @@ export function Navbar() {
           <div className="hidden md:flex items-center gap-2">
             <Link
               href="/#idea-tools"
-              className="hidden lg:inline-flex h-9 items-center px-3 text-sm font-medium text-slate-600 hover:text-brand-700 cursor-pointer rounded-md transition-colors"
+              className="hidden lg:inline-flex h-10 items-center px-3.5 text-sm font-medium text-ink-600 hover:text-ink-900 cursor-pointer rounded-lg transition-colors"
             >
               Try free tools
             </Link>
             <Link href="/score">
-              <Button variant="primary" size="sm" className="h-9">
+              <Button variant="primary" size="sm" className="h-10 px-5 rounded-xl text-sm font-semibold">
                 Get your Score
               </Button>
             </Link>
@@ -97,7 +97,7 @@ export function Navbar() {
             aria-label={open ? "Close menu" : "Open menu"}
             aria-expanded={open}
             onClick={() => setOpen((v) => !v)}
-            className="md:hidden inline-flex h-10 w-10 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
+            className="md:hidden inline-flex h-10 w-10 items-center justify-center rounded-lg text-ink-600 hover:bg-surface-50 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
           >
             {open ? (
               <X strokeWidth={1.75} className="h-5 w-5" />
@@ -107,7 +107,7 @@ export function Navbar() {
           </button>
         </div>
         {open && (
-          <div className="md:hidden mt-3 border-t border-slate-200 pt-3">
+          <div className="md:hidden mt-3 border-t border-surface-200/60 pt-4">
             <nav
               className="flex flex-col gap-1"
               aria-label="Mobile primary"
@@ -115,12 +115,12 @@ export function Navbar() {
               {navItems.map((item) =>
                 isDropdown(item) ? (
                   <div key={item.label} className="flex flex-col">
-                    <p className="px-3 pt-2 pb-1 text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                    <p className="px-3.5 pt-2 pb-1 text-[11px] uppercase tracking-[0.18em] text-ink-600">
                       {item.label}
                     </p>
                     {item.groups.map((group) => (
                       <div key={group.heading} className="flex flex-col">
-                        <p className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold-500">
+                        <p className="px-3.5 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-brand-600">
                           {group.heading}
                         </p>
                         {group.items.map((sub) => (
@@ -128,7 +128,7 @@ export function Navbar() {
                             key={sub.label}
                             href={sub.href}
                             onClick={() => setOpen(false)}
-                            className="px-3 py-2 text-sm font-medium text-slate-600 hover:text-brand-700 cursor-pointer rounded-md transition-colors"
+                            className="rounded-xl px-3.5 py-2.5 text-sm font-medium text-ink-600 hover:bg-surface-50 hover:text-ink-900 cursor-pointer transition-colors"
                           >
                             {sub.label}
                           </Link>
@@ -141,7 +141,7 @@ export function Navbar() {
                     key={item.label}
                     href={item.href}
                     onClick={() => setOpen(false)}
-                    className="px-3 py-2 text-sm font-medium text-slate-600 hover:text-brand-700 cursor-pointer rounded-md transition-colors"
+                    className="rounded-xl px-3.5 py-2.5 text-sm font-medium text-ink-600 hover:bg-surface-50 hover:text-ink-900 cursor-pointer transition-colors"
                   >
                     {item.label}
                   </Link>
@@ -159,7 +159,7 @@ export function Navbar() {
               <Link
                 href="/tools/idea-valuation"
                 onClick={() => setOpen(false)}
-                className="mt-2 px-3 py-2 text-center text-sm font-medium text-slate-600 hover:text-brand-700 cursor-pointer rounded-md transition-colors"
+                className="mt-2 px-3.5 py-2 text-center text-sm font-medium text-ink-600 hover:text-ink-900 cursor-pointer rounded-lg transition-colors"
               >
                 Or start free with your idea
               </Link>
@@ -215,7 +215,7 @@ function ToolsDropdown({ entry }: { entry: NavDropdown }) {
             setOpen((v) => !v);
           }
         }}
-        className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-slate-600 hover:text-brand-700 cursor-pointer rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
+        className="inline-flex items-center gap-1 px-3.5 py-2 text-sm font-medium text-ink-600 hover:text-ink-900 cursor-pointer rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
       >
         {entry.label}
         <ChevronDown
@@ -229,13 +229,13 @@ function ToolsDropdown({ entry }: { entry: NavDropdown }) {
           role="menu"
           className="absolute left-0 top-full pt-2 min-w-[260px]"
         >
-          <div className="rounded-xl border border-slate-200 bg-white/95 p-2 backdrop-blur-xl shadow-lg">
+          <div className="rounded-2xl border border-surface-200/80 bg-white/98 backdrop-blur-xl p-3 shadow-xl">
             {entry.groups.map((group, idx) => (
               <div
                 key={group.heading}
-                className={idx > 0 ? "mt-1 border-t border-slate-100 pt-1" : ""}
+                className={idx > 0 ? "mt-1 border-t border-surface-200/60 pt-1" : ""}
               >
-                <p className="px-3 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold-500">
+                <p className="px-3.5 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-brand-600">
                   {group.heading}
                 </p>
                 {group.items.map((sub) => (
@@ -244,7 +244,7 @@ function ToolsDropdown({ entry }: { entry: NavDropdown }) {
                     href={sub.href}
                     role="menuitem"
                     onClick={() => setOpen(false)}
-                    className="block rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-brand-700 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
+                    className="block rounded-xl px-3.5 py-2.5 text-sm font-medium text-ink-600 hover:bg-surface-50 hover:text-ink-900 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
                   >
                     {sub.label}
                   </Link>
