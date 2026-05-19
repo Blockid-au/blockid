@@ -54,7 +54,7 @@ export async function POST(request: Request) {
       mode: "payment",
       customer_email: email,
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${siteUrl}/?analysis_paid=true`,
+      success_url: `${siteUrl}/?analysis_paid=true&email=${encodeURIComponent(email as string)}`,
       cancel_url: `${siteUrl}/#svi`,
       metadata: {
         blockid_type: "svi_analysis",

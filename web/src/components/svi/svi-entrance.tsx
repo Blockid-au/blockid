@@ -125,24 +125,49 @@ export function SVIEntrance() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Handle ?analysis_paid=true — grant one more analysis after payment.
+  // ── Server-side gate check ────────────────────────────────────────────
+  const checkGate = React.useCallback(async (emailToCheck: string) => {
+    if (!emailToCheck.includes("@")) return;
+    try {
+      const res = await fetch(`/api/svi/check-gate?email=${encodeURIComponent(emailToCheck)}`);
+      const data = await res.json();
+      if (!data.canAnalyze) {
+        setShowPaywall(true);
+      } else {
+        setShowPaywall(false);
+      }
+    } catch { /* ignore — gate stays in current state */ }
+  }, []);
+
+  // Handle ?analysis_paid=true — verify credits server-side after payment.
   React.useEffect(() => {
     if (searchParams.get("analysis_paid") === "true") {
-      // Clear the free-used gate so the user can run one more analysis.
+      const paidEmail = searchParams.get("email") ?? "";
+      // Pre-fill the email from the payment.
+      if (paidEmail) {
+        setEmail(paidEmail);
+      }
+      // Clear the localStorage gate (supplementary cache).
       if (typeof window !== "undefined") {
         localStorage.removeItem(SVI_FREE_USED_KEY);
       }
-      setShowPaywall(false);
+      // Verify credits server-side.
+      if (paidEmail) {
+        checkGate(paidEmail);
+      } else {
+        setShowPaywall(false);
+      }
       setAnalysisPaidToast(true);
-      // Clean the URL param without a full page reload.
+      // Clean the URL params without a full page reload.
       const url = new URL(window.location.href);
       url.searchParams.delete("analysis_paid");
+      url.searchParams.delete("email");
       router.replace(url.pathname + url.search + url.hash, { scroll: false });
       // Auto-dismiss toast after 5 seconds.
       const timer = setTimeout(() => setAnalysisPaidToast(false), 5000);
       return () => clearTimeout(timer);
     }
-  }, [searchParams, router]);
+  }, [searchParams, router, checkGate]);
 
   // Check if user is authenticated with a paid plan — skip the gate if so.
   React.useEffect(() => {
@@ -197,13 +222,25 @@ export function SVIEntrance() {
     if (!rawText.trim() && !file) { setError("Please describe your idea or upload a document."); return; }
 
     // ── Free-analysis gate ──────────────────────────────────────────────
-    // Paid users bypass the gate entirely. Otherwise, check localStorage.
+    // Paid users bypass the gate entirely. Otherwise, check localStorage
+    // as a fast cache, then the server is the source of truth via 402.
     if (!hasPaidPlan) {
       const freeUsed = typeof window !== "undefined" && localStorage.getItem(SVI_FREE_USED_KEY);
       if (freeUsed) {
-        setShowPaywall(true);
-        trackEvent("svi_paywall_shown", {});
-        return;
+        // localStorage says used — but verify server-side (user may have purchased credits)
+        try {
+          const gateRes = await fetch(`/api/svi/check-gate?email=${encodeURIComponent(email)}`);
+          const gateData = await gateRes.json();
+          if (!gateData.canAnalyze) {
+            setShowPaywall(true);
+            trackEvent("svi_paywall_shown", {});
+            return;
+          }
+          // Server says they can analyze (credits/paid) — clear localStorage cache
+          localStorage.removeItem(SVI_FREE_USED_KEY);
+        } catch {
+          // If gate check fails, fall through to let the API enforce
+        }
       }
     }
 
@@ -211,12 +248,21 @@ export function SVIEntrance() {
     trackEvent("svi_submitted", { method: file ? "file" : "text", has_file: !!file });
     try {
       const res = await fetch("/api/svi", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, input: { rawText: rawText.trim() || `Business plan document: ${file?.name}`, fileName: file?.name } }) });
+
+      // Server-side gate enforcement: 402 = limit reached
+      if (res.status === 402) {
+        setShowPaywall(true);
+        setState("idle");
+        trackEvent("svi_paywall_shown", {});
+        return;
+      }
+
       const data = (await res.json()) as SVIApiResponse;
       if (!data.ok) { setError("Analysis failed. Please try again."); setState("error"); return; }
       setResult(data); setState("done");
       trackEvent("svi_analysis_complete", { svi_score: data.totalSVI, slug: data.slug });
 
-      // Mark free analysis as used (only for non-paid users).
+      // Mark free analysis as used in localStorage (supplementary cache).
       if (!hasPaidPlan && typeof window !== "undefined") {
         localStorage.setItem(SVI_FREE_USED_KEY, "true");
       }
@@ -232,6 +278,8 @@ export function SVIEntrance() {
     }
     setShowPaywall(false);
     setHasPaidPlan(true); // Treat as paid for the rest of this session.
+    // Server-side: the coupon flow handles its own DB logic; we just
+    // unblock the UI here. The API route will re-check on submit.
   };
 
   // ── Results view
@@ -368,7 +416,7 @@ export function SVIEntrance() {
 
             {(text.trim() || file) && (
               <div className="mt-3 flex items-center justify-center">
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" required
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} onBlur={(e) => checkGate(e.target.value)} placeholder="your@email.com" required
                   className="h-10 w-56 rounded-lg border border-surface-300 bg-white px-3 text-sm text-ink-800 placeholder:text-ink-600 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors" />
               </div>
             )}
@@ -535,7 +583,7 @@ export function SVIEntrance() {
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[110] animate-fade-in">
           <div className="flex items-center gap-2 rounded-2xl border border-green-200 bg-green-50 px-5 py-3 shadow-lg">
             <CheckCircle2 strokeWidth={1.75} className="h-5 w-5 text-green-600 shrink-0" />
-            <span className="text-sm font-medium text-green-800">Payment confirmed! Run your analysis now.</span>
+            <span className="text-sm font-medium text-green-800">Payment confirmed! Enter your idea below.</span>
             <button
               type="button"
               onClick={() => setAnalysisPaidToast(false)}
@@ -693,10 +741,10 @@ function SVIPaywall({
         </div>
 
         <h3 className="text-center text-xl font-bold text-ink-900">
-          Your free analysis is complete!
+          You&apos;ve already used your free Startup Value Index analysis.
         </h3>
         <p className="mt-2 text-center text-sm text-ink-500 leading-relaxed">
-          Choose how you&apos;d like to continue.
+          To analyze another idea, choose an option below.
         </p>
 
         {/* ── Option A: Single Analysis ────────────────────────────────── */}
