@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
 import Link from "next/link";
 import {
   ChevronDown,
@@ -220,13 +219,15 @@ export function SVIEntrance() {
         {/* ── Platform banner ─────────────────────────────────────────── */}
         <div className="w-full max-w-5xl mb-8">
           <div className="rounded-2xl border border-surface-200 bg-white shadow-md overflow-hidden">
-            <Image
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
               src="/images/blockid-hero-banner.png"
               alt="BlockID.au — Turn your idea into a valuable, investable business. Platform overview showing cap table, valuation intelligence, investor readiness, and AI workspace."
               width={1560}
               height={880}
               className="w-full h-auto"
-              priority
+              loading="eager"
+              fetchPriority="high"
             />
           </div>
         </div>
