@@ -59,7 +59,7 @@ export function WorkspaceLayout({ children, user, startupName, notificationCount
           "flex items-center border-b border-surface-200 h-14 px-3 shrink-0",
           sidebarOpen ? "justify-between" : "justify-center",
         )}>
-          {sidebarOpen ? <Logo variant="light" className="scale-90 origin-left" /> : null}
+          {sidebarOpen ? <Logo variant="light" /> : null}
           <button
             type="button"
             onClick={() => { setSidebarOpen(v => !v); setMobileOpen(false); }}
