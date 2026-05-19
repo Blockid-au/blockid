@@ -1,8 +1,9 @@
 # BlockID production stack.
 #
-# Two services on a private bridge network:
-#   - `web`   : Next.js 15 standalone server (no host ports — only Caddy talks to it).
+# Three services on a private bridge network:
+#   - `web`   : Next.js 16 standalone server (no host ports — only Caddy talks to it).
 #   - `caddy` : TLS-terminating reverse proxy on host :80 / :443 with Let's Encrypt.
+#   - `cron`  : Lightweight Alpine cron calling /api/cron/* endpoints on schedule.
 #
 # Bring up:   docker compose up -d
 # Tail logs:  docker compose logs -f caddy web
@@ -36,6 +37,13 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-BlockID <noreply@blockid.au>}
       IP_HASH_SALT: ${IP_HASH_SALT:-}
+      # Google OAuth + Drive
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CRON_SECRET: ${CRON_SECRET:-}
+      GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL: ${GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL:-}
+      GOOGLE_DRIVE_PRIVATE_KEY: ${GOOGLE_DRIVE_PRIVATE_KEY:-}
+      GOOGLE_DRIVE_FOLDER_ID: ${GOOGLE_DRIVE_FOLDER_ID:-}
     expose:
       - "3000"
     networks:
@@ -65,6 +73,19 @@ services:
       - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+    networks:
+      - blockid-net
+
+  cron:
+    build:
+      context: ./infra
+      dockerfile: Dockerfile.cron
+    container_name: blockid-cron
+    restart: unless-stopped
+    depends_on:
+      - web
+    environment:
+      CRON_SECRET: ${CRON_SECRET:-}
     networks:
       - blockid-net
 

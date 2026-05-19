@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Founding50Form } from "./founding-50-form";
 import { Logo } from "@/components/brand/logo";
 import {
@@ -57,12 +58,12 @@ export default function Founding50Page() {
       {/* Nav */}
       <header className="max-w-4xl mx-auto px-6 py-5 flex items-center justify-between">
         <Logo variant="dark" />
-        <a
+        <Link
           href="/"
           className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
         >
           ← Back to SVI
-        </a>
+        </Link>
       </header>
 
       <main className="max-w-4xl mx-auto px-6 pb-24">
@@ -120,7 +121,7 @@ export default function Founding50Page() {
             {/* Social proof */}
             <div className="mt-8 rounded-xl border border-ink-700 bg-ink-900 p-4">
               <p className="text-xs text-slate-500 italic leading-relaxed">
-                "A bad idea costs you time. A bad equity split can cost you the company. BlockID helps you get both right from day one."
+                &ldquo;A bad idea costs you time. A bad equity split can cost you the company. BlockID helps you get both right from day one.&rdquo;
               </p>
               <p className="mt-2 text-[10px] uppercase tracking-[0.15em] text-slate-600 font-medium">
                 — BlockID Founding Team

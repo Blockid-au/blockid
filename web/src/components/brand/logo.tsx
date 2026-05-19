@@ -4,10 +4,15 @@ import { cn } from "@/lib/utils";
 export function Logo({
   className,
   variant = "dark",
+  size = "default",
 }: {
   className?: string;
   variant?: "dark" | "light";
+  size?: "default" | "large";
 }) {
+  const iconSize = size === "large" ? "h-14 w-14" : "h-9 w-9";
+  const textSize = size === "large" ? "text-2xl" : "text-lg";
+
   return (
     <Link
       href="/"
@@ -21,17 +26,16 @@ export function Logo({
       <img
         src={variant === "light" ? "/images/logo.svg" : "/images/logo-dark.svg"}
         alt=""
-        width={36}
-        height={36}
-        className="h-9 w-9"
+        className={iconSize}
       />
       <span
         className={cn(
-          "text-lg font-bold tracking-tight",
-          variant === "light" ? "text-brand-700" : "text-slate-50",
+          "font-bold tracking-tight",
+          textSize,
+          variant === "light" ? "text-[#1B3A6B]" : "text-slate-50",
         )}
       >
-        BlockID<span className="text-brand-400">.au</span>
+        BlockID<span className={variant === "light" ? "text-[#2B6FD4]" : "text-brand-400"}>.au</span>
       </span>
     </Link>
   );

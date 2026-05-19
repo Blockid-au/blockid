@@ -25,7 +25,7 @@ export default async function AdminPage() {
           <Shield className="mx-auto h-12 w-12 text-red-400 mb-4" />
           <h1 className="text-2xl font-bold text-slate-50 mb-2">Access Denied</h1>
           <p className="text-slate-400 text-sm mb-6">You don&apos;t have admin access to BlockID.</p>
-          <a href="/" className="text-brand-400 hover:text-brand-300 text-sm">← Back to home</a>
+          <Link href="/" className="text-brand-400 hover:text-brand-300 text-sm">← Back to home</Link>
         </div>
       </div>
     );
@@ -162,11 +162,12 @@ export default async function AdminPage() {
         </div>
 
         {/* Config Links */}
-        <div className="grid sm:grid-cols-3 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { href: "/admin/users", label: "Manage Users", desc: "View all users, update plans, reset access" },
             { href: "/admin/config", label: "System Config", desc: "SVI weights, risk penalties, benchmarks" },
             { href: "/admin/notifications", label: "Notifications", desc: "Send manual reports, view delivery logs" },
+            { href: "/admin/documents", label: "Project Documents", desc: "Upload and sync files to Google Drive" },
           ].map(({ href, label, desc }) => (
             <Link key={href} href={href} className="block rounded-xl border border-ink-700 bg-ink-800/50 px-5 py-4 hover:border-brand-500/40 transition-colors">
               <p className="text-sm font-semibold text-slate-100">{label}</p>

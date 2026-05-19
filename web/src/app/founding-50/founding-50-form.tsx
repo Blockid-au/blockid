@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { CheckCircle2, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -111,12 +112,12 @@ export function Founding50Form() {
             <li>Account access + 30-day plan within 24 hours</li>
           </ol>
         </div>
-        <a
+        <Link
           href="/"
           className="mt-6 inline-block text-xs text-brand-400 hover:text-brand-300 transition-colors"
         >
           ← Analyze another idea
-        </a>
+        </Link>
       </div>
     );
   }

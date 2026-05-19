@@ -25,10 +25,37 @@ const EVIDENCE_TYPES: EvidenceTypeOption[] = [
   { id: "stripe", label: "Connect Stripe", desc: "Verify MRR, ARR, customer count, churn", icon: CreditCard, impact: "+15–25 SVI", confidence: "90% confidence" },
 ];
 
-export function EvidenceWizard({ onClose }: { onClose: () => void }) {
+// Map evidence_type → default dimension
+const DIMENSION_MAP: Record<EvidenceType, string> = {
+  text: "general",
+  url: "mpc",
+  document: "ptd",
+  github: "ptd",
+  analytics: "tre",
+  stripe: "tre",
+};
+
+// Build a human-readable label from the type + input
+function buildLabel(type: EvidenceType, input: string): string {
+  const typeLabel = EVIDENCE_TYPES.find(e => e.id === type)?.label ?? type;
+  if (!input.trim()) return typeLabel;
+  const snippet = input.trim().length > 60 ? input.trim().substring(0, 57) + "..." : input.trim();
+  return `${typeLabel}: ${snippet}`;
+}
+
+interface EvidenceWizardProps {
+  onClose: () => void;
+  onSuccess?: () => void;
+}
+
+export function EvidenceWizard({ onClose, onSuccess }: EvidenceWizardProps) {
   const [step, setStep] = React.useState<1 | 2 | 3>(1);
   const [evidenceType, setEvidenceType] = React.useState<EvidenceType | null>(null);
   const [inputValue, setInputValue] = React.useState("");
+  const [docFile, setDocFile] = React.useState<File | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [saving, setSaving] = React.useState(false);
+  const [saveError, setSaveError] = React.useState<string | null>(null);
 
   const selected = EVIDENCE_TYPES.find(e => e.id === evidenceType);
 
@@ -116,11 +143,40 @@ export function EvidenceWizard({ onClose }: { onClose: () => void }) {
             )}
 
             {(evidenceType === "document") && (
-              <div className="rounded-xl border-2 border-dashed border-ink-600 px-6 py-10 text-center cursor-pointer hover:border-brand-500/50 transition-colors">
-                <FileText strokeWidth={1.75} className="mx-auto h-8 w-8 text-slate-600 mb-3" />
-                <p className="text-sm text-slate-400">Drag & drop or <span className="text-brand-400">browse files</span></p>
-                <p className="text-xs text-slate-600 mt-1">PDF, DOCX, XLSX — max 10MB</p>
-              </div>
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx,.xlsx,.csv,.txt"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) setDocFile(f);
+                  }}
+                  className="sr-only"
+                />
+                {docFile ? (
+                  <div className="flex items-center gap-3 rounded-xl border border-brand-500/30 bg-brand-900/20 px-4 py-3">
+                    <FileText strokeWidth={1.75} className="h-5 w-5 text-brand-400 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-200 truncate">{docFile.name}</p>
+                      <p className="text-xs text-slate-500">{(docFile.size / 1024).toFixed(0)} KB</p>
+                    </div>
+                    <button type="button" onClick={() => setDocFile(null)} className="text-slate-500 hover:text-slate-200 cursor-pointer">
+                      <X strokeWidth={1.75} className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full rounded-xl border-2 border-dashed border-ink-600 px-6 py-10 text-center cursor-pointer hover:border-brand-500/50 transition-colors"
+                  >
+                    <FileText strokeWidth={1.75} className="mx-auto h-8 w-8 text-slate-600 mb-3" />
+                    <p className="text-sm text-slate-400">Click to browse or drag &amp; drop</p>
+                    <p className="text-xs text-slate-600 mt-1">PDF, DOCX, XLSX — max 10MB · Shared with admin@blockid.au</p>
+                  </button>
+                )}
+              </>
             )}
 
             {(evidenceType === "github" || evidenceType === "analytics" || evidenceType === "stripe") && (
@@ -142,7 +198,7 @@ export function EvidenceWizard({ onClose }: { onClose: () => void }) {
                 </Button>
               )}
               {evidenceType === "document" && (
-                <Button variant="primary" size="sm" onClick={() => setStep(3)} className="flex-1">
+                <Button variant="primary" size="sm" onClick={() => setStep(3)} disabled={!docFile} className="flex-1">
                   Confirm Upload <ChevronRight strokeWidth={1.75} className="h-4 w-4 ml-1" />
                 </Button>
               )}
@@ -165,10 +221,67 @@ export function EvidenceWizard({ onClose }: { onClose: () => void }) {
               {inputValue && <p><span className="text-slate-300 font-medium">Value:</span> <span className="font-mono text-xs">{inputValue.substring(0, 60)}{inputValue.length > 60 ? "…" : ""}</span></p>}
             </div>
 
+            {saveError && (
+              <p className="text-center text-xs text-red-400">{saveError}</p>
+            )}
+
             <div className="flex gap-2">
-              <Button variant="secondary" size="sm" onClick={() => setStep(2)} className="flex-1">Back</Button>
-              <Button variant="primary" size="sm" onClick={onClose} className="flex-1">
-                Add Evidence → Update SVI
+              <Button variant="secondary" size="sm" onClick={() => setStep(2)} disabled={saving} className="flex-1">Back</Button>
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={saving}
+                onClick={async () => {
+                  if (!evidenceType) return;
+                  setSaving(true);
+                  setSaveError(null);
+                  try {
+                    let res: Response;
+                    let json: { ok?: boolean; error?: string };
+
+                    if (evidenceType === "document" && docFile) {
+                      // Upload file to Google Drive + share with admin
+                      const formData = new FormData();
+                      formData.append("file", docFile);
+                      formData.append("dimension", DIMENSION_MAP[evidenceType] ?? "ptd");
+                      res = await fetch("/api/evidence/upload", {
+                        method: "POST",
+                        body: formData,
+                      });
+                      json = await res.json();
+                    } else {
+                      // Text/URL/connected evidence
+                      res = await fetch("/api/evidence", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          evidenceType,
+                          label: buildLabel(evidenceType, inputValue),
+                          valueOrUrl: inputValue || null,
+                          dimension: DIMENSION_MAP[evidenceType] ?? "general",
+                        }),
+                      });
+                      json = await res.json();
+                    }
+
+                    if (!res.ok || !json.ok) {
+                      setSaveError(json.error ?? "Failed to save evidence");
+                      return;
+                    }
+                    if (onSuccess) {
+                      onSuccess();
+                    } else {
+                      onClose();
+                    }
+                  } catch {
+                    setSaveError("Network error — please try again");
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+                className="flex-1"
+              >
+                {saving ? "Saving…" : "Add Evidence → Update SVI"}
               </Button>
             </div>
 

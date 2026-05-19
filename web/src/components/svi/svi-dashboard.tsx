@@ -90,7 +90,6 @@ function StageJourney({ currentStage }: { currentStage: number }) {
           {SVI_STAGE_LABELS.map((label, i) => {
             const isPast = i < currentStage;
             const isCurrent = i === currentStage;
-            const isFuture = i > currentStage;
             return (
               <div key={label} className="flex flex-col items-center gap-2">
                 <div
@@ -125,7 +124,7 @@ interface SVIDashboardProps {
   userEmail?: string;
 }
 
-export function SVIDashboard({ analysis, startupName, snapshotHistory, userEmail: _userEmail }: SVIDashboardProps) {
+export function SVIDashboard({ analysis, startupName, snapshotHistory }: SVIDashboardProps) {
   const [wizardOpen, setWizardOpen] = React.useState(false);
 
   const sviLabel =

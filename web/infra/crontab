@@ -1,0 +1,12 @@
+# BlockID cron jobs — runs inside the cron container.
+# Uses wget to call API endpoints with CRON_SECRET auth.
+#
+# Schedule reference (UTC):
+#   - SVI snapshot:  every Sunday 14:00 UTC (midnight AEST)
+#   - SVI notify:    every day 22:00 UTC (8am AEST next day)
+
+# Weekly SVI snapshot — creates delta-tracked snapshots for all accounts
+0 14 * * 0   wget -qO- --header="Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/svi-snapshot >> /var/log/cron.log 2>&1
+
+# Daily notification check — welcome emails, weekly reports, milestone alerts
+0 22 * * *   wget -qO- --header="Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/svi-notify >> /var/log/cron.log 2>&1

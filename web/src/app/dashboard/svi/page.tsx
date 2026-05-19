@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { SVIDashboard } from "@/components/svi/svi-dashboard";
@@ -86,9 +87,9 @@ export default async function SVIDashboardPage() {
         <div className="max-w-5xl mx-auto px-6 pb-24 pt-20 text-center">
           <h1 className="text-2xl font-bold text-slate-50 mb-3">No SVI analysis yet</h1>
           <p className="text-slate-400 text-sm mb-6">Go to the home page to analyze your startup idea and get your first SVI score.</p>
-          <a href="/" className="inline-flex h-10 items-center gap-2 rounded-[10px] bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors">
+          <Link href="/" className="inline-flex h-10 items-center gap-2 rounded-[10px] bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors">
             Get My SVI →
-          </a>
+          </Link>
         </div>
       </WorkspaceLayout>
     );

@@ -1,0 +1,10 @@
+# Lightweight cron container for BlockID scheduled jobs.
+# Calls the Next.js API endpoints on a schedule using wget.
+FROM alpine:3.21
+
+RUN apk add --no-cache wget
+
+COPY cron-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh && touch /var/log/cron.log
+
+CMD ["/entrypoint.sh"]

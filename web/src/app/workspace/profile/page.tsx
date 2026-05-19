@@ -1,8 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
-import { User } from "lucide-react";
-
 export const dynamic = "force-dynamic";
 
 export default async function ProfilePage() {
