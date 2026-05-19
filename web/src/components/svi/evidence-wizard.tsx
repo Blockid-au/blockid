@@ -4,6 +4,7 @@ import * as React from "react";
 import { X, FileText, Link2, GitBranch, BarChart3, CreditCard, ChevronRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { trackEvent } from "@/lib/analytics";
 
 type EvidenceType = "text" | "document" | "url" | "github" | "analytics" | "stripe";
 
@@ -268,6 +269,7 @@ export function EvidenceWizard({ onClose, onSuccess }: EvidenceWizardProps) {
                       setSaveError(json.error ?? "Failed to save evidence");
                       return;
                     }
+                    trackEvent("evidence_added", { evidence_type: evidenceType, dimension: DIMENSION_MAP[evidenceType] ?? "general", svi_impact: 0 });
                     if (onSuccess) {
                       onSuccess();
                     } else {

@@ -26,6 +26,7 @@ import {
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { trackEvent } from "@/lib/analytics";
 import { SVIResultsPanel } from "@/components/svi/svi-results-panel";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 
@@ -131,10 +132,11 @@ export function SVIEntrance() {
     rec.onresult = (e: any) => { let interim = ""; for (let i = e.resultIndex; i < e.results.length; i++) { const t = e.results[i][0].transcript; if (e.results[i].isFinal) ft += t + " "; else interim = t; } setText(ft + interim); };
     rec.onend = () => setListening(false);
     rec.start(); recognitionRef.current = rec; setListening(true);
+    trackEvent("svi_voice_input", {});
   };
 
-  const handleDrop = (e: React.DragEvent) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) setFile(f); };
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (f) setFile(f); };
+  const handleDrop = (e: React.DragEvent) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) { setFile(f); trackEvent("svi_file_uploaded", { file_type: f.name.split(".").pop() ?? "unknown" }); } };
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (f) { setFile(f); trackEvent("svi_file_uploaded", { file_type: f.name.split(".").pop() ?? "unknown" }); } };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,11 +144,13 @@ export function SVIEntrance() {
     const rawText = file ? `File: ${file.name}\n${text}` : text;
     if (!rawText.trim() && !file) { setError("Please describe your idea or upload a document."); return; }
     setError(""); setState("submitting");
+    trackEvent("svi_submitted", { method: file ? "file" : "text", has_file: !!file });
     try {
       const res = await fetch("/api/svi", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, input: { rawText: rawText.trim() || `Business plan document: ${file?.name}`, fileName: file?.name } }) });
       const data = (await res.json()) as SVIApiResponse;
       if (!data.ok) { setError("Analysis failed. Please try again."); setState("error"); return; }
       setResult(data); setState("done");
+      trackEvent("svi_analysis_complete", { svi_score: data.totalSVI, slug: data.slug });
     } catch { setError("Network error. Please try again."); setState("error"); }
   };
 
@@ -291,7 +295,7 @@ export function SVIEntrance() {
                 className="h-10 px-5 rounded-xl bg-brand-600 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50 cta-glow">
                 {state === "submitting" ? <span className="flex items-center gap-2"><span className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />Analyzing…</span> : "Get My SVI"}
               </button>
-              <button type="button" onClick={() => { setText(QUICK_EXAMPLES[Math.floor(Math.random() * QUICK_EXAMPLES.length)]); textareaRef.current?.focus(); }}
+              <button type="button" onClick={() => { setText(QUICK_EXAMPLES[Math.floor(Math.random() * QUICK_EXAMPLES.length)]); textareaRef.current?.focus(); trackEvent("svi_form_started", { method: "example" }); }}
                 className="h-10 px-5 rounded-xl border border-surface-300 bg-white text-sm font-medium text-ink-700 hover:bg-surface-100 transition-colors cursor-pointer">
                 Try an Example
               </button>

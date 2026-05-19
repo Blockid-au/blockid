@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, IBM_Plex_Mono } from "next/font/google";
-import { GoogleAnalytics } from "@/components/analytics/google-analytics";
+import { GoogleAnalytics, GTMNoScript } from "@/components/analytics/google-analytics";
 import "./globals.css";
 
 const inter = Inter({
@@ -86,6 +86,7 @@ export default function RootLayout({
       className={`${inter.variable} ${plexMono.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-surface-50 text-brand-900 font-sans flex flex-col">
+        <GTMNoScript />
         {children}
         <GoogleAnalytics />
       </body>

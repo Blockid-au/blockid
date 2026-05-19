@@ -124,7 +124,7 @@ export function BillingClient({
       });
       const json = await res.json();
       if (json.ok && json.url) {
-        window.location.href = json.url;
+        window.location.assign(json.url);
         return;
       }
       setError(json.reason ?? "Failed to start checkout.");

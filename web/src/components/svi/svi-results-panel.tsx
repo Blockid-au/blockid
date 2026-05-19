@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { trackEvent } from "@/lib/analytics";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
 import { ResearchPanel } from "@/components/svi/research-panel";
@@ -569,6 +570,7 @@ export function SVIResultsPanel({
     void navigator.clipboard.writeText(shareUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+    trackEvent("investor_link_copied", { slug });
   };
 
   const navigateToPage = (id: string) => {

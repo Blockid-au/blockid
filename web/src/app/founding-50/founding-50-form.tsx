@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { trackEvent } from "@/lib/analytics";
 
 type State = "idle" | "validating" | "submitting" | "done" | "error";
 
@@ -44,6 +45,7 @@ export function Founding50Form() {
       });
       const data = await res.json() as CouponResult;
       setCouponResult(data);
+      trackEvent("coupon_applied", { code: coupon.trim().toUpperCase(), discount_pct: data.discount_pct ?? 0 });
     } catch {
       setCouponResult({ ok: false, reason: "Could not validate coupon" });
     } finally {
@@ -82,6 +84,8 @@ export function Founding50Form() {
         setState("error");
         return;
       }
+      trackEvent("founding50_submitted", { has_coupon: !!(couponResult?.ok) });
+      trackEvent("lead_form_submitted", { source: "founding50" });
       // If the API returned a Stripe checkout URL, redirect immediately.
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;

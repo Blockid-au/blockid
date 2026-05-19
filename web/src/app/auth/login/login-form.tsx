@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLocale, type Locale } from "@/lib/use-locale";
 import { LanguageToggle } from "@/components/ui/language-toggle";
+import { trackEvent } from "@/lib/analytics";
 
 /* ---------- i18n dictionary ---------- */
 const t = {
@@ -81,6 +82,7 @@ function GoogleSignIn({ locale }: { locale: Locale }) {
           const data = await res.json().catch(() => ({}));
           throw new Error(data.error ?? "Google sign-in failed");
         }
+        trackEvent("login_google_success", {});
         window.location.href = "/dashboard/svi";
       } catch (err) {
         setError(err instanceof Error ? err.message : "Google sign-in failed");
@@ -182,6 +184,7 @@ function MagicLinkForm({ locale }: { locale: Locale }) {
       });
       if (!res.ok) throw new Error("request failed");
       setState("sent");
+      trackEvent("login_email_requested", {});
     } catch {
       setState("error");
     }
@@ -272,9 +275,11 @@ function CouponInput({ locale }: { locale: Locale }) {
       setState("valid");
       setResult(data);
       sessionStorage.setItem("blockid_coupon", JSON.stringify(data));
+      trackEvent("partner_code_applied", { valid: true });
     } catch {
       setState("invalid");
       setResult(null);
+      trackEvent("partner_code_applied", { valid: false });
     }
   }
 

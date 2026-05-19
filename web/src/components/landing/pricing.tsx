@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Check, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { trackEvent } from "@/lib/analytics";
 import { PricingCoupon } from "./pricing-coupon";
 
 interface Tier {
@@ -117,6 +118,7 @@ export function Pricing() {
   const handlePaidPlan = async (planId: string) => {
     setLoading(planId);
     setError(null);
+    trackEvent("checkout_started", { plan: planId });
     try {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",

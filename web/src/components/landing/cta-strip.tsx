@@ -6,6 +6,7 @@ import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { trackEvent } from "@/lib/analytics";
 
 export function CtaStrip() {
   const [email, setEmail] = React.useState("");
@@ -29,6 +30,7 @@ export function CtaStrip() {
       });
       if (!res.ok) throw new Error("Network error");
       setState("ok");
+      trackEvent("lead_form_submitted", { source: "landing-cta", intent: "founder-pack" });
     } catch {
       setState("err");
     }
