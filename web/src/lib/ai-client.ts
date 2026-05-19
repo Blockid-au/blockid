@@ -15,6 +15,63 @@
 import * as fs from "fs";
 import * as path from "path";
 
+// ── Budget tracking ($100/month cap) ───────────────────────────────────
+// Tracks estimated cost per provider per month. Persisted to disk so it
+// survives container restarts. When budget exceeded, provider is skipped.
+
+const MONTHLY_BUDGET_USD = 100;
+const BUDGET_FILE = "/tmp/blockid-ai-budget.json";
+
+// Rough cost estimates per 1K tokens (input+output averaged)
+const COST_PER_1K: Record<string, number> = {
+  "claude-haiku-4-5-20251001": 0.001,
+  "claude-sonnet-4-6": 0.015,
+  "gpt-4o-mini": 0.0003,
+  "gemini-2.0-flash": 0.0001, // free tier / very cheap
+};
+
+interface BudgetData {
+  month: string; // "2026-05"
+  totalUSD: number;
+  calls: number;
+}
+
+function currentMonth(): string {
+  return new Date().toISOString().slice(0, 7);
+}
+
+function readBudget(): BudgetData {
+  try {
+    const raw = fs.readFileSync(BUDGET_FILE, "utf-8");
+    const data: BudgetData = JSON.parse(raw);
+    if (data.month !== currentMonth()) {
+      return { month: currentMonth(), totalUSD: 0, calls: 0 };
+    }
+    return data;
+  } catch {
+    return { month: currentMonth(), totalUSD: 0, calls: 0 };
+  }
+}
+
+function writeBudget(data: BudgetData): void {
+  try {
+    fs.writeFileSync(BUDGET_FILE, JSON.stringify(data));
+  } catch { /* ignore write errors */ }
+}
+
+function trackCost(model: string, estimatedTokens: number): void {
+  const costPer1K = COST_PER_1K[model] ?? 0.001;
+  const cost = (estimatedTokens / 1000) * costPer1K;
+  const budget = readBudget();
+  budget.totalUSD += cost;
+  budget.calls += 1;
+  writeBudget(budget);
+}
+
+function isBudgetExceeded(): boolean {
+  return readBudget().totalUSD >= MONTHLY_BUDGET_USD;
+}
+
 // ── Types ──────────────────────────────────────────────────────────────
 
 interface OAuthCredentials {
@@ -57,15 +114,53 @@ function readCliOAuthToken(): string | null {
   }
 }
 
+// ── OpenAI Codex CLI OAuth ─────────────────────────────────────────────
+
+function readCodexOAuthToken(): string | null {
+  try {
+    const home = process.env.HOME ?? "/root";
+    // Codex CLI stores auth in ~/.codex/ — check common locations
+    const possiblePaths = [
+      path.join(home, ".codex", "auth.json"),
+      path.join(home, ".codex", "credentials.json"),
+      path.join(home, ".codex", ".credentials.json"),
+    ];
+
+    for (const credPath of possiblePaths) {
+      if (!fs.existsSync(credPath)) continue;
+      const raw = fs.readFileSync(credPath, "utf-8");
+      const creds = JSON.parse(raw);
+      // Try different token field names
+      const token = creds.access_token ?? creds.accessToken ?? creds.api_key ?? creds.token;
+      if (token) {
+        // Check expiry if present
+        const exp = creds.expires_at ?? creds.expiresAt;
+        if (exp && Date.now() > (typeof exp === "number" && exp < 1e12 ? exp * 1000 : exp) - 5 * 60 * 1000) {
+          continue; // expired
+        }
+        return token;
+      }
+    }
+
+    // Also check CODEX_ACCESS_TOKEN env var
+    if (process.env.CODEX_ACCESS_TOKEN) return process.env.CODEX_ACCESS_TOKEN;
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Provider detection ─────────────────────────────────────────────────
 
-type Provider = "claude-oauth" | "claude-apikey" | "openai" | "gemini" | "none";
+type Provider = "claude-oauth" | "claude-apikey" | "openai-codex" | "openai-apikey" | "gemini" | "none";
 
 function getAvailableProviders(): Provider[] {
   const providers: Provider[] = [];
   if (readCliOAuthToken()) providers.push("claude-oauth");
   if (process.env.ANTHROPIC_API_KEY) providers.push("claude-apikey");
-  if (process.env.OPENAI_API_KEY) providers.push("openai");
+  if (readCodexOAuthToken()) providers.push("openai-codex");
+  if (process.env.OPENAI_API_KEY) providers.push("openai-apikey");
   if (process.env.GOOGLE_GEMINI_API_KEY) providers.push("gemini");
   return providers;
 }
@@ -132,9 +227,9 @@ async function callClaude(apiKey: string, opts: AICallOptions): Promise<AICallRe
 
 // ── OpenAI call ────────────────────────────────────────────────────────
 
-async function callOpenAI(opts: AICallOptions): Promise<AICallResult> {
+async function callOpenAI(apiKey: string, opts: AICallOptions): Promise<AICallResult> {
   const OpenAI = (await import("openai")).default;
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const client = new OpenAI({ apiKey });
 
   const model = "gpt-4o-mini";
 
@@ -171,15 +266,18 @@ async function callGemini(opts: AICallOptions): Promise<AICallResult> {
 // ── Provider caller map ────────────────────────────────────────────────
 
 async function callProvider(provider: Provider, opts: AICallOptions): Promise<AICallResult> {
+  const noTools = { ...opts, tools: undefined };
   switch (provider) {
     case "claude-oauth":
       return callClaude(readCliOAuthToken()!, opts);
     case "claude-apikey":
       return callClaude(process.env.ANTHROPIC_API_KEY!, opts);
-    case "openai":
-      return callOpenAI({ ...opts, tools: undefined }); // OpenAI doesn't use Claude tools
+    case "openai-codex":
+      return callOpenAI(readCodexOAuthToken()!, noTools);
+    case "openai-apikey":
+      return callOpenAI(process.env.OPENAI_API_KEY!, noTools);
     case "gemini":
-      return callGemini({ ...opts, tools: undefined }); // Gemini doesn't use Claude tools
+      return callGemini(noTools);
     default:
       throw new Error(`Unknown provider: ${provider}`);
   }
@@ -196,11 +294,22 @@ export async function callAI(opts: AICallOptions): Promise<AICallResult> {
     );
   }
 
+  // Budget check — refuse if monthly cap exceeded
+  if (isBudgetExceeded()) {
+    const budget = readBudget();
+    throw new Error(
+      `Monthly AI budget exceeded ($${budget.totalUSD.toFixed(2)} / $${MONTHLY_BUDGET_USD}). Resets next month.`
+    );
+  }
+
   let lastError: Error | null = null;
 
   for (const provider of providers) {
     try {
       const result = await callProvider(provider, opts);
+      // Track estimated cost (rough: input+output ~2x input tokens)
+      const estimatedTokens = Math.ceil((opts.system.length + opts.user.length) / 3) * 2;
+      trackCost(result.model, estimatedTokens);
       return result;
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
