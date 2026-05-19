@@ -2,42 +2,17 @@
  * One-time script to set up GTM triggers + GA4 Event tags.
  *
  * Prerequisites:
- *   1. Grant the service account (blockid-drive@longcare-495115.iam.gserviceaccount.com)
- *      "Edit" access in GTM → Admin → Container → User Management.
- *   2. Enable Tag Manager API in GCP: https://console.cloud.google.com/apis/library/tagmanager.googleapis.com
- *
- * Run:
- *   npx tsx scripts/setup-gtm.ts
+ *   1. Enable Tag Manager API: https://console.developers.google.com/apis/api/tagmanager.googleapis.com/overview?project=990415480608
+ *   2. Login as GTM owner:  gcloud auth login ceo@longcare.au
+ *   3. Run:                 npx tsx scripts/setup-gtm.ts
  */
 
-import { google } from "googleapis";
-import { readFileSync } from "fs";
-import { resolve } from "path";
-
-// Load .env manually (no dotenv dependency needed)
-const envPath = resolve(import.meta.dirname ?? ".", "../.env");
-try {
-  const envContent = readFileSync(envPath, "utf-8");
-  for (const line of envContent.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eqIdx = trimmed.indexOf("=");
-    if (eqIdx === -1) continue;
-    const key = trimmed.slice(0, eqIdx).trim();
-    let val = trimmed.slice(eqIdx + 1).trim();
-    // Strip surrounding quotes
-    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-      val = val.slice(1, -1);
-    }
-    if (!process.env[key]) process.env[key] = val;
-  }
-} catch { /* .env not found — rely on process.env */ }
+import { execSync } from "child_process";
 
 // ── Config ──────────────────────────────────────────────────────────────────
 
-const GTM_ACCOUNT_ID = "6291050476"; // from GTM URL: accounts/XXXXXXXXXX
-const GTM_CONTAINER_ID = "222067988"; // from GTM URL: containers/XXXXXXXXX
-const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "G-7ZH4NZT60Q";
+const GA_MEASUREMENT_ID = "G-7ZH4NZT60Q";
+const GTM_CONTAINER_ID = "GTM-TRHH4MH2";
 
 /** Events to create as GTM triggers + GA4 tags */
 const EVENTS = [
@@ -50,166 +25,213 @@ const EVENTS = [
   { event: "investor_link_copied", goal: "Score Shared" },
 ] as const;
 
-// ── Auth ────────────────────────────────────────────────────────────────────
+const API = "https://tagmanager.googleapis.com/tagmanager/v2";
 
-function getAuth() {
-  const clientEmail = process.env.GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL;
-  const privateKey = process.env.GOOGLE_DRIVE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+// ── Auth via gcloud ─────────────────────────────────────────────────────────
 
-  if (!clientEmail || !privateKey) {
-    throw new Error(
-      "Missing GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL or GOOGLE_DRIVE_PRIVATE_KEY in .env",
-    );
+let cachedToken: string | null = null;
+
+function getAccessToken(): string {
+  if (cachedToken) return cachedToken;
+  try {
+    cachedToken = execSync("gcloud auth print-access-token", { encoding: "utf-8" }).trim();
+    return cachedToken;
+  } catch {
+    console.error("❌ Run first: gcloud auth login ceo@longcare.au");
+    process.exit(1);
   }
+}
 
-  return new google.auth.GoogleAuth({
-    credentials: { client_email: clientEmail, private_key: privateKey },
-    scopes: ["https://www.googleapis.com/auth/tagmanager.edit.containers"],
-  });
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function api(method: string, path: string, body?: any): Promise<any> {
+  const token = getAccessToken();
+  const url = `${API}/${path}`;
+  const opts: RequestInit = {
+    method,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  };
+  if (body) opts.body = JSON.stringify(body);
+
+  const res = await fetch(url, opts);
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(`API ${method} ${path}: ${res.status} ${JSON.stringify(data.error?.message ?? data)}`);
+  }
+  return data;
 }
 
 // ── Main ────────────────────────────────────────────────────────────────────
 
 async function main() {
-  const auth = getAuth();
-  const tagmanager = google.tagmanager({ version: "v2", auth });
+  console.log("🔑 Using gcloud credentials…\n");
 
-  const parent = `accounts/${GTM_ACCOUNT_ID}/containers/${GTM_CONTAINER_ID}`;
+  // 1. Find the account + container
+  console.log("📦 Finding GTM container…");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const accounts = await api("GET", "accounts") as { account: any[] };
+  if (!accounts.account?.length) throw new Error("No GTM accounts found for this user.");
 
-  // 1. Get or create a workspace
-  console.log("📦 Finding default workspace…");
-  const { data: workspaces } = await tagmanager.accounts.containers.workspaces.list({ parent });
-  let workspace = workspaces.workspace?.find((w) => w.name === "Default Workspace") ?? workspaces.workspace?.[0];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let container: any = null;
+  let accountPath = "";
+
+  // Fetch containers for all accounts in parallel
+  const containerResults = await Promise.all(
+    accounts.account.map(async (acct: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const containers = await api("GET", `${acct.path}/containers`) as { container: any[] };
+      const found = containers.container?.find(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (c: any) => c.publicId === GTM_CONTAINER_ID,
+      );
+      return found ? { container: found, accountPath: acct.path } : null;
+    }),
+  );
+  const match = containerResults.find(Boolean);
+  if (match) {
+    container = match.container;
+    accountPath = match.accountPath;
+  }
+
+  if (!container) throw new Error(`Container ${GTM_CONTAINER_ID} not found.`);
+  console.log(`   Found: "${container.name}" (${container.publicId}) in ${accountPath}`);
+
+  // 2. Get or create workspace
+  console.log("\n🗂️  Finding workspace…");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const workspaces = await api("GET", `${container.path}/workspaces`) as { workspace: any[] };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let workspace: any = workspaces.workspace?.find((w: any) => w.name === "Default Workspace")
+    ?? workspaces.workspace?.[0];
 
   if (!workspace) {
-    console.log("   Creating workspace…");
-    const { data } = await tagmanager.accounts.containers.workspaces.create({
-      parent,
-      requestBody: { name: "BlockID Analytics Setup", description: "Auto-configured GA4 event tags" },
+    workspace = await api("POST", `${container.path}/workspaces`, {
+      name: "BlockID Analytics Setup",
+      description: "Auto-configured GA4 event tags",
     });
-    workspace = data;
   }
-  const wsPath = workspace.path!;
-  console.log(`   Using workspace: ${workspace.name} (${wsPath})`);
+  console.log(`   Using: "${workspace.name}"`);
 
-  // 2. Check for existing GA4 config tag (measurement ID variable)
-  //    We need a "GA4 Configuration" tag that all event tags reference.
+  // 3. Create GA4 Configuration tag
   console.log("\n🔧 Setting up GA4 Configuration tag…");
-  const { data: existingTags } = await tagmanager.accounts.containers.workspaces.tags.list({ parent: wsPath });
-  let configTag = existingTags.tag?.find(
-    (t) => t.type === "gaawc" && t.parameter?.some((p) => p.key === "measurementId" && p.value === GA_MEASUREMENT_ID),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const existingTags = await api("GET", `${workspace.path}/tags`) as { tag?: any[] };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let configTag = existingTags.tag?.find((t: any) =>
+    t.type === "gaawc" &&
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    t.parameter?.some((p: any) => p.key === "measurementId" && p.value === GA_MEASUREMENT_ID),
   );
 
   if (!configTag) {
-    const { data } = await tagmanager.accounts.containers.workspaces.tags.create({
-      parent: wsPath,
-      requestBody: {
-        name: "GA4 Configuration",
-        type: "gaawc", // GA4 Configuration tag type
-        parameter: [
-          { type: "template", key: "measurementId", value: GA_MEASUREMENT_ID },
-          { type: "boolean", key: "sendPageView", value: "true" },
-        ],
-        firingTriggerId: ["2147479553"], // All Pages built-in trigger
-      },
+    configTag = await api("POST", `${workspace.path}/tags`, {
+      name: "GA4 Configuration",
+      type: "gaawc",
+      parameter: [
+        { type: "template", key: "measurementId", value: GA_MEASUREMENT_ID },
+        { type: "boolean", key: "sendPageView", value: "true" },
+      ],
+      firingTriggerId: ["2147479553"], // All Pages built-in trigger
     });
-    configTag = data;
     console.log(`   ✅ Created GA4 Configuration tag (ID: ${configTag.tagId})`);
   } else {
-    console.log(`   ⏭️  GA4 Configuration tag already exists (ID: ${configTag.tagId})`);
+    console.log(`   ⏭️  Already exists (ID: ${configTag.tagId})`);
   }
 
-  // 3. Create triggers + event tags for each goal
+  // 4. Create triggers + event tags
   console.log("\n🎯 Creating triggers and GA4 Event tags…\n");
+
+  // Fetch triggers once before the loop; reuse tags already fetched at step 3
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const triggerList = await api("GET", `${workspace.path}/triggers`) as { trigger?: any[] };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const knownTriggers: any[] = triggerList.trigger ?? [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const knownTags: any[] = [...(existingTags.tag ?? [])];
+  // If we created a configTag above, it's already in knownTags only if we didn't re-fetch;
+  // add it if missing
+  if (configTag && !knownTags.some((t: any) => t.tagId === configTag.tagId)) {
+    knownTags.push(configTag);
+  }
 
   for (const { event, goal } of EVENTS) {
     const triggerName = `Trigger — ${goal}`;
     const tagName = `GA4 Event — ${goal}`;
 
-    // Check if trigger already exists
-    const { data: existingTriggers } = await tagmanager.accounts.containers.workspaces.triggers.list({ parent: wsPath });
-    let trigger = existingTriggers.trigger?.find((t) => t.name === triggerName);
+    // Check existing triggers from cached list
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let trigger = knownTriggers.find((t: any) => t.name === triggerName);
 
     if (!trigger) {
-      const { data } = await tagmanager.accounts.containers.workspaces.triggers.create({
-        parent: wsPath,
-        requestBody: {
-          name: triggerName,
-          type: "customEvent",
-          customEventFilter: [
-            {
-              type: "equals",
-              parameter: [
-                { type: "template", key: "arg0", value: "{{_event}}" },
-                { type: "template", key: "arg1", value: event },
-              ],
-            },
-          ],
-        },
+      trigger = await api("POST", `${workspace.path}/triggers`, {
+        name: triggerName,
+        type: "customEvent",
+        customEventFilter: [
+          {
+            type: "equals",
+            parameter: [
+              { type: "template", key: "arg0", value: "{{_event}}" },
+              { type: "template", key: "arg1", value: event },
+            ],
+          },
+        ],
       });
-      trigger = data;
+      knownTriggers.push(trigger); // Track locally
       console.log(`   ✅ Trigger: "${triggerName}" (event: ${event})`);
     } else {
       console.log(`   ⏭️  Trigger "${triggerName}" already exists`);
     }
 
-    // Check if tag already exists
-    const { data: latestTags } = await tagmanager.accounts.containers.workspaces.tags.list({ parent: wsPath });
-    const existingTag = latestTags.tag?.find((t) => t.name === tagName);
+    // Check existing tags from cached list
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const existingTag = knownTags.find((t: any) => t.name === tagName);
 
     if (!existingTag) {
-      await tagmanager.accounts.containers.workspaces.tags.create({
-        parent: wsPath,
-        requestBody: {
-          name: tagName,
-          type: "gaawe", // GA4 Event tag type
-          parameter: [
-            { type: "tagReference", key: "measurementId", value: configTag.name },
-            { type: "template", key: "eventName", value: event },
-            { type: "boolean", key: "sendEcommerceData", value: "false" },
-          ],
-          firingTriggerId: [trigger.triggerId!],
-        },
+      const newTag = await api("POST", `${workspace.path}/tags`, {
+        name: tagName,
+        type: "gaawe", // GA4 Event
+        parameter: [
+          { type: "tagReference", key: "measurementId", value: configTag.name },
+          { type: "template", key: "eventName", value: event },
+          { type: "boolean", key: "sendEcommerceData", value: "false" },
+        ],
+        firingTriggerId: [trigger.triggerId],
       });
+      knownTags.push(newTag); // Track locally
       console.log(`   ✅ Tag:     "${tagName}" → fires on "${triggerName}"`);
     } else {
       console.log(`   ⏭️  Tag "${tagName}" already exists`);
     }
-
     console.log("");
   }
 
-  // 4. Create and publish a version
+  // 5. Create version and publish
   console.log("📤 Creating container version…");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: version } = await (tagmanager.accounts.containers.workspaces as any).create_version({
-    path: wsPath,
-    requestBody: {
-      name: "BlockID GA4 Events Setup",
-      notes: `Auto-configured ${EVENTS.length} GA4 event tags with triggers for BlockID.au analytics goals.`,
-    },
+  const version = await api("POST", `${workspace.path}:create_version`, {
+    name: "BlockID GA4 Events Setup",
+    notes: `Auto-configured ${EVENTS.length} GA4 event tags with triggers for BlockID.au analytics goals.`,
   });
 
   const versionPath = version.containerVersion?.path;
   if (versionPath) {
     console.log(`   Created version: ${version.containerVersion?.name}`);
     console.log("\n🚀 Publishing version…");
-    await tagmanager.accounts.containers.versions.publish({ path: versionPath });
+    await api("POST", `${versionPath}:publish`);
     console.log("   ✅ Published! Changes are now live.");
   } else {
-    console.log("   ⚠️  Version created but path not returned. Publish manually in GTM UI.");
+    console.log("   ⚠️  Version created but could not auto-publish. Publish manually in GTM UI.");
   }
 
   console.log("\n✨ Done! All GA4 event goals are now configured in GTM.");
-  console.log(`   Container: GTM-TRHH4MH2`);
+  console.log(`   Container: ${GTM_CONTAINER_ID}`);
   console.log(`   GA4 Property: ${GA_MEASUREMENT_ID}`);
   console.log(`   Events: ${EVENTS.map((e) => e.event).join(", ")}`);
 }
 
 main().catch((err) => {
   console.error("\n❌ Error:", err.message ?? err);
-  if (err.response?.data) {
-    console.error("   API response:", JSON.stringify(err.response.data, null, 2));
-  }
   process.exit(1);
 });

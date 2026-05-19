@@ -161,7 +161,9 @@ export function isAIConfigured(): boolean {
 
 async function callClaude(apiKey: string, opts: AICallOptions): Promise<AICallResult> {
   const Anthropic = (await import("@anthropic-ai/sdk")).default;
-  const client = new Anthropic({ apiKey, authToken: apiKey });
+  const client = new Anthropic(
+    apiKey.startsWith("sk-ant-") ? { apiKey } : { authToken: apiKey },
+  );
 
   const model = opts.tools?.length ? "claude-sonnet-4-6" : "claude-haiku-4-5-20251001";
 
@@ -339,7 +341,7 @@ export function getAnthropicClient() {
 
   const oauthToken = readCliOAuthToken();
   if (oauthToken) {
-    return new Anthropic({ apiKey: oauthToken, authToken: oauthToken });
+    return new Anthropic({ authToken: oauthToken });
   }
   if (process.env.ANTHROPIC_API_KEY) {
     return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });

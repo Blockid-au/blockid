@@ -427,7 +427,7 @@ export async function sendSVIShare(args: {
   </table>`);
   return sendEmail({
     to: args.to,
-    subject: `${escapeHtml(sender)} shared their BlockID Startup Value Report with you`,
+    subject: `${sender} shared their BlockID Startup Value Report with you`,
     html,
   });
 }
