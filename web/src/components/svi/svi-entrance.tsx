@@ -335,16 +335,16 @@ export function SVIEntrance() {
             {/* Left: copy */}
             <div>
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-[-0.02em] leading-[1.05] text-ink-900">
-                The <span className="bg-gradient-to-r from-brand-600 to-brand-500 bg-clip-text text-transparent">Value Infrastructure</span> for Startup Growth from Day One.
+                The <span className="bg-gradient-to-r from-brand-600 to-brand-500 bg-clip-text text-transparent">agentic AI valuation</span> platform for business growth from day one.
               </h1>
               <p className="mt-5 text-lg md:text-xl font-medium text-brand-600/80">
-                Index valuation, ownership, and capitalization from idea to scale.
+                Index valuation, ownership, and execution milestones from idea to scale.
               </p>
               <p className="mt-5 text-base md:text-lg text-ink-500 leading-relaxed max-w-xl">
-                BlockID.au helps individual founders, startups, and SMEs establish a clear
-                foundation for valuation, ownership, and capitalization from day one. It aligns
-                contributors, tracks value creation, and builds investor-ready records as the
-                company grows.
+                BlockID.au helps founders, startups, and SMEs build a clear foundation for
+                valuation, ownership, and execution from day one — tracking value creation,
+                contributor alignment, capitalization, and investor-ready records as the
+                business grows.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <a href="#svi" className="inline-flex h-14 items-center gap-2 rounded-2xl bg-brand-600 px-8 text-base font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
@@ -392,7 +392,7 @@ export function SVIEntrance() {
               <img src="/images/logo-icon-transparent.png" alt="" className="h-14 w-14 md:h-16 md:w-16" />
               <div className="flex flex-col">
                 <span className="text-4xl md:text-5xl font-extrabold tracking-tight text-ink-900">BlockID<span className="text-brand-500">.au</span></span>
-                <span className="text-sm md:text-base font-medium tracking-wide text-ink-500 mt-0.5">Valuation. Ownership. Growth.</span>
+                <span className="text-sm md:text-base font-medium tracking-wide text-ink-500 mt-0.5">Valuation. Ownership. Execution. Growth.</span>
               </div>
             </div>
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-center text-ink-900">

@@ -257,7 +257,7 @@ export async function sendSVIWelcome(args: {
             <a href="${dashUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View your dashboard</a>
           </p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -309,7 +309,7 @@ export async function sendSVIWeeklyReport(args: {
             </tr>
           </table>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -385,7 +385,7 @@ export async function sendSVIReport(args: {
             </tr>
           </table>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
           <p style="margin:0;color:#64748B;font-size:11px;line-height:1.5;">You can sign in with Google or via a magic link sent to this email.</p>
         </td></tr>
       </table>
@@ -420,7 +420,7 @@ export async function sendSVIShare(args: {
             <a href="${reportUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Full Report</a>
           </p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -464,7 +464,7 @@ export async function sendPaymentConfirmation(args: {
             </tr>
           </table>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -514,7 +514,7 @@ export async function sendPaymentLink(args: {
           <p style="margin:0 0 24px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#94A3B8;word-break:break-all;">${args.checkoutUrl}</p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
           <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;line-height:1.6;">This link expires in 24 hours. If you have questions, reply to this email.</p>
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -546,7 +546,7 @@ export async function sendPaymentFailed(args: {
           </p>
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">If you believe this is an error, please reply to this email and we will investigate.</p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -584,7 +584,7 @@ export async function sendPaymentReceipt(args: {
             <a href="${dashUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Go to Dashboard</a>
           </p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -626,7 +626,7 @@ export async function sendCancellationEmail(args: {
           </p>
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">You will continue to have full access until your plan expires. After that, your account will be downgraded to the free tier.</p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -757,7 +757,7 @@ export async function sendGrowthReport(args: {
             <a href="${dashUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Growth Dashboard</a>
           </p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
         </td></tr>
       </table>
     </td></tr>

@@ -130,7 +130,7 @@ export function Footer() {
                 BlockID<span className="text-brand-400">.au</span>
               </span>
               <span className="ml-2 hidden text-xs font-medium tracking-[0.12em] text-slate-400 sm:inline">
-                Valuation. <span className="text-brand-400">Ownership.</span> Growth.
+                Valuation. <span className="text-brand-400">Ownership.</span> Execution. Growth.
               </span>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

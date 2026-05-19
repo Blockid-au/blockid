@@ -2,9 +2,9 @@ import { Suspense } from "react";
 import { SVIEntrance } from "@/components/svi/svi-entrance";
 
 export const metadata = {
-  title: "BlockID.au — Startup Value Index | Valuation. Ownership. Growth.",
+  title: "BlockID.au — The Agentic AI Valuation Platform | Valuation. Ownership. Execution. Growth.",
   description:
-    "Measure, prove and grow your startup value from day one. Get your free Startup Value Index — the AI-powered trust layer for Australian founders.",
+    "The agentic AI valuation platform for business growth from day one. Index valuation, ownership, and execution milestones from idea to scale.",
 };
 
 export default function HomePage() {
