@@ -174,6 +174,7 @@ export function SVIEntrance() {
   // ── Entrance view ─────────────────────────────────────────────────────────
   return (
     <div
+      id="svi"
       className="min-h-svh bg-white flex flex-col items-center justify-center px-4"
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
@@ -380,7 +381,110 @@ export function SVIEntrance() {
             </button>
           ))}
         </div>
+
+        {/* Idea Estimate Section */}
+        <IdeaEstimateSection />
       </div>
+    </div>
+  );
+}
+
+function IdeaEstimateSection() {
+  const [text, setText] = React.useState("");
+  const [email, setEmail] = React.useState("");
+  const [state, setState] = React.useState<"idle" | "loading" | "done" | "error">("idle");
+  const [result, setResult] = React.useState<{
+    lowAud: number; highAud: number; strengths: string[]; gaps: string[]; nextStep: string;
+  } | null>(null);
+
+  const fmt = (n: number) => new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD", maximumFractionDigits: 0 }).format(n);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!text.trim() || !email.includes("@")) return;
+    setState("loading");
+    try {
+      const res = await fetch("/api/idea-estimate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, email }),
+      });
+      const data = await res.json() as { ok: boolean; lowAud?: number; highAud?: number; strengths?: string[]; gaps?: string[]; nextStep?: string };
+      if (data.ok) {
+        setResult({ lowAud: data.lowAud ?? 0, highAud: data.highAud ?? 0, strengths: data.strengths ?? [], gaps: data.gaps ?? [], nextStep: data.nextStep ?? "" });
+        setState("done");
+      } else setState("error");
+    } catch { setState("error"); }
+  };
+
+  return (
+    <div className="w-full border-t border-slate-100 pt-8 mt-2">
+      <div className="text-center mb-5">
+        <p className="text-base font-semibold text-slate-700">💡 Ý tưởng của bạn đáng giá bao nhiêu?</p>
+        <p className="text-xs text-slate-400 mt-1">Nhập mô tả ý tưởng để nhận ước lượng giá trị ban đầu — miễn phí · Free idea value estimate</p>
+      </div>
+
+      {state !== "done" ? (
+        <form onSubmit={handleSubmit} className="rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow">
+          <textarea
+            value={text}
+            onChange={e => setText(e.target.value)}
+            placeholder="Mô tả ý tưởng của bạn bằng 1-2 câu… / Describe your idea in 1-2 sentences…"
+            rows={3}
+            className="w-full resize-none px-4 pt-4 pb-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none bg-transparent leading-relaxed rounded-t-2xl"
+          />
+          <div className="flex items-center gap-2 px-4 pb-4 border-t border-slate-100 pt-3">
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="email@startup.com"
+              required
+              className="flex-1 h-9 rounded-[10px] border border-slate-200 px-3 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-brand-400"
+            />
+            <button
+              type="submit"
+              disabled={state === "loading" || !text.trim()}
+              className="h-9 px-4 rounded-[10px] bg-slate-800 text-white text-sm font-semibold hover:bg-slate-900 transition-colors disabled:opacity-50 shrink-0"
+            >
+              {state === "loading" ? (
+                <span className="flex items-center gap-2"><span className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />Đang tính…</span>
+              ) : "Ước tính ngay →"}
+            </button>
+          </div>
+        </form>
+      ) : result ? (
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm px-6 py-5 space-y-4">
+          <div className="text-center">
+            <p className="text-xs uppercase tracking-[0.15em] text-slate-400 font-medium mb-1">Estimated Idea Value</p>
+            <p className="font-mono text-3xl font-bold text-slate-800">{fmt(result.lowAud)} <span className="text-slate-400">–</span> {fmt(result.highAud)}</p>
+            <p className="text-xs text-slate-400 mt-1">AUD · Pre-revenue idea-stage range · Not a legal valuation</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {result.strengths.length > 0 && (
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.12em] text-green-600 font-medium mb-1.5">Điểm mạnh / Strengths</p>
+                <ul className="space-y-1">{result.strengths.map(s => <li key={s} className="text-xs text-slate-500 flex items-start gap-1"><span className="text-green-500 shrink-0">✓</span>{s}</li>)}</ul>
+              </div>
+            )}
+            {result.gaps.length > 0 && (
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.12em] text-amber-600 font-medium mb-1.5">Cần cải thiện / Gaps</p>
+                <ul className="space-y-1">{result.gaps.map(g => <li key={g} className="text-xs text-slate-500 flex items-start gap-1"><span className="text-amber-500 shrink-0">!</span>{g}</li>)}</ul>
+              </div>
+            )}
+          </div>
+          <div className="rounded-xl bg-slate-50 border border-slate-200 px-4 py-3">
+            <p className="text-xs text-slate-500 leading-relaxed"><span className="font-semibold text-slate-700">Bước tiếp theo:</span> {result.nextStep}</p>
+          </div>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => { setState("idle"); setResult(null); setText(""); }} className="flex-1 h-9 rounded-[10px] border border-slate-200 text-sm text-slate-500 hover:text-slate-700 transition-colors">Thử lại</button>
+            <a href="#svi" className="flex-1 h-9 rounded-[10px] bg-brand-700 text-white text-sm font-semibold flex items-center justify-center hover:bg-brand-800 transition-colors">Get Full SVI →</a>
+          </div>
+        </div>
+      ) : null}
+
+      {state === "error" && <p className="text-center text-xs text-red-500 mt-2">Có lỗi xảy ra. Vui lòng thử lại. / Something went wrong.</p>}
     </div>
   );
 }

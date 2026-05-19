@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { SVIDashboard } from "@/components/svi/svi-dashboard";
-import { Logo } from "@/components/brand/logo";
+import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 
 export const metadata: Metadata = {
@@ -82,22 +82,15 @@ export default async function SVIDashboardPage() {
   // If no analysis yet, show empty state CTA
   if (!analysis) {
     return (
-      <div className="min-h-svh bg-ink-950 text-slate-50">
-        <header className="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between">
-          <Logo variant="dark" />
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-slate-500">{user.email}</span>
-            <a href="/" className="text-xs text-slate-400 hover:text-slate-200 transition-colors">← Home</a>
-          </div>
-        </header>
-        <main className="max-w-5xl mx-auto px-6 pb-24 pt-20 text-center">
+      <WorkspaceLayout user={user} startupName={startupName}>
+        <div className="max-w-5xl mx-auto px-6 pb-24 pt-20 text-center">
           <h1 className="text-2xl font-bold text-slate-50 mb-3">No SVI analysis yet</h1>
           <p className="text-slate-400 text-sm mb-6">Go to the home page to analyze your startup idea and get your first SVI score.</p>
           <a href="/" className="inline-flex h-10 items-center gap-2 rounded-[10px] bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors">
             Get My SVI →
           </a>
-        </main>
-      </div>
+        </div>
+      </WorkspaceLayout>
     );
   }
 
@@ -108,27 +101,15 @@ export default async function SVIDashboardPage() {
   };
 
   return (
-    <div className="min-h-svh bg-ink-950 text-slate-50">
-      <header className="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between border-b border-ink-700">
-        <Logo variant="dark" />
-        <div className="flex items-center gap-4">
-          {user.avatarUrl && (
-            <img src={user.avatarUrl} alt="" className="h-7 w-7 rounded-full" />
-          )}
-          <span className="text-xs text-slate-400">{user.displayName ?? user.email}</span>
-          <form action="/api/auth/logout" method="post">
-            <button type="submit" className="text-xs text-slate-500 hover:text-slate-200 transition-colors cursor-pointer">Sign out</button>
-          </form>
-        </div>
-      </header>
-      <main className="max-w-5xl mx-auto px-6 pb-24">
+    <WorkspaceLayout user={user} startupName={startupName}>
+      <div className="max-w-5xl mx-auto px-6 pb-24">
         <SVIDashboard
           analysis={analysisWithDelta}
           startupName={startupName}
           snapshotHistory={snapshotHistory}
           userEmail={user.email}
         />
-      </main>
-    </div>
+      </div>
+    </WorkspaceLayout>
   );
 }
