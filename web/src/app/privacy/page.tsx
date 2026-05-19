@@ -129,10 +129,10 @@ export default function PrivacyPage() {
                 If you have questions about this privacy policy or wish to
                 exercise your rights, contact us at{" "}
                 <a
-                  href="mailto:hello@blockid.au"
+                  href="mailto:ceo@longcare.au"
                   className="text-brand-600 hover:text-brand-500 underline"
                 >
-                  hello@blockid.au
+                  ceo@longcare.au
                 </a>
                 .
               </p>

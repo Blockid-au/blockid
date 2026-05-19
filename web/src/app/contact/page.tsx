@@ -34,10 +34,10 @@ export default function ContactPage() {
               <p className="mt-3 text-ink-600">
                 Reach us at{" "}
                 <a
-                  href="mailto:hello@blockid.au"
+                  href="mailto:ceo@longcare.au"
                   className="text-brand-600 hover:text-brand-500 underline"
                 >
-                  hello@blockid.au
+                  ceo@longcare.au
                 </a>
               </p>
               <p className="mt-1 text-sm text-ink-600">
@@ -64,10 +64,10 @@ export default function ContactPage() {
             <p className="mt-3 leading-relaxed text-ink-600">
               For technical support or account-related queries, email us at{" "}
               <a
-                href="mailto:hello@blockid.au"
+                href="mailto:ceo@longcare.au"
                 className="text-brand-600 hover:text-brand-500 underline"
               >
-                hello@blockid.au
+                ceo@longcare.au
               </a>{" "}
               with a description of your issue. If you are a Founding 50
               member, please include your account email so we can prioritise

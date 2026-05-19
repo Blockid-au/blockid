@@ -148,10 +148,10 @@ export default function TermsPage() {
               <p className="mt-3">
                 For questions about these Terms, contact us at{" "}
                 <a
-                  href="mailto:hello@blockid.au"
+                  href="mailto:ceo@longcare.au"
                   className="text-brand-600 hover:text-brand-500 underline"
                 >
-                  hello@blockid.au
+                  ceo@longcare.au
                 </a>
                 .
               </p>
