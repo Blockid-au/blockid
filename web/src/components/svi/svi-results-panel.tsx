@@ -150,6 +150,110 @@ function SubScoreBar({
   );
 }
 
+function AIScorePanel({ analysis, rawText }: { analysis: SVIAnalysis; rawText?: string }) {
+  const [state, setState] = React.useState<"idle" | "loading" | "done" | "error">("idle");
+  const [result, setResult] = React.useState<{
+    aiSVI: number;
+    comparison: string;
+    discrepancy: number;
+    strengths: string[];
+    weaknesses: string[];
+    recommendation: string;
+    transparencyNote: string;
+  } | null>(null);
+
+  const getAIScore = async () => {
+    setState("loading");
+    try {
+      const res = await fetch("/api/svi/ai-score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rawText: rawText ?? analysis.summary,
+          deterministicSVI: analysis.totalSVI,
+          deterministicAnalysis: analysis,
+        }),
+      });
+      const data = await res.json() as { ok: boolean; aiSVI?: number; comparison?: string; discrepancy?: number; strengths?: string[]; weaknesses?: string[]; recommendation?: string; transparencyNote?: string };
+      if (data.ok) {
+        setResult({
+          aiSVI: data.aiSVI ?? 0,
+          comparison: data.comparison ?? "agree",
+          discrepancy: data.discrepancy ?? 0,
+          strengths: data.strengths ?? [],
+          weaknesses: data.weaknesses ?? [],
+          recommendation: data.recommendation ?? "",
+          transparencyNote: data.transparencyNote ?? "",
+        });
+        setState("done");
+      } else {
+        setState("error");
+      }
+    } catch {
+      setState("error");
+    }
+  };
+
+  if (state === "idle") {
+    return (
+      <button
+        type="button"
+        onClick={() => { void getAIScore(); }}
+        className="w-full flex items-center justify-center gap-2 rounded-xl border border-brand-600/30 bg-brand-900/20 px-4 py-3 text-sm text-brand-300 hover:bg-brand-900/40 transition-colors cursor-pointer"
+      >
+        <span className="h-4 w-4 rounded-full border border-brand-400 flex items-center justify-center text-xs font-bold">AI</span>
+        Get independent AI verification score
+      </button>
+    );
+  }
+
+  if (state === "loading") {
+    return (
+      <div className="flex items-center justify-center gap-2 py-4 text-sm text-slate-400">
+        <span className="h-4 w-4 rounded-full border-2 border-brand-400/30 border-t-brand-400 animate-spin" />
+        AI is independently scoring your startup…
+      </div>
+    );
+  }
+
+  if (state === "error") {
+    return <p className="text-center text-xs text-red-400 py-2">AI scoring unavailable. Try again later.</p>;
+  }
+
+  if (!result) return null;
+
+  const compColor = result.comparison === "agree" ? "text-green-400" : result.comparison === "higher" ? "text-teal-400" : "text-amber-400";
+  const compLabel = result.comparison === "agree" ? "AI agrees" : result.comparison === "higher" ? `AI scored ${result.discrepancy} points higher` : `AI scored ${result.discrepancy} points lower`;
+
+  return (
+    <div className="rounded-2xl border border-brand-600/30 bg-brand-900/10 px-5 py-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs uppercase tracking-[0.15em] text-brand-400 font-medium">AI Verification Score</p>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-2xl font-bold text-brand-300">{result.aiSVI}</span>
+          <span className={`text-xs font-medium ${compColor}`}>{compLabel}</span>
+        </div>
+      </div>
+      <p className="text-xs text-slate-400 italic">{result.recommendation}</p>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.12em] text-green-400 font-medium mb-1.5">AI Strengths</p>
+          <ul className="space-y-1">
+            {result.strengths.map(s => <li key={s} className="text-xs text-slate-400 flex items-start gap-1"><span className="text-green-400 shrink-0 mt-0.5">+</span>{s}</li>)}
+          </ul>
+        </div>
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.12em] text-amber-400 font-medium mb-1.5">AI Concerns</p>
+          <ul className="space-y-1">
+            {result.weaknesses.map(w => <li key={w} className="text-xs text-slate-400 flex items-start gap-1"><span className="text-amber-400 shrink-0 mt-0.5">!</span>{w}</li>)}
+          </ul>
+        </div>
+      </div>
+      <p className="text-[10px] text-slate-600 border-t border-ink-700 pt-2 mt-2">{result.transparencyNote}</p>
+    </div>
+  );
+}
+
 export function SVIResultsPanel({
   analysis,
   slug,
@@ -302,6 +406,9 @@ export function SVIResultsPanel({
           </div>
         </div>
       )}
+
+      {/* AI Second Opinion */}
+      <AIScorePanel analysis={analysis} />
 
       {/* Upsell */}
       <div className="rounded-2xl border border-brand-600/30 bg-brand-900/20 px-6 py-5">

@@ -36,7 +36,7 @@ function GoogleSignIn() {
           const data = await res.json().catch(() => ({}));
           throw new Error(data.error ?? "Google sign-in failed");
         }
-        window.location.href = "/dashboard";
+        window.location.href = "/dashboard/svi";
       } catch (err) {
         setError(err instanceof Error ? err.message : "Google sign-in failed");
         setLoading(false);

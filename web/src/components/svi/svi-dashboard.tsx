@@ -118,7 +118,14 @@ function StageJourney({ currentStage }: { currentStage: number }) {
   );
 }
 
-export function SVIDashboard({ analysis, startupName }: { analysis: SVIAnalysis; startupName?: string }) {
+interface SVIDashboardProps {
+  analysis: SVIAnalysis;
+  startupName?: string;
+  snapshotHistory?: Array<{ date: string; svi: number; delta: number | null }>;
+  userEmail?: string;
+}
+
+export function SVIDashboard({ analysis, startupName, snapshotHistory, userEmail: _userEmail }: SVIDashboardProps) {
   const [wizardOpen, setWizardOpen] = React.useState(false);
 
   const sviLabel =
@@ -200,6 +207,35 @@ export function SVIDashboard({ analysis, startupName }: { analysis: SVIAnalysis;
 
       {/* Stage Journey */}
       <StageJourney currentStage={analysis.stage} />
+
+      {/* Snapshot History */}
+      {snapshotHistory && snapshotHistory.length > 0 && (
+        <div className="rounded-2xl border border-ink-700 bg-ink-900 px-6 py-5">
+          <p className="text-xs uppercase tracking-[0.18em] text-slate-500 font-medium mb-4">Score History</p>
+          <div className="space-y-2">
+            {snapshotHistory.map((snap) => {
+              const deltaPositive = snap.delta !== null && snap.delta >= 0;
+              const formattedDate = new Date(snap.date).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
+              return (
+                <div key={snap.date} className="flex items-center justify-between py-1.5 border-b border-ink-800 last:border-0">
+                  <span className="text-xs text-slate-500 w-28 shrink-0">{formattedDate}</span>
+                  <span className="text-sm font-mono font-semibold text-slate-200">{snap.svi} SVI</span>
+                  {snap.delta !== null ? (
+                    <span className={cn(
+                      "text-xs font-mono font-semibold w-14 text-right",
+                      deltaPositive ? "text-green-400" : "text-red-400",
+                    )}>
+                      {deltaPositive ? "+" : ""}{snap.delta}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-slate-600 w-14 text-right">—</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Add Evidence CTA */}
       <div className="flex items-center justify-between rounded-xl border border-brand-600/30 bg-brand-900/20 px-5 py-4">
