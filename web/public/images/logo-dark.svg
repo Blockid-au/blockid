@@ -1,14 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
-  <defs>
-    <linearGradient id="starGradDark" x1="100" y1="38" x2="100" y2="162" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#7EB0F0"/>
-      <stop offset="100%" stop-color="#5BB8FF"/>
-    </linearGradient>
-  </defs>
-  <!-- Octagon outline (dark variant — light blue stroke for dark backgrounds) -->
-  <path d="M72,15 L128,15 L185,72 L185,128 L128,185 L72,185 L15,128 L15,72 Z"
-        stroke="#7EB0F0" stroke-width="10" fill="none" stroke-linejoin="round"/>
-  <!-- 4-pointed sparkle star with brighter gradient for dark bg -->
-  <path d="M100,38 C110,70 132,90 162,100 C132,110 110,130 100,162 C90,130 68,110 38,100 C68,90 90,70 100,38 Z"
-        fill="url(#starGradDark)"/>
+  <!-- Dark variant - for dark backgrounds -->
+  <!-- Left side of hexagon (lighter blue) -->
+  <path d="M100 15 L40 50 L40 140 L100 175" stroke="#5B9AEB" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Right side of hexagon (gold) -->
+  <path d="M100 15 L160 50 L160 140 L100 175" stroke="#D4A843" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- 3D Cube inside -->
+  <path d="M70 75 L100 58 L130 75 L100 92 Z" fill="#7EB0F0"/>
+  <path d="M70 75 L100 92 L100 125 L70 108 Z" fill="#5B9AEB"/>
+  <path d="M130 75 L100 92 L100 125 L130 108 Z" fill="#3B7DD8"/>
 </svg>
