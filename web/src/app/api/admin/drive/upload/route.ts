@@ -23,6 +23,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
+    const ALLOWED_TYPES = new Set([
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // docx
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // xlsx
+      "application/vnd.ms-excel", // xls
+      "image/png",
+      "image/jpeg",
+      "image/webp",
+      "text/csv",
+    ]);
+
+    if (!ALLOWED_TYPES.has(file.type)) {
+      return NextResponse.json(
+        { ok: false, reason: "File type not allowed. Accepted: PDF, DOCX, XLSX, PNG, JPG, CSV" },
+        { status: 400 },
+      );
+    }
+
+    if (file.size > 25 * 1024 * 1024) {
+      return NextResponse.json(
+        { ok: false, reason: "File too large (max 25MB)" },
+        { status: 400 },
+      );
+    }
+
     const buffer = Buffer.from(await file.arrayBuffer());
     
     const result = await uploadToGoogleDrive(buffer, file.name, file.type);
@@ -33,7 +58,7 @@ export async function POST(req: NextRequest) {
       webViewLink: result.webViewLink 
     });
   } catch (error) {
-    console.error("Google Drive Upload Error:", error);
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Upload failed" }, { status: 500 });
+    console.error("[blockid:admin:drive-upload] upload failed", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

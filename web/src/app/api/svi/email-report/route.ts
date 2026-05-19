@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
 import { sendSVIReport } from "@/lib/email";
 
 // POST /api/svi/email-report
@@ -6,6 +7,14 @@ import { sendSVIReport } from "@/lib/email";
 // Sends the SVI report email to the given address.
 
 export async function POST(request: Request) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json(
+      { ok: false, reason: "Authentication required" },
+      { status: 401 },
+    );
+  }
+
   let body: unknown = null;
   try {
     body = await request.json();

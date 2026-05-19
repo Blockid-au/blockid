@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
 import { sendSVIShare } from "@/lib/email";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
@@ -7,6 +8,14 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 // Shares the SVI report with another person via email.
 
 export async function POST(request: Request) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json(
+      { ok: false, reason: "Authentication required" },
+      { status: 401 },
+    );
+  }
+
   let body: unknown = null;
   try {
     body = await request.json();
@@ -28,17 +37,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "slug is required" }, { status: 400 });
   }
 
-  // Look up the SVI score from the database if available
+  // Look up the SVI score and verify ownership
   let svi = 0;
   const supabase = getSupabaseAdmin();
   if (supabase) {
     const { data } = await supabase
       .from("svi_analyses")
-      .select("total_svi")
+      .select("total_svi, email")
       .eq("id", parsed.slug)
       .single();
-    if (data?.total_svi != null) {
-      svi = data.total_svi;
+    if (data) {
+      // Verify the caller owns this SVI analysis
+      if (data.email?.trim().toLowerCase() !== user.email.trim().toLowerCase()) {
+        return NextResponse.json(
+          { ok: false, error: "You do not own this SVI analysis" },
+          { status: 403 },
+        );
+      }
+      if (data.total_svi != null) {
+        svi = data.total_svi;
+      }
     }
   }
 

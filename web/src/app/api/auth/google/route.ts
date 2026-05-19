@@ -71,7 +71,13 @@ export async function POST(request: Request) {
 
   // Validate audience matches our client ID.
   const expectedClientId = process.env.GOOGLE_CLIENT_ID;
-  if (expectedClientId && tokenPayload.aud !== expectedClientId) {
+  if (!expectedClientId) {
+    return NextResponse.json(
+      { ok: false, reason: "Google auth not configured" },
+      { status: 503 },
+    );
+  }
+  if (tokenPayload.aud !== expectedClientId) {
     console.error("[blockid:auth] Google token audience mismatch", {
       expected: expectedClientId,
       got: tokenPayload.aud,

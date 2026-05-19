@@ -1,8 +1,17 @@
 import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
 
 export async function POST(request: Request) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json(
+      { ok: false, reason: "Authentication required" },
+      { status: 401 },
+    );
+  }
+
   if (!isAIConfigured()) {
     return NextResponse.json({ ok: false, error: "AI service not configured" }, { status: 503 });
   }

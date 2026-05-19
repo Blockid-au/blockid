@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json(
+      { ok: false, reason: "Authentication required" },
+      { status: 401 },
+    );
+  }
+
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return NextResponse.json({ ok: false, error: "Supabase not configured" }, { status: 503 });
@@ -19,6 +28,14 @@ export async function POST(request: Request) {
 
     if (!email || !email.includes("@")) {
       return NextResponse.json({ ok: false, error: "Invalid email" }, { status: 400 });
+    }
+
+    // Verify the requesting user owns this email to prevent enumeration
+    if (email.trim().toLowerCase() !== user.email.trim().toLowerCase()) {
+      return NextResponse.json(
+        { ok: false, error: "Email does not match authenticated user" },
+        { status: 403 },
+      );
     }
 
     // Upsert account

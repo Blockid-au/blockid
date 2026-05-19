@@ -3,7 +3,7 @@
 // 12 chars * 57 alphabet ≈ 70 bits of entropy, enough for non-guessable but
 // short enough to fit in an email subject line.
 
-import { customAlphabet } from "nanoid/non-secure";
+import { customAlphabet } from "nanoid";
 
 // base58 minus look-alikes (0/O, 1/I/l).
 const ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";

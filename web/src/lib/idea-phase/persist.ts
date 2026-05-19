@@ -10,7 +10,7 @@
 // userId.
 
 import "server-only";
-import { customAlphabet } from "nanoid/non-secure";
+import { customAlphabet } from "nanoid";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import {
   computeIdeaValuation,

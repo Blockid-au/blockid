@@ -70,7 +70,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ ok: true, processed, date: today });
   } catch (err) {
-    console.error("svi-snapshot cron error:", err);
-    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
+    console.error("[blockid:svi-snapshot] snapshot cron failed", err);
+    return NextResponse.json({ ok: false, error: "Internal server error" }, { status: 500 });
   }
 }

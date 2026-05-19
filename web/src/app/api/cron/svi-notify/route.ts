@@ -102,7 +102,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ ok: true, notified, emailed });
   } catch (err) {
-    console.error("svi-notify cron error:", err);
-    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
+    console.error("[blockid:svi-notify] notify cron failed", err);
+    return NextResponse.json({ ok: false, error: "Internal server error" }, { status: 500 });
   }
 }

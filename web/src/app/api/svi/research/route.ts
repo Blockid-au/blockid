@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
 
 export const dynamic = "force-dynamic";
@@ -45,6 +46,14 @@ Scoring guide:
 - growthScore 80-100: 20%+ YoY, strong investor interest. 50-79: Steady. 0-49: Mature/declining.`;
 
 export async function POST(request: Request) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json(
+      { ok: false, reason: "Authentication required" },
+      { status: 401 },
+    );
+  }
+
   if (!isAIConfigured()) {
     return NextResponse.json({ ok: false, error: "AI service not configured" }, { status: 503 });
   }
@@ -129,7 +138,6 @@ Name actual companies with real URLs. Return ONLY the JSON object.`;
 
   } catch (err) {
     console.error("[blockid:research]", err);
-    const message = err instanceof Error ? err.message : "Research failed";
-    return NextResponse.json({ ok: false, error: `Research failed: ${message}` }, { status: 500 });
+    return NextResponse.json({ ok: false, error: "Research failed" }, { status: 500 });
   }
 }

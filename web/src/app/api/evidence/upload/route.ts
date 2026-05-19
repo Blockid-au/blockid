@@ -26,6 +26,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
+    const ALLOWED_TYPES = new Set([
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // docx
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // xlsx
+      "application/vnd.ms-excel", // xls
+      "image/png",
+      "image/jpeg",
+      "image/webp",
+      "text/csv",
+    ]);
+
+    if (!ALLOWED_TYPES.has(file.type)) {
+      return NextResponse.json(
+        { ok: false, reason: "File type not allowed. Accepted: PDF, DOCX, XLSX, PNG, JPG, CSV" },
+        { status: 400 },
+      );
+    }
+
     // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       return NextResponse.json({ error: "File too large (max 10MB)" }, { status: 400 });
@@ -90,9 +108,9 @@ export async function POST(req: NextRequest) {
       evidenceId,
     });
   } catch (err) {
-    console.error("[blockid:evidence:upload]", err);
+    console.error("[blockid:evidence:upload] upload failed", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Upload failed" },
+      { error: "Internal server error" },
       { status: 500 },
     );
   }

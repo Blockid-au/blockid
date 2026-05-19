@@ -11,6 +11,7 @@
  * SDK throws — the founder funnel must not block on transient API issues.
  */
 import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
 import { z } from "zod";
 import { analyzeTermSheet } from "@/lib/term-sheet/analyze";
 
@@ -40,6 +41,14 @@ const BodySchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json(
+      { ok: false, reason: "Authentication required" },
+      { status: 401 },
+    );
+  }
+
   let raw: unknown;
   try {
     raw = await request.json();

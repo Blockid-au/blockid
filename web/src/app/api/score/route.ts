@@ -50,6 +50,35 @@ export async function POST(request: Request) {
     );
   }
 
+  // Validate required fields exist
+  if (!parsed.inputs.sector || !parsed.inputs.companyName) {
+    return NextResponse.json(
+      { ok: false, reason: "Required fields missing in inputs" },
+      { status: 400 },
+    );
+  }
+
+  // Reject negative numbers for numeric fields
+  const numericFields: (keyof ScoreInput)[] = [
+    "monthlyRevenue",
+    "monthlyBurn",
+    "runwayMonths",
+    "yearsTrading",
+    "founders",
+    "esopAllocated",
+    "targetRaiseAud",
+    "valuationCapAud",
+  ];
+  for (const field of numericFields) {
+    const val = parsed.inputs[field];
+    if (val !== undefined && typeof val === "number" && val < 0) {
+      return NextResponse.json(
+        { ok: false, reason: `${field} must not be negative` },
+        { status: 400 },
+      );
+    }
+  }
+
   const inputs = parsed.inputs as ScoreInput;
   const breakdown = computeScore(inputs);
 

@@ -90,13 +90,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, reason: "Coupon has expired" });
   }
 
-  if (coupon.max_uses !== null && coupon.current_uses >= coupon.max_uses) {
-    return NextResponse.json({
-      ok: false,
-      reason: "Coupon has reached its usage limit",
-    });
-  }
-
   // Check if user already redeemed this coupon.
   const { data: existing } = await supabase
     .from("coupon_redemptions")
@@ -109,6 +102,22 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: false,
       reason: "You have already redeemed this coupon",
+    });
+  }
+
+  // Atomic increment — only succeeds if coupon is still under max_uses
+  const { data: updatedCoupon, error: incErr } = await supabase
+    .from("coupons")
+    .update({ current_uses: (coupon.current_uses ?? 0) + 1 })
+    .eq("code", normalisedCode)
+    .or(`max_uses.is.null,current_uses.lt.${coupon.max_uses ?? 999999}`)
+    .select("current_uses")
+    .maybeSingle();
+
+  if (incErr || !updatedCoupon) {
+    return NextResponse.json({
+      ok: false,
+      reason: "Coupon has reached its usage limit",
     });
   }
 
@@ -135,12 +144,6 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
-
-  // Bump current_uses on the coupon.
-  await supabase
-    .from("coupons")
-    .update({ current_uses: (coupon.current_uses ?? 0) + 1 })
-    .eq("code", normalisedCode);
 
   // Update user plan.
   const { error: updateErr } = await supabase

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
 
 // Simple keyword-based idea value estimator
 // Returns AUD range based on text signals
@@ -65,6 +66,14 @@ function estimateFromText(text: string): {
 }
 
 export async function POST(request: Request) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json(
+      { ok: false, reason: "Authentication required" },
+      { status: 401 },
+    );
+  }
+
   try {
     const { text, email } = await request.json() as { text?: string; email?: string };
 
