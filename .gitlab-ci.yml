@@ -69,6 +69,9 @@ build:production:
   tags:
     - deploy
   script:
+    # Clean up legacy container name (pre-multi-env) and current name
+    - docker stop deploy-${PROJECT_NAME} 2>/dev/null || true
+    - docker rm deploy-${PROJECT_NAME} 2>/dev/null || true
     - docker stop deploy-${PROJECT_NAME}-${CI_ENV_SLUG} 2>/dev/null || true
     - docker rm deploy-${PROJECT_NAME}-${CI_ENV_SLUG} 2>/dev/null || true
     - docker run -d
@@ -109,10 +112,10 @@ deploy:dev:
     CI_ENV_TAG: dev
     DEPLOY_PORT: "4003"
     NODE_ENV: development
-    DEPLOY_URL: https://dev.blockid.git.longcare.au
+    DEPLOY_URL: https://dev.blockid.au
   environment:
     name: dev
-    url: https://dev.blockid.git.longcare.au
+    url: https://dev.blockid.au
   only:
     - dev
 
@@ -124,10 +127,10 @@ deploy:staging:
     CI_ENV_TAG: staging
     DEPLOY_PORT: "4002"
     NODE_ENV: production
-    DEPLOY_URL: https://staging.blockid.git.longcare.au
+    DEPLOY_URL: https://staging.blockid.au
   environment:
     name: staging
-    url: https://staging.blockid.git.longcare.au
+    url: https://staging.blockid.au
   only:
     - staging
 
