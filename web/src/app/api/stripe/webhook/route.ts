@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { getPlan } from "@/lib/plans";
+import { sendPaymentConfirmation } from "@/lib/email";
 
 // POST /api/stripe/webhook
 // Stripe sends webhook events here. Verifies the signature, then processes
@@ -89,6 +91,46 @@ export async function POST(request: Request) {
       console.log(
         `[blockid:stripe] activated plan "${planId}" for user ${userId}`,
       );
+
+      // Find or create svi_accounts row for this user's email.
+      const email = session.customer_email ?? session.metadata?.blockid_email;
+      if (email) {
+        const { data: existingAccount } = await supabase
+          .from("svi_accounts")
+          .select("id")
+          .eq("email", email)
+          .maybeSingle();
+
+        if (existingAccount) {
+          await supabase
+            .from("svi_accounts")
+            .update({ plan: planId })
+            .eq("id", existingAccount.id);
+        } else {
+          const { error: sviErr } = await supabase
+            .from("svi_accounts")
+            .insert({
+              email,
+              plan: planId,
+              last_active_at: new Date().toISOString(),
+            });
+          if (sviErr) {
+            console.error("[blockid:stripe] svi_accounts upsert failed", {
+              error: sviErr,
+              email,
+              planId,
+            });
+          }
+        }
+
+        // Send payment confirmation email (best-effort).
+        const planDef = getPlan(planId);
+        const planName = planDef?.name ?? planId;
+        sendPaymentConfirmation({ to: email, planName }).catch((err) => {
+          console.error("[blockid:stripe] payment confirmation email failed", err);
+        });
+      }
+
       break;
     }
 

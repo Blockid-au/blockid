@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import {
   ArrowRight,
   BarChart3,
+  CheckCircle,
   Eye,
   FileText,
   Lightbulb,
@@ -20,6 +21,7 @@ import {
   type DashboardSummary,
 } from "@/lib/idea-phase/persist";
 import { formatAud } from "@/lib/utils";
+import { getPlan } from "@/lib/plans";
 
 // /dashboard — authed view of a founder's saved idea-phase artifacts.
 // Lists Founder Packs, idea evaluations, equity splits and funding plans,
@@ -35,7 +37,7 @@ export const metadata: Metadata = {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ welcome?: string }>;
+  searchParams: Promise<{ welcome?: string; checkout?: string; plan?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) {
@@ -51,6 +53,9 @@ export default async function DashboardPage({
       <Navbar />
       <main className="min-h-screen bg-surface-100 pt-28 pb-24 text-ink-800">
         <div className="mx-auto max-w-6xl px-6">
+          {sp.checkout === "success" && (
+            <CheckoutSuccessBanner plan={sp.plan} />
+          )}
           {sp.welcome === "1" && <WelcomeBanner />}
 
           <Header email={user.email} />
@@ -70,6 +75,24 @@ export default async function DashboardPage({
       </main>
       <Footer />
     </>
+  );
+}
+
+function CheckoutSuccessBanner({ plan }: { plan?: string }) {
+  const planDef = plan ? getPlan(plan) : undefined;
+  const planName = planDef?.name ?? plan ?? "your";
+  return (
+    <div className="mb-8 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+      <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+      <div>
+        <p className="font-semibold text-emerald-700">
+          Your {planName} plan is now active!
+        </p>
+        <p className="mt-1 text-sm text-ink-600">
+          Payment confirmed. All plan features are unlocked and ready to use.
+        </p>
+      </div>
+    </div>
   );
 }
 

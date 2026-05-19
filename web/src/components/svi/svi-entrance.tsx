@@ -159,7 +159,7 @@ export function SVIEntrance() {
         <header className="px-6 py-5 flex items-center justify-between max-w-2xl mx-auto w-full">
           <Link href="/" className="inline-flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/images/logo-official.png" alt="BlockID.au" className="h-11 md:h-12 w-auto" />
+            <img src="/images/logo-official.png" alt="BlockID.au" className="h-16 w-auto" />
           </Link>
           <button type="button" onClick={handleReset} className="text-xs text-ink-600 hover:text-ink-800 cursor-pointer transition-colors flex items-center gap-1.5">
             <X strokeWidth={1.75} className="h-3.5 w-3.5" /> New analysis
@@ -206,14 +206,13 @@ export function SVIEntrance() {
                 </Link>
               </div>
             </div>
-            {/* Right: banner — cropped to show only platform UI screenshots */}
-            <div className="relative rounded-2xl border border-surface-200 shadow-xl overflow-hidden">
+            {/* Right: platform overview banner */}
+            <div className="relative rounded-2xl border border-surface-200 shadow-xl overflow-hidden bg-white">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="https://upload.blockid.au/blockID_banner_white.png"
-                alt="BlockID.au — Cap Table, Valuation, AI Workspace"
-                className="w-[200%] max-w-none h-auto -ml-[50%]"
-                style={{ clipPath: "inset(0 0 0 50%)" }}
+                src="/images/blockid-hero-banner.png"
+                alt="BlockID.au — Turn your idea into a valuable, investable business. Cap Table, Valuation, AI Workspace."
+                className="w-full h-auto"
                 loading="eager"
                 fetchPriority="high"
               />
@@ -240,7 +239,7 @@ export function SVIEntrance() {
         <div className="mx-auto max-w-[620px] px-6 flex flex-col items-center">
           <div className="flex flex-col items-center mb-8">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/images/logo-official.png" alt="BlockID.au" className="h-28 sm:h-32 md:h-36 w-auto mb-6" />
+            <img src="/images/logo-official.png" alt="BlockID.au" className="h-32 sm:h-36 md:h-[152px] w-auto mb-6" />
             <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-center text-ink-800">
               Get Your <span className="text-brand-600">Startup Value Index</span>
             </h2>
@@ -414,7 +413,7 @@ export function SVIEntrance() {
           <div className="flex flex-col md:flex-row items-center gap-8 mb-8">
             <div className="flex items-center gap-3 shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/images/logo-official.png" alt="BlockID.au" className="h-11 md:h-12 w-auto" />
+              <img src="/images/logo-official.png" alt="BlockID.au" className="h-16 w-auto" />
               <div>
                 <p className="text-lg font-bold">Your Idea Is Valuable.</p>
                 <p className="text-xs text-slate-400">How you build it determines its future value.</p>
@@ -464,7 +463,7 @@ function TopBar() {
       <div className="mx-auto max-w-7xl px-4 h-14 flex items-center justify-between">
         <Link href="/" className="inline-flex items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/logo-official.png" alt="BlockID.au" className="h-11 md:h-12 w-auto" />
+          <img src="/images/logo-official.png" alt="BlockID.au" className="h-16 w-auto" />
         </Link>
 
         <nav className="hidden md:flex items-center gap-1">
@@ -497,7 +496,7 @@ function TopBar() {
           <div className="flex items-center justify-between px-4 py-3 border-b border-surface-200">
             <Link href="/" className="inline-flex items-center" onClick={() => setMobileOpen(false)}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/images/logo-official.png" alt="BlockID.au" className="h-11 md:h-12 w-auto" />
+              <img src="/images/logo-official.png" alt="BlockID.au" className="h-16 w-auto" />
             </Link>
             <button type="button" onClick={() => setMobileOpen(false)} className="h-10 w-10 flex items-center justify-center rounded-lg text-ink-600 hover:bg-surface-100 cursor-pointer">
               <X strokeWidth={1.75} className="h-5 w-5" />

@@ -163,7 +163,7 @@ export function Hero() {
             <div className="rounded-2xl border border-surface-200 bg-white shadow-lg overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="https://upload.blockid.au/blockID_banner_white.png"
+                src="/images/blockid-hero-banner.png"
                 alt="BlockID.au platform overview"
                 width={1560}
                 height={880}
@@ -179,7 +179,7 @@ export function Hero() {
             <div className="rounded-2xl border border-surface-200 bg-white shadow-lg overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="https://upload.blockid.au/blockID_banner_white.png"
+                src="/images/blockid-hero-banner.png"
                 alt="BlockID.au platform overview"
                 width={1560}
                 height={880}

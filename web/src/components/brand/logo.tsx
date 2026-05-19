@@ -11,11 +11,10 @@ export function Logo({
   size?: "default" | "large" | "hero";
 }) {
   // Official logo is 1672×941 (≈1.78:1 ratio)
-  // Sizes tuned so the text inside the logo is legible
   const heightClass =
-    size === "hero" ? "h-20 md:h-24"
-    : size === "large" ? "h-14 md:h-16"
-    : "h-11 md:h-12";
+    size === "hero" ? "h-[152px]"       // h-38 equivalent
+    : size === "large" ? "h-[88px]"     // h-22 equivalent
+    : "h-16";                           // h-16 = 64px
 
   return (
     <Link

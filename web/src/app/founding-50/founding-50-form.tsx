@@ -76,12 +76,18 @@ export function Founding50Form() {
           },
         }),
       });
-      const data = await res.json() as { ok: boolean };
+      const data = await res.json() as { ok: boolean; checkoutUrl?: string };
       if (!data.ok) {
         setError("Something went wrong. Please try again.");
         setState("error");
         return;
       }
+      // If the API returned a Stripe checkout URL, redirect immediately.
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+      // Fallback: Stripe not configured — show confirmation message.
       setState("done");
     } catch {
       setError("Network error. Please try again.");

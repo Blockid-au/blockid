@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     mode: isRecurring ? "subscription" : "payment",
     customer_email: user.email,
     line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${siteUrl}/dashboard?checkout=success&plan=${planId}`,
+    success_url: `${siteUrl}/checkout/success?plan=${planId}`,
     cancel_url: `${siteUrl}/#pricing`,
     metadata: {
       blockid_user_id: user.id,
