@@ -119,35 +119,23 @@ function readCliOAuthToken(): string | null {
 function readCodexOAuthToken(): string | null {
   try {
     const home = process.env.HOME ?? "/root";
-    // Codex CLI stores auth in ~/.codex/ — check common locations
-    const possiblePaths = [
-      path.join(home, ".codex", "auth.json"),
-      path.join(home, ".codex", "credentials.json"),
-      path.join(home, ".codex", ".credentials.json"),
-    ];
+    const authPath = path.join(home, ".codex", "auth.json");
 
-    for (const credPath of possiblePaths) {
-      if (!fs.existsSync(credPath)) continue;
-      const raw = fs.readFileSync(credPath, "utf-8");
-      const creds = JSON.parse(raw);
-      // Try different token field names
-      const token = creds.access_token ?? creds.accessToken ?? creds.api_key ?? creds.token;
-      if (token) {
-        // Check expiry if present
-        const exp = creds.expires_at ?? creds.expiresAt;
-        if (exp && Date.now() > (typeof exp === "number" && exp < 1e12 ? exp * 1000 : exp) - 5 * 60 * 1000) {
-          continue; // expired
-        }
-        return token;
-      }
+    if (!fs.existsSync(authPath)) {
+      return process.env.CODEX_ACCESS_TOKEN ?? null;
     }
 
-    // Also check CODEX_ACCESS_TOKEN env var
-    if (process.env.CODEX_ACCESS_TOKEN) return process.env.CODEX_ACCESS_TOKEN;
+    const raw = fs.readFileSync(authPath, "utf-8");
+    const creds = JSON.parse(raw);
 
-    return null;
+    // Codex stores tokens at: { tokens: { access_token, refresh_token, id_token } }
+    const tokens = creds.tokens ?? {};
+    const token = tokens.access_token ?? creds.access_token ?? creds.OPENAI_API_KEY;
+    if (!token) return process.env.CODEX_ACCESS_TOKEN ?? null;
+
+    return token;
   } catch {
-    return null;
+    return process.env.CODEX_ACCESS_TOKEN ?? null;
   }
 }
 
@@ -225,7 +213,7 @@ async function callClaude(apiKey: string, opts: AICallOptions): Promise<AICallRe
   return { text, provider: "claude", model };
 }
 
-// ── OpenAI call ────────────────────────────────────────────────────────
+// ── OpenAI call (API key) ──────────────────────────────────────────────
 
 async function callOpenAI(apiKey: string, opts: AICallOptions): Promise<AICallResult> {
   const OpenAI = (await import("openai")).default;
@@ -244,6 +232,29 @@ async function callOpenAI(apiKey: string, opts: AICallOptions): Promise<AICallRe
 
   const text = response.choices[0]?.message?.content ?? "";
   return { text, provider: "openai", model };
+}
+
+// ── OpenAI Codex CLI call (uses codex exec subprocess) ─────────────────
+
+async function callCodex(opts: AICallOptions): Promise<AICallResult> {
+  const { execSync } = await import("child_process");
+
+  const prompt = `${opts.system}\n\n---\n\n${opts.user}`;
+  const tmpPrompt = `/tmp/codex-prompt-${Date.now()}.txt`;
+  const tmpOut = `/tmp/codex-out-${Date.now()}.txt`;
+  fs.writeFileSync(tmpPrompt, prompt);
+
+  try {
+    execSync(
+      `cat "${tmpPrompt}" | codex exec -o "${tmpOut}"`,
+      { timeout: 90_000, maxBuffer: 2 * 1024 * 1024, encoding: "utf-8", shell: "/bin/bash" }
+    );
+    const text = fs.readFileSync(tmpOut, "utf-8").trim();
+    return { text, provider: "openai", model: "codex-chatgpt" };
+  } finally {
+    try { fs.unlinkSync(tmpPrompt); } catch { /* ignore */ }
+    try { fs.unlinkSync(tmpOut); } catch { /* ignore */ }
+  }
 }
 
 // ── Gemini call ────────────────────────────────────────────────────────
@@ -273,7 +284,7 @@ async function callProvider(provider: Provider, opts: AICallOptions): Promise<AI
     case "claude-apikey":
       return callClaude(process.env.ANTHROPIC_API_KEY!, opts);
     case "openai-codex":
-      return callOpenAI(readCodexOAuthToken()!, noTools);
+      return callCodex(noTools);
     case "openai-apikey":
       return callOpenAI(process.env.OPENAI_API_KEY!, noTools);
     case "gemini":
