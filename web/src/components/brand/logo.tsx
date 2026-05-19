@@ -2,17 +2,15 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 /**
- * Logo component with multiple variants for different contexts:
+ * BlockID Logo — icon + text rendered as HTML for pixel-perfect sizing.
  *
- *   variant="light"  → dark text logo on light backgrounds (navbar, workspace, pages)
- *   variant="dark"   → icon + white text on dark backgrounds (footer)
- *   variant="icon"   → icon-only, no text (compact spaces, mobile)
+ *   variant="light"  → navy text on light backgrounds (navbar, workspace)
+ *   variant="dark"   → white text on dark backgrounds (footer)
+ *   variant="icon"   → icon-only, no text
  *
- *   size="default"   → 48px height (navbar, sidebar)
- *   size="large"     → 88px height (page headers)
- *   size="hero"      → 152px height (homepage center)
- *
- * All images use transparent PNGs — no white background artifacts.
+ *   size="default"   → navbar / sidebar (icon 28px + text-lg)
+ *   size="large"     → page headers (icon 36px + text-2xl)
+ *   size="hero"      → homepage center (icon 56px + text-4xl)
  */
 export function Logo({
   className,
@@ -23,87 +21,68 @@ export function Logo({
   variant?: "dark" | "light" | "icon";
   size?: "default" | "large" | "hero";
 }) {
-  if (variant === "icon") {
-    const iconSize =
-      size === "hero" ? "h-20 w-20"
-      : size === "large" ? "h-12 w-12"
-      : "h-9 w-9";
+  const isLight = variant === "light";
+  const isDark = variant === "dark";
+  const isIcon = variant === "icon";
 
-    return (
-      <Link
-        href="/"
-        aria-label="BlockID home"
-        className={cn(
-          "inline-flex items-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg",
-          className,
-        )}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/images/logo-icon-transparent.png"
-          alt="BlockID.au"
-          className={iconSize}
-        />
-      </Link>
-    );
-  }
+  // Icon sizes
+  const iconClass =
+    size === "hero"  ? "h-14 w-14"
+    : size === "large" ? "h-9 w-9"
+    : "h-7 w-7";
 
-  // Full logo (icon + text + tagline)
-  const heightClass =
-    size === "hero" ? "h-[152px]"
-    : size === "large" ? "h-[88px]"
-    : "h-12 md:h-14";
+  // Text sizes
+  const textClass =
+    size === "hero"  ? "text-4xl md:text-5xl"
+    : size === "large" ? "text-2xl"
+    : "text-lg";
 
-  // Light variant: dark navy text — for light backgrounds
-  // Dark variant: icon + white text rendered as HTML — for dark backgrounds
-  if (variant === "dark") {
-    const iconH =
-      size === "hero" ? "h-14 w-14"
-      : size === "large" ? "h-10 w-10"
-      : "h-8 w-8";
-    const textSize =
-      size === "hero" ? "text-3xl"
-      : size === "large" ? "text-xl"
-      : "text-lg";
+  // Tagline (only on hero)
+  const showTagline = size === "hero";
+  const taglineClass = "text-sm md:text-base font-medium tracking-wide";
 
-    return (
-      <Link
-        href="/"
-        aria-label="BlockID home"
-        className={cn(
-          "inline-flex items-center gap-3 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg",
-          className,
-        )}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/images/logo-icon-transparent.png"
-          alt=""
-          className={iconH}
-        />
-        <span className={cn("font-bold tracking-tight text-white", textSize)}>
-          BlockID<span className="text-brand-400">.au</span>
-        </span>
-      </Link>
-    );
-  }
+  // Gap between icon and text
+  const gapClass =
+    size === "hero"  ? "gap-4"
+    : size === "large" ? "gap-3"
+    : "gap-2.5";
 
-  // Light variant: use the full transparent logo image
+  // Colors
+  const textColor = isDark ? "text-white" : "text-ink-900";
+  const dotColor = isDark ? "text-brand-300" : "text-brand-500";
+  const tagColor = isDark ? "text-slate-400" : "text-ink-500";
+
   return (
     <Link
       href="/"
       aria-label="BlockID home"
       className={cn(
         "inline-flex items-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg",
+        gapClass,
         className,
       )}
     >
+      {/* Icon */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/images/logo-transparent.png"
-        alt="BlockID.au — Valuation. Ownership. Growth."
-        className={cn("w-auto", heightClass)}
+        src="/images/logo-icon-transparent.png"
+        alt=""
+        className={cn(iconClass, "shrink-0")}
       />
+
+      {/* Text (hidden for icon-only variant) */}
+      {!isIcon && (
+        <div className="flex flex-col">
+          <span className={cn("font-extrabold tracking-tight leading-none", textClass, textColor)}>
+            BlockID<span className={dotColor}>.au</span>
+          </span>
+          {showTagline && (
+            <span className={cn(taglineClass, tagColor, "mt-1")}>
+              Valuation. Ownership. Growth.
+            </span>
+          )}
+        </div>
+      )}
     </Link>
   );
 }
