@@ -7,12 +7,14 @@ import {
   ChevronDown,
   ChevronUp,
   Copy,
+  LayoutDashboard,
   TrendingUp,
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
+import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
 
 const EVIDENCE_LEVEL_LABELS: Record<string, string> = {
   self_declared: "Self-declared (20%)",
@@ -23,19 +25,24 @@ const EVIDENCE_LEVEL_LABELS: Record<string, string> = {
   third_party_verified: "Third-party verified (100%)",
 };
 
-function SVIGauge({ value }: { value: number }) {
+function SVIGauge({ value, stage, stageLabel }: { value: number; stage?: number; stageLabel?: string }) {
   const label =
-    value >= 140 ? "Strong"
+    value >= 200 ? "Elite"
+    : value >= 170 ? "Exceptional"
+    : value >= 140 ? "Strong"
     : value >= 120 ? "Above Average"
     : value >= 100 ? "Average"
     : value >= 80 ? "Below Average"
-    : "Early Stage";
+    : value >= 60 ? "Early Stage"
+    : "Critical";
 
   const color =
     value >= 140 ? "text-green-400"
     : value >= 120 ? "text-brand-400"
     : value >= 100 ? "text-amber-400"
     : "text-red-400";
+
+  const resolvedStageLabel = stageLabel ?? (stage !== undefined ? SVI_STAGE_LABELS[stage] : undefined);
 
   return (
     <div className="flex flex-col items-center gap-2">
@@ -51,6 +58,11 @@ function SVIGauge({ value }: { value: number }) {
         <span className="text-slate-600">→</span>
         <span className={cn("text-sm font-semibold", color)}>{label}</span>
       </div>
+      {resolvedStageLabel && (
+        <span className="mt-1 rounded-full border border-brand-600/40 bg-brand-900/30 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.15em] text-brand-300">
+          Stage {stage ?? "?"} — {resolvedStageLabel}
+        </span>
+      )}
     </div>
   );
 }
@@ -167,7 +179,7 @@ export function SVIResultsPanel({
         <p className="text-xs uppercase tracking-[0.2em] text-brand-400 font-medium mb-6">
           Startup Value Index
         </p>
-        <SVIGauge value={analysis.totalSVI} />
+        <SVIGauge value={analysis.totalSVI} stage={analysis.stage} stageLabel={analysis.stageLabel} />
         <p className="mt-6 text-sm text-slate-400 max-w-xs mx-auto leading-relaxed">
           {analysis.summary}
         </p>
@@ -311,6 +323,12 @@ export function SVIResultsPanel({
               <a href="/founding-50">
                 <Button variant="primary" size="sm" className="h-9 text-sm">
                   Claim Founding 50 — AUD $49
+                </Button>
+              </a>
+              <a href="/dashboard/svi">
+                <Button variant="secondary" size="sm" className="h-9 text-sm gap-1.5">
+                  <LayoutDashboard strokeWidth={1.75} className="h-3.5 w-3.5" />
+                  View Full Dashboard
                 </Button>
               </a>
               <Button variant="secondary" size="sm" className="h-9 text-sm" onClick={onReset}>

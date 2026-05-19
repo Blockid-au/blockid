@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/svi-snapshot",
+      "schedule": "0 14 * * 0"
+    },
+    {
+      "path": "/api/cron/svi-notify",
+      "schedule": "0 22 * * *"
+    }
+  ]
+}
