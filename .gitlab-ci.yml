@@ -54,17 +54,20 @@ deploy:
         -e IP_HASH_SALT=${IP_HASH_SALT}
         -e "RESEND_FROM_EMAIL=BlockID <noreply@blockid.au>"
         gitlab-deploy/${PROJECT_NAME}:latest
-    - sleep 5
+    - echo "Waiting for container to be healthy..."
     - |
-      if docker ps | grep -q deploy-${PROJECT_NAME}; then
-        echo "Container deploy-${PROJECT_NAME} is running!"
-        echo "Accessible at https://blockid.git.longcare.au"
-        docker logs deploy-${PROJECT_NAME} --tail 10
-      else
-        echo "ERROR: Container failed to start"
-        docker logs deploy-${PROJECT_NAME} 2>&1
-        exit 1
-      fi
+      for i in $(seq 1 30); do
+        STATUS=$(docker inspect --format="{{.State.Health.Status}}" deploy-${PROJECT_NAME} 2>/dev/null || echo "starting")
+        if [ "$STATUS" = "healthy" ]; then
+          echo "Container is healthy!"
+          break
+        fi
+        echo "  [$i/30] Status: $STATUS"
+        sleep 2
+      done
+    - docker ps | grep deploy-${PROJECT_NAME}
+    - echo "Deployed to https://blockid.git.longcare.au"
+    - curl -sf http://127.0.0.1:${DEPLOY_PORT}/ -o /dev/null && echo "Health check passed!" || echo "Warning - health check pending"
   environment:
     name: production
     url: https://blockid.git.longcare.au
