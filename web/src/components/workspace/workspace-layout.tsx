@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BarChart3, Bell, ChevronLeft, ChevronRight, FileText, Home,
+  BarChart3, Bell, ChevronLeft, ChevronRight, CreditCard, FileText, Home,
   LayoutDashboard, Map, Shield, TrendingUp, User
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
@@ -28,6 +28,7 @@ const NAV_ITEMS = [
   { href: "/workspace/reports", label: "Weekly Reports", icon: BarChart3 },
   { href: "/workspace/roadmap", label: "Roadmap", icon: Map },
   { href: "/workspace/profile", label: "My Profile", icon: User },
+  { href: "/workspace/billing", label: "Billing", icon: CreditCard },
 ];
 
 const ADMIN_NAV = { href: "/admin", label: "Admin Panel", icon: Shield };
