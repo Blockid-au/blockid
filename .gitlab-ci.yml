@@ -139,11 +139,11 @@ deploy:production:
     CI_ENV_TAG: latest
     DEPLOY_PORT: "4001"
     NODE_ENV: production
-    DEPLOY_URL: https://blockid.git.longcare.au
+    DEPLOY_URL: https://blockid.au
     RESEND_FROM_EMAIL: "BlockID <noreply@blockid.au>"
   environment:
     name: production
-    url: https://blockid.git.longcare.au
+    url: https://blockid.au
   when: manual
   only:
     - master
