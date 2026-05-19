@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { ArrowRight, CheckCircle2, Calculator } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -227,6 +228,17 @@ export function DilutionCalculator() {
           </span>
         </p>
       </section>
+
+      {/* Save to Workspace CTA */}
+      <div className="lg:col-span-2 mt-6 rounded-2xl border border-brand-200 bg-brand-50 p-4 flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-ink-800">Save this analysis to your workspace</p>
+          <p className="text-xs text-ink-500 mt-0.5">Access it anytime from your dashboard</p>
+        </div>
+        <Link href="/auth/login" className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 transition-colors">
+          Save to Workspace <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
+      </div>
 
       <form
         onSubmit={onSubmit}

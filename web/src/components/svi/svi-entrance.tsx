@@ -496,7 +496,7 @@ export function SVIEntrance() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left: copy */}
             <div>
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-[-0.02em] leading-[1.05] text-ink-900">
+              <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-[-0.02em] leading-[1.05] text-ink-900">
                 The <span className="bg-gradient-to-r from-brand-600 to-brand-500 bg-clip-text text-transparent">agentic AI valuation</span> platform for business growth from day one.
               </h1>
               <p className="mt-5 text-lg md:text-xl font-medium text-brand-600/80">
@@ -508,11 +508,11 @@ export function SVIEntrance() {
                 contributor alignment, capitalization, and investor-ready records as the
                 business grows.
               </p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <a href="#svi" className="inline-flex h-14 items-center gap-2 rounded-2xl bg-brand-600 px-8 text-base font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
+              <div className="mt-8 flex flex-col sm:flex-row flex-wrap gap-3">
+                <a href="#svi" className="inline-flex h-12 sm:h-14 items-center justify-center gap-2 rounded-2xl bg-brand-600 px-6 sm:px-8 text-sm sm:text-base font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
                   Start Your Journey <ArrowRight strokeWidth={2} className="h-4 w-4" />
                 </a>
-                <Link href="/tools/idea-valuation" className="inline-flex h-14 items-center gap-2 rounded-2xl border border-surface-300 bg-white px-8 text-base font-semibold text-ink-700 hover:bg-surface-100 transition-colors">
+                <Link href="/tools/idea-valuation" className="inline-flex h-12 sm:h-14 items-center justify-center gap-2 rounded-2xl border border-surface-300 bg-white px-6 sm:px-8 text-sm sm:text-base font-semibold text-ink-700 hover:bg-surface-100 transition-colors">
                   Explore Platform <Rocket strokeWidth={1.75} className="h-4 w-4" />
                 </Link>
               </div>
@@ -547,13 +547,13 @@ export function SVIEntrance() {
 
       {/* ── SVI SEARCH SECTION ────────────────────────────────────────────── */}
       <section id="svi" className="gradient-section py-20 md:py-28">
-        <div className="mx-auto max-w-[620px] px-6 flex flex-col items-center">
+        <div className="mx-auto w-full max-w-[620px] px-4 sm:px-6 flex flex-col items-center">
           <div className="flex flex-col items-center mb-8">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <div className="flex items-center gap-4 mb-6 animate-fade-in">
               <img src="/images/logo-icon-transparent.png" alt="" className="h-14 w-14 md:h-16 md:w-16" />
               <div className="flex flex-col">
-                <span className="text-4xl md:text-5xl font-extrabold tracking-tight text-ink-900">BlockID<span className="text-brand-500">.au</span></span>
+                <span className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-ink-900">BlockID<span className="text-brand-500">.au</span></span>
                 <span className="text-sm md:text-base font-medium tracking-wide text-ink-500 mt-0.5">Valuation. Ownership. Execution. Growth.</span>
               </div>
             </div>
@@ -641,10 +641,10 @@ export function SVIEntrance() {
             <p className="mt-3 text-center text-xs text-ink-600">Free · No credit card · Drag &amp; drop a PDF · Voice input</p>
           </form>
 
-          <div className="mt-6 flex flex-wrap justify-center gap-2">
+          <div className="mt-6 flex flex-wrap justify-center gap-2 px-2 sm:px-0">
             {QUICK_EXAMPLES.map((ex) => (
               <button key={ex} type="button" onClick={() => { setText(ex); textareaRef.current?.focus(); }}
-                className="rounded-full border border-surface-200 bg-white px-4 py-2 text-xs font-medium text-ink-500 hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50 cursor-pointer transition-colors">
+                className="rounded-full border border-surface-200 bg-white px-3 sm:px-4 py-2 text-[11px] sm:text-xs font-medium text-ink-500 hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50 cursor-pointer transition-colors">
                 {ex}
               </button>
             ))}
@@ -655,7 +655,7 @@ export function SVIEntrance() {
       {/* ── 5 VALUE PROPS ─────────────────────────────────────────────────── */}
       <section className="bg-white py-20 md:py-24">
         <div className="mx-auto max-w-6xl px-6">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
             {VALUE_PROPS.map(({ icon: Icon, title, desc }) => (
               <div key={title} className="rounded-2xl bg-surface-50 border border-surface-200/60 px-5 py-6 text-center card-hover">
                 <div className="mx-auto mb-3 h-12 w-12 rounded-2xl bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-600">
@@ -674,7 +674,7 @@ export function SVIEntrance() {
         <div className="mx-auto max-w-6xl px-6">
           <h2 className="text-center text-3xl md:text-4xl font-bold text-ink-900 mb-2">The Smart Founder&apos;s Roadmap</h2>
           <p className="text-center text-base text-ink-500 mb-10">10 steps from idea to investment — BlockID guides you at every stage.</p>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
             {ROADMAP_STEPS.map(({ num, icon: Icon, title, desc, href }) => (
               <Link key={num} href={href}
                 className="group rounded-2xl border border-surface-200/80 bg-white px-5 py-5 hover:border-brand-200 hover:shadow-lg transition-all duration-300">
@@ -698,8 +698,8 @@ export function SVIEntrance() {
 
           <div className="grid md:grid-cols-2 gap-6">
             {/* Card 1: Per-Analysis */}
-            <div className="rounded-2xl border border-surface-200 bg-white px-8 py-8 text-center shadow-sm flex flex-col relative overflow-hidden">
-              <div className="absolute top-4 right-4 rounded-full bg-emerald-600 px-3 py-1 text-[10px] font-bold text-white uppercase tracking-wider">Launch Price &middot; Limited Time</div>
+            <div className="rounded-2xl border border-surface-200 bg-white px-5 sm:px-8 py-8 text-center shadow-sm flex flex-col relative overflow-hidden">
+              <div className="absolute top-3 right-3 sm:top-4 sm:right-4 rounded-full bg-emerald-600 px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-wider">Launch Price</div>
               <p className="text-xs uppercase tracking-[0.15em] text-ink-500 font-medium mb-2">Per-Analysis</p>
               <h3 className="text-xl font-bold text-ink-800 mb-1">SVI Analysis Report</h3>
               <p className="text-3xl font-extrabold text-brand-600 mb-1">A$1 <span className="text-base text-ink-400 line-through font-normal ml-1">$25</span></p>
@@ -718,8 +718,8 @@ export function SVIEntrance() {
             </div>
 
             {/* Card 2: Founder Plan */}
-            <div className="rounded-2xl border-2 border-brand-400 bg-white px-8 py-8 text-center shadow-lg flex flex-col relative overflow-hidden">
-              <div className="absolute top-4 right-4 rounded-full bg-brand-600 px-3 py-1 text-[10px] font-bold text-white uppercase tracking-wider">Best Value</div>
+            <div className="rounded-2xl border-2 border-brand-400 bg-white px-5 sm:px-8 py-8 text-center shadow-lg flex flex-col relative overflow-hidden">
+              <div className="absolute top-3 right-3 sm:top-4 sm:right-4 rounded-full bg-brand-600 px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-wider">Best Value</div>
               <p className="text-xs uppercase tracking-[0.15em] text-brand-600 font-medium mb-2">Founder Plan</p>
               <h3 className="text-xl font-bold text-ink-800 mb-1">Founding 50 Account</h3>
               <p className="text-3xl font-extrabold text-brand-600 mb-1">A$49 <span className="text-base text-ink-400 line-through font-normal ml-1">$99</span></p>
@@ -754,7 +754,7 @@ export function SVIEntrance() {
                 <p className="text-xs text-slate-400">How you build it determines its future value.</p>
               </div>
             </div>
-            <div className="flex-1 grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
               {BOTTOM_BENEFITS.map(({ title, desc }) => (
                 <div key={title} className="flex items-start gap-2">
                   <CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-400 shrink-0 mt-0.5" />
@@ -932,7 +932,7 @@ function SVIPaywall({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ink-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto py-8">
-      <div className="relative mx-4 w-full max-w-lg rounded-3xl border border-surface-200 bg-white px-8 py-10 shadow-2xl">
+      <div className="relative mx-4 w-full max-w-lg rounded-3xl border border-surface-200 bg-white px-5 sm:px-8 py-8 sm:py-10 shadow-2xl">
         {/* Close button */}
         <button
           type="button"

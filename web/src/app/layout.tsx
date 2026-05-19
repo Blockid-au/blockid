@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, IBM_Plex_Mono } from "next/font/google";
 import { GoogleAnalytics, GTMNoScript } from "@/components/analytics/google-analytics";
+import { OrganizationJsonLd, SoftwareApplicationJsonLd } from "@/components/seo/json-ld";
 import "./globals.css";
 
 const inter = Inter({
@@ -92,6 +93,8 @@ export default function RootLayout({
         <GTMNoScript />
         {children}
         <GoogleAnalytics />
+        <OrganizationJsonLd />
+        <SoftwareApplicationJsonLd />
       </body>
     </html>
   );

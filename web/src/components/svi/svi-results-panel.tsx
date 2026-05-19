@@ -355,17 +355,17 @@ function DimensionBar({
         className="w-full text-left cursor-pointer"
         aria-expanded={open}
       >
-        <div className="flex items-center justify-between gap-3 mb-2">
-          <div className="flex items-center gap-2">
-            <span className="rounded bg-surface-100 px-1.5 py-0.5 text-[10px] font-bold text-ink-600 font-mono uppercase">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 mb-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="rounded bg-surface-100 px-1.5 py-0.5 text-[10px] font-bold text-ink-600 font-mono uppercase shrink-0">
               {keyName}
             </span>
-            <span className="text-sm font-medium text-ink-800">{label}</span>
+            <span className="text-sm font-medium text-ink-800 truncate">{label}</span>
             {weight && (
-              <span className="text-[10px] text-ink-600 font-mono">({weight})</span>
+              <span className="text-[10px] text-ink-600 font-mono shrink-0">({weight})</span>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <span className={cn("text-xs font-mono font-semibold", adjColor)}>
               {adjustment >= 0 ? "+" : ""}
               {adjustment}
@@ -374,9 +374,9 @@ function DimensionBar({
             <Link
               href={DIMENSION_ACTIONS[keyName]?.link ?? "/workspace/evidence"}
               onClick={(e) => e.stopPropagation()}
-              className="ml-2 shrink-0 inline-flex items-center gap-1 rounded-lg bg-brand-50 border border-brand-200 px-2.5 py-1 text-[11px] font-medium text-brand-600 hover:bg-brand-100 transition-colors"
+              className="ml-1 sm:ml-2 shrink-0 inline-flex items-center gap-1 rounded-lg bg-brand-50 border border-brand-200 px-2 sm:px-2.5 py-1 text-[10px] sm:text-[11px] font-medium text-brand-600 hover:bg-brand-100 transition-colors"
             >
-              <ArrowUpRight className="h-3 w-3" /> {DIMENSION_ACTIONS[keyName]?.label ?? "Improve"}
+              <ArrowUpRight className="h-3 w-3" /> <span className="hidden sm:inline">{DIMENSION_ACTIONS[keyName]?.label ?? "Improve"}</span><span className="sm:hidden">Fix</span>
             </Link>
             {open ? (
               <ChevronUp className="h-3.5 w-3.5 text-ink-600" strokeWidth={1.75} />
@@ -564,10 +564,10 @@ function SignupNudgeBanner() {
   if (isLoggedIn === null || isLoggedIn) return null;
 
   return (
-    <div className="rounded-2xl border border-brand-200 bg-brand-50 px-6 py-5">
+    <div className="rounded-2xl border border-brand-200 bg-brand-50 px-4 sm:px-6 py-5">
       <div className="flex items-start gap-3">
         <Lock strokeWidth={1.75} className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-ink-800">
             Save your SVI score and track your progress over time
           </p>
@@ -614,10 +614,10 @@ function EvidenceUploadPrompt() {
   if (isLoggedIn === null || isLoggedIn) return null;
 
   return (
-    <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-6 py-5 mt-6">
+    <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 sm:px-6 py-5 mt-6">
       <div className="flex items-start gap-3">
         <Upload strokeWidth={1.75} className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-ink-800">
             Boost your SVI by up to +20 points
           </p>
@@ -893,7 +893,7 @@ export function SVIResultsPanel({
               weighted adjustment to your base score of 100.
             </p>
 
-            <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
               <MetricCard label="Base Score" value={100} />
               <MetricCard
                 label="Net Adjustment"
@@ -940,7 +940,7 @@ export function SVIResultsPanel({
               </>
             )}
 
-            <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
               <SignalIndicator label="Customer Interviews" active={signals.hasCustomerInterviews} />
               <SignalIndicator label="Network Effect" active={signals.hasNetworkEffect} />
               <SignalIndicator label="Data Advantage" active={signals.hasDataAdvantage} />
@@ -949,7 +949,7 @@ export function SVIResultsPanel({
               <SignalIndicator label="AI Wrapper Risk" active={signals.isAIWrapper} />
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               <div className="rounded-xl border border-surface-200 bg-surface-50 px-4 py-3">
                 <p className="text-[10px] uppercase tracking-[0.15em] text-ink-600 font-medium mb-1">Market Size</p>
                 <p className="text-sm font-semibold text-ink-800 capitalize">
@@ -1070,7 +1070,7 @@ export function SVIResultsPanel({
               </>
             )}
 
-            <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               <div className="rounded-xl border border-surface-200 bg-surface-50 px-4 py-3">
                 <p className="text-[10px] uppercase tracking-[0.15em] text-ink-600 font-medium mb-1">Revenue Band</p>
                 <p className="text-sm font-semibold text-ink-800 capitalize">
@@ -1085,7 +1085,7 @@ export function SVIResultsPanel({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
               <SignalIndicator label="Paying Customers" active={signals.hasCustomers} />
               <SignalIndicator label="Analytics Connected" active={signals.hasAnalytics} />
               <SignalIndicator label="Social Proof" active={signals.hasSocialProof} />
@@ -1197,7 +1197,7 @@ export function SVIResultsPanel({
               </>
             )}
 
-            <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
               <SignalIndicator label="Pitch Deck" active={signals.hasPitchDeck} />
               <SignalIndicator label="Financial Model" active={signals.hasFinancialModel} />
               <SignalIndicator label="Data Room" active={signals.hasDataRoom} />
@@ -1511,13 +1511,13 @@ export function SVIResultsPanel({
             )}
 
             {/* Upsell CTA */}
-            <div className="rounded-2xl border border-brand-200 bg-brand-50 px-6 py-5 mb-6">
+            <div className="rounded-2xl border border-brand-200 bg-brand-50 px-4 sm:px-6 py-5 mb-6">
               <div className="flex items-start gap-3">
                 <TrendingUp strokeWidth={1.75} className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
                     <p className="text-sm font-semibold text-ink-800">Track your SVI over time</p>
-                    <span className="rounded-full bg-brand-100 border border-brand-200 px-2 py-0.5 text-[10px] font-medium text-brand-600 uppercase tracking-wider">
+                    <span className="self-start rounded-full bg-brand-100 border border-brand-200 px-2 py-0.5 text-[10px] font-medium text-brand-600 uppercase tracking-wider">
                       50 spots only
                     </span>
                   </div>
@@ -1562,8 +1562,8 @@ export function SVIResultsPanel({
             </div>
 
             {/* Share URL */}
-            <div className="flex items-center justify-between rounded-xl border border-surface-200 bg-white px-4 py-3 shadow-sm mb-6">
-              <span className="text-xs text-ink-600 truncate font-mono">{shareUrl}</span>
+            <div className="flex items-center justify-between rounded-xl border border-surface-200 bg-white px-3 sm:px-4 py-3 shadow-sm mb-6 min-w-0">
+              <span className="text-[11px] sm:text-xs text-ink-600 truncate font-mono min-w-0">{shareUrl}</span>
               <button
                 type="button"
                 onClick={handleCopy}

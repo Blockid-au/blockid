@@ -124,7 +124,7 @@ export function WorkspaceLayout({ children, user, startupName, notificationCount
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             {/* Credit balance */}
             <CreditBalance />
 
@@ -150,8 +150,9 @@ export function WorkspaceLayout({ children, user, startupName, notificationCount
 
             {/* Sign out */}
             <form action="/api/auth/logout" method="post">
-              <button type="submit" className="h-8 px-3 rounded-lg text-xs font-medium text-ink-600 hover:text-ink-800 hover:bg-surface-100 transition-colors cursor-pointer">
-                Sign out
+              <button type="submit" className="h-8 px-2 sm:px-3 rounded-lg text-[11px] sm:text-xs font-medium text-ink-600 hover:text-ink-800 hover:bg-surface-100 transition-colors cursor-pointer">
+                <span className="hidden sm:inline">Sign out</span>
+                <span className="sm:hidden">Out</span>
               </button>
             </form>
           </div>

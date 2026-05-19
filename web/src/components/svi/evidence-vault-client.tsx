@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { FileText, Plus, ExternalLink, CheckCircle2, Clock, Loader2 } from "lucide-react";
+import { FileText, Plus, ExternalLink, CheckCircle2, Clock, Loader2, Globe, Code, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EvidenceWizard } from "./evidence-wizard";
 
@@ -164,21 +164,31 @@ export function EvidenceVaultClient({ initialEvidence }: EvidenceVaultClientProp
           </div>
         </>
       ) : (
-        <div className="rounded-2xl border border-dashed border-surface-200 bg-surface-100 px-6 py-16 text-center">
-          <FileText strokeWidth={1.25} className="mx-auto h-10 w-10 text-ink-600 mb-3" />
-          <p className="text-ink-800 font-medium">No evidence yet</p>
-          <p className="text-ink-600 text-sm mt-1">
-            Upload pitch decks, cap tables, revenue proofs, and more to boost your SVI.
-          </p>
-          <Button
-            variant="primary"
-            size="sm"
-            className="mt-4"
-            onClick={() => setShowWizard(true)}
-          >
-            <Plus strokeWidth={1.75} className="h-4 w-4" />
-            Add Your First Evidence
-          </Button>
+        <div className="space-y-6">
+          <div className="text-center py-8">
+            <FileText className="h-12 w-12 text-surface-300 mx-auto mb-3" />
+            <h3 className="text-lg font-semibold text-ink-800">Build Your Evidence Vault</h3>
+            <p className="text-sm text-ink-500 mt-1 max-w-md mx-auto">Upload documents, connect platforms, and add proof to increase your SVI score.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[
+              { icon: FileText, title: "Upload Pitch Deck", desc: "PDF or PPTX — boosts Investor Readiness", action: "Upload" },
+              { icon: Globe, title: "Add Website URL", desc: "Public site proves market presence", action: "Add URL" },
+              { icon: Code, title: "Link GitHub Repo", desc: "Source code verifies product depth", action: "Connect" },
+              { icon: Receipt, title: "Add Revenue Proof", desc: "Invoices, Stripe, or bank statements", action: "Upload" },
+            ].map(({ icon: Icon, title, desc, action }) => (
+              <button key={title} onClick={() => setShowWizard(true)} className="flex items-start gap-3 rounded-2xl border border-surface-200 bg-white p-4 text-left hover:border-brand-200 hover:shadow-md transition-all cursor-pointer">
+                <div className="h-10 w-10 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-600 shrink-0">
+                  <Icon strokeWidth={1.75} className="h-5 w-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-ink-800">{title}</p>
+                  <p className="text-xs text-ink-500 mt-0.5">{desc}</p>
+                </div>
+                <span className="text-xs font-medium text-brand-600 mt-1">{action} →</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

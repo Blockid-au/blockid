@@ -18,12 +18,12 @@ interface EvidenceTypeOption {
 }
 
 const EVIDENCE_TYPES: EvidenceTypeOption[] = [
-  { id: "text", label: "Manual Text", desc: "Describe evidence in writing", icon: FileText, impact: "+2–5 SVI", confidence: "20% confidence" },
-  { id: "document", label: "Upload Document", desc: "PDF, DOCX, XLSX — pitch deck, cap table, contracts", icon: FileText, impact: "+5–15 SVI", confidence: "50% confidence" },
-  { id: "url", label: "Public URL", desc: "Website, LinkedIn, App Store, GitHub link", icon: Link2, impact: "+3–10 SVI", confidence: "35% confidence" },
-  { id: "github", label: "Connect GitHub", desc: "OAuth — verify commits, stars, activity", icon: GitBranch, impact: "+8–12 SVI", confidence: "75% confidence" },
-  { id: "analytics", label: "Connect Analytics", desc: "Google Analytics — sessions, users, growth", icon: BarChart3, impact: "+6–10 SVI", confidence: "75% confidence" },
-  { id: "stripe", label: "Connect Stripe", desc: "Verify MRR, ARR, customer count, churn", icon: CreditCard, impact: "+15–25 SVI", confidence: "90% confidence" },
+  { id: "text", label: "Manual Text", desc: "Customer quotes, market research, key metrics — quick but lower weight", icon: FileText, impact: "+2–5 SVI", confidence: "20% confidence" },
+  { id: "document", label: "Upload Document", desc: "Upload PDF, DOCX — pitch decks, business plans, legal agreements (+5-15 SVI)", icon: FileText, impact: "+5–15 SVI", confidence: "50% confidence" },
+  { id: "url", label: "Public URL", desc: "Link your website, LinkedIn, Product Hunt listing (+3-8 SVI)", icon: Link2, impact: "+3–10 SVI", confidence: "35% confidence" },
+  { id: "github", label: "Connect GitHub", desc: "Connect repository to verify code quality and activity (+5-12 SVI)", icon: GitBranch, impact: "+8–12 SVI", confidence: "75% confidence" },
+  { id: "analytics", label: "Connect Analytics", desc: "Link Google Analytics to prove user traction (+8-15 SVI)", icon: BarChart3, impact: "+6–10 SVI", confidence: "75% confidence" },
+  { id: "stripe", label: "Connect Stripe", desc: "Connect Stripe to verify revenue and growth (+10-20 SVI)", icon: CreditCard, impact: "+15–25 SVI", confidence: "90% confidence" },
 ];
 
 // Map evidence_type → default dimension
