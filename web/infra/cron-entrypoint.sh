@@ -11,6 +11,9 @@ cat > /etc/crontabs/root <<EOF
 
 # Growth Intelligence — daily 20:00 UTC (6am AEST)
 0 20 * * *   wget -qO- --header="Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/growth-insights >> /var/log/cron.log 2>&1
+
+# Auto-publish SEO article — daily 21:00 UTC (7am AEST)
+0 21 * * *   wget -qO- -T 120 --header="Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/publish-insight >> /var/log/cron.log 2>&1
 EOF
 
 echo "[blockid:cron] Cron jobs installed. Starting crond..."
