@@ -31,6 +31,7 @@ import {
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 import { SVIResultsPanel } from "@/components/svi/svi-results-panel";
+import { CreditGate } from "@/components/ui/credit-gate";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 
 import { useSearchParams, useRouter } from "next/navigation";
@@ -118,8 +119,15 @@ export function SVIEntrance() {
   const [showPaywall, setShowPaywall] = React.useState(false);
   const [hasPaidPlan, setHasPaidPlan] = React.useState(false);
   const [analysisPaidToast, setAnalysisPaidToast] = React.useState(false);
+  const [creditGate, setCreditGate] = React.useState<{
+    open: boolean;
+    balance: number;
+    cost: number;
+    feature: string;
+  }>({ open: false, balance: 0, cost: 0, feature: "svi_analysis" });
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const emailRef = React.useRef("");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = React.useRef<any>(null);
   const router = useRouter();
@@ -143,20 +151,17 @@ export function SVIEntrance() {
   React.useEffect(() => {
     if (searchParams.get("analysis_paid") === "true") {
       const paidEmail = searchParams.get("email") ?? "";
-      // Pre-fill the email from the payment.
-      if (paidEmail) {
-        setEmail(paidEmail);
+      // Pre-fill the email from the payment (ref-based to avoid lint warning).
+      if (paidEmail && emailRef.current !== paidEmail) {
+        emailRef.current = paidEmail;
+        queueMicrotask(() => setEmail(paidEmail));
       }
       // Clear the localStorage gate (supplementary cache).
       if (typeof window !== "undefined") {
         localStorage.removeItem(SVI_FREE_USED_KEY);
       }
-      // Verify credits server-side.
-      if (paidEmail) {
-        checkGate(paidEmail);
-      } else {
-        setShowPaywall(false);
-      }
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- async gate check after payment redirect
+      if (paidEmail) { checkGate(paidEmail); } else { setShowPaywall(false); }
       setAnalysisPaidToast(true);
       // Clean the URL params without a full page reload.
       const url = new URL(window.location.href);
@@ -249,8 +254,22 @@ export function SVIEntrance() {
     try {
       const res = await fetch("/api/svi", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, input: { rawText: rawText.trim() || `Business plan document: ${file?.name}`, fileName: file?.name } }) });
 
-      // Server-side gate enforcement: 402 = limit reached
+      // Server-side gate enforcement: 402 = limit reached or insufficient credits
       if (res.status === 402) {
+        const gateData = await res.json();
+        if (gateData.error === "Insufficient credits" && typeof gateData.balance === "number" && typeof gateData.cost === "number") {
+          // Show credit-specific gate modal
+          setCreditGate({
+            open: true,
+            balance: gateData.balance,
+            cost: gateData.cost,
+            feature: "svi_analysis",
+          });
+          setState("idle");
+          trackEvent("svi_credit_gate_shown", { balance: gateData.balance, cost: gateData.cost });
+          return;
+        }
+        // Generic paywall (free analysis used, not authenticated, etc.)
         setShowPaywall(true);
         setState("idle");
         trackEvent("svi_paywall_shown", {});
@@ -604,6 +623,15 @@ export function SVIEntrance() {
           email={email}
         />
       )}
+
+      {/* ── CREDIT GATE MODAL ───────────────────────────────────────── */}
+      <CreditGate
+        isOpen={creditGate.open}
+        onClose={() => setCreditGate((prev) => ({ ...prev, open: false }))}
+        feature={creditGate.feature}
+        cost={creditGate.cost}
+        balance={creditGate.balance}
+      />
     </div>
   );
 }

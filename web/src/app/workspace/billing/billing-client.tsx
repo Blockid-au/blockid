@@ -4,6 +4,8 @@ import * as React from "react";
 import Link from "next/link";
 import {
   Check,
+  ChevronDown,
+  Coins,
   CreditCard,
   Crown,
   ExternalLink,
@@ -365,6 +367,9 @@ export function BillingClient({
         </div>
       </section>
 
+      {/* ---- Credits Section ---- */}
+      <CreditsPurchaseSection />
+
       {/* ---- Downgrade Confirmation Dialog ---- */}
       {showDowngradeConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -411,5 +416,209 @@ export function BillingClient({
         </div>
       )}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Credit Packs Section
+// ---------------------------------------------------------------------------
+
+const CREDIT_PACK_OPTIONS = [
+  { amount: 5, price: 25, label: "5 credits", priceLabel: "AUD $25", savings: null },
+  { amount: 10, price: 45, label: "10 credits", priceLabel: "AUD $45", savings: "Save 10%" },
+  { amount: 25, price: 99, label: "25 credits", priceLabel: "AUD $99", savings: "Save 21%" },
+  { amount: 50, price: 175, label: "50 credits", priceLabel: "AUD $175", savings: "Save 30%" },
+] as const;
+
+const FEATURE_COST_LIST = [
+  { feature: "SVI Analysis", cost: 1 },
+  { feature: "SVI Report (10-page)", cost: 3 },
+  { feature: "Term Sheet AI", cost: 3 },
+  { feature: "Competitive Research", cost: 2 },
+  { feature: "AI Score Enhancement", cost: 1 },
+  { feature: "Evidence Upload", cost: 0 },
+  { feature: "Investor Score", cost: 0 },
+  { feature: "Dilution Calculator", cost: 0 },
+] as const;
+
+function CreditsPurchaseSection() {
+  const [balance, setBalance] = React.useState<number | null>(null);
+  const [loadingPack, setLoadingPack] = React.useState<number | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+  const [showCosts, setShowCosts] = React.useState(false);
+
+  // Fetch balance on mount.
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/credits");
+        if (!res.ok) return;
+        const json = await res.json();
+        if (!cancelled && json.ok) {
+          setBalance(json.balance);
+        }
+      } catch {
+        // Silently ignore.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function handlePurchase(amount: number) {
+    setLoadingPack(amount);
+    setError(null);
+    try {
+      const res = await fetch("/api/credits", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount }),
+      });
+      const json = await res.json();
+      if (json.ok && json.url) {
+        // Stripe checkout — redirect.
+        window.location.assign(json.url);
+        return;
+      }
+      if (json.ok && json.method === "direct") {
+        // Dev fallback — credits granted directly.
+        setBalance(json.balance);
+        setError(null);
+        return;
+      }
+      setError(json.reason ?? "Failed to start purchase.");
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoadingPack(null);
+    }
+  }
+
+  return (
+    <section id="credits" className="rounded-2xl border border-surface-200 bg-white shadow-sm overflow-hidden">
+      <div className="px-6 py-5 border-b border-surface-200 flex items-center gap-3">
+        <div className="h-9 w-9 rounded-xl bg-amber-50 flex items-center justify-center">
+          <Coins strokeWidth={1.75} className="h-4.5 w-4.5 text-amber-600" />
+        </div>
+        <div>
+          <h2 className="text-base font-semibold text-ink-800">Credits</h2>
+          <p className="text-xs text-ink-600">
+            Purchase credit packs to use premium features
+          </p>
+        </div>
+      </div>
+
+      <div className="px-6 py-5 space-y-6">
+        {/* Current balance */}
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-ink-600">Current Balance</span>
+          <div className="flex items-center gap-2">
+            <Coins strokeWidth={1.75} className="h-5 w-5 text-brand-500" />
+            <span className="text-2xl font-bold text-ink-800">
+              {balance !== null ? balance : "--"}
+            </span>
+            <span className="text-sm text-ink-500">
+              credit{balance !== 1 ? "s" : ""}
+            </span>
+          </div>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+
+        {/* Pack grid */}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {CREDIT_PACK_OPTIONS.map((pack) => (
+            <div
+              key={pack.amount}
+              className="rounded-xl border border-surface-200 bg-surface-50 p-4 flex flex-col items-center text-center"
+            >
+              <div className="flex items-center gap-1.5 mb-1">
+                <Coins strokeWidth={1.75} className="h-4 w-4 text-brand-500" />
+                <span className="text-lg font-bold text-ink-800">
+                  {pack.label}
+                </span>
+              </div>
+              <p className="text-sm font-semibold text-brand-600 mb-1">
+                {pack.priceLabel}
+              </p>
+              {pack.savings && (
+                <span className="inline-block text-[10px] uppercase tracking-wider font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full mb-3">
+                  {pack.savings}
+                </span>
+              )}
+              {!pack.savings && <div className="mb-3" />}
+              <button
+                type="button"
+                onClick={() => handlePurchase(pack.amount)}
+                disabled={loadingPack !== null}
+                className={cn(
+                  "w-full h-9 rounded-lg bg-brand-600 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer flex items-center justify-center gap-1.5",
+                  loadingPack === pack.amount && "opacity-60 cursor-wait",
+                )}
+              >
+                {loadingPack === pack.amount ? (
+                  <Loader2
+                    strokeWidth={1.75}
+                    className="h-4 w-4 animate-spin"
+                  />
+                ) : (
+                  <CreditCard strokeWidth={1.75} className="h-4 w-4" />
+                )}
+                Buy
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* What can I do with credits? — expandable */}
+        <div className="border border-surface-200 rounded-xl overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setShowCosts((v) => !v)}
+            className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-ink-700 hover:bg-surface-50 transition-colors cursor-pointer"
+          >
+            What can I do with credits?
+            <ChevronDown
+              strokeWidth={1.75}
+              className={cn(
+                "h-4 w-4 text-ink-400 transition-transform",
+                showCosts && "rotate-180",
+              )}
+            />
+          </button>
+          {showCosts && (
+            <div className="px-4 pb-4 border-t border-surface-200">
+              <div className="pt-3 space-y-2">
+                {FEATURE_COST_LIST.map((item) => (
+                  <div
+                    key={item.feature}
+                    className="flex items-center justify-between text-sm"
+                  >
+                    <span className="text-ink-700">{item.feature}</span>
+                    <span
+                      className={cn(
+                        "font-semibold",
+                        item.cost === 0
+                          ? "text-emerald-600"
+                          : "text-ink-800",
+                      )}
+                    >
+                      {item.cost === 0 ? "Free" : `${item.cost} credit${item.cost !== 1 ? "s" : ""}`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }

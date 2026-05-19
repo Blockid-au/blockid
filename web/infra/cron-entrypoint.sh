@@ -8,6 +8,9 @@ cat > /etc/crontabs/root <<EOF
 
 # Notification check — daily 22:00 UTC (8am AEST)
 0 22 * * *   wget -qO- --header="Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/svi-notify >> /var/log/cron.log 2>&1
+
+# Growth Intelligence — daily 20:00 UTC (6am AEST)
+0 20 * * *   wget -qO- --header="Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/growth-insights >> /var/log/cron.log 2>&1
 EOF
 
 echo "[blockid:cron] Cron jobs installed. Starting crond..."

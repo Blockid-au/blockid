@@ -25,6 +25,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { nanoid } from "nanoid";
 import { getSupabaseAdmin, isSupabaseConfigured } from "./supabase";
+import { initializeCredits } from "./credits";
 
 export const SESSION_COOKIE = "blockid_session";
 export const SESSION_TTL_DAYS = 90;
@@ -217,6 +218,9 @@ export async function consumeMagicLink(
       return { ok: false, reason: "db_error" };
     }
     userId = created.id;
+
+    // Grant 1 free credit to new users.
+    await initializeCredits(created.id);
   }
 
   // Re-read to get the current row (handles both upsert branches uniformly).
@@ -451,6 +455,9 @@ export async function loginWithGoogle(
       return { ok: false, reason: "db_error" };
     }
     userId = created.id;
+
+    // Grant 1 free credit to new users.
+    await initializeCredits(created.id);
   }
 
   // Create session.

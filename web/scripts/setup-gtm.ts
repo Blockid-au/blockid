@@ -89,6 +89,7 @@ async function main() {
 
   // Fetch containers for all accounts in parallel
   const containerResults = await Promise.all(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     accounts.account.map(async (acct: any) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const containers = await api("GET", `${acct.path}/containers`) as { container: any[] };
@@ -162,6 +163,7 @@ async function main() {
   const knownTags: any[] = [...(existingTags.tag ?? [])];
   // If we created a configTag above, it's already in knownTags only if we didn't re-fetch;
   // add it if missing
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (configTag && !knownTags.some((t: any) => t.tagId === configTag.tagId)) {
     knownTags.push(configTag);
   }

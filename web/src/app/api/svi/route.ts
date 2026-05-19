@@ -1,8 +1,10 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { extractSignals, computeSVI, type SVITextInput } from "@/lib/svi-analysis";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { newSlug } from "@/lib/slug";
 import { sendSVIReport } from "@/lib/email";
+import { canAfford, spendCredits } from "@/lib/credits";
 
 // POST /api/svi
 // Body: { email, input: { rawText, fileName? } }
@@ -27,43 +29,55 @@ export async function POST(request: Request) {
 
   const email = parsed.email.toLowerCase().trim();
 
-  // ── Free analysis gate (server-side) ──────────────────────────────────
+  // ── Credit-based analysis gate ────────────────────────────────────────
+  // Authenticated users: check credit balance via the credit system.
+  // Unauthenticated (email-only): allow 1 free analysis, then require auth.
+  let authenticatedUserId: string | null = null;
+
   if (isSupabaseConfigured()) {
     const gateSupabase = getSupabaseAdmin()!;
 
-    // Check if this email has analysis credits or free usage remaining
-    const { data: usage } = await gateSupabase
-      .from("svi_analysis_usage")
-      .select("free_used, credits_remaining")
-      .eq("email", email)
-      .maybeSingle();
+    // Attempt to read session cookie to see if user is authenticated
+    const store = await cookies();
+    const sessionToken = store.get("blockid_session")?.value;
+    if (sessionToken) {
+      const { data: session } = await gateSupabase
+        .from("sessions")
+        .select("user_id")
+        .eq("token", sessionToken)
+        .maybeSingle();
+      if (session) {
+        authenticatedUserId = session.user_id as string;
+      }
+    }
 
-    // Also check if user has a paid plan (founding50 or growth = unlimited)
-    const { data: account } = await gateSupabase
-      .from("svi_accounts")
-      .select("plan")
-      .eq("email", email)
-      .maybeSingle();
-
-    const hasPaidPlan = account?.plan && account.plan !== "free";
-
-    if (!hasPaidPlan) {
-      if (!usage) {
-        // First time — create row, allow free analysis
-        await gateSupabase.from("svi_analysis_usage").insert({
-          email,
-          free_used: false,
-          total_analyses: 0,
-          credits_remaining: 0,
-        });
-      } else if (usage.free_used && usage.credits_remaining <= 0) {
-        // Free used up, no credits — BLOCK
+    if (authenticatedUserId) {
+      // Authenticated user — check credit balance
+      const affordCheck = await canAfford(authenticatedUserId, "svi_analysis");
+      if (!affordCheck.allowed) {
         return NextResponse.json({
           ok: false,
-          reason: "analysis_limit_reached",
-          message: "You have already used your free analysis. Purchase additional analyses or upgrade to the Founder plan for unlimited access.",
+          error: "Insufficient credits",
+          balance: affordCheck.balance,
+          cost: affordCheck.cost,
         }, { status: 402 });
       }
+    } else {
+      // Unauthenticated — check if this email already used their 1 free analysis
+      const { data: existingAnalyses } = await gateSupabase
+        .from("svi_analyses")
+        .select("id")
+        .eq("email", email)
+        .limit(1);
+
+      if (existingAnalyses && existingAnalyses.length > 0) {
+        return NextResponse.json({
+          ok: false,
+          error: "Free analysis used. Sign in and purchase credits to continue.",
+          needsAuth: true,
+        }, { status: 402 });
+      }
+      // First time for this email — allow for free (don't spend credits)
     }
   }
 
@@ -94,38 +108,16 @@ export async function POST(request: Request) {
     }
   }
 
-  // ── Update usage tracking (server-side) ─────────────────────────────
-  if (isSupabaseConfigured()) {
-    const trackSupabase = getSupabaseAdmin()!;
-
-    const { data: usage } = await trackSupabase
-      .from("svi_analysis_usage")
-      .select("free_used, credits_remaining, total_analyses")
-      .eq("email", email)
-      .maybeSingle();
-
-    if (usage) {
-      if (!usage.free_used) {
-        // Mark free analysis as used
-        await trackSupabase.from("svi_analysis_usage")
-          .update({ free_used: true, total_analyses: (usage.total_analyses ?? 0) + 1, last_analysis_at: new Date().toISOString() })
-          .eq("email", email);
-      } else if (usage.credits_remaining > 0) {
-        // Decrement credits
-        await trackSupabase.from("svi_analysis_usage")
-          .update({ credits_remaining: usage.credits_remaining - 1, total_analyses: (usage.total_analyses ?? 0) + 1, last_analysis_at: new Date().toISOString() })
-          .eq("email", email);
-      }
-    } else {
-      // Create and mark free as used
-      await trackSupabase.from("svi_analysis_usage").insert({
-        email,
-        free_used: true,
-        total_analyses: 1,
-        credits_remaining: 0,
-        last_analysis_at: new Date().toISOString(),
-      });
-    }
+  // ── Spend credit (authenticated users only) ─────────────────────────
+  let creditBalance: number | undefined;
+  let creditsUsed = 0;
+  if (authenticatedUserId) {
+    const spend = await spendCredits(authenticatedUserId, "svi_analysis", {
+      slug,
+      email,
+    });
+    creditBalance = spend.balance;
+    creditsUsed = 1;
   }
 
   // After persisting, send report email (fire-and-forget)
@@ -137,6 +129,8 @@ export async function POST(request: Request) {
     totalSVI: analysis.totalSVI,
     analysis,
     persisted: isSupabaseConfigured() && !slug.startsWith("svi-demo-"),
+    ...(creditBalance !== undefined && { balance: creditBalance }),
+    creditsUsed,
   });
 }
 

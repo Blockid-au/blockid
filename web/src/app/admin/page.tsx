@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { Logo } from "@/components/brand/logo";
-import { Users, TrendingUp, FileText, Bell, Shield } from "lucide-react";
+import { Users, TrendingUp, FileText, Bell, Shield, BarChart3 } from "lucide-react";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -162,14 +162,16 @@ export default async function AdminPage() {
         </div>
 
         {/* Config Links */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {[
+            { href: "/admin/growth", label: "Growth Intelligence", desc: "AI-powered funnel analysis & revenue recommendations", highlight: true },
             { href: "/admin/users", label: "Manage Users", desc: "View all users, update plans, reset access" },
             { href: "/admin/config", label: "System Config", desc: "SVI weights, risk penalties, benchmarks" },
             { href: "/admin/notifications", label: "Notifications", desc: "Send manual reports, view delivery logs" },
             { href: "/admin/documents", label: "Project Documents", desc: "Upload and sync files to Google Drive" },
-          ].map(({ href, label, desc }) => (
-            <Link key={href} href={href} className="block rounded-xl border border-surface-200 bg-white px-5 py-4 hover:border-brand-600/40 transition-colors shadow-sm">
+          ].map(({ href, label, desc, highlight }: { href: string; label: string; desc: string; highlight?: boolean }) => (
+            <Link key={href} href={href} className={`block rounded-xl border px-5 py-4 transition-colors shadow-sm ${highlight ? "border-brand-500/40 bg-brand-50 hover:border-brand-500" : "border-surface-200 bg-white hover:border-brand-600/40"}`}>
+              {highlight && <BarChart3 strokeWidth={1.75} className="h-4 w-4 text-brand-600 mb-1.5" />}
               <p className="text-sm font-semibold text-ink-800">{label}</p>
               <p className="text-xs text-ink-700 mt-1">{desc}</p>
             </Link>

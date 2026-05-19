@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
+import { canAfford, spendCredits } from "@/lib/credits";
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -14,6 +15,17 @@ export async function POST(request: Request) {
 
   if (!isAIConfigured()) {
     return NextResponse.json({ ok: false, error: "AI service not configured" }, { status: 503 });
+  }
+
+  // ── Credit check ────────────────────────────────────────────────────
+  const affordCheck = await canAfford(user.id, "ai_score");
+  if (!affordCheck.allowed) {
+    return NextResponse.json({
+      ok: false,
+      error: "Insufficient credits",
+      balance: affordCheck.balance,
+      cost: affordCheck.cost,
+    }, { status: 402 });
   }
 
   try {
@@ -98,6 +110,9 @@ The deterministic system scored this startup at SVI ${body.deterministicSVI}. Sc
       : aiSVI > deterministicSVI ? "higher"
       : "lower";
 
+    // ── Spend credits after successful scoring ────────────────────────
+    const spend = await spendCredits(user.id, "ai_score");
+
     return NextResponse.json({
       ok: true,
       aiSVI,
@@ -109,6 +124,8 @@ The deterministic system scored this startup at SVI ${body.deterministicSVI}. Sc
       recommendation: aiData.recommendation ?? "",
       transparencyNote: aiData.transparencyNote ?? "",
       evidenceQuality: aiData.evidenceQuality ?? "self_declared",
+      balance: spend.balance,
+      creditsUsed: 1,
     });
 
   } catch (err) {

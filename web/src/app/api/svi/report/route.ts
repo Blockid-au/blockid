@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
+import { canAfford, spendCredits } from "@/lib/credits";
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -15,6 +16,17 @@ export async function POST(request: Request) {
 
   if (!isAIConfigured()) {
     return NextResponse.json({ ok: false, error: "AI service not configured" }, { status: 503 });
+  }
+
+  // ── Credit check ────────────────────────────────────────────────────
+  const affordCheck = await canAfford(user.id, "svi_report");
+  if (!affordCheck.allowed) {
+    return NextResponse.json({
+      ok: false,
+      error: "Insufficient credits",
+      balance: affordCheck.balance,
+      cost: affordCheck.cost,
+    }, { status: 402 });
   }
 
   try {
@@ -89,11 +101,18 @@ Start each section with a markdown H2 header.`;
 
     const { text } = await callAI({ system: systemPrompt, user: userMessage, maxTokens: 2048 });
 
+    // ── Spend credits after successful generation ───────────────────
+    const spend = await spendCredits(user.id, "svi_report", {
+      email: body.email,
+    });
+
     return NextResponse.json({
       ok: true,
       report: text,
       wordCount: text.split(/\s+/).length,
       generatedAt: new Date().toISOString(),
+      balance: spend.balance,
+      creditsUsed: 3,
     });
 
   } catch (err) {

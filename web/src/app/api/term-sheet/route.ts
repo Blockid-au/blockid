@@ -14,6 +14,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { z } from "zod";
 import { analyzeTermSheet } from "@/lib/term-sheet/analyze";
+import { canAfford, spendCredits } from "@/lib/credits";
 
 const HolderSchema = z.object({
   id: z.string(),
@@ -74,18 +75,35 @@ export async function POST(request: Request) {
 
   const { termSheet, capTable, round } = parsed.data;
 
+  // ── Credit check ────────────────────────────────────────────────────
+  const affordCheck = await canAfford(user.id, "term_sheet");
+  if (!affordCheck.allowed) {
+    return NextResponse.json({
+      ok: false,
+      error: "Insufficient credits",
+      balance: affordCheck.balance,
+      cost: affordCheck.cost,
+    }, { status: 402 });
+  }
+
   try {
     const result = await analyzeTermSheet({
       termSheet,
       capTable: capTable ?? null,
       round: round ?? null,
     });
+
+    // ── Spend credits after successful analysis ─────────────────────
+    const spend = await spendCredits(user.id, "term_sheet");
+
     return NextResponse.json(
       {
         ok: true,
         mode: result.mode,
         analysis: result.analysis,
         dilution: result.dilution,
+        balance: spend.balance,
+        creditsUsed: 3,
       },
       {
         status: 200,

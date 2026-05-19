@@ -26,6 +26,7 @@ export interface AnalyticsEventMap {
   svi_paywall_checkout_click: Record<string, never>;
   svi_paywall_analysis_click: { price: number };
   svi_paywall_coupon_submit: { code: string };
+  svi_credit_gate_shown: { balance: number; cost: number };
 
   // ── Score Form ──
   score_form_started: Record<string, never>;

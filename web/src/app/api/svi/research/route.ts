@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
+import { canAfford, spendCredits } from "@/lib/credits";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -56,6 +57,17 @@ export async function POST(request: Request) {
 
   if (!isAIConfigured()) {
     return NextResponse.json({ ok: false, error: "AI service not configured" }, { status: 503 });
+  }
+
+  // ── Credit check ────────────────────────────────────────────────────
+  const affordCheck = await canAfford(user.id, "research");
+  if (!affordCheck.allowed) {
+    return NextResponse.json({
+      ok: false,
+      error: "Insufficient credits",
+      balance: affordCheck.balance,
+      cost: affordCheck.cost,
+    }, { status: 402 });
   }
 
   try {
@@ -134,7 +146,17 @@ Name actual companies with real URLs. Return ONLY the JSON object.`;
       }
     }
 
-    return NextResponse.json({ ok: true, ...researchData });
+    // ── Spend credits after successful research ──────────────────────
+    const spend = await spendCredits(user.id, "research", {
+      description: body.description?.slice(0, 100),
+    });
+
+    return NextResponse.json({
+      ok: true,
+      ...researchData,
+      balance: spend.balance,
+      creditsUsed: 2,
+    });
 
   } catch (err) {
     console.error("[blockid:research]", err);

@@ -8,6 +8,7 @@ import {
   LayoutDashboard, Map, Shield, TrendingUp, User
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
+import { CreditBalance } from "@/components/ui/credit-balance";
 import { cn } from "@/lib/utils";
 
 interface WorkspaceLayoutProps {
@@ -124,6 +125,9 @@ export function WorkspaceLayout({ children, user, startupName, notificationCount
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Credit balance */}
+            <CreditBalance />
+
             {/* Notifications */}
             <button type="button" className="relative h-8 w-8 flex items-center justify-center rounded-lg text-ink-600 hover:text-ink-800 hover:bg-surface-100 transition-colors cursor-pointer">
               <Bell strokeWidth={1.75} className="h-4 w-4" />

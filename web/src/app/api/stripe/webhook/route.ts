@@ -7,6 +7,7 @@ import {
   sendPaymentFailed,
   sendPaymentReceipt,
 } from "@/lib/email";
+import { grantCredits, PLAN_CREDITS } from "@/lib/credits";
 
 // POST /api/stripe/webhook
 // Stripe sends webhook events here. Verifies the signature, then processes
@@ -149,6 +150,23 @@ export async function POST(request: Request) {
       console.log(
         `[blockid:stripe] activated plan "${planId}" for user ${userId}`,
       );
+
+      // ── Grant credits for the plan ──────────────────────────────────
+      const planCredits = PLAN_CREDITS[planId];
+      if (planCredits && userId) {
+        const grantResult = await grantCredits(userId, planCredits.amount, "plan_grant", {
+          plan: planId,
+        });
+        if (grantResult.ok) {
+          console.log(
+            `[blockid:stripe] granted ${planCredits.amount} credits to user ${userId} for plan "${planId}"`,
+          );
+        } else {
+          console.error(
+            `[blockid:stripe] failed to grant credits to user ${userId} for plan "${planId}"`,
+          );
+        }
+      }
 
       // Find or create svi_accounts row for this user's email.
       const email = session.customer_email ?? session.metadata?.blockid_email;

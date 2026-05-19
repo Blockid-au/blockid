@@ -62,10 +62,10 @@ export function Logo({
         className,
       )}
     >
-      {/* Icon */}
+      {/* Icon — use light version on dark backgrounds */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/images/logo-icon-transparent.png"
+        src={isDark ? "/images/logo-icon-light.png" : "/images/logo-icon-transparent.png"}
         alt=""
         className={cn(iconClass, "shrink-0")}
       />
