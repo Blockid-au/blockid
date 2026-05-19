@@ -163,7 +163,7 @@ export function SVIEntrance() {
         <header className="px-6 py-5 flex items-center justify-between max-w-2xl mx-auto w-full">
           <Link href="/" className="inline-flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/images/logo-official.png" alt="BlockID.au" className="h-16 w-auto" />
+            <img src="/images/logo-transparent.png" alt="BlockID.au" className="h-16 w-auto" />
           </Link>
           <button type="button" onClick={handleReset} className="text-xs text-ink-600 hover:text-ink-800 cursor-pointer transition-colors flex items-center gap-1.5">
             <X strokeWidth={1.75} className="h-3.5 w-3.5" /> New analysis
@@ -243,7 +243,7 @@ export function SVIEntrance() {
         <div className="mx-auto max-w-[620px] px-6 flex flex-col items-center">
           <div className="flex flex-col items-center mb-8">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/images/logo-official.png" alt="BlockID.au" className="h-32 sm:h-36 md:h-[152px] w-auto mb-6 animate-fade-in" />
+            <img src="/images/logo-transparent.png" alt="BlockID.au" className="h-32 sm:h-36 md:h-[152px] w-auto mb-6 animate-fade-in" />
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-center text-ink-900">
               Get Your <span className="text-brand-600">Startup Value Index</span>
             </h2>
@@ -417,7 +417,7 @@ export function SVIEntrance() {
           <div className="flex flex-col md:flex-row items-center gap-8 mb-8">
             <div className="flex items-center gap-3 shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/images/logo-official.png" alt="BlockID.au" className="h-16 w-auto" />
+              <img src="/images/logo-transparent.png" alt="BlockID.au" className="h-16 w-auto" />
               <div>
                 <p className="text-lg font-bold">Your Idea Is Valuable.</p>
                 <p className="text-xs text-slate-400">How you build it determines its future value.</p>
@@ -467,7 +467,7 @@ function TopBar() {
       <div className="mx-auto max-w-7xl px-4 h-14 flex items-center justify-between">
         <Link href="/" className="inline-flex items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/logo-official.png" alt="BlockID.au" className="h-16 w-auto" />
+          <img src="/images/logo-transparent.png" alt="BlockID.au" className="h-16 w-auto" />
         </Link>
 
         <nav className="hidden md:flex items-center gap-1">
@@ -500,7 +500,7 @@ function TopBar() {
           <div className="flex items-center justify-between px-4 py-3 border-b border-surface-200">
             <Link href="/" className="inline-flex items-center" onClick={() => setMobileOpen(false)}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/images/logo-official.png" alt="BlockID.au" className="h-16 w-auto" />
+              <img src="/images/logo-transparent.png" alt="BlockID.au" className="h-16 w-auto" />
             </Link>
             <button type="button" onClick={() => setMobileOpen(false)} className="h-10 w-10 flex items-center justify-center rounded-lg text-ink-600 hover:bg-surface-100 cursor-pointer">
               <X strokeWidth={1.75} className="h-5 w-5" />
