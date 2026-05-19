@@ -31,9 +31,12 @@ import {
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 import { SVIResultsPanel } from "@/components/svi/svi-results-panel";
+import { RndResultsPanel } from "@/components/svi/rnd-results-panel";
+import { RndStatusBar } from "@/components/svi/rnd-status-bar";
 import { CreditGate } from "@/components/ui/credit-gate";
 import { isEarlyBird } from "@/lib/plans";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
+import type { RndReport } from "@/lib/rnd-types";
 
 import { useSearchParams, useRouter } from "next/navigation";
 
@@ -114,6 +117,9 @@ export function SVIEntrance() {
   const [result, setResult] = React.useState<SVIApiResponse | null>(null);
   const [error, setError] = React.useState("");
   const [searchFocused, setSearchFocused] = React.useState(false);
+  const [rndStatus, setRndStatus] = React.useState<string | null>(null);
+  const [rndReport, setRndReport] = React.useState<RndReport | null>(null);
+  const [detectedInputType, setDetectedInputType] = React.useState<"url" | "document" | "idea" | null>(null);
   const [showPaywall, setShowPaywall] = React.useState(false);
   const [hasPaidPlan, setHasPaidPlan] = React.useState(false);
   const [analysisPaidToast, setAnalysisPaidToast] = React.useState(false);
@@ -197,6 +203,19 @@ export function SVIEntrance() {
     el.style.height = `${Math.min(el.scrollHeight, 240)}px`;
   }, [text]);
 
+  // Detect input type from text content
+  React.useEffect(() => {
+    if (file) {
+      setDetectedInputType("document");
+    } else if (text.trim()) {
+      const trimmed = text.trim();
+      const isUrl = /^https?:\/\//i.test(trimmed) || /^(www\.)?[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}/.test(trimmed);
+      setDetectedInputType(isUrl ? "url" : "idea");
+    } else {
+      setDetectedInputType(null);
+    }
+  }, [text, file]);
+
   const toggleVoice = () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const w = typeof window !== "undefined" ? (window as any) : null;
@@ -247,16 +266,29 @@ export function SVIEntrance() {
       }
     }
 
-    setError(""); setState("submitting");
+    setError(""); setState("submitting"); setRndStatus(null); setRndReport(null);
     trackEvent("svi_submitted", { method: file ? "file" : "text", has_file: !!file });
+
+    const inputPayload = {
+      email,
+      input: {
+        rawText: rawText.trim() || `Business plan document: ${file?.name}`,
+        fileName: file?.name,
+      },
+    };
+
+    // ── Try R&D Agent (SSE) first, fallback to /api/svi ────────────────
     try {
-      const res = await fetch("/api/svi", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, input: { rawText: rawText.trim() || `Business plan document: ${file?.name}`, fileName: file?.name } }) });
+      const res = await fetch("/api/rnd", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(inputPayload),
+      });
 
       // Server-side gate enforcement: 402 = limit reached or insufficient credits
       if (res.status === 402) {
         const gateData = await res.json();
         if (gateData.error === "Insufficient credits" && typeof gateData.balance === "number" && typeof gateData.cost === "number") {
-          // Show credit-specific gate modal
           setCreditGate({
             open: true,
             balance: gateData.balance,
@@ -267,26 +299,146 @@ export function SVIEntrance() {
           trackEvent("svi_credit_gate_shown", { balance: gateData.balance, cost: gateData.cost });
           return;
         }
-        // Generic paywall (free analysis used, not authenticated, etc.)
         setShowPaywall(true);
         setState("idle");
         trackEvent("svi_paywall_shown", {});
         return;
       }
 
-      const data = (await res.json()) as SVIApiResponse;
-      if (!data.ok) { setError("Analysis failed. Please try again."); setState("error"); return; }
-      setResult(data); setState("done");
-      trackEvent("svi_analysis_complete", { svi_score: data.totalSVI, slug: data.slug });
+      const contentType = res.headers.get("content-type") ?? "";
 
-      // Mark free analysis as used in localStorage (supplementary cache).
-      if (!hasPaidPlan && typeof window !== "undefined") {
-        localStorage.setItem(SVI_FREE_USED_KEY, "true");
+      // ── SSE stream from /api/rnd ─────────────────────────────────────
+      if (contentType.includes("text/event-stream") && res.body) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let sseCompleted = false;
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() ?? "";
+
+            let eventType = "";
+            for (const line of lines) {
+              if (line.startsWith("event: ")) {
+                eventType = line.slice(7).trim();
+              } else if (line.startsWith("data: ") && eventType) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  if (eventType === "status") {
+                    setRndStatus(data.message);
+                  } else if (eventType === "complete") {
+                    setResult({
+                      ok: true,
+                      slug: data.slug,
+                      totalSVI: data.totalSVI,
+                      analysis: data.analysis,
+                      persisted: true,
+                    });
+                    setRndReport(data.report ?? null);
+                    setRndStatus(null);
+                    setState("done");
+                    sseCompleted = true;
+                    trackEvent("rnd_analysis_complete", { svi_score: data.totalSVI, slug: data.slug });
+                  } else if (eventType === "error") {
+                    setError(data.error || "Analysis failed");
+                    setRndStatus(null);
+                    setState("error");
+                  }
+                } catch {
+                  // Malformed JSON in SSE data — skip
+                }
+                eventType = "";
+              }
+            }
+          }
+        } catch {
+          // Stream interrupted — if we already have results, keep them
+          if (!sseCompleted) {
+            // Fall through to fallback
+            throw new Error("SSE stream interrupted");
+          }
+        }
+
+        // Mark free analysis as used in localStorage
+        if (sseCompleted && !hasPaidPlan && typeof window !== "undefined") {
+          localStorage.setItem(SVI_FREE_USED_KEY, "true");
+        }
+        return;
       }
-    } catch { setError("Network error. Please try again."); setState("error"); }
+
+      // ── Non-SSE response from /api/rnd (JSON fallback) ───────────────
+      if (contentType.includes("application/json")) {
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          // /api/rnd returned error JSON — fall through to /api/svi
+          throw new Error(data.error || "R&D API returned error");
+        }
+        setResult({
+          ok: true,
+          slug: data.slug,
+          totalSVI: data.totalSVI,
+          analysis: data.analysis,
+          persisted: data.persisted ?? true,
+        });
+        setRndReport(data.report ?? null);
+        setState("done");
+        trackEvent("rnd_analysis_complete", { svi_score: data.totalSVI, slug: data.slug });
+        if (!hasPaidPlan && typeof window !== "undefined") {
+          localStorage.setItem(SVI_FREE_USED_KEY, "true");
+        }
+        return;
+      }
+
+      // Unexpected content type — fall through to /api/svi
+      throw new Error("Unexpected response from /api/rnd");
+    } catch {
+      // ── Fallback: original /api/svi ──────────────────────────────────
+      setRndStatus(null);
+      try {
+        const sviRes = await fetch("/api/svi", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(inputPayload),
+        });
+
+        if (sviRes.status === 402) {
+          const gateData = await sviRes.json();
+          if (gateData.error === "Insufficient credits" && typeof gateData.balance === "number" && typeof gateData.cost === "number") {
+            setCreditGate({
+              open: true,
+              balance: gateData.balance,
+              cost: gateData.cost,
+              feature: "svi_analysis",
+            });
+            setState("idle");
+            trackEvent("svi_credit_gate_shown", { balance: gateData.balance, cost: gateData.cost });
+            return;
+          }
+          setShowPaywall(true);
+          setState("idle");
+          trackEvent("svi_paywall_shown", {});
+          return;
+        }
+
+        const data = (await sviRes.json()) as SVIApiResponse;
+        if (!data.ok) { setError("Analysis failed. Please try again."); setState("error"); return; }
+        setResult(data); setState("done");
+        trackEvent("svi_analysis_complete", { svi_score: data.totalSVI, slug: data.slug });
+
+        if (!hasPaidPlan && typeof window !== "undefined") {
+          localStorage.setItem(SVI_FREE_USED_KEY, "true");
+        }
+      } catch { setError("Network error. Please try again."); setState("error"); }
+    }
   };
 
-  const handleReset = () => { setResult(null); setState("idle"); setText(""); setFile(null); setEmail(""); setError(""); };
+  const handleReset = () => { setResult(null); setRndReport(null); setRndStatus(null); setState("idle"); setText(""); setFile(null); setEmail(""); setError(""); };
 
   // Called when a 100% coupon grants free access — clear gate and re-submit.
   const handleCouponGrant = () => {
@@ -313,7 +465,19 @@ export function SVIEntrance() {
           </button>
         </header>
         <main className="flex-1 px-4 pb-12">
-          <SVIResultsPanel analysis={result.analysis} slug={result.slug} onReset={handleReset} rawText={text} email={email} />
+          {rndReport ? (
+            <RndResultsPanel
+              report={rndReport}
+              analysis={result.analysis}
+              slug={result.slug}
+              email={email}
+              isPaid={hasPaidPlan}
+              onReset={handleReset}
+              onUnlock={() => setShowPaywall(true)}
+            />
+          ) : (
+            <SVIResultsPanel analysis={result.analysis} slug={result.slug} onReset={handleReset} rawText={text} email={email} />
+          )}
         </main>
       </div>
     );
@@ -402,7 +566,11 @@ export function SVIEntrance() {
           <form onSubmit={handleSubmit} className="w-full">
             <div className={cn(
               "w-full rounded-[28px] border transition-all duration-200",
-              searchFocused || text ? "border-brand-400 shadow-[0_0_0_3px_rgba(37,99,235,0.1)]" : "border-surface-300 hover:shadow-[0_1px_6px_rgba(32,33,36,0.18)]",
+              searchFocused
+                ? "border-brand-400 shadow-glow-pulse"
+                : text
+                  ? "border-brand-400 shadow-[0_0_0_3px_rgba(37,99,235,0.1)]"
+                  : "border-surface-300 hover:shadow-[0_1px_6px_rgba(32,33,36,0.18)]",
             )}>
               <div className="flex items-center px-4 py-3 gap-3">
                 <Search strokeWidth={1.75} className="h-5 w-5 text-ink-600 shrink-0" />
@@ -430,6 +598,27 @@ export function SVIEntrance() {
               )}
               {listening && <div className="px-5 pb-3"><span className="text-xs text-red-500 animate-pulse font-medium">Listening…</span></div>}
             </div>
+
+            {/* Input type badge */}
+            {detectedInputType && (
+              <div className="mt-2 flex justify-center animate-fade-in">
+                <span className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all",
+                  detectedInputType === "url"
+                    ? "border border-brand-200 bg-brand-50 text-brand-700"
+                    : detectedInputType === "document"
+                      ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+                      : "border border-surface-300 bg-surface-50 text-ink-600",
+                )}>
+                  {detectedInputType === "url" && <><Search strokeWidth={1.75} className="h-3 w-3" /> URL Detected</>}
+                  {detectedInputType === "document" && <><FileText strokeWidth={1.75} className="h-3 w-3" /> Document Detected</>}
+                  {detectedInputType === "idea" && <><Lightbulb strokeWidth={1.75} className="h-3 w-3" /> Idea Analysis</>}
+                </span>
+              </div>
+            )}
+
+            {/* R&D Status Bar — streaming status during analysis */}
+            <RndStatusBar status={rndStatus} isActive={state === "submitting"} />
 
             {(text.trim() || file) && (
               <div className="mt-3 flex items-center justify-center">

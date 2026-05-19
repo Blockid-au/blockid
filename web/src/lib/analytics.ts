@@ -62,6 +62,10 @@ export interface AnalyticsEventMap {
   tool_accessed: { tool: string };
   tool_result_generated: { tool: string };
 
+  // ── R&D Agent ──
+  rnd_analysis_complete: { svi_score: number; slug: string };
+  rnd_link_copied: { slug: string };
+
   // ── Share / Investor Links ──
   investor_link_copied: { slug: string };
   investor_link_viewed: { slug: string };
