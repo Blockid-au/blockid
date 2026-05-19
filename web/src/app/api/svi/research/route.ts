@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
+import type Anthropic from "@anthropic-ai/sdk";
+import { getAnthropicClient, isAnthropicConfigured } from "@/lib/anthropic";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -45,11 +46,11 @@ Scoring guide:
 - growthScore 80-100: 20%+ YoY, strong investor interest. 50-79: Steady. 0-49: Mature/declining.`;
 
 export async function POST(request: Request) {
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!isAnthropicConfigured()) {
     return NextResponse.json({ ok: false, error: "AI service not configured" }, { status: 503 });
   }
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const client = getAnthropicClient();
 
   try {
     const body = await request.json() as {

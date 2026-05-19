@@ -8,35 +8,30 @@ export function Logo({
 }: {
   className?: string;
   variant?: "dark" | "light";
-  size?: "default" | "large";
+  size?: "default" | "large" | "hero";
 }) {
-  const iconSize = size === "large" ? "h-12 w-12" : "h-8 w-8";
-  const textSize = size === "large" ? "text-2xl" : "text-lg";
+  // Use the full official logo image (icon + text + tagline in one image)
+  // height fixed per size to keep proportions
+  const heightClass =
+    size === "hero" ? "h-16 md:h-20"
+    : size === "large" ? "h-12 md:h-14"
+    : "h-9 md:h-10";
 
   return (
     <Link
       href="/"
       aria-label="BlockID home"
       className={cn(
-        "inline-flex items-center gap-2.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-md",
+        "inline-flex items-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-md",
         className,
       )}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/images/icon-192.png"
-        alt=""
-        className={iconSize}
+        src="/images/logo-official.png"
+        alt="BlockID.au — Valuation. Ownership. Growth."
+        className={cn("w-auto", heightClass)}
       />
-      <span
-        className={cn(
-          "font-bold tracking-tight",
-          textSize,
-          variant === "light" ? "text-ink-800" : "text-white",
-        )}
-      >
-        BlockID<span className={variant === "light" ? "text-brand-600" : "text-brand-300"}>.au</span>
-      </span>
     </Link>
   );
 }

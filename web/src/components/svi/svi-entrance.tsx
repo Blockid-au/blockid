@@ -157,10 +157,9 @@ export function SVIEntrance() {
     return (
       <div className="min-h-svh bg-surface-100 flex flex-col">
         <header className="px-6 py-5 flex items-center justify-between max-w-2xl mx-auto w-full">
-          <Link href="/" className="inline-flex items-center gap-2.5">
+          <Link href="/" className="inline-flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/images/icon-192.png" alt="" className="h-8 w-8" />
-            <span className="text-lg font-bold tracking-tight text-ink-800">BlockID<span className="text-brand-600">.au</span></span>
+            <img src="/images/logo-official.png" alt="BlockID.au" className="h-9 w-auto" />
           </Link>
           <button type="button" onClick={handleReset} className="text-xs text-ink-600 hover:text-ink-800 cursor-pointer transition-colors flex items-center gap-1.5">
             <X strokeWidth={1.75} className="h-3.5 w-3.5" /> New analysis
@@ -207,13 +206,17 @@ export function SVIEntrance() {
                 </Link>
               </div>
             </div>
-            {/* Right: banner image — visual showcase only */}
-            <div className="relative">
-              <div className="rounded-2xl border border-surface-200 shadow-xl overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="https://upload.blockid.au/blockID_banner_white.png" alt="BlockID.au platform overview" className="w-full h-auto" loading="eager" fetchPriority="high" />
-              </div>
-              <p className="mt-2 text-center text-xs text-ink-500">Platform overview</p>
+            {/* Right: banner — cropped to show only platform UI screenshots */}
+            <div className="relative rounded-2xl border border-surface-200 shadow-xl overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://upload.blockid.au/blockID_banner_white.png"
+                alt="BlockID.au — Cap Table, Valuation, AI Workspace"
+                className="w-[200%] max-w-none h-auto -ml-[50%]"
+                style={{ clipPath: "inset(0 0 0 50%)" }}
+                loading="eager"
+                fetchPriority="high"
+              />
             </div>
           </div>
 
@@ -237,7 +240,7 @@ export function SVIEntrance() {
         <div className="mx-auto max-w-[620px] px-6 flex flex-col items-center">
           <div className="flex flex-col items-center mb-8">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/images/icon-192.png" alt="BlockID.au" className="h-16 w-16 md:h-20 md:w-20 mb-3" />
+            <img src="/images/logo-official.png" alt="BlockID.au" className="h-14 md:h-16 w-auto mb-4" />
             <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-center text-ink-800">
               Get Your <span className="text-brand-600">Startup Value Index</span>
             </h2>
@@ -411,7 +414,7 @@ export function SVIEntrance() {
           <div className="flex flex-col md:flex-row items-center gap-8 mb-8">
             <div className="flex items-center gap-3 shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/images/icon-192.png" alt="" className="h-10 w-10" />
+              <img src="/images/logo-official.png" alt="BlockID.au" className="h-10 w-auto" />
               <div>
                 <p className="text-lg font-bold">Your Idea Is Valuable.</p>
                 <p className="text-xs text-slate-400">How you build it determines its future value.</p>
@@ -459,10 +462,9 @@ function TopBar() {
   return (
     <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-surface-200">
       <div className="mx-auto max-w-7xl px-4 h-14 flex items-center justify-between">
-        <Link href="/" className="inline-flex items-center gap-2.5">
+        <Link href="/" className="inline-flex items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/icon-192.png" alt="" className="h-8 w-8" />
-          <span className="text-lg font-bold tracking-tight text-ink-800">BlockID<span className="text-brand-600">.au</span></span>
+          <img src="/images/logo-official.png" alt="BlockID.au" className="h-9 w-auto" />
         </Link>
 
         <nav className="hidden md:flex items-center gap-1">
@@ -493,10 +495,9 @@ function TopBar() {
       {mobileOpen && (
         <div className="fixed inset-0 z-50 bg-white md:hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-surface-200">
-            <Link href="/" className="inline-flex items-center gap-2" onClick={() => setMobileOpen(false)}>
+            <Link href="/" className="inline-flex items-center" onClick={() => setMobileOpen(false)}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/images/icon-192.png" alt="" className="h-8 w-8" />
-              <span className="text-lg font-bold tracking-tight text-ink-800">BlockID<span className="text-brand-600">.au</span></span>
+              <img src="/images/logo-official.png" alt="BlockID.au" className="h-9 w-auto" />
             </Link>
             <button type="button" onClick={() => setMobileOpen(false)} className="h-10 w-10 flex items-center justify-center rounded-lg text-ink-600 hover:bg-surface-100 cursor-pointer">
               <X strokeWidth={1.75} className="h-5 w-5" />

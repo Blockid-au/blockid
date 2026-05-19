@@ -13,7 +13,7 @@
  *   - No beta headers — effort, adaptive thinking, and parse() are GA
  *   - cache_control on the AU reference block ONLY (1h TTL)
  *
- * Failure mode: if ANTHROPIC_API_KEY is missing OR the SDK throws a typed
+ * Failure mode: if no Anthropic credentials available OR the SDK throws a typed
  * Anthropic error, we degrade to demo mode — the funnel must not block on
  * transient API issues. Operators see the cache stats / error in container
  * logs and can verify cache hit rate after the first request.
@@ -21,6 +21,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { computeDiff, type CapTableDiff, type Holder, type Round } from "@/lib/cap-table";
+import { getAnthropicClient, isAnthropicConfigured } from "@/lib/anthropic";
 import { TermSheetAnalysisSchema, type TermSheetAnalysis } from "./schema";
 import { AU_MARKET_REFERENCE } from "./au-market-data";
 import { DEMO_ANALYSIS } from "./demo";
@@ -103,16 +104,15 @@ export async function analyzeTermSheet({
   round,
 }: AnalyzeArgs): Promise<AnalyzeResult> {
   const dilution = maybeDilution(capTable, round);
-  const apiKey = process.env.ANTHROPIC_API_KEY;
 
-  if (!apiKey) {
+  if (!isAnthropicConfigured()) {
     console.warn(
-      "[blockid:termsheet] ANTHROPIC_API_KEY not set — returning demo analysis",
+      "[blockid:termsheet] No Anthropic credentials — returning demo analysis",
     );
     return { analysis: DEMO_ANALYSIS, dilution, mode: "demo" };
   }
 
-  const client = new Anthropic({ apiKey });
+  const client = getAnthropicClient();
 
   // System prompt as TWO blocks: stable instructions first (uncached),
   // then the bulky AU market reference with cache_control. Render order is

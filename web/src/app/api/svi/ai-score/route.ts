@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
+import { getAnthropicClient, isAnthropicConfigured } from "@/lib/anthropic";
 
 export async function POST(request: Request) {
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  if (!isAnthropicConfigured()) {
+    return NextResponse.json({ ok: false, error: "AI service not configured" }, { status: 503 });
+  }
+  const client = getAnthropicClient();
 
   try {
     const body = await request.json() as {
