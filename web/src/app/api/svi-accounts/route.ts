@@ -1,12 +1,12 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
+import { getSupabaseAdmin } from "@/lib/supabase";
 
 export async function POST(request: Request) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return NextResponse.json({ ok: false, error: "Supabase not configured" }, { status: 503 });
+  }
+
   try {
     const { email, name, startup_name, plan } = await request.json() as {
       email: string;
