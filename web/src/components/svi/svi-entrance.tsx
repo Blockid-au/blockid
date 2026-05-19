@@ -165,6 +165,7 @@ export function SVIEntrance() {
             analysis={result.analysis}
             slug={result.slug}
             onReset={handleReset}
+            rawText={text}
           />
         </main>
       </div>

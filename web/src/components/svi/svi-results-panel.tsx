@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
+import { ResearchPanel } from "@/components/svi/research-panel";
 
 const EVIDENCE_LEVEL_LABELS: Record<string, string> = {
   self_declared: "Self-declared (20%)",
@@ -258,10 +259,12 @@ export function SVIResultsPanel({
   analysis,
   slug,
   onReset,
+  rawText,
 }: {
   analysis: SVIAnalysis;
   slug: string;
   onReset: () => void;
+  rawText?: string;
 }) {
   const [copied, setCopied] = React.useState(false);
 
@@ -333,6 +336,12 @@ export function SVIResultsPanel({
           ))}
         </div>
       </div>
+
+      {/* Competitive Research */}
+      <ResearchPanel
+        description={rawText ?? analysis.summary}
+        keywords={analysis.signals?.marketSize ? `${analysis.signals.marketSize} market` : undefined}
+      />
 
       {/* Evidence gaps */}
       {analysis.evidenceGaps.length > 0 && (
@@ -408,7 +417,7 @@ export function SVIResultsPanel({
       )}
 
       {/* AI Second Opinion */}
-      <AIScorePanel analysis={analysis} />
+      <AIScorePanel analysis={analysis} rawText={rawText} />
 
       {/* Upsell */}
       <div className="rounded-2xl border border-brand-600/30 bg-brand-900/20 px-6 py-5">
