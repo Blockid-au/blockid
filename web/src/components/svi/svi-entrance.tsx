@@ -335,16 +335,16 @@ export function SVIEntrance() {
             {/* Left: copy */}
             <div>
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-[-0.02em] leading-[1.05] text-ink-900">
-                Turn Your Idea Into<br />
-                A <span className="bg-gradient-to-r from-brand-600 to-brand-500 bg-clip-text text-transparent">Valuable, Investable</span> Business.
+                The <span className="bg-gradient-to-r from-brand-600 to-brand-500 bg-clip-text text-transparent">Value Infrastructure</span> for Startup Growth from Day One.
               </h1>
               <p className="mt-5 text-lg md:text-xl font-medium text-brand-600/80">
-                Trusted Ownership. Intelligent Capital. Sustainable Growth.
+                Index valuation, ownership, and capitalization from idea to scale.
               </p>
               <p className="mt-5 text-base md:text-lg text-ink-500 leading-relaxed max-w-xl">
-                BlockID.au is the all-in-one platform for founders, co-founders and teams to
-                build, manage and grow your company with clarity, trust and intelligence.
-                From idea to investment — build right from the start.
+                BlockID.au helps individual founders, startups, and SMEs establish a clear
+                foundation for valuation, ownership, and capitalization from day one. It aligns
+                contributors, tracks value creation, and builds investor-ready records as the
+                company grows.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <a href="#svi" className="inline-flex h-14 items-center gap-2 rounded-2xl bg-brand-600 px-8 text-base font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">

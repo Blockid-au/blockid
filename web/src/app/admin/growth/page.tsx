@@ -97,10 +97,13 @@ export default async function GrowthPage() {
   let liveMetrics = { totalUsers: 0, totalAnalyses: 0, totalAccounts: 0, totalLeads: 0, payingUsers: 0 };
 
   if (supabase) {
-    const now = Date.now(); // Server component — safe to call during render
-    const todayStr = new Date(now).toISOString().split("T")[0];
-    const yesterdayStr = new Date(now - 86400000).toISOString().split("T")[0];
-    const weekAgoStr = new Date(now - 7 * 86400000).toISOString().split("T")[0];
+    const { headers } = await import("next/headers");
+    const h = await headers();
+    const dateStr = h.get("date") ?? new Date().toUTCString();
+    const reqTime = new Date(dateStr).getTime();
+    const todayStr = new Date(reqTime).toISOString().split("T")[0];
+    const yesterdayStr = new Date(reqTime - 86400000).toISOString().split("T")[0];
+    const weekAgoStr = new Date(reqTime - 7 * 86400000).toISOString().split("T")[0];
 
     const [todayRes, yesterdayRes, weekRes, usersRes, analysesRes, accountsRes, leadsRes, paidRes] = await Promise.all([
       supabase.from("growth_insights").select("*").eq("insight_date", todayStr).single(),
