@@ -63,6 +63,10 @@ export const PLANS: Plan[] = [
   },
 ];
 
+/** Early-bird pricing deadline (AEST). After this date, SVI analysis costs $25 instead of $1. */
+export const EARLY_BIRD_DEADLINE = new Date("2026-06-15T00:00:00+10:00");
+export const isEarlyBird = () => new Date() < EARLY_BIRD_DEADLINE;
+
 /** Look up a plan by ID. Returns undefined for unknown IDs. */
 export function getPlan(planId: string): Plan | undefined {
   return PLANS.find((p) => p.id === planId);

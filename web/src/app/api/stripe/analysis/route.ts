@@ -5,8 +5,7 @@
 
 import { NextResponse } from "next/server";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
-
-const EARLY_BIRD_DEADLINE = new Date("2026-06-15T00:00:00+10:00"); // AEST
+import { isEarlyBird } from "@/lib/plans";
 
 export async function POST(request: Request) {
   if (!isStripeConfigured()) {
@@ -37,8 +36,7 @@ export async function POST(request: Request) {
   const stripe = getStripe()!;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://blockid.au";
 
-  const isEarlyBird = new Date() < EARLY_BIRD_DEADLINE;
-  const priceId = isEarlyBird
+  const priceId = isEarlyBird()
     ? process.env.STRIPE_PRICE_SVI_ANALYSIS // A$1 early-bird
     : process.env.STRIPE_PRICE_SVI_ANALYSIS_25; // $25 standard
 

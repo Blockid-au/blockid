@@ -33,23 +33,20 @@ export const FEATURE_COSTS: Record<string, number> = {
 
 export const PLAN_CREDITS: Record<string, { amount: number; recurring: boolean }> = {
   free:       { amount: 1,      recurring: false },
-  starter:    { amount: 5,      recurring: true  },
   founding50: { amount: 50,     recurring: false },
-  founder:    { amount: 50,     recurring: true  },
   growth:     { amount: 100,    recurring: true  },
-  unlimited:  { amount: 999999, recurring: true  },
 };
 
 // ---------------------------------------------------------------------------
 // Credit pack definitions (for Stripe one-off purchases)
 // ---------------------------------------------------------------------------
 
-export const CREDIT_PACKS: Record<number, number> = {
-  5:  2500,  // $25 AUD in cents
-  10: 4500,  // $45
-  25: 10000, // $100
-  50: 17500, // $175
-};
+export const CREDIT_PACKS = [
+  { credits: 5,  priceAudCents: 500,   label: "5 Credits",  savings: null },
+  { credits: 10, priceAudCents: 900,   label: "10 Credits", savings: "Save 10%" },
+  { credits: 25, priceAudCents: 2000,  label: "25 Credits", savings: "Save 20%" },
+  { credits: 50, priceAudCents: 3500,  label: "50 Credits", savings: "Save 30%" },
+] as const;
 
 // ---------------------------------------------------------------------------
 // getBalance — read the user's current credit balance.

@@ -1897,3 +1897,458 @@ Keep the long-term BlockID vision, but execute the next 6 months with discipline
 The strongest near-term product is:
 
 > The AI pre-diligence trust pack Australian founders send before investors ask the hard questions.
+
+---
+
+## Update: 2026-05-19 — Full Platform Implementation
+
+This section documents the current production state of BlockID.au after twelve days of intensive implementation since the last documentation update on 2026-05-07. The platform has moved from a planning document with partial prototypes to a fully deployed, revenue-capable SaaS product with authentication, payments, AI scoring, email automation and admin tooling.
+
+---
+
+### Platform Architecture
+
+```
+                    ┌──────────────────────────────────────────┐
+                    │           blockid.au (Next.js 16)        │
+                    │          Port 4001 (production)          │
+                    ├──────────────┬───────────────────────────┤
+                    │  Frontend    │   Backend (API Routes)    │
+                    │  React 19   │   38 API endpoints         │
+                    │  Tailwind 4 │   Server Components        │
+                    └──────┬───────┴──────────┬────────────────┘
+                           │                  │
+              ┌────────────┼──────────────────┼────────────────┐
+              │            │                  │                │
+        ┌─────▼─────┐ ┌───▼────┐  ┌─────────▼──┐  ┌─────────▼────┐
+        │ Supabase  │ │ Stripe │  │  Claude AI  │  │ Google Drive │
+        │ (self-    │ │ (Live) │  │  (Haiku +   │  │  (Service    │
+        │  hosted)  │ │        │  │   Sonnet)   │  │  Account)    │
+        │ 22 tables │ │ 5 plans│  │  6 features │  │  Evidence    │
+        └───────────┘ └────────┘  └─────────────┘  └──────────────┘
+              │
+        ┌─────▼─────┐
+        │   Cron    │
+        │ Container │
+        │ (Alpine)  │
+        └───────────┘
+```
+
+---
+
+### Infrastructure Summary
+
+- **Server**: GCP n1-highmem-8 (8 vCPU, 50GB RAM), IP: 35.192.237.47
+- **Deployment**: Docker containers on supabase_default network, GitLab CI auto-deploy
+- **Database**: Self-hosted Supabase (PostgreSQL 15), 22 tables, 13 migrations
+- **Email**: Gmail SMTP via ceo@longcare.au (nodemailer)
+- **Payments**: Stripe Live (5 plans + credit packs)
+- **AI**: Claude Haiku 4.5 + Sonnet 4.6 (6 AI features)
+- **Storage**: Google Drive (Service Account, shared with admin@blockid.au)
+- **Proxy**: Nginx → Docker port 4001
+- **TLS**: Let's Encrypt via Caddy (disabled, using shared nginx)
+- **CI/CD**: GitLab Runner on same server, 16 CI variables
+- **Cron**: Alpine container, daily notifications + weekly snapshots
+
+---
+
+### Features Implemented (36 pages, 38 API routes, 173 TS files)
+
+#### Public Pages
+
+- Homepage with Google-style SVI search + hero banner
+- Founding 50 offer (A$49) with Stripe checkout
+- 8 free tools (dilution, cap table, term sheet, equity split, cofounder match, idea valuation, funding plan, data room)
+- Checkout success / thank you page
+- About, Contact, Privacy, Terms pages
+- Investor view pages (`/s/[slug]`, `/s/p/[slug]`, `/s/i/[token]`)
+- Insights / blog pages (`/insights`, `/insights/[slug]`)
+
+#### Auth System
+
+- Google OAuth (Sign In With Google)
+- Magic link email login
+- Bilingual login (EN/VI) with language toggle
+- 90-day HttpOnly sessions
+- Auth error page with recovery flow
+
+#### SVI Engine (Core Product)
+
+- 8-dimension analysis: FTV (Financial Traction & Viability), MPC (Market Position & Competitiveness), PTD (Product & Technology Differentiation), TRE (Team & Resource Excellence), CGH (Corporate Governance & Health), IRI (Investor Readiness Index), LCO (Legal & Compliance Oversight), SVM (Scalability & Vision Maturity)
+- AI-powered scoring via Claude (Haiku for fast scoring, Sonnet for deep analysis)
+- 10-page guided report with page navigation
+- Stage detection (0-7: Concept → Corporation)
+- Evidence confidence levels (20%-100%)
+- Weekly delta tracking + snapshots via cron
+- SVI re-scoring capability
+- Competitive research agent with web search (market, competitive and growth scores)
+- Share via email and investor link generation
+
+#### Credit / Usage System
+
+- Hybrid model: free trial + credits + subscription
+- Feature costs: SVI = 1 credit, Report = 3 credits, TermSheet = 3 credits, Research = 2 credits
+- Credit packs: 5 for A$25, 10 for A$45, 25 for A$99, 50 for A$175
+- Balance widget in topbar, CreditGate modal for insufficient credits
+- Usage tracking + audit trail via `usage_logs` and `credit_transactions`
+- Automatic credit allocation on subscription and pack purchase
+
+#### Stripe Integration (Full Lifecycle)
+
+- Checkout (one-off purchases + recurring subscriptions)
+- Customer portal (billing management via Stripe hosted portal)
+- Plan change (upgrade/downgrade with proration)
+- Cancellation with retention (COMEBACK30 offer, cancel at period end instead of immediate)
+- Reactivation of cancelled subscriptions before period end
+- Webhook handler: 5 events (checkout.session.completed, invoice.payment_succeeded, invoice.payment_failed, customer.subscription.updated, customer.subscription.deleted)
+- Payment link email for Founding 50 offer
+- Analysis-gated checkout flow
+
+#### Email System (8 templates)
+
+- Magic link authentication email
+- Score ready notification
+- Score viewed notification
+- SVI welcome email for new accounts
+- Weekly report summary email
+- SVI report delivery email
+- Share via email (send SVI analysis to third party)
+- Payment confirmation / receipt
+- Payment failed notification
+- Payment link for Founding 50
+- Cancellation retention email with COMEBACK30 coupon
+
+#### Workspace (Authenticated Area)
+
+- **SVI Dashboard** (`/dashboard/svi`): 8 dimension score bars, overall score, stage indicator, score history
+- **Evidence Vault** (`/workspace/evidence`): upload documents to Google Drive, auto-share with admin@blockid.au, evidence confidence tracking
+- **Weekly Reports** (`/workspace/reports`): score history over time, weekly delta visualization, downloadable report
+- **Growth Roadmap** (`/workspace/roadmap`): dynamic task completion tracking, milestone progress, guided next steps
+- **Billing** (`/workspace/billing`): subscription status, plan management, credit balance, purchase credits, view invoices
+- **Profile** (`/workspace/profile`): user settings, account management
+
+#### Admin Panel
+
+- **Admin Dashboard** (`/admin`): user count, analysis count, account stats, recent activity
+- **Growth Intelligence** (`/admin/growth`): growth insights generated by cron, trend analysis
+- **Document Upload** (`/admin/documents`): upload documents to Google Drive for users
+- **User Management** (`/admin/users`): view and manage registered users
+
+#### Free Tools (8 tools)
+
+- Dilution Calculator (`/tools/dilution`)
+- Cap Table Diff (`/tools/cap-table`)
+- Term Sheet AI Analyzer (`/tools/term-sheet`)
+- Equity Split Calculator (`/tools/equity-split`)
+- Co-Founder Match (`/tools/cofounder-match`)
+- Idea Valuation Estimator (`/tools/idea-valuation`)
+- Funding Plan Generator (`/tools/funding-plan`)
+- Data Room Checklist (`/tools/data-room`)
+
+#### Internationalization (i18n)
+
+- EN/VI language toggle available from login page
+- Cookie-based persistence (`blockid_lang`)
+- Bilingual support across auth flows
+
+---
+
+### Database Schema (22 tables, 13 migrations)
+
+**Core / Legacy:**
+
+| Table | Purpose |
+|---|---|
+| `leads` | Marketing lead capture from free tools |
+| `scores` | Investor-Ready Score v1 submissions |
+| `score_views` | View tracking for score share links |
+
+**Investor Links:**
+
+| Table | Purpose |
+|---|---|
+| `investor_links` | Per-investor shareable links with tracking |
+| `investor_link_views` | View analytics per investor link |
+
+**Auth & Users:**
+
+| Table | Purpose |
+|---|---|
+| `app_users` | Registered users (Google OAuth + magic link) |
+| `magic_links` | One-time magic link tokens for email auth |
+| `sessions` | 90-day HttpOnly session management |
+
+**Co-Founder & Tools:**
+
+| Table | Purpose |
+|---|---|
+| `cofounder_profiles` | Co-founder matching profiles |
+| `idea_evaluations` | Idea valuation estimator results |
+| `equity_splits` | Equity split calculator saved results |
+| `funding_plans` | Funding plan generator outputs |
+| `founder_packs` | Founding 50 pack purchases |
+| `founder_pack_views` | View tracking for founder pack pages |
+
+**Coupons:**
+
+| Table | Purpose |
+|---|---|
+| `coupons` | Discount coupon definitions (e.g. COMEBACK30) |
+| `coupon_redemptions` | Coupon usage tracking |
+
+**SVI System:**
+
+| Table | Purpose |
+|---|---|
+| `svi_analyses` | SVI analysis results (8 dimensions, stage, scores) |
+| `svi_accounts` | SVI account profiles linked to app_users |
+| `svi_snapshots` | Weekly score snapshots for delta tracking |
+| `svi_evidence` | Evidence uploads with confidence levels |
+| `svi_notifications` | Notification queue for score-ready, weekly reports |
+| `svi_milestones` | Growth roadmap milestone tracking |
+
+**Credits & Usage:**
+
+| Table | Purpose |
+|---|---|
+| `credit_balances` | Per-user credit balance |
+| `credit_transactions` | Credit purchase, spend and refund audit trail |
+| `usage_logs` | Per-feature usage tracking with timestamps |
+
+**Analytics:**
+
+| Table | Purpose |
+|---|---|
+| `growth_insights` | Cron-generated growth intelligence data |
+| `user_actions` | User action tracking for engagement analytics |
+
+---
+
+### API Routes (38 endpoints)
+
+**Authentication (4 routes):**
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/api/auth/request` | Request magic link email |
+| GET | `/api/auth/google` | Google OAuth callback handler |
+| POST | `/api/auth/logout` | Destroy session and clear cookies |
+| GET | `/api/auth/me` | Return current authenticated user |
+
+**SVI Engine (8 routes):**
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/api/svi` | Create new SVI analysis |
+| GET | `/api/svi` | List SVI analyses for current user |
+| POST | `/api/svi/ai-score` | Run AI scoring on SVI analysis |
+| POST | `/api/svi/report` | Generate 10-page SVI report |
+| POST | `/api/svi/research` | Run competitive research agent |
+| POST | `/api/svi/rescore` | Re-score existing analysis |
+| POST | `/api/svi/email-report` | Email SVI report to recipient |
+| POST | `/api/svi/share` | Create shareable link for analysis |
+| POST | `/api/svi/check-gate` | Check credit/subscription gate |
+
+**SVI Accounts (1 route):**
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET/POST | `/api/svi-accounts` | Manage SVI account profiles |
+
+**Stripe Payments (7 routes):**
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/api/stripe/checkout` | Create Stripe checkout session |
+| POST | `/api/stripe/portal` | Create Stripe customer portal session |
+| POST | `/api/stripe/cancel` | Cancel subscription with retention offer |
+| POST | `/api/stripe/change-plan` | Upgrade/downgrade with proration |
+| POST | `/api/stripe/reactivate` | Reactivate cancelled subscription |
+| POST | `/api/stripe/webhook` | Handle Stripe webhook events |
+| POST | `/api/stripe/analysis` | Create analysis-gated checkout |
+
+**Credits (3 routes):**
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/credits` | Get current credit balance |
+| POST | `/api/credits` | Purchase credit pack |
+| POST | `/api/credits/check` | Check if user has enough credits |
+
+**Evidence & Storage (2 routes):**
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/evidence` | List evidence files for user |
+| POST | `/api/evidence/upload` | Upload evidence to Google Drive |
+
+**Coupons (2 routes):**
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/api/coupon/validate` | Validate coupon code |
+| POST | `/api/coupon/redeem` | Redeem coupon and apply discount |
+
+**Cron Jobs (3 routes):**
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/api/cron/svi-notify` | Send daily SVI notifications |
+| POST | `/api/cron/svi-snapshot` | Take weekly SVI score snapshots |
+| POST | `/api/cron/growth-insights` | Generate growth analytics |
+
+**Tools & Other (8 routes):**
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/api/score` | Legacy Investor-Ready Score submission |
+| POST | `/api/lead` | Capture marketing leads |
+| POST | `/api/term-sheet` | AI term sheet analysis |
+| POST | `/api/idea-estimate` | AI idea valuation estimate |
+| POST | `/api/cofounder-match` | Co-founder matching |
+| POST | `/api/investor-link` | Create investor share link |
+| POST | `/api/actions` | Log user actions for analytics |
+| POST | `/api/admin/drive/upload` | Admin upload to Google Drive |
+
+---
+
+### Pricing Model
+
+| Tier | Price | Credits | Description |
+|---|---:|---:|---|
+| Free Trial | A$0 | 1 | One free SVI analysis to experience the platform |
+| SVI Analysis (early bird) | A$1 | 1 | Single analysis at early-bird pricing |
+| SVI Analysis (regular) | A$25 | 1 | Single analysis at standard pricing |
+| Founding 50 | A$49 one-off | 50 | Early adopter pack, limited to 50 customers |
+| Founder Plan | A$99/mo | 50/mo | Monthly subscription for active founders |
+| Growth Plan | A$499/mo | 100/mo | Monthly subscription for scaling startups |
+
+**Credit Packs (one-off purchase):**
+
+| Pack | Price | Per-Credit Cost |
+|---|---:|---:|
+| 5 credits | A$25 | A$5.00 |
+| 10 credits | A$45 | A$4.50 |
+| 25 credits | A$99 | A$3.96 |
+| 50 credits | A$175 | A$3.50 |
+
+**Feature Credit Costs:**
+
+| Feature | Credits |
+|---|---:|
+| SVI Analysis | 1 |
+| Full Report (10 pages) | 3 |
+| Term Sheet AI Analysis | 3 |
+| Competitive Research Agent | 2 |
+
+---
+
+### Roadmap Status
+
+#### Completed (Phase 1-2)
+
+- SVI v2 engine with 8 dimensions (FTV, MPC, PTD, TRE, CGH, IRI, LCO, SVM)
+- Google-style homepage with SVI search bar
+- Authentication system (Google OAuth + magic link email)
+- Stripe full lifecycle (checkout, portal, cancel, change plan, reactivate, webhooks)
+- Credit system with hybrid model (free trial + credits + subscription)
+- Evidence vault with Google Drive integration and auto-share to admin
+- Email system (8 templates via nodemailer + Gmail SMTP)
+- Internationalization EN/VI with cookie persistence
+- Cron scheduling (daily notifications, weekly snapshots, growth insights)
+- Admin dashboard with user/analysis/account statistics
+- Growth analytics page with cron-generated insights
+- 10-page guided report UI with page navigation
+- Competitive research agent with web search capabilities
+- Founding 50 early adopter offer with payment link email
+- 8 free tools (dilution, cap table, term sheet, equity split, cofounder match, idea valuation, funding plan, data room)
+- Investor share links with view tracking
+- Weekly delta tracking and score snapshots
+- Stage detection (Concept through Corporation, 8 stages)
+- Evidence confidence levels (20%-100%)
+- Coupon system (COMEBACK30 retention offer)
+- User action tracking for engagement analytics
+- 62 unit tests passing
+- GitLab CI/CD auto-deploy pipeline
+- Docker containerized deployment on GCP
+
+#### In Progress (Phase 3)
+
+- Data room checklist enhancement (currently shipped as free tool, expanding to authenticated feature)
+- Accelerator cohort dashboard design
+- Advanced analytics and reporting beyond current growth insights
+
+#### Planned (Phase 4+)
+
+- Cap Table Health Check (expand current cap table diff into full health analysis)
+- AU Compliance Mini-Checkers (ESIC pre-check, R&D Tax Incentive readiness, ASIC share register hygiene)
+- Investor heat scoring (engagement signals, repeat views, section engagement)
+- AI Financial Intelligence (cashflow, burn, runway, P&L from manual input, future Xero/Stripe/MYOB connectors)
+- AI Valuation Engine (range with assumptions, benchmark context, scenario modeling)
+- Smart Share Management (ownership summary, dilution forecast, option pool impact, shareholder tracking)
+- Proof Infrastructure (canonical JSON hashing, score proofs, verify page, proof certificates)
+- Fundraising Readiness Report v2 (combined score + financials + dataroom + ownership + valuation)
+- Secondary liquidity features (deferred until 100+ paying users and legal review)
+
+---
+
+### Tech Stack Summary
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 16 (App Router, Server Components) |
+| UI Library | React 19 |
+| Language | TypeScript 5 |
+| Styling | Tailwind CSS 4 |
+| Database | Supabase (self-hosted PostgreSQL 15) |
+| Payments | Stripe (Live mode, Checkout + Billing) |
+| AI | Claude AI via Anthropic SDK (Haiku 4.5 for speed, Sonnet 4.6 for depth) |
+| File Storage | Google Drive API (Service Account) |
+| Email | nodemailer + Gmail SMTP |
+| Icons | Lucide React |
+| Containerization | Docker + Docker Compose |
+| CI/CD | GitLab CI (Runner on same GCP server) |
+| Reverse Proxy | Nginx |
+| TLS | Let's Encrypt (managed at nginx layer) |
+| Cron | Alpine Docker container with curl-based job triggers |
+| Testing | Vitest (62 tests) |
+
+---
+
+### Migration History
+
+| Migration | Description |
+|---|---|
+| `0001_init.sql` | Initial schema: leads, scores, score_views |
+| `0002_score_v2.sql` | Score v2 fields and confidence |
+| `0003_investor_links.sql` | Investor link records and view tracking |
+| `0004_cofounder_match.sql` | Co-founder matching profiles |
+| `0005_idea_phase.sql` | Idea evaluation and equity split tables |
+| `0006_google_auth_coupons.sql` | Google OAuth users, sessions, magic links, coupons |
+| `0007_svi_analyses.sql` | SVI analysis core tables |
+| `0008_svi_tracking.sql` | SVI snapshots, evidence, notifications, milestones |
+| `0009_stripe_customer.sql` | Stripe customer ID on app_users, founder packs |
+| `0010_user_actions.sql` | User action tracking table |
+| `0011_analysis_gate.sql` | Analysis gating and subscription check |
+| `0012_growth_insights.sql` | Growth insights for admin analytics |
+| `0013_credits_usage.sql` | Credit balances, transactions and usage logs |
+
+---
+
+### Key Implementation Decisions
+
+1. **Self-hosted Supabase over managed**: Chosen for cost control and data sovereignty on GCP. All 22 tables run on the same PostgreSQL 15 instance within the Supabase Docker stack.
+
+2. **Gmail SMTP over Resend**: Switched from Resend (documented in original plan) to nodemailer with Gmail SMTP via ceo@longcare.au for cost reduction and direct control.
+
+3. **Hybrid credit model**: Rather than pure subscription or pure pay-per-use, the platform combines free trial (1 credit), credit packs (one-off purchase) and subscriptions (monthly credit allocation) to maximize conversion paths.
+
+4. **Google Drive for evidence storage**: Instead of building a custom file storage layer, evidence uploads go directly to Google Drive via Service Account, with automatic sharing to admin@blockid.au for review.
+
+5. **Cron via Alpine container**: Lightweight cron container on the same Docker network calls API endpoints via curl, avoiding the need for a separate job scheduler.
+
+6. **Dual AI model strategy**: Claude Haiku 4.5 for fast, cost-efficient scoring operations; Claude Sonnet 4.6 for deep analysis, reports and competitive research where quality justifies higher cost.
+
+7. **Cookie-based sessions over JWT**: 90-day HttpOnly cookies for session management, trading statelessness for security (no client-side token exposure).
+
+8. **Cancellation retention flow**: Instead of immediate cancellation, the system offers a COMEBACK30 coupon and sets cancel-at-period-end, giving users the remainder of their billing period and a path back.

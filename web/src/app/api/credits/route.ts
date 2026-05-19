@@ -56,11 +56,12 @@ export async function POST(request: Request) {
 
   const { amount } = (body as { amount?: number }) ?? {};
 
-  if (!amount || !CREDIT_PACKS[amount]) {
+  const validPack = CREDIT_PACKS.find((p) => p.credits === amount);
+  if (!amount || !validPack) {
     return NextResponse.json(
       {
         ok: false,
-        reason: `Invalid credit pack. Choose one of: ${Object.keys(CREDIT_PACKS).join(", ")}`,
+        reason: `Invalid credit pack. Choose one of: ${CREDIT_PACKS.map((p) => p.credits).join(", ")}`,
       },
       { status: 400 },
     );

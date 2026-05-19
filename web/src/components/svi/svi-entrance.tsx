@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 import { SVIResultsPanel } from "@/components/svi/svi-results-panel";
 import { CreditGate } from "@/components/ui/credit-gate";
+import { isEarlyBird } from "@/lib/plans";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 
 import { useSearchParams, useRouter } from "next/navigation";
@@ -39,9 +40,6 @@ import { useSearchParams, useRouter } from "next/navigation";
 type SubmitState = "idle" | "submitting" | "done" | "error";
 
 const SVI_FREE_USED_KEY = "blockid_svi_free_used";
-
-/** Early-bird deadline: June 15 2026 00:00 AEST (UTC+10). */
-const EARLY_BIRD_DEADLINE = new Date("2026-06-15T00:00:00+10:00");
 
 interface SVIApiResponse {
   ok: boolean;
@@ -510,47 +508,40 @@ export function SVIEntrance() {
           <p className="text-center text-sm text-ink-600 mb-10">Validate your idea or unlock the full platform — start today.</p>
 
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Single Analysis — A$1 early-bird */}
-            <div className="rounded-2xl border border-surface-200 bg-white px-8 py-8 text-center shadow-sm flex flex-col">
-              <p className="text-xs uppercase tracking-[0.15em] text-ink-500 font-medium mb-2">Pay per analysis</p>
+            {/* Card 1: Per-Analysis */}
+            <div className="rounded-2xl border border-surface-200 bg-white px-8 py-8 text-center shadow-sm flex flex-col relative overflow-hidden">
+              <div className="absolute top-4 right-4 rounded-full bg-emerald-600 px-3 py-1 text-[10px] font-bold text-white uppercase tracking-wider">Launch Price &middot; Limited Time</div>
+              <p className="text-xs uppercase tracking-[0.15em] text-ink-500 font-medium mb-2">Per-Analysis</p>
               <h3 className="text-xl font-bold text-ink-800 mb-1">SVI Analysis Report</h3>
               <p className="text-3xl font-extrabold text-brand-600 mb-1">A$1 <span className="text-base text-ink-400 line-through font-normal ml-1">$25</span></p>
-              <p className="text-xs text-emerald-600 font-semibold mb-4">Early-bird price until June 15, 2026</p>
-              <p className="text-sm text-ink-600 mb-6 leading-relaxed">
-                AI-powered 10-page startup analysis report. Includes market validation,
-                competitive landscape, revenue model, cap table guidance, investor readiness
-                checklist, and actionable next steps.
-              </p>
+              <p className="text-xs text-emerald-600 font-semibold mb-4">Early-bird until June 15, 2026</p>
               <ul className="text-left text-sm text-ink-700 space-y-2 mb-6 mx-auto max-w-xs">
-                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> 1st analysis free — no signup needed</li>
-                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Market &amp; competitive analysis</li>
-                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Revenue model &amp; cap table guidance</li>
-                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Investor readiness checklist</li>
-                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Actionable next steps with links</li>
+                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> 1st analysis free &mdash; no signup needed</li>
+                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> 10-page AI-powered report</li>
+                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Action buttons on recommendations</li>
+                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Shareable link</li>
               </ul>
               <div className="mt-auto">
                 <a href="#svi" className="inline-flex h-11 items-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
-                  Try Free — Then A$1/report <ArrowRight strokeWidth={2} className="h-4 w-4" />
+                  Try Free &mdash; Then A$1/report <ArrowRight strokeWidth={2} className="h-4 w-4" />
                 </a>
               </div>
             </div>
 
-            {/* Founding 50 — $49 */}
-            <div className="rounded-2xl border border-brand-200 bg-white px-8 py-8 text-center shadow-sm flex flex-col relative overflow-hidden">
+            {/* Card 2: Founder Plan */}
+            <div className="rounded-2xl border-2 border-brand-400 bg-white px-8 py-8 text-center shadow-lg flex flex-col relative overflow-hidden">
               <div className="absolute top-4 right-4 rounded-full bg-brand-600 px-3 py-1 text-[10px] font-bold text-white uppercase tracking-wider">Best Value</div>
-              <p className="text-xs uppercase tracking-[0.15em] text-brand-600 font-medium mb-2">Limited Offer</p>
+              <p className="text-xs uppercase tracking-[0.15em] text-brand-600 font-medium mb-2">Founder Plan</p>
               <h3 className="text-xl font-bold text-ink-800 mb-1">Founding 50 Account</h3>
-              <p className="text-3xl font-extrabold text-brand-600 mb-1">AUD $49 <span className="text-base text-ink-600 line-through font-normal ml-1">$99</span></p>
+              <p className="text-3xl font-extrabold text-brand-600 mb-1">A$49 <span className="text-base text-ink-400 line-through font-normal ml-1">$99</span></p>
               <p className="text-xs text-ink-500 mb-4">Lifetime access &middot; Only 50 spots</p>
-              <p className="text-sm text-ink-600 mb-6 leading-relaxed">
-                Lifetime SVI account, cap table starter, evidence vault, export packs, and 30-day growth plan.
-              </p>
               <ul className="text-left text-sm text-ink-700 space-y-2 mb-6 mx-auto max-w-xs">
-                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Everything in Idea/MVP Report</li>
-                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Lifetime SVI dashboard access</li>
-                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Cap table &amp; equity tools</li>
-                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Evidence vault &amp; export packs</li>
-                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> 30-day growth plan</li>
+                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> 50 credits included</li>
+                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Unlimited dashboard</li>
+                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Evidence vault</li>
+                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Cap table tools</li>
+                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Export packs</li>
+                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Growth plan</li>
               </ul>
               <div className="mt-auto">
                 <Link href="/founding-50" className="inline-flex h-11 items-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
@@ -657,8 +648,8 @@ function SVIPaywall({
   const [analysisEmail, setAnalysisEmail] = React.useState(parentEmail ?? "");
   const [analysisError, setAnalysisError] = React.useState("");
 
-  const isEarlyBird = new Date() < EARLY_BIRD_DEADLINE;
-  const analysisPrice = isEarlyBird ? 1 : 25;
+  const earlyBird = isEarlyBird();
+  const analysisPrice = earlyBird ? 1 : 25;
 
   /** Checkout for a single A$1/$25 analysis (no auth required). */
   const handleAnalysisCheckout = async () => {
@@ -781,11 +772,11 @@ function SVIPaywall({
           <p className="text-sm font-bold text-ink-800">Single Analysis</p>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-2xl font-extrabold text-brand-600">${analysisPrice} AUD</span>
-            {isEarlyBird && (
+            {earlyBird && (
               <span className="text-sm text-ink-400 line-through">$25</span>
             )}
           </div>
-          {isEarlyBird && (
+          {earlyBird && (
             <p className="mt-1 text-xs text-brand-600 font-medium">
               Early-bird price until June 15, 2026
             </p>

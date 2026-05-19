@@ -423,11 +423,12 @@ export function BillingClient({
 // Credit Packs Section
 // ---------------------------------------------------------------------------
 
+/** Must stay in sync with CREDIT_PACKS in lib/credits.ts (server-only). */
 const CREDIT_PACK_OPTIONS = [
-  { amount: 5, price: 25, label: "5 credits", priceLabel: "AUD $25", savings: null },
-  { amount: 10, price: 45, label: "10 credits", priceLabel: "AUD $45", savings: "Save 10%" },
-  { amount: 25, price: 99, label: "25 credits", priceLabel: "AUD $99", savings: "Save 21%" },
-  { amount: 50, price: 175, label: "50 credits", priceLabel: "AUD $175", savings: "Save 30%" },
+  { amount: 5,  price: 5,  label: "5 credits",  priceLabel: "A$5",  perCredit: "A$1.00/credit",  savings: null },
+  { amount: 10, price: 9,  label: "10 credits", priceLabel: "A$9",  perCredit: "A$0.90/credit",  savings: "Save 10%" },
+  { amount: 25, price: 20, label: "25 credits", priceLabel: "A$20", perCredit: "A$0.80/credit",  savings: "Save 20%" },
+  { amount: 50, price: 35, label: "50 credits", priceLabel: "A$35", perCredit: "A$0.70/credit",  savings: "Save 30%" },
 ] as const;
 
 const FEATURE_COST_LIST = [
@@ -545,9 +546,10 @@ function CreditsPurchaseSection() {
                   {pack.label}
                 </span>
               </div>
-              <p className="text-sm font-semibold text-brand-600 mb-1">
+              <p className="text-sm font-semibold text-brand-600 mb-0.5">
                 {pack.priceLabel}
               </p>
+              <p className="text-[11px] text-ink-500 mb-1">{pack.perCredit}</p>
               {pack.savings && (
                 <span className="inline-block text-[10px] uppercase tracking-wider font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full mb-3">
                   {pack.savings}

@@ -73,7 +73,7 @@ export default function Founding50Page() {
           <div className="inline-flex items-center gap-2 rounded-full border border-brand-600/40 bg-brand-50 px-4 py-1.5 mb-6">
             <Clock strokeWidth={1.75} className="h-3.5 w-3.5 text-brand-600" />
             <span className="text-xs font-medium text-brand-700 uppercase tracking-[0.15em]">
-              Limited — 50 Founding Accounts Only
+              Limited spots remaining
             </span>
           </div>
 
@@ -82,10 +82,26 @@ export default function Founding50Page() {
             <span className="text-brand-600">Founding 50</span>{" "}
             Account
           </h1>
-          <p className="text-lg text-ink-600 max-w-xl mx-auto leading-relaxed mb-6">
+          <p className="text-lg text-ink-600 max-w-xl mx-auto leading-relaxed mb-2">
             Get a lifetime Startup Value Index Account — measure, prove and grow
             your startup value from day one.
           </p>
+
+          {/* Value highlights */}
+          <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
+              <CheckCircle2 strokeWidth={1.75} className="h-3.5 w-3.5" />
+              50 credits included (worth A$50)
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
+              <CheckCircle2 strokeWidth={1.75} className="h-3.5 w-3.5" />
+              Lifetime access
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+              <Clock strokeWidth={1.75} className="h-3.5 w-3.5" />
+              Only limited spots remaining
+            </span>
+          </div>
 
           {/* Price */}
           <div className="inline-flex items-baseline gap-3 rounded-2xl border border-surface-200 bg-white px-8 py-4 shadow-sm">

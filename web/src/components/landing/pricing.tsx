@@ -14,46 +14,56 @@ interface Tier {
   price: string;
   numericPrice?: number;
   cadence?: string;
+  subtitle?: string;
   audience: string;
   features: string[];
   cta: { label: string; href: string };
   highlight?: boolean;
   badge?: string;
+  urgency?: string;
 }
+
+const CREDIT_PACKS = [
+  { qty: 5, price: 5, href: "/workspace/billing#credits" },
+  { qty: 10, price: 9, href: "/workspace/billing#credits" },
+  { qty: 25, price: 20, href: "/workspace/billing#credits" },
+  { qty: 50, price: 35, href: "/workspace/billing#credits" },
+];
 
 const tiers: Tier[] = [
   {
     name: "Starter",
     planId: "free",
     price: "$0",
-    audience: "Every founder",
+    audience: "Try BlockID — no signup needed",
     features: [
-      "1 free SVI analysis",
+      "1 free SVI analysis report",
       "Investor-Ready Score",
-      "Basic dilution calculator",
-      "Shareable web link",
+      "Dilution calculator",
+      "Shareable report link",
     ],
-    cta: { label: "Get started free", href: "/#svi" },
+    cta: { label: "Analyze Your Idea Free", href: "/#svi" },
   },
   {
     name: "Founder",
     planId: "founding50",
     price: "$49",
     numericPrice: 49,
-    cadence: "once",
-    audience: "Pre-seed to Seed",
+    subtitle: "one-time \u00b7 lifetime access",
+    audience: "Everything you need from idea to fundraise",
     features: [
-      "Everything in Starter",
-      "Unlimited SVI analyses",
-      "Founder Value Index",
-      "Cap Table Starter",
-      "Evidence Vault",
-      "Export Packs (PDF, LinkedIn, Crunchbase-ready)",
-      "30-Day Growth Plan",
+      "50 analysis credits included (worth A$50)",
+      "Unlimited SVI dashboard access",
+      "Evidence Vault & export packs",
+      "Cap table & equity tools",
       "Co-founder matching",
+      "30-day growth plan",
       "Priority support",
     ],
-    cta: { label: "Get Founder for $49", href: "#" },
+    cta: { label: "Get Founder \u2014 $49 AUD", href: "#" },
+    highlight: true,
+    badge: "Best Value",
+    urgency: "Only 50 spots at this price",
   },
   {
     name: "Growth",
@@ -61,20 +71,17 @@ const tiers: Tier[] = [
     price: "$499",
     numericPrice: 499,
     cadence: "/ month",
-    audience: "Active fundraise · Seed → A",
+    audience: "For active fundraise \u00b7 Seed to Series A",
     features: [
+      "100 credits/month included",
       "Everything in Founder",
       "Multi-entity cap table",
       "Investor data room",
-      "One-Click Data Room",
       "Term Sheet AI (unlimited)",
-      "Custom branding",
       "Dedicated account manager",
       "30-day money back",
     ],
-    cta: { label: "Start Growth plan", href: "#" },
-    highlight: true,
-    badge: "Most popular",
+    cta: { label: "Start Growth Plan", href: "#" },
   },
 ];
 
@@ -148,7 +155,7 @@ export function Pricing() {
               className={cn(
                 "relative flex flex-col rounded-2xl border p-6 md:p-8 transition-colors duration-200",
                 tier.highlight
-                  ? "border-brand-500 bg-brand-50 ring-1 ring-brand-200"
+                  ? "border-brand-500 bg-brand-50 ring-1 ring-brand-200 scale-[1.02] shadow-lg"
                   : "border-surface-200 bg-white shadow-sm hover:border-brand-500",
               )}
             >
@@ -169,6 +176,11 @@ export function Pricing() {
                 {tier.cadence && (
                   <span className="text-sm text-ink-600 mb-1">
                     {tier.cadence}
+                  </span>
+                )}
+                {tier.subtitle && (
+                  <span className="text-sm text-ink-600 mb-1">
+                    {tier.subtitle}
                   </span>
                 )}
               </p>
@@ -212,6 +224,11 @@ export function Pricing() {
                     </Button>
                   </Link>
                 )}
+                {tier.urgency && (
+                  <p className="mt-2 text-center text-xs text-ink-500">
+                    {tier.urgency}
+                  </p>
+                )}
               </div>
             </div>
           ))}
@@ -222,6 +239,25 @@ export function Pricing() {
             {error}
           </p>
         )}
+
+        {/* Credit pack upsell strip */}
+        <div className="mt-12 rounded-2xl border border-surface-200 bg-white px-6 py-5 text-center shadow-sm">
+          <p className="text-sm text-ink-700 mb-3">
+            Need more credits? Buy analysis credits from{" "}
+            <span className="font-semibold text-brand-600">A$1 each</span>.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            {CREDIT_PACKS.map(({ qty, price, href }) => (
+              <Link
+                key={qty}
+                href={href}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-surface-300 bg-surface-50 px-4 py-2 text-sm font-medium text-ink-700 hover:border-brand-400 hover:bg-brand-50 hover:text-brand-700 transition-colors"
+              >
+                {qty} for ${price}
+              </Link>
+            ))}
+          </div>
+        </div>
 
         <p className="mt-10 text-center text-sm text-ink-600">
           Enterprise &amp; Accelerator plans from $5,000 &mdash;{" "}
