@@ -6,6 +6,8 @@ import {
   sendPaymentConfirmation,
   sendPaymentFailed,
   sendPaymentReceipt,
+  sendCreditPurchaseConfirmation,
+  sendSubscriptionCancelled,
 } from "@/lib/email";
 import { grantCredits, PLAN_CREDITS } from "@/lib/credits";
 
@@ -125,6 +127,14 @@ export async function POST(request: Request) {
           });
           if (grantResult.ok) {
             console.log(`[blockid:stripe] granted ${creditAmount} credits to user ${creditUserId}`);
+
+            // Send credit purchase confirmation email (best-effort).
+            const creditEmail = session.customer_email?.toLowerCase().trim();
+            if (creditEmail) {
+              sendCreditPurchaseConfirmation({ to: creditEmail, credits: creditAmount }).catch((err) => {
+                console.error("[blockid:stripe] credit purchase confirmation email failed", err);
+              });
+            }
           } else {
             console.error(`[blockid:stripe] failed to grant ${creditAmount} credits to user ${creditUserId}`);
           }
@@ -304,6 +314,20 @@ export async function POST(request: Request) {
       console.log(
         `[blockid:stripe] downgraded customer ${customerId} to free`,
       );
+
+      // Send subscription cancelled email (best-effort).
+      const { data: cancelledUser } = await supabase
+        .from("app_users")
+        .select("email")
+        .eq("stripe_customer_id", customerId)
+        .maybeSingle();
+
+      if (cancelledUser?.email) {
+        sendSubscriptionCancelled({ to: cancelledUser.email }).catch((err) => {
+          console.error("[blockid:stripe] subscription cancelled email failed", err);
+        });
+      }
+
       break;
     }
 

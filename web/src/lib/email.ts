@@ -462,6 +462,76 @@ export async function sendAnalysisPurchaseConfirmation(args: {
   });
 }
 
+// ---------- Credit pack purchase confirmation -----------------------------------
+
+export async function sendCreditPurchaseConfirmation(args: {
+  to: string;
+  credits: number;
+}): Promise<SendResult> {
+  const billingUrl = `${siteUrl()}/workspace/billing#credits`;
+  const html = shell(`
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+        <tr><td>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Credits Added</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Your Credits Have Been Added</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Thank you for your purchase. Your credit pack has been applied to your account.</p>
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
+            <p style="margin:0 0 4px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Credits added</p>
+            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:48px;font-weight:600;color:#3B7DD8;line-height:1;">+${args.credits}</div>
+          </div>
+          <p style="margin:0 0 24px 0;text-align:center;">
+            <a href="${billingUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Your Credits</a>
+          </p>
+          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>`);
+  return sendEmail({
+    to: args.to,
+    subject: `${args.credits} Credits Added to Your BlockID Account`,
+    html,
+  });
+}
+
+// ---------- Subscription cancelled (webhook-triggered) -------------------------
+
+export async function sendSubscriptionCancelled(args: {
+  to: string;
+}): Promise<SendResult> {
+  const pricingUrl = `${siteUrl()}/#pricing`;
+  const html = shell(`
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+        <tr><td>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Your Subscription Has Ended</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Your subscription has been cancelled and your account has been downgraded to the free plan. You can resubscribe at any time to regain access to all features.</p>
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
+            <p style="margin:0 0 8px 0;color:#94A3B8;font-size:14px;">Use code</p>
+            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:32px;font-weight:600;color:#3B7DD8;line-height:1;letter-spacing:0.05em;">COMEBACK30</div>
+            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:14px;">for 30% off your next subscription</p>
+          </div>
+          <p style="margin:0 0 24px 0;text-align:center;">
+            <a href="${pricingUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Resubscribe with 30% Off</a>
+          </p>
+          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>`);
+  return sendEmail({
+    to: args.to,
+    subject: "Your BlockID Subscription Has Ended",
+    html,
+  });
+}
+
 // ---------- Payment confirmation ------------------------------------------------
 
 export async function sendPaymentConfirmation(args: {

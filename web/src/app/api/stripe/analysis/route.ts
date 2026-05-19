@@ -4,7 +4,7 @@
 // Body: { email, slug? }
 
 import { NextResponse } from "next/server";
-import { getStripe, isStripeConfigured } from "@/lib/stripe";
+import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { isEarlyBird } from "@/lib/plans";
 
 export async function POST(request: Request) {
@@ -37,8 +37,8 @@ export async function POST(request: Request) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://blockid.au";
 
   const priceId = isEarlyBird()
-    ? process.env.STRIPE_PRICE_SVI_ANALYSIS // A$1 early-bird
-    : process.env.STRIPE_PRICE_SVI_ANALYSIS_25; // $25 standard
+    ? STRIPE_PRICE_MAP.svi_analysis // A$1 early-bird
+    : STRIPE_PRICE_MAP.svi_analysis_25; // $25 standard
 
   if (!priceId) {
     return NextResponse.json(

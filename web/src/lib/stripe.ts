@@ -32,10 +32,12 @@ export function getStripe(): Stripe | null {
  */
 export const STRIPE_PRICE_MAP: Record<string, string | undefined> = {
   founding50: process.env.STRIPE_PRICE_FOUNDING50,
+  founder: process.env.STRIPE_PRICE_FOUNDER,
   growth: process.env.STRIPE_PRICE_GROWTH,
   pilot: process.env.STRIPE_PRICE_PILOT,
   accelerator: process.env.STRIPE_PRICE_ACCELERATOR,
   svi_analysis: process.env.STRIPE_PRICE_SVI_ANALYSIS,
+  svi_analysis_25: process.env.STRIPE_PRICE_SVI_ANALYSIS_25,
   credits_5: process.env.STRIPE_PRICE_CREDITS_5,
   credits_10: process.env.STRIPE_PRICE_CREDITS_10,
   credits_25: process.env.STRIPE_PRICE_CREDITS_25,

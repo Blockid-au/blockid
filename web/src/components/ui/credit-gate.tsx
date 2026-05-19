@@ -97,19 +97,23 @@ export function CreditGate({
     }
   }, [isOpen]);
 
-  /** Buy 1 Credit via /api/stripe/analysis (guest checkout). */
+  /** Buy credits via /api/credits (authenticated checkout). */
   const handleBuyCredit = async () => {
     setBuyLoading(true);
     setErrorMsg("");
     try {
-      const res = await fetch("/api/stripe/analysis", {
+      // Purchase the smallest pack (5 credits) which more than covers the shortfall.
+      const res = await fetch("/api/credits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ amount: 5 }),
       });
       const data = await res.json();
       if (data.ok && data.url) {
         window.location.href = data.url;
+      } else if (data.ok && data.method === "direct") {
+        // Dev fallback — credits granted directly; close the gate.
+        onClose();
       } else {
         setErrorMsg(data.reason || "Could not start checkout. Please try again.");
       }
@@ -258,7 +262,7 @@ export function CreditGate({
               ) : (
                 <>
                   <Coins strokeWidth={1.75} className="h-4 w-4" />
-                  Buy 1 Credit &mdash; A$1
+                  Buy 5 Credits &mdash; A$5
                 </>
               )}
             </button>

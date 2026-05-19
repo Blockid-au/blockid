@@ -38,6 +38,7 @@ const FEATURE_LABELS: Record<string, string> = {
   investor_score: "Investor Score",
   dilution_calc: "Dilution Calc",
   purchase: "Credit Purchase",
+  credit_pack_purchase: "Credit Pack Purchase",
   plan_grant: "Plan Credit Grant",
 };
 

@@ -79,8 +79,8 @@ export async function POST(request: Request) {
         mode: "payment",
         customer_email: user.email,
         line_items: [{ price: creditsPriceId, quantity: 1 }],
-        success_url: `${siteUrl}/dashboard?credits_purchased=${amount}`,
-        cancel_url: `${siteUrl}/dashboard`,
+        success_url: `${siteUrl}/workspace/billing?credits_purchased=${amount}#credits`,
+        cancel_url: `${siteUrl}/workspace/billing#credits`,
         metadata: {
           blockid_user_id: user.id,
           blockid_credits: String(amount),
