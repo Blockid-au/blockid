@@ -2,10 +2,8 @@
 //
 // All prices are in AUD cents. Billing periods and semantics vary by plan:
 //   - free         : $0
-//   - founder      : $99/mo
+//   - founding50   : $49 one-off (Founder plan)
 //   - growth       : $499/mo
-//   - pilot        : $5 000 one-off
-//   - accelerator  : $20 000–60 000/yr (tiered; base price = $20 000/yr)
 
 export interface Plan {
   id: string;
@@ -19,41 +17,30 @@ export interface Plan {
 
 export const PLANS: Plan[] = [
   {
-    id: "founding50",
-    name: "Founding 50",
-    price: 4900, // AUD $49 launch price (normally $99)
-    cadence: "once",
-    features: [
-      "Startup Value Index Account (lifetime)",
-      "Founder Value Index",
-      "Cap Table Starter",
-      "Evidence Vault Lite",
-      "Export Packs (Product Hunt, LinkedIn, Crunchbase-ready)",
-      "30-Day Value Growth Plan",
-      "Priority onboarding",
-    ],
-  },
-  {
     id: "free",
-    name: "Free",
+    name: "Starter",
     price: 0,
     cadence: "free",
     features: [
-      "Idea Evaluation (3 free runs)",
-      "Equity Split Calculator",
-      "Funding Plan Generator",
-      "Shareable Investor-Ready Score",
+      "1 free SVI analysis",
+      "Investor-Ready Score",
+      "Basic dilution calculator",
+      "Shareable web link",
     ],
   },
   {
-    id: "founder",
+    id: "founding50",
     name: "Founder",
-    price: 9900, // $99/mo
-    cadence: "monthly",
+    price: 4900, // AUD $49 one-off
+    cadence: "once",
     features: [
-      "Everything in Free",
-      "Unlimited idea evaluations",
-      "Founder Pack PDF export",
+      "Everything in Starter",
+      "Unlimited SVI analyses",
+      "Founder Value Index",
+      "Cap Table Starter",
+      "Evidence Vault",
+      "Export Packs (PDF, LinkedIn, Crunchbase-ready)",
+      "30-Day Growth Plan",
       "Co-founder matching",
       "Priority support",
     ],
@@ -67,33 +54,11 @@ export const PLANS: Plan[] = [
       "Everything in Founder",
       "Multi-entity cap table",
       "Investor data room",
+      "One-Click Data Room",
+      "Term Sheet AI (unlimited)",
       "Custom branding",
-      "API access",
-    ],
-  },
-  {
-    id: "pilot",
-    name: "Pilot",
-    price: 500000, // $5 000 once
-    cadence: "once",
-    features: [
-      "Everything in Growth",
-      "Dedicated onboarding",
-      "Custom integrations",
-      "White-glove support (90 days)",
-    ],
-  },
-  {
-    id: "accelerator",
-    name: "Accelerator",
-    price: 2000000, // $20 000/yr base
-    cadence: "yearly",
-    features: [
-      "Everything in Pilot",
-      "Portfolio-wide dashboard",
-      "Bulk founder onboarding",
-      "Custom reporting & analytics",
       "Dedicated account manager",
+      "30-day money back",
     ],
   },
 ];

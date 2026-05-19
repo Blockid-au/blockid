@@ -53,6 +53,40 @@ export async function POST(request: Request) {
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object;
+
+      // ── Per-analysis payment (no auth required) ─────────────────────
+      if (session.metadata?.blockid_type === "svi_analysis") {
+        const email = session.metadata.blockid_email;
+        if (email) {
+          // Grant one analysis credit by incrementing svi_analysis_credits.
+          const { data: existingAccount } = await supabase
+            .from("svi_accounts")
+            .select("id, svi_analysis_credits")
+            .eq("email", email)
+            .maybeSingle();
+
+          if (existingAccount) {
+            await supabase
+              .from("svi_accounts")
+              .update({
+                svi_analysis_credits: (existingAccount.svi_analysis_credits ?? 0) + 1,
+              })
+              .eq("id", existingAccount.id);
+          } else {
+            await supabase.from("svi_accounts").insert({
+              email,
+              svi_analysis_credits: 1,
+              last_active_at: new Date().toISOString(),
+            });
+          }
+
+          console.log(
+            `[blockid:stripe] analysis purchased for ${email}`,
+          );
+        }
+        break;
+      }
+
       const userId = session.metadata?.blockid_user_id;
       const planId = session.metadata?.blockid_plan;
 

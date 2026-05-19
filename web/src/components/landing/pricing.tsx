@@ -10,7 +10,7 @@ import { PricingCoupon } from "./pricing-coupon";
 
 interface Tier {
   name: string;
-  planId?: string;
+  planId: string;
   price: string;
   numericPrice?: number;
   cadence?: string;
@@ -23,32 +23,37 @@ interface Tier {
 
 const tiers: Tier[] = [
   {
-    name: "Free",
+    name: "Starter",
     planId: "free",
     price: "$0",
-    audience: "Every founder. Forever.",
+    audience: "Every founder",
     features: [
+      "1 free SVI analysis",
       "Investor-Ready Score",
-      "Shareable web link",
-      "1 Stripe + Xero connection",
       "Basic dilution calculator",
+      "Shareable web link",
     ],
-    cta: { label: "Get started free", href: "/score" },
+    cta: { label: "Get started free", href: "/#svi" },
   },
   {
     name: "Founder",
-    planId: "founder",
-    price: "$99",
-    numericPrice: 99,
-    cadence: "/ month",
-    audience: "Pre-seed solo founder",
+    planId: "founding50",
+    price: "$49",
+    numericPrice: 49,
+    cadence: "once",
+    audience: "Pre-seed to Seed",
     features: [
-      "Everything in Free",
-      "Cap table OS + diff",
-      "Investor View Link with read receipts",
-      "Term Sheet AI (3 / month)",
+      "Everything in Starter",
+      "Unlimited SVI analyses",
+      "Founder Value Index",
+      "Cap Table Starter",
+      "Evidence Vault",
+      "Export Packs (PDF, LinkedIn, Crunchbase-ready)",
+      "30-Day Growth Plan",
+      "Co-founder matching",
+      "Priority support",
     ],
-    cta: { label: "Start 14-day trial", href: "/auth/login?plan=founder" },
+    cta: { label: "Get Founder for $49", href: "#" },
   },
   {
     name: "Growth",
@@ -59,48 +64,17 @@ const tiers: Tier[] = [
     audience: "Active fundraise · Seed → A",
     features: [
       "Everything in Founder",
-      "Unlimited Term Sheet AI",
+      "Multi-entity cap table",
+      "Investor data room",
       "One-Click Data Room",
-      "Comparable Companies Wall",
+      "Term Sheet AI (unlimited)",
+      "Custom branding",
+      "Dedicated account manager",
       "30-day money back",
     ],
-    cta: { label: "Start 14-day trial", href: "/auth/login?plan=growth" },
+    cta: { label: "Start 14-day trial", href: "#" },
     highlight: true,
     badge: "Most popular",
-  },
-  {
-    name: "Pilot Concierge",
-    planId: "pilot",
-    price: "$5,000",
-    numericPrice: 5000,
-    cadence: "once-off",
-    audience: "First 30 design partners",
-    features: [
-      "Everything in Growth",
-      "Founder-led onboarding",
-      "Recorded testimonial credit",
-      "Direct Slack channel",
-      "30-day deal close commitment",
-    ],
-    cta: { label: "Apply for pilot", href: "/auth/login?plan=pilot" },
-  },
-  {
-    name: "Accelerator",
-    planId: "accelerator",
-    price: "$20–60k",
-    numericPrice: 20000,
-    cadence: "/ year",
-    audience: "Cohort programs & venture studios",
-    features: [
-      "Co-branded white-label portal",
-      "Cohort aggregate dashboard",
-      "Bulk founder onboarding",
-      "Investor Welcome Pack for LPs",
-    ],
-    cta: {
-      label: "Partner with us",
-      href: "/auth/login?plan=accelerator",
-    },
   },
 ];
 
@@ -167,12 +141,12 @@ export function Pricing() {
           </p>
         </div>
 
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
           {tiers.map((tier) => (
             <div
               key={tier.name}
               className={cn(
-                "relative flex flex-col rounded-2xl border p-6 transition-colors duration-200",
+                "relative flex flex-col rounded-2xl border p-6 md:p-8 transition-colors duration-200",
                 tier.highlight
                   ? "border-brand-500 bg-brand-50 ring-1 ring-brand-200"
                   : "border-surface-200 bg-white shadow-sm hover:border-brand-500",
@@ -184,21 +158,21 @@ export function Pricing() {
                   {tier.badge}
                 </span>
               )}
-              <h3 className="text-base font-semibold text-brand-900">
+              <h3 className="text-lg font-semibold text-brand-900">
                 {tier.name}
               </h3>
-              <p className="mt-1 text-xs text-ink-600">{tier.audience}</p>
+              <p className="mt-1 text-sm text-ink-600">{tier.audience}</p>
               <p className="mt-5 flex items-end gap-1">
-                <span className="font-mono tabular-nums text-3xl font-semibold text-brand-900">
+                <span className="font-mono tabular-nums text-4xl font-semibold text-brand-900">
                   {tier.price}
                 </span>
                 {tier.cadence && (
-                  <span className="text-xs text-ink-600 mb-1">
+                  <span className="text-sm text-ink-600 mb-1">
                     {tier.cadence}
                   </span>
                 )}
               </p>
-              <ul className="mt-5 space-y-2.5 text-sm text-ink-700 flex-1">
+              <ul className="mt-6 space-y-3 text-sm text-ink-700 flex-1">
                 {tier.features.map((f) => (
                   <li key={f} className="flex items-start gap-2">
                     <Check
@@ -209,19 +183,19 @@ export function Pricing() {
                   </li>
                 ))}
               </ul>
-              <div className="mt-6">
-                {tier.planId && tier.planId !== "free" ? (
+              <div className="mt-8">
+                {tier.planId !== "free" ? (
                   <Button
                     variant={tier.highlight ? "primary" : "secondary"}
                     size="md"
                     className="w-full"
                     disabled={loading === tier.planId}
-                    onClick={() => handlePaidPlan(tier.planId!)}
+                    onClick={() => handlePaidPlan(tier.planId)}
                   >
                     {loading === tier.planId ? (
                       <span className="flex items-center gap-2">
                         <span className="h-4 w-4 rounded-full border-2 border-current/30 border-t-current animate-spin" />
-                        Redirecting…
+                        Redirecting...
                       </span>
                     ) : (
                       tier.cta.label
@@ -230,7 +204,7 @@ export function Pricing() {
                 ) : (
                   <Link href={tier.cta.href} className="block">
                     <Button
-                      variant={tier.highlight ? "primary" : "secondary"}
+                      variant="secondary"
                       size="md"
                       className="w-full"
                     >
@@ -249,9 +223,15 @@ export function Pricing() {
           </p>
         )}
 
-        <p className="mt-8 text-xs text-ink-600">
-          Enterprise / Sovereign chain (AUD $50k–$500k / yr) available for
-          holding companies and family offices — contact us.
+        <p className="mt-10 text-center text-sm text-ink-600">
+          Enterprise &amp; Accelerator plans from $5,000 &mdash;{" "}
+          <a
+            href="mailto:hello@blockid.au"
+            className="text-brand-500 underline underline-offset-2 hover:text-brand-600"
+          >
+            contact us
+          </a>
+          .
         </p>
 
         {/* Coupon / partner discount section */}

@@ -22,6 +22,10 @@ export interface AnalyticsEventMap {
   svi_submitted: { method: "text" | "file"; has_file: boolean };
   svi_analysis_complete: { svi_score: number; slug: string };
   svi_result_reset: Record<string, never>;
+  svi_paywall_shown: Record<string, never>;
+  svi_paywall_checkout_click: Record<string, never>;
+  svi_paywall_analysis_click: { price: number };
+  svi_paywall_coupon_submit: { code: string };
 
   // ── Score Form ──
   score_form_started: Record<string, never>;
@@ -51,6 +55,7 @@ export interface AnalyticsEventMap {
   // ── Founding 50 ──
   founding50_viewed: Record<string, never>;
   founding50_submitted: { has_coupon: boolean };
+  founding50_checkout_redirect: { price: number };
 
   // ── Tools ──
   tool_accessed: { tool: string };

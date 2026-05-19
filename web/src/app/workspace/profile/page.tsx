@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
+import { ProfileProgress } from "@/components/workspace/profile-progress";
 export const dynamic = "force-dynamic";
 
 export default async function ProfilePage() {
@@ -41,6 +42,7 @@ export default async function ProfilePage() {
             </div>
           </div>
         </div>
+        <ProfileProgress email={user.email} />
       </div>
     </WorkspaceLayout>
   );

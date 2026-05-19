@@ -33,11 +33,20 @@ let cachedToken: string | null = null;
 
 function getAccessToken(): string {
   if (cachedToken) return cachedToken;
+
+  // 1. Check for explicit token via env or CLI arg
+  const envToken = process.env.GTM_ACCESS_TOKEN ?? process.argv[2];
+  if (envToken) {
+    cachedToken = envToken.trim();
+    return cachedToken;
+  }
+
+  // 2. Fallback to gcloud
   try {
     cachedToken = execSync("gcloud auth print-access-token", { encoding: "utf-8" }).trim();
     return cachedToken;
   } catch {
-    console.error("❌ Run first: gcloud auth login ceo@longcare.au");
+    console.error("❌ Provide access token: GTM_ACCESS_TOKEN=ya29... npx tsx scripts/setup-gtm.ts");
     process.exit(1);
   }
 }

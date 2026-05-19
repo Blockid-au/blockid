@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { SVIEntrance } from "@/components/svi/svi-entrance";
 
 export const metadata = {
@@ -7,5 +8,9 @@ export const metadata = {
 };
 
 export default function HomePage() {
-  return <SVIEntrance />;
+  return (
+    <Suspense>
+      <SVIEntrance />
+    </Suspense>
+  );
 }

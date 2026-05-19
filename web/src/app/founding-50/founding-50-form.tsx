@@ -2,14 +2,14 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { CheckCircle2, Tag } from "lucide-react";
+import { CheckCircle2, Loader2, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 
-type State = "idle" | "validating" | "submitting" | "done" | "error";
+type State = "idle" | "validating" | "submitting" | "redirecting" | "done" | "error";
 
 interface CouponResult {
   ok: boolean;
@@ -63,7 +63,8 @@ export function Founding50Form() {
     setState("submitting");
 
     try {
-      const res = await fetch("/api/lead", {
+      // Step 1: Save the lead for tracking (keep existing behaviour).
+      const leadRes = await fetch("/api/lead", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -78,26 +79,78 @@ export function Founding50Form() {
           },
         }),
       });
-      const data = await res.json() as { ok: boolean; checkoutUrl?: string };
-      if (!data.ok) {
+      const leadData = await leadRes.json() as { ok: boolean };
+      if (!leadData.ok) {
         setError("Something went wrong. Please try again.");
         setState("error");
         return;
       }
+
       trackEvent("founding50_submitted", { has_coupon: !!(couponResult?.ok) });
       trackEvent("lead_form_submitted", { source: "founding50" });
-      // If the API returned a Stripe checkout URL, redirect immediately.
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
+
+      // Step 2: Attempt Stripe checkout.
+      setState("redirecting");
+
+      const checkoutRes = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          plan: "founding50",
+          ...(couponResult?.ok && coupon.trim()
+            ? { couponCode: coupon.trim().toUpperCase() }
+            : {}),
+        }),
+      });
+
+      if (checkoutRes.status === 401) {
+        // User is not logged in — send them to login with a redirect back.
+        const params = new URLSearchParams({
+          plan: "founding50",
+          next: "/founding-50",
+          email,
+        });
+        window.location.href = `/auth/login?${params.toString()}`;
         return;
       }
-      // Fallback: Stripe not configured — show confirmation message.
+
+      const checkoutData = await checkoutRes.json() as {
+        ok: boolean;
+        url?: string;
+        reason?: string;
+      };
+
+      if (checkoutData.ok && checkoutData.url) {
+        trackEvent("founding50_checkout_redirect", { price: finalPrice });
+        window.location.href = checkoutData.url;
+        return;
+      }
+
+      // Stripe not configured or other non-auth error — fall back to confirmation.
       setState("done");
     } catch {
       setError("Network error. Please try again.");
       setState("error");
     }
   };
+
+  if (state === "redirecting") {
+    return (
+      <div className="rounded-2xl border border-brand-600/30 bg-brand-50/30 px-8 py-10 text-center">
+        <Loader2
+          strokeWidth={1.75}
+          className="mx-auto mb-4 h-10 w-10 text-brand-600 animate-spin"
+        />
+        <h3 className="text-xl font-bold text-ink-800 mb-2">
+          Redirecting to checkout&hellip;
+        </h3>
+        <p className="text-sm text-ink-600 leading-relaxed">
+          Setting up your secure Stripe checkout session. You&apos;ll be
+          redirected in a moment.
+        </p>
+      </div>
+    );
+  }
 
   if (state === "done") {
     return (
@@ -107,26 +160,26 @@ export function Founding50Form() {
           className="mx-auto mb-4 h-10 w-10 text-green-400"
         />
         <h3 className="text-xl font-bold text-ink-800 mb-2">
-          You&apos;re on the list!
+          Almost there!
         </h3>
         <p className="text-sm text-ink-600 leading-relaxed mb-6">
-          We&apos;ve received your Founding 50 application for{" "}
-          <span className="text-ink-800 font-medium">{email}</span>. We&apos;ll
-          send payment details and account setup within 24 hours.
+          Your Founding 50 spot for{" "}
+          <span className="text-ink-800 font-medium">{email}</span> is reserved.
+          Complete checkout to activate your account.
         </p>
         <div className="rounded-xl border border-surface-200 bg-white px-4 py-3 text-sm text-ink-600">
           <p className="font-medium text-ink-800 mb-1">What happens next</p>
           <ol className="text-left space-y-1 text-xs list-decimal list-inside">
-            <li>We send you a secure payment link (AUD ${finalPrice})</li>
-            <li>Payment confirms your spot in Founding 50</li>
-            <li>Account access + 30-day plan within 24 hours</li>
+            <li>Complete secure payment via Stripe</li>
+            <li>Account activated instantly</li>
+            <li>Start your 30-day growth plan</li>
           </ol>
         </div>
         <Link
           href="/"
           className="mt-6 inline-block text-xs text-brand-600 hover:text-brand-700 transition-colors"
         >
-          ← Analyze another idea
+          &larr; Analyze another idea
         </Link>
       </div>
     );
@@ -141,7 +194,7 @@ export function Founding50Form() {
         Claim your spot
       </h2>
       <p className="text-xs text-ink-600">
-        50 spots only. Fill in your details and we&apos;ll send you a payment link within minutes.
+        50 spots only. Fill in your details and checkout securely via Stripe.
       </p>
 
       {/* Name */}
@@ -241,7 +294,7 @@ export function Founding50Form() {
         </div>
         <div className="text-right">
           <p className="text-xs text-ink-700">Payment method</p>
-          <p className="text-xs text-ink-600 mt-0.5">Secure link via email</p>
+          <p className="text-xs text-ink-600 mt-0.5">Secure checkout via Stripe</p>
         </div>
       </div>
 
@@ -253,22 +306,15 @@ export function Founding50Form() {
         type="submit"
         variant="primary"
         size="md"
-        disabled={state === "submitting"}
+        disabled={state === "validating"}
         className="w-full"
       >
-        {state === "submitting" ? (
-          <span className="flex items-center gap-2">
-            <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-            Reserving your spot…
-          </span>
-        ) : (
-          `Reserve my Founding 50 spot — $${finalPrice} AUD`
-        )}
+        {`Checkout — $${finalPrice} AUD`}
       </Button>
 
       <p className="text-center text-[10px] text-ink-700 leading-relaxed">
-        No payment now. We send you a secure payment link within minutes.
-        Your spot is reserved for 24 hours once you submit.
+        You&apos;ll be redirected to Stripe for secure payment.
+        Your spot is reserved once payment is complete.
       </p>
     </form>
   );

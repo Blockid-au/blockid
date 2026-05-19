@@ -3,6 +3,7 @@
 import * as React from "react";
 import {
   AlertTriangle,
+  ArrowRight,
   BarChart3,
   CheckCircle2,
   ChevronDown,
@@ -11,6 +12,7 @@ import {
   ChevronUp,
   ClipboardList,
   Copy,
+  ExternalLink,
   FileText,
   Globe,
   LayoutDashboard,
@@ -21,6 +23,7 @@ import {
   Shield,
   Target,
   TrendingUp,
+  Upload,
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,6 +32,12 @@ import { trackEvent } from "@/lib/analytics";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
 import { ResearchPanel } from "@/components/svi/research-panel";
+import type { SVIAction } from "@/lib/svi-actions";
+import {
+  getActionsForDimension,
+  getActionForGap,
+  getActionForNextAction,
+} from "@/lib/svi-actions";
 
 /* ─── Constants ───────────────────────────────────────────────────────────── */
 
@@ -261,6 +270,45 @@ function MetricCard({
   );
 }
 
+function ActionButton({ action, onUpload, email, dimension }: { action: SVIAction; onUpload?: () => void; email?: string; dimension?: string }) {
+  if (action.type === "upload") {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          if (email) void trackAction(email, { label: action.label, type: action.type, dimension, href: action.href });
+          onUpload?.();
+        }}
+        className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition-colors cursor-pointer"
+      >
+        <Upload className="h-3 w-3" />
+        {action.label}
+      </button>
+    );
+  }
+
+  const isExternal = action.type === "external" || action.type === "guide";
+  return (
+    <a
+      href={action.href}
+      target={isExternal ? "_blank" : undefined}
+      rel={isExternal ? "noopener noreferrer" : undefined}
+      onClick={() => {
+        if (email) void trackAction(email, { label: action.label, type: action.type, dimension, href: action.href });
+      }}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+        isExternal
+          ? "border-surface-300 bg-surface-50 text-ink-700 hover:bg-surface-100"
+          : "border-brand-300 bg-brand-50 text-brand-700 hover:bg-brand-100",
+      )}
+    >
+      {isExternal ? <ExternalLink className="h-3 w-3" /> : <ArrowRight className="h-3 w-3" />}
+      {action.label}
+    </a>
+  );
+}
+
 function DimensionBar({
   label,
   keyName,
@@ -268,6 +316,8 @@ function DimensionBar({
   adjustment,
   evidence,
   gaps,
+  onUpload,
+  email,
 }: {
   label: string;
   keyName: string;
@@ -275,6 +325,8 @@ function DimensionBar({
   adjustment: number;
   evidence: string[];
   gaps: string[];
+  onUpload?: () => void;
+  email?: string;
 }) {
   const [open, setOpen] = React.useState(false);
   const pct = Math.round(value);
@@ -354,6 +406,17 @@ function DimensionBar({
               </ul>
             </div>
           )}
+          {/* Quick-fix action buttons for this dimension */}
+          {gaps.length > 0 && (() => {
+            const actions = getActionsForDimension(keyName);
+            return actions.length > 0 ? (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {actions.map((a) => (
+                  <ActionButton key={a.label} action={a} onUpload={onUpload} email={email} dimension={keyName} />
+                ))}
+              </div>
+            ) : null;
+          })()}
         </div>
       )}
     </div>
@@ -546,6 +609,24 @@ function findSub(analysis: SVIAnalysis, key: string) {
   return analysis.subs.find((s) => s.key === key);
 }
 
+/* ─── Action tracking (fire-and-forget) ─────────────────────────────── */
+
+async function trackAction(email: string, action: { label: string; type: string; dimension?: string; href?: string }) {
+  try {
+    await fetch("/api/actions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        actionType: action.type === "upload" ? "evidence_uploaded" : action.type === "tool" ? "tool_used" : "guide_visited",
+        actionLabel: action.label,
+        dimension: action.dimension,
+        toolSlug: action.href?.replace(/^\/tools\//, "") ?? null,
+      }),
+    });
+  } catch { /* fire and forget */ }
+}
+
 /* ─── Main Component ──────────────────────────────────────────────────── */
 
 export function SVIResultsPanel({
@@ -553,11 +634,13 @@ export function SVIResultsPanel({
   slug,
   onReset,
   rawText,
+  email,
 }: {
   analysis: SVIAnalysis;
   slug: string;
   onReset: () => void;
   rawText?: string;
+  email?: string;
 }) {
   const [copied, setCopied] = React.useState(false);
   const pageIds = PAGES.map((p) => p.id);
@@ -565,6 +648,17 @@ export function SVIResultsPanel({
 
   const shareUrl =
     typeof window !== "undefined" ? `${window.location.origin}/svi/${slug}` : `/svi/${slug}`;
+
+  const handleUploadAction = React.useCallback(() => {
+    // Track the action before navigating (fire-and-forget)
+    if (email) {
+      void trackAction(email, { label: "Upload evidence", type: "upload", href: "/workspace/evidence" });
+    }
+    // Navigate to evidence upload — workspace/evidence if logged in, otherwise prompt login
+    if (typeof window !== "undefined") {
+      window.location.href = "/workspace/evidence";
+    }
+  }, [email]);
 
   const handleCopy = () => {
     void navigator.clipboard.writeText(shareUrl);
@@ -696,6 +790,8 @@ export function SVIResultsPanel({
                   adjustment={sub.adjustment}
                   evidence={sub.evidence}
                   gaps={sub.gaps}
+                  onUpload={handleUploadAction}
+                  email={email}
                 />
               ))}
             </div>
@@ -1072,21 +1168,31 @@ export function SVIResultsPanel({
                       Critical (P0)
                     </p>
                     <div className="space-y-2">
-                      {p0Gaps.map((gap) => (
-                        <div
-                          key={gap.label}
-                          className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3"
-                        >
-                          <span className="mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-600">
-                            P0
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-ink-800">{gap.label}</p>
-                            <p className="text-xs text-ink-600 mt-0.5">{gap.action}</p>
+                      {p0Gaps.map((gap) => {
+                        const gapAction = getActionForGap(gap.label);
+                        return (
+                          <div
+                            key={gap.label}
+                            className="rounded-xl border border-red-200 bg-red-50 px-4 py-3"
+                          >
+                            <div className="flex items-start gap-3">
+                              <span className="mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-600">
+                                P0
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-ink-800">{gap.label}</p>
+                                <p className="text-xs text-ink-600 mt-0.5">{gap.action}</p>
+                              </div>
+                              <span className="shrink-0 font-mono text-xs font-semibold text-teal-600">+{gap.impact}</span>
+                            </div>
+                            {gapAction && (
+                              <div className="mt-2 ml-8">
+                                <ActionButton action={gapAction} onUpload={handleUploadAction} email={email} />
+                              </div>
+                            )}
                           </div>
-                          <span className="shrink-0 font-mono text-xs font-semibold text-teal-600">+{gap.impact}</span>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -1098,21 +1204,31 @@ export function SVIResultsPanel({
                       Important (P1)
                     </p>
                     <div className="space-y-2">
-                      {p1Gaps.map((gap) => (
-                        <div
-                          key={gap.label}
-                          className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3"
-                        >
-                          <span className="mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-600">
-                            P1
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-ink-800">{gap.label}</p>
-                            <p className="text-xs text-ink-600 mt-0.5">{gap.action}</p>
+                      {p1Gaps.map((gap) => {
+                        const gapAction = getActionForGap(gap.label);
+                        return (
+                          <div
+                            key={gap.label}
+                            className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3"
+                          >
+                            <div className="flex items-start gap-3">
+                              <span className="mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-600">
+                                P1
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-ink-800">{gap.label}</p>
+                                <p className="text-xs text-ink-600 mt-0.5">{gap.action}</p>
+                              </div>
+                              <span className="shrink-0 font-mono text-xs font-semibold text-teal-600">+{gap.impact}</span>
+                            </div>
+                            {gapAction && (
+                              <div className="mt-2 ml-8">
+                                <ActionButton action={gapAction} onUpload={handleUploadAction} email={email} />
+                              </div>
+                            )}
                           </div>
-                          <span className="shrink-0 font-mono text-xs font-semibold text-teal-600">+{gap.impact}</span>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -1124,21 +1240,31 @@ export function SVIResultsPanel({
                       Nice to Have (P2)
                     </p>
                     <div className="space-y-2">
-                      {p2Gaps.map((gap) => (
-                        <div
-                          key={gap.label}
-                          className="flex items-start gap-3 rounded-xl border border-surface-200 bg-surface-50 px-4 py-3"
-                        >
-                          <span className="mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-surface-200 text-ink-600">
-                            P2
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-ink-800">{gap.label}</p>
-                            <p className="text-xs text-ink-600 mt-0.5">{gap.action}</p>
+                      {p2Gaps.map((gap) => {
+                        const gapAction = getActionForGap(gap.label);
+                        return (
+                          <div
+                            key={gap.label}
+                            className="rounded-xl border border-surface-200 bg-surface-50 px-4 py-3"
+                          >
+                            <div className="flex items-start gap-3">
+                              <span className="mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-surface-200 text-ink-600">
+                                P2
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-ink-800">{gap.label}</p>
+                                <p className="text-xs text-ink-600 mt-0.5">{gap.action}</p>
+                              </div>
+                              <span className="shrink-0 font-mono text-xs font-semibold text-teal-600">+{gap.impact}</span>
+                            </div>
+                            {gapAction && (
+                              <div className="mt-2 ml-8">
+                                <ActionButton action={gapAction} onUpload={handleUploadAction} email={email} />
+                              </div>
+                            )}
                           </div>
-                          <span className="shrink-0 font-mono text-xs font-semibold text-teal-600">+{gap.impact}</span>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -1151,35 +1277,43 @@ export function SVIResultsPanel({
                       Recommended Actions
                     </p>
                     <div className="space-y-2">
-                      {analysis.nextActions.map((action) => (
-                        <div
-                          key={action.title}
-                          className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-start gap-2.5">
-                              <Zap
-                                strokeWidth={1.75}
-                                className={cn(
-                                  "mt-0.5 h-4 w-4 shrink-0",
-                                  action.priority === "P0"
-                                    ? "text-red-600"
-                                    : action.priority === "P1"
-                                      ? "text-amber-600"
-                                      : "text-ink-600",
-                                )}
-                              />
-                              <div>
-                                <p className="text-sm font-medium text-ink-800">{action.title}</p>
-                                <p className="text-xs text-ink-600 mt-0.5 leading-relaxed">{action.detail}</p>
+                      {analysis.nextActions.map((action) => {
+                        const nextAction = getActionForNextAction(action.title);
+                        return (
+                          <div
+                            key={action.title}
+                            className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-start gap-2.5">
+                                <Zap
+                                  strokeWidth={1.75}
+                                  className={cn(
+                                    "mt-0.5 h-4 w-4 shrink-0",
+                                    action.priority === "P0"
+                                      ? "text-red-600"
+                                      : action.priority === "P1"
+                                        ? "text-amber-600"
+                                        : "text-ink-600",
+                                  )}
+                                />
+                                <div>
+                                  <p className="text-sm font-medium text-ink-800">{action.title}</p>
+                                  <p className="text-xs text-ink-600 mt-0.5 leading-relaxed">{action.detail}</p>
+                                </div>
                               </div>
+                              <span className="shrink-0 font-mono text-xs font-semibold text-teal-600 mt-0.5">
+                                {action.impact}
+                              </span>
                             </div>
-                            <span className="shrink-0 font-mono text-xs font-semibold text-teal-600 mt-0.5">
-                              {action.impact}
-                            </span>
+                            {nextAction && (
+                              <div className="mt-2 ml-7">
+                                <ActionButton action={nextAction} onUpload={handleUploadAction} email={email} />
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -1212,23 +1346,33 @@ export function SVIResultsPanel({
                   Top Actions to Advance
                 </p>
                 <div className="space-y-2">
-                  {analysis.nextActions.slice(0, 3).map((action, idx) => (
-                    <div
-                      key={action.title}
-                      className="flex items-start gap-3 rounded-xl border border-surface-200 bg-white px-4 py-3 shadow-sm"
-                    >
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-50 border border-brand-200 text-xs font-bold text-brand-600 shrink-0">
-                        {idx + 1}
-                      </span>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-ink-800">{action.title}</p>
-                        <p className="text-xs text-ink-600 mt-0.5">{action.detail}</p>
+                  {analysis.nextActions.slice(0, 3).map((action, idx) => {
+                    const nextAction = getActionForNextAction(action.title);
+                    return (
+                      <div
+                        key={action.title}
+                        className="rounded-xl border border-surface-200 bg-white px-4 py-3 shadow-sm"
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-50 border border-brand-200 text-xs font-bold text-brand-600 shrink-0">
+                            {idx + 1}
+                          </span>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-ink-800">{action.title}</p>
+                            <p className="text-xs text-ink-600 mt-0.5">{action.detail}</p>
+                          </div>
+                          <span className="shrink-0 font-mono text-xs font-semibold text-teal-600 mt-0.5">
+                            {action.impact}
+                          </span>
+                        </div>
+                        {nextAction && (
+                          <div className="mt-2 ml-9">
+                            <ActionButton action={nextAction} onUpload={handleUploadAction} email={email} />
+                          </div>
+                        )}
                       </div>
-                      <span className="shrink-0 font-mono text-xs font-semibold text-teal-600 mt-0.5">
-                        {action.impact}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -1254,13 +1398,25 @@ export function SVIResultsPanel({
 
             {/* Action Buttons */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-              <a href="/founding-50" className="block">
+              <a
+                href="/founding-50"
+                className="block"
+                onClick={() => {
+                  if (email) void trackAction(email, { label: "Get Founding 50", type: "guide", href: "/founding-50" });
+                }}
+              >
                 <Button variant="primary" size="md" className="w-full gap-2">
                   <Rocket strokeWidth={1.75} className="h-4 w-4" />
                   Get Founding 50
                 </Button>
               </a>
-              <a href="/dashboard/svi" className="block">
+              <a
+                href="/dashboard/svi"
+                className="block"
+                onClick={() => {
+                  if (email) void trackAction(email, { label: "View on Dashboard", type: "guide", href: "/dashboard/svi" });
+                }}
+              >
                 <Button variant="secondary" size="md" className="w-full gap-2">
                   <LayoutDashboard strokeWidth={1.75} className="h-4 w-4" />
                   View on Dashboard

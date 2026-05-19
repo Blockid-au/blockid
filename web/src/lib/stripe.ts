@@ -36,4 +36,5 @@ export const STRIPE_PRICE_MAP: Record<string, string | undefined> = {
   growth: process.env.STRIPE_PRICE_GROWTH,
   pilot: process.env.STRIPE_PRICE_PILOT,
   accelerator: process.env.STRIPE_PRICE_ACCELERATOR,
+  svi_analysis: process.env.STRIPE_PRICE_SVI_ANALYSIS,
 };

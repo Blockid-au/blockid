@@ -10,6 +10,7 @@ import {
   FileText,
   FolderOpen,
   Lightbulb,
+  Lock,
   Menu,
   Mic,
   MicOff,
@@ -18,6 +19,8 @@ import {
   Search,
   Shield,
   ShieldCheck,
+  Sparkles,
+  Tag,
   Target,
   TrendingUp,
   UploadCloud,
@@ -30,7 +33,14 @@ import { trackEvent } from "@/lib/analytics";
 import { SVIResultsPanel } from "@/components/svi/svi-results-panel";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 
+import { useSearchParams, useRouter } from "next/navigation";
+
 type SubmitState = "idle" | "submitting" | "done" | "error";
+
+const SVI_FREE_USED_KEY = "blockid_svi_free_used";
+
+/** Early-bird deadline: June 15 2026 00:00 AEST (UTC+10). */
+const EARLY_BIRD_DEADLINE = new Date("2026-06-15T00:00:00+10:00");
 
 interface SVIApiResponse {
   ok: boolean;
@@ -105,10 +115,52 @@ export function SVIEntrance() {
   const [result, setResult] = React.useState<SVIApiResponse | null>(null);
   const [error, setError] = React.useState("");
   const [searchFocused, setSearchFocused] = React.useState(false);
+  const [showPaywall, setShowPaywall] = React.useState(false);
+  const [hasPaidPlan, setHasPaidPlan] = React.useState(false);
+  const [analysisPaidToast, setAnalysisPaidToast] = React.useState(false);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = React.useRef<any>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Handle ?analysis_paid=true — grant one more analysis after payment.
+  React.useEffect(() => {
+    if (searchParams.get("analysis_paid") === "true") {
+      // Clear the free-used gate so the user can run one more analysis.
+      if (typeof window !== "undefined") {
+        localStorage.removeItem(SVI_FREE_USED_KEY);
+      }
+      setShowPaywall(false);
+      setAnalysisPaidToast(true);
+      // Clean the URL param without a full page reload.
+      const url = new URL(window.location.href);
+      url.searchParams.delete("analysis_paid");
+      router.replace(url.pathname + url.search + url.hash, { scroll: false });
+      // Auto-dismiss toast after 5 seconds.
+      const timer = setTimeout(() => setAnalysisPaidToast(false), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams, router]);
+
+  // Check if user is authenticated with a paid plan — skip the gate if so.
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled && data.ok && data.user?.plan && data.user.plan !== "free") {
+          setHasPaidPlan(true);
+        }
+      } catch {
+        // Silently ignore — gate stays active.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   React.useEffect(() => {
     const el = textareaRef.current;
@@ -143,6 +195,18 @@ export function SVIEntrance() {
     if (!email || !email.includes("@")) { setError("Please enter a valid email address."); return; }
     const rawText = file ? `File: ${file.name}\n${text}` : text;
     if (!rawText.trim() && !file) { setError("Please describe your idea or upload a document."); return; }
+
+    // ── Free-analysis gate ──────────────────────────────────────────────
+    // Paid users bypass the gate entirely. Otherwise, check localStorage.
+    if (!hasPaidPlan) {
+      const freeUsed = typeof window !== "undefined" && localStorage.getItem(SVI_FREE_USED_KEY);
+      if (freeUsed) {
+        setShowPaywall(true);
+        trackEvent("svi_paywall_shown", {});
+        return;
+      }
+    }
+
     setError(""); setState("submitting");
     trackEvent("svi_submitted", { method: file ? "file" : "text", has_file: !!file });
     try {
@@ -151,10 +215,24 @@ export function SVIEntrance() {
       if (!data.ok) { setError("Analysis failed. Please try again."); setState("error"); return; }
       setResult(data); setState("done");
       trackEvent("svi_analysis_complete", { svi_score: data.totalSVI, slug: data.slug });
+
+      // Mark free analysis as used (only for non-paid users).
+      if (!hasPaidPlan && typeof window !== "undefined") {
+        localStorage.setItem(SVI_FREE_USED_KEY, "true");
+      }
     } catch { setError("Network error. Please try again."); setState("error"); }
   };
 
   const handleReset = () => { setResult(null); setState("idle"); setText(""); setFile(null); setEmail(""); setError(""); };
+
+  // Called when a 100% coupon grants free access — clear gate and re-submit.
+  const handleCouponGrant = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(SVI_FREE_USED_KEY);
+    }
+    setShowPaywall(false);
+    setHasPaidPlan(true); // Treat as paid for the rest of this session.
+  };
 
   // ── Results view
   if (state === "done" && result) {
@@ -170,7 +248,7 @@ export function SVIEntrance() {
           </button>
         </header>
         <main className="flex-1 px-4 pb-12">
-          <SVIResultsPanel analysis={result.analysis} slug={result.slug} onReset={handleReset} rawText={text} />
+          <SVIResultsPanel analysis={result.analysis} slug={result.slug} onReset={handleReset} rawText={text} email={email} />
         </main>
       </div>
     );
@@ -445,6 +523,321 @@ export function SVIEntrance() {
       </section>
 
       <BottomFooter />
+
+      {/* ── ANALYSIS PAID TOAST ──────────────────────────────────────── */}
+      {analysisPaidToast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[110] animate-fade-in">
+          <div className="flex items-center gap-2 rounded-2xl border border-green-200 bg-green-50 px-5 py-3 shadow-lg">
+            <CheckCircle2 strokeWidth={1.75} className="h-5 w-5 text-green-600 shrink-0" />
+            <span className="text-sm font-medium text-green-800">Payment confirmed! Run your analysis now.</span>
+            <button
+              type="button"
+              onClick={() => setAnalysisPaidToast(false)}
+              className="ml-2 h-6 w-6 flex items-center justify-center rounded-full text-green-600 hover:bg-green-100 cursor-pointer transition-colors"
+              aria-label="Dismiss"
+            >
+              <X strokeWidth={1.75} className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── PAYWALL OVERLAY ──────────────────────────────────────────── */}
+      {showPaywall && (
+        <SVIPaywall
+          onClose={() => setShowPaywall(false)}
+          onCouponGrant={handleCouponGrant}
+          email={email}
+        />
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Paywall overlay — shown after the first free analysis is consumed.
+// ═══════════════════════════════════════════════════════════════════════════════
+function SVIPaywall({
+  onClose,
+  onCouponGrant,
+  email: parentEmail,
+}: {
+  onClose: () => void;
+  onCouponGrant: () => void;
+  email?: string;
+}) {
+  const [couponCode, setCouponCode] = React.useState("");
+  const [couponState, setCouponState] = React.useState<
+    "idle" | "validating" | "success" | "error"
+  >("idle");
+  const [couponMsg, setCouponMsg] = React.useState("");
+  const [checkoutLoading, setCheckoutLoading] = React.useState<"analysis" | "plan" | null>(null);
+  const [analysisEmail, setAnalysisEmail] = React.useState(parentEmail ?? "");
+  const [analysisError, setAnalysisError] = React.useState("");
+
+  const isEarlyBird = new Date() < EARLY_BIRD_DEADLINE;
+  const analysisPrice = isEarlyBird ? 5 : 25;
+
+  /** Checkout for a single $5/$25 analysis (no auth required). */
+  const handleAnalysisCheckout = async () => {
+    const trimmedEmail = analysisEmail.trim();
+    if (!trimmedEmail || !trimmedEmail.includes("@")) {
+      setAnalysisError("Please enter a valid email address.");
+      return;
+    }
+    setAnalysisError("");
+    setCheckoutLoading("analysis");
+    trackEvent("svi_paywall_analysis_click", { price: analysisPrice });
+    try {
+      const res = await fetch("/api/stripe/analysis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmedEmail }),
+      });
+      const data = await res.json();
+      if (data.ok && data.url) {
+        window.location.href = data.url;
+      } else {
+        setAnalysisError(data.reason || "Could not start checkout. Please try again.");
+      }
+    } catch {
+      setAnalysisError("Network error. Please try again.");
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
+
+  /** Checkout for the Founding 50 plan (requires auth). */
+  const handlePlanCheckout = async () => {
+    setCheckoutLoading("plan");
+    trackEvent("svi_paywall_checkout_click", {});
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: "founding50" }),
+      });
+      if (res.status === 401) {
+        window.location.href = "/auth/login?plan=founding50";
+        return;
+      }
+      const data = await res.json();
+      if (data.ok && data.url) {
+        window.location.href = data.url;
+      } else {
+        setCouponMsg(data.reason || "Could not start checkout. Please try again.");
+        setCouponState("error");
+      }
+    } catch {
+      setCouponMsg("Network error. Please try again.");
+      setCouponState("error");
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
+
+  const handleCouponValidate = async () => {
+    const code = couponCode.trim();
+    if (!code) return;
+    setCouponState("validating");
+    setCouponMsg("");
+    trackEvent("svi_paywall_coupon_submit", { code });
+    try {
+      const res = await fetch("/api/coupon/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (data.ok && data.discount_pct === 100) {
+        setCouponState("success");
+        setCouponMsg("Free access granted!");
+        setTimeout(() => onCouponGrant(), 1200);
+      } else if (data.ok) {
+        setCouponState("idle");
+        setCouponMsg(
+          `${data.discount_pct}% discount applied. Proceed to checkout to use it.`
+        );
+      } else {
+        setCouponState("error");
+        setCouponMsg(data.reason || "Invalid coupon code.");
+      }
+    } catch {
+      setCouponState("error");
+      setCouponMsg("Could not validate coupon. Please try again.");
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ink-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto py-8">
+      <div className="relative mx-4 w-full max-w-lg rounded-3xl border border-surface-200 bg-white px-8 py-10 shadow-2xl">
+        {/* Close button */}
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-4 right-4 h-8 w-8 flex items-center justify-center rounded-full text-ink-400 hover:text-ink-700 hover:bg-surface-100 cursor-pointer transition-colors"
+          aria-label="Close"
+        >
+          <X strokeWidth={1.75} className="h-4 w-4" />
+        </button>
+
+        {/* Icon */}
+        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 border border-brand-200">
+          <Lock strokeWidth={1.75} className="h-7 w-7 text-brand-600" />
+        </div>
+
+        <h3 className="text-center text-xl font-bold text-ink-900">
+          Your free analysis is complete!
+        </h3>
+        <p className="mt-2 text-center text-sm text-ink-500 leading-relaxed">
+          Choose how you&apos;d like to continue.
+        </p>
+
+        {/* ── Option A: Single Analysis ────────────────────────────────── */}
+        <div className="mt-6 rounded-2xl border border-surface-200 bg-surface-50 px-5 py-5">
+          <p className="text-xs uppercase tracking-[0.12em] font-semibold text-ink-400 mb-1">Option A</p>
+          <p className="text-sm font-bold text-ink-800">Single Analysis</p>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-extrabold text-brand-600">${analysisPrice} AUD</span>
+            {isEarlyBird && (
+              <span className="text-sm text-ink-400 line-through">$25</span>
+            )}
+          </div>
+          {isEarlyBird && (
+            <p className="mt-1 text-xs text-brand-600 font-medium">
+              Early-bird price until June 15, 2026
+            </p>
+          )}
+
+          {/* Email input for guest checkout */}
+          <input
+            type="email"
+            value={analysisEmail}
+            onChange={(e) => { setAnalysisEmail(e.target.value); if (analysisError) setAnalysisError(""); }}
+            placeholder="your@email.com"
+            className="mt-3 h-10 w-full rounded-xl border border-surface-300 bg-white px-3 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
+          />
+          {analysisError && (
+            <p className="mt-1.5 text-xs text-red-500">{analysisError}</p>
+          )}
+
+          <button
+            type="button"
+            onClick={handleAnalysisCheckout}
+            disabled={checkoutLoading !== null}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 h-11 text-sm font-bold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50 cta-glow"
+          >
+            {checkoutLoading === "analysis" ? (
+              <span className="flex items-center gap-2">
+                <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                Redirecting...
+              </span>
+            ) : (
+              <>Get This Analysis &mdash; ${analysisPrice} AUD</>
+            )}
+          </button>
+        </div>
+
+        {/* ── Divider ──────────────────────────────────────────────────── */}
+        <div className="my-5 flex items-center gap-3">
+          <div className="flex-1 border-t border-surface-200" />
+          <span className="text-xs text-ink-400">or</span>
+          <div className="flex-1 border-t border-surface-200" />
+        </div>
+
+        {/* ── Option B: Unlimited (Founding 50) ────────────────────────── */}
+        <div className="rounded-2xl border border-brand-200 bg-white px-5 py-5 relative overflow-hidden">
+          <div className="absolute top-3 right-3 rounded-full bg-brand-600 px-2.5 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider">Best Value</div>
+          <p className="text-xs uppercase tracking-[0.12em] font-semibold text-brand-600 mb-1">Option B</p>
+          <p className="text-sm font-bold text-ink-800">Unlimited Access</p>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-extrabold text-brand-600">$49 AUD</span>
+            <span className="text-sm text-ink-400 line-through">$99</span>
+          </div>
+          <p className="mt-1 text-xs text-ink-500">Unlimited analyses + Evidence Vault + more</p>
+
+          <button
+            type="button"
+            onClick={handlePlanCheckout}
+            disabled={checkoutLoading !== null}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 h-11 text-sm font-bold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50 cta-glow"
+          >
+            {checkoutLoading === "plan" ? (
+              <span className="flex items-center gap-2">
+                <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                Redirecting...
+              </span>
+            ) : (
+              <>
+                <Sparkles strokeWidth={1.75} className="h-4 w-4" />
+                Get Founder Plan &mdash; $49 AUD
+              </>
+            )}
+          </button>
+
+          {/* Features list */}
+          <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1.5">
+            {[
+              "Unlimited SVI analyses",
+              "Evidence vault",
+              "Export packs",
+              "Cap table tools",
+              "30-day growth plan",
+              "Lifetime access",
+            ].map((feat) => (
+              <div key={feat} className="flex items-center gap-1.5">
+                <CheckCircle2 strokeWidth={1.75} className="h-3.5 w-3.5 text-brand-500 shrink-0" />
+                <span className="text-xs text-ink-600">{feat}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Coupon input */}
+        <div className="mt-5">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Tag strokeWidth={1.75} className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400" />
+              <input
+                type="text"
+                value={couponCode}
+                onChange={(e) => { setCouponCode(e.target.value); if (couponState === "error") { setCouponState("idle"); setCouponMsg(""); } }}
+                placeholder="Enter coupon code"
+                className="h-10 w-full rounded-xl border border-surface-300 bg-surface-50 pl-9 pr-3 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleCouponValidate(); } }}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleCouponValidate}
+              disabled={couponState === "validating" || !couponCode.trim()}
+              className="h-10 px-4 rounded-xl border border-surface-300 bg-white text-sm font-medium text-ink-700 hover:bg-surface-100 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {couponState === "validating" ? "..." : "Apply"}
+            </button>
+          </div>
+          {couponMsg && (
+            <p className={cn(
+              "mt-2 text-center text-xs font-medium",
+              couponState === "success" ? "text-green-600" : couponState === "error" ? "text-red-500" : "text-brand-600",
+            )}>
+              {couponState === "success" && <CheckCircle2 strokeWidth={1.75} className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />}
+              {couponMsg}
+            </p>
+          )}
+        </div>
+
+        {/* Sign in link */}
+        <p className="mt-4 text-center text-sm text-ink-500">
+          Already have an account?{" "}
+          <a
+            href="/auth/login?plan=founding50"
+            className="font-semibold text-brand-600 hover:text-brand-700 transition-colors"
+          >
+            Sign in
+          </a>
+        </p>
+      </div>
     </div>
   );
 }
