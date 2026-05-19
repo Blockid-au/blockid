@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
 interface ResearchResult {
   ok: boolean;
   marketScore: number;
@@ -22,6 +20,8 @@ interface ResearchResult {
 }
 
 export async function POST(request: Request) {
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
   try {
     const body = await request.json() as {
       description: string;
@@ -104,7 +104,7 @@ Be specific — name actual companies with real URLs. Return ONLY the JSON objec
         model: "claude-sonnet-4-6",
         max_tokens: 4096,
         system: systemPrompt,
-        tools: [{ type: "web_search_20250305" as "web_search_20250305", name: "web_search" }],
+        tools: [{ type: "web_search_20250305" as const, name: "web_search" }],
         messages: messages as Anthropic.MessageParam[],
       });
 
