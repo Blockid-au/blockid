@@ -105,15 +105,15 @@ export function ResearchPanel({ description, keywords, websiteUrl }: ResearchPan
               Competitive Intelligence Research
             </p>
             <p className="text-xs text-ink-600 mt-1">
-              Tim doi thu canh tranh, validate thi truong va phan tich co hoi tang truong tu du lieu web thuc te.
+              Find competitors, validate market size and analyse growth opportunities from real-time web data.
             </p>
           </div>
           <button
             type="button"
             onClick={() => { void runResearch(); }}
-            className="shrink-0 h-9 px-4 rounded-[10px] bg-brand-700 text-white text-xs font-semibold hover:bg-brand-800 transition-colors cursor-pointer"
+            className="shrink-0 h-9 px-4 rounded-xl bg-brand-600 text-white text-xs font-semibold hover:bg-brand-700 transition-colors cursor-pointer"
           >
-            Nghien cuu ngay &rarr;
+            Research now &rarr;
           </button>
         </div>
       </div>
@@ -126,9 +126,9 @@ export function ResearchPanel({ description, keywords, websiteUrl }: ResearchPan
         <div className="inline-flex items-center gap-3 text-sm text-ink-600">
           <span className="h-5 w-5 rounded-full border-2 border-brand-200 border-t-brand-600 animate-spin" />
           <span>
-            <span className="font-medium text-ink-800">AI dang tim kiem web...</span>
+            <span className="font-medium text-ink-800">AI is searching the web...</span>
             <br />
-            <span className="text-xs">Dang tim doi thu, du lieu thi truong va xu huong tang truong. ~15-30 giay.</span>
+            <span className="text-xs">Finding competitors, market data and growth trends. ~15-30 seconds.</span>
           </span>
         </div>
       </div>
@@ -179,7 +179,7 @@ export function ResearchPanel({ description, keywords, websiteUrl }: ResearchPan
         {result.competitors.length > 0 && (
           <div>
             <p className="text-[10px] uppercase tracking-[0.15em] text-ink-700 font-medium mb-2">
-              Doi thu canh tranh / Competitors ({result.competitors.length})
+              Competitors ({result.competitors.length})
             </p>
             <div className="space-y-2">
               {result.competitors.slice(0, 5).map((c) => (

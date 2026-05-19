@@ -25,8 +25,8 @@ export default function TermsPage() {
             <section>
               <p>
                 These Terms of Service (&quot;Terms&quot;) govern your use of
-                the BlockID platform and services provided by BlockID Pty Ltd
-                (ABN 79 659 615 111) (&quot;BlockID&quot;, &quot;we&quot;,
+                the BlockID platform and services provided by Auschain PTY LTD
+                (ABN pending) (&quot;BlockID&quot;, &quot;we&quot;,
                 &quot;us&quot;). By accessing or using our platform, you agree
                 to be bound by these Terms.
               </p>
@@ -81,7 +81,7 @@ export default function TermsPage() {
               </h2>
               <p className="mt-3">
                 All content, code, designs, and AI models comprising the
-                BlockID platform are owned by or licensed to BlockID Pty Ltd.
+                BlockID platform are owned by or licensed to Auschain PTY LTD.
                 You retain ownership of the data and documents you upload. By
                 using the platform, you grant BlockID a limited licence to
                 process your data solely to provide the services.
@@ -148,15 +148,15 @@ export default function TermsPage() {
               <p className="mt-3">
                 For questions about these Terms, contact us at{" "}
                 <a
-                  href="mailto:ceo@longcare.au"
+                  href="mailto:admin@blockid.au"
                   className="text-brand-600 hover:text-brand-500 underline"
                 >
-                  ceo@longcare.au
+                  admin@blockid.au
                 </a>
                 .
               </p>
               <p className="mt-2">
-                BlockID Pty Ltd
+                Auschain PTY LTD
                 <br />
                 Sydney, NSW, Australia
               </p>

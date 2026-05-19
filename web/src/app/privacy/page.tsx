@@ -24,7 +24,7 @@ export default function PrivacyPage() {
           <div className="mt-8 space-y-10 text-ink-600 leading-relaxed">
             <section>
               <p>
-                BlockID Pty Ltd (ABN 79 659 615 111) (&quot;BlockID&quot;,
+                Auschain PTY LTD (ABN pending) (&quot;BlockID&quot;,
                 &quot;we&quot;, &quot;us&quot;) is committed to protecting your
                 privacy. This policy explains how we collect, use, store, and
                 share your personal information when you use our platform and
@@ -129,15 +129,15 @@ export default function PrivacyPage() {
                 If you have questions about this privacy policy or wish to
                 exercise your rights, contact us at{" "}
                 <a
-                  href="mailto:ceo@longcare.au"
+                  href="mailto:admin@blockid.au"
                   className="text-brand-600 hover:text-brand-500 underline"
                 >
-                  ceo@longcare.au
+                  admin@blockid.au
                 </a>
                 .
               </p>
               <p className="mt-2">
-                BlockID Pty Ltd
+                Auschain PTY LTD
                 <br />
                 Sydney, NSW, Australia
               </p>

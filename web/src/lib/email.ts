@@ -1,6 +1,6 @@
 // BlockID email wrapper (server-only).
 //
-// Uses Gmail SMTP via Nodemailer (ceo@longcare.au relay).
+// Uses Gmail SMTP via Nodemailer (admin@blockid.au relay).
 // Falls back to Resend if RESEND_API_KEY is set.
 // Graceful degradation: if neither is configured, log + return
 // { ok: false, reason: 'not_configured' }.
@@ -8,7 +8,7 @@
 import "server-only";
 import nodemailer from "nodemailer";
 
-const FROM_DEFAULT = "BlockID <ceo@longcare.au>";
+const FROM_DEFAULT = "BlockID <admin@blockid.au>";
 
 function fromAddress(): string {
   return process.env.SMTP_FROM_EMAIL || FROM_DEFAULT;

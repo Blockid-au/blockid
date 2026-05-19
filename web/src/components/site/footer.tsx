@@ -75,7 +75,7 @@ export function Footer() {
                 <p className="flex items-center gap-2">
                   <ShieldCheck strokeWidth={1.75} className="h-4 w-4 text-brand-400" />
                   <span>
-                    ABN <span className="font-mono tabular-nums text-slate-300">79 659 615 111</span>
+                    ABN <span className="font-mono tabular-nums text-slate-300">pending</span>
                   </span>
                 </p>
                 <p className="flex items-center gap-2">
@@ -106,7 +106,7 @@ export function Footer() {
           </div>
           <div className="mt-12 flex flex-col gap-3 border-t border-ink-700 pt-6 text-xs text-slate-500 md:flex-row md:items-center md:justify-between">
             <p>
-              &copy; {new Date().getFullYear()} Auschain Pty Ltd (ACN 659 615 111). Sydney, NSW, Australia.
+              &copy; {new Date().getFullYear()} Auschain PTY LTD (ABN pending). Sydney, NSW, Australia.
             </p>
             <p>
               Not financial advice. BlockID is a software platform — engage a

@@ -66,7 +66,7 @@ export default function AboutPage() {
               Australian-Native
             </h2>
             <p className="mt-3 leading-relaxed text-ink-600">
-              BlockID Pty Ltd is headquartered in Sydney, Australia. Our data
+              Auschain PTY LTD is headquartered in Sydney, Australia. Our data
               is hosted with Australian residency, our compliance frameworks
               are built for ASIC and ATO requirements, and our tools speak the
               language of Australian founders — from ESOP structures to SAFE

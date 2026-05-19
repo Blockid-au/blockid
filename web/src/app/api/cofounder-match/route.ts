@@ -63,7 +63,7 @@ export const dynamic = "force-dynamic";
 // to keep this feature self-contained.
 // -----------------------------------------------------------------------------
 
-const FROM_DEFAULT = "BlockID <ceo@longcare.au>";
+const FROM_DEFAULT = "BlockID <admin@blockid.au>";
 
 function fromAddress(): string {
   return process.env.SMTP_FROM_EMAIL || FROM_DEFAULT;

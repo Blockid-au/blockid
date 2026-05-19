@@ -34,10 +34,10 @@ export default function ContactPage() {
               <p className="mt-3 text-ink-600">
                 Reach us at{" "}
                 <a
-                  href="mailto:ceo@longcare.au"
+                  href="mailto:admin@blockid.au"
                   className="text-brand-600 hover:text-brand-500 underline"
                 >
-                  ceo@longcare.au
+                  admin@blockid.au
                 </a>
               </p>
               <p className="mt-1 text-sm text-ink-600">
@@ -54,7 +54,7 @@ export default function ContactPage() {
               </div>
               <p className="mt-3 text-ink-600">Sydney, Australia</p>
               <p className="mt-1 text-sm text-ink-600">
-                BlockID Pty Ltd (ABN 79 659 615 111)
+                Auschain PTY LTD
               </p>
             </div>
           </div>
@@ -64,10 +64,10 @@ export default function ContactPage() {
             <p className="mt-3 leading-relaxed text-ink-600">
               For technical support or account-related queries, email us at{" "}
               <a
-                href="mailto:ceo@longcare.au"
+                href="mailto:admin@blockid.au"
                 className="text-brand-600 hover:text-brand-500 underline"
               >
-                ceo@longcare.au
+                admin@blockid.au
               </a>{" "}
               with a description of your issue. If you are a Founding 50
               member, please include your account email so we can prioritise
