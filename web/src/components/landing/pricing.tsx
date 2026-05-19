@@ -110,27 +110,36 @@ const discountablePrices: Record<string, number> = Object.fromEntries(
     .map((t) => [t.name, t.numericPrice!]),
 );
 
-async function startCheckout(planId: string) {
-  const res = await fetch("/api/stripe/checkout", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ plan: planId }),
-  });
-  const data = (await res.json()) as { ok: boolean; url?: string; reason?: string };
-  if (data.ok && data.url) {
-    window.location.href = data.url;
-  } else if (res.status === 401) {
-    // Not logged in — redirect to login with plan intent.
-    window.location.href = `/auth/login?plan=${planId}`;
-  }
-}
-
 export function Pricing() {
   const [loading, setLoading] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
 
-  const handlePaidPlan = (planId: string) => {
+  const handlePaidPlan = async (planId: string) => {
     setLoading(planId);
-    startCheckout(planId).finally(() => setLoading(null));
+    setError(null);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: planId }),
+      });
+
+      if (res.status === 401) {
+        window.location.assign(`/auth/login?plan=${planId}`);
+        return;
+      }
+
+      const data = (await res.json()) as { ok: boolean; url?: string; reason?: string };
+      if (data.ok && data.url) {
+        window.location.assign(data.url);
+      } else {
+        setError(data.reason ?? "Could not start checkout. Please try again.");
+      }
+    } catch {
+      setError("Network error. Please check your connection and try again.");
+    } finally {
+      setLoading(null);
+    }
   };
 
   return (
@@ -231,6 +240,12 @@ export function Pricing() {
             </div>
           ))}
         </div>
+
+        {error && (
+          <p className="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </p>
+        )}
 
         <p className="mt-8 text-xs text-ink-600">
           Enterprise / Sovereign chain (AUD $50k–$500k / yr) available for

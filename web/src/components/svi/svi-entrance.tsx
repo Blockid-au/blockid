@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   ChevronDown,
@@ -215,7 +216,21 @@ export function SVIEntrance() {
       <TopBar />
 
       {/* ── Center content ─────────────────────────────────────────────────── */}
-      <main className="flex-1 flex flex-col items-center justify-center px-4 -mt-16">
+      <main className="flex-1 flex flex-col items-center px-4 pt-6">
+        {/* ── Platform banner ─────────────────────────────────────────── */}
+        <div className="w-full max-w-5xl mb-8">
+          <div className="rounded-2xl border border-surface-200 bg-white shadow-md overflow-hidden">
+            <Image
+              src="/images/blockid-hero-banner.png"
+              alt="BlockID.au — Turn your idea into a valuable, investable business. Platform overview showing cap table, valuation intelligence, investor readiness, and AI workspace."
+              width={1560}
+              height={880}
+              className="w-full h-auto"
+              priority
+            />
+          </div>
+        </div>
+
         <div className="w-full max-w-[584px] flex flex-col items-center">
           {/* Logo — large, centered */}
           <div className="flex flex-col items-center mb-8">
@@ -223,14 +238,14 @@ export function SVIEntrance() {
             <img
               src="/images/logo.svg"
               alt="BlockID.au"
-              className="h-24 w-24 md:h-28 md:w-28 mb-4"
+              className="h-20 w-20 md:h-24 md:w-24 mb-3"
             />
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-center">
-              <span className="text-[#1B3A6B]">BlockID</span>
-              <span className="text-[#2B6FD4]">.au</span>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-center">
+              <span className="text-ink-800">BlockID</span>
+              <span className="text-brand-600">.au</span>
             </h1>
-            <p className="mt-2 text-sm text-slate-500 tracking-[0.08em] font-medium">
-              Valuation. Ownership. Growth.
+            <p className="mt-2 text-sm text-ink-600 tracking-[0.08em] font-medium">
+              Measure, prove and grow your startup value
             </p>
           </div>
 
@@ -353,7 +368,7 @@ export function SVIEntrance() {
               <button
                 type="submit"
                 disabled={state === "submitting"}
-                className="h-9 px-4 rounded-lg bg-[#f8f9fa] border border-[#f8f9fa] text-sm font-medium text-slate-700 hover:border-slate-300 hover:shadow-[0_1px_1px_rgba(0,0,0,0.1)] active:border-slate-300 cursor-pointer transition-all disabled:opacity-50"
+                className="h-9 px-4 rounded-lg bg-surface-100 border border-[#f8f9fa] text-sm font-medium text-slate-700 hover:border-slate-300 hover:shadow-[0_1px_1px_rgba(0,0,0,0.1)] active:border-slate-300 cursor-pointer transition-all disabled:opacity-50"
               >
                 {state === "submitting" ? (
                   <span className="flex items-center gap-2">
@@ -371,7 +386,7 @@ export function SVIEntrance() {
                   setText(ex);
                   textareaRef.current?.focus();
                 }}
-                className="h-9 px-4 rounded-lg bg-[#f8f9fa] border border-[#f8f9fa] text-sm font-medium text-slate-700 hover:border-slate-300 hover:shadow-[0_1px_1px_rgba(0,0,0,0.1)] active:border-slate-300 cursor-pointer transition-all"
+                className="h-9 px-4 rounded-lg bg-surface-100 border border-[#f8f9fa] text-sm font-medium text-slate-700 hover:border-slate-300 hover:shadow-[0_1px_1px_rgba(0,0,0,0.1)] active:border-slate-300 cursor-pointer transition-all"
               >
                 Try an Example
               </button>
@@ -577,7 +592,7 @@ function TopBar() {
 // ═══════════════════════════════════════════════════════════════════════════════
 function BottomFooter() {
   return (
-    <footer className="bg-[#f2f2f2] text-sm text-slate-600">
+    <footer className="bg-surface-200 text-sm text-slate-600">
       {/* Country bar */}
       <div className="border-b border-slate-300 px-6 py-3">
         <p className="max-w-[584px] mx-auto">Australia</p>

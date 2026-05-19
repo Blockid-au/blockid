@@ -40,6 +40,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
+  // Always acknowledge receipt to Stripe (200) after signature verification.
+  // Process events best-effort — if the DB write fails, log and let Stripe
+  // retry via its automatic retry mechanism rather than returning 500.
+
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object;
@@ -50,9 +54,13 @@ export async function POST(request: Request) {
         console.warn("[blockid:stripe] checkout.session.completed missing metadata", {
           userId,
           planId,
+          sessionId: session.id,
         });
         break;
       }
+
+      const customerId =
+        typeof session.customer === "string" ? session.customer : null;
 
       // Activate the plan for the user.
       const { error: updateErr } = await supabase
@@ -60,12 +68,18 @@ export async function POST(request: Request) {
         .update({
           plan: planId,
           plan_started_at: new Date().toISOString(),
-          stripe_customer_id: session.customer as string | null,
+          stripe_customer_id: customerId,
         })
         .eq("id", userId);
 
       if (updateErr) {
-        console.error("[blockid:stripe] user plan update failed", updateErr);
+        console.error("[blockid:stripe] user plan update failed", {
+          error: updateErr,
+          userId,
+          planId,
+          sessionId: session.id,
+        });
+        // Return 500 so Stripe retries this webhook delivery.
         return NextResponse.json(
           { error: "Database error" },
           { status: 500 },
@@ -84,22 +98,35 @@ export async function POST(request: Request) {
       const customerId =
         typeof subscription.customer === "string"
           ? subscription.customer
-          : subscription.customer;
+          : null;
 
-      if (customerId) {
-        const { error } = await supabase
-          .from("app_users")
-          .update({ plan: "free", plan_started_at: null })
-          .eq("stripe_customer_id", customerId);
-
-        if (error) {
-          console.error("[blockid:stripe] subscription cancel downgrade failed", error);
-        } else {
-          console.log(
-            `[blockid:stripe] downgraded customer ${customerId} to free`,
-          );
-        }
+      if (!customerId) {
+        console.warn("[blockid:stripe] subscription.deleted: no customer ID", {
+          subscriptionId: subscription.id,
+        });
+        break;
       }
+
+      const { error } = await supabase
+        .from("app_users")
+        .update({ plan: "free", plan_started_at: null })
+        .eq("stripe_customer_id", customerId);
+
+      if (error) {
+        console.error("[blockid:stripe] subscription cancel downgrade failed", {
+          error,
+          customerId,
+          subscriptionId: subscription.id,
+        });
+        return NextResponse.json(
+          { error: "Database error" },
+          { status: 500 },
+        );
+      }
+
+      console.log(
+        `[blockid:stripe] downgraded customer ${customerId} to free`,
+      );
       break;
     }
 
