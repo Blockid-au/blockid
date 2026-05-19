@@ -147,6 +147,5 @@ deploy:production:
   environment:
     name: production
     url: https://blockid.au
-  when: manual
   only:
     - master
