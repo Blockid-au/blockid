@@ -29,7 +29,7 @@ export function WeeklyReportCard({
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.18em] text-ink-700 font-medium">Báo cáo tuần / Weekly Report</p>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-ink-700 font-medium">Weekly Report</p>
           <p className="text-xs text-ink-600 mt-0.5">{new Date().toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "short" })}</p>
         </div>
         {/* Delta badge */}
@@ -49,7 +49,7 @@ export function WeeklyReportCard({
           currentSVI >= 140 ? "text-emerald-600" : currentSVI >= 120 ? "text-brand-600" : currentSVI >= 100 ? "text-amber-600" : "text-red-500"
         )}>{currentSVI}</span>
         <span className="text-ink-700 text-sm font-mono">SVI</span>
-        <span className="text-ink-700 text-xs ml-1">vs {previousSVI} tuần trước</span>
+        <span className="text-ink-700 text-xs ml-1">vs {previousSVI} last week</span>
       </div>
 
       {/* Stage progress */}
@@ -83,11 +83,11 @@ export function WeeklyReportCard({
       <div className="flex gap-2 pt-1">
         <a href={reportHref} className="flex-1 h-8 flex items-center justify-center gap-1.5 rounded-lg border border-surface-200 text-xs text-ink-600 hover:text-ink-800 hover:border-surface-200 transition-colors">
           <ArrowRight strokeWidth={1.75} className="h-3.5 w-3.5" />
-          Xem báo cáo đầy đủ
+          View Full Report
         </a>
         {onAddEvidence && (
           <button type="button" onClick={onAddEvidence} className="flex-1 h-8 rounded-lg bg-brand-50 border border-brand-200 text-xs font-medium text-brand-600 hover:bg-brand-100 transition-colors cursor-pointer">
-            + Thêm bằng chứng
+            + Add Evidence
           </button>
         )}
       </div>

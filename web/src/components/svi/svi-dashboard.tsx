@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, Plus, TrendingDown, TrendingUp, Zap } from "lucide-react";
+import { AlertTriangle, ArrowUpRight, CheckCircle2, ChevronDown, ChevronUp, Plus, TrendingDown, TrendingUp, Zap } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
@@ -12,6 +13,17 @@ import { EvidenceWizard } from "@/components/svi/evidence-wizard";
 const DIM_WEIGHTS: Record<string, string> = {
   ftv: "15%", mpc: "18%", ptd: "12%", tre: "20%",
   cgh: "12%", iri: "10%", lco: "8%", svm: "5%",
+};
+
+const DIMENSION_ACTIONS: Record<string, { label: string; action: string; link?: string; uploadType?: string }> = {
+  ftv: { label: "Add team profiles", action: "Upload LinkedIn profiles, CVs, or advisor agreements", link: "/workspace/evidence" },
+  mpc: { label: "Add market research", action: "Upload TAM/SAM analysis, customer interviews, or survey data", link: "/workspace/evidence" },
+  ptd: { label: "Connect GitHub", action: "Link your repository or upload product demo/screenshots", link: "/workspace/evidence" },
+  tre: { label: "Add revenue proof", action: "Connect Stripe, upload invoices, or add analytics screenshots", link: "/workspace/evidence" },
+  cgh: { label: "Upload cap table", action: "Upload shareholder agreement, vesting schedule, or equity split", link: "/workspace/evidence" },
+  iri: { label: "Upload pitch deck", action: "Add your investor deck, financial model, or data room docs", link: "/workspace/evidence" },
+  lco: { label: "Add legal docs", action: "Upload ABN/ASIC registration, IP assignment, or contracts", link: "/workspace/evidence" },
+  svm: { label: "Define your moat", action: "Document competitive advantages, network effects, or data moat", link: "/workspace/evidence" },
 };
 
 function DimensionBar({ sub }: { sub: SVIAnalysis["subs"][number] }) {
@@ -33,6 +45,13 @@ function DimensionBar({ sub }: { sub: SVIAnalysis["subs"][number] }) {
               {sub.adjustment >= 0 ? "+" : ""}{sub.adjustment}
             </span>
             <span className="text-xs text-ink-600 font-mono">{pct}/100</span>
+            <Link
+              href={DIMENSION_ACTIONS[sub.key]?.link ?? "/workspace/evidence"}
+              onClick={(e) => e.stopPropagation()}
+              className="ml-2 shrink-0 inline-flex items-center gap-1 rounded-lg bg-brand-50 border border-brand-200 px-2.5 py-1 text-[11px] font-medium text-brand-600 hover:bg-brand-100 transition-colors"
+            >
+              <ArrowUpRight className="h-3 w-3" /> {DIMENSION_ACTIONS[sub.key]?.label ?? "Improve"}
+            </Link>
             {open ? <ChevronUp className="h-3.5 w-3.5 text-ink-600" strokeWidth={1.75} /> : <ChevronDown className="h-3.5 w-3.5 text-ink-600" strokeWidth={1.75} />}
           </div>
         </div>

@@ -11,9 +11,7 @@ interface RoadmapStep {
   id: number;
   icon: React.ElementType;
   title: string;
-  titleVi: string;
   desc: string;
-  descVi: string;
   time: string;
   sviImpact: number;
   done: boolean;
@@ -21,13 +19,13 @@ interface RoadmapStep {
 }
 
 const STEPS: Omit<RoadmapStep, "done">[] = [
-  { id: 1, icon: TrendingUp, title: "Get SVI Baseline", titleVi: "Đánh giá SVI ban đầu", desc: "Submit your idea and get your first score.", descVi: "Nộp ý tưởng và nhận điểm SVI đầu tiên.", time: "2 min", sviImpact: 0, href: "/" },
-  { id: 2, icon: Globe, title: "Add Website URL", titleVi: "Thêm URL website", desc: "A public website proves market presence.", descVi: "Website công khai chứng minh sự hiện diện thị trường.", time: "5 min", sviImpact: 8, href: "/workspace/evidence" },
-  { id: 3, icon: FileText, title: "Upload Pitch Deck", titleVi: "Tải lên Pitch Deck", desc: "Upload your pitch deck to the Evidence Vault.", descVi: "Tải pitch deck vào Evidence Vault.", time: "10 min", sviImpact: 15, href: "/workspace/evidence" },
-  { id: 4, icon: PieChart, title: "Build Cap Table", titleVi: "Xây dựng Cap Table", desc: "Document equity split, vesting, and ESOP.", descVi: "Ghi lại phân bổ cổ phần, vesting và ESOP.", time: "20 min", sviImpact: 12, href: "/workspace/evidence" },
-  { id: 5, icon: GitBranch, title: "Connect GitHub", titleVi: "Kết nối GitHub", desc: "Link your source code to verify product depth.", descVi: "Liên kết mã nguồn để xác minh độ sâu sản phẩm.", time: "5 min", sviImpact: 10, href: "/workspace/evidence" },
-  { id: 6, icon: BarChart3, title: "Connect Analytics", titleVi: "Kết nối Analytics", desc: "Google Analytics shows real user traction.", descVi: "Google Analytics cho thấy traction người dùng thực.", time: "5 min", sviImpact: 8, href: "/workspace/evidence" },
-  { id: 7, icon: CreditCard, title: "Add Revenue Proof", titleVi: "Thêm bằng chứng doanh thu", desc: "Connect Stripe or upload an invoice.", descVi: "Kết nối Stripe hoặc tải lên hóa đơn.", time: "10 min", sviImpact: 18, href: "/workspace/evidence" },
+  { id: 1, icon: TrendingUp, title: "Get SVI Baseline", desc: "Submit your idea and get your first score.", time: "2 min", sviImpact: 0, href: "/" },
+  { id: 2, icon: Globe, title: "Add Website URL", desc: "A public website proves market presence.", time: "5 min", sviImpact: 8, href: "/workspace/evidence" },
+  { id: 3, icon: FileText, title: "Upload Pitch Deck", desc: "Upload your pitch deck to the Evidence Vault.", time: "10 min", sviImpact: 15, href: "/workspace/evidence" },
+  { id: 4, icon: PieChart, title: "Build Cap Table", desc: "Document equity split, vesting, and ESOP.", time: "20 min", sviImpact: 12, href: "/workspace/evidence" },
+  { id: 5, icon: GitBranch, title: "Connect GitHub", desc: "Link your source code to verify product depth.", time: "5 min", sviImpact: 10, href: "/workspace/evidence" },
+  { id: 6, icon: BarChart3, title: "Connect Analytics", desc: "Google Analytics shows real user traction.", time: "5 min", sviImpact: 8, href: "/workspace/evidence" },
+  { id: 7, icon: CreditCard, title: "Add Revenue Proof", desc: "Connect Stripe or upload an invoice.", time: "10 min", sviImpact: 18, href: "/workspace/evidence" },
 ];
 
 export function RoadmapSteps({ completedSteps = [1] }: { completedSteps?: number[] }) {
@@ -38,7 +36,7 @@ export function RoadmapSteps({ completedSteps = [1] }: { completedSteps?: number
     <div className="space-y-3">
       <div className="flex items-center justify-between mb-2">
         <p className="text-xs uppercase tracking-[0.15em] text-ink-700 font-medium">
-          Lộ trình phát triển / Growth Roadmap
+          Growth Roadmap
         </p>
         <span className="text-xs text-teal-400 font-mono font-medium">+{totalPotential} SVI potential</span>
       </div>
@@ -72,7 +70,7 @@ export function RoadmapSteps({ completedSteps = [1] }: { completedSteps?: number
                   <p className={cn("text-sm font-medium", step.done ? "text-emerald-600 line-through opacity-70" : "text-ink-800")}>
                     {step.title}
                   </p>
-                  <p className="text-xs text-ink-700 mt-0.5">{step.descVi}</p>
+                  <p className="text-xs text-ink-700 mt-0.5">{step.desc}</p>
                 </div>
                 <div className="flex flex-col items-end gap-1 shrink-0">
                   {step.sviImpact > 0 && !step.done && (
@@ -89,7 +87,7 @@ export function RoadmapSteps({ completedSteps = [1] }: { completedSteps?: number
                 href={step.href}
                 className="shrink-0 h-7 px-3 rounded-lg bg-brand-50 border border-brand-200 text-xs font-medium text-brand-600 hover:bg-brand-100 transition-colors flex items-center mt-0.5"
               >
-                Làm ngay
+                Do It Now
               </a>
             )}
           </div>

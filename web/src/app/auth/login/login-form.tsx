@@ -2,52 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useLocale, type Locale } from "@/lib/use-locale";
-import { LanguageToggle } from "@/components/ui/language-toggle";
 import { trackEvent } from "@/lib/analytics";
-
-/* ---------- i18n dictionary ---------- */
-const t = {
-  signIn: { en: "Sign in", vi: "Đăng nhập" },
-  signInTo: { en: "Sign in to BlockID", vi: "Đăng nhập BlockID" },
-  tagline: {
-    en: "Own your cap table. Prove your equity. Raise with confidence.",
-    vi: "Sở hữu bảng vốn. Chứng minh cổ phần. Gọi vốn tự tin.",
-  },
-  signingIn: { en: "Signing in...", vi: "Đang đăng nhập..." },
-  orEmail: { en: "or continue with email", vi: "hoặc đăng nhập bằng email" },
-  email: { en: "Email", vi: "Email" },
-  sendLink: { en: "Send sign-in link", vi: "Gửi liên kết đăng nhập" },
-  sending: { en: "Sending...", vi: "Đang gửi..." },
-  checkEmail: { en: "Check", vi: "Kiểm tra" },
-  forLink: { en: "for your sign-in link.", vi: "để nhận liên kết đăng nhập." },
-  linkExpires: {
-    en: "The link expires in 15 minutes. Didn\u2019t arrive? Check spam or",
-    vi: "Liên kết hết hạn sau 15 phút. Chưa nhận được? Kiểm tra spam hoặc",
-  },
-  tryDifferent: { en: "try a different email", vi: "thử email khác" },
-  somethingWrong: {
-    en: "Something went wrong. Check your email and try again.",
-    vi: "Đã xảy ra lỗi. Kiểm tra email và thử lại.",
-  },
-  partnerCode: { en: "Have a partner code?", vi: "Có mã đối tác?" },
-  partnerCodeLabel: { en: "Partner code", vi: "Mã đối tác" },
-  apply: { en: "Apply", vi: "Áp dụng" },
-  discountApplied: {
-    en: "discount will be applied at checkout.",
-    vi: "giảm giá sẽ được áp dụng khi thanh toán.",
-  },
-  codeNotRecognised: {
-    en: "Code not recognised. Check the spelling and try again.",
-    vi: "Mã không hợp lệ. Kiểm tra lại và thử lần nữa.",
-  },
-  signInPlan: { en: "Sign in to continue with the", vi: "Đăng nhập để tiếp tục với gói" },
-  plan: { en: "plan.", vi: "." },
-} as const;
-
-function tx(key: keyof typeof t, locale: Locale): string {
-  return t[key][locale];
-}
 
 /* ---------- Types ---------- */
 type EmailState = "idle" | "sending" | "sent" | "error";
@@ -63,7 +18,7 @@ interface CouponResult {
 /*  Google Sign-In                                                            */
 /* ========================================================================== */
 
-function GoogleSignIn({ locale }: { locale: Locale }) {
+function GoogleSignIn() {
   const btnRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -137,7 +92,7 @@ function GoogleSignIn({ locale }: { locale: Locale }) {
   return (
     <div className="space-y-2">
       {loading && (
-        <p className="text-xs text-surface-400 text-center">{tx("signingIn", locale)}</p>
+        <p className="text-xs text-surface-400 text-center">Signing in...</p>
       )}
       <div ref={btnRef} className="w-full min-h-[44px]" />
       {error && <p className="text-rose-500 text-xs text-center">{error}</p>}
@@ -149,12 +104,12 @@ function GoogleSignIn({ locale }: { locale: Locale }) {
 /*  Divider                                                                   */
 /* ========================================================================== */
 
-function Divider({ locale }: { locale: Locale }) {
+function Divider() {
   return (
     <div className="flex items-center gap-3 my-5">
       <span className="flex-1 h-px bg-surface-300" />
       <span className="text-[11px] uppercase tracking-[0.15em] text-surface-400">
-        {tx("orEmail", locale)}
+        or continue with email
       </span>
       <span className="flex-1 h-px bg-surface-300" />
     </div>
@@ -165,7 +120,7 @@ function Divider({ locale }: { locale: Locale }) {
 /*  Magic-link email form                                                     */
 /* ========================================================================== */
 
-function MagicLinkForm({ locale }: { locale: Locale }) {
+function MagicLinkForm() {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<EmailState>("idle");
 
@@ -194,18 +149,18 @@ function MagicLinkForm({ locale }: { locale: Locale }) {
     return (
       <div className="text-ink-600 text-sm leading-relaxed">
         <p className="mb-2">
-          {tx("checkEmail", locale)}{" "}
+          Check{" "}
           <span className="text-ink-800 font-medium">{email}</span>{" "}
-          {tx("forLink", locale)}
+          for your sign-in link.
         </p>
         <p className="text-surface-400 text-xs">
-          {tx("linkExpires", locale)}{" "}
+          The link expires in 15 minutes. Didn&rsquo;t arrive? Check spam or{" "}
           <button
             type="button"
             onClick={() => setState("idle")}
             className="text-brand-500 underline"
           >
-            {tx("tryDifferent", locale)}
+            try a different email
           </button>
           .
         </p>
@@ -217,7 +172,7 @@ function MagicLinkForm({ locale }: { locale: Locale }) {
     <form onSubmit={onSubmit} className="space-y-3">
       <label className="block">
         <span className="block text-xs uppercase tracking-[0.12em] text-surface-400 mb-1">
-          {tx("email", locale)}
+          Email
         </span>
         <input
           type="email"
@@ -234,11 +189,11 @@ function MagicLinkForm({ locale }: { locale: Locale }) {
         disabled={state === "sending"}
         className="w-full bg-brand-500 hover:bg-brand-600 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors disabled:opacity-60"
       >
-        {state === "sending" ? tx("sending", locale) : tx("sendLink", locale)}
+        {state === "sending" ? "Sending..." : "Send sign-in link"}
       </button>
       {state === "error" && (
         <p className="text-rose-500 text-xs">
-          {tx("somethingWrong", locale)}
+          Something went wrong. Check your email and try again.
         </p>
       )}
     </form>
@@ -249,7 +204,7 @@ function MagicLinkForm({ locale }: { locale: Locale }) {
 /*  Coupon code input                                                         */
 /* ========================================================================== */
 
-function CouponInput({ locale }: { locale: Locale }) {
+function CouponInput() {
   const [open, setOpen] = useState(false);
   const [code, setCode] = useState("");
   const [state, setState] = useState<CouponState>("idle");
@@ -290,7 +245,7 @@ function CouponInput({ locale }: { locale: Locale }) {
         onClick={() => setOpen(true)}
         className="text-xs text-surface-400 hover:text-brand-600 transition-colors mt-1"
       >
-        {tx("partnerCode", locale)}
+        Have a partner code?
       </button>
     );
   }
@@ -298,7 +253,7 @@ function CouponInput({ locale }: { locale: Locale }) {
   return (
     <div className="mt-4 pt-4 border-t border-surface-300">
       <p className="text-xs uppercase tracking-[0.12em] text-gold-400 font-medium mb-2">
-        {tx("partnerCodeLabel", locale)}
+        Partner code
       </p>
       <form onSubmit={validate} className="flex gap-2">
         <input
@@ -316,18 +271,18 @@ function CouponInput({ locale }: { locale: Locale }) {
           disabled={state === "validating" || !code.trim()}
           className="px-4 py-2 bg-brand-50 text-brand-600 rounded-lg text-sm font-medium hover:bg-brand-100 transition-colors disabled:opacity-50"
         >
-          {state === "validating" ? "..." : tx("apply", locale)}
+          {state === "validating" ? "..." : "Apply"}
         </button>
       </form>
       {state === "valid" && result && (
         <p className="mt-2 text-xs text-emerald-600">
           {result.label ?? `${result.discount_pct}%`} --{" "}
-          {tx("discountApplied", locale)}
+          discount will be applied at checkout.
         </p>
       )}
       {state === "invalid" && (
         <p className="mt-2 text-xs text-rose-500">
-          {tx("codeNotRecognised", locale)}
+          Code not recognised. Check the spelling and try again.
         </p>
       )}
     </div>
@@ -341,28 +296,26 @@ function CouponInput({ locale }: { locale: Locale }) {
 export function LoginForm() {
   const searchParams = useSearchParams();
   const plan = searchParams.get("plan");
-  const [locale, setLocale] = useLocale();
 
   return (
     <div className="space-y-0">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">{tx("signInTo", locale)}</h2>
-        <LanguageToggle locale={locale} onChange={setLocale} />
+        <h2 className="text-lg font-semibold">Sign in to BlockID</h2>
       </div>
       <p className="text-ink-600 text-sm leading-relaxed mb-4">
-        {tx("tagline", locale)}
+        Own your cap table. Prove your equity. Raise with confidence.
       </p>
       {plan && (
         <p className="text-xs text-ink-600 mb-4">
-          {tx("signInPlan", locale)}{" "}
+          Sign in to continue with the{" "}
           <span className="text-brand-600 font-medium capitalize">{plan}</span>{" "}
-          {tx("plan", locale)}
+          plan.
         </p>
       )}
-      <GoogleSignIn locale={locale} />
-      <Divider locale={locale} />
-      <MagicLinkForm locale={locale} />
-      <CouponInput locale={locale} />
+      <GoogleSignIn />
+      <Divider />
+      <MagicLinkForm />
+      <CouponInput />
     </div>
   );
 }

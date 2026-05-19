@@ -4,6 +4,7 @@ import * as React from "react";
 import {
   AlertTriangle,
   ArrowRight,
+  ArrowUpRight,
   BarChart3,
   CheckCircle2,
   ChevronDown,
@@ -27,6 +28,7 @@ import {
   Upload,
   Zap,
 } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
@@ -41,6 +43,17 @@ import {
 } from "@/lib/svi-actions";
 
 /* ─── Constants ───────────────────────────────────────────────────────────── */
+
+const DIMENSION_ACTIONS: Record<string, { label: string; action: string; link?: string; uploadType?: string }> = {
+  ftv: { label: "Add team profiles", action: "Upload LinkedIn profiles, CVs, or advisor agreements", link: "/workspace/evidence" },
+  mpc: { label: "Add market research", action: "Upload TAM/SAM analysis, customer interviews, or survey data", link: "/workspace/evidence" },
+  ptd: { label: "Connect GitHub", action: "Link your repository or upload product demo/screenshots", link: "/workspace/evidence" },
+  tre: { label: "Add revenue proof", action: "Connect Stripe, upload invoices, or add analytics screenshots", link: "/workspace/evidence" },
+  cgh: { label: "Upload cap table", action: "Upload shareholder agreement, vesting schedule, or equity split", link: "/workspace/evidence" },
+  iri: { label: "Upload pitch deck", action: "Add your investor deck, financial model, or data room docs", link: "/workspace/evidence" },
+  lco: { label: "Add legal docs", action: "Upload ABN/ASIC registration, IP assignment, or contracts", link: "/workspace/evidence" },
+  svm: { label: "Define your moat", action: "Document competitive advantages, network effects, or data moat", link: "/workspace/evidence" },
+};
 
 const EVIDENCE_LEVEL_LABELS: Record<string, string> = {
   self_declared: "Self-declared (20%)",
@@ -358,6 +371,13 @@ function DimensionBar({
               {adjustment}
             </span>
             <span className="text-xs text-ink-600 font-mono">{pct}/100</span>
+            <Link
+              href={DIMENSION_ACTIONS[keyName]?.link ?? "/workspace/evidence"}
+              onClick={(e) => e.stopPropagation()}
+              className="ml-2 shrink-0 inline-flex items-center gap-1 rounded-lg bg-brand-50 border border-brand-200 px-2.5 py-1 text-[11px] font-medium text-brand-600 hover:bg-brand-100 transition-colors"
+            >
+              <ArrowUpRight className="h-3 w-3" /> {DIMENSION_ACTIONS[keyName]?.label ?? "Improve"}
+            </Link>
             {open ? (
               <ChevronUp className="h-3.5 w-3.5 text-ink-600" strokeWidth={1.75} />
             ) : (
@@ -1278,9 +1298,10 @@ export function SVIResultsPanel({
                       {p0Gaps.map((gap) => {
                         const gapAction = getActionForGap(gap.label);
                         return (
-                          <div
+                          <Link
                             key={gap.label}
-                            className="rounded-xl border border-red-200 bg-red-50 px-4 py-3"
+                            href="/workspace/evidence"
+                            className="block rounded-xl border border-red-200 bg-red-50 px-4 py-3 hover:border-red-300 transition-colors"
                           >
                             <div className="flex items-start gap-3">
                               <span className="mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-600">
@@ -1297,7 +1318,7 @@ export function SVIResultsPanel({
                                 <ActionButton action={gapAction} onUpload={handleUploadAction} email={email} />
                               </div>
                             )}
-                          </div>
+                          </Link>
                         );
                       })}
                     </div>
@@ -1314,9 +1335,10 @@ export function SVIResultsPanel({
                       {p1Gaps.map((gap) => {
                         const gapAction = getActionForGap(gap.label);
                         return (
-                          <div
+                          <Link
                             key={gap.label}
-                            className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3"
+                            href="/workspace/evidence"
+                            className="block rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 hover:border-amber-300 transition-colors"
                           >
                             <div className="flex items-start gap-3">
                               <span className="mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-600">
@@ -1333,7 +1355,7 @@ export function SVIResultsPanel({
                                 <ActionButton action={gapAction} onUpload={handleUploadAction} email={email} />
                               </div>
                             )}
-                          </div>
+                          </Link>
                         );
                       })}
                     </div>
@@ -1350,9 +1372,10 @@ export function SVIResultsPanel({
                       {p2Gaps.map((gap) => {
                         const gapAction = getActionForGap(gap.label);
                         return (
-                          <div
+                          <Link
                             key={gap.label}
-                            className="rounded-xl border border-surface-200 bg-surface-50 px-4 py-3"
+                            href="/workspace/evidence"
+                            className="block rounded-xl border border-surface-200 bg-surface-50 px-4 py-3 hover:border-surface-300 transition-colors"
                           >
                             <div className="flex items-start gap-3">
                               <span className="mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-surface-200 text-ink-600">
@@ -1369,7 +1392,7 @@ export function SVIResultsPanel({
                                 <ActionButton action={gapAction} onUpload={handleUploadAction} email={email} />
                               </div>
                             )}
-                          </div>
+                          </Link>
                         );
                       })}
                     </div>
