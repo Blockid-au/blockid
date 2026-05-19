@@ -1,3 +1,6 @@
+"use client";
+
+import * as React from "react";
 import Link from "next/link";
 import { Check, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,6 +9,7 @@ import { PricingCoupon } from "./pricing-coupon";
 
 interface Tier {
   name: string;
+  planId?: string;
   price: string;
   numericPrice?: number;
   cadence?: string;
@@ -19,6 +23,7 @@ interface Tier {
 const tiers: Tier[] = [
   {
     name: "Free",
+    planId: "free",
     price: "$0",
     audience: "Every founder. Forever.",
     features: [
@@ -31,6 +36,7 @@ const tiers: Tier[] = [
   },
   {
     name: "Founder",
+    planId: "founder",
     price: "$99",
     numericPrice: 99,
     cadence: "/ month",
@@ -45,6 +51,7 @@ const tiers: Tier[] = [
   },
   {
     name: "Growth",
+    planId: "growth",
     price: "$499",
     numericPrice: 499,
     cadence: "/ month",
@@ -62,6 +69,7 @@ const tiers: Tier[] = [
   },
   {
     name: "Pilot Concierge",
+    planId: "pilot",
     price: "$5,000",
     numericPrice: 5000,
     cadence: "once-off",
@@ -77,6 +85,7 @@ const tiers: Tier[] = [
   },
   {
     name: "Accelerator",
+    planId: "accelerator",
     price: "$20–60k",
     numericPrice: 20000,
     cadence: "/ year",
@@ -101,7 +110,29 @@ const discountablePrices: Record<string, number> = Object.fromEntries(
     .map((t) => [t.name, t.numericPrice!]),
 );
 
+async function startCheckout(planId: string) {
+  const res = await fetch("/api/stripe/checkout", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ plan: planId }),
+  });
+  const data = (await res.json()) as { ok: boolean; url?: string; reason?: string };
+  if (data.ok && data.url) {
+    window.location.href = data.url;
+  } else if (res.status === 401) {
+    // Not logged in — redirect to login with plan intent.
+    window.location.href = `/auth/login?plan=${planId}`;
+  }
+}
+
 export function Pricing() {
+  const [loading, setLoading] = React.useState<string | null>(null);
+
+  const handlePaidPlan = (planId: string) => {
+    setLoading(planId);
+    startCheckout(planId).finally(() => setLoading(null));
+  };
+
   return (
     <section
       id="pricing"
@@ -168,15 +199,34 @@ export function Pricing() {
                 ))}
               </ul>
               <div className="mt-6">
-                <Link href={tier.cta.href} className="block">
+                {tier.planId && tier.planId !== "free" ? (
                   <Button
                     variant={tier.highlight ? "primary" : "secondary"}
                     size="md"
                     className="w-full"
+                    disabled={loading === tier.planId}
+                    onClick={() => handlePaidPlan(tier.planId!)}
                   >
-                    {tier.cta.label}
+                    {loading === tier.planId ? (
+                      <span className="flex items-center gap-2">
+                        <span className="h-4 w-4 rounded-full border-2 border-current/30 border-t-current animate-spin" />
+                        Redirecting…
+                      </span>
+                    ) : (
+                      tier.cta.label
+                    )}
                   </Button>
-                </Link>
+                ) : (
+                  <Link href={tier.cta.href} className="block">
+                    <Button
+                      variant={tier.highlight ? "primary" : "secondary"}
+                      size="md"
+                      className="w-full"
+                    >
+                      {tier.cta.label}
+                    </Button>
+                  </Link>
+                )}
               </div>
             </div>
           ))}

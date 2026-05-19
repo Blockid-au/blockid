@@ -31,7 +31,7 @@ export default async function AdminUsersPage() {
         <Link href="/admin" className="text-ink-700 hover:text-ink-800 transition-colors">
           <ArrowLeft strokeWidth={1.75} className="h-4 w-4" />
         </Link>
-        <Logo variant="dark" />
+        <Logo variant="light" />
         <span className="text-xs font-medium text-red-400 bg-red-500/10 border border-red-500/20 rounded px-2 py-0.5">ADMIN</span>
       </header>
 

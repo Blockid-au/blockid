@@ -87,7 +87,16 @@ build:production:
         -e NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
         -e ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
         -e IP_HASH_SALT=${IP_HASH_SALT}
-        -e "RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL}"
+        -e SMTP_HOST=${SMTP_HOST}
+        -e SMTP_PORT=${SMTP_PORT}
+        -e SMTP_USER=${SMTP_USER}
+        -e SMTP_PASS=${SMTP_PASS}
+        -e "SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}"
+        -e GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+        -e GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL=${GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL}
+        -e "GOOGLE_DRIVE_PRIVATE_KEY=${GOOGLE_DRIVE_PRIVATE_KEY}"
+        -e GOOGLE_DRIVE_FOLDER_ID=${GOOGLE_DRIVE_FOLDER_ID}
+        -e CRON_SECRET=${CRON_SECRET}
         gitlab-deploy/${PROJECT_NAME}:${CI_ENV_TAG}
     - echo "Waiting for container to be healthy..."
     - |

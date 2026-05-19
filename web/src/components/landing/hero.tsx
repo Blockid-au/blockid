@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -158,7 +159,33 @@ export function Hero() {
             </div>
           </div>
 
-          <DashboardMock />
+          {/* Platform overview banner */}
+          <div className="hidden xl:block relative">
+            <div className="rounded-2xl border border-surface-200 bg-white shadow-lg overflow-hidden">
+              <Image
+                src="/images/blockid-hero-banner.png"
+                alt="BlockID.au — Turn your idea into a valuable, investable business. Platform overview showing cap table, valuation intelligence, investor readiness, and AI workspace."
+                width={1560}
+                height={880}
+                className="w-full h-auto"
+                priority
+              />
+            </div>
+          </div>
+
+          {/* Mobile banner */}
+          <div className="xl:hidden">
+            <div className="rounded-2xl border border-surface-200 bg-white shadow-lg overflow-hidden">
+              <Image
+                src="/images/blockid-hero-banner.png"
+                alt="BlockID.au platform overview"
+                width={1560}
+                height={880}
+                className="w-full h-auto"
+                priority
+              />
+            </div>
+          </div>
         </div>
 
         {/* Five Pillars Strip */}

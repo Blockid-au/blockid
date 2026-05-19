@@ -13,6 +13,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.0",
     "@react-pdf/renderer": "^4.5.1",
+    "@stripe/stripe-js": "^9.6.0",
     "@supabase/supabase-js": "^2.105.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -20,15 +21,18 @@
     "lucide-react": "^1.14.0",
     "nanoid": "^5.1.11",
     "next": "16.2.5",
+    "nodemailer": "^8.0.7",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "resend": "^6.12.3",
+    "stripe": "^22.1.1",
     "tailwind-merge": "^3.5.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/nodemailer": "^8.0.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitest/coverage-v8": "^4.1.6",

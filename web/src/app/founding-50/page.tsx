@@ -57,7 +57,7 @@ export default function Founding50Page() {
     <div className="min-h-svh bg-surface-100 text-ink-800">
       {/* Nav */}
       <header className="max-w-4xl mx-auto px-6 py-5 flex items-center justify-between">
-        <Logo variant="dark" />
+        <Logo variant="light" />
         <Link
           href="/"
           className="text-xs text-ink-600 hover:text-ink-800 transition-colors"

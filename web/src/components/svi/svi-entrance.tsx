@@ -415,7 +415,7 @@ export function SVIEntrance() {
             </div>
             <Link
               href="/founding-50"
-              className="shrink-0 inline-flex h-9 items-center gap-2 rounded-lg bg-[#1B3A6B] px-4 text-sm font-semibold text-white hover:bg-[#152d55] transition-colors cursor-pointer"
+              className="shrink-0 inline-flex h-9 items-center gap-2 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer"
             >
               Claim your spot →
             </Link>
@@ -490,7 +490,7 @@ function TopBar() {
         </Link>
         <Link
           href="/auth/login"
-          className="ml-2 h-9 px-5 inline-flex items-center justify-center rounded-lg bg-[#1a73e8] text-sm font-medium text-white hover:bg-[#1765cc] hover:shadow-md transition-all cursor-pointer"
+          className="ml-2 h-9 px-5 inline-flex items-center justify-center rounded-lg bg-brand-600 text-sm font-medium text-white hover:bg-brand-700 hover:shadow-md transition-all cursor-pointer"
         >
           Sign in
         </Link>
@@ -561,7 +561,7 @@ function TopBar() {
             <Link
               href="/auth/login"
               onClick={() => setMobileOpen(false)}
-              className="mx-3 h-10 flex items-center justify-center rounded-lg bg-[#1a73e8] text-sm font-medium text-white hover:bg-[#1765cc] transition-colors"
+              className="mx-3 h-10 flex items-center justify-center rounded-lg bg-brand-600 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
             >
               Sign in
             </Link>
@@ -586,13 +586,13 @@ function BottomFooter() {
       <div className="px-6 py-3">
         <div className="max-w-[584px] mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
-            <Link href="#" className="hover:underline">About</Link>
-            <Link href="#" className="hover:underline">Privacy</Link>
-            <Link href="#" className="hover:underline">Terms</Link>
-            <Link href="#" className="hover:underline">Contact</Link>
+            <Link href="/about" className="hover:underline">About</Link>
+            <Link href="/privacy" className="hover:underline">Privacy</Link>
+            <Link href="/terms" className="hover:underline">Terms</Link>
+            <Link href="/contact" className="hover:underline">Contact</Link>
           </div>
           <p className="text-xs text-slate-500">
-            &copy; {new Date().getFullYear()} BlockID Pty Ltd
+            &copy; {new Date().getFullYear()} Auschain Pty Ltd
           </p>
         </div>
       </div>

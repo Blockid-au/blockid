@@ -108,7 +108,7 @@ export default async function ReportsPage() {
             </p>
             <Link
               href="/"
-              className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-700 px-5 text-sm font-semibold text-white hover:bg-brand-800 transition-colors"
+              className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
             >
               Get your SVI score
             </Link>

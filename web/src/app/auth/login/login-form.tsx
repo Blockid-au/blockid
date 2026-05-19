@@ -90,10 +90,10 @@ function GoogleSignIn() {
   return (
     <div className="space-y-2">
       {loading && (
-        <p className="text-xs text-slate-400 text-center">Signing in...</p>
+        <p className="text-xs text-surface-400 text-center">Signing in...</p>
       )}
       <div ref={btnRef} className="w-full min-h-[44px]" />
-      {error && <p className="text-rose-300 text-xs text-center">{error}</p>}
+      {error && <p className="text-rose-500 text-xs text-center">{error}</p>}
     </div>
   );
 }
@@ -105,11 +105,11 @@ function GoogleSignIn() {
 function Divider() {
   return (
     <div className="flex items-center gap-3 my-5">
-      <span className="flex-1 h-px bg-[#1F2A44]" />
-      <span className="text-[11px] uppercase tracking-[0.15em] text-slate-500">
+      <span className="flex-1 h-px bg-surface-300" />
+      <span className="text-[11px] uppercase tracking-[0.15em] text-surface-400">
         or continue with email
       </span>
-      <span className="flex-1 h-px bg-[#1F2A44]" />
+      <span className="flex-1 h-px bg-surface-300" />
     </div>
   );
 }
@@ -144,12 +144,12 @@ function MagicLinkForm() {
 
   if (state === "sent") {
     return (
-      <div className="text-slate-300 text-sm leading-relaxed">
+      <div className="text-ink-600 text-sm leading-relaxed">
         <p className="mb-2">
-          Check <span className="text-slate-100 font-medium">{email}</span> for
+          Check <span className="text-ink-800 font-medium">{email}</span> for
           your sign-in link.
         </p>
-        <p className="text-slate-500 text-xs">
+        <p className="text-surface-400 text-xs">
           The link expires in 15 minutes. Didn&apos;t arrive? Check spam or{" "}
           <button
             type="button"
@@ -167,7 +167,7 @@ function MagicLinkForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-3">
       <label className="block">
-        <span className="block text-xs uppercase tracking-[0.12em] text-slate-500 mb-1">
+        <span className="block text-xs uppercase tracking-[0.12em] text-surface-400 mb-1">
           Email
         </span>
         <input
@@ -177,7 +177,7 @@ function MagicLinkForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="founder@startup.au"
-          className="w-full bg-[#0B1220] border border-[#1F2A44] rounded-lg px-3 py-2.5 text-slate-100 placeholder:text-slate-600 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+          className="w-full bg-white border border-surface-300 rounded-lg px-3 py-2.5 text-ink-800 placeholder:text-surface-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
         />
       </label>
       <button
@@ -188,7 +188,7 @@ function MagicLinkForm() {
         {state === "sending" ? "Sending..." : "Send sign-in link"}
       </button>
       {state === "error" && (
-        <p className="text-rose-300 text-xs">
+        <p className="text-rose-500 text-xs">
           Something went wrong. Check your email and try again.
         </p>
       )}
@@ -237,7 +237,7 @@ function CouponInput() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-xs text-slate-500 hover:text-slate-300 transition-colors mt-1"
+        className="text-xs text-surface-400 hover:text-brand-600 transition-colors mt-1"
       >
         Have a partner code?
       </button>
@@ -245,7 +245,7 @@ function CouponInput() {
   }
 
   return (
-    <div className="mt-4 pt-4 border-t border-[#1F2A44]">
+    <div className="mt-4 pt-4 border-t border-surface-300">
       <p className="text-xs uppercase tracking-[0.12em] text-gold-400 font-medium mb-2">
         Partner code
       </p>
@@ -258,24 +258,24 @@ function CouponInput() {
             if (state === "invalid") setState("idle");
           }}
           placeholder="e.g. WSTI"
-          className="flex-1 bg-[#0B1220] border border-[#1F2A44] rounded-lg px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+          className="flex-1 bg-white border border-surface-300 rounded-lg px-3 py-2 text-sm text-ink-800 placeholder:text-surface-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
         />
         <button
           type="submit"
           disabled={state === "validating" || !code.trim()}
-          className="px-4 py-2 bg-brand-500/15 text-brand-300 rounded-lg text-sm font-medium hover:bg-brand-500/25 transition-colors disabled:opacity-50"
+          className="px-4 py-2 bg-brand-50 text-brand-600 rounded-lg text-sm font-medium hover:bg-brand-100 transition-colors disabled:opacity-50"
         >
           {state === "validating" ? "..." : "Apply"}
         </button>
       </form>
       {state === "valid" && result && (
-        <p className="mt-2 text-xs text-emerald-400">
+        <p className="mt-2 text-xs text-emerald-600">
           {result.label ?? `${result.discount_pct}% discount applied`} --
           discount will be applied at checkout.
         </p>
       )}
       {state === "invalid" && (
-        <p className="mt-2 text-xs text-rose-300">
+        <p className="mt-2 text-xs text-rose-500">
           Code not recognised. Check the spelling and try again.
         </p>
       )}
@@ -294,9 +294,9 @@ export function LoginForm() {
   return (
     <div className="space-y-0">
       {plan && (
-        <p className="text-xs text-slate-400 mb-4">
+        <p className="text-xs text-ink-600 mb-4">
           Sign in to continue with the{" "}
-          <span className="text-brand-300 font-medium capitalize">{plan}</span>{" "}
+          <span className="text-brand-600 font-medium capitalize">{plan}</span>{" "}
           plan.
         </p>
       )}

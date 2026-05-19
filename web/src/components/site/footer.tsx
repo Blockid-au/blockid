@@ -25,17 +25,17 @@ const columns = [
   {
     title: "Company",
     items: [
-      { href: "#", label: "About" },
-      { href: "#", label: "Investors" },
-      { href: "#", label: "Contact" },
+      { href: "/about", label: "About" },
+      { href: "/investors", label: "Investors" },
+      { href: "/contact", label: "Contact" },
     ],
   },
   {
     title: "Legal",
     items: [
-      { href: "#", label: "Privacy" },
-      { href: "#", label: "Terms" },
-      { href: "#", label: "Security" },
+      { href: "/privacy", label: "Privacy" },
+      { href: "/terms", label: "Terms" },
+      { href: "/privacy#security", label: "Security" },
     ],
   },
 ];
@@ -75,7 +75,7 @@ export function Footer() {
                 <p className="flex items-center gap-2">
                   <ShieldCheck strokeWidth={1.75} className="h-4 w-4 text-brand-400" />
                   <span>
-                    ABN <span className="font-mono tabular-nums text-slate-300">00 000 000 000</span>
+                    ABN <span className="font-mono tabular-nums text-slate-300">79 659 615 111</span>
                   </span>
                 </p>
                 <p className="flex items-center gap-2">
@@ -106,7 +106,7 @@ export function Footer() {
           </div>
           <div className="mt-12 flex flex-col gap-3 border-t border-ink-700 pt-6 text-xs text-slate-500 md:flex-row md:items-center md:justify-between">
             <p>
-              &copy; {new Date().getFullYear()} BlockID Pty Ltd. Sydney, Australia.
+              &copy; {new Date().getFullYear()} Auschain Pty Ltd (ACN 659 615 111). Sydney, NSW, Australia.
             </p>
             <p>
               Not financial advice. BlockID is a software platform — engage a

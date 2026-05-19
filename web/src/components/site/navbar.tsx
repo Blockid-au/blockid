@@ -49,7 +49,7 @@ const navItems: NavEntry[] = [
   },
   { href: "/#product", label: "Product" },
   { href: "/#pricing", label: "Pricing" },
-  { href: "#", label: "Login" },
+  { href: "/auth/login", label: "Login" },
 ];
 
 function isDropdown(item: NavEntry): item is NavDropdown {
