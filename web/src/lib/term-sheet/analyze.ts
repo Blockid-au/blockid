@@ -21,7 +21,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { computeDiff, type CapTableDiff, type Holder, type Round } from "@/lib/cap-table";
-import { getAnthropicClient, isAnthropicConfigured } from "@/lib/anthropic";
+import { getAnthropicClient, isAnthropicConfigured } from "@/lib/ai-client";
 import { TermSheetAnalysisSchema, type TermSheetAnalysis } from "./schema";
 import { AU_MARKET_REFERENCE } from "./au-market-data";
 import { DEMO_ANALYSIS } from "./demo";

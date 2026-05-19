@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
-import { getAnthropicClient, isAnthropicConfigured } from "@/lib/anthropic";
+import { callAI, isAIConfigured } from "@/lib/ai-client";
 
 export async function POST(request: Request) {
-  if (!isAnthropicConfigured()) {
+  if (!isAIConfigured()) {
     return NextResponse.json({ ok: false, error: "AI service not configured" }, { status: 503 });
   }
-  const client = getAnthropicClient();
 
   try {
     const body = await request.json() as {
@@ -23,7 +22,6 @@ export async function POST(request: Request) {
     const { analysis } = body;
     const stageLabel = SVI_STAGE_LABELS[analysis.stage ?? 0] ?? "Unknown";
 
-    // Build context summary from analysis
     const dimSummary = (analysis.subs ?? []).map(s =>
       `- ${s.label}: ${s.value}/100 (${s.adjustment >= 0 ? "+" : ""}${s.adjustment})`
     ).join("\n");
@@ -80,22 +78,12 @@ Write a 500-700 word SVI Report with these sections:
 
 Start each section with a markdown H2 header.`;
 
-    const response = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 2048,
-      messages: [{ role: "user", content: userMessage }],
-      system: systemPrompt,
-    });
-
-    const content = response.content[0];
-    if (content.type !== "text") {
-      throw new Error("Unexpected response type");
-    }
+    const { text } = await callAI({ system: systemPrompt, user: userMessage, maxTokens: 2048 });
 
     return NextResponse.json({
       ok: true,
-      report: content.text,
-      wordCount: content.text.split(/\s+/).length,
+      report: text,
+      wordCount: text.split(/\s+/).length,
       generatedAt: new Date().toISOString(),
     });
 

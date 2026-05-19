@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
-import { getAnthropicClient, isAnthropicConfigured } from "@/lib/anthropic";
+import { callAI, isAIConfigured } from "@/lib/ai-client";
 
 export async function POST(request: Request) {
-  if (!isAnthropicConfigured()) {
+  if (!isAIConfigured()) {
     return NextResponse.json({ ok: false, error: "AI service not configured" }, { status: 503 });
   }
-  const client = getAnthropicClient();
 
   try {
     const body = await request.json() as {
@@ -59,17 +58,7 @@ ${body.rawText.slice(0, 4000)}
 
 The deterministic system scored this startup at SVI ${body.deterministicSVI}. Score it independently using ONLY the text above, then return the JSON.`;
 
-    const response = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 1024,
-      messages: [{ role: "user", content: userMessage }],
-      system: systemPrompt,
-    });
-
-    const content = response.content[0];
-    if (content.type !== "text") {
-      throw new Error("Unexpected response type from Claude");
-    }
+    const { text } = await callAI({ system: systemPrompt, user: userMessage, maxTokens: 1024 });
 
     let aiData: {
       aiSVI: number;
@@ -82,10 +71,9 @@ The deterministic system scored this startup at SVI ${body.deterministicSVI}. Sc
     };
 
     try {
-      aiData = JSON.parse(content.text);
+      aiData = JSON.parse(text);
     } catch {
-      // Try to extract JSON from response
-      const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         aiData = JSON.parse(jsonMatch[0]);
       } else {
