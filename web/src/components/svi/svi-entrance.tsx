@@ -510,11 +510,11 @@ export function SVIEntrance() {
           <p className="text-center text-sm text-ink-600 mb-10">Validate your idea or unlock the full platform — start today.</p>
 
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Single Analysis — $5 early-bird */}
+            {/* Single Analysis — A$1 early-bird */}
             <div className="rounded-2xl border border-surface-200 bg-white px-8 py-8 text-center shadow-sm flex flex-col">
               <p className="text-xs uppercase tracking-[0.15em] text-ink-500 font-medium mb-2">Pay per analysis</p>
               <h3 className="text-xl font-bold text-ink-800 mb-1">SVI Analysis Report</h3>
-              <p className="text-3xl font-extrabold text-brand-600 mb-1">AUD $5 <span className="text-base text-ink-400 line-through font-normal ml-1">$25</span></p>
+              <p className="text-3xl font-extrabold text-brand-600 mb-1">A$1 <span className="text-base text-ink-400 line-through font-normal ml-1">$25</span></p>
               <p className="text-xs text-emerald-600 font-semibold mb-4">Early-bird price until June 15, 2026</p>
               <p className="text-sm text-ink-600 mb-6 leading-relaxed">
                 AI-powered 10-page startup analysis report. Includes market validation,
@@ -530,7 +530,7 @@ export function SVIEntrance() {
               </ul>
               <div className="mt-auto">
                 <a href="#svi" className="inline-flex h-11 items-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
-                  Try Free — Then $5/report <ArrowRight strokeWidth={2} className="h-4 w-4" />
+                  Try Free — Then A$1/report <ArrowRight strokeWidth={2} className="h-4 w-4" />
                 </a>
               </div>
             </div>
@@ -658,9 +658,9 @@ function SVIPaywall({
   const [analysisError, setAnalysisError] = React.useState("");
 
   const isEarlyBird = new Date() < EARLY_BIRD_DEADLINE;
-  const analysisPrice = isEarlyBird ? 5 : 25;
+  const analysisPrice = isEarlyBird ? 1 : 25;
 
-  /** Checkout for a single $5/$25 analysis (no auth required). */
+  /** Checkout for a single A$1/$25 analysis (no auth required). */
   const handleAnalysisCheckout = async () => {
     const trimmedEmail = analysisEmail.trim();
     if (!trimmedEmail || !trimmedEmail.includes("@")) {

@@ -432,6 +432,36 @@ export async function sendSVIShare(args: {
   });
 }
 
+// ---------- Analysis purchase confirmation --------------------------------------
+
+export async function sendAnalysisPurchaseConfirmation(args: {
+  to: string;
+}): Promise<SendResult> {
+  const homeUrl = siteUrl();
+  const html = shell(`
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+        <tr><td>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Purchase Confirmed</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Your SVI Analysis Credit Has Been Added</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Thank you for your purchase. Your analysis credit is ready to use. Return to BlockID to run your analysis.</p>
+          <p style="margin:0 0 24px 0;text-align:center;">
+            <a href="${homeUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:16px;">Run Your Analysis</a>
+          </p>
+          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>`);
+  return sendEmail({
+    to: args.to,
+    subject: "Your SVI Analysis Credit Has Been Added",
+    html,
+  });
+}
+
 // ---------- Payment confirmation ------------------------------------------------
 
 export async function sendPaymentConfirmation(args: {

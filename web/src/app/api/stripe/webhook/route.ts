@@ -104,12 +104,71 @@ export async function POST(request: Request) {
           console.log(
             `[blockid:stripe] analysis credit added for ${email}`,
           );
+
+          // Send analysis purchase confirmation email (best-effort).
+          const { sendAnalysisPurchaseConfirmation } = await import("@/lib/email");
+          sendAnalysisPurchaseConfirmation({ to: email }).catch((err) => {
+            console.error("[blockid:stripe] analysis purchase confirmation email failed", err);
+          });
         }
         break;
       }
 
-      const userId = session.metadata?.blockid_user_id;
+      // ── Credit pack purchase (one-off credit top-up) ─────────────────
+      if (session.metadata?.type === "credit_purchase") {
+        const creditUserId = session.metadata.blockid_user_id;
+        const creditAmount = parseInt(session.metadata.blockid_credits ?? "0", 10);
+        if (creditUserId && creditAmount > 0) {
+          const grantResult = await grantCredits(creditUserId, creditAmount, "credit_pack_purchase", {
+            credits: creditAmount,
+            session_id: session.id,
+          });
+          if (grantResult.ok) {
+            console.log(`[blockid:stripe] granted ${creditAmount} credits to user ${creditUserId}`);
+          } else {
+            console.error(`[blockid:stripe] failed to grant ${creditAmount} credits to user ${creditUserId}`);
+          }
+        } else {
+          console.warn("[blockid:stripe] credit_purchase missing user_id or invalid credit amount", {
+            userId: creditUserId,
+            creditAmount,
+            sessionId: session.id,
+          });
+        }
+        break;
+      }
+
+      let userId = session.metadata?.blockid_user_id;
       const planId = session.metadata?.blockid_plan;
+
+      // ── Fallback: look up user by email when user_id is absent ──────
+      // This handles the lead/founding50 flow where the user may not have
+      // signed up yet at checkout time, so blockid_user_id is not set.
+      if (!userId && planId) {
+        const lookupEmail = (
+          session.customer_email ?? session.metadata?.blockid_email
+        )?.toLowerCase().trim();
+
+        if (lookupEmail) {
+          const { data: userByEmail } = await supabase
+            .from("app_users")
+            .select("id")
+            .eq("email", lookupEmail)
+            .maybeSingle();
+
+          if (userByEmail) {
+            userId = userByEmail.id;
+            console.log(
+              `[blockid:stripe] resolved user by email ${lookupEmail} → ${userId}`,
+            );
+          } else {
+            console.warn(
+              "[blockid:stripe] checkout.session.completed: no user found for email",
+              { email: lookupEmail, planId, sessionId: session.id },
+            );
+          }
+        }
+      }
 
       if (!userId || !planId) {
         console.warn("[blockid:stripe] checkout.session.completed missing metadata", {

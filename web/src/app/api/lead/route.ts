@@ -87,6 +87,10 @@ export async function POST(request: Request) {
           metadata: {
             blockid_source: "founding50",
             blockid_email: email,
+            // No blockid_user_id at lead stage — the user hasn't signed up yet.
+            // The webhook handler will fall back to email-based lookup when
+            // blockid_user_id is absent but blockid_plan + blockid_email are set.
+            blockid_plan: "founding50",
           },
           allow_promotion_codes: true,
         });

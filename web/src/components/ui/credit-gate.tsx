@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
-import { AlertTriangle, ArrowUpRight, Coins, Sparkles, X } from "lucide-react";
+import { AlertTriangle, Coins, Sparkles, Tag, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
@@ -67,6 +66,15 @@ export function CreditGate({
   const info = getFeatureInfo(feature);
   const shortfall = cost - balance;
 
+  const [buyLoading, setBuyLoading] = React.useState(false);
+  const [planLoading, setPlanLoading] = React.useState(false);
+  const [errorMsg, setErrorMsg] = React.useState("");
+  const [couponCode, setCouponCode] = React.useState("");
+  const [couponState, setCouponState] = React.useState<
+    "idle" | "validating" | "success" | "error"
+  >("idle");
+  const [couponMsg, setCouponMsg] = React.useState("");
+
   // Prevent background scroll while modal is open.
   React.useEffect(() => {
     if (!isOpen) return;
@@ -76,6 +84,100 @@ export function CreditGate({
       document.body.style.overflow = prev;
     };
   }, [isOpen]);
+
+  // Reset state when modal opens/closes.
+  React.useEffect(() => {
+    if (!isOpen) {
+      setBuyLoading(false);
+      setPlanLoading(false);
+      setErrorMsg("");
+      setCouponCode("");
+      setCouponState("idle");
+      setCouponMsg("");
+    }
+  }, [isOpen]);
+
+  /** Buy 1 Credit via /api/stripe/analysis (guest checkout). */
+  const handleBuyCredit = async () => {
+    setBuyLoading(true);
+    setErrorMsg("");
+    try {
+      const res = await fetch("/api/stripe/analysis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (data.ok && data.url) {
+        window.location.href = data.url;
+      } else {
+        setErrorMsg(data.reason || "Could not start checkout. Please try again.");
+      }
+    } catch {
+      setErrorMsg("Network error. Please try again.");
+    } finally {
+      setBuyLoading(false);
+    }
+  };
+
+  /** Get Founder Plan via /api/stripe/checkout. */
+  const handlePlanCheckout = async () => {
+    setPlanLoading(true);
+    setErrorMsg("");
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: "founding50" }),
+      });
+      if (res.status === 401) {
+        window.location.href = "/auth/login?plan=founding50";
+        return;
+      }
+      const data = await res.json();
+      if (data.ok && data.url) {
+        window.location.href = data.url;
+      } else {
+        setErrorMsg(data.reason || "Could not start checkout. Please try again.");
+      }
+    } catch {
+      setErrorMsg("Network error. Please try again.");
+    } finally {
+      setPlanLoading(false);
+    }
+  };
+
+  /** Validate coupon code. */
+  const handleCouponValidate = async () => {
+    const code = couponCode.trim();
+    if (!code) return;
+    setCouponState("validating");
+    setCouponMsg("");
+    try {
+      const res = await fetch("/api/coupon/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (data.ok && data.discount_pct === 100) {
+        setCouponState("success");
+        setCouponMsg("Free access granted!");
+        setTimeout(() => onClose(), 1200);
+      } else if (data.ok) {
+        setCouponState("idle");
+        setCouponMsg(
+          `${data.discount_pct}% discount applied. Proceed to checkout to use it.`,
+        );
+      } else {
+        setCouponState("error");
+        setCouponMsg(data.reason || "Invalid coupon code.");
+      }
+    } catch {
+      setCouponState("error");
+      setCouponMsg("Could not validate coupon. Please try again.");
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -142,24 +244,98 @@ export function CreditGate({
 
           {/* CTAs */}
           <div className="mt-6 space-y-3">
-            <Link
-              href="/workspace/billing#credits"
-              onClick={onClose}
-              className="flex items-center justify-center gap-2 w-full h-11 rounded-xl bg-brand-600 text-sm font-bold text-white hover:bg-brand-700 transition-colors"
+            <button
+              type="button"
+              onClick={handleBuyCredit}
+              disabled={buyLoading || planLoading}
+              className="flex items-center justify-center gap-2 w-full h-11 rounded-xl bg-brand-600 text-sm font-bold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50"
             >
-              <Coins strokeWidth={1.75} className="h-4 w-4" />
-              Buy Credits
-              <ArrowUpRight strokeWidth={1.75} className="h-3.5 w-3.5" />
-            </Link>
+              {buyLoading ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                  Redirecting...
+                </span>
+              ) : (
+                <>
+                  <Coins strokeWidth={1.75} className="h-4 w-4" />
+                  Buy 1 Credit &mdash; A$1
+                </>
+              )}
+            </button>
 
-            <Link
-              href="/workspace/billing"
-              onClick={onClose}
-              className="flex items-center justify-center gap-2 w-full h-11 rounded-xl border border-surface-200 bg-white text-sm font-semibold text-ink-700 hover:bg-surface-50 transition-colors"
+            <button
+              type="button"
+              onClick={handlePlanCheckout}
+              disabled={buyLoading || planLoading}
+              className="flex items-center justify-center gap-2 w-full h-11 rounded-xl border border-surface-200 bg-white text-sm font-semibold text-ink-700 hover:bg-surface-50 transition-colors cursor-pointer disabled:opacity-50"
             >
-              <Sparkles strokeWidth={1.75} className="h-4 w-4" />
-              Upgrade Plan
-            </Link>
+              {planLoading ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-4 w-4 rounded-full border-2 border-ink-300/30 border-t-ink-600 animate-spin" />
+                  Redirecting...
+                </span>
+              ) : (
+                <>
+                  <Sparkles strokeWidth={1.75} className="h-4 w-4" />
+                  Get Founder Plan &mdash; A$49 (unlimited)
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Error message */}
+          {errorMsg && (
+            <p className="mt-3 text-center text-xs text-red-500">{errorMsg}</p>
+          )}
+
+          {/* Coupon input */}
+          <div className="mt-5">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Tag strokeWidth={1.75} className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400" />
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => {
+                    setCouponCode(e.target.value);
+                    if (couponState === "error") {
+                      setCouponState("idle");
+                      setCouponMsg("");
+                    }
+                  }}
+                  placeholder="Enter coupon code"
+                  className="h-10 w-full rounded-xl border border-surface-300 bg-surface-50 pl-9 pr-3 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleCouponValidate();
+                    }
+                  }}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleCouponValidate}
+                disabled={couponState === "validating" || !couponCode.trim()}
+                className="h-10 px-4 rounded-xl border border-surface-300 bg-white text-sm font-medium text-ink-700 hover:bg-surface-100 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {couponState === "validating" ? "..." : "Apply"}
+              </button>
+            </div>
+            {couponMsg && (
+              <p
+                className={cn(
+                  "mt-2 text-center text-xs font-medium",
+                  couponState === "success"
+                    ? "text-green-600"
+                    : couponState === "error"
+                      ? "text-red-500"
+                      : "text-brand-600",
+                )}
+              >
+                {couponMsg}
+              </p>
+            )}
           </div>
         </div>
       </div>

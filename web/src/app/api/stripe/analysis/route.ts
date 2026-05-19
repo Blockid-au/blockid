@@ -39,8 +39,8 @@ export async function POST(request: Request) {
 
   const isEarlyBird = new Date() < EARLY_BIRD_DEADLINE;
   const priceId = isEarlyBird
-    ? process.env.STRIPE_PRICE_SVI_ANALYSIS // $5
-    : process.env.STRIPE_PRICE_SVI_ANALYSIS_25; // $25
+    ? process.env.STRIPE_PRICE_SVI_ANALYSIS // A$1 early-bird
+    : process.env.STRIPE_PRICE_SVI_ANALYSIS_25; // $25 standard
 
   if (!priceId) {
     return NextResponse.json(

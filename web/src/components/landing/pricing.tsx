@@ -72,7 +72,7 @@ const tiers: Tier[] = [
       "Dedicated account manager",
       "30-day money back",
     ],
-    cta: { label: "Start 14-day trial", href: "#" },
+    cta: { label: "Start Growth plan", href: "#" },
     highlight: true,
     badge: "Most popular",
   },
