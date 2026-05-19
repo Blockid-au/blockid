@@ -42,13 +42,13 @@ export default function IdeaValuationPage() {
       <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
         <div className="mx-auto max-w-6xl px-6">
           <header className="max-w-3xl">
-            <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium">
+            <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium">
               Free tool · No login · AU-tuned
             </p>
-            <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-slate-50">
+            <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-ink-800">
               Idea-Stage Valuation Estimator
             </h1>
-            <p className="mt-4 text-base md:text-lg leading-relaxed text-slate-400">
+            <p className="mt-4 text-base md:text-lg leading-relaxed text-ink-600">
               Get a defensible idea-stage valuation in 60 seconds — before you
               incorporate or split equity. Hybrid Berkus + Scorecard method,
               tuned for the Australian seed market.
@@ -74,12 +74,12 @@ export default function IdeaValuationPage() {
             ].map((b) => (
               <article
                 key={b.title}
-                className="rounded-2xl border border-ink-700 bg-ink-900 p-6"
+                className="rounded-2xl border border-surface-200 bg-white p-6 shadow-sm"
               >
-                <h2 className="text-base font-semibold text-slate-50">
+                <h2 className="text-base font-semibold text-ink-800">
                   {b.title}
                 </h2>
-                <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                <p className="mt-2 text-sm leading-relaxed text-ink-600">
                   {b.body}
                 </p>
               </article>

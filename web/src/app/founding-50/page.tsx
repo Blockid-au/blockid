@@ -54,13 +54,13 @@ const INCLUDES = [
 
 export default function Founding50Page() {
   return (
-    <div className="min-h-svh bg-ink-950 text-slate-50">
+    <div className="min-h-svh bg-surface-100 text-ink-800">
       {/* Nav */}
       <header className="max-w-4xl mx-auto px-6 py-5 flex items-center justify-between">
         <Logo variant="dark" />
         <Link
           href="/"
-          className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
+          className="text-xs text-ink-600 hover:text-ink-800 transition-colors"
         >
           ← Back to SVI
         </Link>
@@ -70,30 +70,30 @@ export default function Founding50Page() {
         {/* Hero */}
         <div className="text-center pt-10 pb-12">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-brand-600/40 bg-brand-900/30 px-4 py-1.5 mb-6">
-            <Clock strokeWidth={1.75} className="h-3.5 w-3.5 text-brand-400" />
-            <span className="text-xs font-medium text-brand-300 uppercase tracking-[0.15em]">
+          <div className="inline-flex items-center gap-2 rounded-full border border-brand-600/40 bg-brand-50 px-4 py-1.5 mb-6">
+            <Clock strokeWidth={1.75} className="h-3.5 w-3.5 text-brand-600" />
+            <span className="text-xs font-medium text-brand-700 uppercase tracking-[0.15em]">
               Limited — 50 Founding Accounts Only
             </span>
           </div>
 
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-50 mb-4">
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-ink-800 mb-4">
             Claim Your{" "}
-            <span className="text-brand-400">Founding 50</span>{" "}
+            <span className="text-brand-600">Founding 50</span>{" "}
             Account
           </h1>
-          <p className="text-lg text-slate-400 max-w-xl mx-auto leading-relaxed mb-6">
+          <p className="text-lg text-ink-600 max-w-xl mx-auto leading-relaxed mb-6">
             Get a lifetime Startup Value Index Account — measure, prove and grow
             your startup value from day one.
           </p>
 
           {/* Price */}
-          <div className="inline-flex items-baseline gap-3 rounded-2xl border border-ink-700 bg-ink-900 px-8 py-4">
-            <span className="text-slate-500 text-xl line-through font-mono">$99</span>
-            <span className="text-5xl font-bold font-mono text-slate-50">$49</span>
-            <span className="text-slate-400 text-sm">AUD · one-off</span>
+          <div className="inline-flex items-baseline gap-3 rounded-2xl border border-surface-200 bg-white px-8 py-4 shadow-sm">
+            <span className="text-ink-700 text-xl line-through font-mono">$99</span>
+            <span className="text-5xl font-bold font-mono text-ink-800">$49</span>
+            <span className="text-ink-600 text-sm">AUD · one-off</span>
           </div>
-          <p className="mt-3 text-xs text-slate-500">
+          <p className="mt-3 text-xs text-ink-700">
             Launch price. No recurring fees. Cancel-free.
           </p>
         </div>
@@ -101,29 +101,29 @@ export default function Founding50Page() {
         <div className="grid md:grid-cols-2 gap-10 items-start">
           {/* What's included */}
           <div>
-            <h2 className="text-xs uppercase tracking-[0.2em] text-brand-400 font-medium mb-6">
+            <h2 className="text-xs uppercase tracking-[0.2em] text-brand-600 font-medium mb-6">
               What you get
             </h2>
             <ul className="space-y-4">
               {INCLUDES.map(({ icon: Icon, title, desc }) => (
                 <li key={title} className="flex items-start gap-3">
-                  <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-brand-600/30 bg-brand-900/40 text-brand-400">
+                  <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-brand-600/30 bg-brand-50 text-brand-600">
                     <Icon strokeWidth={1.75} className="h-4 w-4" />
                   </span>
                   <div>
-                    <p className="text-sm font-semibold text-slate-100">{title}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">{desc}</p>
+                    <p className="text-sm font-semibold text-ink-800">{title}</p>
+                    <p className="text-xs text-ink-600 mt-0.5">{desc}</p>
                   </div>
                 </li>
               ))}
             </ul>
 
             {/* Social proof */}
-            <div className="mt-8 rounded-xl border border-ink-700 bg-ink-900 p-4">
-              <p className="text-xs text-slate-500 italic leading-relaxed">
+            <div className="mt-8 rounded-xl border border-surface-200 bg-white p-4 shadow-sm">
+              <p className="text-xs text-ink-700 italic leading-relaxed">
                 &ldquo;A bad idea costs you time. A bad equity split can cost you the company. BlockID helps you get both right from day one.&rdquo;
               </p>
-              <p className="mt-2 text-[10px] uppercase tracking-[0.15em] text-slate-600 font-medium">
+              <p className="mt-2 text-[10px] uppercase tracking-[0.15em] text-ink-600 font-medium">
                 — BlockID Founding Team
               </p>
             </div>
@@ -138,7 +138,7 @@ export default function Founding50Page() {
               ].map((t) => (
                 <span
                   key={t}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-ink-700 bg-ink-900 px-3 py-1 text-[10px] font-medium text-slate-400"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-surface-200 bg-white px-3 py-1 text-[10px] font-medium text-ink-600"
                 >
                   <CheckCircle2 strokeWidth={1.75} className="h-3 w-3 text-green-400" />
                   {t}
@@ -152,8 +152,8 @@ export default function Founding50Page() {
         </div>
 
         {/* FAQ */}
-        <div className="mt-20 border-t border-ink-700 pt-12">
-          <h2 className="text-xs uppercase tracking-[0.2em] text-brand-400 font-medium mb-8 text-center">
+        <div className="mt-20 border-t border-surface-200 pt-12">
+          <h2 className="text-xs uppercase tracking-[0.2em] text-brand-600 font-medium mb-8 text-center">
             Common questions
           </h2>
           <div className="grid md:grid-cols-2 gap-6">
@@ -183,9 +183,9 @@ export default function Founding50Page() {
                 a: "Yes. Your data is stored in Australia and never shared without your consent. You own your startup data.",
               },
             ].map(({ q, a }) => (
-              <div key={q} className="rounded-xl border border-ink-700 bg-ink-900 p-4">
-                <p className="text-sm font-semibold text-slate-100 mb-1.5">{q}</p>
-                <p className="text-xs text-slate-400 leading-relaxed">{a}</p>
+              <div key={q} className="rounded-xl border border-surface-200 bg-white p-4 shadow-sm">
+                <p className="text-sm font-semibold text-ink-800 mb-1.5">{q}</p>
+                <p className="text-xs text-ink-600 leading-relaxed">{a}</p>
               </div>
             ))}
           </div>

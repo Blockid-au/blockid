@@ -83,8 +83,8 @@ export default async function RoadmapPage() {
     <WorkspaceLayout user={user}>
       <div className="p-6 max-w-3xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-xl font-bold text-slate-50">Growth Roadmap</h1>
-          <p className="text-sm text-slate-500 mt-1">Complete these steps to grow your SVI score and attract investors.</p>
+          <h1 className="text-xl font-bold text-ink-800">Growth Roadmap</h1>
+          <p className="text-sm text-ink-700 mt-1">Complete these steps to grow your SVI score and attract investors.</p>
         </div>
         <RoadmapSteps completedSteps={completedSteps} />
       </div>

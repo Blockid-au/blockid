@@ -155,13 +155,13 @@ export function IdeaValuationTool() {
     <div className="grid lg:grid-cols-2 gap-8">
       <section
         aria-labelledby="idea-inputs"
-        className="rounded-2xl border border-ink-700 bg-ink-900 p-6 md:p-8"
+        className="rounded-2xl border border-surface-200 bg-white p-6 md:p-8"
       >
         <h2
           id="idea-inputs"
-          className="text-lg font-semibold text-slate-50 flex items-center gap-2"
+          className="text-lg font-semibold text-ink-800 flex items-center gap-2"
         >
-          <Calculator strokeWidth={1.75} className="h-5 w-5 text-brand-400" />
+          <Calculator strokeWidth={1.75} className="h-5 w-5 text-brand-600" />
           Idea-stage signals
         </h2>
 
@@ -194,8 +194,8 @@ export function IdeaValuationTool() {
                   className={cn(
                     "rounded-full border px-3 py-1 text-xs transition-colors",
                     input.tamAud === preset.value
-                      ? "border-brand-500/60 bg-brand-500/10 text-brand-200"
-                      : "border-ink-700 bg-ink-900 text-slate-400 hover:border-brand-500/40 hover:text-slate-200",
+                      ? "border-brand-500/60 bg-brand-500/10 text-brand-500"
+                      : "border-surface-200 bg-white text-ink-400 hover:border-brand-500/40 hover:text-ink-600",
                   )}
                 >
                   {preset.label}
@@ -279,55 +279,55 @@ export function IdeaValuationTool() {
 
       <section
         aria-labelledby="idea-outputs"
-        className="rounded-2xl border border-ink-700 bg-ink-900 p-6 md:p-8 flex flex-col"
+        className="rounded-2xl border border-surface-200 bg-white p-6 md:p-8 flex flex-col"
       >
         <h2
           id="idea-outputs"
-          className="text-lg font-semibold text-slate-50 flex items-center gap-2"
+          className="text-lg font-semibold text-ink-800 flex items-center gap-2"
         >
-          <Sparkles strokeWidth={1.75} className="h-5 w-5 text-brand-400" />
+          <Sparkles strokeWidth={1.75} className="h-5 w-5 text-brand-600" />
           Pre-money estimate
         </h2>
 
         <div className="mt-6 rounded-xl border border-brand-500/30 bg-brand-500/5 p-5">
-          <p className="text-xs uppercase tracking-[0.2em] text-brand-300 font-medium">
+          <p className="text-xs uppercase tracking-[0.2em] text-brand-600 font-medium">
             Defensible band (AUD)
           </p>
-          <p className="mt-2 font-mono tabular-nums text-3xl md:text-4xl font-semibold text-slate-50">
+          <p className="mt-2 font-mono tabular-nums text-3xl md:text-4xl font-semibold text-ink-800">
             {formatAud(out.lowAud)} – {formatAud(out.highAud)}
           </p>
-          <p className="mt-2 text-sm text-slate-400">
+          <p className="mt-2 text-sm text-ink-400">
             Mid-point{" "}
-            <span className="font-mono tabular-nums text-slate-200">
+            <span className="font-mono tabular-nums text-ink-600">
               {formatAud(out.midAud)}
             </span>{" "}
             · Scorecard multiplier{" "}
-            <span className="font-mono tabular-nums text-slate-200">
+            <span className="font-mono tabular-nums text-ink-600">
               {out.scorecardMultiplier.toFixed(2)}x
             </span>
           </p>
-          <p className="mt-3 flex items-start gap-2 text-xs text-slate-400">
-            <Info strokeWidth={1.75} className="h-4 w-4 mt-0.5 text-brand-400" />
+          <p className="mt-3 flex items-start gap-2 text-xs text-ink-400">
+            <Info strokeWidth={1.75} className="h-4 w-4 mt-0.5 text-brand-600" />
             <span>{out.confidence}</span>
           </p>
         </div>
 
         <div className="mt-7">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+          <p className="text-xs uppercase tracking-[0.2em] text-ink-8000">
             Per-factor breakdown
           </p>
           <ul className="mt-3 space-y-3">
             {out.factors.map((f) => (
               <li key={f.key}>
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-sm font-medium text-slate-200">
+                  <span className="text-sm font-medium text-ink-600">
                     {f.label}
                   </span>
-                  <span className="font-mono tabular-nums text-xs text-slate-400">
+                  <span className="font-mono tabular-nums text-xs text-ink-400">
                     {formatAud(f.valueAud)} / {formatAud(f.capAud)}
                   </span>
                 </div>
-                <div className="mt-1.5 h-2 w-full rounded-full bg-ink-800 overflow-hidden">
+                <div className="mt-1.5 h-2 w-full rounded-full bg-surface-100 overflow-hidden">
                   <div
                     className="h-full rounded-full bg-brand-500"
                     style={{
@@ -336,19 +336,19 @@ export function IdeaValuationTool() {
                     aria-label={`${f.label} ${formatPercent(f.fillRatio * 100, 0)}`}
                   />
                 </div>
-                <p className="mt-1 text-xs text-slate-500">{f.note}</p>
+                <p className="mt-1 text-xs text-ink-8000">{f.note}</p>
               </li>
             ))}
           </ul>
         </div>
 
-        <div className="mt-7 rounded-xl border border-ink-700 bg-ink-950/60 p-5">
+        <div className="mt-7 rounded-xl border border-surface-200 bg-surface-100/60 p-5">
           <p className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-amber-300 font-medium">
             <Lightbulb strokeWidth={1.75} className="h-4 w-4" />
             What would lift this most
           </p>
           {out.suggestions.length === 0 ? (
-            <p className="mt-3 text-sm text-slate-400">
+            <p className="mt-3 text-sm text-ink-400">
               You&apos;re near the ceiling for an idea-stage estimate. Real
               upside now comes from negotiation and hard signal.
             </p>
@@ -356,19 +356,19 @@ export function IdeaValuationTool() {
             <ol className="mt-3 space-y-3">
               {out.suggestions.map((s, i) => (
                 <li key={s.title} className="flex gap-3">
-                  <span className="font-mono tabular-nums text-xs text-brand-300 mt-0.5">
+                  <span className="font-mono tabular-nums text-xs text-brand-600 mt-0.5">
                     {i + 1}.
                   </span>
                   <div>
                     <div className="flex items-baseline justify-between gap-3">
-                      <span className="text-sm font-semibold text-slate-100">
+                      <span className="text-sm font-semibold text-ink-700">
                         {s.title}
                       </span>
-                      <span className="font-mono tabular-nums text-xs text-brand-300">
+                      <span className="font-mono tabular-nums text-xs text-brand-600">
                         +{formatAud(s.upliftAud)}
                       </span>
                     </div>
-                    <p className="mt-0.5 text-xs text-slate-400">{s.detail}</p>
+                    <p className="mt-0.5 text-xs text-ink-400">{s.detail}</p>
                   </div>
                 </li>
               ))}
@@ -376,18 +376,18 @@ export function IdeaValuationTool() {
           )}
         </div>
 
-        <div className="mt-7 rounded-xl border border-ink-700 bg-ink-950/60 p-5">
-          <p className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-slate-400 font-medium">
-            <TrendingUp strokeWidth={1.75} className="h-4 w-4 text-brand-400" />
+        <div className="mt-7 rounded-xl border border-surface-200 bg-surface-100/60 p-5">
+          <p className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-ink-400 font-medium">
+            <TrendingUp strokeWidth={1.75} className="h-4 w-4 text-brand-600" />
             How this compares
           </p>
-          <p className="mt-2 text-sm text-slate-300">
+          <p className="mt-2 text-sm text-ink-500">
             Typical AU pre-incorporation pre-money sits between{" "}
-            <span className="font-mono tabular-nums text-slate-50">
+            <span className="font-mono tabular-nums text-ink-800">
               {formatAud(AU_PRE_INCORP_BAND.lowAud)}
             </span>{" "}
             and{" "}
-            <span className="font-mono tabular-nums text-slate-50">
+            <span className="font-mono tabular-nums text-ink-800">
               {formatAud(AU_PRE_INCORP_BAND.highAud)}
             </span>{" "}
             in 2025.
@@ -400,20 +400,20 @@ export function IdeaValuationTool() {
           />
         </div>
 
-        <p className="mt-6 text-xs text-slate-500">
+        <p className="mt-6 text-xs text-ink-8000">
           Idea-stage estimate. Real valuation is set by negotiation with your
           first investor — use this number as an anchor, not a quote.
         </p>
 
-        <div className="mt-7 rounded-xl border border-brand-500/40 bg-gradient-to-br from-ink-950 to-ink-900 p-5">
+        <div className="mt-7 rounded-xl border border-brand-500/40 bg-gradient-to-br from-white to-surface-100 p-5">
           <div className="flex flex-col gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-300">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-600">
                 Lock this in
               </p>
-              <p className="mt-2 text-sm text-slate-300">
+              <p className="mt-2 text-sm text-ink-500">
                 Save this valuation as part of your{" "}
-                <span className="font-semibold text-slate-100">
+                <span className="font-semibold text-ink-700">
                   Founder Pack
                 </span>{" "}
                 — a shareable PDF + dashboard with view tracking. Free, no
@@ -424,7 +424,7 @@ export function IdeaValuationTool() {
               <div className="flex flex-col gap-2">
                 <Label
                   htmlFor="founder-pack-idea-name"
-                  className="text-xs text-slate-400"
+                  className="text-xs text-ink-400"
                 >
                   Idea name (optional)
                 </Label>
@@ -461,7 +461,7 @@ function RadioGroup({
   const options: Score1to5[] = [1, 2, 3, 4, 5];
   return (
     <fieldset>
-      <legend className="block text-sm font-medium text-slate-200">
+      <legend className="block text-sm font-medium text-ink-600">
         {label}
       </legend>
       <div
@@ -479,8 +479,8 @@ function RadioGroup({
               className={cn(
                 "cursor-pointer rounded-[10px] border px-2 py-2 text-center transition-colors",
                 selected
-                  ? "border-brand-500/60 bg-brand-500/10 text-brand-200"
-                  : "border-ink-700 bg-ink-900 text-slate-400 hover:border-brand-500/40 hover:text-slate-200",
+                  ? "border-brand-500/60 bg-brand-500/10 text-brand-500"
+                  : "border-surface-200 bg-white text-ink-400 hover:border-brand-500/40 hover:text-ink-600",
               )}
             >
               <input
@@ -499,8 +499,8 @@ function RadioGroup({
           );
         })}
       </div>
-      <p className="mt-1.5 text-xs text-slate-500">
-        <span className="font-mono tabular-nums text-slate-300">{value}</span> ·{" "}
+      <p className="mt-1.5 text-xs text-ink-8000">
+        <span className="font-mono tabular-nums text-ink-500">{value}</span> ·{" "}
         {labels[value]}
       </p>
     </fieldset>
@@ -520,7 +520,7 @@ function CheckboxGroup<T extends string>({
 }) {
   return (
     <fieldset>
-      <legend className="block text-sm font-medium text-slate-200">
+      <legend className="block text-sm font-medium text-ink-600">
         {label}
       </legend>
       <div className="mt-2 grid sm:grid-cols-2 gap-2">
@@ -532,15 +532,15 @@ function CheckboxGroup<T extends string>({
               className={cn(
                 "flex items-center gap-2.5 cursor-pointer rounded-[10px] border px-3 py-2.5 text-sm transition-colors",
                 checked
-                  ? "border-brand-500/60 bg-brand-500/10 text-slate-100"
-                  : "border-ink-700 bg-ink-900 text-slate-400 hover:border-brand-500/40 hover:text-slate-200",
+                  ? "border-brand-500/60 bg-brand-500/10 text-ink-700"
+                  : "border-surface-200 bg-white text-ink-400 hover:border-brand-500/40 hover:text-ink-600",
               )}
             >
               <input
                 type="checkbox"
                 checked={checked}
                 onChange={() => onToggle(f.key)}
-                className="h-4 w-4 rounded border-ink-700 bg-ink-900 text-brand-500 focus:ring-brand-500/40"
+                className="h-4 w-4 rounded border-surface-200 bg-white text-brand-500 focus:ring-brand-500/40"
               />
               <span>{f.label}</span>
             </label>

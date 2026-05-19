@@ -37,7 +37,7 @@ export function RoadmapSteps({ completedSteps = [1] }: { completedSteps?: number
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-xs uppercase tracking-[0.15em] text-slate-500 font-medium">
+        <p className="text-xs uppercase tracking-[0.15em] text-ink-700 font-medium">
           Lộ trình phát triển / Growth Roadmap
         </p>
         <span className="text-xs text-teal-400 font-mono font-medium">+{totalPotential} SVI potential</span>
@@ -51,34 +51,34 @@ export function RoadmapSteps({ completedSteps = [1] }: { completedSteps?: number
             className={cn(
               "flex items-start gap-4 rounded-xl border px-4 py-3 transition-all",
               step.done
-                ? "border-green-500/20 bg-green-500/5"
-                : "border-ink-700 bg-ink-800/40 hover:border-brand-500/30",
+                ? "border-emerald-200 bg-emerald-50"
+                : "border-surface-200 bg-white hover:border-brand-200",
             )}
           >
             {/* Status icon */}
             <div className={cn(
               "mt-0.5 h-8 w-8 rounded-full flex items-center justify-center shrink-0",
-              step.done ? "bg-green-500/20" : "bg-ink-700",
+              step.done ? "bg-emerald-100" : "bg-surface-200",
             )}>
               {step.done
-                ? <CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-green-400" />
-                : <Icon strokeWidth={1.75} className="h-4 w-4 text-slate-400" />}
+                ? <CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-emerald-500" />
+                : <Icon strokeWidth={1.75} className="h-4 w-4 text-ink-600" />}
             </div>
 
             {/* Content */}
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className={cn("text-sm font-medium", step.done ? "text-green-300 line-through opacity-70" : "text-slate-200")}>
+                  <p className={cn("text-sm font-medium", step.done ? "text-emerald-600 line-through opacity-70" : "text-ink-800")}>
                     {step.title}
                   </p>
-                  <p className="text-xs text-slate-500 mt-0.5">{step.descVi}</p>
+                  <p className="text-xs text-ink-700 mt-0.5">{step.descVi}</p>
                 </div>
                 <div className="flex flex-col items-end gap-1 shrink-0">
                   {step.sviImpact > 0 && !step.done && (
                     <span className="text-[10px] font-mono font-semibold text-teal-400">+{step.sviImpact} SVI</span>
                   )}
-                  <span className="text-[10px] text-slate-600">{step.time}</span>
+                  <span className="text-[10px] text-ink-700">{step.time}</span>
                 </div>
               </div>
             </div>
@@ -87,7 +87,7 @@ export function RoadmapSteps({ completedSteps = [1] }: { completedSteps?: number
             {!step.done && step.href && (
               <a
                 href={step.href}
-                className="shrink-0 h-7 px-3 rounded-lg bg-brand-700/40 border border-brand-600/30 text-xs font-medium text-brand-300 hover:bg-brand-700/60 transition-colors flex items-center mt-0.5"
+                className="shrink-0 h-7 px-3 rounded-lg bg-brand-50 border border-brand-200 text-xs font-medium text-brand-600 hover:bg-brand-100 transition-colors flex items-center mt-0.5"
               >
                 Làm ngay
               </a>

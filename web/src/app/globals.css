@@ -1,39 +1,50 @@
 @import "tailwindcss";
 
 @theme {
-  /* Light-mode surface palette */
+  /* ── Surface palette (light-first) ────────────────────────── */
   --color-surface-50: #ffffff;
-  --color-surface-100: #f8fafc;
-  --color-surface-200: #f1f5f9;
-  --color-surface-300: #e2e8f0;
+  --color-surface-100: #f9fafb;
+  --color-surface-200: #f3f4f6;
+  --color-surface-300: #e5e7eb;
+  --color-surface-400: #d1d5db;
 
-  /* Dark ink for footer / dashboard (kept for those sections) */
-  --color-ink-950: #0b1220;
-  --color-ink-900: #0f172a;
-  --color-ink-800: #172033;
-  --color-ink-700: #1f2a44;
+  /* ── Ink (dark backgrounds — footer, overlays) ────────────── */
+  --color-ink-950: #030712;
+  --color-ink-900: #0a0f1e;
+  --color-ink-800: #111827;
+  --color-ink-700: #1f2937;
+  --color-ink-600: #374151;
 
-  --color-paper-50: #f8fafc;
+  --color-paper-50: #f9fafb;
 
-  /* Brand blue */
-  --color-brand-50: #EFF6FF;
-  --color-brand-100: #DBEAFE;
-  --color-brand-200: #BFDBFE;
-  --color-brand-300: #7EB0F0;
-  --color-brand-400: #5B9AEB;
-  --color-brand-500: #3B7DD8;
-  --color-brand-600: #2B5EA7;
-  --color-brand-700: #1B3A6B;
-  --color-brand-800: #142B52;
-  --color-brand-900: #0D1B33;
+  /* ── Brand blue ───────────────────────────────────────────── */
+  --color-brand-50: #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-200: #bfdbfe;
+  --color-brand-300: #93c5fd;
+  --color-brand-400: #60a5fa;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+  --color-brand-800: #1e40af;
+  --color-brand-900: #1e3a5f;
 
-  /* Gold accent */
-  --color-gold-300: #E4C271;
-  --color-gold-400: #D4A843;
-  --color-gold-500: #C5922E;
-  --color-gold-600: #A67C2E;
+  /* ── Emerald (growth / positive) ──────────────────────────── */
+  --color-emerald-50: #ecfdf5;
+  --color-emerald-100: #d1fae5;
+  --color-emerald-400: #34d399;
+  --color-emerald-500: #10b981;
+  --color-emerald-600: #059669;
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  /* ── Gold accent ──────────────────────────────────────────── */
+  --color-gold-50: #fffbeb;
+  --color-gold-300: #fcd34d;
+  --color-gold-400: #fbbf24;
+  --color-gold-500: #f59e0b;
+  --color-gold-600: #d97706;
+
+  /* ── Fonts ────────────────────────────────────────────────── */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, monospace;
 }
 
@@ -44,7 +55,7 @@
 html,
 body {
   background-color: var(--color-surface-50);
-  color: var(--color-brand-900);
+  color: var(--color-ink-800);
   max-width: 100%;
   overflow-x: hidden;
 }
@@ -60,16 +71,58 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Blue glow for primary CTA. */
+/* ── CTA effects ─────────────────────────────────────────── */
 .cta-glow {
-  box-shadow: 0 8px 32px rgba(59, 125, 216, 0.22);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05),
+    0 8px 24px -4px rgba(59, 130, 246, 0.25);
 }
-.tile-glow:hover {
-  box-shadow: 0 0 0 1px rgba(59, 125, 216, 0.15),
-    0 12px 32px -8px rgba(59, 125, 216, 0.12);
+.cta-glow:hover {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05),
+    0 12px 32px -4px rgba(59, 130, 246, 0.35);
 }
 
-/* Honour reduced motion. */
+.tile-glow:hover {
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.08),
+    0 8px 24px -8px rgba(59, 130, 246, 0.12);
+}
+
+/* ── Glass effect ────────────────────────────────────────── */
+.glass {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+.glass-dark {
+  background: rgba(10, 15, 30, 0.85);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+/* ── Gradient backgrounds ────────────────────────────────── */
+.gradient-hero {
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 40%, #ecfdf5 100%);
+}
+
+.gradient-section {
+  background: linear-gradient(180deg, #f9fafb 0%, #ffffff 100%);
+}
+
+.gradient-brand {
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #2563eb 100%);
+}
+
+/* ── Subtle card hover ───────────────────────────────────── */
+.card-hover {
+  transition: all 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 12px 24px -4px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Honour reduced motion ───────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -80,15 +133,27 @@ body {
   }
 }
 
-/* Scrollbar */
+/* ── Scrollbar ───────────────────────────────────────────── */
 *::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 *::-webkit-scrollbar-track {
   background: transparent;
 }
 *::-webkit-scrollbar-thumb {
-  background: rgba(59, 125, 216, 0.15);
+  background: rgba(0, 0, 0, 0.1);
   border-radius: 9999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* ── Focus ring utility ──────────────────────────────────── */
+.focus-ring {
+  outline: none;
+}
+.focus-ring:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
 }

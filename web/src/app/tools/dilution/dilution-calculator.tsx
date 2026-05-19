@@ -107,13 +107,13 @@ export function DilutionCalculator() {
     <div className="grid lg:grid-cols-2 gap-8">
       <section
         aria-labelledby="dilution-inputs"
-        className="rounded-2xl border border-ink-700 bg-ink-900 p-6 md:p-8"
+        className="rounded-2xl border border-surface-200 bg-white p-6 md:p-8"
       >
         <h2
           id="dilution-inputs"
-          className="text-lg font-semibold text-slate-50 flex items-center gap-2"
+          className="text-lg font-semibold text-ink-800 flex items-center gap-2"
         >
-          <Calculator strokeWidth={1.75} className="h-5 w-5 text-brand-400" />
+          <Calculator strokeWidth={1.75} className="h-5 w-5 text-brand-600" />
           Inputs
         </h2>
         <div className="mt-6 grid sm:grid-cols-2 gap-5">
@@ -169,11 +169,11 @@ export function DilutionCalculator() {
 
       <section
         aria-labelledby="dilution-outputs"
-        className="rounded-2xl border border-ink-700 bg-ink-900 p-6 md:p-8"
+        className="rounded-2xl border border-surface-200 bg-white p-6 md:p-8"
       >
         <h2
           id="dilution-outputs"
-          className="text-lg font-semibold text-slate-50"
+          className="text-lg font-semibold text-ink-800"
         >
           Outputs
         </h2>
@@ -212,17 +212,17 @@ export function DilutionCalculator() {
           investor={out.investorPct}
           esop={out.esopPct}
         />
-        <p className="mt-4 text-xs text-slate-500">
+        <p className="mt-4 text-xs text-ink-8000">
           New shares issued: founders{" "}
-          <span className="font-mono tabular-nums text-slate-300">
+          <span className="font-mono tabular-nums text-ink-500">
             {formatNumber(inp.currentShares)}
           </span>{" "}
           · investors{" "}
-          <span className="font-mono tabular-nums text-slate-300">
+          <span className="font-mono tabular-nums text-ink-500">
             {formatNumber(Math.round(out.investorShares))}
           </span>{" "}
           · ESOP{" "}
-          <span className="font-mono tabular-nums text-slate-300">
+          <span className="font-mono tabular-nums text-ink-500">
             {formatNumber(Math.round(out.esopShares))}
           </span>
         </p>
@@ -230,18 +230,18 @@ export function DilutionCalculator() {
 
       <form
         onSubmit={onSubmit}
-        className="lg:col-span-2 rounded-2xl border border-brand-500/30 bg-ink-900 p-6 md:p-8"
+        className="lg:col-span-2 rounded-2xl border border-brand-500/30 bg-white p-6 md:p-8"
         noValidate
       >
         <div className="grid lg:grid-cols-2 gap-8 items-center">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium">
+            <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium">
               Want the full picture?
             </p>
-            <h3 className="mt-2 text-2xl font-semibold text-slate-50">
+            <h3 className="mt-2 text-2xl font-semibold text-ink-800">
               Get your Investor-Ready Score with this dilution baked in
             </h3>
-            <p className="mt-2 text-sm text-slate-400">
+            <p className="mt-2 text-sm text-ink-400">
               We&apos;ll send you a magic link to generate your verified score
               and a shareable link your investors can open.
             </p>
@@ -321,13 +321,13 @@ function Stat({
 }) {
   const colour =
     tone === "brand"
-      ? "text-brand-300"
+      ? "text-brand-600"
       : tone === "amber"
         ? "text-amber-300"
-        : "text-slate-50";
+        : "text-ink-800";
   return (
     <div>
-      <dt className="text-xs uppercase tracking-wider text-slate-500">
+      <dt className="text-xs uppercase tracking-wider text-ink-8000">
         {label}
       </dt>
       <dd
@@ -358,7 +358,7 @@ function Stack({
   ];
   return (
     <div className="mt-8">
-      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+      <p className="text-xs uppercase tracking-[0.2em] text-ink-8000">
         Cap table — before vs. after
       </p>
       <svg
@@ -370,7 +370,7 @@ function Stack({
         <BarRow y={10} segments={before} label="Before" />
         <BarRow y={50} segments={after} label="After" />
       </svg>
-      <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-slate-400">
+      <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-ink-400">
         {after.map((s) => (
           <li key={s.label} className="flex items-center gap-2">
             <span
@@ -380,7 +380,7 @@ function Stack({
             />
             <span>
               {s.label}{" "}
-              <span className="font-mono tabular-nums text-slate-200">
+              <span className="font-mono tabular-nums text-ink-600">
                 {s.value.toFixed(1)}%
               </span>
             </span>

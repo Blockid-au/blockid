@@ -78,8 +78,8 @@ export default async function ReportsPage() {
     <WorkspaceLayout user={user}>
       <div className="p-6 max-w-3xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-xl font-bold text-slate-50">Weekly Reports</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-xl font-bold text-ink-800">Weekly Reports</h1>
+          <p className="text-sm text-ink-700 mt-1">
             Track your SVI progress week by week.
           </p>
         </div>
@@ -94,16 +94,16 @@ export default async function ReportsPage() {
             gaps={gaps}
           />
         ) : (
-          <div className="rounded-2xl border border-dashed border-ink-600 bg-ink-900/50 px-6 py-16 text-center">
+          <div className="rounded-2xl border border-dashed border-surface-200 bg-white px-6 py-16 text-center">
             <BarChart3
               strokeWidth={1.25}
-              className="mx-auto h-10 w-10 text-slate-600 mb-3"
+              className="mx-auto h-10 w-10 text-ink-700 mb-3"
             />
-            <p className="text-slate-400 font-medium">
+            <p className="text-ink-600 font-medium">
               Your first weekly report will be generated after your SVI baseline
               is set.
             </p>
-            <p className="text-slate-600 text-sm mt-1">
+            <p className="text-ink-700 text-sm mt-1">
               Get your SVI score first.
             </p>
             <Link

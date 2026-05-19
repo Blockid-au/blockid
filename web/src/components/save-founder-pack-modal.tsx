@@ -118,45 +118,45 @@ function SaveFounderPackModalContent({ onClose }: { onClose: () => void }) {
       className="fixed inset-0 z-[100] flex items-center justify-center px-4 py-8"
     >
       <div
-        className="absolute inset-0 bg-ink-950/85 backdrop-blur-sm"
+        className="absolute inset-0 bg-white/85 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden
       />
 
-      <div className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-ink-700 bg-ink-900 shadow-[0_30px_80px_rgba(0,0,0,0.6)]">
+      <div className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-surface-200 bg-white shadow-[0_30px_80px_rgba(0,0,0,0.6)]">
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-100"
+          className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-full text-ink-400 transition-colors hover:bg-white/5 hover:text-ink-700"
         >
           <X strokeWidth={1.75} className="h-5 w-5" />
         </button>
 
         <div className="px-7 pt-8 pb-6">
-          <div className="inline-flex items-center gap-2 rounded-full border border-brand-400/40 bg-brand-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-200">
+          <div className="inline-flex items-center gap-2 rounded-full border border-brand-400/40 bg-brand-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-500">
             <Sparkles strokeWidth={1.75} className="h-3.5 w-3.5" />
             Free forever at idea phase
           </div>
 
           <h2
             id="save-founder-pack-title"
-            className="mt-4 text-2xl font-semibold tracking-tight text-slate-50 sm:text-3xl"
+            className="mt-4 text-2xl font-semibold tracking-tight text-ink-800 sm:text-3xl"
           >
             Save your Founder Pack
           </h2>
-          <p className="mt-3 text-sm leading-relaxed text-slate-400 sm:text-base">
+          <p className="mt-3 text-sm leading-relaxed text-ink-400 sm:text-base">
             We&apos;ll email you a magic link to keep your idea valuation,
             equity split and funding plan in one shareable PDF — no password,
             no spam.
           </p>
 
           {snapshot.filledCount > 0 ? (
-            <div className="mt-5 rounded-xl border border-ink-700 bg-ink-800/60 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-300">
+            <div className="mt-5 rounded-xl border border-surface-200 bg-surface-100/60 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">
                 In your pack
               </p>
-              <ul className="mt-3 space-y-2 text-sm text-slate-200">
+              <ul className="mt-3 space-y-2 text-sm text-ink-600">
                 <PackItem ok={snapshot.hasIdeaEval} label="Idea valuation" />
                 <PackItem
                   ok={snapshot.hasEquitySplit}
@@ -178,7 +178,7 @@ function SaveFounderPackModalContent({ onClose }: { onClose: () => void }) {
 
         <form
           onSubmit={handleSubmit}
-          className="border-t border-ink-700 bg-ink-900/80 px-7 py-6"
+          className="border-t border-surface-200 bg-surface-50/80 px-7 py-6"
           noValidate
         >
           {state === "ok" ? (
@@ -187,7 +187,7 @@ function SaveFounderPackModalContent({ onClose }: { onClose: () => void }) {
             <>
               <Label
                 htmlFor="founder-pack-email"
-                className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400"
+                className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-400"
               >
                 Work email
               </Label>
@@ -239,7 +239,7 @@ function SaveFounderPackModalContent({ onClose }: { onClose: () => void }) {
                 </p>
               )}
 
-              <p className="mt-4 flex items-center gap-2 text-xs text-slate-500">
+              <p className="mt-4 flex items-center gap-2 text-xs text-ink-8000">
                 <Lock strokeWidth={1.75} className="h-3.5 w-3.5" />
                 One BlockID account, free forever at idea phase. Magic link
                 expires in 15 minutes.
@@ -258,13 +258,13 @@ function PackItem({ ok, label }: { ok: boolean; label: string }) {
       <span
         className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
           ok
-            ? "bg-brand-400/15 text-brand-300"
-            : "bg-ink-700 text-slate-500"
+            ? "bg-brand-400/15 text-brand-600"
+            : "bg-surface-200 text-ink-8000"
         }`}
       >
         <CheckCircle2 strokeWidth={1.75} className="h-3.5 w-3.5" />
       </span>
-      <span className={ok ? "text-slate-100" : "text-slate-500"}>{label}</span>
+      <span className={ok ? "text-ink-700" : "text-ink-8000"}>{label}</span>
     </li>
   );
 }
@@ -272,16 +272,16 @@ function PackItem({ ok, label }: { ok: boolean; label: string }) {
 function SuccessPanel({ email }: { email: string }) {
   return (
     <div className="flex items-start gap-3">
-      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-400/15 text-brand-300">
+      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-400/15 text-brand-600">
         <Mail strokeWidth={1.75} className="h-5 w-5" />
       </span>
       <div>
-        <p className="text-base font-semibold text-slate-50">
+        <p className="text-base font-semibold text-ink-800">
           Check your inbox.
         </p>
-        <p className="mt-1 text-sm leading-relaxed text-slate-400">
+        <p className="mt-1 text-sm leading-relaxed text-ink-400">
           We sent a magic link to{" "}
-          <span className="font-medium text-slate-200">{email}</span>. Click it
+          <span className="font-medium text-ink-600">{email}</span>. Click it
           to mint your Founder Pack and dashboard. Link expires in 15 minutes.
         </p>
       </div>

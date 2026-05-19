@@ -104,7 +104,7 @@ export function Bento() {
           >
             Every feature makes ownership visible and fundraising faster.
           </h2>
-          <p className="mt-4 text-base md:text-lg leading-relaxed text-slate-600">
+          <p className="mt-4 text-base md:text-lg leading-relaxed text-ink-700">
             From AI-powered readiness scoring to tamper-evident proof, every tool
             helps you raise with evidence investors trust.
           </p>
@@ -125,7 +125,7 @@ function BentoTile({ tile }: { tile: Tile }) {
   return (
     <article
       className={cn(
-        "group relative overflow-hidden rounded-2xl border border-surface-300 bg-white p-6 md:p-8 shadow-sm transition-colors duration-200 hover:border-brand-500 cursor-default",
+        "group relative overflow-hidden rounded-2xl border border-surface-200 bg-white p-6 md:p-8 shadow-sm card-hover cursor-default",
         tile.span,
       )}
     >
@@ -137,11 +137,11 @@ function BentoTile({ tile }: { tile: Tile }) {
           <h3 className="mt-2 text-lg md:text-xl font-semibold text-brand-900">
             {tile.title}
           </h3>
-          <p className="mt-2 max-w-md text-sm md:text-base leading-relaxed text-slate-600">
+          <p className="mt-2 max-w-md text-sm md:text-base leading-relaxed text-ink-700">
             {tile.body}
           </p>
         </div>
-        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-surface-300 bg-surface-100 text-brand-500">
+        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-surface-200 bg-surface-100 text-brand-600">
           <Icon strokeWidth={1.75} className="h-5 w-5" />
         </span>
       </div>
@@ -163,32 +163,32 @@ function BentoTile({ tile }: { tile: Tile }) {
 
 function ScoreVisual() {
   return (
-    <div className="rounded-xl border border-surface-300 bg-surface-100 p-5">
+    <div className="rounded-xl border border-surface-200 bg-surface-100 p-5">
       <div className="flex items-end justify-between">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">
+          <p className="text-[11px] uppercase tracking-[0.2em] text-ink-600">
             Acme Co · Series A
           </p>
           <div className="mt-1 flex items-end gap-1">
-            <span className="font-mono tabular-nums text-5xl font-semibold text-brand-500 leading-none">
+            <span className="font-mono tabular-nums text-5xl font-semibold text-brand-600 leading-none">
               87
             </span>
-            <span className="font-mono tabular-nums text-base text-slate-400 leading-none mb-1.5">
+            <span className="font-mono tabular-nums text-base text-ink-600 leading-none mb-1.5">
               /100
             </span>
           </div>
         </div>
         <div className="text-right text-xs">
-          <p className="text-slate-400">Sector median</p>
-          <p className="font-mono tabular-nums text-slate-700">71</p>
+          <p className="text-ink-600">Sector median</p>
+          <p className="font-mono tabular-nums text-ink-800">71</p>
         </div>
       </div>
       <div className="mt-4 grid grid-cols-5 gap-2">
         {[88, 92, 81, 90, 84].map((v, i) => (
           <div key={i}>
-            <div className="h-1.5 w-full rounded-full bg-surface-300">
+            <div className="h-1.5 w-full rounded-full bg-surface-200">
               <div
-                className="h-full rounded-full bg-brand-500"
+                className="h-full rounded-full bg-brand-600"
                 style={{ width: `${v}%` }}
               />
             </div>
@@ -201,7 +201,7 @@ function ScoreVisual() {
 
 function ViewLinkVisual() {
   return (
-    <div className="rounded-xl border border-surface-300 bg-surface-100 p-4 space-y-2">
+    <div className="rounded-xl border border-surface-200 bg-surface-100 p-4 space-y-2">
       {[
         { who: "Blackbird Ventures", time: "12m 04s" },
         { who: "AirTree Partner", time: "06m 18s" },
@@ -211,8 +211,8 @@ function ViewLinkVisual() {
           key={row.who}
           className="flex items-center justify-between text-xs"
         >
-          <span className="text-slate-700">{row.who}</span>
-          <span className="font-mono tabular-nums text-brand-500">
+          <span className="text-ink-800">{row.who}</span>
+          <span className="font-mono tabular-nums text-brand-600">
             {row.time}
           </span>
         </div>
@@ -223,8 +223,8 @@ function ViewLinkVisual() {
 
 function TermSheetVisual() {
   return (
-    <div className="rounded-xl border border-surface-300 bg-surface-100 p-4 text-xs">
-      <p className="text-slate-400">SAFE valuation cap</p>
+    <div className="rounded-xl border border-surface-200 bg-surface-100 p-4 text-xs">
+      <p className="text-ink-600">SAFE valuation cap</p>
       <p className="font-mono tabular-nums text-brand-900 text-lg">$8.0M</p>
       <div className="mt-2 flex items-center gap-2 text-amber-600">
         <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
@@ -237,10 +237,10 @@ function TermSheetVisual() {
 function CapDiffVisual() {
   const before = [60, 25, 15];
   const after = [48, 22, 18, 12];
-  const colors = ["bg-brand-500", "bg-brand-500/70", "bg-brand-500/45", "bg-amber-400/80"];
+  const colors = ["bg-brand-600", "bg-brand-600/70", "bg-brand-600/45", "bg-amber-400/80"];
   return (
-    <div className="rounded-xl border border-surface-300 bg-surface-100 p-4">
-      <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">
+    <div className="rounded-xl border border-surface-200 bg-surface-100 p-4">
+      <p className="text-[11px] uppercase tracking-[0.2em] text-ink-600">
         Before → After Series A
       </p>
       <div className="mt-3 space-y-2">
@@ -255,9 +255,9 @@ function CapDiffVisual() {
           ))}
         </div>
       </div>
-      <p className="mt-2 text-xs text-slate-600">
+      <p className="mt-2 text-xs text-ink-700">
         Founders dilute <span className="font-mono tabular-nums text-amber-600">12%</span>
-        {" · "}ESOP top-up <span className="font-mono tabular-nums text-brand-500">+10%</span>
+        {" · "}ESOP top-up <span className="font-mono tabular-nums text-brand-600">+10%</span>
       </p>
     </div>
   );
@@ -270,11 +270,11 @@ function CompsVisual() {
     { label: "Sector median", mult: "3.8x" },
   ];
   return (
-    <div className="rounded-xl border border-surface-300 bg-surface-100 p-4 space-y-1.5">
+    <div className="rounded-xl border border-surface-200 bg-surface-100 p-4 space-y-1.5">
       {rows.map((r) => (
         <div key={r.label} className="flex items-center justify-between text-xs">
-          <span className="text-slate-600">{r.label}</span>
-          <span className="font-mono tabular-nums text-brand-500">{r.mult}</span>
+          <span className="text-ink-700">{r.label}</span>
+          <span className="font-mono tabular-nums text-brand-600">{r.mult}</span>
         </div>
       ))}
     </div>
@@ -287,7 +287,7 @@ function ComplianceVisual() {
       {["ASIC", "ESIC", "R&D", "AUSTRAC"].map((b) => (
         <span
           key={b}
-          className="inline-flex items-center rounded-md border border-surface-300 bg-surface-100 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wider text-slate-700"
+          className="inline-flex items-center rounded-md border border-surface-200 bg-surface-100 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wider text-ink-800"
         >
           {b}
         </span>
@@ -303,7 +303,7 @@ function PlugVisual() {
       {items.map((label) => (
         <div
           key={label}
-          className="rounded-lg border border-surface-300 bg-surface-100 px-4 py-3 text-sm font-medium text-slate-700"
+          className="rounded-lg border border-surface-200 bg-surface-100 px-4 py-3 text-sm font-medium text-ink-800"
         >
           <p className="text-[10px] uppercase tracking-[0.2em] text-gold-500">OAuth</p>
           <p className="mt-1">{label}</p>

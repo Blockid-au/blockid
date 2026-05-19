@@ -119,16 +119,16 @@ export function EquitySplitTool() {
       {/* LEFT — inputs */}
       <section
         aria-labelledby="equity-form"
-        className="lg:col-span-5 rounded-2xl border border-ink-700 bg-ink-900 p-6 md:p-8"
+        className="lg:col-span-5 rounded-2xl border border-surface-200 bg-white p-6 md:p-8"
       >
         <div className="flex items-center justify-between gap-3">
           <h2
             id="equity-form"
-            className="text-lg font-semibold text-slate-50 flex items-center gap-2"
+            className="text-lg font-semibold text-ink-800 flex items-center gap-2"
           >
             <Users
               strokeWidth={1.75}
-              className="h-5 w-5 text-brand-400"
+              className="h-5 w-5 text-brand-600"
               aria-hidden
             />
             Founders ({founders.length})
@@ -136,7 +136,7 @@ export function EquitySplitTool() {
           <button
             type="button"
             onClick={resetDemo}
-            className="inline-flex items-center gap-1.5 rounded-md border border-ink-700 bg-ink-800/60 px-2.5 py-1.5 text-xs font-medium text-slate-300 hover:border-brand-500/40 hover:text-slate-50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
+            className="inline-flex items-center gap-1.5 rounded-md border border-surface-200 bg-surface-100/60 px-2.5 py-1.5 text-xs font-medium text-ink-500 hover:border-brand-500/40 hover:text-ink-800 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
           >
             <RotateCcw strokeWidth={1.75} className="h-3.5 w-3.5" />
             Reset
@@ -158,28 +158,28 @@ export function EquitySplitTool() {
             type="button"
             onClick={addFounder}
             disabled={founders.length >= MAX_FOUNDERS}
-            className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-ink-700 bg-transparent px-3 py-2 text-xs font-medium text-slate-300 hover:border-brand-500/40 hover:text-slate-50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-ink-700 disabled:hover:text-slate-300"
+            className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-surface-200 bg-transparent px-3 py-2 text-xs font-medium text-ink-500 hover:border-brand-500/40 hover:text-ink-800 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-surface-200 disabled:hover:text-ink-500"
           >
             <Plus strokeWidth={1.75} className="h-3.5 w-3.5" />
             Add founder
             {founders.length >= MAX_FOUNDERS && (
-              <span className="text-slate-500">(max {MAX_FOUNDERS})</span>
+              <span className="text-ink-8000">(max {MAX_FOUNDERS})</span>
             )}
           </button>
         </div>
 
-        <hr className="my-6 border-ink-700" />
+        <hr className="my-6 border-surface-200" />
 
-        <h3 className="text-lg font-semibold text-slate-50 flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-ink-800 flex items-center gap-2">
           <ShieldCheck
             strokeWidth={1.75}
-            className="h-5 w-5 text-brand-400"
+            className="h-5 w-5 text-brand-600"
             aria-hidden
           />
           Reserves & vesting
         </h3>
         <div className="mt-5 space-y-5">
-          <div className="flex items-start gap-3 rounded-xl border border-ink-700 bg-ink-800/40 p-3">
+          <div className="flex items-start gap-3 rounded-xl border border-surface-200 bg-surface-100/40 p-3">
             <input
               id="esop-toggle"
               type="checkbox"
@@ -187,16 +187,16 @@ export function EquitySplitTool() {
               onChange={(e) =>
                 updateSettings("esopEnabled", e.target.checked)
               }
-              className="mt-0.5 h-4 w-4 rounded border-ink-700 bg-ink-900 text-brand-500 focus:ring-brand-500/30 cursor-pointer"
+              className="mt-0.5 h-4 w-4 rounded border-surface-200 bg-white text-brand-500 focus:ring-brand-500/30 cursor-pointer"
             />
             <div className="flex-1">
               <Label
                 htmlFor="esop-toggle"
-                className="text-sm text-slate-200 cursor-pointer"
+                className="text-sm text-ink-600 cursor-pointer"
               >
                 Reserve ESOP pool ({settings.esopPct}%)
               </Label>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-ink-8000 mt-0.5">
                 Standard 10% pool for early hires. Carved out of the company,
                 not just founders.
               </p>
@@ -220,10 +220,10 @@ export function EquitySplitTool() {
 
           <div>
             <div className="flex items-center justify-between">
-              <Label htmlFor="first-hire" className="text-sm text-slate-200">
+              <Label htmlFor="first-hire" className="text-sm text-ink-600">
                 Reserve for first hire
               </Label>
-              <span className="font-mono tabular-nums text-sm text-brand-300">
+              <span className="font-mono tabular-nums text-sm text-brand-600">
                 {settings.firstHirePct}%
               </span>
             </div>
@@ -239,7 +239,7 @@ export function EquitySplitTool() {
               }
               className="mt-2 w-full accent-brand-500 cursor-pointer"
             />
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-ink-8000 mt-1">
               Optional dedicated slice for an anticipated key hire (e.g. CTO
               you haven&apos;t signed yet).
             </p>
@@ -250,7 +250,7 @@ export function EquitySplitTool() {
               <Info strokeWidth={1.75} className="h-3 w-3" aria-hidden />
               Vesting: 4 years · 1-year cliff
             </Badge>
-            <span className="text-xs text-slate-500">recommended</span>
+            <span className="text-xs text-ink-8000">recommended</span>
           </div>
         </div>
       </section>
@@ -262,19 +262,19 @@ export function EquitySplitTool() {
       >
         <h2
           id="equity-output"
-          className="text-lg font-semibold text-slate-50 flex items-center gap-2"
+          className="text-lg font-semibold text-ink-800 flex items-center gap-2"
         >
           <PieIcon
             strokeWidth={1.75}
-            className="h-5 w-5 text-brand-400"
+            className="h-5 w-5 text-brand-600"
             aria-hidden
           />
           Recommended split
         </h2>
 
         {/* Pie + legend */}
-        <div className="rounded-2xl border border-ink-700 bg-ink-900 p-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+        <div className="rounded-2xl border border-surface-200 bg-white p-6">
+          <p className="text-xs uppercase tracking-[0.2em] text-ink-8000">
             Cap table v0
           </p>
           <div className="mt-4 grid sm:grid-cols-[180px_1fr] gap-6 items-center">
@@ -338,14 +338,14 @@ export function EquitySplitTool() {
         </div>
 
         {/* Allocation table */}
-        <div className="rounded-2xl border border-ink-700 bg-ink-900 p-4 md:p-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+        <div className="rounded-2xl border border-surface-200 bg-white p-4 md:p-6">
+          <p className="text-xs uppercase tracking-[0.2em] text-ink-8000">
             Per-founder breakdown
           </p>
           <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[680px] text-sm">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-[0.15em] text-slate-500">
+                <tr className="text-left text-[11px] uppercase tracking-[0.15em] text-ink-8000">
                   <th className="py-2 pr-3 font-medium">Founder</th>
                   <th className="py-2 px-3 font-medium text-right">%</th>
                   <th className="py-2 px-3 font-medium text-right">Points</th>
@@ -358,10 +358,10 @@ export function EquitySplitTool() {
                   <th className="py-2 pl-3 font-medium text-right">Risk</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-ink-700/70">
+              <tbody className="divide-y divide-surface-200/70">
                 {result.allocations.map((a, i) => (
                   <tr key={a.id}>
-                    <td className="py-2.5 pr-3 font-medium text-slate-50">
+                    <td className="py-2.5 pr-3 font-medium text-ink-800">
                       <span className="inline-flex items-center gap-2">
                         <span
                           aria-hidden
@@ -374,43 +374,43 @@ export function EquitySplitTool() {
                         {a.name || `Founder ${i + 1}`}
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-brand-300">
+                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-brand-600">
                       {formatPercent(a.pct)}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-200">
+                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-ink-600">
                       {a.points}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-400">
+                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-ink-400">
                       {a.breakdown.role}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-400">
+                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-ink-400">
                       {a.breakdown.time}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-400">
+                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-ink-400">
                       {a.breakdown.idea}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-400">
+                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-ink-400">
                       {a.breakdown.cash}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-400">
+                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-ink-400">
                       {a.breakdown.sweat}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-400">
+                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-ink-400">
                       {a.breakdown.ip}
                     </td>
-                    <td className="py-2.5 pl-3 text-right font-mono tabular-nums text-slate-400">
+                    <td className="py-2.5 pl-3 text-right font-mono tabular-nums text-ink-400">
                       {a.breakdown.risk}
                     </td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
-                <tr className="text-[11px] uppercase tracking-[0.15em] text-slate-500">
+                <tr className="text-[11px] uppercase tracking-[0.15em] text-ink-8000">
                   <td className="pt-3 pr-3 font-medium">Total</td>
-                  <td className="pt-3 px-3 text-right font-mono tabular-nums text-slate-300">
+                  <td className="pt-3 px-3 text-right font-mono tabular-nums text-ink-500">
                     {formatPercent(result.reserves.foundersPct)}
                   </td>
-                  <td className="pt-3 px-3 text-right font-mono tabular-nums text-slate-300">
+                  <td className="pt-3 px-3 text-right font-mono tabular-nums text-ink-500">
                     {result.totalPoints}
                   </td>
                   <td colSpan={7} />
@@ -421,8 +421,8 @@ export function EquitySplitTool() {
         </div>
 
         {/* Vesting timeline */}
-        <div className="rounded-2xl border border-ink-700 bg-ink-900 p-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+        <div className="rounded-2xl border border-surface-200 bg-white p-6">
+          <p className="text-xs uppercase tracking-[0.2em] text-ink-8000">
             Vesting — 4 years · 1-year cliff
           </p>
           <VestingTimeline
@@ -432,8 +432,8 @@ export function EquitySplitTool() {
         </div>
 
         {/* Fairness flags */}
-        <div className="rounded-2xl border border-ink-700 bg-ink-900 p-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
+        <div className="rounded-2xl border border-surface-200 bg-white p-6">
+          <p className="text-xs uppercase tracking-[0.2em] text-ink-8000 flex items-center gap-2">
             <AlertTriangle
               strokeWidth={1.75}
               className="h-3.5 w-3.5"
@@ -449,7 +449,7 @@ export function EquitySplitTool() {
                   "flex items-start gap-2 rounded-lg border p-3 text-sm",
                   f.level === "warn"
                     ? "border-amber-500/30 bg-amber-500/5 text-amber-200"
-                    : "border-brand-500/20 bg-brand-500/5 text-brand-200",
+                    : "border-brand-500/20 bg-brand-500/5 text-brand-500",
                 )}
               >
                 {f.level === "warn" ? (
@@ -472,16 +472,16 @@ export function EquitySplitTool() {
         </div>
 
         {/* Founder Agreement seeds */}
-        <div className="rounded-2xl border border-brand-500/30 bg-ink-900 p-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium flex items-center gap-2">
+        <div className="rounded-2xl border border-brand-500/30 bg-white p-6">
+          <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium flex items-center gap-2">
             <Sparkles strokeWidth={1.75} className="h-3.5 w-3.5" aria-hidden />
             Founder Agreement seeds
           </p>
-          <p className="mt-2 text-sm text-slate-400">
+          <p className="mt-2 text-sm text-ink-400">
             Bring these bullets to your lawyer — they cover the non-negotiables
             most pre-incorporation teams forget.
           </p>
-          <ul className="mt-4 space-y-2 text-sm leading-relaxed text-slate-300 list-disc pl-5">
+          <ul className="mt-4 space-y-2 text-sm leading-relaxed text-ink-500 list-disc pl-5">
             {FOUNDER_AGREEMENT_SEEDS.map((s, i) => (
               <li key={i}>{s}</li>
             ))}
@@ -489,13 +489,13 @@ export function EquitySplitTool() {
         </div>
 
         {/* Save snapshot CTA (disabled) */}
-        <div className="rounded-2xl border border-ink-700 bg-ink-900 p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="rounded-2xl border border-surface-200 bg-white p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold text-slate-50 flex items-center gap-2">
-              <Lock strokeWidth={1.75} className="h-4 w-4 text-slate-400" />
+            <p className="text-sm font-semibold text-ink-800 flex items-center gap-2">
+              <Lock strokeWidth={1.75} className="h-4 w-4 text-ink-400" />
               Save snapshot
             </p>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-ink-8000">
               Bundle this split with your idea valuation and funding plan into
               a shareable Founder Pack. Free, no password.
             </p>
@@ -503,7 +503,7 @@ export function EquitySplitTool() {
           <SaveFounderPackButton />
         </div>
 
-        <p className="text-center text-xs text-slate-500">
+        <p className="text-center text-xs text-ink-8000">
           Powered by BlockID — when you incorporate, this becomes your Cap
           Table v0.
         </p>
@@ -529,9 +529,9 @@ function FounderRow({
 }) {
   const id = founder.id;
   return (
-    <div className="rounded-xl border border-ink-700 bg-ink-800/40 p-3">
+    <div className="rounded-xl border border-surface-200 bg-surface-100/40 p-3">
       <div className="flex items-center justify-between gap-2">
-        <span className="inline-flex items-center gap-2 text-xs font-medium text-slate-300">
+        <span className="inline-flex items-center gap-2 text-xs font-medium text-ink-500">
           <span
             aria-hidden
             className="inline-block h-2.5 w-2.5 rounded-sm"
@@ -547,7 +547,7 @@ function FounderRow({
             type="button"
             onClick={onRemove}
             aria-label={`Remove ${founder.name || `Founder ${colorIdx + 1}`}`}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-ink-700 bg-ink-900 text-slate-400 hover:border-red-500/40 hover:text-red-400 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-surface-200 bg-white text-ink-400 hover:border-red-500/40 hover:text-red-400 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
           >
             <Trash2 strokeWidth={1.75} className="h-4 w-4" />
           </button>
@@ -658,7 +658,7 @@ function FieldInline({
 }) {
   return (
     <div className="col-span-2 sm:col-span-1 flex flex-col gap-1">
-      <Label htmlFor={htmlFor} className="text-xs text-slate-400">
+      <Label htmlFor={htmlFor} className="text-xs text-ink-400">
         {label}
       </Label>
       {children}
@@ -682,10 +682,10 @@ function SelectInline({
       id={id}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="h-9 w-full rounded-[10px] border border-ink-700 bg-ink-900 px-2.5 text-sm text-slate-50 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 cursor-pointer transition-colors"
+      className="h-9 w-full rounded-[10px] border border-surface-200 bg-white px-2.5 text-sm text-ink-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 cursor-pointer transition-colors"
     >
       {options.map((o) => (
-        <option key={o} value={o} className="bg-ink-900">
+        <option key={o} value={o} className="bg-white">
           {o}
         </option>
       ))}
@@ -827,7 +827,7 @@ function LegendRow({
         <span
           className={cn(
             "truncate",
-            muted ? "text-slate-400" : "text-slate-200",
+            muted ? "text-ink-400" : "text-ink-600",
           )}
         >
           {label}
@@ -836,7 +836,7 @@ function LegendRow({
       <span
         className={cn(
           "font-mono tabular-nums",
-          muted ? "text-slate-400" : "text-slate-50",
+          muted ? "text-ink-400" : "text-ink-800",
         )}
       >
         {formatPercent(pct)}
@@ -870,7 +870,7 @@ function VestingTimeline({
       <div className="overflow-x-auto">
         <table className="w-full min-w-[520px] text-xs">
           <thead>
-            <tr className="text-[11px] uppercase tracking-[0.15em] text-slate-500">
+            <tr className="text-[11px] uppercase tracking-[0.15em] text-ink-8000">
               <th className="py-2 pr-3 text-left font-medium">Founder</th>
               {yearLabels.map((y) => (
                 <th
@@ -882,10 +882,10 @@ function VestingTimeline({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-ink-700/70">
+          <tbody className="divide-y divide-surface-200/70">
             {allocations.map((a, i) => (
               <tr key={a.id}>
-                <td className="py-2.5 pr-3 font-medium text-slate-200">
+                <td className="py-2.5 pr-3 font-medium text-ink-600">
                   <span className="inline-flex items-center gap-2">
                     <span
                       aria-hidden
@@ -903,7 +903,7 @@ function VestingTimeline({
                   return (
                     <td
                       key={y}
-                      className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-300"
+                      className="py-2.5 px-3 text-right font-mono tabular-nums text-ink-500"
                     >
                       <div className="flex items-center justify-end gap-2">
                         <span
@@ -926,7 +926,7 @@ function VestingTimeline({
           </tbody>
         </table>
       </div>
-      <p className="mt-3 text-xs text-slate-500">
+      <p className="mt-3 text-xs text-ink-8000">
         Cliff: nothing vests before year 1. After the cliff, the remaining 75%
         vests monthly across years 2–4.
       </p>

@@ -41,13 +41,13 @@ export default function DilutionPage() {
       <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
         <div className="mx-auto max-w-6xl px-6">
           <header className="max-w-3xl">
-            <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium">
+            <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium">
               Free tool · No login · AU-tuned
             </p>
-            <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-slate-50">
+            <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-ink-800">
               Founder Dilution Calculator (Australia)
             </h1>
-            <p className="mt-4 text-base md:text-lg leading-relaxed text-slate-400">
+            <p className="mt-4 text-base md:text-lg leading-relaxed text-ink-400">
               Model your next round before you sign. Enter the pre-money
               valuation, raise size, current shares and ESOP top-up — see
               founder dilution, post-money and the new share price instantly.
@@ -73,12 +73,12 @@ export default function DilutionPage() {
             ].map((b) => (
               <article
                 key={b.title}
-                className="rounded-2xl border border-ink-700 bg-ink-900 p-6"
+                className="rounded-2xl border border-surface-200 bg-white p-6"
               >
-                <h2 className="text-base font-semibold text-slate-50">
+                <h2 className="text-base font-semibold text-ink-800">
                   {b.title}
                 </h2>
-                <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                <p className="mt-2 text-sm leading-relaxed text-ink-400">
                   {b.body}
                 </p>
               </article>

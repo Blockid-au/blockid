@@ -10,10 +10,10 @@ export default async function ProfilePage() {
     <WorkspaceLayout user={user}>
       <div className="p-6 max-w-2xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-xl font-bold text-slate-50">My Profile</h1>
-          <p className="text-sm text-slate-500 mt-1">Manage your account and startup details.</p>
+          <h1 className="text-xl font-bold text-ink-800">My Profile</h1>
+          <p className="text-sm text-ink-700 mt-1">Manage your account and startup details.</p>
         </div>
-        <div className="rounded-2xl border border-ink-700 bg-ink-900 p-6 space-y-4">
+        <div className="bg-white border border-surface-200 shadow-sm rounded-2xl p-6 space-y-4">
           <div className="flex items-center gap-4">
             {user.avatarUrl ? (
               <img src={user.avatarUrl} alt="" className="h-14 w-14 rounded-full" />
@@ -23,21 +23,21 @@ export default async function ProfilePage() {
               </div>
             )}
             <div>
-              <p className="text-slate-50 font-semibold text-base">{user.displayName ?? "—"}</p>
-              <p className="text-slate-400 text-sm">{user.email}</p>
-              <span className="inline-block mt-1 text-[10px] uppercase tracking-wider font-medium text-brand-400 bg-brand-900/40 px-2 py-0.5 rounded-full border border-brand-700/40">
+              <p className="text-ink-800 font-semibold text-base">{user.displayName ?? "—"}</p>
+              <p className="text-ink-600 text-sm">{user.email}</p>
+              <span className="inline-block mt-1 text-[10px] uppercase tracking-wider font-medium text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200">
                 {user.role}
               </span>
             </div>
           </div>
-          <div className="border-t border-ink-700 pt-4 space-y-2">
+          <div className="border-t border-surface-200 pt-4 space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-slate-500">Plan</span>
-              <span className="text-slate-200 font-medium">{user.plan ?? "Free"}</span>
+              <span className="text-ink-700">Plan</span>
+              <span className="text-ink-800 font-medium">{user.plan ?? "Free"}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-slate-500">Member since</span>
-              <span className="text-slate-200">{new Date(user.createdAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}</span>
+              <span className="text-ink-700">Member since</span>
+              <span className="text-ink-800">{new Date(user.createdAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}</span>
             </div>
           </div>
         </div>

@@ -63,13 +63,13 @@ export default function DataRoomPage() {
       <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
         <div className="mx-auto max-w-7xl px-6">
           <header className="max-w-3xl">
-            <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium">
+            <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium">
               Free tool · No login · AU seed-to-Series-A
             </p>
-            <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-slate-50">
+            <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-ink-800">
               Fundraising Data Room Checklist
             </h1>
-            <p className="mt-4 text-base md:text-lg leading-relaxed text-slate-400">
+            <p className="mt-4 text-base md:text-lg leading-relaxed text-ink-400">
               See what investors will ask for before they ask. Track the
               documents, approvals and evidence behind a clean Australian
               startup raise.
@@ -82,15 +82,15 @@ export default function DataRoomPage() {
               return (
                 <article
                   key={point.title}
-                  className="rounded-2xl border border-ink-700 bg-ink-900 p-6"
+                  className="rounded-2xl border border-surface-200 bg-white p-6"
                 >
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-ink-700 bg-ink-800 text-brand-300">
+                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-surface-200 bg-surface-100 text-brand-600">
                     <Icon strokeWidth={1.75} className="h-5 w-5" aria-hidden />
                   </span>
-                  <h2 className="mt-4 text-base font-semibold text-slate-50">
+                  <h2 className="mt-4 text-base font-semibold text-ink-800">
                     {point.title}
                   </h2>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                  <p className="mt-2 text-sm leading-relaxed text-ink-400">
                     {point.body}
                   </p>
                 </article>
@@ -102,7 +102,7 @@ export default function DataRoomPage() {
             <DataRoomChecklist />
           </div>
 
-          <p className="mt-8 max-w-3xl text-xs leading-relaxed text-slate-500">
+          <p className="mt-8 max-w-3xl text-xs leading-relaxed text-ink-8000">
             This checklist is analysis support, not legal, tax or financial
             advice. Use your lawyer and accountant for binding fundraising,
             ESIC, R&D Tax Incentive and ASIC decisions.

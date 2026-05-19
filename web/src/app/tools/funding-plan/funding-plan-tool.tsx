@@ -213,16 +213,16 @@ export function FundingPlanTool() {
       {/* LEFT — burn plan + cap stack */}
       <section
         aria-labelledby="fp-form"
-        className="lg:col-span-5 rounded-2xl border border-ink-700 bg-ink-900 p-6 md:p-8"
+        className="lg:col-span-5 rounded-2xl border border-surface-200 bg-white p-6 md:p-8"
       >
         <div className="flex items-center justify-between gap-3">
           <h2
             id="fp-form"
-            className="text-lg font-semibold text-slate-50 flex items-center gap-2"
+            className="text-lg font-semibold text-ink-800 flex items-center gap-2"
           >
             <Calculator
               strokeWidth={1.75}
-              className="h-5 w-5 text-brand-400"
+              className="h-5 w-5 text-brand-600"
               aria-hidden
             />
             Burn plan
@@ -230,7 +230,7 @@ export function FundingPlanTool() {
           <button
             type="button"
             onClick={reset}
-            className="inline-flex items-center gap-1.5 rounded-md border border-ink-700 bg-ink-800/60 px-2.5 py-1.5 text-xs font-medium text-slate-300 hover:border-brand-500/40 hover:text-slate-50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
+            className="inline-flex items-center gap-1.5 rounded-md border border-surface-200 bg-surface-100/60 px-2.5 py-1.5 text-xs font-medium text-ink-500 hover:border-brand-500/40 hover:text-ink-800 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
           >
             <RotateCcw strokeWidth={1.75} className="h-3.5 w-3.5" />
             Reset
@@ -335,7 +335,7 @@ export function FundingPlanTool() {
               className="font-mono tabular-nums"
             />
           </Field>
-          <div className="sm:col-span-2 flex items-center gap-2 rounded-xl border border-ink-700 bg-ink-800/40 px-3 py-2.5">
+          <div className="sm:col-span-2 flex items-center gap-2 rounded-xl border border-surface-200 bg-surface-100/40 px-3 py-2.5">
             <input
               id="fp-sweat"
               type="checkbox"
@@ -343,28 +343,28 @@ export function FundingPlanTool() {
               onChange={(e) =>
                 update("sweatFirstSixMonths", e.target.checked)
               }
-              className="h-4 w-4 rounded border-ink-700 bg-ink-900 text-brand-500 focus:ring-brand-500/30 cursor-pointer"
+              className="h-4 w-4 rounded border-surface-200 bg-white text-brand-500 focus:ring-brand-500/30 cursor-pointer"
             />
             <Label
               htmlFor="fp-sweat"
-              className="text-xs text-slate-300 cursor-pointer"
+              className="text-xs text-ink-500 cursor-pointer"
             >
               Skip wages for first 6 months (sweat-equity start)
             </Label>
           </div>
         </div>
 
-        <hr className="my-6 border-ink-700" />
+        <hr className="my-6 border-surface-200" />
 
-        <h3 className="text-lg font-semibold text-slate-50 flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-ink-800 flex items-center gap-2">
           <Users
             strokeWidth={1.75}
-            className="h-5 w-5 text-brand-400"
+            className="h-5 w-5 text-brand-600"
             aria-hidden
           />
           Founder cash injection
         </h3>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-ink-8000">
           What each cofounder can realistically put in. Up to 5 founders.
         </p>
         <div className="mt-4 space-y-3">
@@ -381,7 +381,7 @@ export function FundingPlanTool() {
             <button
               type="button"
               onClick={addFounder}
-              className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-ink-700 bg-transparent px-3 py-2 text-xs font-medium text-slate-300 hover:border-brand-500/40 hover:text-slate-50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
+              className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-surface-200 bg-transparent px-3 py-2 text-xs font-medium text-ink-500 hover:border-brand-500/40 hover:text-ink-800 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
             >
               <Plus strokeWidth={1.75} className="h-3.5 w-3.5" />
               Add founder
@@ -389,12 +389,12 @@ export function FundingPlanTool() {
           )}
         </div>
 
-        <hr className="my-6 border-ink-700" />
+        <hr className="my-6 border-surface-200" />
 
-        <h3 className="text-lg font-semibold text-slate-50 flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-ink-800 flex items-center gap-2">
           <Wallet
             strokeWidth={1.75}
-            className="h-5 w-5 text-brand-400"
+            className="h-5 w-5 text-brand-600"
             aria-hidden
           />
           Cap stack
@@ -426,7 +426,7 @@ export function FundingPlanTool() {
             />
           </Field>
           <fieldset className="sm:col-span-2">
-            <legend className="text-sm font-medium text-slate-200">
+            <legend className="text-sm font-medium text-ink-600">
               Raise type
             </legend>
             <div className="mt-2 grid sm:grid-cols-3 gap-2">
@@ -438,8 +438,8 @@ export function FundingPlanTool() {
                     className={cn(
                       "flex flex-col gap-1 rounded-xl border p-3 text-xs cursor-pointer transition-colors",
                       checked
-                        ? "border-brand-500/60 bg-brand-500/5 text-slate-50"
-                        : "border-ink-700 bg-ink-800/40 text-slate-300 hover:border-brand-500/30",
+                        ? "border-brand-500/60 bg-brand-500/5 text-ink-800"
+                        : "border-surface-200 bg-surface-100/40 text-ink-500 hover:border-brand-500/30",
                     )}
                   >
                     <span className="flex items-center gap-2">
@@ -453,7 +453,7 @@ export function FundingPlanTool() {
                       />
                       <span className="font-semibold">{rt.label}</span>
                     </span>
-                    <span className="text-[11px] leading-snug text-slate-500">
+                    <span className="text-[11px] leading-snug text-ink-8000">
                       {rt.hint}
                     </span>
                   </label>
@@ -470,19 +470,19 @@ export function FundingPlanTool() {
         className="lg:col-span-7 space-y-6"
       >
         {/* Headline */}
-        <div className="rounded-2xl border border-brand-500/30 bg-ink-900 p-6 md:p-8">
-          <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium">
+        <div className="rounded-2xl border border-brand-500/30 bg-white p-6 md:p-8">
+          <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium">
             Total capital needed
           </p>
           <p
             id="fp-output"
-            className="mt-2 font-mono tabular-nums text-4xl md:text-5xl font-semibold text-slate-50"
+            className="mt-2 font-mono tabular-nums text-4xl md:text-5xl font-semibold text-ink-800"
           >
             {formatAud(out.totalNeedAud)}
           </p>
-          <p className="mt-2 text-sm text-slate-400">
+          <p className="mt-2 text-sm text-ink-400">
             Monthly burn{" "}
-            <span className="font-mono tabular-nums text-slate-200">
+            <span className="font-mono tabular-nums text-ink-600">
               {formatAud(out.monthlyBurnAud)}
             </span>{" "}
             ({formatAud(out.monthlyWageSubtotalAud)} wages +{" "}
@@ -497,8 +497,8 @@ export function FundingPlanTool() {
         </div>
 
         {/* Donut: founder cash vs external raise vs ESOP value */}
-        <div className="rounded-2xl border border-ink-700 bg-ink-900 p-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+        <div className="rounded-2xl border border-surface-200 bg-white p-6">
+          <p className="text-xs uppercase tracking-[0.2em] text-ink-8000">
             Capital sources
           </p>
           <CapitalDonut
@@ -530,12 +530,12 @@ export function FundingPlanTool() {
         </div>
 
         {/* Per-founder dilution preview */}
-        <div className="rounded-2xl border border-ink-700 bg-ink-900 p-4 md:p-6">
+        <div className="rounded-2xl border border-surface-200 bg-white p-4 md:p-6">
           <div className="flex items-center justify-between">
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+            <p className="text-xs uppercase tracking-[0.2em] text-ink-8000">
               Per-founder dilution preview
             </p>
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-ink-8000">
               {inp.founders.some((f) => typeof f.equityPct === "number")
                 ? "From equity-split"
                 : "Equal split (default)"}
@@ -544,7 +544,7 @@ export function FundingPlanTool() {
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[520px] text-sm">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-[0.15em] text-slate-500">
+                <tr className="text-left text-[11px] uppercase tracking-[0.15em] text-ink-8000">
                   <th className="py-2 pr-3 font-medium">Founder</th>
                   <th className="py-2 px-3 font-medium text-right">
                     Cash in
@@ -558,19 +558,19 @@ export function FundingPlanTool() {
                   <th className="py-2 pl-3 font-medium text-right">Δ%</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-ink-700/70">
+              <tbody className="divide-y divide-surface-200/70">
                 {out.founderRows.map((r) => (
                   <tr key={r.id}>
-                    <td className="py-2.5 pr-3 font-medium text-slate-50">
+                    <td className="py-2.5 pr-3 font-medium text-ink-800">
                       {r.name}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-200">
+                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-ink-600">
                       {formatAud(r.cashAud)}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-400">
+                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-ink-400">
                       {formatPercent(r.equityBeforePct)}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-brand-300">
+                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-brand-600">
                       {formatPercent(r.equityAfterPct)}
                     </td>
                     <td className="py-2.5 pl-3 text-right font-mono tabular-nums text-amber-300">
@@ -584,18 +584,18 @@ export function FundingPlanTool() {
         </div>
 
         {/* Recommended raise */}
-        <div className="rounded-2xl border border-brand-500/30 bg-ink-900 p-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium flex items-center gap-2">
+        <div className="rounded-2xl border border-brand-500/30 bg-white p-6">
+          <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium flex items-center gap-2">
             <Sparkles strokeWidth={1.75} className="h-3.5 w-3.5" aria-hidden />
             Recommended raise
           </p>
-          <p className="mt-3 text-sm md:text-base leading-relaxed text-slate-300">
+          <p className="mt-3 text-sm md:text-base leading-relaxed text-ink-500">
             Raise{" "}
-            <span className="font-mono tabular-nums text-slate-50">
+            <span className="font-mono tabular-nums text-ink-800">
               {formatAud(out.recommended.raiseAud)}
             </span>{" "}
             at a pre-money of{" "}
-            <span className="font-mono tabular-nums text-slate-50">
+            <span className="font-mono tabular-nums text-ink-800">
               {formatAud(out.recommended.preMoneyAud)}
             </span>{" "}
             → combined dilution of{" "}
@@ -605,13 +605,13 @@ export function FundingPlanTool() {
             (investor + ESOP).
           </p>
           {inp.raiseType === "ff_safe" && (
-            <p className="mt-3 text-xs text-slate-400">
+            <p className="mt-3 text-xs text-ink-400">
               SAFE suggestion: discount{" "}
-              <span className="font-mono tabular-nums text-slate-200">
+              <span className="font-mono tabular-nums text-ink-600">
                 {out.safe.discountPct}%
               </span>{" "}
               · cap{" "}
-              <span className="font-mono tabular-nums text-slate-200">
+              <span className="font-mono tabular-nums text-ink-600">
                 {formatAud(out.safe.capAud)}
               </span>
               .
@@ -620,14 +620,14 @@ export function FundingPlanTool() {
         </div>
 
         {/* Sensitivity table */}
-        <div className="rounded-2xl border border-ink-700 bg-ink-900 p-4 md:p-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+        <div className="rounded-2xl border border-surface-200 bg-white p-4 md:p-6">
+          <p className="text-xs uppercase tracking-[0.2em] text-ink-8000">
             Sensitivity — what if you raise more or less?
           </p>
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[600px] text-sm">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-[0.15em] text-slate-500">
+                <tr className="text-left text-[11px] uppercase tracking-[0.15em] text-ink-8000">
                   <th className="py-2 pr-3 font-medium">Scenario</th>
                   <th className="py-2 px-3 font-medium text-right">
                     Raise
@@ -646,25 +646,25 @@ export function FundingPlanTool() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-ink-700/70">
+              <tbody className="divide-y divide-surface-200/70">
                 {out.scenarios.map((s) => (
                   <tr key={s.label}>
-                    <td className="py-2.5 pr-3 font-medium text-slate-200">
+                    <td className="py-2.5 pr-3 font-medium text-ink-600">
                       {s.label}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-300">
+                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-ink-500">
                       {formatAud(s.externalRaiseAud)}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-300">
+                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-ink-500">
                       {formatAud(s.postMoneyAud)}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-300">
+                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-ink-500">
                       {formatPercent(s.investorPct)}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-300">
+                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-ink-500">
                       {formatPercent(s.esopPct)}
                     </td>
-                    <td className="py-2.5 pl-3 text-right font-mono tabular-nums text-brand-300">
+                    <td className="py-2.5 pl-3 text-right font-mono tabular-nums text-brand-600">
                       {formatPercent(s.founderPctAfter)}
                     </td>
                   </tr>
@@ -676,7 +676,7 @@ export function FundingPlanTool() {
 
         {/* Risk flags */}
         {out.flags.length > 0 && (
-          <div className="rounded-2xl border border-amber-500/30 bg-ink-900 p-6">
+          <div className="rounded-2xl border border-amber-500/30 bg-white p-6">
             <p className="text-xs uppercase tracking-[0.2em] text-amber-300 font-medium flex items-center gap-2">
               <AlertTriangle
                 strokeWidth={1.75}
@@ -693,7 +693,7 @@ export function FundingPlanTool() {
                     "flex items-start gap-2 text-sm leading-relaxed",
                     f.level === "warn"
                       ? "text-amber-200"
-                      : "text-slate-300",
+                      : "text-ink-500",
                   )}
                 >
                   {f.level === "warn" ? (
@@ -705,7 +705,7 @@ export function FundingPlanTool() {
                   ) : (
                     <Info
                       strokeWidth={1.75}
-                      className="mt-0.5 h-4 w-4 shrink-0 text-brand-300"
+                      className="mt-0.5 h-4 w-4 shrink-0 text-brand-600"
                       aria-hidden
                     />
                   )}
@@ -717,52 +717,52 @@ export function FundingPlanTool() {
         )}
 
         {/* Next steps */}
-        <div className="rounded-2xl border border-ink-700 bg-ink-900 p-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+        <div className="rounded-2xl border border-surface-200 bg-white p-6">
+          <p className="text-xs uppercase tracking-[0.2em] text-ink-8000">
             Next steps
           </p>
           <div className="mt-4 grid sm:grid-cols-2 gap-3">
             <a
               href="/tools/equity-split"
-              className="group flex items-center justify-between rounded-xl border border-ink-700 bg-ink-800/40 px-4 py-3 text-sm text-slate-200 hover:border-brand-500/40 hover:text-slate-50 transition-colors"
+              className="group flex items-center justify-between rounded-xl border border-surface-200 bg-surface-100/40 px-4 py-3 text-sm text-ink-600 hover:border-brand-500/40 hover:text-ink-800 transition-colors"
             >
               <span>
                 <span className="block font-semibold">Split founder equity</span>
-                <span className="block text-xs text-slate-500">
+                <span className="block text-xs text-ink-8000">
                   Weight by cash, time, IP and risk.
                 </span>
               </span>
               <ArrowRight
                 strokeWidth={1.75}
-                className="h-4 w-4 text-brand-400 transition-transform group-hover:translate-x-0.5"
+                className="h-4 w-4 text-brand-600 transition-transform group-hover:translate-x-0.5"
                 aria-hidden
               />
             </a>
             <a
               href="/tools/idea-valuation"
-              className="group flex items-center justify-between rounded-xl border border-ink-700 bg-ink-800/40 px-4 py-3 text-sm text-slate-200 hover:border-brand-500/40 hover:text-slate-50 transition-colors"
+              className="group flex items-center justify-between rounded-xl border border-surface-200 bg-surface-100/40 px-4 py-3 text-sm text-ink-600 hover:border-brand-500/40 hover:text-ink-800 transition-colors"
             >
               <span>
                 <span className="block font-semibold">Set a pre-money</span>
-                <span className="block text-xs text-slate-500">
+                <span className="block text-xs text-ink-8000">
                   AU idea-stage valuation benchmarker.
                 </span>
               </span>
               <ArrowRight
                 strokeWidth={1.75}
-                className="h-4 w-4 text-brand-400 transition-transform group-hover:translate-x-0.5"
+                className="h-4 w-4 text-brand-600 transition-transform group-hover:translate-x-0.5"
                 aria-hidden
               />
             </a>
           </div>
 
-          <div className="mt-6 rounded-xl border border-brand-500/40 bg-gradient-to-br from-ink-950 to-ink-900 p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-300">
+          <div className="mt-6 rounded-xl border border-brand-500/40 bg-gradient-to-br from-white to-surface-100 p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-600">
               Lock this in
             </p>
-            <p className="mt-2 text-sm text-slate-300">
+            <p className="mt-2 text-sm text-ink-500">
               Save this plan as part of your{" "}
-              <span className="font-semibold text-slate-100">Founder Pack</span>{" "}
+              <span className="font-semibold text-ink-700">Founder Pack</span>{" "}
               — bundles your idea valuation, equity split and funding plan into
               one shareable PDF + dashboard.
             </p>
@@ -809,10 +809,10 @@ function FounderRow({
   const nameId = `fp-${founder.id}-name`;
   const cashId = `fp-${founder.id}-cash`;
   return (
-    <div className="rounded-xl border border-ink-700 bg-ink-800/40 p-3">
+    <div className="rounded-xl border border-surface-200 bg-surface-100/40 p-3">
       <div className="grid grid-cols-12 gap-2 items-end">
         <div className="col-span-12 sm:col-span-6">
-          <Label htmlFor={nameId} className="text-xs text-slate-400">
+          <Label htmlFor={nameId} className="text-xs text-ink-400">
             Name
           </Label>
           <Input
@@ -823,7 +823,7 @@ function FounderRow({
           />
         </div>
         <div className="col-span-10 sm:col-span-5">
-          <Label htmlFor={cashId} className="text-xs text-slate-400">
+          <Label htmlFor={cashId} className="text-xs text-ink-400">
             Cash (AUD)
           </Label>
           <Input
@@ -845,7 +845,7 @@ function FounderRow({
               type="button"
               onClick={onRemove}
               aria-label={`Remove ${founder.name}`}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-ink-700 bg-ink-900 text-slate-400 hover:border-red-500/40 hover:text-red-400 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-surface-200 bg-white text-ink-400 hover:border-red-500/40 hover:text-red-400 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
             >
               <Trash2 strokeWidth={1.75} className="h-4 w-4" />
             </button>
@@ -867,13 +867,13 @@ function SummaryTile({
 }) {
   const valueClass =
     tone === "brand"
-      ? "text-brand-300"
+      ? "text-brand-600"
       : tone === "brand-soft"
-        ? "text-brand-200"
-        : "text-slate-50";
+        ? "text-brand-500"
+        : "text-ink-800";
   return (
-    <div className="rounded-xl border border-ink-700 bg-ink-900 p-4 transition-colors hover:border-brand-500/40">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+    <div className="rounded-xl border border-surface-200 bg-white p-4 transition-colors hover:border-brand-500/40">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-ink-8000">
         {label}
       </p>
       <p
@@ -965,7 +965,7 @@ function CapitalDonut({
               key={s.label}
               className="flex items-center justify-between gap-3"
             >
-              <span className="inline-flex items-center gap-2 text-slate-300">
+              <span className="inline-flex items-center gap-2 text-ink-500">
                 <span
                   aria-hidden
                   className="inline-block h-2.5 w-2.5 rounded-sm"
@@ -973,9 +973,9 @@ function CapitalDonut({
                 />
                 {s.label}
               </span>
-              <span className="font-mono tabular-nums text-slate-200">
+              <span className="font-mono tabular-nums text-ink-600">
                 {formatAud(s.value)}{" "}
-                <span className="text-slate-500">
+                <span className="text-ink-8000">
                   ({pct.toFixed(1)}%)
                 </span>
               </span>

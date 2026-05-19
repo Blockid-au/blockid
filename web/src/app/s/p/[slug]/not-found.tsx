@@ -7,15 +7,15 @@ export default function FounderPackNotFound() {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen bg-ink-950 pt-32 pb-24 text-slate-100">
+      <main className="min-h-screen bg-white pt-32 pb-24 text-ink-700">
         <div className="mx-auto max-w-2xl px-6 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-600">
             404 · Founder Pack
           </p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-50 sm:text-5xl">
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-ink-800 sm:text-5xl">
             This Founder Pack isn&apos;t available.
           </h1>
-          <p className="mt-4 text-base leading-relaxed text-slate-400">
+          <p className="mt-4 text-base leading-relaxed text-ink-400">
             The link may have expired, been deleted by its owner, or never
             existed. Start your own pack — it&apos;s free, no account needed
             until you save.

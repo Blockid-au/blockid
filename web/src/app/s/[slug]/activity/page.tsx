@@ -214,14 +214,14 @@ export default async function ScoreActivityPage({
           </Link>
 
           <header className="mt-8 max-w-3xl">
-            <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium inline-flex items-center gap-2">
+            <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium inline-flex items-center gap-2">
               <BarChart3 strokeWidth={1.75} className="h-4 w-4" />
               Investor Link Activity
             </p>
-            <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-slate-50">
+            <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-ink-800">
               {score?.company_name || "Demo company"}
             </h1>
-            <p className="mt-4 text-base md:text-lg leading-relaxed text-slate-400">
+            <p className="mt-4 text-base md:text-lg leading-relaxed text-ink-400">
               Track how the Investor View Link is being opened. IPs are hashed
               daily; BlockID never stores raw viewer IP addresses.
             </p>
@@ -255,62 +255,62 @@ export default async function ScoreActivityPage({
           </section>
 
           {investorSummaries.length > 0 && (
-            <section className="mt-8 rounded-2xl border border-ink-700 bg-ink-900 p-6">
-              <h2 className="text-lg font-semibold text-slate-50 inline-flex items-center gap-2">
-                <Mail strokeWidth={1.75} className="h-5 w-5 text-brand-400" />
+            <section className="mt-8 rounded-2xl border border-surface-200 bg-white p-6">
+              <h2 className="text-lg font-semibold text-ink-800 inline-flex items-center gap-2">
+                <Mail strokeWidth={1.75} className="h-5 w-5 text-brand-600" />
                 Per-investor links
               </h2>
-              <p className="mt-1 text-sm text-slate-400">
+              <p className="mt-1 text-sm text-ink-400">
                 Each investor gets a unique URL. We attribute every open and
                 email you when this specific investor reads the score.
               </p>
               <div className="mt-5 overflow-x-auto">
                 <table className="w-full min-w-[720px] text-left text-sm">
-                  <thead className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                  <thead className="text-xs uppercase tracking-[0.16em] text-ink-8000">
                     <tr>
-                      <th className="border-b border-ink-700 pb-3 pr-4">
+                      <th className="border-b border-surface-200 pb-3 pr-4">
                         Recipient
                       </th>
-                      <th className="border-b border-ink-700 pb-3 pr-4">
+                      <th className="border-b border-surface-200 pb-3 pr-4">
                         Sent
                       </th>
-                      <th className="border-b border-ink-700 pb-3 pr-4">
+                      <th className="border-b border-surface-200 pb-3 pr-4">
                         Opens
                       </th>
-                      <th className="border-b border-ink-700 pb-3 pr-4">
+                      <th className="border-b border-surface-200 pb-3 pr-4">
                         Unique
                       </th>
-                      <th className="border-b border-ink-700 pb-3 pr-4">
+                      <th className="border-b border-surface-200 pb-3 pr-4">
                         Latest open
                       </th>
-                      <th className="border-b border-ink-700 pb-3">Status</th>
+                      <th className="border-b border-surface-200 pb-3">Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {investorSummaries.map(
                       ({ link, totalViews, uniqueViewers, latestView, status }) => {
                         return (
-                          <tr key={link.token} className="border-b border-ink-800">
+                          <tr key={link.token} className="border-b border-surface-200">
                             <td className="py-4 pr-4">
-                              <div className="text-slate-100 font-medium">
+                              <div className="text-ink-700 font-medium">
                                 {investorLabel(link)}
                               </div>
                               {link.investorEmail && (
-                                <div className="text-xs text-slate-500">
+                                <div className="text-xs text-ink-8000">
                                   {link.investorEmail}
                                 </div>
                               )}
                             </td>
-                            <td className="py-4 pr-4 text-slate-400">
+                            <td className="py-4 pr-4 text-ink-400">
                               {formatDate(link.createdAt)}
                             </td>
-                            <td className="py-4 pr-4 font-mono tabular-nums text-brand-300">
+                            <td className="py-4 pr-4 font-mono tabular-nums text-brand-600">
                               {totalViews}
                             </td>
-                            <td className="py-4 pr-4 font-mono tabular-nums text-slate-300">
+                            <td className="py-4 pr-4 font-mono tabular-nums text-ink-500">
                               {uniqueViewers}
                             </td>
-                            <td className="py-4 pr-4 text-slate-400">
+                            <td className="py-4 pr-4 text-ink-400">
                               {latestView
                                 ? formatDate(latestView)
                                 : "Not opened"}
@@ -319,7 +319,7 @@ export default async function ScoreActivityPage({
                               <span
                                 className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wider ${
                                   status === "active"
-                                    ? "border-brand-500/30 bg-brand-500/10 text-brand-300"
+                                    ? "border-brand-500/30 bg-brand-500/10 text-brand-600"
                                     : "border-amber-500/30 bg-amber-500/10 text-amber-300"
                                 }`}
                               >
@@ -337,24 +337,24 @@ export default async function ScoreActivityPage({
           )}
 
           <section className="mt-8 grid lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-8 rounded-2xl border border-ink-700 bg-ink-900 p-6">
-              <h2 className="text-lg font-semibold text-slate-50">
+            <div className="lg:col-span-8 rounded-2xl border border-surface-200 bg-white p-6">
+              <h2 className="text-lg font-semibold text-ink-800">
                 Recent views
               </h2>
               <div className="mt-5 overflow-x-auto">
                 <table className="w-full min-w-[640px] text-left text-sm">
-                  <thead className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                  <thead className="text-xs uppercase tracking-[0.16em] text-ink-8000">
                     <tr>
-                      <th className="border-b border-ink-700 pb-3 pr-4">
+                      <th className="border-b border-surface-200 pb-3 pr-4">
                         Viewed
                       </th>
-                      <th className="border-b border-ink-700 pb-3 pr-4">
+                      <th className="border-b border-surface-200 pb-3 pr-4">
                         Source
                       </th>
-                      <th className="border-b border-ink-700 pb-3 pr-4">
+                      <th className="border-b border-surface-200 pb-3 pr-4">
                         Device
                       </th>
-                      <th className="border-b border-ink-700 pb-3">
+                      <th className="border-b border-surface-200 pb-3">
                         Viewer hash
                       </th>
                     </tr>
@@ -364,24 +364,24 @@ export default async function ScoreActivityPage({
                       <tr>
                         <td
                           colSpan={4}
-                          className="py-8 text-center text-slate-500"
+                          className="py-8 text-center text-ink-8000"
                         >
                           No investor views recorded yet.
                         </td>
                       </tr>
                     ) : (
                       views.map((view) => (
-                        <tr key={view.id} className="border-b border-ink-800">
-                          <td className="py-4 pr-4 text-slate-200">
+                        <tr key={view.id} className="border-b border-surface-200">
+                          <td className="py-4 pr-4 text-ink-600">
                             {formatDate(view.viewed_at)}
                           </td>
-                          <td className="py-4 pr-4 text-slate-400">
+                          <td className="py-4 pr-4 text-ink-400">
                             {hostFromReferer(view.referer)}
                           </td>
-                          <td className="py-4 pr-4 text-slate-400">
+                          <td className="py-4 pr-4 text-ink-400">
                             {deviceLabel(view.viewer_ua)}
                           </td>
-                          <td className="py-4 font-mono text-xs text-slate-500">
+                          <td className="py-4 font-mono text-xs text-ink-8000">
                             {view.viewer_ip_hash
                               ? `${view.viewer_ip_hash.slice(0, 12)}...`
                               : "n/a"}
@@ -394,23 +394,23 @@ export default async function ScoreActivityPage({
               </div>
             </div>
 
-            <aside className="lg:col-span-4 rounded-2xl border border-ink-700 bg-ink-900 p-6">
-              <h2 className="text-lg font-semibold text-slate-50">
+            <aside className="lg:col-span-4 rounded-2xl border border-surface-200 bg-white p-6">
+              <h2 className="text-lg font-semibold text-ink-800">
                 Top sources
               </h2>
               <ul className="mt-5 space-y-3">
                 {topReferers.length === 0 ? (
-                  <li className="text-sm text-slate-500">
+                  <li className="text-sm text-ink-8000">
                     Sources appear once investors open the link.
                   </li>
                 ) : (
                   topReferers.map(([host, count]) => (
                     <li
                       key={host}
-                      className="flex items-center justify-between rounded-xl border border-ink-700 bg-ink-800/40 px-4 py-3"
+                      className="flex items-center justify-between rounded-xl border border-surface-200 bg-surface-100/40 px-4 py-3"
                     >
-                      <span className="text-sm text-slate-300">{host}</span>
-                      <span className="font-mono text-sm text-brand-300">
+                      <span className="text-sm text-ink-500">{host}</span>
+                      <span className="font-mono text-sm text-brand-600">
                         {count}
                       </span>
                     </li>
@@ -438,13 +438,13 @@ function Metric({
   detail: string;
 }) {
   return (
-    <div className="rounded-2xl border border-ink-700 bg-ink-900 p-5">
-      <div className="flex items-center gap-2 text-brand-400">
+    <div className="rounded-2xl border border-surface-200 bg-white p-5">
+      <div className="flex items-center gap-2 text-brand-600">
         <Icon strokeWidth={1.75} className="h-4 w-4" />
         <p className="text-xs uppercase tracking-[0.16em]">{label}</p>
       </div>
-      <p className="mt-3 text-2xl font-semibold text-slate-50">{value}</p>
-      <p className="mt-1 text-xs text-slate-500">{detail}</p>
+      <p className="mt-3 text-2xl font-semibold text-ink-800">{value}</p>
+      <p className="mt-1 text-xs text-ink-8000">{detail}</p>
     </div>
   );
 }

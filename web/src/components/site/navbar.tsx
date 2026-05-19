@@ -61,7 +61,7 @@ export function Navbar() {
 
   return (
     <header className="fixed top-4 left-4 right-4 z-50">
-      <div className="mx-auto max-w-7xl rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 backdrop-blur-xl backdrop-saturate-150 shadow-[0_8px_32px_rgba(0,0,0,0.08)]">
+      <div className="mx-auto max-w-7xl rounded-2xl border border-surface-200 glass px-4 py-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
         <div className="flex items-center justify-between gap-4">
           <Logo variant="light" />
           <nav className="hidden md:flex items-center gap-1" aria-label="Primary">

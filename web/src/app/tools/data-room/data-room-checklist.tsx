@@ -244,22 +244,22 @@ export function DataRoomChecklist() {
   return (
     <div className="grid lg:grid-cols-12 gap-6 lg:gap-8">
       <aside className="lg:col-span-4 space-y-6">
-        <section className="rounded-2xl border border-ink-700 bg-ink-900 p-6">
+        <section className="rounded-2xl border border-surface-200 bg-white p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium">
+              <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium">
                 Readiness
               </p>
-              <p className="mt-3 font-mono text-6xl font-semibold tabular-nums text-brand-400 leading-none">
+              <p className="mt-3 font-mono text-6xl font-semibold tabular-nums text-brand-600 leading-none">
                 {readiness}
-                <span className="text-2xl text-slate-500">%</span>
+                <span className="text-2xl text-ink-8000">%</span>
               </p>
             </div>
-            <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-brand-500/30 bg-brand-500/10 text-brand-300">
+            <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-brand-500/30 bg-brand-500/10 text-brand-600">
               <LockKeyhole strokeWidth={1.75} className="h-6 w-6" />
             </span>
           </div>
-          <div className="mt-6 h-2 rounded-full bg-ink-700 overflow-hidden">
+          <div className="mt-6 h-2 rounded-full bg-surface-200 overflow-hidden">
             <div
               className="h-full rounded-full bg-brand-500"
               style={{ width: `${readiness}%` }}
@@ -284,16 +284,16 @@ export function DataRoomChecklist() {
 
         <form
           onSubmit={onSubmit}
-          className="rounded-2xl border border-brand-500/30 bg-ink-900 p-6"
+          className="rounded-2xl border border-brand-500/30 bg-white p-6"
           noValidate
         >
-          <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium">
+          <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium">
             Save checklist
           </p>
-          <h2 className="mt-2 text-xl font-semibold text-slate-50">
+          <h2 className="mt-2 text-xl font-semibold text-ink-800">
             Send this into your Investor-Ready Score
           </h2>
-          <p className="mt-2 text-sm leading-relaxed text-slate-400">
+          <p className="mt-2 text-sm leading-relaxed text-ink-400">
             Capture the readiness snapshot so BlockID can fold it into your
             report and follow-up workflow.
           </p>
@@ -335,23 +335,23 @@ export function DataRoomChecklist() {
         </form>
       </aside>
 
-      <section className="lg:col-span-8 rounded-2xl border border-ink-700 bg-ink-900 p-6 md:p-8">
+      <section className="lg:col-span-8 rounded-2xl border border-surface-200 bg-white p-6 md:p-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-slate-50">
+            <h2 className="text-lg font-semibold text-ink-800">
               Checklist items
             </h2>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="mt-1 text-sm text-ink-400">
               Toggle each item as it moves from missing to ready.
             </p>
           </div>
-          <label className="flex items-center gap-2 text-sm text-slate-400">
-            <Filter strokeWidth={1.75} className="h-4 w-4 text-brand-400" />
+          <label className="flex items-center gap-2 text-sm text-ink-400">
+            <Filter strokeWidth={1.75} className="h-4 w-4 text-brand-600" />
             <span className="sr-only">Filter section</span>
             <select
               value={section}
               onChange={(e) => setSection(e.target.value)}
-              className="h-10 rounded-[10px] border border-ink-700 bg-ink-800 px-3 text-slate-50 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 cursor-pointer"
+              className="h-10 rounded-[10px] border border-surface-200 bg-surface-100 px-3 text-ink-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 cursor-pointer"
             >
               <option value="All">All sections</option>
               {SECTION_ORDER.map((s) => (
@@ -381,11 +381,11 @@ export function DataRoomChecklist() {
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-ink-700 bg-ink-800/50 px-3 py-3">
-      <dt className="text-[10px] uppercase tracking-[0.16em] text-slate-500">
+    <div className="rounded-xl border border-surface-200 bg-surface-100/50 px-3 py-3">
+      <dt className="text-[10px] uppercase tracking-[0.16em] text-ink-8000">
         {label}
       </dt>
-      <dd className="mt-1 font-mono text-xl tabular-nums text-slate-100">
+      <dd className="mt-1 font-mono text-xl tabular-nums text-ink-700">
         {value}
       </dd>
     </div>
@@ -404,7 +404,7 @@ function ChecklistRow({
   onCycle: (id: string) => void;
 }) {
   return (
-    <article className="rounded-xl border border-ink-700 bg-ink-800/40 p-4">
+    <article className="rounded-xl border border-surface-200 bg-surface-100/40 p-4">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <button
           type="button"
@@ -418,7 +418,7 @@ function ChecklistRow({
                 ? "border-green-500/40 bg-green-500/10 text-green-400"
                 : status === "in-progress"
                   ? "border-amber-500/40 bg-amber-500/10 text-amber-300"
-                  : "border-ink-700 bg-ink-900 text-slate-500 group-hover:border-brand-500/40",
+                  : "border-surface-200 bg-white text-ink-8000 group-hover:border-brand-500/40",
             )}
           >
             {status === "ready" ? (
@@ -429,7 +429,7 @@ function ChecklistRow({
           </span>
           <span>
             <span className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-semibold text-slate-50">
+              <span className="text-sm font-semibold text-ink-800">
                 {item.title}
               </span>
               <Badge variant="outline">{item.section}</Badge>
@@ -437,10 +437,10 @@ function ChecklistRow({
                 {item.impact} impact
               </Badge>
             </span>
-            <span className="mt-2 block text-sm leading-relaxed text-slate-400">
+            <span className="mt-2 block text-sm leading-relaxed text-ink-400">
               {item.why}
             </span>
-            <span className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+            <span className="mt-3 flex flex-wrap items-center gap-3 text-xs text-ink-8000">
               <span className="inline-flex items-center gap-1.5">
                 <FileText strokeWidth={1.75} className="h-3.5 w-3.5" />
                 Owner: {item.owner}
@@ -455,7 +455,7 @@ function ChecklistRow({
           </span>
         </button>
 
-        <div className="grid grid-cols-3 gap-1 rounded-lg border border-ink-700 bg-ink-900 p-1 md:w-[280px]">
+        <div className="grid grid-cols-3 gap-1 rounded-lg border border-surface-200 bg-white p-1 md:w-[280px]">
           {(["missing", "in-progress", "ready"] as ItemStatus[]).map((s) => (
             <button
               key={s}
@@ -468,8 +468,8 @@ function ChecklistRow({
                     ? "bg-green-500/15 text-green-300"
                     : s === "in-progress"
                       ? "bg-amber-500/15 text-amber-300"
-                      : "bg-slate-500/15 text-slate-300"
-                  : "text-slate-500 hover:bg-white/5 hover:text-slate-300",
+                      : "bg-slate-500/15 text-ink-500"
+                  : "text-ink-8000 hover:bg-white/5 hover:text-ink-500",
               )}
             >
               {STATUS_LABEL[s]}

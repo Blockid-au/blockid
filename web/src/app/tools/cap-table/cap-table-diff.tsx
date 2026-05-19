@@ -157,16 +157,16 @@ export function CapTableDiffTool() {
       {/* LEFT — form */}
       <section
         aria-labelledby="captable-form"
-        className="lg:col-span-5 rounded-2xl border border-ink-700 bg-ink-900 p-6 md:p-8"
+        className="lg:col-span-5 rounded-2xl border border-surface-200 bg-white p-6 md:p-8"
       >
         <div className="flex items-center justify-between gap-3">
           <h2
             id="captable-form"
-            className="text-lg font-semibold text-slate-50 flex items-center gap-2"
+            className="text-lg font-semibold text-ink-800 flex items-center gap-2"
           >
             <Users
               strokeWidth={1.75}
-              className="h-5 w-5 text-brand-400"
+              className="h-5 w-5 text-brand-600"
               aria-hidden
             />
             Current cap table
@@ -174,7 +174,7 @@ export function CapTableDiffTool() {
           <button
             type="button"
             onClick={resetDemo}
-            className="inline-flex items-center gap-1.5 rounded-md border border-ink-700 bg-ink-800/60 px-2.5 py-1.5 text-xs font-medium text-slate-300 hover:border-brand-500/40 hover:text-slate-50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
+            className="inline-flex items-center gap-1.5 rounded-md border border-surface-200 bg-surface-100/60 px-2.5 py-1.5 text-xs font-medium text-ink-500 hover:border-brand-500/40 hover:text-ink-800 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
           >
             <RotateCcw strokeWidth={1.75} className="h-3.5 w-3.5" />
             Reset to demo
@@ -194,19 +194,19 @@ export function CapTableDiffTool() {
           <button
             type="button"
             onClick={addHolder}
-            className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-ink-700 bg-transparent px-3 py-2 text-xs font-medium text-slate-300 hover:border-brand-500/40 hover:text-slate-50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
+            className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-surface-200 bg-transparent px-3 py-2 text-xs font-medium text-ink-500 hover:border-brand-500/40 hover:text-ink-800 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
           >
             <Plus strokeWidth={1.75} className="h-3.5 w-3.5" />
             Add holder
           </button>
         </div>
 
-        <hr className="my-6 border-ink-700" />
+        <hr className="my-6 border-surface-200" />
 
-        <h3 className="text-lg font-semibold text-slate-50 flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-ink-800 flex items-center gap-2">
           <Calculator
             strokeWidth={1.75}
-            className="h-5 w-5 text-brand-400"
+            className="h-5 w-5 text-brand-600"
             aria-hidden
           />
           New round
@@ -275,11 +275,11 @@ export function CapTableDiffTool() {
         <div className="flex items-center justify-between gap-3">
           <h2
             id="captable-diff"
-            className="text-lg font-semibold text-slate-50 flex items-center gap-2"
+            className="text-lg font-semibold text-ink-800 flex items-center gap-2"
           >
             <TrendingDown
               strokeWidth={1.75}
-              className="h-5 w-5 text-brand-400"
+              className="h-5 w-5 text-brand-600"
               aria-hidden
             />
             Diff
@@ -287,7 +287,7 @@ export function CapTableDiffTool() {
           <button
             type="button"
             onClick={onCopy}
-            className="inline-flex items-center gap-1.5 rounded-md border border-ink-700 bg-ink-800/60 px-2.5 py-1.5 text-xs font-medium text-slate-300 hover:border-brand-500/40 hover:text-slate-50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
+            className="inline-flex items-center gap-1.5 rounded-md border border-surface-200 bg-surface-100/60 px-2.5 py-1.5 text-xs font-medium text-ink-500 hover:border-brand-500/40 hover:text-ink-800 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
             aria-live="polite"
           >
             <Copy strokeWidth={1.75} className="h-3.5 w-3.5" />
@@ -322,8 +322,8 @@ export function CapTableDiffTool() {
         </div>
 
         {/* Stacked bars */}
-        <div className="rounded-2xl border border-ink-700 bg-ink-900 p-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+        <div className="rounded-2xl border border-surface-200 bg-white p-6">
+          <p className="text-xs uppercase tracking-[0.2em] text-ink-8000">
             Ownership — before vs. after
           </p>
           <div className="mt-4 space-y-5">
@@ -350,11 +350,11 @@ export function CapTableDiffTool() {
         </div>
 
         {/* Diff table */}
-        <div className="rounded-2xl border border-ink-700 bg-ink-900 p-4 md:p-6">
+        <div className="rounded-2xl border border-surface-200 bg-white p-4 md:p-6">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-sm">
               <thead className="sticky top-0">
-                <tr className="text-left text-[11px] uppercase tracking-[0.15em] text-slate-500">
+                <tr className="text-left text-[11px] uppercase tracking-[0.15em] text-ink-8000">
                   <th className="py-2 pr-3 font-medium">Holder</th>
                   <th className="py-2 px-3 font-medium text-right">
                     Shares before
@@ -367,23 +367,23 @@ export function CapTableDiffTool() {
                   <th className="py-2 pl-3 font-medium text-right">Δ%</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-ink-700/70">
+              <tbody className="divide-y divide-surface-200/70">
                 {diff.rows.map((r) => {
                   const kind = classifyAfter(r);
                   const accent =
                     kind === "founder"
                       ? "text-amber-300"
                       : kind === "esop"
-                        ? "text-brand-300"
+                        ? "text-brand-600"
                         : kind === "newInvestor"
-                          ? "text-slate-200"
-                          : "text-slate-300";
+                          ? "text-ink-600"
+                          : "text-ink-500";
                   const deltaTone =
                     r.deltaPct < -1
                       ? "text-red-400"
                       : r.deltaPct > 1
                         ? "text-green-400"
-                        : "text-slate-400";
+                        : "text-ink-400";
                   const sign = r.deltaPct > 0 ? "+" : "";
                   return (
                     <tr key={r.name + r.sharesAfter}>
@@ -397,16 +397,16 @@ export function CapTableDiffTool() {
                           {r.name}
                         </span>
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-300">
+                      <td className="py-2.5 px-3 text-right font-mono tabular-nums text-ink-500">
                         {formatNumber(r.sharesBefore)}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-50">
+                      <td className="py-2.5 px-3 text-right font-mono tabular-nums text-ink-800">
                         {formatNumber(r.sharesAfter)}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-400">
+                      <td className="py-2.5 px-3 text-right font-mono tabular-nums text-ink-400">
                         {formatPercent(r.pctBefore)}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-50">
+                      <td className="py-2.5 px-3 text-right font-mono tabular-nums text-ink-800">
                         {formatPercent(r.pctAfter)}
                       </td>
                       <td
@@ -427,12 +427,12 @@ export function CapTableDiffTool() {
         </div>
 
         {/* Plain-English summary */}
-        <div className="rounded-2xl border border-brand-500/30 bg-ink-900 p-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium flex items-center gap-2">
+        <div className="rounded-2xl border border-brand-500/30 bg-white p-6">
+          <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium flex items-center gap-2">
             <Sparkles strokeWidth={1.75} className="h-3.5 w-3.5" aria-hidden />
             Plain English
           </p>
-          <p className="mt-3 text-sm md:text-base leading-relaxed text-slate-300">
+          <p className="mt-3 text-sm md:text-base leading-relaxed text-ink-500">
             {diff.plainEnglish}
           </p>
         </div>
@@ -441,18 +441,18 @@ export function CapTableDiffTool() {
       {/* Email capture (full-width row) */}
       <form
         onSubmit={onSubmit}
-        className="lg:col-span-12 rounded-2xl border border-brand-500/30 bg-ink-900 p-6 md:p-8"
+        className="lg:col-span-12 rounded-2xl border border-brand-500/30 bg-white p-6 md:p-8"
         noValidate
       >
         <div className="grid lg:grid-cols-2 gap-8 items-center">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium">
+            <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium">
               Save this scenario
             </p>
-            <h3 className="mt-2 text-2xl font-semibold text-slate-50">
+            <h3 className="mt-2 text-2xl font-semibold text-ink-800">
               Get a full Investor-Ready Score on these numbers
             </h3>
-            <p className="mt-2 text-sm text-slate-400">
+            <p className="mt-2 text-sm text-ink-400">
               We&apos;ll email a magic link to generate your verified score and
               a shareable link with this cap table diff baked in.
             </p>
@@ -539,10 +539,10 @@ function HolderRow({
   const classId = `holder-${holder.id}-class`;
   const founderId = `holder-${holder.id}-founder`;
   return (
-    <div className="rounded-xl border border-ink-700 bg-ink-800/40 p-3">
+    <div className="rounded-xl border border-surface-200 bg-surface-100/40 p-3">
       <div className="grid grid-cols-12 gap-2 items-end">
         <div className="col-span-12 sm:col-span-5">
-          <Label htmlFor={nameId} className="text-xs text-slate-400">
+          <Label htmlFor={nameId} className="text-xs text-ink-400">
             Name
           </Label>
           <Input
@@ -553,7 +553,7 @@ function HolderRow({
           />
         </div>
         <div className="col-span-7 sm:col-span-3">
-          <Label htmlFor={sharesId} className="text-xs text-slate-400">
+          <Label htmlFor={sharesId} className="text-xs text-ink-400">
             Shares
           </Label>
           <Input
@@ -570,7 +570,7 @@ function HolderRow({
           />
         </div>
         <div className="col-span-5 sm:col-span-3">
-          <Label htmlFor={classId} className="text-xs text-slate-400">
+          <Label htmlFor={classId} className="text-xs text-ink-400">
             Class
           </Label>
           <ShareClassSelect
@@ -585,7 +585,7 @@ function HolderRow({
               type="button"
               onClick={onRemove}
               aria-label={`Remove ${holder.name}`}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-ink-700 bg-ink-900 text-slate-400 hover:border-red-500/40 hover:text-red-400 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-surface-200 bg-white text-ink-400 hover:border-red-500/40 hover:text-red-400 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
             >
               <Trash2 strokeWidth={1.75} className="h-4 w-4" />
             </button>
@@ -598,9 +598,9 @@ function HolderRow({
           type="checkbox"
           checked={!!holder.isFounder}
           onChange={(e) => onChange({ isFounder: e.target.checked })}
-          className="h-4 w-4 rounded border-ink-700 bg-ink-900 text-brand-500 focus:ring-brand-500/30 cursor-pointer"
+          className="h-4 w-4 rounded border-surface-200 bg-white text-brand-500 focus:ring-brand-500/30 cursor-pointer"
         />
-        <Label htmlFor={founderId} className="text-xs text-slate-400 cursor-pointer">
+        <Label htmlFor={founderId} className="text-xs text-ink-400 cursor-pointer">
           Mark as founder
         </Label>
       </div>
@@ -623,10 +623,10 @@ function ShareClassSelect({
       id={id}
       value={value}
       onChange={(e) => onChange(e.target.value as ShareClass)}
-      className="mt-1 h-9 w-full rounded-[10px] border border-ink-700 bg-ink-900 px-2.5 text-sm text-slate-50 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 cursor-pointer transition-colors"
+      className="mt-1 h-9 w-full rounded-[10px] border border-surface-200 bg-white px-2.5 text-sm text-ink-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 cursor-pointer transition-colors"
     >
       {SHARE_CLASS_OPTIONS.map((o) => (
-        <option key={o.value} value={o.value} className="bg-ink-900">
+        <option key={o.value} value={o.value} className="bg-white">
           {o.label}
         </option>
       ))}
@@ -645,13 +645,13 @@ function SummaryTile({
 }) {
   const valueClass =
     tone === "brand"
-      ? "text-brand-300"
+      ? "text-brand-600"
       : tone === "brand-soft"
-        ? "text-brand-200"
-        : "text-slate-50";
+        ? "text-brand-500"
+        : "text-ink-800";
   return (
-    <div className="rounded-xl border border-ink-700 bg-ink-900 p-4 transition-colors hover:border-brand-500/40">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+    <div className="rounded-xl border border-surface-200 bg-white p-4 transition-colors hover:border-brand-500/40">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-ink-8000">
         {label}
       </p>
       <p
@@ -684,9 +684,9 @@ function StackedBar({
   const filtered = segments.filter((s) => s.pct > 0);
   return (
     <div>
-      <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.18em] text-slate-500">
+      <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.18em] text-ink-8000">
         <span>{label}</span>
-        <span className="font-mono tabular-nums text-slate-400">
+        <span className="font-mono tabular-nums text-ink-400">
           100.0%
         </span>
       </div>
@@ -726,7 +726,7 @@ function StackedBar({
           );
         })}
       </svg>
-      <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-400">
+      <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-ink-400">
         {filtered.map((s) => (
           <li key={s.key} className="inline-flex items-center gap-1.5">
             <span
@@ -734,8 +734,8 @@ function StackedBar({
               className="inline-block h-2 w-2 rounded-sm"
               style={{ backgroundColor: rowColor(s.kind) }}
             />
-            <span className="text-slate-300">{s.name}</span>
-            <span className="font-mono tabular-nums text-slate-400">
+            <span className="text-ink-500">{s.name}</span>
+            <span className="font-mono tabular-nums text-ink-400">
               {s.pct.toFixed(1)}%
             </span>
           </li>
@@ -753,7 +753,7 @@ function Legend() {
     { kind: "newInvestor", label: "New investor" },
   ];
   return (
-    <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] uppercase tracking-[0.15em] text-slate-500">
+    <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] uppercase tracking-[0.15em] text-ink-8000">
       {items.map((i) => (
         <li key={i.kind} className="inline-flex items-center gap-1.5">
           <span

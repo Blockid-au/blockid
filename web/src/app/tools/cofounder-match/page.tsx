@@ -47,14 +47,14 @@ export default function CofounderMatchPage() {
       <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
         <div className="mx-auto max-w-6xl px-6">
           <header className="max-w-3xl">
-            <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium">
+            <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium">
               Free tool · No login · AU-tuned
             </p>
-            <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-slate-50">
+            <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-ink-800">
               Find your cofounder — match before you incorporate, fight, or
               fork.
             </h1>
-            <p className="mt-4 text-base md:text-lg leading-relaxed text-slate-400">
+            <p className="mt-4 text-base md:text-lg leading-relaxed text-ink-400">
               Stop posting to Reddit. The AU founder match directory. Idea-stage
               founders register a profile, browse anonymized cards, and we
               connect you when there&apos;s a fit.
@@ -73,11 +73,11 @@ export default function CofounderMatchPage() {
               <div>
                 <h2
                   id="directory"
-                  className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-50"
+                  className="text-2xl md:text-3xl font-semibold tracking-tight text-ink-800"
                 >
                   Recent profiles
                 </h2>
-                <p className="mt-2 text-sm text-slate-400">
+                <p className="mt-2 text-sm text-ink-400">
                   Anonymized cards. First name + last initial, city and role
                   tags only — never email or LinkedIn.
                 </p>
@@ -86,7 +86,7 @@ export default function CofounderMatchPage() {
             <div className="mt-6">
               <Suspense
                 fallback={
-                  <div className="rounded-2xl border border-ink-700 bg-ink-900 p-10 text-center text-sm text-slate-500">
+                  <div className="rounded-2xl border border-surface-200 bg-white p-10 text-center text-sm text-ink-8000">
                     Loading directory…
                   </div>
                 }
@@ -113,12 +113,12 @@ export default function CofounderMatchPage() {
             ].map((b) => (
               <article
                 key={b.title}
-                className="rounded-2xl border border-ink-700 bg-ink-900 p-6"
+                className="rounded-2xl border border-surface-200 bg-white p-6"
               >
-                <h3 className="text-base font-semibold text-slate-50">
+                <h3 className="text-base font-semibold text-ink-800">
                   {b.title}
                 </h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                <p className="mt-2 text-sm leading-relaxed text-ink-400">
                   {b.body}
                 </p>
               </article>

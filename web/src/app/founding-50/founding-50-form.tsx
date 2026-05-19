@@ -96,16 +96,16 @@ export function Founding50Form() {
           strokeWidth={1.75}
           className="mx-auto mb-4 h-10 w-10 text-green-400"
         />
-        <h3 className="text-xl font-bold text-slate-50 mb-2">
+        <h3 className="text-xl font-bold text-ink-800 mb-2">
           You&apos;re on the list!
         </h3>
-        <p className="text-sm text-slate-400 leading-relaxed mb-6">
+        <p className="text-sm text-ink-600 leading-relaxed mb-6">
           We&apos;ve received your Founding 50 application for{" "}
-          <span className="text-slate-200 font-medium">{email}</span>. We&apos;ll
+          <span className="text-ink-800 font-medium">{email}</span>. We&apos;ll
           send payment details and account setup within 24 hours.
         </p>
-        <div className="rounded-xl border border-ink-700 bg-ink-900 px-4 py-3 text-sm text-slate-400">
-          <p className="font-medium text-slate-200 mb-1">What happens next</p>
+        <div className="rounded-xl border border-surface-200 bg-white px-4 py-3 text-sm text-ink-600">
+          <p className="font-medium text-ink-800 mb-1">What happens next</p>
           <ol className="text-left space-y-1 text-xs list-decimal list-inside">
             <li>We send you a secure payment link (AUD ${finalPrice})</li>
             <li>Payment confirms your spot in Founding 50</li>
@@ -114,7 +114,7 @@ export function Founding50Form() {
         </div>
         <Link
           href="/"
-          className="mt-6 inline-block text-xs text-brand-400 hover:text-brand-300 transition-colors"
+          className="mt-6 inline-block text-xs text-brand-600 hover:text-brand-700 transition-colors"
         >
           ← Analyze another idea
         </Link>
@@ -125,12 +125,12 @@ export function Founding50Form() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-2xl border border-ink-700 bg-ink-900 p-6 space-y-4"
+      className="rounded-2xl border border-surface-200 bg-white p-6 space-y-4 shadow-sm"
     >
-      <h2 className="text-lg font-bold text-slate-50">
+      <h2 className="text-lg font-bold text-ink-800">
         Claim your spot
       </h2>
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-ink-600">
         50 spots only. Fill in your details and we&apos;ll send you a payment link within minutes.
       </p>
 
@@ -163,7 +163,7 @@ export function Founding50Form() {
       <div className="space-y-1.5">
         <Label htmlFor="f50-startup">
           Startup name{" "}
-          <span className="text-slate-500">(optional)</span>
+          <span className="text-ink-700">(optional)</span>
         </Label>
         <Input
           id="f50-startup"
@@ -177,7 +177,7 @@ export function Founding50Form() {
       <div className="space-y-1.5">
         <Label htmlFor="f50-coupon">
           Coupon code{" "}
-          <span className="text-slate-500">(optional)</span>
+          <span className="text-ink-700">(optional)</span>
         </Label>
         <div className="flex gap-2">
           <Input
@@ -214,24 +214,24 @@ export function Founding50Form() {
       </div>
 
       {/* Price summary */}
-      <div className="rounded-xl border border-ink-700 bg-ink-800 px-4 py-3 flex items-center justify-between">
+      <div className="rounded-xl border border-surface-200 bg-surface-100 px-4 py-3 flex items-center justify-between">
         <div>
-          <p className="text-xs text-slate-500">Total due</p>
+          <p className="text-xs text-ink-700">Total due</p>
           <div className="flex items-baseline gap-2 mt-0.5">
             {couponResult?.ok && couponResult.discount_pct && (
-              <span className="text-slate-500 line-through font-mono text-sm">
+              <span className="text-ink-700 line-through font-mono text-sm">
                 ${FULL_PRICE}
               </span>
             )}
-            <span className="text-2xl font-bold font-mono text-slate-50">
+            <span className="text-2xl font-bold font-mono text-ink-800">
               ${finalPrice}
             </span>
-            <span className="text-slate-400 text-xs">AUD</span>
+            <span className="text-ink-600 text-xs">AUD</span>
           </div>
         </div>
         <div className="text-right">
-          <p className="text-xs text-slate-500">Payment method</p>
-          <p className="text-xs text-slate-300 mt-0.5">Secure link via email</p>
+          <p className="text-xs text-ink-700">Payment method</p>
+          <p className="text-xs text-ink-600 mt-0.5">Secure link via email</p>
         </div>
       </div>
 
@@ -256,7 +256,7 @@ export function Founding50Form() {
         )}
       </Button>
 
-      <p className="text-center text-[10px] text-slate-500 leading-relaxed">
+      <p className="text-center text-[10px] text-ink-700 leading-relaxed">
         No payment now. We send you a secure payment link within minutes.
         Your spot is reserved for 24 hours once you submit.
       </p>

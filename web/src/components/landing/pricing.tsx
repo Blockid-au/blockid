@@ -106,11 +106,11 @@ export function Pricing() {
     <section
       id="pricing"
       aria-labelledby="pricing-title"
-      className="py-24 md:py-32 border-t border-surface-300"
+      className="py-24 md:py-32 border-t border-surface-200"
     >
       <div className="mx-auto max-w-7xl px-6">
         <div className="max-w-3xl">
-          <p className="text-xs uppercase tracking-[0.2em] text-gold-500 font-medium">
+          <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium">
             Pricing
           </p>
           <h2
@@ -119,7 +119,7 @@ export function Pricing() {
           >
             Free to start. Pay when you raise.
           </h2>
-          <p className="mt-4 text-base md:text-lg leading-relaxed text-slate-600">
+          <p className="mt-4 text-base md:text-lg leading-relaxed text-ink-700">
             Every founder gets the Investor-Ready Score free. Upgrade when you
             need tracking, reports and AI analysis.
           </p>
@@ -133,7 +133,7 @@ export function Pricing() {
                 "relative flex flex-col rounded-2xl border p-6 transition-colors duration-200",
                 tier.highlight
                   ? "border-brand-500 bg-brand-50 ring-1 ring-brand-200"
-                  : "border-surface-300 bg-white shadow-sm hover:border-brand-500",
+                  : "border-surface-200 bg-white shadow-sm hover:border-brand-500",
               )}
             >
               {tier.badge && (
@@ -145,18 +145,18 @@ export function Pricing() {
               <h3 className="text-base font-semibold text-brand-900">
                 {tier.name}
               </h3>
-              <p className="mt-1 text-xs text-slate-400">{tier.audience}</p>
+              <p className="mt-1 text-xs text-ink-600">{tier.audience}</p>
               <p className="mt-5 flex items-end gap-1">
                 <span className="font-mono tabular-nums text-3xl font-semibold text-brand-900">
                   {tier.price}
                 </span>
                 {tier.cadence && (
-                  <span className="text-xs text-slate-400 mb-1">
+                  <span className="text-xs text-ink-600 mb-1">
                     {tier.cadence}
                   </span>
                 )}
               </p>
-              <ul className="mt-5 space-y-2.5 text-sm text-slate-700 flex-1">
+              <ul className="mt-5 space-y-2.5 text-sm text-ink-700 flex-1">
                 {tier.features.map((f) => (
                   <li key={f} className="flex items-start gap-2">
                     <Check
@@ -182,7 +182,7 @@ export function Pricing() {
           ))}
         </div>
 
-        <p className="mt-8 text-xs text-slate-400">
+        <p className="mt-8 text-xs text-ink-600">
           Enterprise / Sovereign chain (AUD $50k–$500k / yr) available for
           holding companies and family offices — contact us.
         </p>

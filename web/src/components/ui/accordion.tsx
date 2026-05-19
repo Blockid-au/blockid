@@ -51,7 +51,7 @@ export function Accordion({
 
   return (
     <AccordionContext.Provider value={{ openItems, toggle, type }}>
-      <div className={cn("divide-y divide-surface-300", className)}>{children}</div>
+      <div className={cn("divide-y divide-surface-200", className)}>{children}</div>
     </AccordionContext.Provider>
   );
 }
@@ -70,7 +70,7 @@ export function AccordionItem({ value, question, children }: AccordionItemProps)
   const triggerId = `accordion-trigger-${value}`;
 
   return (
-    <div className="py-2">
+    <div className="py-1">
       <h3>
         <button
           id={triggerId}
@@ -78,14 +78,14 @@ export function AccordionItem({ value, question, children }: AccordionItemProps)
           aria-expanded={open}
           aria-controls={contentId}
           onClick={() => ctx.toggle(value)}
-          className="group flex w-full items-center justify-between gap-4 py-4 text-left cursor-pointer text-base md:text-lg font-semibold text-brand-900 transition-colors hover:text-gold-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 rounded-md"
+          className="group flex w-full items-center justify-between gap-4 py-4 text-left cursor-pointer text-base md:text-lg font-semibold text-ink-800 transition-colors hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg"
         >
           <span>{question}</span>
           <ChevronDown
             strokeWidth={1.75}
             className={cn(
-              "h-5 w-5 shrink-0 text-slate-400 transition-transform duration-200",
-              open && "rotate-180 text-gold-500",
+              "h-5 w-5 shrink-0 text-surface-400 transition-transform duration-200",
+              open && "rotate-180 text-brand-500",
             )}
           />
         </button>
@@ -95,7 +95,7 @@ export function AccordionItem({ value, question, children }: AccordionItemProps)
         role="region"
         aria-labelledby={triggerId}
         hidden={!open}
-        className="pb-4 pr-9 text-base leading-relaxed text-slate-600"
+        className="pb-4 pr-9 text-base leading-relaxed text-ink-600"
       >
         {children}
       </div>

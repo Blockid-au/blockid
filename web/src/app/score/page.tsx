@@ -31,19 +31,19 @@ export default function ScorePage() {
       <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
         <div className="mx-auto max-w-5xl px-6">
           <header className="max-w-3xl">
-            <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium">
+            <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium">
               Free · 5 minutes · No credit card
             </p>
-            <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-slate-50">
+            <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-ink-800">
               Investor-Ready Score
             </h1>
-            <p className="mt-4 text-base md:text-lg leading-relaxed text-slate-400">
+            <p className="mt-4 text-base md:text-lg leading-relaxed text-ink-600">
               Answer 10 questions across three steps. We&apos;ll generate a
               deterministic preview of your score and the five sub-scores
               investors look at.
             </p>
           </header>
-          <section className="mt-10 rounded-2xl border border-ink-700 bg-ink-900 p-6 md:p-10">
+          <section className="mt-10 rounded-2xl border border-surface-200 bg-white p-6 md:p-10 shadow-sm">
             <ScoreForm />
           </section>
         </div>

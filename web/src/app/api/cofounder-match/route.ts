@@ -6,7 +6,7 @@ import {
 } from "@/lib/cofounder-match";
 import { insertCofounderProfile } from "@/lib/cofounder-match.server";
 import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
-import { getResend, isResendConfigured } from "@/lib/email";
+import nodemailer from "nodemailer";
 
 // POST /api/cofounder-match
 // Validates a cofounder profile submission, hashes the client IP for soft
@@ -63,10 +63,10 @@ export const dynamic = "force-dynamic";
 // to keep this feature self-contained.
 // -----------------------------------------------------------------------------
 
-const FROM_DEFAULT = "BlockID <noreply@blockid.au>";
+const FROM_DEFAULT = "BlockID <ceo@longcare.au>";
 
 function fromAddress(): string {
-  return process.env.RESEND_FROM_EMAIL || FROM_DEFAULT;
+  return process.env.SMTP_FROM_EMAIL || FROM_DEFAULT;
 }
 
 function adminEmail(): string {
@@ -84,41 +84,39 @@ async function sendNotificationEmails(
   input: CofounderProfileInput,
   id: string,
 ): Promise<void> {
-  if (!isResendConfigured()) {
-    console.warn(
-      "[blockid:cofounder-match] Resend not configured — skipping emails",
-      { id, email: input.email },
-    );
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.warn("[blockid:cofounder-match] SMTP not configured — skipping emails", { id });
     return;
   }
-  const resend = getResend();
-  if (!resend) return;
+
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || "smtp.gmail.com",
+    port: Number(process.env.SMTP_PORT || 587),
+    secure: false,
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  });
 
   const from = fromAddress();
   const directoryUrl = `${siteUrl()}/tools/cofounder-match`;
 
   // Founder confirmation.
   try {
-    const r1 = await resend.emails.send({
-      from,
-      to: input.email,
+    await transporter.sendMail({
+      from, to: input.email,
       subject: "You're on the BlockID Cofounder Match list",
       html: founderHtml({ input, directoryUrl }),
     });
-    if (r1.error) throw r1.error;
   } catch (err) {
     console.error("[blockid:cofounder-match] founder email failed", err);
   }
 
   // Admin alert.
   try {
-    const r2 = await resend.emails.send({
-      from,
-      to: adminEmail(),
+    await transporter.sendMail({
+      from, to: adminEmail(),
       subject: `New cofounder profile — ${input.fullName}`,
       html: adminHtml({ input, id }),
     });
-    if (r2.error) throw r2.error;
   } catch (err) {
     console.error("[blockid:cofounder-match] admin email failed", err);
   }

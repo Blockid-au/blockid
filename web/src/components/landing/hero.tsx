@@ -63,7 +63,7 @@ const PILLARS: { icon: LucideIcon; title: string; sub: string }[] = [
 
 export function Hero() {
   return (
-    <section className="relative max-w-[100vw] overflow-hidden bg-white pt-32 md:pt-36 pb-8 text-brand-900">
+    <section className="relative max-w-[100vw] overflow-hidden gradient-hero pt-32 md:pt-36 pb-8 text-brand-900">
       <div className="relative mx-auto max-w-[1800px] px-6 lg:px-12">
         <div className="grid min-w-0 items-center gap-10 xl:grid-cols-[0.88fr_1.12fr]">
           <div className="w-full min-w-0 max-w-[calc(100vw-3rem)] sm:max-w-[760px]">
@@ -89,11 +89,11 @@ export function Hero() {
               </span>
             </h1>
 
-            <p className="mt-7 max-w-2xl text-xl leading-relaxed text-slate-600 md:text-2xl">
+            <p className="mt-7 max-w-2xl text-xl leading-relaxed text-ink-700 md:text-2xl">
               Trusted Ownership. Smarter Fundraising. Real Value.
             </p>
 
-            <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-600 md:text-lg">
+            <p className="mt-4 max-w-2xl text-base leading-relaxed text-ink-700 md:text-lg">
               BlockID.au is the all-in-one ownership and fundraising platform for
               startups and SMEs. We help founders, co-founders, and investors
               securely manage equity, simplify fundraising, and unlock the true
@@ -105,7 +105,7 @@ export function Hero() {
                 <Button
                   variant="primary"
                   size="lg"
-                  className="h-16 w-full rounded-xl bg-brand-500 px-4 text-sm text-white shadow-[0_18px_48px_rgba(59,125,216,0.28)] hover:bg-brand-600 sm:w-auto sm:px-9 sm:text-base"
+                  className="h-16 w-full rounded-xl bg-brand-600 px-4 text-sm text-white shadow-[0_18px_48px_rgba(59,125,216,0.28)] hover:bg-brand-700 sm:w-auto sm:px-9 sm:text-base"
                 >
                   Get your Investor-Ready Score
                   <ArrowRight strokeWidth={1.75} className="h-5 w-5" />
@@ -115,7 +115,7 @@ export function Hero() {
                 <Button
                   variant="secondary"
                   size="lg"
-                  className="h-16 w-full rounded-xl border-slate-200 bg-surface-100 px-9 text-base text-brand-700 hover:bg-surface-200 sm:w-auto"
+                  className="h-16 w-full rounded-xl border-surface-200 bg-surface-100 px-9 text-base text-brand-700 hover:bg-surface-200 sm:w-auto"
                 >
                   <Play strokeWidth={1.75} className="h-5 w-5 fill-gold-500 text-gold-500" />
                   See how it works
@@ -142,14 +142,14 @@ export function Hero() {
             </div>
 
             <div className="mt-14">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-ink-600">
                 Trusted by founders, advisors & investors
               </p>
               <div className="mt-6 flex flex-wrap items-center gap-x-10 gap-y-5">
                 {TRUSTED_BY.map((name) => (
                   <span
                     key={name}
-                    className="text-3xl font-semibold tracking-tight text-slate-300"
+                    className="text-3xl font-semibold tracking-tight text-ink-600"
                   >
                     {name}
                   </span>
@@ -172,14 +172,14 @@ export function Hero() {
                   i < PILLARS.length - 1 ? "border-b sm:border-b-0 sm:border-r border-brand-200" : ""
                 }`}
               >
-                <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-brand-200 bg-white text-brand-500">
+                <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-brand-200 bg-white text-brand-600">
                   <Icon strokeWidth={1.75} className="h-6 w-6" />
                 </span>
                 <span className="md:mt-3">
                   <span className="block text-sm font-semibold text-brand-800">
                     {p.title}
                   </span>
-                  <span className="mt-1 block text-xs leading-relaxed text-slate-500">
+                  <span className="mt-1 block text-xs leading-relaxed text-ink-700">
                     {p.sub}
                   </span>
                 </span>
@@ -203,14 +203,14 @@ function HeroBenefit({
 }) {
   return (
     <div className="flex gap-4">
-      <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-brand-200 bg-brand-50 text-brand-500">
+      <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-brand-200 bg-brand-50 text-brand-600">
         <Icon strokeWidth={1.75} className="h-6 w-6" />
       </span>
       <span>
         <span className="block text-base font-semibold text-brand-800">
           {title}
         </span>
-        <span className="mt-2 block text-sm leading-relaxed text-slate-500">
+        <span className="mt-2 block text-sm leading-relaxed text-ink-700">
           {body}
         </span>
       </span>
@@ -221,18 +221,18 @@ function HeroBenefit({
 function DashboardMock() {
   return (
     <div className="relative hidden min-h-[720px] min-w-0 overflow-hidden md:block xl:min-h-[860px]">
-      <div className="absolute left-0 top-0 w-[min(980px,100%)] rounded-3xl border border-slate-200 bg-white shadow-lg">
-        <div className="flex items-center justify-between border-b border-slate-200 px-7 py-5">
+      <div className="absolute left-0 top-0 w-[min(980px,100%)] rounded-3xl border border-surface-200 bg-white shadow-lg">
+        <div className="flex items-center justify-between border-b border-surface-200 px-7 py-5">
           <div className="flex items-center gap-3">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-brand-200 bg-brand-50 text-sm font-bold text-brand-500">
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-brand-200 bg-brand-50 text-sm font-bold text-brand-600">
               B
             </span>
             <span className="text-lg font-semibold text-brand-800">
               BlockID<span className="text-gold-500">.au</span>
             </span>
           </div>
-          <nav className="hidden items-center gap-8 text-xs font-medium text-slate-400 md:flex">
-            <span className="border-b-4 border-brand-500 py-5 text-brand-700">
+          <nav className="hidden items-center gap-8 text-xs font-medium text-ink-600 md:flex">
+            <span className="border-b-4 border-brand-600 py-5 text-brand-700">
               Dashboard
             </span>
             <span>Score</span>
@@ -241,7 +241,7 @@ function DashboardMock() {
             <span>Cap Table</span>
             <span>Reports</span>
           </nav>
-          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-500">
+          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-surface-100 text-sm font-semibold text-ink-700">
             JS
           </span>
         </div>
@@ -265,7 +265,7 @@ function DashboardMock() {
             <span className="block text-sm font-semibold text-emerald-800">
               Proof Verified
             </span>
-            <span className="mt-2 block text-sm leading-relaxed text-slate-500">
+            <span className="mt-2 block text-sm leading-relaxed text-ink-700">
               This report is tamper-evident and time-stamped.
             </span>
           </span>
@@ -277,22 +277,22 @@ function DashboardMock() {
 
 function ScorePanel() {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-surface-100 p-7">
+    <section className="rounded-2xl border border-surface-200 bg-white shadow-sm p-7">
       <h2 className="text-lg font-semibold text-brand-800">
         Investor-Ready Score
       </h2>
       <div className="mt-8 flex flex-col gap-8 md:flex-row md:items-center">
         <div className="relative h-44 w-44 shrink-0 rounded-full bg-[conic-gradient(#3B7DD8_0_86%,#e2e8f0_86%_100%)] p-3">
-          <div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-surface-100">
+          <div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-white">
             <span className="font-mono text-5xl font-semibold text-brand-800">
               86
             </span>
-            <span className="mt-1 text-lg text-slate-400">/100</span>
+            <span className="mt-1 text-lg text-ink-600">/100</span>
           </div>
         </div>
         <div>
           <p className="text-3xl font-semibold text-brand-800">Very Strong</p>
-          <p className="mt-3 text-base text-slate-500">
+          <p className="mt-3 text-base text-ink-700">
             You&apos;re well-prepared to raise.
           </p>
           <Link
@@ -304,10 +304,10 @@ function ScorePanel() {
           </Link>
         </div>
       </div>
-      <div className="mt-8 flex items-center justify-between border-t border-slate-200 pt-5 text-xs text-slate-400">
+      <div className="mt-8 flex items-center justify-between border-t border-surface-200 pt-5 text-xs text-ink-600">
         <span>Score Version 2.1</span>
         <span>Updated 2 hours ago</span>
-        <span className="inline-flex items-center gap-1 text-brand-500">
+        <span className="inline-flex items-center gap-1 text-brand-600">
           <ShieldCheck strokeWidth={1.75} className="h-4 w-4" />
           Verified
         </span>
@@ -318,7 +318,7 @@ function ScorePanel() {
 
 function BreakdownPanel() {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-surface-100 p-7">
+    <section className="rounded-2xl border border-surface-200 bg-white shadow-sm p-7">
       <h2 className="text-lg font-semibold text-brand-800">
         Score Breakdown
       </h2>
@@ -327,11 +327,11 @@ function BreakdownPanel() {
           <div key={label as string}>
             <div className="flex items-center justify-between text-sm">
               <span className="font-medium text-brand-700">{label}</span>
-              <span className="font-mono text-slate-500">{value}%</span>
+              <span className="font-mono text-ink-700">{value}%</span>
             </div>
-            <div className="mt-2 h-1.5 rounded-full bg-slate-200">
+            <div className="mt-2 h-1.5 rounded-full bg-surface-200">
               <div
-                className="h-full rounded-full bg-brand-500"
+                className="h-full rounded-full bg-brand-600"
                 style={{ width: `${value}%` }}
               />
             </div>
@@ -350,27 +350,27 @@ function InvestorPackPanel() {
     [QrCode, "Secure QR Code", "Share anywhere"],
   ];
   return (
-    <section className="rounded-2xl border border-slate-200 bg-surface-100 p-6">
+    <section className="rounded-2xl border border-surface-200 bg-white shadow-sm p-6">
       <h2 className="text-lg font-semibold text-brand-800">
         Investor Pack <span className="text-sm text-emerald-500">● Ready</span>
       </h2>
-      <p className="mt-2 text-sm text-slate-500">
+      <p className="mt-2 text-sm text-ink-700">
         Share your investor-ready link or download.
       </p>
       <div className="mt-5 grid grid-cols-4 gap-3">
         {items.map(([Icon, label, sub]) => (
           <div
             key={label as string}
-            className="rounded-xl border border-slate-200 bg-white p-4 text-center"
+            className="rounded-xl border border-surface-200 bg-surface-100 p-4 text-center"
           >
             <Icon
               strokeWidth={1.75}
-              className="mx-auto h-7 w-7 text-brand-500"
+              className="mx-auto h-7 w-7 text-brand-600"
             />
             <p className="mt-3 text-xs font-semibold text-brand-700">
               {label as string}
             </p>
-            <p className="mt-1 text-xs text-slate-400">{sub as string}</p>
+            <p className="mt-1 text-xs text-ink-600">{sub as string}</p>
           </div>
         ))}
       </div>
@@ -380,7 +380,7 @@ function InvestorPackPanel() {
 
 function TermSheetPanel() {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-surface-100 p-7">
+    <section className="rounded-2xl border border-surface-200 bg-white shadow-sm p-7">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-brand-800">Term Sheet AI</h2>
         <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-600">
@@ -388,7 +388,7 @@ function TermSheetPanel() {
         </span>
       </div>
       <div className="mt-6 flex items-center gap-4">
-        <FileText strokeWidth={1.75} className="h-8 w-8 text-brand-500" />
+        <FileText strokeWidth={1.75} className="h-8 w-8 text-brand-600" />
         <span className="text-sm font-semibold text-brand-700">
           SAFE (Post-money)
         </span>
@@ -410,7 +410,7 @@ function TermSheetPanel() {
 
 function ProgressPanel() {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-surface-100 p-7">
+    <section className="rounded-2xl border border-surface-200 bg-white shadow-sm p-7">
       <h2 className="text-lg font-semibold text-brand-800">
         Valuation Growth
       </h2>
@@ -450,7 +450,7 @@ function ProgressPanel() {
 
 function ActivityPanel() {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-surface-100 p-7">
+    <section className="rounded-2xl border border-surface-200 bg-white shadow-sm p-7">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-brand-800">
           Investor Activity
@@ -467,9 +467,9 @@ function ActivityPanel() {
               <span className="block truncate text-sm font-semibold text-brand-700">
                 {name}
               </span>
-              <span className="text-xs text-slate-400">{action}</span>
+              <span className="text-xs text-ink-600">{action}</span>
             </span>
-            <span className="text-xs text-slate-400">{time}</span>
+            <span className="text-xs text-ink-600">{time}</span>
           </li>
         ))}
       </ul>
@@ -479,8 +479,8 @@ function ActivityPanel() {
 
 function MetricLine({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-      <span className="text-slate-500">{label}</span>
+    <div className="flex items-center justify-between border-b border-surface-200 pb-3">
+      <span className="text-ink-700">{label}</span>
       <span className="font-mono font-semibold text-brand-700">{value}</span>
     </div>
   );

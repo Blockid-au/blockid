@@ -265,16 +265,16 @@ export function TermSheetTool() {
       <div className="grid lg:grid-cols-12 gap-6 lg:gap-8">
         <section
           aria-labelledby="ts-input"
-          className="lg:col-span-7 rounded-2xl border border-ink-700 bg-ink-900 p-6 md:p-8"
+          className="lg:col-span-7 rounded-2xl border border-surface-200 bg-white p-6 md:p-8"
         >
           <div className="flex items-center justify-between gap-3">
             <h2
               id="ts-input"
-              className="text-lg font-semibold text-slate-50 flex items-center gap-2"
+              className="text-lg font-semibold text-ink-800 flex items-center gap-2"
             >
               <ClipboardPaste
                 strokeWidth={1.75}
-                className="h-5 w-5 text-brand-400"
+                className="h-5 w-5 text-brand-600"
                 aria-hidden
               />
               Paste term sheet
@@ -282,7 +282,7 @@ export function TermSheetTool() {
             <button
               type="button"
               onClick={onLoadDemo}
-              className="inline-flex items-center gap-1.5 rounded-md border border-ink-700 bg-ink-800/60 px-2.5 py-1.5 text-xs font-medium text-slate-300 hover:border-brand-500/40 hover:text-slate-50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
+              className="inline-flex items-center gap-1.5 rounded-md border border-surface-200 bg-surface-100/60 px-2.5 py-1.5 text-xs font-medium text-ink-500 hover:border-brand-500/40 hover:text-ink-800 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
             >
               <Sparkles
                 strokeWidth={1.75}
@@ -303,7 +303,7 @@ export function TermSheetTool() {
               onChange={(e) => setTermSheet(e.target.value)}
               placeholder={`Paste any SAFE, convertible note, or priced-round term sheet — for example:\n\n"BLOCKID INC. — SAFE — Investor amount: AUD $500,000. Valuation cap: $5M post-money. Discount: 20%. MFN: 24 month expiry. Pro-rata: yes. Board: no seat. Liquidation preference: 1x non-participating..."`}
               rows={14}
-              className="w-full rounded-[10px] border border-ink-700 bg-ink-950/40 px-4 py-3 text-sm text-slate-50 placeholder:text-slate-500 transition-colors duration-200 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 font-mono leading-relaxed"
+              className="w-full rounded-[10px] border border-surface-200 bg-surface-50/40 px-4 py-3 text-sm text-ink-800 placeholder:text-ink-8000 transition-colors duration-200 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 font-mono leading-relaxed"
               aria-invalid={overLimit || tooShort}
             />
             <div className="mt-2 flex items-center justify-between text-xs">
@@ -314,7 +314,7 @@ export function TermSheetTool() {
                     ? "text-red-400"
                     : tooShort
                       ? "text-amber-300"
-                      : "text-slate-500",
+                      : "text-ink-8000",
                 )}
               >
                 {formatNumber(charCount)} / {formatNumber(MAX_CHARS)}
@@ -331,19 +331,19 @@ export function TermSheetTool() {
           </div>
 
           {/* Cap-table toggle + mini editor */}
-          <div className="mt-6 rounded-xl border border-ink-700 bg-ink-800/40 p-4">
+          <div className="mt-6 rounded-xl border border-surface-200 bg-surface-100/40 p-4">
             <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={includeCapTable}
                 onChange={(e) => setIncludeCapTable(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-ink-700 bg-ink-900 text-brand-500 focus:ring-brand-500/30 cursor-pointer"
+                className="mt-0.5 h-4 w-4 rounded border-surface-200 bg-white text-brand-500 focus:ring-brand-500/30 cursor-pointer"
               />
               <span className="flex-1">
-                <span className="text-sm font-medium text-slate-50">
+                <span className="text-sm font-medium text-ink-800">
                   Also model dilution against my cap table
                 </span>
-                <span className="block text-xs text-slate-400 mt-0.5">
+                <span className="block text-xs text-ink-400 mt-0.5">
                   Optional — adds a Dilution tab to the result with a live
                   before/after diff.
                 </span>
@@ -364,7 +364,7 @@ export function TermSheetTool() {
                 <button
                   type="button"
                   onClick={addHolder}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-ink-700 bg-transparent px-3 py-2 text-xs font-medium text-slate-300 hover:border-brand-500/40 hover:text-slate-50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-surface-200 bg-transparent px-3 py-2 text-xs font-medium text-ink-500 hover:border-brand-500/40 hover:text-ink-800 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
                 >
                   <Plus strokeWidth={1.75} className="h-3.5 w-3.5" />
                   Add holder
@@ -433,16 +433,16 @@ export function TermSheetTool() {
         </section>
 
         {/* RIGHT — analyze CTA */}
-        <section className="lg:col-span-5 rounded-2xl border border-ink-700 bg-ink-900 p-6 md:p-8 flex flex-col">
-          <h2 className="text-lg font-semibold text-slate-50 flex items-center gap-2">
+        <section className="lg:col-span-5 rounded-2xl border border-surface-200 bg-white p-6 md:p-8 flex flex-col">
+          <h2 className="text-lg font-semibold text-ink-800 flex items-center gap-2">
             <FileSignature
               strokeWidth={1.75}
-              className="h-5 w-5 text-brand-400"
+              className="h-5 w-5 text-brand-600"
               aria-hidden
             />
             Analyse
           </h2>
-          <p className="mt-3 text-sm text-slate-400 leading-relaxed">
+          <p className="mt-3 text-sm text-ink-400 leading-relaxed">
             Get a plain-English summary, severity-ranked redline, AU-market
             comparison, and (optionally) a live dilution simulation against
             your cap table.
@@ -473,7 +473,7 @@ export function TermSheetTool() {
                 </>
               )}
             </Button>
-            <p className="mt-3 text-xs text-slate-500">
+            <p className="mt-3 text-xs text-ink-8000">
               Powered by Claude Sonnet 4.6 · Analysis takes ~15s
             </p>
           </div>
@@ -484,7 +484,7 @@ export function TermSheetTool() {
             </div>
           )}
 
-          <div className="mt-auto pt-6 text-xs text-slate-500 leading-relaxed">
+          <div className="mt-auto pt-6 text-xs text-ink-8000 leading-relaxed">
             We don&apos;t store your pasted term sheet beyond the analysis
             call. The instrument type, redline count, and a 200-character
             redacted snippet are sent only if you opt in via the email capture
@@ -506,18 +506,18 @@ export function TermSheetTool() {
           {/* Email capture row */}
           <form
             onSubmit={onLeadSubmit}
-            className="mt-8 rounded-2xl border border-brand-500/30 bg-ink-900 p-6 md:p-8"
+            className="mt-8 rounded-2xl border border-brand-500/30 bg-white p-6 md:p-8"
             noValidate
           >
             <div className="grid lg:grid-cols-2 gap-8 items-center">
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium">
+                <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium">
                   Save this analysis
                 </p>
-                <h3 className="mt-2 text-2xl font-semibold text-slate-50">
+                <h3 className="mt-2 text-2xl font-semibold text-ink-800">
                   Want this baked into your Investor-Ready Score?
                 </h3>
-                <p className="mt-2 text-sm text-slate-400">
+                <p className="mt-2 text-sm text-ink-400">
                   We&apos;ll email a magic link so you can re-open this redline
                   with your verified score and AU sector comps attached.
                 </p>
@@ -576,7 +576,7 @@ export function TermSheetTool() {
 function ModePill({ mode }: { mode: "live" | "demo" }) {
   if (mode === "live") {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-500/40 bg-brand-500/10 px-3 py-1 text-xs font-medium text-brand-300">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-500/40 bg-brand-500/10 px-3 py-1 text-xs font-medium text-brand-600">
         <span
           aria-hidden
           className="h-1.5 w-1.5 rounded-full bg-brand-400"
@@ -586,7 +586,7 @@ function ModePill({ mode }: { mode: "live" | "demo" }) {
     );
   }
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-ink-700 bg-ink-800 px-3 py-1 text-xs font-medium text-slate-400">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-surface-200 bg-surface-100 px-3 py-1 text-xs font-medium text-ink-400">
       <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-slate-500" />
       Demo mode (set ANTHROPIC_API_KEY)
     </span>
@@ -607,15 +607,15 @@ function ResultPanel({
   return (
     <section
       aria-labelledby="ts-result"
-      className="rounded-2xl border border-ink-700 bg-ink-900 p-6 md:p-8"
+      className="rounded-2xl border border-surface-200 bg-white p-6 md:p-8"
     >
       <h2
         id="ts-result"
-        className="text-lg font-semibold text-slate-50 flex items-center gap-2"
+        className="text-lg font-semibold text-ink-800 flex items-center gap-2"
       >
         <Sparkles
           strokeWidth={1.75}
-          className="h-5 w-5 text-brand-400"
+          className="h-5 w-5 text-brand-600"
           aria-hidden
         />
         Analysis
@@ -669,20 +669,20 @@ function SummaryTab({ analysis }: { analysis: TermSheetAnalysis }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
-        <span className="inline-flex items-center rounded-full border border-brand-500/30 bg-brand-500/10 px-3 py-1 text-xs font-medium text-brand-300">
+        <span className="inline-flex items-center rounded-full border border-brand-500/30 bg-brand-500/10 px-3 py-1 text-xs font-medium text-brand-600">
           {analysis.instrumentType}
         </span>
       </div>
 
-      <div className="rounded-xl border border-ink-700 bg-ink-800/40 p-5">
-        <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+      <div className="rounded-xl border border-surface-200 bg-surface-100/40 p-5">
+        <p className="text-xs uppercase tracking-[0.2em] text-ink-8000">
           Key terms
         </p>
         <dl className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
           {pairs.map(([label, value]) => (
-            <div key={label} className="flex items-baseline justify-between gap-3 border-b border-ink-700/60 pb-2 last:border-b-0 sm:last:border-b sm:[&:nth-last-child(-n+2)]:border-b-0">
-              <dt className="text-xs text-slate-400">{label}</dt>
-              <dd className="font-mono tabular-nums text-sm text-slate-50 text-right">
+            <div key={label} className="flex items-baseline justify-between gap-3 border-b border-surface-200/60 pb-2 last:border-b-0 sm:last:border-b sm:[&:nth-last-child(-n+2)]:border-b-0">
+              <dt className="text-xs text-ink-400">{label}</dt>
+              <dd className="font-mono tabular-nums text-sm text-ink-800 text-right">
                 {value}
               </dd>
             </div>
@@ -690,19 +690,19 @@ function SummaryTab({ analysis }: { analysis: TermSheetAnalysis }) {
         </dl>
       </div>
 
-      <div className="rounded-xl border border-brand-500/30 bg-ink-800/40 p-5">
-        <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium flex items-center gap-2">
+      <div className="rounded-xl border border-brand-500/30 bg-surface-100/40 p-5">
+        <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium flex items-center gap-2">
           <Sparkles strokeWidth={1.75} className="h-3.5 w-3.5" aria-hidden />
           Plain English
         </p>
-        <p className="mt-3 text-sm md:text-base leading-relaxed text-slate-300">
+        <p className="mt-3 text-sm md:text-base leading-relaxed text-ink-500">
           {analysis.plainEnglishSummary}
         </p>
       </div>
 
       {analysis.riskFlags.length > 0 && (
-        <div className="rounded-xl border border-ink-700 bg-ink-800/40 p-5">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
+        <div className="rounded-xl border border-surface-200 bg-surface-100/40 p-5">
+          <p className="text-xs uppercase tracking-[0.2em] text-ink-8000 flex items-center gap-2">
             <TriangleAlert
               strokeWidth={1.75}
               className="h-3.5 w-3.5 text-amber-400"
@@ -714,10 +714,10 @@ function SummaryTab({ analysis }: { analysis: TermSheetAnalysis }) {
             {analysis.riskFlags.map((r) => (
               <li
                 key={r.flag}
-                className="rounded-lg border border-ink-700 bg-ink-900 p-3"
+                className="rounded-lg border border-surface-200 bg-white p-3"
               >
-                <p className="text-sm font-medium text-slate-50">{r.flag}</p>
-                <p className="mt-1 text-xs leading-relaxed text-slate-400">
+                <p className="text-sm font-medium text-ink-800">{r.flag}</p>
+                <p className="mt-1 text-xs leading-relaxed text-ink-400">
                   {r.why}
                 </p>
               </li>
@@ -732,7 +732,7 @@ function SummaryTab({ analysis }: { analysis: TermSheetAnalysis }) {
 function RedlineTab({ analysis }: { analysis: TermSheetAnalysis }) {
   if (analysis.redline.length === 0) {
     return (
-      <p className="text-sm text-slate-400">
+      <p className="text-sm text-ink-400">
         No redline items — the term sheet looks clean against AU market norms.
       </p>
     );
@@ -754,10 +754,10 @@ function RedlineCard({
   const tone = {
     info: {
       border: "border-slate-500/40",
-      bg: "bg-ink-800/40",
-      pill: "border-slate-500/40 bg-slate-500/10 text-slate-300",
+      bg: "bg-surface-100/40",
+      pill: "border-slate-500/40 bg-slate-500/10 text-ink-500",
       icon: Info,
-      iconColor: "text-slate-300",
+      iconColor: "text-ink-500",
       label: "Info",
     },
     warning: {
@@ -787,7 +787,7 @@ function RedlineCard({
       )}
     >
       <div className="flex items-start justify-between gap-3">
-        <h3 className="text-base font-semibold text-slate-50 flex items-center gap-2">
+        <h3 className="text-base font-semibold text-ink-800 flex items-center gap-2">
           <Icon
             strokeWidth={1.75}
             className={cn("h-4 w-4 shrink-0", tone.iconColor)}
@@ -804,9 +804,9 @@ function RedlineCard({
           {tone.label}
         </span>
       </div>
-      <p className="text-sm leading-relaxed text-slate-300">{item.issue}</p>
-      <blockquote className="rounded-lg border-l-2 border-brand-500/60 bg-ink-900 px-4 py-3 text-sm leading-relaxed text-slate-300">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-gold-400 font-medium">
+      <p className="text-sm leading-relaxed text-ink-500">{item.issue}</p>
+      <blockquote className="rounded-lg border-l-2 border-brand-500/60 bg-white px-4 py-3 text-sm leading-relaxed text-ink-500">
+        <p className="text-[11px] uppercase tracking-[0.18em] text-gold-600 font-medium">
           Suggested revision
         </p>
         <p className="mt-1.5">{item.suggestedRevision}</p>
@@ -818,28 +818,28 @@ function RedlineCard({
 function ComparisonTab({ analysis }: { analysis: TermSheetAnalysis }) {
   return (
     <div className="space-y-6">
-      <p className="text-sm md:text-base leading-relaxed text-slate-300">
+      <p className="text-sm md:text-base leading-relaxed text-ink-500">
         {analysis.auMarketComparison.summary}
       </p>
-      <div className="rounded-xl border border-ink-700 bg-ink-800/40 p-4 md:p-5 overflow-x-auto">
+      <div className="rounded-xl border border-surface-200 bg-surface-100/40 p-4 md:p-5 overflow-x-auto">
         <table className="w-full min-w-[640px] text-sm">
           <thead>
-            <tr className="text-left text-[11px] uppercase tracking-[0.15em] text-slate-500">
+            <tr className="text-left text-[11px] uppercase tracking-[0.15em] text-ink-8000">
               <th className="py-2 pr-3 font-medium">Term</th>
               <th className="py-2 px-3 font-medium">Your term</th>
               <th className="py-2 px-3 font-medium">AU norm</th>
               <th className="py-2 pl-3 font-medium text-right">Verdict</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-ink-700/70">
+          <tbody className="divide-y divide-surface-200/70">
             {analysis.auMarketComparison.deviations.map((d, i) => {
               const verdictTone = {
                 founder_friendly: {
-                  pill: "border-brand-500/40 bg-brand-500/10 text-brand-300",
+                  pill: "border-brand-500/40 bg-brand-500/10 text-brand-600",
                   label: "Founder-friendly",
                 },
                 neutral: {
-                  pill: "border-slate-500/40 bg-slate-500/10 text-slate-300",
+                  pill: "border-slate-500/40 bg-slate-500/10 text-ink-500",
                   label: "Neutral",
                 },
                 investor_friendly: {
@@ -849,11 +849,11 @@ function ComparisonTab({ analysis }: { analysis: TermSheetAnalysis }) {
               }[d.verdict];
               return (
                 <tr key={`${d.term}-${i}`}>
-                  <td className="py-3 pr-3 font-medium text-slate-50">
+                  <td className="py-3 pr-3 font-medium text-ink-800">
                     {d.term}
                   </td>
-                  <td className="py-3 px-3 text-slate-300">{d.yourTerm}</td>
-                  <td className="py-3 px-3 text-slate-400">{d.auMarketNorm}</td>
+                  <td className="py-3 px-3 text-ink-500">{d.yourTerm}</td>
+                  <td className="py-3 px-3 text-ink-400">{d.auMarketNorm}</td>
                   <td className="py-3 pl-3 text-right">
                     <span
                       className={cn(
@@ -902,8 +902,8 @@ function DilutionTab({ diff }: { diff: CapTableDiff }) {
         />
       </div>
 
-      <div className="rounded-xl border border-ink-700 bg-ink-800/40 p-5">
-        <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+      <div className="rounded-xl border border-surface-200 bg-surface-100/40 p-5">
+        <p className="text-xs uppercase tracking-[0.2em] text-ink-8000">
           Ownership — before vs. after
         </p>
         <div className="mt-4 space-y-5">
@@ -929,34 +929,34 @@ function DilutionTab({ diff }: { diff: CapTableDiff }) {
         <Legend />
       </div>
 
-      <div className="rounded-xl border border-ink-700 bg-ink-800/40 p-4 md:p-5 overflow-x-auto">
+      <div className="rounded-xl border border-surface-200 bg-surface-100/40 p-4 md:p-5 overflow-x-auto">
         <table className="w-full min-w-[600px] text-sm">
           <thead>
-            <tr className="text-left text-[11px] uppercase tracking-[0.15em] text-slate-500">
+            <tr className="text-left text-[11px] uppercase tracking-[0.15em] text-ink-8000">
               <th className="py-2 pr-3 font-medium">Holder</th>
               <th className="py-2 px-3 font-medium text-right">% before</th>
               <th className="py-2 px-3 font-medium text-right">% after</th>
               <th className="py-2 pl-3 font-medium text-right">Δ%</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-ink-700/70">
+          <tbody className="divide-y divide-surface-200/70">
             {diff.rows.map((r) => {
               const deltaTone =
                 r.deltaPct < -1
                   ? "text-red-400"
                   : r.deltaPct > 1
                     ? "text-green-400"
-                    : "text-slate-400";
+                    : "text-ink-400";
               const sign = r.deltaPct > 0 ? "+" : "";
               return (
                 <tr key={r.name + r.sharesAfter}>
-                  <td className="py-2.5 pr-3 font-medium text-slate-200">
+                  <td className="py-2.5 pr-3 font-medium text-ink-600">
                     {r.name}
                   </td>
-                  <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-400">
+                  <td className="py-2.5 px-3 text-right font-mono tabular-nums text-ink-400">
                     {formatPercent(r.pctBefore)}
                   </td>
-                  <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-50">
+                  <td className="py-2.5 px-3 text-right font-mono tabular-nums text-ink-800">
                     {formatPercent(r.pctAfter)}
                   </td>
                   <td
@@ -975,7 +975,7 @@ function DilutionTab({ diff }: { diff: CapTableDiff }) {
         </table>
       </div>
 
-      <p className="text-sm leading-relaxed text-slate-400">
+      <p className="text-sm leading-relaxed text-ink-400">
         {diff.plainEnglish}
       </p>
     </div>
@@ -993,13 +993,13 @@ function SummaryTile({
 }) {
   const valueClass =
     tone === "brand"
-      ? "text-brand-300"
+      ? "text-brand-600"
       : tone === "brand-soft"
-        ? "text-brand-200"
-        : "text-slate-50";
+        ? "text-brand-500"
+        : "text-ink-800";
   return (
-    <div className="rounded-xl border border-ink-700 bg-ink-900 p-4 transition-colors hover:border-brand-500/40">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+    <div className="rounded-xl border border-surface-200 bg-white p-4 transition-colors hover:border-brand-500/40">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-ink-8000">
         {label}
       </p>
       <p
@@ -1032,9 +1032,9 @@ function StackedBar({
   const filtered = segments.filter((s) => s.pct > 0);
   return (
     <div>
-      <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.18em] text-slate-500">
+      <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.18em] text-ink-8000">
         <span>{label}</span>
-        <span className="font-mono tabular-nums text-slate-400">100.0%</span>
+        <span className="font-mono tabular-nums text-ink-400">100.0%</span>
       </div>
       <svg
         viewBox="0 0 400 28"
@@ -1069,7 +1069,7 @@ function StackedBar({
           );
         })}
       </svg>
-      <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-400">
+      <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-ink-400">
         {filtered.map((s) => (
           <li key={s.key} className="inline-flex items-center gap-1.5">
             <span
@@ -1077,8 +1077,8 @@ function StackedBar({
               className="inline-block h-2 w-2 rounded-sm"
               style={{ backgroundColor: rowColor(s.kind) }}
             />
-            <span className="text-slate-300">{s.name}</span>
-            <span className="font-mono tabular-nums text-slate-400">
+            <span className="text-ink-500">{s.name}</span>
+            <span className="font-mono tabular-nums text-ink-400">
               {s.pct.toFixed(1)}%
             </span>
           </li>
@@ -1096,7 +1096,7 @@ function Legend() {
     { kind: "newInvestor", label: "New investor" },
   ];
   return (
-    <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] uppercase tracking-[0.15em] text-slate-500">
+    <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] uppercase tracking-[0.15em] text-ink-8000">
       {items.map((i) => (
         <li key={i.kind} className="inline-flex items-center gap-1.5">
           <span
@@ -1144,10 +1144,10 @@ function MiniHolderRow({
   const classId = `mini-holder-${holder.id}-class`;
   const founderId = `mini-holder-${holder.id}-founder`;
   return (
-    <div className="rounded-xl border border-ink-700 bg-ink-900 p-3">
+    <div className="rounded-xl border border-surface-200 bg-white p-3">
       <div className="grid grid-cols-12 gap-2 items-end">
         <div className="col-span-12 sm:col-span-5">
-          <Label htmlFor={nameId} className="text-xs text-slate-400">
+          <Label htmlFor={nameId} className="text-xs text-ink-400">
             Name
           </Label>
           <Input
@@ -1158,7 +1158,7 @@ function MiniHolderRow({
           />
         </div>
         <div className="col-span-7 sm:col-span-3">
-          <Label htmlFor={sharesId} className="text-xs text-slate-400">
+          <Label htmlFor={sharesId} className="text-xs text-ink-400">
             Shares
           </Label>
           <Input
@@ -1175,7 +1175,7 @@ function MiniHolderRow({
           />
         </div>
         <div className="col-span-5 sm:col-span-3">
-          <Label htmlFor={classId} className="text-xs text-slate-400">
+          <Label htmlFor={classId} className="text-xs text-ink-400">
             Class
           </Label>
           <select
@@ -1184,10 +1184,10 @@ function MiniHolderRow({
             onChange={(e) =>
               onChange({ shareClass: e.target.value as ShareClass })
             }
-            className="mt-1 h-9 w-full rounded-[10px] border border-ink-700 bg-ink-900 px-2.5 text-sm text-slate-50 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 cursor-pointer transition-colors"
+            className="mt-1 h-9 w-full rounded-[10px] border border-surface-200 bg-white px-2.5 text-sm text-ink-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 cursor-pointer transition-colors"
           >
             {SHARE_CLASS_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value} className="bg-ink-900">
+              <option key={o.value} value={o.value} className="bg-white">
                 {o.label}
               </option>
             ))}
@@ -1199,7 +1199,7 @@ function MiniHolderRow({
               type="button"
               onClick={onRemove}
               aria-label={`Remove ${holder.name}`}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-ink-700 bg-ink-900 text-slate-400 hover:border-red-500/40 hover:text-red-400 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-surface-200 bg-white text-ink-400 hover:border-red-500/40 hover:text-red-400 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
             >
               <Trash2 strokeWidth={1.75} className="h-4 w-4" />
             </button>
@@ -1212,11 +1212,11 @@ function MiniHolderRow({
           type="checkbox"
           checked={!!holder.isFounder}
           onChange={(e) => onChange({ isFounder: e.target.checked })}
-          className="h-4 w-4 rounded border-ink-700 bg-ink-900 text-brand-500 focus:ring-brand-500/30 cursor-pointer"
+          className="h-4 w-4 rounded border-surface-200 bg-white text-brand-500 focus:ring-brand-500/30 cursor-pointer"
         />
         <Label
           htmlFor={founderId}
-          className="text-xs text-slate-400 cursor-pointer"
+          className="text-xs text-ink-400 cursor-pointer"
         >
           Mark as founder
         </Label>

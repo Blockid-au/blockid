@@ -62,19 +62,19 @@ export function EvidenceWizard({ onClose, onSuccess }: EvidenceWizardProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative w-full max-w-lg rounded-2xl border border-ink-700 bg-ink-900 shadow-2xl">
+      <div className="relative w-full max-w-lg rounded-2xl border border-surface-200 bg-white shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-700">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-surface-200">
           <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-brand-400 font-medium">Add Evidence</p>
-            <p className="text-sm font-semibold text-slate-100 mt-0.5">
+            <p className="text-xs uppercase tracking-[0.18em] text-brand-600 font-medium">Add Evidence</p>
+            <p className="text-sm font-semibold text-ink-800 mt-0.5">
               Step {step} of 3 — {step === 1 ? "Choose Type" : step === 2 ? "Provide Evidence" : "Confirm Impact"}
             </p>
           </div>
-          <button type="button" onClick={onClose} className="text-slate-500 hover:text-slate-200 cursor-pointer transition-colors">
+          <button type="button" onClick={onClose} className="text-ink-600 hover:text-ink-800 cursor-pointer transition-colors">
             <X strokeWidth={1.75} className="h-5 w-5" />
           </button>
         </div>
@@ -92,18 +92,18 @@ export function EvidenceWizard({ onClose, onSuccess }: EvidenceWizardProps) {
                     onClick={() => { setEvidenceType(opt.id); setStep(2); }}
                     className={cn(
                       "flex flex-col items-start gap-2 rounded-xl border p-4 text-left cursor-pointer transition-all",
-                      "border-ink-700 bg-ink-800/60 hover:border-brand-500/50 hover:bg-ink-800",
+                      "border-surface-200 bg-surface-100 hover:border-brand-300 hover:bg-white",
                     )}
                   >
                     <div className="flex items-center justify-between w-full">
-                      <Icon strokeWidth={1.75} className="h-5 w-5 text-brand-400" />
-                      <span className="text-[10px] font-mono font-semibold text-teal-400">{opt.impact}</span>
+                      <Icon strokeWidth={1.75} className="h-5 w-5 text-brand-600" />
+                      <span className="text-[10px] font-mono font-semibold text-teal-600">{opt.impact}</span>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-slate-100">{opt.label}</p>
-                      <p className="text-xs text-slate-500 mt-0.5 leading-snug">{opt.desc}</p>
+                      <p className="text-sm font-medium text-ink-800">{opt.label}</p>
+                      <p className="text-xs text-ink-600 mt-0.5 leading-snug">{opt.desc}</p>
                     </div>
-                    <span className="text-[10px] text-slate-600">{opt.confidence}</span>
+                    <span className="text-[10px] text-ink-700">{opt.confidence}</span>
                   </button>
                 );
               })}
@@ -114,11 +114,11 @@ export function EvidenceWizard({ onClose, onSuccess }: EvidenceWizardProps) {
         {/* Step 2: Provide evidence */}
         {step === 2 && selected && (
           <div className="p-6 space-y-4">
-            <div className="flex items-center gap-2 rounded-xl border border-ink-700 bg-ink-800 px-4 py-3">
-              <selected.icon strokeWidth={1.75} className="h-4 w-4 text-brand-400 shrink-0" />
+            <div className="flex items-center gap-2 rounded-xl border border-surface-200 bg-surface-100 px-4 py-3">
+              <selected.icon strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0" />
               <div>
-                <p className="text-sm font-medium text-slate-100">{selected.label}</p>
-                <p className="text-xs text-slate-500">{selected.confidence}</p>
+                <p className="text-sm font-medium text-ink-800">{selected.label}</p>
+                <p className="text-xs text-ink-600">{selected.confidence}</p>
               </div>
             </div>
 
@@ -128,7 +128,7 @@ export function EvidenceWizard({ onClose, onSuccess }: EvidenceWizardProps) {
                 onChange={e => setInputValue(e.target.value)}
                 placeholder="Describe your evidence here (customer quotes, market research findings, metrics...)…"
                 rows={5}
-                className="w-full rounded-xl border border-ink-700 bg-ink-800 px-4 py-3 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-brand-500 resize-none"
+                className="w-full rounded-xl border border-surface-200 bg-surface-100 px-4 py-3 text-sm text-ink-800 placeholder:text-ink-600 focus:outline-none focus:border-brand-500 resize-none"
               />
             )}
 
@@ -138,7 +138,7 @@ export function EvidenceWizard({ onClose, onSuccess }: EvidenceWizardProps) {
                 value={inputValue}
                 onChange={e => setInputValue(e.target.value)}
                 placeholder="https://yourwebsite.com"
-                className="w-full rounded-xl border border-ink-700 bg-ink-800 px-4 py-3 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-brand-500"
+                className="w-full rounded-xl border border-surface-200 bg-surface-100 px-4 py-3 text-sm text-ink-800 placeholder:text-ink-600 focus:outline-none focus:border-brand-500"
               />
             )}
 
@@ -155,13 +155,13 @@ export function EvidenceWizard({ onClose, onSuccess }: EvidenceWizardProps) {
                   className="sr-only"
                 />
                 {docFile ? (
-                  <div className="flex items-center gap-3 rounded-xl border border-brand-500/30 bg-brand-900/20 px-4 py-3">
-                    <FileText strokeWidth={1.75} className="h-5 w-5 text-brand-400 shrink-0" />
+                  <div className="flex items-center gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3">
+                    <FileText strokeWidth={1.75} className="h-5 w-5 text-brand-600 shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-200 truncate">{docFile.name}</p>
-                      <p className="text-xs text-slate-500">{(docFile.size / 1024).toFixed(0)} KB</p>
+                      <p className="text-sm font-medium text-ink-800 truncate">{docFile.name}</p>
+                      <p className="text-xs text-ink-600">{(docFile.size / 1024).toFixed(0)} KB</p>
                     </div>
-                    <button type="button" onClick={() => setDocFile(null)} className="text-slate-500 hover:text-slate-200 cursor-pointer">
+                    <button type="button" onClick={() => setDocFile(null)} className="text-ink-600 hover:text-ink-800 cursor-pointer">
                       <X strokeWidth={1.75} className="h-4 w-4" />
                     </button>
                   </div>
@@ -169,21 +169,21 @@ export function EvidenceWizard({ onClose, onSuccess }: EvidenceWizardProps) {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-full rounded-xl border-2 border-dashed border-ink-600 px-6 py-10 text-center cursor-pointer hover:border-brand-500/50 transition-colors"
+                    className="w-full rounded-xl border-2 border-dashed border-surface-200 px-6 py-10 text-center cursor-pointer hover:border-brand-300 transition-colors"
                   >
-                    <FileText strokeWidth={1.75} className="mx-auto h-8 w-8 text-slate-600 mb-3" />
-                    <p className="text-sm text-slate-400">Click to browse or drag &amp; drop</p>
-                    <p className="text-xs text-slate-600 mt-1">PDF, DOCX, XLSX — max 10MB · Shared with admin@blockid.au</p>
+                    <FileText strokeWidth={1.75} className="mx-auto h-8 w-8 text-ink-600 mb-3" />
+                    <p className="text-sm text-ink-600">Click to browse or drag &amp; drop</p>
+                    <p className="text-xs text-ink-700 mt-1">PDF, DOCX, XLSX — max 10MB · Shared with admin@blockid.au</p>
                   </button>
                 )}
               </>
             )}
 
             {(evidenceType === "github" || evidenceType === "analytics" || evidenceType === "stripe") && (
-              <div className="rounded-xl border border-ink-700 bg-ink-800 px-6 py-8 text-center">
-                <selected.icon strokeWidth={1.75} className="mx-auto h-8 w-8 text-brand-400 mb-3" />
-                <p className="text-sm font-medium text-slate-200 mb-1">Connect {selected.label}</p>
-                <p className="text-xs text-slate-500 mb-4">You&apos;ll be redirected to authorize access. We only read — never write.</p>
+              <div className="rounded-xl border border-surface-200 bg-surface-100 px-6 py-8 text-center">
+                <selected.icon strokeWidth={1.75} className="mx-auto h-8 w-8 text-brand-600 mb-3" />
+                <p className="text-sm font-medium text-ink-800 mb-1">Connect {selected.label}</p>
+                <p className="text-xs text-ink-600 mb-4">You&apos;ll be redirected to authorize access. We only read — never write.</p>
                 <Button variant="primary" size="sm" className="mx-auto" onClick={() => setStep(3)}>
                   Authorize {selected.label} →
                 </Button>
@@ -209,20 +209,20 @@ export function EvidenceWizard({ onClose, onSuccess }: EvidenceWizardProps) {
         {/* Step 3: Impact preview + confirm */}
         {step === 3 && selected && (
           <div className="p-6 space-y-5">
-            <div className="rounded-xl border border-green-500/30 bg-green-500/5 px-5 py-4 text-center">
-              <CheckCircle2 strokeWidth={1.75} className="mx-auto h-8 w-8 text-green-400 mb-2" />
-              <p className="text-sm font-semibold text-slate-100">Estimated SVI Impact</p>
-              <p className="text-3xl font-bold font-mono text-teal-400 mt-1">{selected.impact}</p>
-              <p className="text-xs text-slate-500 mt-2">Confidence will increase to <span className="text-slate-300">{selected.confidence.split(" ")[0]}</span></p>
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-center">
+              <CheckCircle2 strokeWidth={1.75} className="mx-auto h-8 w-8 text-emerald-600 mb-2" />
+              <p className="text-sm font-semibold text-ink-800">Estimated SVI Impact</p>
+              <p className="text-3xl font-bold font-mono text-teal-600 mt-1">{selected.impact}</p>
+              <p className="text-xs text-ink-600 mt-2">Confidence will increase to <span className="text-ink-800">{selected.confidence.split(" ")[0]}</span></p>
             </div>
 
-            <div className="space-y-2 text-sm text-slate-400">
-              <p><span className="text-slate-300 font-medium">Type:</span> {selected.label}</p>
-              {inputValue && <p><span className="text-slate-300 font-medium">Value:</span> <span className="font-mono text-xs">{inputValue.substring(0, 60)}{inputValue.length > 60 ? "…" : ""}</span></p>}
+            <div className="space-y-2 text-sm text-ink-600">
+              <p><span className="text-ink-800 font-medium">Type:</span> {selected.label}</p>
+              {inputValue && <p><span className="text-ink-800 font-medium">Value:</span> <span className="font-mono text-xs">{inputValue.substring(0, 60)}{inputValue.length > 60 ? "…" : ""}</span></p>}
             </div>
 
             {saveError && (
-              <p className="text-center text-xs text-red-400">{saveError}</p>
+              <p className="text-center text-xs text-red-600">{saveError}</p>
             )}
 
             <div className="flex gap-2">
@@ -285,7 +285,7 @@ export function EvidenceWizard({ onClose, onSuccess }: EvidenceWizardProps) {
               </Button>
             </div>
 
-            <p className="text-center text-[10px] text-slate-600">
+            <p className="text-center text-[10px] text-ink-700">
               Your SVI will recalculate immediately. Verified evidence has higher weight.
             </p>
           </div>

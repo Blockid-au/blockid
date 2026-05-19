@@ -54,26 +54,26 @@ export default function AdminDocumentsPage() {
   };
 
   return (
-    <div className="min-h-svh bg-ink-950 text-slate-50">
-      <header className="border-b border-ink-700 px-6 py-4 flex items-center justify-between max-w-6xl mx-auto">
+    <div className="min-h-svh bg-surface-100 text-ink-800">
+      <header className="border-b border-surface-200 px-6 py-4 flex items-center justify-between max-w-6xl mx-auto">
         <div className="flex items-center gap-3">
           <Logo variant="dark" />
           <span className="text-xs font-medium text-red-400 bg-red-500/10 border border-red-500/20 rounded px-2 py-0.5">ADMIN</span>
         </div>
-        <Link href="/admin" className="text-xs text-slate-500 hover:text-slate-200 transition-colors">
+        <Link href="/admin" className="text-xs text-ink-700 hover:text-ink-800 transition-colors">
           Back to Admin
         </Link>
       </header>
 
       <main className="max-w-2xl mx-auto px-6 py-12 space-y-8">
         <div>
-          <h1 className="text-2xl font-bold text-slate-50">Upload Documents</h1>
-          <p className="text-sm text-slate-500 mt-1">Upload project documents directly to Google Drive.</p>
+          <h1 className="text-2xl font-bold text-ink-800">Upload Documents</h1>
+          <p className="text-sm text-ink-700 mt-1">Upload project documents directly to Google Drive.</p>
         </div>
 
-        <div className="rounded-2xl border border-ink-700 bg-ink-900 p-8 text-center space-y-6">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-ink-800 border border-ink-700">
-            <UploadCloud className="h-8 w-8 text-brand-400" />
+        <div className="rounded-2xl border border-surface-200 bg-white p-8 text-center space-y-6 shadow-sm">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-surface-100 border border-surface-200">
+            <UploadCloud className="h-8 w-8 text-brand-600" />
           </div>
 
           <div className="space-y-4">
@@ -89,10 +89,10 @@ export default function AdminDocumentsPage() {
                 disabled={isUploading}
               />
             </div>
-            
+
             {file && (
-              <div className="text-sm text-slate-300 bg-ink-950 rounded py-2 px-3 border border-ink-800 inline-block">
-                Selected: <span className="font-semibold text-slate-100">{file.name}</span> ({(file.size / 1024).toFixed(1)} KB)
+              <div className="text-sm text-ink-600 bg-surface-100 rounded py-2 px-3 border border-surface-200 inline-block">
+                Selected: <span className="font-semibold text-ink-800">{file.name}</span> ({(file.size / 1024).toFixed(1)} KB)
               </div>
             )}
           </div>
@@ -100,7 +100,7 @@ export default function AdminDocumentsPage() {
           <button
             onClick={handleUpload}
             disabled={!file || isUploading}
-            className="w-full inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:pointer-events-none disabled:opacity-50 border border-ink-700 bg-ink-800 hover:bg-ink-700 h-10 px-4 py-2 text-slate-200"
+            className="w-full inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:pointer-events-none disabled:opacity-50 border border-surface-200 bg-surface-100 hover:bg-surface-50 h-10 px-4 py-2 text-ink-800"
           >
             {isUploading ? "Uploading..." : "Upload to Google Drive"}
           </button>
@@ -112,7 +112,7 @@ export default function AdminDocumentsPage() {
                 <span className="text-sm font-medium">Upload successful!</span>
               </div>
               {driveLink && (
-                <a href={driveLink} target="_blank" rel="noopener noreferrer" className="text-xs text-green-300 hover:text-green-200 underline underline-offset-2">
+                <a href={driveLink} target="_blank" rel="noopener noreferrer" className="text-xs text-green-600 hover:text-green-700 underline underline-offset-2">
                   View file on Google Drive
                 </a>
               )}

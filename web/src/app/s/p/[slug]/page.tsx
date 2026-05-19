@@ -85,7 +85,7 @@ export default async function FounderPackSharePage({
   return (
     <>
       <Navbar />
-      <main className="min-h-screen bg-ink-950 pt-28 pb-24 text-slate-100">
+      <main className="min-h-screen bg-white pt-28 pb-24 text-ink-700">
         <div className="mx-auto max-w-5xl px-6">
           {isWelcome && <WelcomeBanner />}
 
@@ -116,17 +116,17 @@ export default async function FounderPackSharePage({
 function WelcomeBanner() {
   return (
     <div className="mb-8 flex items-start gap-3 rounded-xl border border-brand-400/40 bg-brand-400/5 p-4">
-      <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-brand-300" />
+      <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
       <div>
-        <p className="font-semibold text-brand-200">
+        <p className="font-semibold text-brand-500">
           Your Founder Pack is saved.
         </p>
-        <p className="mt-1 text-sm text-slate-300">
+        <p className="mt-1 text-sm text-ink-500">
           Bookmark this URL — anyone you share it with can open it. View count
           and visitor activity show on your{" "}
           <Link
             href="/dashboard"
-            className="text-brand-300 underline underline-offset-4 hover:text-brand-200"
+            className="text-brand-600 underline underline-offset-4 hover:text-brand-500"
           >
             dashboard
           </Link>
@@ -146,17 +146,17 @@ function PackHero({
 }) {
   const idea = pack.ideaName || pack.evaluation?.ideaName || "Untitled idea";
   return (
-    <div className="rounded-3xl border border-ink-700 bg-ink-900 p-8">
+    <div className="rounded-3xl border border-surface-200 bg-white p-8">
       <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">
         <ShieldCheck className="h-4 w-4" />
         v0 · pre-incorporation draft
       </div>
-      <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-50 sm:text-5xl">
+      <h1 className="mt-3 text-3xl font-semibold tracking-tight text-ink-800 sm:text-5xl">
         {idea}
       </h1>
-      <p className="mt-3 max-w-3xl text-base leading-relaxed text-slate-400 sm:text-lg">
+      <p className="mt-3 max-w-3xl text-base leading-relaxed text-ink-400 sm:text-lg">
         Founder Pack prepared by{" "}
-        <span className="font-semibold text-slate-200">
+        <span className="font-semibold text-ink-600">
           {pack.user.displayName || pack.user.email || "a BlockID founder"}
         </span>{" "}
         on {new Date(pack.createdAt).toLocaleDateString("en-AU")}. This is a
@@ -175,12 +175,12 @@ function PackHero({
             View dashboard
           </Button>
         </Link>
-        <span className="ml-auto inline-flex items-center gap-2 rounded-full border border-ink-700 bg-ink-800 px-3 py-1.5 text-xs font-medium text-slate-400">
+        <span className="ml-auto inline-flex items-center gap-2 rounded-full border border-surface-200 bg-surface-100 px-3 py-1.5 text-xs font-medium text-ink-400">
           <Eye className="h-3.5 w-3.5" />
           {pack.viewCount} {pack.viewCount === 1 ? "view" : "views"}
         </span>
       </div>
-      <p className="mt-5 break-all text-xs text-slate-500">
+      <p className="mt-5 break-all text-xs text-ink-8000">
         Share link: {shareUrl}
       </p>
     </div>
@@ -194,14 +194,14 @@ function ValuationCard({ pack }: { pack: HydratedFounderPack }) {
       <CardEyebrow icon={Lightbulb}>Idea valuation</CardEyebrow>
       {ev ? (
         <>
-          <p className="mt-2 text-2xl font-semibold text-slate-50">
+          <p className="mt-2 text-2xl font-semibold text-ink-800">
             {formatAud(ev.valuationLowAud)} – {formatAud(ev.valuationHighAud)}
           </p>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-1 text-sm text-ink-400">
             Mid-point {formatAud(ev.valuationMidAud)}
           </p>
           {ev.confidenceText && (
-            <p className="mt-3 text-xs leading-relaxed text-slate-500">
+            <p className="mt-3 text-xs leading-relaxed text-ink-8000">
               {ev.confidenceText}
             </p>
           )}
@@ -220,15 +220,15 @@ function SplitCard({ pack }: { pack: HydratedFounderPack }) {
       <CardEyebrow icon={PieChart}>Co-founder split</CardEyebrow>
       {sp ? (
         <>
-          <p className="mt-2 text-2xl font-semibold text-slate-50">
+          <p className="mt-2 text-2xl font-semibold text-ink-800">
             {sp.founders.length}{" "}
             {sp.founders.length === 1 ? "founder" : "founders"}
           </p>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-1 text-sm text-ink-400">
             Founders {formatPercent(sp.reserves.foundersPct, 0)} · ESOP{" "}
             {formatPercent(sp.reserves.esopPct, 0)}
           </p>
-          <p className="mt-3 text-xs leading-relaxed text-slate-500">
+          <p className="mt-3 text-xs leading-relaxed text-ink-8000">
             {sp.vesting.cliffMonths}-mo cliff · {sp.vesting.totalMonths}-mo
             vesting
           </p>
@@ -247,11 +247,11 @@ function FundingCard({ pack }: { pack: HydratedFounderPack }) {
       <CardEyebrow icon={TrendingUp}>Funding plan</CardEyebrow>
       {fp ? (
         <>
-          <p className="mt-2 text-2xl font-semibold text-slate-50">
+          <p className="mt-2 text-2xl font-semibold text-ink-800">
             {formatAud(fp.recommendedRaise ?? 0)}
           </p>
-          <p className="mt-1 text-sm text-slate-400">recommended raise</p>
-          <p className="mt-3 text-xs leading-relaxed text-slate-500">
+          <p className="mt-1 text-sm text-ink-400">recommended raise</p>
+          <p className="mt-3 text-xs leading-relaxed text-ink-8000">
             Burn {formatAud(fp.monthlyBurnAud ?? 0)}/mo · Need{" "}
             {formatAud(fp.totalNeedAud ?? 0)}
           </p>
@@ -275,13 +275,13 @@ function SuggestionsCard({ pack }: { pack: HydratedFounderPack }) {
           <li key={s.title} className="flex gap-3">
             <span className="mt-1 inline-block h-2 w-2 shrink-0 rounded-full bg-brand-400" />
             <div>
-              <p className="text-sm font-semibold text-slate-100">
+              <p className="text-sm font-semibold text-ink-700">
                 {s.title}
-                <span className="ml-2 font-normal text-slate-500">
+                <span className="ml-2 font-normal text-ink-8000">
                   ~ +{formatAud(s.upliftAud)}
                 </span>
               </p>
-              <p className="mt-1 text-sm leading-relaxed text-slate-400">
+              <p className="mt-1 text-sm leading-relaxed text-ink-400">
                 {s.detail}
               </p>
             </div>
@@ -301,7 +301,7 @@ function FoundersTable({ pack }: { pack: HydratedFounderPack }) {
       </div>
       <div className="mt-4 overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-ink-800 text-xs uppercase tracking-wider text-slate-400">
+          <thead className="bg-surface-100 text-xs uppercase tracking-wider text-ink-400">
             <tr>
               <th className="px-6 py-3 text-left font-semibold">Founder</th>
               <th className="px-6 py-3 text-left font-semibold">Role</th>
@@ -309,39 +309,39 @@ function FoundersTable({ pack }: { pack: HydratedFounderPack }) {
               <th className="px-6 py-3 text-right font-semibold">Equity</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-ink-700/60">
+          <tbody className="divide-y divide-surface-200/60">
             {sp.allocations.map((a) => (
               <tr key={a.id}>
-                <td className="px-6 py-3 font-medium text-slate-100">
+                <td className="px-6 py-3 font-medium text-ink-700">
                   {a.name || "—"}
                 </td>
-                <td className="px-6 py-3 text-slate-300">{a.role}</td>
-                <td className="px-6 py-3 text-right text-slate-300">
+                <td className="px-6 py-3 text-ink-500">{a.role}</td>
+                <td className="px-6 py-3 text-right text-ink-500">
                   {Math.round(a.points)}
                 </td>
-                <td className="px-6 py-3 text-right font-semibold text-brand-300">
+                <td className="px-6 py-3 text-right font-semibold text-brand-600">
                   {formatPercent(a.pct, 1)}
                 </td>
               </tr>
             ))}
-            <tr className="bg-ink-800/40">
-              <td className="px-6 py-3 text-sm font-semibold text-slate-300">
+            <tr className="bg-surface-100/40">
+              <td className="px-6 py-3 text-sm font-semibold text-ink-500">
                 ESOP reserve
               </td>
               <td className="px-6 py-3" />
               <td className="px-6 py-3" />
-              <td className="px-6 py-3 text-right text-slate-300">
+              <td className="px-6 py-3 text-right text-ink-500">
                 {formatPercent(sp.reserves.esopPct, 1)}
               </td>
             </tr>
             {sp.reserves.firstHirePct > 0 && (
-              <tr className="bg-ink-800/40">
-                <td className="px-6 py-3 text-sm font-semibold text-slate-300">
+              <tr className="bg-surface-100/40">
+                <td className="px-6 py-3 text-sm font-semibold text-ink-500">
                   First-hire reserve
                 </td>
                 <td className="px-6 py-3" />
                 <td className="px-6 py-3" />
-                <td className="px-6 py-3 text-right text-slate-300">
+                <td className="px-6 py-3 text-right text-ink-500">
                   {formatPercent(sp.reserves.firstHirePct, 1)}
                 </td>
               </tr>
@@ -377,9 +377,9 @@ function FundingDetailCard({ pack }: { pack: HydratedFounderPack }) {
       </div>
 
       {fp.result.scenarios && fp.result.scenarios.length > 0 && (
-        <div className="mt-6 overflow-x-auto rounded-xl border border-ink-700">
+        <div className="mt-6 overflow-x-auto rounded-xl border border-surface-200">
           <table className="w-full text-sm">
-            <thead className="bg-ink-800 text-xs uppercase tracking-wider text-slate-400">
+            <thead className="bg-surface-100 text-xs uppercase tracking-wider text-ink-400">
               <tr>
                 <th className="px-4 py-2 text-left font-semibold">Scenario</th>
                 <th className="px-4 py-2 text-right font-semibold">Raise</th>
@@ -391,17 +391,17 @@ function FundingDetailCard({ pack }: { pack: HydratedFounderPack }) {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-ink-700/60">
+            <tbody className="divide-y divide-surface-200/60">
               {fp.result.scenarios.map((s) => (
                 <tr key={s.label}>
-                  <td className="px-4 py-2 text-slate-200">{s.label}</td>
-                  <td className="px-4 py-2 text-right text-slate-300">
+                  <td className="px-4 py-2 text-ink-600">{s.label}</td>
+                  <td className="px-4 py-2 text-right text-ink-500">
                     {formatAud(s.externalRaiseAud)}
                   </td>
-                  <td className="px-4 py-2 text-right text-slate-300">
+                  <td className="px-4 py-2 text-right text-ink-500">
                     {formatPercent(s.investorPct, 1)}
                   </td>
-                  <td className="px-4 py-2 text-right text-slate-300">
+                  <td className="px-4 py-2 text-right text-ink-500">
                     {formatPercent(s.founderPctAfter, 1)}
                   </td>
                 </tr>
@@ -416,13 +416,13 @@ function FundingDetailCard({ pack }: { pack: HydratedFounderPack }) {
 
 function NextStepsCard() {
   return (
-    <Card className="mt-6 border-brand-500/40 bg-gradient-to-br from-ink-900 to-ink-800">
+    <Card className="mt-6 border-brand-500/40 bg-gradient-to-br from-white to-surface-100">
       <CardEyebrow icon={ShieldCheck}>When you incorporate</CardEyebrow>
-      <p className="mt-3 text-base leading-relaxed text-slate-300">
+      <p className="mt-3 text-base leading-relaxed text-ink-500">
         BlockID converts your Founder Pack into an{" "}
         <Link
           href="/score"
-          className="font-semibold text-brand-300 underline underline-offset-4 hover:text-brand-200"
+          className="font-semibold text-brand-600 underline underline-offset-4 hover:text-brand-500"
         >
           Investor-Ready Score
         </Link>{" "}
@@ -449,7 +449,7 @@ function Card({
 }) {
   return (
     <div
-      className={`rounded-2xl border border-ink-700 bg-ink-900 p-6 ${className}`}
+      className={`rounded-2xl border border-surface-200 bg-white p-6 ${className}`}
     >
       {children}
     </div>
@@ -464,7 +464,7 @@ function CardEyebrow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-brand-300">
+    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-brand-600">
       <Icon className="h-4 w-4" />
       {children}
     </div>
@@ -473,11 +473,11 @@ function CardEyebrow({
 
 function EmptyHint({ label, href }: { label: string; href: string }) {
   return (
-    <p className="mt-3 text-sm leading-relaxed text-slate-400">
+    <p className="mt-3 text-sm leading-relaxed text-ink-400">
       {label}{" "}
       <Link
         href={href}
-        className="text-brand-300 underline underline-offset-4 hover:text-brand-200"
+        className="text-brand-600 underline underline-offset-4 hover:text-brand-500"
       >
         Open the tool →
       </Link>
@@ -495,12 +495,12 @@ function Stat({
   hint?: string;
 }) {
   return (
-    <div className="rounded-xl border border-ink-700 bg-ink-800/60 p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+    <div className="rounded-xl border border-surface-200 bg-surface-100/60 p-4">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-8000">
         {label}
       </p>
-      <p className="mt-2 text-lg font-semibold text-slate-50">{value}</p>
-      {hint && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
+      <p className="mt-2 text-lg font-semibold text-ink-800">{value}</p>
+      {hint && <p className="mt-1 text-xs text-ink-400">{hint}</p>}
     </div>
   );
 }

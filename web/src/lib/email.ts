@@ -1,36 +1,34 @@
-// Resend transactional email wrapper (server-only).
+// BlockID email wrapper (server-only).
 //
-// Two templates inline:
-//   - score-ready  : sent after /api/score persists a row.
-//   - score-viewed : sent when a third party opens the share link.
-//
-// Graceful degradation: if RESEND_API_KEY is missing we log + return
-// { ok: false, reason: 'not_configured' } so callers (fire-and-forget) never
-// block the response.
+// Uses Gmail SMTP via Nodemailer (ceo@longcare.au relay).
+// Falls back to Resend if RESEND_API_KEY is set.
+// Graceful degradation: if neither is configured, log + return
+// { ok: false, reason: 'not_configured' }.
 
 import "server-only";
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
-const FROM_DEFAULT = "BlockID <noreply@blockid.au>";
-
-let cached: Resend | null | undefined;
-
-export function isResendConfigured(): boolean {
-  return Boolean(process.env.RESEND_API_KEY);
-}
-
-export function getResend(): Resend | null {
-  if (cached !== undefined) return cached;
-  if (!isResendConfigured()) {
-    cached = null;
-    return null;
-  }
-  cached = new Resend(process.env.RESEND_API_KEY as string);
-  return cached;
-}
+const FROM_DEFAULT = "BlockID <ceo@longcare.au>";
 
 function fromAddress(): string {
-  return process.env.RESEND_FROM_EMAIL || FROM_DEFAULT;
+  return process.env.SMTP_FROM_EMAIL || FROM_DEFAULT;
+}
+
+function isSmtpConfigured(): boolean {
+  return Boolean(process.env.SMTP_USER && process.env.SMTP_PASS);
+}
+
+function getTransporter() {
+  if (!isSmtpConfigured()) return null;
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST || "smtp.gmail.com",
+    port: Number(process.env.SMTP_PORT || 587),
+    secure: false,
+    auth: {
+      user: process.env.SMTP_USER!,
+      pass: process.env.SMTP_PASS!,
+    },
+  });
 }
 
 function siteUrl(): string {
@@ -44,6 +42,33 @@ type SendResult =
   | { ok: true; id: string }
   | { ok: false; reason: "not_configured" | "send_error"; error?: unknown };
 
+// ---------- Core send function ------------------------------------------------
+
+async function sendEmail(args: {
+  to: string;
+  subject: string;
+  html: string;
+}): Promise<SendResult> {
+  const transporter = getTransporter();
+  if (!transporter) {
+    console.warn("[blockid:email] SMTP not configured, skipping", { to: args.to, subject: args.subject });
+    return { ok: false, reason: "not_configured" };
+  }
+  try {
+    const info = await transporter.sendMail({
+      from: fromAddress(),
+      to: args.to,
+      subject: args.subject,
+      html: args.html,
+    });
+    console.log("[blockid:email] sent", { to: args.to, messageId: info.messageId });
+    return { ok: true, id: info.messageId ?? "" };
+  } catch (error) {
+    console.error("[blockid:email] send failed", error);
+    return { ok: false, reason: "send_error", error };
+  }
+}
+
 // ---------- score-ready --------------------------------------------------------
 
 export async function sendScoreReady(args: {
@@ -52,29 +77,9 @@ export async function sendScoreReady(args: {
   totalScore: number;
   companyName?: string | null;
 }): Promise<SendResult> {
-  const resend = getResend();
-  if (!resend) {
-    console.warn(
-      "[blockid:email] sendScoreReady — Resend not configured, skipping",
-      { to: args.to, slug: args.slug },
-    );
-    return { ok: false, reason: "not_configured" };
-  }
   const url = `${siteUrl()}/s/${args.slug}`;
   const html = scoreReadyHtml({ ...args, url });
-  try {
-    const res = await resend.emails.send({
-      from: fromAddress(),
-      to: args.to,
-      subject: "Your Investor-Ready Score is ready",
-      html,
-    });
-    if (res.error) throw res.error;
-    return { ok: true, id: res.data?.id ?? "" };
-  } catch (error) {
-    console.error("[blockid:email] sendScoreReady failed", error);
-    return { ok: false, reason: "send_error", error };
-  }
+  return sendEmail({ to: args.to, subject: "Your Investor-Ready Score is ready", html });
 }
 
 // ---------- magic-link --------------------------------------------------------
@@ -89,33 +94,20 @@ export async function sendMagicLink(args: {
   intent: "save_founder_pack" | "login";
   ttlMinutes: number;
 }): Promise<SendResult> {
-  const resend = getResend();
-  if (!resend) {
-    console.warn(
-      "[blockid:email] sendMagicLink — Resend not configured, skipping",
-      { to: args.to, intent: args.intent },
-    );
-    return { ok: false, reason: "not_configured" };
-  }
   const url = `${siteUrl()}/auth/verify?token=${encodeURIComponent(args.token)}`;
   const html = magicLinkHtml({ ...args, url });
   const subject =
     args.intent === "save_founder_pack"
       ? "Save your BlockID Founder Pack"
       : "Sign in to BlockID";
-  try {
-    const res = await resend.emails.send({
-      from: fromAddress(),
-      to: args.to,
-      subject,
-      html,
-    });
-    if (res.error) throw res.error;
-    return { ok: true, id: res.data?.id ?? "" };
-  } catch (error) {
-    console.error("[blockid:email] sendMagicLink failed", error);
-    return { ok: false, reason: "send_error", error };
+
+  if (!isSmtpConfigured()) {
+    // Dev fallback: print verify URL to console
+    console.warn("[blockid:email] SMTP not configured — verify URL:", url);
+    return { ok: false, reason: "not_configured" };
   }
+
+  return sendEmail({ to: args.to, subject, html });
 }
 
 function magicLinkHtml(args: {
@@ -166,29 +158,9 @@ export async function sendScoreViewed(args: {
   viewerLabel?: string;
   companyName?: string | null;
 }): Promise<SendResult> {
-  const resend = getResend();
-  if (!resend) {
-    console.warn(
-      "[blockid:email] sendScoreViewed — Resend not configured, skipping",
-      { to: args.to, slug: args.slug },
-    );
-    return { ok: false, reason: "not_configured" };
-  }
   const url = `${siteUrl()}/s/${args.slug}`;
   const html = scoreViewedHtml({ ...args, url });
-  try {
-    const res = await resend.emails.send({
-      from: fromAddress(),
-      to: args.to,
-      subject: "Your score was just viewed",
-      html,
-    });
-    if (res.error) throw res.error;
-    return { ok: true, id: res.data?.id ?? "" };
-  } catch (error) {
-    console.error("[blockid:email] sendScoreViewed failed", error);
-    return { ok: false, reason: "send_error", error };
-  }
+  return sendEmail({ to: args.to, subject: "Your score was just viewed", html });
 }
 
 // ---------- HTML templates -----------------------------------------------------
@@ -255,6 +227,94 @@ function scoreViewedHtml(args: {
       </table>
     </td></tr>
   </table>`);
+}
+
+// ---------- SVI welcome email ------------------------------------------------
+
+export async function sendSVIWelcome(args: {
+  to: string;
+  name?: string | null;
+  svi: number;
+  stage: number;
+}): Promise<SendResult> {
+  const dashUrl = `${siteUrl()}/dashboard/svi`;
+  const stageLabels = ["Concept", "Validated Idea", "MVP", "Early Traction", "Revenue", "Growth", "Scale", "Corporation"];
+  const stageLabel = stageLabels[args.stage] ?? "Concept";
+  const html = shell(`
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+        <tr><td>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Welcome</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;">Welcome to BlockID${args.name ? `, ${escapeHtml(args.name)}` : ""}</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Your Startup Value Index baseline is ready. Here's where you stand:</p>
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:56px;font-weight:600;color:#3B7DD8;line-height:1;">${args.svi}</div>
+            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">SVI Score — ${escapeHtml(stageLabel)} Stage</p>
+          </div>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">Add evidence (pitch deck, revenue proof, cap table) to grow your score. Each piece of verified evidence lifts your SVI and strengthens your investor readiness.</p>
+          <p style="margin:0 0 24px 0;text-align:center;">
+            <a href="${dashUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View your dashboard</a>
+          </p>
+          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>`);
+  return sendEmail({ to: args.to, subject: "Welcome to BlockID — Your SVI Baseline is Ready", html });
+}
+
+// ---------- SVI weekly report email ------------------------------------------
+
+export async function sendSVIWeeklyReport(args: {
+  to: string;
+  name?: string | null;
+  svi: number;
+  delta: number | null;
+  weekNum: number;
+}): Promise<SendResult> {
+  const dashUrl = `${siteUrl()}/dashboard/svi`;
+  const evidenceUrl = `${siteUrl()}/workspace/evidence`;
+  const deltaStr = args.delta != null
+    ? (args.delta >= 0 ? `+${args.delta}` : `${args.delta}`)
+    : "No change";
+  const deltaColor = args.delta != null && args.delta >= 0 ? "#4ADE80" : "#F87171";
+  const html = shell(`
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+        <tr><td>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Week ${args.weekNum} Report</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;">Your Weekly SVI Update</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Here's how your Startup Value Index changed this week${args.name ? `, ${escapeHtml(args.name)}` : ""}.</p>
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:48px;font-weight:600;color:#3B7DD8;line-height:1;">${args.svi}</div>
+            <p style="margin:8px 0 0 0;font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;color:${deltaColor};">${escapeHtml(deltaStr)} this week</p>
+          </div>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">${args.delta != null && args.delta > 0
+            ? "Great progress! Keep adding evidence to maintain momentum."
+            : args.delta != null && args.delta < 0
+              ? "Your score dipped. Review your evidence gaps and add new proof to recover."
+              : "Your score held steady. Add new evidence to push it higher."}</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td width="48%" style="text-align:center;padding:4px;">
+                <a href="${dashUrl}" style="display:inline-block;width:100%;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">View Dashboard</a>
+              </td>
+              <td width="4%"></td>
+              <td width="48%" style="text-align:center;padding:4px;">
+                <a href="${evidenceUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">Add Evidence</a>
+              </td>
+            </tr>
+          </table>
+          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>`);
+  return sendEmail({ to: args.to, subject: `Week ${args.weekNum} SVI Report — ${deltaStr} points`, html });
 }
 
 function escapeHtml(s: string): string {

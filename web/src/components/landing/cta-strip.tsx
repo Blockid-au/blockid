@@ -37,7 +37,7 @@ export function CtaStrip() {
   return (
     <section className="py-24 md:py-32">
       <div className="mx-auto max-w-7xl px-6">
-        <div className="relative overflow-hidden rounded-3xl bg-brand-700 px-6 py-12 md:px-12 md:py-16">
+        <div className="relative overflow-hidden rounded-3xl gradient-brand px-6 py-12 md:px-12 md:py-16">
           <div
             aria-hidden
             className="absolute inset-0 -z-10 bg-gradient-to-br from-brand-600/30 via-transparent to-transparent"

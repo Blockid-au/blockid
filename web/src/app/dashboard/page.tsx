@@ -49,7 +49,7 @@ export default async function DashboardPage({
   return (
     <>
       <Navbar />
-      <main className="min-h-screen bg-ink-950 pt-28 pb-24 text-slate-100">
+      <main className="min-h-screen bg-surface-100 pt-28 pb-24 text-ink-800">
         <div className="mx-auto max-w-6xl px-6">
           {sp.welcome === "1" && <WelcomeBanner />}
 
@@ -75,13 +75,13 @@ export default async function DashboardPage({
 
 function WelcomeBanner() {
   return (
-    <div className="mb-8 flex items-start gap-3 rounded-xl border border-brand-400/40 bg-brand-400/5 p-4">
-      <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-brand-300" />
+    <div className="mb-8 flex items-start gap-3 rounded-xl border border-brand-200 bg-brand-50 p-4">
+      <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
       <div>
-        <p className="font-semibold text-brand-200">
+        <p className="font-semibold text-brand-700">
           Welcome to BlockID. Your account is live.
         </p>
-        <p className="mt-1 text-sm text-slate-300">
+        <p className="mt-1 text-sm text-ink-600">
           Anything you save from the free tools shows up here. Open a Founder
           Pack from the list below to share it.
         </p>
@@ -94,15 +94,15 @@ function Header({ email }: { email: string }) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-400">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-600">
           Dashboard
         </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-50 sm:text-4xl">
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink-800 sm:text-4xl">
           Your idea-phase workspace
         </h1>
-        <p className="mt-2 text-sm text-slate-400">
+        <p className="mt-2 text-sm text-ink-600">
           Signed in as{" "}
-          <span className="font-medium text-slate-200">{email}</span>
+          <span className="font-medium text-ink-800">{email}</span>
         </p>
       </div>
       <div className="flex flex-wrap gap-3">
@@ -155,15 +155,15 @@ function SummaryStrip({ summary }: { summary: DashboardSummary }) {
       {stats.map(({ label, value, icon: Icon }) => (
         <div
           key={label}
-          className="rounded-2xl border border-ink-700 bg-ink-900 p-5"
+          className="bg-white border border-surface-200 shadow-sm rounded-2xl p-5"
         >
           <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-700">
               {label}
             </p>
-            <Icon className="h-4 w-4 text-brand-400" />
+            <Icon className="h-4 w-4 text-brand-600" />
           </div>
-          <p className="mt-3 text-3xl font-semibold text-slate-50">{value}</p>
+          <p className="mt-3 text-3xl font-semibold text-ink-800">{value}</p>
         </div>
       ))}
     </div>
@@ -172,14 +172,14 @@ function SummaryStrip({ summary }: { summary: DashboardSummary }) {
 
 function PacksSection({ summary }: { summary: DashboardSummary }) {
   return (
-    <section className="mt-10 rounded-2xl border border-ink-700 bg-ink-900 p-6">
+    <section className="mt-10 bg-white border border-surface-200 shadow-sm rounded-2xl p-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-slate-50">
+        <h2 className="text-lg font-semibold text-ink-800">
           Founder Packs
         </h2>
         <Link
           href="/tools/idea-valuation"
-          className="text-sm font-medium text-brand-300 hover:text-brand-200"
+          className="text-sm font-medium text-brand-600 hover:text-brand-700"
         >
           + Save a new pack
         </Link>
@@ -193,17 +193,17 @@ function PacksSection({ summary }: { summary: DashboardSummary }) {
           href="/tools/idea-valuation"
         />
       ) : (
-        <ul className="mt-5 divide-y divide-ink-700/60">
+        <ul className="mt-5 divide-y divide-surface-200">
           {summary.packs.map((p) => (
             <li
               key={p.id}
               className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between"
             >
               <div>
-                <p className="text-base font-semibold text-slate-100">
+                <p className="text-base font-semibold text-ink-800">
                   {p.ideaName || "Untitled idea"}
                 </p>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-ink-700">
                   {new Date(p.createdAt).toLocaleDateString("en-AU")} ·{" "}
                   <span className="inline-flex items-center gap-1">
                     <Eye className="h-3 w-3" /> {p.viewCount}{" "}
@@ -244,17 +244,17 @@ function EvaluationsCard({ summary }: { summary: DashboardSummary }) {
         {summary.evaluations.slice(0, 5).map((e) => (
           <li
             key={e.id}
-            className="flex items-center justify-between gap-3 rounded-xl border border-ink-700 bg-ink-800/40 px-4 py-3"
+            className="flex items-center justify-between gap-3 rounded-xl border border-surface-200 bg-surface-100 px-4 py-3"
           >
             <div>
-              <p className="text-sm font-semibold text-slate-100">
+              <p className="text-sm font-semibold text-ink-800">
                 {e.ideaName || "Untitled"}
               </p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-ink-700">
                 {new Date(e.createdAt).toLocaleDateString("en-AU")}
               </p>
             </div>
-            <p className="text-sm font-semibold text-brand-300">
+            <p className="text-sm font-semibold text-brand-600">
               {formatAud(e.valuationMidAud)}
             </p>
           </li>
@@ -277,13 +277,13 @@ function SplitsCard({ summary }: { summary: DashboardSummary }) {
         {summary.splits.slice(0, 5).map((s) => (
           <li
             key={s.id}
-            className="flex items-center justify-between gap-3 rounded-xl border border-ink-700 bg-ink-800/40 px-4 py-3"
+            className="flex items-center justify-between gap-3 rounded-xl border border-surface-200 bg-surface-100 px-4 py-3"
           >
-            <p className="text-sm text-slate-200">
+            <p className="text-sm text-ink-800">
               {s.founderCount}{" "}
               {s.founderCount === 1 ? "founder" : "founders"}
             </p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-ink-700">
               {new Date(s.createdAt).toLocaleDateString("en-AU")}
             </p>
           </li>
@@ -306,17 +306,17 @@ function FundingCard({ summary }: { summary: DashboardSummary }) {
         {summary.fundingPlans.slice(0, 5).map((f) => (
           <li
             key={f.id}
-            className="flex items-center justify-between gap-3 rounded-xl border border-ink-700 bg-ink-800/40 px-4 py-3"
+            className="flex items-center justify-between gap-3 rounded-xl border border-surface-200 bg-surface-100 px-4 py-3"
           >
             <div>
-              <p className="text-sm font-semibold text-slate-100">
+              <p className="text-sm font-semibold text-ink-800">
                 Raise {formatAud(f.recommendedRaise ?? 0)}
               </p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-ink-700">
                 {new Date(f.createdAt).toLocaleDateString("en-AU")}
               </p>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-ink-700">
               Need {formatAud(f.totalNeedAud ?? 0)}
             </p>
           </li>
@@ -328,15 +328,15 @@ function FundingCard({ summary }: { summary: DashboardSummary }) {
 
 function NextStepsCard() {
   return (
-    <section className="mt-10 rounded-2xl border border-brand-500/40 bg-gradient-to-br from-ink-900 to-ink-800 p-6">
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-gold-400">
+    <section className="mt-10 bg-white border border-brand-200 shadow-sm rounded-2xl p-6">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-gold-600">
         <BarChart3 className="h-4 w-4" />
         Already incorporated?
       </div>
-      <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-50">
+      <h2 className="mt-3 text-2xl font-semibold tracking-tight text-ink-800">
         Bridge to your Investor-Ready Score.
       </h2>
-      <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">
+      <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-600">
         When you incorporate, BlockID converts your saved valuations, splits
         and plans into your wedge product Score and dataroom. One click — no
         re-typing.
@@ -369,16 +369,16 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-ink-700 bg-ink-900 p-5">
-      <div className="flex items-center gap-2 text-sm font-semibold text-slate-100">
-        <Icon className="h-4 w-4 text-brand-400" />
+    <div className="bg-white border border-surface-200 shadow-sm rounded-2xl p-5">
+      <div className="flex items-center gap-2 text-sm font-semibold text-ink-800">
+        <Icon className="h-4 w-4 text-brand-600" />
         {title}
       </div>
       <div className="mt-4">
         {empty ? (
           <Link
             href={emptyHref}
-            className="block rounded-xl border border-dashed border-ink-700 px-4 py-6 text-center text-sm text-slate-400 transition-colors hover:border-brand-500/40 hover:text-slate-200"
+            className="block rounded-xl border border-dashed border-surface-200 px-4 py-6 text-center text-sm text-ink-600 transition-colors hover:border-brand-200 hover:text-ink-800"
           >
             {emptyLabel} →
           </Link>
@@ -402,9 +402,9 @@ function EmptyState({
   href: string;
 }) {
   return (
-    <div className="mt-5 rounded-xl border border-dashed border-ink-700 px-6 py-10 text-center">
-      <p className="text-base font-semibold text-slate-100">{title}</p>
-      <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">{body}</p>
+    <div className="mt-5 rounded-xl border border-dashed border-surface-200 px-6 py-10 text-center">
+      <p className="text-base font-semibold text-ink-800">{title}</p>
+      <p className="mx-auto mt-2 max-w-md text-sm text-ink-600">{body}</p>
       <Link href={href} className="mt-5 inline-block">
         <Button variant="primary" size="md" className="h-10">
           {ctaLabel}

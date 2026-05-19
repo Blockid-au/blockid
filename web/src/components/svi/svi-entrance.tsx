@@ -172,19 +172,19 @@ export function SVIEntrance() {
   // ── Results view ─────────────────────────────────────────────────────────
   if (state === "done" && result) {
     return (
-      <div className="min-h-svh bg-ink-950 flex flex-col">
+      <div className="min-h-svh bg-surface-100 flex flex-col">
         <header className="px-6 py-5 flex items-center justify-between max-w-2xl mx-auto w-full">
           <Link href="/" className="inline-flex items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/images/logo-dark.svg" alt="" className="h-8 w-8" />
-            <span className="text-lg font-bold tracking-tight text-slate-50">
-              BlockID<span className="text-brand-400">.au</span>
+            <img src="/images/logo.svg" alt="" className="h-8 w-8" />
+            <span className="text-lg font-bold tracking-tight text-ink-800">
+              BlockID<span className="text-brand-600">.au</span>
             </span>
           </Link>
           <button
             type="button"
             onClick={handleReset}
-            className="text-xs text-slate-400 hover:text-slate-200 cursor-pointer transition-colors flex items-center gap-1.5"
+            className="text-xs text-ink-600 hover:text-ink-800 cursor-pointer transition-colors flex items-center gap-1.5"
           >
             <X strokeWidth={1.75} className="h-3.5 w-3.5" />
             New analysis
@@ -312,7 +312,7 @@ export function SVIEntrance() {
                   <button
                     type="button"
                     onClick={() => setFile(null)}
-                    className="ml-auto shrink-0 text-brand-400 hover:text-brand-700 cursor-pointer"
+                    className="ml-auto shrink-0 text-brand-600 hover:text-brand-700 cursor-pointer"
                   >
                     <X strokeWidth={1.75} className="h-3.5 w-3.5" />
                   </button>

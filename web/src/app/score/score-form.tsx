@@ -165,7 +165,7 @@ export function ScoreForm() {
                 onChange={(e) =>
                   update("sector", e.target.value as ScoreInput["sector"])
                 }
-                className="h-11 w-full rounded-[10px] border border-ink-700 bg-ink-900 px-3 py-3 text-slate-50 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 cursor-pointer"
+                className="h-11 w-full rounded-[10px] border border-surface-200 bg-white px-3 py-3 text-ink-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 cursor-pointer"
               >
                 <option value="saas">SaaS</option>
                 <option value="fintech">Fintech</option>
@@ -181,7 +181,7 @@ export function ScoreForm() {
                 onChange={(e) =>
                   update("stage", e.target.value as ScoreInput["stage"])
                 }
-                className="h-11 w-full rounded-[10px] border border-ink-700 bg-ink-900 px-3 py-3 text-slate-50 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 cursor-pointer"
+                className="h-11 w-full rounded-[10px] border border-surface-200 bg-white px-3 py-3 text-ink-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 cursor-pointer"
               >
                 <option value="pre-seed">Pre-seed</option>
                 <option value="seed">Seed</option>
@@ -257,7 +257,7 @@ export function ScoreForm() {
                 onChange={(e) =>
                   update("arrBand", e.target.value as ScoreInput["arrBand"])
                 }
-                className="h-11 w-full rounded-[10px] border border-ink-700 bg-ink-900 px-3 py-3 text-slate-50 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 cursor-pointer"
+                className="h-11 w-full rounded-[10px] border border-surface-200 bg-white px-3 py-3 text-ink-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 cursor-pointer"
               >
                 <option value="pre-revenue">Pre-revenue</option>
                 <option value="0-250k">AUD 0-250k</option>
@@ -348,7 +348,7 @@ export function ScoreForm() {
               onChange={(v) => update("hasFinancialAudit", v)}
             />
           </div>
-          <div className="grid sm:grid-cols-2 gap-5 pt-3 border-t border-ink-700">
+          <div className="grid sm:grid-cols-2 gap-5 pt-3 border-t border-surface-200">
             <Field label="Work email (for your shareable link)" htmlFor="email">
               <Input
                 id="email"
@@ -364,7 +364,7 @@ export function ScoreForm() {
         </fieldset>
       )}
 
-      <div className="flex items-center justify-between gap-3 pt-4 border-t border-ink-700">
+      <div className="flex items-center justify-between gap-3 pt-4 border-t border-surface-200">
         <Button
           type="button"
           variant="ghost"
@@ -415,7 +415,7 @@ function Stepper({ current }: { current: number }) {
         return (
           <li
             key={label}
-            className="flex-1 rounded-lg border border-ink-700 bg-ink-900 px-4 py-3"
+            className="flex-1 rounded-lg border border-surface-200 bg-white px-4 py-3"
             aria-current={active ? "step" : undefined}
           >
             <div className="flex items-center gap-3">
@@ -424,8 +424,8 @@ function Stepper({ current }: { current: number }) {
                   done
                     ? "bg-brand-500 text-ink-950"
                     : active
-                      ? "bg-brand-500/20 text-brand-300 ring-1 ring-brand-500/40"
-                      : "bg-ink-800 text-slate-500"
+                      ? "bg-brand-500/20 text-brand-600 ring-1 ring-brand-500/40"
+                      : "bg-surface-100 text-ink-8000"
                 }`}
               >
                 {done ? (
@@ -435,7 +435,7 @@ function Stepper({ current }: { current: number }) {
                 )}
               </span>
               <span
-                className={`text-sm ${active ? "text-slate-50 font-medium" : "text-slate-400"}`}
+                className={`text-sm ${active ? "text-ink-800 font-medium" : "text-ink-400"}`}
               >
                 {label}
               </span>
@@ -478,9 +478,9 @@ function Toggle({
   return (
     <label
       htmlFor={id}
-      className="flex items-center justify-between rounded-lg border border-ink-700 bg-ink-900 px-4 py-3 cursor-pointer hover:border-brand-500/40 transition-colors"
+      className="flex items-center justify-between rounded-lg border border-surface-200 bg-white px-4 py-3 cursor-pointer hover:border-brand-500/40 transition-colors"
     >
-      <span className="text-sm text-slate-200">{label}</span>
+      <span className="text-sm text-ink-600">{label}</span>
       <span className="relative inline-flex h-6 w-11 items-center">
         <input
           id={id}
@@ -489,7 +489,7 @@ function Toggle({
           checked={checked}
           onChange={(e) => onChange(e.target.checked)}
         />
-        <span className="absolute inset-0 rounded-full bg-ink-700 transition-colors peer-checked:bg-brand-500" />
+        <span className="absolute inset-0 rounded-full bg-surface-200 transition-colors peer-checked:bg-brand-500" />
         <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-slate-50 transition-transform peer-checked:translate-x-5" />
       </span>
     </label>
@@ -609,13 +609,13 @@ function ResultPanel({
   return (
     <div className="grid lg:grid-cols-2 gap-8 items-start">
       <div>
-        <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium">
+        <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium">
           Your Investor-Ready Score
         </p>
-        <h2 className="mt-2 text-2xl md:text-3xl font-semibold text-slate-50">
+        <h2 className="mt-2 text-2xl md:text-3xl font-semibold text-ink-800">
           {companyName}
         </h2>
-        <p className="mt-2 text-sm text-slate-400">
+        <p className="mt-2 text-sm text-ink-400">
           {result.persisted
             ? "Saved. Anyone with the link below can view this score."
             : "Demo mode — save once Supabase is configured to persist & share."}
@@ -646,34 +646,34 @@ function ResultPanel({
             caption={`${new Date().toISOString().slice(0, 10)} · BlockID`}
           />
         </div>
-        <ul className="mt-6 space-y-2 text-xs text-slate-400">
+        <ul className="mt-6 space-y-2 text-xs text-ink-400">
           {result.breakdown.subs.map((s) => (
             <li key={s.label} className="flex gap-2">
-              <span className="font-mono tabular-nums text-brand-300">
+              <span className="font-mono tabular-nums text-brand-600">
                 {Math.round(s.value)}
               </span>
-              <span className="font-medium text-slate-300 w-44 shrink-0">
+              <span className="font-medium text-ink-500 w-44 shrink-0">
                 {s.label}
               </span>
-              <span className="text-slate-400">{s.rationale}</span>
+              <span className="text-ink-400">{s.rationale}</span>
             </li>
           ))}
         </ul>
-        <div className="mt-6 rounded-2xl border border-ink-700 bg-ink-900 p-5">
-          <h3 className="text-sm font-semibold text-slate-50">
+        <div className="mt-6 rounded-2xl border border-surface-200 bg-white p-5">
+          <h3 className="text-sm font-semibold text-ink-800">
             Next founder actions
           </h3>
           <ul className="mt-4 space-y-3">
             {result.actionPlan.map((action) => (
               <li key={action.title} className="flex gap-3">
-                <span className="mt-0.5 inline-flex h-5 min-w-12 items-center justify-center rounded-full border border-brand-500/30 bg-brand-500/10 px-2 text-[10px] uppercase tracking-wider text-brand-300">
+                <span className="mt-0.5 inline-flex h-5 min-w-12 items-center justify-center rounded-full border border-brand-500/30 bg-brand-500/10 px-2 text-[10px] uppercase tracking-wider text-brand-600">
                   {action.impact}
                 </span>
                 <span>
-                  <span className="block text-sm font-medium text-slate-200">
+                  <span className="block text-sm font-medium text-ink-600">
                     {action.title}
                   </span>
-                  <span className="mt-0.5 block text-xs leading-relaxed text-slate-400">
+                  <span className="mt-0.5 block text-xs leading-relaxed text-ink-400">
                     {action.detail}
                   </span>
                 </span>
@@ -693,16 +693,16 @@ function ResultPanel({
       </div>
 
       <div className="space-y-6">
-        <div className="rounded-2xl border border-ink-700 bg-ink-900 p-6">
-          <h3 className="text-lg font-semibold text-slate-50">
+        <div className="rounded-2xl border border-surface-200 bg-white p-6">
+          <h3 className="text-lg font-semibold text-ink-800">
             Your shareable Investor View Link
           </h3>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-1 text-sm text-ink-400">
             Send this link to investors — they can open it without signing
             up. You&apos;ll be notified when it&apos;s viewed.
           </p>
-          <div className="mt-5 flex items-center gap-2 rounded-[10px] border border-ink-700 bg-ink-950 px-3 py-3">
-            <span className="font-mono text-sm tabular-nums text-slate-200 truncate flex-1">
+          <div className="mt-5 flex items-center gap-2 rounded-[10px] border border-surface-200 bg-white px-3 py-3">
+            <span className="font-mono text-sm tabular-nums text-ink-600 truncate flex-1">
               {shareUrl}
             </span>
             <Button
@@ -761,14 +761,14 @@ function ResultPanel({
 
         <form
           onSubmit={onShareWithInvestor}
-          className="rounded-2xl border border-ink-700 bg-ink-900 p-6"
+          className="rounded-2xl border border-surface-200 bg-white p-6"
           noValidate
         >
-          <h3 className="text-lg font-semibold text-slate-50 inline-flex items-center gap-2">
-            <Mail strokeWidth={1.75} className="h-5 w-5 text-brand-400" />
+          <h3 className="text-lg font-semibold text-ink-800 inline-flex items-center gap-2">
+            <Mail strokeWidth={1.75} className="h-5 w-5 text-brand-600" />
             Send a per-investor link
           </h3>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-1 text-sm text-ink-400">
             Generate a unique URL for each investor. We&apos;ll attribute every
             open and notify you when this specific investor reads the score.
           </p>
@@ -826,35 +826,35 @@ function ResultPanel({
                 "Couldn't create the link right now. Try again in a moment."}
             </p>
           )}
-          <p className="mt-3 text-xs text-slate-500">
+          <p className="mt-3 text-xs text-ink-8000">
             We store the investor&apos;s details against your score. AU data
             residency. We never sell data.
           </p>
 
           {createdLinks.length > 0 && (
             <div className="mt-6 space-y-3">
-              <p className="text-xs uppercase tracking-[0.16em] text-slate-500">
+              <p className="text-xs uppercase tracking-[0.16em] text-ink-8000">
                 Per-investor links
               </p>
               <ul className="space-y-3">
                 {createdLinks.map((link) => (
                   <li
                     key={link.url}
-                    className="rounded-xl border border-ink-700 bg-ink-800/40 p-4"
+                    className="rounded-xl border border-surface-200 bg-surface-100/40 p-4"
                   >
-                    <p className="text-sm font-medium text-slate-100">
+                    <p className="text-sm font-medium text-ink-700">
                       {link.fundName ||
                         link.investorName ||
                         link.investorEmail ||
                         "Investor"}
                     </p>
                     {link.investorEmail && link.investorEmail !== link.fundName && (
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-ink-400">
                         {link.investorEmail}
                       </p>
                     )}
-                    <div className="mt-3 flex items-center gap-2 rounded-[10px] border border-ink-700 bg-ink-950 px-3 py-2">
-                      <span className="font-mono text-xs tabular-nums text-slate-200 truncate flex-1">
+                    <div className="mt-3 flex items-center gap-2 rounded-[10px] border border-surface-200 bg-white px-3 py-2">
+                      <span className="font-mono text-xs tabular-nums text-ink-600 truncate flex-1">
                         {link.url}
                       </span>
                       <Button
@@ -901,12 +901,12 @@ function MiniStat({
   detail: string;
 }) {
   return (
-    <div className="rounded-xl border border-ink-700 bg-ink-900 px-4 py-3">
-      <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">
+    <div className="rounded-xl border border-surface-200 bg-white px-4 py-3">
+      <p className="text-[10px] uppercase tracking-[0.16em] text-ink-8000">
         {label}
       </p>
-      <p className="mt-1 text-sm font-medium text-slate-100">{value}</p>
-      <p className="mt-1 text-xs text-slate-500">{detail}</p>
+      <p className="mt-1 text-sm font-medium text-ink-700">{value}</p>
+      <p className="mt-1 text-xs text-ink-8000">{detail}</p>
     </div>
   );
 }

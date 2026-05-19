@@ -85,8 +85,8 @@ export default async function SVIDashboardPage() {
     return (
       <WorkspaceLayout user={user} startupName={startupName}>
         <div className="max-w-5xl mx-auto px-6 pb-24 pt-20 text-center">
-          <h1 className="text-2xl font-bold text-slate-50 mb-3">No SVI analysis yet</h1>
-          <p className="text-slate-400 text-sm mb-6">Go to the home page to analyze your startup idea and get your first SVI score.</p>
+          <h1 className="text-2xl font-bold text-ink-800 mb-3">No SVI analysis yet</h1>
+          <p className="text-ink-600 text-sm mb-6">Go to the home page to analyze your startup idea and get your first SVI score.</p>
           <Link href="/" className="inline-flex h-10 items-center gap-2 rounded-[10px] bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors">
             Get My SVI →
           </Link>

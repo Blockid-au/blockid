@@ -44,20 +44,20 @@ export function ReportsClient({
 
       {/* Score History */}
       <div>
-        <h2 className="text-sm font-semibold text-slate-200 mb-3">
+        <h2 className="text-sm font-semibold text-ink-800 mb-3">
           Score History
         </h2>
-        <div className="rounded-xl border border-ink-700 bg-ink-900 overflow-hidden">
+        <div className="rounded-xl border border-surface-200 bg-white overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-ink-700">
-                <th className="text-left px-4 py-2.5 text-[10px] uppercase tracking-[0.14em] text-slate-500 font-medium">
+              <tr className="border-b border-surface-200">
+                <th className="text-left px-4 py-2.5 text-[10px] uppercase tracking-[0.14em] text-ink-700 font-medium">
                   Date
                 </th>
-                <th className="text-right px-4 py-2.5 text-[10px] uppercase tracking-[0.14em] text-slate-500 font-medium">
+                <th className="text-right px-4 py-2.5 text-[10px] uppercase tracking-[0.14em] text-ink-700 font-medium">
                   SVI
                 </th>
-                <th className="text-right px-4 py-2.5 text-[10px] uppercase tracking-[0.14em] text-slate-500 font-medium">
+                <th className="text-right px-4 py-2.5 text-[10px] uppercase tracking-[0.14em] text-ink-700 font-medium">
                   Delta
                 </th>
               </tr>
@@ -66,30 +66,30 @@ export function ReportsClient({
               {snapshots.map((s) => (
                 <tr
                   key={s.id}
-                  className="border-b border-ink-700/50 last:border-0"
+                  className="border-b border-surface-200 last:border-0"
                 >
-                  <td className="px-4 py-2.5 text-slate-400 font-mono text-xs">
+                  <td className="px-4 py-2.5 text-ink-600 font-mono text-xs">
                     {new Date(s.snapshot_date).toLocaleDateString("en-AU", {
                       day: "numeric",
                       month: "short",
                       year: "numeric",
                     })}
                   </td>
-                  <td className="px-4 py-2.5 text-right text-slate-200 font-mono font-semibold">
+                  <td className="px-4 py-2.5 text-right text-ink-800 font-mono font-semibold">
                     {s.svi_total}
                   </td>
                   <td className="px-4 py-2.5 text-right font-mono text-xs">
                     {s.delta != null ? (
                       <span
                         className={
-                          s.delta >= 0 ? "text-green-400" : "text-red-400"
+                          s.delta >= 0 ? "text-emerald-600" : "text-red-500"
                         }
                       >
                         {s.delta >= 0 ? "+" : ""}
                         {s.delta}
                       </span>
                     ) : (
-                      <span className="text-slate-600">—</span>
+                      <span className="text-ink-700">—</span>
                     )}
                   </td>
                 </tr>

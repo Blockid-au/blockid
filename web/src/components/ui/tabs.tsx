@@ -55,7 +55,7 @@ export function TabsList({
     <div
       role="tablist"
       className={cn(
-        "inline-flex items-center gap-1 rounded-[10px] border border-surface-300 bg-surface-100 p-1",
+        "inline-flex items-center gap-1 rounded-xl border border-surface-200 bg-surface-100 p-1",
         className,
       )}
     >
@@ -85,10 +85,10 @@ export function TabsTrigger({
       aria-controls={`${ctx.baseId}-panel-${value}`}
       onClick={() => ctx.setValue(value)}
       className={cn(
-        "px-3 py-1.5 text-sm font-medium rounded-md cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60",
+        "px-3.5 py-1.5 text-sm font-medium rounded-lg cursor-pointer transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500",
         active
-          ? "bg-brand-50 text-brand-500"
-          : "text-slate-500 hover:text-slate-700",
+          ? "bg-white text-ink-800 shadow-sm"
+          : "text-ink-600 hover:text-ink-800 hover:bg-white/50",
         className,
       )}
     >

@@ -43,7 +43,7 @@ export function Compliance() {
     >
       <div className="mx-auto max-w-7xl px-6">
         <div className="max-w-3xl">
-          <p className="text-xs uppercase tracking-[0.2em] text-gold-500 font-medium">
+          <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium">
             The Australian moat
           </p>
           <h2
@@ -52,7 +52,7 @@ export function Compliance() {
           >
             Compliance modules no US competitor ships
           </h2>
-          <p className="mt-4 text-base md:text-lg leading-relaxed text-slate-600">
+          <p className="mt-4 text-base md:text-lg leading-relaxed text-ink-700">
             Carta is US-centric. Pulley is US-centric. BlockID is built around
             the four AU regimes that decide whether a raise actually closes.
           </p>
@@ -64,20 +64,20 @@ export function Compliance() {
             return (
               <div
                 key={item.code}
-                className="group rounded-2xl border border-surface-300 bg-white p-6 shadow-sm transition-colors duration-200 hover:border-brand-500"
+                className="group rounded-2xl border border-surface-200 bg-white p-6 shadow-sm card-hover"
               >
                 <div className="flex items-center gap-3">
                   <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-500 ring-1 ring-brand-200">
                     <Icon strokeWidth={1.75} className="h-5 w-5" />
                   </span>
-                  <span className="font-mono tabular-nums text-sm text-slate-500">
+                  <span className="font-mono tabular-nums text-sm text-ink-700">
                     {item.code}
                   </span>
                 </div>
                 <h3 className="mt-4 text-lg font-semibold text-brand-900">
                   {item.title}
                 </h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                <p className="mt-2 text-sm leading-relaxed text-ink-700">
                   {item.body}
                 </p>
               </div>

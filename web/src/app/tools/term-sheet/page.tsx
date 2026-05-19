@@ -63,13 +63,13 @@ export default function TermSheetPage() {
       <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
         <div className="mx-auto max-w-7xl px-6">
           <header className="max-w-3xl">
-            <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-medium">
+            <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium">
               Free tool · No login · Saves AUD $3k–$10k in legal fees
             </p>
-            <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-slate-50">
+            <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-ink-800">
               Term Sheet AI (Australia)
             </h1>
-            <p className="mt-4 text-base md:text-lg leading-relaxed text-slate-400">
+            <p className="mt-4 text-base md:text-lg leading-relaxed text-ink-400">
               Paste a term sheet. Get a founder-friendly plain-English summary,
               severity-ranked redline, AU market comparison, and live dilution
               simulation — in 30 seconds, by an AI trained on Australian
@@ -80,11 +80,11 @@ export default function TermSheetPage() {
             <TermSheetTool />
           </div>
 
-          <p className="mt-8 max-w-3xl text-xs leading-relaxed text-slate-500">
+          <p className="mt-8 max-w-3xl text-xs leading-relaxed text-ink-8000">
             This is not legal advice. Use a licensed AU lawyer for binding
             agreements. BlockID stores your pasted term sheet temporarily for
             analysis only — see{" "}
-            <a href="#" className="underline hover:text-slate-300 cursor-pointer">
+            <a href="#" className="underline hover:text-ink-500 cursor-pointer">
               Privacy
             </a>
             .
@@ -102,15 +102,15 @@ export default function TermSheetPage() {
               return (
                 <article
                   key={b.title}
-                  className="rounded-2xl border border-ink-700 bg-ink-900 p-6"
+                  className="rounded-2xl border border-surface-200 bg-white p-6"
                 >
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-ink-700 bg-ink-800 text-brand-300">
+                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-surface-200 bg-surface-100 text-brand-600">
                     <Icon strokeWidth={1.75} className="h-5 w-5" aria-hidden />
                   </span>
-                  <h3 className="mt-4 text-base font-semibold text-slate-50">
+                  <h3 className="mt-4 text-base font-semibold text-ink-800">
                     {b.title}
                   </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                  <p className="mt-2 text-sm leading-relaxed text-ink-400">
                     {b.body}
                   </p>
                 </article>

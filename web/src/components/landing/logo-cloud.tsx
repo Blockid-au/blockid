@@ -11,12 +11,12 @@ export function LogoCloud() {
   return (
     <section
       aria-labelledby="logo-cloud-title"
-      className="border-y border-surface-300 bg-surface-100"
+      className="border-y border-surface-200 bg-surface-100"
     >
       <div className="mx-auto max-w-7xl px-6 py-12">
         <p
           id="logo-cloud-title"
-          className="text-center text-xs uppercase tracking-[0.2em] text-slate-400 font-medium"
+          className="text-center text-xs uppercase tracking-[0.2em] text-ink-600 font-medium"
         >
           Trusted by Australia&apos;s startup ecosystem
         </p>
@@ -24,7 +24,7 @@ export function LogoCloud() {
           {logos.map((name) => (
             <li
               key={name}
-              className="text-center text-sm md:text-base font-semibold tracking-tight text-slate-400 opacity-60 transition-opacity duration-200 hover:opacity-100 hover:text-slate-700"
+              className="text-center text-sm md:text-base font-semibold tracking-tight text-ink-600 opacity-60 transition-opacity duration-200 hover:opacity-100 hover:text-ink-800"
             >
               {name}
             </li>

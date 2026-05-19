@@ -35,11 +35,11 @@ export function FAQ() {
   return (
     <section
       aria-labelledby="faq-title"
-      className="py-24 md:py-32 border-t border-surface-300"
+      className="py-24 md:py-32 border-t border-surface-200 gradient-section"
     >
       <div className="mx-auto max-w-4xl px-6">
         <div className="text-center">
-          <p className="text-xs uppercase tracking-[0.2em] text-gold-500 font-medium">
+          <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium">
             FAQ
           </p>
           <h2
@@ -49,7 +49,7 @@ export function FAQ() {
             Questions founders ask. Plain answers.
           </h2>
         </div>
-        <div className="mt-12 rounded-2xl border border-surface-300 bg-white px-6 shadow-sm">
+        <div className="mt-12 rounded-2xl border border-surface-200 bg-white px-6 shadow-sm">
           <Accordion type="single" defaultValue="0">
             {faqs.map((item, i) => (
               <AccordionItem
