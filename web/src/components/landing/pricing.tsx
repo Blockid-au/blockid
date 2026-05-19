@@ -60,7 +60,7 @@ const tiers: Tier[] = [
       "30-day growth plan",
       "Priority support",
     ],
-    cta: { label: "Get Founder \u2014 $49 AUD", href: "#" },
+    cta: { label: "Get Founder \u2014 $49 AUD", href: "/founding-50" },
     highlight: true,
     badge: "Best Value",
     urgency: "Only 50 spots at this price",
@@ -81,7 +81,7 @@ const tiers: Tier[] = [
       "Dedicated account manager",
       "30-day money back",
     ],
-    cta: { label: "Start Growth Plan", href: "#" },
+    cta: { label: "Start Growth Plan", href: "/contact" },
   },
 ];
 
@@ -196,7 +196,17 @@ export function Pricing() {
                 ))}
               </ul>
               <div className="mt-8">
-                {tier.planId !== "free" ? (
+                {tier.cta.href !== "#" ? (
+                  <Link href={tier.cta.href} className="block">
+                    <Button
+                      variant={tier.highlight ? "primary" : "secondary"}
+                      size="md"
+                      className="w-full"
+                    >
+                      {tier.cta.label}
+                    </Button>
+                  </Link>
+                ) : (
                   <Button
                     variant={tier.highlight ? "primary" : "secondary"}
                     size="md"
@@ -213,16 +223,6 @@ export function Pricing() {
                       tier.cta.label
                     )}
                   </Button>
-                ) : (
-                  <Link href={tier.cta.href} className="block">
-                    <Button
-                      variant="secondary"
-                      size="md"
-                      className="w-full"
-                    >
-                      {tier.cta.label}
-                    </Button>
-                  </Link>
                 )}
                 {tier.urgency && (
                   <p className="mt-2 text-center text-xs text-ink-500">
@@ -262,7 +262,7 @@ export function Pricing() {
         <p className="mt-10 text-center text-sm text-ink-600">
           Enterprise &amp; Accelerator plans from $5,000 &mdash;{" "}
           <a
-            href="mailto:hello@blockid.au"
+            href="mailto:admin@blockid.au"
             className="text-brand-500 underline underline-offset-2 hover:text-brand-600"
           >
             contact us

@@ -84,7 +84,7 @@ export default function TermSheetPage() {
             This is not legal advice. Use a licensed AU lawyer for binding
             agreements. BlockID stores your pasted term sheet temporarily for
             analysis only — see{" "}
-            <a href="#" className="underline hover:text-ink-500 cursor-pointer">
+            <a href="/privacy" className="underline hover:text-ink-500 cursor-pointer">
               Privacy
             </a>
             .

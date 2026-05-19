@@ -44,12 +44,12 @@ export function InvestorPack() {
               reporting, live raise signals, and a single place to see the data.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
-              <Link href="#">
+              <Link href="/founding-50">
                 <Button variant="primary" size="lg" className="w-full sm:w-auto">
                   Claim free Welcome Pack
                 </Button>
               </Link>
-              <Link href="#">
+              <Link href="/contact">
                 <Button variant="secondary" size="lg" className="w-full sm:w-auto">
                   Talk to our team
                 </Button>

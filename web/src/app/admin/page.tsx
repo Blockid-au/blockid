@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { Logo } from "@/components/brand/logo";
-import { Users, TrendingUp, FileText, Bell, Shield, BarChart3 } from "lucide-react";
+import { Users, TrendingUp, FileText, Bell, Shield, BarChart3, Map, Bot } from "lucide-react";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -165,6 +165,9 @@ export default async function AdminPage() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {[
             { href: "/admin/growth", label: "Growth Intelligence", desc: "AI-powered funnel analysis & revenue recommendations", highlight: true },
+            { href: "/admin/rnd", label: "AI R&D Agent", desc: "AI-powered market research, feature proposals & CTA optimization", highlight: true },
+            { href: "/admin/roadmap", label: "Product Roadmap", desc: "Track phases, milestones and KPIs" },
+            { href: "/admin/team", label: "Team & AI Agents", desc: "View team members and AI agent ecosystem" },
             { href: "/admin/users", label: "Manage Users", desc: "View all users, update plans, reset access" },
             { href: "/admin/config", label: "System Config", desc: "SVI weights, risk penalties, benchmarks" },
             { href: "/admin/notifications", label: "Notifications", desc: "Send manual reports, view delivery logs" },

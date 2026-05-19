@@ -85,7 +85,8 @@ export function CreditGate({
     };
   }, [isOpen]);
 
-  // Reset state when modal opens/closes.
+  // Reset state when modal closes.
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional reset on close
   React.useEffect(() => {
     if (!isOpen) {
       setBuyLoading(false);
