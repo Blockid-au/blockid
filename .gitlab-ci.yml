@@ -5,7 +5,10 @@ stages:
 
 variables:
   PROJECT_NAME: blockid
-  DEPLOY_PORT: "4001"
+
+# ═══════════════════════════════════════════════════════════════════════
+# LINT — runs on all environment branches
+# ═══════════════════════════════════════════════════════════════════════
 
 lint:
   stage: lint
@@ -17,9 +20,15 @@ lint:
     - npm run lint
   allow_failure: true
   only:
+    - dev
+    - staging
     - master
 
-build:
+# ═══════════════════════════════════════════════════════════════════════
+# BUILD
+# ═══════════════════════════════════════════════════════════════════════
+
+.build_template: &build_template
   stage: build
   tags:
     - deploy
@@ -28,23 +37,46 @@ build:
     - docker build
         --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID="${NEXT_PUBLIC_GOOGLE_CLIENT_ID}"
         --build-arg NEXT_PUBLIC_SITE_URL="${NEXT_PUBLIC_SITE_URL}"
-        -t gitlab-deploy/${PROJECT_NAME}:latest .
+        -t gitlab-deploy/${PROJECT_NAME}:${CI_ENV_TAG} .
+
+build:dev:
+  <<: *build_template
+  variables:
+    CI_ENV_TAG: dev
+  only:
+    - dev
+
+build:staging:
+  <<: *build_template
+  variables:
+    CI_ENV_TAG: staging
+  only:
+    - staging
+
+build:production:
+  <<: *build_template
+  variables:
+    CI_ENV_TAG: latest
   only:
     - master
 
-deploy:
+# ═══════════════════════════════════════════════════════════════════════
+# DEPLOY
+# ═══════════════════════════════════════════════════════════════════════
+
+.deploy_template: &deploy_template
   stage: deploy
   tags:
     - deploy
   script:
-    - docker stop deploy-${PROJECT_NAME} 2>/dev/null || true
-    - docker rm deploy-${PROJECT_NAME} 2>/dev/null || true
+    - docker stop deploy-${PROJECT_NAME}-${CI_ENV_SLUG} 2>/dev/null || true
+    - docker rm deploy-${PROJECT_NAME}-${CI_ENV_SLUG} 2>/dev/null || true
     - docker run -d
-        --name deploy-${PROJECT_NAME}
+        --name deploy-${PROJECT_NAME}-${CI_ENV_SLUG}
         --restart unless-stopped
         --network supabase_default
         -p 127.0.0.1:${DEPLOY_PORT}:3000
-        -e NODE_ENV=production
+        -e NODE_ENV=${NODE_ENV}
         -e PORT=3000
         -e HOSTNAME=0.0.0.0
         -e SUPABASE_URL=${SUPABASE_URL}
@@ -52,12 +84,12 @@ deploy:
         -e NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
         -e ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
         -e IP_HASH_SALT=${IP_HASH_SALT}
-        -e "RESEND_FROM_EMAIL=BlockID <noreply@blockid.au>"
-        gitlab-deploy/${PROJECT_NAME}:latest
+        -e "RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL}"
+        gitlab-deploy/${PROJECT_NAME}:${CI_ENV_TAG}
     - echo "Waiting for container to be healthy..."
     - |
       for i in $(seq 1 30); do
-        STATUS=$(docker inspect --format="{{.State.Health.Status}}" deploy-${PROJECT_NAME} 2>/dev/null || echo "starting")
+        STATUS=$(docker inspect --format="{{.State.Health.Status}}" deploy-${PROJECT_NAME}-${CI_ENV_SLUG} 2>/dev/null || echo "starting")
         if [ "$STATUS" = "healthy" ]; then
           echo "Container is healthy!"
           break
@@ -65,11 +97,53 @@ deploy:
         echo "  [$i/30] Status: $STATUS"
         sleep 2
       done
-    - docker ps | grep deploy-${PROJECT_NAME}
-    - echo "Deployed to https://blockid.git.longcare.au"
+    - docker ps | grep deploy-${PROJECT_NAME}-${CI_ENV_SLUG}
+    - echo "Deployed to ${DEPLOY_URL}"
     - curl -sf http://127.0.0.1:${DEPLOY_PORT}/ -o /dev/null && echo "Health check passed!" || echo "Warning - health check pending"
+
+# ── Dev ───────────────────────────────────────────────────────────────
+deploy:dev:
+  <<: *deploy_template
+  variables:
+    CI_ENV_SLUG: dev
+    CI_ENV_TAG: dev
+    DEPLOY_PORT: "4003"
+    NODE_ENV: development
+    DEPLOY_URL: https://dev.blockid.git.longcare.au
+  environment:
+    name: dev
+    url: https://dev.blockid.git.longcare.au
+  only:
+    - dev
+
+# ── Staging ───────────────────────────────────────────────────────────
+deploy:staging:
+  <<: *deploy_template
+  variables:
+    CI_ENV_SLUG: staging
+    CI_ENV_TAG: staging
+    DEPLOY_PORT: "4002"
+    NODE_ENV: production
+    DEPLOY_URL: https://staging.blockid.git.longcare.au
+  environment:
+    name: staging
+    url: https://staging.blockid.git.longcare.au
+  only:
+    - staging
+
+# ── Production ────────────────────────────────────────────────────────
+deploy:production:
+  <<: *deploy_template
+  variables:
+    CI_ENV_SLUG: production
+    CI_ENV_TAG: latest
+    DEPLOY_PORT: "4001"
+    NODE_ENV: production
+    DEPLOY_URL: https://blockid.git.longcare.au
+    RESEND_FROM_EMAIL: "BlockID <noreply@blockid.au>"
   environment:
     name: production
     url: https://blockid.git.longcare.au
+  when: manual
   only:
     - master
