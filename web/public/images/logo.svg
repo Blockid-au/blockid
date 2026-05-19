@@ -1,14 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
-  <!-- Outer hexagon shell - left navy, right gold -->
-  <!-- Left side of hexagon (navy blue) -->
-  <path d="M100 15 L40 50 L40 140 L100 175" stroke="#1B3A6B" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- Right side of hexagon (gold/amber) -->
-  <path d="M100 15 L160 50 L160 140 L100 175" stroke="#D4A843" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- 3D Cube inside -->
-  <!-- Top face - light blue -->
-  <path d="M70 75 L100 58 L130 75 L100 92 Z" fill="#5B9AEB"/>
-  <!-- Left face - medium blue -->
-  <path d="M70 75 L100 92 L100 125 L70 108 Z" fill="#3B7DD8"/>
-  <!-- Right face - dark navy blue -->
-  <path d="M130 75 L100 92 L100 125 L130 108 Z" fill="#1B3A6B"/>
+  <defs>
+    <linearGradient id="starGrad" x1="100" y1="38" x2="100" y2="162" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1B3A6B"/>
+      <stop offset="50%" stop-color="#2B6FD4"/>
+      <stop offset="100%" stop-color="#42A8FF"/>
+    </linearGradient>
+  </defs>
+  <!-- Octagon (light variant — navy stroke for white/light backgrounds) -->
+  <path d="M72,15 L128,15 L185,72 L185,128 L128,185 L72,185 L15,128 L15,72 Z"
+        stroke="#1B3A6B" stroke-width="10" fill="none" stroke-linejoin="round"/>
+  <!-- 4-pointed sparkle star with gradient -->
+  <path d="M100,38 C110,70 132,90 162,100 C132,110 110,130 100,162 C90,130 68,110 38,100 C68,90 90,70 100,38 Z"
+        fill="url(#starGrad)"/>
 </svg>

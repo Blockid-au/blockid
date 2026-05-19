@@ -127,10 +127,10 @@ export function Footer() {
                 </svg>
               </span>
               <span className="text-base font-semibold tracking-tight text-slate-50">
-                BlockID<span className="text-gold-400">.au</span>
+                BlockID<span className="text-brand-400">.au</span>
               </span>
-              <span className="ml-2 hidden text-xs font-medium uppercase tracking-[0.15em] text-slate-500 sm:inline">
-                OWN IT. <span className="text-gold-400">PROVE IT.</span> GROW IT.
+              <span className="ml-2 hidden text-xs font-medium tracking-[0.12em] text-slate-400 sm:inline">
+                Valuation. <span className="text-brand-400">Ownership.</span> Growth.
               </span>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

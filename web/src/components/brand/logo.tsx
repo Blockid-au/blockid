@@ -28,10 +28,10 @@ export function Logo({
       <span
         className={cn(
           "text-lg font-bold tracking-tight",
-          variant === "light" ? "text-[#1B3A6B]" : "text-slate-50",
+          variant === "light" ? "text-brand-700" : "text-slate-50",
         )}
       >
-        BlockID<span className="text-gold-500">.au</span>
+        BlockID<span className="text-brand-400">.au</span>
       </span>
     </Link>
   );
