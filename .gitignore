@@ -10,11 +10,16 @@ build/
 next-env.d.ts
 *.tsbuildinfo
 
-# Env (secrets)
+# Env (secrets — never commit populated env files)
 .env
 .env.local
 .env.*.local
 .env.production
+.env.staging
+.env.dev
+# Allow example templates
+!.env.example
+!.env.*.example
 
 # Logs
 npm-debug.log*
