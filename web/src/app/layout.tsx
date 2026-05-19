@@ -16,9 +16,9 @@ const plexMono = IBM_Plex_Mono({
   display: "swap",
 });
 
-const SITE_NAME = "BlockID.au — Own It. Prove It. Grow It.";
+const SITE_NAME = "BlockID.au — Startup Value Index";
 const SITE_DESCRIPTION =
-  "Trusted Ownership. Smarter Fundraising. Real Value. BlockID.au is the all-in-one ownership and fundraising platform for startups and SMEs. Manage equity, simplify fundraising and unlock the true value of ownership from day one.";
+  "Measure, prove and grow your startup value from day one. Get your free Startup Value Index. Evidence-backed scoring for Australian founders — idea to investor-ready.";
 const SITE_URL = "https://blockid.au";
 
 export const metadata: Metadata = {
