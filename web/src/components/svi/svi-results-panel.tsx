@@ -296,16 +296,23 @@ export function SVIResultsPanel({
         <div className="flex items-start gap-3">
           <TrendingUp strokeWidth={1.75} className="mt-0.5 h-5 w-5 shrink-0 text-brand-400" />
           <div className="flex-1">
-            <p className="text-sm font-semibold text-slate-100">
-              Track your SVI over time
-            </p>
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-sm font-semibold text-slate-100">
+                Track your SVI over time
+              </p>
+              <span className="rounded-full bg-brand-700/40 border border-brand-600/40 px-2 py-0.5 text-[10px] font-medium text-brand-300 uppercase tracking-wider">
+                50 spots only
+              </span>
+            </div>
             <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-              Get a Founding 50 Startup Value Account to update milestones, add evidence, and watch your SVI grow.
+              Claim a Founding 50 account to build your SVI over time — cap table, Evidence Vault, export packs, and a 30-day growth plan.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Button variant="primary" size="sm" className="h-9 text-sm">
-                Claim Founding 50 — AUD $49
-              </Button>
+              <a href="/founding-50">
+                <Button variant="primary" size="sm" className="h-9 text-sm">
+                  Claim Founding 50 — AUD $49
+                </Button>
+              </a>
               <Button variant="secondary" size="sm" className="h-9 text-sm" onClick={onReset}>
                 Analyze another idea
               </Button>

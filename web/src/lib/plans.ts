@@ -19,6 +19,21 @@ export interface Plan {
 
 export const PLANS: Plan[] = [
   {
+    id: "founding50",
+    name: "Founding 50",
+    price: 4900, // AUD $49 launch price (normally $99)
+    cadence: "once",
+    features: [
+      "Startup Value Index Account (lifetime)",
+      "Founder Value Index",
+      "Cap Table Starter",
+      "Evidence Vault Lite",
+      "Export Packs (Product Hunt, LinkedIn, Crunchbase-ready)",
+      "30-Day Value Growth Plan",
+      "Priority onboarding",
+    ],
+  },
+  {
     id: "free",
     name: "Free",
     price: 0,

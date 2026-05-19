@@ -344,6 +344,25 @@ export function SVIEntrance() {
           </p>
         </form>
 
+        {/* Founding 50 strip */}
+        <div className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="text-center sm:text-left">
+            <p className="text-sm font-semibold text-slate-800">
+              Founding 50 — AUD $49
+              <span className="ml-2 text-[10px] uppercase tracking-wider font-medium text-slate-400 line-through">$99</span>
+            </p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Lifetime SVI account · Cap table · Evidence Vault · Export packs · 30-day growth plan
+            </p>
+          </div>
+          <a
+            href="/founding-50"
+            className="shrink-0 inline-flex h-9 items-center gap-2 rounded-[10px] bg-brand-700 px-4 text-sm font-semibold text-white hover:bg-brand-800 transition-colors cursor-pointer cta-glow"
+          >
+            Claim your spot →
+          </a>
+        </div>
+
         {/* Quick examples */}
         <div className="flex flex-wrap justify-center gap-2">
           {[
