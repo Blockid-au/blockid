@@ -7,6 +7,7 @@ import {
   type SVIAnalysis,
   type SVISubScore,
 } from "@/lib/svi-analysis";
+import { checkAndAwardBadges, type BadgeContext } from "@/lib/badges";
 
 // POST /api/svi/rescore-from-evidence
 // Re-computes SVI using the original analysis text + all evidence items.
@@ -146,6 +147,50 @@ export async function POST() {
     });
   }
 
+  // 10. Check and award milestone badges
+  // Count analyses for this account
+  const { count: analysisCount } = await supabase
+    .from("svi_analyses")
+    .select("id", { count: "exact", head: true })
+    .eq("email", user.email);
+
+  // Get connected sources from evidence types
+  const evidenceTypes = (evidence ?? []).map(
+    (e) => (e.evidence_type as string) ?? "",
+  );
+
+  // Compute days active from account creation
+  const { data: accountFull } = await supabase
+    .from("svi_accounts")
+    .select("created_at, plan")
+    .eq("id", account.id)
+    .maybeSingle();
+
+  const createdAt = accountFull?.created_at
+    ? new Date(accountFull.created_at as string)
+    : new Date();
+  const daysActive = Math.floor(
+    (Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24),
+  );
+
+  const badgeCtx: BadgeContext = {
+    totalAnalyses: analysisCount ?? 0,
+    currentSVI: newAnalysis.totalSVI,
+    evidenceCount: evidence?.length ?? 0,
+    plan: (accountFull?.plan as string) ?? "free",
+    hasGithub: evidenceTypes.includes("github"),
+    hasStripe: evidenceTypes.includes("stripe"),
+    hasAnalytics: evidenceTypes.includes("analytics"),
+    daysActive,
+  };
+
+  let newBadges: string[] = [];
+  try {
+    newBadges = await checkAndAwardBadges(account.id, badgeCtx);
+  } catch (err) {
+    console.error("[blockid:svi:rescore-from-evidence] badge check failed", err);
+  }
+
   return NextResponse.json({
     ok: true,
     previousSVI,
@@ -153,6 +198,7 @@ export async function POST() {
     delta,
     evidenceCount: evidence?.length ?? 0,
     evidenceBonusApplied: totalEvidenceBonus,
+    newBadges,
   });
 }
 
