@@ -7,12 +7,25 @@ import { randomBytes } from "crypto";
 
 export const dynamic = "force-dynamic";
 
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "https://upload.blockid.au",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, Cookie",
+  "Access-Control-Allow-Credentials": "true",
+};
+
+/** CORS preflight */
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+}
+
 const UPLOAD_DIR = join(process.cwd(), "public", "uploads");
 const MAX_SIZE = 50 * 1024 * 1024; // 50MB
 const UPLOAD_BASE_URL = process.env.NEXT_PUBLIC_UPLOAD_URL ?? "https://upload.blockid.au";
 
 const ALLOWED_TYPES: Record<string, string[]> = {
   image: ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"],
+  video: ["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo", "video/x-matroska"],
   document: ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
   spreadsheet: ["application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "text/csv"],
   presentation: ["application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.presentationml.presentation"],
@@ -24,7 +37,11 @@ const ALL_ALLOWED = Object.values(ALLOWED_TYPES).flat();
 
 function getSubdir(mimeType: string): string {
   for (const [category, types] of Object.entries(ALLOWED_TYPES)) {
-    if (types.includes(mimeType)) return category === "image" ? "images" : "documents";
+    if (types.includes(mimeType)) {
+      if (category === "image") return "images";
+      if (category === "video") return "videos";
+      return "documents";
+    }
   }
   return "files";
 }
@@ -43,25 +60,30 @@ function generateFilename(originalName: string): string {
  * Auth required. Files saved to /public/uploads/{subdir}/
  * Accessible at https://upload.blockid.au/{subdir}/{filename}
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function corsJson(data: any, init?: { status?: number }) {
+  return NextResponse.json(data, { ...init, headers: CORS_HEADERS });
+}
+
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized — sign in to upload" }, { status: 401 });
+    return corsJson({ error: "Unauthorized — sign in to upload" }, { status: 401 });
   }
 
   const formData = await request.formData();
   const file = formData.get("file") as File | null;
 
   if (!file) {
-    return NextResponse.json({ error: "No file provided. Send as multipart/form-data with field 'file'" }, { status: 400 });
+    return corsJson({ error: "No file provided. Send as multipart/form-data with field 'file'" }, { status: 400 });
   }
 
   if (file.size > MAX_SIZE) {
-    return NextResponse.json({ error: `File too large. Max ${MAX_SIZE / 1024 / 1024}MB` }, { status: 413 });
+    return corsJson({ error: `File too large. Max ${MAX_SIZE / 1024 / 1024}MB` }, { status: 413 });
   }
 
   if (!ALL_ALLOWED.includes(file.type)) {
-    return NextResponse.json({
+    return corsJson({
       error: `File type '${file.type}' not allowed. Accepted: images, PDFs, documents, spreadsheets, CSV, text, ZIP`,
     }, { status: 415 });
   }
@@ -82,7 +104,7 @@ export async function POST(request: Request) {
 
   const url = `${UPLOAD_BASE_URL}/${subdir}/${filename}`;
 
-  return NextResponse.json({
+  return corsJson({
     ok: true,
     url,
     filename,
@@ -99,7 +121,7 @@ export async function POST(request: Request) {
 export async function GET() {
   const user = await getCurrentUser();
   if (!user || (user.email !== "admin@blockid.au" && user.role !== "admin")) {
-    return NextResponse.json({ error: "Admin only" }, { status: 401 });
+    return corsJson({ error: "Admin only" }, { status: 401 });
   }
 
   const { readdir, stat } = await import("fs/promises");
@@ -124,5 +146,5 @@ export async function GET() {
 
   files.sort((a, b) => b.modified.localeCompare(a.modified));
 
-  return NextResponse.json({ ok: true, files: files.slice(0, 50), total: files.length });
+  return corsJson({ ok: true, files: files.slice(0, 50), total: files.length });
 }
