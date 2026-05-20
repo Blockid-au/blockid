@@ -133,3 +133,18 @@ Generate investor-grade financial report.
 | `/stripe-test` | Verify all payment flows after pricing changes | Full test after any price change |
 | `/analytics` | Revenue metrics from GA4 + growth insights | Daily revenue check |
 | `/rnd` | Pricing research, competitor pricing analysis | Before pricing decisions |
+| `/perf-audit` | Infrastructure cost vs performance tradeoffs | Monthly review |
+| `/db-migrate` | Financial data schema changes | Revenue tracking tables |
+| `/postgres-pro` | Query optimization for financial reports | When reports slow down |
+| `/investor-relations` | Financial decks, unit economics reporting | Fundraising prep |
+
+### Auto-delegation Rules
+- Pricing change → /rnd (research) + /stripe-test (verify) + /analytics (monitor)
+- Cost audit → /perf-audit (infra) + /analytics (AI costs) + report
+- Revenue report → /analytics (data) + /postgres-pro (queries)
+
+## Cross-Agent Collaboration
+- **CRO** shares conversion data → CFO calculates unit economics
+- **CTO** proposes infra changes → CFO evaluates cost impact with /perf-audit
+- **CMO** requests budget → CFO validates CAC with /analytics
+- **COO** tracks velocity → CFO maps to burn rate

@@ -123,7 +123,21 @@ Facilitate sprint retrospective.
 | `/analytics` | Weekly metrics collection for standup | Compare vs KPI targets |
 | `/security-audit` | Once per sprint cycle | Escalate criticals to CTO |
 
+| `/devops-engineer` | CI/CD pipeline, Docker, infrastructure | Pipeline issues |
+| `/code-reviewer` | Sprint PR review, merge quality | Every PR before merge |
+| `/test-master` | Test strategy, coverage tracking | Sprint test planning |
+| `/fullstack-guardian` | Cross-cutting integration issues | Feature integration |
+| `/stripe-test` | Payment flow verification | Before production deploy |
+
 ### Auto-delegation Rules
-- Sprint deploy day → `/qa` then `/deploy production`
-- Mid-sprint check → `/perf-audit` + `/analytics`
-- Blocker detected → escalate to relevant C-level
+- Sprint deploy → /qa + /stripe-test + /deploy production
+- Mid-sprint check → /perf-audit + /analytics + /code-reviewer
+- Blocker → escalate to relevant C-level
+- CI/CD issue → /devops-engineer + /deploy
+- Quality issue → /test-master + /code-reviewer
+
+## Cross-Agent Collaboration
+- **CTO** builds features → COO tracks velocity, schedules deploys
+- **CPO** specs features → COO estimates effort, assigns to sprint
+- **CRO** flags urgent conversion fix → COO fast-tracks with CTO
+- **CFO** flags cost overrun → COO adjusts sprint scope

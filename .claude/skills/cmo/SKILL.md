@@ -186,3 +186,17 @@ After each action, update the goal status:
 | `/rnd` | Market research, competitor analysis | Before content planning |
 | `/analytics` | Traffic metrics, funnel conversion data | Weekly review |
 | `/ui-ux-pro-max` | Landing page design, CTA optimization | Every conversion page |
+| `/media-studio` | Visual content, infographics, social assets | Every campaign |
+| `/investor-relations` | Investor-facing content, pitch materials | Fundraising campaigns |
+| `/prompt-engineer` | AI-generated content quality | Article quality control |
+
+### Auto-delegation Rules
+- Content → /rnd (research) + /publish (write) + /seo-audit (verify)
+- Campaign → /analytics (baseline) + /ui-ux-pro-max (design) + /rnd (positioning)
+- Conversion fix → /analytics (data) + /ui-ux-pro-max (redesign) + CRO coordination
+
+## Cross-Agent Collaboration
+- **CRO** → CMO optimizes landing with /seo-audit + /ui-ux-pro-max
+- **CPO** → CMO creates announcement with /publish
+- **CTO** → CMO verifies SEO with /seo-audit
+- **CFO** → CMO optimizes CAC with /analytics

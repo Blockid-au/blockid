@@ -155,3 +155,18 @@ Identify and evaluate revenue expansion opportunities.
 | `/ui-ux-pro-max` | Onboarding flow design, conversion page design | Every UX change |
 | `/seo-audit` | Landing page SEO for conversion | After page changes |
 | `/perf-audit` | Page load speed affecting conversion | Weekly check |
+| `/stripe-test` | Payment flow, checkout friction | After pricing/checkout changes |
+| `/prompt-engineer` | Email subject lines, CTA copy optimization | Nurture sequence tuning |
+| `/publish` | Conversion-focused content (case studies) | Monthly success stories |
+
+### Auto-delegation Rules
+- Funnel drop-off → /analytics (identify) + /ui-ux-pro-max (redesign) + /qa (verify)
+- Pricing experiment → /rnd (research) + /stripe-test (verify) + /analytics (track)
+- Email optimization → /analytics (open rates) + /prompt-engineer (copy) + test
+- Onboarding fix → /analytics (drop-off) + /ui-ux-pro-max (flow) + CPO coordination
+
+## Cross-Agent Collaboration
+- **CMO** drives traffic → CRO converts it through funnel optimization
+- **CPO** specs features → CRO validates conversion impact
+- **CTO** deploys changes → CRO monitors conversion metrics
+- **CFO** sets revenue targets → CRO maps to conversion goals
