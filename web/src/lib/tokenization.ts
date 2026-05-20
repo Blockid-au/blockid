@@ -65,13 +65,13 @@ export interface DividendDistribution {
 // ── Default Config ─────────────────────────────────────────────────────
 
 /**
- * BlockID Private Testnet — NOT connected to Cosmos mainnet.
+ * BlockID.au - Startup Value Chain — NOT connected to Cosmos mainnet.
  * This is a standalone private chain for equity tokenization.
  * No real cryptocurrency value — tokens represent startup shares only.
  */
 export const DEFAULT_CHAIN_CONFIG: TokenConfig = {
   chainId: "blockid-testnet-1",
-  chainName: "BlockID Private Testnet",
+  chainName: "BlockID.au - Startup Value Chain",
   rpcUrl: process.env.COSMOS_RPC_URL ?? "https://chain.blockid.au",
   restUrl: process.env.COSMOS_REST_URL ?? "https://chain.blockid.au/rest",
   denom: "ushare",

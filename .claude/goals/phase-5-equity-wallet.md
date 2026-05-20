@@ -20,7 +20,7 @@ Every startup on BlockID.au gets a **blockchain-based equity wallet** where shar
 │  Send/receive shares → sign tx in MetaMask            │
 │  View portfolio → all companies, all tokens           │
 │                                                        │
-├─ BlockID Private Chain (Cosmos + Ethermint EVM) ─────┤
+├─ BlockID.au - Startup Value Chain (Cosmos + Ethermint EVM) ─────┤
 │  Chain: blockid-testnet-1                              │
 │  Gas: 0 (free transactions for all users)             │
 │  Base token: BID (BlockID Coin — gas/utility)         │
