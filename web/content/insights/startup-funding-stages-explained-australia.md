@@ -10,6 +10,18 @@ Misjudging your stage is the fastest way to stall growth. Investors at the pre-s
 
 To avoid these pitfalls, founders must align their fundraising strategy with their current maturity level. This involves not just knowing how much money to raise, but understanding the valuation caps, the impact of ESIC tax incentives, and the timeline required to close a round in the current market climate.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 130" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="130" rx="16" fill="#0B1220"/>
+  <text x="150" y="45" text-anchor="middle" fill="#3B7DD8" font-size="34" font-weight="700" font-family="system-ui">$350K</text>
+  <text x="150" y="72" text-anchor="middle" fill="#94A3B8" font-size="12" font-family="system-ui">Median AU pre-seed raise</text>
+  <line x1="300" y1="20" x2="300" y2="110" stroke="#3B7DD8" stroke-width="1" opacity="0.3"/>
+  <text x="450" y="45" text-anchor="middle" fill="#FBBF24" font-size="34" font-weight="700" font-family="system-ui">$1.5M+</text>
+  <text x="450" y="72" text-anchor="middle" fill="#94A3B8" font-size="12" font-family="system-ui">Median AU seed round</text>
+  <text x="300" y="110" text-anchor="middle" fill="#F87171" font-size="11" font-family="system-ui">Gap between pre-seed and seed has widened significantly (AVCAL data)</text>
+</svg>
+</figure>
+
 | Stage | Typical Raise (AUD) | Valuation Range (AUD) | Dilution | Key Investor Type | Timeline to Close |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Pre-Seed** | $50K - $500K | $2M - $5M | 10% - 20% | Angels, Accelerators | 3 - 6 months |
@@ -69,6 +81,22 @@ Typical milestones for exiting this stage include:
 *   **Product Prototype:** A functional MVP (Minimum Viable Product) that solves a real problem.
 *   **Initial Traction:** The first 10-50 paying customers or significant waitlist sign-ups.
 *   **Market Validation:** Proof that the market needs the solution, not just the founder's idea.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 140" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="140" rx="12" fill="#0B1220"/>
+  <text x="300" y="25" text-anchor="middle" fill="#FFF" font-size="14" font-weight="700" font-family="system-ui">Typical Check Sizes by Stage (AUD)</text>
+  <text x="55" y="60" text-anchor="end" fill="#94A3B8" font-size="11" font-family="system-ui">Pre-Seed</text>
+  <rect x="65" y="47" width="100" height="22" rx="4" fill="#3B7DD8"/>
+  <text x="175" y="63" fill="#3B7DD8" font-size="11" font-weight="600" font-family="system-ui">$50K-$500K</text>
+  <text x="55" y="90" text-anchor="end" fill="#94A3B8" font-size="11" font-family="system-ui">Seed</text>
+  <rect x="65" y="77" width="250" height="22" rx="4" fill="#FBBF24"/>
+  <text x="325" y="93" fill="#FBBF24" font-size="11" font-weight="600" font-family="system-ui">$500K-$3M</text>
+  <text x="55" y="120" text-anchor="end" fill="#94A3B8" font-size="11" font-family="system-ui">Series A</text>
+  <rect x="65" y="107" width="480" height="22" rx="4" fill="#10B981"/>
+  <text x="555" y="123" fill="#10B981" font-size="11" font-weight="600" font-family="system-ui">$3M-$15M</text>
+</svg>
+</figure>
 
 Founders in this phase must be disciplined with cash flow. The Average Bank Loan approval time in Australia is increasing, so reliance on personal credit lines or informal loans is common. However, once you hit the "Friends and Family" ceiling, the transition to pre-seed becomes necessary.
 
@@ -130,6 +158,30 @@ Dilution at the seed stage usually sits between **15% and 25%**. A founder raisi
 
 Australian founders must be aware of the **Seed to Series A gap**. Many startups get stuck here because they have product-market fit but haven't optimized their sales engine for scale. Investors at the Series A stage are looking for predictable, scalable revenue, not just growth.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 130" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="130" rx="12" fill="#0B1220"/>
+  <text x="300" y="25" text-anchor="middle" fill="#FFF" font-size="13" font-weight="700" font-family="system-ui">Cumulative Dilution Progression</text>
+  <!-- Pre-seed -->
+  <rect x="40" y="50" width="140" height="40" rx="6" fill="#3B7DD8"/>
+  <text x="110" y="67" text-anchor="middle" fill="#FFF" font-size="10" font-weight="600" font-family="system-ui">Pre-Seed: ~10%</text>
+  <text x="110" y="82" text-anchor="middle" fill="#dbeafe" font-size="9" font-family="system-ui">Cumulative: 10%</text>
+  <!-- Arrow -->
+  <text x="190" y="75" fill="#FBBF24" font-size="16" font-family="system-ui">></text>
+  <!-- Seed -->
+  <rect x="210" y="50" width="140" height="40" rx="6" fill="#FBBF24"/>
+  <text x="280" y="67" text-anchor="middle" fill="#0B1220" font-size="10" font-weight="600" font-family="system-ui">Seed: ~20%</text>
+  <text x="280" y="82" text-anchor="middle" fill="#0B1220" font-size="9" font-family="system-ui">Cumulative: ~28%</text>
+  <!-- Arrow -->
+  <text x="360" y="75" fill="#FBBF24" font-size="16" font-family="system-ui">></text>
+  <!-- Series A -->
+  <rect x="380" y="50" width="180" height="40" rx="6" fill="#F87171"/>
+  <text x="470" y="67" text-anchor="middle" fill="#FFF" font-size="10" font-weight="600" font-family="system-ui">Series A: ~25%</text>
+  <text x="470" y="82" text-anchor="middle" fill="#fecaca" font-size="9" font-family="system-ui">Cumulative: ~51%</text>
+  <text x="300" y="115" text-anchor="middle" fill="#94A3B8" font-size="10" font-family="system-ui">After Series A, founders typically own less than 50% of the company</text>
+</svg>
+</figure>
+
 ## Stage 4: Series A ($3M - $15M AUD)
 
 Series A is the stage of optimization and scaling. In Australia, Series A rounds typically range from **$3 million to $15 million AUD**. The objective is no longer to find a market, but to dominate a specific segment of it. This capital funds the expansion of the sales team, entry into new markets (often APAC or US), and heavy investment in engineering to support scale.
@@ -145,6 +197,28 @@ At this stage, investors are almost exclusively institutional VCs. The due dilig
 Dilution at Series A is typically **20% to 30%**. While this is a significant chunk of equity, the valuation multiple increases substantially. A company raising $5M might have a pre-money valuation of $15M to $20M, representing a massive jump from the seed stage.
 
 The timeline for a Series A round in Australia has lengthened due to global market volatility. It is now common for the process to take **6 to 9 months**. Founders must have a "runway buffer" of at least 6 months before starting the process to avoid a "down round" or running out of cash.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 100" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect x="0" y="25" width="120" height="50" rx="10" fill="#3B7DD8"/>
+  <text x="60" y="47" text-anchor="middle" fill="#FFF" font-size="10" font-family="system-ui">Prep Deck</text>
+  <text x="60" y="62" text-anchor="middle" fill="#dbeafe" font-size="9" font-family="system-ui">2-3 months</text>
+  <line x1="125" y1="50" x2="145" y2="50" stroke="#94A3B8" stroke-width="2" marker-end="url(#tlArrow)"/>
+  <rect x="150" y="25" width="120" height="50" rx="10" fill="#FBBF24"/>
+  <text x="210" y="47" text-anchor="middle" fill="#0B1220" font-size="10" font-family="system-ui">Outreach</text>
+  <text x="210" y="62" text-anchor="middle" fill="#0B1220" font-size="9" font-family="system-ui">3-4 months</text>
+  <line x1="275" y1="50" x2="295" y2="50" stroke="#94A3B8" stroke-width="2" marker-end="url(#tlArrow)"/>
+  <rect x="300" y="25" width="120" height="50" rx="10" fill="#F87171"/>
+  <text x="360" y="47" text-anchor="middle" fill="#FFF" font-size="10" font-family="system-ui">Due Diligence</text>
+  <text x="360" y="62" text-anchor="middle" fill="#fecaca" font-size="9" font-family="system-ui">2-3 months</text>
+  <line x1="425" y1="50" x2="445" y2="50" stroke="#94A3B8" stroke-width="2" marker-end="url(#tlArrow)"/>
+  <rect x="450" y="25" width="120" height="50" rx="10" fill="#10B981"/>
+  <text x="510" y="47" text-anchor="middle" fill="#FFF" font-size="10" font-family="system-ui">Close</text>
+  <text x="510" y="62" text-anchor="middle" fill="#d1fae5" font-size="9" font-family="system-ui">1 month</text>
+  <defs><marker id="tlArrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#94A3B8"/></marker></defs>
+</svg>
+<figcaption style="color:#94A3B8;font-size:13px;margin-top:0.5rem">Total fundraising timeline: 8-12 months. Start when you have 12-18 months runway.</figcaption>
+</figure>
 
 > **Critical Warning:** Many Australian startups fail to raise Series A because they focus on vanity metrics (total users) rather than **revenue quality** and **unit economics**. Investors want to see sustainable growth, not burn-fueled expansion.
 

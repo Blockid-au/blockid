@@ -8,6 +8,16 @@ A robust **founders agreement Australia** style contract addresses the "what if"
 
 > **Statistic:** According to the *Startup Genome Report*, 23% of startups fail due to team problems, with founder conflict cited as the leading cause. A clear **co-founder equity agreement** is the primary defense against this statistic.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#F87171" font-size="42" font-weight="700" font-family="system-ui">23%</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">of startups fail due to team problems</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">Founder conflict is the leading cause — Source: Startup Genome Report</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">The cost of unclear co-founder agreements</figcaption>
+</figure>
+
 ### The Australian Legal Context for Founders
 
 When drafting a **co-founder agreement template**, you cannot simply copy a US template and hope for the best. The legal landscape in Australia is distinct. Specifically, the Corporations Act 2001 (Cth) governs company structures, while the Taxation Administration Act 1953 (Cth) dictates how equity is taxed.
@@ -15,6 +25,26 @@ When drafting a **co-founder agreement template**, you cannot simply copy a US t
 In Australia, issuing shares to co-founders without a vesting mechanism can trigger an immediate taxing event under the ATO's Employee Share Scheme (ESS) rules. This means you could owe tax on equity you haven't "earned" yet simply because the shares were legally issued on Day One.
 
 Furthermore, intellectual property laws in Australia are stringent. If a co-founder develops code or a brand asset before the formal assignment of IP is signed, that IP may legally remain with the individual, not the company. This creates a "leakage" risk that can disqualify your startup from due diligence during Series A fundraising.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 540 130" xmlns="http://www.w3.org/2000/svg" style="max-width:540px;margin:0 auto">
+  <rect width="540" height="130" rx="16" fill="#0B1220"/>
+  <text x="270" y="26" text-anchor="middle" fill="#94A3B8" font-size="11" font-weight="600" font-family="system-ui">CO-FOUNDER AGREEMENT PROCESS FLOW</text>
+  <rect x="10" y="42" width="100" height="40" rx="8" fill="#3B7DD8"/>
+  <text x="60" y="66" text-anchor="middle" fill="#fff" font-size="9" font-weight="600" font-family="system-ui">Define Equity</text>
+  <text x="120" y="66" fill="#FBBF24" font-size="14" font-family="system-ui">&#8594;</text>
+  <rect x="135" y="42" width="100" height="40" rx="8" fill="#3B7DD8" opacity="0.85"/>
+  <text x="185" y="66" text-anchor="middle" fill="#fff" font-size="9" font-weight="600" font-family="system-ui">Assign IP</text>
+  <text x="245" y="66" fill="#FBBF24" font-size="14" font-family="system-ui">&#8594;</text>
+  <rect x="260" y="42" width="100" height="40" rx="8" fill="#10B981"/>
+  <text x="310" y="66" text-anchor="middle" fill="#fff" font-size="9" font-weight="600" font-family="system-ui">Set Vesting</text>
+  <text x="370" y="66" fill="#FBBF24" font-size="14" font-family="system-ui">&#8594;</text>
+  <rect x="385" y="42" width="100" height="40" rx="8" fill="#FBBF24"/>
+  <text x="435" y="66" text-anchor="middle" fill="#fff" font-size="9" font-weight="600" font-family="system-ui">Exit Terms</text>
+  <text x="270" y="110" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Complete all four steps before writing a single line of code</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Essential co-founder agreement process</figcaption>
+</figure>
 
 > **Key Insight:** Under Australian law, an informal handshake or a shared password is not sufficient for IP assignment. The transfer of ownership must be documented in writing to be legally binding in court.
 
@@ -131,6 +161,24 @@ In Australia, the standard market practice for vesting is a **four-year schedule
 
 Vesting is not just about retention; it is a signal to investors. A **co-founder agreement template** that includes a vesting schedule demonstrates to potential backers that the team is committed and that the cap table is clean. Without this, Series A investors will demand a discount on their valuation or refuse to invest entirely.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg" style="max-width:300px;margin:0 auto">
+  <rect width="300" height="300" rx="16" fill="#0B1220"/>
+  <text x="150" y="28" text-anchor="middle" fill="#94A3B8" font-size="12" font-weight="600" font-family="system-ui">COMMON EQUITY SPLIT: 2 FOUNDERS</text>
+  <!-- Pie segments -->
+  <circle cx="150" cy="155" r="85" fill="none" stroke="#3B7DD8" stroke-width="35" stroke-dasharray="240.3 534.1" transform="rotate(-90 150 155)"/>
+  <circle cx="150" cy="155" r="85" fill="none" stroke="#10B981" stroke-width="35" stroke-dasharray="240.3 534.1" stroke-dashoffset="-240.3" transform="rotate(-90 150 155)"/>
+  <circle cx="150" cy="155" r="85" fill="none" stroke="#FBBF24" stroke-width="35" stroke-dasharray="53.4 534.1" stroke-dashoffset="-480.6" transform="rotate(-90 150 155)"/>
+  <text x="150" y="150" text-anchor="middle" fill="#fff" font-size="14" font-weight="700" font-family="system-ui">Equity Split</text>
+  <text x="150" y="170" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Equal partners</text>
+  <!-- Legend -->
+  <rect x="30" y="260" width="10" height="10" rx="2" fill="#3B7DD8"/><text x="46" y="270" fill="#94A3B8" font-size="10" font-family="system-ui">Founder A: 42.5%</text>
+  <rect x="155" y="260" width="10" height="10" rx="2" fill="#10B981"/><text x="171" y="270" fill="#94A3B8" font-size="10" font-family="system-ui">Founder B: 42.5%</text>
+  <rect x="90" y="280" width="10" height="10" rx="2" fill="#FBBF24"/><text x="106" y="290" fill="#94A3B8" font-size="10" font-family="system-ui">ESOP Pool: 15%</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Standard 2-founder equity split with ESOP reserve</figcaption>
+</figure>
+
 ### 2. Intellectual Property (IP) Assignment
 
 Intellectual property is often the most valuable asset of an Australian startup. Whether it is software code, a unique algorithm, or a brand logo, the company must own it outright. The **startup co-founder contract** must include a clause where all founders assign all current and future IP created for the business to the company.
@@ -138,6 +186,16 @@ Intellectual property is often the most valuable asset of an Australian startup.
 This is not a "nice to have." If a co-founder leaves and claims they wrote the core code on their own time, the company's valuation could plummet. In a high-growth scenario, this ambiguity can kill a deal.
 
 > **Critical Warning:** ATO rulings indicate that if IP is not assigned prior to the issuance of shares, the value of the shares may be deemed to include the unassigned IP, triggering immediate personal income tax liabilities for the founders.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#F87171" font-size="38" font-weight="700" font-family="system-ui">65%</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">of successful AU startups use unequal equity splits</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">Equal 50/50 splits correlate with higher dispute rates</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Australian equity split benchmarks</figcaption>
+</figure>
 
 ### 3. Roles, Responsibilities, and Decision-Making
 
@@ -234,6 +292,23 @@ In Australia, a "Right of First Refusal" (ROFR) is standard. If a founder wants 
 *   **Bad Leaver:** Leaves due to fraud, gross negligence, or joining a competitor. They may be forced to sell their shares back at a nominal value (e.g., AUD $0.01 per share).
 
 Without these terms, a disgruntled former co-founder can become a shareholder who hinders future fundraising rounds. Investors will not put money into a company where an ex-founder holds a 15% stake and can block board resolutions.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 540 130" xmlns="http://www.w3.org/2000/svg" style="max-width:540px;margin:0 auto">
+  <rect width="540" height="130" rx="16" fill="#0B1220"/>
+  <text x="270" y="26" text-anchor="middle" fill="#94A3B8" font-size="11" font-weight="600" font-family="system-ui">GOOD LEAVER vs BAD LEAVER</text>
+  <!-- Good Leaver -->
+  <rect x="20" y="42" width="240" height="55" rx="10" fill="#10B981" opacity="0.15" stroke="#10B981" stroke-width="1.5"/>
+  <text x="140" y="63" text-anchor="middle" fill="#10B981" font-size="13" font-weight="700" font-family="system-ui">Good Leaver</text>
+  <text x="140" y="82" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Retains vested equity | Illness, mutual exit</text>
+  <!-- Bad Leaver -->
+  <rect x="280" y="42" width="240" height="55" rx="10" fill="#F87171" opacity="0.15" stroke="#F87171" stroke-width="1.5"/>
+  <text x="400" y="63" text-anchor="middle" fill="#F87171" font-size="13" font-weight="700" font-family="system-ui">Bad Leaver</text>
+  <text x="400" y="82" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Shares bought back at $0.01 | Fraud, competition</text>
+  <text x="270" y="115" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Define both scenarios explicitly to prevent future fundraising blockers</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Departure terms must be defined before they are needed</figcaption>
+</figure>
 
 ### 5. Non-Compete and Non-Solicit Clauses
 

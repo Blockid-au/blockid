@@ -8,6 +8,35 @@ In reality, equity is a dynamic pie that gets sliced more frequently and in more
 
 If you cannot accurately model **equity dilution fundraising**, you risk losing control of your company before you even reach Series A. You might wake up one day as a minority shareholder in a business you founded, stripped of the voting power to make critical decisions.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 540 130" xmlns="http://www.w3.org/2000/svg" style="max-width:540px;margin:0 auto">
+  <rect width="540" height="130" rx="16" fill="#0B1220"/>
+  <text x="270" y="26" text-anchor="middle" fill="#94A3B8" font-size="11" font-weight="600" font-family="system-ui">FOUNDER OWNERSHIP JOURNEY</text>
+  <!-- Stages -->
+  <rect x="15" y="42" width="85" height="45" rx="8" fill="#10B981" opacity="0.3" stroke="#10B981" stroke-width="1"/>
+  <text x="58" y="62" text-anchor="middle" fill="#10B981" font-size="14" font-weight="700" font-family="system-ui">100%</text>
+  <text x="58" y="78" text-anchor="middle" fill="#64748B" font-size="8" font-family="system-ui">Day 1</text>
+  <text x="108" y="66" fill="#64748B" font-size="12" font-family="system-ui">&#8594;</text>
+  <rect x="118" y="42" width="85" height="45" rx="8" fill="#3B7DD8" opacity="0.3" stroke="#3B7DD8" stroke-width="1"/>
+  <text x="160" y="62" text-anchor="middle" fill="#3B7DD8" font-size="14" font-weight="700" font-family="system-ui">50%</text>
+  <text x="160" y="78" text-anchor="middle" fill="#64748B" font-size="8" font-family="system-ui">Co-founder</text>
+  <text x="211" y="66" fill="#64748B" font-size="12" font-family="system-ui">&#8594;</text>
+  <rect x="221" y="42" width="85" height="45" rx="8" fill="#3B7DD8" opacity="0.25" stroke="#3B7DD8" stroke-width="1"/>
+  <text x="264" y="62" text-anchor="middle" fill="#3B7DD8" font-size="14" font-weight="700" font-family="system-ui">40%</text>
+  <text x="264" y="78" text-anchor="middle" fill="#64748B" font-size="8" font-family="system-ui">ESOP</text>
+  <text x="314" y="66" fill="#64748B" font-size="12" font-family="system-ui">&#8594;</text>
+  <rect x="324" y="42" width="85" height="45" rx="8" fill="#FBBF24" opacity="0.25" stroke="#FBBF24" stroke-width="1"/>
+  <text x="366" y="62" text-anchor="middle" fill="#FBBF24" font-size="14" font-weight="700" font-family="system-ui">33%</text>
+  <text x="366" y="78" text-anchor="middle" fill="#64748B" font-size="8" font-family="system-ui">Pre-Seed</text>
+  <text x="417" y="66" fill="#64748B" font-size="12" font-family="system-ui">&#8594;</text>
+  <rect x="427" y="42" width="95" height="45" rx="8" fill="#F87171" opacity="0.25" stroke="#F87171" stroke-width="1"/>
+  <text x="475" y="62" text-anchor="middle" fill="#F87171" font-size="14" font-weight="700" font-family="system-ui">~21%</text>
+  <text x="475" y="78" text-anchor="middle" fill="#64748B" font-size="8" font-family="system-ui">Series A</text>
+  <text x="270" y="115" text-anchor="middle" fill="#94A3B8" font-size="10" font-family="system-ui">Each milestone compounds dilution — plan your cap table from Day 1</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Typical founder ownership trajectory from founding to Series A</figcaption>
+</figure>
+
 This guide cuts through the noise. We will visualize the exact trajectory of founder ownership from inception to Series A, using real-world Australian scenarios. We will break down the math behind the **dilution calculator** concepts, explain how ESOPs impact your stake, and show you how to protect your interests with anti-dilution provisions.
 
 > **The hard truth:** High valuation means nothing if you own a tiny slice of the company. Smart founders focus on *ownership percentage* alongside *company valuation*.
@@ -45,6 +74,16 @@ If you are at 50% after bringing on a co-founder, and you create a 20% option po
 Mathematically: $50\% \times 80\% = 40\%$.
 
 Your stake has dropped from 50% to **40%**. This is the reality of **founder ownership after funding** preparation. You have lost 10 percentage points of the total company just to prepare for hiring.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#FBBF24" font-size="42" font-weight="700" font-family="system-ui">-10%</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">Hidden dilution from ESOP creation alone</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">50% to 40% — before any external investor enters the picture</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">The invisible dilution hit from pre-investment ESOP</figcaption>
+</figure>
 
 > **Pro Tip:** Don't cut the pool too small. Investors will demand you top up the pool to 15-20% during the investment, causing *more* dilution later. It is often better to create the full pool upfront.
 
@@ -172,6 +211,25 @@ $27.2\% \times (1 - 0.05) \approx 25.8\%$.
 
 You have now arrived at the **24%** mark. It feels low, but look at the value. Your company is worth $10M. Your 24% stake is now worth **$2.4M AUD**. In the early days, your 100% stake was worth $0. The trade-off is working.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 540 140" xmlns="http://www.w3.org/2000/svg" style="max-width:540px;margin:0 auto">
+  <rect width="540" height="140" rx="16" fill="#0B1220"/>
+  <text x="270" y="28" text-anchor="middle" fill="#94A3B8" font-size="12" font-weight="600" font-family="system-ui">OWNERSHIP vs VALUE: THE PARADOX</text>
+  <!-- Before -->
+  <rect x="20" y="45" width="230" height="55" rx="10" fill="#F87171" opacity="0.15" stroke="#F87171" stroke-width="1.5"/>
+  <text x="135" y="67" text-anchor="middle" fill="#F87171" font-size="14" font-weight="700" font-family="system-ui">Day 1: 100% = $0</text>
+  <text x="135" y="86" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Full ownership of nothing</text>
+  <!-- Arrow -->
+  <text x="270" y="75" text-anchor="middle" fill="#FBBF24" font-size="22" font-family="system-ui">&#8594;</text>
+  <!-- After -->
+  <rect x="290" y="45" width="230" height="55" rx="10" fill="#10B981" opacity="0.15" stroke="#10B981" stroke-width="1.5"/>
+  <text x="405" y="67" text-anchor="middle" fill="#10B981" font-size="14" font-weight="700" font-family="system-ui">Seed: 24% = $2.4M</text>
+  <text x="405" y="86" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Smaller slice, much bigger pie</text>
+  <text x="270" y="125" text-anchor="middle" fill="#FBBF24" font-size="11" font-weight="600" font-family="system-ui">A smaller percentage of a $10M company beats 100% of $0</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Why dilution is not the same as loss</figcaption>
+</figure>
+
 > **Key Insight:** The goal of fundraising is not to keep 100% of a $0 company. It is to keep a meaningful percentage of a $100M company. Dropping to 24% while the valuation grows 100x is a massive win.
 
 ### Series A: The Professionalization of the Board
@@ -184,6 +242,16 @@ If you start Series A at 24% and dilute by 20%:
 $24\% \times 0.80 = 19.2\%$.
 
 This is the **19-20%** range. This is the "tipping point" for many founders. Below 20%, your ability to influence company direction without a coalition of shareholders diminishes.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#F87171" font-size="38" font-weight="700" font-family="system-ui">~19-20%</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">The "tipping point" — founder control inflection</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">Below 20%, influence requires coalitions and governance rights</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">The critical ownership threshold for founder control</figcaption>
+</figure>
 
 Here is where the narrative changes. At this stage, you are no longer just managing equity; you are managing **control mechanisms**.
 *   **Board Seats:** You might have 1 seat out of 3.
@@ -287,6 +355,26 @@ In Australia, company law (regulated by **ASIC**) and standard Shareholder Agree
 *   **Tag-Along and Drag-Along Rights:** These ensure you aren't left behind if investors want to sell, but also prevent you from blocking a sale that benefits everyone.
 
 Don't let the fear of dilution prevent you from taking the capital you need. A larger pie with a smaller slice is infinitely better than a tiny pie with a huge slice.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg" style="max-width:300px;margin:0 auto">
+  <rect width="300" height="300" rx="16" fill="#0B1220"/>
+  <text x="150" y="28" text-anchor="middle" fill="#94A3B8" font-size="11" font-weight="600" font-family="system-ui">POST-SERIES A OWNERSHIP</text>
+  <!-- Pie segments -->
+  <circle cx="150" cy="155" r="85" fill="none" stroke="#3B7DD8" stroke-width="35" stroke-dasharray="107.2 534.1" transform="rotate(-90 150 155)"/>
+  <circle cx="150" cy="155" r="85" fill="none" stroke="#10B981" stroke-width="35" stroke-dasharray="107.2 534.1" stroke-dashoffset="-107.2" transform="rotate(-90 150 155)"/>
+  <circle cx="150" cy="155" r="85" fill="none" stroke="#FBBF24" stroke-width="35" stroke-dasharray="80.1 534.1" stroke-dashoffset="-214.4" transform="rotate(-90 150 155)"/>
+  <circle cx="150" cy="155" r="85" fill="none" stroke="#F87171" stroke-width="35" stroke-dasharray="239.4 534.1" stroke-dashoffset="-294.5" transform="rotate(-90 150 155)"/>
+  <text x="150" y="150" text-anchor="middle" fill="#fff" font-size="13" font-weight="700" font-family="system-ui">Series A</text>
+  <text x="150" y="168" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">$38M Post-Money</text>
+  <!-- Legend -->
+  <rect x="25" y="258" width="10" height="10" rx="2" fill="#3B7DD8"/><text x="40" y="268" fill="#94A3B8" font-size="9" font-family="system-ui">Founder A: 20%</text>
+  <rect x="155" y="258" width="10" height="10" rx="2" fill="#10B981"/><text x="170" y="268" fill="#94A3B8" font-size="9" font-family="system-ui">Founder B: 20%</text>
+  <rect x="25" y="278" width="10" height="10" rx="2" fill="#FBBF24"/><text x="40" y="288" fill="#94A3B8" font-size="9" font-family="system-ui">ESOP: 15%</text>
+  <rect x="155" y="278" width="10" height="10" rx="2" fill="#F87171"/><text x="170" y="288" fill="#94A3B8" font-size="9" font-family="system-ui">All Investors: 45%</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Typical post-Series A ownership breakdown</figcaption>
+</figure>
 
 **Curious about your current startup's health?** Before you worry about dilution, ensure your business has the fundamental value drivers that investors look for.
 > **Check Your Startup Health** [Get your free SVI score](/)

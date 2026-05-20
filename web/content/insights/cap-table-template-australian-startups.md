@@ -28,6 +28,26 @@ More practically, your cap table answers critical questions:
 
 Without clarity here, you'll lose credibility with investors, struggle to attract talent, and risk founder disputes that derail your business.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg" style="max-width:300px;margin:0 auto">
+  <rect width="300" height="300" rx="16" fill="#0B1220"/>
+  <text x="150" y="28" text-anchor="middle" fill="#94A3B8" font-size="12" font-weight="600" font-family="system-ui">TYPICAL SEED STAGE CAP TABLE</text>
+  <!-- Pie segments -->
+  <circle cx="150" cy="155" r="90" fill="none" stroke="#3B7DD8" stroke-width="35" stroke-dasharray="169.6 565.5" transform="rotate(-90 150 155)"/>
+  <circle cx="150" cy="155" r="90" fill="none" stroke="#10B981" stroke-width="35" stroke-dasharray="169.6 565.5" stroke-dashoffset="-169.6" transform="rotate(-90 150 155)"/>
+  <circle cx="150" cy="155" r="90" fill="none" stroke="#FBBF24" stroke-width="35" stroke-dasharray="84.8 565.5" stroke-dashoffset="-339.2" transform="rotate(-90 150 155)"/>
+  <circle cx="150" cy="155" r="90" fill="none" stroke="#F87171" stroke-width="35" stroke-dasharray="141.4 565.5" stroke-dashoffset="-424" transform="rotate(-90 150 155)"/>
+  <text x="150" y="150" text-anchor="middle" fill="#fff" font-size="13" font-weight="700" font-family="system-ui">Seed Stage</text>
+  <text x="150" y="168" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Fully Diluted</text>
+  <!-- Legend -->
+  <rect x="30" y="260" width="10" height="10" rx="2" fill="#3B7DD8"/><text x="46" y="270" fill="#94A3B8" font-size="10" font-family="system-ui">Founder A 30%</text>
+  <rect x="155" y="260" width="10" height="10" rx="2" fill="#10B981"/><text x="171" y="270" fill="#94A3B8" font-size="10" font-family="system-ui">Founder B 30%</text>
+  <rect x="30" y="280" width="10" height="10" rx="2" fill="#FBBF24"/><text x="46" y="290" fill="#94A3B8" font-size="10" font-family="system-ui">ESOP 15%</text>
+  <rect x="155" y="280" width="10" height="10" rx="2" fill="#F87171"/><text x="171" y="290" fill="#94A3B8" font-size="10" font-family="system-ui">Investors 25%</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Example cap table ownership distribution at seed stage</figcaption>
+</figure>
+
 ## Australian Regulatory Requirements: ASIC and Tax Compliance
 
 Before you build your cap table, understand the Australian regulatory landscape.
@@ -54,6 +74,16 @@ The Australian Taxation Office treats share issuance and options differently dep
 - **Preference shares** issued to investors are treated as issued capital and don't usually trigger immediate tax, but they carry different rights and restrictions.
 
 The key point: get your accountant involved early. Structuring equity incorrectly can trigger unexpected tax bills for founders and employees.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#F87171" font-size="38" font-weight="700" font-family="system-ui">2 months</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">ASIC deadline to update your share register after any share issue</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">Failure to comply creates compliance headaches and title risks</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">ASIC share register update deadline</figcaption>
+</figure>
 
 ### ESIC and Workers' Compensation
 
@@ -122,6 +152,16 @@ An option pool reserves a percentage of shares for future employee grants. The t
 
 **Why options instead of shares?** Options preserve the founder stake and allow tax-concessional treatment for employees under Division 83A-CA (if structured correctly). They also create a performance incentive: the employee only benefits if the company is worth more at their exercise date than the strike price.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#FBBF24" font-size="42" font-weight="700" font-family="system-ui">10-20%</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">Typical ESOP pool size for Australian startups</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">Create pre-investment to avoid additional dilution at fundraising</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Standard ESOP pool range for early-stage startups</figcaption>
+</figure>
+
 ### Step 4: Set Up Vesting Schedules
 
 Vesting ensures founders and employees are incentivized to stay. The standard Australian tech startup structure is **4-year vesting with a 1-year cliff**:
@@ -142,6 +182,35 @@ An employee is granted 48,000 options with a 4-year vesting schedule and 1-year 
 **Founder vesting:** Many investors expect founders to be on a vesting schedule too. This protects the company (and co-founders) if a founder exits early. A common approach is a 4-year schedule with a 1-year cliff, but sometimes the cliff is shorter or absent if the founder is fully committed from day one.
 
 Include vesting terms in your cap table alongside each shareholder or option holder.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 540 140" xmlns="http://www.w3.org/2000/svg" style="max-width:540px;margin:0 auto">
+  <rect width="540" height="140" rx="16" fill="#0B1220"/>
+  <text x="270" y="25" text-anchor="middle" fill="#94A3B8" font-size="11" font-weight="600" font-family="system-ui">4-YEAR VESTING WITH 1-YEAR CLIFF</text>
+  <!-- Timeline -->
+  <line x1="40" y1="70" x2="500" y2="70" stroke="#1e293b" stroke-width="2"/>
+  <!-- Cliff -->
+  <rect x="40" y="55" width="115" height="30" rx="6" fill="#F87171" opacity="0.2" stroke="#F87171" stroke-width="1"/>
+  <text x="98" y="74" text-anchor="middle" fill="#F87171" font-size="10" font-weight="600" font-family="system-ui">CLIFF: 0% vested</text>
+  <!-- Year 1 marker -->
+  <circle cx="155" cy="70" r="6" fill="#FBBF24"/>
+  <text x="155" y="100" text-anchor="middle" fill="#FBBF24" font-size="10" font-weight="600" font-family="system-ui">Year 1: 25%</text>
+  <!-- Year 2 -->
+  <circle cx="270" cy="70" r="6" fill="#3B7DD8"/>
+  <text x="270" y="100" text-anchor="middle" fill="#3B7DD8" font-size="10" font-weight="600" font-family="system-ui">Year 2: 50%</text>
+  <!-- Year 3 -->
+  <circle cx="385" cy="70" r="6" fill="#3B7DD8"/>
+  <text x="385" y="100" text-anchor="middle" fill="#3B7DD8" font-size="10" font-weight="600" font-family="system-ui">Year 3: 75%</text>
+  <!-- Year 4 -->
+  <circle cx="500" cy="70" r="6" fill="#10B981"/>
+  <text x="500" y="100" text-anchor="middle" fill="#10B981" font-size="10" font-weight="600" font-family="system-ui">Year 4: 100%</text>
+  <!-- Monthly vesting line -->
+  <rect x="155" y="58" width="345" height="24" rx="6" fill="#3B7DD8" opacity="0.1" stroke="#3B7DD8" stroke-width="1"/>
+  <text x="327" y="52" text-anchor="middle" fill="#64748B" font-size="9" font-family="system-ui">Monthly vesting: 1/48th per month after cliff</text>
+  <text x="270" y="128" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Standard structure for both founders and employees in Australian startups</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Standard vesting schedule timeline</figcaption>
+</figure>
 
 <svg viewBox="0 0 700 400" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
   <rect width="700" height="400" fill="#f8fafc" rx="8"/>
@@ -237,6 +306,23 @@ Investors negotiate preference share terms that protect their downside:
 - **Drag-along and tag-along rights**: These control how the company can be sold. Drag-along lets majority shareholders force minorities to sell. Tag-along lets minorities sell their shares on the same terms as the majority.
 
 **For your cap table:** Track preference shares separately. Record the liquidation preference, anti-dilution type, and key terms. This affects how you calculate fully diluted ownership and what outcomes each class of shareholder can expect.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 540 140" xmlns="http://www.w3.org/2000/svg" style="max-width:540px;margin:0 auto">
+  <rect width="540" height="140" rx="16" fill="#0B1220"/>
+  <text x="270" y="28" text-anchor="middle" fill="#94A3B8" font-size="12" font-weight="600" font-family="system-ui">ORDINARY vs PREFERENCE SHARES</text>
+  <!-- Ordinary -->
+  <rect x="20" y="45" width="240" height="55" rx="10" fill="#3B7DD8" opacity="0.15" stroke="#3B7DD8" stroke-width="1.5"/>
+  <text x="140" y="68" text-anchor="middle" fill="#3B7DD8" font-size="13" font-weight="700" font-family="system-ui">Ordinary Shares</text>
+  <text x="140" y="86" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Founders & employees | Voting rights</text>
+  <!-- Preference -->
+  <rect x="280" y="45" width="240" height="55" rx="10" fill="#FBBF24" opacity="0.15" stroke="#FBBF24" stroke-width="1.5"/>
+  <text x="400" y="68" text-anchor="middle" fill="#FBBF24" font-size="13" font-weight="700" font-family="system-ui">Preference Shares</text>
+  <text x="400" y="86" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Investors | Liquidation priority</text>
+  <text x="270" y="125" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Track separately: liquidation preferences, anti-dilution rights, board seats</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Key differences between share classes in your cap table</figcaption>
+</figure>
 
 ## Common Cap Table Mistakes That Cost Founders Money
 

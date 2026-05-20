@@ -8,6 +8,23 @@ Australian investors, from local firms like Square Peg and Blackbird to internat
 
 > **The hard truth:** 90% of Australian startup pitches fail in the first 10 minutes because founders lead with their solution instead of the problem. If you cannot articulate a painful, expensive problem in the first slide, the rest of your deck is irrelevant.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="120" fill="#0B1220" rx="12"/>
+  <text x="300" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FBBF24">PITCH DECK: THE NUMBERS THAT MATTER</text>
+  <text x="100" y="68" text-anchor="middle" font-family="Arial,sans-serif" font-size="28" font-weight="bold" fill="#F87171">90%</text>
+  <text x="100" y="90" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Fail in first 10 min</text>
+  <text x="100" y="103" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">(wrong slide order)</text>
+  <text x="300" y="68" text-anchor="middle" font-family="Arial,sans-serif" font-size="28" font-weight="bold" fill="#3B7DD8">12</text>
+  <text x="300" y="90" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Slides optimal</text>
+  <text x="300" y="103" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">for AU VCs in 2026</text>
+  <text x="500" y="68" text-anchor="middle" font-family="Arial,sans-serif" font-size="28" font-weight="bold" fill="#10B981">40%</text>
+  <text x="500" y="90" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">More likely to get</text>
+  <text x="500" y="103" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">meeting w/ angel round</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Key pitch deck statistics for Australian startup founders</figcaption>
+</figure>
+
 This guide breaks down the exact 12-slide structure that aligns with Australian VC preferences in 2026. We will cover the precise order, the specific data points required for each slide, and the common pitfalls that get decks rejected. Whether you are pre-seed or Series A, this blueprint is your first step toward securing capital.
 
 ### The 12-Slide Structure at a Glance
@@ -32,23 +49,23 @@ This guide breaks down the exact 12-slide structure that aligns with Australian 
   <text x="350" y="32" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">The 12-Slide Pitch Deck Structure</text>
   <text x="350" y="52" text-anchor="middle" font-size="12" fill="#64748b">Optimal flow for Australian VC pitches</text>
   <!-- Row 1 -->
-  <rect x="20" y="70" width="105" height="72" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
-  <circle cx="40" cy="88" r="10" fill="#2563eb"/><text x="40" y="92" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">1</text>
+  <rect x="20" y="70" width="105" height="72" rx="8" fill="#ffffff" stroke="#3B7DD8" stroke-width="2"/>
+  <circle cx="40" cy="88" r="10" fill="#3B7DD8"/><text x="40" y="92" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">1</text>
   <text x="72" y="92" font-size="11" font-weight="bold" fill="#1e293b">Problem</text>
   <text x="30" y="110" font-size="9" fill="#64748b">Quantify the pain</text>
-  <text x="30" y="124" font-size="9" fill="#2563eb">60 sec</text>
+  <text x="30" y="124" font-size="9" fill="#3B7DD8">60 sec</text>
   <line x1="130" y1="106" x2="145" y2="106" stroke="#1e293b" stroke-width="1.5" marker-end="url(#arrow2)"/>
-  <rect x="150" y="70" width="105" height="72" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
-  <circle cx="170" cy="88" r="10" fill="#2563eb"/><text x="170" y="92" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">2</text>
+  <rect x="150" y="70" width="105" height="72" rx="8" fill="#ffffff" stroke="#3B7DD8" stroke-width="2"/>
+  <circle cx="170" cy="88" r="10" fill="#3B7DD8"/><text x="170" y="92" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">2</text>
   <text x="202" y="92" font-size="11" font-weight="bold" fill="#1e293b">Solution</text>
   <text x="160" y="110" font-size="9" fill="#64748b">10x better how?</text>
-  <text x="160" y="124" font-size="9" fill="#2563eb">60 sec</text>
+  <text x="160" y="124" font-size="9" fill="#3B7DD8">60 sec</text>
   <line x1="260" y1="106" x2="275" y2="106" stroke="#1e293b" stroke-width="1.5" marker-end="url(#arrow2)"/>
-  <rect x="280" y="70" width="105" height="72" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
-  <circle cx="300" cy="88" r="10" fill="#2563eb"/><text x="300" y="92" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">3</text>
+  <rect x="280" y="70" width="105" height="72" rx="8" fill="#ffffff" stroke="#3B7DD8" stroke-width="2"/>
+  <circle cx="300" cy="88" r="10" fill="#3B7DD8"/><text x="300" y="92" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">3</text>
   <text x="332" y="92" font-size="11" font-weight="bold" fill="#1e293b">Market</text>
   <text x="290" y="110" font-size="9" fill="#64748b">TAM / SAM / SOM</text>
-  <text x="290" y="124" font-size="9" fill="#2563eb">45 sec</text>
+  <text x="290" y="124" font-size="9" fill="#3B7DD8">45 sec</text>
   <line x1="390" y1="106" x2="405" y2="106" stroke="#1e293b" stroke-width="1.5" marker-end="url(#arrow2)"/>
   <rect x="410" y="70" width="105" height="72" rx="8" fill="#ffffff" stroke="#10b981" stroke-width="2"/>
   <circle cx="430" cy="88" r="10" fill="#10b981"/><text x="430" y="92" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">4</text>
@@ -62,35 +79,35 @@ This guide breaks down the exact 12-slide structure that aligns with Australian 
   <text x="30" y="202" font-size="9" fill="#64748b">Revenue proof</text>
   <text x="30" y="216" font-size="9" fill="#10b981">90 sec</text>
   <line x1="130" y1="198" x2="145" y2="198" stroke="#1e293b" stroke-width="1.5" marker-end="url(#arrow2)"/>
-  <rect x="150" y="162" width="105" height="72" rx="8" fill="#ffffff" stroke="#f59e0b" stroke-width="2"/>
-  <circle cx="170" cy="180" r="10" fill="#f59e0b"/><text x="170" y="184" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">6</text>
+  <rect x="150" y="162" width="105" height="72" rx="8" fill="#ffffff" stroke="#FBBF24" stroke-width="2"/>
+  <circle cx="170" cy="180" r="10" fill="#FBBF24"/><text x="170" y="184" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">6</text>
   <text x="198" y="184" font-size="10" font-weight="bold" fill="#1e293b">Biz Model</text>
   <text x="160" y="202" font-size="9" fill="#64748b">Unit economics</text>
-  <text x="160" y="216" font-size="9" fill="#f59e0b">60 sec</text>
+  <text x="160" y="216" font-size="9" fill="#FBBF24">60 sec</text>
   <line x1="260" y1="198" x2="275" y2="198" stroke="#1e293b" stroke-width="1.5" marker-end="url(#arrow2)"/>
-  <rect x="280" y="162" width="105" height="72" rx="8" fill="#ffffff" stroke="#f59e0b" stroke-width="2"/>
-  <circle cx="300" cy="180" r="10" fill="#f59e0b"/><text x="300" y="184" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">7</text>
+  <rect x="280" y="162" width="105" height="72" rx="8" fill="#ffffff" stroke="#FBBF24" stroke-width="2"/>
+  <circle cx="300" cy="180" r="10" fill="#FBBF24"/><text x="300" y="184" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">7</text>
   <text x="332" y="184" font-size="10" font-weight="bold" fill="#1e293b">GTM</text>
   <text x="290" y="202" font-size="9" fill="#64748b">Acquisition plan</text>
-  <text x="290" y="216" font-size="9" fill="#f59e0b">60 sec</text>
+  <text x="290" y="216" font-size="9" fill="#FBBF24">60 sec</text>
   <line x1="390" y1="198" x2="405" y2="198" stroke="#1e293b" stroke-width="1.5" marker-end="url(#arrow2)"/>
-  <rect x="410" y="162" width="105" height="72" rx="8" fill="#ffffff" stroke="#f59e0b" stroke-width="2"/>
-  <circle cx="430" cy="180" r="10" fill="#f59e0b"/><text x="430" y="184" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">8</text>
+  <rect x="410" y="162" width="105" height="72" rx="8" fill="#ffffff" stroke="#FBBF24" stroke-width="2"/>
+  <circle cx="430" cy="180" r="10" fill="#FBBF24"/><text x="430" y="184" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">8</text>
   <text x="454" y="184" font-size="10" font-weight="bold" fill="#1e293b">Competition</text>
   <text x="420" y="202" font-size="9" fill="#64748b">Moat + matrix</text>
-  <text x="420" y="216" font-size="9" fill="#f59e0b">60 sec</text>
+  <text x="420" y="216" font-size="9" fill="#FBBF24">60 sec</text>
   <!-- Row 3 -->
-  <rect x="20" y="254" width="105" height="72" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
-  <circle cx="40" cy="272" r="10" fill="#2563eb"/><text x="40" y="276" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">9</text>
+  <rect x="20" y="254" width="105" height="72" rx="8" fill="#ffffff" stroke="#3B7DD8" stroke-width="2"/>
+  <circle cx="40" cy="272" r="10" fill="#3B7DD8"/><text x="40" y="276" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">9</text>
   <text x="72" y="276" font-size="11" font-weight="bold" fill="#1e293b">Team</text>
   <text x="30" y="294" font-size="9" fill="#64748b">Track record</text>
-  <text x="30" y="308" font-size="9" fill="#2563eb">45 sec</text>
+  <text x="30" y="308" font-size="9" fill="#3B7DD8">45 sec</text>
   <line x1="130" y1="290" x2="145" y2="290" stroke="#1e293b" stroke-width="1.5" marker-end="url(#arrow2)"/>
-  <rect x="150" y="254" width="105" height="72" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
-  <circle cx="170" cy="272" r="10" fill="#2563eb"/><text x="170" y="276" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">10</text>
+  <rect x="150" y="254" width="105" height="72" rx="8" fill="#ffffff" stroke="#3B7DD8" stroke-width="2"/>
+  <circle cx="170" cy="272" r="10" fill="#3B7DD8"/><text x="170" y="276" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">10</text>
   <text x="196" y="276" font-size="10" font-weight="bold" fill="#1e293b">Financials</text>
   <text x="160" y="294" font-size="9" fill="#64748b">3-year forecast</text>
-  <text x="160" y="308" font-size="9" fill="#2563eb">60 sec</text>
+  <text x="160" y="308" font-size="9" fill="#3B7DD8">60 sec</text>
   <line x1="260" y1="290" x2="275" y2="290" stroke="#1e293b" stroke-width="1.5" marker-end="url(#arrow2)"/>
   <rect x="280" y="254" width="105" height="72" rx="8" fill="#ffffff" stroke="#10b981" stroke-width="2"/>
   <circle cx="300" cy="272" r="10" fill="#10b981"/><text x="300" y="276" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">11</text>
@@ -108,9 +125,9 @@ This guide breaks down the exact 12-slide structure that aligns with Australian 
   <text x="610" y="182" text-anchor="middle" font-size="14" font-weight="bold" fill="#ffffff">Total Time</text>
   <text x="610" y="210" text-anchor="middle" font-size="22" font-weight="bold" fill="#10b981">~12 min</text>
   <!-- Legend -->
-  <rect x="130" y="360" width="12" height="12" rx="3" fill="#2563eb"/><text x="148" y="371" font-size="11" fill="#1e293b">Story Setup</text>
+  <rect x="130" y="360" width="12" height="12" rx="3" fill="#3B7DD8"/><text x="148" y="371" font-size="11" fill="#1e293b">Story Setup</text>
   <rect x="260" y="360" width="12" height="12" rx="3" fill="#10b981"/><text x="278" y="371" font-size="11" fill="#1e293b">Proof Points</text>
-  <rect x="390" y="360" width="12" height="12" rx="3" fill="#f59e0b"/><text x="408" y="371" font-size="11" fill="#1e293b">Business Mechanics</text>
+  <rect x="390" y="360" width="12" height="12" rx="3" fill="#FBBF24"/><text x="408" y="371" font-size="11" fill="#1e293b">Business Mechanics</text>
   <!-- Arrow marker -->
   <defs><marker id="arrow2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#1e293b"/></marker></defs>
 </svg>
@@ -143,6 +160,28 @@ Use the TAM (Total Addressable Market), SAM (Serviceable Available Market), and 
 *   **SOM:** The market share you can capture in the next 3-5 years.
 
 Do not just dump numbers. Explain *why* the market is growing. Is it regulatory tailwinds from the ATO? Is it a shift in consumer behavior? Cite sources like the **Startup Genome** report to validate your growth projections.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 170" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="170" fill="#0B1220" rx="12"/>
+  <text x="300" y="25" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FBBF24">INVESTOR ATTENTION FLOW</text>
+  <text x="300" y="42" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Where investors focus during a 12-minute pitch</text>
+  <!-- Attention bars -->
+  <text x="55" y="68" text-anchor="end" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Problem</text>
+  <rect x="60" y="56" width="200" height="14" fill="#3B7DD8" rx="3"/>
+  <text x="55" y="88" text-anchor="end" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Solution</text>
+  <rect x="60" y="76" width="170" height="14" fill="#3B7DD8" rx="3"/>
+  <text x="55" y="108" text-anchor="end" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Traction</text>
+  <rect x="60" y="96" width="460" height="14" fill="#10B981" rx="3"/>
+  <text x="530" y="108" font-family="Arial,sans-serif" font-size="9" fill="#10B981" font-weight="bold">PEAK</text>
+  <text x="55" y="128" text-anchor="end" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Product</text>
+  <rect x="60" y="116" width="380" height="14" fill="#FBBF24" rx="3"/>
+  <text x="55" y="148" text-anchor="end" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">The Ask</text>
+  <rect x="60" y="136" width="300" height="14" fill="#3B7DD8" rx="3"/>
+  <text x="300" y="165" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#F87171">Traction and Product demo get 50% of investor attention</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Investor attention allocation during a pitch presentation</figcaption>
+</figure>
 
 ## 4. Product: The "How It Works" Demo
 
@@ -207,6 +246,25 @@ Use a 2x2 matrix or a comparison table. On the X and Y axes, plot the most impor
 > *Note: Always be honest. If a competitor is stronger in one area, acknowledge it and explain your long-term strategy to close the gap.*
 
 Your "Moat" section should explain your defensibility. Is it proprietary data? Network effects? Regulatory licenses? Switching costs?
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 130" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="130" fill="#0B1220" rx="12"/>
+  <text x="300" y="25" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FBBF24">USE OF FUNDS BREAKDOWN (TYPICAL)</text>
+  <!-- Horizontal stacked bar -->
+  <rect x="40" y="45" width="208" height="35" fill="#3B7DD8" rx="4"/>
+  <text x="144" y="67" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">Engineering 40%</text>
+  <rect x="248" y="45" width="156" height="35" fill="#10B981" rx="4"/>
+  <text x="326" y="67" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">Sales/Mktg 30%</text>
+  <rect x="404" y="45" width="104" height="35" fill="#FBBF24" rx="4"/>
+  <text x="456" y="67" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#0B1220">Ops 20%</text>
+  <rect x="508" y="45" width="52" height="35" fill="#F87171" rx="4"/>
+  <text x="534" y="67" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="white">10%</text>
+  <text x="534" y="98" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#94a3b8">Reserve</text>
+  <text x="300" y="120" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Always show investors exactly where their capital goes and the runway it provides</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Typical use of funds breakdown for Australian startup raises</figcaption>
+</figure>
 
 ## 9. The Team: Why You?
 
@@ -278,25 +336,25 @@ End with a clear call to action. "Join us in revolutionizing [Industry]."
   <line x1="120" y1="340" x2="670" y2="340" stroke="#1e293b" stroke-width="1"/>
   <!-- Bars (horizontal) -->
   <text x="112" y="88" text-anchor="end" font-size="10" fill="#1e293b">Problem</text>
-  <rect x="125" y="76" width="240" height="20" rx="4" fill="#2563eb"/><text x="375" y="91" font-size="10" fill="#2563eb" font-weight="bold">60s</text>
+  <rect x="125" y="76" width="240" height="20" rx="4" fill="#3B7DD8"/><text x="375" y="91" font-size="10" fill="#3B7DD8" font-weight="bold">60s</text>
   <text x="112" y="112" text-anchor="end" font-size="10" fill="#1e293b">Solution</text>
-  <rect x="125" y="100" width="240" height="20" rx="4" fill="#2563eb"/><text x="375" y="115" font-size="10" fill="#2563eb" font-weight="bold">60s</text>
+  <rect x="125" y="100" width="240" height="20" rx="4" fill="#3B7DD8"/><text x="375" y="115" font-size="10" fill="#3B7DD8" font-weight="bold">60s</text>
   <text x="112" y="136" text-anchor="end" font-size="10" fill="#1e293b">Market</text>
-  <rect x="125" y="124" width="180" height="20" rx="4" fill="#2563eb"/><text x="315" y="139" font-size="10" fill="#2563eb" font-weight="bold">45s</text>
+  <rect x="125" y="124" width="180" height="20" rx="4" fill="#3B7DD8"/><text x="315" y="139" font-size="10" fill="#3B7DD8" font-weight="bold">45s</text>
   <text x="112" y="160" text-anchor="end" font-size="10" fill="#1e293b">Product</text>
   <rect x="125" y="148" width="360" height="20" rx="4" fill="#10b981"/><text x="495" y="163" font-size="10" fill="#10b981" font-weight="bold">90s</text>
   <text x="112" y="184" text-anchor="end" font-size="10" fill="#1e293b">Traction</text>
   <rect x="125" y="172" width="360" height="20" rx="4" fill="#10b981"/><text x="495" y="187" font-size="10" fill="#10b981" font-weight="bold">90s</text>
   <text x="112" y="208" text-anchor="end" font-size="10" fill="#1e293b">Biz Model</text>
-  <rect x="125" y="196" width="240" height="20" rx="4" fill="#f59e0b"/><text x="375" y="211" font-size="10" fill="#f59e0b" font-weight="bold">60s</text>
+  <rect x="125" y="196" width="240" height="20" rx="4" fill="#FBBF24"/><text x="375" y="211" font-size="10" fill="#FBBF24" font-weight="bold">60s</text>
   <text x="112" y="232" text-anchor="end" font-size="10" fill="#1e293b">GTM</text>
-  <rect x="125" y="220" width="240" height="20" rx="4" fill="#f59e0b"/><text x="375" y="235" font-size="10" fill="#f59e0b" font-weight="bold">60s</text>
+  <rect x="125" y="220" width="240" height="20" rx="4" fill="#FBBF24"/><text x="375" y="235" font-size="10" fill="#FBBF24" font-weight="bold">60s</text>
   <text x="112" y="256" text-anchor="end" font-size="10" fill="#1e293b">Competition</text>
-  <rect x="125" y="244" width="240" height="20" rx="4" fill="#f59e0b"/><text x="375" y="259" font-size="10" fill="#f59e0b" font-weight="bold">60s</text>
+  <rect x="125" y="244" width="240" height="20" rx="4" fill="#FBBF24"/><text x="375" y="259" font-size="10" fill="#FBBF24" font-weight="bold">60s</text>
   <text x="112" y="280" text-anchor="end" font-size="10" fill="#1e293b">Team</text>
-  <rect x="125" y="268" width="180" height="20" rx="4" fill="#2563eb"/><text x="315" y="283" font-size="10" fill="#2563eb" font-weight="bold">45s</text>
+  <rect x="125" y="268" width="180" height="20" rx="4" fill="#3B7DD8"/><text x="315" y="283" font-size="10" fill="#3B7DD8" font-weight="bold">45s</text>
   <text x="112" y="304" text-anchor="end" font-size="10" fill="#1e293b">Financials</text>
-  <rect x="125" y="292" width="240" height="20" rx="4" fill="#2563eb"/><text x="375" y="307" font-size="10" fill="#2563eb" font-weight="bold">60s</text>
+  <rect x="125" y="292" width="240" height="20" rx="4" fill="#3B7DD8"/><text x="375" y="307" font-size="10" fill="#3B7DD8" font-weight="bold">60s</text>
   <text x="112" y="328" text-anchor="end" font-size="10" fill="#1e293b">Ask + Vision</text>
   <rect x="125" y="316" width="180" height="20" rx="4" fill="#10b981"/><text x="315" y="331" font-size="10" fill="#10b981" font-weight="bold">90s total</text>
   <!-- Note -->

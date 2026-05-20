@@ -4,6 +4,20 @@ For most Australian founders, the fundraising journey feels like a sprint toward
 
 This phase is **pre-diligence**.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="120" fill="#0B1220" rx="12"/>
+  <text x="300" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FBBF24">THE PRE-DILIGENCE REALITY</text>
+  <text x="150" y="70" text-anchor="middle" font-family="Arial,sans-serif" font-size="36" font-weight="bold" fill="#F87171">80%</text>
+  <text x="150" y="95" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">of DD deals fall through</text>
+  <text x="150" y="108" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#F87171">due to poor preparation</text>
+  <text x="450" y="70" text-anchor="middle" font-family="Arial,sans-serif" font-size="36" font-weight="bold" fill="#10B981">30%</text>
+  <text x="450" y="95" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">faster deal close</text>
+  <text x="450" y="108" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#10B981">with proper pre-diligence</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Why pre-diligence preparation separates successful raises from failures</figcaption>
+</figure>
+
 Pre-diligence is the rigorous, often unglamorous work you do to prepare your business for scrutiny *before* an investor even asks a single question. It is the foundation of trust. Due diligence, by contrast, is the formal investigation investors conduct after they have expressed serious interest and often after issuing a term sheet.
 
 The distinction is critical. If pre-diligence is laying the bricks, due diligence is the structural engineer's inspection. You cannot pass the inspection if the bricks were laid crookedly. In the current Australian market, where competition for Series A funding is fierce and investors are deploying capital with surgical precision, the gap between these two phases determines whether you close your round or watch it evaporate.
@@ -61,18 +75,18 @@ The cost of skipping pre-diligence isn't just a delayed closing; it's the loss o
   <line x1="640" y1="175" x2="640" y2="185" stroke="#1e293b" stroke-width="2"/>
   <text x="640" y="200" text-anchor="middle" font-size="10" fill="#64748b">Month 12</text>
   <!-- Pre-Diligence phases (above timeline) -->
-  <rect x="60" y="70" width="192" height="38" fill="#2563eb" rx="6"/>
+  <rect x="60" y="70" width="192" height="38" fill="#3B7DD8" rx="6"/>
   <text x="156" y="93" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">Self-Audit &amp; Fix Gaps</text>
-  <text x="156" y="60" text-anchor="middle" font-size="12" font-weight="bold" fill="#2563eb">PRE-DILIGENCE (Founder-Led)</text>
-  <rect x="253" y="70" width="97" height="38" fill="#2563eb" opacity="0.8" rx="6"/>
+  <text x="156" y="60" text-anchor="middle" font-size="12" font-weight="bold" fill="#3B7DD8">PRE-DILIGENCE (Founder-Led)</text>
+  <rect x="253" y="70" width="97" height="38" fill="#3B7DD8" opacity="0.8" rx="6"/>
   <text x="301" y="93" text-anchor="middle" font-size="11" fill="#fff">Build Data Room</text>
   <rect x="350" y="70" width="97" height="38" fill="#10b981" rx="6"/>
   <text x="398" y="93" text-anchor="middle" font-size="11" fill="#fff">Investor Outreach</text>
   <!-- Due Diligence phases (below timeline) -->
-  <text x="446" y="230" text-anchor="middle" font-size="12" font-weight="bold" fill="#f59e0b">DUE DILIGENCE (Investor-Led)</text>
-  <rect x="350" y="240" width="97" height="38" fill="#f59e0b" rx="6"/>
+  <text x="446" y="230" text-anchor="middle" font-size="12" font-weight="bold" fill="#FBBF24">DUE DILIGENCE (Investor-Led)</text>
+  <rect x="350" y="240" width="97" height="38" fill="#FBBF24" rx="6"/>
   <text x="398" y="263" text-anchor="middle" font-size="11" fill="#fff">Term Sheet</text>
-  <rect x="446" y="240" width="97" height="38" fill="#f59e0b" opacity="0.8" rx="6"/>
+  <rect x="446" y="240" width="97" height="38" fill="#FBBF24" opacity="0.8" rx="6"/>
   <text x="495" y="263" text-anchor="middle" font-size="11" fill="#fff">DD Review</text>
   <rect x="543" y="240" width="97" height="38" fill="#1e293b" rx="6"/>
   <text x="592" y="263" text-anchor="middle" font-size="11" fill="#fff">Close &amp; Fund</text>
@@ -81,8 +95,8 @@ The cost of skipping pre-diligence isn't just a delayed closing; it's the loss o
   <circle cx="350" cy="180" r="8" fill="#1e293b"/>
   <text x="350" y="184" text-anchor="middle" font-size="8" fill="#fff">GO</text>
   <!-- Legend -->
-  <rect x="130" y="305" width="14" height="14" fill="#2563eb" rx="2"/><text x="150" y="317" font-size="11" fill="#1e293b">Pre-Diligence (You control)</text>
-  <rect x="330" y="305" width="14" height="14" fill="#f59e0b" rx="2"/><text x="350" y="317" font-size="11" fill="#1e293b">Due Diligence (Investor controls)</text>
+  <rect x="130" y="305" width="14" height="14" fill="#3B7DD8" rx="2"/><text x="150" y="317" font-size="11" fill="#1e293b">Pre-Diligence (You control)</text>
+  <rect x="330" y="305" width="14" height="14" fill="#FBBF24" rx="2"/><text x="350" y="317" font-size="11" fill="#1e293b">Due Diligence (Investor controls)</text>
   <rect x="530" y="305" width="14" height="14" fill="#1e293b" rx="2"/><text x="550" y="317" font-size="11" fill="#1e293b">Closing</text>
 </svg>
 
@@ -93,6 +107,24 @@ The cost of skipping pre-diligence isn't just a delayed closing; it's the loss o
 Why do so many Australian startups fail during the investor due diligence phase? The answer is rarely a lack of innovation. It is almost always a failure of preparation.
 
 The most common failure point is **financial inconsistency**. Founders often rely on rough estimates from spreadsheets that haven't been reconciled with bank accounts or tax returns. When an investor asks for your burn rate for the last 12 months, and you can only provide a guess, you lose credibility instantly.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 160" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="160" fill="#0B1220" rx="12"/>
+  <text x="300" y="25" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FBBF24">TOP DD FAILURE POINTS</text>
+  <!-- Bars -->
+  <text x="140" y="55" text-anchor="end" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Financial inconsistency</text>
+  <rect x="145" y="42" width="400" height="16" fill="#F87171" rx="3"/><text x="555" y="54" font-family="Arial,sans-serif" font-size="9" fill="white">38%</text>
+  <text x="140" y="80" text-anchor="end" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Legal fragmentation</text>
+  <rect x="145" y="67" width="300" height="16" fill="#FBBF24" rx="3"/><text x="455" y="79" font-family="Arial,sans-serif" font-size="9" fill="white">28%</text>
+  <text x="140" y="105" text-anchor="end" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Messy cap table</text>
+  <rect x="145" y="92" width="220" height="16" fill="#3B7DD8" rx="3"/><text x="375" y="104" font-family="Arial,sans-serif" font-size="9" fill="white">21%</text>
+  <text x="140" y="130" text-anchor="end" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">IP ownership unclear</text>
+  <rect x="145" y="117" width="135" height="16" fill="#3B7DD8" opacity="0.7" rx="3"/><text x="290" y="129" font-family="Arial,sans-serif" font-size="9" fill="white">13%</text>
+  <text x="300" y="155" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Source: Aggregated data from Australian fundraising outcomes</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Most common due diligence failure points for Australian startups</figcaption>
+</figure>
 
 Another frequent culprit is **legal fragmentation**. In Australia, it is common for founders to operate with a mix of verbal agreements, email confirmations, and outdated contracts. Intellectual property (IP) ownership is often unclear because it was never formally assigned from the founders or contractors to the company entity. This is a massive red flag for institutional investors who require clean title to the core assets of the business.
 
@@ -139,12 +171,12 @@ To avoid being part of the 80% that fail, you need a systematic approach. You ca
   <!-- Financial Records -->
   <text x="60" y="90" font-size="12" font-weight="bold" fill="#1e293b">Financial Records</text>
   <rect x="220" y="76" width="420" height="22" fill="#e2e8f0" rx="4"/>
-  <rect x="220" y="76" width="378" height="22" fill="#2563eb" rx="4"/>
+  <rect x="220" y="76" width="378" height="22" fill="#3B7DD8" rx="4"/>
   <text x="630" y="92" font-size="11" fill="#1e293b" font-weight="bold">90%</text>
   <!-- Cap Table -->
   <text x="60" y="125" font-size="12" font-weight="bold" fill="#1e293b">Cap Table</text>
   <rect x="220" y="111" width="420" height="22" fill="#e2e8f0" rx="4"/>
-  <rect x="220" y="111" width="357" height="22" fill="#2563eb" rx="4"/>
+  <rect x="220" y="111" width="357" height="22" fill="#3B7DD8" rx="4"/>
   <text x="630" y="127" font-size="11" fill="#1e293b" font-weight="bold">85%</text>
   <!-- IP Ownership -->
   <text x="60" y="160" font-size="12" font-weight="bold" fill="#1e293b">IP Ownership</text>
@@ -159,27 +191,27 @@ To avoid being part of the 80% that fail, you need a systematic approach. You ca
   <!-- Contracts -->
   <text x="60" y="230" font-size="12" font-weight="bold" fill="#1e293b">Contracts</text>
   <rect x="220" y="216" width="420" height="22" fill="#e2e8f0" rx="4"/>
-  <rect x="220" y="216" width="273" height="22" fill="#f59e0b" rx="4"/>
+  <rect x="220" y="216" width="273" height="22" fill="#FBBF24" rx="4"/>
   <text x="630" y="232" font-size="11" fill="#1e293b" font-weight="bold">65%</text>
   <!-- ASIC Filings -->
   <text x="60" y="265" font-size="12" font-weight="bold" fill="#1e293b">ASIC Filings</text>
   <rect x="220" y="251" width="420" height="22" fill="#e2e8f0" rx="4"/>
-  <rect x="220" y="251" width="252" height="22" fill="#f59e0b" rx="4"/>
+  <rect x="220" y="251" width="252" height="22" fill="#FBBF24" rx="4"/>
   <text x="630" y="267" font-size="11" fill="#1e293b" font-weight="bold">60%</text>
   <!-- Tax Compliance -->
   <text x="60" y="300" font-size="12" font-weight="bold" fill="#1e293b">Tax Compliance</text>
   <rect x="220" y="286" width="420" height="22" fill="#e2e8f0" rx="4"/>
-  <rect x="220" y="286" width="231" height="22" fill="#f59e0b" rx="4"/>
+  <rect x="220" y="286" width="231" height="22" fill="#FBBF24" rx="4"/>
   <text x="630" y="302" font-size="11" fill="#1e293b" font-weight="bold">55%</text>
   <!-- Data Privacy -->
   <text x="60" y="335" font-size="12" font-weight="bold" fill="#1e293b">Data Privacy</text>
   <rect x="220" y="321" width="420" height="22" fill="#e2e8f0" rx="4"/>
-  <rect x="220" y="321" width="210" height="22" fill="#f59e0b" rx="4"/>
+  <rect x="220" y="321" width="210" height="22" fill="#FBBF24" rx="4"/>
   <text x="630" y="337" font-size="11" fill="#1e293b" font-weight="bold">50%</text>
   <!-- Legend -->
-  <rect x="140" y="365" width="14" height="14" fill="#2563eb" rx="2"/><text x="160" y="377" font-size="11" fill="#1e293b">Ready (80%+)</text>
+  <rect x="140" y="365" width="14" height="14" fill="#3B7DD8" rx="2"/><text x="160" y="377" font-size="11" fill="#1e293b">Ready (80%+)</text>
   <rect x="280" y="365" width="14" height="14" fill="#10b981" rx="2"/><text x="300" y="377" font-size="11" fill="#1e293b">Good (70–79%)</text>
-  <rect x="420" y="365" width="14" height="14" fill="#f59e0b" rx="2"/><text x="440" y="377" font-size="11" fill="#1e293b">Needs Work (&lt;70%)</text>
+  <rect x="420" y="365" width="14" height="14" fill="#FBBF24" rx="2"/><text x="440" y="377" font-size="11" fill="#1e293b">Needs Work (&lt;70%)</text>
 </svg>
 
 > **Start Your Pre-Diligence journey today and uncover your business readiness score.** [Start Your Pre-Diligence →](/score)
@@ -195,6 +227,39 @@ Once you have nailed the pre-diligence phase, you will face the investor's check
 *   **Financial Review:** Detailed breakdown of revenue, margins, and payroll costs, often requiring a third-party accountant's verification.
 
 The difference between a founder who has done pre-diligence and one who hasn't is the speed and confidence of the response. A prepared founder can share the data room in 24 hours. An unprepared founder takes weeks, during which time the investor's enthusiasm cools, and competitor deals are signed.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 180" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="180" fill="#0B1220" rx="12"/>
+  <text x="300" y="25" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FBBF24">INVESTOR DD PROCESS FLOW</text>
+  <!-- Flow boxes -->
+  <rect x="20" y="45" width="100" height="45" fill="#3B7DD8" rx="6"/>
+  <text x="70" y="65" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="white">Data Room</text>
+  <text x="70" y="78" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#dbeafe">Shared in 24hrs</text>
+  <path d="M125 67 L140 67" stroke="#FBBF24" stroke-width="2" marker-end="url(#ddArr)"/>
+  <rect x="145" y="45" width="100" height="45" fill="#3B7DD8" rx="6"/>
+  <text x="195" y="65" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="white">Customer DD</text>
+  <text x="195" y="78" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#dbeafe">Ref calls top 5-10</text>
+  <path d="M250 67 L265 67" stroke="#FBBF24" stroke-width="2" marker-end="url(#ddArr)"/>
+  <rect x="270" y="45" width="100" height="45" fill="#10B981" rx="6"/>
+  <text x="320" y="65" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="white">Tech Review</text>
+  <text x="320" y="78" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#dcfce7">Code + security</text>
+  <path d="M375 67 L390 67" stroke="#FBBF24" stroke-width="2" marker-end="url(#ddArr)"/>
+  <rect x="395" y="45" width="85" height="45" fill="#FBBF24" rx="6"/>
+  <text x="437" y="65" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#0B1220">Legal</text>
+  <text x="437" y="78" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#0B1220">Contracts + IP</text>
+  <path d="M485 67 L498 67" stroke="#FBBF24" stroke-width="2" marker-end="url(#ddArr)"/>
+  <rect x="503" y="45" width="80" height="45" fill="#10B981" rx="6"/>
+  <text x="543" y="65" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="white">Close</text>
+  <text x="543" y="78" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#dcfce7">Fund transfer</text>
+  <!-- Timeline -->
+  <text x="300" y="120" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="white">Prepared founder: 2-4 weeks</text>
+  <text x="300" y="140" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#F87171">Unprepared founder: 8-12 weeks (deal often dies)</text>
+  <text x="300" y="165" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">65% of fundraising failures traced to admin and legal gaps, not product</text>
+  <defs><marker id="ddArr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#FBBF24"/></marker></defs>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">How investor due diligence unfolds for prepared vs unprepared founders</figcaption>
+</figure>
 
 > **Pre-Diligence to Due Diligence: The Fundraising Timeline**
 >

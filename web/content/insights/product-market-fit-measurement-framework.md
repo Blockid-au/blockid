@@ -10,6 +10,23 @@ The Sean Ellis Test remains the gold standard for this measurement, but it requi
 
 If you are building in fintech, SaaS, or deep tech, relying on "gut feeling" is a strategy for failure. You need a framework that converts user sentiment into hard data points that align with ASIC regulations and investor expectations. This is where the BlockID approach to valuation diverges from traditional methods, integrating PMF metrics directly into your Startup Value Index (SVI).
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 130" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="130" fill="#0B1220" rx="12"/>
+  <text x="300" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FBBF24">PMF: THE NUMBERS THAT MATTER</text>
+  <text x="100" y="70" text-anchor="middle" font-family="Arial,sans-serif" font-size="32" font-weight="bold" fill="#10B981">40%</text>
+  <text x="100" y="92" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Sean Ellis threshold</text>
+  <text x="100" y="105" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">"Very disappointed"</text>
+  <text x="300" y="70" text-anchor="middle" font-family="Arial,sans-serif" font-size="32" font-weight="bold" fill="#F87171">90%</text>
+  <text x="300" y="92" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">of startups fail; most</text>
+  <text x="300" y="105" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">cite lack of market fit</text>
+  <text x="500" y="70" text-anchor="middle" font-family="Arial,sans-serif" font-size="32" font-weight="bold" fill="#3B7DD8">40+</text>
+  <text x="500" y="92" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Active users needed</text>
+  <text x="500" y="105" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">for valid survey</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Core product-market fit metrics every founder should track</figcaption>
+</figure>
+
 ## The Sean Ellis Test: Quantifying the "Very Disappointed" Threshold
 
 The most widely accepted method for measuring product-market fit was developed by Sean Ellis, the growth hacker behind Dropbox and Eventbrite. The premise is simple but unforgiving: ask your users one specific question.
@@ -54,7 +71,7 @@ When conducting this survey, do not offer it to beta testers or friends. Your sa
   <!-- Red zone: 0-15% (No Fit) -->
   <path d="M 130 240 A 200 200 0 0 1 175 130" fill="none" stroke="#ef4444" stroke-width="35" stroke-linecap="round"/>
   <!-- Orange zone: 15-25% (Weak) -->
-  <path d="M 175 130 A 200 200 0 0 1 250 72" fill="none" stroke="#f59e0b" stroke-width="35" stroke-linecap="round"/>
+  <path d="M 175 130 A 200 200 0 0 1 250 72" fill="none" stroke="#FBBF24" stroke-width="35" stroke-linecap="round"/>
   <!-- Yellow zone: 25-40% (Close) -->
   <path d="M 250 72 A 200 200 0 0 1 395 55" fill="none" stroke="#fbbf24" stroke-width="35" stroke-linecap="round"/>
   <!-- Green zone: 40%+ (PMF Achieved) -->
@@ -72,14 +89,14 @@ When conducting this survey, do not offer it to beta testers or friends. Your sa
   <text x="350" y="286" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Scale with confidence</text>
   <!-- Zone labels -->
   <text x="110" y="250" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#ef4444" font-weight="bold">&lt;15%</text>
-  <text x="160" y="125" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#f59e0b" font-weight="bold">25%</text>
+  <text x="160" y="125" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#FBBF24" font-weight="bold">25%</text>
   <text x="570" y="250" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#10b981" font-weight="bold">60%+</text>
   <!-- Legend -->
   <rect x="80" y="308" width="120" height="34" fill="white" stroke="#ef4444" stroke-width="1.5" rx="6"/>
   <text x="140" y="322" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#ef4444">NO FIT</text>
   <text x="140" y="336" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#64748b">&lt;15% — Pivot needed</text>
-  <rect x="215" y="308" width="120" height="34" fill="white" stroke="#f59e0b" stroke-width="1.5" rx="6"/>
-  <text x="275" y="322" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#f59e0b">WEAK</text>
+  <rect x="215" y="308" width="120" height="34" fill="white" stroke="#FBBF24" stroke-width="1.5" rx="6"/>
+  <text x="275" y="322" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#FBBF24">WEAK</text>
   <text x="275" y="336" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#64748b">15-24% — Major changes</text>
   <rect x="350" y="308" width="120" height="34" fill="white" stroke="#fbbf24" stroke-width="1.5" rx="6"/>
   <text x="410" y="322" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#fbbf24">CLOSE</text>
@@ -111,6 +128,34 @@ Different sectors in Australia have different retention baselines. A B2B SaaS pl
 When analyzing your retention, you must look at **cohort analysis**, not just aggregate numbers. Aggregate data hides the truth. You might see overall retention rising because you are acquiring many new users, even if your old users are churning faster.
 
 Cohort analysis groups users by their start date. If your Q1 2024 cohort has a 50% retention rate at month 6, and your Q2 2024 cohort drops to 40%, your product is getting worse, not better. This is a critical early warning signal that often goes unnoticed until the runway runs dry.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 200" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="200" fill="#0B1220" rx="12"/>
+  <text x="300" y="25" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FBBF24">RETENTION CURVE: HEALTHY vs LEAKY BUCKET</text>
+  <!-- Axes -->
+  <line x1="70" y1="40" x2="70" y2="160" stroke="#3B7DD8" stroke-width="1.5"/>
+  <line x1="70" y1="160" x2="560" y2="160" stroke="#3B7DD8" stroke-width="1.5"/>
+  <text x="60" y="48" text-anchor="end" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">100%</text>
+  <text x="60" y="100" text-anchor="end" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">50%</text>
+  <text x="60" y="163" text-anchor="end" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">0%</text>
+  <text x="70" y="178" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">M0</text>
+  <text x="192" y="178" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">M2</text>
+  <text x="315" y="178" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">M4</text>
+  <text x="437" y="178" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">M6</text>
+  <text x="560" y="178" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">M12</text>
+  <!-- Healthy curve (flattens) -->
+  <polyline points="70,42 150,70 230,85 315,92 400,95 480,97 560,98" fill="none" stroke="#10B981" stroke-width="2.5"/>
+  <text x="565" y="94" font-family="Arial,sans-serif" font-size="9" fill="#10B981">Healthy (flattens ~60%)</text>
+  <!-- Leaky bucket curve -->
+  <polyline points="70,42 150,80 230,110 315,130 400,142 480,150 560,156" fill="none" stroke="#F87171" stroke-width="2.5" stroke-dasharray="6,3"/>
+  <text x="565" y="152" font-family="Arial,sans-serif" font-size="9" fill="#F87171">Leaky bucket (trends to 0)</text>
+  <!-- PMF line -->
+  <line x1="70" y1="100" x2="560" y2="100" stroke="#FBBF24" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="300" y="196" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#FBBF24">Target: retention curve flattens above 50% at month 6 for B2B SaaS</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Healthy retention curve (flattening) vs leaky bucket (declining to zero)</figcaption>
+</figure>
 
 For Australian startups, regulatory compliance can also impact retention. If you are building in the fintech space, ensuring you meet ATO and ASIC requirements early can actually boost retention. Users in Australia are increasingly aware of data privacy and regulatory safety; a platform that demonstrates compliance becomes "sticky" because switching costs are perceived as high.
 
@@ -148,6 +193,27 @@ In the context of the **BlockID Startup Value Index (SVI)**, engagement is a wei
 > **The Engagement Trap:** Many founders celebrate "sign-ups" as engagement. They are not. A sign-up is a promise; engagement is proof. If your MAU is low relative to your total user base, you have a "ghost town" problem.
 
 For pre-seed founders, focus on **feature depth**. Do your users come back daily? Do they use multiple features? If they only use one feature and leave, you might have a "feature business" rather than a "platform business." Investors in the Australian market are looking for platforms that can expand into adjacent markets.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 150" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="150" fill="#0B1220" rx="12"/>
+  <text x="300" y="25" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FBBF24">ENGAGEMENT HEALTH CHECK</text>
+  <text x="30" y="55" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">DAU/MAU Ratio</text>
+  <rect x="140" y="42" width="100" height="18" fill="#F87171" rx="4"/><text x="140" y="54" font-family="Arial,sans-serif" font-size="8" fill="white" dx="5">&lt;10% Bad</text>
+  <rect x="240" y="42" width="120" height="18" fill="#FBBF24" rx="4"/><text x="240" y="54" font-family="Arial,sans-serif" font-size="8" fill="#0B1220" dx="5">10-20% OK</text>
+  <rect x="360" y="42" width="200" height="18" fill="#10B981" rx="4"/><text x="360" y="54" font-family="Arial,sans-serif" font-size="8" fill="white" dx="5">20%+ Healthy (50%+ world-class)</text>
+  <text x="30" y="82" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">Feature Adoption</text>
+  <rect x="140" y="69" width="120" height="18" fill="#F87171" rx="4"/><text x="140" y="81" font-family="Arial,sans-serif" font-size="8" fill="white" dx="5">&lt;30% Critical</text>
+  <rect x="260" y="69" width="120" height="18" fill="#FBBF24" rx="4"/><text x="260" y="81" font-family="Arial,sans-serif" font-size="8" fill="#0B1220" dx="5">30-60% Developing</text>
+  <rect x="380" y="69" width="180" height="18" fill="#10B981" rx="4"/><text x="380" y="81" font-family="Arial,sans-serif" font-size="8" fill="white" dx="5">60%+ Strong</text>
+  <text x="30" y="109" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">Time to Value</text>
+  <rect x="140" y="96" width="200" height="18" fill="#F87171" rx="4"/><text x="140" y="108" font-family="Arial,sans-serif" font-size="8" fill="white" dx="5">&gt;30 days = Lost users</text>
+  <rect x="340" y="96" width="100" height="18" fill="#FBBF24" rx="4"/><text x="340" y="108" font-family="Arial,sans-serif" font-size="8" fill="#0B1220" dx="5">7-30 days</text>
+  <rect x="440" y="96" width="120" height="18" fill="#10B981" rx="4"/><text x="440" y="108" font-family="Arial,sans-serif" font-size="8" fill="white" dx="5">&lt;7 days Ideal</text>
+  <text x="300" y="140" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Engagement is a leading indicator; retention and NPS are lagging indicators</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Key engagement metrics and their health thresholds</figcaption>
+</figure>
 
 > **The Sean Ellis Test: Step-by-Step Framework**
 >
@@ -200,14 +266,14 @@ For pre-seed founders, focus on **feature depth**. Do your users come back daily
   <line x1="180" y1="130" x2="520" y2="260" stroke="#e2e8f0" stroke-width="1"/>
   <line x1="520" y1="130" x2="180" y2="260" stroke="#e2e8f0" stroke-width="1"/>
   <!-- Data shape (sample good PMF) -->
-  <polygon points="350,90 505,140 490,250 350,300 200,245 195,135" fill="#2563eb" opacity="0.12" stroke="#2563eb" stroke-width="2.5"/>
+  <polygon points="350,90 505,140 490,250 350,300 200,245 195,135" fill="#3B7DD8" opacity="0.12" stroke="#3B7DD8" stroke-width="2.5"/>
   <!-- Data points -->
-  <circle cx="350" cy="90" r="5" fill="#2563eb"/>
-  <circle cx="505" cy="140" r="5" fill="#2563eb"/>
-  <circle cx="490" cy="250" r="5" fill="#2563eb"/>
-  <circle cx="350" cy="300" r="5" fill="#2563eb"/>
-  <circle cx="200" cy="245" r="5" fill="#2563eb"/>
-  <circle cx="195" cy="135" r="5" fill="#2563eb"/>
+  <circle cx="350" cy="90" r="5" fill="#3B7DD8"/>
+  <circle cx="505" cy="140" r="5" fill="#3B7DD8"/>
+  <circle cx="490" cy="250" r="5" fill="#3B7DD8"/>
+  <circle cx="350" cy="300" r="5" fill="#3B7DD8"/>
+  <circle cx="200" cy="245" r="5" fill="#3B7DD8"/>
+  <circle cx="195" cy="135" r="5" fill="#3B7DD8"/>
   <!-- Labels -->
   <text x="350" y="65" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="#1e293b">Sean Ellis Score</text>
   <text x="350" y="55" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#10b981">45% (Target: 40%+)</text>
@@ -216,13 +282,13 @@ For pre-seed founders, focus on **feature depth**. Do your users come back daily
   <text x="545" y="260" text-anchor="start" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="#1e293b">NPS</text>
   <text x="545" y="275" text-anchor="start" font-family="Arial,sans-serif" font-size="9" fill="#10b981">52 (Target: 50+)</text>
   <text x="350" y="332" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="#1e293b">DAU/MAU</text>
-  <text x="350" y="346" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#f59e0b">22% (Target: 20%+)</text>
+  <text x="350" y="346" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#FBBF24">22% (Target: 20%+)</text>
   <text x="155" y="260" text-anchor="end" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="#1e293b">NRR</text>
   <text x="155" y="275" text-anchor="end" font-family="Arial,sans-serif" font-size="9" fill="#10b981">112% (Target: 110%+)</text>
   <text x="155" y="125" text-anchor="end" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="#1e293b">Organic Growth</text>
   <text x="155" y="140" text-anchor="end" font-family="Arial,sans-serif" font-size="9" fill="#10b981">35% (Target: 30%+)</text>
   <!-- Legend -->
-  <rect x="195" y="368" width="14" height="14" fill="#2563eb" opacity="0.15" rx="3" stroke="#2563eb" stroke-width="1.5"/>
+  <rect x="195" y="368" width="14" height="14" fill="#3B7DD8" opacity="0.15" rx="3" stroke="#3B7DD8" stroke-width="1.5"/>
   <text x="215" y="380" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Current performance</text>
   <rect x="360" y="368" width="14" height="14" fill="none" rx="3" stroke="#e2e8f0" stroke-width="1.5"/>
   <text x="380" y="380" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Target benchmark (outer ring = excellent)</text>
@@ -288,25 +354,25 @@ To ensure you are systematically measuring product-market fit, follow this actio
 
 <svg viewBox="0 0 700 292" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
   <rect width="700" height="292" fill="#f8fafc" rx="12" stroke="#e2e8f0"/>
-  <rect width="700" height="44" fill="#2563eb" rx="12 12 0 0"/>
+  <rect width="700" height="44" fill="#3B7DD8" rx="12 12 0 0"/>
   <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="white">Key Takeaways: Measuring Product-Market Fit</text>
   <circle cx="40" cy="74" r="14" fill="#dbeafe"/>
-  <text x="40" y="79" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">1</text>
+  <text x="40" y="79" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">1</text>
   <text x="65" y="79" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Achieve 40%+ on the Sean Ellis &quot;very disappointed&quot; test with 40+ active users</text>
   <circle cx="40" cy="110" r="14" fill="#dbeafe"/>
-  <text x="40" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">2</text>
+  <text x="40" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">2</text>
   <text x="65" y="115" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Track Month-6 retention: target 50-70% for B2B and 20-30% for B2C products</text>
   <circle cx="40" cy="146" r="14" fill="#dbeafe"/>
-  <text x="40" y="151" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">3</text>
+  <text x="40" y="151" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">3</text>
   <text x="65" y="151" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Monitor Net Revenue Retention (NRR) above 110% as proof of expansion revenue</text>
   <circle cx="40" cy="182" r="14" fill="#dbeafe"/>
-  <text x="40" y="187" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">4</text>
+  <text x="40" y="187" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">4</text>
   <text x="65" y="187" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Use DAU/MAU ratio above 20% as a leading indicator of strong engagement</text>
   <circle cx="40" cy="218" r="14" fill="#dbeafe"/>
-  <text x="40" y="223" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">5</text>
+  <text x="40" y="223" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">5</text>
   <text x="65" y="223" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Australian B2B sales cycles are longer; calibrate PMF signals for local context</text>
   <rect x="20" y="256" width="660" height="32" fill="#eff6ff" rx="6"/>
-  <text x="350" y="277" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">Get your free Startup Value Index at blockid.au/score</text>
+  <text x="350" y="277" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#3B7DD8">Get your free Startup Value Index at blockid.au/score</text>
 </svg>
 
 

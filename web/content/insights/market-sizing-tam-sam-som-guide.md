@@ -10,6 +10,23 @@ To build a credible valuation, you must move beyond surface-level estimates. You
 
 > **The "1% of a $100B Market" Fallacy:** Just because you can reach a global market of $100 billion doesn't mean you can capture $1 billion. Investors care about your ability to execute in your specific **Serviceable Obtainable Market (SOM)** within the first 3-5 years.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="120" fill="#0B1220" rx="12"/>
+  <text x="300" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FBBF24">MARKET SIZING: THE INVESTOR REALITY</text>
+  <text x="120" y="68" text-anchor="middle" font-family="Arial,sans-serif" font-size="28" font-weight="bold" fill="#F87171">90%</text>
+  <text x="120" y="90" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">of "lazy TAM" claims</text>
+  <text x="120" y="103" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">rejected by VCs</text>
+  <text x="300" y="68" text-anchor="middle" font-family="Arial,sans-serif" font-size="28" font-weight="bold" fill="#3B7DD8">18%</text>
+  <text x="300" y="90" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">longer to Series A</text>
+  <text x="300" y="103" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">in AU vs US</text>
+  <text x="480" y="68" text-anchor="middle" font-family="Arial,sans-serif" font-size="28" font-weight="bold" fill="#10B981">SOM</text>
+  <text x="480" y="90" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">drives your Series A</text>
+  <text x="480" y="103" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">valuation, not TAM</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Why rigorous market sizing matters for Australian startup fundraising</figcaption>
+</figure>
+
 ## Deconstructing the Framework: TAM, SAM, and SOM Defined
 
 The TAM/SAM/SOM framework is not just jargon; it is a strategic funnel that narrows your focus from the theoretical maximum to the realistic immediate opportunity. Understanding the nuances of each layer is essential for accurate **total addressable market calculation**.
@@ -71,18 +88,18 @@ If you are struggling to quantify your SAM accurately, you are not alone. Many f
   <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#1e293b">TAM / SAM / SOM — Market Sizing Funnel</text>
   <text x="350" y="46" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Concentric market opportunity layers for investor pitches</text>
   <!-- TAM - outermost circle -->
-  <ellipse cx="350" cy="220" rx="300" ry="155" fill="#2563eb" opacity="0.12" stroke="#2563eb" stroke-width="2"/>
-  <text x="350" y="82" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="bold" fill="#2563eb">TAM</text>
-  <text x="350" y="98" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#2563eb">Total Addressable Market</text>
+  <ellipse cx="350" cy="220" rx="300" ry="155" fill="#3B7DD8" opacity="0.12" stroke="#3B7DD8" stroke-width="2"/>
+  <text x="350" y="82" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="bold" fill="#3B7DD8">TAM</text>
+  <text x="350" y="98" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#3B7DD8">Total Addressable Market</text>
   <text x="350" y="114" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#64748b">"Everyone who could ever buy this"</text>
-  <text x="620" y="140" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">$15B</text>
+  <text x="620" y="140" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">$15B</text>
   <text x="620" y="155" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#64748b">e.g. AU SaaS</text>
   <!-- SAM - middle circle -->
-  <ellipse cx="350" cy="230" rx="190" ry="105" fill="#f59e0b" opacity="0.15" stroke="#f59e0b" stroke-width="2"/>
-  <text x="350" y="148" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#f59e0b">SAM</text>
-  <text x="350" y="164" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#f59e0b">Serviceable Available Market</text>
+  <ellipse cx="350" cy="230" rx="190" ry="105" fill="#FBBF24" opacity="0.15" stroke="#FBBF24" stroke-width="2"/>
+  <text x="350" y="148" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FBBF24">SAM</text>
+  <text x="350" y="164" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#FBBF24">Serviceable Available Market</text>
   <text x="350" y="179" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#64748b">"Those we can actually reach &amp; serve"</text>
-  <text x="520" y="200" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#f59e0b">$2B</text>
+  <text x="520" y="200" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FBBF24">$2B</text>
   <text x="520" y="215" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#64748b">e.g. mid-market</text>
   <!-- SOM - innermost circle -->
   <ellipse cx="350" cy="250" rx="90" ry="60" fill="#10b981" opacity="0.2" stroke="#10b981" stroke-width="2.5"/>
@@ -91,9 +108,9 @@ If you are struggling to quantify your SAM accurately, you are not alone. Many f
   <text x="350" y="263" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#64748b">"What we capture in 1-3 yrs"</text>
   <text x="350" y="283" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#10b981">$10M</text>
   <!-- Bottom labels -->
-  <rect x="100" y="362" width="14" height="14" fill="#2563eb" opacity="0.3" rx="3" stroke="#2563eb"/>
+  <rect x="100" y="362" width="14" height="14" fill="#3B7DD8" opacity="0.3" rx="3" stroke="#3B7DD8"/>
   <text x="120" y="374" font-family="Arial,sans-serif" font-size="10" fill="#64748b">TAM: 10+ year vision</text>
-  <rect x="280" y="362" width="14" height="14" fill="#f59e0b" opacity="0.3" rx="3" stroke="#f59e0b"/>
+  <rect x="280" y="362" width="14" height="14" fill="#FBBF24" opacity="0.3" rx="3" stroke="#FBBF24"/>
   <text x="300" y="374" font-family="Arial,sans-serif" font-size="10" fill="#64748b">SAM: 3-5 year strategy</text>
   <rect x="460" y="362" width="14" height="14" fill="#10b981" opacity="0.3" rx="3" stroke="#10b981"/>
   <text x="480" y="374" font-family="Arial,sans-serif" font-size="10" fill="#64748b">SOM: 1-3 year plan (drives valuation)</text>
@@ -163,8 +180,8 @@ When you combine these methods, you can validate your assumptions. If your Botto
   <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#1e293b">Market Sizing Methodologies — Comparison</text>
   <!-- Card 1: Top-Down -->
   <rect x="15" y="48" width="160" height="230" fill="white" stroke="#e2e8f0" stroke-width="1.5" rx="8"/>
-  <rect x="15" y="48" width="160" height="36" fill="#2563eb" rx="8"/>
-  <rect x="15" y="76" width="160" height="8" fill="#2563eb"/>
+  <rect x="15" y="48" width="160" height="36" fill="#3B7DD8" rx="8"/>
+  <rect x="15" y="76" width="160" height="8" fill="#3B7DD8"/>
   <text x="95" y="72" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="white">Top-Down</text>
   <text x="30" y="105" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">How:</text>
   <text x="30" y="120" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Total market data,</text>
@@ -174,7 +191,7 @@ When you combine these methods, you can validate your assumptions. If your Botto
   <text x="30" y="192" font-family="Arial,sans-serif" font-size="10" fill="#ef4444" font-weight="bold">- Often inflated</text>
   <text x="30" y="207" font-family="Arial,sans-serif" font-size="10" fill="#ef4444" font-weight="bold">- "1% trap"</text>
   <rect x="30" y="225" width="130" height="22" fill="#dbeafe" rx="4"/>
-  <text x="95" y="240" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#2563eb">Best: TAM ceiling</text>
+  <text x="95" y="240" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#3B7DD8">Best: TAM ceiling</text>
   <!-- Card 2: Bottom-Up -->
   <rect x="185" y="48" width="160" height="230" fill="white" stroke="#10b981" stroke-width="2" rx="8"/>
   <rect x="185" y="48" width="160" height="36" fill="#10b981" rx="8"/>
@@ -191,8 +208,8 @@ When you combine these methods, you can validate your assumptions. If your Botto
   <text x="265" y="240" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#10b981">Best: SOM + pitch</text>
   <!-- Card 3: Value Theory -->
   <rect x="355" y="48" width="160" height="230" fill="white" stroke="#e2e8f0" stroke-width="1.5" rx="8"/>
-  <rect x="355" y="48" width="160" height="36" fill="#f59e0b" rx="8"/>
-  <rect x="355" y="76" width="160" height="8" fill="#f59e0b"/>
+  <rect x="355" y="48" width="160" height="36" fill="#FBBF24" rx="8"/>
+  <rect x="355" y="76" width="160" height="8" fill="#FBBF24"/>
   <text x="435" y="72" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="white">Value Theory</text>
   <text x="370" y="105" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">How:</text>
   <text x="370" y="120" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Value created for</text>
@@ -202,7 +219,7 @@ When you combine these methods, you can validate your assumptions. If your Botto
   <text x="370" y="192" font-family="Arial,sans-serif" font-size="10" fill="#ef4444" font-weight="bold">- Hard to quantify</text>
   <text x="370" y="207" font-family="Arial,sans-serif" font-size="10" fill="#ef4444" font-weight="bold">- Subjective</text>
   <rect x="370" y="225" width="130" height="22" fill="#fef3c7" rx="4"/>
-  <text x="435" y="240" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#f59e0b">Best: Enterprise SaaS</text>
+  <text x="435" y="240" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#FBBF24">Best: Enterprise SaaS</text>
   <!-- Card 4: Analogous -->
   <rect x="525" y="48" width="160" height="230" fill="white" stroke="#e2e8f0" stroke-width="1.5" rx="8"/>
   <rect x="525" y="48" width="160" height="36" fill="#8b5cf6" rx="8"/>
@@ -222,6 +239,25 @@ When you combine these methods, you can validate your assumptions. If your Botto
 ## Australian Data Sources and Regulatory Nuances
 
 Sizing a market in Australia requires more than just Google. The local ecosystem has unique characteristics, from its high cost of customer acquisition to its specific regulatory environment. Using global averages can lead to disastrous miscalculations.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 160" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="160" fill="#0B1220" rx="12"/>
+  <text x="300" y="25" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FBBF24">AU MARKET DATA: CONSTRUCTION COMPLIANCE EXAMPLE</text>
+  <text x="30" y="52" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">Top-Down TAM</text>
+  <rect x="170" y="39" width="400" height="18" fill="#3B7DD8" opacity="0.3" rx="4"/>
+  <text x="175" y="52" font-family="Arial,sans-serif" font-size="9" fill="white">$350B AU construction market x 2% = $7B compliance sw</text>
+  <text x="30" y="80" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">Filtered SAM</text>
+  <rect x="170" y="67" width="200" height="18" fill="#FBBF24" rx="4"/>
+  <text x="175" y="80" font-family="Arial,sans-serif" font-size="9" fill="#0B1220">30,000 mid-sized builders x $2K = $60M</text>
+  <text x="30" y="108" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">Realistic SOM</text>
+  <rect x="170" y="95" width="50" height="18" fill="#10B981" rx="4"/>
+  <text x="175" y="108" font-family="Arial,sans-serif" font-size="9" fill="white">$3M</text>
+  <text x="230" y="108" font-family="Arial,sans-serif" font-size="9" fill="#10B981">1,500 customers (5% of SAM in 3 years)</text>
+  <text x="300" y="145" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#F87171">Bottom-up SOM ($3M) is credible; top-down "1% of $7B" ($70M) is fantasy</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Practical market sizing example for Australian B2B startup</figcaption>
+</figure>
 
 ### Trusted Data Sources for Australian Founders
 
@@ -284,25 +320,25 @@ BlockID helps you bridge this gap. By analyzing your **Total Addressable Market 
 
 <svg viewBox="0 0 700 292" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
   <rect width="700" height="292" fill="#f8fafc" rx="12" stroke="#e2e8f0"/>
-  <rect width="700" height="44" fill="#2563eb" rx="12 12 0 0"/>
+  <rect width="700" height="44" fill="#3B7DD8" rx="12 12 0 0"/>
   <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="white">Key Takeaways: Market Sizing for Australian Startups</text>
   <circle cx="40" cy="74" r="14" fill="#dbeafe"/>
-  <text x="40" y="79" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">1</text>
+  <text x="40" y="79" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">1</text>
   <text x="65" y="79" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">SOM (not TAM) drives your Series A valuation; focus on the 1-3 year plan</text>
   <circle cx="40" cy="110" r="14" fill="#dbeafe"/>
-  <text x="40" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">2</text>
+  <text x="40" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">2</text>
   <text x="65" y="115" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Use bottom-up methodology for defensible numbers: customers x price = SOM</text>
   <circle cx="40" cy="146" r="14" fill="#dbeafe"/>
-  <text x="40" y="151" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">3</text>
+  <text x="40" y="151" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">3</text>
   <text x="65" y="151" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Triangulate top-down and bottom-up estimates to validate assumptions</text>
   <circle cx="40" cy="182" r="14" fill="#dbeafe"/>
-  <text x="40" y="187" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">4</text>
+  <text x="40" y="187" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">4</text>
   <text x="65" y="187" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Source data from ABS, IBISWorld, and ASIC for Australian-specific accuracy</text>
   <circle cx="40" cy="218" r="14" fill="#dbeafe"/>
-  <text x="40" y="223" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">5</text>
+  <text x="40" y="223" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">5</text>
   <text x="65" y="223" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Avoid the &quot;1% of a $100B market&quot; fallacy; investors see through it instantly</text>
   <rect x="20" y="256" width="660" height="32" fill="#eff6ff" rx="6"/>
-  <text x="350" y="277" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">Get your free Startup Value Index at blockid.au/score</text>
+  <text x="350" y="277" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#3B7DD8">Get your free Startup Value Index at blockid.au/score</text>
 </svg>
 
 

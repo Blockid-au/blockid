@@ -6,6 +6,19 @@ The decision between **venture debt vs equity** is rarely binary. In fact, the m
 
 Understanding the mechanics, terms, and strategic implications of each funding source is no longer optional; it is a fundamental requirement for scaling in the modern Australian economy. With interest rates fluctuating and venture capital becoming more selective, founders must be precise about their capital structure. This guide cuts through the noise to provide a clear, actionable framework for when to use **venture debt Australia**, how it compares to traditional equity rounds, and how to optimize your funding strategy for maximum valuation.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="120" rx="16" fill="#0B1220"/>
+  <text x="150" y="50" text-anchor="middle" fill="#3B7DD8" font-size="34" font-weight="700" font-family="system-ui">1-3%</text>
+  <text x="150" y="75" text-anchor="middle" fill="#94A3B8" font-size="12" font-family="system-ui">Dilution from venture debt</text>
+  <text x="150" y="95" text-anchor="middle" fill="#94A3B8" font-size="11" font-family="system-ui">(via warrants)</text>
+  <line x1="300" y1="20" x2="300" y2="100" stroke="#3B7DD8" stroke-width="1" opacity="0.3"/>
+  <text x="450" y="50" text-anchor="middle" fill="#F87171" font-size="34" font-weight="700" font-family="system-ui">10-25%</text>
+  <text x="450" y="75" text-anchor="middle" fill="#94A3B8" font-size="12" font-family="system-ui">Dilution from equity round</text>
+  <text x="450" y="95" text-anchor="middle" fill="#94A3B8" font-size="11" font-family="system-ui">(per round)</text>
+</svg>
+</figure>
+
 ## Understanding the Mechanics: How Venture Debt Works in Australia
 
 Venture debt is a form of non-recourse or limited-recourse debt provided to early-stage, high-growth companies that may not yet be profitable but possess strong venture capital backing. Unlike traditional bank loans that rely on historical cash flows and hard assets for collateral, venture debt providers look at the quality of your investors, your growth trajectory, and your cash burn rate.
@@ -17,6 +30,25 @@ The structure of a typical venture debt deal in Australia is distinct from a sta
 > **Key Insight:** Unlike traditional debt, venture debt is rarely used to fund operations from day one. It is strategically deployed to **extend your runway** between equity rounds or to finance specific capital expenditures (CapEx) like equipment or software licensing, allowing you to hit higher milestones before raising your next equity check.
 
 This non-dilutive nature (relative to a full equity round) is what makes **non-dilutive funding startup** strategies so attractive. By using debt, you are not selling a slice of your company at today's valuation. Instead, you are leveraging your future growth to bridge the gap to a higher valuation in the next round. However, this comes with strict covenants and the obligation to make monthly interest payments, which can strain cash flow if the business stalls.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 130" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="130" rx="12" fill="#0B1220"/>
+  <text x="300" y="25" text-anchor="middle" fill="#FFF" font-size="13" font-weight="700" font-family="system-ui">Cost of Capital: Debt vs Equity Over Time</text>
+  <rect x="30" y="45" width="160" height="60" rx="8" fill="#3B7DD8"/>
+  <text x="110" y="68" text-anchor="middle" fill="#FFF" font-size="12" font-weight="700" font-family="system-ui">Venture Debt</text>
+  <text x="110" y="88" text-anchor="middle" fill="#dbeafe" font-size="10" font-family="system-ui">8-15% interest + warrants</text>
+  <text x="110" y="100" text-anchor="middle" fill="#dbeafe" font-size="9" font-family="system-ui">Fixed, finite cost</text>
+  <text x="220" y="78" fill="#94A3B8" font-size="16" font-family="system-ui">vs</text>
+  <rect x="250" y="45" width="160" height="60" rx="8" fill="#F87171"/>
+  <text x="330" y="68" text-anchor="middle" fill="#FFF" font-size="12" font-weight="700" font-family="system-ui">Equity</text>
+  <text x="330" y="88" text-anchor="middle" fill="#fecaca" font-size="10" font-family="system-ui">Permanent ownership loss</text>
+  <text x="330" y="100" text-anchor="middle" fill="#fecaca" font-size="9" font-family="system-ui">Cost grows with valuation</text>
+  <rect x="430" y="50" width="150" height="50" rx="8" fill="#10B981" opacity="0.15" stroke="#10B981" stroke-width="1"/>
+  <text x="505" y="72" text-anchor="middle" fill="#10B981" font-size="11" font-weight="700" font-family="system-ui">Best: Hybrid</text>
+  <text x="505" y="90" text-anchor="middle" fill="#10B981" font-size="9" font-family="system-ui">Equity for PMF + Debt for scale</text>
+</svg>
+</figure>
 
 | Feature | Venture Debt | Equity Funding |
 |---------|-------------|----------------|
@@ -108,6 +140,28 @@ For Australian founders, the regulatory environment also plays a role. Under **A
 
 When you raise equity, you are essentially saying, "We need help to get to the next level, and we are willing to share the upside with those who help us." It is the right choice when you have not yet found product-market fit, your burn rate is unpredictable, or you need capital to build a product from scratch. However, once you have revenue, even if it is not profitable, the economics shift dramatically.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 140" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="140" rx="12" fill="#0B1220"/>
+  <text x="300" y="25" text-anchor="middle" fill="#FFF" font-size="13" font-weight="700" font-family="system-ui">Suitability Matrix: When to Use Each</text>
+  <rect x="20" y="45" width="170" height="70" rx="8" fill="#10B981"/>
+  <text x="105" y="68" text-anchor="middle" fill="#FFF" font-size="11" font-weight="700" font-family="system-ui">Use EQUITY when:</text>
+  <text x="105" y="85" text-anchor="middle" fill="#d1fae5" font-size="9" font-family="system-ui">Pre-revenue / No PMF</text>
+  <text x="105" y="98" text-anchor="middle" fill="#d1fae5" font-size="9" font-family="system-ui">High burn uncertainty</text>
+  <text x="105" y="111" text-anchor="middle" fill="#d1fae5" font-size="9" font-family="system-ui">Building from scratch</text>
+  <rect x="215" y="45" width="170" height="70" rx="8" fill="#3B7DD8"/>
+  <text x="300" y="68" text-anchor="middle" fill="#FFF" font-size="11" font-weight="700" font-family="system-ui">Use DEBT when:</text>
+  <text x="300" y="85" text-anchor="middle" fill="#dbeafe" font-size="9" font-family="system-ui">$1M+ ARR traction</text>
+  <text x="300" y="98" text-anchor="middle" fill="#dbeafe" font-size="9" font-family="system-ui">Extending runway to next round</text>
+  <text x="300" y="111" text-anchor="middle" fill="#dbeafe" font-size="9" font-family="system-ui">CapEx or working capital</text>
+  <rect x="410" y="45" width="170" height="70" rx="8" fill="#FBBF24"/>
+  <text x="495" y="68" text-anchor="middle" fill="#0B1220" font-size="11" font-weight="700" font-family="system-ui">Use HYBRID when:</text>
+  <text x="495" y="85" text-anchor="middle" fill="#0B1220" font-size="9" font-family="system-ui">Post-seed, scaling fast</text>
+  <text x="495" y="98" text-anchor="middle" fill="#0B1220" font-size="9" font-family="system-ui">Want to minimize dilution</text>
+  <text x="495" y="111" text-anchor="middle" fill="#0B1220" font-size="9" font-family="system-ui">Clear path to profitability</text>
+</svg>
+</figure>
+
 ## When Venture Debt Makes Sense: The Strategic Triggers
 
 So, when should an Australian founder pull the trigger on **venture debt**? It is not a one-size-fits-all solution. The sweet spot for **startup debt financing** typically occurs when a company has raised a significant equity round (Seed or Series A) and is burning cash to grow revenue, but wants to avoid diluting founders again just to buy time.
@@ -157,6 +211,20 @@ To truly understand the value of **non-dilutive funding**, you must look at the 
 *   **Future Impact:** If TechGrow exits for $100M, the cost of the debt is just the $2M principal + interest ($~$600k total). The equity upside remains largely intact.
 
 In this scenario, the difference is staggering. By using debt, the founders preserve **~15% ownership**. If the company achieves a $100M exit, that 15% translates to **$15 million** in additional value for the founding team. This is the power of **venture debt vs equity**.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 130" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="130" rx="16" fill="#0B1220"/>
+  <text x="300" y="28" text-anchor="middle" fill="#FFF" font-size="13" font-weight="700" font-family="system-ui">Dilution Impact: $2M Raise Comparison</text>
+  <text x="90" y="60" text-anchor="end" fill="#94A3B8" font-size="11" font-family="system-ui">Equity</text>
+  <rect x="100" y="47" width="350" height="22" rx="4" fill="#F87171"/>
+  <text x="460" y="63" fill="#F87171" font-size="11" font-weight="600" font-family="system-ui">16.7% dilution</text>
+  <text x="90" y="90" text-anchor="end" fill="#94A3B8" font-size="11" font-family="system-ui">Debt</text>
+  <rect x="100" y="77" width="35" height="22" rx="4" fill="#10B981"/>
+  <text x="145" y="93" fill="#10B981" font-size="11" font-weight="600" font-family="system-ui">1.7% dilution (warrants only)</text>
+  <text x="300" y="118" text-anchor="middle" fill="#FBBF24" font-size="11" font-family="system-ui">At $100M exit: debt saves founders ~$15M in value</text>
+</svg>
+</figure>
 
 However, this math assumes you can service the debt. If TechGrow fails to grow revenue and defaults on the loan, the lenders may have the right to seize assets or force a liquidation, wiping out the equity entirely. The risk profile is different: **Equity is risky for investors but safe for founders; Debt is safe for investors but risky for founders if cash flow breaks.**
 

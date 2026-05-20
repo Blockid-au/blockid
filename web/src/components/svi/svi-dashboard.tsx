@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
 import { EvidenceWizard } from "@/components/svi/evidence-wizard";
+import { SVIChart } from "@/components/svi/svi-chart";
+import { SVIDimensionCompare } from "@/components/svi/svi-dimension-compare";
 
 // Dimension weight labels (for tooltip)
 const DIM_WEIGHTS: Record<string, string> = {
@@ -226,33 +228,21 @@ export function SVIDashboard({ analysis, startupName, snapshotHistory }: SVIDash
       {/* Stage Journey */}
       <StageJourney currentStage={analysis.stage} />
 
-      {/* Snapshot History */}
+      {/* Snapshot History Chart */}
       {snapshotHistory && snapshotHistory.length > 0 && (
-        <div className="rounded-2xl border border-surface-200 bg-white px-6 py-5 shadow-sm">
-          <p className="text-xs uppercase tracking-[0.18em] text-ink-700 font-medium mb-4">Score History</p>
-          <div className="space-y-2">
-            {snapshotHistory.map((snap) => {
-              const deltaPositive = snap.delta !== null && snap.delta >= 0;
-              const formattedDate = new Date(snap.date).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
-              return (
-                <div key={snap.date} className="flex items-center justify-between py-1.5 border-b border-surface-200 last:border-0">
-                  <span className="text-xs text-ink-600 w-28 shrink-0">{formattedDate}</span>
-                  <span className="text-sm font-mono font-semibold text-ink-800">{snap.svi} SVI</span>
-                  {snap.delta !== null ? (
-                    <span className={cn(
-                      "text-xs font-mono font-semibold w-14 text-right",
-                      deltaPositive ? "text-emerald-600" : "text-red-600",
-                    )}>
-                      {deltaPositive ? "+" : ""}{snap.delta}
-                    </span>
-                  ) : (
-                    <span className="text-xs text-ink-700 w-14 text-right">—</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <SVIChart snapshots={snapshotHistory} />
+      )}
+
+      {/* Week-over-Week Dimension Comparison */}
+      {snapshotHistory && snapshotHistory.length > 0 && analysis.subs.length > 0 && (
+        <SVIDimensionCompare
+          current={analysis.subs.map((s) => ({ key: s.key, label: s.label, value: Math.round(s.value) }))}
+          previous={analysis.subs.map((s) => ({
+            key: s.key,
+            label: s.label,
+            value: Math.max(0, Math.round(s.value) - (s.adjustment >= 0 ? s.adjustment : 0)),
+          }))}
+        />
       )}
 
       {/* Add Evidence CTA */}

@@ -6,6 +6,20 @@ This approach is a critical error. The average time from founding to exit for Au
 
 To build a company that attracts top-tier acquirers or qualifies for an ASX listing, you must engineer your exit strategy from day one. This involves understanding the nuances of trade sales, the rigour of IPOs, and the growing viability of secondary sales.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="120" fill="#0B1220" rx="12"/>
+  <text x="300" y="35" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" fill="#FBBF24" font-weight="bold">AUSTRALIAN STARTUP EXIT PLANNING</text>
+  <text x="110" y="75" text-anchor="middle" font-family="Arial,sans-serif" font-size="32" font-weight="bold" fill="#3B7DD8">7-10</text>
+  <text x="110" y="100" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#94a3b8">Years avg. to exit</text>
+  <text x="300" y="75" text-anchor="middle" font-family="Arial,sans-serif" font-size="32" font-weight="bold" fill="#10B981">20-30%</text>
+  <text x="300" y="100" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#94a3b8">Higher valuation w/ planning</text>
+  <text x="490" y="75" text-anchor="middle" font-family="Arial,sans-serif" font-size="32" font-weight="bold" fill="#F87171">30-50%</text>
+  <text x="490" y="100" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#94a3b8">Value lost from poor cap table</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Key exit planning statistics for Australian startups</figcaption>
+</figure>
+
 > **Key Insight:** According to **Startup Genome** and **AVCAL** data, Australian startups that engage in structured exit planning 18 months prior to a potential sale achieve valuations **20-30% higher** than those that react to market conditions opportunistically.
 
 If you are unsure where your company stands in the current market, you need an objective baseline before you speak to a single investor or buyer.
@@ -55,8 +69,8 @@ This has become increasingly popular in the Australian market as the "wait time"
   <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#1e293b">Exit Type Comparison: IPO vs Trade Sale vs Secondary</text>
   <!-- Card 1: Trade Sale -->
   <rect x="18" y="48" width="210" height="270" fill="white" stroke="#e2e8f0" stroke-width="1.5" rx="8"/>
-  <rect x="18" y="48" width="210" height="40" fill="#2563eb" rx="8"/>
-  <rect x="18" y="78" width="210" height="10" fill="#2563eb"/>
+  <rect x="18" y="48" width="210" height="40" fill="#3B7DD8" rx="8"/>
+  <rect x="18" y="78" width="210" height="10" fill="#3B7DD8"/>
   <text x="123" y="74" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="bold" fill="white">Trade Sale (M&A)</text>
   <text x="123" y="108" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Most common exit (72%)</text>
   <line x1="38" y1="118" x2="208" y2="118" stroke="#e2e8f0" stroke-width="1"/>
@@ -73,8 +87,8 @@ This has become increasingly popular in the Australian market as the "wait time"
   <text x="115" y="290" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Success rate</text>
   <!-- Card 2: IPO -->
   <rect x="245" y="48" width="210" height="270" fill="white" stroke="#e2e8f0" stroke-width="1.5" rx="8"/>
-  <rect x="245" y="48" width="210" height="40" fill="#f59e0b" rx="8"/>
-  <rect x="245" y="78" width="210" height="10" fill="#f59e0b"/>
+  <rect x="245" y="48" width="210" height="40" fill="#FBBF24" rx="8"/>
+  <rect x="245" y="78" width="210" height="10" fill="#FBBF24"/>
   <text x="350" y="74" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="bold" fill="white">ASX IPO</text>
   <text x="350" y="108" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">High-bar prestige (11%)</text>
   <line x1="265" y1="118" x2="435" y2="118" stroke="#e2e8f0" stroke-width="1"/>
@@ -87,7 +101,7 @@ This has become increasingly popular in the Australian market as the "wait time"
   <text x="265" y="248" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Best for: Mature firms,</text>
   <text x="265" y="262" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$100M+ revenue, capital-heavy</text>
   <rect x="265" y="275" width="70" height="22" fill="#fef3c7" rx="4"/>
-  <text x="300" y="290" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#f59e0b">LOW-MED</text>
+  <text x="300" y="290" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#FBBF24">LOW-MED</text>
   <text x="342" y="290" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Success rate</text>
   <!-- Card 3: Secondary -->
   <rect x="472" y="48" width="210" height="270" fill="white" stroke="#e2e8f0" stroke-width="1.5" rx="8"/>
@@ -110,6 +124,21 @@ This has become increasingly popular in the Australian market as the "wait time"
 </svg>
 
 ## Deep Dive: Executing a Strategic Trade Sale
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 160" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="160" fill="#0B1220" rx="12"/>
+  <text x="300" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="bold" fill="#FBBF24">TRADE SALE TIMELINE</text>
+  <line x1="60" y1="70" x2="540" y2="70" stroke="#3B7DD8" stroke-width="3"/>
+  <circle cx="60" cy="70" r="8" fill="#F87171"/><text x="60" y="95" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Preparation</text><text x="60" y="108" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="white">6-12 mo</text>
+  <circle cx="180" cy="70" r="8" fill="#FBBF24"/><text x="180" y="95" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Buyer Search</text><text x="180" y="108" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="white">3-6 mo</text>
+  <circle cx="300" cy="70" r="8" fill="#3B7DD8"/><text x="300" y="95" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Negotiation</text><text x="300" y="108" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="white">2-4 mo</text>
+  <circle cx="420" cy="70" r="8" fill="#10B981"/><text x="420" y="95" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Due Diligence</text><text x="420" y="108" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="white">2-3 mo</text>
+  <circle cx="540" cy="70" r="8" fill="#10B981"/><text x="540" y="95" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Close</text><text x="540" y="108" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="white">1-2 mo</text>
+  <text x="300" y="145" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#64748B">Total: 14-27 months from preparation to close</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Typical trade sale timeline for Australian startups</figcaption>
+</figure>
 
 For the vast majority of Australian founders, a trade sale is the target. However, executing a successful acquisition requires more than just a great product; it requires a company that is "audit-ready" at all times.
 
@@ -151,6 +180,21 @@ An IPO is generally the right move if:
 4.  You have a strong, independent board ready for public scrutiny.
 
 For most SaaS and service-based startups, the liquidity of a trade sale offers a faster, cleaner exit with less regulatory drag.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 140" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="140" fill="#0B1220" rx="12"/>
+  <text x="300" y="25" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FBBF24">ASX IPO COST BREAKDOWN</text>
+  <text x="30" y="55" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">Legal Fees</text>
+  <rect x="130" y="42" width="280" height="18" fill="#3B7DD8" rx="4"/><text x="420" y="56" font-family="Arial,sans-serif" font-size="10" fill="white">$500K-$1.5M</text>
+  <text x="30" y="80" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">Underwriting</text>
+  <rect x="130" y="67" width="220" height="18" fill="#FBBF24" rx="4"/><text x="360" y="81" font-family="Arial,sans-serif" font-size="10" fill="white">$400K-$1M</text>
+  <text x="30" y="105" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">Prospectus</text>
+  <rect x="130" y="92" width="160" height="18" fill="#10B981" rx="4"/><text x="300" y="106" font-family="Arial,sans-serif" font-size="10" fill="white">$200K-$500K</text>
+  <text x="300" y="132" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#F87171">Total: $2M-$4M+ AUD minimum for ASX listing</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Estimated ASX IPO costs for Australian tech startups</figcaption>
+</figure>
 
 ## Secondary Sales: Unlocking Liquidity Early
 
@@ -216,23 +260,23 @@ MBOs are attractive because the management team knows the business intimately. H
   <line x1="60" y1="237" x2="660" y2="237" stroke="#e2e8f0" stroke-width="1"/>
   <line x1="60" y1="277" x2="660" y2="277" stroke="#e2e8f0" stroke-width="1"/>
   <!-- 2022: $18M median, 142 deals -->
-  <rect x="90" y="217" width="80" height="60" fill="#2563eb" opacity="0.6" rx="4"/>
-  <text x="130" y="210" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">$18M</text>
+  <rect x="90" y="217" width="80" height="60" fill="#3B7DD8" opacity="0.6" rx="4"/>
+  <text x="130" y="210" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#3B7DD8">$18M</text>
   <text x="130" y="300" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#1e293b">2022</text>
   <text x="130" y="314" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#64748b">142 deals</text>
   <!-- 2023: $22M median, 156 deals -->
-  <rect x="210" y="185" width="80" height="92" fill="#2563eb" opacity="0.7" rx="4"/>
-  <text x="250" y="178" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">$22M</text>
+  <rect x="210" y="185" width="80" height="92" fill="#3B7DD8" opacity="0.7" rx="4"/>
+  <text x="250" y="178" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#3B7DD8">$22M</text>
   <text x="250" y="300" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#1e293b">2023</text>
   <text x="250" y="314" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#64748b">156 deals</text>
   <!-- 2024: $25M median, 168 deals -->
-  <rect x="330" y="157" width="80" height="120" fill="#2563eb" opacity="0.8" rx="4"/>
-  <text x="370" y="150" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">$25M</text>
+  <rect x="330" y="157" width="80" height="120" fill="#3B7DD8" opacity="0.8" rx="4"/>
+  <text x="370" y="150" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#3B7DD8">$25M</text>
   <text x="370" y="300" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#1e293b">2024</text>
   <text x="370" y="314" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#64748b">168 deals</text>
   <!-- 2025: $28M median, 187 deals -->
-  <rect x="450" y="133" width="80" height="144" fill="#2563eb" opacity="0.9" rx="4"/>
-  <text x="490" y="126" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">$28M</text>
+  <rect x="450" y="133" width="80" height="144" fill="#3B7DD8" opacity="0.9" rx="4"/>
+  <text x="490" y="126" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#3B7DD8">$28M</text>
   <text x="490" y="300" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#1e293b">2025</text>
   <text x="490" y="314" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#64748b">187 deals</text>
   <!-- 2026 projected: $32M median, 200+ deals -->
@@ -254,6 +298,22 @@ A messy cap table is the number one deal-killer in Australian M&A. Ensure every 
 *   Use standard **ASIC-compliant** share issuance documents.
 *   Ensure all employee options are tracked in a cap table management system, not a spreadsheet.
 *   Verify that all IP created by contractors and employees has been legally assigned to the company entity.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 150" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="150" fill="#0B1220" rx="12"/>
+  <text x="300" y="25" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FBBF24">VALUATION MULTIPLES BY EXIT TYPE</text>
+  <text x="60" y="55" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">Strategic M&A</text>
+  <rect x="160" y="42" width="340" height="18" fill="#3B7DD8" rx="4"/><text x="510" y="56" font-family="Arial,sans-serif" font-size="10" fill="white">5-10x ARR</text>
+  <text x="60" y="80" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">ASX IPO</text>
+  <rect x="160" y="67" width="408" height="18" fill="#10B981" rx="4"/><text x="578" y="81" font-family="Arial,sans-serif" font-size="10" fill="white">8-15x</text>
+  <text x="60" y="105" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">PE Buyout</text>
+  <rect x="160" y="92" width="238" height="18" fill="#FBBF24" rx="4"/><text x="408" y="106" font-family="Arial,sans-serif" font-size="10" fill="white">3-7x EBITDA</text>
+  <text x="60" y="130" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">Acqui-hire</text>
+  <rect x="160" y="117" width="102" height="18" fill="#F87171" rx="4"/><text x="272" y="131" font-family="Arial,sans-serif" font-size="10" fill="white">1.5-3x cost</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Typical valuation multiples by exit type in Australia</figcaption>
+</figure>
 
 ### 2. Standardise Financial Reporting
 Buyers will not accept spreadsheets emailed on Fridays. You need:
@@ -297,25 +357,25 @@ Furthermore, market conditions in Australia are cyclical. Private capital availa
 
 <svg viewBox="0 0 700 292" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
   <rect width="700" height="292" fill="#f8fafc" rx="12" stroke="#e2e8f0"/>
-  <rect width="700" height="44" fill="#2563eb" rx="12 12 0 0"/>
+  <rect width="700" height="44" fill="#3B7DD8" rx="12 12 0 0"/>
   <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="white">Key Takeaways: Exit Strategies for Australian Startups</text>
   <circle cx="40" cy="74" r="14" fill="#dbeafe"/>
-  <text x="40" y="79" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">1</text>
+  <text x="40" y="79" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">1</text>
   <text x="65" y="79" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Trade sales account for 72% of Australian tech exits with 5-10x ARR multiples</text>
   <circle cx="40" cy="110" r="14" fill="#dbeafe"/>
-  <text x="40" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">2</text>
+  <text x="40" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">2</text>
   <text x="65" y="115" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Start exit planning 18 months before a potential sale to maximize valuation</text>
   <circle cx="40" cy="146" r="14" fill="#dbeafe"/>
-  <text x="40" y="151" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">3</text>
+  <text x="40" y="151" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">3</text>
   <text x="65" y="151" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Keep your cap table, IP assignments, and ASIC filings audit-ready at all times</text>
   <circle cx="40" cy="182" r="14" fill="#dbeafe"/>
-  <text x="40" y="187" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">4</text>
+  <text x="40" y="187" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">4</text>
   <text x="65" y="187" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Secondary sales offer early liquidity without forcing a full company exit</text>
   <circle cx="40" cy="218" r="14" fill="#dbeafe"/>
-  <text x="40" y="223" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">5</text>
+  <text x="40" y="223" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">5</text>
   <text x="65" y="223" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">ASX IPOs cost $500K-$2M+ and suit mature companies with $100M+ revenue</text>
   <rect x="20" y="256" width="660" height="32" fill="#eff6ff" rx="6"/>
-  <text x="350" y="277" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">Get your free Startup Value Index at blockid.au/score</text>
+  <text x="350" y="277" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#3B7DD8">Get your free Startup Value Index at blockid.au/score</text>
 </svg>
 
 

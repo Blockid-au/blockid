@@ -6,6 +6,19 @@ For pre-seed and Series A founders in Australia, governance is not merely a box-
 
 A messy governance structure can delay funding by months, reduce your valuation, or kill a deal entirely. Investors know that a startup with poorly drafted employment contracts, unassigned IP, or inaccurate financial reporting carries a "toxic liability" that becomes theirs the moment they sign the cheque.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="120" rx="16" fill="#0B1220"/>
+  <text x="150" y="50" text-anchor="middle" fill="#F87171" font-size="38" font-weight="700" font-family="system-ui">40%</text>
+  <text x="150" y="78" text-anchor="middle" fill="#94A3B8" font-size="12" font-family="system-ui">of AU deals face governance</text>
+  <text x="150" y="95" text-anchor="middle" fill="#94A3B8" font-size="12" font-family="system-ui">cleanup delays</text>
+  <line x1="300" y1="20" x2="300" y2="100" stroke="#3B7DD8" stroke-width="1" opacity="0.3"/>
+  <text x="450" y="50" text-anchor="middle" fill="#FBBF24" font-size="38" font-weight="700" font-family="system-ui">15</text>
+  <text x="450" y="78" text-anchor="middle" fill="#94A3B8" font-size="12" font-family="system-ui">critical governance</text>
+  <text x="450" y="95" text-anchor="middle" fill="#94A3B8" font-size="12" font-family="system-ui">checklist items</text>
+</svg>
+</figure>
+
 > **The hard truth:** 40% of early-stage deals in Australia face significant delays due to governance clean-up, with some deals collapsing entirely because of unresolved director conflicts or IP ownership disputes.
 
 This guide cuts through the noise to provide a practical, actionable **startup governance checklist** tailored for the Australian market. We will cover the 15 critical areas investors scrutinize, from ASIC registrations to board minutes, ensuring you are investment-ready.
@@ -76,6 +89,29 @@ Investors specifically check:
 ### Director Duties and Appointment
 Under the *Corporations Act 2001 (Cth)*, directors have strict legal duties. Investors will review the minutes of your initial board meetings to ensure that the appointment of directors was formalised and documented. Failure to document director appointments can lead to "de facto director" disputes where individuals are held personally liable without having formally accepted the role.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 140" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="140" rx="12" fill="#0B1220"/>
+  <text x="300" y="25" text-anchor="middle" fill="#FFF" font-size="13" font-weight="700" font-family="system-ui">Governance Framework: Reporting Cadence</text>
+  <rect x="30" y="45" width="120" height="70" rx="8" fill="#3B7DD8"/>
+  <text x="90" y="70" text-anchor="middle" fill="#FFF" font-size="11" font-weight="600" font-family="system-ui">Monthly</text>
+  <text x="90" y="88" text-anchor="middle" fill="#dbeafe" font-size="9" font-family="system-ui">Financial accounts</text>
+  <text x="90" y="100" text-anchor="middle" fill="#dbeafe" font-size="9" font-family="system-ui">KPI dashboard</text>
+  <rect x="170" y="45" width="120" height="70" rx="8" fill="#FBBF24"/>
+  <text x="230" y="70" text-anchor="middle" fill="#0B1220" font-size="11" font-weight="600" font-family="system-ui">Quarterly</text>
+  <text x="230" y="88" text-anchor="middle" fill="#0B1220" font-size="9" font-family="system-ui">Board meetings</text>
+  <text x="230" y="100" text-anchor="middle" fill="#0B1220" font-size="9" font-family="system-ui">BAS/GST filing</text>
+  <rect x="310" y="45" width="120" height="70" rx="8" fill="#10B981"/>
+  <text x="370" y="70" text-anchor="middle" fill="#FFF" font-size="11" font-weight="600" font-family="system-ui">Annually</text>
+  <text x="370" y="88" text-anchor="middle" fill="#d1fae5" font-size="9" font-family="system-ui">ASIC review</text>
+  <text x="370" y="100" text-anchor="middle" fill="#d1fae5" font-size="9" font-family="system-ui">Tax return / audit</text>
+  <rect x="450" y="45" width="120" height="70" rx="8" fill="#F87171"/>
+  <text x="510" y="70" text-anchor="middle" fill="#FFF" font-size="11" font-weight="600" font-family="system-ui">Event-Driven</text>
+  <text x="510" y="88" text-anchor="middle" fill="#fecaca" font-size="9" font-family="system-ui">Cap table update</text>
+  <text x="510" y="100" text-anchor="middle" fill="#fecaca" font-size="9" font-family="system-ui">Share issuance</text>
+</svg>
+</figure>
+
 > **Key Insight:** Investors look for a clear separation between the "Founders" and the "Directors." Just because you founded the company doesn't mean you are automatically a director without a formal resolution.
 
 ### [Check Your Governance Score](/score) to identify immediate gaps in your ASIC filings and director appointments before an investor ever sees your data.
@@ -105,6 +141,22 @@ Under Australian tax law, offering equity to employees must be structured carefu
 
 If your team is working on company IP without a signed assignment, you are effectively building a liability. Investors will demand a "clean-up" of these agreements before transferring funds, a process that can take weeks and erode trust.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="120" rx="16" fill="#0B1220"/>
+  <text x="300" y="35" text-anchor="middle" fill="#FFF" font-size="13" font-weight="700" font-family="system-ui">Employment Contract: Standard vs Investor-Ready</text>
+  <rect x="40" y="55" width="70" height="20" rx="4" fill="#F87171"/><text x="75" y="70" text-anchor="middle" fill="#FFF" font-size="9" font-family="system-ui">Vague IP</text>
+  <rect x="120" y="55" width="70" height="20" rx="4" fill="#F87171"/><text x="155" y="70" text-anchor="middle" fill="#FFF" font-size="9" font-family="system-ui">Ad-hoc ESOP</text>
+  <rect x="200" y="55" width="70" height="20" rx="4" fill="#F87171"/><text x="235" y="70" text-anchor="middle" fill="#FFF" font-size="9" font-family="system-ui">Basic NDA</text>
+  <text x="300" y="70" fill="#94A3B8" font-size="14" font-family="system-ui">vs</text>
+  <rect x="330" y="55" width="80" height="20" rx="4" fill="#10B981"/><text x="370" y="70" text-anchor="middle" fill="#FFF" font-size="9" font-family="system-ui">IP assigned</text>
+  <rect x="420" y="55" width="80" height="20" rx="4" fill="#10B981"/><text x="460" y="70" text-anchor="middle" fill="#FFF" font-size="9" font-family="system-ui">Formal ESIC</text>
+  <rect x="510" y="55" width="60" height="20" rx="4" fill="#10B981"/><text x="540" y="70" text-anchor="middle" fill="#FFF" font-size="9" font-family="system-ui">Robust</text>
+  <text x="170" y="100" text-anchor="middle" fill="#F87171" font-size="10" font-family="system-ui">Standard (High Risk)</text>
+  <text x="440" y="100" text-anchor="middle" fill="#10B981" font-size="10" font-family="system-ui">Investor-Ready (Low Risk)</text>
+</svg>
+</figure>
+
 > **Critical Stat:** According to AVCAL data, IP ownership disputes are the single most common reason for due diligence delays in Australian seed-stage investments.
 
 ## Financial Integrity: Reporting, Audits, and Cap Tables
@@ -128,6 +180,23 @@ The Capitalisation Table (Cap Table) is the map of who owns the company. An inac
 *   **ESIC Compliance:** Are the employee options within the ATO limits for early-stage schemes?
 
 Inaccurate cap tables lead to "pre-money" valuation disputes and can legally prevent the issuance of new shares to investors. If your cap table shows 100% owned by founders but you promised 10% to an advisor without legal paperwork, that 10% is an invisible cliff that must be fixed.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg" style="max-width:400px;margin:0 auto">
+  <rect width="400" height="200" rx="12" fill="#0B1220"/>
+  <text x="200" y="25" text-anchor="middle" fill="#FFF" font-size="13" font-weight="700" font-family="system-ui">Ideal Early-Stage Board Composition</text>
+  <!-- Pie chart -->
+  <circle cx="200" cy="115" r="65" fill="none" stroke="#3B7DD8" stroke-width="40" stroke-dasharray="136 272" stroke-dashoffset="0"/>
+  <circle cx="200" cy="115" r="65" fill="none" stroke="#FBBF24" stroke-width="40" stroke-dasharray="68 340" stroke-dashoffset="-136"/>
+  <circle cx="200" cy="115" r="65" fill="none" stroke="#10B981" stroke-width="40" stroke-dasharray="68 340" stroke-dashoffset="-204"/>
+  <circle cx="200" cy="115" r="44" fill="#0B1220"/>
+  <text x="200" y="118" text-anchor="middle" fill="#FFF" font-size="12" font-weight="700" font-family="system-ui">3-5 seats</text>
+  <!-- Legend -->
+  <rect x="20" y="50" width="10" height="10" rx="2" fill="#3B7DD8"/><text x="35" y="59" fill="#94A3B8" font-size="10" font-family="system-ui">Founders (2)</text>
+  <rect x="20" y="70" width="10" height="10" rx="2" fill="#FBBF24"/><text x="35" y="79" fill="#94A3B8" font-size="10" font-family="system-ui">Investor (1)</text>
+  <rect x="20" y="90" width="10" height="10" rx="2" fill="#10B981"/><text x="35" y="99" fill="#94A3B8" font-size="10" font-family="system-ui">Independent (1)</text>
+</svg>
+</figure>
 
 > **Pro Tip:** Use a dedicated cap table management tool rather than an Excel spreadsheet. Excel errors are the leading cause of cap table disputes in Series A rounds.
 

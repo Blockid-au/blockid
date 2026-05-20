@@ -8,6 +8,23 @@ In the current Australian economic climate, characterized by higher interest rat
 
 Before you commit to a path, you must understand the mechanics of both. Bootstrapping offers autonomy and disciplined cash flow management, while fundraising provides the fuel for hyper-scaling and dominating a category. But which is right for **your** startup?
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 540 150" xmlns="http://www.w3.org/2000/svg" style="max-width:540px;margin:0 auto">
+  <rect width="540" height="150" rx="16" fill="#0B1220"/>
+  <text x="270" y="28" text-anchor="middle" fill="#94A3B8" font-size="12" font-weight="600" font-family="system-ui">THE CORE TRADE-OFF</text>
+  <!-- Bootstrap -->
+  <rect x="20" y="45" width="240" height="55" rx="10" fill="#3B7DD8" opacity="0.15" stroke="#3B7DD8" stroke-width="1.5"/>
+  <text x="140" y="68" text-anchor="middle" fill="#3B7DD8" font-size="13" font-weight="700" font-family="system-ui">Bootstrap: 80-100% ownership</text>
+  <text x="140" y="86" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">$5M-$20M exit range</text>
+  <!-- VC -->
+  <rect x="280" y="45" width="240" height="55" rx="10" fill="#FBBF24" opacity="0.15" stroke="#FBBF24" stroke-width="1.5"/>
+  <text x="400" y="68" text-anchor="middle" fill="#FBBF24" font-size="13" font-weight="700" font-family="system-ui">VC: 15-30% ownership</text>
+  <text x="400" y="86" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">$50M-$500M+ exit range</text>
+  <text x="270" y="128" text-anchor="middle" fill="#94A3B8" font-size="11" font-family="system-ui">Control vs scale: the defining choice for Australian founders</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">The fundamental trade-off between bootstrapping and fundraising</figcaption>
+</figure>
+
 > **The truth is, there is no "right" answer.** There is only the right answer for your specific business model, market speed, and personal ambitions.
 
 To make this decision with confidence, you need a framework that moves beyond intuition and into data-driven strategy. This guide will dissect the decision matrix for Australian founders, comparing the two paths against capital intensity, competitive landscape, and founder goals.
@@ -72,6 +89,16 @@ If your competitors are scaling rapidly with external capital, waiting to reach 
 
 Conversely, in stable, niche B2B markets or specialized service industries, speed is less critical than unit economics. Here, **bootstrapping vs fundraising** tilts heavily toward bootstrapping. You can grow profitably without the pressure of a board demanding 10x returns.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#10B981" font-size="42" font-weight="700" font-family="system-ui">60-70%</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">Average ownership retained by bootstrapped AU SaaS founders</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">vs 40-50% for those who raised Seed rounds early</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Source: Startup Genome data on Australian SaaS bootstrappers to $1M ARR</figcaption>
+</figure>
+
 ### 2. Capital Intensity and Burn Rate
 
 Your product's cost structure is the most objective metric for this decision. Does your business require significant upfront capital for R&D, hardware, or regulatory approval before you can generate a dollar of revenue?
@@ -91,6 +118,36 @@ If your goal is to build a "lifestyle business" that provides a high income, ful
 If your goal is to build a "unicorn" (a $1B+ valuation), the odds are statistically stacked against you unless you raise capital. The VC model is built for asymmetric returns; they need the potential for a 100x return on investment, which usually requires taking the company global and dominating a sector.
 
 You must also assess your risk tolerance. Bootstrapping puts your personal capital and reputation on the line, but you retain full control. Fundraising introduces "agency risk" where investors may push for strategies that don't align with your vision, potentially leading to founder burnout or ousting.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 540 170" xmlns="http://www.w3.org/2000/svg" style="max-width:540px;margin:0 auto">
+  <rect width="540" height="170" rx="16" fill="#0B1220"/>
+  <text x="270" y="28" text-anchor="middle" fill="#94A3B8" font-size="12" font-weight="600" font-family="system-ui">DECISION TREE: BOOTSTRAP OR RAISE?</text>
+  <!-- Q1 -->
+  <rect x="180" y="42" width="180" height="30" rx="6" fill="#3B7DD8" opacity="0.3" stroke="#3B7DD8" stroke-width="1"/>
+  <text x="270" y="62" text-anchor="middle" fill="#3B7DD8" font-size="10" font-weight="600" font-family="system-ui">Winner-takes-all market?</text>
+  <!-- Yes branch -->
+  <line x1="220" y1="72" x2="120" y2="90" stroke="#FBBF24" stroke-width="1.5"/>
+  <text x="155" y="86" fill="#FBBF24" font-size="9" font-family="system-ui">Yes</text>
+  <rect x="40" y="90" width="160" height="28" rx="6" fill="#FBBF24" opacity="0.15" stroke="#FBBF24" stroke-width="1"/>
+  <text x="120" y="109" text-anchor="middle" fill="#FBBF24" font-size="10" font-weight="600" font-family="system-ui">Raise VC capital</text>
+  <!-- No branch -->
+  <line x1="320" y1="72" x2="420" y2="90" stroke="#10B981" stroke-width="1.5"/>
+  <text x="380" y="86" fill="#10B981" font-size="9" font-family="system-ui">No</text>
+  <rect x="340" y="90" width="160" height="28" rx="6" fill="#10B981" opacity="0.15" stroke="#10B981" stroke-width="1"/>
+  <text x="420" y="109" text-anchor="middle" fill="#10B981" font-size="10" font-weight="600" font-family="system-ui">Can reach $1M ARR &lt;$100K?</text>
+  <!-- Yes/No from second -->
+  <line x1="380" y1="118" x2="320" y2="135" stroke="#10B981" stroke-width="1.5"/>
+  <text x="340" y="130" fill="#10B981" font-size="9" font-family="system-ui">Yes</text>
+  <rect x="240" y="135" width="160" height="28" rx="6" fill="#10B981" opacity="0.3" stroke="#10B981" stroke-width="1"/>
+  <text x="320" y="154" text-anchor="middle" fill="#10B981" font-size="10" font-weight="700" font-family="system-ui">Bootstrap</text>
+  <line x1="460" y1="118" x2="480" y2="135" stroke="#FBBF24" stroke-width="1.5"/>
+  <text x="478" y="130" fill="#FBBF24" font-size="9" font-family="system-ui">No</text>
+  <rect x="420" y="135" width="100" height="28" rx="6" fill="#FBBF24" opacity="0.3" stroke="#FBBF24" stroke-width="1"/>
+  <text x="470" y="154" text-anchor="middle" fill="#FBBF24" font-size="10" font-weight="700" font-family="system-ui">Raise</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Simplified decision tree for the bootstrap vs raise decision</figcaption>
+</figure>
 
 ### 4. The Competitive Landscape
 
@@ -184,6 +241,16 @@ Australia has a robust ecosystem for bootstrapped success stories. Companies lik
 
 The **ATO** and **ASIC** frameworks also support small businesses through tax incentives and streamlined reporting, making it easier to manage cash flow.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#3B7DD8" font-size="38" font-weight="700" font-family="system-ui">6-18 mo</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">Bootstrapped break-even timeline</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">vs 3-7 years for VC-funded path</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Break-even timeline comparison</figcaption>
+</figure>
+
 > **Key Insight:** "Bootstrapping forces discipline. You cannot hide behind a fundraising narrative. Every dollar spent must generate revenue or clear ROI. This discipline often creates a more resilient company in the long run."
 
 ### The Path Forward for Bootstrappers
@@ -240,6 +307,31 @@ The most sophisticated founders often reject the binary choice and adopt a **hyb
 
 This approach allows you to retain more equity during the risky early phase while still accessing capital when you need it most. It also gives you more leverage during fundraising negotiations because you are no longer "desperate."
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 540 130" xmlns="http://www.w3.org/2000/svg" style="max-width:540px;margin:0 auto">
+  <rect width="540" height="130" rx="16" fill="#0B1220"/>
+  <text x="270" y="26" text-anchor="middle" fill="#94A3B8" font-size="11" font-weight="600" font-family="system-ui">THE HYBRID MODEL: 3 PHASES</text>
+  <!-- Phase 1 -->
+  <rect x="15" y="40" width="160" height="50" rx="8" fill="#3B7DD8" opacity="0.3" stroke="#3B7DD8" stroke-width="1.5"/>
+  <text x="95" y="60" text-anchor="middle" fill="#3B7DD8" font-size="11" font-weight="700" font-family="system-ui">Phase 1: Bootstrap</text>
+  <text x="95" y="78" text-anchor="middle" fill="#64748B" font-size="9" font-family="system-ui">$0 to $1M ARR</text>
+  <!-- Arrow -->
+  <text x="190" y="70" fill="#FBBF24" font-size="16" font-family="system-ui">&#8594;</text>
+  <!-- Phase 2 -->
+  <rect x="205" y="40" width="160" height="50" rx="8" fill="#FBBF24" opacity="0.3" stroke="#FBBF24" stroke-width="1.5"/>
+  <text x="285" y="60" text-anchor="middle" fill="#FBBF24" font-size="11" font-weight="700" font-family="system-ui">Phase 2: Proof Round</text>
+  <text x="285" y="78" text-anchor="middle" fill="#64748B" font-size="9" font-family="system-ui">Angels / micro-VCs</text>
+  <!-- Arrow -->
+  <text x="380" y="70" fill="#FBBF24" font-size="16" font-family="system-ui">&#8594;</text>
+  <!-- Phase 3 -->
+  <rect x="395" y="40" width="130" height="50" rx="8" fill="#10B981" opacity="0.3" stroke="#10B981" stroke-width="1.5"/>
+  <text x="460" y="60" text-anchor="middle" fill="#10B981" font-size="11" font-weight="700" font-family="system-ui">Phase 3: Scale</text>
+  <text x="460" y="78" text-anchor="middle" fill="#64748B" font-size="9" font-family="system-ui">VC capital injection</text>
+  <text x="270" y="115" text-anchor="middle" fill="#94A3B8" font-size="10" font-family="system-ui">Retain maximum equity during risky phase, raise only when de-risked</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">The hybrid approach: bootstrap first, then raise strategically</figcaption>
+</figure>
+
 ## Regulatory Considerations for Australian Founders
 
 Regardless of your path, navigating the Australian regulatory landscape is critical. Missteps here can be fatal to your startup.
@@ -255,6 +347,16 @@ If you choose to raise capital, you must comply with **ASIC** regulations regard
 The **Australian Taxation Office (ATO)** has specific rules regarding **Early Stage Innovation Company (ESIC)** status.
 *   **Tax Incentives:** If your company is an ESIC, investors may receive a 20% tax offset and capital gains tax concessions. This is a powerful tool for attracting early-stage angels.
 *   **Valuation Cap:** To qualify, your company must meet specific expenditure and innovation tests.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#10B981" font-size="42" font-weight="700" font-family="system-ui">20%</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">Tax offset for investors in ESIC-qualifying startups</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">Plus capital gains tax concessions — a powerful fundraising tool</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">ESIC investor incentive for Australian startups</figcaption>
+</figure>
 
 For bootstrappers, understanding the tax implications of profit reinvestment and director loan accounts is equally important to ensure compliance and maximize personal tax efficiency.
 
