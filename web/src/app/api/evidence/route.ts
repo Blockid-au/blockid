@@ -166,7 +166,14 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({ ok: true, evidence });
+    // Fire-and-forget: trigger SVI rescore with evidence bonuses
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au";
+    void fetch(`${siteUrl}/api/svi/rescore-from-evidence`, {
+      method: "POST",
+      headers: { Cookie: request.headers.get("cookie") ?? "" },
+    }).catch(() => {});
+
+    return NextResponse.json({ ok: true, evidence, sviDelta: sviImpact });
   } catch (err) {
     console.error("[blockid:evidence] POST error", err);
     return NextResponse.json(

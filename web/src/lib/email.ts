@@ -1059,6 +1059,250 @@ export async function sendMilestoneEmail(args: {
   });
 }
 
+// ---------- Nurture sequence emails -------------------------------------------
+//
+// Sequence A: Post-free-analysis (users who got SVI but didn't sign up)
+// Sequence B: Post-payment (users who paid)
+// Sequence C: Re-engagement (inactive paid users)
+
+type NurtureArgs = {
+  to: string;
+  name?: string | null;
+  svi?: number | null;
+};
+
+function nurturePx(to: string, type: string): string {
+  return `<img src="${siteUrl()}/api/track/open?slug=nurture-${type}&email=${encodeURIComponent(to)}" width="1" height="1" alt="" style="display:none;" />`;
+}
+
+function nurtureCard(args: { tagline: string; headline: string; body: string; ctaLabel: string; ctaUrl: string; footer?: string; extra?: string }): string {
+  return `
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+        <tr><td>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">${escapeHtml(args.tagline)}</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${escapeHtml(args.headline)}</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${args.body}</p>
+          ${args.extra ?? ""}
+          <p style="margin:0 0 24px 0;text-align:center;">
+            <a href="${args.ctaUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">${escapeHtml(args.ctaLabel)}</a>
+          </p>
+          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#64748B;font-size:12px;">${args.footer ?? "BlockID.au — Valuation. Ownership. Execution. Growth."}</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>`;
+}
+
+// --- Sequence A: Post-Free Analysis -----------------------------------------
+
+export async function sendNurtureFreeDay1(args: NurtureArgs): Promise<SendResult> {
+  const loginUrl = `${siteUrl()}/auth/login`;
+  const greeting = args.name ? `, ${escapeHtml(args.name!)}` : "";
+  const sviNote = args.svi ? ` Your SVI score of <strong style="color:#3B7DD8;">${args.svi}</strong> is waiting for you.` : "";
+  const html = shell(nurtureCard({
+    tagline: "BlockID — Your Score is Waiting",
+    headline: "3 Things to Do Next",
+    body: `Hi${greeting}. You recently ran a free Startup Value Index analysis on BlockID.${sviNote} Here are three steps to make the most of it:</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
+            <tr><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:24px;font-weight:600;">1.</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;"><strong>Sign in</strong> to save your report and track changes over time.</td></tr>
+            <tr><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:24px;font-weight:600;">2.</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;"><strong>Upload evidence</strong> (pitch deck, financials) to boost your score.</td></tr>
+            <tr><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:24px;font-weight:600;">3.</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;"><strong>Share your report</strong> with investors via a single link.</td></tr>
+          </table>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">It takes less than 30 seconds to sign in with Google.`,
+    ctaLabel: "Sign in to BlockID",
+    ctaUrl: loginUrl,
+  }) + nurturePx(args.to, "free_day1"));
+  return sendEmail({ to: args.to, subject: "Your SVI score is waiting — 3 things to do next", html });
+}
+
+export async function sendNurtureFreeDay3(args: NurtureArgs): Promise<SendResult> {
+  const loginUrl = `${siteUrl()}/auth/login`;
+  const greeting = args.name ? `Hi ${escapeHtml(args.name!)}, your` : "Your";
+  const html = shell(nurtureCard({
+    tagline: "BlockID — Boost Your Score",
+    headline: "How to Boost Your SVI by 20+ Points",
+    body: `${greeting} SVI score reflects what we can verify about your startup. The fastest way to lift it? Upload evidence.</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
+            <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;"><strong>Pitch deck</strong> — validates your narrative and market sizing (+5-10 SVI)</td></tr>
+            <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;"><strong>Revenue proof</strong> — bank statements, Stripe dashboard (+10-15 SVI)</td></tr>
+            <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;"><strong>Cap table</strong> — shows ownership structure and investor alignment (+5-10 SVI)</td></tr>
+          </table>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Sign in to upload your first piece of evidence and watch your score climb.`,
+    ctaLabel: "Upload Evidence Now",
+    ctaUrl: loginUrl,
+  }) + nurturePx(args.to, "free_day3"));
+  return sendEmail({ to: args.to, subject: "How to boost your SVI by 20+ points", html });
+}
+
+export async function sendNurtureFreeDay7(args: NurtureArgs): Promise<SendResult> {
+  const loginUrl = `${siteUrl()}/auth/login`;
+  const html = shell(nurtureCard({
+    tagline: "BlockID — Social Proof",
+    headline: "Australian Founders Who Improved Their Score",
+    body: `Founders across Australia are using BlockID to build investor confidence. Here is what they are doing differently:</p>
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
+            <p style="margin:0 0 8px 0;color:#F8FAFC;font-size:14px;font-weight:600;">Early-stage SaaS founder, Sydney</p>
+            <p style="margin:0;color:#94A3B8;font-size:13px;line-height:1.6;">Uploaded a pitch deck and Stripe revenue screenshot. SVI went from 65 to 92 in one week. &ldquo;Having a verifiable score made investor conversations start differently.&rdquo;</p>
+          </div>
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
+            <p style="margin:0 0 8px 0;color:#F8FAFC;font-size:14px;font-weight:600;">FinTech co-founder, Melbourne</p>
+            <p style="margin:0;color:#94A3B8;font-size:13px;line-height:1.6;">Used the SVI report as a pre-meeting brief for investors. &ldquo;It saved 20 minutes of back-and-forth on every first call.&rdquo;</p>
+          </div>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Your score is already generated. Sign in to save it and start building your investor-ready profile.`,
+    ctaLabel: "Sign in to BlockID",
+    ctaUrl: loginUrl,
+  }) + nurturePx(args.to, "free_day7"));
+  return sendEmail({ to: args.to, subject: "Australian founders who improved their score", html });
+}
+
+export async function sendNurtureFreeDay14(args: NurtureArgs): Promise<SendResult> {
+  const pricingUrl = `${siteUrl()}/#pricing`;
+  const greeting = args.name ? `${escapeHtml(args.name!)}, we` : "We";
+  const html = shell(nurtureCard({
+    tagline: "BlockID — Founding 50",
+    headline: "Last Chance: Founding 50 Early Access",
+    body: `${greeting} are closing our Founding 50 cohort soon. These are the first 50 startups to get lifetime early-access pricing and priority support on BlockID.</p>
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
+            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Founding 50 includes</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Locked-in early-access pricing forever</td></tr>
+              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Priority support and feature requests</td></tr>
+              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Unlimited SVI analyses</td></tr>
+              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Full evidence vault and investor share links</td></tr>
+            </table>
+          </div>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Spots are limited. Once the cohort is full, pricing goes up.`,
+    ctaLabel: "See Founding 50 Pricing",
+    ctaUrl: pricingUrl,
+  }) + nurturePx(args.to, "free_day14"));
+  return sendEmail({ to: args.to, subject: "Last chance: Founding 50 early access", html });
+}
+
+// --- Sequence B: Post-Payment -----------------------------------------------
+
+export async function sendNurturePaidDay1(args: NurtureArgs): Promise<SendResult> {
+  const dashUrl = `${siteUrl()}/dashboard/svi`;
+  const greeting = args.name ? `, ${escapeHtml(args.name!)}` : "";
+  const html = shell(nurtureCard({
+    tagline: "BlockID — Day 1",
+    headline: "Your 30-Day Growth Plan Starts Now",
+    body: `Welcome aboard${greeting}. Here is your 30-day plan to maximise your BlockID investment:</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
+            <tr><td style="padding:8px 12px;color:#3B7DD8;font-size:13px;font-weight:600;vertical-align:top;width:70px;">Week 1</td><td style="padding:8px 12px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;"><strong>Set your baseline.</strong> Run your first SVI analysis and note your starting score.</td></tr>
+            <tr><td style="padding:8px 12px;color:#3B7DD8;font-size:13px;font-weight:600;vertical-align:top;">Week 2</td><td style="padding:8px 12px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;"><strong>Upload evidence.</strong> Add your pitch deck, revenue proof, and cap table.</td></tr>
+            <tr><td style="padding:8px 12px;color:#3B7DD8;font-size:13px;font-weight:600;vertical-align:top;">Week 3</td><td style="padding:8px 12px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;"><strong>Share your report.</strong> Send your SVI link to at least one investor or advisor.</td></tr>
+            <tr><td style="padding:8px 12px;color:#3B7DD8;font-size:13px;font-weight:600;vertical-align:top;">Week 4</td><td style="padding:8px 12px;color:#F8FAFC;font-size:14px;"><strong>Review and iterate.</strong> Check your weekly report and close remaining evidence gaps.</td></tr>
+          </table>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Start with step one: open your dashboard.`,
+    ctaLabel: "Open Dashboard",
+    ctaUrl: dashUrl,
+  }) + nurturePx(args.to, "paid_day1"));
+  return sendEmail({ to: args.to, subject: "Your 30-day growth plan starts now", html });
+}
+
+export async function sendNurturePaidDay3(args: NurtureArgs): Promise<SendResult> {
+  const evidenceUrl = `${siteUrl()}/workspace/evidence`;
+  const greeting = args.name ? `${escapeHtml(args.name!)}, the` : "The";
+  const html = shell(nurtureCard({
+    tagline: "BlockID — Upload Evidence",
+    headline: "Upload Your First Evidence",
+    body: `${greeting} single biggest thing you can do to improve your SVI score is upload verified evidence. Here is how:</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">
+            <tr><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:24px;font-weight:600;">1.</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Go to <strong>Workspace &rarr; Evidence</strong></td></tr>
+            <tr><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:24px;font-weight:600;">2.</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Click <strong>Upload</strong> and select your file (PDF, image, or CSV)</td></tr>
+            <tr><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:24px;font-weight:600;">3.</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Our AI verifies and scores it automatically</td></tr>
+          </table>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Most founders see a <strong style="color:#4ADE80;">10-20 point SVI increase</strong> after their first upload.`,
+    ctaLabel: "Upload Evidence",
+    ctaUrl: evidenceUrl,
+  }) + nurturePx(args.to, "paid_day3"));
+  return sendEmail({ to: args.to, subject: "Upload your first evidence — here's how", html });
+}
+
+export async function sendNurturePaidDay14(args: NurtureArgs): Promise<SendResult> {
+  const dashUrl = `${siteUrl()}/dashboard/svi`;
+  const greeting = args.name ? `${escapeHtml(args.name!)}, you` : "You";
+  const html = shell(nurtureCard({
+    tagline: "BlockID — Feature Discovery",
+    headline: "Have You Explored These Tools?",
+    body: `${greeting} have access to more than just your SVI score. Here are tools many founders miss:</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
+            <tr><td style="padding:8px 12px;color:#3B7DD8;font-size:14px;vertical-align:top;width:20px;">&#9654;</td><td style="padding:8px 12px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;"><strong>Investor Share Links</strong> — Send a single link that lets investors see your verified score without signing up.</td></tr>
+            <tr><td style="padding:8px 12px;color:#3B7DD8;font-size:14px;vertical-align:top;width:20px;">&#9654;</td><td style="padding:8px 12px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;"><strong>Evidence Vault</strong> — Securely store and manage all your startup documents in one place.</td></tr>
+            <tr><td style="padding:8px 12px;color:#3B7DD8;font-size:14px;vertical-align:top;width:20px;">&#9654;</td><td style="padding:8px 12px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;"><strong>Weekly SVI Reviews</strong> — Personalised AI analysis of your progress every week.</td></tr>
+            <tr><td style="padding:8px 12px;color:#3B7DD8;font-size:14px;vertical-align:top;width:20px;">&#9654;</td><td style="padding:8px 12px;color:#F8FAFC;font-size:14px;"><strong>Idea-Phase Tools</strong> — TAM calculator, competitor analysis, and lean canvas generator.</td></tr>
+          </table>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Explore them from your dashboard.`,
+    ctaLabel: "Open Dashboard",
+    ctaUrl: dashUrl,
+  }) + nurturePx(args.to, "paid_day14"));
+  return sendEmail({ to: args.to, subject: "Have you explored these tools?", html });
+}
+
+export async function sendNurturePaidDay30(args: NurtureArgs): Promise<SendResult> {
+  const dashUrl = `${siteUrl()}/dashboard/svi`;
+  const greeting = args.name ? `, ${escapeHtml(args.name!)}` : "";
+  const sviBlock = args.svi ? `
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
+            <p style="margin:0 0 4px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Current SVI</p>
+            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:56px;font-weight:600;color:#3B7DD8;line-height:1;">${args.svi}</div>
+          </div>` : "";
+  const html = shell(nurtureCard({
+    tagline: "BlockID — Month 1 Recap",
+    headline: "Your First Month Results",
+    body: `Congratulations${greeting} — you have been on BlockID for 30 days. Here is a quick look at where you stand.`,
+    ctaLabel: "View Full Dashboard",
+    ctaUrl: dashUrl,
+    extra: sviBlock + `
+          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">What to focus on next</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
+            <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Review your weekly SVI report for specific gap-closing actions</td></tr>
+            <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Upload fresh evidence — recent metrics, updated pitch deck</td></tr>
+            <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Share your SVI link with investors ahead of conversations</td></tr>
+          </table>`,
+  }) + nurturePx(args.to, "paid_day30"));
+  return sendEmail({ to: args.to, subject: "Your first month results on BlockID", html });
+}
+
+// --- Sequence C: Re-engagement ----------------------------------------------
+
+export async function sendNurtureReengageDay14(args: NurtureArgs): Promise<SendResult> {
+  const dashUrl = `${siteUrl()}/dashboard/svi`;
+  const greeting = args.name ? `Hi ${escapeHtml(args.name!)}, we` : "We";
+  const html = shell(nurtureCard({
+    tagline: "BlockID — We Miss You",
+    headline: "Need Help Getting Started?",
+    body: `${greeting} noticed you have not been active on BlockID recently. No worries — we are here to help.</p>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">If you are unsure what to do next, try one of these:</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
+            <tr><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:20px;">&#8226;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Upload a pitch deck or financial document to improve your SVI</td></tr>
+            <tr><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:20px;">&#8226;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Run a fresh SVI analysis to check your current score</td></tr>
+            <tr><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:20px;">&#8226;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Reply to this email with any questions — we read every response</td></tr>
+          </table>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Your dashboard is always one click away.`,
+    ctaLabel: "Return to Dashboard",
+    ctaUrl: dashUrl,
+  }) + nurturePx(args.to, "reengage_day14"));
+  return sendEmail({ to: args.to, subject: "We noticed you haven't been active — need help?", html });
+}
+
+export async function sendNurtureReengageDay30(args: NurtureArgs): Promise<SendResult> {
+  const sviUrl = `${siteUrl()}/#svi`;
+  const greeting = args.name ? `${escapeHtml(args.name!)}, your` : "Your";
+  const html = shell(nurtureCard({
+    tagline: "BlockID — Score Update",
+    headline: "Your SVI May Have Changed",
+    body: `${greeting} market, competitors, and fundraising landscape have shifted since your last visit. Your SVI score may no longer reflect your current position.</p>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Run a fresh analysis to see where you stand today. It only takes a minute.`,
+    ctaLabel: "Check Your Score",
+    ctaUrl: sviUrl,
+  }) + nurturePx(args.to, "reengage_day30"));
+  return sendEmail({ to: args.to, subject: "Your SVI may have changed — check your score", html });
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")

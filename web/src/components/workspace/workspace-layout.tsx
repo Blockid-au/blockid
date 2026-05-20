@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BarChart3, Bell, ChevronLeft, ChevronRight, CreditCard, FileText, Home,
+  BarChart3, Bell, ChevronLeft, ChevronRight, CreditCard, FileText, FolderOpen, Home,
   LayoutDashboard, Map, Shield, TrendingUp, User
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
@@ -26,6 +26,7 @@ interface WorkspaceLayoutProps {
 const NAV_ITEMS = [
   { href: "/dashboard/svi", label: "SVI Dashboard", icon: TrendingUp },
   { href: "/workspace/evidence", label: "Evidence Vault", icon: FileText },
+  { href: "/workspace/documents", label: "Documents", icon: FolderOpen },
   { href: "/workspace/reports", label: "Weekly Reports", icon: BarChart3 },
   { href: "/workspace/roadmap", label: "Roadmap", icon: Map },
   { href: "/workspace/profile", label: "My Profile", icon: User },
