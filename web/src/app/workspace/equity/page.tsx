@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/auth";
@@ -5,6 +6,12 @@ import { getActiveProject } from "@/lib/projects";
 import { getEquitySummary } from "@/lib/equity";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { EquityClient } from "./equity-client";
+
+export const metadata: Metadata = {
+  title: "Equity & Cap Table",
+  description: "Manage your startup cap table and equity on BlockID.",
+  robots: { index: false, follow: false },
+};
 
 export const dynamic = "force-dynamic";
 

@@ -5,7 +5,7 @@ import { DataRoomChecklist } from "./data-room-checklist";
 import { Building2, FileCheck2, ShieldCheck } from "lucide-react";
 
 const TITLE =
-  "Data Room — Free Investor-Ready Checklist for AU Startups | BlockID.au";
+  "Data Room — Investor-Ready Checklist | BlockID";
 const DESCRIPTION =
   "Build an investor-ready data room for an Australian seed or Series A raise. Track corporate, cap table, financing, governance, tax and legal readiness.";
 

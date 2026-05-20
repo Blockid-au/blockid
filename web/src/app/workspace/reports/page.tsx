@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
@@ -6,6 +7,12 @@ import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { BarChart3 } from "lucide-react";
 import { ReportsClient, type SnapshotRow } from "./reports-client";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
+
+export const metadata: Metadata = {
+  title: "Weekly Reports",
+  description: "Track your Startup Value Index progress week by week on BlockID.",
+  robots: { index: false, follow: false },
+};
 
 export const dynamic = "force-dynamic";
 

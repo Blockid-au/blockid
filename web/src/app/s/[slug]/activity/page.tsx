@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import {
@@ -29,6 +30,12 @@ import {
   type InvestorLink,
   type InvestorLinkView,
 } from "@/lib/investor-links";
+
+export const metadata: Metadata = {
+  title: "Score Activity",
+  description: "Track investor engagement with your shared score link on BlockID.",
+  robots: { index: false, follow: false },
+};
 
 export const dynamic = "force-dynamic";
 

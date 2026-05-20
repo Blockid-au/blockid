@@ -1,6 +1,14 @@
-import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
+import * as path from "path";
+import * as fs from "fs";
+
+// Load logo as base64 data URI for PDF embedding
+const LOGO_PATH = path.join(process.cwd(), "public", "images", "logo-transparent.png");
+const LOGO_SRC = fs.existsSync(LOGO_PATH)
+  ? `data:image/png;base64,${fs.readFileSync(LOGO_PATH).toString("base64")}`
+  : null;
 
 /* ─── Brand Palette ─────────────────────────────────────────────────────── */
 const C = {
@@ -309,13 +317,16 @@ function findSub(analysis: SVIAnalysis, key: string) {
   return analysis.subs.find((sub) => sub.key === key);
 }
 
-/* ─── Shared footer ─────────────────────────────────────────────────────── */
+/* ─── Shared footer with logo ──────────────────────────────────────────── */
 function Footer({ pageNum }: { pageNum: number }) {
   return (
     <View style={s.footer} fixed>
       <Text style={s.footerText}>Confidential</Text>
-      <Text style={s.footerBrand}>BlockID.au</Text>
-      <Text style={s.footerText}>Page {pageNum} of 10</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+        {LOGO_SRC && <Image src={LOGO_SRC} style={{ width: 60, height: 14 }} />}
+        {!LOGO_SRC && <Text style={s.footerBrand}>BlockID.au</Text>}
+      </View>
+      <Text style={s.footerText}>Page {pageNum}</Text>
     </View>
   );
 }
@@ -451,9 +462,14 @@ export function SVIReportPDF({ analysis, email }: Props) {
       {/* ─── Page 1: Cover ────────────────────────────────────────────────── */}
       <Page size="A4" style={[s.page, { paddingTop: 0, paddingBottom: 0 }]}>
         <View style={s.coverCenter}>
-          <Text style={s.coverBrand}>
-            BlockID<Text style={s.coverDot}>.au</Text>
-          </Text>
+          {LOGO_SRC && (
+            <Image src={LOGO_SRC} style={{ width: 220, height: 50, marginBottom: 8 }} />
+          )}
+          {!LOGO_SRC && (
+            <Text style={s.coverBrand}>
+              BlockID<Text style={s.coverDot}>.au</Text>
+            </Text>
+          )}
           <Text style={s.coverTitle}>Startup Value Index Report</Text>
           <Text style={s.coverScore}>{analysis.totalSVI}</Text>
           <Text style={s.coverStage}>
@@ -571,6 +587,13 @@ export function SVIReportPDF({ analysis, email }: Props) {
             ))}
           </View>
         )}
+
+        <View style={{ marginTop: 14, borderWidth: 0.5, borderColor: C.surface200, borderRadius: 6, padding: 10, backgroundColor: C.surface50 }}>
+          <Text style={{ fontSize: 9, fontWeight: "bold", color: C.ink800, marginBottom: 3 }}>How to Use This Report</Text>
+          <Text style={{ fontSize: 8, color: C.ink600, lineHeight: 1.5 }}>
+            This report analyses your startup across 8 key dimensions. Focus on the "Your Personalised Action Plan" (Page 10) for specific next steps. Each dimension page (5-7) shows detailed evidence and gaps. Upload verified evidence at blockid.au/workspace/evidence to boost your score over time.
+          </Text>
+        </View>
 
         <Footer pageNum={2} />
       </Page>
@@ -1040,7 +1063,70 @@ export function SVIReportPDF({ analysis, email }: Props) {
         <Footer pageNum={9} />
       </Page>
 
-      {/* ─── Page 10: Next Steps ───────────────────────────────────────── */}
+      {/* ─── Page 10: Your Personalised Next Steps ───────────────────── */}
+      <Page size="A4" style={s.page}>
+        <Text style={s.h1}>Your Personalised Action Plan</Text>
+
+        <Text style={[s.body, { fontSize: 10, lineHeight: 1.7 }]}>
+          Based on your SVI analysis, here are the specific steps we recommend you take
+          in the next 30 days. Focus on the highest-impact items first — even small
+          improvements in evidence quality can significantly boost your score.
+        </Text>
+
+        {/* Week 1: Quick Wins */}
+        <View style={{ marginTop: 12, borderLeftWidth: 3, borderLeftColor: C.emerald600, paddingLeft: 12, marginBottom: 14 }}>
+          <Text style={[s.h2, { color: C.emerald600, marginTop: 0 }]}>Week 1: Quick Wins</Text>
+          <Text style={s.body}>These take less than 1 hour each and have immediate SVI impact.</Text>
+          {analysis.evidenceGaps
+            .filter(g => g.priority === "P0" || g.priority === "P1")
+            .slice(0, 3)
+            .map((gap, i) => (
+              <View key={`w1-${i}`} style={[s.bulletRow, { marginBottom: 5 }]}>
+                <Text style={{ width: 20, fontSize: 12, color: C.emerald600, fontWeight: "bold" }}>✓</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 9, fontWeight: "bold", color: C.ink800 }}>{gap.label}</Text>
+                  <Text style={{ fontSize: 8, color: C.ink600, lineHeight: 1.5, marginTop: 1 }}>{gap.action}</Text>
+                  <Text style={{ fontSize: 8, fontWeight: "bold", color: C.teal600, marginTop: 2 }}>Expected impact: +{gap.impact} SVI points</Text>
+                </View>
+              </View>
+            ))}
+        </View>
+
+        {/* Week 2-3: Build Foundation */}
+        <View style={{ borderLeftWidth: 3, borderLeftColor: C.brand600, paddingLeft: 12, marginBottom: 14 }}>
+          <Text style={[s.h2, { color: C.brand600, marginTop: 0 }]}>Week 2-3: Build Foundation</Text>
+          <Text style={s.body}>These require more effort but establish lasting credibility.</Text>
+          {analysis.nextActions
+            .slice(0, 3)
+            .map((action, i) => (
+              <View key={`w23-${i}`} style={[s.bulletRow, { marginBottom: 5 }]}>
+                <Text style={{ width: 20, fontSize: 12, color: C.brand600, fontWeight: "bold" }}>→</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 9, fontWeight: "bold", color: C.ink800 }}>{action.title}</Text>
+                  <Text style={{ fontSize: 8, color: C.ink600, lineHeight: 1.5, marginTop: 1 }}>{action.detail}</Text>
+                  <Text style={{ fontSize: 8, fontWeight: "bold", color: C.teal600, marginTop: 2 }}>{action.impact}</Text>
+                </View>
+              </View>
+            ))}
+        </View>
+
+        {/* Week 4: Review & Refine */}
+        <View style={{ borderLeftWidth: 3, borderLeftColor: C.amber600, paddingLeft: 12 }}>
+          <Text style={[s.h2, { color: C.amber600, marginTop: 0 }]}>Week 4: Review & Refine</Text>
+          <Text style={s.body}>Re-run your SVI analysis to measure progress and identify the next wave of improvements.</Text>
+          <View style={s.bulletRow}>
+            <Text style={{ width: 20, fontSize: 12, color: C.amber600, fontWeight: "bold" }}>↻</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 9, fontWeight: "bold", color: C.ink800 }}>Re-analyse your startup on BlockID.au</Text>
+              <Text style={{ fontSize: 8, color: C.ink600, lineHeight: 1.5, marginTop: 1 }}>Upload new evidence, update your description with progress, and get a fresh SVI score. Track your improvement over time.</Text>
+            </View>
+          </View>
+        </View>
+
+        <Footer pageNum={10} />
+      </Page>
+
+      {/* ─── Page 11: Next Steps ───────────────────────────────────────── */}
       <Page size="A4" style={s.page}>
         <Text style={s.h1}>Next Steps & Recommendations</Text>
 
@@ -1143,7 +1229,7 @@ export function SVIReportPDF({ analysis, email }: Props) {
           </Text>
         </View>
 
-        <Footer pageNum={10} />
+        <Footer pageNum={11} />
       </Page>
     </Document>
   );

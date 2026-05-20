@@ -20,7 +20,7 @@ const plexMono = IBM_Plex_Mono({
 
 const SITE_NAME = "BlockID.au — Startup Value Index";
 const SITE_DESCRIPTION =
-  "Measure, prove and grow your startup value from day one. Get your free Startup Value Index. Evidence-backed scoring for Australian founders — idea to investor-ready.";
+  "Measure, prove and grow your startup value from day one. Get your free Startup Value Index. Evidence-backed scoring for Australian founders.";
 const SITE_URL = "https://blockid.au";
 
 export const metadata: Metadata = {

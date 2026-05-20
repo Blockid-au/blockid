@@ -7,7 +7,7 @@ import { Footer } from "@/components/site/footer";
 import { InsightsCategoryFilter } from "./category-filter";
 
 export const metadata: Metadata = {
-  title: "Insights — Startup Valuation, Equity & Fundraising | BlockID.au",
+  title: "Insights — Valuation, Equity & Fundraising",
   description:
     "Expert guides for Australian founders: startup valuation, cap table management, equity splits, investor readiness, and fundraising strategies.",
 };

@@ -1,8 +1,15 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { DataRoomClient } from "./data-room-client";
+
+export const metadata: Metadata = {
+  title: "Data Room",
+  description: "Build and manage your investor-ready data room on BlockID.",
+  robots: { index: false, follow: false },
+};
 
 export const dynamic = "force-dynamic";
 

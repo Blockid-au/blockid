@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { Logo } from "@/components/brand/logo";
 import Link from "next/link";
 import DocumentsUpload from "./documents-upload";
+
+export const metadata: Metadata = {
+  title: "Documents — Admin",
+  robots: { index: false, follow: false },
+};
 
 export const dynamic = "force-dynamic";
 

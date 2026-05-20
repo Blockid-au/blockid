@@ -1,8 +1,15 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { EvidenceVaultClient } from "@/components/svi/evidence-vault-client";
+
+export const metadata: Metadata = {
+  title: "Evidence Vault",
+  description: "Upload and manage evidence to boost your Startup Value Index score on BlockID.",
+  robots: { index: false, follow: false },
+};
 
 export const dynamic = "force-dynamic";
 

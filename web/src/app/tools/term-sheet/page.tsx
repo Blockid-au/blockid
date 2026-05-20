@@ -5,7 +5,7 @@ import { TermSheetTool } from "./term-sheet-tool";
 import { ClipboardPaste, Sparkles, FileSearch } from "lucide-react";
 
 const TITLE =
-  "Term Sheet — Free AI Analysis & Redline for AU Founders | BlockID.au";
+  "Term Sheet — Free AI Analysis & Redline | BlockID";
 const DESCRIPTION =
   "Paste any term sheet and get a founder-friendly redline, AU market comparison and dilution simulation in 30 seconds. Free for Australian startup founders.";
 

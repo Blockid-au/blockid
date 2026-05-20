@@ -3,7 +3,7 @@ import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { IdeaValuationTool } from "./idea-valuation-tool";
 
-const TITLE = "Idea Valuation — Free Startup Valuation Calculator for AU Founders | BlockID.au";
+const TITLE = "Idea Valuation — Free Startup Calculator | BlockID";
 const DESCRIPTION =
   "Estimate your Australian startup's pre-money valuation at the idea stage. Berkus + Scorecard methods, AUD-native, completely free. Built for AU founders.";
 

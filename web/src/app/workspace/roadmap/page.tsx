@@ -1,8 +1,15 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { RoadmapSteps } from "@/components/workspace/roadmap-steps";
+
+export const metadata: Metadata = {
+  title: "Growth Roadmap",
+  description: "Follow guided steps to grow your SVI score and attract investors on BlockID.",
+  robots: { index: false, follow: false },
+};
 
 export const dynamic = "force-dynamic";
 

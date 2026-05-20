@@ -3,9 +3,9 @@ import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { ApiDocs } from "./api-docs";
 
-const TITLE = "API Documentation — BlockID Developer Platform | BlockID.au";
+const TITLE = "API Docs — BlockID Developer Platform";
 const DESCRIPTION =
-  "Integrate startup intelligence into your workflow with the BlockID API. SVI analysis, investor-ready scoring, term sheet analysis, and credit management endpoints.";
+  "Integrate startup intelligence into your workflow with the BlockID API. SVI analysis, investor-ready scoring, and term sheet analysis endpoints.";
 
 export const metadata: Metadata = {
   title: TITLE,

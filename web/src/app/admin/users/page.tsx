@@ -1,9 +1,15 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { Logo } from "@/components/brand/logo";
 import Link from "next/link";
 import { ArrowLeft, Users } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Users — Admin",
+  robots: { index: false, follow: false },
+};
 
 export const dynamic = "force-dynamic";
 

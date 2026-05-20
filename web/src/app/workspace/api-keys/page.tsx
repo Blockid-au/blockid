@@ -1,8 +1,15 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { listApiKeys, canCreateApiKeys, getRateLimitForPlan } from "@/lib/api-keys";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { ApiKeysClient } from "./api-keys-client";
+
+export const metadata: Metadata = {
+  title: "API Keys",
+  description: "Manage API keys for programmatic access to BlockID.",
+  robots: { index: false, follow: false },
+};
 
 export const dynamic = "force-dynamic";
 

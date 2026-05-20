@@ -697,10 +697,9 @@ export function SVIEntrance() {
                 Index valuation, ownership, and execution milestones from idea to scale.
               </p>
               <p className="mt-5 text-base md:text-lg text-ink-500 leading-relaxed max-w-xl">
-                BlockID.au helps founders, startups, and SMEs build a clear foundation for
-                valuation, ownership, and execution from day one — tracking value creation,
-                contributor alignment, capitalization, and investor-ready records as the
-                business grows.
+                Join 50+ Australian founders using BlockID to track valuation,
+                structure ownership, and build investor-ready records — so when the
+                right opportunity comes, you are ready.
               </p>
               <div className="mt-10 flex flex-col sm:flex-row flex-wrap gap-4">
                 <a href="#svi" className="inline-flex h-14 sm:h-16 items-center justify-center gap-2.5 rounded-2xl bg-brand-600 px-8 sm:px-10 text-base sm:text-lg font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
@@ -873,7 +872,7 @@ export function SVIEntrance() {
             <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight text-center text-ink-900">
               Get Your <span className="text-brand-600">Startup Value Index</span>
             </h2>
-            <p className="mt-4 text-lg text-ink-500">Free AI-powered analysis in under 60 seconds</p>
+            <p className="mt-4 text-lg text-ink-500">First analysis free. AI-powered results in under 60 seconds.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="w-full">
@@ -954,7 +953,7 @@ export function SVIEntrance() {
                 Try an Example
               </button>
             </div>
-            <p className="mt-3 text-center text-xs text-ink-600">Free · No credit card · Drag &amp; drop a PDF · Voice input</p>
+            <p className="mt-3 text-center text-xs text-ink-600">Free · No credit card · No signup · Drag &amp; drop a PDF · Voice input</p>
             {/* Typing indicator hint — visible when textarea is empty */}
             {!text && state === "idle" && (
               <div className="mt-3 flex items-center justify-center gap-1.5" aria-hidden="true">

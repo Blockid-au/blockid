@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { sendSVIReport } from "@/lib/email";
+import type { SVIAnalysis } from "@/lib/svi-analysis";
 
 // POST /api/svi/email-report
 // Body: { email, slug, analysis }
-// Sends the SVI report email to the given address.
+// Generates the SVI PDF report and sends it as an email attachment.
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -25,12 +26,7 @@ export async function POST(request: Request) {
   const parsed = body as {
     email?: string;
     slug?: string;
-    analysis?: {
-      totalSVI: number;
-      stageLabel: string;
-      subs: { label: string; value: number }[];
-      evidenceGaps: { label: string; action: string }[];
-    };
+    analysis?: SVIAnalysis;
   } | null;
 
   if (!parsed?.email || !parsed.email.includes("@")) {

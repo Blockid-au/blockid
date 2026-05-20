@@ -17,7 +17,7 @@ import {
 export const metadata: Metadata = {
   title: "Founding 50 — Startup Value Account | BlockID.au",
   description:
-    "Claim one of 50 Founding accounts. Get your Startup Value Index Account for AUD $49 (normally $99). Includes cap table starter, Evidence Vault, and export packs.",
+    "Claim one of 50 Founding accounts. Get your Startup Value Index for AUD $49 (normally $99). Includes cap table, Evidence Vault, and exports.",
 };
 
 const INCLUDES = [

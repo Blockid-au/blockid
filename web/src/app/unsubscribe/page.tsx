@@ -1,7 +1,14 @@
+import type { Metadata } from "next";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { getPreferencesByToken } from "@/lib/email-preferences";
 import { UnsubscribeClient } from "./unsubscribe-client";
+
+export const metadata: Metadata = {
+  title: "Unsubscribe",
+  description: "Manage your BlockID email preferences and unsubscribe from notifications.",
+  robots: { index: false, follow: false },
+};
 
 export const dynamic = "force-dynamic";
 

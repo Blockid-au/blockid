@@ -7,6 +7,9 @@
 
 import "server-only";
 import nodemailer from "nodemailer";
+import { renderToBuffer } from "@react-pdf/renderer";
+import { SVIReportPDF } from "@/lib/pdf/svi-report-pdf";
+import type { SVIAnalysis } from "@/lib/svi-analysis";
 import {
   ensureEmailPreferences,
   canSendEmail,
@@ -55,6 +58,7 @@ async function sendEmail(args: {
   subject: string;
   html: string;
   unsubscribeUrl?: string;
+  attachments?: { filename: string; content: Buffer | Uint8Array; contentType?: string }[];
 }): Promise<SendResult> {
   const transporter = getTransporter();
   if (!transporter) {
@@ -74,6 +78,13 @@ async function sendEmail(args: {
       subject: args.subject,
       html: args.html,
       headers,
+      ...(args.attachments?.length && {
+        attachments: args.attachments.map((a) => ({
+          filename: a.filename,
+          content: Buffer.from(a.content),
+          contentType: a.contentType ?? "application/pdf",
+        })),
+      }),
     });
     console.log("[blockid:email] sent", { to: args.to, messageId: info.messageId });
     return { ok: true, id: info.messageId ?? "" };
@@ -337,7 +348,7 @@ export async function sendSVIReport(args: {
   to: string;
   slug: string;
   rawInput?: string;
-  analysis: { totalSVI: number; stageLabel: string; subs: { label: string; value: number }[]; evidenceGaps: { label: string; action: string }[] };
+  analysis: SVIAnalysis;
 }): Promise<SendResult> {
   if (!(await canSendEmail(args.to, "svi_alerts"))) return { ok: false, reason: "unsubscribed" };
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
@@ -350,6 +361,19 @@ export async function sendSVIReport(args: {
   const strengthRows = strengths.map((s) => `<tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(s.label)} <span style="color:#64748B;">(${s.value}/100)</span></td></tr>`).join("");
   const gapRows = gaps.map((g) => `<tr><td style="padding:6px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(g.label)}: <span style="color:#94A3B8;">${escapeHtml(g.action)}</span></td></tr>`).join("");
   const ideaSummaryHtml = ideaSummary ? `<div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:0 0 16px 0;"><p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Your Idea</p><p style="margin:0;color:#CBD5E1;font-size:13px;line-height:1.6;font-style:italic;">&ldquo;${ideaSummary}&rdquo;</p></div>` : "";
+
+  // Generate PDF attachment
+  let pdfAttachment: { filename: string; content: Buffer; contentType: string } | undefined;
+  try {
+    const pdfBuffer = await renderToBuffer(
+      SVIReportPDF({ analysis: args.analysis, email: args.to }),
+    );
+    const filename = `BlockID-SVI-Report-${args.slug}.pdf`;
+    pdfAttachment = { filename, content: Buffer.from(pdfBuffer), contentType: "application/pdf" };
+  } catch (pdfErr) {
+    console.error("[blockid:email] PDF generation failed, sending email without attachment", pdfErr);
+  }
+
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
     <tr><td align="center">
@@ -357,7 +381,7 @@ export async function sendSVIReport(args: {
         <tr><td>
           <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Startup Value Report</p>
           <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Your Startup Value Report is Ready</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Your SVI analysis is complete. Here is your headline score and key findings.</p>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Your SVI analysis is complete. Here is your headline score and key findings.${pdfAttachment ? " The full PDF report is attached." : ""}</p>
           ${ideaSummaryHtml}
           <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
             <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:64px;font-weight:600;color:#3B7DD8;line-height:1;">${args.analysis.totalSVI}</div>
@@ -381,7 +405,13 @@ export async function sendSVIReport(args: {
   </table>
   ${unsubFooter(unsubscribeUrl, preferencesUrl)}
   <img src="${trackUrl}" width="1" height="1" alt="" style="display:none;" />`);
-  return sendEmail({ to: args.to, subject: "Your BlockID Startup Value Report is Ready", html, unsubscribeUrl });
+  return sendEmail({
+    to: args.to,
+    subject: "Your BlockID Startup Value Report is Ready",
+    html,
+    unsubscribeUrl,
+    ...(pdfAttachment && { attachments: [pdfAttachment] }),
+  });
 }
 
 // ---------- SVI Share email --------------------------------------------------

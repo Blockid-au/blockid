@@ -1,9 +1,16 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { PLANS } from "@/lib/plans";
 import { BillingClient } from "./billing-client";
+
+export const metadata: Metadata = {
+  title: "Billing & Subscription",
+  description: "Manage your BlockID plan, view features, and update payment details.",
+  robots: { index: false, follow: false },
+};
 
 export const dynamic = "force-dynamic";
 

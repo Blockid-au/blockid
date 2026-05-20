@@ -1,8 +1,16 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { ProfileProgress } from "@/components/workspace/profile-progress";
 import { BadgeShelf } from "@/components/workspace/badge-shelf";
+
+export const metadata: Metadata = {
+  title: "My Profile",
+  description: "Manage your BlockID account and startup details.",
+  robots: { index: false, follow: false },
+};
+
 export const dynamic = "force-dynamic";
 
 export default async function ProfilePage() {

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -6,6 +7,12 @@ import {
 } from "@/lib/email-preferences";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { NotificationsClient } from "./notifications-client";
+
+export const metadata: Metadata = {
+  title: "Notification Preferences",
+  description: "Choose which emails you receive from BlockID.",
+  robots: { index: false, follow: false },
+};
 
 export const dynamic = "force-dynamic";
 
