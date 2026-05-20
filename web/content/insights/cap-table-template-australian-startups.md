@@ -451,4 +451,6 @@ You can maintain a cap table in a spreadsheet (Google Sheets or Excel), but as y
 
 [Build Your Cap Table Free](/tools/cap-table) with BlockID's cap table tool, designed for Australian startups. It guides you through the structure, calculates dilution scenarios, and tracks vesting automatically.
 
-For deeper founder insights on your company's readiness, [Get your free SVI score](/), which evaluates your startup's health across operations, governance, and investor readiness—including cap table quality
+For deeper founder insights on your company's readiness, [Get your free SVI score](/), which evaluates your startup's health across operations, governance, and investor readiness — including cap table quality.
+
+> **Next step:** [Build Your Cap Table Free](/tools/cap-table) or [Get Your Startup Value Index](/) to see how your equity structure stacks up against investor expectations.

@@ -343,4 +343,8 @@ To ensure you are ready for the next round of funding, use this practical checkl
 
 In the Australian startup ecosystem, trust is the most valuable currency you possess. A disorganized data room signals disorganization in your business operations. Conversely, a comprehensive, well-maintained, and accessible investor data room signals that you are a professional, scalable, and low-risk investment.
 
-By pre-empting the questions investors are going to ask and providing the answers before they are even
+By pre-empting the questions investors are going to ask and providing the answers before they are even requested, you dramatically accelerate the due diligence process and position yourself as a founder who understands the game.
+
+Start today: use the [BlockID Data Room Builder](/tools/data-room) to track your readiness across every category, identify gaps, and build the document set that turns investor interest into signed term sheets.
+
+> **Ready to get investor-ready?** [Build Your Data Room Now](/tools/data-room) or [Get Your Free Startup Value Index](/) to see where your startup stands across valuation, governance, and compliance.
