@@ -182,21 +182,21 @@ type Provider = "claude-oauth" | "claude-apikey" | "claude-proxy" | "openai-code
 
 function getAvailableProviders(): Provider[] {
   const providers: Provider[] = [];
-  // Priority: Proxy → DB keys → Claude OAuth → Env keys → Codex → Gemini
-  // 1. Proxy (env or DB)
+  // Priority: OAuth tokens first (free, auto-refresh) → Proxy → API keys → Gemini
+  // 1. Codex OAuth (OpenAI — active, auto-refreshes via CLI)
+  if (readCodexOAuthToken()) providers.push("openai-codex");
+  // 2. Claude CLI OAuth (active when CLI is open, auto-refreshes)
+  if (readCliOAuthToken()) providers.push("claude-oauth");
+  // 3. Proxy (TapHoaAPI — paid third-party, multi-key)
   if (process.env.ANTHROPIC_PROXY_API_KEY && process.env.ANTHROPIC_PROXY_BASE_URL) providers.push("claude-proxy");
   else if (getDBKey("anthropic_proxy")) providers.push("claude-proxy");
-  // 2. Claude OAuth
-  if (readCliOAuthToken()) providers.push("claude-oauth");
-  // 3. Anthropic key (env or DB)
+  // 4. Anthropic API key (env or DB)
   if (process.env.ANTHROPIC_API_KEY) providers.push("claude-apikey");
   else if (getDBKey("anthropic")) providers.push("claude-apikey");
-  // 4. Codex OAuth
-  if (readCodexOAuthToken()) providers.push("openai-codex");
-  // 5. OpenAI key (env or DB)
+  // 5. OpenAI API key (env or DB)
   if (process.env.OPENAI_API_KEY) providers.push("openai-apikey");
   else if (getDBKey("openai")) providers.push("openai-apikey");
-  // 6. Gemini (env or DB)
+  // 6. Gemini (free tier fallback)
   if (process.env.GOOGLE_GEMINI_API_KEY) providers.push("gemini");
   else if (getDBKey("gemini")) providers.push("gemini");
   return providers;
@@ -287,27 +287,29 @@ async function callOpenAI(apiKey: string, opts: AICallOptions): Promise<AICallRe
   return { text, provider: "openai", model };
 }
 
-// ── OpenAI Codex CLI call (uses codex exec subprocess) ─────────────────
+// ── OpenAI Codex OAuth call (uses OAuth token from ~/.codex/auth.json) ──
 
 async function callCodex(opts: AICallOptions): Promise<AICallResult> {
-  const { execSync } = await import("child_process");
+  const token = readCodexOAuthToken();
+  if (!token) throw new Error("Codex OAuth token not available");
 
-  const prompt = `${opts.system}\n\n---\n\n${opts.user}`;
-  const tmpPrompt = `/tmp/codex-prompt-${Date.now()}.txt`;
-  const tmpOut = `/tmp/codex-out-${Date.now()}.txt`;
-  fs.writeFileSync(tmpPrompt, prompt);
+  // Use OpenAI SDK with the Codex OAuth token
+  const OpenAI = (await import("openai")).default;
+  const client = new OpenAI({ apiKey: token });
 
-  try {
-    execSync(
-      `cat "${tmpPrompt}" | codex exec -o "${tmpOut}"`,
-      { timeout: 90_000, maxBuffer: 2 * 1024 * 1024, encoding: "utf-8", shell: "/bin/bash" }
-    );
-    const text = fs.readFileSync(tmpOut, "utf-8").trim();
-    return { text, provider: "openai", model: "codex-chatgpt" };
-  } finally {
-    try { fs.unlinkSync(tmpPrompt); } catch { /* ignore */ }
-    try { fs.unlinkSync(tmpOut); } catch { /* ignore */ }
-  }
+  const model = "gpt-4o-mini";
+
+  const response = await client.chat.completions.create({
+    model,
+    max_tokens: opts.maxTokens ?? 4096,
+    messages: [
+      { role: "system", content: opts.system },
+      { role: "user", content: opts.user },
+    ],
+  });
+
+  const text = response.choices[0]?.message?.content ?? "";
+  return { text, provider: "openai", model };
 }
 
 // ── Gemini call ────────────────────────────────────────────────────────
