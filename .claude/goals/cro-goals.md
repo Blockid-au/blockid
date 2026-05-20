@@ -90,3 +90,35 @@ Maximize revenue growth for BlockID.au through conversion optimization, retentio
 - Retention Lead (CRO-003)
 - Partnerships Lead (CRO-004)
 - Sales Ops (CRO-005)
+
+## Quick Win Conversion Fixes (Sprint S2026-10)
+
+### 1. Track `svi_form_started` on textarea focus
+**Metric:** SVI start rate (currently unmeasured for organic typing)
+**Fix:** Add `trackEvent("svi_form_started", { method: "text" })` on textarea focus
+**Impact:** +10-15% completion once abandonment is visible
+
+### 2. Add `checkout_completed` event in Stripe webhook
+**Metric:** paymentRate (currently 0 in growth-insights — never fires)
+**Fix:** Fire event in post-checkout/webhook handler
+**Impact:** Enables checkout recovery (5-15% abandoned carts)
+
+### 3. Evidence wizard tracking + score-boost CTA copy
+**Metric:** evidenceWeek (currently 0)
+**Fix:** (a) Track wizard open. (b) CTA: "Upload pitch deck to boost score +10-20 pts"
+**Impact:** +15-25% evidence upload rate
+
+### 4. Segment nurture emails by SVI score for Founding 50
+**Metric:** paying users conversion from free
+**Fix:** Branch day-3/day-7 nurture — send personalized Founding 50 offer with actual score for SVI>120
+**Impact:** 2-3x conversion on high-SVI segment
+
+### 5. Fire missing analytics events (15 defined but never called)
+**Metric:** Full funnel visibility
+**Fix:** Add: `pricing_viewed`, `founding50_viewed`, `dashboard_viewed`, `evidence_vault_opened`, `checkout_completed`, `score_form_*`
+**Impact:** Complete GA4 funnel data for optimization
+
+### Analytics Gaps Found (27/37 events active)
+- 10 events defined in AnalyticsEventMap but never called in code
+- `checkout_completed` — critical revenue event missing
+- `svi_form_started` — only fires for "example" method, not organic typing
