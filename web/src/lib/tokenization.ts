@@ -1,12 +1,17 @@
 /**
  * BlockID Tokenization Engine
  *
- * Maps cap table equity → on-chain tokens on BlockID's private Cosmos chain.
- * This module provides the web-side bridge. The actual chain runs separately.
+ * Maps cap table equity → on-chain tokens on BlockID's PRIVATE Cosmos chain.
+ * This is NOT connected to Cosmos mainnet or any public blockchain.
+ * Tokens have NO cryptocurrency value — they represent startup equity shares.
  *
  * Architecture:
- *   Web App (Next.js) → Tokenization API → Cosmos Chain (REST/gRPC)
+ *   Web App (Next.js) → Tokenization API → Private Chain (REST/gRPC)
  *   Cap Table changes → mint/burn/transfer tokens → bi-directional sync
+ *
+ * Chain: blockid-testnet-1 (private, Cosmos SDK v0.50.12)
+ * RPC: https://chain.blockid.au (private testnet)
+ * Explorer: https://explorer.blockid.au (private testnet explorer)
  */
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -59,11 +64,16 @@ export interface DividendDistribution {
 
 // ── Default Config ─────────────────────────────────────────────────────
 
+/**
+ * BlockID Private Testnet — NOT connected to Cosmos mainnet.
+ * This is a standalone private chain for equity tokenization.
+ * No real cryptocurrency value — tokens represent startup shares only.
+ */
 export const DEFAULT_CHAIN_CONFIG: TokenConfig = {
-  chainId: "blockid-1",
-  chainName: "BlockID Chain",
-  rpcUrl: process.env.COSMOS_RPC_URL ?? "http://localhost:26657",
-  restUrl: process.env.COSMOS_REST_URL ?? "http://localhost:1317",
+  chainId: "blockid-testnet-1",
+  chainName: "BlockID Private Testnet",
+  rpcUrl: process.env.COSMOS_RPC_URL ?? "https://chain.blockid.au",
+  restUrl: process.env.COSMOS_REST_URL ?? "https://chain.blockid.au/rest",
   denom: "ushare",
   prefix: "blockid",
 };
@@ -206,15 +216,15 @@ export async function getAllHolders(
  */
 export function getMetaMaskChainConfig(config = DEFAULT_CHAIN_CONFIG) {
   return {
-    chainId: "0x1A4", // 420 in hex (example, actual depends on chain config)
-    chainName: config.chainName,
+    chainId: "0x1A4", // 420 in hex — private testnet only
+    chainName: `${config.chainName} (Private Testnet)`,
     nativeCurrency: {
-      name: "BlockID Share",
+      name: "BlockID Share Token",
       symbol: "SHARE",
       decimals: 6,
     },
     rpcUrls: [config.rpcUrl.replace("26657", "8545")], // EVM JSON-RPC port
-    blockExplorerUrls: [`${config.restUrl}/explorer`],
+    blockExplorerUrls: ["https://explorer.blockid.au"],
   };
 }
 
