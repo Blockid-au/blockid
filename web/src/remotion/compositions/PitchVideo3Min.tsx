@@ -3,7 +3,9 @@ import { AbsoluteFill, Sequence } from "remotion";
 import { ComparisonTable } from "../components/ComparisonTable";
 import { CTASlide } from "../components/CTASlide";
 import { DropMic } from "../components/DropMic";
+import { FlowDiagram } from "../components/FlowDiagram";
 import { LogoReveal } from "../components/LogoReveal";
+import { MetricsGrid } from "../components/MetricsGrid";
 import { RoadmapTimeline } from "../components/RoadmapTimeline";
 import { ScreenDemo } from "../components/ScreenDemo";
 import { SlideTransition } from "../components/SlideTransition";
@@ -462,42 +464,36 @@ export const PitchVideo3Min: React.FC = () => {
             <Sequence from={60} durationInFrames={300}>
               <ScreenDemo
                 url="blockid.au"
+                imageSrc="video-assets/homepage-hero.png"
                 descriptionLines={[
                   '[Homepage] "The agentic AI valuation platform"',
                   "[Search bar] Glowing border, ready for input",
-                  '[User types] "An AI-powered recruitment platform for',
-                  '  Australian SMEs using NLP to match candidates"',
-                  '[Badge] "Idea Analysis" input type detected',
-                  "[Enter email] user@example.com",
                 ]}
+                status="Describe your startup in plain text. Get an AI valuation in 60 seconds."
               />
             </Sequence>
 
-            {/* Demo: SSE Status + Results */}
+            {/* Demo: SVI Search input */}
             <Sequence from={340} durationInFrames={300}>
               <ScreenDemo
-                url="blockid.au/dashboard/svi"
+                url="blockid.au"
+                imageSrc="video-assets/svi-search.png"
                 descriptionLines={[
-                  '[Click] "Get My SVI" button',
-                  '[SSE] "Analyzing your input..."',
-                  '[SSE] "Researching market size..."',
-                  '[SSE] "Scanning competitors..."',
-                  '[SSE] "Evaluating business model..."',
-                  '[SSE] "Generating report..."',
+                  '[User types] "An AI-powered recruitment platform"',
+                  '[Badge] "Idea Analysis" input type detected',
                 ]}
-                status="Processing..."
+                status="AI analyzes across 8 dimensions in real time."
               />
             </Sequence>
 
-            {/* Demo: Report appears */}
+            {/* Demo: Score page with results */}
             <Sequence from={620} durationInFrames={280}>
               <ScreenDemo
                 url="blockid.au/dashboard/svi"
+                imageSrc="video-assets/score-page.png"
                 descriptionLines={[
-                  "[RESULT] SVI Score: 138 with gauge animation",
-                  "[Scroll] Executive Summary \u2192 Market & Problem \u2192 Product",
+                  "[RESULT] SVI Score with gauge animation",
                   "[10-page report] Market research, competitors, business model",
-                  "[Actionable] Recommendations with next steps",
                 ]}
                 status="10-page AI analysis. All in under a minute."
               />
@@ -512,15 +508,14 @@ export const PitchVideo3Min: React.FC = () => {
       <Sequence from={1800} durationInFrames={600}>
         <SlideTransition durationInFrames={600}>
           <AbsoluteFill>
-            {/* Zoom into recommendations */}
+            {/* Zoom into recommendations — score page */}
             <Sequence from={0} durationInFrames={300}>
               <ScreenDemo
                 url="blockid.au/dashboard/svi"
+                imageSrc="video-assets/09-score.png"
                 descriptionLines={[
                   "[Recommendations section]",
-                  '[Action button] "Build your cap table \u2192"',
-                  '[Action button] "Upload pitch deck \u2192"',
-                  '[Click] "Build your cap table \u2192"',
+                  '[Action button] "Build your cap table"',
                 ]}
                 status="Every recommendation links directly to a tool."
               />
@@ -530,12 +525,10 @@ export const PitchVideo3Min: React.FC = () => {
             <Sequence from={280} durationInFrames={320}>
               <ScreenDemo
                 url="blockid.au/tools/cap-table"
+                imageSrc="video-assets/cap-table.png"
                 descriptionLines={[
-                  "[Cap Table Tool] Equity split calculator opens",
-                  "[Founder] 60% equity",
-                  "[Co-founder] 30% equity",
-                  "[ESOP Pool] 10% reserved",
-                  "[Complete] Action completed \u2192 SVI auto-rescores",
+                  "[Cap Table Tool] Equity split calculator",
+                  "[Founder] 60% / [Co-founder] 30% / [ESOP] 10%",
                 ]}
                 status="SVI 138 \u2192 146 \u25B2 +8 points"
               />
@@ -550,15 +543,14 @@ export const PitchVideo3Min: React.FC = () => {
       <Sequence from={2400} durationInFrames={600}>
         <SlideTransition durationInFrames={600}>
           <AbsoluteFill>
-            {/* Evidence upload demo */}
+            {/* Evidence upload demo — dashboard */}
             <Sequence from={0} durationInFrames={300}>
               <ScreenDemo
                 url="blockid.au/workspace/evidence"
+                imageSrc="video-assets/08-dashboard.png"
                 descriptionLines={[
                   "[Evidence Vault] Upload documents page",
-                  '[Upload] "pitch-deck.pdf" \u2192 processing...',
-                  '[Toast] "SVI +5 points \u2192 New score: 151"',
-                  '[Badge earned] "Pitch Ready" \u2728',
+                  '[Upload] "pitch-deck.pdf" processing',
                 ]}
                 status="Each piece of verified evidence lifts your score."
               />
@@ -640,23 +632,67 @@ export const PitchVideo3Min: React.FC = () => {
                     ))}
                   </div>
 
-                  {/* SVI trend line placeholder */}
+                  {/* SVI confidence growth flow */}
                   <div
                     style={{
-                      width: 800,
-                      height: 120,
-                      borderRadius: 12,
-                      border: `1px dashed ${BRAND.colors.brand500}40`,
                       display: "flex",
-                      justifyContent: "center",
                       alignItems: "center",
-                      fontFamily: BRAND.fonts.mono,
-                      fontSize: 18,
-                      color: BRAND.colors.slate400,
+                      gap: 16,
                       marginTop: 16,
                     }}
                   >
-                    [Living Report Dashboard \u2014 SVI trend chart over time]
+                    {[
+                      { score: "20%", label: "Initial" },
+                      { score: "55%", label: "+ Pitch Deck" },
+                      { score: "75%", label: "+ Revenue" },
+                      { score: "90%", label: "Verified" },
+                    ].map((step, i) => (
+                      <React.Fragment key={step.label}>
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: 6,
+                            padding: "16px 20px",
+                            borderRadius: 12,
+                            backgroundColor: `${BRAND.colors.brand500}12`,
+                            border: `1px solid ${BRAND.colors.brand500}30`,
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontFamily: BRAND.fonts.mono,
+                              fontSize: 24,
+                              fontWeight: 700,
+                              color: BRAND.colors.brand400,
+                            }}
+                          >
+                            {step.score}
+                          </div>
+                          <div
+                            style={{
+                              fontFamily: BRAND.fonts.heading,
+                              fontSize: 14,
+                              color: BRAND.colors.slate400,
+                            }}
+                          >
+                            {step.label}
+                          </div>
+                        </div>
+                        {i < 3 && (
+                          <div
+                            style={{
+                              fontSize: 22,
+                              color: BRAND.colors.brand400,
+                              fontWeight: 700,
+                            }}
+                          >
+                            {"\u2192"}
+                          </div>
+                        )}
+                      </React.Fragment>
+                    ))}
                   </div>
                 </div>
               </AbsoluteFill>
@@ -686,18 +722,17 @@ export const PitchVideo3Min: React.FC = () => {
               <RoadmapTimeline staggerFrames={15} />
             </Sequence>
 
-            {/* Vision text */}
+            {/* Vision: founder journey flow */}
             <Sequence from={460} durationInFrames={140}>
-              <TextReveal
-                lines={[
-                  "Equity tokenized on blockchain.",
-                  "Automatic dividend distribution.",
-                  "From idea to IPO \u2014 one platform.",
+              <FlowDiagram
+                title="From idea to IPO \u2014 one platform"
+                steps={[
+                  { icon: "\uD83D\uDCA1", label: "Idea", sublabel: "Validate & score" },
+                  { icon: "\uD83D\uDE80", label: "MVP", sublabel: "Cap table & equity" },
+                  { icon: "\uD83D\uDCC8", label: "Traction", sublabel: "Evidence vault" },
+                  { icon: "\uD83D\uDCB0", label: "Revenue", sublabel: "Investor matching" },
+                  { icon: "\uD83C\uDFC6", label: "Scale", sublabel: "Blockchain equity" },
                 ]}
-                fontSize={36}
-                staggerFrames={25}
-                color={BRAND.colors.brand400}
-                fontWeight={500}
               />
             </Sequence>
           </AbsoluteFill>
@@ -715,28 +750,33 @@ export const PitchVideo3Min: React.FC = () => {
               <TAMCircles />
             </Sequence>
 
-            {/* Market stats */}
+            {/* Market metrics */}
             <Sequence from={250} durationInFrames={120}>
-              <AbsoluteFill
-                style={{
-                  justifyContent: "flex-end",
-                  alignItems: "center",
-                  paddingBottom: 80,
-                }}
-              >
-                <div
-                  style={{
-                    fontFamily: BRAND.fonts.heading,
-                    fontSize: 24,
-                    color: BRAND.colors.slate300,
-                    textAlign: "center",
-                    lineHeight: 1.6,
-                  }}
-                >
-                  2,600 active Australian startups \u00B7 300+ accelerators
-                  \u00B7 15,000 angel investors
-                </div>
-              </AbsoluteFill>
+              <MetricsGrid
+                title="Australian Startup Ecosystem"
+                metrics={[
+                  {
+                    label: "Private companies",
+                    value: 600000,
+                    color: "brand",
+                  },
+                  {
+                    label: "Raising capital / year",
+                    value: 50000,
+                    color: "gold",
+                  },
+                  {
+                    label: "Active startups",
+                    value: 2600,
+                    color: "emerald",
+                  },
+                  {
+                    label: "Angel investors",
+                    value: 15000,
+                    color: "white",
+                  },
+                ]}
+              />
             </Sequence>
 
             {/* Pricing */}

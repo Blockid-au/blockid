@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BarChart3, Bell, Briefcase, ChevronLeft, ChevronRight, CreditCard, FileText, FolderCheck, FolderOpen, Home,
+  Activity, BarChart3, Bell, Briefcase, ChevronLeft, ChevronRight, CreditCard, FileText, FolderCheck, FolderOpen, Home,
   Key, LayoutDashboard, Map, PieChart, Shield, TrendingUp, User
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
@@ -31,8 +31,9 @@ const NAV_ITEMS = [
   { href: "/workspace/data-room", label: "Data Room", icon: FolderCheck },
   { href: "/workspace/equity", label: "Cap Table", icon: PieChart },
   { href: "/workspace/documents", label: "Documents", icon: FolderOpen },
-  { href: "/workspace/reports", label: "Weekly Reports", icon: BarChart3 },
+  { href: "/workspace/reports", label: "Weekly Reports", icon: Activity },
   { href: "/workspace/roadmap", label: "Roadmap", icon: Map },
+  { href: "/workspace/metrics", label: "Metrics", icon: BarChart3 },
   { href: "/workspace/profile", label: "My Profile", icon: User },
   { href: "/workspace/billing", label: "Billing", icon: CreditCard },
   { href: "/workspace/api-keys", label: "API Keys", icon: Key },

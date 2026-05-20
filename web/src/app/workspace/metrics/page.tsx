@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
-import { Activity } from "lucide-react";
 import { MetricsClient, type MetricRow } from "./metrics-client";
 
 export const metadata: Metadata = {
@@ -51,7 +49,9 @@ export default async function MetricsPage() {
 
     const { data: metricRows } = await sb
       .from("startup_metrics")
-      .select("id, metric_date, metric_type, value, source, created_at")
+      .select(
+        "id, metric_date, mrr_aud, arr_aud, revenue_growth_pct, mau, dau, monthly_churn_pct, nrr_pct, cac_aud, ltv_aud, burn_rate_aud, runway_months, source, created_at",
+      )
       .eq("email", user.email)
       .gte("metric_date", cutoff)
       .order("metric_date", { ascending: true });
@@ -71,28 +71,7 @@ export default async function MetricsPage() {
           </p>
         </div>
 
-        {metrics.length > 0 || true ? (
-          <MetricsClient metrics={metrics} stage={stage} />
-        ) : (
-          <div className="rounded-2xl border border-dashed border-surface-200 bg-white px-6 py-16 text-center">
-            <Activity
-              strokeWidth={1.25}
-              className="mx-auto h-10 w-10 text-ink-700 mb-3"
-            />
-            <p className="text-ink-600 font-medium">
-              No metrics logged yet.
-            </p>
-            <p className="text-ink-700 text-sm mt-1">
-              Start tracking your MRR, MAU, retention and more.
-            </p>
-            <Link
-              href="/workspace/metrics"
-              className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
-            >
-              Log your first metric
-            </Link>
-          </div>
-        )}
+        <MetricsClient metrics={metrics} stage={stage} />
       </div>
     </WorkspaceLayout>
   );
