@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
+import { PageTracker } from "@/components/analytics/page-tracker";
 import { IdeaValuationTool } from "./idea-valuation-tool";
 
 const TITLE = "Idea Valuation — Free Startup Calculator | BlockID";
@@ -38,6 +39,7 @@ export const metadata: Metadata = {
 export default function IdeaValuationPage() {
   return (
     <>
+      <PageTracker page="tools/idea-valuation" tool="idea-valuation" />
       <Navbar />
       <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
         <div className="mx-auto max-w-6xl px-6">

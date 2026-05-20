@@ -27,7 +27,7 @@ import {
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "BlockID Self-Assessment — Admin | BlockID.au",
+  title: "BlockID Self-Assessment — Admin",
   robots: { index: false, follow: false },
 };
 

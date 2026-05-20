@@ -7,7 +7,7 @@ import { ArrowLeft, Shield } from "lucide-react";
 import { RndDashboard } from "./rnd-dashboard";
 
 export const metadata: Metadata = {
-  title: "AI R&D Agent — Admin | BlockID.au",
+  title: "AI R&D Agent — Admin",
   robots: { index: false, follow: false },
 };
 

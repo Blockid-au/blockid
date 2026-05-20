@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: "Privacy Policy — BlockID",
   description:
     "Learn how BlockID collects, uses, and protects your personal information. Australian data residency and GDPR-aligned practices.",
+  alternates: {
+    canonical: "https://blockid.au/privacy",
+  },
 };
 
 export default function PrivacyPage() {

@@ -20,6 +20,9 @@ export const metadata: Metadata = {
   title: "About BlockID — AI-Powered Startup Ownership Platform",
   description:
     "BlockID helps Australian founders build valuable, investable businesses from day one with AI-powered valuation, ownership intelligence, and investor-readiness tools.",
+  alternates: {
+    canonical: "https://blockid.au/about",
+  },
 };
 
 const STATS = [

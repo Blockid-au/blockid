@@ -30,7 +30,7 @@ export async function generateMetadata({
   const article = getArticleBySlug(slug);
   if (!article) return {};
   return {
-    title: `${article.title} | BlockID.au`,
+    title: article.title,
     description: article.description,
     keywords: article.keywords,
     openGraph: {
@@ -46,6 +46,9 @@ export async function generateMetadata({
       card: "summary_large_image",
       title: article.title,
       description: article.description,
+    },
+    alternates: {
+      canonical: `https://blockid.au/insights/${slug}`,
     },
   };
 }

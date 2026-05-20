@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { PageTracker } from "@/components/analytics/page-tracker";
 import {
   ArrowRight,
   BarChart3,
@@ -52,6 +53,7 @@ export default async function DashboardPage({
 
   return (
     <>
+      <PageTracker page="dashboard" />
       <Navbar />
       <main className="min-h-screen bg-surface-100 pt-28 pb-24 text-ink-800">
         <div className="mx-auto max-w-6xl px-6">

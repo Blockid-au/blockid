@@ -7,7 +7,7 @@ import { Logo } from "@/components/brand/logo";
 import { ArrowLeft, Shield, Bell, Mail, MailOpen } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Notifications — Admin | BlockID.au",
+  title: "Notifications — Admin",
   robots: { index: false, follow: false },
 };
 

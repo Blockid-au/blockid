@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
+import { PageTracker } from "@/components/analytics/page-tracker";
 import { FundingPlanTool } from "./funding-plan-tool";
 
-const TITLE = "Funding Plan — Free Startup Capital Planner for AU Founders | BlockID.au";
+const TITLE = "Funding Plan — Free Startup Capital Planner for AU Founders";
 const DESCRIPTION =
   "Plan how much capital you need, how much each founder puts in, and how much to raise externally. AU pre-seed friendly. Free for Australian startups.";
 
@@ -38,6 +39,7 @@ export const metadata: Metadata = {
 export default function FundingPlanPage() {
   return (
     <>
+      <PageTracker page="tools/funding-plan" tool="funding-plan" />
       <Navbar />
       <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
         <div className="mx-auto max-w-6xl px-6">

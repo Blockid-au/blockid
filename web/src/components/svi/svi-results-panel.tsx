@@ -823,6 +823,10 @@ export function SVIResultsPanel({
   const pageIds = PAGES.map((p) => p.id);
   const activeId = useActiveSection(pageIds);
 
+  React.useEffect(() => {
+    trackEvent("score_result_viewed", { total_score: analysis.totalSVI });
+  }, [analysis.totalSVI]);
+
   const shareUrl =
     typeof window !== "undefined" ? `${window.location.origin}/svi/${slug}` : `/svi/${slug}`;
 
