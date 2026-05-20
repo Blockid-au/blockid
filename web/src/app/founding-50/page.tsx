@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Founding50Form } from "./founding-50-form";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
+import { PageViewTracker } from "@/components/site/page-view-tracker";
 import {
   CheckCircle2,
   Clock,
@@ -15,9 +16,12 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Founding 50 — Startup Value Account | BlockID.au",
+  title: "Founding 50 — Startup Value Account",
   description:
     "Claim one of 50 Founding accounts. Get your Startup Value Index for AUD $49 (normally $99). Includes cap table, Evidence Vault, and exports.",
+  alternates: {
+    canonical: "https://blockid.au/founding-50",
+  },
 };
 
 const INCLUDES = [
@@ -56,6 +60,7 @@ const INCLUDES = [
 export default function Founding50Page() {
   return (
     <>
+      <PageViewTracker event="founding50_viewed" params={{}} />
       <Navbar />
       <main className="min-h-svh bg-surface-100 text-ink-800 pt-28 pb-24">
         <div className="max-w-4xl mx-auto px-6">

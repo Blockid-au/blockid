@@ -6,6 +6,7 @@ import { Footer } from "@/components/site/footer";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth";
 import { getPlan } from "@/lib/plans";
+import { CheckoutTracker } from "./checkout-tracker";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,7 @@ export default async function CheckoutSuccessPage({
 
   return (
     <>
+      <CheckoutTracker plan={planId} />
       <Navbar />
       <main className="min-h-screen bg-surface-100 pt-28 pb-20">
         <div className="mx-auto max-w-2xl px-6 text-center">

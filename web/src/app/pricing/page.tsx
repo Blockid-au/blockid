@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
+import { PageViewTracker } from "@/components/site/page-view-tracker";
 import {
   Check,
   X as XIcon,
@@ -150,6 +151,7 @@ const FAQ_ITEMS = [
 export default function PricingPage() {
   return (
     <div className="min-h-svh bg-surface-50 text-ink-800">
+      <PageViewTracker event="pricing_viewed" params={{}} />
       <Navbar />
 
       <main className="max-w-6xl mx-auto px-6 pt-28 pb-24">
