@@ -239,6 +239,31 @@ Investors are risk-averse. They are looking for the path of least resistance. Wh
 
 Moreover, the SVI score provides a baseline for valuation. Instead of relying on "comps" that may not fit your specific stage or sector, you have a data-driven assessment of your worth based on rigorous metrics. This is particularly powerful when dealing with Australian venture capital firms who value transparency and data integrity.
 
+
+<svg viewBox="0 0 700 292" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="292" fill="#f8fafc" rx="12" stroke="#e2e8f0"/>
+  <rect width="700" height="44" fill="#10b981" rx="12 12 0 0"/>
+  <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="white">Your Pre-Diligence Readiness Checklist</text>
+  <circle cx="40" cy="74" r="14" fill="#dcfce7"/>
+  <text x="40" y="79" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#10b981">&#10003;</text>
+  <text x="65" y="79" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Fix ASIC filings, director appointments, and corporate structure before any investor meeting</text>
+  <circle cx="40" cy="110" r="14" fill="#dcfce7"/>
+  <text x="40" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#10b981">&#10003;</text>
+  <text x="65" y="115" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Prepare clean financials with monthly P&amp;L, balance sheet, and cash flow statements</text>
+  <circle cx="40" cy="146" r="14" fill="#dcfce7"/>
+  <text x="40" y="151" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#10b981">&#10003;</text>
+  <text x="65" y="151" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Verify all IP is formally assigned to the company with signed deeds on file</text>
+  <circle cx="40" cy="182" r="14" fill="#dcfce7"/>
+  <text x="40" y="187" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#10b981">&#10003;</text>
+  <text x="65" y="187" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Organize your cap table with every share issuance and option grant documented</text>
+  <circle cx="40" cy="218" r="14" fill="#dcfce7"/>
+  <text x="40" y="223" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#10b981">&#10003;</text>
+  <text x="65" y="223" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Build your data room early; 80% of startups fail the investor&apos;s first screening</text>
+  <rect x="20" y="256" width="660" height="32" fill="#f0fdf4" rx="6"/>
+  <text x="350" y="277" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#10b981">Get your free Startup Value Index at blockid.au/score</text>
+</svg>
+
+
 ## Final Thoughts: Preparation is Your Greatest Leverage
 
 The fundraising journey is as much about the paperwork as it is about the pitch. The difference between a successful round and a failed one often comes down to what you did in the weeks and months before you picked up the phone.

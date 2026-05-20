@@ -311,6 +311,31 @@ Fundraising in Australia is not just about the money; it is about the ecosystem.
 
 For more insights on navigating these ecosystems and preparing for due diligence, explore our [More founder guides](/insights) section. These resources are designed to help you navigate the complexities of the Australian market.
 
+
+<svg viewBox="0 0 700 292" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="292" fill="#f8fafc" rx="12" stroke="#e2e8f0"/>
+  <rect width="700" height="44" fill="#2563eb" rx="12 12 0 0"/>
+  <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="white">Key Takeaways: What Investors Look for at Pre-Seed</text>
+  <circle cx="40" cy="74" r="14" fill="#dbeafe"/>
+  <text x="40" y="79" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">1</text>
+  <text x="65" y="79" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Founder-market fit matters more than pedigree; show deep domain expertise and commitment</text>
+  <circle cx="40" cy="110" r="14" fill="#dbeafe"/>
+  <text x="40" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">2</text>
+  <text x="65" y="115" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Validate the problem with real customer conversations, not just market research reports</text>
+  <circle cx="40" cy="146" r="14" fill="#dbeafe"/>
+  <text x="40" y="151" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">3</text>
+  <text x="65" y="151" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">ESIC eligibility unlocks 20% tax offset and CGT exemption for your angel investors</text>
+  <circle cx="40" cy="182" r="14" fill="#dbeafe"/>
+  <text x="40" y="187" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">4</text>
+  <text x="65" y="187" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Demonstrate a clear &quot;Why Now?&quot; thesis tied to market timing or regulatory shifts</text>
+  <circle cx="40" cy="218" r="14" fill="#dbeafe"/>
+  <text x="40" y="223" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">5</text>
+  <text x="65" y="223" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Have a minimum viable product or prototype; ideas alone rarely secure pre-seed in Australia</text>
+  <rect x="20" y="256" width="660" height="32" fill="#eff6ff" rx="6"/>
+  <text x="350" y="277" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">Get your free Startup Value Index at blockid.au/score</text>
+</svg>
+
+
 ## Conclusion: Your Path to Funding Starts Here
 
 The path to pre-seed funding in Australia is rigorous, but it is also structured. Investors are looking for teams that are resilient, markets that are timely, and governance that is sound. They are looking for proof, not promises.

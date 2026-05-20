@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Founding50Form } from "./founding-50-form";
-import { Logo } from "@/components/brand/logo";
+import { Navbar } from "@/components/site/navbar";
+import { Footer } from "@/components/site/footer";
 import {
   CheckCircle2,
   Clock,
@@ -54,21 +55,12 @@ const INCLUDES = [
 
 export default function Founding50Page() {
   return (
-    <div className="min-h-svh bg-surface-100 text-ink-800">
-      {/* Nav */}
-      <header className="max-w-4xl mx-auto px-6 py-5 flex items-center justify-between">
-        <Logo variant="light" />
-        <Link
-          href="/"
-          className="text-xs text-ink-600 hover:text-ink-800 transition-colors"
-        >
-          ← Back to SVI
-        </Link>
-      </header>
-
-      <main className="max-w-4xl mx-auto px-6 pb-24">
+    <>
+      <Navbar />
+      <main className="min-h-svh bg-surface-100 text-ink-800 pt-28 pb-24">
+        <div className="max-w-4xl mx-auto px-6">
         {/* Hero */}
-        <div className="text-center pt-10 pb-12">
+        <div className="text-center pb-12">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 rounded-full border border-brand-600/40 bg-brand-50 px-4 py-1.5 mb-6">
             <Clock strokeWidth={1.75} className="h-3.5 w-3.5 text-brand-600" />
@@ -77,7 +69,7 @@ export default function Founding50Page() {
             </span>
           </div>
 
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-ink-800 mb-4">
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-ink-900 mb-4">
             Claim Your{" "}
             <span className="text-brand-600">Founding 50</span>{" "}
             Account
@@ -206,7 +198,9 @@ export default function Founding50Page() {
             ))}
           </div>
         </div>
+        </div>
       </main>
-    </div>
+      <Footer />
+    </>
   );
 }

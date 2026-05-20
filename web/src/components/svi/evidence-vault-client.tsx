@@ -3,6 +3,7 @@
 import * as React from "react";
 import { FileText, Plus, ExternalLink, CheckCircle2, Clock, Loader2, Globe, Code, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ConnectButtons } from "@/components/ui/connect-buttons";
 import { EvidenceWizard } from "./evidence-wizard";
 
 interface EvidenceItem {
@@ -131,6 +132,16 @@ export function EvidenceVaultClient({ initialEvidence }: EvidenceVaultClientProp
           Add Evidence
         </Button>
       </div>
+
+      {/* Connect buttons — quick access to OAuth/URL connectors */}
+      <ConnectButtons
+        evidence={evidence}
+        onEvidenceAdded={() => {
+          void refreshEvidence();
+          void triggerRescore();
+        }}
+        onOpenWizard={() => setShowWizard(true)}
+      />
 
       {evidence.length > 0 ? (
         <>

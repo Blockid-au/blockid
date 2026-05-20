@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Navbar } from "@/components/site/navbar";
+import { Footer } from "@/components/site/footer";
 
 export const metadata: Metadata = {
   title: "Sign-in link issue · BlockID",
@@ -51,26 +53,30 @@ export default async function AuthErrorPage({
   const r = REASONS[reasonKey] ?? REASONS.unknown;
 
   return (
-    <main className="min-h-screen bg-surface-100 text-ink-800 flex items-center justify-center px-6 py-16">
-      <div className="max-w-md w-full bg-white border border-surface-200 rounded-2xl p-8 shadow-sm">
-        <p className="text-[11px] tracking-[0.2em] uppercase text-brand-600 font-medium mb-2">
-          BlockID<span className="text-gold-600">.au</span> — sign in
-        </p>
-        <h1 className="text-2xl font-semibold mb-3">{r.title}</h1>
-        <p className="text-ink-600 leading-relaxed mb-6">{r.body}</p>
-        <Link
-          href="/auth/login"
-          className="inline-block bg-brand-600 hover:bg-brand-700 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors"
-        >
-          Request a new link
-        </Link>
-        <Link
-          href="/"
-          className="inline-block ml-3 text-ink-600 text-sm hover:text-ink-800"
-        >
-          Back to home
-        </Link>
-      </div>
-    </main>
+    <>
+      <Navbar />
+      <main className="min-h-screen bg-surface-100 text-ink-800 flex items-center justify-center px-6 pt-28 pb-16">
+        <div className="max-w-md w-full bg-white border border-surface-200 rounded-2xl p-8 shadow-sm">
+          <p className="text-[11px] tracking-[0.2em] uppercase text-brand-600 font-medium mb-2">
+            BlockID<span className="text-gold-600">.au</span> — sign in
+          </p>
+          <h1 className="text-2xl font-semibold mb-3">{r.title}</h1>
+          <p className="text-ink-600 leading-relaxed mb-6">{r.body}</p>
+          <Link
+            href="/auth/login"
+            className="inline-block bg-brand-600 hover:bg-brand-700 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors"
+          >
+            Request a new link
+          </Link>
+          <Link
+            href="/"
+            className="inline-block ml-3 text-ink-600 text-sm hover:text-ink-800"
+          >
+            Back to home
+          </Link>
+        </div>
+      </main>
+      <Footer />
+    </>
   );
 }

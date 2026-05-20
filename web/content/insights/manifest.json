@@ -1,6 +1,24 @@
 {
   "articles": [
     {
+      "slug": "startup-legal-costs-australia-budget-guide",
+      "title": "Startup Legal Costs in Australia: Budget Guide from Incorporation to Series A",
+      "description": "Comprehensive guide to startup legal costs in Australia, covering incorporation through Series A funding. Learn budgeting tips and what to expect.",
+      "keywords": [
+        "startup legal costs Australia",
+        "company setup cost startup",
+        "legal fees startup Australia",
+        "incorporation cost Australia"
+      ],
+      "category": "compliance",
+      "publishedAt": "2026-05-20",
+      "readingTime": 7,
+      "cta": {
+        "label": "Check Your Compliance Score",
+        "href": "/score"
+      }
+    },
+    {
       "slug": "founder-vesting-schedule-guide",
       "title": "Founder Vesting Schedule: Why You Need One and How to Set It Up",
       "description": "Learn why a founder vesting schedule is essential for protecting your equity and how to set one up correctly in Australia to avoid costly co-founder disput",
@@ -525,7 +543,7 @@
     {
       "slug": "how-to-value-a-startup-idea-australia",
       "title": "How to Value a Startup Idea in Australia (2026 Guide)",
-      "description": "Five practical methods to value your startup from idea stage \u2014 Berkus, Scorecard, VC Method, Cost-to-Duplicate, and AI-powered valuation. Calibrated for Australian founders with AUD benchmarks.",
+      "description": "Five practical methods to value your startup from idea stage — Berkus, Scorecard, VC Method, Cost-to-Duplicate, and AI-powered valuation. Calibrated for Australian founders with AUD benchmarks.",
       "keywords": [
         "startup valuation Australia",
         "how to value a startup idea",

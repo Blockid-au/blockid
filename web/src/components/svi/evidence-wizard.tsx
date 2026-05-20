@@ -1,10 +1,122 @@
 "use client";
 
 import * as React from "react";
-import { X, FileText, Link2, GitBranch, BarChart3, CreditCard, ChevronRight, CheckCircle2 } from "lucide-react";
+import { X, FileText, Link2, GitBranch, BarChart3, CreditCard, ChevronRight, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
+
+// ---------- GitHub OAuth connect step ----------
+
+function GitHubConnectStep() {
+  const [available, setAvailable] = React.useState<boolean | null>(null);
+
+  React.useEffect(() => {
+    fetch("/api/oauth/github", { method: "HEAD", redirect: "manual" })
+      .then((res) => setAvailable(res.status !== 503))
+      .catch(() => setAvailable(false));
+  }, []);
+
+  return (
+    <div className="rounded-xl border border-surface-200 bg-surface-100 px-6 py-8 text-center">
+      <GitBranch strokeWidth={1.75} className="mx-auto h-8 w-8 text-brand-600 mb-3" />
+      <p className="text-sm font-medium text-ink-800 mb-1">Connect GitHub</p>
+      <p className="text-xs text-ink-600 mb-4">You&apos;ll be redirected to authorize access. We only read — never write.</p>
+      {available === null ? (
+        <Loader2 strokeWidth={1.75} className="mx-auto h-5 w-5 text-ink-600 animate-spin" />
+      ) : available ? (
+        <a
+          href="/api/oauth/github"
+          className="inline-flex h-10 items-center gap-2 rounded-xl bg-ink-800 px-5 text-sm font-semibold text-white hover:bg-ink-700 transition-colors"
+        >
+          <GitBranch className="h-4 w-4" /> Connect GitHub Account
+        </a>
+      ) : (
+        <span className="inline-flex h-10 items-center gap-2 rounded-xl bg-surface-200 px-5 text-sm font-semibold text-ink-500 cursor-not-allowed">
+          <GitBranch className="h-4 w-4" /> Coming soon
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ---------- Analytics connect step (simplified URL-based) ----------
+
+function AnalyticsConnectStep() {
+  const [urlValue, setUrlValue] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [success, setSuccess] = React.useState(false);
+
+  const handleSubmit = async () => {
+    if (!urlValue.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/evidence/connect-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: urlValue.trim(), type: "analytics" }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        setError(json.error ?? "Failed to verify URL");
+        return;
+      }
+      setSuccess(true);
+    } catch {
+      setError("Network error — please try again");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-surface-200 bg-surface-100 px-6 py-6 text-center">
+      <BarChart3 strokeWidth={1.75} className="mx-auto h-8 w-8 text-brand-600 mb-3" />
+      <p className="text-sm font-medium text-ink-800 mb-1">Connect Analytics</p>
+      <p className="text-xs text-ink-600 mb-4">
+        Paste a link to your analytics dashboard, Google Analytics property, or traffic screenshot.
+      </p>
+      {success ? (
+        <div className="rounded-xl border border-teal-200 bg-teal-50 px-4 py-3">
+          <CheckCircle2 strokeWidth={1.75} className="mx-auto h-6 w-6 text-teal-600 mb-1" />
+          <p className="text-sm font-semibold text-teal-700">URL verified and added!</p>
+        </div>
+      ) : (
+        <>
+          <input
+            type="url"
+            value={urlValue}
+            onChange={(e) => setUrlValue(e.target.value)}
+            placeholder="https://analytics.google.com/..."
+            className="w-full rounded-xl border border-surface-200 bg-white px-4 py-3 text-sm text-ink-800 placeholder:text-ink-600 focus:outline-none focus:border-brand-500 mb-3"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && urlValue.trim()) void handleSubmit();
+            }}
+          />
+          {error && <p className="text-xs text-red-600 mb-3">{error}</p>}
+          <Button
+            variant="primary"
+            size="sm"
+            disabled={!urlValue.trim() || saving}
+            onClick={() => void handleSubmit()}
+            className="mx-auto"
+          >
+            {saving ? (
+              <>
+                <Loader2 strokeWidth={1.75} className="h-4 w-4 animate-spin" />
+                Verifying...
+              </>
+            ) : (
+              "Verify & Connect"
+            )}
+          </Button>
+        </>
+      )}
+    </div>
+  );
+}
 
 type EvidenceType = "text" | "document" | "url" | "github" | "analytics" | "stripe";
 
@@ -181,25 +293,11 @@ export function EvidenceWizard({ onClose, onSuccess }: EvidenceWizardProps) {
             )}
 
             {evidenceType === "github" && (
-              <div className="rounded-xl border border-surface-200 bg-surface-100 px-6 py-8 text-center">
-                <GitBranch strokeWidth={1.75} className="mx-auto h-8 w-8 text-brand-600 mb-3" />
-                <p className="text-sm font-medium text-ink-800 mb-1">Connect GitHub</p>
-                <p className="text-xs text-ink-600 mb-4">You&apos;ll be redirected to authorize access. We only read — never write.</p>
-                <a href="/api/auth/github" className="inline-flex h-10 items-center gap-2 rounded-xl bg-ink-800 px-5 text-sm font-semibold text-white hover:bg-ink-700 transition-colors">
-                  <GitBranch className="h-4 w-4" /> Connect GitHub Account
-                </a>
-              </div>
+              <GitHubConnectStep />
             )}
 
             {evidenceType === "analytics" && (
-              <div className="rounded-xl border border-surface-200 bg-surface-100 px-6 py-8 text-center">
-                <selected.icon strokeWidth={1.75} className="mx-auto h-8 w-8 text-brand-600 mb-3" />
-                <p className="text-sm font-medium text-ink-800 mb-1">Connect {selected.label}</p>
-                <p className="text-xs text-ink-600 mb-4">You&apos;ll be redirected to authorize access. We only read — never write.</p>
-                <a href="/api/auth/analytics" className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors">
-                  Connect Google Analytics
-                </a>
-              </div>
+              <AnalyticsConnectStep />
             )}
 
             {evidenceType === "stripe" && (
@@ -272,8 +370,19 @@ export function EvidenceWizard({ onClose, onSuccess }: EvidenceWizardProps) {
                         body: formData,
                       });
                       json = await res.json();
+                    } else if (evidenceType === "url" && inputValue.trim()) {
+                      // URL evidence — use connect-url for verification
+                      res = await fetch("/api/evidence/connect-url", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          url: inputValue.trim(),
+                          type: "website",
+                        }),
+                      });
+                      json = await res.json();
                     } else {
-                      // Text/URL/connected evidence
+                      // Text/connected evidence
                       res = await fetch("/api/evidence", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },

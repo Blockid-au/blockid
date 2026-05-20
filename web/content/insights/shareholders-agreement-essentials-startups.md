@@ -223,6 +223,31 @@ Here is a practical checklist to ensure your startup is compliant and investment
 
 > **Remember:** A disagreement among founders is not a matter of "if" but "when." The strength of your company depends on how you handle that disagreement. A robust SHA is your insurance policy.
 
+
+<svg viewBox="0 0 700 292" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="292" fill="#f8fafc" rx="12" stroke="#e2e8f0"/>
+  <rect width="700" height="44" fill="#2563eb" rx="12 12 0 0"/>
+  <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="white">Key Takeaways: Shareholders Agreement Essentials</text>
+  <circle cx="40" cy="74" r="14" fill="#dbeafe"/>
+  <text x="40" y="79" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">1</text>
+  <text x="65" y="79" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Never use a generic template; tailor your SHA to your specific cap table and goals</text>
+  <circle cx="40" cy="110" r="14" fill="#dbeafe"/>
+  <text x="40" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">2</text>
+  <text x="65" y="115" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Include pre-emptive rights, tag-along, and drag-along clauses as non-negotiables</text>
+  <circle cx="40" cy="146" r="14" fill="#dbeafe"/>
+  <text x="40" y="151" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">3</text>
+  <text x="65" y="151" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Define board composition and reserved matters to protect founder decision-making</text>
+  <circle cx="40" cy="182" r="14" fill="#dbeafe"/>
+  <text x="40" y="187" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">4</text>
+  <text x="65" y="187" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Add Good Leaver/Bad Leaver provisions with clear buyback pricing mechanisms</text>
+  <circle cx="40" cy="218" r="14" fill="#dbeafe"/>
+  <text x="40" y="223" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">5</text>
+  <text x="65" y="223" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Review ASIC and ATO compliance for every share transfer and issuance clause</text>
+  <rect x="20" y="256" width="660" height="32" fill="#eff6ff" rx="6"/>
+  <text x="350" y="277" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">Get your free Startup Value Index at blockid.au/score</text>
+</svg>
+
+
 ## Conclusion: Protect Your Legacy, Secure Your Exit
 
 The journey from a garage idea to a Series A company is fraught with challenges. But the most dangerous threats are often internal. A poorly drafted **shareholder agreement template** or the lack of a formal **startup shareholder rights** document can unravel years of hard work in a single dispute.

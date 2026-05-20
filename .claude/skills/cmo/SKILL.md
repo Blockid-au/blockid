@@ -42,9 +42,23 @@ Write and publish SEO-optimized blog posts that target founder pain points and d
 
 **Content Strategy:**
 - **Topic clusters**: Startup Valuation, Cap Table, Fundraising, ESIC/Tax, Equity, Data Rooms
-- **Format**: Long-form (1500-2500 words), practical, includes CTAs to BlockID tools
+- **Format**: Long-form (2000-3000 words), practical, includes CTAs to BlockID tools
 - **SEO**: Target long-tail keywords Australian founders search for
-- **Images**: Reference relevant images/diagrams from authoritative sources (with attribution)
+- **Visuals (MANDATORY)**: Every article MUST include at least 3 inline SVG infographics
+
+**Visual Requirements (MANDATORY for every article):**
+Every blog post MUST contain at least 3 designed SVG infographics:
+1. **SVG 1 (after first section)**: Data visualization — bar chart, comparison cards, or benchmark table
+2. **SVG 2 (mid-article)**: Process flow, timeline, or framework diagram
+3. **SVG 3 (before conclusion)**: Key Takeaways card or Action Checklist summary
+
+SVG Design System:
+- `viewBox="0 0 700 XXX"` with `style="width:100%;max-width:700px;margin:2rem auto;display:block;"`
+- Brand colors: `#2563eb` (blue), `#10b981` (green), `#f59e0b` (amber), `#1e293b` (text), `#f8fafc` (bg)
+- Font: `font-family="Arial"`, rounded corners `rx="8"` or `rx="12"`
+- Types: bar charts, process flows (boxes+arrows), comparison cards, gauges, pie/donut, timelines
+- Must be self-contained (no external resources)
+- Place SVG directly in markdown (NOT inside code blocks)
 
 **Process:**
 1. Research keyword opportunities using WebSearch
@@ -52,11 +66,14 @@ Write and publish SEO-optimized blog posts that target founder pain points and d
    - H1 title (60 chars max, includes primary keyword)
    - Meta description (155 chars max)
    - Structured headings (H2, H3)
+   - **3+ inline SVG infographics** (bar charts, flows, comparison cards, takeaway summaries)
    - Internal links to `/tools/*`, `/score`, `/founding-50`
    - External reference links for authority
-   - CTA sections linking to SVI analysis
-3. Create the blog post as a Next.js page in `web/src/app/insights/[slug]/page.tsx`
-4. Update sitemap.ts to include new content
+   - 3 CTA sections linking to SVI analysis
+   - Markdown tables for comparisons/benchmarks
+   - Blockquote stat boxes for key insights
+3. Write article as markdown in `web/content/insights/[slug].md`
+4. Update `web/content/insights/manifest.json` with metadata
 5. Track with analytics events
 
 **Content ideas (prioritized by search intent):**

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CheckCircle } from "lucide-react";
-import { Logo } from "@/components/brand/logo";
+import { Navbar } from "@/components/site/navbar";
+import { Footer } from "@/components/site/footer";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth";
 import { getPlan } from "@/lib/plans";
@@ -27,22 +28,16 @@ export default async function CheckoutSuccessPage({
   const features = plan?.features ?? [];
 
   return (
-    <div className="min-h-screen bg-surface-100">
-      {/* Header */}
-      <header className="border-b border-surface-200 bg-white">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
-          <Logo variant="dark" />
-        </div>
-      </header>
-
-      {/* Main */}
-      <main className="mx-auto max-w-2xl px-6 py-20 text-center">
+    <>
+      <Navbar />
+      <main className="min-h-screen bg-surface-100 pt-28 pb-20">
+        <div className="mx-auto max-w-2xl px-6 text-center">
         {/* Checkmark */}
         <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100">
           <CheckCircle className="h-12 w-12 text-emerald-600" />
         </div>
 
-        <h1 className="mt-8 text-3xl font-semibold tracking-tight text-ink-800 sm:text-4xl">
+        <h1 className="mt-8 text-3xl md:text-4xl font-bold tracking-tight text-ink-900">
           Payment Confirmed!
         </h1>
         <p className="mt-3 text-lg text-ink-600">
@@ -96,7 +91,9 @@ export default async function CheckoutSuccessPage({
             automatically.
           </p>
         )}
+        </div>
       </main>
-    </div>
+      <Footer />
+    </>
   );
 }

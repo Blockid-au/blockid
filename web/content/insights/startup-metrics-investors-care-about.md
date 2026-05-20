@@ -303,6 +303,31 @@ With strict **ATO** and privacy laws, data security is paramount. Investors will
   </defs>
 </svg>
 
+
+<svg viewBox="0 0 700 292" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="292" fill="#f8fafc" rx="12" stroke="#e2e8f0"/>
+  <rect width="700" height="44" fill="#2563eb" rx="12 12 0 0"/>
+  <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="white">Key Takeaways: Metrics Investors Care About</text>
+  <circle cx="40" cy="74" r="14" fill="#dbeafe"/>
+  <text x="40" y="79" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">1</text>
+  <text x="65" y="79" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">MRR/ARR growth rate is the north star; target 15-20% MoM for pre-seed, 10%+ for seed</text>
+  <circle cx="40" cy="110" r="14" fill="#dbeafe"/>
+  <text x="40" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">2</text>
+  <text x="65" y="115" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">LTV:CAC ratio of 3:1+ and payback under 12 months signal scalable unit economics</text>
+  <circle cx="40" cy="146" r="14" fill="#dbeafe"/>
+  <text x="40" y="151" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">3</text>
+  <text x="65" y="151" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Net Revenue Retention above 110% proves expansion revenue and product stickiness</text>
+  <circle cx="40" cy="182" r="14" fill="#dbeafe"/>
+  <text x="40" y="187" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">4</text>
+  <text x="65" y="187" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Gross margins above 70% for SaaS are expected; below 60% raises red flags</text>
+  <circle cx="40" cy="218" r="14" fill="#dbeafe"/>
+  <text x="40" y="223" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">5</text>
+  <text x="65" y="223" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Maintain 12+ months of runway; investors check burn rate before writing cheques</text>
+  <rect x="20" y="256" width="660" height="32" fill="#eff6ff" rx="6"/>
+  <text x="350" y="277" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">Get your free Startup Value Index at blockid.au/score</text>
+</svg>
+
+
 ## How BlockID SVI Tracks and Validates Your Metrics
 
 Knowing your numbers is one thing; proving them to an investor is another. This is where the **BlockID Startup Value Index (SVI)** becomes an indispensable tool for Australian founders.

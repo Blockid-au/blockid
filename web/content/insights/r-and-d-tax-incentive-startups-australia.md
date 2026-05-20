@@ -256,6 +256,30 @@ However, even with a specialist, the responsibility for the accuracy of the clai
   <text x="350" y="370" text-anchor="middle" font-size="11" fill="#64748b">Companies with turnover over $20M receive a non-refundable offset only</text>
 </svg>
 
+
+<svg viewBox="0 0 700 292" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="292" fill="#f8fafc" rx="12" stroke="#e2e8f0"/>
+  <rect width="700" height="44" fill="#2563eb" rx="12 12 0 0"/>
+  <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="white">Key Takeaways: R&amp;D Tax Incentive for Startups</text>
+  <circle cx="40" cy="74" r="14" fill="#dbeafe"/>
+  <text x="40" y="79" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">1</text>
+  <text x="65" y="79" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">The 43.5% refundable offset applies to companies with under $20M annual turnover</text>
+  <circle cx="40" cy="110" r="14" fill="#dbeafe"/>
+  <text x="40" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">2</text>
+  <text x="65" y="115" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Eligible R&amp;D must involve systematic experimentation to resolve technical uncertainty</text>
+  <circle cx="40" cy="146" r="14" fill="#dbeafe"/>
+  <text x="40" y="151" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">3</text>
+  <text x="65" y="151" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Document everything: hypothesis, experiments, and results before claiming the offset</text>
+  <circle cx="40" cy="182" r="14" fill="#dbeafe"/>
+  <text x="40" y="187" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">4</text>
+  <text x="65" y="187" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Software development qualifies only when it advances technical knowledge, not routine coding</text>
+  <circle cx="40" cy="218" r="14" fill="#dbeafe"/>
+  <text x="40" y="223" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">5</text>
+  <text x="65" y="223" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Budget for a 6-9 month lag between filing and receiving the R&amp;D tax refund</text>
+  <rect x="20" y="256" width="660" height="32" fill="#eff6ff" rx="6"/>
+  <text x="350" y="277" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">Get your free Startup Value Index at blockid.au/score</text>
+</svg>
+
 ### Conclusion: Turning Uncertainty into Capital
 
 The **R&D Tax Incentive** is one of the most valuable financial instruments available to Australian tech founders. The **43.5% refundable offset** provides critical cash flow that can extend your runway, fuel hiring, and accelerate product development.

@@ -301,6 +301,31 @@ Before you scale your ad spend or hire a new VP of Sales, run your business thro
 - [ ] **Set Targets:** Establish quarterly goals for reducing CAC by 10% and improving LTV by 15%.
 - [ ] **Document the Plan:** Have a clear strategy ready for investors on how you plan to scale efficiently.
 
+
+<svg viewBox="0 0 700 292" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="292" fill="#f8fafc" rx="12" stroke="#e2e8f0"/>
+  <rect width="700" height="44" fill="#2563eb" rx="12 12 0 0"/>
+  <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="white">Key Takeaways: CAC Benchmarks for Australian SaaS</text>
+  <circle cx="40" cy="74" r="14" fill="#dbeafe"/>
+  <text x="40" y="79" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">1</text>
+  <text x="65" y="79" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Segment your CAC: SMB ($200-$500), Mid-Market ($2K-$5K), Enterprise ($10K-$50K+)</text>
+  <circle cx="40" cy="110" r="14" fill="#dbeafe"/>
+  <text x="40" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">2</text>
+  <text x="65" y="115" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Target a minimum LTV:CAC ratio of 3:1 for Series A readiness</text>
+  <circle cx="40" cy="146" r="14" fill="#dbeafe"/>
+  <text x="40" y="151" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">3</text>
+  <text x="65" y="151" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Keep your CAC payback period under 12 months to maintain healthy cash flow</text>
+  <circle cx="40" cy="182" r="14" fill="#dbeafe"/>
+  <text x="40" y="187" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">4</text>
+  <text x="65" y="187" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Partner-sourced leads can reduce CAC by 40-50% in the Australian market</text>
+  <circle cx="40" cy="218" r="14" fill="#dbeafe"/>
+  <text x="40" y="223" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">5</text>
+  <text x="65" y="223" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Fix churn before scaling acquisition; a leaky bucket defeats any CAC strategy</text>
+  <rect x="20" y="256" width="660" height="32" fill="#eff6ff" rx="6"/>
+  <text x="350" y="277" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">Get your free Startup Value Index at blockid.au/score</text>
+</svg>
+
+
 ## The Path to Sustainable Scale
 
 The journey from pre-seed to Series A in Australia is fraught with challenges, but the winners are those who master their unit economics. **CAC benchmarks SaaS** are not just numbers on a slide; they are the pulse of your business. They tell you if your product resonates, if your sales team is effective, and if your business is viable in the long term.

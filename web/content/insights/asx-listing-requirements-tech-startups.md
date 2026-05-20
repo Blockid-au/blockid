@@ -296,6 +296,31 @@ For tech startups, IP is your primary asset. Ensure that all IP is owned by the 
 ### 3. Revenue Recognition
 Ensure your revenue recognition policies comply with AASB 15. Tech startups often have complex subscription models, usage-based pricing, and deferred revenue. Improper revenue recognition is the number one reason for restatements post-IPO, which destroys investor trust.
 
+
+<svg viewBox="0 0 700 292" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="292" fill="#f8fafc" rx="12" stroke="#e2e8f0"/>
+  <rect width="700" height="44" fill="#10b981" rx="12 12 0 0"/>
+  <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="white">Your ASX Listing Readiness Checklist</text>
+  <circle cx="40" cy="74" r="14" fill="#dcfce7"/>
+  <text x="40" y="79" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#10b981">&#10003;</text>
+  <text x="65" y="79" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Achieve $20M+ market capitalisation supported by recent funding rounds</text>
+  <circle cx="40" cy="110" r="14" fill="#dcfce7"/>
+  <text x="40" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#10b981">&#10003;</text>
+  <text x="65" y="115" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Build a shareholder base of 300+ investors each holding $2K+ in securities</text>
+  <circle cx="40" cy="146" r="14" fill="#dcfce7"/>
+  <text x="40" y="151" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#10b981">&#10003;</text>
+  <text x="65" y="151" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Complete 2 years of audited financials with AASB/IFRS-compliant reporting</text>
+  <circle cx="40" cy="182" r="14" fill="#dcfce7"/>
+  <text x="40" y="187" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#10b981">&#10003;</text>
+  <text x="65" y="187" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Appoint 2+ independent non-executive directors at least 6 months prior</text>
+  <circle cx="40" cy="218" r="14" fill="#dcfce7"/>
+  <text x="40" y="223" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#10b981">&#10003;</text>
+  <text x="65" y="223" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Budget $500K-$2M for IPO costs including legal, audit, and advisory fees</text>
+  <rect x="20" y="256" width="660" height="32" fill="#f0fdf4" rx="6"/>
+  <text x="350" y="277" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#10b981">Get your free Startup Value Index at blockid.au/score</text>
+</svg>
+
+
 ## The BlockID Advantage: Validating Your Path to the ASX
 
 The road to the ASX is long, expensive, and unforgiving. It requires a level of discipline and strategic foresight that few startups possess in their early stages. But the reward—a liquid market for your shares, access to deep capital, and a platform for global expansion—is worth the effort.

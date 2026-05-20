@@ -9,32 +9,34 @@ export function InsightBody({ content }: { content: string }) {
 
   return (
     <div
-      className="prose prose-ink max-w-none
+      className="prose prose-lg prose-ink max-w-none
         prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-ink-900
-        prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4
+        prose-h2:text-2xl prose-h2:mt-12 prose-h2:mb-5 prose-h2:pb-3 prose-h2:border-b prose-h2:border-surface-200
         prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3
         prose-p:text-base prose-p:leading-relaxed prose-p:text-ink-700
-        prose-li:text-ink-700
-        prose-a:text-brand-600 prose-a:font-medium prose-a:no-underline hover:prose-a:underline
+        prose-li:text-ink-700 prose-li:leading-relaxed
+        prose-a:text-brand-600 prose-a:font-medium prose-a:no-underline hover:prose-a:underline prose-a:transition-colors
         prose-strong:text-ink-900 prose-strong:font-semibold
-        prose-blockquote:border-l-brand-500 prose-blockquote:bg-brand-50 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-r-lg
+        prose-blockquote:border-l-brand-500 prose-blockquote:bg-brand-50/60 prose-blockquote:py-3 prose-blockquote:px-5 prose-blockquote:rounded-r-xl prose-blockquote:not-italic
         prose-img:rounded-xl prose-img:shadow-md prose-img:border prose-img:border-surface-200
-        prose-code:text-brand-700 prose-code:bg-brand-50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm
-        prose-pre:bg-ink-900 prose-pre:rounded-xl
-        prose-table:border-collapse
-        prose-th:border prose-th:border-surface-300 prose-th:px-3 prose-th:py-2 prose-th:bg-surface-100 prose-th:text-xs prose-th:font-semibold
-        prose-td:border prose-td:border-surface-200 prose-td:px-3 prose-td:py-2 prose-td:text-sm
+        prose-code:text-brand-700 prose-code:bg-brand-50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:text-sm prose-code:before:content-none prose-code:after:content-none
+        prose-pre:bg-ink-900 prose-pre:rounded-xl prose-pre:shadow-sm
+        prose-table:border-collapse prose-table:rounded-xl prose-table:overflow-hidden
+        prose-th:border prose-th:border-surface-300 prose-th:px-4 prose-th:py-2.5 prose-th:bg-surface-100 prose-th:text-xs prose-th:font-semibold prose-th:text-ink-700
+        prose-td:border prose-td:border-surface-200 prose-td:px-4 prose-td:py-2.5 prose-td:text-sm
+        prose-hr:border-surface-200 prose-hr:my-10
+        [&_svg]:mx-auto [&_svg]:my-8
       "
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
 }
 
-/** Lightweight markdown → HTML (covers common patterns, no external deps) */
+/** Lightweight markdown -> HTML (covers common patterns, no external deps) */
 function markdownToHtml(md: string): string {
   let html = md;
 
-  // Preserve raw HTML blocks (SVG, div, figure, section) — extract them before processing
+  // Preserve raw HTML blocks (SVG, div, figure, section) -- extract them before processing
   const htmlBlocks: string[] = [];
   html = html.replace(/<(svg|div|figure|section)[\s\S]*?<\/\1>/gi, (match) => {
     htmlBlocks.push(match);

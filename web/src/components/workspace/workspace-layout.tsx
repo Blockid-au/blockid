@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3, Bell, Briefcase, ChevronLeft, ChevronRight, CreditCard, FileText, FolderCheck, FolderOpen, Home,
-  LayoutDashboard, Map, Shield, TrendingUp, User
+  Key, LayoutDashboard, Map, PieChart, Shield, TrendingUp, User
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { CreditBalance } from "@/components/ui/credit-balance";
@@ -29,11 +29,13 @@ const NAV_ITEMS = [
   { href: "/dashboard/svi", label: "SVI Dashboard", icon: TrendingUp },
   { href: "/workspace/evidence", label: "Evidence Vault", icon: FileText },
   { href: "/workspace/data-room", label: "Data Room", icon: FolderCheck },
+  { href: "/workspace/equity", label: "Cap Table", icon: PieChart },
   { href: "/workspace/documents", label: "Documents", icon: FolderOpen },
   { href: "/workspace/reports", label: "Weekly Reports", icon: BarChart3 },
   { href: "/workspace/roadmap", label: "Roadmap", icon: Map },
   { href: "/workspace/profile", label: "My Profile", icon: User },
   { href: "/workspace/billing", label: "Billing", icon: CreditCard },
+  { href: "/workspace/api-keys", label: "API Keys", icon: Key },
   { href: "/workspace/notifications", label: "Notifications", icon: Bell },
 ];
 

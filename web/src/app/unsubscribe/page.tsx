@@ -1,3 +1,5 @@
+import { Navbar } from "@/components/site/navbar";
+import { Footer } from "@/components/site/footer";
 import { getPreferencesByToken } from "@/lib/email-preferences";
 import { UnsubscribeClient } from "./unsubscribe-client";
 
@@ -25,17 +27,21 @@ export default async function UnsubscribePage({
 
   if (!token) {
     return (
-      <div className="min-h-svh bg-[#0B1220] flex items-center justify-center px-4">
-        <div className="max-w-md w-full bg-[#0F172A] border border-[#1F2A44] rounded-2xl p-8 text-center">
-          <h1 className="text-xl font-semibold text-[#F8FAFC] mb-3">
-            Invalid Link
-          </h1>
-          <p className="text-[#94A3B8] text-sm">
-            This unsubscribe link is invalid or has expired. If you need to
-            manage your email preferences, sign in to your account.
-          </p>
-        </div>
-      </div>
+      <>
+        <Navbar />
+        <main className="min-h-svh bg-surface-100 flex items-center justify-center px-4 pt-28 pb-16">
+          <div className="max-w-md w-full bg-white border border-surface-200 rounded-2xl p-8 text-center shadow-sm">
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-ink-900 mb-3">
+              Invalid Link
+            </h1>
+            <p className="text-ink-600 text-sm">
+              This unsubscribe link is invalid or has expired. If you need to
+              manage your email preferences, sign in to your account.
+            </p>
+          </div>
+        </main>
+        <Footer />
+      </>
     );
   }
 
@@ -43,21 +49,28 @@ export default async function UnsubscribePage({
 
   if (!prefs) {
     return (
-      <div className="min-h-svh bg-[#0B1220] flex items-center justify-center px-4">
-        <div className="max-w-md w-full bg-[#0F172A] border border-[#1F2A44] rounded-2xl p-8 text-center">
-          <h1 className="text-xl font-semibold text-[#F8FAFC] mb-3">
-            Token Not Found
-          </h1>
-          <p className="text-[#94A3B8] text-sm">
-            We could not find preferences for this token. It may have been
-            removed. Please sign in to manage your email preferences.
-          </p>
-        </div>
-      </div>
+      <>
+        <Navbar />
+        <main className="min-h-svh bg-surface-100 flex items-center justify-center px-4 pt-28 pb-16">
+          <div className="max-w-md w-full bg-white border border-surface-200 rounded-2xl p-8 text-center shadow-sm">
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-ink-900 mb-3">
+              Token Not Found
+            </h1>
+            <p className="text-ink-600 text-sm">
+              We could not find preferences for this token. It may have been
+              removed. Please sign in to manage your email preferences.
+            </p>
+          </div>
+        </main>
+        <Footer />
+      </>
     );
   }
 
   return (
+    <>
+    <Navbar />
+    <main className="min-h-svh bg-surface-100 pt-28 pb-16">
     <UnsubscribeClient
       token={token}
       maskedEmail={maskEmail(prefs.email)}
@@ -72,5 +85,8 @@ export default async function UnsubscribePage({
       category={category}
       done={done}
     />
+    </main>
+    <Footer />
+    </>
   );
 }

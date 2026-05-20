@@ -314,6 +314,31 @@ To ensure you are ready for the next round of funding, use this practical checkl
 *   **⚠️** Should be present; missing items are acceptable at this stage but must be addressed before Series A.
 *   **Audited** implies a formal audit by a registered external auditor (often required for Series A+).
 
+
+<svg viewBox="0 0 700 292" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="292" fill="#f8fafc" rx="12" stroke="#e2e8f0"/>
+  <rect width="700" height="44" fill="#10b981" rx="12 12 0 0"/>
+  <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="white">Your Data Room Readiness Checklist</text>
+  <circle cx="40" cy="74" r="14" fill="#dcfce7"/>
+  <text x="40" y="79" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#10b981">&#10003;</text>
+  <text x="65" y="79" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Include corporate docs: constitution, ASIC extracts, SHA, board minutes, and resolutions</text>
+  <circle cx="40" cy="110" r="14" fill="#dcfce7"/>
+  <text x="40" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#10b981">&#10003;</text>
+  <text x="65" y="115" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Add a clean cap table with all share issuances, option grants, and SAFEs documented</text>
+  <circle cx="40" cy="146" r="14" fill="#dcfce7"/>
+  <text x="40" y="151" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#10b981">&#10003;</text>
+  <text x="65" y="151" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Provide 12+ months of monthly financials: P&amp;L, balance sheet, and cash flow</text>
+  <circle cx="40" cy="182" r="14" fill="#dcfce7"/>
+  <text x="40" y="187" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#10b981">&#10003;</text>
+  <text x="65" y="187" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Upload all IP assignments, patent filings, trademark registrations, and key contracts</text>
+  <circle cx="40" cy="218" r="14" fill="#dcfce7"/>
+  <text x="40" y="223" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#10b981">&#10003;</text>
+  <text x="65" y="223" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Organize team profiles, org chart, employment contracts, and ESOP plan details</text>
+  <rect x="20" y="256" width="660" height="32" fill="#f0fdf4" rx="6"/>
+  <text x="350" y="277" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#10b981">Get your free Startup Value Index at blockid.au/score</text>
+</svg>
+
+
 ## Final Thoughts: Trust is Your Currency
 
 In the Australian startup ecosystem, trust is the most valuable currency you possess. A disorganized data room signals disorganization in your business operations. Conversely, a comprehensive, well-maintained, and accessible investor data room signals that you are a professional, scalable, and low-risk investment.

@@ -304,6 +304,31 @@ Building a **3-year financial model** is an iterative process. Here is a checkli
 
 If you have checked all these boxes, your model is robust. If you have gaps, revisit the specific sections above. A clean, logical model builds trust with investors faster than a flashy pitch deck.
 
+
+<svg viewBox="0 0 700 292" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="292" fill="#f8fafc" rx="12" stroke="#e2e8f0"/>
+  <rect width="700" height="44" fill="#10b981" rx="12 12 0 0"/>
+  <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="white">Your Financial Model Checklist</text>
+  <circle cx="40" cy="74" r="14" fill="#dcfce7"/>
+  <text x="40" y="79" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#10b981">&#10003;</text>
+  <text x="65" y="79" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Build a 3-year model with monthly granularity for Year 1 and quarterly for Years 2-3</text>
+  <circle cx="40" cy="110" r="14" fill="#dcfce7"/>
+  <text x="40" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#10b981">&#10003;</text>
+  <text x="65" y="115" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Include 11.5% superannuation and state payroll tax in all headcount costs</text>
+  <circle cx="40" cy="146" r="14" fill="#dcfce7"/>
+  <text x="40" y="151" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#10b981">&#10003;</text>
+  <text x="65" y="151" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Model the R&amp;D Tax Incentive (43.5% offset) with a 6-9 month refund lag</text>
+  <circle cx="40" cy="182" r="14" fill="#dcfce7"/>
+  <text x="40" y="187" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#10b981">&#10003;</text>
+  <text x="65" y="187" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Add scenario analysis: Base, Bear, and Bull cases with sensitivity toggles</text>
+  <circle cx="40" cy="218" r="14" fill="#dcfce7"/>
+  <text x="40" y="223" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#10b981">&#10003;</text>
+  <text x="65" y="223" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Track runway monthly; maintain 12+ months of cash at all times</text>
+  <rect x="20" y="256" width="660" height="32" fill="#f0fdf4" rx="6"/>
+  <text x="350" y="277" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#10b981">Get your free Startup Value Index at blockid.au/score</text>
+</svg>
+
+
 ## Your Path to Funding Starts with a Solid Model
 
 A **startup financial model template** is more than a spreadsheet; it is the blueprint of your company's survival and growth. In the Australian market, where cash is king and regulations are strict, the ability to model your path to profitability is a competitive advantage.

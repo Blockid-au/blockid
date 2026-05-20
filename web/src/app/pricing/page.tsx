@@ -152,7 +152,7 @@ export default function PricingPage() {
     <div className="min-h-svh bg-surface-50 text-ink-800">
       <Navbar />
 
-      <main className="max-w-6xl mx-auto px-6 pt-16 pb-24">
+      <main className="max-w-6xl mx-auto px-6 pt-28 pb-24">
         {/* Hero */}
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-4 py-1.5 mb-6">

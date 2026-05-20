@@ -14,7 +14,7 @@ export default function AboutPage() {
       <Navbar />
       <main className="pt-28 pb-20">
         <div className="mx-auto max-w-3xl px-6">
-          <h1 className="text-4xl font-bold tracking-tight text-ink-800">
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-ink-900">
             About BlockID
           </h1>
           <p className="mt-4 text-lg leading-relaxed text-ink-600">

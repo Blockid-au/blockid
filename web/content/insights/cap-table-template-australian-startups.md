@@ -420,6 +420,31 @@ As you grow, your cap table becomes more complex. Here's what to track:
 - Prepare a detailed, audited cap table showing all shareholders, share classes, preferences, and fully diluted ownership.
 - This document is mission-critical for due diligence. Any errors can derail or delay a deal.
 
+
+<svg viewBox="0 0 700 292" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="292" fill="#f8fafc" rx="12" stroke="#e2e8f0"/>
+  <rect width="700" height="44" fill="#10b981" rx="12 12 0 0"/>
+  <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="white">Your Cap Table Checklist</text>
+  <circle cx="40" cy="74" r="14" fill="#dcfce7"/>
+  <text x="40" y="79" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#10b981">&#10003;</text>
+  <text x="65" y="79" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Record every share class, issuance date, price per share, and holder details from day one</text>
+  <circle cx="40" cy="110" r="14" fill="#dcfce7"/>
+  <text x="40" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#10b981">&#10003;</text>
+  <text x="65" y="115" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Comply with ASIC share register requirements and keep all statutory records up to date</text>
+  <circle cx="40" cy="146" r="14" fill="#dcfce7"/>
+  <text x="40" y="151" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#10b981">&#10003;</text>
+  <text x="65" y="151" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Track ESOP grants separately: vesting schedules, exercise prices, and expiry dates</text>
+  <circle cx="40" cy="182" r="14" fill="#dcfce7"/>
+  <text x="40" y="187" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#10b981">&#10003;</text>
+  <text x="65" y="187" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Model dilution for each future round to understand founder ownership trajectory</text>
+  <circle cx="40" cy="218" r="14" fill="#dcfce7"/>
+  <text x="40" y="223" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#10b981">&#10003;</text>
+  <text x="65" y="223" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Use dedicated cap table software instead of spreadsheets to avoid costly errors</text>
+  <rect x="20" y="256" width="660" height="32" fill="#f0fdf4" rx="6"/>
+  <text x="350" y="277" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#10b981">Get your free Startup Value Index at blockid.au/score</text>
+</svg>
+
+
 ## Building Your Cap Table: Tools and Resources
 
 You can maintain a cap table in a spreadsheet (Google Sheets or Excel), but as your company grows, dedicated software becomes invaluable.
