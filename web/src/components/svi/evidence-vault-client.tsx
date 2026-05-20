@@ -17,6 +17,14 @@ interface EvidenceItem {
   created_at: string;
 }
 
+interface RescoreResult {
+  ok: boolean;
+  previousSVI?: number;
+  newSVI?: number;
+  delta?: number;
+  evidenceCount?: number;
+}
+
 interface EvidenceVaultClientProps {
   initialEvidence: EvidenceItem[];
 }
@@ -50,6 +58,7 @@ export function EvidenceVaultClient({ initialEvidence }: EvidenceVaultClientProp
   const [evidence, setEvidence] = React.useState<EvidenceItem[]>(initialEvidence);
   const [showWizard, setShowWizard] = React.useState(false);
   const [refreshing, setRefreshing] = React.useState(false);
+  const [rescoreToast, setRescoreToast] = React.useState<string | null>(null);
 
   const refreshEvidence = React.useCallback(async () => {
     setRefreshing(true);
@@ -66,15 +75,46 @@ export function EvidenceVaultClient({ initialEvidence }: EvidenceVaultClientProp
     }
   }, []);
 
+  const triggerRescore = React.useCallback(async () => {
+    try {
+      const rescoreRes = await fetch("/api/svi/rescore-from-evidence", { method: "POST" });
+      const rescoreData: RescoreResult = await rescoreRes.json();
+      if (rescoreData.ok && rescoreData.delta != null && rescoreData.delta !== 0) {
+        setRescoreToast(
+          `SVI ${rescoreData.delta > 0 ? "+" : ""}${rescoreData.delta} points \u2192 New score: ${rescoreData.newSVI}`,
+        );
+        // Auto-dismiss after 6 seconds
+        setTimeout(() => setRescoreToast(null), 6000);
+      }
+    } catch {
+      // Rescore is best-effort — don't block the user
+    }
+  }, []);
+
   const handleWizardSuccess = React.useCallback(() => {
     setShowWizard(false);
     void refreshEvidence();
-  }, [refreshEvidence]);
+    void triggerRescore();
+  }, [refreshEvidence, triggerRescore]);
 
   const totalImpact = evidence.reduce((sum, e) => sum + (e.svi_impact ?? 0), 0);
 
   return (
     <>
+      {/* SVI rescore toast */}
+      {rescoreToast && (
+        <div className="mb-4 flex items-center justify-between rounded-xl border border-teal-200 bg-teal-50 px-5 py-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+          <p className="text-sm font-semibold text-teal-700">{rescoreToast}</p>
+          <button
+            type="button"
+            onClick={() => setRescoreToast(null)}
+            className="text-teal-600 hover:text-teal-800 cursor-pointer text-xs font-medium ml-4"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold text-ink-800">Evidence Vault</h1>

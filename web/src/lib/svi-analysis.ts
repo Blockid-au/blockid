@@ -195,8 +195,20 @@ export function detectStage(signals: SVIExtractedSignals): number {
   return 0;
 }
 
+// ─── Evidence item shape (from svi_evidence table) ───────────────────────────
+export interface EvidenceItem {
+  evidence_type: string;
+  confidence_level: string;
+  dimension: string;
+  label: string;
+}
+
 // ─── Text parser: extract signals from raw input ──────────────────────────────
-export function extractSignals(input: SVITextInput): SVIExtractedSignals {
+export function extractSignals(
+  input: SVITextInput,
+  _fileName?: string,
+  evidenceItems?: EvidenceItem[],
+): SVIExtractedSignals {
   const text = (input.rawText + " " + (input.fileName ?? "")).toLowerCase();
 
   const has = (...terms: string[]) => terms.some((t) => text.includes(t));
@@ -274,7 +286,7 @@ export function extractSignals(input: SVITextInput): SVIExtractedSignals {
 
   const targetRaiseMentioned = has("raising", "raise", "funding", "investment", "seed round", "series");
 
-  return {
+  const signals: SVIExtractedSignals = {
     hasCoFounder: has("co-founder", "cofounder", "co founder", "2 founders", "three founders", "team of"),
     founderExperience,
     founderSectorFit: has("background in", "worked in", "experience in", "years in", "domain"),
@@ -315,6 +327,42 @@ export function extractSignals(input: SVITextInput): SVIExtractedSignals {
     hasLegalDocs: has("legal", "lawyer", "solicitor", "company constitution"),
     evidenceLevel,
   };
+
+  // ── Evidence overlay: boost signals from uploaded/connected evidence ──────
+  if (evidenceItems?.length) {
+    for (const ev of evidenceItems) {
+      switch (ev.evidence_type) {
+        case "document":
+        case "document_uploaded":
+          if (ev.dimension === "ptd") { signals.hasProduct = true; signals.hasDemo = true; }
+          if (ev.dimension === "iri") { signals.hasPitchDeck = true; }
+          if (ev.dimension === "cgh") { signals.hasShareholdersAgreement = true; }
+          if (ev.dimension === "lco") { signals.hasIPProtection = true; signals.hasContracts = true; }
+          break;
+        case "url":
+          if (ev.dimension === "ptd") { signals.hasWebsite = true; signals.hasProduct = true; }
+          break;
+        case "github":
+          signals.hasSourceCode = true; signals.hasProduct = true;
+          break;
+        case "analytics":
+          signals.hasAnalytics = true;
+          break;
+        case "stripe":
+          signals.hasRevenue = true; signals.hasCustomers = true;
+          if (!signals.revenueBand || signals.revenueBand === "pre-revenue") {
+            signals.revenueBand = "early";
+          }
+          break;
+      }
+      // Boost confidence based on evidence level
+      if (ev.confidence_level === "connected_source" || ev.confidence_level === "transaction_data") {
+        signals.evidenceLevel = ev.confidence_level;
+      }
+    }
+  }
+
+  return signals;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

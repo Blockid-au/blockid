@@ -1,6 +1,42 @@
 {
   "articles": [
     {
+      "slug": "esic-compliance-guide-early-stage-startups",
+      "title": "ESIC Compliance Guide: Tax Benefits for Early-Stage Startup Investors",
+      "description": "Discover how ESIC compliance unlocks vital tax benefits for early-stage startup investors in Australia. A complete guide to maximizing your investment retu",
+      "keywords": [
+        "ESIC compliance",
+        "early stage innovation company",
+        "ESIC tax benefits",
+        "startup investor tax offset Australia"
+      ],
+      "category": "compliance",
+      "publishedAt": "2026-05-20",
+      "readingTime": 11,
+      "cta": {
+        "label": "Check Your Investor Readiness",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "cap-table-template-australian-startups",
+      "title": "Cap Table Template for Australian Startups: Free Guide + Calculator",
+      "description": "Cap table template Australia: Free guide with calculator for managing startup equity. Understand shareholding, dilution, and investor rounds easily.",
+      "keywords": [
+        "cap table template Australia",
+        "startup cap table",
+        "equity management Australian startups",
+        "share register template"
+      ],
+      "category": "cap-table",
+      "publishedAt": "2026-05-20",
+      "readingTime": 11,
+      "cta": {
+        "label": "Build Your Cap Table Free",
+        "href": "/tools/cap-table"
+      }
+    },
+    {
       "slug": "how-to-value-a-startup-idea-australia",
       "title": "How to Value a Startup Idea in Australia (2026 Guide)",
       "description": "Five practical methods to value your startup from idea stage — Berkus, Scorecard, VC Method, Cost-to-Duplicate, and AI-powered valuation. Calibrated for Australian founders with AUD benchmarks.",

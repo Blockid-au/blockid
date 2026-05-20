@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { ProfileProgress } from "@/components/workspace/profile-progress";
+import { BadgeShelf } from "@/components/workspace/badge-shelf";
 export const dynamic = "force-dynamic";
 
 export default async function ProfilePage() {
@@ -41,6 +42,9 @@ export default async function ProfilePage() {
               <span className="text-ink-800">{new Date(user.createdAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}</span>
             </div>
           </div>
+        </div>
+        <div className="mt-6">
+          <BadgeShelf email={user.email} />
         </div>
         <ProfileProgress email={user.email} />
       </div>

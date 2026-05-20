@@ -683,6 +683,97 @@ export function SVIEntrance() {
         </div>
       </section>
 
+      {/* ── WHY BLOCKID, NOT CHATGPT ───────────────────────────────────────── */}
+      <section className="py-16 md:py-20 bg-ink-950 text-white">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="text-center mb-12">
+            <p className="text-xs uppercase tracking-[0.2em] text-brand-400 font-medium mb-3">
+              Built different
+            </p>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
+              ChatGPT gives you answers.{" "}
+              <span className="text-brand-400">BlockID builds your startup.</span>
+            </h2>
+            <p className="mt-4 text-base text-slate-400 max-w-2xl mx-auto">
+              Anyone can ask ChatGPT about their startup idea. But ChatGPT forgets tomorrow.
+              BlockID remembers, tracks, scores, and grows with you from Day 0.
+            </p>
+          </div>
+
+          {/* Comparison grid */}
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            {/* ChatGPT column */}
+            <div className="rounded-2xl border border-slate-700 bg-slate-900/50 p-6">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="h-10 w-10 rounded-xl bg-slate-800 flex items-center justify-center">
+                  <span className="text-lg">💬</span>
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-300">ChatGPT / Claude</p>
+                  <p className="text-xs text-slate-500">General AI assistant</p>
+                </div>
+              </div>
+              <ul className="space-y-3">
+                {[
+                  "One-off conversation, no memory",
+                  "Generic business advice",
+                  "No scoring or tracking",
+                  "You do all the research yourself",
+                  "No equity or cap table tools",
+                  "No evidence vault or data room",
+                  "Forgets your progress tomorrow",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2.5 text-sm text-slate-400">
+                    <X className="h-4 w-4 mt-0.5 shrink-0 text-red-400/70" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* BlockID column */}
+            <div className="rounded-2xl border border-brand-500/40 bg-brand-950/30 p-6 ring-1 ring-brand-500/20">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="h-10 w-10 rounded-xl bg-brand-600 flex items-center justify-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/images/logo-icon-transparent.png" alt="" className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="font-semibold text-white">BlockID.au</p>
+                  <p className="text-xs text-brand-300">Agentic AI valuation platform</p>
+                </div>
+              </div>
+              <ul className="space-y-3">
+                {[
+                  "Living report that grows with your startup",
+                  "10-page R&D analysis with market research",
+                  "Startup Value Index (SVI) — scored 30 to 300",
+                  "AI agents research competitors, market, tech",
+                  "Cap table, equity split, dilution tools built-in",
+                  "Evidence vault with SVI auto-rescore",
+                  "Tracks your journey from Day 0 to fundraise",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2.5 text-sm text-slate-200">
+                    <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-brand-400" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Bottom CTA */}
+          <div className="text-center mt-10">
+            <a href="#svi" className="inline-flex h-12 items-center gap-2 rounded-xl bg-brand-600 px-8 text-sm font-semibold text-white hover:bg-brand-700 transition-colors">
+              Try Your Free Analysis <ArrowRight className="h-4 w-4" />
+            </a>
+            <p className="mt-3 text-xs text-slate-500">
+              No signup required. First analysis is free.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* ── SVI SEARCH SECTION ────────────────────────────────────────────── */}
       <section id="svi" className="gradient-section py-20 md:py-28">
         <div className="mx-auto w-full max-w-[620px] px-4 sm:px-6 flex flex-col items-center">

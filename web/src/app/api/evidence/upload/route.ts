@@ -101,6 +101,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Auto-trigger SVI rescore (fire-and-forget)
+    // The actual rescore is triggered client-side after upload success
+    // so the user sees the SVI delta immediately.
+    try {
+      console.log("[blockid:evidence] upload success, rescore should be triggered client-side");
+    } catch { /* ignore */ }
+
     return NextResponse.json({
       ok: true,
       fileId: driveResult.id,
