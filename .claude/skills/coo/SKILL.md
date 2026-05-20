@@ -112,3 +112,18 @@ Facilitate sprint retrospective.
 - `.claude/goals/quarterly-okrs.md` — Company-wide OKR targets
 - `.claude/goals/org-chart.md` — Team structure, decision authority
 - `.gitlab-ci.yml` — CI/CD pipeline configuration
+
+## Delegated Skills
+
+| Skill | When to Use | Delegation Rule |
+|-------|-------------|-----------------|
+| `/deploy` | After sprint review, deploy staging then production | Always run /qa first |
+| `/qa` | Before every deploy, after every feature merge | Block deploy if critical failures |
+| `/perf-audit` | Mid-sprint performance check | Flag if p95 > 500ms |
+| `/analytics` | Weekly metrics collection for standup | Compare vs KPI targets |
+| `/security-audit` | Once per sprint cycle | Escalate criticals to CTO |
+
+### Auto-delegation Rules
+- Sprint deploy day → `/qa` then `/deploy production`
+- Mid-sprint check → `/perf-audit` + `/analytics`
+- Blocker detected → escalate to relevant C-level

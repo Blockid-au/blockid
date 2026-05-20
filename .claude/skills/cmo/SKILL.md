@@ -177,3 +177,12 @@ After each action, update the goal status:
 1. Check metrics before and after
 2. Report impact (traffic, signups, revenue changes)
 3. Recommend next action based on results
+## Delegated Skills
+
+| Skill | When to Use | Delegation Rule |
+|-------|-------------|-----------------|
+| `/seo-audit` | Before and after publishing content | Must pass before publish |
+| `/publish` | Publishing new insight articles | After SEO audit passes |
+| `/rnd` | Market research, competitor analysis | Before content planning |
+| `/analytics` | Traffic metrics, funnel conversion data | Weekly review |
+| `/ui-ux-pro-max` | Landing page design, CTA optimization | Every conversion page |

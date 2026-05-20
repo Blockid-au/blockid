@@ -125,3 +125,11 @@ Generate investor-grade financial report.
 - `.claude/goals/quarterly-okrs.md` — Company-wide financial targets
 - `web/.env` — Stripe keys (STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY)
 - `web/src/app/api/` — Payment-related API routes
+
+## Delegated Skills
+
+| Skill | When to Use | Delegation Rule |
+|-------|-------------|-----------------|
+| `/stripe-test` | Verify all payment flows after pricing changes | Full test after any price change |
+| `/analytics` | Revenue metrics from GA4 + growth insights | Daily revenue check |
+| `/rnd` | Pricing research, competitor pricing analysis | Before pricing decisions |

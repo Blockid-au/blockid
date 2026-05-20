@@ -145,3 +145,13 @@ Identify and evaluate revenue expansion opportunities.
 - `.claude/goals/quarterly-okrs.md` — Company-wide revenue targets
 - `web/src/app/` — Pages to optimize (landing, SVI, signup, dashboard)
 - `web/src/components/landing/` — Landing page components (hero, CTA, pricing)
+
+## Delegated Skills
+
+| Skill | When to Use | Delegation Rule |
+|-------|-------------|-----------------|
+| `/analytics` | Funnel data, conversion rates, retention metrics | Daily funnel check |
+| `/rnd` | CTA optimization research, A/B test design | Before each experiment |
+| `/ui-ux-pro-max` | Onboarding flow design, conversion page design | Every UX change |
+| `/seo-audit` | Landing page SEO for conversion | After page changes |
+| `/perf-audit` | Page load speed affecting conversion | Weekly check |
