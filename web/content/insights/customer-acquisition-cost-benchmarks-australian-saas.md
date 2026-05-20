@@ -56,6 +56,19 @@ In Australia, enterprise sales often require on-site meetings and custom securit
 
 > **Ready to benchmark your own growth efficiency?** Don't guess—calculate. [Analyse Your Growth Metrics](/) to see how your CAC stacks up against Australian standards instantly.
 
+| Industry Vertical | Avg. CAC (AUD) | Avg. ACV (AUD) | CAC Payback (Months) | Benchmark LTV:CAC |
+|-------------------|---------------|----------------|---------------------|-------------------|
+| **HR / People Tech** | $1,800 | $12,000 | 8 | 4.2:1 |
+| **Accounting / Finance SaaS** | $2,500 | $18,000 | 10 | 3.8:1 |
+| **Cybersecurity** | $5,200 | $35,000 | 12 | 3.5:1 |
+| **Legal Tech** | $3,100 | $22,000 | 11 | 3.6:1 |
+| **EdTech** | $900 | $4,500 | 6 | 3.0:1 |
+| **HealthTech** | $4,800 | $30,000 | 14 | 3.2:1 |
+| **PropTech** | $3,500 | $25,000 | 12 | 3.4:1 |
+| **AgriTech** | $2,200 | $15,000 | 9 | 3.7:1 |
+
+*Benchmarks based on Australian SaaS companies at Seed to Series A stage, 2025-2026 data.*
+
 ## The Golden Ratio: Mastering CAC:LTV and Payback
 
 Knowing your CAC is only half the battle. The real magic—and the real worry for investors—lies in the **CAC LTV ratio**. This ratio compares the Lifetime Value (LTV) of a customer to the cost of acquiring them. It tells you if your business model is scalable.
@@ -86,6 +99,32 @@ When reporting these metrics to investors, accuracy is paramount. The **Australi
 Misrepresenting your **customer acquisition cost startup** metrics can lead to severe regulatory backlash. Investors are increasingly performing deep-dive due diligence, often hiring forensic accountants to verify your CAC calculations against your actual ad spend and payroll data.
 
 > **Need to validate your valuation before the pitch?** Investors are watching your **Startup Value Index (SVI)** score. [Get your free SVI score](/) to see how your traction and metrics align with institutional standards.
+
+> **LTV:CAC Ratio Decision Framework**
+>
+> ```
+> ┌─────────────────────────────────────────────────────────────────┐
+> │                    LTV:CAC RATIO ANALYSIS                      │
+> ├─────────────────────────────────────────────────────────────────┤
+> │                                                                │
+> │   LTV:CAC < 1:1   ──→  STOP SPENDING: You lose money on       │
+> │                         every customer. Fix product or pricing. │
+> │                                                                │
+> │   LTV:CAC 1:1-2:1 ──→  OPTIMIZE: Unit economics are poor.     │
+> │                         Reduce churn, increase ARPU, or cut    │
+> │                         acquisition channels with low ROI.     │
+> │                                                                │
+> │   LTV:CAC 3:1     ──→  HEALTHY: The gold standard. You have   │
+> │                         a scalable model. Pour fuel carefully.  │
+> │                                                                │
+> │   LTV:CAC 4:1-5:1 ──→  EFFICIENT: Strong economics. Consider  │
+> │                         increasing spend to capture more share. │
+> │                                                                │
+> │   LTV:CAC > 5:1   ──→  UNDER-INVESTING: You may be leaving    │
+> │                         market share on the table. Scale now.   │
+> │                                                                │
+> └─────────────────────────────────────────────────────────────────┘
+> ```
 
 ## How to Reduce CAC in the Australian Market
 

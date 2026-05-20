@@ -55,6 +55,19 @@ When allocating this pool, avoid the "equal split" trap. Not every early employe
 
 Getting the math right on your cap table is complex. Small errors in percentage calculations can lead to massive discrepancies during valuation. Before you commit to a pool size, you need to visualize the impact on your current stakeholders. Use our **[Plan Your Equity Split](/tools/equity-split)** tool to model different scenarios and ensure your pool is sized correctly for your next fundraising round.
 
+### ESOP Structure Comparison: Options vs Shares vs RSUs
+
+| Feature | Options | Ordinary Shares | Restricted Share Units (RSUs) |
+|---|---|---|---|
+| **What the employee receives** | Right to buy shares at a set price | Actual shares issued upfront | Promise of shares upon vesting |
+| **Upfront cost to employee** | None (exercise later) | May pay par value | None |
+| **Tax event trigger** | On exercise (or deferred under Div 83A) | On grant (unless startup concession applies) | On vesting |
+| **Div 83A startup concession** | Yes — tax deferred to exit | Yes — if conditions met | Limited — complex treatment |
+| **Best for stage** | Pre-seed to Series A | Very early stage (co-founders) | Series B+ (established valuation) |
+| **Complexity to administer** | Moderate | Low | High |
+| **Employee risk** | Low (no upfront payment) | Moderate (tax on paper value) | Low (no upfront payment) |
+| **Investor preference** | Preferred for early-stage | Acceptable for founders only | Preferred for later-stage |
+
 ## The Mechanics: Vesting Schedules, Cliffs, and Termination
 
 Once you have established your pool and defined the tax structure, the next critical component is the vesting schedule. A vesting schedule is the mechanism that ensures your employees "earn" their equity over time, protecting the company if an early team member leaves prematurely.
@@ -66,6 +79,25 @@ The gold standard in the Australian market is a **four-year vesting schedule wit
 *   **Monthly Vesting:** After the cliff, the remaining 75% vests monthly (or quarterly) over the next three years.
 
 This structure aligns the employee's tenure with their equity accumulation. It also provides a psychological anchor for the employee, signaling a commitment to the company's journey.
+
+### Vesting Schedule Timeline: The 4-Year Standard
+
+```
+Year 0          Year 1 (Cliff)      Year 2          Year 3          Year 4
+  │                  │                 │               │               │
+  ▼                  ▼                 ▼               ▼               ▼
+  0%               25%               50%             75%            100%
+  ├──── CLIFF ──────┤                 │               │               │
+  │  Nothing vests  │    Monthly vesting begins       │               │
+  │  during this    │    (~2.08% per month)           │               │
+  │  period         │                 │               │               │
+  └─────────────────┴─────────────────┴───────────────┴───────────────┘
+
+  GOOD LEAVER (illness, redundancy)     → Retains all vested equity
+  BAD LEAVER (fraud, misconduct)        → Forfeits unvested + may lose vested
+  CHANGE OF CONTROL (acquisition)       → Double-trigger: accelerates only
+                                          if also terminated post-acquisition
+```
 
 However, vesting is not just about time; it is also about performance and termination events. Your Employee Share Scheme deed must clearly define what happens in various scenarios:
 

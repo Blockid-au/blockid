@@ -24,6 +24,21 @@ For companies with a turnover **over $20 million**, the offset is non-refundable
 
 The **refundable** nature of the incentive makes it one of the most effective funding sources for early-stage Australian tech firms. It is effectively a non-dilutive grant that rewards risk-taking and innovation. However, the ATO's compliance focus has intensified. They are increasingly scrutinising claims to ensure that routine software development is not being misclassified as experimental R&D.
 
+### R&D Eligibility Criteria: Quick Reference
+
+| Criteria | Requirement | Your Status |
+|---|---|---|
+| **Company residency** | Australian resident company | Must be incorporated in Australia |
+| **Aggregated turnover** | Under $20M → 43.5% refundable offset | Over $20M → non-refundable offset only |
+| **Activity type** | Must involve genuine technical uncertainty | Routine dev or known solutions do not qualify |
+| **Outcome predictability** | Outcome cannot be known in advance | If an expert could predict the result, it fails |
+| **Documentation** | Contemporaneous records required | Must be recorded at the time of R&D, not later |
+| **Registration** | Must register with AusIndustry before FY end | Cannot register retrospectively |
+| **Who leads the R&D** | Must involve qualified technical personnel | Finance-only claims will be rejected |
+| **Cost segregation** | Only experimental hours/costs are claimable | Routine maintenance time must be excluded |
+| **Core vs Support** | Core activities must be experimental | Support activities must directly enable core R&D |
+| **Lodgement deadline** | 10 months after end of financial year | Late registration can invalidate the entire claim |
+
 ### What Counts as Eligible R&D? (The Core Eligibility Test)
 
 The core of the R&D Tax Incentive is not about *what* you build, but *how* you build it and the level of *uncertainty* you face. The legislation requires activities to be **experimental**. This means the outcome cannot be known or determined in advance based on current knowledge or experience.
@@ -116,6 +131,17 @@ Furthermore, the **Startup Value Index (SVI)** used by platforms like **BlockID.
 > **Why risk your valuation?** Investors demand transparency. Ensure your R&D governance is audit-ready before you pitch. [Check Your SVI Score](/score) to see how your compliance practices impact your valuation.
 
 Building this governance framework early saves you from a crisis later. It forces your technical team to think critically about what they are doing, which often improves the quality of the R&D itself. It turns "accidental innovation" into "managed innovation."
+
+### R&D Tax Incentive Claim Process
+
+> **Step 1** → Confirm eligibility: turnover under $20M, Australian resident, genuine technical uncertainty
+> **Step 2** → Register with AusIndustry before the end of the financial year in which R&D is conducted
+> **Step 3** → Document throughout the year: hypotheses, methods, results, failures, and cost traces
+> **Step 4** → Segregate costs: separate experimental R&D hours from routine development work
+> **Step 5** → Prepare technical narratives: describe each core and support activity in detail
+> **Step 6** → Lodge tax return with ATO, attaching the R&D schedule (within 10 months of FY end)
+> **Step 7** → AusIndustry review: respond to any queries with contemporaneous documentation
+> **Step 8** → Receive refund: 43.5% of eligible expenditure deposited to your account
 
 ### Navigating the Registration and Claims Process
 

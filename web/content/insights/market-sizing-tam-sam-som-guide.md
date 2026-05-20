@@ -36,6 +36,36 @@ If you are struggling to quantify your SAM accurately, you are not alone. Many f
 
 > **Need to quantify your market opportunity?** [Get Your Market Analysis](/) using our Australian-specific data models.
 
+> **TAM / SAM / SOM: The Market Sizing Funnel**
+>
+> ```
+> ┌─────────────────────────────────────────────────────────────┐
+> │                                                             │
+> │                    TAM (Total Addressable Market)           │
+> │                 "Everyone who could ever buy this"          │
+> │                   e.g., $15B Australian SaaS market         │
+> │                                                             │
+> │     ┌─────────────────────────────────────────────┐         │
+> │     │                                             │         │
+> │     │          SAM (Serviceable Available Market)  │         │
+> │     │       "Those we can actually reach & serve"  │         │
+> │     │        e.g., $2B mid-market retail SaaS      │         │
+> │     │                                             │         │
+> │     │     ┌─────────────────────────────┐         │         │
+> │     │     │                             │         │         │
+> │     │     │   SOM (Serviceable Obtainable│         │         │
+> │     │     │        Market)              │         │         │
+> │     │     │  "What we'll realistically  │         │         │
+> │     │     │   capture in 1-3 years"     │         │         │
+> │     │     │   e.g., $10M (0.5% of SAM) │         │         │
+> │     │     │                             │         │         │
+> │     │     └─────────────────────────────┘         │         │
+> │     │                                             │         │
+> │     └─────────────────────────────────────────────┘         │
+> │                                                             │
+> └─────────────────────────────────────────────────────────────┘
+> ```
+
 ## Top-Down vs. Bottom-Up: Choosing the Right Methodology
 
 There are two primary ways to calculate your market size: Top-Down and Bottom-Up. The most compelling pitch decks use both to triangulate a realistic number. However, for early-stage startups, the Bottom-Up approach is generally weighted more heavily by investors because it is based on operational reality rather than macroeconomic assumptions.
@@ -85,6 +115,15 @@ The Bottom-Up approach reveals a $3M SOM that is achievable, whereas the Top-Dow
 When you combine these methods, you can validate your assumptions. If your Bottom-Up SOM suggests $3M, but the Top-Down analysis of the specific niche shows only $4M total, you know your math is sound. If the Top-Down suggests a $500M niche, you need to explain why your Bottom-Up capture is so low.
 
 > **Ready to stress-test your numbers?** [Get your free SVI score](/) to see how your market sizing compares to successful Australian startups.
+
+| Methodology | How It Works | Pros | Cons | Best For |
+|-------------|-------------|------|------|----------|
+| **Top-Down** | Start with total market data, narrow by filters (geography, segment, %) | Fast; uses authoritative data (ABS, IBISWorld) | Often inflated; "1% of $100B" trap; ignores execution reality | Establishing TAM ceiling; benchmarking against industry reports |
+| **Bottom-Up** | Start with unit economics: (# target customers) x (price per customer) | Highly defensible; tied to real sales strategy | Time-consuming; requires granular customer data | Calculating SOM; building revenue forecasts; investor pitch |
+| **Value Theory** | Estimate value created for customers, then price as % of that value | Shows ROI logic; compelling for enterprise sales | Hard to quantify; subjective value estimates | Enterprise SaaS; cost-saving or efficiency products |
+| **Analogous Market** | Use a comparable market (different geography or adjacent vertical) as a proxy | Useful when no direct data exists; quick | Assumes similar dynamics across markets; can be misleading | New categories; markets with no existing research |
+
+> **Best Practice:** Use Top-Down to set the ceiling (TAM), Bottom-Up to calculate the floor (SOM), and triangulate between the two. If they diverge wildly, investigate your assumptions.
 
 ## Australian Data Sources and Regulatory Nuances
 

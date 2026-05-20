@@ -60,6 +60,16 @@ Unlike traditional valuation methods that often focus narrowly on financials or 
 6.  **Talent Density:** Assessment of hiring velocity, employee retention, and the quality of the talent pipeline.
 7.  **Investor Sentiment:** Monitoring of external investor interest, funding trends, and market perception.
 
+| SVI Dimension | What It Measures | Weight (Pre-Seed) | Weight (Series A) | Key Data Sources |
+| :--- | :--- | :---: | :---: | :--- |
+| **Market Dynamics** | Size, growth, regulatory tailwinds | 20% | 15% | ABS data, ASIC filings, industry reports |
+| **Team Strength** | Experience, skill fit, execution history | 25% | 15% | LinkedIn, exit databases, patent filings |
+| **Product Maturity** | Tech stack, engagement, PMF signals | 15% | 20% | App analytics, user metrics, code quality |
+| **Competitive Position** | Moat, differentiation, competitor activity | 10% | 15% | Competitor funding, hiring trends, reviews |
+| **Financial Health** | Burn rate, runway, revenue quality | 10% | 20% | Xero/MYOB data, bank statements, ATO filings |
+| **Talent Density** | Hiring velocity, retention, pipeline | 10% | 10% | Job postings, employee data, Glassdoor |
+| **Investor Sentiment** | External interest, funding trends | 10% | 5% | Deal flow data, market reports, news |
+
 Each of these dimensions is weighted based on the current market environment and the specific stage of the startup (pre-seed vs. Series A). The machine learning engine then synthesises these seven inputs to generate a single, comparable **SVI Score**. This score is not a static number; it is a dynamic indicator that updates as new data becomes available, ensuring that founders always have the most current assessment of their company's value.
 
 The SVI approach is particularly relevant for the Australian context. It accounts for local nuances such as the **ESIC (Early Stage Innovation Company)** tax incentives, the specific regulatory hurdles imposed by **ASIC**, and the unique capital structure of the Australian venture ecosystem. By embedding these local factors into the algorithm, BlockID provides a valuation that is not just globally competitive but locally accurate.
@@ -78,6 +88,16 @@ To truly understand the shift, we must look at a direct comparison between the t
 | **Local Context** | Manual interpretation of ASIC/ATO rules | Automated integration of Australian regulations |
 | **Granularity** | Aggregated high-level view | 7-Dimension deep-dive analysis |
 | **Actionability** | Static report for negotiation | Dynamic dashboard for strategic planning |
+
+> **Valuation Method Comparison: When to Use Each**
+>
+> - **DCF (Discounted Cash Flow):** Best for Series A+ with predictable revenue streams. Weakness: relies on uncertain long-term projections.
+> - **Berkus Method:** Best for pre-revenue startups. Weakness: subjective risk factor scoring.
+> - **Scorecard Method:** Best for benchmarking against funded peers. Weakness: requires reliable comparable data.
+> - **VC Method:** Best for understanding investor return expectations. Weakness: exit value assumptions are speculative.
+> - **Cost-to-Duplicate:** Best for establishing a valuation floor. Weakness: ignores future potential and market dynamics.
+> - **Risk Factor Summation:** Best for structured risk analysis. Weakness: additive adjustments can compound bias.
+> - **AI-Powered (SVI):** Best for real-time, multi-dimensional analysis. Weakness: model quality depends on training data.
 
 ### The Strategic Advantage for Founders
 The shift to AI-powered valuation gives Australian founders a distinct strategic advantage. When you know your **SVI Score** before you pick up the phone, you enter negotiations from a position of strength. You are no longer guessing what investors see; you have the data that drives their decisions.

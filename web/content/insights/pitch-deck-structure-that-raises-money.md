@@ -10,6 +10,23 @@ Australian investors, from local firms like Square Peg and Blackbird to internat
 
 This guide breaks down the exact 12-slide structure that aligns with Australian VC preferences in 2026. We will cover the precise order, the specific data points required for each slide, and the common pitfalls that get decks rejected. Whether you are pre-seed or Series A, this blueprint is your first step toward securing capital.
 
+### The 12-Slide Structure at a Glance
+
+| Slide # | Title | Core Question It Answers | Time to Spend |
+|---|---|---|---|
+| 1 | **Problem** | What painful, expensive problem exists? | 60 seconds |
+| 2 | **Solution** | How does your product solve it 10x better? | 60 seconds |
+| 3 | **Market Size** | Is the TAM large enough for VC returns? | 45 seconds |
+| 4 | **Product Demo** | How does it work in practice? | 90 seconds |
+| 5 | **Traction** | What proof do you have that it works? | 90 seconds |
+| 6 | **Business Model** | How do you make money? | 60 seconds |
+| 7 | **Go-to-Market** | How will you acquire customers at scale? | 60 seconds |
+| 8 | **Competition** | Why can't incumbents copy you? | 60 seconds |
+| 9 | **Team** | Why are you the right people to build this? | 45 seconds |
+| 10 | **Financials** | Are your unit economics sustainable? | 60 seconds |
+| 11 | **The Ask** | How much do you need and what will you do with it? | 45 seconds |
+| 12 | **Vision** | Where is this company in 5 years? | 45 seconds |
+
 ## 1. The Hook: Problem and Pain Validation
 
 Your first slide must grab attention immediately. Do not start with "Who we are" or your company logo. Start with the problem. In the current economic climate, Australian investors are risk-averse. They want to see a problem that is urgent, expensive, and widespread.
@@ -148,6 +165,21 @@ The final slide should leave the investor inspired. Where is the company in 5 ye
 Connect your startup to a larger trend. Is the Australian economy shifting? Is there a global demand for your solution? Reiterate the urgency. "The market is changing now, and we are the only ones positioned to lead."
 
 End with a clear call to action. "Join us in revolutionizing [Industry]."
+
+### Common Pitch Mistakes vs Fixes
+
+| Mistake | Why It Fails | The Fix |
+|---|---|---|
+| Leading with the solution | Investor has no context for why it matters | Lead with a quantified problem statement |
+| "We have no competitors" | Signals lack of market research | Show a competitive matrix and explain your moat |
+| 10-year financial projections | Unrealistic and unreadable | Use a 3-year forecast focused on the next 18 months |
+| Feature list on the product slide | Too granular, loses attention | Show one "magic moment" screenshot |
+| Hiding team weaknesses | Investors discover gaps in due diligence | Be transparent about gaps and your hiring plan |
+| No clear Ask slide | Investor doesn't know next steps | State exact raise amount, use of funds, and runway |
+| Ignoring Australian regulation | Signals you don't understand the local landscape | Reference ASIC, ATO, and ESIC compliance |
+| Generic TAM from Google search | Not credible or defensible | Build bottom-up TAM with real customer data |
+| Wall of text slides | Unreadable from across the room | Use visuals, bullet points, and large fonts |
+| Sending the deck without a warm intro | 90% of cold decks are ignored | Build relationships before you pitch |
 
 ## What NOT to Put in Your Pitch Deck
 

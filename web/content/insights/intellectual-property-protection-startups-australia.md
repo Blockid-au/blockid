@@ -50,6 +50,16 @@ While automatic, copyright protection is limited. It prevents others from *copyi
 
 > **Ready to assess the strength of your IP foundation?** Your current IP posture directly impacts your Startup Value Index (SVI). [Get your free SVI score](/) to see how investors view your intellectual property assets.
 
+| IP Type | Protection Scope | Cost (AUD) | Time to Secure | Duration | Enforcement Strength | Best For |
+|---------|-----------------|------------|----------------|----------|---------------------|----------|
+| **Provisional Patent** | Technical inventions, processes | $1,000 - $3,000 | Immediate filing | 12 months (then convert) | Medium (patent pending status) | Early-stage tech, hardware, AI |
+| **Standard Patent** | Technical inventions, processes | $5,000 - $15,000+ | 3-5 years to grant | Up to 20 years | Very High (monopoly right) | Biotech, deep tech, complex hardware |
+| **Trademark** | Names, logos, slogans, sounds | $250 - $1,500 | 6-12 months | 10 years (renewable) | High (nationwide) | All startups with a brand |
+| **Trade Secret** | Algorithms, formulas, data | $0 - $500 (NDA costs) | Immediate | Indefinite (if maintained) | Low (no protection if leaked) | Proprietary algorithms, customer data |
+| **Copyright** | Code, content, designs, docs | $0 (automatic) | Instant (on creation) | Life of creator + 70 years | Medium (prevents copying only) | Software code, marketing content |
+| **Design Registration** | Visual appearance of products | $300 - $1,000 | 1-3 months | Up to 10 years | Medium-High | Consumer products, packaging, UI |
+| **PCT (International Patent)** | Global patent protection | $15,000 - $50,000+ | 18-30 months | Varies by country | Very High (multi-jurisdiction) | Scale-ups expanding globally |
+
 ## When to Invest: A Phase-by-Phase IP Roadmap
 
 Timing is everything in startup IP strategy. Spending $15,000 on a standard patent before you have product-market fit is a waste of runway. Conversely, waiting until you are Series A to file a trademark can result in a competitor squatting on your name.
@@ -107,6 +117,32 @@ Not every startup needs a patent. If you are a marketplace platform connecting b
 Conversely, if you are a DeepTech or MedTech startup, your entire valuation rests on your technology. A **standard patent** is non-negotiable. Without it, your risk profile is uninvestable.
 
 > **Investor Perspective:** "We look for startups that have allocated at least **5-10% of their seed runway** to IP protection. It shows founders understand that their value lies in their unique assets, not just their ability to execute." — *Partner, Australian VC Firm*
+
+> **IP Protection Timeline: Pre-Seed to Series A**
+>
+> ```
+> PRE-SEED ($0 - $500K raised)
+> ├── Trademark search & file application .............. $250-$1,500
+> ├── Provisional patent (if technical innovation) ..... $1,000-$3,000
+> ├── NDAs for co-founders, contractors, advisors ...... $0-$500
+> ├── IP assignment agreements (all team members) ...... $500-$1,000
+> └── TOTAL ESTIMATED COST: $1,750 - $6,000
+>
+> SEED ($500K - $2M raised)
+> ├── Convert provisional to standard patent ........... $5,000-$15,000
+> ├── Additional trademark classes / NZ expansion ...... $500-$2,000
+> ├── Formal IP audit with specialist attorney ......... $2,000-$5,000
+> ├── Employee IP assignment contracts (all hires) ..... $1,000-$2,000
+> └── TOTAL ESTIMATED COST: $8,500 - $24,000
+>
+> SERIES A ($2M+ raised)
+> ├── PCT international patent filing .................. $15,000-$50,000
+> ├── Global trademark portfolio (US, UK, Asia) ........ $5,000-$15,000
+> ├── Brand monitoring & enforcement ................... $2,000-$5,000/yr
+> ├── IP licensing strategy & agreements ............... $3,000-$10,000
+> ├── M&A-ready IP due diligence package ............... $5,000-$10,000
+> └── TOTAL ESTIMATED COST: $30,000 - $90,000
+> ```
 
 ## IP as a Direct Valuation Driver
 

@@ -10,6 +10,21 @@ In Australia, where the investment ecosystem is maturing rapidly under the guida
 
 You need to walk into your next negotiation with a clear understanding of the leverage you hold and the traps you must avoid. Let's dissect the ten most dangerous clauses you will encounter in an **investor term sheet guide**.
 
+### Good Terms vs Bad Terms: Quick Comparison
+
+| Term | Founder-Friendly (Good) | Investor-Aggressive (Bad) |
+|---|---|---|
+| **Liquidation Preference** | 1x non-participating | 2x+ participating |
+| **Anti-Dilution** | Broad weighted average | Full ratchet |
+| **Board Control** | Founder majority (2-1) | Investor majority or tie-break |
+| **Drag-Along Threshold** | 75%+ super-majority | Simple majority or single investor trigger |
+| **Pro-Rata Rights** | Standard (maintain ownership) | Super pro-rata (increase ownership) |
+| **Redemption Rights** | None or limited to solvent events | Mandatory buyback after 5-7 years |
+| **No-Shop Period** | 30 days | 60-90 days |
+| **Information Rights** | Quarterly financials | Weekly reports, employee access |
+| **Founder Vesting** | Existing shares grandfathered | Full re-vesting on new round |
+| **Pay-to-Play** | Proportionate reduction of rights | Total loss of status if missed |
+
 ## 1. Liquidation Preferences: The 1X Standard vs. The Trap
 
 Liquidation preference determines who gets paid first and how much when the company exits, whether through a sale or liquidation. The **term sheet red flags** here are often subtle but devastating.
@@ -144,6 +159,17 @@ Before you sign a term sheet, run through this checklist to ensure you haven't w
 - [ ] **Legal Review:** Has an Australian startup lawyer reviewed the full legal documents, not just the term sheet?
 
 > **Need a second pair of eyes on your terms?** Don't guess. [Analyse Your Term Sheet with AI](/tools/term-sheet) to instantly flag red flags and simulate your exit outcomes.
+
+### Term Sheet Negotiation Priorities
+
+> **Priority 1 (Non-Negotiable)** → Liquidation preference must be 1x non-participating. Reject 2x or participating terms immediately.
+> **Priority 2 (Non-Negotiable)** → Anti-dilution must be broad weighted average. Full ratchet is a deal-breaker.
+> **Priority 3 (Critical)** → Board composition must preserve founder majority or equal representation through Series A.
+> **Priority 4 (Critical)** → Drag-along rights require 75%+ threshold with a minimum price floor.
+> **Priority 5 (Important)** → No-shop period capped at 30 days with automatic expiry if investor misses deadline.
+> **Priority 6 (Important)** → Reject any re-vesting clause on existing founder shares.
+> **Priority 7 (Negotiate)** → Remove redemption rights entirely, or limit to solvent events with no premium.
+> **Priority 8 (Negotiate)** → Limit information rights to standard quarterly financials and board-level KPIs.
 
 ## Why Valuation Isn't Everything
 

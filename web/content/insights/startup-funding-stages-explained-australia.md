@@ -10,6 +10,14 @@ Misjudging your stage is the fastest way to stall growth. Investors at the pre-s
 
 To avoid these pitfalls, founders must align their fundraising strategy with their current maturity level. This involves not just knowing how much money to raise, but understanding the valuation caps, the impact of ESIC tax incentives, and the timeline required to close a round in the current market climate.
 
+| Stage | Typical Raise (AUD) | Valuation Range (AUD) | Dilution | Key Investor Type | Timeline to Close |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Pre-Seed** | $50K - $500K | $2M - $5M | 10% - 20% | Angels, Accelerators | 3 - 6 months |
+| **Seed** | $500K - $3M | $5M - $12M | 15% - 25% | Seed VC Funds, Syndicates | 4 - 8 months |
+| **Series A** | $3M - $15M | $15M - $40M | 20% - 30% | Institutional VCs | 6 - 9 months |
+| **Series B** | $15M - $50M | $40M - $120M | 15% - 25% | Growth-stage VCs | 6 - 12 months |
+| **Series C** | $50M+ | $120M+ | 10% - 20% | Late-stage VCs, PE Firms | 6 - 12 months |
+
 > **Ready to map your next funding round accurately?** Use our AI-powered engine to build a custom roadmap: [Plan Your Funding Round](/tools/funding-plan)
 
 ## Stage 1: Bootstrapping and Friends & Family
@@ -132,6 +140,13 @@ It is crucial to manage the cap table carefully. Early excessive dilution or com
 For a detailed breakdown of how your specific metrics translate to valuation and dilution, founders should utilize data-driven tools. Guessing your valuation can lead to severe misalignment with investors.
 
 > **Don't guess your valuation.** Get a data-backed analysis of your startup's value based on current Australian market benchmarks: [Get your free SVI score](/)
+
+> **Investor Type by Stage**
+> - **Pre-Seed:** Friends & Family, Angel Investors, Micro-VCs, Accelerators (Startmate, Fishburners)
+> - **Seed:** Seed VC Funds (AirTree, Blackbird), Angel Syndicates, Corporate Venture Arms
+> - **Series A:** Institutional VCs (Square Peg, Airtree), International Funds entering APAC
+> - **Series B:** Growth Funds, International VCs, Strategic Corporate Investors
+> - **Series C+:** Late-Stage VCs, Private Equity, Sovereign Wealth Funds, Pre-IPO Specialists
 
 ## Action Plan: How to Prepare for Your Next Round
 

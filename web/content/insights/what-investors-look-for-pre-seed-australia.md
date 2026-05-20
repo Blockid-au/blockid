@@ -44,6 +44,15 @@ Validation at the pre-seed stage does not require 10,000 paying customers. It re
 
 The most successful Australian founders at the pre-seed stage treat validation as a product itself. They iterate on the problem definition before scaling the solution.
 
+| Evaluation Criteria | Weight | What Investors Want to See | Red Flags |
+| :--- | :---: | :--- | :--- |
+| **Founding Team** | 30% | Complementary skills, founder-market fit, prior exits | Solo non-technical founder, no vesting |
+| **Market Timing** | 20% | Regulatory tailwinds, tech maturity, "why now" story | Premature market, no urgency |
+| **Problem Validation** | 20% | LOIs, paid pilots, user interviews, waitlists | No customer evidence, assumptions only |
+| **Market Size** | 15% | TAM > $1B globally, clear Australian entry point | Niche-only, no expansion path |
+| **Product/MVP** | 10% | Working prototype, user engagement data | Slide deck only, no build capability |
+| **ESIC Eligibility** | 5% | Qualified for 20% tax offset, documented innovation | Failed innovation test, non-compliant |
+
 ## The Financial Incentives: Navigating ESIC and Tax
 
 One of the most distinct features of the Australian startup ecosystem is the government's active role in de-risking early-stage investment through tax incentives. For founders, understanding **Early Stage Innovation Company (ESIC)** eligibility is not just a tax exercise; it is a fundamental part of the fundraising strategy.
@@ -147,6 +156,31 @@ To ensure you are ready for the Australian market, use this practical checklist.
 | **Governance** | Shareholder Agreement is drafted and signed | [ ] |
 | **Governance** | IP ownership is assigned to the company (not founders) | [ ] |
 | **Tools** | [Get Your Investor-Ready Score](/score) to validate gaps | [ ] |
+
+> **Team / Market / Product Scoring Framework**
+>
+> **Team Score (out of 10):**
+> - Technical co-founder present: +3
+> - Prior startup experience: +2
+> - Domain expertise in target market: +2
+> - Full-time commitment (all founders): +2
+> - Vesting schedules in place: +1
+>
+> **Market Score (out of 10):**
+> - TAM > $1B AUD: +3
+> - Regulatory or tech tailwind ("why now"): +2
+> - Clear Australian beachhead market: +2
+> - APAC or global expansion path: +2
+> - Low competitive density: +1
+>
+> **Product Score (out of 10):**
+> - Working MVP or prototype: +3
+> - Paying customers or signed LOIs: +3
+> - User engagement metrics available: +2
+> - IP or proprietary technology: +1
+> - Clear product roadmap (12 months): +1
+>
+> **Scoring Guide:** 24-30 = Strong investment candidate | 18-23 = Promising, address gaps | Below 18 = Not yet ready
 
 ## Leveraging Data to De-Risk Your Raise
 

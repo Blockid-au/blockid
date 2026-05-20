@@ -7,6 +7,12 @@
 
 import "server-only";
 import nodemailer from "nodemailer";
+import {
+  ensureEmailPreferences,
+  canSendEmail,
+  getUnsubscribeUrl,
+  getPreferencesUrl,
+} from "./email-preferences";
 
 const FROM_DEFAULT = "BlockID <admin@blockid.au>";
 
@@ -40,7 +46,7 @@ function siteUrl(): string {
 
 type SendResult =
   | { ok: true; id: string }
-  | { ok: false; reason: "not_configured" | "send_error"; error?: unknown };
+  | { ok: false; reason: "not_configured" | "send_error" | "unsubscribed"; error?: unknown };
 
 // ---------- Core send function ------------------------------------------------
 
@@ -48,6 +54,7 @@ async function sendEmail(args: {
   to: string;
   subject: string;
   html: string;
+  unsubscribeUrl?: string;
 }): Promise<SendResult> {
   const transporter = getTransporter();
   if (!transporter) {
@@ -55,11 +62,18 @@ async function sendEmail(args: {
     return { ok: false, reason: "not_configured" };
   }
   try {
+    const headers: Record<string, string> = {};
+    if (args.unsubscribeUrl) {
+      headers["List-Unsubscribe"] = `<${args.unsubscribeUrl}>`;
+      headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click";
+    }
+
     const info = await transporter.sendMail({
       from: fromAddress(),
       to: args.to,
       subject: args.subject,
       html: args.html,
+      headers,
     });
     console.log("[blockid:email] sent", { to: args.to, messageId: info.messageId });
     return { ok: true, id: info.messageId ?? "" };
@@ -67,6 +81,37 @@ async function sendEmail(args: {
     console.error("[blockid:email] send failed", error);
     return { ok: false, reason: "send_error", error };
   }
+}
+
+// ---------- Helpers for subscription-aware sending ----------------------------
+
+async function prepareUnsubscribe(to: string): Promise<{
+  token: string;
+  unsubscribeUrl: string;
+  preferencesUrl: string;
+}> {
+  const token = await ensureEmailPreferences(to);
+  return {
+    token,
+    unsubscribeUrl: getUnsubscribeUrl(token),
+    preferencesUrl: getPreferencesUrl(token),
+  };
+}
+
+function unsubFooter(unsubUrl: string, prefsUrl: string): string {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:0 16px 32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;">
+        <tr><td>
+          <p style="margin:16px 0 0 0;color:#475569;font-size:11px;line-height:1.5;text-align:center;">
+            You're receiving this because you have a BlockID.au account.
+            <a href="${unsubUrl}" style="color:#475569;text-decoration:underline;">Unsubscribe</a> &middot;
+            <a href="${prefsUrl}" style="color:#475569;text-decoration:underline;">Manage email preferences</a>
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>`;
 }
 
 // ---------- score-ready --------------------------------------------------------
@@ -77,108 +122,11 @@ export async function sendScoreReady(args: {
   totalScore: number;
   companyName?: string | null;
 }): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "svi_alerts"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const url = `${siteUrl()}/s/${args.slug}`;
-  const html = scoreReadyHtml({ ...args, url });
-  return sendEmail({ to: args.to, subject: "Your Investor-Ready Score is ready", html });
-}
-
-// ---------- magic-link --------------------------------------------------------
-//
-// Sent in two situations: (1) "Save Founder Pack" gate fires after a user
-// completes ≥2 idea-phase tools and submits their email; (2) plain login
-// for a returning user. Same template, intent-aware copy.
-
-export async function sendMagicLink(args: {
-  to: string;
-  token: string;
-  intent: "save_founder_pack" | "login";
-  ttlMinutes: number;
-}): Promise<SendResult> {
-  const url = `${siteUrl()}/auth/verify?token=${encodeURIComponent(args.token)}`;
-  const html = magicLinkHtml({ ...args, url });
-  const subject =
-    args.intent === "save_founder_pack"
-      ? "Save your BlockID Founder Pack"
-      : "Sign in to BlockID";
-
-  if (!isSmtpConfigured()) {
-    // Dev fallback: print verify URL to console
-    console.warn("[blockid:email] SMTP not configured — verify URL:", url);
-    return { ok: false, reason: "not_configured" };
-  }
-
-  return sendEmail({ to: args.to, subject, html });
-}
-
-function magicLinkHtml(args: {
-  url: string;
-  intent: "save_founder_pack" | "login";
-  ttlMinutes: number;
-}): string {
-  const headline =
-    args.intent === "save_founder_pack"
-      ? "Save your Founder Pack"
-      : "Sign in to BlockID";
-  const sub =
-    args.intent === "save_founder_pack"
-      ? "Click the button below to save your Founder Pack and create your free BlockID account. The link is single-use and expires in " +
-        args.ttlMinutes +
-        " minutes."
-      : "Click the button below to sign in. The link is single-use and expires in " +
-        args.ttlMinutes +
-        " minutes.";
-  const cta =
-    args.intent === "save_founder_pack" ? "Save my Founder Pack" : "Sign in";
-  return shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
-    <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
-        <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${escapeHtml(headline)}</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${escapeHtml(sub)}</p>
-          <p style="margin:0 0 24px 0;text-align:center;">
-            <a href="${args.url}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">${escapeHtml(cta)}</a>
-          </p>
-          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Or paste this URL</p>
-          <p style="margin:0 0 24px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#94A3B8;word-break:break-all;">${args.url}</p>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">If you didn't request this email, you can safely ignore it — no account will be created.</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>`);
-}
-
-// ---------- score-viewed -------------------------------------------------------
-
-export async function sendScoreViewed(args: {
-  to: string;
-  slug: string;
-  viewerLabel?: string;
-  companyName?: string | null;
-}): Promise<SendResult> {
-  const url = `${siteUrl()}/s/${args.slug}`;
-  const html = scoreViewedHtml({ ...args, url });
-  return sendEmail({ to: args.to, subject: "Your score was just viewed", html });
-}
-
-// ---------- HTML templates -----------------------------------------------------
-//
-// Inline-style only. BlockID navy/brand-blue palette. No emoji. No external CSS so
-// it renders consistently in Gmail / Outlook / Apple Mail.
-
-function shell(body: string): string {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BlockID</title></head><body style="margin:0;padding:0;background:#0B1220;color:#F8FAFC;font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;">${body}</body></html>`;
-}
-
-function scoreReadyHtml(args: {
-  url: string;
-  totalScore: number;
-  companyName?: string | null;
-}): string {
   const co = args.companyName || "Your company";
-  return shell(`
+  const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
@@ -190,27 +138,82 @@ function scoreReadyHtml(args: {
             <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:64px;font-weight:600;color:#3B7DD8;line-height:1;">${args.totalScore}<span style="color:#64748B;font-size:24px;">/100</span></div>
           </div>
           <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Share link</p>
-          <p style="margin:0 0 24px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:14px;color:#F8FAFC;word-break:break-all;">${args.url}</p>
+          <p style="margin:0 0 24px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:14px;color:#F8FAFC;word-break:break-all;">${url}</p>
           <p style="margin:0;text-align:center;">
-            <a href="${args.url}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View score</a>
+            <a href="${url}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View score</a>
           </p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:32px 0 16px 0;">
           <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">BlockID — Persistent Identity & Trust Infrastructure for Private Capital Markets. AU data residency.</p>
         </td></tr>
       </table>
     </td></tr>
-  </table>`);
+  </table>
+  ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
+  return sendEmail({ to: args.to, subject: "Your Investor-Ready Score is ready", html, unsubscribeUrl });
 }
 
-function scoreViewedHtml(args: {
-  url: string;
+// ---------- magic-link --------------------------------------------------------
+// TRANSACTIONAL: always sends regardless of preferences.
+
+export async function sendMagicLink(args: {
+  to: string;
+  token: string;
+  intent: "save_founder_pack" | "login";
+  ttlMinutes: number;
+}): Promise<SendResult> {
+  const url = `${siteUrl()}/auth/verify?token=${encodeURIComponent(args.token)}`;
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
+  const headline = args.intent === "save_founder_pack" ? "Save your Founder Pack" : "Sign in to BlockID";
+  const sub = args.intent === "save_founder_pack"
+    ? "Click the button below to save your Founder Pack and create your free BlockID account. The link is single-use and expires in " + args.ttlMinutes + " minutes."
+    : "Click the button below to sign in. The link is single-use and expires in " + args.ttlMinutes + " minutes.";
+  const cta = args.intent === "save_founder_pack" ? "Save my Founder Pack" : "Sign in";
+  const subject = args.intent === "save_founder_pack" ? "Save your BlockID Founder Pack" : "Sign in to BlockID";
+
+  const html = shell(`
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+        <tr><td>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${escapeHtml(headline)}</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${escapeHtml(sub)}</p>
+          <p style="margin:0 0 24px 0;text-align:center;">
+            <a href="${url}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">${escapeHtml(cta)}</a>
+          </p>
+          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Or paste this URL</p>
+          <p style="margin:0 0 24px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#94A3B8;word-break:break-all;">${url}</p>
+          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">If you didn't request this email, you can safely ignore it — no account will be created.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+  ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
+
+  if (!isSmtpConfigured()) {
+    console.warn("[blockid:email] SMTP not configured — verify URL:", url);
+    return { ok: false, reason: "not_configured" };
+  }
+
+  return sendEmail({ to: args.to, subject, html, unsubscribeUrl });
+}
+
+// ---------- score-viewed -------------------------------------------------------
+
+export async function sendScoreViewed(args: {
+  to: string;
+  slug: string;
   viewerLabel?: string;
   companyName?: string | null;
-}): string {
+}): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "svi_alerts"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
+  const url = `${siteUrl()}/s/${args.slug}`;
   const who = args.viewerLabel || "by a viewer";
   const co = args.companyName || "Your score";
   const when = new Date().toUTCString();
-  return shell(`
+  const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
@@ -219,14 +222,22 @@ function scoreViewedHtml(args: {
           <h1 style="margin:0 0 8px 0;font-size:22px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${escapeHtml(co)} was just viewed</h1>
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Your Investor-Ready Score share link was opened ${escapeHtml(who)} at ${escapeHtml(when)}.</p>
           <p style="margin:0;text-align:center;">
-            <a href="${args.url}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">See activity</a>
+            <a href="${url}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">See activity</a>
           </p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:32px 0 16px 0;">
           <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">You're receiving this because you generated a BlockID Investor-Ready Score share link.</p>
         </td></tr>
       </table>
     </td></tr>
-  </table>`);
+  </table>
+  ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
+  return sendEmail({ to: args.to, subject: "Your score was just viewed", html, unsubscribeUrl });
+}
+
+// ---------- HTML shell --------------------------------------------------------
+
+function shell(body: string): string {
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BlockID</title></head><body style="margin:0;padding:0;background:#0B1220;color:#F8FAFC;font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;">${body}</body></html>`;
 }
 
 // ---------- SVI welcome email ------------------------------------------------
@@ -237,6 +248,7 @@ export async function sendSVIWelcome(args: {
   svi: number;
   stage: number;
 }): Promise<SendResult> {
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const dashUrl = `${siteUrl()}/dashboard/svi`;
   const stageLabels = ["Concept", "Validated Idea", "MVP", "Early Traction", "Revenue", "Growth", "Scale", "Corporation"];
   const stageLabel = stageLabels[args.stage] ?? "Concept";
@@ -261,8 +273,9 @@ export async function sendSVIWelcome(args: {
         </td></tr>
       </table>
     </td></tr>
-  </table>`);
-  return sendEmail({ to: args.to, subject: "Welcome to BlockID — Your SVI Baseline is Ready", html });
+  </table>
+  ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
+  return sendEmail({ to: args.to, subject: "Welcome to BlockID — Your SVI Baseline is Ready", html, unsubscribeUrl });
 }
 
 // ---------- SVI weekly report email ------------------------------------------
@@ -274,11 +287,11 @@ export async function sendSVIWeeklyReport(args: {
   delta: number | null;
   weekNum: number;
 }): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "weekly_reports"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const dashUrl = `${siteUrl()}/dashboard/svi`;
   const evidenceUrl = `${siteUrl()}/workspace/evidence`;
-  const deltaStr = args.delta != null
-    ? (args.delta >= 0 ? `+${args.delta}` : `${args.delta}`)
-    : "No change";
+  const deltaStr = args.delta != null ? (args.delta >= 0 ? `+${args.delta}` : `${args.delta}`) : "No change";
   const deltaColor = args.delta != null && args.delta >= 0 ? "#4ADE80" : "#F87171";
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
@@ -313,8 +326,9 @@ export async function sendSVIWeeklyReport(args: {
         </td></tr>
       </table>
     </td></tr>
-  </table>`);
-  return sendEmail({ to: args.to, subject: `Week ${args.weekNum} SVI Report — ${deltaStr} points`, html });
+  </table>
+  ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
+  return sendEmail({ to: args.to, subject: `Week ${args.weekNum} SVI Report — ${deltaStr} points`, html, unsubscribeUrl });
 }
 
 // ---------- SVI Report email -------------------------------------------------
@@ -323,50 +337,19 @@ export async function sendSVIReport(args: {
   to: string;
   slug: string;
   rawInput?: string;
-  analysis: {
-    totalSVI: number;
-    stageLabel: string;
-    subs: { label: string; value: number }[];
-    evidenceGaps: { label: string; action: string }[];
-  };
+  analysis: { totalSVI: number; stageLabel: string; subs: { label: string; value: number }[]; evidenceGaps: { label: string; action: string }[] };
 }): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "svi_alerts"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const reportUrl = `${siteUrl()}/s/${args.slug}`;
   const loginUrl = `${siteUrl()}/auth/login`;
   const trackUrl = `${siteUrl()}/api/track/open?slug=${args.slug}&email=${encodeURIComponent(args.to)}`;
-
-  // Truncate raw input for email summary (max 300 chars)
-  const ideaSummary = args.rawInput
-    ? escapeHtml(args.rawInput.replace(/^File:.*\n/, "").trim().slice(0, 300)) + (args.rawInput.length > 300 ? "..." : "")
-    : null;
-
-  const strengths = args.analysis.subs
-    .filter((s) => s.value >= 60)
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 3);
-
+  const ideaSummary = args.rawInput ? escapeHtml(args.rawInput.replace(/^File:.*\n/, "").trim().slice(0, 300)) + (args.rawInput.length > 300 ? "..." : "") : null;
+  const strengths = args.analysis.subs.filter((s) => s.value >= 60).sort((a, b) => b.value - a.value).slice(0, 3);
   const gaps = args.analysis.evidenceGaps.slice(0, 3);
-
-  const strengthRows = strengths
-    .map(
-      (s) =>
-        `<tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(s.label)} <span style="color:#64748B;">(${s.value}/100)</span></td></tr>`,
-    )
-    .join("");
-
-  const gapRows = gaps
-    .map(
-      (g) =>
-        `<tr><td style="padding:6px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(g.label)}: <span style="color:#94A3B8;">${escapeHtml(g.action)}</span></td></tr>`,
-    )
-    .join("");
-
-  const ideaSummaryHtml = ideaSummary ? `
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:0 0 16px 0;">
-            <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Your Idea</p>
-            <p style="margin:0;color:#CBD5E1;font-size:13px;line-height:1.6;font-style:italic;">&ldquo;${ideaSummary}&rdquo;</p>
-          </div>
-  ` : "";
-
+  const strengthRows = strengths.map((s) => `<tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(s.label)} <span style="color:#64748B;">(${s.value}/100)</span></td></tr>`).join("");
+  const gapRows = gaps.map((g) => `<tr><td style="padding:6px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(g.label)}: <span style="color:#94A3B8;">${escapeHtml(g.action)}</span></td></tr>`).join("");
+  const ideaSummaryHtml = ideaSummary ? `<div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:0 0 16px 0;"><p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Your Idea</p><p style="margin:0;color:#CBD5E1;font-size:13px;line-height:1.6;font-style:italic;">&ldquo;${ideaSummary}&rdquo;</p></div>` : "";
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
     <tr><td align="center">
@@ -380,23 +363,13 @@ export async function sendSVIReport(args: {
             <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:64px;font-weight:600;color:#3B7DD8;line-height:1;">${args.analysis.totalSVI}</div>
             <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">SVI Score — ${escapeHtml(args.analysis.stageLabel)} Stage</p>
           </div>
-          ${strengths.length > 0 ? `
-          <p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Strengths</p>
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${strengthRows}</table>
-          ` : ""}
-          ${gaps.length > 0 ? `
-          <p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Evidence Gaps</p>
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${gapRows}</table>
-          ` : ""}
+          ${strengths.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Strengths</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${strengthRows}</table>` : ""}
+          ${gaps.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Evidence Gaps</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${gapRows}</table>` : ""}
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 0 0;">
             <tr>
-              <td width="48%" style="text-align:center;padding:4px;">
-                <a href="${reportUrl}" style="display:inline-block;width:100%;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">View Full Report</a>
-              </td>
+              <td width="48%" style="text-align:center;padding:4px;"><a href="${reportUrl}" style="display:inline-block;width:100%;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">View Full Report</a></td>
               <td width="4%"></td>
-              <td width="48%" style="text-align:center;padding:4px;">
-                <a href="${loginUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">Sign in to Dashboard</a>
-              </td>
+              <td width="48%" style="text-align:center;padding:4px;"><a href="${loginUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">Sign in to Dashboard</a></td>
             </tr>
           </table>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
@@ -406,18 +379,16 @@ export async function sendSVIReport(args: {
       </table>
     </td></tr>
   </table>
+  ${unsubFooter(unsubscribeUrl, preferencesUrl)}
   <img src="${trackUrl}" width="1" height="1" alt="" style="display:none;" />`);
-  return sendEmail({ to: args.to, subject: "Your BlockID Startup Value Report is Ready", html });
+  return sendEmail({ to: args.to, subject: "Your BlockID Startup Value Report is Ready", html, unsubscribeUrl });
 }
 
 // ---------- SVI Share email --------------------------------------------------
 
-export async function sendSVIShare(args: {
-  to: string;
-  senderName?: string | null;
-  slug: string;
-  svi: number;
-}): Promise<SendResult> {
+export async function sendSVIShare(args: { to: string; senderName?: string | null; slug: string; svi: number }): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "svi_alerts"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const reportUrl = `${siteUrl()}/s/${args.slug}`;
   const sender = args.senderName || "A founder";
   const html = shell(`
@@ -432,27 +403,21 @@ export async function sendSVIShare(args: {
             <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:64px;font-weight:600;color:#3B7DD8;line-height:1;">${args.svi}</div>
             <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">SVI Score</p>
           </div>
-          <p style="margin:0 0 24px 0;text-align:center;">
-            <a href="${reportUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Full Report</a>
-          </p>
+          <p style="margin:0 0 24px 0;text-align:center;"><a href="${reportUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Full Report</a></p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
           <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
-  </table>`);
-  return sendEmail({
-    to: args.to,
-    subject: `${sender} shared their BlockID Startup Value Report with you`,
-    html,
-  });
+  </table>
+  ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
+  return sendEmail({ to: args.to, subject: `${sender} shared their BlockID Startup Value Report with you`, html, unsubscribeUrl });
 }
 
 // ---------- Analysis purchase confirmation --------------------------------------
 
-export async function sendAnalysisPurchaseConfirmation(args: {
-  to: string;
-}): Promise<SendResult> {
+export async function sendAnalysisPurchaseConfirmation(args: { to: string }): Promise<SendResult> {
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const homeUrl = siteUrl();
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
@@ -462,28 +427,21 @@ export async function sendAnalysisPurchaseConfirmation(args: {
           <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Purchase Confirmed</p>
           <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Your SVI Analysis Credit Has Been Added</h1>
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Thank you for your purchase. Your analysis credit is ready to use. Return to BlockID to run your analysis.</p>
-          <p style="margin:0 0 24px 0;text-align:center;">
-            <a href="${homeUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:16px;">Run Your Analysis</a>
-          </p>
+          <p style="margin:0 0 24px 0;text-align:center;"><a href="${homeUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:16px;">Run Your Analysis</a></p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
           <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
-  </table>`);
-  return sendEmail({
-    to: args.to,
-    subject: "Your SVI Analysis Credit Has Been Added",
-    html,
-  });
+  </table>
+  ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
+  return sendEmail({ to: args.to, subject: "Your SVI Analysis Credit Has Been Added", html, unsubscribeUrl });
 }
 
 // ---------- Credit pack purchase confirmation -----------------------------------
 
-export async function sendCreditPurchaseConfirmation(args: {
-  to: string;
-  credits: number;
-}): Promise<SendResult> {
+export async function sendCreditPurchaseConfirmation(args: { to: string; credits: number }): Promise<SendResult> {
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const billingUrl = `${siteUrl()}/workspace/billing#credits`;
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
@@ -497,27 +455,21 @@ export async function sendCreditPurchaseConfirmation(args: {
             <p style="margin:0 0 4px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Credits added</p>
             <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:48px;font-weight:600;color:#3B7DD8;line-height:1;">+${args.credits}</div>
           </div>
-          <p style="margin:0 0 24px 0;text-align:center;">
-            <a href="${billingUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Your Credits</a>
-          </p>
+          <p style="margin:0 0 24px 0;text-align:center;"><a href="${billingUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Your Credits</a></p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
           <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
-  </table>`);
-  return sendEmail({
-    to: args.to,
-    subject: `${args.credits} Credits Added to Your BlockID Account`,
-    html,
-  });
+  </table>
+  ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
+  return sendEmail({ to: args.to, subject: `${args.credits} Credits Added to Your BlockID Account`, html, unsubscribeUrl });
 }
 
 // ---------- Subscription cancelled (webhook-triggered) -------------------------
 
-export async function sendSubscriptionCancelled(args: {
-  to: string;
-}): Promise<SendResult> {
+export async function sendSubscriptionCancelled(args: { to: string }): Promise<SendResult> {
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const pricingUrl = `${siteUrl()}/#pricing`;
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
@@ -532,28 +484,21 @@ export async function sendSubscriptionCancelled(args: {
             <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:32px;font-weight:600;color:#3B7DD8;line-height:1;letter-spacing:0.05em;">COMEBACK30</div>
             <p style="margin:8px 0 0 0;color:#94A3B8;font-size:14px;">for 30% off your next subscription</p>
           </div>
-          <p style="margin:0 0 24px 0;text-align:center;">
-            <a href="${pricingUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Resubscribe with 30% Off</a>
-          </p>
+          <p style="margin:0 0 24px 0;text-align:center;"><a href="${pricingUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Resubscribe with 30% Off</a></p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
           <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
-  </table>`);
-  return sendEmail({
-    to: args.to,
-    subject: "Your BlockID Subscription Has Ended",
-    html,
-  });
+  </table>
+  ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
+  return sendEmail({ to: args.to, subject: "Your BlockID Subscription Has Ended", html, unsubscribeUrl });
 }
 
 // ---------- Payment confirmation ------------------------------------------------
 
-export async function sendPaymentConfirmation(args: {
-  to: string;
-  planName: string;
-}): Promise<SendResult> {
+export async function sendPaymentConfirmation(args: { to: string; planName: string }): Promise<SendResult> {
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const dashUrl = `${siteUrl()}/dashboard/svi`;
   const sviUrl = `${siteUrl()}/#svi`;
   const html = shell(`
@@ -570,13 +515,9 @@ export async function sendPaymentConfirmation(args: {
           </div>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
             <tr>
-              <td width="48%" style="text-align:center;padding:4px;">
-                <a href="${dashUrl}" style="display:inline-block;width:100%;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">Open Dashboard</a>
-              </td>
+              <td width="48%" style="text-align:center;padding:4px;"><a href="${dashUrl}" style="display:inline-block;width:100%;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">Open Dashboard</a></td>
               <td width="4%"></td>
-              <td width="48%" style="text-align:center;padding:4px;">
-                <a href="${sviUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">Get SVI Score</a>
-              </td>
+              <td width="48%" style="text-align:center;padding:4px;"><a href="${sviUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">Get SVI Score</a></td>
             </tr>
           </table>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
@@ -584,30 +525,17 @@ export async function sendPaymentConfirmation(args: {
         </td></tr>
       </table>
     </td></tr>
-  </table>`);
-  return sendEmail({
-    to: args.to,
-    subject: "Payment Confirmed \u2014 Your BlockID Account is Active",
-    html,
-  });
+  </table>
+  ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
+  return sendEmail({ to: args.to, subject: "Payment Confirmed \u2014 Your BlockID Account is Active", html, unsubscribeUrl });
 }
 
 // ---------- Founding 50 payment link ------------------------------------------
 
-export async function sendPaymentLink(args: {
-  to: string;
-  name: string;
-  checkoutUrl: string;
-  finalPrice: number;
-  features: string[];
-}): Promise<SendResult> {
-  const featuresHtml = args.features
-    .map(
-      (f) =>
-        `<tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(f)}</td></tr>`,
-    )
-    .join("");
-
+export async function sendPaymentLink(args: { to: string; name: string; checkoutUrl: string; finalPrice: number; features: string[] }): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "promotions"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
+  const featuresHtml = args.features.map((f) => `<tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(f)}</td></tr>`).join("");
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
     <tr><td align="center">
@@ -621,9 +549,7 @@ export async function sendPaymentLink(args: {
             <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:48px;font-weight:600;color:#3B7DD8;line-height:1;">$${args.finalPrice}</div>
             <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">AUD — one-time payment</p>
           </div>
-          <p style="margin:0 0 24px 0;text-align:center;">
-            <a href="${args.checkoutUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:16px;">Complete Payment</a>
-          </p>
+          <p style="margin:0 0 24px 0;text-align:center;"><a href="${args.checkoutUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:16px;">Complete Payment</a></p>
           <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">What you get</p>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">${featuresHtml}</table>
           <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Or paste this URL</p>
@@ -634,20 +560,15 @@ export async function sendPaymentLink(args: {
         </td></tr>
       </table>
     </td></tr>
-  </table>`);
-
-  return sendEmail({
-    to: args.to,
-    subject: "Complete Your BlockID Founding 50 Payment",
-    html,
-  });
+  </table>
+  ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
+  return sendEmail({ to: args.to, subject: "Complete Your BlockID Founding 50 Payment", html, unsubscribeUrl });
 }
 
 // ---------- Payment failed -------------------------------------------------------
 
-export async function sendPaymentFailed(args: {
-  to: string;
-}): Promise<SendResult> {
+export async function sendPaymentFailed(args: { to: string }): Promise<SendResult> {
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const billingUrl = `${siteUrl()}/dashboard`;
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
@@ -657,30 +578,22 @@ export async function sendPaymentFailed(args: {
           <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Action Required</p>
           <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Payment Failed</h1>
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">We were unable to process your latest payment. Please update your payment method to keep your plan active.</p>
-          <p style="margin:0 0 24px 0;text-align:center;">
-            <a href="${billingUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Update Payment Method</a>
-          </p>
+          <p style="margin:0 0 24px 0;text-align:center;"><a href="${billingUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Update Payment Method</a></p>
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">If you believe this is an error, please reply to this email and we will investigate.</p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
           <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
-  </table>`);
-  return sendEmail({
-    to: args.to,
-    subject: "Payment Failed \u2014 Please Update Your Payment Method",
-    html,
-  });
+  </table>
+  ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
+  return sendEmail({ to: args.to, subject: "Payment Failed \u2014 Please Update Your Payment Method", html, unsubscribeUrl });
 }
 
 // ---------- Payment receipt (recurring) -----------------------------------------
 
-export async function sendPaymentReceipt(args: {
-  to: string;
-  amountCents: number;
-  currency?: string;
-}): Promise<SendResult> {
+export async function sendPaymentReceipt(args: { to: string; amountCents: number; currency?: string }): Promise<SendResult> {
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const dashUrl = `${siteUrl()}/dashboard`;
   const currency = (args.currency ?? "aud").toUpperCase();
   const amountFormatted = `$${(args.amountCents / 100).toFixed(2)} ${currency}`;
@@ -696,34 +609,23 @@ export async function sendPaymentReceipt(args: {
             <p style="margin:0 0 4px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Amount paid</p>
             <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:36px;font-weight:600;color:#3B7DD8;line-height:1;">${escapeHtml(amountFormatted)}</div>
           </div>
-          <p style="margin:0 0 24px 0;text-align:center;">
-            <a href="${dashUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Go to Dashboard</a>
-          </p>
+          <p style="margin:0 0 24px 0;text-align:center;"><a href="${dashUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Go to Dashboard</a></p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
           <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
-  </table>`);
-  return sendEmail({
-    to: args.to,
-    subject: `Payment Receipt \u2014 ${amountFormatted}`,
-    html,
-  });
+  </table>
+  ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
+  return sendEmail({ to: args.to, subject: `Payment Receipt \u2014 ${amountFormatted}`, html, unsubscribeUrl });
 }
 
 // ---------- Cancellation email with retention offer -----------------------------
 
-export async function sendCancellationEmail(args: {
-  to: string;
-  activeUntil: string;
-}): Promise<SendResult> {
+export async function sendCancellationEmail(args: { to: string; activeUntil: string }): Promise<SendResult> {
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const pricingUrl = `${siteUrl()}/#pricing`;
-  const formattedDate = new Date(args.activeUntil).toLocaleDateString("en-AU", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const formattedDate = new Date(args.activeUntil).toLocaleDateString("en-AU", { year: "numeric", month: "long", day: "numeric" });
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
     <tr><td align="center">
@@ -737,111 +639,40 @@ export async function sendCancellationEmail(args: {
             <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:32px;font-weight:600;color:#3B7DD8;line-height:1;letter-spacing:0.05em;">COMEBACK30</div>
             <p style="margin:8px 0 0 0;color:#94A3B8;font-size:14px;">for 30% off your next subscription</p>
           </div>
-          <p style="margin:0 0 24px 0;text-align:center;">
-            <a href="${pricingUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Resubscribe with 30% Off</a>
-          </p>
+          <p style="margin:0 0 24px 0;text-align:center;"><a href="${pricingUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Resubscribe with 30% Off</a></p>
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">You will continue to have full access until your plan expires. After that, your account will be downgraded to the free tier.</p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
           <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
-  </table>`);
-  return sendEmail({
-    to: args.to,
-    subject: "We\u2019re Sorry to See You Go",
-    html,
-  });
+  </table>
+  ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
+  return sendEmail({ to: args.to, subject: "We\u2019re Sorry to See You Go", html, unsubscribeUrl });
 }
 
 // ---------- Growth report email ------------------------------------------------
 
 export async function sendGrowthReport(args: {
-  to: string;
-  date: string;
-  metrics: {
-    totalUsers: number;
-    newUsersWeek: number;
-    newUsersToday: number;
-    sviWeek: number;
-    sviToday: number;
-    leadsWeek: number;
-    leadsToday: number;
-    totalAccounts: number;
-    payingUsers: number;
-    evidenceWeek: number;
-    scoresViewedWeek: number;
-    avgSVI: number;
-    avgDelta: number;
-    uniqueEmails: number;
-    signupRate: number;
-    paymentRate: number;
-    planDist: Record<string, number>;
-    toolUsage: Record<string, number>;
-    biggestDropOff: string;
-    dropOffRate: number;
-  };
-  recommendations: Array<{
-    priority: "critical" | "high" | "medium";
-    title: string;
-    detail: string;
-    impact: string;
-    action_type: string;
-  }>;
+  to: string; date: string;
+  metrics: { totalUsers: number; newUsersWeek: number; newUsersToday: number; sviWeek: number; sviToday: number; leadsWeek: number; leadsToday: number; totalAccounts: number; payingUsers: number; evidenceWeek: number; scoresViewedWeek: number; avgSVI: number; avgDelta: number; uniqueEmails: number; signupRate: number; paymentRate: number; planDist: Record<string, number>; toolUsage: Record<string, number>; biggestDropOff: string; dropOffRate: number };
+  recommendations: Array<{ priority: "critical" | "high" | "medium"; title: string; detail: string; impact: string; action_type: string }>;
 }): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "product_updates"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const dashUrl = `${siteUrl()}/admin/growth`;
   const m = args.metrics;
-
-  const priorityColor: Record<string, string> = {
-    critical: "#F87171",
-    high: "#FBBF24",
-    medium: "#94A3B8",
-  };
-
+  const priorityColor: Record<string, string> = { critical: "#F87171", high: "#FBBF24", medium: "#94A3B8" };
   const metricRows = [
     { label: "Total Users", value: String(m.totalUsers), sub: `+${m.newUsersWeek} this week` },
     { label: "SVI Analyses", value: String(m.sviWeek), sub: `${m.sviToday} today` },
     { label: "Leads Captured", value: String(m.leadsWeek), sub: `${m.leadsToday} today` },
     { label: "Paying Users", value: String(m.payingUsers), sub: `of ${m.totalAccounts} accounts` },
     { label: "Avg SVI Score", value: String(m.avgSVI), sub: `${m.avgDelta >= 0 ? "+" : ""}${m.avgDelta} avg delta` },
-  ].map(
-    (r) =>
-      `<tr>
-        <td style="padding:8px 12px;color:#94A3B8;font-size:13px;border-bottom:1px solid #1F2A44;">${escapeHtml(r.label)}</td>
-        <td style="padding:8px 12px;font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:#F8FAFC;text-align:right;border-bottom:1px solid #1F2A44;">${escapeHtml(r.value)}</td>
-        <td style="padding:8px 12px;color:#64748B;font-size:12px;text-align:right;border-bottom:1px solid #1F2A44;">${escapeHtml(r.sub)}</td>
-      </tr>`,
-  ).join("");
-
-  const conversionRows = [
-    { label: "Signup Rate", value: `${m.signupRate}%` },
-    { label: "Payment Rate", value: `${m.paymentRate}%` },
-  ].map(
-    (r) =>
-      `<tr>
-        <td style="padding:6px 12px;color:#94A3B8;font-size:13px;">${escapeHtml(r.label)}</td>
-        <td style="padding:6px 12px;font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:#3B7DD8;text-align:right;">${escapeHtml(r.value)}</td>
-      </tr>`,
-  ).join("");
-
-  const dropOffHtml = m.biggestDropOff
-    ? `<p style="margin:16px 0 0 0;color:#F87171;font-size:13px;">Biggest drop-off: <strong style="color:#F8FAFC;">${escapeHtml(m.biggestDropOff)}</strong> (${m.dropOffRate}%)</p>`
-    : "";
-
-  const recRows = args.recommendations.map(
-    (r) =>
-      `<tr>
-        <td style="padding:8px 12px;vertical-align:top;width:70px;border-bottom:1px solid #1F2A44;">
-          <span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#0B1220;background:${priorityColor[r.priority] ?? "#94A3B8"};">${escapeHtml(r.priority)}</span>
-        </td>
-        <td style="padding:8px 12px;border-bottom:1px solid #1F2A44;">
-          <p style="margin:0 0 4px 0;color:#F8FAFC;font-size:14px;font-weight:600;">${escapeHtml(r.title)}</p>
-          <p style="margin:0 0 4px 0;color:#94A3B8;font-size:13px;line-height:1.5;">${escapeHtml(r.detail)}</p>
-          <p style="margin:0;color:#4ADE80;font-size:12px;">Impact: ${escapeHtml(r.impact)}</p>
-        </td>
-      </tr>`,
-  ).join("");
-
+  ].map((r) => `<tr><td style="padding:8px 12px;color:#94A3B8;font-size:13px;border-bottom:1px solid #1F2A44;">${escapeHtml(r.label)}</td><td style="padding:8px 12px;font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:#F8FAFC;text-align:right;border-bottom:1px solid #1F2A44;">${escapeHtml(r.value)}</td><td style="padding:8px 12px;color:#64748B;font-size:12px;text-align:right;border-bottom:1px solid #1F2A44;">${escapeHtml(r.sub)}</td></tr>`).join("");
+  const conversionRows = [{ label: "Signup Rate", value: `${m.signupRate}%` }, { label: "Payment Rate", value: `${m.paymentRate}%` }].map((r) => `<tr><td style="padding:6px 12px;color:#94A3B8;font-size:13px;">${escapeHtml(r.label)}</td><td style="padding:6px 12px;font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:#3B7DD8;text-align:right;">${escapeHtml(r.value)}</td></tr>`).join("");
+  const dropOffHtml = m.biggestDropOff ? `<p style="margin:16px 0 0 0;color:#F87171;font-size:13px;">Biggest drop-off: <strong style="color:#F8FAFC;">${escapeHtml(m.biggestDropOff)}</strong> (${m.dropOffRate}%)</p>` : "";
+  const recRows = args.recommendations.map((r) => `<tr><td style="padding:8px 12px;vertical-align:top;width:70px;border-bottom:1px solid #1F2A44;"><span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#0B1220;background:${priorityColor[r.priority] ?? "#94A3B8"};">${escapeHtml(r.priority)}</span></td><td style="padding:8px 12px;border-bottom:1px solid #1F2A44;"><p style="margin:0 0 4px 0;color:#F8FAFC;font-size:14px;font-weight:600;">${escapeHtml(r.title)}</p><p style="margin:0 0 4px 0;color:#94A3B8;font-size:13px;line-height:1.5;">${escapeHtml(r.detail)}</p><p style="margin:0;color:#4ADE80;font-size:12px;">Impact: ${escapeHtml(r.impact)}</p></td></tr>`).join("");
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
     <tr><td align="center">
@@ -850,115 +681,39 @@ export async function sendGrowthReport(args: {
           <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Growth Report</p>
           <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Daily Growth Summary</h1>
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${escapeHtml(args.date)}</p>
-
           <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Key Metrics</p>
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;margin:0 0 24px 0;">
-            ${metricRows}
-          </table>
-
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;margin:0 0 24px 0;">${metricRows}</table>
           <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Conversion Rates</p>
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;margin:0 0 8px 0;">
-            ${conversionRows}
-          </table>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;margin:0 0 8px 0;">${conversionRows}</table>
           ${dropOffHtml}
-
-          ${args.recommendations.length > 0 ? `
-          <p style="margin:24px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">AI Recommendations</p>
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;margin:0 0 24px 0;">
-            ${recRows}
-          </table>
-          ` : ""}
-
-          <p style="margin:24px 0 0 0;text-align:center;">
-            <a href="${dashUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Growth Dashboard</a>
-          </p>
+          ${args.recommendations.length > 0 ? `<p style="margin:24px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">AI Recommendations</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;margin:0 0 24px 0;">${recRows}</table>` : ""}
+          <p style="margin:24px 0 0 0;text-align:center;"><a href="${dashUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Growth Dashboard</a></p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
           <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
-  </table>`);
-
-  return sendEmail({
-    to: args.to,
-    subject: `BlockID Growth Report \u2014 ${args.date}`,
-    html,
-  });
+  </table>
+  ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
+  return sendEmail({ to: args.to, subject: `BlockID Growth Report \u2014 ${args.date}`, html, unsubscribeUrl });
 }
 
 // ---------- SVI weekly review email -------------------------------------------
 
 export async function sendSVIReview(args: {
-  to: string;
-  name?: string | null;
-  svi: number;
-  stage: number;
-  stageLabel: string;
-  wins: string[];
-  gaps: Array<{ label: string; action: string; impact: number }>;
-  projectedSvi: number;
-  weekNum: number;
+  to: string; name?: string | null; svi: number; stage: number; stageLabel: string;
+  wins: string[]; gaps: Array<{ label: string; action: string; impact: number }>; projectedSvi: number; weekNum: number;
 }): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "weekly_reports"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const dashUrl = `${siteUrl()}/dashboard/svi`;
   const evidenceUrl = `${siteUrl()}/workspace/evidence`;
-
-  // Score color based on value
-  const scoreColor =
-    args.svi >= 140
-      ? "#4ADE80"
-      : args.svi >= 100
-        ? "#3B7DD8"
-        : "#FBBF24";
-
-  // Stage progress: what the next stage is and how far away
-  const nextStageIdx = Math.min(args.stage + 1, 7);
-  const stageLabels = [
-    "Concept",
-    "Validated Idea",
-    "MVP",
-    "Early Traction",
-    "Revenue",
-    "Growth",
-    "Scale",
-    "Corporation",
-  ];
-  const nextStageLabel = stageLabels[nextStageIdx] ?? "Corporation";
-
-  // Win rows (green checkmarks)
-  const winRows = args.wins
-    .map(
-      (w) =>
-        `<tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(w)}</td></tr>`,
-    )
-    .join("");
-
-  // Gap rows (amber warnings with action + impact)
-  const gapRows = args.gaps
-    .map(
-      (g) =>
-        `<tr><td style="padding:6px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(g.label)}<br><span style="color:#94A3B8;font-size:13px;">${escapeHtml(g.action)}</span> <span style="color:#4ADE80;font-size:12px;font-weight:600;">+${g.impact} SVI</span></td></tr>`,
-    )
-    .join("");
-
-  // Projected score bar
-  const projectedHtml =
-    args.projectedSvi > args.svi
-      ? `
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:0 0 24px 0;">
-            <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Projected Score</p>
-            <p style="margin:0 0 12px 0;color:#F8FAFC;font-size:15px;">Your SVI could reach <strong style="color:#4ADE80;">${args.projectedSvi}</strong> by completing the actions above.</p>
-            <div style="background:#1F2A44;border-radius:6px;height:8px;overflow:hidden;">
-              <div style="background:linear-gradient(90deg,#3B7DD8,#4ADE80);height:100%;width:${Math.min(100, Math.round((args.svi / Math.max(args.projectedSvi, 1)) * 100))}%;border-radius:6px;"></div>
-            </div>
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 0 0;">
-              <tr>
-                <td style="color:#94A3B8;font-size:11px;">Current: ${args.svi}</td>
-                <td style="color:#4ADE80;font-size:11px;text-align:right;">Target: ${args.projectedSvi} (+${args.projectedSvi - args.svi})</td>
-              </tr>
-            </table>
-          </div>`
-      : "";
-
+  const scoreColor = args.svi >= 140 ? "#4ADE80" : args.svi >= 100 ? "#3B7DD8" : "#FBBF24";
+  const stageLabels = ["Concept", "Validated Idea", "MVP", "Early Traction", "Revenue", "Growth", "Scale", "Corporation"];
+  const nextStageLabel = stageLabels[Math.min(args.stage + 1, 7)] ?? "Corporation";
+  const winRows = args.wins.map((w) => `<tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(w)}</td></tr>`).join("");
+  const gapRows = args.gaps.map((g) => `<tr><td style="padding:6px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(g.label)}<br><span style="color:#94A3B8;font-size:13px;">${escapeHtml(g.action)}</span> <span style="color:#4ADE80;font-size:12px;font-weight:600;">+${g.impact} SVI</span></td></tr>`).join("");
+  const projectedHtml = args.projectedSvi > args.svi ? `<div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:0 0 24px 0;"><p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Projected Score</p><p style="margin:0 0 12px 0;color:#F8FAFC;font-size:15px;">Your SVI could reach <strong style="color:#4ADE80;">${args.projectedSvi}</strong> by completing the actions above.</p><div style="background:#1F2A44;border-radius:6px;height:8px;overflow:hidden;"><div style="background:linear-gradient(90deg,#3B7DD8,#4ADE80);height:100%;width:${Math.min(100, Math.round((args.svi / Math.max(args.projectedSvi, 1)) * 100))}%;border-radius:6px;"></div></div><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 0 0;"><tr><td style="color:#94A3B8;font-size:11px;">Current: ${args.svi}</td><td style="color:#4ADE80;font-size:11px;text-align:right;">Target: ${args.projectedSvi} (+${args.projectedSvi - args.svi})</td></tr></table></div>` : "";
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
     <tr><td align="center">
@@ -967,62 +722,37 @@ export async function sendSVIReview(args: {
           <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Week ${args.weekNum} Review</p>
           <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Your Weekly SVI Review${args.name ? `, ${escapeHtml(args.name)}` : ""}</h1>
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Here is your personalised Startup Value Index review with specific actions to grow your score.</p>
-
           <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
             <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:64px;font-weight:600;color:${scoreColor};line-height:1;">${args.svi}</div>
             <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">SVI Score — ${escapeHtml(args.stageLabel)} Stage</p>
             <p style="margin:4px 0 0 0;color:#64748B;font-size:12px;">Next stage: ${escapeHtml(nextStageLabel)}</p>
           </div>
-
-          ${args.wins.length > 0 ? `
-          <p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Top Strengths</p>
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${winRows}</table>
-          ` : ""}
-
-          ${args.gaps.length > 0 ? `
-          <p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Priority Actions</p>
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${gapRows}</table>
-          ` : ""}
-
+          ${args.wins.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Top Strengths</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${winRows}</table>` : ""}
+          ${args.gaps.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Priority Actions</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${gapRows}</table>` : ""}
           ${projectedHtml}
-
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 0 0;">
             <tr>
-              <td width="48%" style="text-align:center;padding:4px;">
-                <a href="${evidenceUrl}" style="display:inline-block;width:100%;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">Upload Evidence</a>
-              </td>
+              <td width="48%" style="text-align:center;padding:4px;"><a href="${evidenceUrl}" style="display:inline-block;width:100%;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">Upload Evidence</a></td>
               <td width="4%"></td>
-              <td width="48%" style="text-align:center;padding:4px;">
-                <a href="${dashUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">View Dashboard</a>
-              </td>
+              <td width="48%" style="text-align:center;padding:4px;"><a href="${dashUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">View Dashboard</a></td>
             </tr>
           </table>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
-          <p style="margin:0;color:#64748B;font-size:11px;line-height:1.5;">You are receiving this because you have an SVI analysis on BlockID. To stop these emails, reply with "unsubscribe".</p>
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
-  </table>`);
-
-  return sendEmail({
-    to: args.to,
-    subject: `Week ${args.weekNum} SVI Review — Score: ${args.svi} | ${args.stageLabel} Stage`,
-    html,
-  });
+  </table>
+  ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
+  return sendEmail({ to: args.to, subject: `Week ${args.weekNum} SVI Review — Score: ${args.svi} | ${args.stageLabel} Stage`, html, unsubscribeUrl });
 }
 
 // ---------- SVI milestone celebration email ----------------------------------
 
-export async function sendMilestoneEmail(args: {
-  to: string;
-  name?: string | null;
-  badge: string;
-  badgeLabel: string;
-  message: string;
-}): Promise<SendResult> {
+export async function sendMilestoneEmail(args: { to: string; name?: string | null; badge: string; badgeLabel: string; message: string }): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "svi_alerts"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const dashUrl = `${siteUrl()}/dashboard/svi`;
-
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
     <tr><td align="center">
@@ -1031,39 +761,23 @@ export async function sendMilestoneEmail(args: {
           <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Milestone</p>
           <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${escapeHtml(args.badgeLabel)}</h1>
           ${args.name ? `<p style="margin:0 0 16px 0;color:#94A3B8;font-size:15px;">Congratulations, ${escapeHtml(args.name)}.</p>` : ""}
-
           <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:32px;text-align:center;margin:0 0 24px 0;">
-            <div style="display:inline-block;width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#3B7DD8,#4ADE80);line-height:80px;margin:0 0 16px 0;">
-              <span style="font-size:36px;color:#0B1220;font-weight:700;">&#9733;</span>
-            </div>
+            <div style="display:inline-block;width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#3B7DD8,#4ADE80);line-height:80px;margin:0 0 16px 0;"><span style="font-size:36px;color:#0B1220;font-weight:700;">&#9733;</span></div>
             <p style="margin:0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:16px;font-weight:600;color:#4ADE80;text-transform:uppercase;letter-spacing:0.1em;">${escapeHtml(args.badge.replace(/_/g, " "))}</p>
           </div>
-
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${escapeHtml(args.message)}</p>
-
-          <p style="margin:0 0 24px 0;text-align:center;">
-            <a href="${dashUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Your Dashboard</a>
-          </p>
+          <p style="margin:0 0 24px 0;text-align:center;"><a href="${dashUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Your Dashboard</a></p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
-          <p style="margin:0;color:#64748B;font-size:11px;line-height:1.5;">You are receiving this because you reached a milestone on BlockID. To stop these emails, reply with "unsubscribe".</p>
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
-  </table>`);
-
-  return sendEmail({
-    to: args.to,
-    subject: `${args.badgeLabel} — BlockID Milestone`,
-    html,
-  });
+  </table>
+  ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
+  return sendEmail({ to: args.to, subject: `${args.badgeLabel} — BlockID Milestone`, html, unsubscribeUrl });
 }
 
-// ---------- Nurture sequence emails -------------------------------------------
-//
-// Sequence A: Post-free-analysis (users who got SVI but didn't sign up)
-// Sequence B: Post-payment (users who paid)
-// Sequence C: Re-engagement (inactive paid users)
+// ---------- Nurture email helpers --------------------------------------------
 
 type NurtureArgs = {
   to: string;
@@ -1099,6 +813,8 @@ function nurtureCard(args: { tagline: string; headline: string; body: string; ct
 // --- Sequence A: Post-Free Analysis -----------------------------------------
 
 export async function sendNurtureFreeDay1(args: NurtureArgs): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "promotions"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const loginUrl = `${siteUrl()}/auth/login`;
   const greeting = args.name ? `, ${escapeHtml(args.name!)}` : "";
   const sviNote = args.svi ? ` Your SVI score of <strong style="color:#3B7DD8;">${args.svi}</strong> is waiting for you.` : "";
@@ -1114,11 +830,13 @@ export async function sendNurtureFreeDay1(args: NurtureArgs): Promise<SendResult
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">It takes less than 30 seconds to sign in with Google.`,
     ctaLabel: "Sign in to BlockID",
     ctaUrl: loginUrl,
-  }) + nurturePx(args.to, "free_day1"));
-  return sendEmail({ to: args.to, subject: "Your SVI score is waiting — 3 things to do next", html });
+  }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "free_day1"));
+  return sendEmail({ to: args.to, subject: "Your SVI score is waiting — 3 things to do next", html, unsubscribeUrl });
 }
 
 export async function sendNurtureFreeDay3(args: NurtureArgs): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "promotions"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const loginUrl = `${siteUrl()}/auth/login`;
   const greeting = args.name ? `Hi ${escapeHtml(args.name!)}, your` : "Your";
   const html = shell(nurtureCard({
@@ -1133,11 +851,13 @@ export async function sendNurtureFreeDay3(args: NurtureArgs): Promise<SendResult
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Sign in to upload your first piece of evidence and watch your score climb.`,
     ctaLabel: "Upload Evidence Now",
     ctaUrl: loginUrl,
-  }) + nurturePx(args.to, "free_day3"));
-  return sendEmail({ to: args.to, subject: "How to boost your SVI by 20+ points", html });
+  }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "free_day3"));
+  return sendEmail({ to: args.to, subject: "How to boost your SVI by 20+ points", html, unsubscribeUrl });
 }
 
 export async function sendNurtureFreeDay7(args: NurtureArgs): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "promotions"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const loginUrl = `${siteUrl()}/auth/login`;
   const html = shell(nurtureCard({
     tagline: "BlockID — Social Proof",
@@ -1154,11 +874,13 @@ export async function sendNurtureFreeDay7(args: NurtureArgs): Promise<SendResult
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Your score is already generated. Sign in to save it and start building your investor-ready profile.`,
     ctaLabel: "Sign in to BlockID",
     ctaUrl: loginUrl,
-  }) + nurturePx(args.to, "free_day7"));
-  return sendEmail({ to: args.to, subject: "Australian founders who improved their score", html });
+  }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "free_day7"));
+  return sendEmail({ to: args.to, subject: "Australian founders who improved their score", html, unsubscribeUrl });
 }
 
 export async function sendNurtureFreeDay14(args: NurtureArgs): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "promotions"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const pricingUrl = `${siteUrl()}/#pricing`;
   const greeting = args.name ? `${escapeHtml(args.name!)}, we` : "We";
   const html = shell(nurtureCard({
@@ -1177,13 +899,15 @@ export async function sendNurtureFreeDay14(args: NurtureArgs): Promise<SendResul
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Spots are limited. Once the cohort is full, pricing goes up.`,
     ctaLabel: "See Founding 50 Pricing",
     ctaUrl: pricingUrl,
-  }) + nurturePx(args.to, "free_day14"));
-  return sendEmail({ to: args.to, subject: "Last chance: Founding 50 early access", html });
+  }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "free_day14"));
+  return sendEmail({ to: args.to, subject: "Last chance: Founding 50 early access", html, unsubscribeUrl });
 }
 
 // --- Sequence B: Post-Payment -----------------------------------------------
 
 export async function sendNurturePaidDay1(args: NurtureArgs): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "product_updates"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const dashUrl = `${siteUrl()}/dashboard/svi`;
   const greeting = args.name ? `, ${escapeHtml(args.name!)}` : "";
   const html = shell(nurtureCard({
@@ -1199,11 +923,13 @@ export async function sendNurturePaidDay1(args: NurtureArgs): Promise<SendResult
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Start with step one: open your dashboard.`,
     ctaLabel: "Open Dashboard",
     ctaUrl: dashUrl,
-  }) + nurturePx(args.to, "paid_day1"));
-  return sendEmail({ to: args.to, subject: "Your 30-day growth plan starts now", html });
+  }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "paid_day1"));
+  return sendEmail({ to: args.to, subject: "Your 30-day growth plan starts now", html, unsubscribeUrl });
 }
 
 export async function sendNurturePaidDay3(args: NurtureArgs): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "product_updates"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const evidenceUrl = `${siteUrl()}/workspace/evidence`;
   const greeting = args.name ? `${escapeHtml(args.name!)}, the` : "The";
   const html = shell(nurtureCard({
@@ -1218,11 +944,13 @@ export async function sendNurturePaidDay3(args: NurtureArgs): Promise<SendResult
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Most founders see a <strong style="color:#4ADE80;">10-20 point SVI increase</strong> after their first upload.`,
     ctaLabel: "Upload Evidence",
     ctaUrl: evidenceUrl,
-  }) + nurturePx(args.to, "paid_day3"));
-  return sendEmail({ to: args.to, subject: "Upload your first evidence — here's how", html });
+  }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "paid_day3"));
+  return sendEmail({ to: args.to, subject: "Upload your first evidence — here's how", html, unsubscribeUrl });
 }
 
 export async function sendNurturePaidDay14(args: NurtureArgs): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "product_updates"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const dashUrl = `${siteUrl()}/dashboard/svi`;
   const greeting = args.name ? `${escapeHtml(args.name!)}, you` : "You";
   const html = shell(nurtureCard({
@@ -1238,11 +966,13 @@ export async function sendNurturePaidDay14(args: NurtureArgs): Promise<SendResul
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Explore them from your dashboard.`,
     ctaLabel: "Open Dashboard",
     ctaUrl: dashUrl,
-  }) + nurturePx(args.to, "paid_day14"));
-  return sendEmail({ to: args.to, subject: "Have you explored these tools?", html });
+  }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "paid_day14"));
+  return sendEmail({ to: args.to, subject: "Have you explored these tools?", html, unsubscribeUrl });
 }
 
 export async function sendNurturePaidDay30(args: NurtureArgs): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "product_updates"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const dashUrl = `${siteUrl()}/dashboard/svi`;
   const greeting = args.name ? `, ${escapeHtml(args.name!)}` : "";
   const sviBlock = args.svi ? `
@@ -1263,13 +993,15 @@ export async function sendNurturePaidDay30(args: NurtureArgs): Promise<SendResul
             <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Upload fresh evidence — recent metrics, updated pitch deck</td></tr>
             <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Share your SVI link with investors ahead of conversations</td></tr>
           </table>`,
-  }) + nurturePx(args.to, "paid_day30"));
-  return sendEmail({ to: args.to, subject: "Your first month results on BlockID", html });
+  }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "paid_day30"));
+  return sendEmail({ to: args.to, subject: "Your first month results on BlockID", html, unsubscribeUrl });
 }
 
 // --- Sequence C: Re-engagement ----------------------------------------------
 
 export async function sendNurtureReengageDay14(args: NurtureArgs): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "promotions"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const dashUrl = `${siteUrl()}/dashboard/svi`;
   const greeting = args.name ? `Hi ${escapeHtml(args.name!)}, we` : "We";
   const html = shell(nurtureCard({
@@ -1285,11 +1017,13 @@ export async function sendNurtureReengageDay14(args: NurtureArgs): Promise<SendR
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Your dashboard is always one click away.`,
     ctaLabel: "Return to Dashboard",
     ctaUrl: dashUrl,
-  }) + nurturePx(args.to, "reengage_day14"));
-  return sendEmail({ to: args.to, subject: "We noticed you haven't been active — need help?", html });
+  }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "reengage_day14"));
+  return sendEmail({ to: args.to, subject: "We noticed you haven't been active — need help?", html, unsubscribeUrl });
 }
 
 export async function sendNurtureReengageDay30(args: NurtureArgs): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "promotions"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const sviUrl = `${siteUrl()}/#svi`;
   const greeting = args.name ? `${escapeHtml(args.name!)}, your` : "Your";
   const html = shell(nurtureCard({
@@ -1299,15 +1033,10 @@ export async function sendNurtureReengageDay30(args: NurtureArgs): Promise<SendR
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Run a fresh analysis to see where you stand today. It only takes a minute.`,
     ctaLabel: "Check Your Score",
     ctaUrl: sviUrl,
-  }) + nurturePx(args.to, "reengage_day30"));
-  return sendEmail({ to: args.to, subject: "Your SVI may have changed — check your score", html });
+  }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "reengage_day30"));
+  return sendEmail({ to: args.to, subject: "Your SVI may have changed — check your score", html, unsubscribeUrl });
 }
 
 function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }

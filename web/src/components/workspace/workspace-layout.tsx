@@ -31,6 +31,7 @@ const NAV_ITEMS = [
   { href: "/workspace/roadmap", label: "Roadmap", icon: Map },
   { href: "/workspace/profile", label: "My Profile", icon: User },
   { href: "/workspace/billing", label: "Billing", icon: CreditCard },
+  { href: "/workspace/notifications", label: "Notifications", icon: Bell },
 ];
 
 const ADMIN_NAV = { href: "/admin", label: "Admin Panel", icon: Shield };

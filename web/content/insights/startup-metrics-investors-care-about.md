@@ -29,6 +29,21 @@ Once you understand your revenue baseline, you need to evaluate how efficiently 
 
 > **Ready to see how your revenue metrics compare to Australian benchmarks?** [Measure Your Startup Value](/) using our free tools to benchmark your MRR and ARR against industry standards.
 
+### Metric Benchmarks by Stage: What Investors Expect
+
+| Metric | Pre-Seed | Seed | Series A |
+|---|---|---|---|
+| **MRR** | $10K - $20K | $50K - $100K | $500K+ |
+| **ARR** | $120K - $240K | $600K - $1.2M | $6M+ |
+| **MoM Revenue Growth** | 20 - 30% | 15 - 20% | 10 - 15% |
+| **LTV:CAC Ratio** | N/A | > 2.5:1 | > 3.0:1 |
+| **Payback Period** | < 18 months | < 12 months | < 9 months |
+| **Gross Margin** | > 50% | > 70% | > 80% |
+| **Net Revenue Retention** | N/A | > 100% | > 110% |
+| **Monthly Churn (B2B)** | < 5% | < 2% | < 1% |
+| **Burn Multiple** | N/A | < 3x | < 1.5x |
+| **Runway** | 6 - 12 months | 12 - 18 months | 18 - 24 months |
+
 ## Unit Economics: The Profitability of Growth
 
 Investors in 2025 are far less interested in "growth at all costs" than they were in the bubble years. The focus has shifted squarely to efficient growth. The relationship between **CAC** (Customer Acquisition Cost) and **LTV** (Lifetime Value) is the single most important determinant of your startup's long-term viability.
@@ -164,6 +179,38 @@ Australia has a population of 26 million, which is small compared to the US or C
 With strict **ATO** and privacy laws, data security is paramount. Investors will check if you are compliant with Australian Privacy Principles (APPs). A breach in data security can tank your valuation immediately.
 
 > **Strategic Advantage:** Startups that proactively align their metrics with **ESIC** criteria and demonstrate a clear path to global scale are positioned to receive faster term sheets from top-tier Australian VCs.
+
+### North Star Metric Framework: Finding Your One Metric That Matters
+
+```
+┌─────────────────────────────────────────────────────────┐
+│            NORTH STAR METRIC FRAMEWORK                  │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  Step 1: Identify your business model                   │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │
+│  │    SaaS     │  │ Marketplace │  │   E-comm    │     │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘     │
+│         │                │                │             │
+│  Step 2: Select your North Star                         │
+│         ▼                ▼                ▼             │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │
+│  │Weekly Active│  │  Gross      │  │  Weekly     │     │
+│  │ Users (WAU) │  │ Merchandise │  │  Purchases  │     │
+│  │             │  │ Value (GMV) │  │  per User   │     │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘     │
+│         │                │                │             │
+│  Step 3: Connect to revenue                             │
+│         ▼                ▼                ▼             │
+│  WAU × Conversion    GMV × Take      Purchases ×       │
+│  Rate × ARPU = MRR   Rate = Revenue  AOV = Revenue     │
+│                                                         │
+│  Step 4: Set targets per stage                          │
+│  Pre-seed: Prove the metric moves                       │
+│  Seed:     Show 15-20% MoM growth in North Star        │
+│  Series A: Demonstrate predictable, scalable growth     │
+└─────────────────────────────────────────────────────────┘
+```
 
 ## How BlockID SVI Tracks and Validates Your Metrics
 

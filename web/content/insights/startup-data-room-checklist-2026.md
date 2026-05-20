@@ -23,6 +23,17 @@ This is the bedrock of your company. Investors need to verify that the entity ex
 *   **ASIC History:** A "Company Extract" showing the history of the company, including any past name changes or administrative penalties.
 *   **Compliance Certificates:** Evidence of up-toquate filings with ASIC (e.g., annual review fees paid) and the ATO (Tax Returns lodged, BAFG if applicable).
 
+| Document Category | Required Documents | Priority |
+| :--- | :--- | :---: |
+| **Corporate & Legal** | Certificate of Registration, Constitution, Directors' Register, Shareholder Register, ASIC History, Compliance Certificates | Critical |
+| **Cap Table & Equity** | Cap Table Spreadsheet, ESIC Documentation, Founder Agreements (vesting), SAFE/Convertible Note Agreements | Critical |
+| **Financials** | P&L, Balance Sheet, Cash Flow (12-24 months), Forecast Models (18-24 months), Bank Statements (3 months), Tax Compliance | Critical |
+| **IP & Legal** | IP Assignment Deeds, Contractor IP Clauses, Open Source Compliance List, Trademarks/Patents | High |
+| **Contracts** | Customer Contracts (MSAs, SOWs, SLAs), Vendor Agreements, Employment Contracts, Board Agreements | High |
+| **People & Culture** | Leadership Bios, Org Chart, Hiring Plan, Advisor Profiles, ESOP Documentation | Medium |
+| **Strategy** | TAM/SAM Analysis, Competitive Matrix, Go-to-Market Plan, Product Roadmap | Medium |
+| **Compliance** | Privacy Policy, Cybersecurity Audit, Litigation Disclosure, Regulatory Licenses | High |
+
 ### 2. Cap Table and Equity Structure
 Investors must understand who owns what and how the new money will affect the equity structure. This is often the first place where Australian startups stumble due to ESIC (Employee Share and Option Scheme) complexities.
 *   **Cap Table:** A clear, granular spreadsheet showing full ownership percentages, including founders, early employees, investors, and option pools. It must reconcile with the ASIC register.
@@ -108,6 +119,28 @@ While numbers are vital, the "people" section of your data room humanizes the bu
 *   **Total Addressable Market (TAM):** A data-backed breakdown of your market size. Avoid generic "Google" numbers; use Australian-specific data where possible (e.g., from IBISWorld or Statista).
 *   **Competitive Matrix:** A transparent comparison of your product against competitors, highlighting your unique value proposition (UVP).
 *   **Go-to-Market (GTM) Strategy:** A detailed plan on how you will acquire customers, including channel mix and sales cycles.
+
+> **Data Room Organization Structure**
+>
+> **Level 1: Root Folders**
+> - 01-Corporate-Legal/
+> - 02-Cap-Table-Equity/
+> - 03-Financials/
+> - 04-IP-Legal/
+> - 05-Contracts/
+> - 06-People-Culture/
+> - 07-Strategy-Market/
+> - 08-Compliance/
+>
+> **Naming Convention:** [Category]-[DocType]-[Date]-v[Version]
+> - Example: 03-Financials-PnL-2026Q1-v2.pdf
+>
+> **Access Control:**
+> - Tier 1 (Public): Pitch deck, exec summary, team bios
+> - Tier 2 (NDA Required): Financials, cap table, customer contracts
+> - Tier 3 (Final DD Only): Tax returns, litigation history, code access
+>
+> **Update Cadence:** Refresh financial documents monthly; legal documents upon any change; cap table after every equity event.
 
 ## Building Your Data Room with BlockID
 

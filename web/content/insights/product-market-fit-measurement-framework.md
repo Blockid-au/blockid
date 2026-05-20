@@ -34,6 +34,17 @@ When conducting this survey, do not offer it to beta testers or friends. Your sa
 
 > **Need a data-backed assessment?** Stop guessing and start measuring. [Measure Your Market Fit Score](/) with BlockID's proprietary framework designed for Australian founders.
 
+| PMF Metric | What It Measures | Target Benchmark | Warning Sign | Data Source |
+|------------|-----------------|-------------------|-------------|-------------|
+| **Sean Ellis Score** | % of users who'd be "very disappointed" without the product | 40%+ | Below 25% | User surveys (40+ active users) |
+| **Month-6 Retention** | % of users still active after 6 months | 50-70% (B2B) / 20-30% (B2C) | Curve never flattens | Product analytics (Mixpanel, Amplitude) |
+| **Net Promoter Score (NPS)** | Willingness to recommend (0-10 scale) | 50+ (B2B) / 40+ (B2C) | Below 20 | Customer surveys (paying users only) |
+| **DAU/MAU Ratio** | Daily engagement as % of monthly users | 20%+ (healthy) / 50%+ (exceptional) | Below 10% | Product analytics |
+| **Net Revenue Retention** | Revenue growth from existing customers | 110%+ | Below 90% | Billing system / CRM |
+| **Time to Value (TTV)** | How fast users reach the "Aha!" moment | Under 7 days | Over 30 days | Onboarding analytics |
+| **Organic Growth Rate** | % of users acquired without paid channels | 30%+ | Below 10% | Attribution analytics |
+| **Feature Adoption** | % of users engaging with core features | 60%+ | Below 30% | Product analytics |
+
 ## Beyond the Survey: Retention Curves and Cohort Analysis
 
 While the Sean Ellis Test provides a snapshot, **retention curves** tell the story of your startup's lifespan. For Australian founders seeking Series A, this is the metric that VCs scrutinize most closely. A flat or rising retention curve indicates that your product has become essential to your users' workflows.
@@ -93,6 +104,41 @@ In the context of the **BlockID Startup Value Index (SVI)**, engagement is a wei
 > **The Engagement Trap:** Many founders celebrate "sign-ups" as engagement. They are not. A sign-up is a promise; engagement is proof. If your MAU is low relative to your total user base, you have a "ghost town" problem.
 
 For pre-seed founders, focus on **feature depth**. Do your users come back daily? Do they use multiple features? If they only use one feature and leave, you might have a "feature business" rather than a "platform business." Investors in the Australian market are looking for platforms that can expand into adjacent markets.
+
+> **The Sean Ellis Test: Step-by-Step Framework**
+>
+> ```
+> ┌──────────────────────────────────────────────────────────────┐
+> │              THE SEAN ELLIS PMF TEST                        │
+> ├──────────────────────────────────────────────────────────────┤
+> │                                                              │
+> │  STEP 1: IDENTIFY TARGET RESPONDENTS                        │
+> │  ├── Active users only (used product 5+ times)              │
+> │  ├── Minimum sample size: 40 users                          │
+> │  └── Exclude beta testers, friends, and free-tier-only users│
+> │                                                              │
+> │  STEP 2: ASK THE QUESTION                                   │
+> │  "How would you feel if you could no longer use [product]?" │
+> │  ├── Very disappointed                                      │
+> │  ├── Somewhat disappointed                                  │
+> │  ├── Not disappointed                                       │
+> │  └── N/A — I no longer use it                               │
+> │                                                              │
+> │  STEP 3: CALCULATE THE SCORE                                │
+> │  Score = (# "Very disappointed") / (Total responses) x 100  │
+> │                                                              │
+> │  STEP 4: INTERPRET RESULTS                                  │
+> │  ├── 40%+ ──→ PMF ACHIEVED — Scale with confidence         │
+> │  ├── 25-39% ─→ CLOSE — Iterate on core value proposition   │
+> │  ├── 15-24% ─→ WEAK — Major product changes needed         │
+> │  └── <15% ──→  NO FIT — Pivot or rethink the problem       │
+> │                                                              │
+> │  STEP 5: DIG DEEPER                                         │
+> │  ├── Ask: "What would you use as an alternative?"           │
+> │  ├── Ask: "What is the primary benefit you get?"            │
+> │  └── Segment results by user persona and cohort             │
+> └──────────────────────────────────────────────────────────────┘
+> ```
 
 ## Australian Market Nuances: Why Global Frameworks Need Local Calibration
 

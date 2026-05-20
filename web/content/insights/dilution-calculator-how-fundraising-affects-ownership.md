@@ -51,6 +51,23 @@ Your stake has dropped from 50% to **40%**. This is the reality of **founder own
 **Ready to model your specific scenario?** Don't guess the math. Use our interactive tool to see exactly how an ESOP affects your personal stake before you meet an investor.
 > **Calculate Your Dilution Now** [Calculate Your Dilution](/tools/dilution)
 
+### Dilution Scenario Table: Pre-Seed to Series A
+
+| Stage | Event | Pre-Money Valuation | Amount Raised | New Investor % | Founder A Ownership | Value of Founder A Stake |
+|---|---|---|---|---|---|---|
+| **Founding** | Co-founder joins | — | — | — | 50.0% | $0 |
+| **ESOP Creation** | 20% pool set aside | — | — | — | 40.0% | $0 |
+| **Pre-Seed** | Angel round | $2.5M | $500K | 16.7% | 33.2% | $996K |
+| **Seed** | VC round | $8.5M | $1.5M | 15.0% | 28.2% | $2.82M |
+| **ESOP Top-Up** | +5% pool added | — | — | — | 26.8% | $2.68M |
+| **Series A** | Institutional round | $30M | $8M | 21.0% | 21.2% | $8.06M |
+
+> 📊 **Key Dilution Takeaways**
+> - Founder A's ownership drops from **50% to ~21%** across four events
+> - Despite owning less, the stake value grows from **$0 to $8M+**
+> - ESOP creation and top-ups cause **hidden dilution** that hits founders, not investors
+> - Each round compounds: 50% x 80% x 83% x 85% x 95% x 79% = ~21%
+
 ### Pre-Seed: The First External Capital Injection
 
 Now you are at 40%. You have a product, a team, and a plan. You approach angel investors or early-stage VCs for a **pre-seed** round. The goal here is to prove product-market fit.
@@ -119,6 +136,17 @@ Here is where the narrative changes. At this stage, you are no longer just manag
 | **Pre-Seed** | 40% → 32% | Early Capital (15-20%) | Product/Market Fit |
 | **Seed** | 32% → 24% | Growth Capital + ESOP Top-up | Scaling |
 | **Series A** | 24% → 18% | Institutional Capital | Market Domination |
+
+### Anti-Dilution Protection Comparison
+
+| Feature | Full Ratchet | Narrow Weighted Average | Broad Weighted Average |
+|---|---|---|---|
+| **How it works** | Resets investor price to the lowest new price | Adjusts price based on new shares only (excludes some preferred) | Adjusts price based on all outstanding shares |
+| **Founder impact in a down round** | Catastrophic — massive dilution | Moderate — significant dilution | Low to Moderate — fairest adjustment |
+| **Example: $1M invested at $5/share, down round at $3/share** | Investor gets shares repriced to $3 (333K shares, up from 200K) | Investor gets ~260K shares (depends on exclusions) | Investor gets ~230K shares (most balanced) |
+| **Market standard** | Rare — red flag if proposed | Occasionally used | Industry standard for AU and US deals |
+| **When to accept** | Almost never | Only if no alternative and small round | Default — always negotiate for this |
+| **AVCAL guidance** | Advises against for early-stage | Acceptable in specific scenarios | Recommended as fair protection |
 
 ### Understanding Anti-Dilution Protections
 

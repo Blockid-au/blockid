@@ -20,6 +20,19 @@ Consider the perspective of an Australian Venture Capitalist. They are looking f
 
 The risk is magnified when you consider the **equity vesting startup** landscape in Australia. Unlike some markets where informal handshake deals might survive longer, Australian regulators and institutional investors demand rigorous compliance. A messy cap table with unvested founders is a red flag that suggests a lack of professional governance.
 
+> **Vesting Timeline at a Glance**
+>
+> ```
+> Year 0          Year 1 (Cliff)       Year 2          Year 3          Year 4
+>  │                  │                  │               │               │
+>  ▼                  ▼                  ▼               ▼               ▼
+>  0%  ──────────►  25%  ──────────►  50%  ────────►  75%  ────────►  100%
+>  │                  │                                                  │
+>  │  DANGER ZONE:    │  Monthly vesting begins after cliff              │
+>  │  Leave = 0%      │  (~2.08% per month)                              │
+>  └──────────────────┘                                    FULLY VESTED ─┘
+> ```
+
 ## The Gold Standard: 4-Year Vesting with a 1-Year Cliff
 
 If you ask any top-tier Sydney or Melbourne lawyer how to structure your **startup vesting 4 year cliff**, the answer is almost universally the same: 4 years with a 1-year cliff. This is the global standard for a reason—it balances fairness with protection.
@@ -56,6 +69,17 @@ This structure is non-negotiable for institutional investment. If you are prepar
 Need help visualizing how this split affects your overall cap table? Don't guess the math.
 
 > **Ensure your equity split is investor-ready before you meet with angels.** [Plan Your Equity Structure with our free tool →](/tools/equity-split)
+
+| Feature | Cliff Vesting (1-Year Cliff) | No-Cliff Vesting | Milestone-Based Vesting |
+|---------|------------------------------|-------------------|------------------------|
+| **Equity at Month 0** | 0% | 0% | 0% |
+| **Equity at Month 6** | 0% (still in cliff) | 12.5% | Varies by milestones hit |
+| **Equity at Month 12** | 25% (cliff unlocks) | 25% | Tied to KPIs |
+| **Departure Protection** | Strong — early leavers get nothing | Weak — partial equity from day one | Moderate — depends on milestone design |
+| **Investor Preference** | Strongly preferred | Rarely accepted | Situational |
+| **Administrative Complexity** | Low | Low | High |
+| **Best For** | Most startups (industry standard) | Very rare co-founder arrangements | Advisors, executives with clear KPIs |
+| **Risk to Company** | Low | High — "free rider" exposure | Medium — milestone disputes possible |
 
 ## Reverse Vesting vs. Forward Vesting: The Critical Distinction
 

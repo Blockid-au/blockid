@@ -51,6 +51,21 @@ For high-growth tech startups, this creates a tension between the need for speed
 
 > **Ready to validate your readiness?** Don't guess your eligibility. [Get your free SVI score](/) to see how your growth trajectory and governance stack up against ASX requirements.
 
+| Requirement | ASX Threshold | Status | Action Required |
+|-------------|--------------|--------|-----------------|
+| **Market Capitalisation** | $20M AUD minimum | [ ] | Secure valuation via recent funding round at $20M+ |
+| **Shareholder Spread** | 300+ shareholders, each holding $2K+ | [ ] | Conduct pre-IPO placement to build register |
+| **Audited Financials** | 2 years of audited financial statements | [ ] | Engage Big 4 / top-tier auditor 24 months prior |
+| **Financial Forecast** | Current + next FY forecast required | [ ] | Build defensible revenue model with scenario analysis |
+| **Board Composition** | 2+ independent non-executive directors | [ ] | Recruit experienced public company directors |
+| **Company Secretary** | Qualified company secretary required | [ ] | Appoint or contract a certified company secretary |
+| **ASIC Compliance** | All filings current, no disputes | [ ] | Audit all ASIC records and resolve outstanding issues |
+| **ATO Compliance** | GST, PAYG, FBT all current | [ ] | Clear all tax obligations and obtain clearance letters |
+| **ESIC Compliance** | Employee share schemes Section 708 compliant | [ ] | Review all option grants with a specialist lawyer |
+| **Prospectus** | ASIC-reviewed prospectus required | [ ] | Engage corporate lawyers for drafting (allow 3-6 months) |
+| **Lead Manager** | Investment bank / lead manager appointed | [ ] | Shortlist and appoint 12+ months before target date |
+| **IP Due Diligence** | All IP assigned to company entity | [ ] | Verify chain of title for all patents, code, and designs |
+
 ## ASX vs. NSX: Understanding Your Listing Options
 
 Not all public markets are created equal. Many founders confuse the ASX with the National Stock Exchange of Australia (NSX), or they assume the Nasdaq is the only alternative. Understanding the differences is crucial for strategic planning.
@@ -120,6 +135,39 @@ The timeline from "thinking about it" to "trading day" is rarely less than 18 to
 *   Shares begin trading on the ASX.
 
 Missing a deadline in this timeline can be costly. If your financial year-end changes or your audit is delayed, your entire IPO window can close, forcing you to wait another 12 months to re-apply.
+
+> **ASX IPO Timeline: 24-Month Roadmap**
+>
+> ```
+> MONTH 1-6: FOUNDATION
+> ├── Appoint independent directors
+> ├── Engage audit firm for historical financials
+> ├── Clean up cap table and ESIC compliance
+> └── Begin financial systems upgrade (AASB/IFRS)
+>
+> MONTH 7-12: PREPARATION
+> ├── Complete 2-year audit process
+> ├── Shortlist and appoint lead manager
+> ├── Build investor relations function
+> └── Resolve all ATO / ASIC compliance gaps
+>
+> MONTH 13-18: DUE DILIGENCE & PROSPECTUS
+> ├── Engage corporate lawyers for prospectus
+> ├── Conduct commercial, legal, financial due diligence
+> ├── Draft and submit prospectus to ASX and ASIC
+> └── Address regulatory queries and feedback
+>
+> MONTH 19-21: ROADSHOW & PRICING
+> ├── Finalise prospectus and receive ASIC clearance
+> ├── Conduct institutional investor roadshow
+> ├── Price the IPO and allocate shares
+> └── Complete pre-IPO placement (300 shareholders)
+>
+> MONTH 22-24: LISTING
+> ├── Final ASX listing approval
+> ├── Shares begin trading
+> └── Lock-up period begins (6-12 months for founders)
+> ```
 
 ## Governance: Why Day One Matters
 

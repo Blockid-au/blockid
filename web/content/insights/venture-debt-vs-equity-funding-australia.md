@@ -18,6 +18,21 @@ The structure of a typical venture debt deal in Australia is distinct from a sta
 
 This non-dilutive nature (relative to a full equity round) is what makes **non-dilutive funding startup** strategies so attractive. By using debt, you are not selling a slice of your company at today's valuation. Instead, you are leveraging your future growth to bridge the gap to a higher valuation in the next round. However, this comes with strict covenants and the obligation to make monthly interest payments, which can strain cash flow if the business stalls.
 
+| Feature | Venture Debt | Equity Funding |
+|---------|-------------|----------------|
+| **Dilution** | Minimal (1-3% via warrants) | Significant (10-25% per round) |
+| **Repayment Required** | Yes — monthly interest + principal | No repayment required |
+| **Cost of Capital** | 8-15% interest + warrants | Permanent ownership loss |
+| **Speed to Close** | 4-8 weeks | 3-6 months |
+| **Revenue Requirement** | $1M+ ARR typically required | No revenue needed |
+| **Board Seat** | Rarely required | Often required |
+| **Covenants** | Yes — financial/operational | No covenants |
+| **Risk if Business Stalls** | High — default/liquidation risk | Low — no repayment pressure |
+| **Best Stage** | Post-Seed / Post-Series A | Pre-Seed / Seed / Series A |
+| **Best Use Case** | Runway extension, CapEx, bridge | Product build, PMF search, hiring |
+| **Control Impact** | Founders retain control | Investors gain voting rights |
+| **Australian Providers** | Partners for Growth, CBA, Westpac | Blackbird, Square Peg, AirTree |
+
 ## Equity Funding: The Traditional Route and Its Hidden Costs
 
 Equity funding remains the lifeblood of the Australian startup ecosystem, particularly for pre-seed and seed-stage companies. In an equity transaction, you sell ownership stakes (shares) to investors in exchange for capital. This capital is "patient," meaning investors expect to wait years for a return, usually through an exit event like an acquisition or IPO. There are no monthly repayments, no interest, and no covenants that can force a liquidation event if you miss a target.
@@ -83,6 +98,38 @@ To truly understand the value of **non-dilutive funding**, you must look at the 
 In this scenario, the difference is staggering. By using debt, the founders preserve **~15% ownership**. If the company achieves a $100M exit, that 15% translates to **$15 million** in additional value for the founding team. This is the power of **venture debt vs equity**.
 
 However, this math assumes you can service the debt. If TechGrow fails to grow revenue and defaults on the loan, the lenders may have the right to seize assets or force a liquidation, wiping out the equity entirely. The risk profile is different: **Equity is risky for investors but safe for founders; Debt is safe for investors but risky for founders if cash flow breaks.**
+
+> **Decision Flowchart: Venture Debt vs. Equity**
+>
+> ```
+> ┌──────────────────────────────────┐
+> │  Do you have $1M+ ARR?          │
+> └──────────┬───────────┬──────────┘
+>            │ YES       │ NO
+>            ▼           ▼
+> ┌──────────────┐  ┌──────────────────────────┐
+> │ Can you       │  │ EQUITY is your best path.│
+> │ service 8-15% │  │ Focus on Seed/Pre-Seed   │
+> │ interest from │  │ rounds to build traction. │
+> │ cash flow?    │  └──────────────────────────┘
+> └──────┬────┬──┘
+>        │YES │ NO
+>        ▼    ▼
+> ┌────────────┐  ┌───────────────────────────┐
+> │ Do you have │  │ EQUITY is safer. Debt will │
+> │ VC backing  │  │ accelerate cash burn if    │
+> │ from a      │  │ revenue stalls.            │
+> │ Tier 1 fund?│  └───────────────────────────┘
+> └──────┬──┬──┘
+>        │Y │ N
+>        ▼  ▼
+> ┌────────────┐  ┌───────────────────────────┐
+> │ VENTURE     │  │ Consider REVENUE-BASED     │
+> │ DEBT is a   │  │ FINANCING or a smaller     │
+> │ strong      │  │ debt facility with less    │
+> │ option.     │  │ strict covenants.          │
+> └─────────────┘  └───────────────────────────┘
+> ```
 
 ## Critical Checklist: Is Your Startup Ready for Debt?
 

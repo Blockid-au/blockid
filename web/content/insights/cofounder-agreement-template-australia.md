@@ -18,6 +18,23 @@ Furthermore, intellectual property laws in Australia are stringent. If a co-foun
 
 > **Key Insight:** Under Australian law, an informal handshake or a shared password is not sufficient for IP assignment. The transfer of ownership must be documented in writing to be legally binding in court.
 
+### Co-Founder Agreement Clauses Checklist
+
+| # | Clause | Status | Risk Level if Missing |
+|---|---|---|---|
+| 1 | **Equity split with percentages** | Must define exact ownership | Critical — leads to disputes |
+| 2 | **Vesting schedule (4yr / 1yr cliff)** | Must be time-based with cliff | Critical — early leaver keeps full stake |
+| 3 | **IP assignment to company** | All current and future IP | Critical — IP stays with individuals |
+| 4 | **Role and responsibility definitions** | CEO, CTO, COO clearly defined | High — turf wars and confusion |
+| 5 | **Decision-making authority** | Spending limits, hiring power | High — operational deadlocks |
+| 6 | **Deadlock resolution mechanism** | Mediation, arbitration, or tie-breaker | High — company paralysis |
+| 7 | **Good Leaver / Bad Leaver terms** | Defines equity on departure | Critical — legal disputes on exit |
+| 8 | **Non-compete clause (6-12 months)** | Reasonable scope under AU law | Medium — ex-founder competes |
+| 9 | **Non-solicit clause (12 months)** | Prevents poaching staff/clients | Medium — talent and revenue drain |
+| 10 | **Confidentiality obligations** | Survives termination of agreement | High — trade secrets exposed |
+| 11 | **ATO ESS tax compliance** | Aligns equity with tax rules | Critical — unexpected tax bills |
+| 12 | **Amendment and variation process** | How changes are approved | Medium — frozen outdated terms |
+
 ## Core Clauses: The Non-Negotiables in Your Co-Founder Contract
 
 A high-quality **founders agreement Australia** template must go beyond generic templates found online. It requires specific clauses tailored to the Australian startup ecosystem. Below are the essential components that every **startup co-founder contract** must include to protect all parties and the entity.
@@ -50,6 +67,23 @@ This is not a "nice to have." If a co-founder leaves and claims they wrote the c
 Ambiguity in roles leads to turf wars. A **founders agreement Australia** must clearly define who is the CEO, CTO, and COO. It should outline specific decision-making powers. Who has the authority to sign contracts up to $50,000? Who controls the hiring of senior staff?
 
 While many agreements include broad responsibilities, the most effective **co-founder equity agreement** includes a "Deadlock Provision." If the founders cannot agree on a critical decision after a specified period, the agreement should outline a mechanism to resolve it, such as a tie-breaking vote by an independent advisor or a board member.
+
+### Equity Split Scenarios: Common Founding Team Structures
+
+| Scenario | Founder A | Founder B | Founder C | ESOP Pool | Rationale |
+|---|---|---|---|---|---|
+| **Equal partners** | 42.5% | 42.5% | — | 15% | Both contribute equally from Day 1 |
+| **Idea + execution** | 50% | 35% | — | 15% | A brought the concept and initial IP |
+| **Solo + late co-founder** | 55% | 30% | — | 15% | B joined 6+ months after incorporation |
+| **Three co-founders** | 35% | 30% | 20% | 15% | Weighted by role criticality and timing |
+| **Technical-heavy startup** | 30% | 50% | — | 20% | CTO (B) builds the core product; larger ESOP for engineers |
+| **Capital contributor** | 40% | 40% | — | 10% + 10% cash note | A injects seed capital; structured as convertible note |
+
+> 📊 **Equity Split Benchmarks (Australian Market)**
+> - **65%** of successful AU startups use unequal splits reflecting contribution
+> - **Equal splits (50/50)** correlate with higher co-founder dispute rates
+> - Average ESOP pool at incorporation: **10-15%** of total equity
+> - Investors expect vesting on **all** founder shares, not just new hires
 
 ## Strategic Planning: Finding the Right Partner Before You Sign
 

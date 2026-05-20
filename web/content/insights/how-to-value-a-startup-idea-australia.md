@@ -34,6 +34,18 @@ Dave Berkus proposed assigning up to $500K USD per risk factor. For Australian s
 
 This method works well when you have no revenue but can demonstrate progress across these dimensions.
 
+> **Berkus Method Breakdown: Scoring Your Startup**
+>
+> | Risk Factor | Question to Answer | Score 0% | Score 50% | Score 100% (Max AUD) |
+> | :--- | :--- | :--- | :--- | :--- |
+> | **Sound Idea** | Is there clear problem-solution fit? | No validated problem | Some customer interviews | Strong evidence of pain point ($250K) |
+> | **Working Prototype** | Does a functional product exist? | Idea only | Basic MVP | Fully functional prototype ($250K) |
+> | **Quality Team** | Can the team execute? | Solo non-technical founder | Partial team, some gaps | Complete team with domain expertise ($500K) |
+> | **Strategic Relationships** | Do you have market access? | No partnerships | Early discussions | Signed LOIs or partnerships ($250K) |
+> | **Product Rollout** | Is there revenue traction? | Pre-revenue | Beta users, no revenue | Paying customers, growing MRR ($500K) |
+>
+> **How to use:** Score each factor as a percentage of its maximum value, then sum the results. A startup scoring 60% across all factors would be valued at approximately **$1.05M AUD**.
+
 ### 2. Scorecard Method
 
 Compare your startup to the "average" funded startup in your sector and adjust:
@@ -102,6 +114,14 @@ Based on data from Australian accelerators and angel networks:
 - Clear unit economics path
 - Data room readiness (term sheet, shareholders agreement, financial model)
 - Governance structure (board, advisory, ESOP)
+
+| Method | Best Stage | Inputs Required | Strengths | Limitations | Typical Range (AUD) |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Berkus** | Pre-revenue | Risk factor assessment | Simple, quick, no financials needed | Subjective scoring, caps at $1.75M | $250K - $1.75M |
+| **Scorecard** | Pre-seed | Peer benchmarks + adjustments | Market-calibrated, relative comparison | Requires reliable comparable data | $700K - $3M |
+| **VC Method** | Pre-seed to Seed | Exit estimate, target multiple | Aligns with investor expectations | Exit value is highly speculative | $1M - $5M |
+| **Cost-to-Duplicate** | Any early stage | Development costs, asset values | Objective floor valuation | Ignores future potential entirely | $100K - $2M |
+| **AI-Powered (SVI)** | Any stage | Multi-dimensional data inputs | Real-time, comprehensive, low-bias | Depends on model training data | $500K - $10M+ |
 
 ## Common valuation mistakes Australian founders make
 

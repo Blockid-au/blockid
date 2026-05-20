@@ -80,6 +80,14 @@ To make this practical, let's apply these pillars to two common scenarios. Remem
 
 These scenarios highlight that there is no "one size fits all." The most effective method is to run the numbers through a dedicated [equity split calculator](/tools/equity-split) that allows you to toggle these variables and see the impact in real-time.
 
+| Scenario | Founder A | Founder B | Founder C | Option Pool | Rationale |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| **Equal (2 founders, both FT)** | 42.5% | 42.5% | - | 15% | Both full-time, equal contribution |
+| **Unequal (FT + PT)** | 52% | 33% | - | 15% | A is full-time; B is part-time + $100K capital |
+| **3 Founders (CEO/CTO/Advisor)** | 38% | 38% | 9% | 15% | CEO + CTO full-time; C is advisor with capital |
+| **Solo Technical Founder** | 80% | - | - | 20% | Large pool needed to attract co-founder + team |
+| **Late Co-Founder Join** | 50% | 25% | - | 15% + 10% reserved | B joins 12 months later; equity reflects timing |
+
 ## The Critical Role of Vesting Schedules
 
 Even if you arrive at the perfect equity split on Day 1, the deal is only fair if it includes a robust vesting schedule. Without vesting, you are handing out ownership of the company to people who might walk away tomorrow.
@@ -95,6 +103,18 @@ For Australian founders, acceleration clauses are essential to handle M&A (Merge
 *   **Double-Trigger Acceleration:** Equity accelerates only if the company is acquired *and* the founder is fired or resigns due to the acquisition. This is the more investor-friendly approach and is common in Series A deals.
 
 Under Australian tax law (specifically the ESIC rules introduced in 2015), vesting schedules are also crucial for tax deferral. If you issue shares that are subject to "real risk of forfeiture" (i.e., a vesting schedule), founders can potentially defer the tax event until the shares actually vest, rather than at the time of grant. This can save founders tens of thousands of dollars in upfront tax liabilities.
+
+> **Contribution Weighting Framework**
+>
+> | Factor | Weight | Score Range | How to Assess |
+> | :--- | :---: | :---: | :--- |
+> | **Full-Time Commitment** | 30% | 0-10 | Full-time = 10, Part-time = 3-5, Advisory = 1-2 |
+> | **Capital Injection** | 20% | 0-10 | $0 = 0, $50K = 4, $100K = 6, $200K+ = 8-10 |
+> | **Domain Expertise** | 20% | 0-10 | No relevant experience = 0, Deep sector knowledge = 8-10 |
+> | **Existing IP / Assets** | 15% | 0-10 | No IP = 0, Working prototype = 6, Patented tech = 9-10 |
+> | **Network / Sales Access** | 15% | 0-10 | No network = 0, Industry contacts = 5, Enterprise clients = 8-10 |
+>
+> **Calculation:** Multiply each score by its weight, sum the totals for each founder, then divide each founder's total by the grand total to determine equity percentage. Reserve 10-15% for the option pool before applying the split.
 
 ## Common Pitfalls and How to Avoid Them
 

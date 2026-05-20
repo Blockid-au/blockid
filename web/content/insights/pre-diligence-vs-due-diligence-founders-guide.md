@@ -29,6 +29,17 @@ Many founders conflate these two terms, assuming that "due diligence" covers eve
 
 The cost of skipping pre-diligence isn't just a delayed closing; it's the loss of leverage. When investors see a messy data room, they assume operational chaos. They lower their valuation to account for the "fix-it" costs or walk away entirely. In Australia, where regulatory compliance with **ASIC** and **ATO** standards is non-negotiable, a single missing document or an incorrect ESIC (Employee Share Issue Capital) calculation can halt a round indefinitely.
 
+| Area | Pre-Diligence (Founder-Led) | Due Diligence (Investor-Led) |
+| :--- | :--- | :--- |
+| **Financial Records** | Reconcile bank accounts, clean P&L | Forensic audit of revenue claims |
+| **Cap Table** | Verify all shareholders, lodge with ASIC | Full equity waterfall analysis |
+| **IP Ownership** | Execute assignment deeds for founders/contractors | Legal review of all IP chain of title |
+| **ESIC/ESOP** | Document scheme rules, update register | Verify tax treatment and compliance |
+| **Contracts** | Organize customer, vendor, and employment agreements | Review change-of-control clauses, liabilities |
+| **ASIC Filings** | Ensure annual reviews and director details current | Cross-reference ASIC register with claims |
+| **Tax Compliance** | File BAS, PAYG, and tax returns on time | ATO clearance check, outstanding liabilities |
+| **Data Privacy** | Draft privacy policy, audit data handling | Verify compliance with Australian Privacy Principles |
+
 > **Ready to check your startup valuation?** [Get your free Startup Value Index →](/)
 
 ## The 80% Failure Rate: Where Founders Go Wrong
@@ -87,6 +98,17 @@ Once you have nailed the pre-diligence phase, you will face the investor's check
 *   **Financial Review:** Detailed breakdown of revenue, margins, and payroll costs, often requiring a third-party accountant's verification.
 
 The difference between a founder who has done pre-diligence and one who hasn't is the speed and confidence of the response. A prepared founder can share the data room in 24 hours. An unprepared founder takes weeks, during which time the investor's enthusiasm cools, and competitor deals are signed.
+
+> **Pre-Diligence to Due Diligence: The Fundraising Timeline**
+>
+> **Month 1-3** → Self-audit: Clean financials, verify ASIC filings, reconcile cap table
+> **Month 3-5** → Fix gaps: Execute IP deeds, update ESOP register, draft missing contracts
+> **Month 5-6** → Build data room: Organize all documents, prepare investor-ready package
+> **Month 6-7** → Investor outreach: Pitch deck, warm intros, initial meetings
+> **Month 7-8** → Term sheet: Negotiate terms, agree on valuation and structure
+> **Month 8-10** → Due diligence: Investor's lawyers and auditors review your data room
+> **Month 10-11** → Closing: Finalize legal documents, transfer funds
+> **Month 11-12** → Post-close: Update ASIC, issue shares, onboard new board members
 
 ## How BlockID Automates Your Pre-Diligence
 

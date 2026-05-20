@@ -14,6 +14,20 @@ However, the **YC SAFE Australia** adaptation has evolved. The original YC docum
 
 Before you sign the first draft, you must understand how valuation caps and discount rates interact with Australian tax laws. The **Australian Taxation Office (ATO)** has specific guidelines regarding when equity is issued and how it is valued for tax purposes, especially for employee share schemes (ESIC) and founder shares. A poorly structured instrument can inadvertently trigger immediate tax liabilities for founders and investors alike.
 
+| Feature | SAFE | Convertible Note |
+| :--- | :--- | :--- |
+| **Legal Nature** | Equity agreement (not debt) | Debt instrument (loan) |
+| **Interest Rate** | None | 2% - 8% p.a. (compounds) |
+| **Maturity Date** | None (no repayment trigger) | 12 - 24 months (repayment deadline) |
+| **Valuation Cap** | Yes (standard) | Yes (optional) |
+| **Discount Rate** | Yes (typically 15-25%) | Yes (typically 15-25%) |
+| **Balance Sheet Treatment** | Not a liability | Sits as debt liability |
+| **Legal Cost (AUD)** | $2,000 - $5,000 | $5,000 - $12,000 |
+| **Complexity** | Low (standardised document) | Medium-High (debt covenants) |
+| **ESIC Eligibility** | Yes (at conversion) | Yes (at issuance) |
+| **Default Risk** | No forced repayment | Repayment obligation at maturity |
+| **Best For** | Pre-seed, speed-focused raises | Conservative investors, family offices |
+
 > **Ready to check your startup valuation?** Before you agree to a cap, [Get your free Startup Value Index →](/) to see where your startup stands against current Australian market benchmarks.
 
 ## Deconstructing the Mechanics: Valuation Caps, Discounts, and Clauses
@@ -78,6 +92,20 @@ However, the lack of a maturity date can be a double-edged sword. Without a dead
 The **MFN clause** is also more common in SAFEs than notes. Since SAFEs are often issued in a rolling basis to multiple angels, the MFN ensures that no investor feels disadvantaged by terms given to a later investor. This creates a more equitable distribution of risk and reward among early supporters.
 
 When choosing between the two, consider the **investor profile**. Institutional VCs in Australia often prefer SAFEs for their speed and alignment with global standards. However, some family offices or corporate investors with strict debt mandates may prefer convertible notes. Your ability to close the round may depend on which instrument your lead investor is comfortable with.
+
+> **Conversion Scenario: $500K Investment at Series A ($10M Valuation)**
+>
+> **SAFE (Cap $4M, Discount 20%):**
+> - Cap conversion: $500K / $4M = 12.5% ownership
+> - Discount conversion: $500K / ($10M x 0.80) = 6.25% ownership
+> - Investor takes the better deal: **12.5% ownership (cap wins)**
+>
+> **Convertible Note (Discount 20%, 5% interest, 18 months):**
+> - Principal + interest: $500K x 1.05^1.5 = ~$537,890
+> - Discount conversion: $537,890 / ($10M x 0.80) = **6.72% ownership**
+> - Note: If no priced round by maturity, the $537,890 becomes a repayable debt
+>
+> **Net Difference:** The SAFE investor receives nearly **2x the equity** of the note holder in this scenario, but the note holder has downside protection through the debt obligation.
 
 > **Check your readiness:** Before you pick an instrument, you need to know your value. [Get your free SVI score](/) to benchmark your startup against the Australian market.
 

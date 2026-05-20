@@ -29,6 +29,16 @@ For founders at the pre-seed to Series A stage aiming for rapid growth, **accele
 
 > **Ready to assess if your startup is ready for an accelerator?** [Get Accelerator-Ready with SVI](/score) to benchmark your maturity against top program criteria.
 
+| Accelerator | Equity (%) | Investment (AUD) | Duration | Focus Area | Implied Valuation | Demo Day |
+|-------------|-----------|-----------------|----------|------------|-------------------|----------|
+| **Startmate** | 5% | $75,000 | 3 months | Product-led growth, global | ~$1.5M | Yes (Sydney + Virtual) |
+| **Antler** | 10% | $120,000 | 12+4 weeks | Pre-idea, team formation | ~$1.2M | Yes (Melbourne, Sydney) |
+| **muru-D (Telstra)** | 6% | $150,000 | 4 months | Enterprise B2B, deep tech | ~$2.5M | Yes (Sydney) |
+| **Cicada Innovations** | 7% | $100,000 | 4-6 months | Deep tech, agritech, health | ~$1.4M | No (milestone-based) |
+| **HAX** | 7% | $100,000 | 3 months | Hardware, robotics, IoT | ~$1.4M | Yes (Global) |
+| **BlueChilli** | 5% | $75,000 | 3 months | Consumer, digital media | ~$1.5M | Yes (Sydney) |
+| **Slingshot** | 6% | $100,000 | 3 months | Revenue SaaS, Series A prep | ~$1.7M | Yes (Brisbane, Sydney) |
+
 ## Deep Dive: The Top 7 Australian Startup Accelerators of 2026
 
 The following section provides a comprehensive breakdown of the leading **startup programs Australia** has to offer in 2026. We analyze their equity structures, program lengths, funding amounts, and notable alumni outcomes to help you make an informed decision.
@@ -138,6 +148,45 @@ A critical trend in 2026 is the "cluster effect." Startups from top accelerators
 According to *Avcal*, the peak of the accelerator boom in Australia occurred around 2020-2022, but by 2026, the market has consolidated. Only programs with measurable outcomes and strong networks remain competitive. Startups applying to "vanity" accelerators are increasingly being rejected by Series A investors who recognize the lack of rigor.
 
 > **Did you know?** Startups from top 3 Australian accelerators are 4x more likely to raise a Series A round within 24 months of graduation compared to non-accelerated peers. Source: *ABS & Startup Genome Australia Report 2025*.
+
+> **2026 Accelerator Application Timeline (Key Dates)**
+>
+> ```
+> JANUARY - FEBRUARY
+> ├── Startmate Fellowship applications open (Cohort 1)
+> ├── Antler Sydney cohort applications open
+> └── Prepare: Refine pitch deck, update SVI score, clean cap table
+>
+> MARCH - APRIL
+> ├── muru-D annual intake applications open
+> ├── Cicada Innovations rolling applications (strongest period)
+> ├── Slingshot Q2 cohort applications
+> └── Prepare: Secure warm intros from alumni, gather traction data
+>
+> MAY - JUNE
+> ├── Startmate Cohort 1 begins (3 months)
+> ├── Antler Sydney cohort begins
+> ├── HAX applications for H2 cohort
+> └── Prepare: Demo day pitch, financial model, customer references
+>
+> JULY - AUGUST
+> ├── Startmate Demo Day (Cohort 1)
+> ├── muru-D program begins
+> ├── BlueChilli H2 intake applications
+> └── Prepare: Follow-on funding materials, investor one-pagers
+>
+> SEPTEMBER - OCTOBER
+> ├── Startmate Fellowship applications (Cohort 2)
+> ├── Antler Melbourne cohort applications open
+> ├── Slingshot Q4 cohort
+> └── Prepare: Update metrics post-program, refine growth strategy
+>
+> NOVEMBER - DECEMBER
+> ├── Startmate Cohort 2 Demo Day
+> ├── muru-D Demo Day
+> ├── Most programs pause intake for holidays
+> └── Prepare: Year-end reflection, plan applications for next year
+> ```
 
 ## The Application Strategy: How to Get Selected
 

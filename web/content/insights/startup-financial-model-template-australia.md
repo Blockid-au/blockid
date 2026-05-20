@@ -8,6 +8,17 @@ This guide breaks down exactly how to build a defensible, audit-ready financial 
 
 > **Strategic Insight:** "Investors in Australia are increasingly skeptical of top-line growth without clear unit economics. Your model must prove that for every dollar you burn, you generate sustainable value."
 
+| Component | What It Covers | Key Inputs | Australian-Specific Considerations |
+|-----------|---------------|------------|-------------------------------------|
+| **Revenue Model** | MRR/ARR projections, pricing tiers, churn | Customer count, ARPU, conversion rates | AUD/USD FX sensitivity; smaller TAM than US |
+| **COGS** | Direct costs of delivering the product | Hosting, API costs, support staff | GST treatment (excl. if registered); Stripe AU fees |
+| **Operating Expenses** | Salaries, marketing, rent, SaaS tools | Headcount plan, channel spend | 11.5% superannuation; payroll tax thresholds by state |
+| **Cash Flow Statement** | Cash in vs. cash out, timing of payments | AR/AP days, payment terms | 30-60 day B2B payment terms; BAS/GST timing |
+| **R&D Tax Incentive** | 43.5% refundable offset on eligible R&D | R&D spend categorization | 6-9 month lag after FY end; strict ATO documentation |
+| **Runway Calculation** | Months of cash remaining | Cash balance, monthly net burn | Factor in R&D refund timing and GST trust |
+| **Scenario Analysis** | Base, Bear, Bull case projections | Revenue sensitivity, churn, CAC changes | Australian market cyclicality; interest rate impact |
+| **Cap Table Impact** | Dilution from funding rounds | Pre/post-money valuation, ESOP pool | ESIC eligibility; ASIC compliance for share issuance |
+
 ## Building Your Revenue Model: Beyond the Hype
 
 The foundation of any **financial projections startup** document is the revenue model. Australian founders often make the mistake of creating a "hockey stick" curve that rises 100% every quarter without explaining the drivers. You need a bottom-up approach that ties revenue to specific activities.
@@ -131,6 +142,23 @@ The R&D refund is a major cash injection for Australian startups.
 *   **Timing:** The payment usually occurs 6-9 months after the end of the financial year in which the R&D was conducted.
 
 Your **financial projections startup** document must reflect this lag. Do not model the R&D refund as a cash inflow in the month the expense is incurred. Model it as a lump sum in the months following the June 30 year-end. Missing this timing can lead to a "cash crunch" in Q1/Q2 of the new financial year.
+
+> **Example: 3-Year SaaS Revenue Projection (AUD)**
+>
+> | Metric | Year 1 | Year 2 | Year 3 |
+> |--------|--------|--------|--------|
+> | **Starting MRR** | $5,000 | $25,000 | $80,000 |
+> | **New Customers/Month** | 8 | 15 | 25 |
+> | **Avg. Monthly Price** | $200 | $250 | $300 |
+> | **Monthly Churn Rate** | 5% | 4% | 3% |
+> | **Ending MRR** | $25,000 | $80,000 | $210,000 |
+> | **Annual Revenue (ARR)** | $180,000 | $630,000 | $1,860,000 |
+> | **Gross Margin** | 65% | 72% | 78% |
+> | **Monthly Burn Rate** | $45,000 | $85,000 | $130,000 |
+> | **R&D Tax Refund (43.5%)** | $47,000 | $95,000 | $155,000 |
+> | **Runway (Months)** | 14 | 16 | 20 |
+>
+> *Assumptions: 15% MoM growth in Year 1, declining churn as PMF improves, R&D refund received 6-9 months after FY end. All figures exclude GST.*
 
 ## Stress-Testing Your Model: Scenario Analysis
 

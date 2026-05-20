@@ -24,6 +24,19 @@ This provision is designed to encourage "patient capital." It aligns the incenti
 
 To qualify for the CGT exemption, the shares must be newly issued to the investor. Secondary market purchases do not qualify. Furthermore, the company must remain an ESIC at the time the shares are issued, though the investor can potentially continue to enjoy the benefit even if the company loses ESIC status later, provided the 10-year holding period is maintained and the initial conditions were met.
 
+| ESIC Eligibility Criteria | Requirement | Details |
+| :--- | :--- | :--- |
+| **Company Age** | Incorporated within last 10 years | Must be registered with ASIC; check incorporation date |
+| **Annual Revenue** | Below $200K in prior income year | Revenue threshold to qualify as "early stage" |
+| **Total Expenses** | Below $1M in prior income year | Operating cost ceiling for eligibility |
+| **Listed Status** | Not listed on any stock exchange | Must be an unlisted proprietary company |
+| **Innovation Test** | Score 100+ on the innovation checklist OR pass expenditure test ($250K+) | Points awarded for R&D, IP, patents, partnerships |
+| **Principles Test** | Demonstrate genuine innovation and high growth potential | Qualitative assessment by ATO |
+| **New Shares** | Shares must be newly issued to the investor | Secondary market purchases do not qualify |
+| **Holding Period** | Minimum 12 months for tax offset | 10 years for full CGT exemption |
+| **Investment Cap** | $200K per investor per year for tax offset | 20% offset = max $40K tax credit per investor |
+| **Investor Type** | Australian tax resident individuals | Trusts and companies have different rules |
+
 ## Decoding the Eligibility Criteria: The 100-Point Test
 
 Achieving ESIC status is not automatic. The Australian Taxation Office (ATO) has established a two-pronged approach to determine eligibility. A company must satisfy **both** a principles-based test and pass a quantitative test. The quantitative test, often referred to as the "100-point innovation test," is the most common hurdle for founders.
@@ -121,5 +134,16 @@ To navigate the ESIC landscape effectively, founders should adopt a structured a
 | **6** | **Cap Table Check** | Ensure your current shareholder structure allows for new ESIC-eligible shares to be issued. |
 | **7** | **Investor Communication** | Prepare a clear summary of the ESIC benefits to include in your pitch deck. |
 | **8** | **Formal Application** | File the necessary documentation with the ATO or have your tax advisor lodge the claim. |
+
+> **ESIC Compliance Flowchart**
+>
+> **Step 1: Check Incorporation Date** → Is the company less than 10 years old? → If No: Not eligible
+> **Step 2: Revenue & Expense Test** → Revenue < $200K and expenses < $1M? → If No: Not eligible
+> **Step 3: Listed Status** → Is the company unlisted? → If No: Not eligible
+> **Step 4: Principles-Based Test** → Does the company demonstrate genuine innovation and high growth? → If No: Not eligible
+> **Step 5: Choose Qualification Path** → Option A: Score 100+ on the Innovation Checklist OR Option B: Incur $250K+ in eligible R&D expenditure
+> **Step 6: Document Everything** → Record all R&D activities, IP development, expenditure, and commercial intent with dates and costs
+> **Step 7: Engage Tax Advisor** → Have a specialist validate your ESIC assessment before issuing shares
+> **Step 8: Issue Shares & Claim** → Issue new shares to investors, lodge with ATO, and provide ESIC confirmation to investors for their tax returns
 
 This checklist should be

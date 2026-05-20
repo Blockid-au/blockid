@@ -12,6 +12,21 @@ Before you commit to a path, you must understand the mechanics of both. Bootstra
 
 To make this decision with confidence, you need a framework that moves beyond intuition and into data-driven strategy. This guide will dissect the decision matrix for Australian founders, comparing the two paths against capital intensity, competitive landscape, and founder goals.
 
+### Bootstrap vs VC: The 5-Year Financial Outcome
+
+| Factor | Bootstrapped Path | VC-Funded Path |
+|---|---|---|
+| **Year 1 Revenue** | $100K - $300K | $0 - $50K (product focus) |
+| **Year 3 Revenue** | $500K - $2M | $2M - $10M |
+| **Year 5 Revenue** | $2M - $5M | $10M - $50M+ |
+| **Founder Ownership at Year 5** | 80 - 100% | 15 - 30% |
+| **Total Funding Required** | $0 - $100K (personal) | $5M - $20M+ |
+| **Break-even Timeline** | 6 - 18 months | 3 - 7 years |
+| **Exit Valuation Range** | $5M - $20M | $50M - $500M+ |
+| **Risk of Founder Removal** | None | Moderate - High |
+| **Decision Speed** | Instant (founder decides) | Slow (board approval) |
+| **Geographic Constraint** | Local / niche focus | Global scale required |
+
 ## The Decision Matrix: 4 Critical Factors for Australian Startups
 
 Determining whether to **bootstrap startup Australia** or seek venture capital requires a rigorous assessment of four core variables. These factors interact dynamically, and shifting one can completely alter the viability of a funding strategy.
@@ -124,6 +139,16 @@ Australian venture capital firms have matured significantly. Firms like Blackbir
 If your TAM (Total Addressable Market) is Australia-only, you may struggle to attract top-tier VC interest. However, if your solution has global applicability, the Australian market serves as a perfect testing ground before expanding to the US or APAC.
 
 > **Need to validate your potential?** [Get your free SVI score](/) to see how your startup stacks up against the benchmarks Australian VCs use to evaluate deals. Your **Startup Value Index** can reveal if your metrics are attractive enough for institutional investment.
+
+### Decision Criteria Checklist: Which Path Fits Your Startup?
+
+> **Step 1** → Assess your market speed. Is this a "winner-takes-all" category?
+> **Step 2** → Calculate your capital needs. Can you reach $1M ARR with less than $100K?
+> **Step 3** → Evaluate your competitive landscape. Are rivals VC-backed?
+> **Step 4** → Define your personal goals. Lifestyle business or unicorn ambition?
+> **Step 5** → Check your unit economics. Are gross margins above 70%?
+> **Step 6** → Review the regulatory burden. Does your sector require heavy upfront compliance spend?
+> **Step 7** → Make the call. If Steps 1, 3, and 6 point to "Yes" → consider VC. If Steps 2, 4, and 5 point to "Yes" → bootstrap.
 
 ## The Hybrid Model: The Best of Both Worlds
 

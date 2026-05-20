@@ -33,6 +33,21 @@ Consider the cost of a dispute. If a disagreement arises over a clause that was 
 
 The investment in a tailored agreement is an investment in your company's exit potential. Investors look at the cap table and the SHA to gauge the stability of the team. A sloppy agreement suggests sloppy management.
 
+### Key Clauses Checklist: What Every SHA Must Cover
+
+| Clause | Purpose | Priority | Risk if Missing |
+|---|---|---|---|
+| **Pre-emptive Rights (ROFR)** | Prevents unwanted external buyers | Critical | Loss of ownership control |
+| **Tag-Along Rights** | Protects minority on majority exit | Critical | Minority left behind in sale |
+| **Drag-Along Rights** | Enables clean 100% acquisition | Critical | Buyer walks away, deal dies |
+| **Vesting Schedule** | Ensures founders earn their equity | Critical | Early leaver retains full stake |
+| **Good/Bad Leaver** | Defines equity treatment on departure | High | Costly litigation, frozen cap table |
+| **Reserved Matters** | Requires super-majority for key decisions | High | Majority overrides minority interests |
+| **Deadlock Resolution** | Breaks board/shareholder stalemates | High | Company paralysis, receivership |
+| **IP Assignment** | Transfers all IP to the company | Critical | IP belongs to individuals, not company |
+| **Non-Compete** | Prevents founders joining competitors | Medium | Ex-founder competes directly |
+| **Exit/Valuation Mechanism** | Defines share price methodology | High | Endless valuation disputes at exit |
+
 ## The Six Pillars of a Robust Shareholders Agreement
 
 To build a **shareholders agreement startup** document that truly protects you, you must go beyond the basics. The following six clauses are the pillars of a functional agreement. If any of these are missing or weak, your startup is vulnerable.
@@ -52,6 +67,19 @@ These clauses are the mechanisms of exit strategy. They are often the most negot
 **Tag-Along rights** protect minority shareholders. If a majority shareholder (e.g., a founder selling their stake to a private equity firm) receives a buyout offer, tag-along rights allow the minority shareholders to "tag along" and sell their shares on the same terms. This prevents majority founders from cutting a side deal while leaving minority founders behind.
 
 **Drag-Along rights** protect majority shareholders. If a buyer wants to purchase 100% of the company, but a minority shareholder refuses to sell, drag-along rights allow the majority to force the minority to sell their shares under the same terms. This is essential for a clean exit, as most buyers do not want to chase down every small shareholder to close a deal.
+
+### Drag-Along vs Tag-Along: Side-by-Side Comparison
+
+| Feature | Tag-Along Rights | Drag-Along Rights |
+|---|---|---|
+| **Who it protects** | Minority shareholders | Majority shareholders |
+| **Trigger** | Majority receives a buyout offer | Buyer wants 100% of the company |
+| **Mechanism** | Minority can sell on the same terms | Majority forces minority to sell |
+| **Typical threshold** | Any sale by majority shareholder | 75%+ shareholder approval |
+| **Price protection** | Same price per share as majority | Same price per share for all |
+| **Without this clause** | Minority abandoned in a side deal | Single holdout blocks entire exit |
+| **Australian context** | Standard in all VC-backed deals | Often negotiated with a price floor |
+| **Founder tip** | Always insist on tag-along rights | Negotiate a minimum valuation trigger |
 
 ### 3. Board Composition and Reserved Matters
 

@@ -215,6 +215,18 @@ Investors negotiate preference share terms that protect their downside:
 - Use a cap table calculator (see below) to run scenarios.
 - Discuss dilution expectations with co-founders and investors upfront. This prevents disputes later.
 
+> **Dilution Waterfall: How Founder Ownership Shrinks Over Rounds**
+>
+> | Event | New Shares | Total Shares | Founder A % | Founder B % | ESOP % | Investors % |
+> | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
+> | **Incorporation** | 400,000 | 400,000 | 50.0% | 50.0% | 0.0% | 0.0% |
+> | **ESOP Creation (15%)** | 70,588 | 470,588 | 42.5% | 42.5% | 15.0% | 0.0% |
+> | **Pre-Seed ($300K, $3M cap)** | 52,288 | 522,876 | 38.2% | 38.2% | 13.5% | 10.0% |
+> | **Seed ($1.5M, $7.5M post)** | 104,575 | 627,451 | 31.9% | 31.9% | 11.2% | 25.0% |
+> | **Series A ($5M, $20M post)** | 209,150 | 836,601 | 23.9% | 23.9% | 8.4% | 43.8% |
+>
+> **Key Takeaway:** After a typical Australian funding journey from incorporation to Series A, each co-founder's stake drops from 50% to approximately 24%. Plan for this dilution and negotiate valuation carefully at each stage.
+
 ## Cap Table Template: What You Need
 
 Here's the minimum structure for an Australian startup cap table:
@@ -236,6 +248,17 @@ Here's the minimum structure for an Australian startup cap table:
 - **Vesting Start/End:** First day and last day of vesting period
 - **Vesting %age:** How much has vested as of today
 - **Notes:** Key terms (preference share rights, cliff, leaver provisions, etc.)
+
+| Ownership Class | Shares | Price (AUD) | Value (AUD) | Ownership % | Fully Diluted % |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| **Alice Chen (Founder)** | 200,000 | $0.001 | $200 | 23.5% | 19.0% |
+| **Bob Singh (Founder)** | 200,000 | $0.001 | $200 | 23.5% | 19.0% |
+| **Investor Fund X (Pref A)** | 250,000 | $0.50 | $125,000 | 29.4% | 23.8% |
+| **Sarah Wong (Options)** | 48,000 | $0.001 | $48 | 5.6% | 4.6% |
+| **ESOP Pool (Reserved)** | 150,000 | $0.001 | $150 | 17.6% | 14.3% |
+| **Series B (Projected)** | - | - | - | - | 19.3% |
+| **Total (Current)** | **848,000** | | **$125,598** | **100%** | |
+| **Total (Fully Diluted)** | **1,048,000** | | | | **100%** |
 
 **Additional sheets to maintain:**
 

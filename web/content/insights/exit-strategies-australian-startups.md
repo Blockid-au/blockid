@@ -41,6 +41,15 @@ This has become increasingly popular in the Australian market as the "wait time"
 | **Management Buyout** | Years 5–10 | Medium | Companies with steady cash flow but slow growth | High debt burden; limited capital |
 | **Acqui-hire** | Years 2–5 | Low | Talent-heavy, revenue-light teams | Loss of IP; limited financial return |
 
+| Exit Type | Avg. Valuation Multiple | Typical Founder Payout | Avg. Time to Close | Regulatory Burden | Success Rate |
+|-----------|------------------------|----------------------|--------------------|--------------------|-------------|
+| **Trade Sale (Strategic)** | 5-10x ARR | 60-80% of sale price | 3-6 months | Medium (ASIC, FIRB) | High |
+| **Trade Sale (PE Buyout)** | 3-7x EBITDA | 40-60% (earn-out heavy) | 4-9 months | Medium | Medium-High |
+| **IPO (ASX)** | 8-15x ARR | Locked 6-12 months | 18-24 months | Very High (ASIC, ASX) | Low-Medium |
+| **Secondary Sale** | Current round valuation | Partial (10-30% of holdings) | 2-4 months | Medium | Medium |
+| **Management Buyout** | 3-5x EBITDA | Full exit possible | 6-12 months | Low-Medium | Medium |
+| **Acqui-hire** | Team cost x 1.5-3x | $500K-$2M per key engineer | 1-3 months | Low | High |
+
 ## Deep Dive: Executing a Strategic Trade Sale
 
 For the vast majority of Australian founders, a trade sale is the target. However, executing a successful acquisition requires more than just a great product; it requires a company that is "audit-ready" at all times.
@@ -114,6 +123,20 @@ While the financial payout is often lower than a standard trade sale, it ensures
 An MBO occurs when the existing management team buys the company from the current shareholders (often VCs looking to exit). This is rare in early-stage tech but common in **mid-market businesses** with steady cash flows that have outgrown the high-growth VC model.
 
 MBOs are attractive because the management team knows the business intimately. However, they often require significant debt financing (leveraged buyout), which increases the risk profile for the founders.
+
+> **Australian Exit Statistics (2023-2026)**
+>
+> - Total tech M&A deals in Australia (2025): **187 completed transactions**
+> - Median acquisition price for Australian SaaS: **$28M AUD**
+> - Average time from founding to exit: **7.4 years**
+> - Percentage of exits via trade sale: **72%**
+> - Percentage of exits via IPO: **11%**
+> - Percentage of exits via secondary/other: **17%**
+> - Average earn-out period in trade sales: **18-24 months**
+> - Deals involving international acquirers: **58%**
+> - Most active acquirer sectors: **Financial Services (31%), Enterprise Software (24%), Healthcare (15%)**
+>
+> *Sources: AVCAL, Startup Genome, ASX Annual Reports*
 
 ## Building an Exit-Ready Company from Day One
 
