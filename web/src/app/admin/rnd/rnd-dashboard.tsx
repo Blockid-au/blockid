@@ -147,8 +147,8 @@ export function RndDashboard() {
 
   useEffect(() => {
     const h = loadHistory();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time hydration from localStorage on mount
     if (h.length > 0) setHistory(h);
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time hydration from localStorage
   }, []);
 
   const runResearch = useCallback(async (topic: RndTopic) => {

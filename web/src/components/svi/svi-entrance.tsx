@@ -119,7 +119,7 @@ export function SVIEntrance() {
   const [searchFocused, setSearchFocused] = React.useState(false);
   const [rndStatus, setRndStatus] = React.useState<string | null>(null);
   const [rndReport, setRndReport] = React.useState<RndReport | null>(null);
-  const [detectedInputType, setDetectedInputType] = React.useState<"url" | "document" | "idea" | null>(null);
+  // detectedInputType is now a useMemo — see below
   const [showPaywall, setShowPaywall] = React.useState(false);
   const [hasPaidPlan, setHasPaidPlan] = React.useState(false);
   const [lastInput, setLastInput] = React.useState<{ rawText: string; fileName?: string } | null>(null);
@@ -204,17 +204,15 @@ export function SVIEntrance() {
     el.style.height = `${Math.min(el.scrollHeight, 240)}px`;
   }, [text]);
 
-  // Detect input type from text content
-  React.useEffect(() => {
-    if (file) {
-      setDetectedInputType("document");
-    } else if (text.trim()) {
+  // Derive input type from text content (no effect needed)
+  const detectedInputType = React.useMemo(() => {
+    if (file) return "document";
+    if (text.trim()) {
       const trimmed = text.trim();
       const isUrl = /^https?:\/\//i.test(trimmed) || /^(www\.)?[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}/.test(trimmed);
-      setDetectedInputType(isUrl ? "url" : "idea");
-    } else {
-      setDetectedInputType(null);
+      return isUrl ? "url" : "idea";
     }
+    return null;
   }, [text, file]);
 
   const toggleVoice = () => {
