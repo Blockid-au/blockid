@@ -1,0 +1,234 @@
+[
+  {
+    "id": "01-stat-1",
+    "file": "video-assets/audio/3min/01-stat-1.mp3",
+    "text": "Ninety percent of startups fail.",
+    "emotion": "urgent",
+    "pauseAfterMs": 500,
+    "sizeKB": 15
+  },
+  {
+    "id": "02-stat-2",
+    "file": "video-assets/audio/3min/02-stat-2.mp3",
+    "text": "Three hundred and seventy thousand Australian businesses closed last year.",
+    "emotion": "urgent",
+    "pauseAfterMs": 500,
+    "sizeKB": 24
+  },
+  {
+    "id": "03-stat-3",
+    "file": "video-assets/audio/3min/03-stat-3.mp3",
+    "text": "Ninety-seven billion dollars in AI funding. Ninety percent still fail.",
+    "emotion": "urgent",
+    "pauseAfterMs": 1000,
+    "sizeKB": 30
+  },
+  {
+    "id": "04-stat-4",
+    "file": "video-assets/audio/3min/04-stat-4.mp3",
+    "text": "The gap: AI builds products. Nothing builds businesses.",
+    "emotion": "dramatic",
+    "pauseAfterMs": 1500,
+    "sizeKB": 35
+  },
+  {
+    "id": "05-intro-1",
+    "file": "video-assets/audio/3min/05-intro-1.mp3",
+    "text": "I'm Do Van Long, founder of BlockID.",
+    "emotion": "inspiring",
+    "pauseAfterMs": 300,
+    "sizeKB": 19
+  },
+  {
+    "id": "06-intro-2",
+    "file": "video-assets/audio/3min/06-intro-2.mp3",
+    "text": "I've seen founders build amazing AI products, then struggle to value them, split equity fairly, or get investor-ready.",
+    "emotion": "inspiring",
+    "pauseAfterMs": 1000,
+    "sizeKB": 43
+  },
+  {
+    "id": "07-p1",
+    "file": "video-assets/audio/3min/07-p1.mp3",
+    "text": "How much is my idea worth? Manual valuation: five to fifty thousand dollars. Two to six weeks.",
+    "emotion": "urgent",
+    "pauseAfterMs": 300,
+    "sizeKB": 43
+  },
+  {
+    "id": "08-s1",
+    "file": "video-assets/audio/3min/08-s1.mp3",
+    "text": "BlockID: AI valuation in sixty seconds. From one dollar.",
+    "emotion": "excited",
+    "pauseAfterMs": 500,
+    "sizeKB": 28
+  },
+  {
+    "id": "09-p2",
+    "file": "video-assets/audio/3min/09-p2.mp3",
+    "text": "How do I split equity? Forty-two percent of co-founder disputes destroy startups.",
+    "emotion": "urgent",
+    "pauseAfterMs": 300,
+    "sizeKB": 33
+  },
+  {
+    "id": "10-s2",
+    "file": "video-assets/audio/3min/10-s2.mp3",
+    "text": "BlockID: fair equity calculator based on real contributions.",
+    "emotion": "excited",
+    "pauseAfterMs": 500,
+    "sizeKB": 25
+  },
+  {
+    "id": "11-p3",
+    "file": "video-assets/audio/3min/11-p3.mp3",
+    "text": "How do I get investor-ready? Average data room preparation: three to six weeks.",
+    "emotion": "urgent",
+    "pauseAfterMs": 300,
+    "sizeKB": 34
+  },
+  {
+    "id": "12-s3",
+    "file": "video-assets/audio/3min/12-s3.mp3",
+    "text": "BlockID: evidence vault with auto-scored readiness. Upload and your score rises.",
+    "emotion": "excited",
+    "pauseAfterMs": 1000,
+    "sizeKB": 32
+  },
+  {
+    "id": "13-demo-intro",
+    "file": "video-assets/audio/3min/13-demo-intro.mp3",
+    "text": "Let me show you how BlockID works.",
+    "emotion": "excited",
+    "pauseAfterMs": 1000,
+    "sizeKB": 14
+  },
+  {
+    "id": "14-demo-svi",
+    "file": "video-assets/audio/3min/14-demo-svi.mp3",
+    "text": "Ten-page AI analysis. Market research. Competitor analysis. Business model evaluation. Actionable recommendations. All in under a minute.",
+    "emotion": "excited",
+    "pauseAfterMs": 500,
+    "sizeKB": 64
+  },
+  {
+    "id": "15-demo-action",
+    "file": "video-assets/audio/3min/15-demo-action.mp3",
+    "text": "Every recommendation links directly to a tool. Complete it, and your score automatically increases.",
+    "emotion": "excited",
+    "pauseAfterMs": 500,
+    "sizeKB": 36
+  },
+  {
+    "id": "16-evidence",
+    "file": "video-assets/audio/3min/16-evidence.mp3",
+    "text": "Upload evidence. Pitch decks. Revenue proof. GitHub repos. Each piece of verified evidence lifts your score.",
+    "emotion": "inspiring",
+    "pauseAfterMs": 300,
+    "sizeKB": 52
+  },
+  {
+    "id": "17-connect",
+    "file": "video-assets/audio/3min/17-connect.mp3",
+    "text": "Connect Stripe for revenue. Connect GitHub for code. Your startup's value grows with you.",
+    "emotion": "inspiring",
+    "pauseAfterMs": 1000,
+    "sizeKB": 37
+  },
+  {
+    "id": "18-vision",
+    "file": "video-assets/audio/3min/18-vision.mp3",
+    "text": "But we're just getting started.",
+    "emotion": "inspiring",
+    "pauseAfterMs": 1500,
+    "sizeKB": 13
+  },
+  {
+    "id": "19-roadmap",
+    "file": "video-assets/audio/3min/19-roadmap.mp3",
+    "text": "Equity tokenized on blockchain. Automatic dividend distribution. ESOP that vests with real contributions. From idea to IPO. One platform.",
+    "emotion": "inspiring",
+    "pauseAfterMs": 1000,
+    "sizeKB": 66
+  },
+  {
+    "id": "20-market-1",
+    "file": "video-assets/audio/3min/20-market-1.mp3",
+    "text": "Two thousand six hundred active Australian startups. Three hundred accelerators. Fifteen thousand angel investors.",
+    "emotion": "inspiring",
+    "pauseAfterMs": 300,
+    "sizeKB": 47
+  },
+  {
+    "id": "21-market-2",
+    "file": "video-assets/audio/3min/21-market-2.mp3",
+    "text": "And not one AI-native valuation platform built for Australia.",
+    "emotion": "dramatic",
+    "pauseAfterMs": 1000,
+    "sizeKB": 31
+  },
+  {
+    "id": "22-comp",
+    "file": "video-assets/audio/3min/22-comp.mp3",
+    "text": "Carta is US-centric. Pulley starts at fundraise. BlockID starts at Day Zero. Before you've even incorporated.",
+    "emotion": "excited",
+    "pauseAfterMs": 1000,
+    "sizeKB": 46
+  },
+  {
+    "id": "23-team",
+    "file": "video-assets/audio/3min/23-team.mp3",
+    "text": "Built for Australian compliance from day one. ASIC registration. ESIC tax incentives. R&D tax offset.",
+    "emotion": "neutral",
+    "pauseAfterMs": 1000,
+    "sizeKB": 48
+  },
+  {
+    "id": "24-dm-1",
+    "file": "video-assets/audio/3min/24-dm-1.mp3",
+    "text": "Two hundred and fifty-two billion dollars invested in AI last year.",
+    "emotion": "dramatic",
+    "pauseAfterMs": 1500,
+    "sizeKB": 33
+  },
+  {
+    "id": "25-dm-2",
+    "file": "video-assets/audio/3min/25-dm-2.mp3",
+    "text": "Ninety percent of those startups will fail.",
+    "emotion": "dramatic",
+    "pauseAfterMs": 1500,
+    "sizeKB": 21
+  },
+  {
+    "id": "26-dm-3",
+    "file": "video-assets/audio/3min/26-dm-3.mp3",
+    "text": "Not because of bad ideas.",
+    "emotion": "dramatic",
+    "pauseAfterMs": 1500,
+    "sizeKB": 17
+  },
+  {
+    "id": "27-dm-4",
+    "file": "video-assets/audio/3min/27-dm-4.mp3",
+    "text": "Because nobody helped them prove their value.",
+    "emotion": "dramatic",
+    "pauseAfterMs": 1500,
+    "sizeKB": 21
+  },
+  {
+    "id": "28-dm-5",
+    "file": "video-assets/audio/3min/28-dm-5.mp3",
+    "text": "Until now.",
+    "emotion": "dramatic",
+    "pauseAfterMs": 2000,
+    "sizeKB": 10
+  },
+  {
+    "id": "29-cta",
+    "file": "video-assets/audio/3min/29-cta.mp3",
+    "text": "First analysis free. Start today at blockid dot ay you.",
+    "emotion": "neutral",
+    "pauseAfterMs": 500,
+    "sizeKB": 26
+  }
+]

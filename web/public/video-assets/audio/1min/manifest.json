@@ -1,0 +1,114 @@
+[
+  {
+    "id": "01-problem-1",
+    "file": "video-assets/audio/1min/01-problem-1.mp3",
+    "text": "Ninety percent of startups fail.",
+    "emotion": "urgent",
+    "pauseAfterMs": 500,
+    "sizeKB": 15
+  },
+  {
+    "id": "02-problem-2",
+    "file": "video-assets/audio/1min/02-problem-2.mp3",
+    "text": "In Australia, three hundred and seventy thousand businesses closed last year.",
+    "emotion": "urgent",
+    "pauseAfterMs": 500,
+    "sizeKB": 27
+  },
+  {
+    "id": "03-ai-1",
+    "file": "video-assets/audio/1min/03-ai-1.mp3",
+    "text": "Ninety-seven billion dollars poured into AI startups in 2024 alone.",
+    "emotion": "urgent",
+    "pauseAfterMs": 300,
+    "sizeKB": 29
+  },
+  {
+    "id": "04-ai-2",
+    "file": "video-assets/audio/1min/04-ai-2.mp3",
+    "text": "But ninety percent of AI startups still fail. Average lifespan? Eighteen months.",
+    "emotion": "urgent",
+    "pauseAfterMs": 1000,
+    "sizeKB": 35
+  },
+  {
+    "id": "05-gap-1",
+    "file": "video-assets/audio/1min/05-gap-1.mp3",
+    "text": "The problem? AI can build products.",
+    "emotion": "dramatic",
+    "pauseAfterMs": 300,
+    "sizeKB": 24
+  },
+  {
+    "id": "06-gap-2",
+    "file": "video-assets/audio/1min/06-gap-2.mp3",
+    "text": "But it can't value them. It can't split equity. It can't prepare for investors.",
+    "emotion": "dramatic",
+    "pauseAfterMs": 300,
+    "sizeKB": 44
+  },
+  {
+    "id": "07-gap-3",
+    "file": "video-assets/audio/1min/07-gap-3.mp3",
+    "text": "Manual valuation costs five to fifty thousand dollars. And takes weeks.",
+    "emotion": "urgent",
+    "pauseAfterMs": 1500,
+    "sizeKB": 29
+  },
+  {
+    "id": "08-solution",
+    "file": "video-assets/audio/1min/08-solution.mp3",
+    "text": "BlockID changes this.",
+    "emotion": "inspiring",
+    "pauseAfterMs": 500,
+    "sizeKB": 12
+  },
+  {
+    "id": "09-demo",
+    "file": "video-assets/audio/1min/09-demo.mp3",
+    "text": "AI-powered valuation. In sixty seconds. From Day Zero.",
+    "emotion": "excited",
+    "pauseAfterMs": 1000,
+    "sizeKB": 27
+  },
+  {
+    "id": "10-platform",
+    "file": "video-assets/audio/1min/10-platform.mp3",
+    "text": "One platform. Entire startup lifecycle. Idea to exit.",
+    "emotion": "inspiring",
+    "pauseAfterMs": 1000,
+    "sizeKB": 32
+  },
+  {
+    "id": "11-market",
+    "file": "video-assets/audio/1min/11-market.mp3",
+    "text": "A four point four trillion dollar global startup ecosystem. Two thousand six hundred active Australian startups. And not one AI-native valuation platform built for Australia.",
+    "emotion": "inspiring",
+    "pauseAfterMs": 1500,
+    "sizeKB": 65
+  },
+  {
+    "id": "12-dropmic-1",
+    "file": "video-assets/audio/1min/12-dropmic-1.mp3",
+    "text": "AI builds products.",
+    "emotion": "dramatic",
+    "pauseAfterMs": 500,
+    "sizeKB": 14
+  },
+  {
+    "id": "13-dropmic-2",
+    "file": "video-assets/audio/1min/13-dropmic-2.mp3",
+    "text": "BlockID builds businesses.",
+    "emotion": "dramatic",
+    "pauseAfterMs": 2000,
+    "sizeKB": 18
+  },
+  {
+    "id": "14-cta",
+    "file": "video-assets/audio/1min/14-cta.mp3",
+    "text": "Try free at blockid dot ay you.",
+    "emotion": "neutral",
+    "pauseAfterMs": 500,
+    "sizeKB": 13
+  }
+]
