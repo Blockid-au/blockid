@@ -35,11 +35,16 @@ Founder & CEO: Do Van Long
 │   ├── Data Analyst (product analytics, cohort analysis)
 │   └── Feature PM (roadmap prioritization, specs)
 │
-└── CRO — Chief Revenue Officer
-    ├── Conversion Specialist (funnel optimization, CRO experiments)
-    ├── Retention Lead (churn prevention, engagement loops)
-    ├── Partnerships Lead (accelerators, VCs, ecosystem)
-    └── Sales Ops (pricing, upsell, enterprise pipeline)
+├── CRO — Chief Revenue Officer
+│   ├── Conversion Specialist (funnel optimization, CRO experiments)
+│   ├── Retention Lead (churn prevention, engagement loops)
+│   ├── Partnerships Lead (accelerators, VCs, ecosystem)
+│   └── Sales Ops (pricing, upsell, enterprise pipeline)
+│
+└── Blockchain Expert — Blockchain Infrastructure Lead
+    ├── Smart Contract Dev (CosmWasm, Rust, vesting/dividend contracts)
+    ├── Validator Ops (Cosmos chain deployment, monitoring)
+    └── Wallet Integration (MetaMask, Keplr, custodial wallets)
 ```
 
 ## Role Registry
@@ -75,6 +80,10 @@ Founder & CEO: Do Van Long
 | CRO-003 | Retention Lead | CRO | Planned | Phase 4-7 | Churn prevention, engagement |
 | CRO-004 | Partnerships Lead | CRO | Planned | Phase 5-7 | Accelerators, VCs, ecosystem |
 | CRO-005 | Sales Ops | CRO | Planned | Phase 6-7 | Enterprise pipeline, upsell |
+| BLK-001 | Blockchain Expert | CEO | Planned | Phase 4-8 | `/blockchain-expert` — Cosmos, tokens, wallets |
+| BLK-002 | Smart Contract Dev | BLK | Planned | Phase 5-8 | CosmWasm, Rust, vesting/dividend |
+| BLK-003 | Validator Ops | BLK | Planned | Phase 5-8 | Chain deployment, monitoring |
+| BLK-004 | Wallet Integration | BLK | Planned | Phase 5-7 | MetaMask, Keplr, custodial |
 
 ## Communication Protocol
 

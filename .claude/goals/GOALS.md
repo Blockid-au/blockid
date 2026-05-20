@@ -1,7 +1,9 @@
 # BlockID.au Platform Goals
 
+> **Master Vision**: [MASTER-VISION.md](MASTER-VISION.md) — full business case, market data, founder journey, unified roadmap
+
 ## Mission
-Transform BlockID.au from a one-shot AI analysis tool into a living companion platform that accompanies founders from Day 0 idea to exit — with transparent equity, on-chain tokenization, and automated dividend distribution.
+Become the **#1 startup valuation and ownership platform in Australia** — accompanying founders from Day 0 idea to exit with AI-powered valuation, transparent equity, blockchain-based ownership, and automated dividend distribution.
 
 ## Goal Overview
 
@@ -18,13 +20,15 @@ Transform BlockID.au from a one-shot AI analysis tool into a living companion pl
 
 ## Organizational Structure
 - [Org Chart](org-chart.md) — Complete hierarchy, role registry
-- [COO Goals](coo-goals.md) — Operations, sprint planning, coordination
-- [CTO Goals](cto-goals.md) — Engineering, features, security, performance
-- [CMO Goals](cmo-goals.md) — Marketing, SEO, content, brand
-- [CFO Goals](cfo-goals.md) — Finance, pricing, revenue, costs
-- [CPO Goals](cpo-goals.md) — Product, UX, research, A/B testing
-- [CRO Goals](cro-goals.md) — Revenue, conversion, retention, partnerships
-- [Investor Relations](investor-relations-goals.md) — Pitch, data room, accelerator, video production
+- [Agent-Skill Map](../skills/AGENT-SKILL-MAP.md) — Skill delegation per agent
+- [CTO Goals](cto-goals.md) — Engineering (22 skills, 4 sub-agents)
+- [CPO Goals](cpo-goals.md) — Product (8 skills, 3 sub-agents)
+- [CMO Goals](cmo-goals.md) — Marketing (9 skills, 3 sub-agents)
+- [CFO Goals](cfo-goals.md) — Finance (7 skills, 3 sub-agents)
+- [COO Goals](coo-goals.md) — Operations (10 skills, 3 sub-agents)
+- [CRO Goals](cro-goals.md) — Revenue (8 skills, 3 sub-agents)
+- [Investor Relations](investor-relations-goals.md) — Pitch, data room, accelerator
+- **Blockchain Expert** — Cosmos chain, tokenization, MetaMask, dividends (skill: `/blockchain-expert`)
 
 ## Execution Framework
 - [Sprint Cadence](sprint-cadence.md) — 2-week sprints, S2026-10 = current
