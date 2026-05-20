@@ -180,6 +180,8 @@ export function SVIEntrance() {
   }, [searchParams, router, checkGate]);
 
   // Check if user is authenticated with a paid plan — skip the gate if so.
+  // Also triggers after a login redirect (detected via ?logged_in=true).
+  const justLoggedIn = searchParams.get("logged_in") === "true";
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -194,8 +196,14 @@ export function SVIEntrance() {
         // Silently ignore — gate stays active.
       }
     })();
+    // Clean the logged_in param from the URL without a full page reload.
+    if (justLoggedIn) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("logged_in");
+      router.replace(url.pathname + url.search + url.hash, { scroll: false });
+    }
     return () => { cancelled = true; };
-  }, []);
+  }, [justLoggedIn, router]);
 
   React.useEffect(() => {
     const el = textareaRef.current;
@@ -604,7 +612,7 @@ export function SVIEntrance() {
                       className="inline-flex h-10 items-center gap-2 rounded-xl bg-amber-500 px-6 text-sm font-semibold text-white hover:bg-amber-600 transition-colors cursor-pointer"
                     >
                       <Sparkles className="h-4 w-4" />
-                      Deep Dive — 3 credits
+                      Deep Dive — 1.50 credits
                     </button>
                   </div>
                 </div>
@@ -637,6 +645,9 @@ export function SVIEntrance() {
               <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-[-0.02em] leading-[1.05] text-ink-900">
                 The <span className="bg-gradient-to-r from-brand-600 to-brand-500 bg-clip-text text-transparent">agentic AI valuation</span> platform for business growth from day one.
               </h1>
+              <p className="mt-3 text-lg md:text-xl font-medium text-brand-500/90 italic">
+                Keep using ChatGPT, Claude, or Gemini to build your product. Use BlockID to value it, structure ownership, and get investor-ready.
+              </p>
               <p className="mt-5 text-lg md:text-xl font-medium text-brand-600/80">
                 Index valuation, ownership, and execution milestones from idea to scale.
               </p>
@@ -938,8 +949,8 @@ export function SVIEntrance() {
               <div className="absolute top-3 right-3 sm:top-4 sm:right-4 rounded-full bg-emerald-600 px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-wider">Launch Price</div>
               <p className="text-xs uppercase tracking-[0.15em] text-ink-500 font-medium mb-2">Per-Analysis</p>
               <h3 className="text-xl font-bold text-ink-800 mb-1">SVI Analysis Report</h3>
-              <p className="text-3xl font-extrabold text-brand-600 mb-1">A$1 <span className="text-base text-ink-400 line-through font-normal ml-1">$25</span></p>
-              <p className="text-xs text-emerald-600 font-semibold mb-4">Early-bird until June 15, 2026</p>
+              <p className="text-3xl font-extrabold text-brand-600 mb-1">A$0.50 <span className="text-base text-ink-400 line-through font-normal ml-1">$25</span></p>
+              <p className="text-xs text-emerald-600 font-semibold mb-4">Fractional credits — pay only for what you use</p>
               <ul className="text-left text-sm text-ink-700 space-y-2 mb-6 mx-auto max-w-xs">
                 <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> 1st analysis free &mdash; no signup needed</li>
                 <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> 10-page AI-powered report</li>
@@ -948,7 +959,7 @@ export function SVIEntrance() {
               </ul>
               <div className="mt-auto">
                 <a href="#svi" className="inline-flex h-11 items-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
-                  Try Free &mdash; Then A$1/report <ArrowRight strokeWidth={2} className="h-4 w-4" />
+                  Try Free &mdash; Then 0.50 credits/report <ArrowRight strokeWidth={2} className="h-4 w-4" />
                 </a>
               </div>
             </div>
@@ -961,7 +972,7 @@ export function SVIEntrance() {
               <p className="text-3xl font-extrabold text-brand-600 mb-1">A$49 <span className="text-base text-ink-400 line-through font-normal ml-1">$99</span></p>
               <p className="text-xs text-ink-500 mb-4">Lifetime access &middot; Only 50 spots</p>
               <ul className="text-left text-sm text-ink-700 space-y-2 mb-6 mx-auto max-w-xs">
-                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> 50 credits included</li>
+                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> 100 credits included</li>
                 <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Unlimited dashboard</li>
                 <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Evidence vault</li>
                 <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Cap table tools</li>
@@ -1252,7 +1263,7 @@ function SVIPaywall({
             <span className="text-2xl font-extrabold text-brand-600">$49 AUD</span>
             <span className="text-sm text-ink-400 line-through">$99</span>
           </div>
-          <p className="mt-1 text-xs text-ink-500">Unlimited analyses + Evidence Vault + more</p>
+          <p className="mt-1 text-xs text-ink-500">100 credits + Evidence Vault + more</p>
 
           <button
             type="button"
@@ -1276,7 +1287,7 @@ function SVIPaywall({
           {/* Features list */}
           <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1.5">
             {[
-              "Unlimited SVI analyses",
+              "100 credits included",
               "Evidence vault",
               "Export packs",
               "Cap table tools",

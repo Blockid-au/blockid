@@ -18,7 +18,7 @@ interface CouponResult {
 /*  Google Sign-In                                                            */
 /* ========================================================================== */
 
-function GoogleSignIn() {
+function GoogleSignIn({ nextUrl }: { nextUrl: string | null }) {
   const btnRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -38,13 +38,16 @@ function GoogleSignIn() {
           throw new Error(data.error ?? "Google sign-in failed");
         }
         trackEvent("login_google_success", {});
-        window.location.href = "/dashboard/svi";
+        // Redirect to the caller-supplied next URL, or default to homepage.
+        const target = nextUrl ?? "/";
+        const sep = target.includes("?") ? "&" : "?";
+        window.location.href = `${target}${sep}logged_in=true`;
       } catch (err) {
         setError(err instanceof Error ? err.message : "Google sign-in failed");
         setLoading(false);
       }
     },
-    [],
+    [nextUrl],
   );
 
   useEffect(() => {
@@ -120,7 +123,7 @@ function Divider() {
 /*  Magic-link email form                                                     */
 /* ========================================================================== */
 
-function MagicLinkForm() {
+function MagicLinkForm({ nextUrl }: { nextUrl: string | null }) {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<EmailState>("idle");
 
@@ -135,7 +138,12 @@ function MagicLinkForm() {
       const res = await fetch("/api/auth/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, intent: "login" }),
+        body: JSON.stringify({
+          email,
+          intent: "login",
+          // Pass post-login redirect so the verify route can honour it.
+          ...(nextUrl ? { next: nextUrl } : {}),
+        }),
       });
       if (!res.ok) throw new Error("request failed");
       setState("sent");
@@ -296,6 +304,7 @@ function CouponInput() {
 export function LoginForm() {
   const searchParams = useSearchParams();
   const plan = searchParams.get("plan");
+  const nextUrl = searchParams.get("next");
 
   return (
     <div className="space-y-0">
@@ -312,9 +321,9 @@ export function LoginForm() {
           plan.
         </p>
       )}
-      <GoogleSignIn />
+      <GoogleSignIn nextUrl={nextUrl} />
       <Divider />
-      <MagicLinkForm />
+      <MagicLinkForm nextUrl={nextUrl} />
       <CouponInput />
     </div>
   );

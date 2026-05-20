@@ -91,7 +91,7 @@ export default function Founding50Page() {
           <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
               <CheckCircle2 strokeWidth={1.75} className="h-3.5 w-3.5" />
-              50 credits included (worth A$50)
+              100 credits included (worth A$50)
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
               <CheckCircle2 strokeWidth={1.75} className="h-3.5 w-3.5" />

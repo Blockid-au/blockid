@@ -34,11 +34,12 @@ export async function POST(request: Request) {
     );
   }
 
-  const { email, intent, pendingPayload } =
+  const { email, intent, pendingPayload, next } =
     (body as {
       email?: string;
       intent?: MagicLinkIntent;
       pendingPayload?: PendingPayload;
+      next?: string;
     }) ?? {};
 
   if (!isValidEmail(email)) {
@@ -53,10 +54,19 @@ export async function POST(request: Request) {
 
   const ipHash = hashIp(clientIpFromHeaders(request.headers));
 
+  // Merge the post-login redirect into the pending payload so the verify
+  // route can honour it after the magic link is consumed.
+  const mergedPayload: PendingPayload = {
+    ...(pendingPayload ?? {}),
+    ...(next && typeof next === "string" && next.startsWith("/")
+      ? { next }
+      : {}),
+  };
+
   const result = await requestMagicLink({
     email: normaliseEmail(email),
     intent: safeIntent,
-    pendingPayload: pendingPayload ?? {},
+    pendingPayload: mergedPayload,
     ipHash,
   });
 

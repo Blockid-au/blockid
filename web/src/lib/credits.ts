@@ -1,9 +1,12 @@
 // Credit-based usage tracking (server-only).
 //
-// Hybrid pricing model: free trial (1 free credit), credit packs, and
-// subscription plans with included monthly credits. Every paid feature has a
-// credit cost; free features (evidence upload, investor score, dilution calc)
-// cost 0 credits.
+// Fractional credit model: credits are decimal values (e.g. 0.50 for a
+// standard SVI analysis). This makes pricing feel affordable — small amounts
+// per action, similar to ChatGPT/Claude token pricing.
+//
+// Hybrid pricing: free trial (2 free credits), credit packs, and subscription
+// plans with included monthly credits. Every paid feature has a credit cost;
+// free features (evidence upload, investor score, dilution calc) cost 0 credits.
 //
 // All mutations (spend / grant) are atomic: we upsert the balance row and
 // insert the transaction log in a single RPC or sequential pair of writes
@@ -17,17 +20,17 @@ import { getSupabaseAdmin } from "./supabase";
 // ---------------------------------------------------------------------------
 
 export const FEATURE_COSTS: Record<string, number> = {
-  svi_analysis: 1,   // A$1 per credit (early-bird), $25 standard
-  svi_report: 3,     // 3 credits — 10-page AI report
-  rnd_preview: 0,    // 0 credits — free 3-page preview report
-  rnd_report: 1,     // 1 credit — Standard 10-page R&D report
-  rnd_deep_dive: 3,  // 3 credits — Deep Dive unlimited-detail R&D report
-  term_sheet: 3,     // 3 credits
-  research: 2,       // 2 credits — competitive research
-  ai_score: 1,       // 1 credit — AI scoring enhancement
-  evidence_upload: 0, // free
-  investor_score: 0,  // free
-  dilution_calc: 0,   // free
+  svi_analysis: 0.50,  // A$0.50 — standard SVI analysis (10 pages)
+  svi_report: 0.50,    // alias for svi_analysis (backward compat)
+  rnd_preview: 0,      // 0 credits — free 3-page preview report
+  rnd_report: 1.00,    // A$1.00 — Standard 10-page R&D report (SSE streaming)
+  rnd_deep_dive: 1.50, // A$1.50 — Deep Dive extended R&D report
+  term_sheet: 1.00,    // A$1.00 — Term Sheet AI analysis
+  research: 0.50,      // A$0.50 — competitive research
+  ai_score: 0.25,      // A$0.25 — AI score enhancement
+  evidence_upload: 0,   // free
+  investor_score: 0,    // free
+  dilution_calc: 0,     // free
 };
 
 // ---------------------------------------------------------------------------
@@ -35,9 +38,9 @@ export const FEATURE_COSTS: Record<string, number> = {
 // ---------------------------------------------------------------------------
 
 export const PLAN_CREDITS: Record<string, { amount: number; recurring: boolean }> = {
-  free:       { amount: 1,      recurring: false },
-  founding50: { amount: 50,     recurring: false },
-  growth:     { amount: 100,    recurring: true  },
+  free:       { amount: 2,      recurring: false },  // 2 credits = ~4 standard analyses
+  founding50: { amount: 100,    recurring: false },  // 100 credits lifetime
+  growth:     { amount: 200,    recurring: true  },  // 200 credits/month
 };
 
 // ---------------------------------------------------------------------------
@@ -45,11 +48,24 @@ export const PLAN_CREDITS: Record<string, { amount: number; recurring: boolean }
 // ---------------------------------------------------------------------------
 
 export const CREDIT_PACKS = [
-  { credits: 5,  priceAudCents: 500,   label: "5 Credits",  savings: null },
-  { credits: 10, priceAudCents: 900,   label: "10 Credits", savings: "Save 10%" },
-  { credits: 25, priceAudCents: 2000,  label: "25 Credits", savings: "Save 20%" },
-  { credits: 50, priceAudCents: 3500,  label: "50 Credits", savings: "Save 30%" },
+  { credits: 10,  priceAudCents: 500,   label: "10 Credits",  savings: null },       // A$5 = A$0.50/credit
+  { credits: 25,  priceAudCents: 900,   label: "25 Credits",  savings: "Save 28%" }, // A$9 = A$0.36/credit
+  { credits: 50,  priceAudCents: 1500,  label: "50 Credits",  savings: "Save 40%" }, // A$15 = A$0.30/credit
+  { credits: 100, priceAudCents: 2500,  label: "100 Credits", savings: "Save 50%" }, // A$25 = A$0.25/credit
 ] as const;
+
+// ---------------------------------------------------------------------------
+// formatCredits — display-friendly credit amount.
+// Whole numbers show as "1", fractional as "0.50".
+// ---------------------------------------------------------------------------
+
+export function formatCredits(amount: number): string {
+  if (Number.isInteger(amount)) return String(amount);
+  // Show up to 2 decimal places, trimming trailing zeros
+  const formatted = amount.toFixed(2);
+  // Remove trailing zeros after decimal: "0.50" stays as "0.50", "1.00" → "1"
+  return formatted.replace(/\.00$/, "");
+}
 
 // ---------------------------------------------------------------------------
 // getBalance — read the user's current credit balance.
@@ -322,7 +338,7 @@ export async function getTransactionHistory(
 }
 
 // ---------------------------------------------------------------------------
-// initializeCredits — grant a new user their 1 free credit.
+// initializeCredits — grant a new user their free credits.
 // Idempotent: skips if the user already has a credit_balances row.
 // ---------------------------------------------------------------------------
 
@@ -339,8 +355,8 @@ export async function initializeCredits(userId: string): Promise<void> {
 
   if (existing) return; // already has a row
 
-  await grantCredits(userId, 1, "plan_grant", {
+  await grantCredits(userId, PLAN_CREDITS.free.amount, "plan_grant", {
     plan: "free",
-    note: "Welcome — 1 free SVI analysis credit",
+    note: `Welcome — ${PLAN_CREDITS.free.amount} free credits`,
   });
 }

@@ -52,6 +52,9 @@ export interface PendingPayload {
   ideaEval?: { inputs: unknown; ideaName?: string };
   equitySplit?: { founders: unknown[]; settings: unknown };
   fundingPlan?: { inputs: unknown };
+  // Post-login redirect target. When set, the verify route redirects here
+  // instead of the default /dashboard.
+  next?: string;
 }
 
 // -----------------------------------------------------------------------------
@@ -219,7 +222,7 @@ export async function consumeMagicLink(
     }
     userId = created.id;
 
-    // Grant 1 free credit to new users.
+    // Grant free credits to new users.
     await initializeCredits(created.id);
   }
 
@@ -456,7 +459,7 @@ export async function loginWithGoogle(
     }
     userId = created.id;
 
-    // Grant 1 free credit to new users.
+    // Grant free credits to new users.
     await initializeCredits(created.id);
   }
 

@@ -37,7 +37,7 @@ const tiers: Tier[] = [
     price: "$0",
     audience: "Try BlockID — no signup needed",
     features: [
-      "1 free SVI analysis report",
+      "2 free credits (~4 SVI analyses)",
       "Investor-Ready Score",
       "Dilution calculator",
       "Shareable report link",
@@ -52,7 +52,7 @@ const tiers: Tier[] = [
     subtitle: "one-time \u00b7 lifetime access",
     audience: "Everything you need from idea to fundraise",
     features: [
-      "50 analysis credits included (worth A$50)",
+      "100 credits included (worth A$50)",
       "Unlimited SVI dashboard access",
       "Evidence Vault & export packs",
       "Cap table & equity tools",
@@ -73,7 +73,7 @@ const tiers: Tier[] = [
     cadence: "/ month",
     audience: "For active fundraise \u00b7 Seed to Series A",
     features: [
-      "100 credits/month included",
+      "200 credits/month included",
       "Everything in Founder",
       "Multi-entity cap table",
       "Investor data room",

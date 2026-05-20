@@ -123,8 +123,16 @@ export async function GET(request: Request) {
   if (!sessionToken) return errorRedirect("session_failed");
   await setSessionCookie(sessionToken);
 
-  const target = packSlug
-    ? `${siteUrl()}/s/p/${packSlug}?welcome=1`
-    : `${siteUrl()}/dashboard?welcome=1`;
+  // Determine redirect target: pack page > explicit next > homepage.
+  let target: string;
+  if (packSlug) {
+    target = `${siteUrl()}/s/p/${packSlug}?welcome=1`;
+  } else if (payload.next && payload.next.startsWith("/")) {
+    // Honour the caller-supplied redirect (relative paths only for safety).
+    const sep = payload.next.includes("?") ? "&" : "?";
+    target = `${siteUrl()}${payload.next}${sep}logged_in=true`;
+  } else {
+    target = `${siteUrl()}/?logged_in=true`;
+  }
   return NextResponse.redirect(target, { status: 303 });
 }

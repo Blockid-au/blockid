@@ -425,18 +425,19 @@ export function BillingClient({
 
 /** Must stay in sync with CREDIT_PACKS in lib/credits.ts (server-only). */
 const CREDIT_PACK_OPTIONS = [
-  { amount: 5,  price: 5,  label: "5 credits",  priceLabel: "A$5",  perCredit: "A$1.00/credit",  savings: null },
-  { amount: 10, price: 9,  label: "10 credits", priceLabel: "A$9",  perCredit: "A$0.90/credit",  savings: "Save 10%" },
-  { amount: 25, price: 20, label: "25 credits", priceLabel: "A$20", perCredit: "A$0.80/credit",  savings: "Save 20%" },
-  { amount: 50, price: 35, label: "50 credits", priceLabel: "A$35", perCredit: "A$0.70/credit",  savings: "Save 30%" },
+  { amount: 10,  price: 5,  label: "10 credits",  priceLabel: "A$5",  perCredit: "A$0.50/credit",  savings: null },
+  { amount: 25,  price: 9,  label: "25 credits",  priceLabel: "A$9",  perCredit: "A$0.36/credit",  savings: "Save 28%" },
+  { amount: 50,  price: 15, label: "50 credits",  priceLabel: "A$15", perCredit: "A$0.30/credit",  savings: "Save 40%" },
+  { amount: 100, price: 25, label: "100 credits", priceLabel: "A$25", perCredit: "A$0.25/credit",  savings: "Save 50%" },
 ] as const;
 
 const FEATURE_COST_LIST = [
-  { feature: "SVI Analysis", cost: 1 },
-  { feature: "SVI Report (10-page)", cost: 3 },
-  { feature: "Term Sheet AI", cost: 3 },
-  { feature: "Competitive Research", cost: 2 },
-  { feature: "AI Score Enhancement", cost: 1 },
+  { feature: "SVI Standard Report", cost: 0.50 },
+  { feature: "R&D Report (SSE)", cost: 1.00 },
+  { feature: "Deep Dive Report", cost: 1.50 },
+  { feature: "Term Sheet AI", cost: 1.00 },
+  { feature: "Competitive Research", cost: 0.50 },
+  { feature: "AI Score Enhancement", cost: 0.25 },
   { feature: "Evidence Upload", cost: 0 },
   { feature: "Investor Score", cost: 0 },
   { feature: "Dilution Calculator", cost: 0 },
@@ -518,7 +519,7 @@ function CreditsPurchaseSection() {
           <div className="flex items-center gap-2">
             <Coins strokeWidth={1.75} className="h-5 w-5 text-brand-500" />
             <span className="text-2xl font-bold text-ink-800">
-              {balance !== null ? balance : "--"}
+              {balance !== null ? (Number.isInteger(balance) ? balance : balance.toFixed(2)) : "--"}
             </span>
             <span className="text-sm text-ink-500">
               credit{balance !== 1 ? "s" : ""}
@@ -612,7 +613,9 @@ function CreditsPurchaseSection() {
                           : "text-ink-800",
                       )}
                     >
-                      {item.cost === 0 ? "Free" : `${item.cost} credit${item.cost !== 1 ? "s" : ""}`}
+                      {item.cost === 0
+                        ? "Free"
+                        : `${Number.isInteger(item.cost) ? item.cost : item.cost.toFixed(2)} credit${item.cost !== 1 ? "s" : ""}`}
                     </span>
                   </div>
                 ))}

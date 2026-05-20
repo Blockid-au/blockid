@@ -1,6 +1,492 @@
 {
   "articles": [
     {
+      "slug": "founder-vesting-schedule-guide",
+      "title": "Founder Vesting Schedule: Why You Need One and How to Set It Up",
+      "description": "Learn why a founder vesting schedule is essential for protecting your equity and how to set one up correctly in Australia to avoid costly co-founder disput",
+      "keywords": [
+        "founder vesting schedule",
+        "startup vesting 4 year cliff",
+        "reverse vesting founders",
+        "equity vesting startup"
+      ],
+      "category": "equity",
+      "publishedAt": "2026-05-20",
+      "readingTime": 11,
+      "cta": {
+        "label": "Plan Your Equity Structure",
+        "href": "/tools/equity-split"
+      }
+    },
+    {
+      "slug": "exit-strategies-australian-startups",
+      "title": "Exit Strategies for Australian Startups: Acquisition, IPO, or Secondary Sale",
+      "description": "Discover key startup exit strategy options for Australian founders, including acquisitions, IPOs, and secondary sales to maximize value.",
+      "keywords": [
+        "startup exit strategy",
+        "startup acquisition Australia",
+        "exit planning startup",
+        "secondary sale startup equity"
+      ],
+      "category": "growth",
+      "publishedAt": "2026-05-20",
+      "readingTime": 11,
+      "cta": {
+        "label": "Build Your Exit-Ready Profile",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "customer-acquisition-cost-benchmarks-australian-saas",
+      "title": "Customer Acquisition Cost Benchmarks for Australian SaaS Startups",
+      "description": "Discover essential CAC benchmarks SaaS Australian startups need to scale sustainably from pre-seed to Series A without burning cash.",
+      "keywords": [
+        "CAC benchmarks SaaS",
+        "customer acquisition cost startup",
+        "SaaS metrics Australia",
+        "CAC LTV ratio"
+      ],
+      "category": "growth",
+      "publishedAt": "2026-05-20",
+      "readingTime": 11,
+      "cta": {
+        "label": "Analyse Your Growth Metrics",
+        "href": "/"
+      }
+    },
+    {
+      "slug": "venture-debt-vs-equity-funding-australia",
+      "title": "Venture Debt vs Equity Funding in Australia: When to Use Each",
+      "description": "Discover when to use venture debt Australia for growth without equity dilution. Compare funding options for Australian startups in this expert guide.",
+      "keywords": [
+        "venture debt Australia",
+        "venture debt vs equity",
+        "startup debt financing",
+        "non-dilutive funding startup"
+      ],
+      "category": "fundraising",
+      "publishedAt": "2026-05-20",
+      "readingTime": 11,
+      "cta": {
+        "label": "Plan Your Capital Strategy",
+        "href": "/tools/funding-plan"
+      }
+    },
+    {
+      "slug": "asx-listing-requirements-tech-startups",
+      "title": "ASX Listing Requirements for Tech Startups: Is Your Company Ready?",
+      "description": "Discover ASX listing requirements for tech startups. Learn key steps, financial thresholds, and compliance tips to prepare your company for a successful pu",
+      "keywords": [
+        "ASX listing requirements",
+        "ASX IPO startup",
+        "going public Australia",
+        "ASX technology listing"
+      ],
+      "category": "compliance",
+      "publishedAt": "2026-05-20",
+      "readingTime": 10,
+      "cta": {
+        "label": "Track Your Growth Trajectory",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "market-sizing-tam-sam-som-guide",
+      "title": "TAM SAM SOM: How to Size Your Startup Market (With Australian Examples)",
+      "description": "Learn TAM SAM SOM for startups with real Australian examples. Size your market correctly to attract investors and build a viable business plan.",
+      "keywords": [
+        "TAM SAM SOM",
+        "market sizing startup",
+        "total addressable market calculation",
+        "startup market size Australia"
+      ],
+      "category": "valuation",
+      "publishedAt": "2026-05-20",
+      "readingTime": 9,
+      "cta": {
+        "label": "Get Your Market Analysis",
+        "href": "/"
+      }
+    },
+    {
+      "slug": "startup-financial-model-template-australia",
+      "title": "Startup Financial Model Template: 3-Year Projections for Australian Startups",
+      "description": "Download a free startup financial model template with 3-year projections tailored for Australian founders raising pre-seed or Series A capital.",
+      "keywords": [
+        "startup financial model template",
+        "financial projections startup",
+        "3 year financial model",
+        "startup P&L template"
+      ],
+      "category": "fundraising",
+      "publishedAt": "2026-05-20",
+      "readingTime": 9,
+      "cta": {
+        "label": "Plan Your Funding",
+        "href": "/tools/funding-plan"
+      }
+    },
+    {
+      "slug": "product-market-fit-measurement-framework",
+      "title": "How to Measure Product-Market Fit: The Framework Australian Founders Use",
+      "description": "Learn how to measure product market fit with the proven framework used by successful Australian founders to validate scale and reduce guesswork.",
+      "keywords": [
+        "product market fit measurement",
+        "PMF framework startup",
+        "how to know product market fit",
+        "Sean Ellis test"
+      ],
+      "category": "growth",
+      "publishedAt": "2026-05-20",
+      "readingTime": 11,
+      "cta": {
+        "label": "Measure Your Market Fit Score",
+        "href": "/"
+      }
+    },
+    {
+      "slug": "intellectual-property-protection-startups-australia",
+      "title": "IP Protection for Startups: Patents, Trademarks & Trade Secrets in Australia",
+      "description": "Discover startup IP protection Australia strategies: secure patents, trademarks, and trade secrets to fuel growth and shield your innovation today.",
+      "keywords": [
+        "startup IP protection Australia",
+        "patent vs trademark startup",
+        "intellectual property startup",
+        "IP strategy early stage"
+      ],
+      "category": "compliance",
+      "publishedAt": "2026-05-20",
+      "readingTime": 11,
+      "cta": {
+        "label": "Check Your IP Readiness",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "australian-startup-accelerators-2026",
+      "title": "Australian Startup Accelerators 2026: Complete Guide to Programs, Equity & Application Tips",
+      "description": "Discover top Australian startup accelerators for 2026. Compare equity models, program details, and expert application tips to grow your startup.",
+      "keywords": [
+        "Australian startup accelerators",
+        "startup programs Australia",
+        "accelerator vs incubator",
+        "best accelerators Australia 2026"
+      ],
+      "category": "growth",
+      "publishedAt": "2026-05-20",
+      "readingTime": 10,
+      "cta": {
+        "label": "Get Accelerator-Ready with SVI",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "bootstrapping-vs-fundraising-australian-founders",
+      "title": "Bootstrapping vs Fundraising: Decision Framework for Australian Founders",
+      "description": "Discover a clear decision framework for Australian founders weighing bootstrapping vs fundraising to choose the right growth path for your startup.",
+      "keywords": [
+        "bootstrapping vs fundraising",
+        "should I raise funding startup",
+        "bootstrap startup Australia",
+        "self-funded startup"
+      ],
+      "category": "growth",
+      "publishedAt": "2026-05-20",
+      "readingTime": 10,
+      "cta": {
+        "label": "Know Your Startup Value First",
+        "href": "/"
+      }
+    },
+    {
+      "slug": "startup-governance-checklist-investors",
+      "title": "Startup Governance Checklist: 15 Things Investors Check Before Writing a Cheque",
+      "description": "Use our startup governance checklist to cover the 15 key areas Australian investors verify before writing a cheque to secure your funding.",
+      "keywords": [
+        "startup governance checklist",
+        "investor governance requirements",
+        "startup compliance Australia",
+        "board governance startup"
+      ],
+      "category": "compliance",
+      "publishedAt": "2026-05-20",
+      "readingTime": 10,
+      "cta": {
+        "label": "Check Your Governance Score",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "how-to-set-up-esop-australian-startup",
+      "title": "How to Set Up an ESOP for Your Australian Startup (Employee Share Scheme Guide)",
+      "description": "Learn how to set up an ESOP for your Australian startup with our complete guide to Employee Share Schemes for early-stage companies.",
+      "keywords": [
+        "ESOP Australian startup",
+        "employee share scheme Australia",
+        "startup equity pool",
+        "ESS tax treatment Australia"
+      ],
+      "category": "equity",
+      "publishedAt": "2026-05-20",
+      "readingTime": 11,
+      "cta": {
+        "label": "Plan Your Equity Split",
+        "href": "/tools/equity-split"
+      }
+    },
+    {
+      "slug": "shareholders-agreement-essentials-startups",
+      "title": "Shareholders Agreement Essentials: What Every Australian Startup Needs",
+      "description": "Discover why a shareholders agreement startup founders need is vital in Australia. Learn the essentials to protect your business from costly disputes.",
+      "keywords": [
+        "shareholders agreement startup",
+        "shareholder agreement template Australia",
+        "startup shareholder rights",
+        "SHA startup"
+      ],
+      "category": "compliance",
+      "publishedAt": "2026-05-20",
+      "readingTime": 11,
+      "cta": {
+        "label": "Check Your Governance Score",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "pitch-deck-structure-that-raises-money",
+      "title": "Pitch Deck Structure That Actually Raises Money in Australia (2026)",
+      "description": "Discover the 12-slide pitch deck structure that wins Australian VC funding in 2026. Learn the exact layout investors want to see today.",
+      "keywords": [
+        "pitch deck structure",
+        "startup pitch deck template",
+        "investor presentation startup",
+        "pitch deck slides order"
+      ],
+      "category": "fundraising",
+      "publishedAt": "2026-05-20",
+      "readingTime": 11,
+      "cta": {
+        "label": "Build Your Investor Pack",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "r-and-d-tax-incentive-startups-australia",
+      "title": "R&D Tax Incentive for Startups: How to Claim Up to 43.5% Offset in Australia",
+      "description": "Discover how Australian startups can claim up to a 43.5% offset with the R&D tax incentive Australia guide for maximizing innovation funding.",
+      "keywords": [
+        "R&D tax incentive Australia",
+        "startup R&D tax offset",
+        "research development tax credit",
+        "ATO R&D claim startup"
+      ],
+      "category": "compliance",
+      "publishedAt": "2026-05-20",
+      "readingTime": 10,
+      "cta": {
+        "label": "Check Your SVI Score",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "startup-metrics-investors-care-about",
+      "title": "The 12 Startup Metrics Every Australian Investor Cares About",
+      "description": "Discover the 12 startup metrics investors in Australia prioritize when evaluating early-stage companies and making funding decisions.",
+      "keywords": [
+        "startup metrics investors",
+        "SaaS metrics fundraising",
+        "startup KPIs investors",
+        "MRR ARR churn metrics"
+      ],
+      "category": "growth",
+      "publishedAt": "2026-05-20",
+      "readingTime": 11,
+      "cta": {
+        "label": "Measure Your Startup Value",
+        "href": "/"
+      }
+    },
+    {
+      "slug": "cofounder-agreement-template-australia",
+      "title": "Co-Founder Agreement Template: Essential Clauses for Australian Startups",
+      "description": "Download a co-founder agreement template designed for Australian startups. Secure your partnership with essential clauses to protect equity and roles.",
+      "keywords": [
+        "co-founder agreement template",
+        "startup co-founder contract",
+        "founders agreement Australia",
+        "co-founder equity agreement"
+      ],
+      "category": "equity",
+      "publishedAt": "2026-05-20",
+      "readingTime": 10,
+      "cta": {
+        "label": "Find Your Co-Founder Match",
+        "href": "/tools/cofounder-match"
+      }
+    },
+    {
+      "slug": "term-sheet-red-flags-founders-guide",
+      "title": "Term Sheet Red Flags: 10 Clauses Every Founder Must Understand",
+      "description": "Discover 10 term sheet red flags every founder must understand to avoid costly mistakes and protect your startup's future during fundraising.",
+      "keywords": [
+        "term sheet red flags",
+        "startup term sheet clauses",
+        "investor term sheet guide",
+        "bad term sheet clauses"
+      ],
+      "category": "fundraising",
+      "publishedAt": "2026-05-20",
+      "readingTime": 11,
+      "cta": {
+        "label": "Analyse Your Term Sheet with AI",
+        "href": "/tools/term-sheet"
+      }
+    },
+    {
+      "slug": "dilution-calculator-how-fundraising-affects-ownership",
+      "title": "Dilution Calculator: How Each Fundraising Round Affects Your Ownership",
+      "description": "Use our free dilution calculator to see how each fundraising round impacts your equity ownership. Visualize dilution effects and plan smarter today.",
+      "keywords": [
+        "dilution calculator",
+        "startup dilution",
+        "equity dilution fundraising",
+        "founder ownership after funding"
+      ],
+      "category": "equity",
+      "publishedAt": "2026-05-20",
+      "readingTime": 11,
+      "cta": {
+        "label": "Calculate Your Dilution",
+        "href": "/tools/dilution"
+      }
+    },
+    {
+      "slug": "startup-funding-stages-explained-australia",
+      "title": "Startup Funding Stages Explained: Pre-Seed to Series A in Australia",
+      "description": "Discover the startup funding stages in Australia, from Pre-Seed to Series A. A complete guide for founders navigating the Aussie investment landscape.",
+      "keywords": [
+        "startup funding stages",
+        "pre-seed seed Series A Australia",
+        "startup fundraising timeline",
+        "how much to raise startup"
+      ],
+      "category": "fundraising",
+      "publishedAt": "2026-05-20",
+      "readingTime": 11,
+      "cta": {
+        "label": "Plan Your Funding Round",
+        "href": "/tools/funding-plan"
+      }
+    },
+    {
+      "slug": "safe-vs-convertible-note-australia",
+      "title": "SAFE vs Convertible Note in Australia: Which is Right for Your Startup?",
+      "description": "Compare SAFE agreements and convertible notes in Australia. Discover which funding instrument is right for your startup's growth and legal strategy today.",
+      "keywords": [
+        "SAFE agreement Australia",
+        "convertible note vs SAFE",
+        "startup fundraising instruments",
+        "YC SAFE Australia"
+      ],
+      "category": "fundraising",
+      "publishedAt": "2026-05-20",
+      "readingTime": 11,
+      "cta": {
+        "label": "Analyse Your Term Sheet",
+        "href": "/tools/term-sheet"
+      }
+    },
+    {
+      "slug": "pre-diligence-vs-due-diligence-founders-guide",
+      "title": "Pre-Diligence vs Due Diligence: What Founders Need to Know Before Raising",
+      "description": "Discover how pre-diligence strengthens your startup's readiness before investors begin their formal due diligence process.",
+      "keywords": [
+        "pre-diligence",
+        "due diligence startup",
+        "investor due diligence checklist",
+        "fundraising preparation"
+      ],
+      "category": "fundraising",
+      "publishedAt": "2026-05-20",
+      "readingTime": 9,
+      "cta": {
+        "label": "Start Your Pre-Diligence",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "ai-startup-valuation-how-it-works",
+      "title": "AI for Startup Valuation: How Machine Learning is Changing Early-Stage Funding",
+      "description": "Discover how AI startup valuation transforms early-stage funding in Australia, replacing outdated methods with precise machine learning insights.",
+      "keywords": [
+        "AI startup valuation",
+        "machine learning valuation",
+        "AI due diligence",
+        "automated startup analysis"
+      ],
+      "category": "valuation",
+      "publishedAt": "2026-05-20",
+      "readingTime": 10,
+      "cta": {
+        "label": "Try AI-Powered Valuation Free",
+        "href": "/"
+      }
+    },
+    {
+      "slug": "what-investors-look-for-pre-seed-australia",
+      "title": "What Investors Look for in Pre-Seed Startups in Australia",
+      "description": "Discover what pre-seed investors Australia prioritize when funding early-stage startups. Learn key factors that secure meetings and attract capital in the ",
+      "keywords": [
+        "pre-seed investors Australia",
+        "what investors look for startup",
+        "angel investor Australia",
+        "pre-seed fundraising"
+      ],
+      "category": "fundraising",
+      "publishedAt": "2026-05-20",
+      "readingTime": 11,
+      "cta": {
+        "label": "Get Your Investor-Ready Score",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "startup-data-room-checklist-2026",
+      "title": "Startup Data Room Checklist 2026: What Investors Expect to See",
+      "description": "Ensure fundraising success with our 2026 startup data room checklist covering every item investors expect to see for faster deals.",
+      "keywords": [
+        "startup data room checklist",
+        "investor data room",
+        "due diligence documents startup",
+        "fundraising documents"
+      ],
+      "category": "fundraising",
+      "publishedAt": "2026-05-20",
+      "readingTime": 11,
+      "cta": {
+        "label": "Build Your Data Room",
+        "href": "/tools/data-room"
+      }
+    },
+    {
+      "slug": "equity-split-calculator-fair-founder-equity",
+      "title": "Equity Split Calculator: How to Fairly Divide Founder Equity",
+      "description": "Use our equity split calculator to fairly divide founder equity and avoid the pitfalls that cause early-stage startups to fail.",
+      "keywords": [
+        "equity split calculator",
+        "founder equity split",
+        "how to split equity startup",
+        "co-founder equity agreement"
+      ],
+      "category": "equity",
+      "publishedAt": "2026-05-20",
+      "readingTime": 11,
+      "cta": {
+        "label": "Calculate Your Equity Split",
+        "href": "/tools/equity-split"
+      }
+    },
+    {
       "slug": "esic-compliance-guide-early-stage-startups",
       "title": "ESIC Compliance Guide: Tax Benefits for Early-Stage Startup Investors",
       "description": "Discover how ESIC compliance unlocks vital tax benefits for early-stage startup investors in Australia. A complete guide to maximizing your investment retu",

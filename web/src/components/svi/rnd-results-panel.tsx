@@ -616,7 +616,7 @@ export function RndResultsPanel({
                   onClick={onUpgradeDeepDive}
                   className="text-xs text-brand-600 hover:text-brand-700 font-medium underline cursor-pointer transition-colors"
                 >
-                  Upgrade to Deep Dive (3 credits)
+                  Upgrade to Deep Dive (1.50 credits)
                 </button>
               )}
             </div>

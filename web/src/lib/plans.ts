@@ -22,7 +22,7 @@ export const PLANS: Plan[] = [
     price: 0,
     cadence: "free",
     features: [
-      "1 free SVI analysis",
+      "2 free credits (~4 analyses)",
       "Investor-Ready Score",
       "Basic dilution calculator",
       "Shareable web link",
@@ -35,7 +35,7 @@ export const PLANS: Plan[] = [
     cadence: "once",
     features: [
       "Everything in Starter",
-      "Unlimited SVI analyses",
+      "100 credits included",
       "Founder Value Index",
       "Cap Table Starter",
       "Evidence Vault",

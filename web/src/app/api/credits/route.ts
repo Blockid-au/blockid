@@ -30,7 +30,7 @@ export async function GET() {
 
 // POST /api/credits
 // Purchase a credit pack via Stripe Checkout.
-// Body: { amount: 5 | 10 | 25 | 50 }
+// Body: { amount: 10 | 25 | 50 | 100 }
 //
 // If STRIPE is not configured or no price ID exists for credits, falls back
 // to granting credits directly (dev/staging convenience).

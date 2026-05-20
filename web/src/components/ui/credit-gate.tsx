@@ -11,23 +11,31 @@ import { cn } from "@/lib/utils";
 const FEATURE_INFO: Record<string, { label: string; description: string }> = {
   svi_analysis: {
     label: "SVI Analysis",
-    description: "AI-powered startup value index analysis of your business idea.",
+    description: "AI-powered startup value index analysis of your business idea (0.50 credits).",
   },
   svi_report: {
     label: "SVI Report",
-    description: "Full 10-page AI-generated startup analysis report with actionable insights.",
+    description: "Full 10-page AI-generated startup analysis report with actionable insights (0.50 credits).",
+  },
+  rnd_report: {
+    label: "R&D Report",
+    description: "Standard 10-page R&D report with SSE streaming analysis (1.00 credit).",
+  },
+  rnd_deep_dive: {
+    label: "Deep Dive Report",
+    description: "Extended R&D analysis with detailed competitor profiles and growth tactics (1.50 credits).",
   },
   term_sheet: {
     label: "Term Sheet AI",
-    description: "AI-assisted term sheet generation and analysis for fundraising.",
+    description: "AI-assisted term sheet generation and analysis for fundraising (1.00 credit).",
   },
   research: {
     label: "Competitive Research",
-    description: "AI-powered market and competitive landscape research for your startup.",
+    description: "AI-powered market and competitive landscape research for your startup (0.50 credits).",
   },
   ai_score: {
     label: "AI Score",
-    description: "Enhanced AI scoring for your startup across multiple dimensions.",
+    description: "Enhanced AI scoring for your startup across multiple dimensions (0.25 credits).",
   },
 };
 
@@ -64,7 +72,7 @@ export function CreditGate({
   balance,
 }: CreditGateProps) {
   const info = getFeatureInfo(feature);
-  const shortfall = cost - balance;
+  const shortfall = Math.round((cost - balance) * 100) / 100; // avoid floating-point noise
 
   const [buyLoading, setBuyLoading] = React.useState(false);
   const [planLoading, setPlanLoading] = React.useState(false);
@@ -98,11 +106,11 @@ export function CreditGate({
     setBuyLoading(true);
     setErrorMsg("");
     try {
-      // Purchase the smallest pack (5 credits) which more than covers the shortfall.
+      // Purchase the smallest pack (10 credits) which more than covers the shortfall.
       const res = await fetch("/api/credits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: 5 }),
+        body: JSON.stringify({ amount: 10 }),
       });
       const data = await res.json();
       if (data.ok && data.url) {
@@ -220,19 +228,19 @@ export function CreditGate({
                 )}
               >
                 <Coins strokeWidth={1.75} className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
-                {balance} credit{balance !== 1 ? "s" : ""}
+                {Number.isInteger(balance) ? balance : balance.toFixed(2)} credit{balance !== 1 ? "s" : ""}
               </span>
             </div>
             <div className="mt-2 flex items-center justify-between text-sm">
               <span className="text-ink-600">Required</span>
               <span className="font-bold text-ink-800">
-                {cost} credit{cost !== 1 ? "s" : ""}
+                {Number.isInteger(cost) ? cost : cost.toFixed(2)} credit{cost !== 1 ? "s" : ""}
               </span>
             </div>
             <div className="mt-2 pt-2 border-t border-surface-200 flex items-center justify-between text-sm">
               <span className="text-ink-600">Shortfall</span>
               <span className="font-bold text-red-600">
-                {shortfall} credit{shortfall !== 1 ? "s" : ""}
+                {Number.isInteger(shortfall) ? shortfall : shortfall.toFixed(2)} credit{shortfall !== 1 ? "s" : ""}
               </span>
             </div>
           </div>
@@ -258,7 +266,7 @@ export function CreditGate({
               ) : (
                 <>
                   <Coins strokeWidth={1.75} className="h-4 w-4" />
-                  Buy 5 Credits &mdash; A$5
+                  Buy 10 Credits &mdash; A$5
                 </>
               )}
             </button>

@@ -14,7 +14,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { z } from "zod";
 import { analyzeTermSheet } from "@/lib/term-sheet/analyze";
-import { canAfford, spendCredits } from "@/lib/credits";
+import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 
 const HolderSchema = z.object({
   id: z.string(),
@@ -103,7 +103,7 @@ export async function POST(request: Request) {
         analysis: result.analysis,
         dilution: result.dilution,
         balance: spend.balance,
-        creditsUsed: 3,
+        creditsUsed: FEATURE_COSTS.term_sheet,
       },
       {
         status: 200,

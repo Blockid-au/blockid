@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
-import { canAfford, spendCredits } from "@/lib/credits";
+import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -155,7 +155,7 @@ Name actual companies with real URLs. Return ONLY the JSON object.`;
       ok: true,
       ...researchData,
       balance: spend.balance,
-      creditsUsed: 2,
+      creditsUsed: FEATURE_COSTS.research,
     });
 
   } catch (err) {

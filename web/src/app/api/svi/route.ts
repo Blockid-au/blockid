@@ -4,7 +4,7 @@ import { extractSignals, computeSVI, type SVITextInput } from "@/lib/svi-analysi
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { newSlug } from "@/lib/slug";
 import { sendSVIReport, sendMagicLink } from "@/lib/email";
-import { canAfford, spendCredits } from "@/lib/credits";
+import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { requestMagicLink, MAGIC_LINK_TTL_MIN } from "@/lib/auth";
 
 // POST /api/svi
@@ -118,7 +118,7 @@ export async function POST(request: Request) {
       email,
     });
     creditBalance = spend.balance;
-    creditsUsed = 1;
+    creditsUsed = FEATURE_COSTS.svi_analysis;
   }
 
   // After persisting, send report email (fire-and-forget)

@@ -38,8 +38,11 @@ export const STRIPE_PRICE_MAP: Record<string, string | undefined> = {
   accelerator: process.env.STRIPE_PRICE_ACCELERATOR,
   svi_analysis: process.env.STRIPE_PRICE_SVI_ANALYSIS,
   svi_analysis_25: process.env.STRIPE_PRICE_SVI_ANALYSIS_25,
+  // Legacy credit pack prices (kept for backward compat with existing purchases)
   credits_5: process.env.STRIPE_PRICE_CREDITS_5,
-  credits_10: process.env.STRIPE_PRICE_CREDITS_10,
-  credits_25: process.env.STRIPE_PRICE_CREDITS_25,
-  credits_50: process.env.STRIPE_PRICE_CREDITS_50,
+  // Fractional credit packs
+  credits_10: process.env.STRIPE_PRICE_CREDITS_10,   // A$5  = 10 credits
+  credits_25: process.env.STRIPE_PRICE_CREDITS_25,   // A$9  = 25 credits
+  credits_50: process.env.STRIPE_PRICE_CREDITS_50,   // A$15 = 50 credits
+  credits_100: process.env.STRIPE_PRICE_CREDITS_100,  // A$25 = 100 credits
 };

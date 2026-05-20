@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
-import { canAfford, spendCredits } from "@/lib/credits";
+import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -125,7 +125,7 @@ The deterministic system scored this startup at SVI ${body.deterministicSVI}. Sc
       transparencyNote: aiData.transparencyNote ?? "",
       evidenceQuality: aiData.evidenceQuality ?? "self_declared",
       balance: spend.balance,
-      creditsUsed: 1,
+      creditsUsed: FEATURE_COSTS.ai_score,
     });
 
   } catch (err) {

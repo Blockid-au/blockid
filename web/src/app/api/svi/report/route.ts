@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
-import { canAfford, spendCredits } from "@/lib/credits";
+import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -112,7 +112,7 @@ Start each section with a markdown H2 header.`;
       wordCount: text.split(/\s+/).length,
       generatedAt: new Date().toISOString(),
       balance: spend.balance,
-      creditsUsed: 3,
+      creditsUsed: FEATURE_COSTS.svi_report,
     });
 
   } catch (err) {
