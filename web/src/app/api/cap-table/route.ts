@@ -359,6 +359,7 @@ export async function POST(request: Request) {
       if (data.vestingMonths != null) updates.vesting_months = Number(data.vestingMonths);
       if (data.cliffMonths != null) updates.cliff_months = Number(data.cliffMonths);
       if (data.notes != null) updates.notes = data.notes;
+      if (data.evmAddress != null) updates.evm_address = data.evmAddress;
 
       const { data: row, error } = await supabase
         .from("shareholders")
