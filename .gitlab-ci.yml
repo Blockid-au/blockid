@@ -119,6 +119,8 @@ build:production:
         -e GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
         -e GOOGLE_GEMINI_API_KEY=${GOOGLE_GEMINI_API_KEY}
         -e OPENAI_API_KEY=${OPENAI_API_KEY}
+        -e ANTHROPIC_PROXY_BASE_URL=${ANTHROPIC_PROXY_BASE_URL}
+        -e ANTHROPIC_PROXY_API_KEY=${ANTHROPIC_PROXY_API_KEY}
         -v /home/dovanlong/.claude/.credentials.json:/home/node/.claude/.credentials.json:ro
         -v /home/dovanlong/.codex/auth.json:/home/node/.codex/auth.json:ro
         -v /home/dovanlong/blockid.au/web/content:/app/content

@@ -141,12 +141,13 @@ function readCodexOAuthToken(): string | null {
 
 // ── Provider detection ─────────────────────────────────────────────────
 
-type Provider = "claude-oauth" | "claude-apikey" | "openai-codex" | "openai-apikey" | "gemini" | "none";
+type Provider = "claude-oauth" | "claude-apikey" | "claude-proxy" | "openai-codex" | "openai-apikey" | "gemini" | "none";
 
 function getAvailableProviders(): Provider[] {
   const providers: Provider[] = [];
   if (readCliOAuthToken()) providers.push("claude-oauth");
   if (process.env.ANTHROPIC_API_KEY) providers.push("claude-apikey");
+  if (process.env.ANTHROPIC_PROXY_API_KEY && process.env.ANTHROPIC_PROXY_BASE_URL) providers.push("claude-proxy");
   if (readCodexOAuthToken()) providers.push("openai-codex");
   if (process.env.OPENAI_API_KEY) providers.push("openai-apikey");
   if (process.env.GOOGLE_GEMINI_API_KEY) providers.push("gemini");
@@ -161,8 +162,10 @@ export function isAIConfigured(): boolean {
 
 async function callClaude(apiKey: string, opts: AICallOptions): Promise<AICallResult> {
   const Anthropic = (await import("@anthropic-ai/sdk")).default;
+  // sk-ant-api* = standard API key, sk-ant-oat* = OAuth token
+  const isOAuth = apiKey.startsWith("sk-ant-oat");
   const client = new Anthropic(
-    apiKey.startsWith("sk-ant-") ? { apiKey } : { authToken: apiKey },
+    isOAuth ? { authToken: apiKey } : { apiKey },
   );
 
   const model = opts.tools?.length ? "claude-sonnet-4-6" : "claude-haiku-4-5-20251001";
@@ -278,6 +281,37 @@ async function callGemini(opts: AICallOptions): Promise<AICallResult> {
 
 // ── Provider caller map ────────────────────────────────────────────────
 
+async function callClaudeProxy(opts: AICallOptions): Promise<AICallResult> {
+  const Anthropic = (await import("@anthropic-ai/sdk")).default;
+  const baseURL = process.env.ANTHROPIC_PROXY_BASE_URL!;
+  // Support comma-separated keys for auto-rotation
+  const keys = (process.env.ANTHROPIC_PROXY_API_KEY ?? "").split(",").map((k) => k.trim()).filter(Boolean);
+  const model = opts.tools?.length ? "claude-sonnet-4-6" : "claude-haiku-4-5-20251001";
+
+  let lastErr: Error | null = null;
+  for (const key of keys) {
+    try {
+      const client = new Anthropic({ apiKey: key, baseURL });
+      const response = await client.messages.create({
+        model,
+        max_tokens: opts.maxTokens ?? 4096,
+        system: opts.system,
+        messages: [{ role: "user", content: opts.user }],
+        ...(opts.tools?.length ? { tools: opts.tools } : {}),
+      });
+      let text = "";
+      for (const block of response.content) {
+        if (block.type === "text") text = block.text;
+      }
+      return { text, provider: "claude", model };
+    } catch (err) {
+      lastErr = err instanceof Error ? err : new Error(String(err));
+      console.warn(`[ai-client] proxy key ${key.slice(0, 12)}... failed: ${lastErr.message}`);
+    }
+  }
+  throw lastErr ?? new Error("All proxy keys failed");
+}
+
 async function callProvider(provider: Provider, opts: AICallOptions): Promise<AICallResult> {
   const noTools = { ...opts, tools: undefined };
   switch (provider) {
@@ -285,6 +319,8 @@ async function callProvider(provider: Provider, opts: AICallOptions): Promise<AI
       return callClaude(readCliOAuthToken()!, opts);
     case "claude-apikey":
       return callClaude(process.env.ANTHROPIC_API_KEY!, opts);
+    case "claude-proxy":
+      return callClaudeProxy(opts);
     case "openai-codex":
       return callCodex(noTools);
     case "openai-apikey":
