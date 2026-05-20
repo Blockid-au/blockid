@@ -209,14 +209,37 @@ export function isAIConfigured(): boolean {
 // ── Claude call ────────────────────────────────────────────────────────
 
 async function callClaude(apiKey: string, opts: AICallOptions): Promise<AICallResult> {
-  const Anthropic = (await import("@anthropic-ai/sdk")).default;
-  // sk-ant-api* = standard API key, sk-ant-oat* = OAuth token
   const isOAuth = apiKey.startsWith("sk-ant-oat");
-  const client = new Anthropic(
-    isOAuth ? { authToken: apiKey } : { apiKey },
-  );
-
   const model = opts.tools?.length ? "claude-sonnet-4-6" : "claude-haiku-4-5-20251001";
+
+  // Use raw fetch for OAuth tokens — SDK may send wrong header format
+  if (isOAuth) {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: opts.maxTokens ?? 4096,
+        system: opts.system,
+        messages: [{ role: "user", content: opts.user }],
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(`${res.status} ${JSON.stringify(data)}`);
+    let text = "";
+    for (const block of (data.content ?? [])) {
+      if (block.type === "text") text = block.text;
+    }
+    return { text, provider: "claude", model };
+  }
+
+  // Standard API key — use SDK
+  const Anthropic = (await import("@anthropic-ai/sdk")).default;
+  const client = new Anthropic({ apiKey });
 
   const response = await client.messages.create({
     model,
