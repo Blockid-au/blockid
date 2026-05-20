@@ -5,6 +5,7 @@ import { FileText, Plus, ExternalLink, CheckCircle2, Clock, Loader2, Globe, Code
 import { Button } from "@/components/ui/button";
 import { ConnectButtons } from "@/components/ui/connect-buttons";
 import { EvidenceWizard } from "./evidence-wizard";
+import { ConnectorStatus } from "./connector-status";
 
 interface EvidenceItem {
   id: string;
@@ -115,6 +116,9 @@ export function EvidenceVaultClient({ initialEvidence }: EvidenceVaultClientProp
           </button>
         </div>
       )}
+
+      {/* Connector status dashboard */}
+      <ConnectorStatus />
 
       <div className="flex items-center justify-between mb-6">
         <div>
