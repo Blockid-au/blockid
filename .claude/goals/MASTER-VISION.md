@@ -7,25 +7,29 @@
 
 ## The Problem: Why Startups Fail
 
-### The Pain is Real
-- **90% of startups fail** within 5 years (Startup Genome, 2024)
-- **70% of Australian startups** don't survive past 3 years (ABS, 2024)
-- **42% fail** because there's no market need (CB Insights)
-- **29% fail** because they run out of cash
-- **23% fail** because of the wrong team composition
+### The Pain is Real (sourced data)
+- **90% of startups fail** over their lifetime ([Failory 2026](https://www.failory.com/blog/startup-failure-rate))
+- **60% of Australian startups fail within 3 years** ([ABS June 2025](https://www.abs.gov.au/statistics/economy/business-indicators/counts-australian-businesses-including-entries-and-exits/latest-release))
+- **75% of AU startups don't survive 5 years** ([Inside Small Business](https://insidesmallbusiness.com.au/latest-news/almost-half-of-new-businesses-fail-within-their-first-four-years))
+- **437,150 new AU businesses started** vs **370,500 closed** in FY2024-25 (ABS) — 30.3% annual churn
+- **42% fail** because no market need, **70% run out of cash** ([CB Insights](https://www.cbinsights.com/research/report/startup-failure-reasons-top/))
+- AU startups fail from "no product-market fit" at **33.3%** (vs 12% global) ([ScaleSuite](https://www.scalesuite.com.au/resources/australian-business-statistics))
 
 ### The AI Idea Explosion (2024-2026)
-- **Millions of AI-powered ideas** are generated daily using ChatGPT, Claude, Copilot
-- **Less than 1% become actual products** (McKinsey, 2025)
-- **95% of AI projects fail to move beyond prototype** (Gartner, 2025)
-- The gap: AI can generate ideas but **cannot execute, validate, or build businesses**
+- **$97 billion** in AI startup funding globally in 2024 — 34% of all VC ([Second Talent](https://www.secondtalent.com/resources/ai-startup-funding-investment/))
+- **$252.3 billion** total corporate AI investment in 2024 ([Stanford HAI 2025](https://hai.stanford.edu/ai-index/2025-ai-index-report))
+- **90% of AI startups fail**, median lifespan ~18 months ([AI4SP](https://ai4sp.org/why-90-of-ai-startups-fail/), [WinSavvy](https://www.winsavvy.com/startup-failure-rates-in-ai-saas-and-e-commerce-sector-deep-dive/))
+- **60%+ of AI tools have no recurring revenue** ([Medium](https://medium.com/@vicki-larson/ai-monetization-in-2025-why-95-of-ai-projects-never-make-a-dime-66c09db98e0f))
+- **88-95% of AI pilots fail** to lift financials (MIT & Capgemini)
+- Only **33% of companies actually scale AI** beyond pilot ([McKinsey 2025](https://www.mckinsey.com/capabilities/quantumblack/our-insights/the-state-of-ai))
+- The gap: **$252B invested but 90% fail** — AI generates ideas but cannot build businesses
 
 ### The Valuation Black Hole
-- **80% of founders** don't know their startup's value at any given point
+- Cap table/valuation issues are embedded in **70% of "ran out of cash" failures** — underreported because they manifest as other failure modes
 - **Manual valuation costs A$5,000-$50,000** and takes 2-6 weeks
-- **70% of startups fail due diligence** because of cap table issues (Carta, 2024)
-- **60% of co-founder disputes** are about equity splits made informally
-- Average time to prepare a data room: **3-6 weeks manually**
+- Average time to prepare a data room manually: **3-6 weeks**
+- Idea-to-Series-A average: **2.5 years** ([Rudys.AI](https://rudys.ai/startup-statistics))
+- Startups that build MVP first are **85% more likely to scale** (Rudys.AI)
 
 ### What BlockID.au Solves
 ```
