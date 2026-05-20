@@ -283,25 +283,53 @@ async function callGemini(opts: AICallOptions): Promise<AICallResult> {
 // ── Provider caller map ────────────────────────────────────────────────
 
 async function callClaudeProxy(opts: AICallOptions): Promise<AICallResult> {
-  const Anthropic = (await import("@anthropic-ai/sdk")).default;
   const baseURL = process.env.ANTHROPIC_PROXY_BASE_URL!;
-  // Support comma-separated keys for auto-rotation
   const keys = (process.env.ANTHROPIC_PROXY_API_KEY ?? "").split(",").map((k) => k.trim()).filter(Boolean);
   const model = opts.tools?.length ? "claude-sonnet-4-6" : "claude-haiku-4-5-20251001";
 
   let lastErr: Error | null = null;
   for (const key of keys) {
     try {
-      const client = new Anthropic({ apiKey: key, baseURL });
-      const response = await client.messages.create({
-        model,
-        max_tokens: opts.maxTokens ?? 4096,
-        system: opts.system,
-        messages: [{ role: "user", content: opts.user }],
-        ...(opts.tools?.length ? { tools: opts.tools } : {}),
+      // Use raw fetch — proxy returns SSE stream which SDK may not handle
+      const res = await fetch(`${baseURL}/messages`, {
+        method: "POST",
+        headers: {
+          "x-api-key": key,
+          "anthropic-version": "2023-06-01",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: opts.maxTokens ?? 4096,
+          stream: false,
+          system: opts.system,
+          messages: [{ role: "user", content: opts.user }],
+        }),
       });
+
+      const contentType = res.headers.get("content-type") ?? "";
+
+      if (contentType.includes("text/event-stream")) {
+        // Parse SSE stream manually
+        const raw = await res.text();
+        let text = "";
+        for (const line of raw.split("\n")) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const d = JSON.parse(line.slice(6));
+            if (d.delta?.text) text += d.delta.text;
+            if (d.type === "content_block_start" && d.content_block?.text) text += d.content_block.text;
+          } catch { /* skip non-JSON lines */ }
+        }
+        if (text) return { text, provider: "claude", model };
+        throw new Error("Empty SSE response from proxy");
+      }
+
+      // Standard JSON response
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error?.message ?? `Proxy ${res.status}`);
       let text = "";
-      for (const block of response.content) {
+      for (const block of (data.content ?? [])) {
         if (block.type === "text") text = block.text;
       }
       return { text, provider: "claude", model };
