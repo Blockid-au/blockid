@@ -182,11 +182,11 @@ type Provider = "claude-oauth" | "claude-apikey" | "claude-proxy" | "openai-code
 
 function getAvailableProviders(): Provider[] {
   const providers: Provider[] = [];
-  // Priority: OAuth tokens first (free, auto-refresh) → Proxy → API keys → Gemini
-  // 1. Codex OAuth (OpenAI — active, auto-refreshes via CLI)
-  if (readCodexOAuthToken()) providers.push("openai-codex");
-  // 2. Claude CLI OAuth (active when CLI is open, auto-refreshes)
+  // Priority: Claude OAuth first (real API token) → Proxy → API keys → Codex → Gemini
+  // 1. Claude CLI OAuth (real Anthropic API token, auto-refreshes via CLI)
   if (readCliOAuthToken()) providers.push("claude-oauth");
+  // 2. Codex OAuth (ChatGPT session token — may not work with public API)
+  if (readCodexOAuthToken()) providers.push("openai-codex");
   // 3. Proxy (TapHoaAPI — paid third-party, multi-key)
   if (process.env.ANTHROPIC_PROXY_API_KEY && process.env.ANTHROPIC_PROXY_BASE_URL) providers.push("claude-proxy");
   else if (getDBKey("anthropic_proxy")) providers.push("claude-proxy");
@@ -287,28 +287,39 @@ async function callOpenAI(apiKey: string, opts: AICallOptions): Promise<AICallRe
   return { text, provider: "openai", model };
 }
 
-// ── OpenAI Codex OAuth call (uses OAuth token from ~/.codex/auth.json) ──
+// ── OpenAI Codex OAuth call (uses ChatGPT session token) ─────────────
 
 async function callCodex(opts: AICallOptions): Promise<AICallResult> {
   const token = readCodexOAuthToken();
   if (!token) throw new Error("Codex OAuth token not available");
 
-  // Use OpenAI SDK with the Codex OAuth token
-  const OpenAI = (await import("openai")).default;
-  const client = new OpenAI({ apiKey: token });
-
+  // Codex auth.json contains a ChatGPT session token (JWT), not an API key.
+  // Use the ChatGPT backend API directly.
   const model = "gpt-4o-mini";
-
-  const response = await client.chat.completions.create({
-    model,
-    max_tokens: opts.maxTokens ?? 4096,
-    messages: [
-      { role: "system", content: opts.system },
-      { role: "user", content: opts.user },
-    ],
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: opts.maxTokens ?? 4096,
+      messages: [
+        { role: "system", content: opts.system },
+        { role: "user", content: opts.user },
+      ],
+    }),
   });
 
-  const text = response.choices[0]?.message?.content ?? "";
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => "");
+    throw new Error(`Codex API ${res.status}: ${errBody.slice(0, 200)}`);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data = await res.json() as any;
+  const text = data.choices?.[0]?.message?.content ?? "";
   return { text, provider: "openai", model };
 }
 
