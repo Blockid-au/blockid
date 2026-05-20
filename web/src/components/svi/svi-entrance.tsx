@@ -698,12 +698,12 @@ export function SVIEntrance() {
                 contributor alignment, capitalization, and investor-ready records as the
                 business grows.
               </p>
-              <div className="mt-8 flex flex-col sm:flex-row flex-wrap gap-3">
-                <a href="#svi" className="inline-flex h-12 sm:h-14 items-center justify-center gap-2 rounded-2xl bg-brand-600 px-6 sm:px-8 text-sm sm:text-base font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
-                  Start Your Journey <ArrowRight strokeWidth={2} className="h-4 w-4" />
+              <div className="mt-10 flex flex-col sm:flex-row flex-wrap gap-4">
+                <a href="#svi" className="inline-flex h-14 sm:h-16 items-center justify-center gap-2.5 rounded-2xl bg-brand-600 px-8 sm:px-10 text-base sm:text-lg font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
+                  Start Your Journey <ArrowRight strokeWidth={2} className="h-5 w-5" />
                 </a>
-                <Link href="/tools/idea-valuation" className="inline-flex h-12 sm:h-14 items-center justify-center gap-2 rounded-2xl border border-surface-300 bg-white px-6 sm:px-8 text-sm sm:text-base font-semibold text-ink-700 hover:bg-surface-100 transition-colors">
-                  Explore Platform <Rocket strokeWidth={1.75} className="h-4 w-4" />
+                <Link href="/tools/idea-valuation" className="inline-flex h-14 sm:h-16 items-center justify-center gap-2.5 rounded-2xl border border-surface-300 bg-white/80 backdrop-blur-sm px-8 sm:px-10 text-base sm:text-lg font-semibold text-ink-700 hover:bg-surface-100 transition-colors">
+                  Explore Platform <Rocket strokeWidth={1.75} className="h-5 w-5" />
                 </Link>
               </div>
             </div>
@@ -723,7 +723,7 @@ export function SVIEntrance() {
           {/* 4 Pillars */}
           <div className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-5">
             {PILLARS.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="text-center rounded-2xl border border-surface-200/80 bg-white/80 backdrop-blur px-5 py-6 shadow-sm card-hover">
+              <div key={title} className="text-center rounded-2xl border border-surface-200/80 bg-white/80 backdrop-blur px-5 py-6 shadow-sm bento-card">
                 <div className="mx-auto mb-3 h-10 w-10 rounded-lg bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-600">
                   <Icon strokeWidth={1.75} className="h-5 w-5" />
                 </div>
@@ -833,7 +833,7 @@ export function SVIEntrance() {
       </section>
 
       {/* ── SVI SEARCH SECTION ────────────────────────────────────────────── */}
-      <section id="svi" className="bg-gradient-to-b from-brand-50/60 via-white to-white py-24 md:py-32 relative overflow-hidden">
+      <section id="svi" className="gradient-section bg-gradient-to-b from-brand-50/60 via-white to-white py-24 md:py-32 relative overflow-hidden">
         {/* Decorative background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-brand-100/40 blur-3xl" />
@@ -954,7 +954,7 @@ export function SVIEntrance() {
         <div className="mx-auto max-w-6xl px-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
             {VALUE_PROPS.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="rounded-2xl bg-surface-50 border border-surface-200/60 px-5 py-6 text-center card-hover">
+              <div key={title} className="rounded-2xl bg-white border border-surface-200/60 px-5 py-6 text-center bento-card">
                 <div className="mx-auto mb-3 h-12 w-12 rounded-2xl bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-600">
                   <Icon strokeWidth={1.75} className="h-5 w-5" />
                 </div>
@@ -974,7 +974,7 @@ export function SVIEntrance() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
             {ROADMAP_STEPS.map(({ num, icon: Icon, title, desc, href }) => (
               <Link key={num} href={href}
-                className="group rounded-2xl border border-surface-200/80 bg-white px-5 py-5 hover:border-brand-200 hover:shadow-lg transition-all duration-300">
+                className="group rounded-2xl border border-surface-200/80 bg-white px-5 py-5 bento-card">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="h-7 w-7 rounded-lg bg-brand-600 text-white text-xs font-bold flex items-center justify-center">{num}</span>
                   <Icon strokeWidth={1.75} className="h-4 w-4 text-brand-600" />
