@@ -1,9 +1,12 @@
 import type { MetadataRoute } from "next";
-import { getAllArticles } from "@/lib/insights";
+import { getAllArticles, invalidateCache } from "@/lib/insights";
+
+export const dynamic = "force-dynamic";
 
 const SITE_URL = "https://blockid.au";
 
 export default function sitemap(): MetadataRoute.Sitemap {
+  invalidateCache(); // ensure fresh read from disk (content volume)
   const lastModified = new Date();
 
   // Dynamic insight articles

@@ -57,7 +57,7 @@ export default async function AcceleratorPage() {
       .map((m) => m.svi_account_id)
       .filter(Boolean) as string[];
 
-    let sviMap: Record<string, number> = {};
+    const sviMap: Record<string, number> = {};
     if (sviAccountIds.length > 0) {
       const { data: sviAccounts } = await supabase
         .from("svi_accounts")

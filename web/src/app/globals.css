@@ -327,3 +327,66 @@ body {
 .svi-input-glow:focus-within::after {
   opacity: 1;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   UIProMax — Trust Strip, Bento Grid, Timeline, Glass Cards
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Trust glass strip ───────────────────────────────────────── */
+.trust-glass-strip {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(37, 99, 235, 0.1);
+  box-shadow: 0 4px 24px -4px rgba(37, 99, 235, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+/* ── Typing indicator dots ───────────────────────────────────── */
+@keyframes typing-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+.typing-dot {
+  animation: typing-bounce 1.4s ease-in-out infinite;
+}
+
+/* ── Value card accent borders ───────────────────────────────── */
+.value-card-accent-blue { border-left: 3px solid var(--color-brand-500); }
+.value-card-accent-emerald { border-left: 3px solid var(--color-emerald-500); }
+.value-card-accent-gold { border-left: 3px solid var(--color-gold-500); }
+
+/* ── Roadmap horizontal scroll ───────────────────────────────── */
+.roadmap-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(37, 99, 235, 0.2) transparent;
+  -ms-overflow-style: none;
+}
+.roadmap-scroll::-webkit-scrollbar { height: 4px; }
+.roadmap-scroll::-webkit-scrollbar-track { background: transparent; }
+.roadmap-scroll::-webkit-scrollbar-thumb {
+  background: rgba(37, 99, 235, 0.2);
+  border-radius: 9999px;
+}
+
+/* ── Glass card (dark section) ───────────────────────────────── */
+.glass-card-dark {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: background 0.2s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.glass-card-dark:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+/* ── CTA glow (light variant for dark bg) ────────────────────── */
+.cta-glow-light {
+  box-shadow: 0 4px 20px -4px rgba(255, 255, 255, 0.3);
+  transition: box-shadow 0.3s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.cta-glow-light:hover {
+  box-shadow: 0 8px 32px -4px rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
+}

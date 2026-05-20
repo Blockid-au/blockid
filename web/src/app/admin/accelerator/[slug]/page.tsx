@@ -74,7 +74,7 @@ export default async function CohortDetailPage({
     .map((m) => m.svi_account_id)
     .filter(Boolean) as string[];
 
-  let sviMap: Record<string, { current_svi: number; current_stage: number; enrolled_at: string }> = {};
+  const sviMap: Record<string, { current_svi: number; current_stage: number; enrolled_at: string }> = {};
   if (sviAccountIds.length > 0) {
     const { data: sviAccounts } = await supabase
       .from("svi_accounts")
@@ -91,7 +91,7 @@ export default async function CohortDetailPage({
 
   // Fetch analyses for trend detection
   const memberEmails = members.map((m) => m.email);
-  let trendMap: Record<string, "up" | "down" | "flat"> = {};
+  const trendMap: Record<string, "up" | "down" | "flat"> = {};
   if (memberEmails.length > 0) {
     const { data: analyses } = await supabase
       .from("svi_analyses")
