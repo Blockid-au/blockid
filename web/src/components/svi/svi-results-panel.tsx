@@ -965,6 +965,51 @@ export function SVIResultsPanel({
               </div>
             )}
 
+            {/* Analysis Changes section — only shown when there is a previous analysis */}
+            {analysisChanges.length > 0 && (
+              <div className="mt-6 rounded-xl border border-surface-200 bg-surface-50 px-4 py-4">
+                <p className="text-[10px] uppercase tracking-[0.15em] text-ink-700 font-medium mb-3">
+                  What changed since your last analysis
+                </p>
+                <div className="space-y-1.5">
+                  {analysisChanges.map((change) => (
+                    <div key={change.key} className="flex items-center gap-2 text-sm">
+                      <span className={cn(
+                        "font-mono font-semibold text-xs w-8 text-right shrink-0",
+                        change.delta > 0 ? "text-emerald-600" : "text-red-600"
+                      )}>
+                        {change.delta > 0 ? "\u25B2" : "\u25BC"}
+                      </span>
+                      <span className="text-ink-800 font-medium">{change.label}:</span>
+                      <span className={cn(
+                        "font-mono text-xs font-semibold",
+                        change.delta > 0 ? "text-emerald-600" : "text-red-600"
+                      )}>
+                        {change.delta > 0 ? `+${change.delta}` : `${change.delta}`}
+                      </span>
+                      {change.reason && (
+                        <span className="text-xs text-ink-500 truncate">({change.reason})</span>
+                      )}
+                    </div>
+                  ))}
+                  {/* Show unchanged dimensions */}
+                  {previousAnalysis?.subs && analysis.subs
+                    .filter((sub) => {
+                      const prev = previousAnalysis.subs.find((s) => s.key === sub.key);
+                      return prev && Math.round(sub.value) === Math.round(prev.value);
+                    })
+                    .map((sub) => (
+                      <div key={sub.key} className="flex items-center gap-2 text-sm">
+                        <span className="font-mono font-semibold text-xs w-8 text-right shrink-0 text-ink-500">=</span>
+                        <span className="text-ink-600">{sub.label}:</span>
+                        <span className="text-xs text-ink-500">unchanged</span>
+                      </div>
+                    ))
+                  }
+                </div>
+              </div>
+            )}
+
             <PageNavigation currentPage={1} onNavigate={navigateToPageNum} />
           </PageSection>
 
