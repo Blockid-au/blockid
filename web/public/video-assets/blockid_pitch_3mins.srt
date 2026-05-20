@@ -1,0 +1,183 @@
+1
+00:00:01,000 --> 00:00:03,000
+Ninety percent of startups fail.
+
+2
+00:00:03,000 --> 00:00:05,000
+Three hundred and seventy thousand Australian businesses closed last year.
+
+3
+00:00:05,000 --> 00:00:08,000
+Ninety-seven billion dollars in AI funding. Ninety percent still fail.
+
+4
+00:00:08,000 --> 00:00:11,000
+The gap: AI builds products. Nothing builds businesses.
+
+5
+00:00:11,000 --> 00:00:14,000
+Hi, I'm Long from BlockID.au.
+
+6
+00:00:14,000 --> 00:00:19,000
+I've seen founders build amazing AI products, then struggle to value them, split equity fairly, or get investor-ready.
+
+7
+00:00:19,000 --> 00:00:22,000
+We built the platform that fixes this -- from day one.
+
+8
+00:00:22,000 --> 00:00:25,000
+Australian founders face three critical problems.
+
+9
+00:00:25,000 --> 00:00:30,000
+One -- how much is my idea worth? A manual valuation costs five thousand to fifty thousand dollars and takes weeks. We do it with AI in sixty seconds, from one dollar.
+
+10
+00:00:30,000 --> 00:00:35,000
+Two -- how do I split equity? Forty-two percent of co-founder disputes destroy startups. Our calculator makes it fair and transparent.
+
+11
+00:00:35,000 --> 00:00:40,000
+Three -- how do I get investor-ready? Data rooms take weeks to prepare. Our evidence vault auto-scores your readiness.
+
+12
+00:00:40,000 --> 00:00:43,000
+Let me show you how BlockID works.
+
+13
+00:00:43,000 --> 00:00:47,000
+You describe your startup in plain text -- your idea, your team, your traction.
+
+14
+00:00:47,000 --> 00:00:52,000
+Our AI analyzes it across eight dimensions -- market, product, traction, team, cap table, investor readiness, legal, and vision.
+
+15
+00:00:52,000 --> 00:00:56,000
+In under sixty seconds, you get your Startup Value Index -- a real, evidence-backed score.
+
+16
+00:00:56,000 --> 00:01:00,000
+Plus a ten-page report with market research, competitor analysis, and business model evaluation.
+
+17
+00:01:00,000 --> 00:01:04,000
+But we don't just give you a number. Every recommendation links directly to a tool.
+
+18
+00:01:04,000 --> 00:01:08,000
+Click 'Build your cap table' and the equity calculator opens.
+
+19
+00:01:08,000 --> 00:01:12,000
+Set your founder split, co-founder allocation, and ESOP pool. The moment you complete it, your SVI auto-rescores.
+
+20
+00:01:12,000 --> 00:01:17,000
+One thirty-eight becomes one forty-six. Eight points gained, just by getting your cap table right.
+
+21
+00:01:17,000 --> 00:01:20,000
+Every claim needs proof.
+
+22
+00:01:20,000 --> 00:01:25,000
+Our Evidence Vault lets you upload pitch decks, connect GitHub, verify revenue through Stripe.
+
+23
+00:01:25,000 --> 00:01:30,000
+Each piece of evidence lifts your score -- from twenty percent confidence to ninety percent verified.
+
+24
+00:01:30,000 --> 00:01:35,000
+Your startup's value grows with you. Stripe for revenue data. GitHub for code activity. Pitch decks for investor readiness. Milestones for badge progress.
+
+25
+00:01:35,000 --> 00:01:38,000
+But we're just getting started.
+
+26
+00:01:38,000 --> 00:01:42,000
+Phase one, AI analysis -- that's live today. Phase two, evidence and validation. Phase three, dollar valuation engine. Phase four, full cap table management.
+
+27
+00:01:42,000 --> 00:01:47,000
+Then blockchain tokenization, investor matching, revenue tracking, and exit planning.
+
+28
+00:01:47,000 --> 00:01:52,000
+From idea to IPO -- one platform. Validate, build, prove, raise, and scale.
+
+29
+00:01:52,000 --> 00:01:58,000
+Australia has six hundred thousand private companies. Fifty thousand raise capital every year. Twenty-six hundred active startups. Fifteen thousand angel investors.
+
+30
+00:01:58,000 --> 00:02:02,000
+That's a three-point-two billion dollar addressable market in cap table and valuation tools alone.
+
+31
+00:02:02,000 --> 00:02:08,000
+Our pricing: first analysis free. Then one dollar per report. Founding fifty at forty-nine dollars for lifetime access. Growth plan at ninety-nine dollars a month.
+
+32
+00:02:08,000 --> 00:02:12,000
+Gross margins sit between eighty-eight and ninety-nine percent. AI costs under five dollars a day.
+
+33
+00:02:12,000 --> 00:02:16,000
+Unlike Carta, Pulley, or Qapita -- BlockID is built specifically for Australian founders.
+
+34
+00:02:16,000 --> 00:02:22,000
+AI valuation? Only us. AU-native compliance? Only us. Day zero to exit? Only us. Starting from one dollar? Only us. Blockchain equity? Only us.
+
+35
+00:02:22,000 --> 00:02:26,000
+ABN, ASIC, ESIC, R-and-D tax -- all baked in. Not an afterthought.
+
+36
+00:02:26,000 --> 00:02:30,000
+We're a lean, AI-first team. One founder plus nine AI agents -- CTO, CPO, CMO, CFO, COO, CRO, investor relations, media studio, and blockchain.
+
+37
+00:02:30,000 --> 00:02:35,000
+Fifty-four specialized skills. Built the full platform in nineteen days. Two hundred and seventy-two TypeScript files. Seventy API routes. Forty-one database tables.
+
+38
+00:02:35,000 --> 00:02:38,000
+Every feature ships in hours, not months.
+
+39
+00:02:38,000 --> 00:02:42,000
+And we're built for Australian compliance. ASIC registration. ESIC tax incentives. R-and-D tax offset. AU data residency.
+
+40
+00:02:42,000 --> 00:02:45,000
+Two hundred and fifty-two billion dollars invested in AI last year.
+
+41
+00:02:45,000 --> 00:02:47,000
+Ninety percent of those startups will fail.
+
+42
+00:02:47,000 --> 00:02:48,500
+Not because of bad ideas.
+
+43
+00:02:48,500 --> 00:02:50,000
+Because nobody helped them prove their value.
+
+44
+00:02:50,000 --> 00:02:53,000
+Until now.
+
+45
+00:02:53,000 --> 00:02:56,000
+Get your free SVI analysis at blockid.au.
+
+46
+00:02:56,000 --> 00:03:00,000
+Build it right. Build it valuable. Build it with BlockID.
