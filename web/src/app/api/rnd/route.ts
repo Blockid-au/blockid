@@ -17,8 +17,16 @@ function tierToFeature(tier: ReportTier): string {
 }
 
 // POST /api/rnd
-// Body: { email, rawText, fileName? }
+// Body: { email, rawText, fileName?, tier? }
 // Returns SSE stream with status updates, then final complete event.
+//
+// AUTH NOTE: This endpoint intentionally does NOT require session auth.
+// It supports a guest checkout flow where unauthenticated users can run
+// a single free analysis with email-based credit gating. Authenticated
+// users are identified via session cookie and charged credits; guests
+// are limited to one free analysis per email (checked against
+// svi_analysis_usage). This is by design — requiring auth would block
+// the top-of-funnel free trial experience.
 
 export async function POST(request: Request) {
   // ── Parse body ─────────────────────────────────────────────────────────

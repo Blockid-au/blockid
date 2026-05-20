@@ -28,6 +28,7 @@ export default async function ReportsPage() {
   let currentStage = 0;
   let wins: string[] = [];
   let gaps: string[] = [];
+  let latestAISummary: string | null = null;
 
   if (sb) {
     // Find the SVI account for this user
@@ -38,10 +39,10 @@ export default async function ReportsPage() {
       .single();
 
     if (account) {
-      // Load snapshots (latest 12)
+      // Load snapshots (latest 12) — include ai_summary and dimension_scores
       const { data: snapshotRows } = await sb
         .from("svi_snapshots")
-        .select("id, snapshot_date, svi_total, delta")
+        .select("id, snapshot_date, svi_total, delta, ai_summary")
         .eq("account_id", account.id)
         .order("snapshot_date", { ascending: false })
         .limit(12);
@@ -52,6 +53,14 @@ export default async function ReportsPage() {
         previousSVI =
           snapshotRows.length > 1 ? snapshotRows[1].svi_total : currentSVI;
         currentStage = account.current_stage ?? 0;
+
+        // Get the most recent AI summary from snapshots
+        for (const row of snapshotRows) {
+          if (row.ai_summary) {
+            latestAISummary = row.ai_summary as string;
+            break;
+          }
+        }
       }
 
       // Load latest analysis for wins/gaps
@@ -99,6 +108,7 @@ export default async function ReportsPage() {
             currentStage={currentStage}
             wins={wins}
             gaps={gaps}
+            latestAISummary={latestAISummary}
           />
         ) : (
           <div className="rounded-2xl border border-dashed border-surface-200 bg-white px-6 py-16 text-center">

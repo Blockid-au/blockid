@@ -2,12 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { WeeklyReportCard } from "@/components/workspace/weekly-report-card";
+import { SVIChart } from "@/components/workspace/svi-chart";
 
 export interface SnapshotRow {
   id: string;
   snapshot_date: string;
   svi_total: number;
   delta: number | null;
+  ai_summary?: string | null;
 }
 
 interface ReportsClientProps {
@@ -17,6 +19,7 @@ interface ReportsClientProps {
   currentStage: number;
   wins: string[];
   gaps: string[];
+  latestAISummary?: string | null;
 }
 
 export function ReportsClient({
@@ -26,8 +29,18 @@ export function ReportsClient({
   currentStage,
   wins,
   gaps,
+  latestAISummary,
 }: ReportsClientProps) {
   const router = useRouter();
+
+  // Prepare chart data in chronological order
+  const chartData = [...snapshots]
+    .reverse()
+    .map((s) => ({
+      date: s.snapshot_date,
+      svi: s.svi_total,
+      delta: s.delta,
+    }));
 
   return (
     <div className="space-y-8">
@@ -42,7 +55,22 @@ export function ReportsClient({
         reportHref="/workspace/reports"
       />
 
-      {/* Score History */}
+      {/* AI-generated weekly insight */}
+      {latestAISummary && (
+        <div className="rounded-2xl border border-surface-200 bg-white p-6">
+          <h3 className="text-[10px] uppercase tracking-[0.14em] text-brand-600 font-medium mb-2">
+            Weekly Insight
+          </h3>
+          <p className="text-sm text-ink-600 leading-relaxed">
+            {latestAISummary}
+          </p>
+        </div>
+      )}
+
+      {/* SVI Score History Chart */}
+      <SVIChart snapshots={chartData} />
+
+      {/* Score History Table */}
       <div>
         <h2 className="text-sm font-semibold text-ink-800 mb-3">
           Score History

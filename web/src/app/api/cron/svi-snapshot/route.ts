@@ -1,7 +1,30 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import type { SVIAnalysis } from "@/lib/svi-analysis";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * Extract per-dimension scores from an SVIAnalysis.
+ * Returns a record like { ftv: 62, mpc: 45, ptd: 70, ... } from the subs array.
+ */
+function extractDimensionScores(
+  analysisJson: unknown,
+): Record<string, number> | null {
+  try {
+    const parsed = analysisJson as SVIAnalysis;
+    if (!parsed?.subs || !Array.isArray(parsed.subs)) return null;
+    const scores: Record<string, number> = {};
+    for (const sub of parsed.subs) {
+      if (sub.key && typeof sub.value === "number") {
+        scores[sub.key] = sub.value;
+      }
+    }
+    return Object.keys(scores).length > 0 ? scores : null;
+  } catch {
+    return null;
+  }
+}
 
 export async function GET(request: Request) {
   // Verify cron secret
@@ -49,6 +72,9 @@ export async function GET(request: Request) {
 
       const delta = prior ? analysis.total_svi - prior.svi_total : null;
 
+      // Extract per-dimension scores from the analysis
+      const dimensionScores = extractDimensionScores(analysis.analysis_json);
+
       // Insert snapshot (upsert in case cron runs twice)
       await supabase.from("svi_snapshots").upsert({
         account_id: account.id,
@@ -57,6 +83,7 @@ export async function GET(request: Request) {
         analysis_json: analysis.analysis_json,
         snapshot_date: today,
         delta,
+        dimension_scores: dimensionScores,
       }, { onConflict: "account_id,snapshot_date" });
 
       // Update account current SVI

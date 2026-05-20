@@ -13,6 +13,17 @@ import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
+// HEAD /api/oauth/github — check if GitHub OAuth is configured
+// Used by the Evidence Wizard and ConnectButtons to show availability.
+// Returns 200 if configured, 503 if not.
+export async function HEAD() {
+  const clientId = process.env.GITHUB_CLIENT_ID;
+  if (!clientId) {
+    return new NextResponse(null, { status: 503 });
+  }
+  return new NextResponse(null, { status: 200 });
+}
+
 // GET /api/oauth/github — redirect to GitHub OAuth authorization
 export async function GET(request: Request) {
   const user = await getCurrentUser();

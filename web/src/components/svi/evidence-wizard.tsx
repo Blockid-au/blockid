@@ -10,12 +10,49 @@ import { trackEvent } from "@/lib/analytics";
 
 function GitHubConnectStep() {
   const [available, setAvailable] = React.useState<boolean | null>(null);
+  const [connected, setConnected] = React.useState<boolean>(false);
+  const [connectedLabel, setConnectedLabel] = React.useState<string>("");
 
   React.useEffect(() => {
+    // Check availability via HEAD
     fetch("/api/oauth/github", { method: "HEAD", redirect: "manual" })
       .then((res) => setAvailable(res.status !== 503))
       .catch(() => setAvailable(false));
+
+    // Check if already connected by looking at evidence
+    fetch("/api/evidence")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.ok && Array.isArray(json.evidence)) {
+          const githubEvidence = json.evidence.find(
+            (e: { evidence_type: string; confidence_level: string }) =>
+              e.evidence_type === "github" && e.confidence_level === "connected_source",
+          );
+          if (githubEvidence) {
+            setConnected(true);
+            setConnectedLabel(githubEvidence.label ?? "GitHub Connected");
+          }
+        }
+      })
+      .catch(() => {});
   }, []);
+
+  if (connected) {
+    return (
+      <div className="rounded-xl border border-teal-200 bg-teal-50 px-6 py-8 text-center">
+        <CheckCircle2 strokeWidth={1.75} className="mx-auto h-8 w-8 text-teal-600 mb-3" />
+        <p className="text-sm font-semibold text-teal-700 mb-1">GitHub Connected</p>
+        <p className="text-xs text-teal-600 mb-4">{connectedLabel}</p>
+        <p className="text-xs text-ink-600">Evidence automatically verified at 75% confidence.</p>
+        <a
+          href="/api/oauth/github"
+          className="inline-flex h-9 items-center gap-2 rounded-xl border border-teal-200 bg-white px-4 text-xs font-medium text-teal-700 hover:bg-teal-50 transition-colors mt-3"
+        >
+          <GitBranch className="h-3.5 w-3.5" /> Refresh Data
+        </a>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-xl border border-surface-200 bg-surface-100 px-6 py-8 text-center">

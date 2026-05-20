@@ -27,7 +27,7 @@ const CONNECTORS: ConnectorDef[] = [
     id: "github",
     label: "GitHub",
     icon: GitBranch,
-    connectUrl: "/api/auth/github",
+    connectUrl: "/api/oauth/github",
   },
   {
     id: "analytics",
