@@ -55,51 +55,94 @@ export async function POST(request: Request) {
       `- [${g.priority}] ${g.label}: ${g.action} (+${g.impact} SVI potential)`
     ).join("\n");
 
-    const systemPrompt = `You are a senior startup analyst writing a detailed Startup Value Index (SVI) report for a founder.
+    const systemPrompt = `You are a friendly, experienced startup mentor writing a personalised report for a founder. Your tone is warm, encouraging, and practical — like a trusted advisor who genuinely wants this founder to succeed.
 
-Your report must be:
-- Professional, evidence-based, and actionable
-- Written in clear Australian business English
-- Structured with clear sections
-- Honest about weaknesses without being discouraging
-- Include specific, actionable recommendations
+Writing Style:
+- Write as if you're talking to the founder over coffee — warm, direct, no jargon
+- When you must use a technical term, explain it simply in brackets: "cap table (the document showing who owns what percentage)"
+- Celebrate what's going well FIRST, then address gaps gently
+- Every criticism must come with a specific, actionable fix
+- Use "you" and "your" — make it personal
+- Use encouraging phrases: "Great start!", "You're on the right track", "Here's your next win"
 
-Write in markdown format with headers, bullet points, and bold text for emphasis.`;
+Structure (progressive — basic to advanced):
+- Start with what the founder has done RIGHT (build confidence)
+- Then introduce the NEXT logical step (not 10 steps — just the next one)
+- Gradually reveal more advanced concepts as the founder is ready
+- End with a clear, motivating call-to-action
 
-    const userMessage = `Generate a comprehensive SVI Report for this startup.
+Report Length:
+- Minimum 800 words, no maximum — write as much as needed to be genuinely helpful
+- Each section should be thorough enough that the founder knows exactly what to do
+- Include specific examples, templates, or frameworks when relevant
+- Don't pad with fluff, but don't cut corners on explanations either
 
-## Startup Description:
-${body.rawText.slice(0, 3000)}
+Format:
+- Markdown with H2 (##) and H3 (###) headings
+- Use bullet points sparingly — prefer short paragraphs that read naturally
+- Bold key terms and action items
+- Use > blockquotes for "Pro Tips" that add extra value`;
 
-## SVI Score: ${analysis.totalSVI} (Base 100)
-## Stage: ${analysis.stage ?? 0} — ${stageLabel}
+    const userMessage = `Write a personalised startup report for this founder.
+
+## Their Startup:
+${body.rawText.slice(0, 4000)}
+
+## Current Score: ${analysis.totalSVI} out of 300 (starting baseline is 100)
+## Journey Stage: ${analysis.stage ?? 0} — "${stageLabel}"
 ## Evidence Confidence: ${Math.round(analysis.confidenceMultiplier * 100)}%
 
-## Dimension Breakdown:
+## What's Working:
 ${dimSummary}
 
-## Risk Penalties:
-${riskSummary || "None identified"}
+## Risk Areas:
+${riskSummary || "None — clean profile!"}
 
 ## Evidence Gaps:
-${gapSummary || "None"}
+${gapSummary || "None identified yet"}
 
-## Summary: ${analysis.summary}
+## AI Summary: ${analysis.summary}
 
 ---
 
-Write a 500-700 word SVI Report with these sections:
-1. Executive Summary (2-3 sentences on overall SVI and what it means)
-2. Key Strengths (3 bullet points — what's working well)
-3. Critical Gaps (3-4 bullet points — what's holding the score back)
-4. Stage Assessment (where they are in the journey and what it means for fundraising)
-5. Evidence Roadmap (specific steps in priority order to raise SVI in next 30 days)
-6. Investor Readiness Note (honest assessment of investor-readiness at current stage)
-7. 30-Day Action Plan (5 specific actions with expected SVI impact for each)
+Write the report with these sections (in this order — basic to advanced):
 
-Start each section with a markdown H2 header.`;
+## 1. Your Score Explained
+Explain what ${analysis.totalSVI} means in plain language. Is this good for their stage? What does Stage ${analysis.stage} ("${stageLabel}") mean for them practically? Compare to typical startups at this stage. Be honest but encouraging.
 
-    const { text } = await callAI({ system: systemPrompt, user: userMessage, maxTokens: 2048 });
+## 2. What You're Doing Right
+Celebrate their strengths. Be specific — point to actual things from their description. This builds confidence and motivates them to continue. At least 3 specific things.
+
+## 3. Your Biggest Opportunity Right Now
+Don't list 10 things. Identify THE ONE thing that would make the biggest difference if they did it this week. Explain WHY it matters, HOW to do it step-by-step, and what impact it would have on their score. Be very specific — like a mentor giving homework.
+
+## 4. Your 30-Day Growth Plan
+A progressive roadmap, NOT a flat list. Structure it as a journey:
+- **Week 1**: The quick win (something they can do today)
+- **Week 2**: Building the foundation (setting up the basics)
+- **Week 3**: Adding credibility (evidence and proof)
+- **Week 4**: Levelling up (more advanced moves)
+Each week should build on the previous one. Include specific tools, templates, or resources.
+
+## 5. Understanding Your Dimensions
+For each of their 8 scores, give a plain-English explanation:
+- What this dimension measures (in simple terms)
+- Why it matters for fundraising/growth
+- Their score and what it means
+- ONE specific thing to improve it
+Keep each dimension to 2-3 sentences — don't overwhelm.
+
+## 6. Investor Readiness Check
+An honest but kind assessment. If they're not ready yet, frame it as "here's what you need before approaching investors" rather than "you're not ready." Include specific milestones.
+
+## 7. Your Next Step
+End with ONE clear call-to-action. The single most impactful thing they should do RIGHT NOW. Make it feel achievable and exciting, not overwhelming.
+
+> **Pro Tip**: Include a motivational closing that reminds them every successful startup started exactly where they are.
+
+Write naturally, be thorough, and remember: this founder is trusting you with their dream. Make the report worth their investment.`;
+
+    const { text } = await callAI({ system: systemPrompt, user: userMessage, maxTokens: 4096 });
 
     // ── Spend credits after successful generation ───────────────────
     const spend = await spendCredits(user.id, "svi_report", {

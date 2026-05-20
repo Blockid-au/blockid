@@ -470,7 +470,7 @@ export function SVIReportPDF({ analysis, email }: Props) {
               BlockID<Text style={s.coverDot}>.au</Text>
             </Text>
           )}
-          <Text style={s.coverTitle}>Startup Value Index Report</Text>
+          <Text style={s.coverTitle}>Your Startup Value Report</Text>
           <Text style={s.coverScore}>{analysis.totalSVI}</Text>
           <Text style={s.coverStage}>
             {sviLabel(analysis.totalSVI)} — Stage {analysis.stage}: {analysis.stageLabel}
@@ -589,9 +589,9 @@ export function SVIReportPDF({ analysis, email }: Props) {
         )}
 
         <View style={{ marginTop: 14, borderWidth: 0.5, borderColor: C.surface200, borderRadius: 6, padding: 10, backgroundColor: C.surface50 }}>
-          <Text style={{ fontSize: 9, fontWeight: "bold", color: C.ink800, marginBottom: 3 }}>How to Use This Report</Text>
+          <Text style={{ fontSize: 9, fontWeight: "bold", color: C.ink800, marginBottom: 3 }}>How to Read This Report</Text>
           <Text style={{ fontSize: 8, color: C.ink600, lineHeight: 1.5 }}>
-            This report analyses your startup across 8 key dimensions. Focus on the "Your Personalised Action Plan" (Page 10) for specific next steps. Each dimension page (5-7) shows detailed evidence and gaps. Upload verified evidence at blockid.au/workspace/evidence to boost your score over time.
+            This report is your personalised startup growth guide. Start with the Action Plan on Page 10 for your immediate next steps. Pages 3-4 show your dimension scores in detail. Pages 5-7 dive deep into specific areas. Don't try to fix everything at once — focus on one thing at a time, starting with the biggest opportunity.
           </Text>
         </View>
 
@@ -921,10 +921,9 @@ export function SVIReportPDF({ analysis, email }: Props) {
 
       {/* ─── Page 9: Action Plan ───────────────────────────────────────── */}
       <Page size="A4" style={s.page}>
-        <Text style={s.h1}>Evidence Gaps & Action Plan</Text>
+        <Text style={s.h1}>Where to Focus Next</Text>
         <Text style={s.body}>
-          Address these evidence gaps to increase your SVI. Items are ordered by priority and potential
-          impact.
+          These are opportunities to strengthen your startup profile. Focus on the top items first — even small improvements can make a big difference. Remember: every successful startup built their credibility one step at a time.
         </Text>
 
         {/* P0 — Critical */}
@@ -1065,18 +1064,16 @@ export function SVIReportPDF({ analysis, email }: Props) {
 
       {/* ─── Page 10: Your Personalised Next Steps ───────────────────── */}
       <Page size="A4" style={s.page}>
-        <Text style={s.h1}>Your Personalised Action Plan</Text>
+        <Text style={s.h1}>Your 30-Day Growth Plan</Text>
 
         <Text style={[s.body, { fontSize: 10, lineHeight: 1.7 }]}>
-          Based on your SVI analysis, here are the specific steps we recommend you take
-          in the next 30 days. Focus on the highest-impact items first — even small
-          improvements in evidence quality can significantly boost your score.
+          Here's your personalised roadmap for the next 30 days. Don't feel overwhelmed — just start with Week 1. Each step builds naturally on the one before it. You've already taken the most important step by getting your analysis.
         </Text>
 
         {/* Week 1: Quick Wins */}
         <View style={{ marginTop: 12, borderLeftWidth: 3, borderLeftColor: C.emerald600, paddingLeft: 12, marginBottom: 14 }}>
-          <Text style={[s.h2, { color: C.emerald600, marginTop: 0 }]}>Week 1: Quick Wins</Text>
-          <Text style={s.body}>These take less than 1 hour each and have immediate SVI impact.</Text>
+          <Text style={[s.h2, { color: C.emerald600, marginTop: 0 }]}>Week 1: Your First Win</Text>
+          <Text style={s.body}>Start here — these take less than an hour and give you instant momentum.</Text>
           {analysis.evidenceGaps
             .filter(g => g.priority === "P0" || g.priority === "P1")
             .slice(0, 3)
@@ -1094,8 +1091,8 @@ export function SVIReportPDF({ analysis, email }: Props) {
 
         {/* Week 2-3: Build Foundation */}
         <View style={{ borderLeftWidth: 3, borderLeftColor: C.brand600, paddingLeft: 12, marginBottom: 14 }}>
-          <Text style={[s.h2, { color: C.brand600, marginTop: 0 }]}>Week 2-3: Build Foundation</Text>
-          <Text style={s.body}>These require more effort but establish lasting credibility.</Text>
+          <Text style={[s.h2, { color: C.brand600, marginTop: 0 }]}>Week 2-3: Building Your Foundation</Text>
+          <Text style={s.body}>Now that you have momentum, it's time to build the foundation that impresses investors and partners.</Text>
           {analysis.nextActions
             .slice(0, 3)
             .map((action, i) => (
@@ -1112,8 +1109,8 @@ export function SVIReportPDF({ analysis, email }: Props) {
 
         {/* Week 4: Review & Refine */}
         <View style={{ borderLeftWidth: 3, borderLeftColor: C.amber600, paddingLeft: 12 }}>
-          <Text style={[s.h2, { color: C.amber600, marginTop: 0 }]}>Week 4: Review & Refine</Text>
-          <Text style={s.body}>Re-run your SVI analysis to measure progress and identify the next wave of improvements.</Text>
+          <Text style={[s.h2, { color: C.amber600, marginTop: 0 }]}>Week 4: See How Far You've Come</Text>
+          <Text style={s.body}>Run your analysis again to see your progress. Most founders see a 15-30 point improvement after completing the steps above.</Text>
           <View style={s.bulletRow}>
             <Text style={{ width: 20, fontSize: 12, color: C.amber600, fontWeight: "bold" }}>↻</Text>
             <View style={{ flex: 1 }}>
@@ -1128,7 +1125,7 @@ export function SVIReportPDF({ analysis, email }: Props) {
 
       {/* ─── Page 11: Next Steps ───────────────────────────────────────── */}
       <Page size="A4" style={s.page}>
-        <Text style={s.h1}>Next Steps & Recommendations</Text>
+        <Text style={s.h1}>Your Journey Ahead</Text>
 
         {/* Stage Journey */}
         <Text style={s.h2}>Stage Journey</Text>
@@ -1167,14 +1164,13 @@ export function SVIReportPDF({ analysis, email }: Props) {
         </View>
 
         {/* Projected improvements */}
-        <Text style={s.h2}>Projected Improvements</Text>
+        <Text style={s.h2}>What's Possible</Text>
         <Text style={s.body}>
-          By addressing the top evidence gaps identified in this report, your SVI could improve by an
-          estimated +
+          By working through the action plan above, you could improve your score by an estimated +
           {analysis.evidenceGaps
             .filter((g) => g.priority === "P0" || g.priority === "P1")
             .reduce((sum, g) => sum + g.impact, 0)}{" "}
-          points. Focus on P0 items first for maximum impact.
+          points. That's not just a number — it means your startup will be more credible, better structured, and closer to being investor-ready.
         </Text>
 
         {/* Top 3 quick wins recap */}
@@ -1199,12 +1195,10 @@ export function SVIReportPDF({ analysis, email }: Props) {
           }}
         >
           <Text style={{ fontSize: 12, fontWeight: "bold", color: C.brand600, marginBottom: 4 }}>
-            Track Your SVI Over Time
+            Keep Building — We're Here to Help
           </Text>
           <Text style={{ fontSize: 9, color: C.ink600, lineHeight: 1.5 }}>
-            Visit blockid.au/dashboard to access your full interactive dashboard, Evidence Vault,
-            cap table tools, and weekly SVI tracking. Upload verified evidence to boost your
-            confidence multiplier and unlock higher scores.
+            Your dashboard at blockid.au is ready for you. Upload evidence as you complete each step, and watch your score grow. The Evidence Vault, cap table tools, and weekly tracking are all included. You're not doing this alone.
           </Text>
         </View>
 
@@ -1219,7 +1213,7 @@ export function SVIReportPDF({ analysis, email }: Props) {
           }}
         >
           <Text style={{ fontSize: 10, fontWeight: "bold", color: C.ink800 }}>
-            Valuation. Ownership. Execution. Growth.
+            Every great company started exactly where you are. Keep building.
           </Text>
           <Text style={{ fontSize: 9, color: C.brand600, marginTop: 4 }}>
             blockid.au
