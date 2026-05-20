@@ -10,6 +10,7 @@ import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
 import { EvidenceWizard } from "@/components/svi/evidence-wizard";
 import { SVIChart } from "@/components/svi/svi-chart";
 import { SVIDimensionCompare } from "@/components/svi/svi-dimension-compare";
+import { SVITrendChart } from "@/components/ui/svi-trend-chart";
 
 // Dimension weight labels (for tooltip)
 const DIM_WEIGHTS: Record<string, string> = {
@@ -221,6 +222,11 @@ export function SVIDashboard({ analysis, startupName, snapshotHistory }: SVIDash
           </div>
         </div>
       </div>
+
+      {/* SVI Trend Chart */}
+      {snapshotHistory && snapshotHistory.length > 0 && (
+        <SVITrendChart data={snapshotHistory.map(s => ({ date: s.date, svi: s.svi }))} />
+      )}
 
       {/* Summary */}
       <p className="text-sm text-ink-600 leading-relaxed px-1">{analysis.summary}</p>

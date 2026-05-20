@@ -12,7 +12,6 @@ import {
   FileText,
   FolderOpen,
   Lightbulb,
-  Lock,
   Menu,
   Mic,
   MicOff,
@@ -36,7 +35,6 @@ import { SVIResultsPanel } from "@/components/svi/svi-results-panel";
 import { RndResultsPanel } from "@/components/svi/rnd-results-panel";
 import { RndStatusBar } from "@/components/svi/rnd-status-bar";
 import { CreditGate } from "@/components/ui/credit-gate";
-import { isEarlyBird } from "@/lib/plans";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import type { RndReport } from "@/lib/rnd-types";
 
@@ -1213,7 +1211,60 @@ export function SVIEntrance() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// Credit pack card — small reusable component for the paywall upsell.
+// ═══════════════════════════════════════════════════════════════════════════════
+function CreditPackCard({
+  credits,
+  price,
+  label,
+  desc,
+  onClick,
+  highlight,
+  loading,
+}: {
+  credits: number;
+  price: string;
+  label: string;
+  desc: string;
+  onClick: () => void;
+  highlight: boolean;
+  loading: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={loading}
+      className={cn(
+        "flex items-center justify-between rounded-2xl border p-4 transition-all hover:shadow-md w-full text-left cursor-pointer disabled:opacity-50",
+        highlight
+          ? "border-brand-500 bg-brand-50 shadow-sm"
+          : "border-surface-200 bg-white hover:border-brand-300",
+      )}
+    >
+      <div>
+        <p className="text-sm font-bold text-ink-900">{label}</p>
+        <p className="text-xs text-ink-500 mt-0.5">{desc}</p>
+      </div>
+      <div className="text-right shrink-0 ml-3">
+        {loading ? (
+          <span className="h-4 w-4 rounded-full border-2 border-brand-300/30 border-t-brand-600 animate-spin inline-block" />
+        ) : (
+          <>
+            <p className="text-lg font-bold text-brand-600">{price}</p>
+            <p className="text-[10px] text-ink-500">
+              {credits} credit{credits > 1 ? "s" : ""}
+            </p>
+          </>
+        )}
+      </div>
+    </button>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // Paywall overlay — shown after the first free analysis is consumed.
+// Displays credit pack upsell options and a Founding 50 upgrade link.
 // ═══════════════════════════════════════════════════════════════════════════════
 function SVIPaywall({
   onClose,
@@ -1229,66 +1280,61 @@ function SVIPaywall({
     "idle" | "validating" | "success" | "error"
   >("idle");
   const [couponMsg, setCouponMsg] = React.useState("");
-  const [checkoutLoading, setCheckoutLoading] = React.useState<"analysis" | "plan" | null>(null);
-  const [analysisEmail, setAnalysisEmail] = React.useState(parentEmail ?? "");
-  const [analysisError, setAnalysisError] = React.useState("");
+  const [checkoutLoading, setCheckoutLoading] = React.useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = React.useState("");
 
-  const earlyBird = isEarlyBird();
-  const analysisPrice = earlyBird ? 1 : 25;
-
-  /** Checkout for a single A$1/$25 analysis (no auth required). */
-  const handleAnalysisCheckout = async () => {
-    const trimmedEmail = analysisEmail.trim();
-    if (!trimmedEmail || !trimmedEmail.includes("@")) {
-      setAnalysisError("Please enter a valid email address.");
-      return;
-    }
-    setAnalysisError("");
-    setCheckoutLoading("analysis");
-    trackEvent("svi_paywall_analysis_click", { price: analysisPrice });
+  /** Purchase a credit pack via /api/credits (requires auth). */
+  const handleCreditPack = async (amount: number, trackLabel: string) => {
+    setCheckoutLoading(trackLabel);
+    setErrorMsg("");
+    trackEvent("svi_paywall_credit_pack_click", { pack: trackLabel, credits: amount });
     try {
-      const res = await fetch("/api/stripe/analysis", {
+      const res = await fetch("/api/credits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: trimmedEmail }),
-      });
-      const data = await res.json();
-      if (data.ok && data.url) {
-        window.location.href = data.url;
-      } else {
-        setAnalysisError(data.reason || "Could not start checkout. Please try again.");
-      }
-    } catch {
-      setAnalysisError("Network error. Please try again.");
-    } finally {
-      setCheckoutLoading(null);
-    }
-  };
-
-  /** Checkout for the Founding 50 plan (requires auth). */
-  const handlePlanCheckout = async () => {
-    setCheckoutLoading("plan");
-    trackEvent("svi_paywall_checkout_click", {});
-    try {
-      const res = await fetch("/api/stripe/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: "founding50" }),
+        body: JSON.stringify({ amount }),
       });
       if (res.status === 401) {
-        window.location.href = "/auth/login?plan=founding50";
+        // Not authenticated — redirect to login first.
+        window.location.href = `/auth/login?redirect=${encodeURIComponent("/?analysis_paid=true")}`;
         return;
       }
       const data = await res.json();
       if (data.ok && data.url) {
         window.location.href = data.url;
+      } else if (data.ok && data.method === "direct") {
+        // Dev fallback — credits granted directly; close the paywall.
+        onClose();
       } else {
-        setCouponMsg(data.reason || "Could not start checkout. Please try again.");
-        setCouponState("error");
+        setErrorMsg(data.reason || "Could not start checkout. Please try again.");
       }
     } catch {
-      setCouponMsg("Network error. Please try again.");
-      setCouponState("error");
+      setErrorMsg("Network error. Please try again.");
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
+
+  /** Checkout for a single analysis via /api/stripe/analysis (no auth required). */
+  const handleSingleAnalysis = async () => {
+    const trimmedEmail = (parentEmail ?? "").trim();
+    setCheckoutLoading("single");
+    setErrorMsg("");
+    trackEvent("svi_paywall_analysis_click", { price: 1 });
+    try {
+      const res = await fetch("/api/stripe/analysis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmedEmail || undefined }),
+      });
+      const data = await res.json();
+      if (data.ok && data.url) {
+        window.location.href = data.url;
+      } else {
+        setErrorMsg(data.reason || "Could not start checkout. Please try again.");
+      }
+    } catch {
+      setErrorMsg("Network error. Please try again.");
     } finally {
       setCheckoutLoading(null);
     }
@@ -1328,7 +1374,7 @@ function SVIPaywall({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ink-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto py-8">
-      <div className="relative mx-4 w-full max-w-lg rounded-3xl border border-surface-200 bg-white px-5 sm:px-8 py-8 sm:py-10 shadow-2xl">
+      <div className="relative mx-4 w-full max-w-md rounded-3xl border border-surface-200 bg-white p-6 sm:p-8 shadow-2xl">
         {/* Close button */}
         <button
           type="button"
@@ -1336,120 +1382,68 @@ function SVIPaywall({
           className="absolute top-4 right-4 h-8 w-8 flex items-center justify-center rounded-full text-ink-400 hover:text-ink-700 hover:bg-surface-100 cursor-pointer transition-colors"
           aria-label="Close"
         >
-          <X strokeWidth={1.75} className="h-4 w-4" />
+          <X strokeWidth={1.75} className="h-5 w-5" />
         </button>
 
-        {/* Icon */}
-        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 border border-brand-200">
-          <Lock strokeWidth={1.75} className="h-7 w-7 text-brand-600" />
+        {/* Header */}
+        <div className="text-center mb-6">
+          <div className="mx-auto h-14 w-14 rounded-2xl bg-brand-50 flex items-center justify-center mb-4">
+            <Sparkles strokeWidth={1.75} className="h-7 w-7 text-brand-600" />
+          </div>
+          <h3 className="text-2xl font-bold text-ink-900">
+            Your Free Analysis is Complete!
+          </h3>
+          <p className="mt-2 text-ink-500 text-sm leading-relaxed">
+            Great start! Unlock more analyses to keep building your startup value.
+          </p>
         </div>
 
-        <h3 className="text-center text-xl font-bold text-ink-900">
-          You&apos;ve already used your free Startup Value Index analysis.
-        </h3>
-        <p className="mt-2 text-center text-sm text-ink-500 leading-relaxed">
-          To analyze another idea, choose an option below.
-        </p>
-
-        {/* ── Option A: Single Analysis ────────────────────────────────── */}
-        <div className="mt-6 rounded-2xl border border-surface-200 bg-surface-50 px-5 py-5">
-          <p className="text-xs uppercase tracking-[0.12em] font-semibold text-ink-400 mb-1">Option A</p>
-          <p className="text-sm font-bold text-ink-800">Single Analysis</p>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-extrabold text-brand-600">${analysisPrice} AUD</span>
-            {earlyBird && (
-              <span className="text-sm text-ink-400 line-through">$25</span>
-            )}
-          </div>
-          {earlyBird && (
-            <p className="mt-1 text-xs text-brand-600 font-medium">
-              Early-bird price until June 15, 2026
-            </p>
-          )}
-
-          {/* Email input for guest checkout */}
-          <input
-            type="email"
-            value={analysisEmail}
-            onChange={(e) => { setAnalysisEmail(e.target.value); if (analysisError) setAnalysisError(""); }}
-            placeholder="your@email.com"
-            className="mt-3 h-10 w-full rounded-xl border border-surface-300 bg-white px-3 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
+        {/* Credit packs */}
+        <div className="space-y-3">
+          <CreditPackCard
+            credits={1}
+            price="A$1"
+            label="Single Analysis"
+            desc="Try one more report"
+            onClick={handleSingleAnalysis}
+            highlight={false}
+            loading={checkoutLoading === "single"}
           />
-          {analysisError && (
-            <p className="mt-1.5 text-xs text-red-500">{analysisError}</p>
-          )}
-
-          <button
-            type="button"
-            onClick={handleAnalysisCheckout}
-            disabled={checkoutLoading !== null}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 h-11 text-sm font-bold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50 cta-glow"
-          >
-            {checkoutLoading === "analysis" ? (
-              <span className="flex items-center gap-2">
-                <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                Redirecting...
-              </span>
-            ) : (
-              <>Get This Analysis &mdash; ${analysisPrice} AUD</>
-            )}
-          </button>
+          <CreditPackCard
+            credits={5}
+            price="A$5"
+            label="Starter Pack"
+            desc="A$1.00 per credit"
+            onClick={() => handleCreditPack(5, "starter")}
+            highlight={false}
+            loading={checkoutLoading === "starter"}
+          />
+          <CreditPackCard
+            credits={25}
+            price="A$20"
+            label="Growth Pack"
+            desc="A$0.80 per credit — best value"
+            onClick={() => handleCreditPack(25, "growth")}
+            highlight={true}
+            loading={checkoutLoading === "growth"}
+          />
         </div>
 
-        {/* ── Divider ──────────────────────────────────────────────────── */}
-        <div className="my-5 flex items-center gap-3">
-          <div className="flex-1 border-t border-surface-200" />
-          <span className="text-xs text-ink-400">or</span>
-          <div className="flex-1 border-t border-surface-200" />
+        {/* Founding 50 upgrade link */}
+        <div className="mt-4 text-center">
+          <p className="text-xs text-ink-500">
+            Or upgrade to{" "}
+            <Link href="/founding-50" className="text-brand-600 font-medium hover:text-brand-700 transition-colors">
+              Founding 50 ($49)
+            </Link>{" "}
+            for 100 credits + full platform access
+          </p>
         </div>
 
-        {/* ── Option B: Unlimited (Founding 50) ────────────────────────── */}
-        <div className="rounded-2xl border border-brand-200 bg-white px-5 py-5 relative overflow-hidden">
-          <div className="absolute top-3 right-3 rounded-full bg-brand-600 px-2.5 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider">Best Value</div>
-          <p className="text-xs uppercase tracking-[0.12em] font-semibold text-brand-600 mb-1">Option B</p>
-          <p className="text-sm font-bold text-ink-800">Unlimited Access</p>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-extrabold text-brand-600">$49 AUD</span>
-            <span className="text-sm text-ink-400 line-through">$99</span>
-          </div>
-          <p className="mt-1 text-xs text-ink-500">100 credits + Evidence Vault + more</p>
-
-          <button
-            type="button"
-            onClick={handlePlanCheckout}
-            disabled={checkoutLoading !== null}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 h-11 text-sm font-bold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50 cta-glow"
-          >
-            {checkoutLoading === "plan" ? (
-              <span className="flex items-center gap-2">
-                <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                Redirecting...
-              </span>
-            ) : (
-              <>
-                <Sparkles strokeWidth={1.75} className="h-4 w-4" />
-                Get Founder Plan &mdash; $49 AUD
-              </>
-            )}
-          </button>
-
-          {/* Features list */}
-          <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1.5">
-            {[
-              "100 credits included",
-              "Evidence vault",
-              "Export packs",
-              "Cap table tools",
-              "30-day growth plan",
-              "Lifetime access",
-            ].map((feat) => (
-              <div key={feat} className="flex items-center gap-1.5">
-                <CheckCircle2 strokeWidth={1.75} className="h-3.5 w-3.5 text-brand-500 shrink-0" />
-                <span className="text-xs text-ink-600">{feat}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        {/* Error message */}
+        {errorMsg && (
+          <p className="mt-3 text-center text-xs text-red-500">{errorMsg}</p>
+        )}
 
         {/* Coupon input */}
         <div className="mt-5">

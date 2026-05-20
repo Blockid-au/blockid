@@ -25,6 +25,7 @@ export interface AnalyticsEventMap {
   svi_paywall_shown: Record<string, never>;
   svi_paywall_checkout_click: Record<string, never>;
   svi_paywall_analysis_click: { price: number };
+  svi_paywall_credit_pack_click: { pack: string; credits: number };
   svi_paywall_coupon_submit: { code: string };
   svi_credit_gate_shown: { balance: number; cost: number };
 

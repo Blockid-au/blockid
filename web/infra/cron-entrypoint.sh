@@ -21,6 +21,9 @@ cat > /etc/crontabs/root <<EOF
 # Nurture sequences — daily 19:00 UTC (5am AEST)
 0 19 * * *   wget -qO- --header="Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/nurture >> /var/log/cron.log 2>&1
 
+# Weekly insights — Sunday 20:00 UTC (Monday 6am AEST)
+0 20 * * 0   wget -qO- -T 120 --header="Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/weekly-insights >> /var/log/cron.log 2>&1
+
 # AI Health check + alert — every 3 hours (0, 3, 6, 9, 12, 15, 18, 21 UTC)
 0 */3 * * *  wget -qO- -T 30 --header="Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/ai-health >> /var/log/cron.log 2>&1
 EOF
