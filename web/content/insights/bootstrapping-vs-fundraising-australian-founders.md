@@ -27,6 +27,39 @@ To make this decision with confidence, you need a framework that moves beyond in
 | **Decision Speed** | Instant (founder decides) | Slow (board approval) |
 | **Geographic Constraint** | Local / niche focus | Global scale required |
 
+<svg viewBox="0 0 700 420" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="420" rx="8" fill="#f8fafc"/>
+  <text x="350" y="36" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Bootstrapping vs VC: Side-by-Side Comparison</text>
+  <!-- Bootstrap Card -->
+  <rect x="20" y="56" width="320" height="340" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+  <rect x="20" y="56" width="320" height="44" rx="8" fill="#2563eb"/>
+  <text x="180" y="84" text-anchor="middle" font-size="15" font-weight="bold" fill="#ffffff">BOOTSTRAPPING PATH</text>
+  <text x="40" y="124" font-size="13" fill="#1e293b" font-weight="bold">Control:</text><text x="180" y="124" font-size="13" fill="#10b981">100% Founder</text>
+  <text x="40" y="152" font-size="13" fill="#1e293b" font-weight="bold">Equity Retained:</text><text x="180" y="152" font-size="13" fill="#10b981">80–100%</text>
+  <text x="40" y="180" font-size="13" fill="#1e293b" font-weight="bold">Break-even:</text><text x="180" y="180" font-size="13" fill="#10b981">6–18 months</text>
+  <text x="40" y="208" font-size="13" fill="#1e293b" font-weight="bold">Year 5 Revenue:</text><text x="180" y="208" font-size="13" fill="#1e293b">$2M–$5M</text>
+  <text x="40" y="236" font-size="13" fill="#1e293b" font-weight="bold">Funding Required:</text><text x="180" y="236" font-size="13" fill="#10b981">$0–$100K</text>
+  <text x="40" y="264" font-size="13" fill="#1e293b" font-weight="bold">Exit Range:</text><text x="180" y="264" font-size="13" fill="#1e293b">$5M–$20M</text>
+  <text x="40" y="292" font-size="13" fill="#1e293b" font-weight="bold">Decision Speed:</text><text x="180" y="292" font-size="13" fill="#10b981">Instant</text>
+  <text x="40" y="320" font-size="13" fill="#1e293b" font-weight="bold">Risk of Removal:</text><text x="180" y="320" font-size="13" fill="#10b981">None</text>
+  <text x="40" y="348" font-size="13" fill="#1e293b" font-weight="bold">Best For:</text><text x="180" y="348" font-size="13" fill="#1e293b">SaaS, Services, Niche B2B</text>
+  <text x="40" y="376" font-size="13" fill="#1e293b" font-weight="bold">Focus:</text><text x="180" y="376" font-size="13" fill="#2563eb">Profitability</text>
+  <!-- VC Card -->
+  <rect x="360" y="56" width="320" height="340" rx="8" fill="#ffffff" stroke="#f59e0b" stroke-width="2"/>
+  <rect x="360" y="56" width="320" height="44" rx="8" fill="#f59e0b"/>
+  <text x="520" y="84" text-anchor="middle" font-size="15" font-weight="bold" fill="#ffffff">VC-FUNDED PATH</text>
+  <text x="380" y="124" font-size="13" fill="#1e293b" font-weight="bold">Control:</text><text x="520" y="124" font-size="13" fill="#f59e0b">Diluted (Board)</text>
+  <text x="380" y="152" font-size="13" fill="#1e293b" font-weight="bold">Equity Retained:</text><text x="520" y="152" font-size="13" fill="#f59e0b">15–30%</text>
+  <text x="380" y="180" font-size="13" fill="#1e293b" font-weight="bold">Break-even:</text><text x="520" y="180" font-size="13" fill="#f59e0b">3–7 years</text>
+  <text x="380" y="208" font-size="13" fill="#1e293b" font-weight="bold">Year 5 Revenue:</text><text x="520" y="208" font-size="13" fill="#1e293b">$10M–$50M+</text>
+  <text x="380" y="236" font-size="13" fill="#1e293b" font-weight="bold">Funding Required:</text><text x="520" y="236" font-size="13" fill="#f59e0b">$5M–$20M+</text>
+  <text x="380" y="264" font-size="13" fill="#1e293b" font-weight="bold">Exit Range:</text><text x="520" y="264" font-size="13" fill="#1e293b">$50M–$500M+</text>
+  <text x="380" y="292" font-size="13" fill="#1e293b" font-weight="bold">Decision Speed:</text><text x="520" y="292" font-size="13" fill="#f59e0b">Slow (Board)</text>
+  <text x="380" y="320" font-size="13" fill="#1e293b" font-weight="bold">Risk of Removal:</text><text x="520" y="320" font-size="13" fill="#f59e0b">Moderate–High</text>
+  <text x="380" y="348" font-size="13" fill="#1e293b" font-weight="bold">Best For:</text><text x="520" y="348" font-size="13" fill="#1e293b">Marketplaces, Deep Tech, AI</text>
+  <text x="380" y="376" font-size="13" fill="#1e293b" font-weight="bold">Focus:</text><text x="520" y="376" font-size="13" fill="#f59e0b">Hyper-Growth</text>
+</svg>
+
 ## The Decision Matrix: 4 Critical Factors for Australian Startups
 
 Determining whether to **bootstrap startup Australia** or seek venture capital requires a rigorous assessment of four core variables. These factors interact dynamically, and shifting one can completely alter the viability of a funding strategy.
@@ -87,6 +120,51 @@ To visualize the trade-offs, let's break down the key differences in a side-by-s
 As you can see, **bootstrapping vs fundraising** isn't just about money; it's about what kind of company you want to build and what kind of founder you want to be.
 
 > **Ready to check your startup valuation?** [Know Your Startup Value First](/) before making a capital decision. Understanding your current **Startup Value Index (SVI)** is the first step in negotiating from a position of strength, whether you choose to raise or remain independent.
+
+<svg viewBox="0 0 700 400" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="400" rx="8" fill="#f8fafc"/>
+  <text x="350" y="36" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">5-Year Revenue Outcome: Bootstrap vs VC</text>
+  <!-- Y-axis labels -->
+  <text x="60" y="82" text-anchor="end" font-size="11" fill="#1e293b">$50M+</text>
+  <line x1="65" y1="78" x2="660" y2="78" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="60" y="142" text-anchor="end" font-size="11" fill="#1e293b">$10M</text>
+  <line x1="65" y1="138" x2="660" y2="138" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="60" y="202" text-anchor="end" font-size="11" fill="#1e293b">$5M</text>
+  <line x1="65" y1="198" x2="660" y2="198" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="60" y="262" text-anchor="end" font-size="11" fill="#1e293b">$2M</text>
+  <line x1="65" y1="258" x2="660" y2="258" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="60" y="322" text-anchor="end" font-size="11" fill="#1e293b">$300K</text>
+  <line x1="65" y1="318" x2="660" y2="318" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="60" y="362" text-anchor="end" font-size="11" fill="#1e293b">$0</text>
+  <line x1="65" y1="358" x2="660" y2="358" stroke="#1e293b" stroke-width="1.5"/>
+  <!-- Year 1 -->
+  <rect x="95" y="318" width="48" height="40" rx="4" fill="#2563eb"/>
+  <text x="119" y="310" text-anchor="middle" font-size="10" fill="#2563eb" font-weight="bold">$300K</text>
+  <rect x="150" y="348" width="48" height="10" rx="4" fill="#f59e0b"/>
+  <text x="174" y="342" text-anchor="middle" font-size="10" fill="#f59e0b" font-weight="bold">$50K</text>
+  <text x="147" y="378" text-anchor="middle" font-size="12" fill="#1e293b" font-weight="bold">Year 1</text>
+  <!-- Year 2 -->
+  <rect x="235" y="278" width="48" height="80" rx="4" fill="#2563eb"/>
+  <text x="259" y="270" text-anchor="middle" font-size="10" fill="#2563eb" font-weight="bold">$1M</text>
+  <rect x="290" y="258" width="48" height="100" rx="4" fill="#f59e0b"/>
+  <text x="314" y="250" text-anchor="middle" font-size="10" fill="#f59e0b" font-weight="bold">$2M</text>
+  <text x="282" y="378" text-anchor="middle" font-size="12" fill="#1e293b" font-weight="bold">Year 2</text>
+  <!-- Year 3 -->
+  <rect x="375" y="258" width="48" height="100" rx="4" fill="#2563eb"/>
+  <text x="399" y="250" text-anchor="middle" font-size="10" fill="#2563eb" font-weight="bold">$2M</text>
+  <rect x="430" y="138" width="48" height="220" rx="4" fill="#f59e0b"/>
+  <text x="454" y="130" text-anchor="middle" font-size="10" fill="#f59e0b" font-weight="bold">$10M</text>
+  <text x="422" y="378" text-anchor="middle" font-size="12" fill="#1e293b" font-weight="bold">Year 3</text>
+  <!-- Year 5 -->
+  <rect x="515" y="198" width="48" height="160" rx="4" fill="#2563eb"/>
+  <text x="539" y="190" text-anchor="middle" font-size="10" fill="#2563eb" font-weight="bold">$5M</text>
+  <rect x="570" y="78" width="48" height="280" rx="4" fill="#f59e0b"/>
+  <text x="594" y="70" text-anchor="middle" font-size="10" fill="#f59e0b" font-weight="bold">$50M+</text>
+  <text x="562" y="378" text-anchor="middle" font-size="12" fill="#1e293b" font-weight="bold">Year 5</text>
+  <!-- Legend -->
+  <rect x="220" y="392" width="14" height="14" rx="3" fill="#2563eb"/><text x="240" y="403" font-size="12" fill="#1e293b">Bootstrapped</text>
+  <rect x="370" y="392" width="14" height="14" rx="3" fill="#f59e0b"/><text x="390" y="403" font-size="12" fill="#1e293b">VC-Funded</text>
+</svg>
 
 ## When Bootstrapping is the Winning Strategy
 

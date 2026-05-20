@@ -44,6 +44,71 @@ Once you understand your revenue baseline, you need to evaluate how efficiently 
 | **Burn Multiple** | N/A | < 3x | < 1.5x |
 | **Runway** | 6 - 12 months | 12 - 18 months | 18 - 24 months |
 
+<svg viewBox="0 0 700 420" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="420" rx="8" fill="#f8fafc"/>
+  <text x="350" y="32" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Key Metrics by Funding Stage</text>
+  <text x="350" y="52" text-anchor="middle" font-size="12" fill="#64748b">Stacked priorities — what investors focus on at each stage</text>
+  <!-- Column headers -->
+  <text x="240" y="80" text-anchor="middle" font-size="13" font-weight="bold" fill="#2563eb">Pre-Seed</text>
+  <text x="420" y="80" text-anchor="middle" font-size="13" font-weight="bold" fill="#10b981">Seed</text>
+  <text x="600" y="80" text-anchor="middle" font-size="13" font-weight="bold" fill="#f59e0b">Series A</text>
+  <!-- Row labels -->
+  <text x="95" y="115" text-anchor="end" font-size="11" fill="#1e293b" font-weight="bold">MRR</text>
+  <text x="95" y="155" text-anchor="end" font-size="11" fill="#1e293b" font-weight="bold">MoM Growth</text>
+  <text x="95" y="195" text-anchor="end" font-size="11" fill="#1e293b" font-weight="bold">LTV:CAC</text>
+  <text x="95" y="235" text-anchor="end" font-size="11" fill="#1e293b" font-weight="bold">Churn</text>
+  <text x="95" y="275" text-anchor="end" font-size="11" fill="#1e293b" font-weight="bold">Gross Margin</text>
+  <text x="95" y="315" text-anchor="end" font-size="11" fill="#1e293b" font-weight="bold">NRR</text>
+  <text x="95" y="355" text-anchor="end" font-size="11" fill="#1e293b" font-weight="bold">Burn Multiple</text>
+  <!-- Pre-Seed bars -->
+  <rect x="170" y="100" width="140" height="22" rx="4" fill="#2563eb" opacity="0.25"/>
+  <text x="240" y="116" text-anchor="middle" font-size="10" fill="#1e293b">$10K–$20K</text>
+  <rect x="170" y="140" width="140" height="22" rx="4" fill="#2563eb" opacity="0.6"/>
+  <text x="240" y="156" text-anchor="middle" font-size="10" fill="#1e293b">20–30%</text>
+  <rect x="170" y="180" width="140" height="22" rx="4" fill="#2563eb" opacity="0.15"/>
+  <text x="240" y="196" text-anchor="middle" font-size="10" fill="#64748b">N/A</text>
+  <rect x="170" y="220" width="140" height="22" rx="4" fill="#2563eb" opacity="0.25"/>
+  <text x="240" y="236" text-anchor="middle" font-size="10" fill="#1e293b">&lt; 5%</text>
+  <rect x="170" y="260" width="140" height="22" rx="4" fill="#2563eb" opacity="0.3"/>
+  <text x="240" y="276" text-anchor="middle" font-size="10" fill="#1e293b">&gt; 50%</text>
+  <rect x="170" y="300" width="140" height="22" rx="4" fill="#2563eb" opacity="0.15"/>
+  <text x="240" y="316" text-anchor="middle" font-size="10" fill="#64748b">N/A</text>
+  <rect x="170" y="340" width="140" height="22" rx="4" fill="#2563eb" opacity="0.15"/>
+  <text x="240" y="356" text-anchor="middle" font-size="10" fill="#64748b">N/A</text>
+  <!-- Seed bars -->
+  <rect x="350" y="100" width="140" height="22" rx="4" fill="#10b981" opacity="0.5"/>
+  <text x="420" y="116" text-anchor="middle" font-size="10" fill="#1e293b">$50K–$100K</text>
+  <rect x="350" y="140" width="140" height="22" rx="4" fill="#10b981" opacity="0.5"/>
+  <text x="420" y="156" text-anchor="middle" font-size="10" fill="#1e293b">15–20%</text>
+  <rect x="350" y="180" width="140" height="22" rx="4" fill="#10b981" opacity="0.5"/>
+  <text x="420" y="196" text-anchor="middle" font-size="10" fill="#1e293b">&gt; 2.5:1</text>
+  <rect x="350" y="220" width="140" height="22" rx="4" fill="#10b981" opacity="0.5"/>
+  <text x="420" y="236" text-anchor="middle" font-size="10" fill="#1e293b">&lt; 2%</text>
+  <rect x="350" y="260" width="140" height="22" rx="4" fill="#10b981" opacity="0.5"/>
+  <text x="420" y="276" text-anchor="middle" font-size="10" fill="#1e293b">&gt; 70%</text>
+  <rect x="350" y="300" width="140" height="22" rx="4" fill="#10b981" opacity="0.4"/>
+  <text x="420" y="316" text-anchor="middle" font-size="10" fill="#1e293b">&gt; 100%</text>
+  <rect x="350" y="340" width="140" height="22" rx="4" fill="#10b981" opacity="0.4"/>
+  <text x="420" y="356" text-anchor="middle" font-size="10" fill="#1e293b">&lt; 3x</text>
+  <!-- Series A bars -->
+  <rect x="530" y="100" width="140" height="22" rx="4" fill="#f59e0b" opacity="0.7"/>
+  <text x="600" y="116" text-anchor="middle" font-size="10" fill="#1e293b">$500K+</text>
+  <rect x="530" y="140" width="140" height="22" rx="4" fill="#f59e0b" opacity="0.5"/>
+  <text x="600" y="156" text-anchor="middle" font-size="10" fill="#1e293b">10–15%</text>
+  <rect x="530" y="180" width="140" height="22" rx="4" fill="#f59e0b" opacity="0.7"/>
+  <text x="600" y="196" text-anchor="middle" font-size="10" fill="#1e293b">&gt; 3.0:1</text>
+  <rect x="530" y="220" width="140" height="22" rx="4" fill="#f59e0b" opacity="0.7"/>
+  <text x="600" y="236" text-anchor="middle" font-size="10" fill="#1e293b">&lt; 1%</text>
+  <rect x="530" y="260" width="140" height="22" rx="4" fill="#f59e0b" opacity="0.7"/>
+  <text x="600" y="276" text-anchor="middle" font-size="10" fill="#1e293b">&gt; 80%</text>
+  <rect x="530" y="300" width="140" height="22" rx="4" fill="#f59e0b" opacity="0.7"/>
+  <text x="600" y="316" text-anchor="middle" font-size="10" fill="#1e293b">&gt; 110%</text>
+  <rect x="530" y="340" width="140" height="22" rx="4" fill="#f59e0b" opacity="0.7"/>
+  <text x="600" y="356" text-anchor="middle" font-size="10" fill="#1e293b">&lt; 1.5x</text>
+  <!-- Bottom note -->
+  <text x="350" y="400" text-anchor="middle" font-size="11" fill="#64748b">Darker bars = higher investor focus at that stage</text>
+</svg>
+
 ## Unit Economics: The Profitability of Growth
 
 Investors in 2025 are far less interested in "growth at all costs" than they were in the bubble years. The focus has shifted squarely to efficient growth. The relationship between **CAC** (Customer Acquisition Cost) and **LTV** (Lifetime Value) is the single most important determinant of your startup's long-term viability.
@@ -182,35 +247,61 @@ With strict **ATO** and privacy laws, data security is paramount. Investors will
 
 ### North Star Metric Framework: Finding Your One Metric That Matters
 
-```
-┌─────────────────────────────────────────────────────────┐
-│            NORTH STAR METRIC FRAMEWORK                  │
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│  Step 1: Identify your business model                   │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │
-│  │    SaaS     │  │ Marketplace │  │   E-comm    │     │
-│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘     │
-│         │                │                │             │
-│  Step 2: Select your North Star                         │
-│         ▼                ▼                ▼             │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │
-│  │Weekly Active│  │  Gross      │  │  Weekly     │     │
-│  │ Users (WAU) │  │ Merchandise │  │  Purchases  │     │
-│  │             │  │ Value (GMV) │  │  per User   │     │
-│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘     │
-│         │                │                │             │
-│  Step 3: Connect to revenue                             │
-│         ▼                ▼                ▼             │
-│  WAU × Conversion    GMV × Take      Purchases ×       │
-│  Rate × ARPU = MRR   Rate = Revenue  AOV = Revenue     │
-│                                                         │
-│  Step 4: Set targets per stage                          │
-│  Pre-seed: Prove the metric moves                       │
-│  Seed:     Show 15-20% MoM growth in North Star        │
-│  Series A: Demonstrate predictable, scalable growth     │
-└─────────────────────────────────────────────────────────┘
-```
+<svg viewBox="0 0 700 480" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="480" rx="8" fill="#f8fafc"/>
+  <text x="350" y="32" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">North Star Metric Selection Flow</text>
+  <!-- Step 1: Business Model -->
+  <rect x="200" y="52" width="300" height="30" rx="6" fill="#1e293b"/>
+  <text x="350" y="72" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffffff">Step 1: Identify Your Business Model</text>
+  <!-- Model boxes -->
+  <rect x="60" y="100" width="160" height="44" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+  <text x="140" y="127" text-anchor="middle" font-size="13" font-weight="bold" fill="#2563eb">SaaS</text>
+  <rect x="270" y="100" width="160" height="44" rx="8" fill="#ffffff" stroke="#10b981" stroke-width="2"/>
+  <text x="350" y="127" text-anchor="middle" font-size="13" font-weight="bold" fill="#10b981">Marketplace</text>
+  <rect x="480" y="100" width="160" height="44" rx="8" fill="#ffffff" stroke="#f59e0b" stroke-width="2"/>
+  <text x="560" y="127" text-anchor="middle" font-size="13" font-weight="bold" fill="#f59e0b">E-commerce</text>
+  <!-- Arrows down -->
+  <line x1="140" y1="148" x2="140" y2="180" stroke="#2563eb" stroke-width="2" marker-end="url(#arr4)"/>
+  <line x1="350" y1="148" x2="350" y2="180" stroke="#10b981" stroke-width="2" marker-end="url(#arr4g)"/>
+  <line x1="560" y1="148" x2="560" y2="180" stroke="#f59e0b" stroke-width="2" marker-end="url(#arr4a)"/>
+  <!-- Step 2: North Star -->
+  <rect x="200" y="168" width="300" height="30" rx="6" fill="#1e293b"/>
+  <text x="350" y="188" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffffff">Step 2: Select Your North Star</text>
+  <rect x="60" y="210" width="160" height="50" rx="8" fill="#2563eb" opacity="0.1" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="140" y="232" text-anchor="middle" font-size="12" font-weight="bold" fill="#2563eb">Weekly Active</text>
+  <text x="140" y="248" text-anchor="middle" font-size="12" font-weight="bold" fill="#2563eb">Users (WAU)</text>
+  <rect x="270" y="210" width="160" height="50" rx="8" fill="#10b981" opacity="0.1" stroke="#10b981" stroke-width="1.5"/>
+  <text x="350" y="232" text-anchor="middle" font-size="12" font-weight="bold" fill="#10b981">Gross Merchandise</text>
+  <text x="350" y="248" text-anchor="middle" font-size="12" font-weight="bold" fill="#10b981">Value (GMV)</text>
+  <rect x="480" y="210" width="160" height="50" rx="8" fill="#f59e0b" opacity="0.1" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="560" y="232" text-anchor="middle" font-size="12" font-weight="bold" fill="#f59e0b">Weekly Purchases</text>
+  <text x="560" y="248" text-anchor="middle" font-size="12" font-weight="bold" fill="#f59e0b">per User</text>
+  <!-- Arrows down -->
+  <line x1="140" y1="264" x2="140" y2="296" stroke="#2563eb" stroke-width="2" marker-end="url(#arr4)"/>
+  <line x1="350" y1="264" x2="350" y2="296" stroke="#10b981" stroke-width="2" marker-end="url(#arr4g)"/>
+  <line x1="560" y1="264" x2="560" y2="296" stroke="#f59e0b" stroke-width="2" marker-end="url(#arr4a)"/>
+  <!-- Step 3: Revenue formula -->
+  <rect x="200" y="284" width="300" height="30" rx="6" fill="#1e293b"/>
+  <text x="350" y="304" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffffff">Step 3: Connect to Revenue</text>
+  <rect x="40" y="326" width="180" height="36" rx="6" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="130" y="349" text-anchor="middle" font-size="10" fill="#2563eb" font-weight="bold">WAU x Conv x ARPU = MRR</text>
+  <rect x="260" y="326" width="180" height="36" rx="6" fill="#ffffff" stroke="#10b981" stroke-width="1.5"/>
+  <text x="350" y="349" text-anchor="middle" font-size="10" fill="#10b981" font-weight="bold">GMV x Take Rate = Revenue</text>
+  <rect x="480" y="326" width="180" height="36" rx="6" fill="#ffffff" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="570" y="349" text-anchor="middle" font-size="10" fill="#f59e0b" font-weight="bold">Purchases x AOV = Revenue</text>
+  <!-- Step 4: Targets -->
+  <rect x="200" y="380" width="300" height="30" rx="6" fill="#1e293b"/>
+  <text x="350" y="400" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffffff">Step 4: Set Targets per Stage</text>
+  <text x="140" y="434" text-anchor="middle" font-size="11" fill="#2563eb" font-weight="bold">Pre-Seed:</text><text x="255" y="434" font-size="11" fill="#64748b">Prove it moves</text>
+  <text x="350" y="434" text-anchor="middle" font-size="11" fill="#10b981" font-weight="bold">Seed:</text><text x="430" y="434" font-size="11" fill="#64748b">15-20% MoM growth</text>
+  <text x="560" y="434" text-anchor="middle" font-size="11" fill="#f59e0b" font-weight="bold">Series A:</text><text x="640" y="434" font-size="11" fill="#64748b">Predictable</text>
+  <!-- Arrow markers -->
+  <defs>
+    <marker id="arr4" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#2563eb"/></marker>
+    <marker id="arr4g" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#10b981"/></marker>
+    <marker id="arr4a" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#f59e0b"/></marker>
+  </defs>
+</svg>
 
 ## How BlockID SVI Tracks and Validates Your Metrics
 

@@ -34,6 +34,89 @@ This is the bedrock of your company. Investors need to verify that the entity ex
 | **Strategy** | TAM/SAM Analysis, Competitive Matrix, Go-to-Market Plan, Product Roadmap | Medium |
 | **Compliance** | Privacy Policy, Cybersecurity Audit, Litigation Disclosure, Regulatory Licenses | High |
 
+<svg viewBox="0 0 700 420" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="420" fill="#f8fafc" rx="8"/>
+  <text x="350" y="35" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Data Room Folder Structure</text>
+  <text x="350" y="55" text-anchor="middle" font-size="11" fill="#64748b">Standard hierarchy for Australian startup investor data rooms</text>
+  <!-- Root -->
+  <rect x="270" y="70" width="160" height="32" fill="#1e293b" rx="6"/>
+  <text x="350" y="91" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">Data Room (Root)</text>
+  <!-- Connecting lines from root -->
+  <line x1="350" y1="102" x2="350" y2="120" stroke="#1e293b" stroke-width="1.5"/>
+  <line x1="90" y1="120" x2="610" y2="120" stroke="#1e293b" stroke-width="1.5"/>
+  <!-- Vertical drops -->
+  <line x1="90" y1="120" x2="90" y2="140" stroke="#1e293b" stroke-width="1.5"/>
+  <line x1="168" y1="120" x2="168" y2="140" stroke="#1e293b" stroke-width="1.5"/>
+  <line x1="245" y1="120" x2="245" y2="140" stroke="#1e293b" stroke-width="1.5"/>
+  <line x1="323" y1="120" x2="323" y2="140" stroke="#1e293b" stroke-width="1.5"/>
+  <line x1="400" y1="120" x2="400" y2="140" stroke="#1e293b" stroke-width="1.5"/>
+  <line x1="478" y1="120" x2="478" y2="140" stroke="#1e293b" stroke-width="1.5"/>
+  <line x1="555" y1="120" x2="555" y2="140" stroke="#1e293b" stroke-width="1.5"/>
+  <line x1="610" y1="120" x2="610" y2="140" stroke="#1e293b" stroke-width="1.5"/>
+  <!-- Folder 01 -->
+  <rect x="45" y="140" width="90" height="44" fill="#2563eb" rx="6"/>
+  <text x="90" y="158" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">01-Corporate</text>
+  <text x="90" y="174" text-anchor="middle" font-size="9" fill="#e0e7ff">Legal</text>
+  <!-- Folder 02 -->
+  <rect x="143" y="140" width="90" height="44" fill="#2563eb" rx="6"/>
+  <text x="188" y="158" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">02-Cap Table</text>
+  <text x="188" y="174" text-anchor="middle" font-size="9" fill="#e0e7ff">Equity</text>
+  <!-- Folder 03 -->
+  <rect x="240" y="140" width="90" height="44" fill="#10b981" rx="6"/>
+  <text x="285" y="158" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">03-Financials</text>
+  <text x="285" y="174" text-anchor="middle" font-size="9" fill="#d1fae5">Tax</text>
+  <!-- Folder 04 -->
+  <rect x="338" y="140" width="90" height="44" fill="#10b981" rx="6"/>
+  <text x="383" y="158" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">04-IP Legal</text>
+  <text x="383" y="174" text-anchor="middle" font-size="9" fill="#d1fae5">Patents</text>
+  <!-- Folder 05 -->
+  <rect x="435" y="140" width="90" height="44" fill="#f59e0b" rx="6"/>
+  <text x="480" y="158" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">05-Contracts</text>
+  <text x="480" y="174" text-anchor="middle" font-size="9" fill="#fef3c7">Customer</text>
+  <!-- Folder 06 -->
+  <rect x="533" y="140" width="90" height="44" fill="#f59e0b" rx="6"/>
+  <text x="578" y="158" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">06-People</text>
+  <text x="578" y="174" text-anchor="middle" font-size="9" fill="#fef3c7">Culture</text>
+  <!-- Folder 07 -->
+  <rect x="533" y="200" width="90" height="44" fill="#64748b" rx="6"/>
+  <text x="578" y="218" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">07-Strategy</text>
+  <text x="578" y="234" text-anchor="middle" font-size="9" fill="#e2e8f0">Market</text>
+  <!-- Folder 08 -->
+  <rect x="435" y="200" width="90" height="44" fill="#64748b" rx="6"/>
+  <text x="480" y="218" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">08-Compliance</text>
+  <text x="480" y="234" text-anchor="middle" font-size="9" fill="#e2e8f0">Privacy</text>
+  <!-- Sub-items under Corporate -->
+  <line x1="90" y1="184" x2="90" y2="260" stroke="#2563eb" stroke-width="1" stroke-dasharray="3,2"/>
+  <rect x="40" y="260" width="100" height="20" fill="#2563eb" opacity="0.15" rx="3"/><text x="90" y="274" text-anchor="middle" font-size="8" fill="#2563eb">ASIC Registration</text>
+  <rect x="40" y="284" width="100" height="20" fill="#2563eb" opacity="0.15" rx="3"/><text x="90" y="298" text-anchor="middle" font-size="8" fill="#2563eb">Constitution</text>
+  <rect x="40" y="308" width="100" height="20" fill="#2563eb" opacity="0.15" rx="3"/><text x="90" y="322" text-anchor="middle" font-size="8" fill="#2563eb">Directors Register</text>
+  <!-- Sub-items under Cap Table -->
+  <line x1="188" y1="184" x2="188" y2="260" stroke="#2563eb" stroke-width="1" stroke-dasharray="3,2"/>
+  <rect x="143" y="260" width="100" height="20" fill="#2563eb" opacity="0.15" rx="3"/><text x="193" y="274" text-anchor="middle" font-size="8" fill="#2563eb">Cap Table Sheet</text>
+  <rect x="143" y="284" width="100" height="20" fill="#2563eb" opacity="0.15" rx="3"/><text x="193" y="298" text-anchor="middle" font-size="8" fill="#2563eb">ESOP Rules</text>
+  <rect x="143" y="308" width="100" height="20" fill="#2563eb" opacity="0.15" rx="3"/><text x="193" y="322" text-anchor="middle" font-size="8" fill="#2563eb">SAFE/Note Docs</text>
+  <!-- Sub-items under Financials -->
+  <line x1="285" y1="184" x2="285" y2="260" stroke="#10b981" stroke-width="1" stroke-dasharray="3,2"/>
+  <rect x="240" y="260" width="100" height="20" fill="#10b981" opacity="0.15" rx="3"/><text x="290" y="274" text-anchor="middle" font-size="8" fill="#10b981">P&amp;L + Balance Sheet</text>
+  <rect x="240" y="284" width="100" height="20" fill="#10b981" opacity="0.15" rx="3"/><text x="290" y="298" text-anchor="middle" font-size="8" fill="#10b981">Cash Flow Forecast</text>
+  <rect x="240" y="308" width="100" height="20" fill="#10b981" opacity="0.15" rx="3"/><text x="290" y="322" text-anchor="middle" font-size="8" fill="#10b981">Bank Statements</text>
+  <!-- Sub-items under IP -->
+  <line x1="383" y1="184" x2="383" y2="260" stroke="#10b981" stroke-width="1" stroke-dasharray="3,2"/>
+  <rect x="338" y="260" width="100" height="20" fill="#10b981" opacity="0.15" rx="3"/><text x="388" y="274" text-anchor="middle" font-size="8" fill="#10b981">IP Assignment Deeds</text>
+  <rect x="338" y="284" width="100" height="20" fill="#10b981" opacity="0.15" rx="3"/><text x="388" y="298" text-anchor="middle" font-size="8" fill="#10b981">Contractor IP Clauses</text>
+  <rect x="338" y="308" width="100" height="20" fill="#10b981" opacity="0.15" rx="3"/><text x="388" y="322" text-anchor="middle" font-size="8" fill="#10b981">Trademarks/Patents</text>
+  <!-- Access tiers -->
+  <rect x="60" y="355" width="180" height="45" fill="#2563eb" opacity="0.1" stroke="#2563eb" stroke-width="1" rx="6"/>
+  <text x="150" y="373" text-anchor="middle" font-size="10" font-weight="bold" fill="#2563eb">Tier 1: Public</text>
+  <text x="150" y="390" text-anchor="middle" font-size="9" fill="#64748b">Pitch deck, team bios</text>
+  <rect x="260" y="355" width="180" height="45" fill="#f59e0b" opacity="0.1" stroke="#f59e0b" stroke-width="1" rx="6"/>
+  <text x="350" y="373" text-anchor="middle" font-size="10" font-weight="bold" fill="#f59e0b">Tier 2: NDA Required</text>
+  <text x="350" y="390" text-anchor="middle" font-size="9" fill="#64748b">Financials, cap table</text>
+  <rect x="460" y="355" width="180" height="45" fill="#1e293b" opacity="0.1" stroke="#1e293b" stroke-width="1" rx="6"/>
+  <text x="550" y="373" text-anchor="middle" font-size="10" font-weight="bold" fill="#1e293b">Tier 3: Final DD Only</text>
+  <text x="550" y="390" text-anchor="middle" font-size="9" fill="#64748b">Tax returns, code access</text>
+</svg>
+
 ### 2. Cap Table and Equity Structure
 Investors must understand who owns what and how the new money will affect the equity structure. This is often the first place where Australian startups stumble due to ESIC (Employee Share and Option Scheme) complexities.
 *   **Cap Table:** A clear, granular spreadsheet showing full ownership percentages, including founders, early employees, investors, and option pools. It must reconcile with the ASIC register.
@@ -141,6 +224,56 @@ While numbers are vital, the "people" section of your data room humanizes the bu
 > - Tier 3 (Final DD Only): Tax returns, litigation history, code access
 >
 > **Update Cadence:** Refresh financial documents monthly; legal documents upon any change; cap table after every equity event.
+
+<svg viewBox="0 0 700 380" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="380" fill="#f8fafc" rx="8"/>
+  <text x="350" y="35" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Document Priority by Funding Stage</text>
+  <text x="350" y="55" text-anchor="middle" font-size="11" fill="#64748b">Critical = must have | High = strongly expected | Medium = nice to have</text>
+  <!-- Column headers -->
+  <text x="300" y="80" font-size="11" font-weight="bold" fill="#1e293b" text-anchor="middle">Pre-Seed</text>
+  <text x="420" y="80" font-size="11" font-weight="bold" fill="#1e293b" text-anchor="middle">Seed</text>
+  <text x="540" y="80" font-size="11" font-weight="bold" fill="#1e293b" text-anchor="middle">Series A</text>
+  <line x1="40" y1="90" x2="660" y2="90" stroke="#e2e8f0" stroke-width="1"/>
+  <!-- Row: Corporate & Legal -->
+  <text x="50" y="115" font-size="12" font-weight="bold" fill="#1e293b">Corporate &amp; Legal</text>
+  <rect x="265" y="100" width="70" height="24" fill="#2563eb" rx="4"/><text x="300" y="117" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">Critical</text>
+  <rect x="385" y="100" width="70" height="24" fill="#2563eb" rx="4"/><text x="420" y="117" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">Critical</text>
+  <rect x="505" y="100" width="70" height="24" fill="#2563eb" rx="4"/><text x="540" y="117" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">Critical</text>
+  <!-- Row: Cap Table -->
+  <text x="50" y="150" font-size="12" font-weight="bold" fill="#1e293b">Cap Table &amp; Equity</text>
+  <rect x="265" y="135" width="70" height="24" fill="#2563eb" rx="4"/><text x="300" y="152" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">Critical</text>
+  <rect x="385" y="135" width="70" height="24" fill="#2563eb" rx="4"/><text x="420" y="152" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">Critical</text>
+  <rect x="505" y="135" width="70" height="24" fill="#2563eb" rx="4"/><text x="540" y="152" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">Critical</text>
+  <!-- Row: Financials -->
+  <text x="50" y="185" font-size="12" font-weight="bold" fill="#1e293b">Financials</text>
+  <rect x="265" y="170" width="70" height="24" fill="#2563eb" rx="4"/><text x="300" y="187" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">Critical</text>
+  <rect x="385" y="170" width="70" height="24" fill="#2563eb" rx="4"/><text x="420" y="187" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">Critical</text>
+  <rect x="505" y="170" width="70" height="24" fill="#2563eb" rx="4"/><text x="540" y="187" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">Critical</text>
+  <!-- Row: IP & Legal -->
+  <text x="50" y="220" font-size="12" font-weight="bold" fill="#1e293b">IP &amp; Legal</text>
+  <rect x="265" y="205" width="70" height="24" fill="#10b981" rx="4"/><text x="300" y="222" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">High</text>
+  <rect x="385" y="205" width="70" height="24" fill="#10b981" rx="4"/><text x="420" y="222" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">High</text>
+  <rect x="505" y="205" width="70" height="24" fill="#2563eb" rx="4"/><text x="540" y="222" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">Critical</text>
+  <!-- Row: Contracts -->
+  <text x="50" y="255" font-size="12" font-weight="bold" fill="#1e293b">Contracts</text>
+  <rect x="265" y="240" width="70" height="24" fill="#f59e0b" rx="4"/><text x="300" y="257" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">Medium</text>
+  <rect x="385" y="240" width="70" height="24" fill="#10b981" rx="4"/><text x="420" y="257" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">High</text>
+  <rect x="505" y="240" width="70" height="24" fill="#2563eb" rx="4"/><text x="540" y="257" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">Critical</text>
+  <!-- Row: People -->
+  <text x="50" y="290" font-size="12" font-weight="bold" fill="#1e293b">People &amp; Culture</text>
+  <rect x="265" y="275" width="70" height="24" fill="#f59e0b" rx="4"/><text x="300" y="292" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">Medium</text>
+  <rect x="385" y="275" width="70" height="24" fill="#f59e0b" rx="4"/><text x="420" y="292" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">Medium</text>
+  <rect x="505" y="275" width="70" height="24" fill="#10b981" rx="4"/><text x="540" y="292" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">High</text>
+  <!-- Row: Compliance -->
+  <text x="50" y="325" font-size="12" font-weight="bold" fill="#1e293b">Compliance</text>
+  <rect x="265" y="310" width="70" height="24" fill="#10b981" rx="4"/><text x="300" y="327" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">High</text>
+  <rect x="385" y="310" width="70" height="24" fill="#10b981" rx="4"/><text x="420" y="327" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">High</text>
+  <rect x="505" y="310" width="70" height="24" fill="#2563eb" rx="4"/><text x="540" y="327" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">Critical</text>
+  <!-- Legend -->
+  <rect x="170" y="352" width="14" height="14" fill="#2563eb" rx="2"/><text x="190" y="364" font-size="10" fill="#1e293b">Critical</text>
+  <rect x="280" y="352" width="14" height="14" fill="#10b981" rx="2"/><text x="300" y="364" font-size="10" fill="#1e293b">High</text>
+  <rect x="380" y="352" width="14" height="14" fill="#f59e0b" rx="2"/><text x="400" y="364" font-size="10" fill="#1e293b">Medium</text>
+</svg>
 
 ## Building Your Data Room with BlockID
 

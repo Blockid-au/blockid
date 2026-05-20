@@ -40,6 +40,52 @@ The cost of skipping pre-diligence isn't just a delayed closing; it's the loss o
 | **Tax Compliance** | File BAS, PAYG, and tax returns on time | ATO clearance check, outstanding liabilities |
 | **Data Privacy** | Draft privacy policy, audit data handling | Verify compliance with Australian Privacy Principles |
 
+<svg viewBox="0 0 700 340" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="340" fill="#f8fafc" rx="8"/>
+  <text x="350" y="35" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Pre-Diligence vs Due Diligence — Timeline</text>
+  <!-- Timeline axis -->
+  <line x1="60" y1="180" x2="640" y2="180" stroke="#1e293b" stroke-width="2"/>
+  <!-- Month markers -->
+  <line x1="60" y1="175" x2="60" y2="185" stroke="#1e293b" stroke-width="2"/>
+  <text x="60" y="200" text-anchor="middle" font-size="10" fill="#64748b">Month 1</text>
+  <line x1="156" y1="175" x2="156" y2="185" stroke="#1e293b" stroke-width="2"/>
+  <text x="156" y="200" text-anchor="middle" font-size="10" fill="#64748b">Month 3</text>
+  <line x1="253" y1="175" x2="253" y2="185" stroke="#1e293b" stroke-width="2"/>
+  <text x="253" y="200" text-anchor="middle" font-size="10" fill="#64748b">Month 5</text>
+  <line x1="350" y1="175" x2="350" y2="185" stroke="#1e293b" stroke-width="2"/>
+  <text x="350" y="200" text-anchor="middle" font-size="10" fill="#64748b">Month 6</text>
+  <line x1="446" y1="175" x2="446" y2="185" stroke="#1e293b" stroke-width="2"/>
+  <text x="446" y="200" text-anchor="middle" font-size="10" fill="#64748b">Month 8</text>
+  <line x1="543" y1="175" x2="543" y2="185" stroke="#1e293b" stroke-width="2"/>
+  <text x="543" y="200" text-anchor="middle" font-size="10" fill="#64748b">Month 10</text>
+  <line x1="640" y1="175" x2="640" y2="185" stroke="#1e293b" stroke-width="2"/>
+  <text x="640" y="200" text-anchor="middle" font-size="10" fill="#64748b">Month 12</text>
+  <!-- Pre-Diligence phases (above timeline) -->
+  <rect x="60" y="70" width="192" height="38" fill="#2563eb" rx="6"/>
+  <text x="156" y="93" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">Self-Audit &amp; Fix Gaps</text>
+  <text x="156" y="60" text-anchor="middle" font-size="12" font-weight="bold" fill="#2563eb">PRE-DILIGENCE (Founder-Led)</text>
+  <rect x="253" y="70" width="97" height="38" fill="#2563eb" opacity="0.8" rx="6"/>
+  <text x="301" y="93" text-anchor="middle" font-size="11" fill="#fff">Build Data Room</text>
+  <rect x="350" y="70" width="97" height="38" fill="#10b981" rx="6"/>
+  <text x="398" y="93" text-anchor="middle" font-size="11" fill="#fff">Investor Outreach</text>
+  <!-- Due Diligence phases (below timeline) -->
+  <text x="446" y="230" text-anchor="middle" font-size="12" font-weight="bold" fill="#f59e0b">DUE DILIGENCE (Investor-Led)</text>
+  <rect x="350" y="240" width="97" height="38" fill="#f59e0b" rx="6"/>
+  <text x="398" y="263" text-anchor="middle" font-size="11" fill="#fff">Term Sheet</text>
+  <rect x="446" y="240" width="97" height="38" fill="#f59e0b" opacity="0.8" rx="6"/>
+  <text x="495" y="263" text-anchor="middle" font-size="11" fill="#fff">DD Review</text>
+  <rect x="543" y="240" width="97" height="38" fill="#1e293b" rx="6"/>
+  <text x="592" y="263" text-anchor="middle" font-size="11" fill="#fff">Close &amp; Fund</text>
+  <!-- Divider arrow -->
+  <path d="M350,110 L350,165" stroke="#1e293b" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <circle cx="350" cy="180" r="8" fill="#1e293b"/>
+  <text x="350" y="184" text-anchor="middle" font-size="8" fill="#fff">GO</text>
+  <!-- Legend -->
+  <rect x="130" y="305" width="14" height="14" fill="#2563eb" rx="2"/><text x="150" y="317" font-size="11" fill="#1e293b">Pre-Diligence (You control)</text>
+  <rect x="330" y="305" width="14" height="14" fill="#f59e0b" rx="2"/><text x="350" y="317" font-size="11" fill="#1e293b">Due Diligence (Investor controls)</text>
+  <rect x="530" y="305" width="14" height="14" fill="#1e293b" rx="2"/><text x="550" y="317" font-size="11" fill="#1e293b">Closing</text>
+</svg>
+
 > **Ready to check your startup valuation?** [Get your free Startup Value Index →](/)
 
 ## The 80% Failure Rate: Where Founders Go Wrong
@@ -84,6 +130,57 @@ To avoid being part of the 80% that fail, you need a systematic approach. You ca
 *   [ ] Verify that all previous share issuances have been lodged with ASIC.
 *   [ ] Ensure your **ESOP** (Employee Share Option Plan) is documented and compliant with **ESIC** rules.
 *   [ ] Resolve any outstanding "founder disputes" or informal promises of equity.
+
+<svg viewBox="0 0 700 400" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="400" fill="#f8fafc" rx="8"/>
+  <text x="350" y="35" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Document Readiness Checklist</text>
+  <text x="350" y="55" text-anchor="middle" font-size="12" fill="#64748b">Preparation status by category — fill the bars before investor outreach</text>
+  <!-- Category bars -->
+  <!-- Financial Records -->
+  <text x="60" y="90" font-size="12" font-weight="bold" fill="#1e293b">Financial Records</text>
+  <rect x="220" y="76" width="420" height="22" fill="#e2e8f0" rx="4"/>
+  <rect x="220" y="76" width="378" height="22" fill="#2563eb" rx="4"/>
+  <text x="630" y="92" font-size="11" fill="#1e293b" font-weight="bold">90%</text>
+  <!-- Cap Table -->
+  <text x="60" y="125" font-size="12" font-weight="bold" fill="#1e293b">Cap Table</text>
+  <rect x="220" y="111" width="420" height="22" fill="#e2e8f0" rx="4"/>
+  <rect x="220" y="111" width="357" height="22" fill="#2563eb" rx="4"/>
+  <text x="630" y="127" font-size="11" fill="#1e293b" font-weight="bold">85%</text>
+  <!-- IP Ownership -->
+  <text x="60" y="160" font-size="12" font-weight="bold" fill="#1e293b">IP Ownership</text>
+  <rect x="220" y="146" width="420" height="22" fill="#e2e8f0" rx="4"/>
+  <rect x="220" y="146" width="315" height="22" fill="#10b981" rx="4"/>
+  <text x="630" y="162" font-size="11" fill="#1e293b" font-weight="bold">75%</text>
+  <!-- ESIC/ESOP -->
+  <text x="60" y="195" font-size="12" font-weight="bold" fill="#1e293b">ESIC / ESOP</text>
+  <rect x="220" y="181" width="420" height="22" fill="#e2e8f0" rx="4"/>
+  <rect x="220" y="181" width="294" height="22" fill="#10b981" rx="4"/>
+  <text x="630" y="197" font-size="11" fill="#1e293b" font-weight="bold">70%</text>
+  <!-- Contracts -->
+  <text x="60" y="230" font-size="12" font-weight="bold" fill="#1e293b">Contracts</text>
+  <rect x="220" y="216" width="420" height="22" fill="#e2e8f0" rx="4"/>
+  <rect x="220" y="216" width="273" height="22" fill="#f59e0b" rx="4"/>
+  <text x="630" y="232" font-size="11" fill="#1e293b" font-weight="bold">65%</text>
+  <!-- ASIC Filings -->
+  <text x="60" y="265" font-size="12" font-weight="bold" fill="#1e293b">ASIC Filings</text>
+  <rect x="220" y="251" width="420" height="22" fill="#e2e8f0" rx="4"/>
+  <rect x="220" y="251" width="252" height="22" fill="#f59e0b" rx="4"/>
+  <text x="630" y="267" font-size="11" fill="#1e293b" font-weight="bold">60%</text>
+  <!-- Tax Compliance -->
+  <text x="60" y="300" font-size="12" font-weight="bold" fill="#1e293b">Tax Compliance</text>
+  <rect x="220" y="286" width="420" height="22" fill="#e2e8f0" rx="4"/>
+  <rect x="220" y="286" width="231" height="22" fill="#f59e0b" rx="4"/>
+  <text x="630" y="302" font-size="11" fill="#1e293b" font-weight="bold">55%</text>
+  <!-- Data Privacy -->
+  <text x="60" y="335" font-size="12" font-weight="bold" fill="#1e293b">Data Privacy</text>
+  <rect x="220" y="321" width="420" height="22" fill="#e2e8f0" rx="4"/>
+  <rect x="220" y="321" width="210" height="22" fill="#f59e0b" rx="4"/>
+  <text x="630" y="337" font-size="11" fill="#1e293b" font-weight="bold">50%</text>
+  <!-- Legend -->
+  <rect x="140" y="365" width="14" height="14" fill="#2563eb" rx="2"/><text x="160" y="377" font-size="11" fill="#1e293b">Ready (80%+)</text>
+  <rect x="280" y="365" width="14" height="14" fill="#10b981" rx="2"/><text x="300" y="377" font-size="11" fill="#1e293b">Good (70–79%)</text>
+  <rect x="420" y="365" width="14" height="14" fill="#f59e0b" rx="2"/><text x="440" y="377" font-size="11" fill="#1e293b">Needs Work (&lt;70%)</text>
+</svg>
 
 > **Start Your Pre-Diligence journey today and uncover your business readiness score.** [Start Your Pre-Diligence →](/score)
 

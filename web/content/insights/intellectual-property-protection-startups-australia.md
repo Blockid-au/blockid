@@ -60,6 +60,102 @@ While automatic, copyright protection is limited. It prevents others from *copyi
 | **Design Registration** | Visual appearance of products | $300 - $1,000 | 1-3 months | Up to 10 years | Medium-High | Consumer products, packaging, UI |
 | **PCT (International Patent)** | Global patent protection | $15,000 - $50,000+ | 18-30 months | Varies by country | Very High (multi-jurisdiction) | Scale-ups expanding globally |
 
+<svg viewBox="0 0 700 340" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="340" fill="#f8fafc" rx="12"/>
+  <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#1e293b">IP Protection Types — Comparison Overview</text>
+  <text x="350" y="46" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Scope, cost, duration, and strength of each IP asset class for Australian startups</text>
+  <!-- Card 1: Patent -->
+  <rect x="15" y="60" width="130" height="260" fill="white" stroke="#e2e8f0" stroke-width="1.5" rx="8"/>
+  <rect x="15" y="60" width="130" height="36" fill="#2563eb" rx="8"/>
+  <rect x="15" y="88" width="130" height="8" fill="#2563eb"/>
+  <text x="38" y="82" font-family="Arial,sans-serif" font-size="16" fill="white">&#9881;</text>
+  <text x="58" y="84" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="white">Patent</text>
+  <text x="25" y="115" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">Protects:</text>
+  <text x="25" y="130" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Inventions, processes</text>
+  <text x="25" y="150" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">Cost:</text>
+  <text x="25" y="165" font-family="Arial,sans-serif" font-size="9" fill="#64748b">$5K-$15K+ (std)</text>
+  <text x="25" y="185" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">Duration:</text>
+  <text x="25" y="200" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Up to 20 years</text>
+  <text x="25" y="220" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">Time to grant:</text>
+  <text x="25" y="235" font-family="Arial,sans-serif" font-size="9" fill="#64748b">3-5 years</text>
+  <rect x="25" y="252" width="110" height="20" fill="#dcfce7" rx="4"/>
+  <text x="80" y="266" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#10b981">VERY HIGH strength</text>
+  <text x="80" y="292" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#64748b">Best: Deep tech, biotech,</text>
+  <text x="80" y="304" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#64748b">hardware, AI</text>
+  <!-- Card 2: Trademark -->
+  <rect x="152" y="60" width="130" height="260" fill="white" stroke="#e2e8f0" stroke-width="1.5" rx="8"/>
+  <rect x="152" y="60" width="130" height="36" fill="#10b981" rx="8"/>
+  <rect x="152" y="88" width="130" height="8" fill="#10b981"/>
+  <text x="175" y="82" font-family="Arial,sans-serif" font-size="16" fill="white">&#8482;</text>
+  <text x="195" y="84" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="white">Trademark</text>
+  <text x="162" y="115" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">Protects:</text>
+  <text x="162" y="130" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Names, logos, slogans</text>
+  <text x="162" y="150" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">Cost:</text>
+  <text x="162" y="165" font-family="Arial,sans-serif" font-size="9" fill="#64748b">$250-$1,500</text>
+  <text x="162" y="185" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">Duration:</text>
+  <text x="162" y="200" font-family="Arial,sans-serif" font-size="9" fill="#64748b">10 yrs (renewable)</text>
+  <text x="162" y="220" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">Time to grant:</text>
+  <text x="162" y="235" font-family="Arial,sans-serif" font-size="9" fill="#64748b">6-12 months</text>
+  <rect x="162" y="252" width="110" height="20" fill="#dcfce7" rx="4"/>
+  <text x="217" y="266" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#10b981">HIGH strength</text>
+  <text x="217" y="292" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#64748b">Best: All startups</text>
+  <text x="217" y="304" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#64748b">with a brand</text>
+  <!-- Card 3: Trade Secret -->
+  <rect x="289" y="60" width="130" height="260" fill="white" stroke="#e2e8f0" stroke-width="1.5" rx="8"/>
+  <rect x="289" y="60" width="130" height="36" fill="#f59e0b" rx="8"/>
+  <rect x="289" y="88" width="130" height="8" fill="#f59e0b"/>
+  <text x="312" y="82" font-family="Arial,sans-serif" font-size="16" fill="white">&#128274;</text>
+  <text x="332" y="84" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="white">Secret</text>
+  <text x="299" y="115" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">Protects:</text>
+  <text x="299" y="130" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Algorithms, formulas</text>
+  <text x="299" y="150" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">Cost:</text>
+  <text x="299" y="165" font-family="Arial,sans-serif" font-size="9" fill="#64748b">$0-$500 (NDAs)</text>
+  <text x="299" y="185" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">Duration:</text>
+  <text x="299" y="200" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Indefinite</text>
+  <text x="299" y="220" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">Time to grant:</text>
+  <text x="299" y="235" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Immediate</text>
+  <rect x="299" y="252" width="110" height="20" fill="#fef3c7" rx="4"/>
+  <text x="354" y="266" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#f59e0b">LOW if leaked</text>
+  <text x="354" y="292" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#64748b">Best: Proprietary algo,</text>
+  <text x="354" y="304" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#64748b">customer data</text>
+  <!-- Card 4: Copyright -->
+  <rect x="426" y="60" width="130" height="260" fill="white" stroke="#e2e8f0" stroke-width="1.5" rx="8"/>
+  <rect x="426" y="60" width="130" height="36" fill="#8b5cf6" rx="8"/>
+  <rect x="426" y="88" width="130" height="8" fill="#8b5cf6"/>
+  <text x="449" y="82" font-family="Arial,sans-serif" font-size="16" fill="white">&#169;</text>
+  <text x="469" y="84" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="white">Copyright</text>
+  <text x="436" y="115" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">Protects:</text>
+  <text x="436" y="130" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Code, content, docs</text>
+  <text x="436" y="150" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">Cost:</text>
+  <text x="436" y="165" font-family="Arial,sans-serif" font-size="9" fill="#64748b">$0 (automatic)</text>
+  <text x="436" y="185" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">Duration:</text>
+  <text x="436" y="200" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Life + 70 years</text>
+  <text x="436" y="220" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">Time to grant:</text>
+  <text x="436" y="235" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Instant</text>
+  <rect x="436" y="252" width="110" height="20" fill="#ede9fe" rx="4"/>
+  <text x="491" y="266" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#8b5cf6">MEDIUM strength</text>
+  <text x="491" y="292" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#64748b">Best: Software,</text>
+  <text x="491" y="304" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#64748b">marketing content</text>
+  <!-- Card 5: Design -->
+  <rect x="563" y="60" width="122" height="260" fill="white" stroke="#e2e8f0" stroke-width="1.5" rx="8"/>
+  <rect x="563" y="60" width="122" height="36" fill="#1e293b" rx="8"/>
+  <rect x="563" y="88" width="122" height="8" fill="#1e293b"/>
+  <text x="586" y="82" font-family="Arial,sans-serif" font-size="16" fill="white">&#9998;</text>
+  <text x="606" y="84" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="white">Design</text>
+  <text x="573" y="115" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">Protects:</text>
+  <text x="573" y="130" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Appearance, UI</text>
+  <text x="573" y="150" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">Cost:</text>
+  <text x="573" y="165" font-family="Arial,sans-serif" font-size="9" fill="#64748b">$300-$1,000</text>
+  <text x="573" y="185" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">Duration:</text>
+  <text x="573" y="200" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Up to 10 years</text>
+  <text x="573" y="220" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">Time to grant:</text>
+  <text x="573" y="235" font-family="Arial,sans-serif" font-size="9" fill="#64748b">1-3 months</text>
+  <rect x="573" y="252" width="102" height="20" fill="#f1f5f9" rx="4"/>
+  <text x="624" y="266" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#1e293b">MED-HIGH</text>
+  <text x="624" y="292" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#64748b">Best: Consumer</text>
+  <text x="624" y="304" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#64748b">products, packaging</text>
+</svg>
+
 ## When to Invest: A Phase-by-Phase IP Roadmap
 
 Timing is everything in startup IP strategy. Spending $15,000 on a standard patent before you have product-market fit is a waste of runway. Conversely, waiting until you are Series A to file a trademark can result in a competitor squatting on your name.
@@ -143,6 +239,65 @@ Conversely, if you are a DeepTech or MedTech startup, your entire valuation rest
 > ├── M&A-ready IP due diligence package ............... $5,000-$10,000
 > └── TOTAL ESTIMATED COST: $30,000 - $90,000
 > ```
+
+<svg viewBox="0 0 700 370" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="370" fill="#f8fafc" rx="12"/>
+  <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#1e293b">IP Protection Cost by Stage — Pre-Seed to Series A</text>
+  <text x="350" y="46" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Estimated total IP investment in AUD at each funding stage</text>
+  <!-- Y-axis -->
+  <text x="55" y="80" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$90K</text>
+  <text x="55" y="125" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$70K</text>
+  <text x="55" y="165" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$50K</text>
+  <text x="55" y="205" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$30K</text>
+  <text x="55" y="245" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$15K</text>
+  <text x="55" y="280" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$6K</text>
+  <text x="55" y="310" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$0</text>
+  <!-- Grid -->
+  <line x1="62" y1="77" x2="650" y2="77" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="62" y1="122" x2="650" y2="122" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="62" y1="162" x2="650" y2="162" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="62" y1="202" x2="650" y2="202" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="62" y1="242" x2="650" y2="242" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="62" y1="277" x2="650" y2="277" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="62" y1="307" x2="650" y2="307" stroke="#e2e8f0" stroke-width="1"/>
+  <!-- Pre-Seed bar (stacked) -->
+  <!-- Trademark: $250-$1,500 -->
+  <rect x="100" y="290" width="120" height="17" fill="#10b981" rx="3"/>
+  <!-- Provisional Patent: $1K-$3K -->
+  <rect x="100" y="273" width="120" height="17" fill="#2563eb" rx="3"/>
+  <!-- NDAs: $0-$500 -->
+  <rect x="100" y="262" width="120" height="11" fill="#f59e0b" rx="3"/>
+  <!-- IP Assignment: $500-$1K -->
+  <rect x="100" y="253" width="120" height="9" fill="#8b5cf6" rx="3"/>
+  <text x="160" y="246" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">$1.8K-$6K</text>
+  <text x="160" y="325" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#1e293b">Pre-Seed</text>
+  <text x="160" y="339" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#64748b">$0-$500K raised</text>
+  <!-- Seed bar (stacked) -->
+  <rect x="290" y="245" width="120" height="62" fill="#2563eb" rx="3"/>
+  <rect x="290" y="229" width="120" height="16" fill="#10b981" rx="3"/>
+  <rect x="290" y="215" width="120" height="14" fill="#f59e0b" rx="3"/>
+  <rect x="290" y="205" width="120" height="10" fill="#8b5cf6" rx="3"/>
+  <text x="350" y="198" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">$8.5K-$24K</text>
+  <text x="350" y="325" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#1e293b">Seed</text>
+  <text x="350" y="339" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#64748b">$500K-$2M raised</text>
+  <!-- Series A bar (stacked) -->
+  <rect x="480" y="155" width="120" height="152" fill="#2563eb" rx="3"/>
+  <rect x="480" y="125" width="120" height="30" fill="#10b981" rx="3"/>
+  <rect x="480" y="108" width="120" height="17" fill="#f59e0b" rx="3"/>
+  <rect x="480" y="93" width="120" height="15" fill="#8b5cf6" rx="3"/>
+  <text x="540" y="85" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">$30K-$90K</text>
+  <text x="540" y="325" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#1e293b">Series A</text>
+  <text x="540" y="339" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#64748b">$2M+ raised</text>
+  <!-- Legend -->
+  <rect x="110" y="353" width="10" height="10" fill="#2563eb" rx="2"/>
+  <text x="124" y="362" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Patents</text>
+  <rect x="200" y="353" width="10" height="10" fill="#10b981" rx="2"/>
+  <text x="214" y="362" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Trademarks</text>
+  <rect x="305" y="353" width="10" height="10" fill="#f59e0b" rx="2"/>
+  <text x="319" y="362" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Audit / Monitoring</text>
+  <rect x="430" y="353" width="10" height="10" fill="#8b5cf6" rx="2"/>
+  <text x="444" y="362" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Licensing / Due Diligence</text>
+</svg>
 
 ## IP as a Direct Valuation Driver
 

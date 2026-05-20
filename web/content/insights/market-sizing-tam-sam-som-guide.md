@@ -66,6 +66,39 @@ If you are struggling to quantify your SAM accurately, you are not alone. Many f
 > └─────────────────────────────────────────────────────────────┘
 > ```
 
+<svg viewBox="0 0 700 400" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="400" fill="#f8fafc" rx="12"/>
+  <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#1e293b">TAM / SAM / SOM — Market Sizing Funnel</text>
+  <text x="350" y="46" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Concentric market opportunity layers for investor pitches</text>
+  <!-- TAM - outermost circle -->
+  <ellipse cx="350" cy="220" rx="300" ry="155" fill="#2563eb" opacity="0.12" stroke="#2563eb" stroke-width="2"/>
+  <text x="350" y="82" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="bold" fill="#2563eb">TAM</text>
+  <text x="350" y="98" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#2563eb">Total Addressable Market</text>
+  <text x="350" y="114" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#64748b">"Everyone who could ever buy this"</text>
+  <text x="620" y="140" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">$15B</text>
+  <text x="620" y="155" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#64748b">e.g. AU SaaS</text>
+  <!-- SAM - middle circle -->
+  <ellipse cx="350" cy="230" rx="190" ry="105" fill="#f59e0b" opacity="0.15" stroke="#f59e0b" stroke-width="2"/>
+  <text x="350" y="148" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#f59e0b">SAM</text>
+  <text x="350" y="164" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#f59e0b">Serviceable Available Market</text>
+  <text x="350" y="179" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#64748b">"Those we can actually reach &amp; serve"</text>
+  <text x="520" y="200" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#f59e0b">$2B</text>
+  <text x="520" y="215" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#64748b">e.g. mid-market</text>
+  <!-- SOM - innermost circle -->
+  <ellipse cx="350" cy="250" rx="90" ry="60" fill="#10b981" opacity="0.2" stroke="#10b981" stroke-width="2.5"/>
+  <text x="350" y="232" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#10b981">SOM</text>
+  <text x="350" y="248" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#10b981">Serviceable Obtainable</text>
+  <text x="350" y="263" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#64748b">"What we capture in 1-3 yrs"</text>
+  <text x="350" y="283" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#10b981">$10M</text>
+  <!-- Bottom labels -->
+  <rect x="100" y="362" width="14" height="14" fill="#2563eb" opacity="0.3" rx="3" stroke="#2563eb"/>
+  <text x="120" y="374" font-family="Arial,sans-serif" font-size="10" fill="#64748b">TAM: 10+ year vision</text>
+  <rect x="280" y="362" width="14" height="14" fill="#f59e0b" opacity="0.3" rx="3" stroke="#f59e0b"/>
+  <text x="300" y="374" font-family="Arial,sans-serif" font-size="10" fill="#64748b">SAM: 3-5 year strategy</text>
+  <rect x="460" y="362" width="14" height="14" fill="#10b981" opacity="0.3" rx="3" stroke="#10b981"/>
+  <text x="480" y="374" font-family="Arial,sans-serif" font-size="10" fill="#64748b">SOM: 1-3 year plan (drives valuation)</text>
+</svg>
+
 ## Top-Down vs. Bottom-Up: Choosing the Right Methodology
 
 There are two primary ways to calculate your market size: Top-Down and Bottom-Up. The most compelling pitch decks use both to triangulate a realistic number. However, for early-stage startups, the Bottom-Up approach is generally weighted more heavily by investors because it is based on operational reality rather than macroeconomic assumptions.
@@ -124,6 +157,67 @@ When you combine these methods, you can validate your assumptions. If your Botto
 | **Analogous Market** | Use a comparable market (different geography or adjacent vertical) as a proxy | Useful when no direct data exists; quick | Assumes similar dynamics across markets; can be misleading | New categories; markets with no existing research |
 
 > **Best Practice:** Use Top-Down to set the ceiling (TAM), Bottom-Up to calculate the floor (SOM), and triangulate between the two. If they diverge wildly, investigate your assumptions.
+
+<svg viewBox="0 0 700 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="300" fill="#f8fafc" rx="12"/>
+  <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#1e293b">Market Sizing Methodologies — Comparison</text>
+  <!-- Card 1: Top-Down -->
+  <rect x="15" y="48" width="160" height="230" fill="white" stroke="#e2e8f0" stroke-width="1.5" rx="8"/>
+  <rect x="15" y="48" width="160" height="36" fill="#2563eb" rx="8"/>
+  <rect x="15" y="76" width="160" height="8" fill="#2563eb"/>
+  <text x="95" y="72" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="white">Top-Down</text>
+  <text x="30" y="105" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">How:</text>
+  <text x="30" y="120" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Total market data,</text>
+  <text x="30" y="133" font-family="Arial,sans-serif" font-size="9" fill="#64748b">narrow by filters</text>
+  <text x="30" y="155" font-family="Arial,sans-serif" font-size="10" fill="#10b981" font-weight="bold">+ Fast execution</text>
+  <text x="30" y="170" font-family="Arial,sans-serif" font-size="10" fill="#10b981" font-weight="bold">+ Uses ABS data</text>
+  <text x="30" y="192" font-family="Arial,sans-serif" font-size="10" fill="#ef4444" font-weight="bold">- Often inflated</text>
+  <text x="30" y="207" font-family="Arial,sans-serif" font-size="10" fill="#ef4444" font-weight="bold">- "1% trap"</text>
+  <rect x="30" y="225" width="130" height="22" fill="#dbeafe" rx="4"/>
+  <text x="95" y="240" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#2563eb">Best: TAM ceiling</text>
+  <!-- Card 2: Bottom-Up -->
+  <rect x="185" y="48" width="160" height="230" fill="white" stroke="#10b981" stroke-width="2" rx="8"/>
+  <rect x="185" y="48" width="160" height="36" fill="#10b981" rx="8"/>
+  <rect x="185" y="76" width="160" height="8" fill="#10b981"/>
+  <text x="265" y="72" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="white">Bottom-Up</text>
+  <text x="200" y="105" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">How:</text>
+  <text x="200" y="120" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Unit economics x</text>
+  <text x="200" y="133" font-family="Arial,sans-serif" font-size="9" fill="#64748b">target customers</text>
+  <text x="200" y="155" font-family="Arial,sans-serif" font-size="10" fill="#10b981" font-weight="bold">+ Highly defensible</text>
+  <text x="200" y="170" font-family="Arial,sans-serif" font-size="10" fill="#10b981" font-weight="bold">+ Ties to strategy</text>
+  <text x="200" y="192" font-family="Arial,sans-serif" font-size="10" fill="#ef4444" font-weight="bold">- Time-consuming</text>
+  <text x="200" y="207" font-family="Arial,sans-serif" font-size="10" fill="#ef4444" font-weight="bold">- Needs data</text>
+  <rect x="200" y="225" width="130" height="22" fill="#dcfce7" rx="4"/>
+  <text x="265" y="240" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#10b981">Best: SOM + pitch</text>
+  <!-- Card 3: Value Theory -->
+  <rect x="355" y="48" width="160" height="230" fill="white" stroke="#e2e8f0" stroke-width="1.5" rx="8"/>
+  <rect x="355" y="48" width="160" height="36" fill="#f59e0b" rx="8"/>
+  <rect x="355" y="76" width="160" height="8" fill="#f59e0b"/>
+  <text x="435" y="72" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="white">Value Theory</text>
+  <text x="370" y="105" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">How:</text>
+  <text x="370" y="120" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Value created for</text>
+  <text x="370" y="133" font-family="Arial,sans-serif" font-size="9" fill="#64748b">customers, price as %</text>
+  <text x="370" y="155" font-family="Arial,sans-serif" font-size="10" fill="#10b981" font-weight="bold">+ Shows ROI logic</text>
+  <text x="370" y="170" font-family="Arial,sans-serif" font-size="10" fill="#10b981" font-weight="bold">+ Enterprise sales</text>
+  <text x="370" y="192" font-family="Arial,sans-serif" font-size="10" fill="#ef4444" font-weight="bold">- Hard to quantify</text>
+  <text x="370" y="207" font-family="Arial,sans-serif" font-size="10" fill="#ef4444" font-weight="bold">- Subjective</text>
+  <rect x="370" y="225" width="130" height="22" fill="#fef3c7" rx="4"/>
+  <text x="435" y="240" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#f59e0b">Best: Enterprise SaaS</text>
+  <!-- Card 4: Analogous -->
+  <rect x="525" y="48" width="160" height="230" fill="white" stroke="#e2e8f0" stroke-width="1.5" rx="8"/>
+  <rect x="525" y="48" width="160" height="36" fill="#8b5cf6" rx="8"/>
+  <rect x="525" y="76" width="160" height="8" fill="#8b5cf6"/>
+  <text x="605" y="72" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="white">Analogous</text>
+  <text x="540" y="105" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">How:</text>
+  <text x="540" y="120" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Use comparable</text>
+  <text x="540" y="133" font-family="Arial,sans-serif" font-size="9" fill="#64748b">market as proxy</text>
+  <text x="540" y="155" font-family="Arial,sans-serif" font-size="10" fill="#10b981" font-weight="bold">+ Useful no-data</text>
+  <text x="540" y="170" font-family="Arial,sans-serif" font-size="10" fill="#10b981" font-weight="bold">+ Quick estimate</text>
+  <text x="540" y="192" font-family="Arial,sans-serif" font-size="10" fill="#ef4444" font-weight="bold">- Can be misleading</text>
+  <text x="540" y="207" font-family="Arial,sans-serif" font-size="10" fill="#ef4444" font-weight="bold">- Assumes parity</text>
+  <rect x="540" y="225" width="130" height="22" fill="#ede9fe" rx="4"/>
+  <text x="605" y="240" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#8b5cf6">Best: New categories</text>
+</svg>
 
 ## Australian Data Sources and Regulatory Nuances
 

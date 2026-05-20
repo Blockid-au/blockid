@@ -25,6 +25,45 @@ You need to walk into your next negotiation with a clear understanding of the le
 | **Founder Vesting** | Existing shares grandfathered | Full re-vesting on new round |
 | **Pay-to-Play** | Proportionate reduction of rights | Total loss of status if missed |
 
+<svg viewBox="0 0 700 430" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="430" rx="8" fill="#f8fafc"/>
+  <text x="350" y="32" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Good vs Bad Term Sheet Clauses</text>
+  <text x="350" y="52" text-anchor="middle" font-size="12" fill="#64748b">Side-by-side comparison of founder-friendly vs investor-aggressive terms</text>
+  <!-- Headers -->
+  <rect x="200" y="66" width="240" height="30" rx="6" fill="#10b981"/>
+  <text x="320" y="86" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffffff">FOUNDER-FRIENDLY (Good)</text>
+  <rect x="450" y="66" width="240" height="30" rx="6" fill="#ef4444"/>
+  <text x="570" y="86" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffffff">INVESTOR-AGGRESSIVE (Bad)</text>
+  <!-- Row labels + values -->
+  <text x="190" y="120" text-anchor="end" font-size="11" font-weight="bold" fill="#1e293b">Liquidation Pref</text>
+  <rect x="200" y="106" width="240" height="24" rx="4" fill="#10b981" opacity="0.12"/><text x="320" y="122" text-anchor="middle" font-size="10" fill="#10b981" font-weight="bold">1x non-participating</text>
+  <rect x="450" y="106" width="240" height="24" rx="4" fill="#ef4444" opacity="0.12"/><text x="570" y="122" text-anchor="middle" font-size="10" fill="#ef4444" font-weight="bold">2x+ participating</text>
+  <text x="190" y="154" text-anchor="end" font-size="11" font-weight="bold" fill="#1e293b">Anti-Dilution</text>
+  <rect x="200" y="140" width="240" height="24" rx="4" fill="#10b981" opacity="0.12"/><text x="320" y="156" text-anchor="middle" font-size="10" fill="#10b981" font-weight="bold">Broad weighted average</text>
+  <rect x="450" y="140" width="240" height="24" rx="4" fill="#ef4444" opacity="0.12"/><text x="570" y="156" text-anchor="middle" font-size="10" fill="#ef4444" font-weight="bold">Full ratchet</text>
+  <text x="190" y="188" text-anchor="end" font-size="11" font-weight="bold" fill="#1e293b">Board Control</text>
+  <rect x="200" y="174" width="240" height="24" rx="4" fill="#10b981" opacity="0.12"/><text x="320" y="190" text-anchor="middle" font-size="10" fill="#10b981" font-weight="bold">Founder majority (2-1)</text>
+  <rect x="450" y="174" width="240" height="24" rx="4" fill="#ef4444" opacity="0.12"/><text x="570" y="190" text-anchor="middle" font-size="10" fill="#ef4444" font-weight="bold">Investor majority / tie-break</text>
+  <text x="190" y="222" text-anchor="end" font-size="11" font-weight="bold" fill="#1e293b">Drag-Along</text>
+  <rect x="200" y="208" width="240" height="24" rx="4" fill="#10b981" opacity="0.12"/><text x="320" y="224" text-anchor="middle" font-size="10" fill="#10b981" font-weight="bold">75%+ super-majority</text>
+  <rect x="450" y="208" width="240" height="24" rx="4" fill="#ef4444" opacity="0.12"/><text x="570" y="224" text-anchor="middle" font-size="10" fill="#ef4444" font-weight="bold">Simple majority trigger</text>
+  <text x="190" y="256" text-anchor="end" font-size="11" font-weight="bold" fill="#1e293b">Pro-Rata</text>
+  <rect x="200" y="242" width="240" height="24" rx="4" fill="#10b981" opacity="0.12"/><text x="320" y="258" text-anchor="middle" font-size="10" fill="#10b981" font-weight="bold">Standard (maintain %)</text>
+  <rect x="450" y="242" width="240" height="24" rx="4" fill="#ef4444" opacity="0.12"/><text x="570" y="258" text-anchor="middle" font-size="10" fill="#ef4444" font-weight="bold">Super pro-rata (increase %)</text>
+  <text x="190" y="290" text-anchor="end" font-size="11" font-weight="bold" fill="#1e293b">Redemption</text>
+  <rect x="200" y="276" width="240" height="24" rx="4" fill="#10b981" opacity="0.12"/><text x="320" y="292" text-anchor="middle" font-size="10" fill="#10b981" font-weight="bold">None or solvent events</text>
+  <rect x="450" y="276" width="240" height="24" rx="4" fill="#ef4444" opacity="0.12"/><text x="570" y="292" text-anchor="middle" font-size="10" fill="#ef4444" font-weight="bold">Mandatory buyback 5-7 yrs</text>
+  <text x="190" y="324" text-anchor="end" font-size="11" font-weight="bold" fill="#1e293b">No-Shop</text>
+  <rect x="200" y="310" width="240" height="24" rx="4" fill="#10b981" opacity="0.12"/><text x="320" y="326" text-anchor="middle" font-size="10" fill="#10b981" font-weight="bold">30 days</text>
+  <rect x="450" y="310" width="240" height="24" rx="4" fill="#ef4444" opacity="0.12"/><text x="570" y="326" text-anchor="middle" font-size="10" fill="#ef4444" font-weight="bold">60-90 days</text>
+  <text x="190" y="358" text-anchor="end" font-size="11" font-weight="bold" fill="#1e293b">Founder Vesting</text>
+  <rect x="200" y="344" width="240" height="24" rx="4" fill="#10b981" opacity="0.12"/><text x="320" y="360" text-anchor="middle" font-size="10" fill="#10b981" font-weight="bold">Existing shares grandfathered</text>
+  <rect x="450" y="344" width="240" height="24" rx="4" fill="#ef4444" opacity="0.12"/><text x="570" y="360" text-anchor="middle" font-size="10" fill="#ef4444" font-weight="bold">Full re-vesting on new round</text>
+  <!-- Bottom tip -->
+  <rect x="100" y="384" width="500" height="34" rx="6" fill="#1e293b"/>
+  <text x="350" y="406" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffffff">Rule: A high valuation with toxic terms is worse than a lower valuation with clean terms</text>
+</svg>
+
 ## 1. Liquidation Preferences: The 1X Standard vs. The Trap
 
 Liquidation preference determines who gets paid first and how much when the company exits, whether through a sale or liquidation. The **term sheet red flags** here are often subtle but devastating.
@@ -170,6 +209,51 @@ Before you sign a term sheet, run through this checklist to ensure you haven't w
 > **Priority 6 (Important)** → Reject any re-vesting clause on existing founder shares.
 > **Priority 7 (Negotiate)** → Remove redemption rights entirely, or limit to solvent events with no premium.
 > **Priority 8 (Negotiate)** → Limit information rights to standard quarterly financials and board-level KPIs.
+
+<svg viewBox="0 0 700 400" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="400" rx="8" fill="#f8fafc"/>
+  <text x="350" y="32" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Term Sheet Negotiation Priority Ranking</text>
+  <text x="350" y="52" text-anchor="middle" font-size="12" fill="#64748b">Fight hardest on Priority 1-2 — these are non-negotiable</text>
+  <!-- Axis -->
+  <line x1="220" y1="72" x2="220" y2="370" stroke="#1e293b" stroke-width="1"/>
+  <!-- P1 -->
+  <text x="210" y="93" text-anchor="end" font-size="11" fill="#1e293b" font-weight="bold">P1: Liquidation Pref</text>
+  <rect x="225" y="78" width="430" height="24" rx="4" fill="#ef4444"/>
+  <text x="440" y="95" text-anchor="middle" font-size="10" font-weight="bold" fill="#ffffff">NON-NEGOTIABLE — Must be 1x non-participating</text>
+  <!-- P2 -->
+  <text x="210" y="129" text-anchor="end" font-size="11" fill="#1e293b" font-weight="bold">P2: Anti-Dilution</text>
+  <rect x="225" y="114" width="420" height="24" rx="4" fill="#ef4444"/>
+  <text x="435" y="131" text-anchor="middle" font-size="10" font-weight="bold" fill="#ffffff">NON-NEGOTIABLE — Broad weighted average only</text>
+  <!-- P3 -->
+  <text x="210" y="165" text-anchor="end" font-size="11" fill="#1e293b" font-weight="bold">P3: Board Control</text>
+  <rect x="225" y="150" width="370" height="24" rx="4" fill="#f59e0b"/>
+  <text x="410" y="167" text-anchor="middle" font-size="10" font-weight="bold" fill="#ffffff">CRITICAL — Founder majority through Series A</text>
+  <!-- P4 -->
+  <text x="210" y="201" text-anchor="end" font-size="11" fill="#1e293b" font-weight="bold">P4: Drag-Along</text>
+  <rect x="225" y="186" width="350" height="24" rx="4" fill="#f59e0b"/>
+  <text x="400" y="203" text-anchor="middle" font-size="10" font-weight="bold" fill="#ffffff">CRITICAL — 75%+ threshold + price floor</text>
+  <!-- P5 -->
+  <text x="210" y="237" text-anchor="end" font-size="11" fill="#1e293b" font-weight="bold">P5: No-Shop Period</text>
+  <rect x="225" y="222" width="290" height="24" rx="4" fill="#2563eb"/>
+  <text x="370" y="239" text-anchor="middle" font-size="10" font-weight="bold" fill="#ffffff">IMPORTANT — Cap at 30 days</text>
+  <!-- P6 -->
+  <text x="210" y="273" text-anchor="end" font-size="11" fill="#1e293b" font-weight="bold">P6: Re-Vesting</text>
+  <rect x="225" y="258" width="270" height="24" rx="4" fill="#2563eb"/>
+  <text x="360" y="275" text-anchor="middle" font-size="10" font-weight="bold" fill="#ffffff">IMPORTANT — Reject re-vesting</text>
+  <!-- P7 -->
+  <text x="210" y="309" text-anchor="end" font-size="11" fill="#1e293b" font-weight="bold">P7: Redemption</text>
+  <rect x="225" y="294" width="220" height="24" rx="4" fill="#10b981"/>
+  <text x="335" y="311" text-anchor="middle" font-size="10" font-weight="bold" fill="#ffffff">NEGOTIATE — Remove or limit</text>
+  <!-- P8 -->
+  <text x="210" y="345" text-anchor="end" font-size="11" fill="#1e293b" font-weight="bold">P8: Info Rights</text>
+  <rect x="225" y="330" width="200" height="24" rx="4" fill="#10b981"/>
+  <text x="325" y="347" text-anchor="middle" font-size="10" font-weight="bold" fill="#ffffff">NEGOTIATE — Quarterly only</text>
+  <!-- Legend -->
+  <rect x="120" y="375" width="12" height="12" rx="3" fill="#ef4444"/><text x="138" y="386" font-size="11" fill="#1e293b">Non-Negotiable</text>
+  <rect x="270" y="375" width="12" height="12" rx="3" fill="#f59e0b"/><text x="288" y="386" font-size="11" fill="#1e293b">Critical</text>
+  <rect x="380" y="375" width="12" height="12" rx="3" fill="#2563eb"/><text x="398" y="386" font-size="11" fill="#1e293b">Important</text>
+  <rect x="490" y="375" width="12" height="12" rx="3" fill="#10b981"/><text x="508" y="386" font-size="11" fill="#1e293b">Negotiate</text>
+</svg>
 
 ## Why Valuation Isn't Everything
 

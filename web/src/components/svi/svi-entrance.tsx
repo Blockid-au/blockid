@@ -140,6 +140,16 @@ export function SVIEntrance() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // ── Capture referral code from URL ────────────────────────────────────
+  React.useEffect(() => {
+    const refCode = searchParams.get("ref");
+    if (refCode && typeof window !== "undefined") {
+      localStorage.setItem("blockid_ref", refCode);
+      // Also set a cookie so the server (Google auth) can read it.
+      document.cookie = `blockid_ref=${encodeURIComponent(refCode)};path=/;max-age=${60 * 60 * 24 * 30};samesite=lax`;
+    }
+  }, [searchParams]);
+
   // ── Server-side gate check ────────────────────────────────────────────
   const checkGate = React.useCallback(async (emailToCheck: string) => {
     if (!emailToCheck.includes("@")) return;

@@ -69,6 +69,67 @@ In Australia, enterprise sales often require on-site meetings and custom securit
 
 *Benchmarks based on Australian SaaS companies at Seed to Series A stage, 2025-2026 data.*
 
+<svg viewBox="0 0 700 380" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="380" fill="#f8fafc" rx="12"/>
+  <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#1e293b">Average CAC by Industry Vertical — Australian SaaS (2025-26)</text>
+  <text x="350" y="46" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Seed to Series A companies — Customer Acquisition Cost in AUD</text>
+  <!-- Y-axis -->
+  <text x="55" y="80" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$6K</text>
+  <text x="55" y="130" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$4K</text>
+  <text x="55" y="180" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$3K</text>
+  <text x="55" y="230" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$2K</text>
+  <text x="55" y="280" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$1K</text>
+  <text x="55" y="310" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$0</text>
+  <!-- Grid -->
+  <line x1="62" y1="77" x2="680" y2="77" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="62" y1="127" x2="680" y2="127" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="62" y1="177" x2="680" y2="177" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="62" y1="227" x2="680" y2="227" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="62" y1="277" x2="680" y2="277" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="62" y1="307" x2="680" y2="307" stroke="#e2e8f0" stroke-width="1"/>
+  <!-- EdTech $900 -->
+  <rect x="72" y="285" width="65" height="22" fill="#10b981" rx="4"/>
+  <text x="104" y="278" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#10b981">$900</text>
+  <text x="104" y="328" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#64748b">EdTech</text>
+  <!-- HR $1,800 -->
+  <rect x="147" y="255" width="65" height="52" fill="#2563eb" rx="4"/>
+  <text x="179" y="248" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#2563eb">$1.8K</text>
+  <text x="179" y="328" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#64748b">HR Tech</text>
+  <!-- AgriTech $2,200 -->
+  <rect x="222" y="243" width="65" height="64" fill="#2563eb" rx="4"/>
+  <text x="254" y="236" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#2563eb">$2.2K</text>
+  <text x="254" y="328" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#64748b">AgriTech</text>
+  <!-- Accounting $2,500 -->
+  <rect x="297" y="233" width="65" height="74" fill="#2563eb" rx="4"/>
+  <text x="329" y="226" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#2563eb">$2.5K</text>
+  <text x="329" y="328" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Finance</text>
+  <!-- LegalTech $3,100 -->
+  <rect x="372" y="213" width="65" height="94" fill="#f59e0b" rx="4"/>
+  <text x="404" y="206" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#f59e0b">$3.1K</text>
+  <text x="404" y="328" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#64748b">LegalTech</text>
+  <!-- PropTech $3,500 -->
+  <rect x="447" y="200" width="65" height="107" fill="#f59e0b" rx="4"/>
+  <text x="479" y="193" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#f59e0b">$3.5K</text>
+  <text x="479" y="328" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#64748b">PropTech</text>
+  <!-- HealthTech $4,800 -->
+  <rect x="522" y="157" width="65" height="150" fill="#ef4444" rx="4"/>
+  <text x="554" y="150" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#ef4444">$4.8K</text>
+  <text x="554" y="328" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Health</text>
+  <!-- Cybersecurity $5,200 -->
+  <rect x="597" y="144" width="65" height="163" fill="#ef4444" rx="4"/>
+  <text x="629" y="137" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#ef4444">$5.2K</text>
+  <text x="629" y="328" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Cyber</text>
+  <!-- Legend -->
+  <rect x="120" y="350" width="10" height="10" fill="#10b981" rx="2"/>
+  <text x="134" y="359" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Low CAC (&lt;$1K)</text>
+  <rect x="240" y="350" width="10" height="10" fill="#2563eb" rx="2"/>
+  <text x="254" y="359" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Moderate ($1K-$3K)</text>
+  <rect x="380" y="350" width="10" height="10" fill="#f59e0b" rx="2"/>
+  <text x="394" y="359" font-family="Arial,sans-serif" font-size="10" fill="#64748b">High ($3K-$4K)</text>
+  <rect x="500" y="350" width="10" height="10" fill="#ef4444" rx="2"/>
+  <text x="514" y="359" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Very High ($4K+)</text>
+</svg>
+
 ## The Golden Ratio: Mastering CAC:LTV and Payback
 
 Knowing your CAC is only half the battle. The real magic—and the real worry for investors—lies in the **CAC LTV ratio**. This ratio compares the Lifetime Value (LTV) of a customer to the cost of acquiring them. It tells you if your business model is scalable.
@@ -125,6 +186,52 @@ Misrepresenting your **customer acquisition cost startup** metrics can lead to s
 > │                                                                │
 > └─────────────────────────────────────────────────────────────────┘
 > ```
+
+<svg viewBox="0 0 700 320" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="320" fill="#f8fafc" rx="12"/>
+  <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#1e293b">LTV:CAC Ratio Health Gauge</text>
+  <text x="350" y="46" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Target: 3:1 or higher for Series A readiness</text>
+  <!-- Gauge arc background -->
+  <path d="M 140 220 A 180 180 0 0 1 560 220" fill="none" stroke="#e2e8f0" stroke-width="30" stroke-linecap="round"/>
+  <!-- Danger zone: <1:1 -->
+  <path d="M 140 220 A 180 180 0 0 1 196 112" fill="none" stroke="#ef4444" stroke-width="30" stroke-linecap="round"/>
+  <!-- Warning zone: 1:1 to 2:1 -->
+  <path d="M 196 112 A 180 180 0 0 1 290 62" fill="none" stroke="#f59e0b" stroke-width="30" stroke-linecap="round"/>
+  <!-- Healthy zone: 3:1 -->
+  <path d="M 290 62 A 180 180 0 0 1 420 62" fill="none" stroke="#10b981" stroke-width="30" stroke-linecap="round"/>
+  <!-- Efficient zone: 4:1-5:1 -->
+  <path d="M 420 62 A 180 180 0 0 1 510 112" fill="none" stroke="#2563eb" stroke-width="30" stroke-linecap="round"/>
+  <!-- Under-investing: >5:1 -->
+  <path d="M 510 112 A 180 180 0 0 1 560 220" fill="none" stroke="#8b5cf6" stroke-width="30" stroke-linecap="round"/>
+  <!-- Needle at 3:1 (ideal) -->
+  <line x1="350" y1="220" x2="350" y2="65" stroke="#1e293b" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="350" cy="220" r="8" fill="#1e293b"/>
+  <!-- Center value -->
+  <text x="350" y="198" text-anchor="middle" font-family="Arial,sans-serif" font-size="28" font-weight="bold" fill="#10b981">3:1</text>
+  <text x="350" y="250" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Gold Standard</text>
+  <!-- Labels around gauge -->
+  <text x="110" y="230" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#ef4444">&lt;1:1</text>
+  <text x="165" y="128" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#f59e0b">2:1</text>
+  <text x="350" y="48" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#10b981">3:1</text>
+  <text x="535" y="128" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#2563eb">5:1</text>
+  <text x="590" y="230" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#8b5cf6">&gt;5:1</text>
+  <!-- Legend boxes -->
+  <rect x="60" y="268" width="110" height="36" fill="white" stroke="#ef4444" stroke-width="1.5" rx="6"/>
+  <text x="115" y="282" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#ef4444">STOP</text>
+  <text x="115" y="296" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#64748b">Losing money</text>
+  <rect x="180" y="268" width="110" height="36" fill="white" stroke="#f59e0b" stroke-width="1.5" rx="6"/>
+  <text x="235" y="282" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#f59e0b">OPTIMIZE</text>
+  <text x="235" y="296" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#64748b">Poor efficiency</text>
+  <rect x="300" y="268" width="110" height="36" fill="white" stroke="#10b981" stroke-width="1.5" rx="6"/>
+  <text x="355" y="282" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#10b981">HEALTHY</text>
+  <text x="355" y="296" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#64748b">Scalable model</text>
+  <rect x="420" y="268" width="110" height="36" fill="white" stroke="#2563eb" stroke-width="1.5" rx="6"/>
+  <text x="475" y="282" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#2563eb">EFFICIENT</text>
+  <text x="475" y="296" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#64748b">Spend more</text>
+  <rect x="540" y="268" width="110" height="36" fill="white" stroke="#8b5cf6" stroke-width="1.5" rx="6"/>
+  <text x="595" y="282" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#8b5cf6">UNDER-INVEST</text>
+  <text x="595" y="296" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#64748b">Missing share</text>
+</svg>
 
 ## How to Reduce CAC in the Australian Market
 

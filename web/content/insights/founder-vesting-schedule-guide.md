@@ -33,6 +33,51 @@ The risk is magnified when you consider the **equity vesting startup** landscape
 >  └──────────────────┘                                    FULLY VESTED ─┘
 > ```
 
+<svg viewBox="0 0 700 350" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="350" fill="#f8fafc" rx="12"/>
+  <text x="350" y="30" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#1e293b">4-Year Founder Vesting Schedule</text>
+  <text x="350" y="50" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Standard vesting with 1-year cliff — equity earned over time</text>
+  <!-- Y-axis labels -->
+  <text x="55" y="88" text-anchor="end" font-family="Arial,sans-serif" font-size="11" fill="#64748b">100%</text>
+  <text x="55" y="138" text-anchor="end" font-family="Arial,sans-serif" font-size="11" fill="#64748b">75%</text>
+  <text x="55" y="188" text-anchor="end" font-family="Arial,sans-serif" font-size="11" fill="#64748b">50%</text>
+  <text x="55" y="238" text-anchor="end" font-family="Arial,sans-serif" font-size="11" fill="#64748b">25%</text>
+  <text x="55" y="288" text-anchor="end" font-family="Arial,sans-serif" font-size="11" fill="#64748b">0%</text>
+  <!-- Grid lines -->
+  <line x1="65" y1="85" x2="660" y2="85" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="65" y1="135" x2="660" y2="135" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="65" y1="185" x2="660" y2="185" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="65" y1="235" x2="660" y2="235" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="65" y1="285" x2="660" y2="285" stroke="#e2e8f0" stroke-width="1"/>
+  <!-- Bars -->
+  <rect x="95" y="285" width="90" height="0" fill="#ef4444" rx="4"/>
+  <rect x="95" y="282" width="90" height="6" fill="#ef4444" rx="4" opacity="0.3"/>
+  <text x="140" y="305" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Year 0</text>
+  <text x="140" y="275" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#ef4444">0%</text>
+  <rect x="215" y="235" width="90" height="50" fill="#f59e0b" rx="4"/>
+  <text x="260" y="305" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Year 1</text>
+  <text x="260" y="228" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#f59e0b">25%</text>
+  <text x="260" y="260" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="white">CLIFF</text>
+  <rect x="335" y="185" width="90" height="100" fill="#2563eb" rx="4"/>
+  <text x="380" y="305" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Year 2</text>
+  <text x="380" y="178" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">50%</text>
+  <rect x="455" y="135" width="90" height="150" fill="#2563eb" rx="4"/>
+  <text x="500" y="305" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Year 3</text>
+  <text x="500" y="128" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">75%</text>
+  <rect x="575" y="85" width="90" height="200" fill="#10b981" rx="4"/>
+  <text x="620" y="305" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Year 4</text>
+  <text x="620" y="78" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#10b981">100%</text>
+  <!-- Annotations -->
+  <rect x="80" y="318" width="12" height="12" fill="#ef4444" rx="2"/>
+  <text x="96" y="328" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Danger zone (0%)</text>
+  <rect x="220" y="318" width="12" height="12" fill="#f59e0b" rx="2"/>
+  <text x="236" y="328" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Cliff unlock</text>
+  <rect x="340" y="318" width="12" height="12" fill="#2563eb" rx="2"/>
+  <text x="356" y="328" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Monthly vesting (~2.08%/mo)</text>
+  <rect x="530" y="318" width="12" height="12" fill="#10b981" rx="2"/>
+  <text x="546" y="328" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Fully vested</text>
+</svg>
+
 ## The Gold Standard: 4-Year Vesting with a 1-Year Cliff
 
 If you ask any top-tier Sydney or Melbourne lawyer how to structure your **startup vesting 4 year cliff**, the answer is almost universally the same: 4 years with a 1-year cliff. This is the global standard for a reason—it balances fairness with protection.
@@ -154,6 +199,47 @@ You don't need to be a lawyer to start the conversation, but you do need to be p
 Missing one of these steps can lead to cap table restructuring disasters later. Don't let a simple oversight jeopardize your funding.
 
 > **Don't let a messy equity split scare off your next investor.** Check your startup's valuation readiness instantly with our tool. [Get your free Startup Value Index (SVI) →](/score)
+
+<svg viewBox="0 0 700 140" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="140" fill="#f8fafc" rx="12"/>
+  <text x="350" y="20" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="bold" fill="#1e293b">Setting Up Your Founder Vesting Schedule — 5-Step Process</text>
+  <!-- Step 1 -->
+  <rect x="12" y="38" width="112" height="56" fill="#2563eb" rx="8"/>
+  <text x="68" y="60" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">1. Agree</text>
+  <text x="68" y="73" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#dbeafe">Equity Split</text>
+  <text x="68" y="85" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#dbeafe">Between Founders</text>
+  <!-- Arrow 1 -->
+  <path d="M128 66 L148 66" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrowVest)"/>
+  <!-- Step 2 -->
+  <rect x="152" y="38" width="112" height="56" fill="#2563eb" rx="8"/>
+  <text x="208" y="60" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">2. Set Terms</text>
+  <text x="208" y="73" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#dbeafe">4-Year Vest</text>
+  <text x="208" y="85" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#dbeafe">1-Year Cliff</text>
+  <!-- Arrow 2 -->
+  <path d="M268 66 L288 66" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrowVest)"/>
+  <!-- Step 3 -->
+  <rect x="292" y="38" width="112" height="56" fill="#2563eb" rx="8"/>
+  <text x="348" y="60" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">3. Issue Shares</text>
+  <text x="348" y="73" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#dbeafe">Reverse Vesting</text>
+  <text x="348" y="85" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#dbeafe">+ Buyback Rights</text>
+  <!-- Arrow 3 -->
+  <path d="M408 66 L428 66" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrowVest)"/>
+  <!-- Step 4 -->
+  <rect x="432" y="38" width="112" height="56" fill="#f59e0b" rx="8"/>
+  <text x="488" y="60" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">4. Register</text>
+  <text x="488" y="73" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="white">Update ASIC</text>
+  <text x="488" y="85" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="white">& Tax Review</text>
+  <!-- Arrow 4 -->
+  <path d="M548 66 L568 66" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrowVest)"/>
+  <!-- Step 5 -->
+  <rect x="572" y="38" width="116" height="56" fill="#10b981" rx="8"/>
+  <text x="630" y="60" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">5. Sign & File</text>
+  <text x="630" y="73" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="white">Legal Sign-off</text>
+  <text x="630" y="85" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="white">All Founders</text>
+  <!-- Legend -->
+  <text x="350" y="120" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">Engage an Australian startup lawyer for steps 3-5 to ensure Corporations Act 2001 compliance</text>
+  <defs><marker id="arrowVest" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#cbd5e1"/></marker></defs>
+</svg>
 
 ## Common Pitfalls to Avoid When Structuring Equity
 

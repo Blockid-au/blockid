@@ -166,11 +166,17 @@ export async function POST(request: Request) {
       );
     }
 
-    // Fire-and-forget: trigger SVI rescore with evidence bonuses
+    // Fire-and-forget: trigger SVI rescore with evidence bonuses.
+    // Call both the existing bonus-based rescore and the new enhanced-text rescore.
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au";
+    const cookieHeader = request.headers.get("cookie") ?? "";
     void fetch(`${siteUrl}/api/svi/rescore-from-evidence`, {
       method: "POST",
-      headers: { Cookie: request.headers.get("cookie") ?? "" },
+      headers: { Cookie: cookieHeader },
+    }).catch(() => {});
+    void fetch(`${siteUrl}/api/evidence/rescore`, {
+      method: "POST",
+      headers: { Cookie: cookieHeader },
     }).catch(() => {});
 
     return NextResponse.json({ ok: true, evidence, sviDelta: sviImpact });

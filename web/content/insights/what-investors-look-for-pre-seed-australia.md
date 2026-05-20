@@ -53,6 +53,52 @@ The most successful Australian founders at the pre-seed stage treat validation a
 | **Product/MVP** | 10% | Working prototype, user engagement data | Slide deck only, no build capability |
 | **ESIC Eligibility** | 5% | Qualified for 20% tax offset, documented innovation | Failed innovation test, non-compliant |
 
+<svg viewBox="0 0 700 380" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="380" fill="#f8fafc" rx="8"/>
+  <text x="350" y="35" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Investor Evaluation Criteria — Weight Distribution</text>
+  <!-- Bars -->
+  <text x="60" y="82" font-size="13" font-weight="bold" fill="#1e293b">Founding Team</text>
+  <rect x="220" y="66" width="400" height="28" fill="#e2e8f0" rx="6"/>
+  <rect x="220" y="66" width="240" height="28" fill="#2563eb" rx="6"/>
+  <text x="230" y="85" font-size="12" font-weight="bold" fill="#fff">30%</text>
+  <text x="470" y="85" font-size="11" fill="#64748b">Complementary skills, founder-market fit</text>
+
+  <text x="60" y="127" font-size="13" font-weight="bold" fill="#1e293b">Market Timing</text>
+  <rect x="220" y="111" width="400" height="28" fill="#e2e8f0" rx="6"/>
+  <rect x="220" y="111" width="160" height="28" fill="#10b981" rx="6"/>
+  <text x="230" y="130" font-size="12" font-weight="bold" fill="#fff">20%</text>
+  <text x="390" y="130" font-size="11" fill="#64748b">Regulatory tailwinds, "why now"</text>
+
+  <text x="60" y="172" font-size="13" font-weight="bold" fill="#1e293b">Problem Validation</text>
+  <rect x="220" y="156" width="400" height="28" fill="#e2e8f0" rx="6"/>
+  <rect x="220" y="156" width="160" height="28" fill="#10b981" rx="6"/>
+  <text x="230" y="175" font-size="12" font-weight="bold" fill="#fff">20%</text>
+  <text x="390" y="175" font-size="11" fill="#64748b">LOIs, paid pilots, user interviews</text>
+
+  <text x="60" y="217" font-size="13" font-weight="bold" fill="#1e293b">Market Size</text>
+  <rect x="220" y="201" width="400" height="28" fill="#e2e8f0" rx="6"/>
+  <rect x="220" y="201" width="120" height="28" fill="#f59e0b" rx="6"/>
+  <text x="230" y="220" font-size="12" font-weight="bold" fill="#fff">15%</text>
+  <text x="350" y="220" font-size="11" fill="#64748b">TAM &gt; $1B, APAC expansion</text>
+
+  <text x="60" y="262" font-size="13" font-weight="bold" fill="#1e293b">Product / MVP</text>
+  <rect x="220" y="246" width="400" height="28" fill="#e2e8f0" rx="6"/>
+  <rect x="220" y="246" width="80" height="28" fill="#f59e0b" rx="6"/>
+  <text x="230" y="265" font-size="12" font-weight="bold" fill="#fff">10%</text>
+  <text x="310" y="265" font-size="11" fill="#64748b">Working prototype, engagement data</text>
+
+  <text x="60" y="307" font-size="13" font-weight="bold" fill="#1e293b">ESIC Eligibility</text>
+  <rect x="220" y="291" width="400" height="28" fill="#e2e8f0" rx="6"/>
+  <rect x="220" y="291" width="40" height="28" fill="#1e293b" rx="6"/>
+  <text x="230" y="310" font-size="10" font-weight="bold" fill="#fff">5%</text>
+  <text x="270" y="310" font-size="11" fill="#64748b">20% tax offset, documented innovation</text>
+
+  <!-- Total -->
+  <line x1="60" y1="335" x2="640" y2="335" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="60" y="360" font-size="12" font-weight="bold" fill="#1e293b">Total Weight: 100%</text>
+  <text x="640" y="360" text-anchor="end" font-size="11" fill="#64748b">Based on Australian angel network criteria</text>
+</svg>
+
 ## The Financial Incentives: Navigating ESIC and Tax
 
 One of the most distinct features of the Australian startup ecosystem is the government's active role in de-risking early-stage investment through tax incentives. For founders, understanding **Early Stage Innovation Company (ESIC)** eligibility is not just a tax exercise; it is a fundamental part of the fundraising strategy.
@@ -181,6 +227,72 @@ To ensure you are ready for the Australian market, use this practical checklist.
 > - Clear product roadmap (12 months): +1
 >
 > **Scoring Guide:** 24-30 = Strong investment candidate | 18-23 = Promising, address gaps | Below 18 = Not yet ready
+
+<svg viewBox="0 0 700 420" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="420" fill="#f8fafc" rx="8"/>
+  <text x="350" y="35" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Team / Market / Product — Scoring Cards</text>
+  <!-- Team Card -->
+  <rect x="30" y="55" width="200" height="340" fill="#fff" stroke="#2563eb" stroke-width="2" rx="8"/>
+  <rect x="30" y="55" width="200" height="40" fill="#2563eb" rx="8"/>
+  <rect x="30" y="85" width="200" height="10" fill="#2563eb"/>
+  <text x="130" y="82" text-anchor="middle" font-size="15" font-weight="bold" fill="#fff">Team (out of 10)</text>
+  <text x="45" y="120" font-size="11" fill="#1e293b">Technical co-founder</text><text x="215" y="120" text-anchor="end" font-size="12" font-weight="bold" fill="#2563eb">+3</text>
+  <line x1="45" y1="130" x2="215" y2="130" stroke="#e2e8f0"/>
+  <text x="45" y="150" font-size="11" fill="#1e293b">Prior startup experience</text><text x="215" y="150" text-anchor="end" font-size="12" font-weight="bold" fill="#2563eb">+2</text>
+  <line x1="45" y1="160" x2="215" y2="160" stroke="#e2e8f0"/>
+  <text x="45" y="180" font-size="11" fill="#1e293b">Domain expertise</text><text x="215" y="180" text-anchor="end" font-size="12" font-weight="bold" fill="#2563eb">+2</text>
+  <line x1="45" y1="190" x2="215" y2="190" stroke="#e2e8f0"/>
+  <text x="45" y="210" font-size="11" fill="#1e293b">Full-time commitment</text><text x="215" y="210" text-anchor="end" font-size="12" font-weight="bold" fill="#2563eb">+2</text>
+  <line x1="45" y1="220" x2="215" y2="220" stroke="#e2e8f0"/>
+  <text x="45" y="240" font-size="11" fill="#1e293b">Vesting in place</text><text x="215" y="240" text-anchor="end" font-size="12" font-weight="bold" fill="#2563eb">+1</text>
+  <!-- Example score -->
+  <rect x="55" y="270" width="150" height="30" fill="#2563eb" opacity="0.1" rx="6"/>
+  <text x="130" y="290" text-anchor="middle" font-size="12" font-weight="bold" fill="#2563eb">Example: 8/10</text>
+  <!-- Score bar -->
+  <rect x="55" y="310" width="150" height="10" fill="#e2e8f0" rx="4"/>
+  <rect x="55" y="310" width="120" height="10" fill="#2563eb" rx="4"/>
+  <text x="130" y="340" text-anchor="middle" font-size="10" fill="#64748b">Strong candidate</text>
+  <!-- Market Card -->
+  <rect x="250" y="55" width="200" height="340" fill="#fff" stroke="#10b981" stroke-width="2" rx="8"/>
+  <rect x="250" y="55" width="200" height="40" fill="#10b981" rx="8"/>
+  <rect x="250" y="85" width="200" height="10" fill="#10b981"/>
+  <text x="350" y="82" text-anchor="middle" font-size="15" font-weight="bold" fill="#fff">Market (out of 10)</text>
+  <text x="265" y="120" font-size="11" fill="#1e293b">TAM &gt; $1B AUD</text><text x="435" y="120" text-anchor="end" font-size="12" font-weight="bold" fill="#10b981">+3</text>
+  <line x1="265" y1="130" x2="435" y2="130" stroke="#e2e8f0"/>
+  <text x="265" y="150" font-size="11" fill="#1e293b">Regulatory tailwind</text><text x="435" y="150" text-anchor="end" font-size="12" font-weight="bold" fill="#10b981">+2</text>
+  <line x1="265" y1="160" x2="435" y2="160" stroke="#e2e8f0"/>
+  <text x="265" y="180" font-size="11" fill="#1e293b">AU beachhead market</text><text x="435" y="180" text-anchor="end" font-size="12" font-weight="bold" fill="#10b981">+2</text>
+  <line x1="265" y1="190" x2="435" y2="190" stroke="#e2e8f0"/>
+  <text x="265" y="210" font-size="11" fill="#1e293b">APAC/global expansion</text><text x="435" y="210" text-anchor="end" font-size="12" font-weight="bold" fill="#10b981">+2</text>
+  <line x1="265" y1="220" x2="435" y2="220" stroke="#e2e8f0"/>
+  <text x="265" y="240" font-size="11" fill="#1e293b">Low competitive density</text><text x="435" y="240" text-anchor="end" font-size="12" font-weight="bold" fill="#10b981">+1</text>
+  <rect x="275" y="270" width="150" height="30" fill="#10b981" opacity="0.1" rx="6"/>
+  <text x="350" y="290" text-anchor="middle" font-size="12" font-weight="bold" fill="#10b981">Example: 7/10</text>
+  <rect x="275" y="310" width="150" height="10" fill="#e2e8f0" rx="4"/>
+  <rect x="275" y="310" width="105" height="10" fill="#10b981" rx="4"/>
+  <text x="350" y="340" text-anchor="middle" font-size="10" fill="#64748b">Promising</text>
+  <!-- Product Card -->
+  <rect x="470" y="55" width="200" height="340" fill="#fff" stroke="#f59e0b" stroke-width="2" rx="8"/>
+  <rect x="470" y="55" width="200" height="40" fill="#f59e0b" rx="8"/>
+  <rect x="470" y="85" width="200" height="10" fill="#f59e0b"/>
+  <text x="570" y="82" text-anchor="middle" font-size="15" font-weight="bold" fill="#fff">Product (out of 10)</text>
+  <text x="485" y="120" font-size="11" fill="#1e293b">Working MVP</text><text x="655" y="120" text-anchor="end" font-size="12" font-weight="bold" fill="#f59e0b">+3</text>
+  <line x1="485" y1="130" x2="655" y2="130" stroke="#e2e8f0"/>
+  <text x="485" y="150" font-size="11" fill="#1e293b">Paying customers/LOIs</text><text x="655" y="150" text-anchor="end" font-size="12" font-weight="bold" fill="#f59e0b">+3</text>
+  <line x1="485" y1="160" x2="655" y2="160" stroke="#e2e8f0"/>
+  <text x="485" y="180" font-size="11" fill="#1e293b">Engagement metrics</text><text x="655" y="180" text-anchor="end" font-size="12" font-weight="bold" fill="#f59e0b">+2</text>
+  <line x1="485" y1="190" x2="655" y2="190" stroke="#e2e8f0"/>
+  <text x="485" y="210" font-size="11" fill="#1e293b">IP / proprietary tech</text><text x="655" y="210" text-anchor="end" font-size="12" font-weight="bold" fill="#f59e0b">+1</text>
+  <line x1="485" y1="220" x2="655" y2="220" stroke="#e2e8f0"/>
+  <text x="485" y="240" font-size="11" fill="#1e293b">Product roadmap</text><text x="655" y="240" text-anchor="end" font-size="12" font-weight="bold" fill="#f59e0b">+1</text>
+  <rect x="495" y="270" width="150" height="30" fill="#f59e0b" opacity="0.1" rx="6"/>
+  <text x="570" y="290" text-anchor="middle" font-size="12" font-weight="bold" fill="#f59e0b">Example: 6/10</text>
+  <rect x="495" y="310" width="150" height="10" fill="#e2e8f0" rx="4"/>
+  <rect x="495" y="310" width="90" height="10" fill="#f59e0b" rx="4"/>
+  <text x="570" y="340" text-anchor="middle" font-size="10" fill="#64748b">Address gaps</text>
+  <!-- Total score -->
+  <text x="350" y="410" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e293b">Total: 21/30 — Promising, address gaps before raising (24-30 = Strong candidate)</text>
+</svg>
 
 ## Leveraging Data to De-Risk Your Raise
 

@@ -35,6 +35,83 @@ Furthermore, intellectual property laws in Australia are stringent. If a co-foun
 | 11 | **ATO ESS tax compliance** | Aligns equity with tax rules | Critical — unexpected tax bills |
 | 12 | **Amendment and variation process** | How changes are approved | Medium — frozen outdated terms |
 
+<svg viewBox="0 0 700 480" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="480" rx="8" fill="#f8fafc"/>
+  <text x="350" y="32" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Co-Founder Agreement: Essential Clauses</text>
+  <text x="350" y="52" text-anchor="middle" font-size="12" fill="#64748b">12-point checklist with risk level indicators</text>
+  <!-- Row grid -->
+  <!-- Item 1 -->
+  <rect x="20" y="68" width="320" height="56" rx="8" fill="#ffffff" stroke="#ef4444" stroke-width="1.5"/>
+  <circle cx="44" cy="96" r="12" fill="#ef4444"/><text x="44" y="100" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">1</text>
+  <text x="66" y="88" font-size="11" font-weight="bold" fill="#1e293b">Equity split with percentages</text>
+  <text x="66" y="104" font-size="9" fill="#64748b">Must define exact ownership</text>
+  <rect x="250" y="80" width="78" height="20" rx="4" fill="#ef4444" opacity="0.15"/><text x="289" y="94" text-anchor="middle" font-size="9" font-weight="bold" fill="#ef4444">CRITICAL</text>
+  <!-- Item 2 -->
+  <rect x="360" y="68" width="320" height="56" rx="8" fill="#ffffff" stroke="#ef4444" stroke-width="1.5"/>
+  <circle cx="384" cy="96" r="12" fill="#ef4444"/><text x="384" y="100" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">2</text>
+  <text x="406" y="88" font-size="11" font-weight="bold" fill="#1e293b">Vesting schedule (4yr / 1yr cliff)</text>
+  <text x="406" y="104" font-size="9" fill="#64748b">Time-based with cliff period</text>
+  <rect x="590" y="80" width="78" height="20" rx="4" fill="#ef4444" opacity="0.15"/><text x="629" y="94" text-anchor="middle" font-size="9" font-weight="bold" fill="#ef4444">CRITICAL</text>
+  <!-- Item 3 -->
+  <rect x="20" y="134" width="320" height="56" rx="8" fill="#ffffff" stroke="#ef4444" stroke-width="1.5"/>
+  <circle cx="44" cy="162" r="12" fill="#ef4444"/><text x="44" y="166" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">3</text>
+  <text x="66" y="154" font-size="11" font-weight="bold" fill="#1e293b">IP assignment to company</text>
+  <text x="66" y="170" font-size="9" fill="#64748b">All current and future IP</text>
+  <rect x="250" y="146" width="78" height="20" rx="4" fill="#ef4444" opacity="0.15"/><text x="289" y="160" text-anchor="middle" font-size="9" font-weight="bold" fill="#ef4444">CRITICAL</text>
+  <!-- Item 4 -->
+  <rect x="360" y="134" width="320" height="56" rx="8" fill="#ffffff" stroke="#f59e0b" stroke-width="1.5"/>
+  <circle cx="384" cy="162" r="12" fill="#f59e0b"/><text x="384" y="166" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">4</text>
+  <text x="406" y="154" font-size="11" font-weight="bold" fill="#1e293b">Role and responsibility definitions</text>
+  <text x="406" y="170" font-size="9" fill="#64748b">CEO, CTO, COO clearly defined</text>
+  <rect x="600" y="146" width="66" height="20" rx="4" fill="#f59e0b" opacity="0.15"/><text x="633" y="160" text-anchor="middle" font-size="9" font-weight="bold" fill="#f59e0b">HIGH</text>
+  <!-- Item 5 -->
+  <rect x="20" y="200" width="320" height="56" rx="8" fill="#ffffff" stroke="#f59e0b" stroke-width="1.5"/>
+  <circle cx="44" cy="228" r="12" fill="#f59e0b"/><text x="44" y="232" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">5</text>
+  <text x="66" y="220" font-size="11" font-weight="bold" fill="#1e293b">Decision-making authority</text>
+  <text x="66" y="236" font-size="9" fill="#64748b">Spending limits, hiring power</text>
+  <rect x="260" y="212" width="66" height="20" rx="4" fill="#f59e0b" opacity="0.15"/><text x="293" y="226" text-anchor="middle" font-size="9" font-weight="bold" fill="#f59e0b">HIGH</text>
+  <!-- Item 6 -->
+  <rect x="360" y="200" width="320" height="56" rx="8" fill="#ffffff" stroke="#f59e0b" stroke-width="1.5"/>
+  <circle cx="384" cy="228" r="12" fill="#f59e0b"/><text x="384" y="232" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">6</text>
+  <text x="406" y="220" font-size="11" font-weight="bold" fill="#1e293b">Deadlock resolution mechanism</text>
+  <text x="406" y="236" font-size="9" fill="#64748b">Mediation, arbitration, or tie-breaker</text>
+  <rect x="600" y="212" width="66" height="20" rx="4" fill="#f59e0b" opacity="0.15"/><text x="633" y="226" text-anchor="middle" font-size="9" font-weight="bold" fill="#f59e0b">HIGH</text>
+  <!-- Item 7 -->
+  <rect x="20" y="266" width="320" height="56" rx="8" fill="#ffffff" stroke="#ef4444" stroke-width="1.5"/>
+  <circle cx="44" cy="294" r="12" fill="#ef4444"/><text x="44" y="298" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">7</text>
+  <text x="66" y="286" font-size="11" font-weight="bold" fill="#1e293b">Good Leaver / Bad Leaver terms</text>
+  <text x="66" y="302" font-size="9" fill="#64748b">Defines equity on departure</text>
+  <rect x="250" y="278" width="78" height="20" rx="4" fill="#ef4444" opacity="0.15"/><text x="289" y="292" text-anchor="middle" font-size="9" font-weight="bold" fill="#ef4444">CRITICAL</text>
+  <!-- Item 8 -->
+  <rect x="360" y="266" width="320" height="56" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+  <circle cx="384" cy="294" r="12" fill="#2563eb"/><text x="384" y="298" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">8</text>
+  <text x="406" y="286" font-size="11" font-weight="bold" fill="#1e293b">Non-compete clause (6-12 months)</text>
+  <text x="406" y="302" font-size="9" fill="#64748b">Reasonable scope under AU law</text>
+  <rect x="600" y="278" width="66" height="20" rx="4" fill="#2563eb" opacity="0.15"/><text x="633" y="292" text-anchor="middle" font-size="9" font-weight="bold" fill="#2563eb">MED</text>
+  <!-- Item 9-10 -->
+  <rect x="20" y="332" width="320" height="56" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+  <circle cx="44" cy="360" r="12" fill="#2563eb"/><text x="44" y="364" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">9</text>
+  <text x="66" y="352" font-size="11" font-weight="bold" fill="#1e293b">Non-solicit clause (12 months)</text>
+  <text x="66" y="368" font-size="9" fill="#64748b">Prevents poaching staff/clients</text>
+  <rect x="260" y="344" width="66" height="20" rx="4" fill="#2563eb" opacity="0.15"/><text x="293" y="358" text-anchor="middle" font-size="9" font-weight="bold" fill="#2563eb">MED</text>
+  <rect x="360" y="332" width="320" height="56" rx="8" fill="#ffffff" stroke="#f59e0b" stroke-width="1.5"/>
+  <circle cx="384" cy="360" r="12" fill="#f59e0b"/><text x="384" y="364" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">10</text>
+  <text x="406" y="352" font-size="11" font-weight="bold" fill="#1e293b">Confidentiality obligations</text>
+  <text x="406" y="368" font-size="9" fill="#64748b">Survives termination of agreement</text>
+  <rect x="600" y="344" width="66" height="20" rx="4" fill="#f59e0b" opacity="0.15"/><text x="633" y="358" text-anchor="middle" font-size="9" font-weight="bold" fill="#f59e0b">HIGH</text>
+  <!-- Item 11-12 -->
+  <rect x="20" y="398" width="320" height="56" rx="8" fill="#ffffff" stroke="#ef4444" stroke-width="1.5"/>
+  <circle cx="44" cy="426" r="12" fill="#ef4444"/><text x="44" y="430" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">11</text>
+  <text x="66" y="418" font-size="11" font-weight="bold" fill="#1e293b">ATO ESS tax compliance</text>
+  <text x="66" y="434" font-size="9" fill="#64748b">Aligns equity with tax rules</text>
+  <rect x="250" y="410" width="78" height="20" rx="4" fill="#ef4444" opacity="0.15"/><text x="289" y="424" text-anchor="middle" font-size="9" font-weight="bold" fill="#ef4444">CRITICAL</text>
+  <rect x="360" y="398" width="320" height="56" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+  <circle cx="384" cy="426" r="12" fill="#2563eb"/><text x="384" y="430" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">12</text>
+  <text x="406" y="418" font-size="11" font-weight="bold" fill="#1e293b">Amendment and variation process</text>
+  <text x="406" y="434" font-size="9" fill="#64748b">How changes are approved</text>
+  <rect x="600" y="410" width="66" height="20" rx="4" fill="#2563eb" opacity="0.15"/><text x="633" y="424" text-anchor="middle" font-size="9" font-weight="bold" fill="#2563eb">MED</text>
+</svg>
+
 ## Core Clauses: The Non-Negotiables in Your Co-Founder Contract
 
 A high-quality **founders agreement Australia** template must go beyond generic templates found online. It requires specific clauses tailored to the Australian startup ecosystem. Below are the essential components that every **startup co-founder contract** must include to protect all parties and the entity.
@@ -84,6 +161,58 @@ While many agreements include broad responsibilities, the most effective **co-fo
 > - **Equal splits (50/50)** correlate with higher co-founder dispute rates
 > - Average ESOP pool at incorporation: **10-15%** of total equity
 > - Investors expect vesting on **all** founder shares, not just new hires
+
+<svg viewBox="0 0 700 360" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="360" rx="8" fill="#f8fafc"/>
+  <text x="350" y="32" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Equity Split Scenarios: Common AU Structures</text>
+  <text x="350" y="52" text-anchor="middle" font-size="12" fill="#64748b">Founder ownership compared across 5 typical founding team setups</text>
+  <!-- Axis -->
+  <line x1="60" y1="280" x2="660" y2="280" stroke="#1e293b" stroke-width="1.5"/>
+  <text x="40" y="86" text-anchor="end" font-size="10" fill="#64748b">60%</text>
+  <line x1="45" y1="82" x2="660" y2="82" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="40" y="132" text-anchor="end" font-size="10" fill="#64748b">45%</text>
+  <line x1="45" y1="128" x2="660" y2="128" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="40" y="182" text-anchor="end" font-size="10" fill="#64748b">30%</text>
+  <line x1="45" y1="178" x2="660" y2="178" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="40" y="232" text-anchor="end" font-size="10" fill="#64748b">15%</text>
+  <line x1="45" y1="228" x2="660" y2="228" stroke="#e2e8f0" stroke-width="1"/>
+  <!-- Scenario 1: Equal partners -->
+  <rect x="70" y="144" width="22" height="136" rx="3" fill="#2563eb"/><text x="81" y="138" text-anchor="middle" font-size="9" fill="#2563eb" font-weight="bold">42.5%</text>
+  <rect x="95" y="144" width="22" height="136" rx="3" fill="#10b981"/><text x="106" y="138" text-anchor="middle" font-size="9" fill="#10b981" font-weight="bold">42.5%</text>
+  <rect x="120" y="228" width="22" height="52" rx="3" fill="#f59e0b"/><text x="131" y="222" text-anchor="middle" font-size="9" fill="#f59e0b" font-weight="bold">15%</text>
+  <text x="106" y="298" text-anchor="middle" font-size="10" fill="#1e293b" font-weight="bold">Equal</text>
+  <text x="106" y="312" text-anchor="middle" font-size="9" fill="#64748b">Partners</text>
+  <!-- Scenario 2: Idea + Execution -->
+  <rect x="186" y="114" width="22" height="166" rx="3" fill="#2563eb"/><text x="197" y="108" text-anchor="middle" font-size="9" fill="#2563eb" font-weight="bold">50%</text>
+  <rect x="211" y="168" width="22" height="112" rx="3" fill="#10b981"/><text x="222" y="162" text-anchor="middle" font-size="9" fill="#10b981" font-weight="bold">35%</text>
+  <rect x="236" y="228" width="22" height="52" rx="3" fill="#f59e0b"/><text x="247" y="222" text-anchor="middle" font-size="9" fill="#f59e0b" font-weight="bold">15%</text>
+  <text x="222" y="298" text-anchor="middle" font-size="10" fill="#1e293b" font-weight="bold">Idea +</text>
+  <text x="222" y="312" text-anchor="middle" font-size="9" fill="#64748b">Execution</text>
+  <!-- Scenario 3: Solo + Late -->
+  <rect x="302" y="98" width="22" height="182" rx="3" fill="#2563eb"/><text x="313" y="92" text-anchor="middle" font-size="9" fill="#2563eb" font-weight="bold">55%</text>
+  <rect x="327" y="178" width="22" height="102" rx="3" fill="#10b981"/><text x="338" y="172" text-anchor="middle" font-size="9" fill="#10b981" font-weight="bold">30%</text>
+  <rect x="352" y="228" width="22" height="52" rx="3" fill="#f59e0b"/><text x="363" y="222" text-anchor="middle" font-size="9" fill="#f59e0b" font-weight="bold">15%</text>
+  <text x="338" y="298" text-anchor="middle" font-size="10" fill="#1e293b" font-weight="bold">Solo +</text>
+  <text x="338" y="312" text-anchor="middle" font-size="9" fill="#64748b">Late Joiner</text>
+  <!-- Scenario 4: 3 Co-founders -->
+  <rect x="418" y="168" width="22" height="112" rx="3" fill="#2563eb"/><text x="429" y="162" text-anchor="middle" font-size="9" fill="#2563eb" font-weight="bold">35%</text>
+  <rect x="443" y="178" width="22" height="102" rx="3" fill="#10b981"/><text x="454" y="172" text-anchor="middle" font-size="9" fill="#10b981" font-weight="bold">30%</text>
+  <rect x="468" y="211" width="22" height="69" rx="3" fill="#64748b"/><text x="479" y="205" text-anchor="middle" font-size="9" fill="#64748b" font-weight="bold">20%</text>
+  <rect x="493" y="228" width="22" height="52" rx="3" fill="#f59e0b"/><text x="504" y="222" text-anchor="middle" font-size="9" fill="#f59e0b" font-weight="bold">15%</text>
+  <text x="460" y="298" text-anchor="middle" font-size="10" fill="#1e293b" font-weight="bold">Three</text>
+  <text x="460" y="312" text-anchor="middle" font-size="9" fill="#64748b">Co-Founders</text>
+  <!-- Scenario 5: Tech-Heavy -->
+  <rect x="550" y="178" width="22" height="102" rx="3" fill="#2563eb"/><text x="561" y="172" text-anchor="middle" font-size="9" fill="#2563eb" font-weight="bold">30%</text>
+  <rect x="575" y="114" width="22" height="166" rx="3" fill="#10b981"/><text x="586" y="108" text-anchor="middle" font-size="9" fill="#10b981" font-weight="bold">50%</text>
+  <rect x="600" y="211" width="22" height="69" rx="3" fill="#f59e0b"/><text x="611" y="205" text-anchor="middle" font-size="9" fill="#f59e0b" font-weight="bold">20%</text>
+  <text x="586" y="298" text-anchor="middle" font-size="10" fill="#1e293b" font-weight="bold">Tech-</text>
+  <text x="586" y="312" text-anchor="middle" font-size="9" fill="#64748b">Heavy</text>
+  <!-- Legend -->
+  <rect x="180" y="336" width="12" height="12" rx="3" fill="#2563eb"/><text x="198" y="347" font-size="11" fill="#1e293b">Founder A</text>
+  <rect x="290" y="336" width="12" height="12" rx="3" fill="#10b981"/><text x="308" y="347" font-size="11" fill="#1e293b">Founder B</text>
+  <rect x="400" y="336" width="12" height="12" rx="3" fill="#64748b"/><text x="418" y="347" font-size="11" fill="#1e293b">Founder C</text>
+  <rect x="510" y="336" width="12" height="12" rx="3" fill="#f59e0b"/><text x="528" y="347" font-size="11" fill="#1e293b">ESOP Pool</text>
+</svg>
 
 ## Strategic Planning: Finding the Right Partner Before You Sign
 

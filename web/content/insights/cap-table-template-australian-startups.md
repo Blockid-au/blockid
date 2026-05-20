@@ -143,6 +143,77 @@ An employee is granted 48,000 options with a 4-year vesting schedule and 1-year 
 
 Include vesting terms in your cap table alongside each shareholder or option holder.
 
+<svg viewBox="0 0 700 400" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="400" fill="#f8fafc" rx="8"/>
+  <text x="350" y="35" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Cap Table Ownership — Stacked Bar by Stage</text>
+  <!-- Y-axis labels -->
+  <text x="55" y="74" text-anchor="end" font-size="10" fill="#64748b">100%</text>
+  <text x="55" y="144" text-anchor="end" font-size="10" fill="#64748b">75%</text>
+  <text x="55" y="214" text-anchor="end" font-size="10" fill="#64748b">50%</text>
+  <text x="55" y="284" text-anchor="end" font-size="10" fill="#64748b">25%</text>
+  <text x="55" y="349" text-anchor="end" font-size="10" fill="#64748b">0%</text>
+  <!-- Grid lines -->
+  <line x1="65" y1="70" x2="660" y2="70" stroke="#e2e8f0" stroke-width="0.5"/>
+  <line x1="65" y1="140" x2="660" y2="140" stroke="#e2e8f0" stroke-width="0.5"/>
+  <line x1="65" y1="210" x2="660" y2="210" stroke="#e2e8f0" stroke-width="0.5"/>
+  <line x1="65" y1="280" x2="660" y2="280" stroke="#e2e8f0" stroke-width="0.5"/>
+  <line x1="65" y1="345" x2="660" y2="345" stroke="#1e293b" stroke-width="1"/>
+  <!-- Bar 1: Incorporation -->
+  <!-- Founder A: 50% = 137.5px, Founder B: 50% = 137.5px -->
+  <rect x="85" y="70" width="90" height="137.5" fill="#2563eb" rx="3"/>
+  <text x="130" y="140" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">50%</text>
+  <rect x="85" y="207.5" width="90" height="137.5" fill="#10b981" rx="3"/>
+  <text x="130" y="278" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">50%</text>
+  <text x="130" y="365" text-anchor="middle" font-size="10" font-weight="bold" fill="#1e293b">Incorporation</text>
+  <!-- Bar 2: ESOP Created -->
+  <!-- Founder A: 42.5%=116.9, Founder B: 42.5%=116.9, ESOP: 15%=41.2 -->
+  <rect x="205" y="70" width="90" height="116.9" fill="#2563eb" rx="3"/>
+  <text x="250" y="130" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">42.5%</text>
+  <rect x="205" y="186.9" width="90" height="116.9" fill="#10b981" rx="3"/>
+  <text x="250" y="248" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">42.5%</text>
+  <rect x="205" y="303.8" width="90" height="41.2" fill="#f59e0b" rx="3"/>
+  <text x="250" y="328" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">15%</text>
+  <text x="250" y="365" text-anchor="middle" font-size="10" font-weight="bold" fill="#1e293b">+ ESOP</text>
+  <!-- Bar 3: Pre-Seed -->
+  <!-- Founder A: 38.2%=104.9, Founder B: 38.2%=104.9, ESOP: 13.5%=37.1, Investors: 10%=27.5 -->
+  <rect x="325" y="70" width="90" height="104.9" fill="#2563eb" rx="3"/>
+  <text x="370" y="124" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">38.2%</text>
+  <rect x="325" y="174.9" width="90" height="104.9" fill="#10b981" rx="3"/>
+  <text x="370" y="228" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">38.2%</text>
+  <rect x="325" y="279.8" width="90" height="37.1" fill="#f59e0b" rx="3"/>
+  <text x="370" y="302" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">13.5%</text>
+  <rect x="325" y="316.9" width="90" height="28.1" fill="#1e293b" rx="3"/>
+  <text x="370" y="335" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">10%</text>
+  <text x="370" y="365" text-anchor="middle" font-size="10" font-weight="bold" fill="#1e293b">Pre-Seed</text>
+  <!-- Bar 4: Seed -->
+  <!-- Founder A: 31.9%=87.6, B: 31.9%=87.6, ESOP: 11.2%=30.8, Investors: 25%=68.75 -->
+  <rect x="445" y="70" width="90" height="87.6" fill="#2563eb" rx="3"/>
+  <text x="490" y="117" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">31.9%</text>
+  <rect x="445" y="157.6" width="90" height="87.6" fill="#10b981" rx="3"/>
+  <text x="490" y="205" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">31.9%</text>
+  <rect x="445" y="245.2" width="90" height="30.8" fill="#f59e0b" rx="3"/>
+  <text x="490" y="265" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">11.2%</text>
+  <rect x="445" y="276" width="90" height="69" fill="#1e293b" rx="3"/>
+  <text x="490" y="315" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">25%</text>
+  <text x="490" y="365" text-anchor="middle" font-size="10" font-weight="bold" fill="#1e293b">Seed</text>
+  <!-- Bar 5: Series A -->
+  <!-- Founder A: 23.9%=65.7, B: 23.9%=65.7, ESOP: 8.4%=23.1, Investors: 43.8%=120.5 -->
+  <rect x="565" y="70" width="90" height="65.7" fill="#2563eb" rx="3"/>
+  <text x="610" y="107" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">23.9%</text>
+  <rect x="565" y="135.7" width="90" height="65.7" fill="#10b981" rx="3"/>
+  <text x="610" y="172" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">23.9%</text>
+  <rect x="565" y="201.4" width="90" height="23.1" fill="#f59e0b" rx="3"/>
+  <text x="610" y="217" text-anchor="middle" font-size="8" font-weight="bold" fill="#fff">8.4%</text>
+  <rect x="565" y="224.5" width="90" height="120.5" fill="#1e293b" rx="3"/>
+  <text x="610" y="290" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">43.8%</text>
+  <text x="610" y="365" text-anchor="middle" font-size="10" font-weight="bold" fill="#1e293b">Series A</text>
+  <!-- Legend -->
+  <rect x="130" y="383" width="14" height="14" fill="#2563eb" rx="2"/><text x="150" y="395" font-size="10" fill="#1e293b">Founder A</text>
+  <rect x="240" y="383" width="14" height="14" fill="#10b981" rx="2"/><text x="260" y="395" font-size="10" fill="#1e293b">Founder B</text>
+  <rect x="350" y="383" width="14" height="14" fill="#f59e0b" rx="2"/><text x="370" y="395" font-size="10" fill="#1e293b">ESOP Pool</text>
+  <rect x="450" y="383" width="14" height="14" fill="#1e293b" rx="2"/><text x="470" y="395" font-size="10" fill="#1e293b">Investors</text>
+</svg>
+
 ## Ordinary Shares vs. Preference Shares: What Australian Startups Need to Know
 
 Most founder equity is issued as **ordinary shares**. Investors typically receive **preference shares** with special rights.
@@ -265,6 +336,61 @@ Here's the minimum structure for an Australian startup cap table:
 1. **Valuation History:** Track the company's valuation after each funding round. This affects option strike prices and helps with tax planning.
 2. **Option Grants:** Detailed register of every option grant, including exercise dates, accelerations, and expirations.
 3. **Fully Diluted Analysis:** A calculation showing ownership if all options and convertibles were exercised. This is what investors focus on.
+
+<svg viewBox="0 0 700 400" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="400" fill="#f8fafc" rx="8"/>
+  <text x="350" y="35" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Dilution Waterfall — Founder Ownership Over Rounds</text>
+  <!-- Axis -->
+  <line x1="80" y1="340" x2="650" y2="340" stroke="#1e293b" stroke-width="1"/>
+  <line x1="80" y1="60" x2="80" y2="340" stroke="#1e293b" stroke-width="1"/>
+  <!-- Y axis ticks -->
+  <text x="70" y="64" text-anchor="end" font-size="10" fill="#64748b">50%</text>
+  <line x1="75" y1="60" x2="650" y2="60" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="70" y="120" text-anchor="end" font-size="10" fill="#64748b">40%</text>
+  <line x1="75" y1="116" x2="650" y2="116" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="70" y="176" text-anchor="end" font-size="10" fill="#64748b">30%</text>
+  <line x1="75" y1="172" x2="650" y2="172" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="70" y="232" text-anchor="end" font-size="10" fill="#64748b">20%</text>
+  <line x1="75" y1="228" x2="650" y2="228" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="70" y="288" text-anchor="end" font-size="10" fill="#64748b">10%</text>
+  <line x1="75" y1="284" x2="650" y2="284" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="70" y="344" text-anchor="end" font-size="10" fill="#64748b">0%</text>
+  <!-- Waterfall bars - Founder A -->
+  <!-- Incorporation: 50% -->
+  <rect x="110" y="60" width="80" height="280" fill="#2563eb" rx="4"/>
+  <text x="150" y="100" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">50.0%</text>
+  <text x="150" y="355" text-anchor="middle" font-size="9" fill="#1e293b">Incorporation</text>
+  <!-- ESOP: 42.5% — drop of 7.5% -->
+  <rect x="210" y="102" width="80" height="238" fill="#2563eb" opacity="0.9" rx="4"/>
+  <rect x="210" y="60" width="80" height="42" fill="#f59e0b" opacity="0.4" rx="4"/>
+  <text x="250" y="82" text-anchor="middle" font-size="9" fill="#f59e0b">-7.5%</text>
+  <text x="250" y="140" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">42.5%</text>
+  <text x="250" y="355" text-anchor="middle" font-size="9" fill="#1e293b">ESOP (15%)</text>
+  <!-- Pre-Seed: 38.2% — drop of 4.3% -->
+  <rect x="310" y="126" width="80" height="214" fill="#2563eb" opacity="0.8" rx="4"/>
+  <rect x="310" y="102" width="80" height="24" fill="#f59e0b" opacity="0.4" rx="4"/>
+  <text x="350" y="118" text-anchor="middle" font-size="9" fill="#f59e0b">-4.3%</text>
+  <text x="350" y="170" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">38.2%</text>
+  <text x="350" y="355" text-anchor="middle" font-size="9" fill="#1e293b">Pre-Seed</text>
+  <!-- Seed: 31.9% — drop of 6.3% -->
+  <rect x="410" y="161" width="80" height="179" fill="#2563eb" opacity="0.7" rx="4"/>
+  <rect x="410" y="126" width="80" height="35" fill="#f59e0b" opacity="0.4" rx="4"/>
+  <text x="450" y="148" text-anchor="middle" font-size="9" fill="#f59e0b">-6.3%</text>
+  <text x="450" y="210" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">31.9%</text>
+  <text x="450" y="355" text-anchor="middle" font-size="9" fill="#1e293b">Seed</text>
+  <!-- Series A: 23.9% — drop of 8% -->
+  <rect x="510" y="206" width="80" height="134" fill="#2563eb" opacity="0.6" rx="4"/>
+  <rect x="510" y="161" width="80" height="45" fill="#f59e0b" opacity="0.4" rx="4"/>
+  <text x="550" y="184" text-anchor="middle" font-size="9" fill="#f59e0b">-8.0%</text>
+  <text x="550" y="260" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">23.9%</text>
+  <text x="550" y="355" text-anchor="middle" font-size="9" fill="#1e293b">Series A</text>
+  <!-- Trend line -->
+  <polyline points="150,60 250,102 350,126 450,161 550,206" fill="none" stroke="#1e293b" stroke-width="2" stroke-dasharray="6,3"/>
+  <!-- Legend -->
+  <rect x="160" y="378" width="14" height="14" fill="#2563eb" rx="2"/><text x="180" y="390" font-size="10" fill="#1e293b">Remaining ownership</text>
+  <rect x="340" y="378" width="14" height="14" fill="#f59e0b" opacity="0.4" rx="2"/><text x="360" y="390" font-size="10" fill="#1e293b">Dilution at each event</text>
+  <text x="580" y="390" font-size="10" fill="#64748b">Per co-founder (2 equal founders)</text>
+</svg>
 
 ## Managing Your Cap Table Over Time
 

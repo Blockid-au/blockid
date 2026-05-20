@@ -135,6 +135,12 @@ function MagicLinkForm({ nextUrl }: { nextUrl: string | null }) {
     }
     setState("sending");
     try {
+      // Include referral code from localStorage if present.
+      const refCode =
+        typeof window !== "undefined"
+          ? localStorage.getItem("blockid_ref")
+          : null;
+
       const res = await fetch("/api/auth/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -143,6 +149,10 @@ function MagicLinkForm({ nextUrl }: { nextUrl: string | null }) {
           intent: "login",
           // Pass post-login redirect so the verify route can honour it.
           ...(nextUrl ? { next: nextUrl } : {}),
+          // Pass referral code in pendingPayload for processing on verify.
+          ...(refCode
+            ? { pendingPayload: { referralCode: refCode } }
+            : {}),
         }),
       });
       if (!res.ok) throw new Error("request failed");

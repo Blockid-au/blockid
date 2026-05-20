@@ -3,9 +3,9 @@ import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { FundingPlanTool } from "./funding-plan-tool";
 
-const TITLE = "Startup Funding Plan Calculator (Australia) — BlockID";
+const TITLE = "Funding Plan — Free Startup Capital Planner for AU Founders | BlockID.au";
 const DESCRIPTION =
-  "Plan how much capital you need, how much each founder puts in, and how much to raise externally. AU pre-seed friendly. Free, by BlockID.au.";
+  "Plan how much capital you need, how much each founder puts in, and how much to raise externally. AU pre-seed friendly. Free for Australian startups.";
 
 export const metadata: Metadata = {
   title: TITLE,

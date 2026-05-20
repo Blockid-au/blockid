@@ -4,9 +4,9 @@ import { Footer } from "@/components/site/footer";
 import { CapTableDiffTool } from "./cap-table-diff";
 
 const TITLE =
-  "Cap Table Diff (Australia) — Visualize Founder Dilution Before & After | BlockID";
+  "Cap Table — Free Before & After Dilution Visualiser for AU Startups | BlockID.au";
 const DESCRIPTION =
-  "See exactly how a new round dilutes founders, ESOP, and existing investors. Free, no login. Built for Australian seed-to-Series-A founders by BlockID.";
+  "See exactly how a new round dilutes founders, ESOP and existing investors. Free, no login required. Built for Australian seed-to-Series-A founders.";
 
 export const metadata: Metadata = {
   title: TITLE,

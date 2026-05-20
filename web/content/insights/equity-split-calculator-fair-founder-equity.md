@@ -88,6 +88,60 @@ These scenarios highlight that there is no "one size fits all." The most effecti
 | **Solo Technical Founder** | 80% | - | - | 20% | Large pool needed to attract co-founder + team |
 | **Late Co-Founder Join** | 50% | 25% | - | 15% + 10% reserved | B joins 12 months later; equity reflects timing |
 
+<svg viewBox="0 0 700 380" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="380" fill="#f8fafc" rx="8"/>
+  <text x="350" y="35" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Equity Split Scenarios — Pie Charts</text>
+  <!-- Scenario 1: Equal -->
+  <text x="120" y="70" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e293b">Equal (2 FT)</text>
+  <!-- Pie: 42.5%, 42.5%, 15% pool -->
+  <circle cx="120" cy="175" r="80" fill="#e2e8f0"/>
+  <!-- Founder A: 42.5% = 153 degrees -->
+  <path d="M120,175 L120,95 A80,80 0 0,1 193,139 Z" fill="#2563eb"/>
+  <!-- Founder B: 42.5% = 153 degrees -->
+  <path d="M120,175 L193,139 A80,80 0 0,1 120,255 Z" fill="#10b981"/>
+  <!-- ESOP: 15% = 54 degrees -->
+  <path d="M120,175 L120,255 A80,80 0 0,0 120,95 Z" fill="#f59e0b"/>
+  <text x="100" y="140" font-size="10" font-weight="bold" fill="#fff">42.5%</text>
+  <text x="145" y="195" font-size="10" font-weight="bold" fill="#fff">42.5%</text>
+  <text x="85" y="225" font-size="9" font-weight="bold" fill="#fff">15%</text>
+  <text x="120" y="280" text-anchor="middle" font-size="10" fill="#64748b">Both full-time, equal</text>
+  <!-- Scenario 2: Unequal -->
+  <text x="350" y="70" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e293b">Unequal (FT + PT)</text>
+  <circle cx="350" cy="175" r="80" fill="#e2e8f0"/>
+  <!-- Founder A: 52% = 187.2 degrees -->
+  <path d="M350,175 L350,95 A80,80 0 0,1 390,249 Z" fill="#2563eb"/>
+  <!-- Founder B: 33% = 118.8 degrees -->
+  <path d="M350,175 L390,249 A80,80 0 0,1 297,228 Z" fill="#10b981"/>
+  <!-- ESOP: 15% = 54 degrees -->
+  <path d="M350,175 L297,228 A80,80 0 0,0 350,95 Z" fill="#f59e0b"/>
+  <text x="370" y="140" font-size="10" font-weight="bold" fill="#fff">52%</text>
+  <text x="362" y="225" font-size="10" font-weight="bold" fill="#fff">33%</text>
+  <text x="315" y="195" font-size="9" font-weight="bold" fill="#fff">15%</text>
+  <text x="350" y="280" text-anchor="middle" font-size="10" fill="#64748b">A full-time, B part-time + $100K</text>
+  <!-- Scenario 3: Three founders -->
+  <text x="580" y="70" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e293b">3 Founders (CEO/CTO/Adv)</text>
+  <circle cx="580" cy="175" r="80" fill="#e2e8f0"/>
+  <!-- CEO: 38% = 136.8 degrees -->
+  <path d="M580,175 L580,95 A80,80 0 0,1 647,210 Z" fill="#2563eb"/>
+  <!-- CTO: 38% = 136.8 degrees -->
+  <path d="M580,175 L647,210 A80,80 0 0,1 515,212 Z" fill="#10b981"/>
+  <!-- Advisor: 9% = 32.4 degrees -->
+  <path d="M580,175 L515,212 A80,80 0 0,0 537,108 Z" fill="#f59e0b"/>
+  <!-- ESOP: 15% = 54 degrees -->
+  <path d="M580,175 L537,108 A80,80 0 0,0 580,95 Z" fill="#1e293b"/>
+  <text x="610" y="145" font-size="10" font-weight="bold" fill="#fff">38%</text>
+  <text x="575" y="225" font-size="10" font-weight="bold" fill="#fff">38%</text>
+  <text x="530" y="165" font-size="8" font-weight="bold" fill="#fff">9%</text>
+  <text x="560" y="110" font-size="8" font-weight="bold" fill="#fff">15%</text>
+  <text x="580" y="280" text-anchor="middle" font-size="10" fill="#64748b">CEO + CTO full-time, advisor</text>
+  <!-- Legend -->
+  <rect x="140" y="310" width="14" height="14" fill="#2563eb" rx="2"/><text x="160" y="322" font-size="11" fill="#1e293b">Founder A / CEO</text>
+  <rect x="290" y="310" width="14" height="14" fill="#10b981" rx="2"/><text x="310" y="322" font-size="11" fill="#1e293b">Founder B / CTO</text>
+  <rect x="430" y="310" width="14" height="14" fill="#f59e0b" rx="2"/><text x="450" y="322" font-size="11" fill="#1e293b">ESOP / Advisor</text>
+  <rect x="555" y="310" width="14" height="14" fill="#1e293b" rx="2"/><text x="575" y="322" font-size="11" fill="#1e293b">Option Pool</text>
+  <text x="350" y="360" text-anchor="middle" font-size="11" fill="#64748b">Always reserve 10-15% for the ESOP before applying the founder split</text>
+</svg>
+
 ## The Critical Role of Vesting Schedules
 
 Even if you arrive at the perfect equity split on Day 1, the deal is only fair if it includes a robust vesting schedule. Without vesting, you are handing out ownership of the company to people who might walk away tomorrow.
@@ -115,6 +169,50 @@ Under Australian tax law (specifically the ESIC rules introduced in 2015), vesti
 > | **Network / Sales Access** | 15% | 0-10 | No network = 0, Industry contacts = 5, Enterprise clients = 8-10 |
 >
 > **Calculation:** Multiply each score by its weight, sum the totals for each founder, then divide each founder's total by the grand total to determine equity percentage. Reserve 10-15% for the option pool before applying the split.
+
+<svg viewBox="0 0 700 370" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="370" fill="#f8fafc" rx="8"/>
+  <text x="350" y="35" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Contribution Weighting Framework</text>
+  <text x="350" y="55" text-anchor="middle" font-size="11" fill="#64748b">Score each factor 0-10, multiply by weight, then compare founder totals</text>
+  <!-- Factor bars -->
+  <!-- Full-Time Commitment: 30% -->
+  <text x="50" y="95" font-size="12" font-weight="bold" fill="#1e293b">Full-Time Commitment</text>
+  <text x="50" y="110" font-size="10" fill="#64748b">Weight: 30%</text>
+  <rect x="230" y="85" width="420" height="30" fill="#e2e8f0" rx="6"/>
+  <rect x="230" y="85" width="378" height="30" fill="#2563eb" rx="6"/>
+  <text x="240" y="105" font-size="11" font-weight="bold" fill="#fff">FT=10 | PT=3-5 | Advisory=1-2</text>
+  <text x="640" y="105" text-anchor="end" font-size="11" fill="#1e293b" font-weight="bold">30%</text>
+  <!-- Capital Injection: 20% -->
+  <text x="50" y="150" font-size="12" font-weight="bold" fill="#1e293b">Capital Injection</text>
+  <text x="50" y="165" font-size="10" fill="#64748b">Weight: 20%</text>
+  <rect x="230" y="140" width="420" height="30" fill="#e2e8f0" rx="6"/>
+  <rect x="230" y="140" width="252" height="30" fill="#10b981" rx="6"/>
+  <text x="240" y="160" font-size="11" font-weight="bold" fill="#fff">$0=0 | $50K=4 | $100K=6 | $200K+=8-10</text>
+  <text x="640" y="160" text-anchor="end" font-size="11" fill="#1e293b" font-weight="bold">20%</text>
+  <!-- Domain Expertise: 20% -->
+  <text x="50" y="205" font-size="12" font-weight="bold" fill="#1e293b">Domain Expertise</text>
+  <text x="50" y="220" font-size="10" fill="#64748b">Weight: 20%</text>
+  <rect x="230" y="195" width="420" height="30" fill="#e2e8f0" rx="6"/>
+  <rect x="230" y="195" width="252" height="30" fill="#10b981" rx="6"/>
+  <text x="240" y="215" font-size="11" font-weight="bold" fill="#fff">None=0 | Deep sector=8-10</text>
+  <text x="640" y="215" text-anchor="end" font-size="11" fill="#1e293b" font-weight="bold">20%</text>
+  <!-- Existing IP: 15% -->
+  <text x="50" y="260" font-size="12" font-weight="bold" fill="#1e293b">Existing IP / Assets</text>
+  <text x="50" y="275" font-size="10" fill="#64748b">Weight: 15%</text>
+  <rect x="230" y="250" width="420" height="30" fill="#e2e8f0" rx="6"/>
+  <rect x="230" y="250" width="189" height="30" fill="#f59e0b" rx="6"/>
+  <text x="240" y="270" font-size="11" font-weight="bold" fill="#fff">None=0 | Proto=6 | Patent=9-10</text>
+  <text x="640" y="270" text-anchor="end" font-size="11" fill="#1e293b" font-weight="bold">15%</text>
+  <!-- Network / Sales: 15% -->
+  <text x="50" y="315" font-size="12" font-weight="bold" fill="#1e293b">Network / Sales Access</text>
+  <text x="50" y="330" font-size="10" fill="#64748b">Weight: 15%</text>
+  <rect x="230" y="305" width="420" height="30" fill="#e2e8f0" rx="6"/>
+  <rect x="230" y="305" width="189" height="30" fill="#f59e0b" rx="6"/>
+  <text x="240" y="325" font-size="11" font-weight="bold" fill="#fff">None=0 | Contacts=5 | Enterprise=8-10</text>
+  <text x="640" y="325" text-anchor="end" font-size="11" fill="#1e293b" font-weight="bold">15%</text>
+  <!-- Formula -->
+  <text x="350" y="360" text-anchor="middle" font-size="11" fill="#1e293b" font-weight="bold">Formula: (Score x Weight) per factor per founder, then divide each total by grand total for equity %</text>
+</svg>
 
 ## Common Pitfalls and How to Avoid Them
 

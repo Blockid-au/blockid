@@ -39,6 +39,68 @@ For founders at the pre-seed to Series A stage aiming for rapid growth, **accele
 | **BlueChilli** | 5% | $75,000 | 3 months | Consumer, digital media | ~$1.5M | Yes (Sydney) |
 | **Slingshot** | 6% | $100,000 | 3 months | Revenue SaaS, Series A prep | ~$1.7M | Yes (Brisbane, Sydney) |
 
+<svg viewBox="0 0 700 360" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="360" fill="#f8fafc" rx="12"/>
+  <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#1e293b">Top Australian Accelerators 2026 — Comparison</text>
+  <text x="350" y="46" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Equity taken, investment, and implied valuation at a glance</text>
+  <!-- Card 1: Startmate -->
+  <rect x="15" y="58" width="215" height="130" fill="white" stroke="#e2e8f0" stroke-width="1.5" rx="8"/>
+  <rect x="15" y="58" width="215" height="32" fill="#2563eb" rx="8"/>
+  <rect x="15" y="82" width="215" height="8" fill="#2563eb"/>
+  <text x="122" y="80" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="white">Startmate</text>
+  <text x="30" y="110" font-family="Arial,sans-serif" font-size="11" fill="#1e293b">Equity: <tspan font-weight="bold">5%</tspan> | Investment: <tspan font-weight="bold">$75K</tspan></text>
+  <text x="30" y="130" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Valuation: ~$1.5M</text>
+  <text x="30" y="148" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Focus: Product-led growth, global</text>
+  <text x="30" y="165" font-family="Arial,sans-serif" font-size="10" fill="#10b981" font-weight="bold">3 months | Alumni: Canva, Airwallex</text>
+  <!-- Card 2: Antler -->
+  <rect x="242" y="58" width="215" height="130" fill="white" stroke="#e2e8f0" stroke-width="1.5" rx="8"/>
+  <rect x="242" y="58" width="215" height="32" fill="#f59e0b" rx="8"/>
+  <rect x="242" y="82" width="215" height="8" fill="#f59e0b"/>
+  <text x="349" y="80" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="white">Antler</text>
+  <text x="257" y="110" font-family="Arial,sans-serif" font-size="11" fill="#1e293b">Equity: <tspan font-weight="bold">10%</tspan> | Investment: <tspan font-weight="bold">$120K</tspan></text>
+  <text x="257" y="130" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Valuation: ~$1.2M</text>
+  <text x="257" y="148" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Focus: Pre-idea, team formation</text>
+  <text x="257" y="165" font-family="Arial,sans-serif" font-size="10" fill="#f59e0b" font-weight="bold">12+4 weeks | Solo founders OK</text>
+  <!-- Card 3: muru-D -->
+  <rect x="469" y="58" width="215" height="130" fill="white" stroke="#e2e8f0" stroke-width="1.5" rx="8"/>
+  <rect x="469" y="58" width="215" height="32" fill="#10b981" rx="8"/>
+  <rect x="469" y="82" width="215" height="8" fill="#10b981"/>
+  <text x="576" y="80" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="white">muru-D (Telstra)</text>
+  <text x="484" y="110" font-family="Arial,sans-serif" font-size="11" fill="#1e293b">Equity: <tspan font-weight="bold">6%</tspan> | Investment: <tspan font-weight="bold">$150K</tspan></text>
+  <text x="484" y="130" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Valuation: ~$2.5M</text>
+  <text x="484" y="148" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Focus: Enterprise B2B, deep tech</text>
+  <text x="484" y="165" font-family="Arial,sans-serif" font-size="10" fill="#10b981" font-weight="bold">4 months | Telstra network access</text>
+  <!-- Card 4: Cicada -->
+  <rect x="15" y="200" width="215" height="130" fill="white" stroke="#e2e8f0" stroke-width="1.5" rx="8"/>
+  <rect x="15" y="200" width="215" height="32" fill="#8b5cf6" rx="8"/>
+  <rect x="15" y="224" width="215" height="8" fill="#8b5cf6"/>
+  <text x="122" y="222" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="white">Cicada Innovations</text>
+  <text x="30" y="252" font-family="Arial,sans-serif" font-size="11" fill="#1e293b">Equity: <tspan font-weight="bold">7%</tspan> | Investment: <tspan font-weight="bold">$100K</tspan></text>
+  <text x="30" y="272" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Valuation: ~$1.4M</text>
+  <text x="30" y="290" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Focus: Deep tech, agritech, health</text>
+  <text x="30" y="307" font-family="Arial,sans-serif" font-size="10" fill="#8b5cf6" font-weight="bold">4-6 months | Milestone-based</text>
+  <!-- Card 5: Slingshot -->
+  <rect x="242" y="200" width="215" height="130" fill="white" stroke="#e2e8f0" stroke-width="1.5" rx="8"/>
+  <rect x="242" y="200" width="215" height="32" fill="#1e293b" rx="8"/>
+  <rect x="242" y="224" width="215" height="8" fill="#1e293b"/>
+  <text x="349" y="222" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="white">Slingshot</text>
+  <text x="257" y="252" font-family="Arial,sans-serif" font-size="11" fill="#1e293b">Equity: <tspan font-weight="bold">6%</tspan> | Investment: <tspan font-weight="bold">$100K</tspan></text>
+  <text x="257" y="272" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Valuation: ~$1.7M</text>
+  <text x="257" y="290" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Focus: Revenue SaaS, Series A prep</text>
+  <text x="257" y="307" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">3 months | Brisbane + Sydney</text>
+  <!-- Card 6: BlueChilli -->
+  <rect x="469" y="200" width="215" height="130" fill="white" stroke="#e2e8f0" stroke-width="1.5" rx="8"/>
+  <rect x="469" y="200" width="215" height="32" fill="#ef4444" rx="8"/>
+  <rect x="469" y="224" width="215" height="8" fill="#ef4444"/>
+  <text x="576" y="222" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="white">BlueChilli</text>
+  <text x="484" y="252" font-family="Arial,sans-serif" font-size="11" fill="#1e293b">Equity: <tspan font-weight="bold">5%</tspan> | Investment: <tspan font-weight="bold">$75K</tspan></text>
+  <text x="484" y="272" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Valuation: ~$1.5M</text>
+  <text x="484" y="290" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Focus: Consumer, digital media</text>
+  <text x="484" y="307" font-family="Arial,sans-serif" font-size="10" fill="#ef4444" font-weight="bold">3 months | Creative tech focus</text>
+  <!-- Footer -->
+  <text x="350" y="350" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">Acceptance rates for top programs hover below 2%. Accelerated startups raise follow-on funding 3x faster.</text>
+</svg>
+
 ## Deep Dive: The Top 7 Australian Startup Accelerators of 2026
 
 The following section provides a comprehensive breakdown of the leading **startup programs Australia** has to offer in 2026. We analyze their equity structures, program lengths, funding amounts, and notable alumni outcomes to help you make an informed decision.
@@ -187,6 +249,49 @@ According to *Avcal*, the peak of the accelerator boom in Australia occurred aro
 > ├── Most programs pause intake for holidays
 > └── Prepare: Year-end reflection, plan applications for next year
 > ```
+
+<svg viewBox="0 0 700 150" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="150" fill="#f8fafc" rx="12"/>
+  <text x="350" y="22" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="bold" fill="#1e293b">2026 Accelerator Application Timeline — Key Dates</text>
+  <!-- Jan-Feb -->
+  <rect x="10" y="40" width="105" height="62" fill="#2563eb" rx="8"/>
+  <text x="62" y="58" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">Jan - Feb</text>
+  <text x="62" y="72" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#dbeafe">Startmate C1 open</text>
+  <text x="62" y="83" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#dbeafe">Antler Syd open</text>
+  <text x="62" y="94" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#dbeafe">Prep: deck + SVI</text>
+  <path d="M119 71 L131 71" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrowAcc)"/>
+  <!-- Mar-Apr -->
+  <rect x="135" y="40" width="105" height="62" fill="#2563eb" rx="8"/>
+  <text x="187" y="58" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">Mar - Apr</text>
+  <text x="187" y="72" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#dbeafe">muru-D intake open</text>
+  <text x="187" y="83" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#dbeafe">Cicada rolling apps</text>
+  <text x="187" y="94" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#dbeafe">Slingshot Q2</text>
+  <path d="M244 71 L256 71" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrowAcc)"/>
+  <!-- May-Jun -->
+  <rect x="260" y="40" width="105" height="62" fill="#f59e0b" rx="8"/>
+  <text x="312" y="58" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">May - Jun</text>
+  <text x="312" y="72" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="white">Startmate C1 begins</text>
+  <text x="312" y="83" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="white">Antler Syd begins</text>
+  <text x="312" y="94" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="white">HAX H2 apps</text>
+  <path d="M369 71 L381 71" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrowAcc)"/>
+  <!-- Jul-Aug -->
+  <rect x="385" y="40" width="105" height="62" fill="#10b981" rx="8"/>
+  <text x="437" y="58" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">Jul - Aug</text>
+  <text x="437" y="72" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="white">Startmate Demo Day</text>
+  <text x="437" y="83" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="white">muru-D begins</text>
+  <text x="437" y="94" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="white">BlueChilli H2 apps</text>
+  <path d="M494 71 L506 71" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrowAcc)"/>
+  <!-- Sep-Dec -->
+  <rect x="510" y="40" width="180" height="62" fill="#1e293b" rx="8"/>
+  <text x="600" y="58" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">Sep - Dec</text>
+  <text x="600" y="72" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#94a3b8">Startmate C2 apps + Demo Day</text>
+  <text x="600" y="83" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#94a3b8">Antler Melbourne cohort</text>
+  <text x="600" y="94" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#94a3b8">muru-D Demo Day | Holiday pause</text>
+  <!-- Bottom note -->
+  <text x="350" y="125" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">Pro tip: Begin preparing 2-3 months before applications open. Secure warm alumni intros early.</text>
+  <text x="350" y="140" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">Key prep: Clean cap table, ASIC compliance, updated SVI score, refined pitch deck (&lt;10 slides)</text>
+  <defs><marker id="arrowAcc" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#cbd5e1"/></marker></defs>
+</svg>
 
 ## The Application Strategy: How to Get Selected
 

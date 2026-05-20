@@ -111,10 +111,29 @@ Link Rules:
 - Include 2-3 external links to authoritative sources (ABS, ATO, ASIC, AVCAL, Startup Genome)
 - Link to related insights: [More guides](/insights)
 
-Visual Elements:
+Visual Elements (MANDATORY — every article MUST include these):
 - Include markdown tables for comparisons, benchmarks, or checklists
 - Use bold (**text**) for key terms and important numbers
 - Use > blockquotes for statistics, expert quotes, or key takeaways
+- Include AT LEAST 2 inline SVG infographics (charts, flows, or comparison cards)
+
+SVG Infographic Rules (REQUIRED — minimum 2 per article):
+- Use inline SVG with viewBox="0 0 700 XXX" and style="width:100%;max-width:700px;margin:2rem auto;display:block;"
+- Brand colors: #2563eb (blue), #10b981 (green), #f59e0b (amber), #1e293b (text), #f8fafc (bg)
+- Font: font-family="Arial", rounded corners rx="8"
+- Types to use: bar charts, process flows (boxes with arrows), comparison cards, gauges, timeline charts
+- Each SVG must be self-contained (no external resources)
+- Place SVG directly in markdown (not inside code blocks)
+- SVG 1: Place after the first major section (a visual summary or key data chart)
+- SVG 2: Place before the conclusion (a process flow, comparison, or action framework)
+
+Example SVG bar chart:
+<svg viewBox="0 0 700 250" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="250" fill="#f8fafc" rx="12"/>
+  <text x="350" y="28" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#1e293b">Chart Title</text>
+  <rect x="60" y="50" width="100" height="150" fill="#2563eb" rx="4"/>
+  <text x="110" y="220" text-anchor="middle" font-family="Arial" font-size="11" fill="#64748b">Label 1</text>
+</svg>
 
 Do NOT include the H1 title (added separately). Do NOT include frontmatter. Start with the first H2.`,
       user: `Write a blog post on:

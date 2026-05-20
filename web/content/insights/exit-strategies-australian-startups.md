@@ -50,6 +50,65 @@ This has become increasingly popular in the Australian market as the "wait time"
 | **Management Buyout** | 3-5x EBITDA | Full exit possible | 6-12 months | Low-Medium | Medium |
 | **Acqui-hire** | Team cost x 1.5-3x | $500K-$2M per key engineer | 1-3 months | Low | High |
 
+<svg viewBox="0 0 700 340" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="340" fill="#f8fafc" rx="12"/>
+  <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#1e293b">Exit Type Comparison: IPO vs Trade Sale vs Secondary</text>
+  <!-- Card 1: Trade Sale -->
+  <rect x="18" y="48" width="210" height="270" fill="white" stroke="#e2e8f0" stroke-width="1.5" rx="8"/>
+  <rect x="18" y="48" width="210" height="40" fill="#2563eb" rx="8"/>
+  <rect x="18" y="78" width="210" height="10" fill="#2563eb"/>
+  <text x="123" y="74" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="bold" fill="white">Trade Sale (M&A)</text>
+  <text x="123" y="108" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Most common exit (72%)</text>
+  <line x1="38" y1="118" x2="208" y2="118" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="38" y="138" font-family="Arial,sans-serif" font-size="11" fill="#1e293b">Valuation: 5-10x ARR</text>
+  <text x="38" y="158" font-family="Arial,sans-serif" font-size="11" fill="#1e293b">Timeline: 3-8 years</text>
+  <text x="38" y="178" font-family="Arial,sans-serif" font-size="11" fill="#1e293b">Close: 3-6 months</text>
+  <text x="38" y="198" font-family="Arial,sans-serif" font-size="11" fill="#1e293b">Payout: 60-80%</text>
+  <text x="38" y="218" font-family="Arial,sans-serif" font-size="11" fill="#1e293b">Complexity: Medium</text>
+  <line x1="38" y1="228" x2="208" y2="228" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="38" y="248" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Best for: SaaS, Fintech,</text>
+  <text x="38" y="262" font-family="Arial,sans-serif" font-size="10" fill="#64748b">DeepTech startups</text>
+  <rect x="38" y="275" width="70" height="22" fill="#dcfce7" rx="4"/>
+  <text x="73" y="290" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#10b981">HIGH</text>
+  <text x="115" y="290" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Success rate</text>
+  <!-- Card 2: IPO -->
+  <rect x="245" y="48" width="210" height="270" fill="white" stroke="#e2e8f0" stroke-width="1.5" rx="8"/>
+  <rect x="245" y="48" width="210" height="40" fill="#f59e0b" rx="8"/>
+  <rect x="245" y="78" width="210" height="10" fill="#f59e0b"/>
+  <text x="350" y="74" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="bold" fill="white">ASX IPO</text>
+  <text x="350" y="108" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">High-bar prestige (11%)</text>
+  <line x1="265" y1="118" x2="435" y2="118" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="265" y="138" font-family="Arial,sans-serif" font-size="11" fill="#1e293b">Valuation: 8-15x ARR</text>
+  <text x="265" y="158" font-family="Arial,sans-serif" font-size="11" fill="#1e293b">Timeline: 7-12 years</text>
+  <text x="265" y="178" font-family="Arial,sans-serif" font-size="11" fill="#1e293b">Close: 18-24 months</text>
+  <text x="265" y="198" font-family="Arial,sans-serif" font-size="11" fill="#1e293b">Payout: Locked 6-12mo</text>
+  <text x="265" y="218" font-family="Arial,sans-serif" font-size="11" fill="#1e293b">Complexity: Very High</text>
+  <line x1="265" y1="228" x2="435" y2="228" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="265" y="248" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Best for: Mature firms,</text>
+  <text x="265" y="262" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$100M+ revenue, capital-heavy</text>
+  <rect x="265" y="275" width="70" height="22" fill="#fef3c7" rx="4"/>
+  <text x="300" y="290" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#f59e0b">LOW-MED</text>
+  <text x="342" y="290" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Success rate</text>
+  <!-- Card 3: Secondary -->
+  <rect x="472" y="48" width="210" height="270" fill="white" stroke="#e2e8f0" stroke-width="1.5" rx="8"/>
+  <rect x="472" y="48" width="210" height="40" fill="#10b981" rx="8"/>
+  <rect x="472" y="78" width="210" height="10" fill="#10b981"/>
+  <text x="577" y="74" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="bold" fill="white">Secondary Sale</text>
+  <text x="577" y="108" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Modern hybrid (17%)</text>
+  <line x1="492" y1="118" x2="662" y2="118" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="492" y="138" font-family="Arial,sans-serif" font-size="11" fill="#1e293b">Valuation: Current round</text>
+  <text x="492" y="158" font-family="Arial,sans-serif" font-size="11" fill="#1e293b">Timeline: 4-9 years</text>
+  <text x="492" y="178" font-family="Arial,sans-serif" font-size="11" fill="#1e293b">Close: 2-4 months</text>
+  <text x="492" y="198" font-family="Arial,sans-serif" font-size="11" fill="#1e293b">Payout: 10-30% partial</text>
+  <text x="492" y="218" font-family="Arial,sans-serif" font-size="11" fill="#1e293b">Complexity: Med-High</text>
+  <line x1="492" y1="228" x2="662" y2="228" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="492" y="248" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Best for: High-growth,</text>
+  <text x="492" y="262" font-family="Arial,sans-serif" font-size="10" fill="#64748b">early liquidity, Series B/C</text>
+  <rect x="492" y="275" width="70" height="22" fill="#dcfce7" rx="4"/>
+  <text x="527" y="290" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#10b981">MEDIUM</text>
+  <text x="569" y="290" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Success rate</text>
+</svg>
+
 ## Deep Dive: Executing a Strategic Trade Sale
 
 For the vast majority of Australian founders, a trade sale is the target. However, executing a successful acquisition requires more than just a great product; it requires a company that is "audit-ready" at all times.
@@ -137,6 +196,54 @@ MBOs are attractive because the management team knows the business intimately. H
 > - Most active acquirer sectors: **Financial Services (31%), Enterprise Software (24%), Healthcare (15%)**
 >
 > *Sources: AVCAL, Startup Genome, ASX Annual Reports*
+
+<svg viewBox="0 0 700 370" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="370" fill="#f8fafc" rx="12"/>
+  <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#1e293b">Australian Tech Exit Values &amp; Volume (2022-2026)</text>
+  <text x="350" y="46" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">M&amp;A transactions — median acquisition price and deal count</text>
+  <!-- Y-axis -->
+  <text x="52" y="80" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$35M</text>
+  <text x="52" y="120" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$30M</text>
+  <text x="52" y="160" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$25M</text>
+  <text x="52" y="200" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$20M</text>
+  <text x="52" y="240" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$15M</text>
+  <text x="52" y="280" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$10M</text>
+  <!-- Grid -->
+  <line x1="60" y1="77" x2="660" y2="77" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="60" y1="117" x2="660" y2="117" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="60" y1="157" x2="660" y2="157" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="60" y1="197" x2="660" y2="197" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="60" y1="237" x2="660" y2="237" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="60" y1="277" x2="660" y2="277" stroke="#e2e8f0" stroke-width="1"/>
+  <!-- 2022: $18M median, 142 deals -->
+  <rect x="90" y="217" width="80" height="60" fill="#2563eb" opacity="0.6" rx="4"/>
+  <text x="130" y="210" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">$18M</text>
+  <text x="130" y="300" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#1e293b">2022</text>
+  <text x="130" y="314" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#64748b">142 deals</text>
+  <!-- 2023: $22M median, 156 deals -->
+  <rect x="210" y="185" width="80" height="92" fill="#2563eb" opacity="0.7" rx="4"/>
+  <text x="250" y="178" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">$22M</text>
+  <text x="250" y="300" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#1e293b">2023</text>
+  <text x="250" y="314" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#64748b">156 deals</text>
+  <!-- 2024: $25M median, 168 deals -->
+  <rect x="330" y="157" width="80" height="120" fill="#2563eb" opacity="0.8" rx="4"/>
+  <text x="370" y="150" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">$25M</text>
+  <text x="370" y="300" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#1e293b">2024</text>
+  <text x="370" y="314" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#64748b">168 deals</text>
+  <!-- 2025: $28M median, 187 deals -->
+  <rect x="450" y="133" width="80" height="144" fill="#2563eb" opacity="0.9" rx="4"/>
+  <text x="490" y="126" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">$28M</text>
+  <text x="490" y="300" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#1e293b">2025</text>
+  <text x="490" y="314" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#64748b">187 deals</text>
+  <!-- 2026 projected: $32M median, 200+ deals -->
+  <rect x="570" y="101" width="80" height="176" fill="#10b981" rx="4"/>
+  <text x="610" y="94" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#10b981">$32M*</text>
+  <text x="610" y="300" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#1e293b">2026*</text>
+  <text x="610" y="314" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#64748b">200+ est.</text>
+  <!-- Legend -->
+  <text x="350" y="342" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">Median SaaS acquisition price (AUD). *2026 projected. Sources: AVCAL, Startup Genome, ASX Reports</text>
+  <text x="350" y="358" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">72% of exits via trade sale | 58% involve international acquirers | Avg. exit time: 7.4 years</text>
+</svg>
 
 ## Building an Exit-Ready Company from Day One
 

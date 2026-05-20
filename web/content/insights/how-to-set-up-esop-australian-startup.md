@@ -55,6 +55,41 @@ When allocating this pool, avoid the "equal split" trap. Not every early employe
 
 Getting the math right on your cap table is complex. Small errors in percentage calculations can lead to massive discrepancies during valuation. Before you commit to a pool size, you need to visualize the impact on your current stakeholders. Use our **[Plan Your Equity Split](/tools/equity-split)** tool to model different scenarios and ensure your pool is sized correctly for your next fundraising round.
 
+<svg viewBox="0 0 700 400" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="400" rx="8" fill="#f8fafc"/>
+  <text x="350" y="36" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">ESOP Pool Allocation by Stage</text>
+  <text x="350" y="56" text-anchor="middle" font-size="12" fill="#64748b">Typical equity distribution at each funding round</text>
+  <!-- Donut: Pre-Seed -->
+  <text x="130" y="90" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e293b">Pre-Seed</text>
+  <circle cx="130" cy="190" r="80" fill="none" stroke="#e2e8f0" stroke-width="28"/>
+  <circle cx="130" cy="190" r="80" fill="none" stroke="#2563eb" stroke-width="28" stroke-dasharray="452.4" stroke-dashoffset="45.2" transform="rotate(-90 130 190)"/>
+  <circle cx="130" cy="190" r="80" fill="none" stroke="#10b981" stroke-width="28" stroke-dasharray="452.4" stroke-dashoffset="407.2" transform="rotate(-90 130 190)"/>
+  <text x="130" y="186" text-anchor="middle" font-size="22" font-weight="bold" fill="#1e293b">10%</text>
+  <text x="130" y="204" text-anchor="middle" font-size="11" fill="#64748b">ESOP Pool</text>
+  <text x="130" y="290" text-anchor="middle" font-size="11" fill="#64748b">Founders: 90%</text>
+  <!-- Donut: Seed -->
+  <text x="350" y="90" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e293b">Seed / MVP</text>
+  <circle cx="350" cy="190" r="80" fill="none" stroke="#e2e8f0" stroke-width="28"/>
+  <circle cx="350" cy="190" r="80" fill="none" stroke="#2563eb" stroke-width="28" stroke-dasharray="452.4" stroke-dashoffset="395.4" transform="rotate(-90 350 190)"/>
+  <circle cx="350" cy="190" r="80" fill="none" stroke="#f59e0b" stroke-width="28" stroke-dasharray="452.4" stroke-dashoffset="384.5" transform="rotate(-90 350 190)"/>
+  <text x="350" y="186" text-anchor="middle" font-size="22" font-weight="bold" fill="#1e293b">12–15%</text>
+  <text x="350" y="204" text-anchor="middle" font-size="11" fill="#64748b">ESOP Pool</text>
+  <text x="350" y="290" text-anchor="middle" font-size="11" fill="#64748b">Founders: 68–73% | Investors: 15%</text>
+  <!-- Donut: Series A -->
+  <text x="570" y="90" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e293b">Series A</text>
+  <circle cx="570" cy="190" r="80" fill="none" stroke="#e2e8f0" stroke-width="28"/>
+  <circle cx="570" cy="190" r="80" fill="none" stroke="#2563eb" stroke-width="28" stroke-dasharray="452.4" stroke-dashoffset="384.5" transform="rotate(-90 570 190)"/>
+  <circle cx="570" cy="190" r="80" fill="none" stroke="#f59e0b" stroke-width="28" stroke-dasharray="452.4" stroke-dashoffset="339.3" transform="rotate(-90 570 190)"/>
+  <text x="570" y="186" text-anchor="middle" font-size="22" font-weight="bold" fill="#1e293b">15%</text>
+  <text x="570" y="204" text-anchor="middle" font-size="11" fill="#64748b">ESOP Pool</text>
+  <text x="570" y="290" text-anchor="middle" font-size="11" fill="#64748b">Founders: 55–60% | Investors: 25%</text>
+  <!-- Legend -->
+  <rect x="150" y="320" width="14" height="14" rx="3" fill="#10b981"/><text x="170" y="332" font-size="12" fill="#1e293b">Founders</text>
+  <rect x="280" y="320" width="14" height="14" rx="3" fill="#2563eb"/><text x="300" y="332" font-size="12" fill="#1e293b">ESOP Pool</text>
+  <rect x="410" y="320" width="14" height="14" rx="3" fill="#f59e0b"/><text x="430" y="332" font-size="12" fill="#1e293b">Investors</text>
+  <text x="350" y="370" text-anchor="middle" font-size="11" fill="#64748b">Investors expect 10–15% pre-diluted ESOP pool before term sheets are finalised</text>
+</svg>
+
 ### ESOP Structure Comparison: Options vs Shares vs RSUs
 
 | Feature | Options | Ordinary Shares | Restricted Share Units (RSUs) |
@@ -82,22 +117,50 @@ This structure aligns the employee's tenure with their equity accumulation. It a
 
 ### Vesting Schedule Timeline: The 4-Year Standard
 
-```
-Year 0          Year 1 (Cliff)      Year 2          Year 3          Year 4
-  │                  │                 │               │               │
-  ▼                  ▼                 ▼               ▼               ▼
-  0%               25%               50%             75%            100%
-  ├──── CLIFF ──────┤                 │               │               │
-  │  Nothing vests  │    Monthly vesting begins       │               │
-  │  during this    │    (~2.08% per month)           │               │
-  │  period         │                 │               │               │
-  └─────────────────┴─────────────────┴───────────────┴───────────────┘
-
-  GOOD LEAVER (illness, redundancy)     → Retains all vested equity
-  BAD LEAVER (fraud, misconduct)        → Forfeits unvested + may lose vested
-  CHANGE OF CONTROL (acquisition)       → Double-trigger: accelerates only
-                                          if also terminated post-acquisition
-```
+<svg viewBox="0 0 700 380" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="380" rx="8" fill="#f8fafc"/>
+  <text x="350" y="32" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">4-Year Vesting Timeline with 1-Year Cliff</text>
+  <!-- Timeline axis -->
+  <line x1="60" y1="200" x2="660" y2="200" stroke="#1e293b" stroke-width="2"/>
+  <!-- Year markers -->
+  <line x1="60" y1="195" x2="60" y2="205" stroke="#1e293b" stroke-width="2"/>
+  <text x="60" y="224" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e293b">Year 0</text>
+  <line x1="210" y1="195" x2="210" y2="205" stroke="#1e293b" stroke-width="2"/>
+  <text x="210" y="224" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e293b">Year 1</text>
+  <line x1="360" y1="195" x2="360" y2="205" stroke="#1e293b" stroke-width="2"/>
+  <text x="360" y="224" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e293b">Year 2</text>
+  <line x1="510" y1="195" x2="510" y2="205" stroke="#1e293b" stroke-width="2"/>
+  <text x="510" y="224" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e293b">Year 3</text>
+  <line x1="660" y1="195" x2="660" y2="205" stroke="#1e293b" stroke-width="2"/>
+  <text x="660" y="224" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e293b">Year 4</text>
+  <!-- Cliff zone -->
+  <rect x="60" y="130" width="150" height="65" rx="6" fill="#ef4444" opacity="0.1" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="135" y="155" text-anchor="middle" font-size="13" font-weight="bold" fill="#ef4444">CLIFF</text>
+  <text x="135" y="172" text-anchor="middle" font-size="11" fill="#ef4444">0% vests</text>
+  <!-- Vesting bars growing -->
+  <rect x="210" y="140" width="6" height="55" rx="2" fill="#10b981"/><text x="213" y="132" text-anchor="middle" font-size="11" font-weight="bold" fill="#10b981">25%</text>
+  <rect x="360" y="120" width="6" height="75" rx="2" fill="#10b981"/><text x="363" y="112" text-anchor="middle" font-size="11" font-weight="bold" fill="#10b981">50%</text>
+  <rect x="510" y="100" width="6" height="95" rx="2" fill="#10b981"/><text x="513" y="92" text-anchor="middle" font-size="11" font-weight="bold" fill="#10b981">75%</text>
+  <rect x="660" y="80" width="6" height="115" rx="2" fill="#10b981"/><text x="663" y="72" text-anchor="middle" font-size="11" font-weight="bold" fill="#10b981">100%</text>
+  <!-- Monthly vesting zone -->
+  <rect x="210" y="130" width="450" height="65" rx="6" fill="#10b981" opacity="0.07"/>
+  <text x="435" y="188" text-anchor="middle" font-size="11" fill="#10b981">Monthly vesting ~2.08% per month</text>
+  <!-- Leaver provisions -->
+  <rect x="60" y="250" width="190" height="55" rx="8" fill="#ffffff" stroke="#10b981" stroke-width="1.5"/>
+  <text x="155" y="270" text-anchor="middle" font-size="11" font-weight="bold" fill="#10b981">GOOD LEAVER</text>
+  <text x="155" y="286" text-anchor="middle" font-size="10" fill="#64748b">Retains all vested equity</text>
+  <text x="155" y="299" text-anchor="middle" font-size="10" fill="#64748b">Illness, redundancy</text>
+  <rect x="265" y="250" width="190" height="55" rx="8" fill="#ffffff" stroke="#ef4444" stroke-width="1.5"/>
+  <text x="360" y="270" text-anchor="middle" font-size="11" font-weight="bold" fill="#ef4444">BAD LEAVER</text>
+  <text x="360" y="286" text-anchor="middle" font-size="10" fill="#64748b">Forfeits unvested + may lose vested</text>
+  <text x="360" y="299" text-anchor="middle" font-size="10" fill="#64748b">Fraud, misconduct</text>
+  <rect x="470" y="250" width="190" height="55" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="565" y="270" text-anchor="middle" font-size="11" font-weight="bold" fill="#2563eb">CHANGE OF CONTROL</text>
+  <text x="565" y="286" text-anchor="middle" font-size="10" fill="#64748b">Double-trigger acceleration</text>
+  <text x="565" y="299" text-anchor="middle" font-size="10" fill="#64748b">Only if also terminated</text>
+  <!-- Bottom note -->
+  <text x="350" y="340" text-anchor="middle" font-size="11" fill="#64748b">40% of early-stage startups fail due to team friction from unclear equity expectations</text>
+</svg>
 
 However, vesting is not just about time; it is also about performance and termination events. Your Employee Share Scheme deed must clearly define what happens in various scenarios:
 

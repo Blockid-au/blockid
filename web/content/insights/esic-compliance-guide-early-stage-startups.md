@@ -37,6 +37,59 @@ To qualify for the CGT exemption, the shares must be newly issued to the investo
 | **Investment Cap** | $200K per investor per year for tax offset | 20% offset = max $40K tax credit per investor |
 | **Investor Type** | Australian tax resident individuals | Trusts and companies have different rules |
 
+<svg viewBox="0 0 700 420" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="420" fill="#f8fafc" rx="8"/>
+  <text x="350" y="35" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">ESIC Eligibility Checklist</text>
+  <text x="350" y="55" text-anchor="middle" font-size="11" fill="#64748b">All criteria must be met for your startup to qualify</text>
+  <!-- Checklist items -->
+  <!-- Item 1 -->
+  <rect x="50" y="75" width="600" height="38" fill="#fff" stroke="#e2e8f0" stroke-width="1" rx="6"/>
+  <rect x="60" y="85" width="18" height="18" fill="#10b981" rx="3"/>
+  <text x="69" y="99" text-anchor="middle" font-size="13" fill="#fff" font-weight="bold">&#x2713;</text>
+  <text x="90" y="99" font-size="12" font-weight="bold" fill="#1e293b">Company Age</text>
+  <text x="400" y="99" font-size="11" fill="#64748b">Incorporated within last 10 years (ASIC check)</text>
+  <!-- Item 2 -->
+  <rect x="50" y="120" width="600" height="38" fill="#fff" stroke="#e2e8f0" stroke-width="1" rx="6"/>
+  <rect x="60" y="130" width="18" height="18" fill="#10b981" rx="3"/>
+  <text x="69" y="144" text-anchor="middle" font-size="13" fill="#fff" font-weight="bold">&#x2713;</text>
+  <text x="90" y="144" font-size="12" font-weight="bold" fill="#1e293b">Annual Revenue</text>
+  <text x="400" y="144" font-size="11" fill="#64748b">Below $200K in prior income year</text>
+  <!-- Item 3 -->
+  <rect x="50" y="165" width="600" height="38" fill="#fff" stroke="#e2e8f0" stroke-width="1" rx="6"/>
+  <rect x="60" y="175" width="18" height="18" fill="#10b981" rx="3"/>
+  <text x="69" y="189" text-anchor="middle" font-size="13" fill="#fff" font-weight="bold">&#x2713;</text>
+  <text x="90" y="189" font-size="12" font-weight="bold" fill="#1e293b">Total Expenses</text>
+  <text x="400" y="189" font-size="11" fill="#64748b">Below $1M in prior income year</text>
+  <!-- Item 4 -->
+  <rect x="50" y="210" width="600" height="38" fill="#fff" stroke="#e2e8f0" stroke-width="1" rx="6"/>
+  <rect x="60" y="220" width="18" height="18" fill="#10b981" rx="3"/>
+  <text x="69" y="234" text-anchor="middle" font-size="13" fill="#fff" font-weight="bold">&#x2713;</text>
+  <text x="90" y="234" font-size="12" font-weight="bold" fill="#1e293b">Listed Status</text>
+  <text x="400" y="234" font-size="11" fill="#64748b">Not listed on any stock exchange</text>
+  <!-- Item 5 -->
+  <rect x="50" y="255" width="600" height="38" fill="#fff" stroke="#2563eb" stroke-width="1.5" rx="6"/>
+  <rect x="60" y="265" width="18" height="18" fill="#2563eb" rx="3"/>
+  <text x="69" y="279" text-anchor="middle" font-size="13" fill="#fff" font-weight="bold">!</text>
+  <text x="90" y="279" font-size="12" font-weight="bold" fill="#2563eb">Innovation Test</text>
+  <text x="400" y="279" font-size="11" fill="#64748b">Score 100+ points OR $250K+ R&amp;D expenditure</text>
+  <!-- Item 6 -->
+  <rect x="50" y="300" width="600" height="38" fill="#fff" stroke="#2563eb" stroke-width="1.5" rx="6"/>
+  <rect x="60" y="310" width="18" height="18" fill="#2563eb" rx="3"/>
+  <text x="69" y="324" text-anchor="middle" font-size="13" fill="#fff" font-weight="bold">!</text>
+  <text x="90" y="324" font-size="12" font-weight="bold" fill="#2563eb">Principles Test</text>
+  <text x="400" y="324" font-size="11" fill="#64748b">Genuine innovation + high growth potential</text>
+  <!-- Item 7 -->
+  <rect x="50" y="345" width="600" height="38" fill="#fff" stroke="#e2e8f0" stroke-width="1" rx="6"/>
+  <rect x="60" y="355" width="18" height="18" fill="#f59e0b" rx="3"/>
+  <text x="69" y="369" text-anchor="middle" font-size="12" fill="#fff" font-weight="bold">$</text>
+  <text x="90" y="369" font-size="12" font-weight="bold" fill="#1e293b">Investment Cap</text>
+  <text x="400" y="369" font-size="11" fill="#64748b">$200K/investor/year for offset | 12mo min hold</text>
+  <!-- Legend -->
+  <rect x="130" y="398" width="14" height="14" fill="#10b981" rx="2"/><text x="150" y="410" font-size="10" fill="#1e293b">Threshold test (pass/fail)</text>
+  <rect x="320" y="398" width="14" height="14" fill="#2563eb" rx="2"/><text x="340" y="410" font-size="10" fill="#1e293b">Qualification pathway (choose one)</text>
+  <rect x="510" y="398" width="14" height="14" fill="#f59e0b" rx="2"/><text x="530" y="410" font-size="10" fill="#1e293b">Investor constraint</text>
+</svg>
+
 ## Decoding the Eligibility Criteria: The 100-Point Test
 
 Achieving ESIC status is not automatic. The Australian Taxation Office (ATO) has established a two-pronged approach to determine eligibility. A company must satisfy **both** a principles-based test and pass a quantitative test. The quantitative test, often referred to as the "100-point innovation test," is the most common hurdle for founders.
@@ -119,6 +172,85 @@ ESIC status is not a one-time achievement. It must be reviewed and re-evaluated 
 ### The "20% Cap" on Investment
 
 It is also important to remember that the tax offset is capped at $200,000 per investor per year. This means an individual investor can only claim a $40,000 tax offset (20% of $200,000) in a single income year. This cap limits the utility of the ESIC framework for very large checks from a single individual, but it remains highly effective for the typical angel investment range of $20,000 to $100,000.
+
+<svg viewBox="0 0 700 440" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="440" fill="#f8fafc" rx="8"/>
+  <text x="350" y="35" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">ESIC Compliance Process Flow</text>
+  <!-- Step 1 -->
+  <rect x="40" y="65" width="140" height="60" fill="#2563eb" rx="8"/>
+  <text x="110" y="90" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">Step 1</text>
+  <text x="110" y="108" text-anchor="middle" font-size="10" fill="#e0e7ff">Check Incorporation</text>
+  <text x="110" y="135" text-anchor="middle" font-size="9" fill="#64748b">&lt; 10 years old?</text>
+  <!-- Arrow -->
+  <path d="M180,95 L210,95" stroke="#2563eb" stroke-width="2" marker-end="url(#esicA)"/>
+  <!-- Step 2 -->
+  <rect x="210" y="65" width="140" height="60" fill="#2563eb" opacity="0.85" rx="8"/>
+  <text x="280" y="90" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">Step 2</text>
+  <text x="280" y="108" text-anchor="middle" font-size="10" fill="#e0e7ff">Revenue &amp; Expense</text>
+  <text x="280" y="135" text-anchor="middle" font-size="9" fill="#64748b">Rev &lt;$200K, Exp &lt;$1M?</text>
+  <!-- Arrow -->
+  <path d="M350,95 L380,95" stroke="#2563eb" stroke-width="2" marker-end="url(#esicA)"/>
+  <!-- Step 3 -->
+  <rect x="380" y="65" width="140" height="60" fill="#10b981" rx="8"/>
+  <text x="450" y="90" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">Step 3</text>
+  <text x="450" y="108" text-anchor="middle" font-size="10" fill="#d1fae5">Listed Status</text>
+  <text x="450" y="135" text-anchor="middle" font-size="9" fill="#64748b">Unlisted company?</text>
+  <!-- Arrow -->
+  <path d="M520,95 L550,95" stroke="#10b981" stroke-width="2" marker-end="url(#esicB)"/>
+  <!-- Step 4 -->
+  <rect x="550" y="65" width="110" height="60" fill="#10b981" opacity="0.85" rx="8"/>
+  <text x="605" y="90" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">Step 4</text>
+  <text x="605" y="108" text-anchor="middle" font-size="10" fill="#d1fae5">Principles Test</text>
+  <!-- Arrow down -->
+  <path d="M605,125 L605,165" stroke="#10b981" stroke-width="2" marker-end="url(#esicD)"/>
+  <!-- Decision diamond -->
+  <polygon points="605,165 660,200 605,235 550,200" fill="#f59e0b" stroke="#f59e0b" stroke-width="1"/>
+  <text x="605" y="204" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">Choose Path</text>
+  <!-- Path A: 100-point -->
+  <path d="M550,200 L400,200" stroke="#f59e0b" stroke-width="2" marker-end="url(#esicC)"/>
+  <rect x="230" y="175" width="170" height="50" fill="#f59e0b" rx="8"/>
+  <text x="315" y="197" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">Path A: Innovation Test</text>
+  <text x="315" y="214" text-anchor="middle" font-size="10" fill="#fef3c7">Score 100+ points</text>
+  <!-- Path B: Expenditure -->
+  <path d="M605,235 L605,270" stroke="#f59e0b" stroke-width="2" marker-end="url(#esicD2)"/>
+  <rect x="520" y="270" width="170" height="50" fill="#f59e0b" opacity="0.85" rx="8"/>
+  <text x="605" y="292" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">Path B: Expenditure Test</text>
+  <text x="605" y="309" text-anchor="middle" font-size="10" fill="#fef3c7">$250K+ in eligible R&amp;D</text>
+  <!-- Merge arrows to Step 6 -->
+  <path d="M315,225 L315,350" stroke="#1e293b" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <path d="M605,320 L605,350 L460,350" stroke="#1e293b" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <!-- Step 6: Document -->
+  <rect x="100" y="335" width="170" height="50" fill="#1e293b" rx="8"/>
+  <text x="185" y="357" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">Step 6: Document All</text>
+  <text x="185" y="374" text-anchor="middle" font-size="10" fill="#94a3b8">R&amp;D, IP, expenditure, dates</text>
+  <!-- Arrow -->
+  <path d="M270,360 L310,360" stroke="#1e293b" stroke-width="2" marker-end="url(#esicE)"/>
+  <!-- Step 7: Tax advisor -->
+  <rect x="310" y="335" width="150" height="50" fill="#1e293b" opacity="0.85" rx="8"/>
+  <text x="385" y="357" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">Step 7: Tax Advisor</text>
+  <text x="385" y="374" text-anchor="middle" font-size="10" fill="#94a3b8">Validate assessment</text>
+  <!-- Arrow -->
+  <path d="M460,360 L490,360" stroke="#1e293b" stroke-width="2" marker-end="url(#esicE)"/>
+  <!-- Step 8: Issue & Claim -->
+  <rect x="490" y="335" width="170" height="50" fill="#10b981" rx="8"/>
+  <text x="575" y="357" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">Step 8: Issue &amp; Claim</text>
+  <text x="575" y="374" text-anchor="middle" font-size="10" fill="#d1fae5">Lodge with ATO</text>
+  <!-- "Not eligible" branches -->
+  <text x="110" y="160" font-size="9" fill="#ef4444" font-weight="bold">No = Not eligible</text>
+  <text x="280" y="160" font-size="9" fill="#ef4444" font-weight="bold">No = Not eligible</text>
+  <text x="450" y="160" font-size="9" fill="#ef4444" font-weight="bold">No = Not eligible</text>
+  <!-- Benefits box -->
+  <rect x="50" y="400" width="280" height="28" fill="#10b981" opacity="0.15" stroke="#10b981" stroke-width="1" rx="6"/>
+  <text x="190" y="419" text-anchor="middle" font-size="10" fill="#10b981" font-weight="bold">Investor benefits: 20% tax offset + 10-year CGT exemption</text>
+  <defs>
+    <marker id="esicA" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#2563eb"/></marker>
+    <marker id="esicB" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#10b981"/></marker>
+    <marker id="esicC" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto"><path d="M8,0 L0,3 L8,6" fill="#f59e0b"/></marker>
+    <marker id="esicD" markerWidth="6" markerHeight="8" refX="3" refY="8" orient="auto"><path d="M0,0 L3,8 L6,0" fill="#10b981"/></marker>
+    <marker id="esicD2" markerWidth="6" markerHeight="8" refX="3" refY="8" orient="auto"><path d="M0,0 L3,8 L6,0" fill="#f59e0b"/></marker>
+    <marker id="esicE" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#1e293b"/></marker>
+  </defs>
+</svg>
 
 ## A Practical Checklist for Founders
 

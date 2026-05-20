@@ -3,9 +3,9 @@ import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { EquitySplitTool } from "./equity-split-tool";
 
-const TITLE = "Founder Equity Split Calculator (Australia) — BlockID";
+const TITLE = "Equity Split — Free Cofounder Equity Calculator for AU Startups | BlockID.au";
 const DESCRIPTION =
-  "Fairly split startup equity between cofounders before you incorporate. Role + time + cash + sweat + IP weighted. Free, AU-native. By BlockID.au.";
+  "Fairly split startup equity between cofounders before you incorporate. Role, time, cash, sweat and IP weighted. Free and AU-native for Australian founders.";
 
 export const metadata: Metadata = {
   title: TITLE,

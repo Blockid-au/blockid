@@ -28,6 +28,54 @@ Before you sign the first draft, you must understand how valuation caps and disc
 | **Default Risk** | No forced repayment | Repayment obligation at maturity |
 | **Best For** | Pre-seed, speed-focused raises | Conservative investors, family offices |
 
+<svg viewBox="0 0 700 380" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="380" fill="#f8fafc" rx="8"/>
+  <text x="350" y="35" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">SAFE vs Convertible Note — Comparison</text>
+  <!-- SAFE Card -->
+  <rect x="40" y="55" width="290" height="300" fill="#fff" stroke="#2563eb" stroke-width="2" rx="8"/>
+  <rect x="40" y="55" width="290" height="40" fill="#2563eb" rx="8"/>
+  <rect x="40" y="85" width="290" height="10" fill="#2563eb"/>
+  <text x="185" y="82" text-anchor="middle" font-size="16" font-weight="bold" fill="#fff">SAFE</text>
+  <text x="60" y="120" font-size="12" fill="#1e293b" font-weight="bold">Legal Nature</text><text x="280" y="120" font-size="12" fill="#10b981" text-anchor="end">Equity Agreement</text>
+  <line x1="60" y1="130" x2="310" y2="130" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="60" y="150" font-size="12" fill="#1e293b" font-weight="bold">Interest Rate</text><text x="280" y="150" font-size="12" fill="#10b981" text-anchor="end">None</text>
+  <line x1="60" y1="160" x2="310" y2="160" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="60" y="180" font-size="12" fill="#1e293b" font-weight="bold">Maturity Date</text><text x="280" y="180" font-size="12" fill="#10b981" text-anchor="end">None</text>
+  <line x1="60" y1="190" x2="310" y2="190" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="60" y="210" font-size="12" fill="#1e293b" font-weight="bold">Default Risk</text><text x="280" y="210" font-size="12" fill="#10b981" text-anchor="end">No Repayment</text>
+  <line x1="60" y1="220" x2="310" y2="220" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="60" y="240" font-size="12" fill="#1e293b" font-weight="bold">Legal Cost</text><text x="280" y="240" font-size="12" fill="#10b981" text-anchor="end">$2K–$5K</text>
+  <line x1="60" y1="250" x2="310" y2="250" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="60" y="270" font-size="12" fill="#1e293b" font-weight="bold">Complexity</text><text x="280" y="270" font-size="12" fill="#10b981" text-anchor="end">Low</text>
+  <line x1="60" y1="280" x2="310" y2="280" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="60" y="300" font-size="12" fill="#1e293b" font-weight="bold">Balance Sheet</text><text x="280" y="300" font-size="12" fill="#10b981" text-anchor="end">Not a Liability</text>
+  <line x1="60" y1="310" x2="310" y2="310" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="60" y="335" font-size="11" fill="#64748b">Best for: Pre-seed, speed-focused raises</text>
+  <!-- Convertible Note Card -->
+  <rect x="370" y="55" width="290" height="300" fill="#fff" stroke="#f59e0b" stroke-width="2" rx="8"/>
+  <rect x="370" y="55" width="290" height="40" fill="#f59e0b" rx="8"/>
+  <rect x="370" y="85" width="290" height="10" fill="#f59e0b"/>
+  <text x="515" y="82" text-anchor="middle" font-size="16" font-weight="bold" fill="#fff">Convertible Note</text>
+  <text x="390" y="120" font-size="12" fill="#1e293b" font-weight="bold">Legal Nature</text><text x="640" y="120" font-size="12" fill="#f59e0b" text-anchor="end">Debt Instrument</text>
+  <line x1="390" y1="130" x2="640" y2="130" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="390" y="150" font-size="12" fill="#1e293b" font-weight="bold">Interest Rate</text><text x="640" y="150" font-size="12" fill="#f59e0b" text-anchor="end">2%–8% p.a.</text>
+  <line x1="390" y1="160" x2="640" y2="160" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="390" y="180" font-size="12" fill="#1e293b" font-weight="bold">Maturity Date</text><text x="640" y="180" font-size="12" fill="#f59e0b" text-anchor="end">12–24 Months</text>
+  <line x1="390" y1="190" x2="640" y2="190" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="390" y="210" font-size="12" fill="#1e293b" font-weight="bold">Default Risk</text><text x="640" y="210" font-size="12" fill="#f59e0b" text-anchor="end">Repayment at Maturity</text>
+  <line x1="390" y1="220" x2="640" y2="220" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="390" y="240" font-size="12" fill="#1e293b" font-weight="bold">Legal Cost</text><text x="640" y="240" font-size="12" fill="#f59e0b" text-anchor="end">$5K–$12K</text>
+  <line x1="390" y1="250" x2="640" y2="250" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="390" y="270" font-size="12" fill="#1e293b" font-weight="bold">Complexity</text><text x="640" y="270" font-size="12" fill="#f59e0b" text-anchor="end">Medium-High</text>
+  <line x1="390" y1="280" x2="640" y2="280" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="390" y="300" font-size="12" fill="#1e293b" font-weight="bold">Balance Sheet</text><text x="640" y="300" font-size="12" fill="#f59e0b" text-anchor="end">Debt Liability</text>
+  <line x1="390" y1="310" x2="640" y2="310" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="390" y="335" font-size="11" fill="#64748b">Best for: Conservative investors, family offices</text>
+  <!-- VS divider -->
+  <circle cx="350" cy="205" r="22" fill="#1e293b"/>
+  <text x="350" y="211" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff">VS</text>
+</svg>
+
 > **Ready to check your startup valuation?** Before you agree to a cap, [Get your free Startup Value Index →](/) to see where your startup stands against current Australian market benchmarks.
 
 ## Deconstructing the Mechanics: Valuation Caps, Discounts, and Clauses
@@ -106,6 +154,48 @@ When choosing between the two, consider the **investor profile**. Institutional 
 > - Note: If no priced round by maturity, the $537,890 becomes a repayable debt
 >
 > **Net Difference:** The SAFE investor receives nearly **2x the equity** of the note holder in this scenario, but the note holder has downside protection through the debt obligation.
+
+<svg viewBox="0 0 700 400" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="400" fill="#f8fafc" rx="8"/>
+  <text x="350" y="35" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Conversion Scenario: $500K at Series A ($10M Valuation)</text>
+  <!-- SAFE waterfall -->
+  <text x="185" y="65" text-anchor="middle" font-size="14" font-weight="bold" fill="#2563eb">SAFE (Cap $4M, Discount 20%)</text>
+  <rect x="60" y="80" width="250" height="36" fill="#2563eb" rx="6"/>
+  <text x="185" y="103" text-anchor="middle" font-size="12" fill="#fff">Investment: $500,000</text>
+  <path d="M185,116 L175,130 L195,130 Z" fill="#2563eb"/>
+  <rect x="60" y="132" width="250" height="36" fill="#2563eb" opacity="0.8" rx="6"/>
+  <text x="185" y="155" text-anchor="middle" font-size="12" fill="#fff">Cap Conversion: $500K / $4M</text>
+  <path d="M185,168 L175,182 L195,182 Z" fill="#2563eb"/>
+  <rect x="60" y="184" width="250" height="36" fill="#2563eb" opacity="0.65" rx="6"/>
+  <text x="185" y="207" text-anchor="middle" font-size="12" fill="#fff">Discount: $500K / $8M = 6.25%</text>
+  <path d="M185,220 L175,234 L195,234 Z" fill="#10b981"/>
+  <rect x="60" y="236" width="250" height="44" fill="#10b981" rx="6"/>
+  <text x="185" y="255" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">Cap Wins: 12.5%</text>
+  <text x="185" y="272" text-anchor="middle" font-size="11" fill="#d1fae5">Investor takes better deal</text>
+  <!-- Convertible Note waterfall -->
+  <text x="515" y="65" text-anchor="middle" font-size="14" font-weight="bold" fill="#f59e0b">Note (Discount 20%, 5% Int, 18mo)</text>
+  <rect x="390" y="80" width="250" height="36" fill="#f59e0b" rx="6"/>
+  <text x="515" y="103" text-anchor="middle" font-size="12" fill="#fff">Investment: $500,000</text>
+  <path d="M515,116 L505,130 L525,130 Z" fill="#f59e0b"/>
+  <rect x="390" y="132" width="250" height="36" fill="#f59e0b" opacity="0.8" rx="6"/>
+  <text x="515" y="155" text-anchor="middle" font-size="12" fill="#fff">+ Interest: $500K x 1.05^1.5</text>
+  <path d="M515,168 L505,182 L525,182 Z" fill="#f59e0b"/>
+  <rect x="390" y="184" width="250" height="36" fill="#f59e0b" opacity="0.65" rx="6"/>
+  <text x="515" y="207" text-anchor="middle" font-size="12" fill="#fff">Principal: ~$537,890</text>
+  <path d="M515,220 L505,234 L525,234 Z" fill="#f59e0b"/>
+  <rect x="390" y="236" width="250" height="44" fill="#1e293b" rx="6"/>
+  <text x="515" y="255" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">Discount: 6.72%</text>
+  <text x="515" y="272" text-anchor="middle" font-size="11" fill="#94a3b8">+ Debt protection at maturity</text>
+  <!-- Comparison bar at bottom -->
+  <text x="350" y="310" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e293b">Ownership Comparison</text>
+  <rect x="100" y="320" width="212" height="28" fill="#2563eb" rx="6"/>
+  <text x="206" y="339" text-anchor="middle" font-size="12" fill="#fff">SAFE: 12.50%</text>
+  <rect x="100" y="355" width="114" height="28" fill="#f59e0b" rx="6"/>
+  <text x="157" y="374" text-anchor="middle" font-size="12" fill="#fff">Note: 6.72%</text>
+  <text x="540" y="339" font-size="11" fill="#64748b">SAFE investor receives ~2x the</text>
+  <text x="540" y="355" font-size="11" fill="#64748b">equity of the note holder</text>
+  <text x="540" y="380" font-size="11" fill="#64748b">Note holder has debt protection</text>
+</svg>
 
 > **Check your readiness:** Before you pick an instrument, you need to know your value. [Get your free SVI score](/) to benchmark your startup against the Australian market.
 

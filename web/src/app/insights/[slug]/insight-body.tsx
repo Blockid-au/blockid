@@ -34,6 +34,13 @@ export function InsightBody({ content }: { content: string }) {
 function markdownToHtml(md: string): string {
   let html = md;
 
+  // Preserve raw HTML blocks (SVG, div, figure, section) — extract them before processing
+  const htmlBlocks: string[] = [];
+  html = html.replace(/<(svg|div|figure|section)[\s\S]*?<\/\1>/gi, (match) => {
+    htmlBlocks.push(match);
+    return `<!--HTML_BLOCK_${htmlBlocks.length - 1}-->`;
+  });
+
   // Escape HTML entities in code blocks first
   html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
     const escaped = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -86,13 +93,23 @@ function markdownToHtml(md: string): string {
         trimmed.startsWith("<blockquote") ||
         trimmed.startsWith("<hr") ||
         trimmed.startsWith("<img") ||
-        trimmed.startsWith("<table")
+        trimmed.startsWith("<table") ||
+        trimmed.startsWith("<svg") ||
+        trimmed.startsWith("<div") ||
+        trimmed.startsWith("<figure") ||
+        trimmed.startsWith("<section") ||
+        trimmed.startsWith("<!--HTML_BLOCK_")
       ) {
         return trimmed;
       }
       return `<p>${trimmed.replace(/\n/g, "<br />")}</p>`;
     })
     .join("\n");
+
+  // Restore preserved HTML blocks
+  htmlBlocks.forEach((block, i) => {
+    html = html.replace(`<!--HTML_BLOCK_${i}-->`, block);
+  });
 
   return html;
 }

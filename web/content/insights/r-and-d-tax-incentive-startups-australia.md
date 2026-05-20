@@ -134,6 +134,57 @@ Building this governance framework early saves you from a crisis later. It force
 
 ### R&D Tax Incentive Claim Process
 
+<svg viewBox="0 0 700 440" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="440" rx="8" fill="#f8fafc"/>
+  <text x="350" y="32" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">R&D Tax Incentive Claim Process</text>
+  <text x="350" y="52" text-anchor="middle" font-size="12" fill="#64748b">6 key steps from eligibility to refund</text>
+  <!-- Step 1 -->
+  <rect x="40" y="72" width="290" height="60" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+  <circle cx="66" cy="102" r="16" fill="#2563eb"/><text x="66" y="107" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">1</text>
+  <text x="92" y="94" font-size="12" font-weight="bold" fill="#1e293b">Confirm Eligibility</text>
+  <text x="92" y="112" font-size="10" fill="#64748b">Turnover under $20M, AU resident</text>
+  <!-- Arrow -->
+  <line x1="335" y1="102" x2="370" y2="102" stroke="#1e293b" stroke-width="2" marker-end="url(#arr3)"/>
+  <!-- Step 2 -->
+  <rect x="375" y="72" width="290" height="60" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+  <circle cx="401" cy="102" r="16" fill="#2563eb"/><text x="401" y="107" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">2</text>
+  <text x="427" y="94" font-size="12" font-weight="bold" fill="#1e293b">Register with AusIndustry</text>
+  <text x="427" y="112" font-size="10" fill="#64748b">Before FY end — cannot be retrospective</text>
+  <!-- Arrow down -->
+  <line x1="520" y1="137" x2="520" y2="162" stroke="#1e293b" stroke-width="2" marker-end="url(#arr3)"/>
+  <!-- Step 3 -->
+  <rect x="375" y="167" width="290" height="60" rx="8" fill="#ffffff" stroke="#10b981" stroke-width="2"/>
+  <circle cx="401" cy="197" r="16" fill="#10b981"/><text x="401" y="202" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">3</text>
+  <text x="427" y="189" font-size="12" font-weight="bold" fill="#1e293b">Document Throughout Year</text>
+  <text x="427" y="207" font-size="10" fill="#64748b">Hypotheses, methods, results, failures</text>
+  <!-- Arrow left -->
+  <line x1="370" y1="197" x2="335" y2="197" stroke="#1e293b" stroke-width="2" marker-end="url(#arr3)"/>
+  <!-- Step 4 -->
+  <rect x="40" y="167" width="290" height="60" rx="8" fill="#ffffff" stroke="#10b981" stroke-width="2"/>
+  <circle cx="66" cy="197" r="16" fill="#10b981"/><text x="66" y="202" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">4</text>
+  <text x="92" y="189" font-size="12" font-weight="bold" fill="#1e293b">Segregate Costs</text>
+  <text x="92" y="207" font-size="10" fill="#64748b">Separate R&D hours from routine dev</text>
+  <!-- Arrow down -->
+  <line x1="185" y1="232" x2="185" y2="262" stroke="#1e293b" stroke-width="2" marker-end="url(#arr3)"/>
+  <!-- Step 5 -->
+  <rect x="40" y="267" width="290" height="60" rx="8" fill="#ffffff" stroke="#f59e0b" stroke-width="2"/>
+  <circle cx="66" cy="297" r="16" fill="#f59e0b"/><text x="66" y="302" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">5</text>
+  <text x="92" y="289" font-size="12" font-weight="bold" fill="#1e293b">Lodge Tax Return + R&D Schedule</text>
+  <text x="92" y="307" font-size="10" fill="#64748b">Within 10 months of FY end via ATO</text>
+  <!-- Arrow right -->
+  <line x1="335" y1="297" x2="370" y2="297" stroke="#1e293b" stroke-width="2" marker-end="url(#arr3)"/>
+  <!-- Step 6 -->
+  <rect x="375" y="267" width="290" height="60" rx="8" fill="#ffffff" stroke="#f59e0b" stroke-width="2"/>
+  <circle cx="401" cy="297" r="16" fill="#f59e0b"/><text x="401" y="302" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">6</text>
+  <text x="427" y="289" font-size="12" font-weight="bold" fill="#1e293b">Receive 43.5% Refund</text>
+  <text x="427" y="307" font-size="10" fill="#64748b">Cash deposited to your account</text>
+  <!-- Result callout -->
+  <rect x="150" y="360" width="400" height="50" rx="8" fill="#10b981" opacity="0.1" stroke="#10b981" stroke-width="1.5"/>
+  <text x="350" y="382" text-anchor="middle" font-size="13" font-weight="bold" fill="#10b981">$100K R&D spend = $43,500 cash refund</text>
+  <text x="350" y="400" text-anchor="middle" font-size="11" fill="#64748b">Non-dilutive funding — no equity given up</text>
+  <defs><marker id="arr3" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#1e293b"/></marker></defs>
+</svg>
+
 > **Step 1** → Confirm eligibility: turnover under $20M, Australian resident, genuine technical uncertainty
 > **Step 2** → Register with AusIndustry before the end of the financial year in which R&D is conducted
 > **Step 3** → Document throughout the year: hypotheses, methods, results, failures, and cost traces
@@ -165,6 +216,45 @@ While the guidelines are public, the interpretation of "technical uncertainty" i
 However, even with a specialist, the responsibility for the accuracy of the claim lies with the company directors. This is why internal governance is non-negotiable. You cannot outsource your engineering team's ability to articulate their work.
 
 > **Maximise your non-dilutive funding:** The R&D incentive is a powerful tool, but only if executed correctly. [Get your free Startup Value Index (SVI) Score](/) to benchmark your startup's readiness and financial health.
+
+<svg viewBox="0 0 700 380" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="380" rx="8" fill="#f8fafc"/>
+  <text x="350" y="32" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">R&D Tax Refund by Company Size</text>
+  <text x="350" y="52" text-anchor="middle" font-size="12" fill="#64748b">43.5% refundable offset for companies under $20M turnover</text>
+  <!-- Y-axis -->
+  <text x="90" y="82" text-anchor="end" font-size="11" fill="#1e293b">$435K</text>
+  <line x1="95" y1="78" x2="640" y2="78" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="90" y="134" text-anchor="end" font-size="11" fill="#1e293b">$217K</text>
+  <line x1="95" y1="130" x2="640" y2="130" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="90" y="186" text-anchor="end" font-size="11" fill="#1e293b">$130K</text>
+  <line x1="95" y1="182" x2="640" y2="182" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="90" y="238" text-anchor="end" font-size="11" fill="#1e293b">$43.5K</text>
+  <line x1="95" y1="234" x2="640" y2="234" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="90" y="310" text-anchor="end" font-size="11" fill="#1e293b">$0</text>
+  <line x1="95" y1="306" x2="640" y2="306" stroke="#1e293b" stroke-width="1.5"/>
+  <!-- Bar: Pre-seed $100K spend -->
+  <rect x="130" y="234" width="90" height="72" rx="4" fill="#2563eb"/>
+  <text x="175" y="226" text-anchor="middle" font-size="11" fill="#2563eb" font-weight="bold">$43.5K</text>
+  <text x="175" y="326" text-anchor="middle" font-size="10" fill="#1e293b" font-weight="bold">Pre-Seed</text>
+  <text x="175" y="340" text-anchor="middle" font-size="9" fill="#64748b">$100K R&D</text>
+  <!-- Bar: Seed $300K spend -->
+  <rect x="260" y="182" width="90" height="124" rx="4" fill="#10b981"/>
+  <text x="305" y="174" text-anchor="middle" font-size="11" fill="#10b981" font-weight="bold">$130K</text>
+  <text x="305" y="326" text-anchor="middle" font-size="10" fill="#1e293b" font-weight="bold">Seed</text>
+  <text x="305" y="340" text-anchor="middle" font-size="9" fill="#64748b">$300K R&D</text>
+  <!-- Bar: Series A $500K spend -->
+  <rect x="390" y="130" width="90" height="176" rx="4" fill="#f59e0b"/>
+  <text x="435" y="122" text-anchor="middle" font-size="11" fill="#f59e0b" font-weight="bold">$217K</text>
+  <text x="435" y="326" text-anchor="middle" font-size="10" fill="#1e293b" font-weight="bold">Series A</text>
+  <text x="435" y="340" text-anchor="middle" font-size="9" fill="#64748b">$500K R&D</text>
+  <!-- Bar: Scale-up $1M spend -->
+  <rect x="520" y="78" width="90" height="228" rx="4" fill="#2563eb"/>
+  <text x="565" y="70" text-anchor="middle" font-size="11" fill="#2563eb" font-weight="bold">$435K</text>
+  <text x="565" y="326" text-anchor="middle" font-size="10" fill="#1e293b" font-weight="bold">Scale-Up</text>
+  <text x="565" y="340" text-anchor="middle" font-size="9" fill="#64748b">$1M R&D</text>
+  <!-- Note -->
+  <text x="350" y="370" text-anchor="middle" font-size="11" fill="#64748b">Companies with turnover over $20M receive a non-refundable offset only</text>
+</svg>
 
 ### Conclusion: Turning Uncertainty into Capital
 

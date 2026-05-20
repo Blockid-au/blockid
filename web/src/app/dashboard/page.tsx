@@ -23,6 +23,7 @@ import {
 import { formatAud } from "@/lib/utils";
 import { getPlan } from "@/lib/plans";
 import { LivingReport } from "@/components/workspace/living-report";
+import { ReferralCard } from "@/components/ui/referral-card";
 
 // /dashboard — authed view of a founder's saved idea-phase artifacts.
 // Lists Founder Packs, idea evaluations, equity splits and funding plans,
@@ -73,6 +74,10 @@ export default async function DashboardPage({
             <EvaluationsCard summary={summary} />
             <SplitsCard summary={summary} />
             <FundingCard summary={summary} />
+          </div>
+
+          <div className="mt-10">
+            <ReferralCard />
           </div>
 
           <NextStepsCard />

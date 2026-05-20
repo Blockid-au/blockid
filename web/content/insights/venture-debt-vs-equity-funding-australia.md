@@ -33,6 +33,67 @@ This non-dilutive nature (relative to a full equity round) is what makes **non-d
 | **Control Impact** | Founders retain control | Investors gain voting rights |
 | **Australian Providers** | Partners for Growth, CBA, Westpac | Blackbird, Square Peg, AirTree |
 
+<svg viewBox="0 0 700 360" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="360" fill="#f8fafc" rx="12"/>
+  <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#1e293b">Venture Debt vs Equity Funding — Feature Comparison</text>
+  <!-- Left card: Venture Debt -->
+  <rect x="18" y="50" width="325" height="290" fill="white" stroke="#e2e8f0" stroke-width="1.5" rx="8"/>
+  <rect x="18" y="50" width="325" height="42" fill="#2563eb" rx="8"/>
+  <rect x="18" y="82" width="325" height="10" fill="#2563eb"/>
+  <text x="180" y="78" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="white">Venture Debt</text>
+  <text x="38" y="115" font-family="Arial,sans-serif" font-size="12" fill="#1e293b">Dilution:</text>
+  <text x="180" y="115" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#10b981">Minimal (1-3% via warrants)</text>
+  <line x1="38" y1="125" x2="323" y2="125" stroke="#f1f5f9" stroke-width="1"/>
+  <text x="38" y="143" font-family="Arial,sans-serif" font-size="12" fill="#1e293b">Repayment:</text>
+  <text x="180" y="143" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#ef4444">Required (monthly)</text>
+  <line x1="38" y1="153" x2="323" y2="153" stroke="#f1f5f9" stroke-width="1"/>
+  <text x="38" y="171" font-family="Arial,sans-serif" font-size="12" fill="#1e293b">Cost:</text>
+  <text x="180" y="171" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#1e293b">8-15% interest + warrants</text>
+  <line x1="38" y1="181" x2="323" y2="181" stroke="#f1f5f9" stroke-width="1"/>
+  <text x="38" y="199" font-family="Arial,sans-serif" font-size="12" fill="#1e293b">Speed:</text>
+  <text x="180" y="199" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#10b981">4-8 weeks to close</text>
+  <line x1="38" y1="209" x2="323" y2="209" stroke="#f1f5f9" stroke-width="1"/>
+  <text x="38" y="227" font-family="Arial,sans-serif" font-size="12" fill="#1e293b">Revenue Req:</text>
+  <text x="180" y="227" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#f59e0b">$1M+ ARR typically</text>
+  <line x1="38" y1="237" x2="323" y2="237" stroke="#f1f5f9" stroke-width="1"/>
+  <text x="38" y="255" font-family="Arial,sans-serif" font-size="12" fill="#1e293b">Board Seat:</text>
+  <text x="180" y="255" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#10b981">Rarely required</text>
+  <line x1="38" y1="265" x2="323" y2="265" stroke="#f1f5f9" stroke-width="1"/>
+  <text x="38" y="283" font-family="Arial,sans-serif" font-size="12" fill="#1e293b">Risk:</text>
+  <text x="180" y="283" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#ef4444">Default / liquidation</text>
+  <line x1="38" y1="293" x2="323" y2="293" stroke="#f1f5f9" stroke-width="1"/>
+  <text x="38" y="311" font-family="Arial,sans-serif" font-size="12" fill="#1e293b">Best For:</text>
+  <text x="180" y="311" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="#2563eb">Runway extension, CapEx</text>
+  <!-- Right card: Equity -->
+  <rect x="357" y="50" width="325" height="290" fill="white" stroke="#e2e8f0" stroke-width="1.5" rx="8"/>
+  <rect x="357" y="50" width="325" height="42" fill="#10b981" rx="8"/>
+  <rect x="357" y="82" width="325" height="10" fill="#10b981"/>
+  <text x="519" y="78" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="white">Equity Funding</text>
+  <text x="377" y="115" font-family="Arial,sans-serif" font-size="12" fill="#1e293b">Dilution:</text>
+  <text x="519" y="115" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#ef4444">Significant (10-25%)</text>
+  <line x1="377" y1="125" x2="662" y2="125" stroke="#f1f5f9" stroke-width="1"/>
+  <text x="377" y="143" font-family="Arial,sans-serif" font-size="12" fill="#1e293b">Repayment:</text>
+  <text x="519" y="143" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#10b981">None required</text>
+  <line x1="377" y1="153" x2="662" y2="153" stroke="#f1f5f9" stroke-width="1"/>
+  <text x="377" y="171" font-family="Arial,sans-serif" font-size="12" fill="#1e293b">Cost:</text>
+  <text x="519" y="171" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#1e293b">Permanent ownership loss</text>
+  <line x1="377" y1="181" x2="662" y2="181" stroke="#f1f5f9" stroke-width="1"/>
+  <text x="377" y="199" font-family="Arial,sans-serif" font-size="12" fill="#1e293b">Speed:</text>
+  <text x="519" y="199" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#f59e0b">3-6 months to close</text>
+  <line x1="377" y1="209" x2="662" y2="209" stroke="#f1f5f9" stroke-width="1"/>
+  <text x="377" y="227" font-family="Arial,sans-serif" font-size="12" fill="#1e293b">Revenue Req:</text>
+  <text x="519" y="227" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#10b981">No revenue needed</text>
+  <line x1="377" y1="237" x2="662" y2="237" stroke="#f1f5f9" stroke-width="1"/>
+  <text x="377" y="255" font-family="Arial,sans-serif" font-size="12" fill="#1e293b">Board Seat:</text>
+  <text x="519" y="255" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#f59e0b">Often required</text>
+  <line x1="377" y1="265" x2="662" y2="265" stroke="#f1f5f9" stroke-width="1"/>
+  <text x="377" y="283" font-family="Arial,sans-serif" font-size="12" fill="#1e293b">Risk:</text>
+  <text x="519" y="283" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#10b981">Low (no repayment)</text>
+  <line x1="377" y1="293" x2="662" y2="293" stroke="#f1f5f9" stroke-width="1"/>
+  <text x="377" y="311" font-family="Arial,sans-serif" font-size="12" fill="#1e293b">Best For:</text>
+  <text x="519" y="311" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="#10b981">PMF search, product build</text>
+</svg>
+
 ## Equity Funding: The Traditional Route and Its Hidden Costs
 
 Equity funding remains the lifeblood of the Australian startup ecosystem, particularly for pre-seed and seed-stage companies. In an equity transaction, you sell ownership stakes (shares) to investors in exchange for capital. This capital is "patient," meaning investors expect to wait years for a return, usually through an exit event like an acquisition or IPO. There are no monthly repayments, no interest, and no covenants that can force a liquidation event if you miss a target.
@@ -130,6 +191,40 @@ However, this math assumes you can service the debt. If TechGrow fails to grow r
 > │ option.     │  │ strict covenants.          │
 > └─────────────┘  └───────────────────────────┘
 > ```
+
+<svg viewBox="0 0 700 140" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="140" fill="#f8fafc" rx="12"/>
+  <text x="350" y="22" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="bold" fill="#1e293b">Venture Debt vs Equity — Decision Flow</text>
+  <!-- Step 1 -->
+  <rect x="10" y="40" width="110" height="54" fill="#1e293b" rx="8"/>
+  <text x="65" y="62" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">$1M+ ARR?</text>
+  <text x="65" y="78" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Revenue check</text>
+  <path d="M124 67 L144 67" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrowDebt)"/>
+  <!-- Step 2 -->
+  <rect x="148" y="40" width="110" height="54" fill="#2563eb" rx="8"/>
+  <text x="203" y="62" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">Can Service</text>
+  <text x="203" y="78" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#dbeafe">8-15% Interest?</text>
+  <path d="M262 67 L282 67" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrowDebt)"/>
+  <!-- Step 3 -->
+  <rect x="286" y="40" width="110" height="54" fill="#2563eb" rx="8"/>
+  <text x="341" y="62" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">VC Backing?</text>
+  <text x="341" y="78" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#dbeafe">Tier 1 fund</text>
+  <path d="M400 67 L420 67" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrowDebt)"/>
+  <!-- Step 4: Decision -->
+  <rect x="424" y="40" width="120" height="54" fill="#10b981" rx="8"/>
+  <text x="484" y="58" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">YES to all?</text>
+  <text x="484" y="73" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">VENTURE DEBT</text>
+  <text x="484" y="86" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#dcfce7">Strong option</text>
+  <path d="M548 67 L568 67" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrowDebt)"/>
+  <!-- Step 5: Alternative -->
+  <rect x="572" y="40" width="118" height="54" fill="#f59e0b" rx="8"/>
+  <text x="631" y="58" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">NO to any?</text>
+  <text x="631" y="73" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">EQUITY</text>
+  <text x="631" y="86" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="white">Safer path</text>
+  <!-- Bottom note -->
+  <text x="350" y="120" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">Debt accelerates a working model. Equity funds the search for product-market fit.</text>
+  <defs><marker id="arrowDebt" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#cbd5e1"/></marker></defs>
+</svg>
 
 ## Critical Checklist: Is Your Startup Ready for Debt?
 

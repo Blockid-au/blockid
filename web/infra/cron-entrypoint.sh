@@ -17,6 +17,9 @@ cat > /etc/crontabs/root <<EOF
 
 # Weekly SVI review — every Monday 21:00 UTC (7am AEST Tuesday)
 0 21 * * 1   wget -qO- --header="Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/svi-review >> /var/log/cron.log 2>&1
+
+# Nurture sequences — daily 19:00 UTC (5am AEST)
+0 19 * * *   wget -qO- --header="Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/nurture >> /var/log/cron.log 2>&1
 EOF
 
 echo "[blockid:cron] Cron jobs installed. Starting crond..."

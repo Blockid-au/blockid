@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import {
   loginWithGoogle,
   setSessionCookie,
@@ -113,7 +114,11 @@ export async function POST(request: Request) {
   const ipHash = hashIp(clientIpFromHeaders(request.headers));
   const userAgent = request.headers.get("user-agent");
 
-  const result = await loginWithGoogle(profile, { ipHash, userAgent });
+  // Check for referral code from cookie (set by client when ?ref= is captured).
+  const store = await cookies();
+  const referralCode = store.get("blockid_ref")?.value ?? null;
+
+  const result = await loginWithGoogle(profile, { ipHash, userAgent, referralCode });
 
   if (!result.ok || !result.user || !result.sessionToken) {
     return NextResponse.json(

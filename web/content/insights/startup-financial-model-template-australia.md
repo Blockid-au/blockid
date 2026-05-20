@@ -19,6 +19,62 @@ This guide breaks down exactly how to build a defensible, audit-ready financial 
 | **Scenario Analysis** | Base, Bear, Bull case projections | Revenue sensitivity, churn, CAC changes | Australian market cyclicality; interest rate impact |
 | **Cap Table Impact** | Dilution from funding rounds | Pre/post-money valuation, ESOP pool | ESIC eligibility; ASIC compliance for share issuance |
 
+<svg viewBox="0 0 700 380" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="380" fill="#f8fafc" rx="12"/>
+  <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#1e293b">Financial Model Components — Stacked Overview</text>
+  <text x="350" y="46" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Key building blocks of a startup financial model for Australian founders</text>
+  <!-- Y-axis label -->
+  <text x="30" y="200" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#64748b" transform="rotate(-90,30,200)">Priority &amp; Complexity</text>
+  <!-- Bar 1: Revenue Model -->
+  <rect x="80" y="65" width="85" height="270" fill="#2563eb" rx="4"/>
+  <text x="122" y="100" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="white">Revenue</text>
+  <text x="122" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#dbeafe">Model</text>
+  <text x="122" y="140" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#dbeafe">MRR/ARR</text>
+  <text x="122" y="152" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#dbeafe">Pricing</text>
+  <text x="122" y="164" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#dbeafe">Churn</text>
+  <text x="122" y="176" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#dbeafe">Conversion</text>
+  <!-- Bar 2: COGS -->
+  <rect x="175" y="105" width="85" height="230" fill="#10b981" rx="4"/>
+  <text x="217" y="135" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="white">COGS</text>
+  <text x="217" y="160" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="white">Hosting</text>
+  <text x="217" y="172" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="white">API Costs</text>
+  <text x="217" y="184" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="white">Support</text>
+  <text x="217" y="196" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="white">GST Excl.</text>
+  <!-- Bar 3: OpEx -->
+  <rect x="270" y="85" width="85" height="250" fill="#f59e0b" rx="4"/>
+  <text x="312" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="white">OpEx</text>
+  <text x="312" y="140" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="white">Salaries</text>
+  <text x="312" y="152" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="white">11.5% Super</text>
+  <text x="312" y="164" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="white">Payroll Tax</text>
+  <text x="312" y="176" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="white">Marketing</text>
+  <text x="312" y="188" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="white">SaaS Tools</text>
+  <!-- Bar 4: Cash Flow -->
+  <rect x="365" y="75" width="85" height="260" fill="#1e293b" rx="4"/>
+  <text x="407" y="105" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="white">Cash</text>
+  <text x="407" y="120" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="white">Flow</text>
+  <text x="407" y="145" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#94a3b8">AR/AP Days</text>
+  <text x="407" y="157" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#94a3b8">BAS/GST</text>
+  <text x="407" y="169" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#94a3b8">Working Cap</text>
+  <text x="407" y="181" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#94a3b8">Burn Rate</text>
+  <!-- Bar 5: R&D Tax -->
+  <rect x="460" y="145" width="85" height="190" fill="#8b5cf6" rx="4"/>
+  <text x="502" y="175" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="white">R&amp;D Tax</text>
+  <text x="502" y="200" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="white">43.5% Offset</text>
+  <text x="502" y="212" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="white">6-9mo Lag</text>
+  <text x="502" y="224" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="white">ATO Docs</text>
+  <!-- Bar 6: Scenario -->
+  <rect x="555" y="125" width="85" height="210" fill="#ef4444" opacity="0.85" rx="4"/>
+  <text x="597" y="155" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="white">Scenario</text>
+  <text x="597" y="170" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="white">Analysis</text>
+  <text x="597" y="195" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="white">Base Case</text>
+  <text x="597" y="207" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="white">Bear Case</text>
+  <text x="597" y="219" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="white">Bull Case</text>
+  <text x="597" y="231" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="white">FX Sensitivity</text>
+  <!-- Bottom axis -->
+  <line x1="70" y1="340" x2="650" y2="340" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="350" y="360" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">Each component must be investor-ready — bottom-up logic, GST-compliant, with Australian tax considerations</text>
+</svg>
+
 ## Building Your Revenue Model: Beyond the Hype
 
 The foundation of any **financial projections startup** document is the revenue model. Australian founders often make the mistake of creating a "hockey stick" curve that rises 100% every quarter without explaining the drivers. You need a bottom-up approach that ties revenue to specific activities.
@@ -159,6 +215,54 @@ Your **financial projections startup** document must reflect this lag. Do not mo
 > | **Runway (Months)** | 14 | 16 | 20 |
 >
 > *Assumptions: 15% MoM growth in Year 1, declining churn as PMF improves, R&D refund received 6-9 months after FY end. All figures exclude GST.*
+
+<svg viewBox="0 0 700 350" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="350" fill="#f8fafc" rx="12"/>
+  <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#1e293b">3-Year SaaS Revenue Projection (AUD)</text>
+  <text x="350" y="46" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Annual Recurring Revenue trajectory — pre-seed to Series A</text>
+  <!-- Y-axis -->
+  <text x="55" y="80" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$2.0M</text>
+  <text x="55" y="120" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$1.5M</text>
+  <text x="55" y="163" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$1.0M</text>
+  <text x="55" y="205" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$500K</text>
+  <text x="55" y="248" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$200K</text>
+  <text x="55" y="278" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$0</text>
+  <!-- Grid -->
+  <line x1="62" y1="77" x2="660" y2="77" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="62" y1="117" x2="660" y2="117" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="62" y1="160" x2="660" y2="160" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="62" y1="202" x2="660" y2="202" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="62" y1="245" x2="660" y2="245" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="62" y1="275" x2="660" y2="275" stroke="#e2e8f0" stroke-width="1"/>
+  <!-- Revenue line (ARR) -->
+  <path d="M 120 260 Q 200 258 280 240 Q 360 210 440 170 Q 520 120 600 80" stroke="#2563eb" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <!-- Area fill -->
+  <path d="M 120 260 Q 200 258 280 240 Q 360 210 440 170 Q 520 120 600 80 L 600 275 L 120 275 Z" fill="#2563eb" opacity="0.08"/>
+  <!-- Data points -->
+  <circle cx="120" cy="260" r="6" fill="#2563eb"/>
+  <text x="120" y="252" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="#2563eb">$60K</text>
+  <text x="120" y="295" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Start</text>
+  <circle cx="200" cy="257" r="5" fill="#2563eb"/>
+  <text x="200" y="249" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#2563eb">$180K</text>
+  <text x="200" y="295" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Y1</text>
+  <circle cx="360" cy="210" r="5" fill="#2563eb"/>
+  <text x="360" y="202" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#2563eb">$630K</text>
+  <text x="360" y="295" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Y2</text>
+  <circle cx="600" cy="80" r="7" fill="#10b981"/>
+  <text x="600" y="72" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#10b981">$1.86M</text>
+  <text x="600" y="295" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Y3</text>
+  <!-- Burn rate line -->
+  <path d="M 120 236 L 200 230 L 280 218 L 360 198 L 440 180 L 520 168 L 600 155" stroke="#ef4444" stroke-width="2" stroke-dasharray="6,4" fill="none"/>
+  <!-- Annotations -->
+  <rect x="80" y="310" width="170" height="24" fill="white" stroke="#e2e8f0" rx="6"/>
+  <line x1="90" y1="322" x2="110" y2="322" stroke="#2563eb" stroke-width="3"/>
+  <text x="116" y="326" font-family="Arial,sans-serif" font-size="10" fill="#64748b">ARR (Annual Revenue)</text>
+  <rect x="270" y="310" width="170" height="24" fill="white" stroke="#e2e8f0" rx="6"/>
+  <line x1="280" y1="322" x2="300" y2="322" stroke="#ef4444" stroke-width="2" stroke-dasharray="6,4"/>
+  <text x="306" y="326" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Monthly Burn Rate</text>
+  <rect x="460" y="310" width="200" height="24" fill="white" stroke="#e2e8f0" rx="6"/>
+  <text x="470" y="326" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Gross Margin: 65% > 72% > 78%</text>
+</svg>
 
 ## Stress-Testing Your Model: Scenario Analysis
 

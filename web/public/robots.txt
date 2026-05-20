@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /workspace/
+Disallow: /dashboard/
+Disallow: /auth/verify
+Disallow: /unsubscribe
+
+Sitemap: https://blockid.au/sitemap.xml

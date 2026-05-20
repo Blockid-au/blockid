@@ -5,9 +5,9 @@ import { Footer } from "@/components/site/footer";
 import { CofounderMatchForm } from "./cofounder-match-form";
 import { ProfileList } from "./profile-list";
 
-const TITLE = "Cofounder Match Australia — BlockID";
+const TITLE = "Cofounder Match — Free AU Startup Cofounder Directory | BlockID.au";
 const DESCRIPTION =
-  "Find your AU startup cofounder. Free directory for idea-stage founders. By BlockID.au.";
+  "Find your Australian startup cofounder. Free directory for idea-stage founders to connect with technical and business cofounders across Australia.";
 
 export const metadata: Metadata = {
   title: TITLE,

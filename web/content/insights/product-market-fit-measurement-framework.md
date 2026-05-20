@@ -45,6 +45,50 @@ When conducting this survey, do not offer it to beta testers or friends. Your sa
 | **Organic Growth Rate** | % of users acquired without paid channels | 30%+ | Below 10% | Attribution analytics |
 | **Feature Adoption** | % of users engaging with core features | 60%+ | Below 30% | Product analytics |
 
+<svg viewBox="0 0 700 360" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="360" fill="#f8fafc" rx="12"/>
+  <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#1e293b">Product-Market Fit Score Gauge</text>
+  <text x="350" y="46" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Sean Ellis Test — % of users who would be "Very Disappointed"</text>
+  <!-- Gauge background arc -->
+  <path d="M 130 240 A 200 200 0 0 1 570 240" fill="none" stroke="#e2e8f0" stroke-width="35" stroke-linecap="round"/>
+  <!-- Red zone: 0-15% (No Fit) -->
+  <path d="M 130 240 A 200 200 0 0 1 175 130" fill="none" stroke="#ef4444" stroke-width="35" stroke-linecap="round"/>
+  <!-- Orange zone: 15-25% (Weak) -->
+  <path d="M 175 130 A 200 200 0 0 1 250 72" fill="none" stroke="#f59e0b" stroke-width="35" stroke-linecap="round"/>
+  <!-- Yellow zone: 25-40% (Close) -->
+  <path d="M 250 72 A 200 200 0 0 1 395 55" fill="none" stroke="#fbbf24" stroke-width="35" stroke-linecap="round"/>
+  <!-- Green zone: 40%+ (PMF Achieved) -->
+  <path d="M 395 55 A 200 200 0 0 1 570 240" fill="none" stroke="#10b981" stroke-width="35" stroke-linecap="round"/>
+  <!-- 40% threshold marker -->
+  <line x1="395" y1="35" x2="395" y2="75" stroke="#1e293b" stroke-width="3"/>
+  <text x="395" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#1e293b">40%</text>
+  <text x="395" y="96" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#1e293b">THRESHOLD</text>
+  <!-- Needle pointing at 40% -->
+  <line x1="350" y1="240" x2="392" y2="68" stroke="#1e293b" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="350" cy="240" r="10" fill="#1e293b"/>
+  <!-- Center display -->
+  <text x="350" y="215" text-anchor="middle" font-family="Arial,sans-serif" font-size="32" font-weight="bold" fill="#10b981">40%</text>
+  <text x="350" y="270" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#1e293b">PMF Achieved</text>
+  <text x="350" y="286" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Scale with confidence</text>
+  <!-- Zone labels -->
+  <text x="110" y="250" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#ef4444" font-weight="bold">&lt;15%</text>
+  <text x="160" y="125" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#f59e0b" font-weight="bold">25%</text>
+  <text x="570" y="250" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#10b981" font-weight="bold">60%+</text>
+  <!-- Legend -->
+  <rect x="80" y="308" width="120" height="34" fill="white" stroke="#ef4444" stroke-width="1.5" rx="6"/>
+  <text x="140" y="322" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#ef4444">NO FIT</text>
+  <text x="140" y="336" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#64748b">&lt;15% — Pivot needed</text>
+  <rect x="215" y="308" width="120" height="34" fill="white" stroke="#f59e0b" stroke-width="1.5" rx="6"/>
+  <text x="275" y="322" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#f59e0b">WEAK</text>
+  <text x="275" y="336" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#64748b">15-24% — Major changes</text>
+  <rect x="350" y="308" width="120" height="34" fill="white" stroke="#fbbf24" stroke-width="1.5" rx="6"/>
+  <text x="410" y="322" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#fbbf24">CLOSE</text>
+  <text x="410" y="336" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#64748b">25-39% — Iterate fast</text>
+  <rect x="485" y="308" width="130" height="34" fill="white" stroke="#10b981" stroke-width="1.5" rx="6"/>
+  <text x="550" y="322" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#10b981">PMF ACHIEVED</text>
+  <text x="550" y="336" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#64748b">40%+ — Ready to scale</text>
+</svg>
+
 ## Beyond the Survey: Retention Curves and Cohort Analysis
 
 While the Sean Ellis Test provides a snapshot, **retention curves** tell the story of your startup's lifespan. For Australian founders seeking Series A, this is the metric that VCs scrutinize most closely. A flat or rising retention curve indicates that your product has become essential to your users' workflows.
@@ -139,6 +183,50 @@ For pre-seed founders, focus on **feature depth**. Do your users come back daily
 > │  └── Segment results by user persona and cohort             │
 > └──────────────────────────────────────────────────────────────┘
 > ```
+
+<svg viewBox="0 0 700 400" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="400" fill="#f8fafc" rx="12"/>
+  <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#1e293b">PMF Metric Radar — Key Dimensions</text>
+  <text x="350" y="46" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Track all 8 dimensions to measure product-market fit holistically</text>
+  <!-- Hexagon grid (3 levels) -->
+  <!-- Outer hexagon -->
+  <polygon points="350,75 520,130 520,260 350,315 180,260 180,130" fill="none" stroke="#e2e8f0" stroke-width="1.5"/>
+  <!-- Middle hexagon -->
+  <polygon points="350,115 480,152 480,242 350,280 220,242 220,152" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+  <!-- Inner hexagon -->
+  <polygon points="350,155 440,175 440,225 350,245 260,225 260,175" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+  <!-- Axis lines -->
+  <line x1="350" y1="75" x2="350" y2="315" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="180" y1="130" x2="520" y2="260" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="520" y1="130" x2="180" y2="260" stroke="#e2e8f0" stroke-width="1"/>
+  <!-- Data shape (sample good PMF) -->
+  <polygon points="350,90 505,140 490,250 350,300 200,245 195,135" fill="#2563eb" opacity="0.12" stroke="#2563eb" stroke-width="2.5"/>
+  <!-- Data points -->
+  <circle cx="350" cy="90" r="5" fill="#2563eb"/>
+  <circle cx="505" cy="140" r="5" fill="#2563eb"/>
+  <circle cx="490" cy="250" r="5" fill="#2563eb"/>
+  <circle cx="350" cy="300" r="5" fill="#2563eb"/>
+  <circle cx="200" cy="245" r="5" fill="#2563eb"/>
+  <circle cx="195" cy="135" r="5" fill="#2563eb"/>
+  <!-- Labels -->
+  <text x="350" y="65" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="#1e293b">Sean Ellis Score</text>
+  <text x="350" y="55" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#10b981">45% (Target: 40%+)</text>
+  <text x="545" y="125" text-anchor="start" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="#1e293b">Retention</text>
+  <text x="545" y="140" text-anchor="start" font-family="Arial,sans-serif" font-size="9" fill="#10b981">65% at M6</text>
+  <text x="545" y="260" text-anchor="start" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="#1e293b">NPS</text>
+  <text x="545" y="275" text-anchor="start" font-family="Arial,sans-serif" font-size="9" fill="#10b981">52 (Target: 50+)</text>
+  <text x="350" y="332" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="#1e293b">DAU/MAU</text>
+  <text x="350" y="346" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#f59e0b">22% (Target: 20%+)</text>
+  <text x="155" y="260" text-anchor="end" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="#1e293b">NRR</text>
+  <text x="155" y="275" text-anchor="end" font-family="Arial,sans-serif" font-size="9" fill="#10b981">112% (Target: 110%+)</text>
+  <text x="155" y="125" text-anchor="end" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="#1e293b">Organic Growth</text>
+  <text x="155" y="140" text-anchor="end" font-family="Arial,sans-serif" font-size="9" fill="#10b981">35% (Target: 30%+)</text>
+  <!-- Legend -->
+  <rect x="195" y="368" width="14" height="14" fill="#2563eb" opacity="0.15" rx="3" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="215" y="380" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Current performance</text>
+  <rect x="360" y="368" width="14" height="14" fill="none" rx="3" stroke="#e2e8f0" stroke-width="1.5"/>
+  <text x="380" y="380" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Target benchmark (outer ring = excellent)</text>
+</svg>
 
 ## Australian Market Nuances: Why Global Frameworks Need Local Calibration
 

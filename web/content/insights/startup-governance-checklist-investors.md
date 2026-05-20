@@ -26,6 +26,41 @@ This guide cuts through the noise to provide a practical, actionable **startup g
 > - Stage 5 governance can command a **10-15% valuation premium** over peers
 > - **85%** of failed Series A deals cite governance gaps as a contributing factor
 
+<svg viewBox="0 0 700 420" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="420" rx="8" fill="#f8fafc"/>
+  <text x="350" y="36" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Governance Maturity: 5 Stages</text>
+  <text x="350" y="56" text-anchor="middle" font-size="12" fill="#64748b">Bar width = maturity level | Color = investor risk perception</text>
+  <!-- Axis -->
+  <line x1="160" y1="80" x2="160" y2="370" stroke="#1e293b" stroke-width="1.5"/>
+  <!-- Stage 1 -->
+  <text x="150" y="108" text-anchor="end" font-size="12" font-weight="bold" fill="#1e293b">Ad-Hoc</text>
+  <text x="150" y="122" text-anchor="end" font-size="10" fill="#64748b">0–6 months</text>
+  <rect x="165" y="96" width="70" height="30" rx="4" fill="#ef4444"/>
+  <text x="245" y="116" font-size="11" fill="#ef4444" font-weight="bold">High Risk — deal unlikely</text>
+  <!-- Stage 2 -->
+  <text x="150" y="168" text-anchor="end" font-size="12" font-weight="bold" fill="#1e293b">Basic</text>
+  <text x="150" y="182" text-anchor="end" font-size="10" fill="#64748b">6–12 months</text>
+  <rect x="165" y="156" width="160" height="30" rx="4" fill="#f59e0b"/>
+  <text x="335" y="176" font-size="11" fill="#f59e0b" font-weight="bold">Cleanup required</text>
+  <!-- Stage 3 -->
+  <text x="150" y="228" text-anchor="end" font-size="12" font-weight="bold" fill="#1e293b">Developing</text>
+  <text x="150" y="242" text-anchor="end" font-size="10" fill="#64748b">1–2 years</text>
+  <rect x="165" y="216" width="290" height="30" rx="4" fill="#2563eb"/>
+  <text x="465" y="236" font-size="11" fill="#2563eb" font-weight="bold">Investable with conditions</text>
+  <!-- Stage 4 -->
+  <text x="150" y="288" text-anchor="end" font-size="12" font-weight="bold" fill="#1e293b">Structured</text>
+  <text x="150" y="302" text-anchor="end" font-size="10" fill="#64748b">2–3 years</text>
+  <rect x="165" y="276" width="400" height="30" rx="4" fill="#10b981"/>
+  <text x="575" y="296" font-size="11" fill="#10b981" font-weight="bold">Investment-ready</text>
+  <!-- Stage 5 -->
+  <text x="150" y="348" text-anchor="end" font-size="12" font-weight="bold" fill="#1e293b">Institutional</text>
+  <text x="150" y="362" text-anchor="end" font-size="10" fill="#64748b">3+ years</text>
+  <rect x="165" y="336" width="500" height="30" rx="4" fill="#10b981"/>
+  <text x="350" y="356" font-size="12" font-weight="bold" fill="#ffffff">Premium valuation +15%</text>
+  <!-- Bottom note -->
+  <text x="350" y="400" text-anchor="middle" font-size="11" fill="#64748b">85% of failed Series A deals cite governance gaps as a contributing factor</text>
+</svg>
+
 ## The Foundation: Corporate Structure and ASIC Compliance
 
 The first stop for any investor's due diligence team is the Australian Securities and Investments Commission (ASIC) database. This is the public record of your company's existence, and any discrepancy here is an immediate red flag. Your company structure must be clean, active, and aligned with your funding goals.
@@ -118,33 +153,56 @@ A robust governance framework requires a clear process for declaring and managin
 
 ### Board Composition
 
-```
-┌─────────────────────────────────────────────────────┐
-│           BOARD COMPOSITION FRAMEWORK               │
-├─────────────────────────────────────────────────────┤
-│                                                     │
-│  PRE-SEED / SEED                                    │
-│  ┌──────────┐  ┌──────────┐                         │
-│  │ Founder 1│  │ Founder 2│    2 seats (founders)   │
-│  └──────────┘  └──────────┘                         │
-│                                                     │
-│  SERIES A                                           │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐           │
-│  │ Founder 1│  │ Founder 2│  │ Investor │  3 seats  │
-│  └──────────┘  └──────────┘  └──────────┘           │
-│                                                     │
-│  SERIES B+                                          │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐           │
-│  │ Founder  │  │ Investor │  │Independent│  3-5     │
-│  ├──────────┤  ├──────────┤  ├──────────┤  seats    │
-│  │ Founder  │  │ Investor │  │          │           │
-│  └──────────┘  └──────────┘  └──────────┘           │
-│                                                     │
-│  KEY: Founders should retain majority or equal       │
-│  seats through Series A. Independent directors       │
-│  add credibility from Series B onward.              │
-└─────────────────────────────────────────────────────┘
-```
+<svg viewBox="0 0 700 400" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="400" rx="8" fill="#f8fafc"/>
+  <text x="350" y="36" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Board Composition Flow by Funding Stage</text>
+  <!-- PRE-SEED/SEED -->
+  <rect x="30" y="60" width="190" height="110" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+  <rect x="30" y="60" width="190" height="32" rx="8" fill="#2563eb"/>
+  <text x="125" y="82" text-anchor="middle" font-size="13" font-weight="bold" fill="#ffffff">PRE-SEED / SEED</text>
+  <rect x="50" y="104" width="68" height="32" rx="6" fill="#2563eb" opacity="0.15"/>
+  <text x="84" y="125" text-anchor="middle" font-size="11" fill="#2563eb" font-weight="bold">Founder 1</text>
+  <rect x="132" y="104" width="68" height="32" rx="6" fill="#2563eb" opacity="0.15"/>
+  <text x="166" y="125" text-anchor="middle" font-size="11" fill="#2563eb" font-weight="bold">Founder 2</text>
+  <text x="125" y="156" text-anchor="middle" font-size="11" fill="#64748b">2 seats (founders only)</text>
+  <!-- Arrow 1 -->
+  <line x1="225" y1="115" x2="260" y2="115" stroke="#1e293b" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <!-- SERIES A -->
+  <rect x="265" y="60" width="190" height="110" rx="8" fill="#ffffff" stroke="#10b981" stroke-width="2"/>
+  <rect x="265" y="60" width="190" height="32" rx="8" fill="#10b981"/>
+  <text x="360" y="82" text-anchor="middle" font-size="13" font-weight="bold" fill="#ffffff">SERIES A</text>
+  <rect x="278" y="104" width="52" height="32" rx="6" fill="#2563eb" opacity="0.15"/>
+  <text x="304" y="125" text-anchor="middle" font-size="10" fill="#2563eb" font-weight="bold">Founder</text>
+  <rect x="338" y="104" width="52" height="32" rx="6" fill="#2563eb" opacity="0.15"/>
+  <text x="364" y="125" text-anchor="middle" font-size="10" fill="#2563eb" font-weight="bold">Founder</text>
+  <rect x="398" y="104" width="52" height="32" rx="6" fill="#f59e0b" opacity="0.2"/>
+  <text x="424" y="125" text-anchor="middle" font-size="10" fill="#f59e0b" font-weight="bold">Investor</text>
+  <text x="360" y="156" text-anchor="middle" font-size="11" fill="#64748b">3 seats (founder majority)</text>
+  <!-- Arrow 2 -->
+  <line x1="460" y1="115" x2="495" y2="115" stroke="#1e293b" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <!-- SERIES B+ -->
+  <rect x="500" y="60" width="185" height="110" rx="8" fill="#ffffff" stroke="#f59e0b" stroke-width="2"/>
+  <rect x="500" y="60" width="185" height="32" rx="8" fill="#f59e0b"/>
+  <text x="592" y="82" text-anchor="middle" font-size="13" font-weight="bold" fill="#ffffff">SERIES B+</text>
+  <rect x="510" y="100" width="48" height="28" rx="6" fill="#2563eb" opacity="0.15"/>
+  <text x="534" y="119" text-anchor="middle" font-size="9" fill="#2563eb" font-weight="bold">Founder</text>
+  <rect x="564" y="100" width="48" height="28" rx="6" fill="#f59e0b" opacity="0.2"/>
+  <text x="588" y="119" text-anchor="middle" font-size="9" fill="#f59e0b" font-weight="bold">Investor</text>
+  <rect x="618" y="100" width="58" height="28" rx="6" fill="#10b981" opacity="0.15"/>
+  <text x="647" y="119" text-anchor="middle" font-size="9" fill="#10b981" font-weight="bold">Independent</text>
+  <rect x="510" y="132" width="48" height="28" rx="6" fill="#2563eb" opacity="0.15"/>
+  <text x="534" y="151" text-anchor="middle" font-size="9" fill="#2563eb" font-weight="bold">Founder</text>
+  <rect x="564" y="132" width="48" height="28" rx="6" fill="#f59e0b" opacity="0.2"/>
+  <text x="588" y="151" text-anchor="middle" font-size="9" fill="#f59e0b" font-weight="bold">Investor</text>
+  <text x="592" y="180" text-anchor="middle" font-size="11" fill="#64748b">3–5 seats</text>
+  <!-- Key / Legend -->
+  <rect x="100" y="210" width="500" height="80" rx="8" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="350" y="234" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e293b">Key Governance Principles</text>
+  <rect x="120" y="248" width="12" height="12" rx="3" fill="#2563eb"/><text x="138" y="259" font-size="11" fill="#1e293b">Founders — retain majority through Series A</text>
+  <rect x="120" y="268" width="12" height="12" rx="3" fill="#f59e0b"/><text x="138" y="279" font-size="11" fill="#1e293b">Investors — board seats from Series A onward</text>
+  <rect x="400" y="248" width="12" height="12" rx="3" fill="#10b981"/><text x="418" y="259" font-size="11" fill="#1e293b">Independent directors add credibility from Series B</text>
+  <defs><marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#1e293b"/></marker></defs>
+</svg>
 
 Investors look for a mix of skills and independence. While early boards are often dominated by founders, Series A investors expect the inclusion of independent directors or investors on the board. This provides a check-and-balance system and brings external expertise to the table.
 

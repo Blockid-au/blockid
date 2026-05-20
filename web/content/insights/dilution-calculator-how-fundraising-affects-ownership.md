@@ -68,6 +68,69 @@ Your stake has dropped from 50% to **40%**. This is the reality of **founder own
 > - ESOP creation and top-ups cause **hidden dilution** that hits founders, not investors
 > - Each round compounds: 50% x 80% x 83% x 85% x 95% x 79% = ~21%
 
+<svg viewBox="0 0 700 420" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="420" rx="8" fill="#f8fafc"/>
+  <text x="350" y="32" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Dilution Waterfall: Founding to Series A</text>
+  <text x="350" y="52" text-anchor="middle" font-size="12" fill="#64748b">How Founder A's ownership changes at each stage</text>
+  <!-- Y-axis -->
+  <text x="55" y="88" text-anchor="end" font-size="10" fill="#64748b">50%</text>
+  <line x1="60" y1="84" x2="660" y2="84" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="55" y="128" text-anchor="end" font-size="10" fill="#64748b">40%</text>
+  <line x1="60" y1="124" x2="660" y2="124" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="55" y="168" text-anchor="end" font-size="10" fill="#64748b">33%</text>
+  <line x1="60" y1="164" x2="660" y2="164" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="55" y="208" text-anchor="end" font-size="10" fill="#64748b">28%</text>
+  <line x1="60" y1="204" x2="660" y2="204" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="55" y="248" text-anchor="end" font-size="10" fill="#64748b">27%</text>
+  <line x1="60" y1="244" x2="660" y2="244" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="55" y="288" text-anchor="end" font-size="10" fill="#64748b">21%</text>
+  <line x1="60" y1="284" x2="660" y2="284" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="60" y1="340" x2="660" y2="340" stroke="#1e293b" stroke-width="1.5"/>
+  <!-- Bars (waterfall style) -->
+  <!-- Founding: 50% -->
+  <rect x="80" y="84" width="70" height="256" rx="4" fill="#2563eb"/>
+  <text x="115" y="78" text-anchor="middle" font-size="13" font-weight="bold" fill="#2563eb">50%</text>
+  <text x="115" y="358" text-anchor="middle" font-size="10" fill="#1e293b" font-weight="bold">Founding</text>
+  <!-- ESOP: drop to 40% -->
+  <rect x="175" y="84" width="70" height="40" rx="4" fill="#ef4444" opacity="0.25"/>
+  <rect x="175" y="124" width="70" height="216" rx="4" fill="#2563eb"/>
+  <text x="210" y="78" text-anchor="middle" font-size="13" font-weight="bold" fill="#2563eb">40%</text>
+  <text x="210" y="112" text-anchor="middle" font-size="9" fill="#ef4444" font-weight="bold">-10%</text>
+  <text x="210" y="358" text-anchor="middle" font-size="10" fill="#1e293b" font-weight="bold">ESOP</text>
+  <text x="210" y="372" text-anchor="middle" font-size="9" fill="#64748b">20% pool</text>
+  <!-- Pre-Seed: drop to 33.2% -->
+  <rect x="270" y="124" width="70" height="40" rx="4" fill="#ef4444" opacity="0.25"/>
+  <rect x="270" y="164" width="70" height="176" rx="4" fill="#2563eb"/>
+  <text x="305" y="158" text-anchor="middle" font-size="13" font-weight="bold" fill="#2563eb">33.2%</text>
+  <text x="305" y="152" text-anchor="middle" font-size="9" fill="#ef4444" font-weight="bold">-6.8%</text>
+  <text x="305" y="358" text-anchor="middle" font-size="10" fill="#1e293b" font-weight="bold">Pre-Seed</text>
+  <text x="305" y="372" text-anchor="middle" font-size="9" fill="#64748b">$500K raised</text>
+  <!-- Seed: drop to 28.2% -->
+  <rect x="365" y="164" width="70" height="40" rx="4" fill="#ef4444" opacity="0.25"/>
+  <rect x="365" y="204" width="70" height="136" rx="4" fill="#2563eb"/>
+  <text x="400" y="198" text-anchor="middle" font-size="13" font-weight="bold" fill="#2563eb">28.2%</text>
+  <text x="400" y="192" text-anchor="middle" font-size="9" fill="#ef4444" font-weight="bold">-5%</text>
+  <text x="400" y="358" text-anchor="middle" font-size="10" fill="#1e293b" font-weight="bold">Seed</text>
+  <text x="400" y="372" text-anchor="middle" font-size="9" fill="#64748b">$1.5M raised</text>
+  <!-- ESOP Top-up: drop to 26.8% -->
+  <rect x="460" y="204" width="70" height="40" rx="4" fill="#ef4444" opacity="0.25"/>
+  <rect x="460" y="244" width="70" height="96" rx="4" fill="#2563eb"/>
+  <text x="495" y="238" text-anchor="middle" font-size="13" font-weight="bold" fill="#2563eb">26.8%</text>
+  <text x="495" y="232" text-anchor="middle" font-size="9" fill="#ef4444" font-weight="bold">-1.4%</text>
+  <text x="495" y="358" text-anchor="middle" font-size="10" fill="#1e293b" font-weight="bold">ESOP+</text>
+  <text x="495" y="372" text-anchor="middle" font-size="9" fill="#64748b">+5% top-up</text>
+  <!-- Series A: drop to 21.2% -->
+  <rect x="555" y="244" width="70" height="40" rx="4" fill="#ef4444" opacity="0.25"/>
+  <rect x="555" y="284" width="70" height="56" rx="4" fill="#2563eb"/>
+  <text x="590" y="278" text-anchor="middle" font-size="13" font-weight="bold" fill="#2563eb">21.2%</text>
+  <text x="590" y="272" text-anchor="middle" font-size="9" fill="#ef4444" font-weight="bold">-5.6%</text>
+  <text x="590" y="358" text-anchor="middle" font-size="10" fill="#1e293b" font-weight="bold">Series A</text>
+  <text x="590" y="372" text-anchor="middle" font-size="9" fill="#64748b">$8M raised</text>
+  <!-- Value callout -->
+  <rect x="180" y="388" width="340" height="28" rx="6" fill="#10b981" opacity="0.12" stroke="#10b981" stroke-width="1"/>
+  <text x="350" y="407" text-anchor="middle" font-size="12" font-weight="bold" fill="#10b981">Stake value: $0 at founding to $8.06M at Series A</text>
+</svg>
+
 ### Pre-Seed: The First External Capital Injection
 
 Now you are at 40%. You have a product, a team, and a plan. You approach angel investors or early-stage VCs for a **pre-seed** round. The goal here is to prove product-market fit.
@@ -147,6 +210,60 @@ Here is where the narrative changes. At this stage, you are no longer just manag
 | **Market standard** | Rare — red flag if proposed | Occasionally used | Industry standard for AU and US deals |
 | **When to accept** | Almost never | Only if no alternative and small round | Default — always negotiate for this |
 | **AVCAL guidance** | Advises against for early-stage | Acceptable in specific scenarios | Recommended as fair protection |
+
+<svg viewBox="0 0 700 380" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="380" rx="8" fill="#f8fafc"/>
+  <text x="350" y="32" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Anti-Dilution Mechanisms Compared</text>
+  <text x="350" y="52" text-anchor="middle" font-size="12" fill="#64748b">Impact on founders when a down round occurs ($5/share to $3/share)</text>
+  <!-- Card 1: Full Ratchet -->
+  <rect x="20" y="70" width="210" height="280" rx="8" fill="#ffffff" stroke="#ef4444" stroke-width="2"/>
+  <rect x="20" y="70" width="210" height="38" rx="8" fill="#ef4444"/>
+  <text x="125" y="95" text-anchor="middle" font-size="13" font-weight="bold" fill="#ffffff">FULL RATCHET</text>
+  <text x="125" y="128" text-anchor="middle" font-size="28" font-weight="bold" fill="#ef4444">333K</text>
+  <text x="125" y="148" text-anchor="middle" font-size="11" fill="#64748b">shares (up from 200K)</text>
+  <line x1="40" y1="162" x2="210" y2="162" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="40" y="182" font-size="11" font-weight="bold" fill="#1e293b">Mechanism:</text>
+  <text x="40" y="198" font-size="10" fill="#64748b">Price resets to lowest</text>
+  <text x="40" y="214" font-size="10" fill="#64748b">new share price</text>
+  <text x="40" y="240" font-size="11" font-weight="bold" fill="#1e293b">Founder Impact:</text>
+  <rect x="40" y="250" width="170" height="22" rx="4" fill="#ef4444" opacity="0.15"/>
+  <text x="125" y="265" text-anchor="middle" font-size="11" font-weight="bold" fill="#ef4444">CATASTROPHIC</text>
+  <text x="40" y="294" font-size="11" font-weight="bold" fill="#1e293b">Market Standard:</text>
+  <text x="40" y="310" font-size="10" fill="#ef4444">Rare — red flag if proposed</text>
+  <text x="125" y="340" text-anchor="middle" font-size="10" font-weight="bold" fill="#ef4444">Almost never accept</text>
+  <!-- Card 2: Narrow Weighted Avg -->
+  <rect x="245" y="70" width="210" height="280" rx="8" fill="#ffffff" stroke="#f59e0b" stroke-width="2"/>
+  <rect x="245" y="70" width="210" height="38" rx="8" fill="#f59e0b"/>
+  <text x="350" y="95" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffffff">NARROW WEIGHTED AVG</text>
+  <text x="350" y="128" text-anchor="middle" font-size="28" font-weight="bold" fill="#f59e0b">~260K</text>
+  <text x="350" y="148" text-anchor="middle" font-size="11" fill="#64748b">shares (up from 200K)</text>
+  <line x1="265" y1="162" x2="435" y2="162" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="265" y="182" font-size="11" font-weight="bold" fill="#1e293b">Mechanism:</text>
+  <text x="265" y="198" font-size="10" fill="#64748b">Adjusts price, excludes</text>
+  <text x="265" y="214" font-size="10" fill="#64748b">some preferred shares</text>
+  <text x="265" y="240" font-size="11" font-weight="bold" fill="#1e293b">Founder Impact:</text>
+  <rect x="265" y="250" width="170" height="22" rx="4" fill="#f59e0b" opacity="0.15"/>
+  <text x="350" y="265" text-anchor="middle" font-size="11" font-weight="bold" fill="#f59e0b">MODERATE</text>
+  <text x="265" y="294" font-size="11" font-weight="bold" fill="#1e293b">Market Standard:</text>
+  <text x="265" y="310" font-size="10" fill="#f59e0b">Occasionally used</text>
+  <text x="350" y="340" text-anchor="middle" font-size="10" font-weight="bold" fill="#f59e0b">Only if no alternative</text>
+  <!-- Card 3: Broad Weighted Avg -->
+  <rect x="470" y="70" width="210" height="280" rx="8" fill="#ffffff" stroke="#10b981" stroke-width="2"/>
+  <rect x="470" y="70" width="210" height="38" rx="8" fill="#10b981"/>
+  <text x="575" y="95" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffffff">BROAD WEIGHTED AVG</text>
+  <text x="575" y="128" text-anchor="middle" font-size="28" font-weight="bold" fill="#10b981">~230K</text>
+  <text x="575" y="148" text-anchor="middle" font-size="11" fill="#64748b">shares (up from 200K)</text>
+  <line x1="490" y1="162" x2="660" y2="162" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="490" y="182" font-size="11" font-weight="bold" fill="#1e293b">Mechanism:</text>
+  <text x="490" y="198" font-size="10" fill="#64748b">Adjusts based on all</text>
+  <text x="490" y="214" font-size="10" fill="#64748b">outstanding shares</text>
+  <text x="490" y="240" font-size="11" font-weight="bold" fill="#1e293b">Founder Impact:</text>
+  <rect x="490" y="250" width="170" height="22" rx="4" fill="#10b981" opacity="0.15"/>
+  <text x="575" y="265" text-anchor="middle" font-size="11" font-weight="bold" fill="#10b981">LOW TO MODERATE</text>
+  <text x="490" y="294" font-size="11" font-weight="bold" fill="#1e293b">Market Standard:</text>
+  <text x="490" y="310" font-size="10" fill="#10b981">Industry standard (AU & US)</text>
+  <text x="575" y="340" text-anchor="middle" font-size="10" font-weight="bold" fill="#10b981">Always negotiate for this</text>
+</svg>
 
 ### Understanding Anti-Dilution Protections
 

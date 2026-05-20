@@ -48,6 +48,37 @@ The investment in a tailored agreement is an investment in your company's exit p
 | **Non-Compete** | Prevents founders joining competitors | Medium | Ex-founder competes directly |
 | **Exit/Valuation Mechanism** | Defines share price methodology | High | Endless valuation disputes at exit |
 
+<svg viewBox="0 0 700 400" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="400" rx="8" fill="#f8fafc"/>
+  <text x="350" y="32" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Key SHA Clauses: Priority Ranking</text>
+  <text x="350" y="52" text-anchor="middle" font-size="12" fill="#64748b">Impact on deal survival if missing from your agreement</text>
+  <!-- Axis -->
+  <line x1="200" y1="72" x2="200" y2="370" stroke="#1e293b" stroke-width="1"/>
+  <line x1="200" y1="370" x2="670" y2="370" stroke="#1e293b" stroke-width="1"/>
+  <text x="435" y="395" text-anchor="middle" font-size="11" fill="#64748b">Risk Level (higher = more critical)</text>
+  <!-- Bars -->
+  <text x="190" y="92" text-anchor="end" font-size="11" fill="#1e293b">Pre-emptive Rights</text>
+  <rect x="205" y="78" width="440" height="24" rx="4" fill="#ef4444"/><text x="655" y="95" font-size="11" fill="#ef4444" font-weight="bold">Critical</text>
+  <text x="190" y="122" text-anchor="end" font-size="11" fill="#1e293b">Tag-Along</text>
+  <rect x="205" y="108" width="440" height="24" rx="4" fill="#ef4444"/><text x="655" y="125" font-size="11" fill="#ef4444" font-weight="bold">Critical</text>
+  <text x="190" y="152" text-anchor="end" font-size="11" fill="#1e293b">Drag-Along</text>
+  <rect x="205" y="138" width="440" height="24" rx="4" fill="#ef4444"/><text x="655" y="155" font-size="11" fill="#ef4444" font-weight="bold">Critical</text>
+  <text x="190" y="182" text-anchor="end" font-size="11" fill="#1e293b">Vesting Schedule</text>
+  <rect x="205" y="168" width="440" height="24" rx="4" fill="#ef4444"/><text x="655" y="185" font-size="11" fill="#ef4444" font-weight="bold">Critical</text>
+  <text x="190" y="212" text-anchor="end" font-size="11" fill="#1e293b">IP Assignment</text>
+  <rect x="205" y="198" width="440" height="24" rx="4" fill="#ef4444"/><text x="655" y="215" font-size="11" fill="#ef4444" font-weight="bold">Critical</text>
+  <text x="190" y="242" text-anchor="end" font-size="11" fill="#1e293b">Good/Bad Leaver</text>
+  <rect x="205" y="228" width="360" height="24" rx="4" fill="#f59e0b"/><text x="575" y="245" font-size="11" fill="#f59e0b" font-weight="bold">High</text>
+  <text x="190" y="272" text-anchor="end" font-size="11" fill="#1e293b">Reserved Matters</text>
+  <rect x="205" y="258" width="360" height="24" rx="4" fill="#f59e0b"/><text x="575" y="275" font-size="11" fill="#f59e0b" font-weight="bold">High</text>
+  <text x="190" y="302" text-anchor="end" font-size="11" fill="#1e293b">Deadlock Resolution</text>
+  <rect x="205" y="288" width="360" height="24" rx="4" fill="#f59e0b"/><text x="575" y="305" font-size="11" fill="#f59e0b" font-weight="bold">High</text>
+  <text x="190" y="332" text-anchor="end" font-size="11" fill="#1e293b">Exit Mechanism</text>
+  <rect x="205" y="318" width="360" height="24" rx="4" fill="#f59e0b"/><text x="575" y="335" font-size="11" fill="#f59e0b" font-weight="bold">High</text>
+  <text x="190" y="362" text-anchor="end" font-size="11" fill="#1e293b">Non-Compete</text>
+  <rect x="205" y="348" width="240" height="24" rx="4" fill="#2563eb"/><text x="455" y="365" font-size="11" fill="#2563eb" font-weight="bold">Medium</text>
+</svg>
+
 ## The Six Pillars of a Robust Shareholders Agreement
 
 To build a **shareholders agreement startup** document that truly protects you, you must go beyond the basics. The following six clauses are the pillars of a functional agreement. If any of these are missing or weak, your startup is vulnerable.
@@ -80,6 +111,36 @@ These clauses are the mechanisms of exit strategy. They are often the most negot
 | **Without this clause** | Minority abandoned in a side deal | Single holdout blocks entire exit |
 | **Australian context** | Standard in all VC-backed deals | Often negotiated with a price floor |
 | **Founder tip** | Always insist on tag-along rights | Negotiate a minimum valuation trigger |
+
+<svg viewBox="0 0 700 370" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="370" rx="8" fill="#f8fafc"/>
+  <text x="350" y="32" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Drag-Along vs Tag-Along Rights</text>
+  <text x="350" y="52" text-anchor="middle" font-size="12" fill="#64748b">Two essential exit protection mechanisms compared</text>
+  <!-- Tag-Along Card -->
+  <rect x="20" y="70" width="320" height="280" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+  <rect x="20" y="70" width="320" height="40" rx="8" fill="#2563eb"/>
+  <text x="180" y="96" text-anchor="middle" font-size="14" font-weight="bold" fill="#ffffff">TAG-ALONG RIGHTS</text>
+  <text x="40" y="132" font-size="12" font-weight="bold" fill="#1e293b">Protects:</text><text x="160" y="132" font-size="12" fill="#2563eb">Minority shareholders</text>
+  <text x="40" y="158" font-size="12" font-weight="bold" fill="#1e293b">Trigger:</text><text x="160" y="158" font-size="12" fill="#1e293b">Majority receives buyout offer</text>
+  <text x="40" y="184" font-size="12" font-weight="bold" fill="#1e293b">Mechanism:</text><text x="160" y="184" font-size="12" fill="#1e293b">Minority can sell on same terms</text>
+  <text x="40" y="210" font-size="12" font-weight="bold" fill="#1e293b">Threshold:</text><text x="160" y="210" font-size="12" fill="#1e293b">Any majority sale</text>
+  <text x="40" y="236" font-size="12" font-weight="bold" fill="#1e293b">Price:</text><text x="160" y="236" font-size="12" fill="#10b981">Same price per share</text>
+  <text x="40" y="262" font-size="12" font-weight="bold" fill="#1e293b">Without it:</text><text x="160" y="262" font-size="12" fill="#ef4444">Minority left behind</text>
+  <rect x="40" y="286" width="280" height="32" rx="6" fill="#2563eb" opacity="0.1"/>
+  <text x="180" y="307" text-anchor="middle" font-size="11" font-weight="bold" fill="#2563eb">Always insist on tag-along rights</text>
+  <!-- Drag-Along Card -->
+  <rect x="360" y="70" width="320" height="280" rx="8" fill="#ffffff" stroke="#f59e0b" stroke-width="2"/>
+  <rect x="360" y="70" width="320" height="40" rx="8" fill="#f59e0b"/>
+  <text x="520" y="96" text-anchor="middle" font-size="14" font-weight="bold" fill="#ffffff">DRAG-ALONG RIGHTS</text>
+  <text x="380" y="132" font-size="12" font-weight="bold" fill="#1e293b">Protects:</text><text x="500" y="132" font-size="12" fill="#f59e0b">Majority shareholders</text>
+  <text x="380" y="158" font-size="12" font-weight="bold" fill="#1e293b">Trigger:</text><text x="500" y="158" font-size="12" fill="#1e293b">Buyer wants 100% of company</text>
+  <text x="380" y="184" font-size="12" font-weight="bold" fill="#1e293b">Mechanism:</text><text x="500" y="184" font-size="12" fill="#1e293b">Majority forces minority to sell</text>
+  <text x="380" y="210" font-size="12" font-weight="bold" fill="#1e293b">Threshold:</text><text x="500" y="210" font-size="12" fill="#1e293b">75%+ shareholder approval</text>
+  <text x="380" y="236" font-size="12" font-weight="bold" fill="#1e293b">Price:</text><text x="500" y="236" font-size="12" fill="#10b981">Same price for all</text>
+  <text x="380" y="262" font-size="12" font-weight="bold" fill="#1e293b">Without it:</text><text x="500" y="262" font-size="12" fill="#ef4444">Holdout blocks entire exit</text>
+  <rect x="380" y="286" width="280" height="32" rx="6" fill="#f59e0b" opacity="0.1"/>
+  <text x="520" y="307" text-anchor="middle" font-size="11" font-weight="bold" fill="#f59e0b">Negotiate a minimum valuation trigger</text>
+</svg>
 
 ### 3. Board Composition and Reserved Matters
 

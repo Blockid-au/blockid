@@ -66,6 +66,74 @@ For high-growth tech startups, this creates a tension between the need for speed
 | **Lead Manager** | Investment bank / lead manager appointed | [ ] | Shortlist and appoint 12+ months before target date |
 | **IP Due Diligence** | All IP assigned to company entity | [ ] | Verify chain of title for all patents, code, and designs |
 
+<svg viewBox="0 0 700 380" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="380" fill="#f8fafc" rx="12"/>
+  <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#1e293b">ASX Listing Requirements — Startup Readiness Checklist</text>
+  <text x="350" y="46" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Key requirements for Australian tech IPO eligibility</text>
+  <!-- Row 1 -->
+  <rect x="20" y="62" width="320" height="46" fill="white" stroke="#e2e8f0" stroke-width="1" rx="8"/>
+  <circle cx="48" cy="85" r="12" fill="#10b981"/>
+  <text x="48" y="90" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="white">&#10003;</text>
+  <text x="68" y="81" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#1e293b">Market Capitalisation</text>
+  <text x="68" y="97" font-family="Arial,sans-serif" font-size="10" fill="#64748b">$20M AUD minimum (aim $30M+)</text>
+  <!-- Row 2 -->
+  <rect x="360" y="62" width="320" height="46" fill="white" stroke="#e2e8f0" stroke-width="1" rx="8"/>
+  <circle cx="388" cy="85" r="12" fill="#10b981"/>
+  <text x="388" y="90" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="white">&#10003;</text>
+  <text x="408" y="81" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#1e293b">Shareholder Spread</text>
+  <text x="408" y="97" font-family="Arial,sans-serif" font-size="10" fill="#64748b">300+ shareholders, each $2K+ holdings</text>
+  <!-- Row 3 -->
+  <rect x="20" y="118" width="320" height="46" fill="white" stroke="#e2e8f0" stroke-width="1" rx="8"/>
+  <circle cx="48" cy="141" r="12" fill="#10b981"/>
+  <text x="48" y="146" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="white">&#10003;</text>
+  <text x="68" y="137" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#1e293b">Audited Financials</text>
+  <text x="68" y="153" font-family="Arial,sans-serif" font-size="10" fill="#64748b">2 years of audited statements required</text>
+  <!-- Row 4 -->
+  <rect x="360" y="118" width="320" height="46" fill="white" stroke="#e2e8f0" stroke-width="1" rx="8"/>
+  <circle cx="388" cy="141" r="12" fill="#10b981"/>
+  <text x="388" y="146" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="white">&#10003;</text>
+  <text x="408" y="137" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#1e293b">Financial Forecast</text>
+  <text x="408" y="153" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Current + next FY defensible forecast</text>
+  <!-- Row 5 -->
+  <rect x="20" y="174" width="320" height="46" fill="white" stroke="#e2e8f0" stroke-width="1" rx="8"/>
+  <circle cx="48" cy="197" r="12" fill="#10b981"/>
+  <text x="48" y="202" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="white">&#10003;</text>
+  <text x="68" y="193" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#1e293b">Board Composition</text>
+  <text x="68" y="209" font-family="Arial,sans-serif" font-size="10" fill="#64748b">2+ independent non-exec directors</text>
+  <!-- Row 6 -->
+  <rect x="360" y="174" width="320" height="46" fill="white" stroke="#e2e8f0" stroke-width="1" rx="8"/>
+  <circle cx="388" cy="197" r="12" fill="#10b981"/>
+  <text x="388" y="202" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="white">&#10003;</text>
+  <text x="408" y="193" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#1e293b">ASIC Compliance</text>
+  <text x="408" y="209" font-family="Arial,sans-serif" font-size="10" fill="#64748b">All filings current, no disputes</text>
+  <!-- Row 7 -->
+  <rect x="20" y="230" width="320" height="46" fill="white" stroke="#e2e8f0" stroke-width="1" rx="8"/>
+  <circle cx="48" cy="253" r="12" fill="#10b981"/>
+  <text x="48" y="258" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="white">&#10003;</text>
+  <text x="68" y="249" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#1e293b">ATO Compliance</text>
+  <text x="68" y="265" font-family="Arial,sans-serif" font-size="10" fill="#64748b">GST, PAYG, FBT all current</text>
+  <!-- Row 8 -->
+  <rect x="360" y="230" width="320" height="46" fill="white" stroke="#e2e8f0" stroke-width="1" rx="8"/>
+  <circle cx="388" cy="253" r="12" fill="#10b981"/>
+  <text x="388" y="258" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="white">&#10003;</text>
+  <text x="408" y="249" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#1e293b">Prospectus</text>
+  <text x="408" y="265" font-family="Arial,sans-serif" font-size="10" fill="#64748b">ASIC-reviewed, allow 3-6 months</text>
+  <!-- Row 9 -->
+  <rect x="20" y="286" width="320" height="46" fill="white" stroke="#e2e8f0" stroke-width="1" rx="8"/>
+  <circle cx="48" cy="309" r="12" fill="#10b981"/>
+  <text x="48" y="314" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="white">&#10003;</text>
+  <text x="68" y="305" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#1e293b">IP Due Diligence</text>
+  <text x="68" y="321" font-family="Arial,sans-serif" font-size="10" fill="#64748b">All IP assigned to company entity</text>
+  <!-- Row 10 -->
+  <rect x="360" y="286" width="320" height="46" fill="white" stroke="#e2e8f0" stroke-width="1" rx="8"/>
+  <circle cx="388" cy="309" r="12" fill="#10b981"/>
+  <text x="388" y="314" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="white">&#10003;</text>
+  <text x="408" y="305" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#1e293b">Lead Manager</text>
+  <text x="408" y="321" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Appoint investment bank 12+ months prior</text>
+  <!-- Footer -->
+  <text x="350" y="358" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">40% of tech listings fail to meet the $20M market cap or 300 shareholders rule within 2 years of planning</text>
+</svg>
+
 ## ASX vs. NSX: Understanding Your Listing Options
 
 Not all public markets are created equal. Many founders confuse the ASX with the National Stock Exchange of Australia (NSX), or they assume the Nasdaq is the only alternative. Understanding the differences is crucial for strategic planning.
@@ -168,6 +236,37 @@ Missing a deadline in this timeline can be costly. If your financial year-end ch
 > ├── Shares begin trading
 > └── Lock-up period begins (6-12 months for founders)
 > ```
+
+<svg viewBox="0 0 700 140" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="140" fill="#f8fafc" rx="12"/>
+  <text x="350" y="22" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="bold" fill="#1e293b">ASX IPO Timeline — 24-Month Roadmap</text>
+  <!-- Phase 1 -->
+  <rect x="10" y="40" width="145" height="56" fill="#2563eb" rx="8"/>
+  <text x="82" y="60" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">Months 1-6</text>
+  <text x="82" y="74" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#dbeafe">FOUNDATION</text>
+  <text x="82" y="86" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#dbeafe">Board + Audit + ESIC</text>
+  <path d="M159 68 L175 68" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrowIPO)"/>
+  <!-- Phase 2 -->
+  <rect x="179" y="40" width="145" height="56" fill="#2563eb" rx="8"/>
+  <text x="251" y="60" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">Months 7-12</text>
+  <text x="251" y="74" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#dbeafe">PREPARATION</text>
+  <text x="251" y="86" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#dbeafe">Audit + Lead Manager</text>
+  <path d="M328 68 L344 68" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrowIPO)"/>
+  <!-- Phase 3 -->
+  <rect x="348" y="40" width="145" height="56" fill="#f59e0b" rx="8"/>
+  <text x="420" y="60" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">Months 13-18</text>
+  <text x="420" y="74" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="white">DUE DILIGENCE</text>
+  <text x="420" y="86" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="white">Prospectus + ASIC</text>
+  <path d="M497 68 L513 68" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrowIPO)"/>
+  <!-- Phase 4 -->
+  <rect x="517" y="40" width="173" height="56" fill="#10b981" rx="8"/>
+  <text x="603" y="60" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">Months 19-24</text>
+  <text x="603" y="74" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="white">ROADSHOW + LISTING</text>
+  <text x="603" y="86" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="white">Price IPO + Trade Day</text>
+  <!-- Cost bar -->
+  <text x="350" y="120" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Total cost: $500K-$2M AUD | Advisory 5-7% of raise | Legal $100K-$300K | Audit $150K+ | Ongoing $300K-$500K/yr</text>
+  <defs><marker id="arrowIPO" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#cbd5e1"/></marker></defs>
+</svg>
 
 ## Governance: Why Day One Matters
 

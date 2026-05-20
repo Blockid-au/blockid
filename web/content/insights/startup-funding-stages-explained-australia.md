@@ -18,6 +18,43 @@ To avoid these pitfalls, founders must align their fundraising strategy with the
 | **Series B** | $15M - $50M | $40M - $120M | 15% - 25% | Growth-stage VCs | 6 - 12 months |
 | **Series C** | $50M+ | $120M+ | 10% - 20% | Late-stage VCs, PE Firms | 6 - 12 months |
 
+<svg viewBox="0 0 700 420" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="420" fill="#f8fafc" rx="8"/>
+  <text x="350" y="35" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Australian Startup Funding Staircase</text>
+  <!-- Staircase steps -->
+  <rect x="60" y="320" width="110" height="60" fill="#2563eb" rx="8"/>
+  <text x="115" y="347" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">Pre-Seed</text>
+  <text x="115" y="367" text-anchor="middle" font-size="11" fill="#e0e7ff">$50K–$500K</text>
+  <rect x="180" y="260" width="110" height="120" fill="#2563eb" rx="8" opacity="0.85"/>
+  <text x="235" y="287" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">Seed</text>
+  <text x="235" y="307" text-anchor="middle" font-size="11" fill="#e0e7ff">$500K–$3M</text>
+  <rect x="300" y="195" width="110" height="185" fill="#10b981" rx="8" opacity="0.85"/>
+  <text x="355" y="222" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">Series A</text>
+  <text x="355" y="242" text-anchor="middle" font-size="11" fill="#d1fae5">$3M–$15M</text>
+  <rect x="420" y="125" width="110" height="255" fill="#f59e0b" rx="8" opacity="0.85"/>
+  <text x="475" y="152" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">Series B</text>
+  <text x="475" y="172" text-anchor="middle" font-size="11" fill="#fef3c7">$15M–$50M</text>
+  <rect x="540" y="60" width="110" height="320" fill="#1e293b" rx="8" opacity="0.9"/>
+  <text x="595" y="87" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">Series C</text>
+  <text x="595" y="107" text-anchor="middle" font-size="11" fill="#e2e8f0">$50M+</text>
+  <!-- Arrows between steps -->
+  <line x1="170" y1="340" x2="180" y2="310" stroke="#2563eb" stroke-width="2" marker-end="url(#arrowBlue)"/>
+  <line x1="290" y1="280" x2="300" y2="245" stroke="#2563eb" stroke-width="2" marker-end="url(#arrowBlue)"/>
+  <line x1="410" y1="215" x2="420" y2="175" stroke="#10b981" stroke-width="2" marker-end="url(#arrowGreen)"/>
+  <line x1="530" y1="150" x2="540" y2="110" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrowAmber)"/>
+  <defs>
+    <marker id="arrowBlue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#2563eb"/></marker>
+    <marker id="arrowGreen" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#10b981"/></marker>
+    <marker id="arrowAmber" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#f59e0b"/></marker>
+  </defs>
+  <!-- Labels -->
+  <text x="115" y="400" text-anchor="middle" font-size="10" fill="#1e293b">10–20% dilution</text>
+  <text x="235" y="400" text-anchor="middle" font-size="10" fill="#1e293b">15–25% dilution</text>
+  <text x="355" y="400" text-anchor="middle" font-size="10" fill="#1e293b">20–30% dilution</text>
+  <text x="475" y="400" text-anchor="middle" font-size="10" fill="#1e293b">15–25% dilution</text>
+  <text x="595" y="400" text-anchor="middle" font-size="10" fill="#1e293b">10–20% dilution</text>
+</svg>
+
 > **Ready to map your next funding round accurately?** Use our AI-powered engine to build a custom roadmap: [Plan Your Funding Round](/tools/funding-plan)
 
 ## Stage 1: Bootstrapping and Friends & Family
@@ -140,6 +177,52 @@ It is crucial to manage the cap table carefully. Early excessive dilution or com
 For a detailed breakdown of how your specific metrics translate to valuation and dilution, founders should utilize data-driven tools. Guessing your valuation can lead to severe misalignment with investors.
 
 > **Don't guess your valuation.** Get a data-backed analysis of your startup's value based on current Australian market benchmarks: [Get your free SVI score](/)
+
+<svg viewBox="0 0 700 430" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
+  <rect width="700" height="430" fill="#f8fafc" rx="8"/>
+  <text x="350" y="35" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Investor Type by Funding Stage</text>
+  <!-- Stage labels on left -->
+  <text x="30" y="90" font-size="13" font-weight="bold" fill="#1e293b">Pre-Seed</text>
+  <text x="30" y="160" font-size="13" font-weight="bold" fill="#1e293b">Seed</text>
+  <text x="30" y="230" font-size="13" font-weight="bold" fill="#1e293b">Series A</text>
+  <text x="30" y="300" font-size="13" font-weight="bold" fill="#1e293b">Series B</text>
+  <text x="30" y="370" font-size="13" font-weight="bold" fill="#1e293b">Series C+</text>
+  <!-- Flow lines -->
+  <line x1="110" y1="87" x2="110" y2="367" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="6,4"/>
+  <!-- Pre-Seed investor boxes -->
+  <rect x="120" y="70" width="120" height="30" fill="#2563eb" rx="6"/><text x="180" y="90" text-anchor="middle" font-size="11" fill="#fff">Friends &amp; Family</text>
+  <rect x="250" y="70" width="120" height="30" fill="#2563eb" rx="6"/><text x="310" y="90" text-anchor="middle" font-size="11" fill="#fff">Angel Investors</text>
+  <rect x="380" y="70" width="90" height="30" fill="#2563eb" rx="6"/><text x="425" y="90" text-anchor="middle" font-size="11" fill="#fff">Micro-VCs</text>
+  <rect x="480" y="70" width="110" height="30" fill="#2563eb" rx="6"/><text x="535" y="90" text-anchor="middle" font-size="11" fill="#fff">Accelerators</text>
+  <!-- Seed investor boxes -->
+  <rect x="120" y="140" width="130" height="30" fill="#10b981" rx="6"/><text x="185" y="160" text-anchor="middle" font-size="11" fill="#fff">Seed VC Funds</text>
+  <rect x="260" y="140" width="130" height="30" fill="#10b981" rx="6"/><text x="325" y="160" text-anchor="middle" font-size="11" fill="#fff">Angel Syndicates</text>
+  <rect x="400" y="140" width="140" height="30" fill="#10b981" rx="6"/><text x="470" y="160" text-anchor="middle" font-size="11" fill="#fff">Corporate Ventures</text>
+  <!-- Series A investor boxes -->
+  <rect x="120" y="210" width="140" height="30" fill="#f59e0b" rx="6"/><text x="190" y="230" text-anchor="middle" font-size="11" fill="#fff">Institutional VCs</text>
+  <rect x="270" y="210" width="170" height="30" fill="#f59e0b" rx="6"/><text x="355" y="230" text-anchor="middle" font-size="11" fill="#fff">International Funds (APAC)</text>
+  <!-- Series B investor boxes -->
+  <rect x="120" y="280" width="130" height="30" fill="#1e293b" rx="6"/><text x="185" y="300" text-anchor="middle" font-size="11" fill="#fff">Growth Funds</text>
+  <rect x="260" y="280" width="140" height="30" fill="#1e293b" rx="6"/><text x="330" y="300" text-anchor="middle" font-size="11" fill="#fff">International VCs</text>
+  <rect x="410" y="280" width="160" height="30" fill="#1e293b" rx="6"/><text x="490" y="300" text-anchor="middle" font-size="11" fill="#fff">Strategic Corporates</text>
+  <!-- Series C+ investor boxes -->
+  <rect x="120" y="350" width="130" height="30" fill="#64748b" rx="6"/><text x="185" y="370" text-anchor="middle" font-size="11" fill="#fff">Late-Stage VCs</text>
+  <rect x="260" y="350" width="120" height="30" fill="#64748b" rx="6"/><text x="320" y="370" text-anchor="middle" font-size="11" fill="#fff">Private Equity</text>
+  <rect x="390" y="350" width="140" height="30" fill="#64748b" rx="6"/><text x="460" y="370" text-anchor="middle" font-size="11" fill="#fff">Pre-IPO Specialists</text>
+  <!-- Connecting arrows -->
+  <path d="M310,100 L310,140" stroke="#2563eb" stroke-width="1.5" fill="none" marker-end="url(#aDown)"/>
+  <path d="M325,170 L325,210" stroke="#10b981" stroke-width="1.5" fill="none" marker-end="url(#aDown2)"/>
+  <path d="M280,240 L280,280" stroke="#f59e0b" stroke-width="1.5" fill="none" marker-end="url(#aDown3)"/>
+  <path d="M330,310 L330,350" stroke="#1e293b" stroke-width="1.5" fill="none" marker-end="url(#aDown4)"/>
+  <defs>
+    <marker id="aDown" markerWidth="8" markerHeight="6" refX="4" refY="6" orient="auto"><path d="M0,0 L4,6 L8,0" fill="#2563eb"/></marker>
+    <marker id="aDown2" markerWidth="8" markerHeight="6" refX="4" refY="6" orient="auto"><path d="M0,0 L4,6 L8,0" fill="#10b981"/></marker>
+    <marker id="aDown3" markerWidth="8" markerHeight="6" refX="4" refY="6" orient="auto"><path d="M0,0 L4,6 L8,0" fill="#f59e0b"/></marker>
+    <marker id="aDown4" markerWidth="8" markerHeight="6" refX="4" refY="6" orient="auto"><path d="M0,0 L4,6 L8,0" fill="#1e293b"/></marker>
+  </defs>
+  <!-- Legend -->
+  <text x="350" y="415" text-anchor="middle" font-size="10" fill="#64748b">Each stage introduces new investor classes while earlier investors may follow on</text>
+</svg>
 
 > **Investor Type by Stage**
 > - **Pre-Seed:** Friends & Family, Angel Investors, Micro-VCs, Accelerators (Startmate, Fishburners)

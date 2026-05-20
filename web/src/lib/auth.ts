@@ -26,6 +26,7 @@ import { cookies } from "next/headers";
 import { nanoid } from "nanoid";
 import { getSupabaseAdmin, isSupabaseConfigured } from "./supabase";
 import { initializeCredits } from "./credits";
+import { processReferral } from "./referrals";
 
 export const SESSION_COOKIE = "blockid_session";
 export const SESSION_TTL_DAYS = 90;
@@ -55,6 +56,9 @@ export interface PendingPayload {
   // Post-login redirect target. When set, the verify route redirects here
   // instead of the default /dashboard.
   next?: string;
+  // Referral code captured from ?ref= URL param, stored in localStorage on
+  // the client and passed through pendingPayload during signup.
+  referralCode?: string;
 }
 
 // -----------------------------------------------------------------------------
@@ -224,6 +228,14 @@ export async function consumeMagicLink(
 
     // Grant free credits to new users.
     await initializeCredits(created.id);
+
+    // Process referral if a referral code was passed in the pending payload.
+    const pendingRef = (row.pending_payload as PendingPayload)?.referralCode;
+    if (pendingRef) {
+      await processReferral(created.id, pendingRef).catch((err) =>
+        console.error("[blockid:auth] referral processing failed", err),
+      );
+    }
   }
 
   // Re-read to get the current row (handles both upsert branches uniformly).
@@ -392,7 +404,7 @@ function isAdminEmail(email: string): boolean {
 
 export async function loginWithGoogle(
   profile: GoogleProfile,
-  opts?: { ipHash?: string | null; userAgent?: string | null },
+  opts?: { ipHash?: string | null; userAgent?: string | null; referralCode?: string | null },
 ): Promise<LoginWithGoogleResult> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return { ok: false, reason: "not_configured" };
@@ -461,6 +473,13 @@ export async function loginWithGoogle(
 
     // Grant free credits to new users.
     await initializeCredits(created.id);
+
+    // Process referral if a referral code was provided (from cookie/session).
+    if (opts?.referralCode) {
+      await processReferral(created.id, opts.referralCode).catch((err) =>
+        console.error("[blockid:auth] google referral processing failed", err),
+      );
+    }
   }
 
   // Create session.
