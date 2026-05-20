@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BlockID Upload Service</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#0F172A;color:#F8FAFC;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.card{text-align:center;max-width:480px;width:100%;padding:2rem}
+h1{font-size:1.5rem;color:#3B82F6;margin-bottom:.5rem}
+p{color:#94A3B8;font-size:.875rem;line-height:1.6;margin-bottom:1.5rem}
+.drop{border:2px dashed #334155;border-radius:1rem;padding:2rem;cursor:pointer;transition:border-color .2s}
+.drop:hover,.drop.over{border-color:#3B82F6;background:rgba(59,130,246,.05)}
+.drop input{display:none}
+.drop-text{color:#64748B;font-size:.875rem}
+.drop-icon{font-size:2rem;margin-bottom:.5rem}
+.btn{display:inline-block;background:#2563EB;color:#fff;border:none;padding:.75rem 1.5rem;border-radius:.5rem;font-size:.875rem;font-weight:600;cursor:pointer;margin-top:1rem;transition:background .2s}
+.btn:hover{background:#1D4ED8}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.result{margin-top:1rem;padding:1rem;border-radius:.5rem;font-size:.75rem;word-break:break-all;text-align:left}
+.result.ok{background:#064E3B;color:#6EE7B7}
+.result.err{background:#7F1D1D;color:#FCA5A5}
+.info{color:#475569;font-size:.7rem;margin-top:1.5rem}
+a{color:#3B82F6;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>BlockID Upload</h1>
+  <p>Upload files for your BlockID workspace. Requires sign-in.</p>
+  
+  <div class="drop" id="drop" onclick="document.getElementById('file').click()">
+    <div class="drop-icon">📁</div>
+    <div class="drop-text" id="drop-text">Drop file here or click to browse</div>
+    <input type="file" id="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.pptx,.zip,.gz">
+  </div>
+  
+  <button class="btn" id="upload-btn" disabled onclick="upload()">Upload</button>
+  
+  <div id="result"></div>
+  
+  <p class="info">
+    Max 50MB · Images, PDFs, Docs, Spreadsheets, CSV, ZIP<br>
+    <a href="https://blockid.au">← Back to BlockID.au</a>
+  </p>
+</div>
+
+<script>
+const drop=document.getElementById('drop'),fileInput=document.getElementById('file'),btn=document.getElementById('upload-btn'),dropText=document.getElementById('drop-text'),result=document.getElementById('result');
+let selectedFile=null;
+
+fileInput.onchange=e=>{selectedFile=e.target.files[0];if(selectedFile){dropText.textContent=`${selectedFile.name} (${(selectedFile.size/1024/1024).toFixed(1)}MB)`;btn.disabled=false}};
+drop.ondragover=e=>{e.preventDefault();drop.classList.add('over')};
+drop.ondragleave=()=>drop.classList.remove('over');
+drop.ondrop=e=>{e.preventDefault();drop.classList.remove('over');selectedFile=e.dataTransfer.files[0];if(selectedFile){dropText.textContent=`${selectedFile.name} (${(selectedFile.size/1024/1024).toFixed(1)}MB)`;btn.disabled=false;fileInput.files=e.dataTransfer.files}};
+
+async function upload(){
+  if(!selectedFile)return;
+  btn.disabled=true;btn.textContent='Uploading...';result.innerHTML='';
+  const fd=new FormData();fd.append('file',selectedFile);
+  try{
+    const res=await fetch('https://blockid.au/api/upload',{method:'POST',body:fd,credentials:'include'});
+    const data=await res.json();
+    if(data.ok){
+      result.className='result ok';
+      result.innerHTML=`✓ Uploaded<br>URL: <a href="${data.url}" target="_blank">${data.url}</a><br>Size: ${(data.size/1024).toFixed(0)}KB · Type: ${data.type}`;
+    }else{
+      result.className='result err';
+      result.textContent='✗ '+data.error;
+    }
+  }catch(e){
+    result.className='result err';
+    result.textContent='✗ Network error: '+e.message;
+  }
+  btn.disabled=false;btn.textContent='Upload';
+}
+</script>
+</body>
+</html>
