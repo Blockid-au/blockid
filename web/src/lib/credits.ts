@@ -19,7 +19,9 @@ import { getSupabaseAdmin } from "./supabase";
 export const FEATURE_COSTS: Record<string, number> = {
   svi_analysis: 1,   // A$1 per credit (early-bird), $25 standard
   svi_report: 3,     // 3 credits — 10-page AI report
-  rnd_report: 3,     // 3 credits — 10-page R&D agent report
+  rnd_preview: 0,    // 0 credits — free 3-page preview report
+  rnd_report: 1,     // 1 credit — Standard 10-page R&D report
+  rnd_deep_dive: 3,  // 3 credits — Deep Dive unlimited-detail R&D report
   term_sheet: 3,     // 3 credits
   research: 2,       // 2 credits — competitive research
   ai_score: 1,       // 1 credit — AI scoring enhancement

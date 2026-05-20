@@ -122,6 +122,7 @@ export function SVIEntrance() {
   const [detectedInputType, setDetectedInputType] = React.useState<"url" | "document" | "idea" | null>(null);
   const [showPaywall, setShowPaywall] = React.useState(false);
   const [hasPaidPlan, setHasPaidPlan] = React.useState(false);
+  const [lastInput, setLastInput] = React.useState<{ rawText: string; fileName?: string } | null>(null);
   const [analysisPaidToast, setAnalysisPaidToast] = React.useState(false);
   const [creditGate, setCreditGate] = React.useState<{
     open: boolean;
@@ -269,13 +270,17 @@ export function SVIEntrance() {
     setError(""); setState("submitting"); setRndStatus(null); setRndReport(null);
     trackEvent("svi_submitted", { method: file ? "file" : "text", has_file: !!file });
 
+    const trimmedRawText = rawText.trim() || `Business plan document: ${file?.name}`;
     const inputPayload = {
       email,
       input: {
-        rawText: rawText.trim() || `Business plan document: ${file?.name}`,
+        rawText: trimmedRawText,
         fileName: file?.name,
       },
     };
+
+    // Save input so we can re-submit for Deep Dive later
+    setLastInput({ rawText: trimmedRawText, fileName: file?.name });
 
     // ── Try R&D Agent (SSE) first, fallback to /api/svi ────────────────
     try {
@@ -438,7 +443,114 @@ export function SVIEntrance() {
     }
   };
 
-  const handleReset = () => { setResult(null); setRndReport(null); setRndStatus(null); setState("idle"); setText(""); setFile(null); setEmail(""); setError(""); };
+  const handleDeepDiveUpgrade = async () => {
+    if (!email || !result || !lastInput) return;
+    setRndStatus("Upgrading to Deep Dive...");
+    setState("submitting");
+    trackEvent("rnd_deep_dive_upgrade", { from_tier: rndReport?.tier ?? "standard" });
+
+    try {
+      const res = await fetch("/api/rnd", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          input: { rawText: lastInput.rawText, fileName: lastInput.fileName },
+          tier: "deep_dive",
+        }),
+      });
+
+      if (res.status === 402) {
+        const gateData = await res.json();
+        if (gateData.error === "Insufficient credits" && typeof gateData.balance === "number" && typeof gateData.cost === "number") {
+          setCreditGate({ open: true, balance: gateData.balance, cost: gateData.cost, feature: "svi_analysis" });
+          setState("done");
+          trackEvent("svi_credit_gate_shown", { balance: gateData.balance, cost: gateData.cost });
+          return;
+        }
+        setShowPaywall(true);
+        setState("done");
+        return;
+      }
+
+      const contentType = res.headers.get("content-type") ?? "";
+
+      if (contentType.includes("text/event-stream") && res.body) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          let eventType = "";
+          for (const line of lines) {
+            if (line.startsWith("event: ")) {
+              eventType = line.slice(7).trim();
+            } else if (line.startsWith("data: ") && eventType) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (eventType === "status") {
+                  setRndStatus(data.message);
+                } else if (eventType === "complete") {
+                  setResult({
+                    ok: true,
+                    slug: data.slug,
+                    totalSVI: data.totalSVI,
+                    analysis: data.analysis,
+                    persisted: true,
+                  });
+                  setRndReport(data.report ?? null);
+                  setRndStatus(null);
+                  setState("done");
+                  trackEvent("rnd_deep_dive_complete", { svi_score: data.totalSVI, slug: data.slug });
+                } else if (eventType === "error") {
+                  setError(data.error || "Deep Dive upgrade failed");
+                  setRndStatus(null);
+                  setState("done");
+                }
+              } catch {
+                // Malformed JSON — skip
+              }
+              eventType = "";
+            }
+          }
+        }
+        return;
+      }
+
+      if (contentType.includes("application/json")) {
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          setError(data.error || "Deep Dive upgrade failed");
+          setState("done");
+          return;
+        }
+        setResult({
+          ok: true,
+          slug: data.slug,
+          totalSVI: data.totalSVI,
+          analysis: data.analysis,
+          persisted: data.persisted ?? true,
+        });
+        setRndReport(data.report ?? null);
+        setState("done");
+        trackEvent("rnd_deep_dive_complete", { svi_score: data.totalSVI, slug: data.slug });
+        return;
+      }
+
+      setError("Unexpected response from Deep Dive upgrade");
+      setState("done");
+    } catch {
+      setError("Deep Dive upgrade failed. Please try again.");
+      setState("done");
+    }
+  };
+
+  const handleReset = () => { setResult(null); setRndReport(null); setRndStatus(null); setState("idle"); setText(""); setFile(null); setEmail(""); setError(""); setLastInput(null); };
 
   // Called when a 100% coupon grants free access — clear gate and re-submit.
   const handleCouponGrant = () => {
@@ -466,15 +578,43 @@ export function SVIEntrance() {
         </header>
         <main className="flex-1 px-4 pb-12">
           {rndReport ? (
-            <RndResultsPanel
-              report={rndReport}
-              analysis={result.analysis}
-              slug={result.slug}
-              email={email}
-              isPaid={hasPaidPlan}
-              onReset={handleReset}
-              onUnlock={() => setShowPaywall(true)}
-            />
+            <>
+              <RndResultsPanel
+                report={rndReport}
+                analysis={result.analysis}
+                slug={result.slug}
+                email={email}
+                isPaid={hasPaidPlan}
+                onReset={handleReset}
+                onUnlock={() => setShowPaywall(true)}
+                onUpgradeDeepDive={handleDeepDiveUpgrade}
+              />
+
+              {/* Deep Dive upsell banner */}
+              {rndReport.tier !== "deep_dive" && (
+                <div className="mx-auto max-w-[620px] px-6 mt-6">
+                  <div className="rounded-2xl border-2 border-amber-300 bg-gradient-to-r from-amber-50 to-amber-100/50 p-6 text-center">
+                    <Sparkles className="mx-auto h-8 w-8 text-amber-500 mb-3" />
+                    <h3 className="text-lg font-bold text-ink-800 mb-1">Want deeper insights?</h3>
+                    <p className="text-sm text-ink-600 mb-4">
+                      Upgrade to Deep Dive for detailed competitor profiles, financial models,
+                      growth tactics, and a 90-day action plan.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleDeepDiveUpgrade}
+                      className="inline-flex h-10 items-center gap-2 rounded-xl bg-amber-500 px-6 text-sm font-semibold text-white hover:bg-amber-600 transition-colors cursor-pointer"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      Deep Dive — 3 credits
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* R&D Status Bar for Deep Dive upgrade */}
+              <RndStatusBar status={rndStatus} isActive={!!rndStatus} />
+            </>
           ) : (
             <SVIResultsPanel analysis={result.analysis} slug={result.slug} onReset={handleReset} rawText={text} email={email} />
           )}

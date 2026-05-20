@@ -4,8 +4,17 @@ import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { isAIConfigured } from "@/lib/ai-client";
 import { newSlug } from "@/lib/slug";
 import { detectInputType, scrapeUrl } from "@/lib/rnd-input";
-import { generateRndReport } from "@/lib/rnd-analysis";
+import { generateRndReport, type ReportTier } from "@/lib/rnd-analysis";
 import { canAfford, spendCredits } from "@/lib/credits";
+
+/** Map tier to the credit feature key used for billing. */
+function tierToFeature(tier: ReportTier): string {
+  switch (tier) {
+    case "deep_dive": return "rnd_deep_dive";
+    case "preview": return "rnd_preview";     // 0 credits — free summary
+    default: return "rnd_report";             // 1 credit — standard 10-page
+  }
+}
 
 // POST /api/rnd
 // Body: { email, rawText, fileName? }
@@ -13,7 +22,7 @@ import { canAfford, spendCredits } from "@/lib/credits";
 
 export async function POST(request: Request) {
   // ── Parse body ─────────────────────────────────────────────────────────
-  let body: { email?: string; rawText?: string; fileName?: string } | null = null;
+  let body: { email?: string; rawText?: string; fileName?: string; tier?: ReportTier } | null = null;
   try {
     body = await request.json();
   } catch {
@@ -35,6 +44,10 @@ export async function POST(request: Request) {
       { status: 400, headers: { "Content-Type": "application/json" } },
     );
   }
+
+  // Validate and default tier
+  const validTiers: ReportTier[] = ["preview", "standard", "deep_dive"];
+  const tier: ReportTier = body.tier && validTiers.includes(body.tier) ? body.tier : "standard";
 
   if (!isAIConfigured()) {
     return new Response(
@@ -68,14 +81,16 @@ export async function POST(request: Request) {
     }
 
     if (authenticatedUserId) {
-      // Authenticated user — check credit balance for rnd_report
-      const affordCheck = await canAfford(authenticatedUserId, "rnd_report");
+      // Authenticated user — check credit balance based on tier
+      const creditFeature = tierToFeature(tier);
+      const affordCheck = await canAfford(authenticatedUserId, creditFeature);
       if (!affordCheck.allowed) {
         return new Response(
           JSON.stringify({
             error: "Insufficient credits",
             balance: affordCheck.balance,
             cost: affordCheck.cost,
+            tier,
           }),
           { status: 402, headers: { "Content-Type": "application/json" } },
         );
@@ -148,14 +163,18 @@ export async function POST(request: Request) {
         message: `SVI Score: ${analysis.totalSVI}. Stage: ${analysis.stageLabel}. Generating R&D report...`,
       });
 
-      // Step 4: Generate R&D report (3 batched AI calls)
-      sendEvent("status", { step: "rnd_start", message: "Starting R&D analysis (3 parallel research streams)..." });
+      // Step 4: Generate R&D report (3 batched AI calls + optional Batch D for deep_dive)
+      const streamLabel = tier === "deep_dive"
+        ? "Starting Deep Dive R&D analysis (3 parallel research streams + extended analysis)..."
+        : "Starting R&D analysis (3 parallel research streams)...";
+      sendEvent("status", { step: "rnd_start", message: streamLabel });
       const report = await generateRndReport(
         rawText,
         analysis,
         inputType,
         scrapedData,
         (msg) => sendEvent("status", { step: "rnd_progress", message: msg }),
+        tier,
       );
 
       // Step 5: Persist to database
@@ -189,7 +208,8 @@ export async function POST(request: Request) {
 
       // Step 6: Spend credits (authenticated users only)
       if (authenticatedUserId) {
-        await spendCredits(authenticatedUserId, "rnd_report", { slug, email });
+        const creditFeature = tierToFeature(tier);
+        await spendCredits(authenticatedUserId, creditFeature, { slug, email, tier });
       }
 
       // Step 7: Send complete event
@@ -198,6 +218,7 @@ export async function POST(request: Request) {
         report,
         analysis,
         totalSVI: analysis.totalSVI,
+        tier,
       });
     } catch (err) {
       console.error("[rnd] Pipeline error:", err);

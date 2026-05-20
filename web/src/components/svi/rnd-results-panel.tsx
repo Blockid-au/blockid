@@ -14,6 +14,7 @@ import {
   PieChart,
   Rocket,
   Shield,
+  Sparkles,
   Target,
   TrendingUp,
   Users,
@@ -24,7 +25,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 import { RndPageLock } from "@/components/svi/rnd-page-lock";
-import type { RndReport, RndReportPage } from "@/lib/rnd-types";
+import type { RndReport, RndReportPage, ReportTier } from "@/lib/rnd-types";
 import { PAGE_DEFS } from "@/lib/rnd-types";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
@@ -535,6 +536,7 @@ export function RndResultsPanel({
   isPaid,
   onReset,
   onUnlock,
+  onUpgradeDeepDive,
 }: {
   report: RndReport;
   analysis: SVIAnalysis;
@@ -543,8 +545,10 @@ export function RndResultsPanel({
   isPaid: boolean;
   onReset: () => void;
   onUnlock: () => void;
+  onUpgradeDeepDive?: () => void;
 }) {
   const [copied, setCopied] = React.useState(false);
+  const tierValue: ReportTier = report.tier ?? "standard";
   const pageCount = report.pages.length || PAGE_DEFS.length;
   const pageIds = PAGE_DEFS.slice(0, pageCount).map((p) => p.id);
   const activeId = useActiveSection(pageIds);
@@ -588,12 +592,35 @@ export function RndResultsPanel({
 
         {/* Page 1 special: large score gauge */}
         {pageDef.num === 1 && (
-          <LargeScoreGauge
-            value={report.overallScore}
-            stage={analysis.stageLabel ?? SVI_STAGE_LABELS[analysis.stage] ?? "Concept"}
-            confidence={analysis.confidenceMultiplier}
-            riskFlags={analysis.riskPenalties.length}
-          />
+          <>
+            <LargeScoreGauge
+              value={report.overallScore}
+              stage={analysis.stageLabel ?? SVI_STAGE_LABELS[analysis.stage] ?? "Concept"}
+              confidence={analysis.confidenceMultiplier}
+              riskFlags={analysis.riskPenalties.length}
+            />
+            {/* Tier badge + upgrade prompt */}
+            <div className="flex items-center justify-center gap-3 mt-4 mb-4">
+              <span className={cn(
+                "rounded-full px-3 py-1 text-xs font-semibold",
+                tierValue === "deep_dive" ? "bg-amber-100 text-amber-700" :
+                tierValue === "standard" ? "bg-brand-100 text-brand-700" :
+                "bg-surface-100 text-ink-500"
+              )}>
+                {tierValue === "deep_dive" ? "Deep Dive Report" :
+                 tierValue === "standard" ? "Standard Report" : "Preview Report"}
+              </span>
+              {tierValue !== "deep_dive" && onUpgradeDeepDive && (
+                <button
+                  type="button"
+                  onClick={onUpgradeDeepDive}
+                  className="text-xs text-brand-600 hover:text-brand-700 font-medium underline cursor-pointer transition-colors"
+                >
+                  Upgrade to Deep Dive (3 credits)
+                </button>
+              )}
+            </div>
+          </>
         )}
 
         {/* Score bar if page has a score (not page 1) */}
@@ -658,6 +685,30 @@ export function RndResultsPanel({
             </ul>
           </div>
         )}
+
+        {/* Deep Dive extended sections */}
+        {page.extendedSections?.map((section, i) => (
+          <div key={i} className="mt-6 rounded-xl border border-amber-200/50 bg-amber-50/30 p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="h-4 w-4 text-amber-500" />
+              <h4 className="text-sm font-semibold text-ink-800">{section.title}</h4>
+              <span className="text-[10px] uppercase tracking-wider text-amber-600 font-medium">Deep Dive</span>
+            </div>
+            <div className="text-sm text-ink-600 leading-relaxed prose-sm">
+              {renderMarkdown(section.content)}
+            </div>
+            {section.dataPoints && Object.keys(section.dataPoints).length > 0 && (
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {Object.entries(section.dataPoints).map(([k, v]) => (
+                  <div key={k} className="rounded-lg bg-white px-3 py-2 border border-amber-100">
+                    <span className="text-[10px] text-ink-400 uppercase">{k}</span>
+                    <span className="block text-sm font-semibold text-ink-800">{v}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
 
         <PageNavigation
           currentPage={pageDef.num}

@@ -4,6 +4,13 @@
 
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 
+export interface RndExtendedSection {
+  title: string;
+  content: string;          // Markdown
+  type: "competitor_profile" | "financial_model" | "action_plan" | "market_data" | "growth_tactics";
+  dataPoints?: Record<string, string>;
+}
+
 export interface RndReportPage {
   pageId: string;
   pageNum: number;
@@ -13,7 +20,10 @@ export interface RndReportPage {
   score?: number;   // 0-100 dimension score
   highlights?: string[];
   dataPoints?: Record<string, string>;
+  extendedSections?: RndExtendedSection[];  // Deep Dive extras
 }
+
+export type ReportTier = "preview" | "standard" | "deep_dive";
 
 export interface RndReport {
   version: "1.0.0";
@@ -22,6 +32,7 @@ export interface RndReport {
   pages: RndReportPage[];
   overallScore: number;
   createdAt: string;
+  tier?: ReportTier;  // defaults to "standard" when absent
 }
 
 export const PAGE_DEFS = [
@@ -48,6 +59,7 @@ export interface RndSSEComplete {
   report: RndReport;
   analysis: SVIAnalysis;
   totalSVI: number;
+  tier?: ReportTier;
 }
 
 export interface RndSSEError {

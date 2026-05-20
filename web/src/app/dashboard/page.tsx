@@ -22,6 +22,7 @@ import {
 } from "@/lib/idea-phase/persist";
 import { formatAud } from "@/lib/utils";
 import { getPlan } from "@/lib/plans";
+import { LivingReport } from "@/components/workspace/living-report";
 
 // /dashboard — authed view of a founder's saved idea-phase artifacts.
 // Lists Founder Packs, idea evaluations, equity splits and funding plans,
@@ -59,6 +60,10 @@ export default async function DashboardPage({
           {sp.welcome === "1" && <WelcomeBanner />}
 
           <Header email={user.email} />
+
+          <div className="mt-8">
+            <LivingReport email={user.email} />
+          </div>
 
           <SummaryStrip summary={summary} />
 
