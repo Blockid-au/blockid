@@ -583,6 +583,255 @@ export async function getVestedAmount(
   return decodeBigInt(result);
 }
 
+// ── Vesting write functions ───────────────────────────────────────────
+
+/**
+ * Grant a vesting schedule to a beneficiary (ADMIN_ROLE only).
+ * Calls: grantVesting(address beneficiary, uint256 totalAmount, uint256 cliffDuration, uint256 vestingDuration)
+ */
+export async function grantVesting(
+  tokenAddr: string,
+  beneficiary: string,
+  totalAmount: bigint,
+  cliffDuration: bigint,
+  vestingDuration: bigint,
+): Promise<string> {
+  const provider = getProvider();
+  const accounts = (await provider.request({
+    method: "eth_accounts",
+  })) as string[];
+  if (!accounts.length) throw new Error("Wallet not connected");
+
+  // selector for grantVesting(address,uint256,uint256,uint256)
+  const selector = "0x5634ac3d";
+  const data =
+    selector +
+    padAddress(beneficiary) +
+    padUint256(totalAmount) +
+    padUint256(cliffDuration) +
+    padUint256(vestingDuration);
+
+  const txHash = (await provider.request({
+    method: "eth_sendTransaction",
+    params: [
+      {
+        from: accounts[0],
+        to: tokenAddr,
+        data,
+        gas: "0x7A120",
+      },
+    ],
+  })) as string;
+
+  return txHash;
+}
+
+/**
+ * Claim vested tokens for the connected account.
+ * Calls: claimVested()
+ */
+export async function claimVested(tokenAddr: string): Promise<string> {
+  const provider = getProvider();
+  const accounts = (await provider.request({
+    method: "eth_accounts",
+  })) as string[];
+  if (!accounts.length) throw new Error("Wallet not connected");
+
+  // selector for claimVested()
+  const selector = "0x4e71d92d";
+
+  const txHash = (await provider.request({
+    method: "eth_sendTransaction",
+    params: [
+      {
+        from: accounts[0],
+        to: tokenAddr,
+        data: selector,
+        gas: "0x7A120",
+      },
+    ],
+  })) as string;
+
+  return txHash;
+}
+
+/**
+ * Revoke a vesting grant (ADMIN_ROLE only).
+ * Calls: revokeVesting(address beneficiary)
+ */
+export async function revokeVesting(
+  tokenAddr: string,
+  beneficiary: string,
+): Promise<string> {
+  const provider = getProvider();
+  const accounts = (await provider.request({
+    method: "eth_accounts",
+  })) as string[];
+  if (!accounts.length) throw new Error("Wallet not connected");
+
+  // selector for revokeVesting(address)
+  const selector = "0x20c5429b";
+  const data = selector + padAddress(beneficiary);
+
+  const txHash = (await provider.request({
+    method: "eth_sendTransaction",
+    params: [
+      {
+        from: accounts[0],
+        to: tokenAddr,
+        data,
+        gas: "0x7A120",
+      },
+    ],
+  })) as string;
+
+  return txHash;
+}
+
+// ── Dividend functions ───────────────────────────────────────────────
+
+/**
+ * Declare a dividend round (ADMIN_ROLE only).
+ * Calls: declareDividend(uint256 totalAmount)
+ * totalAmount is in smallest token unit (wei-equivalent).
+ */
+export async function declareDividend(
+  tokenAddr: string,
+  totalAmount: bigint,
+): Promise<string> {
+  const provider = getProvider();
+  const accounts = (await provider.request({
+    method: "eth_accounts",
+  })) as string[];
+  if (!accounts.length) throw new Error("Wallet not connected");
+
+  // selector for declareDividend(uint256)
+  const selector = "0x2f4dae9f";
+  const data = selector + padUint256(totalAmount);
+
+  const txHash = (await provider.request({
+    method: "eth_sendTransaction",
+    params: [
+      {
+        from: accounts[0],
+        to: tokenAddr,
+        data,
+        gas: "0x7A120",
+      },
+    ],
+  })) as string;
+
+  return txHash;
+}
+
+/**
+ * Claim dividends for a specific round.
+ * Calls: claimDividend(uint256 roundId)
+ */
+export async function claimDividend(
+  tokenAddr: string,
+  roundId: bigint,
+): Promise<string> {
+  const provider = getProvider();
+  const accounts = (await provider.request({
+    method: "eth_accounts",
+  })) as string[];
+  if (!accounts.length) throw new Error("Wallet not connected");
+
+  // selector for claimDividend(uint256)
+  const selector = "0xa0712d68";
+  const data = selector + padUint256(roundId);
+
+  const txHash = (await provider.request({
+    method: "eth_sendTransaction",
+    params: [
+      {
+        from: accounts[0],
+        to: tokenAddr,
+        data,
+        gas: "0x7A120",
+      },
+    ],
+  })) as string;
+
+  return txHash;
+}
+
+/**
+ * Get the total number of dividend rounds.
+ * Calls: dividendRoundCount()
+ */
+export async function getDividendRoundCount(
+  tokenAddr: string,
+): Promise<number> {
+  const provider = getProvider();
+  // selector for dividendRoundCount()
+  const selector = "0x6a2f796c";
+  const result = (await provider.request({
+    method: "eth_call",
+    params: [{ to: tokenAddr, data: selector }, "latest"],
+  })) as string;
+
+  return Number(decodeBigInt(result));
+}
+
+export interface DividendRound {
+  totalAmount: bigint;
+  perShareAmount: bigint;
+  snapshotSupply: bigint;
+  declaredAt: bigint;
+}
+
+/**
+ * Get dividend round info by index.
+ * Calls: dividendRounds(uint256)
+ */
+export async function getDividendRound(
+  tokenAddr: string,
+  roundId: number,
+): Promise<DividendRound> {
+  const provider = getProvider();
+  // selector for dividendRounds(uint256) — public array accessor
+  const selector = "0xca9efc73";
+  const data = selector + padUint256(BigInt(roundId));
+
+  const result = (await provider.request({
+    method: "eth_call",
+    params: [{ to: tokenAddr, data }, "latest"],
+  })) as string;
+
+  const hex = result.replace("0x", "");
+
+  return {
+    totalAmount: decodeBigInt("0x" + hex.slice(0, 64)),
+    perShareAmount: decodeBigInt("0x" + hex.slice(64, 128)),
+    snapshotSupply: decodeBigInt("0x" + hex.slice(128, 192)),
+    declaredAt: decodeBigInt("0x" + hex.slice(192, 256)),
+  };
+}
+
+/**
+ * Check if a user has claimed a specific dividend round.
+ * Calls: dividendClaimed(uint256,address)
+ */
+export async function isDividendClaimed(
+  tokenAddr: string,
+  roundId: number,
+  userAddr: string,
+): Promise<boolean> {
+  const provider = getProvider();
+  // selector for dividendClaimed(uint256,address)
+  const selector = "0xbf5fc2ee";
+  const data = selector + padUint256(BigInt(roundId)) + padAddress(userAddr);
+
+  const result = (await provider.request({
+    method: "eth_call",
+    params: [{ to: tokenAddr, data }, "latest"],
+  })) as string;
+
+  return decodeBigInt(result) !== 0n;
+}
+
 // ── Event listeners ───────────────────────────────────────────────────
 
 /**
