@@ -1,0 +1,71 @@
+1
+00:00:03,000 --> 00:00:06,000
+Ninety percent of startups fail.
+
+2
+00:00:06,000 --> 00:00:10,000
+In Australia, three hundred and seventy thousand businesses closed last year alone.
+
+3
+00:00:10,000 --> 00:00:14,000
+Ninety-seven billion dollars poured into AI startups in twenty twenty-four alone.
+
+4
+00:00:14,000 --> 00:00:18,000
+But ninety percent of AI startups still fail. Average lifespan: eighteen months.
+
+5
+00:00:18,000 --> 00:00:22,000
+The problem? AI can build products. But it can't value them. It can't split equity. It can't prepare you for investors.
+
+6
+00:00:22,000 --> 00:00:25,000
+Manual valuation costs five to fifty thousand dollars and takes weeks.
+
+7
+00:00:25,000 --> 00:00:27,000
+BlockID changes this.
+
+8
+00:00:27,000 --> 00:00:30,000
+You describe your startup idea in plain text.
+
+9
+00:00:30,000 --> 00:00:33,000
+Our AI analyzes it across eight dimensions in real time.
+
+10
+00:00:33,000 --> 00:00:36,000
+Market. Product. Traction. Team. Cap table. Investor readiness. Legal. Vision.
+
+11
+00:00:37,000 --> 00:00:40,000
+AI-powered valuation in sixty seconds. From Day Zero.
+
+12
+00:00:40,000 --> 00:00:43,000
+One platform. Entire lifecycle.
+
+13
+00:00:43,000 --> 00:00:46,000
+Idea to MVP to fundraise to growth to exit.
+
+14
+00:00:46,000 --> 00:00:50,000
+Evidence vault. Cap table. Milestone badges. Living report. Every tool lifts your score.
+
+15
+00:00:50,000 --> 00:00:53,000
+A four-point-four trillion dollar global startup ecosystem. A three-point-two billion dollar cap table market.
+
+16
+00:00:53,000 --> 00:00:55,000
+Twenty-six hundred active Australian startups. And not one AI-native valuation platform.
+
+17
+00:00:55,000 --> 00:00:58,000
+AI builds products. BlockID builds businesses.
+
+18
+00:00:58,000 --> 00:01:00,000
+Try free: blockid.au

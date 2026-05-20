@@ -2,7 +2,9 @@ import React from "react";
 import { AbsoluteFill, Sequence } from "remotion";
 import { CTASlide } from "../components/CTASlide";
 import { DropMic } from "../components/DropMic";
+import { FlowDiagram } from "../components/FlowDiagram";
 import { LogoReveal } from "../components/LogoReveal";
+import { MetricsGrid } from "../components/MetricsGrid";
 import { ScreenDemo } from "../components/ScreenDemo";
 import { SlideTransition } from "../components/SlideTransition";
 import { StatCounter } from "../components/StatCounter";
@@ -205,19 +207,39 @@ export const PitchVideo1Min: React.FC = () => {
               />
             </Sequence>
 
-            {/* Browser demo mockup */}
-            <Sequence from={50} durationInFrames={400}>
+            {/* Browser demo: Homepage */}
+            <Sequence from={50} durationInFrames={130}>
               <ScreenDemo
                 url="blockid.au"
+                imageSrc="video-assets/homepage-hero.png"
                 descriptionLines={[
-                  '[LIVE DEMO] User types: "An AI platform for Australian property management"',
-                  '[Input detected] "Idea Analysis" badge appears',
-                  '[Click] "Get My SVI" button',
-                  '[SSE Status] "Researching market..." "Analyzing competition..."',
-                  "[Result] SVI Report appears: Score 142 \u25B2",
-                  "[Scroll] 10-page AI analysis in 60 seconds",
+                  '[Homepage] "The agentic AI valuation platform"',
                 ]}
-                status="AI-powered valuation in 60 seconds. From Day 0."
+                status="Describe your startup. Get an AI valuation in 60 seconds."
+              />
+            </Sequence>
+
+            {/* Browser demo: SVI Search */}
+            <Sequence from={170} durationInFrames={120}>
+              <ScreenDemo
+                url="blockid.au"
+                imageSrc="video-assets/svi-search.png"
+                descriptionLines={[
+                  '[User types] "An AI platform for Australian property management"',
+                ]}
+                status="AI analyzes across 8 dimensions in real time."
+              />
+            </Sequence>
+
+            {/* Browser demo: Score page */}
+            <Sequence from={280} durationInFrames={170}>
+              <ScreenDemo
+                url="blockid.au/dashboard/svi"
+                imageSrc="video-assets/score-page.png"
+                descriptionLines={[
+                  "[Result] SVI Score with 10-page AI analysis",
+                ]}
+                status="AI-powered valuation in 60 seconds. From Day Zero."
               />
             </Sequence>
           </AbsoluteFill>
@@ -241,98 +263,37 @@ export const PitchVideo1Min: React.FC = () => {
               />
             </Sequence>
 
-            {/* Flow diagram text */}
+            {/* Flow diagram — animated lifecycle */}
             <Sequence from={50} durationInFrames={100}>
-              <TextReveal
-                lines={[
-                  "Idea \u2192 [Validates] \u2192 MVP \u2192 [Tracks Value] \u2192 Fundraise",
-                  "\u2192 [Cap Table] \u2192 Growth \u2192 [Tokenize Equity] \u2192 Exit",
+              <FlowDiagram
+                steps={[
+                  { icon: "\uD83D\uDCA1", label: "Idea", sublabel: "Validate" },
+                  { icon: "\uD83D\uDE80", label: "MVP", sublabel: "Track value" },
+                  { icon: "\uD83D\uDCB0", label: "Fundraise", sublabel: "Cap table" },
+                  { icon: "\uD83D\uDCC8", label: "Growth", sublabel: "Tokenize" },
+                  { icon: "\uD83C\uDFC6", label: "Exit", sublabel: "IPO ready" },
                 ]}
-                fontSize={32}
-                staggerFrames={25}
-                color={BRAND.colors.brand400}
-                fontWeight={500}
               />
             </Sequence>
 
-            {/* Feature cards */}
-            <Sequence from={140} durationInFrames={160}>
-              <AbsoluteFill
-                style={{
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 24,
-                    maxWidth: 1000,
-                    width: "100%",
-                    padding: "0 120px",
-                  }}
-                >
-                  {[
-                    {
-                      title: "Evidence Vault",
-                      desc: "Upload docs \u2192 SVI +8 points",
-                      icon: "\uD83D\uDCC2",
-                    },
-                    {
-                      title: "Cap Table Tool",
-                      desc: "Fair equity split calculator",
-                      icon: "\uD83D\uDCCA",
-                    },
-                    {
-                      title: "Milestone Badges",
-                      desc: "Track progress visually",
-                      icon: "\uD83C\uDFC5",
-                    },
-                    {
-                      title: "Living Report",
-                      desc: "Dashboard that grows with you",
-                      icon: "\uD83D\uDCCB",
-                    },
-                  ].map((feature, idx) => (
-                    <div
-                      key={feature.title}
-                      style={{
-                        padding: "24px 28px",
-                        borderRadius: 16,
-                        backgroundColor: `${BRAND.colors.ink800}80`,
-                        border: `1px solid ${BRAND.colors.brand500}30`,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 16,
-                      }}
-                    >
-                      <div style={{ fontSize: 36 }}>{feature.icon}</div>
-                      <div>
-                        <div
-                          style={{
-                            fontFamily: BRAND.fonts.heading,
-                            fontSize: 24,
-                            fontWeight: 600,
-                            color: BRAND.colors.white,
-                          }}
-                        >
-                          {feature.title}
-                        </div>
-                        <div
-                          style={{
-                            fontFamily: BRAND.fonts.heading,
-                            fontSize: 16,
-                            color: BRAND.colors.slate300,
-                          }}
-                        >
-                          {feature.desc}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </AbsoluteFill>
+            {/* Feature screenshots: Cap Table */}
+            <Sequence from={140} durationInFrames={80}>
+              <ScreenDemo
+                url="blockid.au/tools/cap-table"
+                imageSrc="video-assets/cap-table.png"
+                descriptionLines={["Cap Table Tool — fair equity split"]}
+                status="Evidence Vault, Cap Table, Milestones, Living Report"
+              />
+            </Sequence>
+
+            {/* Feature screenshots: Dashboard */}
+            <Sequence from={210} durationInFrames={90}>
+              <ScreenDemo
+                url="blockid.au/dashboard"
+                imageSrc="video-assets/08-dashboard.png"
+                descriptionLines={["Living dashboard that grows with you"]}
+                status="Your startup's value — tracked continuously"
+              />
             </Sequence>
           </AbsoluteFill>
         </SlideTransition>
@@ -343,7 +304,31 @@ export const PitchVideo1Min: React.FC = () => {
       {/* ============================================= */}
       <Sequence from={1500} durationInFrames={150}>
         <SlideTransition durationInFrames={150}>
-          <TAMCircles />
+          <AbsoluteFill>
+            {/* TAM/SAM/SOM circles */}
+            <Sequence from={0} durationInFrames={90}>
+              <TAMCircles />
+            </Sequence>
+
+            {/* Market metrics with animated counters */}
+            <Sequence from={75} durationInFrames={75}>
+              <MetricsGrid
+                metrics={[
+                  {
+                    label: "Active AU startups",
+                    value: 2600,
+                    color: "brand",
+                  },
+                  {
+                    label: "AI valuation platforms",
+                    value: 0,
+                    color: "red",
+                  },
+                ]}
+                columns={2}
+              />
+            </Sequence>
+          </AbsoluteFill>
         </SlideTransition>
       </Sequence>
 
