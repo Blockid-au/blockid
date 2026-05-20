@@ -24,6 +24,7 @@ Transform BlockID.au from a one-shot AI analysis tool into a living companion pl
 - [CFO Goals](cfo-goals.md) — Finance, pricing, revenue, costs
 - [CPO Goals](cpo-goals.md) — Product, UX, research, A/B testing
 - [CRO Goals](cro-goals.md) — Revenue, conversion, retention, partnerships
+- [Investor Relations](investor-relations-goals.md) — Pitch, data room, accelerator, video production
 
 ## Execution Framework
 - [Sprint Cadence](sprint-cadence.md) — 2-week sprints, S2026-10 = current
