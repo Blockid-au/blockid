@@ -29,6 +29,31 @@ import type { RndReport, RndReportPage, ReportTier } from "@/lib/rnd-types";
 import { PAGE_DEFS } from "@/lib/rnd-types";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
+
+const DIMENSION_TOOLTIPS: Record<string, string> = {
+  ftv: "Founder & Team Value: Evaluates founder experience, co-founder presence, advisory board, domain expertise, and team completeness. Weighted 15% of total SVI.",
+  mpc: "Market & Problem Clarity: Assesses market size (TAM/SAM/SOM), problem validation, customer interviews, market timing, and competitive landscape. Weighted 18% — the highest dimension.",
+  ptd: "Product & Technical: Measures product maturity, tech stack quality, demo availability, source code, website presence, and AI/ML capabilities. Weighted 12%.",
+  tre: "Traction & Revenue: Tracks revenue band, customer count, analytics data, social proof, and growth trajectory. Weighted 20% — strongest signal for investors.",
+  cgh: "Cap Table & Governance: Evaluates cap table cleanliness, vesting schedules, shareholder agreements, ESOP allocation, and board governance. Weighted 12%.",
+  iri: "Investor Readiness: Checks pitch deck, financial model, data room, fundraise target, and investor materials completeness. Weighted 10%.",
+  lco: "Legal & Compliance: Assesses ABN/ASIC registration, IP protection, contracts, legal documentation, and regulatory compliance. Weighted 8%.",
+  svm: "Strategic Vision & Moat: Evaluates defensible moat, network effects, data advantage, switching costs, and long-term strategic positioning. Weighted 5%.",
+};
+
+const SVI_SCORE_TOOLTIP = "The Startup Value Index (SVI) is an open-ended index measuring your startup's overall strength across 8 dimensions. Like a stock market index, higher is better with no upper limit. The score grows as you add evidence, build products, gain traction, and structure your company.";
+
+const PAGE_TOOLTIPS: Record<string, string> = {
+  market: DIMENSION_TOOLTIPS.mpc,
+  product: DIMENSION_TOOLTIPS.ptd,
+  business: DIMENSION_TOOLTIPS.tre,
+  competition: DIMENSION_TOOLTIPS.svm,
+  traction: DIMENSION_TOOLTIPS.tre,
+  team: DIMENSION_TOOLTIPS.ftv,
+  financial: DIMENSION_TOOLTIPS.iri,
+  risk: "Risk Assessment: Identifies key threats including market risk, execution risk, competitive risk, and regulatory risk. Each risk factor reduces the SVI score.",
+};
 
 /* ─── Page icon map ──────────────────────────────────────────────────── */
 
@@ -248,11 +273,13 @@ function LargeScoreGauge({
   stage,
   confidence,
   riskFlags,
+  delta,
 }: {
   value: number;
   stage: string;
   confidence: number;
   riskFlags: number;
+  delta?: number | null;
 }) {
   const color =
     value >= 80
@@ -276,16 +303,30 @@ function LargeScoreGauge({
 
   return (
     <div className="text-center mb-8">
-      <div className="relative flex items-end justify-center gap-1 mb-3">
-        <span
-          className={cn(
-            "font-mono text-7xl sm:text-8xl font-bold tabular-nums tracking-tight leading-none",
-            color,
-          )}
-        >
-          {value}
-        </span>
-        <span className="mb-2 text-sm text-ink-600 font-mono">/100</span>
+      <div className="flex items-baseline gap-3 justify-center mb-3">
+        <div className="relative flex items-end justify-center gap-1">
+          <span
+            className={cn(
+              "font-mono text-7xl sm:text-8xl font-bold tabular-nums tracking-tight leading-none",
+              color,
+            )}
+          >
+            {value}
+          </span>
+          <span className="mb-2 text-sm text-ink-600 font-mono flex items-center gap-1">
+            /100
+            <InfoTooltip text={SVI_SCORE_TOOLTIP} />
+          </span>
+        </div>
+        {delta !== undefined && delta !== null && delta !== 0 && (
+          <span className={cn(
+            "flex items-center gap-1 text-lg font-semibold",
+            delta > 0 ? "text-emerald-600" : "text-red-600"
+          )}>
+            {delta > 0 ? "\u25B2" : "\u25BC"} {Math.abs(delta).toFixed(1)}
+            <span className="text-xs text-ink-500 ml-1">vs previous</span>
+          </span>
+        )}
       </div>
       <span className={cn("text-lg font-semibold", color)}>{qualitative}</span>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
@@ -338,10 +379,12 @@ function PageHeader({
   num,
   title,
   icon: Icon,
+  tooltip,
 }: {
   num: number;
   title: string;
   icon: React.ElementType;
+  tooltip?: string;
 }) {
   return (
     <div className="flex items-center gap-3 mb-6 pb-4 border-b border-surface-200">
@@ -350,6 +393,7 @@ function PageHeader({
       </span>
       <Icon strokeWidth={1.75} className="h-5 w-5 text-brand-600 shrink-0" />
       <h2 className="text-lg font-semibold text-ink-800 tracking-tight">{title}</h2>
+      {tooltip && <InfoTooltip text={tooltip} />}
     </div>
   );
 }
@@ -537,6 +581,7 @@ export function RndResultsPanel({
   onReset,
   onUnlock,
   onUpgradeDeepDive,
+  previousAnalysis,
 }: {
   report: RndReport;
   analysis: SVIAnalysis;
@@ -546,12 +591,20 @@ export function RndResultsPanel({
   onReset: () => void;
   onUnlock: () => void;
   onUpgradeDeepDive?: () => void;
+  previousAnalysis?: SVIAnalysis | null;
 }) {
   const [copied, setCopied] = React.useState(false);
   const tierValue: ReportTier = report.tier ?? "standard";
   const pageCount = report.pages.length || PAGE_DEFS.length;
   const pageIds = PAGE_DEFS.slice(0, pageCount).map((p) => p.id);
   const activeId = useActiveSection(pageIds);
+
+  // Delta from previous analysis
+  const sviDelta = previousAnalysis ? analysis.totalSVI - previousAnalysis.totalSVI : null;
+  // R&D report uses report.overallScore (0-100), compute delta for that too
+  const scoreDelta = previousAnalysis
+    ? report.overallScore - (previousAnalysis.totalSVI ?? report.overallScore)
+    : null;
 
   const shareUrl =
     typeof window !== "undefined"
@@ -584,7 +637,7 @@ export function RndResultsPanel({
         key={pageDef.id}
         className="scroll-mt-24 rounded-2xl border border-surface-200 bg-white px-6 py-8 shadow-sm md:px-8"
       >
-        <PageHeader num={pageDef.num} title={page.title || pageDef.title} icon={Icon} />
+        <PageHeader num={pageDef.num} title={page.title || pageDef.title} icon={Icon} tooltip={PAGE_TOOLTIPS[pageDef.id]} />
 
         {page.subtitle && (
           <p className="text-sm text-ink-500 -mt-4 mb-6">{page.subtitle}</p>
@@ -598,6 +651,7 @@ export function RndResultsPanel({
               stage={analysis.stageLabel ?? SVI_STAGE_LABELS[analysis.stage] ?? "Concept"}
               confidence={analysis.confidenceMultiplier}
               riskFlags={analysis.riskPenalties.length}
+              delta={scoreDelta}
             />
             {/* Tier badge + upgrade prompt */}
             <div className="flex items-center justify-center gap-3 mt-4 mb-4">

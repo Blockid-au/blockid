@@ -873,7 +873,10 @@ export function computeSVI(signals: SVIExtractedSignals, weeklyDelta?: number): 
 
   // ── Summary line ────────────────────────────────────────────────────────────
   const sviLabel =
-    totalSVI >= 140 ? "Strong"
+    totalSVI >= 300 ? "Exceptional"
+    : totalSVI >= 200 ? "Elite"
+    : totalSVI >= 170 ? "Outstanding"
+    : totalSVI >= 140 ? "Strong"
     : totalSVI >= 120 ? "Above Average"
     : totalSVI >= 100 ? "Average"
     : totalSVI >= 80 ? "Below Average"

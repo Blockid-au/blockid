@@ -1046,6 +1046,7 @@ export function SVIResultsPanel({
                   gaps={sub.gaps}
                   onUpload={handleUploadAction}
                   email={email}
+                  previousValue={previousSubScores[sub.key]}
                 />
               ))}
             </div>

@@ -123,6 +123,7 @@ export function SVIEntrance() {
   const [showPaywall, setShowPaywall] = React.useState(false);
   const [hasPaidPlan, setHasPaidPlan] = React.useState(false);
   const [lastInput, setLastInput] = React.useState<{ rawText: string; fileName?: string } | null>(null);
+  const [previousAnalysis, setPreviousAnalysis] = React.useState<SVIAnalysis | null>(null);
   const [analysisPaidToast, setAnalysisPaidToast] = React.useState(false);
   const [creditGate, setCreditGate] = React.useState<{
     open: boolean;
@@ -273,8 +274,19 @@ export function SVIEntrance() {
       }
     }
 
-    setError(""); setState("submitting"); setRndStatus(null); setRndReport(null);
+    setError(""); setState("submitting"); setRndStatus(null); setRndReport(null); setPreviousAnalysis(null);
     trackEvent("svi_submitted", { method: file ? "file" : "text", has_file: !!file });
+
+    // Fetch previous analysis for delta comparison (fire-and-forget, don't block)
+    try {
+      const prevRes = await fetch(`/api/svi/latest?email=${encodeURIComponent(email)}`);
+      if (prevRes.ok) {
+        const prevData = await prevRes.json();
+        if (prevData.ok && prevData.analysis?.analysisJson) {
+          setPreviousAnalysis(prevData.analysis.analysisJson as SVIAnalysis);
+        }
+      }
+    } catch { /* ignore — delta display simply won't show */ }
 
     const trimmedRawText = rawText.trim() || `Business plan document: ${file?.name}`;
     const inputPayload = {
@@ -556,7 +568,7 @@ export function SVIEntrance() {
     }
   };
 
-  const handleReset = () => { setResult(null); setRndReport(null); setRndStatus(null); setState("idle"); setText(""); setFile(null); setEmail(""); setError(""); setLastInput(null); };
+  const handleReset = () => { setResult(null); setRndReport(null); setRndStatus(null); setState("idle"); setText(""); setFile(null); setEmail(""); setError(""); setLastInput(null); setPreviousAnalysis(null); };
 
   // Called when a 100% coupon grants free access — clear gate and re-submit.
   const handleCouponGrant = () => {
@@ -594,6 +606,7 @@ export function SVIEntrance() {
                 onReset={handleReset}
                 onUnlock={() => setShowPaywall(true)}
                 onUpgradeDeepDive={handleDeepDiveUpgrade}
+                previousAnalysis={previousAnalysis}
               />
 
               {/* Deep Dive upsell banner */}
@@ -622,7 +635,7 @@ export function SVIEntrance() {
               <RndStatusBar status={rndStatus} isActive={!!rndStatus} />
             </>
           ) : (
-            <SVIResultsPanel analysis={result.analysis} slug={result.slug} onReset={handleReset} rawText={text} email={email} />
+            <SVIResultsPanel analysis={result.analysis} slug={result.slug} onReset={handleReset} rawText={text} email={email} previousAnalysis={previousAnalysis} />
           )}
         </main>
       </div>
