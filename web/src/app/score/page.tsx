@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
+import { PageTracker } from "@/components/analytics/page-tracker";
 import { ScoreForm } from "./score-form";
 
 const TITLE = "Get your Investor-Ready Score — Free";
@@ -22,11 +23,15 @@ export const metadata: Metadata = {
     title: TITLE,
     description: DESCRIPTION,
   },
+  alternates: {
+    canonical: "https://blockid.au/score",
+  },
 };
 
 export default function ScorePage() {
   return (
     <>
+      <PageTracker page="score" tool="score" />
       <Navbar />
       <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
         <div className="mx-auto max-w-5xl px-6">

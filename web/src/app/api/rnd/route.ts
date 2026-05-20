@@ -212,6 +212,37 @@ export async function POST(request: Request) {
         await spendCredits(authenticatedUserId, creditFeature, { slug, email, tier });
       }
 
+      // Step 6b: Increment total_analyses for every analysis (free + paid)
+      if (isSupabaseConfigured()) {
+        const usageSupabase = getSupabaseAdmin()!;
+        const lowerEmail = email.toLowerCase().trim();
+        const { data: existingUsage } = await usageSupabase
+          .from("svi_analysis_usage")
+          .select("total_analyses, free_used")
+          .eq("email", lowerEmail)
+          .maybeSingle();
+
+        if (existingUsage) {
+          await usageSupabase
+            .from("svi_analysis_usage")
+            .update({
+              total_analyses: (Number(existingUsage.total_analyses) || 0) + 1,
+              free_used: true,
+              last_analysis_at: new Date().toISOString(),
+            })
+            .eq("email", lowerEmail);
+        } else {
+          await usageSupabase
+            .from("svi_analysis_usage")
+            .insert({
+              email: lowerEmail,
+              total_analyses: 1,
+              free_used: true,
+              last_analysis_at: new Date().toISOString(),
+            });
+        }
+      }
+
       // Step 7: Send complete event
       sendEvent("complete", {
         slug,

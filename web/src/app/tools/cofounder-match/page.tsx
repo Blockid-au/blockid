@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
+import { PageTracker } from "@/components/analytics/page-tracker";
 import { CofounderMatchForm } from "./cofounder-match-form";
 import { ProfileList } from "./profile-list";
 
-const TITLE = "Cofounder Match — Free AU Startup Cofounder Directory | BlockID.au";
+const TITLE = "Cofounder Match — Free AU Startup Cofounder Directory";
 const DESCRIPTION =
   "Find your Australian startup cofounder. Free directory for idea-stage founders to connect with technical and business cofounders across Australia.";
 
@@ -43,6 +44,7 @@ export const dynamic = "force-dynamic";
 export default function CofounderMatchPage() {
   return (
     <>
+      <PageTracker page="tools/cofounder-match" tool="cofounder-match" />
       <Navbar />
       <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
         <div className="mx-auto max-w-6xl px-6">

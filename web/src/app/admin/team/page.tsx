@@ -7,7 +7,7 @@ import { Shield } from "lucide-react";
 import { TeamClient } from "./team-client";
 
 export const metadata: Metadata = {
-  title: "Team & AI Agents — Admin | BlockID.au",
+  title: "Team & AI Agents — Admin",
   robots: { index: false, follow: false },
 };
 

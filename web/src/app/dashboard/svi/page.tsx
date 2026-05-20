@@ -8,7 +8,7 @@ import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 
 export const metadata: Metadata = {
-  title: "SVI Dashboard | BlockID.au",
+  title: "SVI Dashboard",
   description: "Your Startup Value Index dashboard",
 };
 

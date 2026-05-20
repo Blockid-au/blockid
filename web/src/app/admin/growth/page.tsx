@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Growth Intelligence — Admin | BlockID.au",
+  title: "Growth Intelligence — Admin",
   robots: { index: false, follow: false },
 };
 

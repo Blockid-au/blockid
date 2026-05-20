@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: "Terms of Service — BlockID",
   description:
     "Terms and conditions for using the BlockID platform. Governed by Australian law.",
+  alternates: {
+    canonical: "https://blockid.au/terms",
+  },
 };
 
 export default function TermsPage() {

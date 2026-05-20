@@ -4,7 +4,7 @@ import { Footer } from "@/components/site/footer";
 import { RndTaxCalculator } from "./rnd-tax-calculator";
 
 const TITLE =
-  "R&D Tax Incentive Calculator — Free Tool | BlockID.au";
+  "R&D Tax Incentive Calculator — Free Tool";
 const DESCRIPTION =
   "Calculate your estimated R&D Tax Incentive benefit for Australian startups. 43.5% refundable offset for small businesses, 38.5% for larger companies. Free calculator.";
 

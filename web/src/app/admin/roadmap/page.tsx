@@ -7,7 +7,7 @@ import { Shield } from "lucide-react";
 import { RoadmapClient } from "./roadmap-client";
 
 export const metadata: Metadata = {
-  title: "Product Roadmap — Admin | BlockID.au",
+  title: "Product Roadmap — Admin",
   robots: { index: false, follow: false },
 };
 

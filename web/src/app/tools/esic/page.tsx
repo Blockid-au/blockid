@@ -4,7 +4,7 @@ import { Footer } from "@/components/site/footer";
 import { ESICChecker } from "./esic-checker";
 
 const TITLE =
-  "ESIC Eligibility Checker — Free Tool | BlockID.au";
+  "ESIC Eligibility Checker — Free Tool";
 const DESCRIPTION =
   "Check if your startup qualifies as an Early Stage Innovation Company (ESIC) for Australian tax incentives. Free eligibility checker — 20% tax offset + CGT exemption for investors.";
 

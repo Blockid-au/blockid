@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "System Config — Admin | BlockID.au",
+  title: "System Config — Admin",
   robots: { index: false, follow: false },
 };
 

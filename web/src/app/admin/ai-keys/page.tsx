@@ -7,7 +7,7 @@ import { ArrowLeft, Shield } from "lucide-react";
 import { AIKeysClient } from "./ai-keys-client";
 
 export const metadata: Metadata = {
-  title: "AI Provider Keys — Admin | BlockID.au",
+  title: "AI Provider Keys — Admin",
   robots: { index: false, follow: false },
 };
 

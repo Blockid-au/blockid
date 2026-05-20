@@ -599,6 +599,10 @@ export function RndResultsPanel({
   const pageIds = PAGE_DEFS.slice(0, pageCount).map((p) => p.id);
   const activeId = useActiveSection(pageIds);
 
+  React.useEffect(() => {
+    trackEvent("rnd_analysis_complete", { svi_score: report.overallScore, slug });
+  }, [report.overallScore, slug]);
+
   // Delta from previous analysis
   const sviDelta = previousAnalysis ? analysis.totalSVI - previousAnalysis.totalSVI : null;
   // R&D report uses report.overallScore (0-100), compute delta for that too

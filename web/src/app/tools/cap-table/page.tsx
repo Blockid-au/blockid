@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
+import { PageTracker } from "@/components/analytics/page-tracker";
 import { CapTableDiffTool } from "./cap-table-diff";
 
 const TITLE =
-  "Cap Table — Free Before & After Dilution Visualiser for AU Startups | BlockID.au";
+  "Cap Table — Free Before & After Dilution Visualiser for AU Startups";
 const DESCRIPTION =
   "See exactly how a new round dilutes founders, ESOP and existing investors. Free, no login required. Built for Australian seed-to-Series-A founders.";
 
@@ -40,6 +41,7 @@ export const metadata: Metadata = {
 export default function CapTablePage() {
   return (
     <>
+      <PageTracker page="tools/cap-table" tool="cap-table" />
       <Navbar />
       <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
         <div className="mx-auto max-w-7xl px-6">

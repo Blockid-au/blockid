@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
+import { PageTracker } from "@/components/analytics/page-tracker";
 import { DataRoomChecklist } from "./data-room-checklist";
 import { Building2, FileCheck2, ShieldCheck } from "lucide-react";
 
@@ -59,6 +60,7 @@ const POINTS = [
 export default function DataRoomPage() {
   return (
     <>
+      <PageTracker page="tools/data-room" tool="data-room" />
       <Navbar />
       <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
         <div className="mx-auto max-w-7xl px-6">

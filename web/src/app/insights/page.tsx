@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   title: "Insights — Valuation, Equity & Fundraising",
   description:
     "Expert guides for Australian founders: startup valuation, cap table management, equity splits, investor readiness, and fundraising strategies.",
+  alternates: {
+    canonical: "https://blockid.au/insights",
+  },
 };
 
 const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
