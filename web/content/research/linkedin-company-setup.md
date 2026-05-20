@@ -8,30 +8,34 @@
 ## Company Details
 
 - **Name:** BlockID.au
-- **Tagline:** Where AI meets startup valuation
-- **Industry:** Technology, Information and Internet
-- **Company size:** 1-10 employees
+- **Tagline:** The agentic AI valuation platform for business growth from day one
+- **Industry:** Technology, Information & Internet
+- **Company size:** 2-10
 - **Type:** Privately Held
 - **Founded:** 2026
 - **Headquarters:** Sydney, NSW, Australia
 - **Website:** https://blockid.au
-- **Specialties:** Startup Valuation, AI, Cap Table Management, Equity Tools, Investor Readiness, Startup Analytics, Blockchain
+- **Logo:** /images/logo-transparent.png
+- **Cover image:** /images/blockid-hero-banner.png
+- **Specialties:** Startup Valuation, Cap Table Management, Investor Readiness, AI Analytics
 
 ---
 
 ## About Section (2000 chars max)
 
-BlockID.au is an AI-powered startup valuation platform that helps founders measure, prove, and grow their business value from Day 0.
+BlockID.au is the agentic AI valuation platform for business growth from day one. We help founders measure, prove, and grow their business value -- whether you are pre-revenue or preparing for your next funding round.
 
-In a world where 90% of startups fail and AI generates more ideas than ever before, BlockID bridges the gap between building a product and building a business.
+Every year, 437,150 new businesses launch in Australia. Most never get a proper valuation because traditional advisory firms charge A$5,000 to A$50,000. BlockID changes that with AI that delivers in 60 seconds what used to take weeks.
 
-Our platform:
+Our platform gives founders:
 
-- AI-Powered Valuation: Get your Startup Value Index (SVI) in 60 seconds -- scored across 8 dimensions with a 10-page investor-ready report.
-- Evidence-Based Scoring: Upload pitch decks, connect GitHub, verify revenue. Every piece of evidence makes your score more accurate.
-- Equity Management: Cap table, equity split, dilution calculator, vesting schedules, and ESOP tools -- all free.
-- Investor Readiness: Data room checklist, term sheet analyser, funding plan tool, and fundraise preparation.
-- Growth Tracking: A living report that updates as your startup grows. Share a live link with investors that always reflects your current state.
+- AI-Powered Valuation: Get your Startup Value Index (SVI) scored across 8 dimensions -- team, market, product, traction, cap table, investor readiness, legal compliance, and competitive moat -- with a 10-page investor-ready report.
+- Evidence-Based Scoring: Upload pitch decks, connect GitHub, verify revenue. Every piece of evidence makes your score more accurate and defensible.
+- Equity Management: Cap table builder, equity split calculator, dilution modelling, vesting schedules, and ESOP tools -- all free, all built for Australian corporate structures.
+- Investor Readiness: Data room checklist, term sheet analyser, funding plan tool, and fundraise preparation -- everything you need before the conversation with investors.
+- Growth Tracking: A living valuation that updates as your startup grows. Share a live link with investors that always reflects your current state.
+
+We built BlockID because too many good ideas fail before they get measured. In the age of AI, where anyone can build a product overnight, the founders who win are the ones who can prove their value with data.
 
 Built for Australian founders. Benchmarked against 2,600+ AU startups. Priced in AUD.
 
@@ -39,7 +43,7 @@ Free to start. A$1 per SVI analysis. A$49 for lifetime access.
 
 Operated by Auschain Pty Ltd (ACN 659 615 111), Sydney, NSW, Australia.
 
-Try free: blockid.au
+Start here: https://blockid.au
 
 ---
 
@@ -49,7 +53,7 @@ Try free: blockid.au
 - Dimensions: 1128 x 191 pixels (LinkedIn recommended)
 - Background: Dark brand colour (#0a0a0a or similar dark gradient)
 - Left side: BlockID.au logo (white on dark)
-- Centre: Tagline "Where AI meets startup valuation" in clean sans-serif
+- Centre: Tagline "The agentic AI valuation platform for business growth from day one" in clean sans-serif
 - Right side: Stylised SVI score gauge showing a score of 73/100, with dimension labels faintly visible (Team, Market, Product, Traction, etc.)
 - Accent: Subtle gradient line or glow in brand accent colour (blue or teal)
 - No clutter. No stock photos. Clean, technical, trustworthy.
