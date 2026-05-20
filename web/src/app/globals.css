@@ -200,20 +200,55 @@ body {
 .svi-input-glow::before {
   content: "";
   position: absolute;
-  inset: -2px;
-  border-radius: 30px;
+  inset: -3px;
+  border-radius: 31px;
   background: conic-gradient(
     from var(--gradient-angle, 0deg),
     #3b82f6,
+    #06b6d4,
     #10b981,
     #f59e0b,
+    #ef4444,
+    #8b5cf6,
     #3b82f6
   );
-  animation: gradient-rotate 4s linear infinite;
+  animation: gradient-rotate 3s linear infinite;
   z-index: -1;
-  opacity: 0.6;
+  opacity: 0.7;
+  filter: blur(1px);
+  transition: opacity 0.3s, filter 0.3s;
+}
+
+.svi-input-glow:hover::before {
+  opacity: 0.9;
+  filter: blur(0px);
 }
 
 .svi-input-glow:focus-within::before {
+  opacity: 1;
+  inset: -4px;
+  filter: blur(0px);
+}
+
+.svi-input-glow::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 34px;
+  background: conic-gradient(
+    from var(--gradient-angle, 0deg),
+    #3b82f620,
+    #10b98120,
+    #f59e0b20,
+    #3b82f620
+  );
+  animation: gradient-rotate 3s linear infinite;
+  z-index: -2;
+  filter: blur(12px);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.svi-input-glow:focus-within::after {
   opacity: 1;
 }

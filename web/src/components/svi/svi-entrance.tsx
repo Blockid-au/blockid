@@ -191,6 +191,13 @@ export function SVIEntrance() {
     }
   }, [searchParams, router, checkGate]);
 
+  // Logged-in user state — auto-fill email, show avatar, skip gate
+  const [loggedInUser, setLoggedInUser] = React.useState<{
+    email: string;
+    displayName: string | null;
+    plan: string | null;
+  } | null>(null);
+
   // Check if user is authenticated with a paid plan — skip the gate if so.
   // Also triggers after a login redirect (detected via ?logged_in=true).
   const justLoggedIn = searchParams.get("logged_in") === "true";
@@ -201,8 +208,19 @@ export function SVIEntrance() {
         const res = await fetch("/api/auth/me");
         if (!res.ok) return;
         const data = await res.json();
-        if (!cancelled && data.ok && data.user?.plan && data.user.plan !== "free") {
-          setHasPaidPlan(true);
+        if (!cancelled && data.ok && data.user) {
+          setLoggedInUser({
+            email: data.user.email,
+            displayName: data.user.displayName,
+            plan: data.user.plan,
+          });
+          // Auto-fill email from logged-in user
+          if (data.user.email && !email) {
+            setEmail(data.user.email);
+          }
+          if (data.user.plan && data.user.plan !== "free") {
+            setHasPaidPlan(true);
+          }
         }
       } catch {
         // Silently ignore — gate stays active.
@@ -888,8 +906,18 @@ export function SVIEntrance() {
 
             {(text.trim() || file) && (
               <div className="mt-3 flex items-center justify-center">
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} onBlur={(e) => checkGate(e.target.value)} placeholder="your@email.com" required
-                  className="h-10 w-56 rounded-lg border border-surface-300 bg-white px-3 text-sm text-ink-800 placeholder:text-ink-600 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors" />
+                {loggedInUser ? (
+                  <div className="flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 pl-3 pr-4 py-1.5">
+                    <div className="h-6 w-6 rounded-full bg-brand-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                      {(loggedInUser.displayName ?? loggedInUser.email)[0].toUpperCase()}
+                    </div>
+                    <span className="text-sm text-brand-700 font-medium">{loggedInUser.email}</span>
+                    <CheckCircle2 strokeWidth={1.75} className="h-3.5 w-3.5 text-brand-500" />
+                  </div>
+                ) : (
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} onBlur={(e) => checkGate(e.target.value)} placeholder="your@email.com" required
+                    className="h-10 w-56 rounded-lg border border-surface-300 bg-white px-3 text-sm text-ink-800 placeholder:text-ink-600 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors" />
+                )}
               </div>
             )}
             {error && <p className="mt-2 text-center text-sm text-red-500">{error}</p>}
@@ -1376,7 +1404,23 @@ function SVIPaywall({
 function TopBar() {
   const [toolsOpen, setToolsOpen] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [user, setUser] = React.useState<{ email: string; displayName: string | null } | null>(null);
   const toolsRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled && data.ok && data.user) {
+          setUser({ email: data.user.email, displayName: data.user.displayName });
+        }
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   React.useEffect(() => {
     if (!toolsOpen) return;
@@ -1410,7 +1454,16 @@ function TopBar() {
           <Link href="/founding-50" className="px-3 py-2 text-sm text-ink-600 hover:text-ink-800 rounded-lg hover:bg-surface-100 transition-colors">Founding 50</Link>
           <Link href="/insights" className="px-3 py-2 text-sm text-ink-600 hover:text-ink-800 rounded-lg hover:bg-surface-100 transition-colors">Insights</Link>
           <Link href="/dashboard/svi" className="px-3 py-2 text-sm text-ink-600 hover:text-ink-800 rounded-lg hover:bg-surface-100 transition-colors">Dashboard</Link>
-          <Link href="/auth/login" className="ml-2 h-9 px-5 inline-flex items-center justify-center rounded-lg bg-brand-600 text-sm font-medium text-white hover:bg-brand-700 transition-all cursor-pointer">Sign in</Link>
+          {user ? (
+            <Link href="/dashboard/svi" className="ml-2 h-9 inline-flex items-center gap-2 rounded-full bg-brand-50 border border-brand-200 px-3 hover:bg-brand-100 transition-colors">
+              <span className="h-6 w-6 rounded-full bg-brand-600 flex items-center justify-center text-white text-[10px] font-bold">
+                {(user.displayName ?? user.email)[0].toUpperCase()}
+              </span>
+              <span className="text-sm text-brand-700 font-medium max-w-[120px] truncate">{user.displayName ?? user.email.split("@")[0]}</span>
+            </Link>
+          ) : (
+            <Link href="/auth/login" className="ml-2 h-9 px-5 inline-flex items-center justify-center rounded-lg bg-brand-600 text-sm font-medium text-white hover:bg-brand-700 transition-all cursor-pointer">Sign in</Link>
+          )}
         </nav>
 
         <button type="button" onClick={() => setMobileOpen((v) => !v)} className="md:hidden h-10 w-10 flex items-center justify-center rounded-lg text-ink-600 hover:bg-surface-100 cursor-pointer">
@@ -1436,7 +1489,16 @@ function TopBar() {
             <Link href="/insights" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm font-medium text-ink-700 hover:bg-surface-100 rounded-lg">Insights</Link>
             <Link href="/dashboard/svi" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm font-medium text-ink-700 hover:bg-surface-100 rounded-lg">Dashboard</Link>
             <div className="my-2 border-t border-surface-200" />
-            <Link href="/auth/login" onClick={() => setMobileOpen(false)} className="mx-3 h-10 flex items-center justify-center rounded-lg bg-brand-600 text-sm font-medium text-white hover:bg-brand-700">Sign in</Link>
+            {user ? (
+              <Link href="/dashboard/svi" onClick={() => setMobileOpen(false)} className="mx-3 h-10 flex items-center justify-center gap-2 rounded-lg bg-brand-50 border border-brand-200 text-sm font-medium text-brand-700">
+                <span className="h-6 w-6 rounded-full bg-brand-600 flex items-center justify-center text-white text-[10px] font-bold">
+                  {(user.displayName ?? user.email)[0].toUpperCase()}
+                </span>
+                {user.displayName ?? user.email.split("@")[0]}
+              </Link>
+            ) : (
+              <Link href="/auth/login" onClick={() => setMobileOpen(false)} className="mx-3 h-10 flex items-center justify-center rounded-lg bg-brand-600 text-sm font-medium text-white hover:bg-brand-700">Sign in</Link>
+            )}
           </nav>
         </div>
       )}
