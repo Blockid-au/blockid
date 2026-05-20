@@ -1,0 +1,8 @@
+file '02-problem-stats.mp3'
+file '03-ai-explosion.mp3'
+file '04-the-gap.mp3'
+file '05-live-demo.mp3'
+file '06-features.mp3'
+file '07-market.mp3'
+file '08-dropmic.mp3'
+file '09-cta.mp3'

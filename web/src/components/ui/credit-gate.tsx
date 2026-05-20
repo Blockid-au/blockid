@@ -74,7 +74,7 @@ export function CreditGate({
   const info = getFeatureInfo(feature);
   const shortfall = Math.round((cost - balance) * 100) / 100; // avoid floating-point noise
 
-  const [buyLoading, setBuyLoading] = React.useState(false);
+  const [buyLoading, setBuyLoading] = React.useState<string | false>(false);
   const [planLoading, setPlanLoading] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState("");
   const [couponCode, setCouponCode] = React.useState("");
@@ -101,16 +101,15 @@ export function CreditGate({
     }
   }, [isOpen]);
 
-  /** Buy credits via /api/credits (authenticated checkout). */
-  const handleBuyCredit = async () => {
-    setBuyLoading(true);
+  /** Buy a credit pack via /api/credits (authenticated checkout). */
+  const handleBuyPack = async (amount: number) => {
+    setBuyLoading(String(amount));
     setErrorMsg("");
     try {
-      // Purchase the smallest pack (10 credits) which more than covers the shortfall.
       const res = await fetch("/api/credits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: 10 }),
+        body: JSON.stringify({ amount }),
       });
       const data = await res.json();
       if (data.ok && data.url) {
@@ -250,42 +249,57 @@ export function CreditGate({
             {info.description}
           </p>
 
-          {/* CTAs */}
-          <div className="mt-6 space-y-3">
-            <button
-              type="button"
-              onClick={handleBuyCredit}
-              disabled={buyLoading || planLoading}
-              className="flex items-center justify-center gap-2 w-full h-11 rounded-xl bg-brand-600 text-sm font-bold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50"
-            >
-              {buyLoading ? (
-                <span className="flex items-center gap-2">
-                  <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                  Redirecting...
-                </span>
-              ) : (
-                <>
-                  <Coins strokeWidth={1.75} className="h-4 w-4" />
-                  Buy 10 Credits &mdash; A$5
-                </>
-              )}
-            </button>
+          {/* Credit pack options */}
+          <div className="mt-6 space-y-2.5">
+            <CreditGatePackCard
+              credits={5}
+              price="A$5"
+              label="5 Credits"
+              desc="A$1.00 per credit"
+              onClick={() => handleBuyPack(5)}
+              highlight={false}
+              loading={buyLoading === "5"}
+              disabled={!!buyLoading || planLoading}
+            />
+            <CreditGatePackCard
+              credits={25}
+              price="A$20"
+              label="25 Credits"
+              desc="A$0.80 per credit — best value"
+              onClick={() => handleBuyPack(25)}
+              highlight={true}
+              loading={buyLoading === "25"}
+              disabled={!!buyLoading || planLoading}
+            />
+            <CreditGatePackCard
+              credits={50}
+              price="A$15"
+              label="50 Credits"
+              desc="A$0.30 per credit — 70% off"
+              onClick={() => handleBuyPack(50)}
+              highlight={false}
+              loading={buyLoading === "50"}
+              disabled={!!buyLoading || planLoading}
+            />
+          </div>
 
+          {/* Founding 50 upgrade link */}
+          <div className="mt-3 text-center">
             <button
               type="button"
               onClick={handlePlanCheckout}
-              disabled={buyLoading || planLoading}
-              className="flex items-center justify-center gap-2 w-full h-11 rounded-xl border border-surface-200 bg-white text-sm font-semibold text-ink-700 hover:bg-surface-50 transition-colors cursor-pointer disabled:opacity-50"
+              disabled={!!buyLoading || planLoading}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:text-brand-700 transition-colors cursor-pointer disabled:opacity-50"
             >
               {planLoading ? (
                 <span className="flex items-center gap-2">
-                  <span className="h-4 w-4 rounded-full border-2 border-ink-300/30 border-t-ink-600 animate-spin" />
+                  <span className="h-3.5 w-3.5 rounded-full border-2 border-brand-300/30 border-t-brand-600 animate-spin" />
                   Redirecting...
                 </span>
               ) : (
                 <>
-                  <Sparkles strokeWidth={1.75} className="h-4 w-4" />
-                  Get Founder Plan &mdash; A$49 (unlimited)
+                  <Sparkles strokeWidth={1.75} className="h-3.5 w-3.5" />
+                  Or get Founding 50 ($49) for 100 credits + full access
                 </>
               )}
             </button>
@@ -348,5 +362,60 @@ export function CreditGate({
         </div>
       </div>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// CreditGatePackCard — inline credit pack option for the credit gate modal.
+// ---------------------------------------------------------------------------
+
+function CreditGatePackCard({
+  credits,
+  price,
+  label,
+  desc,
+  onClick,
+  highlight,
+  loading,
+  disabled,
+}: {
+  credits: number;
+  price: string;
+  label: string;
+  desc: string;
+  onClick: () => void;
+  highlight: boolean;
+  loading: boolean;
+  disabled: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "flex items-center justify-between rounded-2xl border p-4 transition-all hover:shadow-md w-full text-left cursor-pointer disabled:opacity-50",
+        highlight
+          ? "border-brand-500 bg-brand-50 shadow-sm"
+          : "border-surface-200 bg-white hover:border-brand-300",
+      )}
+    >
+      <div>
+        <p className="text-sm font-bold text-ink-900">{label}</p>
+        <p className="text-xs text-ink-500 mt-0.5">{desc}</p>
+      </div>
+      <div className="text-right shrink-0 ml-3">
+        {loading ? (
+          <span className="h-4 w-4 rounded-full border-2 border-brand-300/30 border-t-brand-600 animate-spin inline-block" />
+        ) : (
+          <>
+            <p className="text-lg font-bold text-brand-600">{price}</p>
+            <p className="text-[10px] text-ink-500">
+              {credits} credit{credits > 1 ? "s" : ""}
+            </p>
+          </>
+        )}
+      </div>
+    </button>
   );
 }

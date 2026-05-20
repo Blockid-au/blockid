@@ -7,7 +7,7 @@ import {
   type GoogleProfile,
 } from "@/lib/auth";
 import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
-import { getUserProjects } from "@/lib/projects";
+import { getSupabaseAdmin } from "@/lib/supabase";
 
 // POST /api/auth/google
 // Body: { credential } — the Google ID token from Sign In With Google.
@@ -134,9 +134,19 @@ export async function POST(request: Request) {
   const isAdmin =
     normaliseEmail(result.user.email) === "admin@blockid.au";
 
-  // Check if user needs onboarding (no projects yet)
-  const projects = await getUserProjects(result.user.id);
-  const redirectPath = projects.length === 0 ? "/onboarding" : "/dashboard";
+  // Check if user needs onboarding (onboarding_completed flag on app_users)
+  let redirectPath = "/dashboard";
+  const supabase = getSupabaseAdmin();
+  if (supabase) {
+    const { data: appUser } = await supabase
+      .from("app_users")
+      .select("onboarding_completed")
+      .eq("email", normaliseEmail(result.user.email))
+      .single();
+    if (!appUser?.onboarding_completed) {
+      redirectPath = "/onboarding";
+    }
+  }
 
   return NextResponse.json({
     ok: true,
