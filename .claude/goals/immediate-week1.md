@@ -1,39 +1,76 @@
-# Immediate Goals: Week of May 20-27, 2026
+# Sprint S2026-10 — Week 1 Tasks (May 19-25, 2026)
 
-## P0 (Must Do This Week)
+## CEO: Do Van Long
+- [ ] Review and approve all C-level sub-goals
+- [ ] Set Q3 revenue target: $500 MRR by July
+- [ ] Identify 3 target accelerators for application
+- [ ] Review pitch deck v1 outline
 
-### 1. First Paying Customer
-- Share blockid.au on LinkedIn, Twitter, Product Hunt
-- Email 50 AU startup founders directly
-- Offer LAUNCH50 coupon (50% off first month)
-- Target: 5-10 paid signups
+## COO (/coo)
+- [ ] Finalize sprint S2026-10 planning
+- [ ] Set up weekly async standup format
+- [ ] Create sprint board (markdown-based in goals/)
+- [ ] Run /qa on production to establish baseline
+- [ ] Document deployment runbook
 
-### 2. File Trademark
-- "BlockID" wordmark application (IP Australia)
-- "Startup Value Index" / "SVI" if available
-- Budget: A$500-800
+## CTO (/cto)
+- [ ] Run /security-audit and fix criticals
+- [ ] Run /perf-audit and fix p95 > 500ms
+- [ ] Test Evidence→SVI rescore with real user data
+- [ ] Verify fractional credit spending end-to-end
+- [ ] Fix any remaining TypeScript strict errors
 
-### 3. Email Sequences
-- Implement 3 automated sequences in cron
-- Post-free: days 0,1,3,7,10,14
-- Post-payment: days 0,1,3,7,14,21,30
-- Churn: trigger,7-day,expiry,30-day
+## CMO (/cmo)
+- [ ] Run /cmo research on top 5 AU competitors
+- [ ] Publish 2 insight articles via /publish
+- [ ] Run /seo-audit and fix critical issues
+- [ ] Set up LinkedIn company page
+- [ ] Draft 5 social post templates
 
-## P1 (Should Do This Week)
+## CFO (/cfo)
+- [ ] Run /cfo revenue to establish baseline metrics
+- [ ] Document current AI API costs (Anthropic/OpenAI/Gemini)
+- [ ] Create monthly P&L template
+- [ ] Verify all Stripe products/prices are synced (/stripe-test)
+- [ ] Calculate current unit economics (CAC, LTV)
 
-### 4. Connect Google Analytics
-- Add GA4 to blockid.au
-- Track: pageviews, SVI completions, checkout starts, conversions
-- Use as evidence in self-assessment (+8 SVI)
+## CPO (/cpo)
+- [ ] Map current user journey (landing → SVI → signup → paid)
+- [ ] Identify top 3 UX friction points with /analytics
+- [ ] Create feature backlog with RICE scores
+- [ ] Test onboarding flow, measure time-to-first-value
+- [ ] Design improvements with /ui-ux-pro-max
 
-### 5. SEO Quick Wins
-- Submit sitemap to Google Search Console
-- Add meta descriptions to all 8 free tool pages
-- Create /about, /privacy, /terms content
-- Target: indexed in Google within 1 week
+## CRO (/cro)
+- [ ] Run /cro funnel to establish conversion baselines
+- [ ] Identify biggest drop-off point in funnel
+- [ ] Propose 3 quick-win conversion fixes
+- [ ] Verify all analytics events fire correctly
+- [ ] Set up weekly conversion report
 
-### 6. LinkedIn Content Plan
-- Post 1: "Built a SaaS platform in 19 days with AI agents"
-- Post 2: "Why 70% of AU startups fail cap table diligence"
-- Post 3: "Free SVI analysis for the first 50 founders"
-- Target: 5,000 impressions, 50 profile visits
+## IR — Investor Relations (/investor-relations)
+- [ ] Create pitch deck v1 outline (12 slides)
+- [ ] Draft 1-page executive summary (Auschain Pty Ltd)
+- [ ] Research Startmate & Antler application deadlines
+- [ ] Start data room folder structure (6 sections)
+- [ ] Draft investor target list (20 AU pre-seed investors)
+
+## Media Studio (/media-studio)
+- [ ] Install Remotion: npm install remotion @remotion/cli @remotion/player
+- [ ] Create web/src/remotion/ directory + Root.tsx + brand.ts
+- [ ] Build LogoReveal.tsx component
+- [ ] Script 1-minute pitch video (60s, problem→demo→CTA)
+- [ ] Script 3-minute product demo (full SVI walkthrough)
+- [ ] Set up ElevenLabs account + test voice synthesis
+
+## Success Criteria
+| Agent | Metric | Target |
+|-------|--------|--------|
+| CTO | Security criticals | 0 |
+| CTO | p95 response time | < 500ms |
+| CMO | Articles published | 2 |
+| CFO | P&L template | Complete |
+| CPO | Friction points identified | 3 |
+| CRO | Funnel baselines | Measured |
+| IR | Pitch outline | 12 slides drafted |
+| Media | Remotion installed | Working preview |
