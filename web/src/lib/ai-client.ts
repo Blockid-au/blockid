@@ -145,9 +145,10 @@ type Provider = "claude-oauth" | "claude-apikey" | "claude-proxy" | "openai-code
 
 function getAvailableProviders(): Provider[] {
   const providers: Provider[] = [];
+  // Priority: Proxy (paid third-party) → Claude OAuth → Anthropic key → Codex → OpenAI → Gemini
+  if (process.env.ANTHROPIC_PROXY_API_KEY && process.env.ANTHROPIC_PROXY_BASE_URL) providers.push("claude-proxy");
   if (readCliOAuthToken()) providers.push("claude-oauth");
   if (process.env.ANTHROPIC_API_KEY) providers.push("claude-apikey");
-  if (process.env.ANTHROPIC_PROXY_API_KEY && process.env.ANTHROPIC_PROXY_BASE_URL) providers.push("claude-proxy");
   if (readCodexOAuthToken()) providers.push("openai-codex");
   if (process.env.OPENAI_API_KEY) providers.push("openai-apikey");
   if (process.env.GOOGLE_GEMINI_API_KEY) providers.push("gemini");
