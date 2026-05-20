@@ -81,6 +81,11 @@ export interface AnalyticsEventMap {
   billing_page_viewed: Record<string, never>;
   plan_upgrade_started: { from_plan: string; to_plan: string };
 
+  // ── Referral ──
+  referral_link_copied: Record<string, never>;
+  referral_email_shared: Record<string, never>;
+  referral_linkedin_shared: Record<string, never>;
+
   // ── Navigation ──
   cta_clicked: { cta_id: string; location: string };
   nav_tool_selected: { tool: string };

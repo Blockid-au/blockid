@@ -27,7 +27,8 @@ const CREDIT_PACKS = [
   { qty: 5, price: 5, href: "/workspace/billing#credits" },
   { qty: 10, price: 9, href: "/workspace/billing#credits" },
   { qty: 25, price: 20, href: "/workspace/billing#credits" },
-  { qty: 50, price: 35, href: "/workspace/billing#credits" },
+  { qty: 50, price: 15, href: "/workspace/billing#credits" },
+  { qty: 100, price: 25, href: "/workspace/billing#credits" },
 ];
 
 const tiers: Tier[] = [

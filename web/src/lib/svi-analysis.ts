@@ -344,7 +344,14 @@ export function extractSignals(
           if (ev.dimension === "ptd") { signals.hasWebsite = true; signals.hasProduct = true; }
           break;
         case "github":
-          signals.hasSourceCode = true; signals.hasProduct = true;
+          signals.hasSourceCode = true;
+          signals.hasProduct = true;
+          // If GitHub evidence is in the "tre" (traction) dimension, it represents
+          // commit activity — boost traction signals accordingly
+          if (ev.dimension === "tre") {
+            signals.hasAnalytics = true;
+            signals.hasSocialProof = true;
+          }
           break;
         case "analytics":
           signals.hasAnalytics = true;

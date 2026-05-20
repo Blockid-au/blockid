@@ -93,7 +93,18 @@ blockid.au {
 		# - 'self' for scripts / connect / images.
 		# - Google Fonts CSS + font files allowed.
 		# - 'unsafe-inline' on style-src is required for Next.js + Tailwind's
-		#   inlined critical CSS and styled-jsx; script-src stays strict.
+		#   inlined critical CSS and styled-jsx.
+		#
+		# KNOWN TRADEOFF: 'unsafe-inline' in script-src.
+		# Next.js injects inline <script> tags for hydration data
+		# (__NEXT_DATA__, chunk preloading, and the router runtime). Removing
+		# 'unsafe-inline' causes these scripts to be blocked by the browser,
+		# breaking client-side navigation and hydration entirely.
+		# The proper fix is to use CSP nonces (per-request), which requires
+		# Next.js `experimental.serverActions.allowedOrigins` + middleware to
+		# inject nonce headers. This is tracked as a future hardening task.
+		# Risk is partially mitigated by the strict connect-src / frame-src
+		# directives that limit what any injected script could exfiltrate to.
 		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.stripe.com https://www.google-analytics.com https://www.googletagmanager.com; connect-src 'self' https://api.stripe.com https://www.google-analytics.com https://analytics.google.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com; frame-src https://js.stripe.com https://hooks.stripe.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com; object-src 'none'"
 
 		# Strip Caddy's default banner.

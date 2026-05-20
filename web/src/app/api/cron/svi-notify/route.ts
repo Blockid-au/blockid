@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { callAI, isAIConfigured } from "@/lib/ai-client";
+import type { SVIAnalysis } from "@/lib/svi-analysis";
+import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
 import {
   sendSVIWelcome,
   sendSVIWeeklyReport,
@@ -122,12 +125,73 @@ export async function GET(request: Request) {
 
           const svi = snapshot?.svi_total ?? account.current_svi;
           const delta = snapshot?.delta ?? null;
+          const stage = SVI_STAGE_LABELS[account.current_stage] ?? "Concept";
+
+          // Count new evidence added this week
+          const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+          const { count: newEvidenceCount } = await supabase
+            .from("svi_evidence")
+            .select("id", { count: "exact", head: true })
+            .eq("account_id", account.id)
+            .gte("created_at", oneWeekAgo);
+
+          // Count actions taken this week
+          const { count: actionCount } = await supabase
+            .from("user_actions")
+            .select("id", { count: "exact", head: true })
+            .eq("account_id", account.id)
+            .gte("created_at", oneWeekAgo);
+
+          // Get top evidence gaps from latest analysis
+          const { data: latestAnalysis } = await supabase
+            .from("svi_analyses")
+            .select("analysis_json")
+            .eq("email", account.email)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .single();
+
+          let topGaps: string[] = [];
+          if (latestAnalysis?.analysis_json) {
+            const parsed = latestAnalysis.analysis_json as SVIAnalysis;
+            if (parsed.evidenceGaps && Array.isArray(parsed.evidenceGaps)) {
+              topGaps = parsed.evidenceGaps.slice(0, 3).map((g) => g.label);
+            }
+          }
+
+          // Generate AI summary (best-effort — skip if AI not configured)
+          let aiSummary: string | null = null;
+          try {
+            if (isAIConfigured()) {
+              const aiResult = await callAI({
+                system: "You are a startup advisor writing a brief weekly progress report for an Australian founder. Be encouraging but specific. No markdown, no bullet points — plain sentences only.",
+                user: `SVI Score: ${svi} (${delta != null && delta > 0 ? "+" : ""}${delta ?? "no change"} from last week).
+Evidence added this week: ${newEvidenceCount ?? 0}. Actions taken: ${actionCount ?? 0}.
+Stage: ${stage}. Top gaps: ${topGaps.length > 0 ? topGaps.join(", ") : "none identified"}.
+Write 2-3 encouraging sentences about progress and 1 specific action for next week.`,
+                maxTokens: 200,
+              });
+              aiSummary = aiResult.text.trim() || null;
+            }
+          } catch (err) {
+            console.warn("[blockid:svi-notify] AI summary generation failed, skipping", err);
+          }
+
+          // Store AI summary on the snapshot for later display
+          if (aiSummary) {
+            await supabase
+              .from("svi_snapshots")
+              .update({ ai_summary: aiSummary })
+              .eq("account_id", account.id)
+              .order("snapshot_date", { ascending: false })
+              .limit(1);
+          }
 
           await supabase.from("svi_notifications").insert({
             account_id: account.id,
             notification_type: weeklyType,
             subject: `Week ${weekNum} SVI Report — ${delta != null && delta > 0 ? `+${delta}` : delta ?? "No change"} points`,
-            payload: { svi, delta },
+            payload: { svi, delta, aiSummary, topGaps, newEvidence: newEvidenceCount ?? 0, actionCount: actionCount ?? 0 },
           });
 
           // Send weekly report email
@@ -137,6 +201,8 @@ export async function GET(request: Request) {
             svi,
             delta,
             weekNum,
+            aiSummary: aiSummary ?? undefined,
+            topGaps,
           });
           if (emailResult.ok) emailed++;
 

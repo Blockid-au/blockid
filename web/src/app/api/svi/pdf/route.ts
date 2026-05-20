@@ -4,11 +4,21 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { SVIReportPDF } from "@/lib/pdf/svi-report-pdf";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
+    // ── Auth gate — only authenticated users can generate PDFs ─────────
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        { ok: false, reason: "Authentication required" },
+        { status: 401 },
+      );
+    }
+
     const body = (await request.json()) as {
       analysis?: SVIAnalysis;
       email?: string;

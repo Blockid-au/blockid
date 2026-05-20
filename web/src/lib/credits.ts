@@ -48,10 +48,11 @@ export const PLAN_CREDITS: Record<string, { amount: number; recurring: boolean }
 // ---------------------------------------------------------------------------
 
 export const CREDIT_PACKS = [
-  { credits: 10,  priceAudCents: 500,   label: "10 Credits",  savings: null },       // A$5 = A$0.50/credit
-  { credits: 25,  priceAudCents: 900,   label: "25 Credits",  savings: "Save 28%" }, // A$9 = A$0.36/credit
-  { credits: 50,  priceAudCents: 1500,  label: "50 Credits",  savings: "Save 40%" }, // A$15 = A$0.30/credit
-  { credits: 100, priceAudCents: 2500,  label: "100 Credits", savings: "Save 50%" }, // A$25 = A$0.25/credit
+  { credits: 5,   priceAudCents: 500,   label: "5 Credits",   savings: null },       // A$5  = A$1.00/credit
+  { credits: 10,  priceAudCents: 900,   label: "10 Credits",  savings: "Save 10%" }, // A$9  = A$0.90/credit
+  { credits: 25,  priceAudCents: 2000,  label: "25 Credits",  savings: "Save 20%" }, // A$20 = A$0.80/credit
+  { credits: 50,  priceAudCents: 1500,  label: "50 Credits",  savings: "Save 70%" }, // A$15 = A$0.30/credit
+  { credits: 100, priceAudCents: 2500,  label: "100 Credits", savings: "Save 75%" }, // A$25 = A$0.25/credit
 ] as const;
 
 // ---------------------------------------------------------------------------

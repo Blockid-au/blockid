@@ -297,13 +297,36 @@ export async function sendSVIWeeklyReport(args: {
   svi: number;
   delta: number | null;
   weekNum: number;
+  aiSummary?: string;
+  topGaps?: string[];
 }): Promise<SendResult> {
   if (!(await canSendEmail(args.to, "weekly_reports"))) return { ok: false, reason: "unsubscribed" };
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const dashUrl = `${siteUrl()}/dashboard/svi`;
   const evidenceUrl = `${siteUrl()}/workspace/evidence`;
+  const reportsUrl = `${siteUrl()}/workspace/reports`;
   const deltaStr = args.delta != null ? (args.delta >= 0 ? `+${args.delta}` : `${args.delta}`) : "No change";
   const deltaColor = args.delta != null && args.delta >= 0 ? "#4ADE80" : "#F87171";
+  const deltaArrow = args.delta != null ? (args.delta >= 0 ? "&#9650;" : "&#9660;") : "";
+
+  // AI summary section
+  const aiSummaryHtml = args.aiSummary
+    ? `<div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:0 0 16px 0;">
+        <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Weekly Insight</p>
+        <p style="margin:0;color:#CBD5E1;font-size:13px;line-height:1.6;">${escapeHtml(args.aiSummary)}</p>
+      </div>`
+    : "";
+
+  // Top gaps section (next actions)
+  const gapsHtml = args.topGaps && args.topGaps.length > 0
+    ? `<div style="margin:0 0 16px 0;">
+        <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Top Actions for Next Week</p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          ${args.topGaps.slice(0, 3).map((g, i) => `<tr><td style="padding:4px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:20px;">${i + 1}.</td><td style="padding:4px 8px;color:#F8FAFC;font-size:13px;">${escapeHtml(g)}</td></tr>`).join("")}
+        </table>
+      </div>`
+    : "";
+
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
     <tr><td align="center">
@@ -314,8 +337,10 @@ export async function sendSVIWeeklyReport(args: {
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Here's how your Startup Value Index changed this week${args.name ? `, ${escapeHtml(args.name)}` : ""}.</p>
           <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
             <div style="font-family:'IBM Plex Mono',monospace;font-size:48px;font-weight:600;color:#3B7DD8;line-height:1;">${args.svi}</div>
-            <p style="margin:8px 0 0 0;font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;color:${deltaColor};">${escapeHtml(deltaStr)} this week</p>
+            <p style="margin:8px 0 0 0;font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;color:${deltaColor};">${deltaArrow} ${escapeHtml(deltaStr)} this week</p>
           </div>
+          ${aiSummaryHtml}
+          ${gapsHtml}
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">${args.delta != null && args.delta > 0
             ? "Great progress! Keep adding evidence to maintain momentum."
             : args.delta != null && args.delta < 0
@@ -323,12 +348,16 @@ export async function sendSVIWeeklyReport(args: {
               : "Your score held steady. Add new evidence to push it higher."}</p>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
             <tr>
-              <td width="48%" style="text-align:center;padding:4px;">
-                <a href="${dashUrl}" style="display:inline-block;width:100%;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">View Dashboard</a>
+              <td width="31%" style="text-align:center;padding:4px;">
+                <a href="${dashUrl}" style="display:inline-block;width:100%;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:13px;">Dashboard</a>
               </td>
-              <td width="4%"></td>
-              <td width="48%" style="text-align:center;padding:4px;">
-                <a href="${evidenceUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">Add Evidence</a>
+              <td width="3%"></td>
+              <td width="31%" style="text-align:center;padding:4px;">
+                <a href="${evidenceUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:13px;">Add Evidence</a>
+              </td>
+              <td width="3%"></td>
+              <td width="31%" style="text-align:center;padding:4px;">
+                <a href="${reportsUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:13px;">Full Report</a>
               </td>
             </tr>
           </table>
