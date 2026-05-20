@@ -53,7 +53,7 @@ type SendResult =
 
 // ---------- Core send function ------------------------------------------------
 
-async function sendEmail(args: {
+export async function sendEmail(args: {
   to: string;
   subject: string;
   html: string;
