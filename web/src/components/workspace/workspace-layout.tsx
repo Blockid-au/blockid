@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity, Banknote, BarChart3, Bell, BookOpen, Briefcase, ChevronLeft, ChevronRight, CreditCard, DollarSign, DoorOpen, FileText, FolderCheck, FolderOpen, Home,
-  Key, LayoutDashboard, Map, PieChart, Shield, Table2, TrendingUp, User
+  Key, LayoutDashboard, Map, PieChart, Shield, Table2, TrendingUp, User, Wallet
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { CreditBalance } from "@/components/ui/credit-balance";
@@ -38,6 +38,7 @@ const NAV_ITEMS = [
   { href: "/workspace/metrics", label: "Metrics", icon: BarChart3 },
   { href: "/workspace/revenue", label: "Revenue", icon: DollarSign },
   { href: "/workspace/journal", label: "Growth Journal", icon: BookOpen },
+  { href: "/workspace/wallet", label: "Wallet", icon: Wallet },
   { href: "/workspace/exit", label: "Exit Modeling", icon: DoorOpen },
   { href: "/workspace/profile", label: "My Profile", icon: User },
   { href: "/workspace/billing", label: "Billing", icon: CreditCard },
