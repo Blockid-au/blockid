@@ -98,3 +98,139 @@ export async function uploadAndShareWithAdmin(
 
   return response.data;
 }
+
+// ── Per-user folder management ──────────────────────────────────────────
+
+/**
+ * Get or create a dedicated Drive folder for a user.
+ * Each user gets their own folder under the main BlockID Drive folder.
+ * Folder is shared with both the user and admin.
+ */
+export async function getOrCreateUserFolder(
+  userEmail: string,
+  displayName?: string | null,
+): Promise<{ folderId: string; folderUrl: string }> {
+  const { drive, folderId: rootFolderId } = getDriveClient();
+  const adminEmail = process.env.ADMIN_EMAIL ?? "admin@blockid.au";
+
+  // Check if folder already exists for this user
+  const searchQuery = `name = '${userEmail}' and '${rootFolderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+  const existing = await drive.files.list({
+    q: searchQuery,
+    fields: "files(id, webViewLink)",
+    spaces: "drive",
+  });
+
+  if (existing.data.files?.length) {
+    const folder = existing.data.files[0];
+    return {
+      folderId: folder.id!,
+      folderUrl: folder.webViewLink ?? `https://drive.google.com/drive/folders/${folder.id}`,
+    };
+  }
+
+  // Create new folder
+  const folderName = displayName ? `${displayName} (${userEmail})` : userEmail;
+  const created = await drive.files.create({
+    requestBody: {
+      name: folderName,
+      mimeType: "application/vnd.google-apps.folder",
+      parents: [rootFolderId],
+      description: `BlockID.au — Documents for ${userEmail}`,
+    },
+    fields: "id, webViewLink",
+  });
+
+  const newFolderId = created.data.id!;
+  const folderUrl = created.data.webViewLink ?? `https://drive.google.com/drive/folders/${newFolderId}`;
+
+  // Share with user (viewer) and admin (writer)
+  await Promise.all([
+    drive.permissions.create({
+      fileId: newFolderId,
+      requestBody: { type: "user", role: "reader", emailAddress: userEmail },
+      sendNotificationEmail: false,
+    }).catch(() => {}), // ignore if user email is invalid
+    drive.permissions.create({
+      fileId: newFolderId,
+      requestBody: { type: "user", role: "writer", emailAddress: adminEmail },
+      sendNotificationEmail: false,
+    }).catch(() => {}),
+  ]);
+
+  return { folderId: newFolderId, folderUrl };
+}
+
+/**
+ * Upload a file to a user's dedicated folder.
+ * Creates the user folder if it doesn't exist.
+ * Returns file metadata + folder info.
+ */
+export async function uploadToUserFolder(
+  fileBuffer: Buffer,
+  fileName: string,
+  mimeType: string,
+  userEmail: string,
+  displayName?: string | null,
+): Promise<{
+  fileId: string | null;
+  fileUrl: string | null;
+  folderId: string;
+  folderUrl: string;
+}> {
+  const { drive } = getDriveClient();
+  const { folderId, folderUrl } = await getOrCreateUserFolder(userEmail, displayName);
+
+  const stream = new Readable();
+  stream.push(fileBuffer);
+  stream.push(null);
+
+  const response = await drive.files.create({
+    requestBody: {
+      name: fileName,
+      parents: [folderId],
+      description: `Uploaded by ${userEmail} via BlockID.au`,
+    },
+    media: { mimeType, body: stream },
+    fields: "id, webViewLink",
+  });
+
+  // Share file with user
+  if (response.data.id) {
+    await drive.permissions.create({
+      fileId: response.data.id,
+      requestBody: { type: "user", role: "reader", emailAddress: userEmail },
+      sendNotificationEmail: false,
+    }).catch(() => {});
+  }
+
+  return {
+    fileId: response.data.id ?? null,
+    fileUrl: response.data.webViewLink ?? null,
+    folderId,
+    folderUrl,
+  };
+}
+
+/**
+ * List files in a user's Drive folder.
+ */
+export async function listUserFolderFiles(
+  userFolderId: string,
+): Promise<Array<{ id: string; name: string; webViewLink: string; mimeType: string; createdTime: string }>> {
+  const { drive } = getDriveClient();
+  const response = await drive.files.list({
+    q: `'${userFolderId}' in parents and trashed = false`,
+    fields: "files(id, name, webViewLink, mimeType, createdTime)",
+    orderBy: "createdTime desc",
+    pageSize: 100,
+  });
+
+  return (response.data.files ?? []).map((f) => ({
+    id: f.id!,
+    name: f.name!,
+    webViewLink: f.webViewLink ?? "",
+    mimeType: f.mimeType ?? "",
+    createdTime: f.createdTime ?? "",
+  }));
+}

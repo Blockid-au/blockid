@@ -15,6 +15,43 @@
 import * as fs from "fs";
 import * as path from "path";
 
+// ── Admin-configured keys from Supabase ───────────────────────────────
+// Cache DB keys for 5 minutes to avoid hitting Supabase on every AI call.
+
+interface DBKey { provider: string; api_key: string; base_url: string | null; is_active: boolean }
+let dbKeysCache: { keys: DBKey[]; fetchedAt: number } | null = null;
+const DB_KEYS_TTL = 5 * 60 * 1000; // 5 min
+
+async function getDBKeys(): Promise<DBKey[]> {
+  if (dbKeysCache && Date.now() - dbKeysCache.fetchedAt < DB_KEYS_TTL) {
+    return dbKeysCache.keys;
+  }
+  try {
+    // Dynamic import to avoid circular deps and keep module lightweight
+    const { getSupabaseAdmin } = await import("@/lib/supabase");
+    const supabase = getSupabaseAdmin();
+    if (!supabase) return [];
+    const { data } = await supabase
+      .from("ai_provider_keys")
+      .select("provider, api_key, base_url, is_active")
+      .eq("is_active", true);
+    const keys = (data ?? []) as DBKey[];
+    dbKeysCache = { keys, fetchedAt: Date.now() };
+    return keys;
+  } catch {
+    return dbKeysCache?.keys ?? [];
+  }
+}
+
+function getDBKey(provider: string): DBKey | undefined {
+  return dbKeysCache?.keys.find((k) => k.provider === provider && k.is_active);
+}
+
+/** Force refresh DB keys cache (call after admin updates keys) */
+export function invalidateAIKeysCache(): void {
+  dbKeysCache = null;
+}
+
 // ── Budget tracking ($100/month cap) ───────────────────────────────────
 // Tracks estimated cost per provider per month. Persisted to disk so it
 // survives container restarts. When budget exceeded, provider is skipped.
@@ -145,13 +182,23 @@ type Provider = "claude-oauth" | "claude-apikey" | "claude-proxy" | "openai-code
 
 function getAvailableProviders(): Provider[] {
   const providers: Provider[] = [];
-  // Priority: Proxy (paid third-party) → Claude OAuth → Anthropic key → Codex → OpenAI → Gemini
+  // Priority: Proxy → DB keys → Claude OAuth → Env keys → Codex → Gemini
+  // 1. Proxy (env or DB)
   if (process.env.ANTHROPIC_PROXY_API_KEY && process.env.ANTHROPIC_PROXY_BASE_URL) providers.push("claude-proxy");
+  else if (getDBKey("anthropic_proxy")) providers.push("claude-proxy");
+  // 2. Claude OAuth
   if (readCliOAuthToken()) providers.push("claude-oauth");
+  // 3. Anthropic key (env or DB)
   if (process.env.ANTHROPIC_API_KEY) providers.push("claude-apikey");
+  else if (getDBKey("anthropic")) providers.push("claude-apikey");
+  // 4. Codex OAuth
   if (readCodexOAuthToken()) providers.push("openai-codex");
+  // 5. OpenAI key (env or DB)
   if (process.env.OPENAI_API_KEY) providers.push("openai-apikey");
+  else if (getDBKey("openai")) providers.push("openai-apikey");
+  // 6. Gemini (env or DB)
   if (process.env.GOOGLE_GEMINI_API_KEY) providers.push("gemini");
+  else if (getDBKey("gemini")) providers.push("gemini");
   return providers;
 }
 
@@ -283,8 +330,11 @@ async function callGemini(opts: AICallOptions): Promise<AICallResult> {
 // ── Provider caller map ────────────────────────────────────────────────
 
 async function callClaudeProxy(opts: AICallOptions): Promise<AICallResult> {
-  const baseURL = process.env.ANTHROPIC_PROXY_BASE_URL!;
-  const keys = (process.env.ANTHROPIC_PROXY_API_KEY ?? "").split(",").map((k) => k.trim()).filter(Boolean);
+  const dbProxy = getDBKey("anthropic_proxy");
+  const baseURL = process.env.ANTHROPIC_PROXY_BASE_URL ?? dbProxy?.base_url ?? "";
+  const envKeys = (process.env.ANTHROPIC_PROXY_API_KEY ?? "").split(",").map((k) => k.trim()).filter(Boolean);
+  const dbKeys = dbProxy?.api_key ? dbProxy.api_key.split(",").map((k) => k.trim()).filter(Boolean) : [];
+  const keys = [...new Set([...envKeys, ...dbKeys])]; // deduplicate
   const model = opts.tools?.length ? "claude-sonnet-4-6" : "claude-haiku-4-5-20251001";
 
   let lastErr: Error | null = null;
@@ -347,15 +397,21 @@ async function callProvider(provider: Provider, opts: AICallOptions): Promise<AI
     case "claude-oauth":
       return callClaude(readCliOAuthToken()!, opts);
     case "claude-apikey":
-      return callClaude(process.env.ANTHROPIC_API_KEY!, opts);
+      return callClaude(process.env.ANTHROPIC_API_KEY ?? getDBKey("anthropic")?.api_key ?? "", opts);
     case "claude-proxy":
       return callClaudeProxy(opts);
     case "openai-codex":
       return callCodex(noTools);
     case "openai-apikey":
-      return callOpenAI(process.env.OPENAI_API_KEY!, noTools);
-    case "gemini":
+      return callOpenAI(process.env.OPENAI_API_KEY ?? getDBKey("openai")?.api_key ?? "", noTools);
+    case "gemini": {
+      // Inject DB key into process.env temporarily for Gemini SDK
+      const dbGemini = getDBKey("gemini");
+      if (!process.env.GOOGLE_GEMINI_API_KEY && dbGemini) {
+        process.env.GOOGLE_GEMINI_API_KEY = dbGemini.api_key;
+      }
       return callGemini(noTools);
+    }
     default:
       throw new Error(`Unknown provider: ${provider}`);
   }
@@ -364,11 +420,14 @@ async function callProvider(provider: Provider, opts: AICallOptions): Promise<AI
 // ── Unified entry point (with auto-fallback) ───────────────────────────
 
 export async function callAI(opts: AICallOptions): Promise<AICallResult> {
+  // Pre-load admin-configured keys from Supabase (cached 5 min)
+  await getDBKeys();
+
   const providers = getAvailableProviders();
 
   if (providers.length === 0) {
     throw new Error(
-      "No AI provider configured. Set up Claude CLI, ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_GEMINI_API_KEY."
+      "No AI provider configured. Set up keys in Admin → AI Keys, or configure env vars."
     );
   }
 

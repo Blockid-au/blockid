@@ -124,6 +124,25 @@ export async function POST(request: Request) {
   // After persisting, send report email (fire-and-forget)
   void sendSVIReport({ to: email, slug, rawInput: parsed.input?.rawText, analysis }).catch(() => {});
 
+  // Create per-user Drive folder and link to analysis (fire-and-forget)
+  if (supabase) {
+    void (async () => {
+      try {
+        const { getOrCreateUserFolder } = await import("@/lib/google-drive");
+        const { folderId: userFolderId, folderUrl } = await getOrCreateUserFolder(email);
+        await supabase.from("svi_analyses").update({
+          drive_folder_id: userFolderId,
+          drive_folder_url: folderUrl,
+        }).eq("id", slug);
+        // Also update svi_accounts if exists
+        await supabase.from("svi_accounts").update({
+          drive_folder_id: userFolderId,
+          drive_folder_url: folderUrl,
+        }).eq("email", email);
+      } catch { /* Drive not configured or failed — non-blocking */ }
+    })();
+  }
+
   // ── Auto-send magic link for frictionless signup (unauthenticated only) ──
   // If the user doesn't already have an account, send them a magic link so
   // they can sign in with one click and auto-create their account.
