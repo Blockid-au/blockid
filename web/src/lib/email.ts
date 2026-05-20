@@ -322,6 +322,7 @@ export async function sendSVIWeeklyReport(args: {
 export async function sendSVIReport(args: {
   to: string;
   slug: string;
+  rawInput?: string;
   analysis: {
     totalSVI: number;
     stageLabel: string;
@@ -331,6 +332,12 @@ export async function sendSVIReport(args: {
 }): Promise<SendResult> {
   const reportUrl = `${siteUrl()}/s/${args.slug}`;
   const loginUrl = `${siteUrl()}/auth/login`;
+  const trackUrl = `${siteUrl()}/api/track/open?slug=${args.slug}&email=${encodeURIComponent(args.to)}`;
+
+  // Truncate raw input for email summary (max 300 chars)
+  const ideaSummary = args.rawInput
+    ? escapeHtml(args.rawInput.replace(/^File:.*\n/, "").trim().slice(0, 300)) + (args.rawInput.length > 300 ? "..." : "")
+    : null;
 
   const strengths = args.analysis.subs
     .filter((s) => s.value >= 60)
@@ -353,6 +360,13 @@ export async function sendSVIReport(args: {
     )
     .join("");
 
+  const ideaSummaryHtml = ideaSummary ? `
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:0 0 16px 0;">
+            <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Your Idea</p>
+            <p style="margin:0;color:#CBD5E1;font-size:13px;line-height:1.6;font-style:italic;">&ldquo;${ideaSummary}&rdquo;</p>
+          </div>
+  ` : "";
+
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
     <tr><td align="center">
@@ -361,6 +375,7 @@ export async function sendSVIReport(args: {
           <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Startup Value Report</p>
           <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Your Startup Value Report is Ready</h1>
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Your SVI analysis is complete. Here is your headline score and key findings.</p>
+          ${ideaSummaryHtml}
           <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
             <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:64px;font-weight:600;color:#3B7DD8;line-height:1;">${args.analysis.totalSVI}</div>
             <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">SVI Score — ${escapeHtml(args.analysis.stageLabel)} Stage</p>
@@ -390,7 +405,8 @@ export async function sendSVIReport(args: {
         </td></tr>
       </table>
     </td></tr>
-  </table>`);
+  </table>
+  <img src="${trackUrl}" width="1" height="1" alt="" style="display:none;" />`);
   return sendEmail({ to: args.to, subject: "Your BlockID Startup Value Report is Ready", html });
 }
 

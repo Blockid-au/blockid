@@ -122,7 +122,7 @@ export async function POST(request: Request) {
   }
 
   // After persisting, send report email (fire-and-forget)
-  void sendSVIReport({ to: email, slug, analysis }).catch(() => {});
+  void sendSVIReport({ to: email, slug, rawInput: parsed.input?.rawText, analysis }).catch(() => {});
 
   // ── Auto-send magic link for frictionless signup (unauthenticated only) ──
   // If the user doesn't already have an account, send them a magic link so
