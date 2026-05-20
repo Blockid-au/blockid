@@ -169,6 +169,7 @@ export default async function AdminPage() {
             { href: "/admin/roadmap", label: "Product Roadmap", desc: "Track phases, milestones and KPIs" },
             { href: "/admin/team", label: "Team & AI Agents", desc: "View team members and AI agent ecosystem" },
             { href: "/admin/users", label: "Manage Users", desc: "View all users, update plans, reset access" },
+            { href: "/admin/ai-keys", label: "AI Provider Keys", desc: "Monitor & manage AI fallback chain, test connections" },
             { href: "/admin/config", label: "System Config", desc: "SVI weights, risk penalties, benchmarks" },
             { href: "/admin/notifications", label: "Notifications", desc: "Send manual reports, view delivery logs" },
             { href: "/admin/documents", label: "Project Documents", desc: "Upload and sync files to Google Drive" },
