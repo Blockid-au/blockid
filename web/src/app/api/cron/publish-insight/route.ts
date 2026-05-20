@@ -53,31 +53,70 @@ export async function GET(request: Request) {
     const queue = JSON.parse(readFileSync(queuePath, "utf-8")) as { topics: TopicItem[] };
     const manifest = JSON.parse(readFileSync(manifestPath, "utf-8")) as { articles: ManifestArticle[] };
 
-    // 2. Find first unpublished topic
+    // 2. Find first unpublished topic, or auto-generate one
     const publishedSlugs = new Set(manifest.articles.map((a) => a.slug));
-    const nextTopic = queue.topics.find((t) => !publishedSlugs.has(t.slug));
+    let topic = queue.topics.find((t) => !publishedSlugs.has(t.slug)) ?? null;
 
-    if (!nextTopic) {
-      return NextResponse.json({ ok: true, message: "All topics published. Add more to topic-queue.json." });
+    if (!topic) {
+      // Auto-research: generate a new topic when queue is depleted
+      try {
+        const existingTitles = manifest.articles.map((a) => a.title).join("\n- ");
+        const researchResult = await callAI({
+          system: `You are an SEO strategist for BlockID.au (Australian startup valuation platform). Generate ONE new blog topic that Australian founders would search for. Return ONLY valid JSON with this exact structure:
+{"slug":"kebab-case-slug","title":"Title Under 70 Chars","category":"valuation|cap-table|fundraising|equity|compliance|tools|growth","keywords":["keyword1","keyword2","keyword3"],"cta":{"label":"CTA Label","href":"/tools/xxx or /score or /"},"angle":"2-3 sentence brief for the writer"}
+No markdown, no explanation, just the JSON object.`,
+          user: `Already published:\n- ${existingTitles}\n\nGenerate a NEW topic (not duplicate) targeting a high-intent keyword Australian founders search for. Focus on practical, actionable content that showcases BlockID tools.`,
+          maxTokens: 500,
+        });
+        topic = JSON.parse(researchResult.text.replace(/```json?\n?/g, "").replace(/```/g, "").trim()) as TopicItem;
+        queue.topics.push(topic);
+        writeFileSync(queuePath, JSON.stringify(queue, null, 2) + "\n", "utf-8");
+      } catch (researchErr) {
+        return NextResponse.json({ ok: true, message: "Queue depleted and auto-research failed.", error: String(researchErr) });
+      }
     }
+
+    if (!topic) {
+      return NextResponse.json({ ok: true, message: "No topic available." });
+    }
+    const nextTopic = topic;
 
     // 3. Generate article via AI
     const aiResult = await callAI({
-      system: `You are an expert SEO content writer for BlockID.au, an Australian startup platform. Write a comprehensive, practical blog post in markdown format.
+      system: `You are an expert SEO content writer and growth marketer for BlockID.au, an Australian AI-powered startup valuation platform. Write a comprehensive, visually rich blog post in markdown format.
 
-Rules:
-- Write 1800-2500 words, practical and actionable
+Content Rules:
+- Write 2000-3000 words, practical and actionable
 - Target Australian founders (pre-seed to Series A)
 - Use AUD currency, reference Australian regulations (ASIC, ATO, ESIC) where relevant
-- Use H2 (##) and H3 (###) headings for structure
-- Include internal links to BlockID tools using markdown: [text](/tools/xxx) or [text](/score) or [text](/)
-- Include 2-3 external reference links to authoritative sources (government, industry reports)
 - Write in a confident, professional tone — no fluff, no filler
-- Include a practical checklist or table where appropriate
-- End with a clear CTA paragraph linking to the BlockID tool
-- Do NOT include the H1 title (it is added separately)
-- Do NOT include frontmatter or metadata
-- Start directly with the first H2 section`,
+
+Structure Rules:
+- Use H2 (##) and H3 (###) headings for clear structure
+- Include at least 1 comparison table (markdown table with | pipes)
+- Include at least 1 checklist section (using - [ ] or numbered list)
+- Include at least 1 blockquote (>) with a key insight or statistic
+- Break up text with short paragraphs (2-3 sentences each)
+
+CTA Rules (CRITICAL — every article must drive users to BlockID):
+- Include 3 inline CTAs throughout the article, naturally woven into the content:
+  1. Early CTA (after first major section): link to a relevant BlockID tool
+  2. Mid CTA (after a key insight): link to the SVI score
+  3. End CTA (final section): strong call-to-action with clear value proposition
+- CTA format: use a blockquote with bold text and link, e.g.:
+  > **Ready to check your startup valuation?** [Get your free Startup Value Index →](/)
+
+Link Rules:
+- Include internal links to BlockID tools: [text](/tools/xxx), [text](/score), [text](/)
+- Include 2-3 external links to authoritative sources (ABS, ATO, ASIC, AVCAL, Startup Genome)
+- Link to related insights: [More guides](/insights)
+
+Visual Elements:
+- Include markdown tables for comparisons, benchmarks, or checklists
+- Use bold (**text**) for key terms and important numbers
+- Use > blockquotes for statistics, expert quotes, or key takeaways
+
+Do NOT include the H1 title (added separately). Do NOT include frontmatter. Start with the first H2.`,
       user: `Write a blog post on:
 
 Title: ${nextTopic.title}
@@ -90,7 +129,7 @@ Internal links to include:
 - Relevant tool: [${nextTopic.cta.label}](${nextTopic.cta.href})
 - Insights page: [More founder guides](/insights)
 
-Write the full article in markdown. Focus on being genuinely helpful to an Australian founder reading this.`,
+Write the full article in markdown. Make it genuinely helpful, visually rich with tables and blockquotes, and include 3 naturally-placed CTAs driving readers to BlockID.au tools.`,
       maxTokens: 4000,
     });
 
