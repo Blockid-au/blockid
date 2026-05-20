@@ -1,5 +1,6 @@
 // Startup Value Index (SVI) — deterministic computation v2.0
 // Base starts at 100 and adjusts up/down based on evidence signals.
+// 0+ open-ended index — like a stock market index, grows without limit.
 // NOT a legal valuation. An indicator of startup progress and evidence quality.
 
 export const SVI_VERSION = "2.0.0";
@@ -140,7 +141,7 @@ export interface SVIEvidenceGap {
 
 export interface SVIAnalysis {
   version: string;
-  totalSVI: number;             // Base 100 ± adjustments
+  totalSVI: number;             // 0+ open-ended index (base 100 ± adjustments)
   baselineSVI: number;          // Always 100
   netAdjustment: number;        // Sum of all adjustments
   confidenceMultiplier: number; // 0.20–1.00 based on evidence level
@@ -366,7 +367,7 @@ export function extractSignals(
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const clamp = (v: number, min = 0, max = 200) => Math.max(min, Math.min(max, v));
+const clamp = (v: number, min = 0, max = Infinity) => Math.max(min, Math.min(max, v));
 
 function calcPercentileRank(
   svi: number,
@@ -685,7 +686,8 @@ export function computeSVI(signals: SVIExtractedSignals, weeklyDelta?: number): 
 
   // ── SVI total ───────────────────────────────────────────────────────────────
   const netAdj = ftvAdj + mpcAdj + ptdAdj + treAdj + cghAdj + iriAdj + lcoAdj + svmAdj;
-  const totalSVI = Math.round(clamp(100 + netAdj + stageBonus - totalPenalty, 30, 300));
+  // SVI is an open-ended index (0+ range) — like a stock market index, it grows without limit
+  const totalSVI = Math.round(Math.max(0, 100 + netAdj + stageBonus - totalPenalty));
 
   const percentileRank = calcPercentileRank(totalSVI, stage);
 

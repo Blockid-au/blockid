@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   const supabase = getSupabaseAdmin()!;
   const { data } = await supabase
     .from("svi_analyses")
-    .select("id, email, total_svi, input_type, created_at, rnd_report_json")
+    .select("id, email, total_svi, input_type, created_at, rnd_report_json, analysis_json")
     .eq("email", email)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -29,6 +29,7 @@ export async function GET(request: Request) {
       inputType: data.input_type ?? "idea",
       createdAt: data.created_at,
       tier,
+      analysisJson: data.analysis_json ?? null,
     },
   });
 }

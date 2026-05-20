@@ -42,6 +42,7 @@ import {
   getActionForGap,
   getActionForNextAction,
 } from "@/lib/svi-actions";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 /* ─── Constants ───────────────────────────────────────────────────────────── */
 
@@ -75,6 +76,19 @@ const DIMENSION_WEIGHTS: Record<string, string> = {
   lco: "8%",
   svm: "5%",
 };
+
+const DIMENSION_TOOLTIPS: Record<string, string> = {
+  ftv: "Founder & Team Value: Evaluates founder experience, co-founder presence, advisory board, domain expertise, and team completeness. Weighted 15% of total SVI.",
+  mpc: "Market & Problem Clarity: Assesses market size (TAM/SAM/SOM), problem validation, customer interviews, market timing, and competitive landscape. Weighted 18% — the highest dimension.",
+  ptd: "Product & Technical: Measures product maturity, tech stack quality, demo availability, source code, website presence, and AI/ML capabilities. Weighted 12%.",
+  tre: "Traction & Revenue: Tracks revenue band, customer count, analytics data, social proof, and growth trajectory. Weighted 20% — strongest signal for investors.",
+  cgh: "Cap Table & Governance: Evaluates cap table cleanliness, vesting schedules, shareholder agreements, ESOP allocation, and board governance. Weighted 12%.",
+  iri: "Investor Readiness: Checks pitch deck, financial model, data room, fundraise target, and investor materials completeness. Weighted 10%.",
+  lco: "Legal & Compliance: Assesses ABN/ASIC registration, IP protection, contracts, legal documentation, and regulatory compliance. Weighted 8%.",
+  svm: "Strategic Vision & Moat: Evaluates defensible moat, network effects, data advantage, switching costs, and long-term strategic positioning. Weighted 5%.",
+};
+
+const SVI_SCORE_TOOLTIP = "The Startup Value Index (SVI) is an open-ended index measuring your startup's overall strength across 8 dimensions. Like a stock market index, higher is better with no upper limit. The score grows as you add evidence, build products, gain traction, and structure your company.";
 
 const PAGES = [
   { id: "executive-summary", num: 1, title: "Executive Summary", icon: FileText },
@@ -209,46 +223,66 @@ function SVIGauge({
   value,
   stage,
   stageLabel,
+  delta,
 }: {
   value: number;
   stage?: number;
   stageLabel?: string;
+  delta?: number | null;
 }) {
   const label =
-    value >= 200
-      ? "Elite"
-      : value >= 170
-        ? "Exceptional"
-        : value >= 140
-          ? "Strong"
-          : value >= 120
-            ? "Above Average"
-            : value >= 100
-              ? "Average"
-              : value >= 80
-                ? "Below Average"
-                : value >= 60
-                  ? "Early Stage"
-                  : "Critical";
+    value >= 300
+      ? "Exceptional"
+      : value >= 200
+        ? "Elite"
+        : value >= 170
+          ? "Outstanding"
+          : value >= 140
+            ? "Strong"
+            : value >= 120
+              ? "Above Average"
+              : value >= 100
+                ? "Average"
+                : value >= 80
+                  ? "Below Average"
+                  : value >= 60
+                    ? "Early Stage"
+                    : "Critical";
 
   const color =
-    value >= 140
+    value >= 200
       ? "text-emerald-600"
-      : value >= 120
-        ? "text-brand-600"
-        : value >= 100
-          ? "text-amber-600"
-          : "text-red-600";
+      : value >= 140
+        ? "text-emerald-600"
+        : value >= 120
+          ? "text-brand-600"
+          : value >= 100
+            ? "text-amber-600"
+            : "text-red-600";
 
   const resolvedStageLabel = stageLabel ?? (stage !== undefined ? SVI_STAGE_LABELS[stage] : undefined);
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <div className="relative flex items-end justify-center gap-1">
-        <span className={cn("font-mono text-7xl sm:text-8xl font-bold tabular-nums tracking-tight leading-none", color)}>
-          {value}
-        </span>
-        <span className="mb-2 text-sm text-ink-600 font-mono">SVI</span>
+      <div className="flex items-baseline gap-3 justify-center">
+        <div className="relative flex items-end justify-center gap-1">
+          <span className={cn("font-mono text-7xl sm:text-8xl font-bold tabular-nums tracking-tight leading-none", color)}>
+            {value}
+          </span>
+          <span className="mb-2 text-sm text-ink-600 font-mono flex items-center gap-1">
+            SVI
+            <InfoTooltip text={SVI_SCORE_TOOLTIP} />
+          </span>
+        </div>
+        {delta !== undefined && delta !== null && delta !== 0 && (
+          <span className={cn(
+            "flex items-center gap-1 text-lg font-semibold",
+            delta > 0 ? "text-emerald-600" : "text-red-600"
+          )}>
+            {delta > 0 ? "\u25B2" : "\u25BC"} {Math.abs(delta).toFixed(1)}
+            <span className="text-xs text-ink-500 ml-1">vs previous</span>
+          </span>
+        )}
       </div>
       <div className="flex items-center gap-2">
         <span className="text-[10px] uppercase tracking-[0.18em] text-ink-700 font-medium">Base</span>
@@ -333,6 +367,7 @@ function DimensionBar({
   gaps,
   onUpload,
   email,
+  previousValue,
 }: {
   label: string;
   keyName: string;
@@ -342,11 +377,13 @@ function DimensionBar({
   gaps: string[];
   onUpload?: () => void;
   email?: string;
+  previousValue?: number;
 }) {
   const [open, setOpen] = React.useState(false);
   const pct = Math.round(value);
   const adjColor = adjustment >= 0 ? "text-emerald-600" : "text-red-600";
   const weight = DIMENSION_WEIGHTS[keyName] ?? "";
+  const dimDelta = previousValue !== undefined ? Math.round(value) - Math.round(previousValue) : undefined;
 
   return (
     <div className="rounded-xl border border-surface-200 bg-white px-4 py-3 shadow-sm">
@@ -362,8 +399,22 @@ function DimensionBar({
               {keyName}
             </span>
             <span className="text-sm font-medium text-ink-800 truncate">{label}</span>
+            {DIMENSION_TOOLTIPS[keyName] && (
+              <InfoTooltip text={DIMENSION_TOOLTIPS[keyName]} />
+            )}
             {weight && (
               <span className="text-[10px] text-ink-600 font-mono shrink-0">({weight})</span>
+            )}
+            {dimDelta !== undefined && dimDelta !== 0 && (
+              <span className={cn(
+                "text-xs font-medium shrink-0",
+                dimDelta > 0 ? "text-emerald-600" : "text-red-600"
+              )}>
+                {dimDelta > 0 ? `+${dimDelta}` : `${dimDelta}`}
+              </span>
+            )}
+            {dimDelta !== undefined && dimDelta === 0 && (
+              <span className="text-xs font-medium text-ink-500 shrink-0">unchanged</span>
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -758,12 +809,14 @@ export function SVIResultsPanel({
   onReset,
   rawText,
   email,
+  previousAnalysis,
 }: {
   analysis: SVIAnalysis;
   slug: string;
   onReset: () => void;
   rawText?: string;
   email?: string;
+  previousAnalysis?: SVIAnalysis | null;
 }) {
   const [copied, setCopied] = React.useState(false);
   const pageIds = PAGES.map((p) => p.id);
@@ -809,6 +862,34 @@ export function SVIResultsPanel({
   const iri = findSub(analysis, "iri");
   const signals = analysis.signals;
 
+  // Delta from previous analysis
+  const sviDelta = previousAnalysis ? analysis.totalSVI - previousAnalysis.totalSVI : null;
+
+  // Build a map of previous dimension scores for diff highlights
+  const previousSubScores: Record<string, number> = {};
+  if (previousAnalysis?.subs) {
+    for (const sub of previousAnalysis.subs) {
+      previousSubScores[sub.key] = sub.value;
+    }
+  }
+
+  // Build "analysis changes" summary for the Executive Summary page
+  const analysisChanges: { label: string; key: string; delta: number; reason?: string }[] = [];
+  if (previousAnalysis?.subs) {
+    for (const sub of analysis.subs) {
+      const prevSub = previousAnalysis.subs.find((s) => s.key === sub.key);
+      if (prevSub) {
+        const d = Math.round(sub.value) - Math.round(prevSub.value);
+        if (d !== 0) {
+          // Try to derive a reason from evidence differences
+          const newEvidence = sub.evidence.filter((e) => !prevSub.evidence.includes(e));
+          const reason = newEvidence.length > 0 ? newEvidence[0] : undefined;
+          analysisChanges.push({ label: sub.label, key: sub.key, delta: d, reason });
+        }
+      }
+    }
+  }
+
   // Sorted evidence gaps
   const sortedGaps = [...analysis.evidenceGaps].sort((a, b) => {
     const order: Record<string, number> = { P0: 0, P1: 1, P2: 2 };
@@ -838,7 +919,7 @@ export function SVIResultsPanel({
           {/* ─── Page 1: Executive Summary ──────────────────────────────── */}
           <PageSection id="executive-summary" num={1} title="Executive Summary" icon={FileText}>
             <div className="text-center mb-8">
-              <SVIGauge value={analysis.totalSVI} stage={analysis.stage} stageLabel={analysis.stageLabel} />
+              <SVIGauge value={analysis.totalSVI} stage={analysis.stage} stageLabel={analysis.stageLabel} delta={sviDelta} />
             </div>
 
             <p className="text-sm text-ink-600 leading-relaxed text-center max-w-lg mx-auto mb-8">

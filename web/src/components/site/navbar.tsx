@@ -49,6 +49,7 @@ const navItems: NavEntry[] = [
   },
   { href: "/#product", label: "Product" },
   { href: "/#pricing", label: "Pricing" },
+  { href: "/insights", label: "Insights" },
   { href: "/auth/login", label: "Login" },
 ];
 

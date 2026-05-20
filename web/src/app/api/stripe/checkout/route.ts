@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
-import { getPlan } from "@/lib/plans";
+import { getPlan, isGrowthEarlyBird } from "@/lib/plans";
 
 // POST /api/stripe/checkout
 // Body: { plan, couponCode? }
@@ -51,7 +51,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const priceId = STRIPE_PRICE_MAP[planId];
+  let priceId = STRIPE_PRICE_MAP[planId];
+
+  // After the Growth early-bird deadline, switch to the standard $499/mo price.
+  if (planId === "growth" && !isGrowthEarlyBird()) {
+    priceId = process.env.STRIPE_PRICE_GROWTH_499 ?? priceId;
+  }
+
   if (!priceId) {
     return NextResponse.json(
       { ok: false, reason: `Stripe price not configured for plan "${planId}"` },

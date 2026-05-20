@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Plan } from "@/lib/plans";
+import { isGrowthEarlyBird, GROWTH_STANDARD_PRICE } from "@/lib/plans";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -290,12 +291,24 @@ export function BillingClient({
                         Current
                       </span>
                     )}
+                    {plan.id === "growth" && isGrowthEarlyBird() && (
+                      <span className="text-[10px] uppercase tracking-wider font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                        Early Bird
+                      </span>
+                    )}
                   </div>
                   <p className="text-lg font-bold text-ink-800">
                     {formatPrice(plan.price, plan.cadence)}
+                    {plan.id === "growth" && isGrowthEarlyBird() && (
+                      <span className="ml-2 text-sm text-ink-400 line-through font-normal">
+                        {formatPrice(GROWTH_STANDARD_PRICE, plan.cadence)}
+                      </span>
+                    )}
                   </p>
                   <p className="text-xs text-ink-600 mt-0.5">
-                    {cadenceLabel(plan.cadence)}
+                    {plan.id === "growth" && isGrowthEarlyBird()
+                      ? "Early-bird until July 1, 2026"
+                      : cadenceLabel(plan.cadence)}
                   </p>
                 </div>
 

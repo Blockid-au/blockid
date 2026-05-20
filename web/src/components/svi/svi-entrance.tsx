@@ -668,14 +668,17 @@ export function SVIEntrance() {
             </div>
             {/* Right: platform overview banner */}
             <div className="relative rounded-3xl shadow-2xl overflow-hidden bg-white">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/images/blockid-hero-banner.png"
-                alt="BlockID.au — Turn your idea into a valuable, investable business. Cap Table, Valuation, AI Workspace."
-                className="w-full h-auto"
-                loading="eager"
-                fetchPriority="high"
-              />
+              <picture>
+                <source srcSet="/images/blockid-hero-banner.webp" type="image/webp" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/images/blockid-hero-banner.png"
+                  alt="BlockID.au — Turn your idea into a valuable, investable business. Cap Table, Valuation, AI Workspace."
+                  className="w-full h-auto"
+                  loading="eager"
+                  fetchPriority="high"
+                />
+              </picture>
             </div>
           </div>
 
@@ -793,8 +796,13 @@ export function SVIEntrance() {
       </section>
 
       {/* ── SVI SEARCH SECTION ────────────────────────────────────────────── */}
-      <section id="svi" className="gradient-section py-20 md:py-28">
-        <div className="mx-auto w-full max-w-[620px] px-4 sm:px-6 flex flex-col items-center">
+      <section id="svi" className="bg-gradient-to-b from-brand-50/60 via-white to-white py-24 md:py-32 relative overflow-hidden">
+        {/* Decorative background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-brand-100/40 blur-3xl" />
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-emerald-100/30 blur-3xl" />
+        </div>
+        <div className="mx-auto w-full max-w-2xl px-4 sm:px-6 flex flex-col items-center relative">
           <div className="flex flex-col items-center mb-8">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <div className="flex items-center gap-4 mb-6 animate-fade-in">
@@ -804,26 +812,19 @@ export function SVIEntrance() {
                 <span className="text-sm md:text-base font-medium tracking-wide text-ink-500 mt-0.5">Valuation. Ownership. Execution. Growth.</span>
               </div>
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-center text-ink-900">
+            <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight text-center text-ink-900">
               Get Your <span className="text-brand-600">Startup Value Index</span>
             </h2>
-            <p className="mt-3 text-base text-ink-500">Free AI-powered analysis in under 60 seconds</p>
+            <p className="mt-4 text-lg text-ink-500">Free AI-powered analysis in under 60 seconds</p>
           </div>
 
           <form onSubmit={handleSubmit} className="w-full">
-            <div className={cn(
-              "w-full rounded-[28px] border transition-all duration-200",
-              searchFocused
-                ? "border-brand-400 shadow-glow-pulse"
-                : text
-                  ? "border-brand-400 shadow-[0_0_0_3px_rgba(37,99,235,0.1)]"
-                  : "border-surface-300 hover:shadow-[0_1px_6px_rgba(32,33,36,0.18)]",
-            )}>
-              <div className="flex items-center px-4 py-3 gap-3">
+            <div className="svi-input-glow rounded-[28px] shadow-lg">
+              <div className="flex items-center px-5 py-4 gap-3">
                 <Search strokeWidth={1.75} className="h-5 w-5 text-ink-600 shrink-0" />
                 <textarea ref={textareaRef} value={text} onChange={(e) => setText(e.target.value)} onFocus={() => setSearchFocused(true)} onBlur={() => setSearchFocused(false)}
                   placeholder="Describe your startup idea, business plan, or paste key details…" rows={1}
-                  className="flex-1 resize-none text-base text-ink-800 placeholder:text-ink-600 focus:outline-none bg-transparent leading-relaxed"
+                  className="flex-1 resize-none text-lg text-ink-800 placeholder:text-ink-600 focus:outline-none bg-transparent leading-relaxed"
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }} />
                 <button type="button" onClick={toggleVoice} aria-label={listening ? "Stop" : "Voice"}
                   className={cn("shrink-0 h-9 w-9 flex items-center justify-center rounded-full cursor-pointer transition-colors",
@@ -877,7 +878,7 @@ export function SVIEntrance() {
 
             <div className="mt-5 flex items-center justify-center gap-3">
               <button type="submit" disabled={state === "submitting"}
-                className="h-11 px-6 rounded-2xl bg-brand-600 text-sm font-bold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50 cta-glow">
+                className="h-12 px-7 rounded-2xl bg-brand-600 text-base font-bold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50 cta-glow">
                 {state === "submitting" ? <span className="flex items-center gap-2"><span className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />Analyzing…</span> : "Get My SVI"}
               </button>
               <button type="button" onClick={() => { setText(QUICK_EXAMPLES[Math.floor(Math.random() * QUICK_EXAMPLES.length)]); textareaRef.current?.focus(); trackEvent("svi_form_started", { method: "example" }); }}
@@ -888,13 +889,16 @@ export function SVIEntrance() {
             <p className="mt-3 text-center text-xs text-ink-600">Free · No credit card · Drag &amp; drop a PDF · Voice input</p>
           </form>
 
-          <div className="mt-6 flex flex-wrap justify-center gap-2 px-2 sm:px-0">
+          <div className="mt-6 flex flex-col items-center px-2 sm:px-0">
+            <p className="text-xs font-medium text-ink-500 uppercase tracking-wider mb-3">Try an example</p>
+            <div className="flex flex-wrap justify-center gap-2">
             {QUICK_EXAMPLES.map((ex) => (
               <button key={ex} type="button" onClick={() => { setText(ex); textareaRef.current?.focus(); }}
                 className="rounded-full border border-surface-200 bg-white px-3 sm:px-4 py-2 text-[11px] sm:text-xs font-medium text-ink-500 hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50 cursor-pointer transition-colors">
                 {ex}
               </button>
             ))}
+            </div>
           </div>
         </div>
       </section>
@@ -1388,6 +1392,7 @@ function TopBar() {
             )}
           </div>
           <Link href="/founding-50" className="px-3 py-2 text-sm text-ink-600 hover:text-ink-800 rounded-lg hover:bg-surface-100 transition-colors">Founding 50</Link>
+          <Link href="/insights" className="px-3 py-2 text-sm text-ink-600 hover:text-ink-800 rounded-lg hover:bg-surface-100 transition-colors">Insights</Link>
           <Link href="/dashboard/svi" className="px-3 py-2 text-sm text-ink-600 hover:text-ink-800 rounded-lg hover:bg-surface-100 transition-colors">Dashboard</Link>
           <Link href="/auth/login" className="ml-2 h-9 px-5 inline-flex items-center justify-center rounded-lg bg-brand-600 text-sm font-medium text-white hover:bg-brand-700 transition-all cursor-pointer">Sign in</Link>
         </nav>
@@ -1413,6 +1418,7 @@ function TopBar() {
             {TOOLS.map((t) => (<Link key={t.href} href={t.href} onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm text-ink-700 hover:bg-surface-100 rounded-lg transition-colors">{t.label}</Link>))}
             <div className="my-2 border-t border-surface-200" />
             <Link href="/founding-50" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm font-medium text-ink-700 hover:bg-surface-100 rounded-lg">Founding 50</Link>
+            <Link href="/insights" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm font-medium text-ink-700 hover:bg-surface-100 rounded-lg">Insights</Link>
             <Link href="/dashboard/svi" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm font-medium text-ink-700 hover:bg-surface-100 rounded-lg">Dashboard</Link>
             <div className="my-2 border-t border-surface-200" />
             <Link href="/auth/login" onClick={() => setMobileOpen(false)} className="mx-3 h-10 flex items-center justify-center rounded-lg bg-brand-600 text-sm font-medium text-white hover:bg-brand-700">Sign in</Link>
@@ -1435,6 +1441,7 @@ function BottomFooter() {
             <Link href="/privacy" className="hover:text-slate-200 transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-slate-200 transition-colors">Terms</Link>
             <Link href="/contact" className="hover:text-slate-200 transition-colors">Contact</Link>
+            <Link href="/insights" className="hover:text-slate-200 transition-colors">Insights</Link>
             <Link href="/investors" className="hover:text-slate-200 transition-colors">Investors</Link>
           </div>
           <p className="text-xs text-slate-600">&copy; {new Date().getFullYear()} Auschain Pty Ltd. Not financial advice.</p>

@@ -3,7 +3,7 @@
 // All prices are in AUD cents. Billing periods and semantics vary by plan:
 //   - free         : $0
 //   - founding50   : $49 one-off (Founder plan)
-//   - growth       : $499/mo
+//   - growth       : $99/mo early-bird (normally $499/mo)
 
 export interface Plan {
   id: string;
@@ -48,7 +48,7 @@ export const PLANS: Plan[] = [
   {
     id: "growth",
     name: "Growth",
-    price: 49900, // $499/mo
+    price: 9900, // A$99/mo early-bird (normally $499)
     cadence: "monthly",
     features: [
       "Everything in Founder",
@@ -66,6 +66,11 @@ export const PLANS: Plan[] = [
 /** Early-bird pricing deadline (AEST). After this date, SVI analysis costs $25 instead of $1. */
 export const EARLY_BIRD_DEADLINE = new Date("2026-06-15T00:00:00+10:00");
 export const isEarlyBird = () => new Date() < EARLY_BIRD_DEADLINE;
+
+/** Growth plan early-bird deadline (AEST). Before this date Growth is $99/mo; after, $499/mo. */
+export const GROWTH_EARLY_BIRD_DEADLINE = new Date("2026-07-01T00:00:00+10:00");
+export const isGrowthEarlyBird = () => new Date() < GROWTH_EARLY_BIRD_DEADLINE;
+export const GROWTH_STANDARD_PRICE = 49900; // $499/mo after deadline
 
 /** Look up a plan by ID. Returns undefined for unknown IDs. */
 export function getPlan(planId: string): Plan | undefined {

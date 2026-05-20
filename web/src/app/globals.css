@@ -178,3 +178,42 @@ body {
 .prose-legal h2 { margin-top: 2.5rem; margin-bottom: 0.75rem; }
 .prose-legal p  { margin-top: 0.75rem; }
 .prose-legal ul { margin-top: 0.5rem; padding-left: 1.5rem; list-style: disc; }
+
+/* ── Animated gradient border for SVI input ───────────────── */
+@keyframes gradient-rotate {
+  0% { --gradient-angle: 0deg; }
+  100% { --gradient-angle: 360deg; }
+}
+
+@property --gradient-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.svi-input-glow {
+  position: relative;
+  background: white;
+  border-radius: 28px;
+}
+
+.svi-input-glow::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 30px;
+  background: conic-gradient(
+    from var(--gradient-angle, 0deg),
+    #3b82f6,
+    #10b981,
+    #f59e0b,
+    #3b82f6
+  );
+  animation: gradient-rotate 4s linear infinite;
+  z-index: -1;
+  opacity: 0.6;
+}
+
+.svi-input-glow:focus-within::before {
+  opacity: 1;
+}

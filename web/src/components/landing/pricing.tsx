@@ -68,9 +68,10 @@ const tiers: Tier[] = [
   {
     name: "Growth",
     planId: "growth",
-    price: "$499",
-    numericPrice: 499,
+    price: "$99",
+    numericPrice: 99,
     cadence: "/ month",
+    subtitle: "Early-bird \u2014 normally $499/mo",
     audience: "For active fundraise \u00b7 Seed to Series A",
     features: [
       "200 credits/month included",
@@ -81,7 +82,9 @@ const tiers: Tier[] = [
       "Dedicated account manager",
       "30-day money back",
     ],
-    cta: { label: "Start Growth Plan", href: "/contact" },
+    cta: { label: "Start Growth \u2014 $99/mo", href: "/contact" },
+    badge: "Early Bird",
+    urgency: "Early-bird until July 1, 2026",
   },
 ];
 
@@ -173,6 +176,11 @@ export function Pricing() {
                 <span className="font-mono tabular-nums text-4xl font-semibold text-brand-900">
                   {tier.price}
                 </span>
+                {tier.planId === "growth" && (
+                  <span className="text-base text-ink-400 line-through font-normal mb-1 ml-1">
+                    $499
+                  </span>
+                )}
                 {tier.cadence && (
                   <span className="text-sm text-ink-600 mb-1">
                     {tier.cadence}
