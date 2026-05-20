@@ -13,6 +13,7 @@ import {
   ChevronUp,
   ClipboardList,
   Copy,
+  Download,
   ExternalLink,
   FileText,
   Globe,
@@ -1530,7 +1531,7 @@ export function SVIResultsPanel({
             </div>
 
             {/* Action Buttons */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
               <a
                 href="/founding-50"
                 className="block"
@@ -1559,6 +1560,29 @@ export function SVIResultsPanel({
                 <Mail strokeWidth={1.75} className="h-4 w-4" />
                 {copied ? "Link Copied!" : "Share via Email"}
               </Button>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const res = await fetch("/api/svi/pdf", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ analysis, email }),
+                    });
+                    if (!res.ok) throw new Error("PDF failed");
+                    const blob = await res.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `BlockID-SVI-Report-${analysis.totalSVI}.pdf`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  } catch { /* silently fail */ }
+                }}
+                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-white px-4 text-sm font-medium text-ink-700 hover:bg-surface-50 transition-colors cursor-pointer"
+              >
+                <Download className="h-3.5 w-3.5" /> Download PDF
+              </button>
             </div>
 
             {/* Share URL */}

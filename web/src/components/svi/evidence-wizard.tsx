@@ -180,7 +180,29 @@ export function EvidenceWizard({ onClose, onSuccess }: EvidenceWizardProps) {
               </>
             )}
 
-            {(evidenceType === "github" || evidenceType === "analytics" || evidenceType === "stripe") && (
+            {evidenceType === "github" && (
+              <div className="rounded-xl border border-surface-200 bg-surface-100 px-6 py-8 text-center">
+                <GitBranch strokeWidth={1.75} className="mx-auto h-8 w-8 text-brand-600 mb-3" />
+                <p className="text-sm font-medium text-ink-800 mb-1">Connect GitHub</p>
+                <p className="text-xs text-ink-600 mb-4">You&apos;ll be redirected to authorize access. We only read — never write.</p>
+                <a href="/api/auth/github" className="inline-flex h-10 items-center gap-2 rounded-xl bg-ink-800 px-5 text-sm font-semibold text-white hover:bg-ink-700 transition-colors">
+                  <GitBranch className="h-4 w-4" /> Connect GitHub Account
+                </a>
+              </div>
+            )}
+
+            {evidenceType === "analytics" && (
+              <div className="rounded-xl border border-surface-200 bg-surface-100 px-6 py-8 text-center">
+                <selected.icon strokeWidth={1.75} className="mx-auto h-8 w-8 text-brand-600 mb-3" />
+                <p className="text-sm font-medium text-ink-800 mb-1">Connect {selected.label}</p>
+                <p className="text-xs text-ink-600 mb-4">You&apos;ll be redirected to authorize access. We only read — never write.</p>
+                <a href="/api/auth/analytics" className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors">
+                  Connect Google Analytics
+                </a>
+              </div>
+            )}
+
+            {evidenceType === "stripe" && (
               <div className="rounded-xl border border-surface-200 bg-surface-100 px-6 py-8 text-center">
                 <selected.icon strokeWidth={1.75} className="mx-auto h-8 w-8 text-brand-600 mb-3" />
                 <p className="text-sm font-medium text-ink-800 mb-1">Connect {selected.label}</p>
