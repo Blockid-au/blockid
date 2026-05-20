@@ -43,3 +43,4 @@ coverage/
 # Docker volumes
 infra/volumes/
 .claude/worktrees/
+chain/
