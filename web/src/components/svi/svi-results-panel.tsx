@@ -13,7 +13,7 @@ import {
   ChevronUp,
   ClipboardList,
   Copy,
-  Download,
+
   ExternalLink,
   FileText,
   Globe,
@@ -43,6 +43,7 @@ import {
   getActionForNextAction,
 } from "@/lib/svi-actions";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { PDFDownloadButton } from "@/components/ui/pdf-download-button";
 
 /* ─── Constants ───────────────────────────────────────────────────────────── */
 
@@ -1687,29 +1688,11 @@ export function SVIResultsPanel({
                 <Mail strokeWidth={1.75} className="h-4 w-4" />
                 {copied ? "Link Copied!" : "Share via Email"}
               </Button>
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    const res = await fetch("/api/svi/pdf", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ analysis, email }),
-                    });
-                    if (!res.ok) throw new Error("PDF failed");
-                    const blob = await res.blob();
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = `BlockID-SVI-Report-${analysis.totalSVI}.pdf`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                  } catch { /* silently fail */ }
-                }}
-                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-white px-4 text-sm font-medium text-ink-700 hover:bg-surface-50 transition-colors cursor-pointer"
-              >
-                <Download className="h-3.5 w-3.5" /> Download PDF
-              </button>
+              <PDFDownloadButton
+                slug={slug}
+                analysis={analysis}
+                email={email}
+              />
             </div>
 
             {/* Share URL */}

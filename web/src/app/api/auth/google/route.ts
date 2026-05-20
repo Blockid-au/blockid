@@ -7,6 +7,7 @@ import {
   type GoogleProfile,
 } from "@/lib/auth";
 import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
+import { getUserProjects } from "@/lib/projects";
 
 // POST /api/auth/google
 // Body: { credential } — the Google ID token from Sign In With Google.
@@ -133,10 +134,14 @@ export async function POST(request: Request) {
   const isAdmin =
     normaliseEmail(result.user.email) === "admin@blockid.au";
 
+  // Check if user needs onboarding (no projects yet)
+  const projects = await getUserProjects(result.user.id);
+  const redirectPath = projects.length === 0 ? "/onboarding" : "/dashboard";
+
   return NextResponse.json({
     ok: true,
     user: result.user,
-    redirect: "/dashboard",
+    redirect: redirectPath,
     ...(isAdmin ? { isAdmin: true } : {}),
   });
 }

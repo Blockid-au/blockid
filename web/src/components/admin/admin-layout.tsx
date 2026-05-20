@@ -10,6 +10,7 @@ import {
   ChevronRight,
   FileText,
   FlaskConical,
+  GraduationCap,
   Home,
   LayoutDashboard,
   Map,
@@ -38,6 +39,7 @@ const ADMIN_NAV = [
   { href: "/admin/documents", label: "Documents", icon: FileText },
   { href: "/admin/growth", label: "Growth Intelligence", icon: TrendingUp },
   { href: "/admin/rnd", label: "R&D Reports", icon: FlaskConical },
+  { href: "/admin/accelerator", label: "Accelerator", icon: GraduationCap },
 ];
 
 export function AdminLayout({ children, user }: AdminLayoutProps) {

@@ -12,6 +12,7 @@ import {
   mintFounderPack,
 } from "@/lib/idea-phase/persist";
 import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
+import { getUserProjects } from "@/lib/projects";
 import type { IdeaValuationInput } from "@/lib/idea-valuation";
 import type { FounderInput, EquitySettings } from "@/lib/equity-split";
 import type { FundingPlanInput } from "@/lib/funding-plan";
@@ -123,7 +124,11 @@ export async function GET(request: Request) {
   if (!sessionToken) return errorRedirect("session_failed");
   await setSessionCookie(sessionToken);
 
-  // Determine redirect target: pack page > explicit next > homepage.
+  // Check if user has 0 projects → redirect to onboarding instead of default.
+  const projects = await getUserProjects(user.id);
+  const needsOnboarding = projects.length === 0;
+
+  // Determine redirect target: pack page > explicit next > onboarding > homepage.
   let target: string;
   if (packSlug) {
     target = `${siteUrl()}/s/p/${packSlug}?welcome=1`;
@@ -131,6 +136,8 @@ export async function GET(request: Request) {
     // Honour the caller-supplied redirect (relative paths only for safety).
     const sep = payload.next.includes("?") ? "&" : "?";
     target = `${siteUrl()}${payload.next}${sep}logged_in=true`;
+  } else if (needsOnboarding) {
+    target = `${siteUrl()}/onboarding?logged_in=true`;
   } else {
     target = `${siteUrl()}/?logged_in=true`;
   }

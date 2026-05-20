@@ -1,17 +1,19 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import {
   ArrowLeft,
   BarChart3,
   CalendarClock,
   Clock,
   Eye,
+  Flame,
   Globe2,
   Link2,
   Mail,
   Monitor,
   Smartphone,
   Tablet,
+  Thermometer,
   Users,
 } from "lucide-react";
 import { Navbar } from "@/components/site/navbar";
@@ -19,6 +21,7 @@ import { Footer } from "@/components/site/footer";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { getCurrentUser } from "@/lib/auth";
 import {
   listInvestorLinksForScore,
   listInvestorLinkViewsForScore,
@@ -31,6 +34,7 @@ export const dynamic = "force-dynamic";
 
 interface ScoreRow {
   id: string;
+  email: string;
   company_name: string | null;
   total_score: number;
   created_at: string;
@@ -42,6 +46,21 @@ interface ViewRow {
   viewer_ua: string | null;
   referer: string | null;
   viewed_at: string;
+  time_spent_seconds: number | null;
+  scroll_depth_pct: number | null;
+  device_type: string | null;
+  sections_viewed: string[] | null;
+}
+
+interface HeatRow {
+  id: string;
+  slug: string;
+  viewer_hash: string;
+  heat_score: number;
+  total_views: number;
+  total_time_seconds: number;
+  last_viewed_at: string;
+  created_at: string;
 }
 
 const DEMO_VIEWS: ViewRow[] = [
@@ -52,6 +71,10 @@ const DEMO_VIEWS: ViewRow[] = [
       "Mozilla/5.0 (Macintosh; Intel Mac OS X) AppleWebKit/537.36 Chrome/123",
     referer: "https://mail.google.com",
     viewed_at: new Date(Date.now() - 1000 * 60 * 28).toISOString(),
+    time_spent_seconds: 245,
+    scroll_depth_pct: 92,
+    device_type: "desktop",
+    sections_viewed: ["score-hero", "dimension-overview", "strengths-gaps"],
   },
   {
     id: "demo-2",
@@ -60,6 +83,10 @@ const DEMO_VIEWS: ViewRow[] = [
       "Mozilla/5.0 (iPhone; CPU iPhone OS) AppleWebKit/605.1.15 Safari/604.1",
     referer: "https://linkedin.com",
     viewed_at: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
+    time_spent_seconds: 120,
+    scroll_depth_pct: 65,
+    device_type: "mobile",
+    sections_viewed: ["score-hero", "quick-summary"],
   },
   {
     id: "demo-3",
@@ -68,6 +95,10 @@ const DEMO_VIEWS: ViewRow[] = [
       "Mozilla/5.0 (Macintosh; Intel Mac OS X) AppleWebKit/537.36 Chrome/123",
     referer: null,
     viewed_at: new Date(Date.now() - 1000 * 60 * 60 * 22).toISOString(),
+    time_spent_seconds: 180,
+    scroll_depth_pct: 88,
+    device_type: "desktop",
+    sections_viewed: ["score-hero", "dimension-overview"],
   },
   {
     id: "demo-4",
@@ -76,6 +107,10 @@ const DEMO_VIEWS: ViewRow[] = [
       "Mozilla/5.0 (iPad; CPU OS 16_6) AppleWebKit/605.1.15 Safari/604.1",
     referer: "https://twitter.com",
     viewed_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+    time_spent_seconds: 30,
+    scroll_depth_pct: 25,
+    device_type: "tablet",
+    sections_viewed: ["score-hero"],
   },
   {
     id: "demo-5",
@@ -84,6 +119,43 @@ const DEMO_VIEWS: ViewRow[] = [
       "Mozilla/5.0 (iPhone; CPU iPhone OS) AppleWebKit/605.1.15 Safari/604.1",
     referer: "https://linkedin.com",
     viewed_at: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
+    time_spent_seconds: 90,
+    scroll_depth_pct: 50,
+    device_type: "mobile",
+    sections_viewed: ["score-hero"],
+  },
+];
+
+const DEMO_HEAT: HeatRow[] = [
+  {
+    id: "heat-1",
+    slug: "demo",
+    viewer_hash: "demo-a",
+    heat_score: 78,
+    total_views: 4,
+    total_time_seconds: 425,
+    last_viewed_at: new Date(Date.now() - 1000 * 60 * 28).toISOString(),
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
+  },
+  {
+    id: "heat-2",
+    slug: "demo",
+    viewer_hash: "demo-b",
+    heat_score: 52,
+    total_views: 3,
+    total_time_seconds: 210,
+    last_viewed_at: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
+  },
+  {
+    id: "heat-3",
+    slug: "demo",
+    viewer_hash: "demo-c",
+    heat_score: 22,
+    total_views: 1,
+    total_time_seconds: 30,
+    last_viewed_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
   },
 ];
 
@@ -99,7 +171,7 @@ async function fetchScore(slug: string): Promise<ScoreRow | null> {
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("scores")
-    .select("id, company_name, total_score, created_at")
+    .select("id, email, company_name, total_score, created_at")
     .eq("id", slug)
     .maybeSingle();
   if (error) {
@@ -114,7 +186,7 @@ async function fetchViews(slug: string): Promise<ViewRow[]> {
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("score_views")
-    .select("id, viewer_ip_hash, viewer_ua, referer, viewed_at")
+    .select("id, viewer_ip_hash, viewer_ua, referer, viewed_at, time_spent_seconds, scroll_depth_pct, device_type, sections_viewed")
     .eq("score_id", slug)
     .order("viewed_at", { ascending: false })
     .limit(100);
@@ -123,6 +195,22 @@ async function fetchViews(slug: string): Promise<ViewRow[]> {
     return [];
   }
   return (data as ViewRow[]) ?? [];
+}
+
+async function fetchHeatScores(slug: string): Promise<HeatRow[]> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("investor_heat")
+    .select("*")
+    .eq("slug", slug)
+    .order("heat_score", { ascending: false })
+    .limit(50);
+  if (error) {
+    console.error("[blockid:activity] heat fetch failed", error);
+    return [];
+  }
+  return (data as HeatRow[]) ?? [];
 }
 
 function countUniqueViewers(views: ViewRow[]): number {
@@ -173,6 +261,16 @@ function relativeTime(iso: string): string {
   return `${months}mo ago`;
 }
 
+function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  if (m < 60) return s > 0 ? `${m}m ${s}s` : `${m}m`;
+  const h = Math.floor(m / 60);
+  const rm = m % 60;
+  return rm > 0 ? `${h}h ${rm}m` : `${h}h`;
+}
+
 /** Build a stable numeric label for each unique viewer hash, e.g. "Viewer #1". */
 function buildViewerLabels(views: ViewRow[]): Map<string, number> {
   const labels = new Map<string, number>();
@@ -185,6 +283,18 @@ function buildViewerLabels(views: ViewRow[]): Map<string, number> {
     }
   }
   return labels;
+}
+
+function heatLevel(score: number): { label: string; color: string; bgColor: string } {
+  if (score >= 60) return { label: "Hot", color: "text-emerald-700", bgColor: "bg-emerald-100 border-emerald-200" };
+  if (score >= 40) return { label: "Warm", color: "text-amber-700", bgColor: "bg-amber-100 border-amber-200" };
+  return { label: "Cold", color: "text-slate-600", bgColor: "bg-slate-100 border-slate-200" };
+}
+
+function heatBarColor(score: number): string {
+  if (score >= 60) return "bg-emerald-500";
+  if (score >= 40) return "bg-amber-500";
+  return "bg-slate-400";
 }
 
 type InvestorLinkStatus = "active" | "expired" | "revoked";
@@ -228,6 +338,27 @@ function summariseInvestorLinks(
   });
 }
 
+// ── Views by day (last 30 days) for chart ────────────────────────────────────
+function viewsByDay(views: ViewRow[]): { date: string; count: number }[] {
+  const now = new Date();
+  const days: { date: string; count: number }[] = [];
+  const countMap = new Map<string, number>();
+
+  for (const v of views) {
+    const d = v.viewed_at.slice(0, 10);
+    countMap.set(d, (countMap.get(d) ?? 0) + 1);
+  }
+
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    days.push({ date: key, count: countMap.get(key) ?? 0 });
+  }
+
+  return days;
+}
+
 export default async function ScoreActivityPage({
   params,
 }: {
@@ -235,10 +366,28 @@ export default async function ScoreActivityPage({
 }) {
   const { slug } = await params;
   const isDemo = slug.startsWith("demo-") || !isSupabaseConfigured();
+
+  // Auth check: only the founder (or admin) can see the activity page
+  if (!isDemo) {
+    const user = await getCurrentUser();
+    if (!user) {
+      redirect(`/auth/login?next=/s/${slug}/activity`);
+    }
+
+    const score = await fetchScore(slug);
+    if (!score) notFound();
+
+    // Check ownership: the logged-in user must be the score owner or an admin
+    if (user.role !== "admin" && user.email.toLowerCase() !== score.email.toLowerCase()) {
+      notFound();
+    }
+  }
+
   const score = isDemo ? null : await fetchScore(slug);
   if (!isDemo && !score) notFound();
 
   const views = isDemo ? DEMO_VIEWS : await fetchViews(slug);
+  const heatScores = isDemo ? DEMO_HEAT : await fetchHeatScores(slug);
   const investorLinks = isDemo ? [] : await listInvestorLinksForScore(slug);
   const investorViews = isDemo
     ? []
@@ -253,6 +402,12 @@ export default async function ScoreActivityPage({
   const latestView = views[0]?.viewed_at ?? null;
   const viewerLabels = buildViewerLabels(views);
   const shareUrl = `${siteUrl()}/s/${slug}`;
+  const dailyViews = viewsByDay(views);
+  const maxDailyViews = Math.max(1, ...dailyViews.map((d) => d.count));
+
+  // Hot investors count
+  const hotInvestors = heatScores.filter((h) => h.heat_score >= 60).length;
+  const warmInvestors = heatScores.filter((h) => h.heat_score >= 40 && h.heat_score < 60).length;
 
   const topReferers = Array.from(
     views.reduce((acc, view) => {
@@ -265,8 +420,8 @@ export default async function ScoreActivityPage({
   // Compute device breakdown
   const deviceBreakdown = views.reduce(
     (acc, view) => {
-      const d = deviceLabel(view.viewer_ua);
-      acc[d.type] = (acc[d.type] ?? 0) + 1;
+      const d = view.device_type || deviceLabel(view.viewer_ua).type;
+      acc[d] = (acc[d] ?? 0) + 1;
       return acc;
     },
     {} as Record<string, number>,
@@ -299,7 +454,7 @@ export default async function ScoreActivityPage({
           </header>
 
           {/* ---- Hero stat cards ---- */}
-          <section className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <section className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <div className="rounded-2xl border border-surface-200 bg-white p-6 text-center shadow-sm">
               <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-ink-900/5">
                 <Eye strokeWidth={1.75} className="h-5 w-5 text-ink-700" />
@@ -315,6 +470,14 @@ export default async function ScoreActivityPage({
               <p className="mt-3 text-3xl font-bold text-brand-600">{uniqueViewerCount}</p>
               <p className="text-sm text-ink-500 mt-1">Unique Viewers</p>
               <p className="text-xs text-ink-400 mt-0.5">Daily hashed identity</p>
+            </div>
+            <div className="rounded-2xl border border-surface-200 bg-white p-6 text-center shadow-sm">
+              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600/5">
+                <Flame strokeWidth={1.75} className="h-5 w-5 text-emerald-600" />
+              </div>
+              <p className="mt-3 text-3xl font-bold text-emerald-600">{hotInvestors}</p>
+              <p className="text-sm text-ink-500 mt-1">Hot Investors</p>
+              <p className="text-xs text-ink-400 mt-0.5">{warmInvestors} warm, {heatScores.length - hotInvestors - warmInvestors} cold</p>
             </div>
             <div className="rounded-2xl border border-surface-200 bg-white p-6 text-center shadow-sm">
               <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600/5">
@@ -347,6 +510,131 @@ export default async function ScoreActivityPage({
             <p className="mt-2 text-xs text-ink-400 ml-7">
               Anyone with this link can view the score. View tracking is active -- every open is recorded above.
             </p>
+          </section>
+
+          {/* ---- Investor Heat Map ---- */}
+          {heatScores.length > 0 && (
+            <section className="rounded-2xl border border-surface-200 bg-white p-6 mb-8">
+              <h2 className="text-lg font-semibold text-ink-800 inline-flex items-center gap-2">
+                <Thermometer strokeWidth={1.75} className="h-5 w-5 text-brand-600" />
+                Investor Heat Map
+              </h2>
+              <p className="mt-1 text-sm text-ink-400">
+                Ranked by engagement level. Higher heat = more interested investor.
+              </p>
+              <div className="mt-5 overflow-x-auto">
+                <table className="w-full min-w-[720px] text-left text-sm">
+                  <thead className="text-xs uppercase tracking-[0.16em] text-ink-8000">
+                    <tr>
+                      <th className="border-b border-surface-200 pb-3 pr-4">Viewer</th>
+                      <th className="border-b border-surface-200 pb-3 pr-4">Heat</th>
+                      <th className="border-b border-surface-200 pb-3 pr-4">Score</th>
+                      <th className="border-b border-surface-200 pb-3 pr-4">Views</th>
+                      <th className="border-b border-surface-200 pb-3 pr-4">Time Spent</th>
+                      <th className="border-b border-surface-200 pb-3 pr-4">Last Seen</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {heatScores.map((heat, idx) => {
+                      const level = heatLevel(heat.heat_score);
+                      return (
+                        <tr
+                          key={heat.id}
+                          className={`border-b border-surface-200 last:border-b-0 ${
+                            heat.heat_score >= 60 ? "bg-emerald-50/50" : ""
+                          }`}
+                        >
+                          <td className="py-4 pr-4">
+                            <span className="text-ink-700 font-medium">
+                              Viewer #{idx + 1}
+                            </span>
+                            <span className="text-xs text-ink-300 font-mono ml-2">
+                              {heat.viewer_hash.slice(0, 8)}...
+                            </span>
+                          </td>
+                          <td className="py-4 pr-4">
+                            <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${level.bgColor} ${level.color}`}>
+                              {heat.heat_score >= 60 && <Flame strokeWidth={2} className="h-3 w-3" />}
+                              {level.label}
+                            </span>
+                          </td>
+                          <td className="py-4 pr-4">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono tabular-nums text-ink-700 font-semibold">
+                                {heat.heat_score}
+                              </span>
+                              <div className="w-16 h-1.5 rounded-full bg-surface-200 overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full ${heatBarColor(heat.heat_score)}`}
+                                  style={{ width: `${heat.heat_score}%` }}
+                                />
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 pr-4 font-mono tabular-nums text-brand-600">
+                            {heat.total_views}
+                          </td>
+                          <td className="py-4 pr-4 text-ink-500">
+                            {formatDuration(heat.total_time_seconds)}
+                          </td>
+                          <td className="py-4 text-ink-400">
+                            {relativeTime(heat.last_viewed_at)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+
+          {/* ---- Views over time (last 30 days) ---- */}
+          <section className="rounded-2xl border border-surface-200 bg-white p-6 mb-8">
+            <h2 className="text-lg font-semibold text-ink-800 inline-flex items-center gap-2">
+              <BarChart3 strokeWidth={1.75} className="h-5 w-5 text-brand-600" />
+              Views Over Time
+            </h2>
+            <p className="mt-1 text-sm text-ink-400">Last 30 days</p>
+            <div className="mt-5">
+              {totalViews === 0 ? (
+                <div className="py-12 text-center">
+                  <Eye strokeWidth={1.5} className="h-8 w-8 text-ink-300 mx-auto" />
+                  <p className="mt-3 text-sm text-ink-400">
+                    No views in the last 30 days.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex items-end gap-[2px] h-24">
+                  {dailyViews.map((day) => {
+                    const heightPct = maxDailyViews > 0
+                      ? Math.max(2, (day.count / maxDailyViews) * 100)
+                      : 2;
+                    return (
+                      <div
+                        key={day.date}
+                        className="flex-1 group relative"
+                        title={`${day.date}: ${day.count} views`}
+                      >
+                        <div
+                          className={`w-full rounded-t-sm transition-colors ${
+                            day.count > 0 ? "bg-brand-500 hover:bg-brand-600" : "bg-surface-200"
+                          }`}
+                          style={{ height: `${heightPct}%` }}
+                        />
+                        <div className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-ink-900 text-white text-[10px] rounded whitespace-nowrap z-10">
+                          {day.date}: {day.count}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <div className="flex justify-between mt-2 text-[10px] text-ink-300 font-mono">
+                <span>{dailyViews[0]?.date}</span>
+                <span>{dailyViews[dailyViews.length - 1]?.date}</span>
+              </div>
+            </div>
           </section>
 
           {/* ---- Per-investor links ---- */}
@@ -384,7 +672,7 @@ export default async function ScoreActivityPage({
                   </thead>
                   <tbody>
                     {investorSummaries.map(
-                      ({ link, totalViews, uniqueViewers, latestView, status }) => {
+                      ({ link, totalViews: tv, uniqueViewers, latestView: lv, status }) => {
                         return (
                           <tr key={link.token} className="border-b border-surface-200 last:border-b-0">
                             <td className="py-4 pr-4">
@@ -401,14 +689,14 @@ export default async function ScoreActivityPage({
                               {formatDate(link.createdAt)}
                             </td>
                             <td className="py-4 pr-4 font-mono tabular-nums text-brand-600">
-                              {totalViews}
+                              {tv}
                             </td>
                             <td className="py-4 pr-4 font-mono tabular-nums text-ink-500">
                               {uniqueViewers}
                             </td>
                             <td className="py-4 pr-4 text-ink-400">
-                              {latestView
-                                ? formatDate(latestView)
+                              {lv
+                                ? formatDate(lv)
                                 : "Not opened"}
                             </td>
                             <td className="py-4">
@@ -461,7 +749,8 @@ export default async function ScoreActivityPage({
                       <div className="absolute left-[19px] top-2 bottom-2 w-px bg-surface-200" />
                       <ul className="space-y-0">
                         {views.map((view, idx) => {
-                          const device = deviceLabel(view.viewer_ua);
+                          const device = view.device_type || deviceLabel(view.viewer_ua).type;
+                          const deviceLbl = device === "mobile" ? "Mobile" : device === "tablet" ? "Tablet" : device === "desktop" ? "Desktop" : "Unknown";
                           const viewerNum = viewerLabels.get(
                             view.viewer_ip_hash ?? view.id,
                           );
@@ -493,6 +782,11 @@ export default async function ScoreActivityPage({
                                 </div>
                                 <p className="mt-0.5 text-sm text-ink-500">
                                   Viewed score
+                                  {view.time_spent_seconds && view.time_spent_seconds > 0 && (
+                                    <span className="text-ink-400">
+                                      {" "}for {formatDuration(view.time_spent_seconds)}
+                                    </span>
+                                  )}
                                   {source !== "Direct" && (
                                     <span className="text-ink-400">
                                       {" "}via {source}
@@ -501,21 +795,31 @@ export default async function ScoreActivityPage({
                                 </p>
                                 <div className="mt-1.5 flex flex-wrap items-center gap-2">
                                   <span className="inline-flex items-center gap-1 rounded-full bg-surface-100 px-2 py-0.5 text-[11px] text-ink-400">
-                                    {device.type === "mobile" && (
+                                    {device === "mobile" && (
                                       <Smartphone strokeWidth={1.75} className="h-3 w-3" />
                                     )}
-                                    {device.type === "tablet" && (
+                                    {device === "tablet" && (
                                       <Tablet strokeWidth={1.75} className="h-3 w-3" />
                                     )}
-                                    {device.type === "desktop" && (
+                                    {device === "desktop" && (
                                       <Monitor strokeWidth={1.75} className="h-3 w-3" />
                                     )}
-                                    {device.label}
+                                    {deviceLbl}
                                   </span>
                                   {source !== "Direct" && (
                                     <span className="inline-flex items-center gap-1 rounded-full bg-surface-100 px-2 py-0.5 text-[11px] text-ink-400">
                                       <Globe2 strokeWidth={1.75} className="h-3 w-3" />
                                       {source}
+                                    </span>
+                                  )}
+                                  {view.scroll_depth_pct != null && view.scroll_depth_pct > 0 && (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-surface-100 px-2 py-0.5 text-[11px] text-ink-400">
+                                      {view.scroll_depth_pct}% scroll
+                                    </span>
+                                  )}
+                                  {view.sections_viewed && view.sections_viewed.length > 0 && (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-surface-100 px-2 py-0.5 text-[11px] text-ink-400">
+                                      {view.sections_viewed.length} sections
                                     </span>
                                   )}
                                   <span className="text-[11px] text-ink-300 font-mono">
@@ -550,6 +854,12 @@ export default async function ScoreActivityPage({
                         <th className="border-b border-surface-200 pb-3 pr-4">
                           Device
                         </th>
+                        <th className="border-b border-surface-200 pb-3 pr-4">
+                          Time
+                        </th>
+                        <th className="border-b border-surface-200 pb-3 pr-4">
+                          Scroll
+                        </th>
                         <th className="border-b border-surface-200 pb-3">
                           Viewer hash
                         </th>
@@ -565,7 +875,13 @@ export default async function ScoreActivityPage({
                             {hostFromReferer(view.referer)}
                           </td>
                           <td className="py-4 pr-4 text-ink-400">
-                            {deviceLabel(view.viewer_ua).label}
+                            {view.device_type || deviceLabel(view.viewer_ua).label}
+                          </td>
+                          <td className="py-4 pr-4 font-mono tabular-nums text-ink-500">
+                            {view.time_spent_seconds ? formatDuration(view.time_spent_seconds) : "--"}
+                          </td>
+                          <td className="py-4 pr-4 font-mono tabular-nums text-ink-500">
+                            {view.scroll_depth_pct != null ? `${view.scroll_depth_pct}%` : "--"}
                           </td>
                           <td className="py-4 font-mono text-xs text-ink-8000">
                             {view.viewer_ip_hash
@@ -684,4 +1000,3 @@ export default async function ScoreActivityPage({
     </>
   );
 }
-

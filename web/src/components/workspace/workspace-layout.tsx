@@ -4,11 +4,12 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BarChart3, Bell, ChevronLeft, ChevronRight, CreditCard, FileText, FolderOpen, Home,
+  BarChart3, Bell, Briefcase, ChevronLeft, ChevronRight, CreditCard, FileText, FolderCheck, FolderOpen, Home,
   LayoutDashboard, Map, Shield, TrendingUp, User
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { CreditBalance } from "@/components/ui/credit-balance";
+import { ProjectSwitcher } from "@/components/ui/project-switcher";
 import { cn } from "@/lib/utils";
 
 interface WorkspaceLayoutProps {
@@ -24,8 +25,10 @@ interface WorkspaceLayoutProps {
 }
 
 const NAV_ITEMS = [
+  { href: "/workspace/projects", label: "My Startups", icon: Briefcase },
   { href: "/dashboard/svi", label: "SVI Dashboard", icon: TrendingUp },
   { href: "/workspace/evidence", label: "Evidence Vault", icon: FileText },
+  { href: "/workspace/data-room", label: "Data Room", icon: FolderCheck },
   { href: "/workspace/documents", label: "Documents", icon: FolderOpen },
   { href: "/workspace/reports", label: "Weekly Reports", icon: BarChart3 },
   { href: "/workspace/roadmap", label: "Roadmap", icon: Map },
@@ -118,12 +121,7 @@ export function WorkspaceLayout({ children, user, startupName, notificationCount
             >
               <LayoutDashboard strokeWidth={1.75} className="h-4 w-4" />
             </button>
-            {startupName && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-surface-400">·</span>
-                <span className="text-sm font-semibold text-ink-800 truncate max-w-[180px]">{startupName}</span>
-              </div>
-            )}
+            <ProjectSwitcher />
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2">

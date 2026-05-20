@@ -270,6 +270,11 @@ export function AdminDashboardClient({
               label: "Project Documents",
               desc: "Upload and sync files to Google Drive",
             },
+            {
+              href: "/admin/accelerator",
+              label: "Accelerator Cohorts",
+              desc: "Track cohort SVI progress and manage programs",
+            },
           ].map(
             ({
               href,
