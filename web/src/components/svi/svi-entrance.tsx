@@ -683,55 +683,56 @@ export function SVIEntrance() {
         </div>
       </section>
 
-      {/* ── WHY BLOCKID, NOT CHATGPT ───────────────────────────────────────── */}
+      {/* ── WHERE AI MEETS STARTUP VALUATION ─────────────────────────────── */}
       <section className="py-16 md:py-20 bg-ink-950 text-white">
         <div className="mx-auto max-w-6xl px-6">
           <div className="text-center mb-12">
             <p className="text-xs uppercase tracking-[0.2em] text-brand-400 font-medium mb-3">
-              Built different
+              Where AI meets startup valuation
             </p>
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-              ChatGPT gives you answers.{" "}
-              <span className="text-brand-400">BlockID builds your startup.</span>
+              You build with AI.{" "}
+              <span className="text-brand-400">We value what you build.</span>
             </h2>
             <p className="mt-4 text-base text-slate-400 max-w-2xl mx-auto">
-              Anyone can ask ChatGPT about their startup idea. But ChatGPT forgets tomorrow.
-              BlockID remembers, tracks, scores, and grows with you from Day 0.
+              AI assistants like ChatGPT and Claude are great for building products.
+              But when it comes to valuing your company, splitting equity with co-founders,
+              managing cap tables, and preparing for investors — you need a purpose-built platform.
             </p>
           </div>
 
-          {/* Comparison grid */}
+          {/* Problem → Solution grid */}
           <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            {/* ChatGPT column */}
+            {/* The problem */}
             <div className="rounded-2xl border border-slate-700 bg-slate-900/50 p-6">
               <div className="flex items-center gap-3 mb-5">
                 <div className="h-10 w-10 rounded-xl bg-slate-800 flex items-center justify-center">
-                  <span className="text-lg">💬</span>
+                  <span className="text-lg">🤔</span>
                 </div>
                 <div>
-                  <p className="font-semibold text-slate-300">ChatGPT / Claude</p>
-                  <p className="text-xs text-slate-500">General AI assistant</p>
+                  <p className="font-semibold text-slate-300">The gap AI chat can&apos;t fill</p>
+                  <p className="text-xs text-slate-500">Common founder challenges</p>
                 </div>
               </div>
               <ul className="space-y-3">
                 {[
-                  "One-off conversation, no memory",
-                  "Generic business advice",
-                  "No scoring or tracking",
-                  "You do all the research yourself",
-                  "No equity or cap table tools",
-                  "No evidence vault or data room",
-                  "Forgets your progress tomorrow",
+                  "How much is my startup idea actually worth?",
+                  "How do I split equity fairly with co-founders?",
+                  "What share should new team members get?",
+                  "How much dilution happens when investors come in?",
+                  "How do I track company value as it grows?",
+                  "How do I prepare a cap table for fundraising?",
+                  "How do I prove my startup's progress to investors?",
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-2.5 text-sm text-slate-400">
-                    <X className="h-4 w-4 mt-0.5 shrink-0 text-red-400/70" />
+                    <X className="h-4 w-4 mt-0.5 shrink-0 text-amber-400/70" />
                     <span>{item}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
-            {/* BlockID column */}
+            {/* The solution */}
             <div className="rounded-2xl border border-brand-500/40 bg-brand-950/30 p-6 ring-1 ring-brand-500/20">
               <div className="flex items-center gap-3 mb-5">
                 <div className="h-10 w-10 rounded-xl bg-brand-600 flex items-center justify-center">
@@ -739,19 +740,19 @@ export function SVIEntrance() {
                   <img src="/images/logo-icon-transparent.png" alt="" className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="font-semibold text-white">BlockID.au</p>
-                  <p className="text-xs text-brand-300">Agentic AI valuation platform</p>
+                  <p className="font-semibold text-white">BlockID.au solves this</p>
+                  <p className="text-xs text-brand-300">Works alongside your AI tools</p>
                 </div>
               </div>
               <ul className="space-y-3">
                 {[
-                  "Living report that grows with your startup",
-                  "10-page R&D analysis with market research",
-                  "Startup Value Index (SVI) — scored 30 to 300",
-                  "AI agents research competitors, market, tech",
-                  "Cap table, equity split, dilution tools built-in",
-                  "Evidence vault with SVI auto-rescore",
-                  "Tracks your journey from Day 0 to fundraise",
+                  "AI-powered valuation from Day 0 — Startup Value Index",
+                  "Fair equity split calculator for co-founders & team",
+                  "ESOP & vesting management for new members",
+                  "Dilution modeling when investors come in",
+                  "Living report that tracks growth over time",
+                  "Cap table, data room & investor-ready documents",
+                  "Evidence vault — prove progress, raise your score",
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-2.5 text-sm text-slate-200">
                     <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-brand-400" />
@@ -762,10 +763,16 @@ export function SVIEntrance() {
             </div>
           </div>
 
+          {/* Complementary message */}
+          <p className="text-center mt-8 text-sm text-slate-400 max-w-xl mx-auto">
+            Keep using ChatGPT, Claude, or Gemini to build your product.
+            Use BlockID to value it, structure ownership, and get investor-ready.
+          </p>
+
           {/* Bottom CTA */}
-          <div className="text-center mt-10">
+          <div className="text-center mt-8">
             <a href="#svi" className="inline-flex h-12 items-center gap-2 rounded-xl bg-brand-600 px-8 text-sm font-semibold text-white hover:bg-brand-700 transition-colors">
-              Try Your Free Analysis <ArrowRight className="h-4 w-4" />
+              Value Your Idea Free <ArrowRight className="h-4 w-4" />
             </a>
             <p className="mt-3 text-xs text-slate-500">
               No signup required. First analysis is free.
