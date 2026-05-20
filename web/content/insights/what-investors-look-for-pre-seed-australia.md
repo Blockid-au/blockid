@@ -6,6 +6,22 @@ According to recent data from the Australian Private Equity and Venture Capital 
 
 For founders, the difference between a polite "no" and a term sheet often lies in understanding the specific criteria that drive Australian angel networks like Sydney Angels, Melbourne Angels, and the Australian Association of Angel Investors (AAAI). This guide distills insights from these networks to clarify exactly what investors look for, how to prove your eligibility for key incentives, and the governance basics that separate serious founders from dreamers.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="120" rx="16" fill="#0B1220"/>
+  <text x="300" y="30" text-anchor="middle" fill="#FFF" font-size="13" font-weight="700" font-family="system-ui">Australian Pre-Seed Investor Checklist (Top 3)</text>
+  <rect x="30" y="50" width="170" height="50" rx="8" fill="#3B7DD8"/>
+  <text x="115" y="72" text-anchor="middle" fill="#FFF" font-size="11" font-weight="700" font-family="system-ui">Team Capability</text>
+  <text x="115" y="88" text-anchor="middle" fill="#dbeafe" font-size="9" font-family="system-ui">Can they pivot and execute?</text>
+  <rect x="215" y="50" width="170" height="50" rx="8" fill="#FBBF24"/>
+  <text x="300" y="72" text-anchor="middle" fill="#0B1220" font-size="11" font-weight="700" font-family="system-ui">Market Timing</text>
+  <text x="300" y="88" text-anchor="middle" fill="#0B1220" font-size="9" font-family="system-ui">Is the timing right for AU?</text>
+  <rect x="400" y="50" width="170" height="50" rx="8" fill="#10B981"/>
+  <text x="485" y="72" text-anchor="middle" fill="#FFF" font-size="11" font-weight="700" font-family="system-ui">Risk Profile</text>
+  <text x="485" y="88" text-anchor="middle" fill="#d1fae5" font-size="9" font-family="system-ui">Is the risk manageable?</text>
+</svg>
+</figure>
+
 ## What Drives the Australian Angel Investment Decision?
 
 Before diving into the checklist, it is crucial to understand the psychology of the Australian pre-seed investor. The typical Australian angel is often a successful founder or executive in their own right. They have "been there, done that." Consequently, they are less interested in theory and more interested in execution capability and market timing.
@@ -43,6 +59,30 @@ Validation at the pre-seed stage does not require 10,000 paying customers. It re
 *   **User Interviews:** Investors want to see a qualitative analysis of customer interviews. Not just "people liked it," but "people paid to solve this specific pain point."
 
 The most successful Australian founders at the pre-seed stage treat validation as a product itself. They iterate on the problem definition before scaling the solution.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg" style="max-width:400px;margin:0 auto">
+  <rect width="400" height="220" rx="12" fill="#0B1220"/>
+  <text x="200" y="25" text-anchor="middle" fill="#FFF" font-size="13" font-weight="700" font-family="system-ui">Evaluation Criteria Radar</text>
+  <!-- Simplified radar as concentric rings + points -->
+  <circle cx="200" cy="125" r="70" fill="none" stroke="#3B7DD8" stroke-width="0.5" opacity="0.3"/>
+  <circle cx="200" cy="125" r="50" fill="none" stroke="#3B7DD8" stroke-width="0.5" opacity="0.3"/>
+  <circle cx="200" cy="125" r="30" fill="none" stroke="#3B7DD8" stroke-width="0.5" opacity="0.3"/>
+  <!-- Axes -->
+  <line x1="200" y1="55" x2="200" y2="195" stroke="#3B7DD8" stroke-width="0.5" opacity="0.3"/>
+  <line x1="130" y1="85" x2="270" y2="165" stroke="#3B7DD8" stroke-width="0.5" opacity="0.3"/>
+  <line x1="130" y1="165" x2="270" y2="85" stroke="#3B7DD8" stroke-width="0.5" opacity="0.3"/>
+  <!-- Radar shape -->
+  <polygon points="200,60 260,100 250,160 150,160 140,100" fill="#3B7DD8" opacity="0.2" stroke="#3B7DD8" stroke-width="2"/>
+  <!-- Labels -->
+  <text x="200" y="48" text-anchor="middle" fill="#3B7DD8" font-size="10" font-weight="600" font-family="system-ui">Team (30%)</text>
+  <text x="280" y="95" fill="#FBBF24" font-size="10" font-weight="600" font-family="system-ui">Timing (20%)</text>
+  <text x="268" y="175" fill="#10B981" font-size="10" font-weight="600" font-family="system-ui">Validation (20%)</text>
+  <text x="80" y="175" fill="#F87171" font-size="10" font-weight="600" font-family="system-ui">Market (15%)</text>
+  <text x="85" y="95" fill="#94A3B8" font-size="10" font-weight="600" font-family="system-ui">Product (10%)</text>
+  <text x="200" y="210" text-anchor="middle" fill="#94A3B8" font-size="9" font-family="system-ui">ESIC eligibility adds 5% weight to the evaluation</text>
+</svg>
+</figure>
 
 | Evaluation Criteria | Weight | What Investors Want to See | Red Flags |
 | :--- | :---: | :--- | :--- |
@@ -122,6 +162,23 @@ A common pitfall for Australian founders is applying for ESIC status too late or
 **Innovation vs. Efficiency:**
 Investors often reject companies that have not passed the innovation test. The business must do something "new" in the Australian context. This could be a novel technology, a new application of existing technology, or a significant change in a business process that yields efficiency or effectiveness. Merely having a website or a standard e-commerce store is usually insufficient.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 130" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="130" rx="12" fill="#0B1220"/>
+  <text x="300" y="25" text-anchor="middle" fill="#FFF" font-size="13" font-weight="700" font-family="system-ui">ESIC Tax Incentive Impact</text>
+  <rect x="30" y="45" width="160" height="60" rx="8" fill="#10B981"/>
+  <text x="110" y="68" text-anchor="middle" fill="#FFF" font-size="18" font-weight="700" font-family="system-ui">20%</text>
+  <text x="110" y="88" text-anchor="middle" fill="#d1fae5" font-size="10" font-family="system-ui">Non-refundable tax offset</text>
+  <rect x="220" y="45" width="160" height="60" rx="8" fill="#FBBF24"/>
+  <text x="300" y="68" text-anchor="middle" fill="#0B1220" font-size="18" font-weight="700" font-family="system-ui">10 yr</text>
+  <text x="300" y="88" text-anchor="middle" fill="#0B1220" font-size="10" font-family="system-ui">CGT exemption period</text>
+  <rect x="410" y="45" width="160" height="60" rx="8" fill="#3B7DD8"/>
+  <text x="490" y="68" text-anchor="middle" fill="#FFF" font-size="18" font-weight="700" font-family="system-ui">$1M</text>
+  <text x="490" y="88" text-anchor="middle" fill="#dbeafe" font-size="10" font-family="system-ui">Max qualifying investment</text>
+  <text x="300" y="120" text-anchor="middle" fill="#94A3B8" font-size="10" font-family="system-ui">$25K invested effectively costs the angel only $20K after offset</text>
+</svg>
+</figure>
+
 ### Practical Steps for ESIC Compliance
 
 To ensure your startup is investment-ready for the Australian angel market:
@@ -153,6 +210,30 @@ ASIC is not a suggestion box; it is a regulator. Investors will run due diligenc
 
 Failure to comply with these basic requirements suggests operational chaos. It tells the investor that when they write a check, they are also writing a check to hire a lawyer to clean up the mess.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 140" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="140" rx="12" fill="#0B1220"/>
+  <text x="300" y="25" text-anchor="middle" fill="#FFF" font-size="13" font-weight="700" font-family="system-ui">AU Investor Landscape: Key Angel Networks</text>
+  <rect x="20" y="45" width="130" height="70" rx="8" fill="#3B7DD8"/>
+  <text x="85" y="70" text-anchor="middle" fill="#FFF" font-size="11" font-weight="600" font-family="system-ui">Sydney Angels</text>
+  <text x="85" y="88" text-anchor="middle" fill="#dbeafe" font-size="9" font-family="system-ui">$25K-$250K checks</text>
+  <text x="85" y="100" text-anchor="middle" fill="#dbeafe" font-size="9" font-family="system-ui">Tech focus</text>
+  <rect x="165" y="45" width="130" height="70" rx="8" fill="#FBBF24"/>
+  <text x="230" y="70" text-anchor="middle" fill="#0B1220" font-size="11" font-weight="600" font-family="system-ui">Melbourne Angels</text>
+  <text x="230" y="88" text-anchor="middle" fill="#0B1220" font-size="9" font-family="system-ui">$25K-$200K checks</text>
+  <text x="230" y="100" text-anchor="middle" fill="#0B1220" font-size="9" font-family="system-ui">Broad sectors</text>
+  <rect x="310" y="45" width="130" height="70" rx="8" fill="#10B981"/>
+  <text x="375" y="70" text-anchor="middle" fill="#FFF" font-size="11" font-weight="600" font-family="system-ui">Startmate</text>
+  <text x="375" y="88" text-anchor="middle" fill="#d1fae5" font-size="9" font-family="system-ui">$120K + 7.5% equity</text>
+  <text x="375" y="100" text-anchor="middle" fill="#d1fae5" font-size="9" font-family="system-ui">Accelerator model</text>
+  <rect x="455" y="45" width="130" height="70" rx="8" fill="#F87171"/>
+  <text x="520" y="70" text-anchor="middle" fill="#FFF" font-size="11" font-weight="600" font-family="system-ui">AAAI</text>
+  <text x="520" y="88" text-anchor="middle" fill="#fecaca" font-size="9" font-family="system-ui">National network</text>
+  <text x="520" y="100" text-anchor="middle" fill="#fecaca" font-size="9" font-family="system-ui">All stages</text>
+  <text x="300" y="132" text-anchor="middle" fill="#94A3B8" font-size="10" font-family="system-ui">Warm introductions are the golden ticket -- cold emails rarely work in AU</text>
+</svg>
+</figure>
+
 ### The Role of BlockID in Governance
 
 This is where tools like the BlockID SVI (Startup Viability Index) score become critical. [Get your free SVI score](/) by inputting your governance data. The SVI score acts as a diagnostic tool, highlighting gaps in your corporate structure before an investor even sees your deck. It validates that your team, your legal structure, and your financial controls are aligned with Australian investor expectations.
@@ -175,6 +256,21 @@ Once you are in the room, the criteria shift from "potential" to "proof."
 *   **Team Chemistry:** Investors are betting on the team. Do the co-founders get along? Is there a clear division of labour?
 *   **Use of Funds:** A clear, conservative plan for how the capital will be used to reach the next milestone (e.g., "This $500k will get us to $1M ARR").
 *   **Exit Potential:** While pre-seed is early, investors need to see a path to a 10x return. This usually means targeting a global market, not just Australia.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 130" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="130" rx="12" fill="#0B1220"/>
+  <text x="300" y="25" text-anchor="middle" fill="#FFF" font-size="13" font-weight="700" font-family="system-ui">Meeting vs Funding: What Gets You There</text>
+  <rect x="30" y="45" width="250" height="60" rx="8" fill="#3B7DD8" opacity="0.15" stroke="#3B7DD8" stroke-width="1"/>
+  <text x="155" y="65" text-anchor="middle" fill="#3B7DD8" font-size="11" font-weight="700" font-family="system-ui">Gets You a MEETING</text>
+  <text x="155" y="82" text-anchor="middle" fill="#94A3B8" font-size="9" font-family="system-ui">Warm intro + Clean cap table</text>
+  <text x="155" y="95" text-anchor="middle" fill="#94A3B8" font-size="9" font-family="system-ui">Compelling narrative (< 10 slides)</text>
+  <rect x="320" y="45" width="250" height="60" rx="8" fill="#10B981" opacity="0.15" stroke="#10B981" stroke-width="1"/>
+  <text x="445" y="65" text-anchor="middle" fill="#10B981" font-size="11" font-weight="700" font-family="system-ui">Gets You FUNDED</text>
+  <text x="445" y="82" text-anchor="middle" fill="#94A3B8" font-size="9" font-family="system-ui">Customer validation + Team chemistry</text>
+  <text x="445" y="95" text-anchor="middle" fill="#94A3B8" font-size="9" font-family="system-ui">Clear use of funds + Exit potential</text>
+</svg>
+</figure>
 
 ### The "No" Factors
 

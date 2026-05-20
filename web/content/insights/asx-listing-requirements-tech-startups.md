@@ -6,6 +6,16 @@ The ASX is not merely a stock exchange; it is a highly regulated environment gov
 
 > **Key Insight:** According to recent data from the ASX, over 40% of new listings in the technology and services sectors fail to meet the **$20 million market capitalisation** threshold or the **300 shareholders** rule within their first two years of planning.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#F87171" font-size="42" font-weight="700" font-family="system-ui">40%</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">of tech listings fail to meet core ASX requirements</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">$20M market cap and 300 shareholders within 2 years of planning</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">ASX tech listing failure rate</figcaption>
+</figure>
+
 This article is not a theoretical deep dive into the Corporations Act. It is a practical, no-fluff guide for Australian founders preparing for an **ASX IPO startup** journey. We will break down the hard numbers, the regulatory pitfalls, and the strategic timeline required to navigate **going public Australia** successfully.
 
 ## The Hard Numbers: Mandatory ASX Listing Requirements
@@ -20,6 +30,16 @@ The most immediate barrier is the valuation requirement. The ASX generally expec
 
 If you are a pre-revenue SaaS company, this number is difficult to justify without substantial risk capital or a proven revenue model. Unlike the US NASDAQ, which allows for more flexible listing criteria based on "substitute financial indicators," the ASX remains relatively conservative.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#FBBF24" font-size="42" font-weight="700" font-family="system-ui">$20M+</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">Minimum market capitalisation for ASX listing</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">Aim for $30M+ to account for underwriting fees and price volatility</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">The ASX market cap hurdle for tech startups</figcaption>
+</figure>
+
 You must demonstrate that your valuation is supported by:
 *   **Substantial Capital Raising:** A recent venture round at a valuation that comfortably exceeds $20M.
 *   **Robust Revenue Models:** Recurring revenue (ARR) that justifies the multiple.
@@ -30,6 +50,16 @@ You must demonstrate that your valuation is supported by:
 Liquidity is the lifeblood of a public company. The ASX Listing Rule 6.10 mandates that a company must have at least **300 shareholders**, each holding at least $2,000 worth of securities.
 
 For early-stage startups, this is often the most painful hurdle. Relying on a single institutional investor or a small group of angel investors will not suffice. You need a broad base of retail and institutional shareholders. This often necessitates a "pre-IPO placement" to a syndicate of investors specifically to build out the register.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#3B7DD8" font-size="42" font-weight="700" font-family="system-ui">300+</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">Minimum shareholders required, each holding $2K+ of securities</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">ASX Listing Rule 6.10 — ensures post-listing liquidity</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">The shareholder spread requirement for ASX listing</figcaption>
+</figure>
 
 ### 3. The Two-Year Track Record and Audited Financials
 
@@ -144,6 +174,30 @@ The **NSX**, on the other hand, is a smaller, boutique exchange. Its listing req
 
 However, there is a catch. Liquidity on the NSX is significantly lower. Many institutional investors do not have the mandate to hold NSX-listed securities. This can lead to a "valuation discount" where your stock trades at a lower multiple compared to an ASX peer.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 540 160" xmlns="http://www.w3.org/2000/svg" style="max-width:540px;margin:0 auto">
+  <rect width="540" height="160" rx="16" fill="#0B1220"/>
+  <text x="270" y="28" text-anchor="middle" fill="#94A3B8" font-size="12" font-weight="600" font-family="system-ui">MARKET CAP COMPARISON</text>
+  <!-- ASX -->
+  <rect x="30" y="45" width="150" height="65" rx="10" fill="#3B7DD8" opacity="0.15" stroke="#3B7DD8" stroke-width="1.5"/>
+  <text x="105" y="70" text-anchor="middle" fill="#3B7DD8" font-size="16" font-weight="700" font-family="system-ui">ASX</text>
+  <text x="105" y="90" text-anchor="middle" fill="#94A3B8" font-size="11" font-family="system-ui">Min: $20M AUD</text>
+  <text x="105" y="105" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Cost: $500K-$2M</text>
+  <!-- NSX -->
+  <rect x="195" y="45" width="150" height="65" rx="10" fill="#FBBF24" opacity="0.15" stroke="#FBBF24" stroke-width="1.5"/>
+  <text x="270" y="70" text-anchor="middle" fill="#FBBF24" font-size="16" font-weight="700" font-family="system-ui">NSX</text>
+  <text x="270" y="90" text-anchor="middle" fill="#94A3B8" font-size="11" font-family="system-ui">Min: ~$5M AUD</text>
+  <text x="270" y="105" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Cost: $150K-$500K</text>
+  <!-- NASDAQ -->
+  <rect x="360" y="45" width="150" height="65" rx="10" fill="#10B981" opacity="0.15" stroke="#10B981" stroke-width="1.5"/>
+  <text x="435" y="70" text-anchor="middle" fill="#10B981" font-size="16" font-weight="700" font-family="system-ui">NASDAQ</text>
+  <text x="435" y="90" text-anchor="middle" fill="#94A3B8" font-size="11" font-family="system-ui">Min: $50M+ USD</text>
+  <text x="435" y="105" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Cost: $1M+</text>
+  <text x="270" y="140" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">ASX remains the gold standard for Australian institutional capital access</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Listing threshold comparison across major exchanges</figcaption>
+</figure>
+
 | Feature | ASX | NSX | NASDAQ (US) |
 | :--- | :--- | :--- | :--- |
 | **Primary Audience** | Australian Institutions & Retail | Smaller Cap, Niche Investors | Global Tech Investors |
@@ -162,6 +216,16 @@ If your goal is to raise capital from Australian managed funds, the ASX is your 
 One of the biggest mistakes founders make is underestimating the cost of an IPO. It is not just the underwriting fees; it is the cumulative cost of preparation, compliance, and ongoing reporting.
 
 For an **ASX IPO startup**, you should budget between **$500,000 and $2,000,000 AUD** in direct costs. This does not include the cost of the capital you are raising, but rather the "burn" required to get there.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#F87171" font-size="38" font-weight="700" font-family="system-ui">$500K - $2M</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">Direct IPO costs before capital raise</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">Plus $300K-$500K annual compliance run-rate post-listing</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Budget reality for ASX tech IPO</figcaption>
+</figure>
 
 ### Breakdown of Direct Costs:
 
@@ -274,6 +338,16 @@ The most overlooked aspect of preparing for an **ASX listing** is governance. Ma
 
 The ASX Corporate Governance Principles require a board that is majority-independent. You cannot list with a board of just two founders and a friend. You need independent directors with public company experience, audit committee members, and remuneration committee members.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#FBBF24" font-size="42" font-weight="700" font-family="system-ui">2+</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">Independent non-executive directors required</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">Must be appointed 6+ months before listing date</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Board composition requirement for ASX listing</figcaption>
+</figure>
+
 ### The ASIC and ATO Reality Check
 
 Compliance isn't just about the ASX. You must be in perfect standing with:
@@ -292,6 +366,16 @@ Institutional investors scrutinize the cap table. Are there too many small share
 
 ### 2. Intellectual Property (IP) Ownership
 For tech startups, IP is your primary asset. Ensure that all IP is owned by the company, not the founders or consultants. All software development agreements must explicitly assign IP rights to the company. The ASX will require a detailed IP due diligence report.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#3B7DD8" font-size="38" font-weight="700" font-family="system-ui">18-24 mo</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">Minimum timeline from planning to trading day</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">Start governance, audit, and cap table preparation now</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">The IPO marathon: plan well ahead</figcaption>
+</figure>
 
 ### 3. Revenue Recognition
 Ensure your revenue recognition policies comply with AASB 15. Tech startups often have complex subscription models, usage-based pricing, and deferred revenue. Improper revenue recognition is the number one reason for restatements post-IPO, which destroys investor trust.

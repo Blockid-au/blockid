@@ -8,6 +8,18 @@ For Australian founders, the stakes are unique. You are not just managing invest
 
 This guide provides a comprehensive, actionable startup data room checklist tailored for the Australian market. We will break down exactly what investors expect to see, tiered by your fundraising stage, and explain how to leverage tools like the [BlockID data room builder](/tools/data-room) to streamline the process. Before you open a single folder, remember that your data room is the first tangible evidence of your company's infrastructure. If the infrastructure is shaky, the investor will assume your product or market strategy is too.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="120" rx="16" fill="#0B1220"/>
+  <text x="200" y="50" text-anchor="middle" fill="#10B981" font-size="38" font-weight="700" font-family="system-ui">3 clicks</text>
+  <text x="200" y="78" text-anchor="middle" fill="#94A3B8" font-size="13" font-family="system-ui">Max to find any document</text>
+  <line x1="330" y1="20" x2="330" y2="100" stroke="#3B7DD8" stroke-width="1" opacity="0.3"/>
+  <text x="470" y="50" text-anchor="middle" fill="#F87171" font-size="38" font-weight="700" font-family="system-ui">8</text>
+  <text x="470" y="78" text-anchor="middle" fill="#94A3B8" font-size="13" font-family="system-ui">Core folder categories</text>
+  <text x="300" y="110" text-anchor="middle" fill="#FBBF24" font-size="11" font-family="system-ui">A well-organized data room accelerates due diligence by weeks</text>
+</svg>
+</figure>
+
 ## The Anatomy of a Perfect Investor Data Room
 
 A well-structured data room is hierarchical, logical, and secure. It should allow a potential investor to find any critical document within three clicks. In 2026, investors are accustomed to digital-native platforms; they will not accept a zipped file attached to an email or a Google Drive folder with 500 unlabelled files named "final_v2.pdf".
@@ -22,6 +34,25 @@ This is the bedrock of your company. Investors need to verify that the entity ex
 *   **Shareholder Register:** A full list of all current shareholders, their addresses, and the number of shares held.
 *   **ASIC History:** A "Company Extract" showing the history of the company, including any past name changes or administrative penalties.
 *   **Compliance Certificates:** Evidence of up-toquate filings with ASIC (e.g., annual review fees paid) and the ATO (Tax Returns lodged, BAFG if applicable).
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 160" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="160" rx="12" fill="#0B1220"/>
+  <text x="300" y="25" text-anchor="middle" fill="#FFF" font-size="14" font-weight="700" font-family="system-ui">Section Priority by Investor Impact</text>
+  <text x="80" y="55" text-anchor="end" fill="#94A3B8" font-size="11" font-family="system-ui">Corporate</text>
+  <rect x="90" y="42" width="470" height="20" rx="4" fill="#F87171"/>
+  <text x="560" y="57" fill="#FFF" font-size="10" font-family="system-ui" font-weight="600">Critical</text>
+  <text x="80" y="82" text-anchor="end" fill="#94A3B8" font-size="11" font-family="system-ui">Cap Table</text>
+  <rect x="90" y="69" width="470" height="20" rx="4" fill="#F87171"/>
+  <text x="560" y="84" fill="#FFF" font-size="10" font-family="system-ui" font-weight="600">Critical</text>
+  <text x="80" y="109" text-anchor="end" fill="#94A3B8" font-size="11" font-family="system-ui">Financials</text>
+  <rect x="90" y="96" width="470" height="20" rx="4" fill="#F87171"/>
+  <text x="560" y="111" fill="#FFF" font-size="10" font-family="system-ui" font-weight="600">Critical</text>
+  <text x="80" y="136" text-anchor="end" fill="#94A3B8" font-size="11" font-family="system-ui">IP/Legal</text>
+  <rect x="90" y="123" width="350" height="20" rx="4" fill="#FBBF24"/>
+  <text x="440" y="138" fill="#FBBF24" font-size="10" font-family="system-ui" font-weight="600">High</text>
+</svg>
+</figure>
 
 | Document Category | Required Documents | Priority |
 | :--- | :--- | :---: |
@@ -147,6 +178,28 @@ At this stage, investors know that your financials may be preliminary and your c
 
 **What to Skip:** Do not over-index on complex financial projections. A simple burn rate analysis and a 12-month runway plan are sufficient. Over-complicating this stage can look like you are hiding nothing.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 140" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="140" rx="12" fill="#0B1220"/>
+  <text x="300" y="24" text-anchor="middle" fill="#FFF" font-size="13" font-weight="700" font-family="system-ui">Data Room Completeness Gauge</text>
+  <!-- Pre-seed gauge -->
+  <rect x="40" y="45" width="160" height="70" rx="8" fill="#3B7DD8" opacity="0.15" stroke="#3B7DD8" stroke-width="1"/>
+  <text x="120" y="65" text-anchor="middle" fill="#3B7DD8" font-size="22" font-weight="700" font-family="system-ui">60%</text>
+  <text x="120" y="82" text-anchor="middle" fill="#94A3B8" font-size="10" font-family="system-ui">Pre-Seed Target</text>
+  <text x="120" y="105" text-anchor="middle" fill="#3B7DD8" font-size="9" font-family="system-ui">Team + IP + basic financials</text>
+  <!-- Seed gauge -->
+  <rect x="220" y="45" width="160" height="70" rx="8" fill="#FBBF24" opacity="0.15" stroke="#FBBF24" stroke-width="1"/>
+  <text x="300" y="65" text-anchor="middle" fill="#FBBF24" font-size="22" font-weight="700" font-family="system-ui">80%</text>
+  <text x="300" y="82" text-anchor="middle" fill="#94A3B8" font-size="10" font-family="system-ui">Seed Target</text>
+  <text x="300" y="105" text-anchor="middle" fill="#FBBF24" font-size="9" font-family="system-ui">+ Contracts, compliance</text>
+  <!-- Series A gauge -->
+  <rect x="400" y="45" width="160" height="70" rx="8" fill="#10B981" opacity="0.15" stroke="#10B981" stroke-width="1"/>
+  <text x="480" y="65" text-anchor="middle" fill="#10B981" font-size="22" font-weight="700" font-family="system-ui">100%</text>
+  <text x="480" y="82" text-anchor="middle" fill="#94A3B8" font-size="10" font-family="system-ui">Series A Target</text>
+  <text x="480" y="105" text-anchor="middle" fill="#10B981" font-size="9" font-family="system-ui">Full exhaustive coverage</text>
+</svg>
+</figure>
+
 ### Series A and Beyond: The "Proof of Scale" Phase
 By Series A, the "charm" of the idea is gone. Investors are conducting forensic due diligence. They are looking for cracks in the foundation. Your data room must be exhaustive.
 
@@ -165,6 +218,24 @@ Investors will scrutinize your [due diligence documents startup](/insights) spec
 
 ### The IP Assignment Trap
 If a founder wrote code for your product *before* the company was registered, that IP legally belongs to the founder personally, not the company. To fix this, you need a formal IP Assignment Deed transferring that IP to the entity. The same applies to contractors. In Australia, contractors do not automatically assign copyright to the hiring entity unless there is a written agreement stating so.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 100" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect x="0" y="25" width="130" height="50" rx="10" fill="#F87171"/>
+  <text x="65" y="47" text-anchor="middle" fill="#FFF" font-size="10" font-family="system-ui">IP owned by</text>
+  <text x="65" y="62" text-anchor="middle" fill="#FFF" font-size="10" font-family="system-ui">founder personally</text>
+  <line x1="135" y1="50" x2="170" y2="50" stroke="#94A3B8" stroke-width="2" marker-end="url(#ipArrow)"/>
+  <rect x="175" y="25" width="130" height="50" rx="10" fill="#FBBF24"/>
+  <text x="240" y="47" text-anchor="middle" fill="#0B1220" font-size="10" font-family="system-ui">IP Assignment</text>
+  <text x="240" y="62" text-anchor="middle" fill="#0B1220" font-size="10" font-family="system-ui">Deed signed</text>
+  <line x1="310" y1="50" x2="345" y2="50" stroke="#94A3B8" stroke-width="2" marker-end="url(#ipArrow)"/>
+  <rect x="350" y="25" width="130" height="50" rx="10" fill="#10B981"/>
+  <text x="415" y="47" text-anchor="middle" fill="#FFF" font-size="10" font-family="system-ui">IP owned by</text>
+  <text x="415" y="62" text-anchor="middle" fill="#FFF" font-size="10" font-family="system-ui">company entity</text>
+  <defs><marker id="ipArrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#94A3B8"/></marker></defs>
+</svg>
+<figcaption style="color:#94A3B8;font-size:13px;margin-top:0.5rem">IP assignment flow -- critical for investor due diligence</figcaption>
+</figure>
 
 **Checklist for IP:**
 *   **Founder IP Assignment Deeds:** Signed and dated documents where founders assign pre-incorporation work to the company.

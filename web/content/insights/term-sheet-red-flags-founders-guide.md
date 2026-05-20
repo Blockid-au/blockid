@@ -10,6 +10,18 @@ In Australia, where the investment ecosystem is maturing rapidly under the guida
 
 You need to walk into your next negotiation with a clear understanding of the leverage you hold and the traps you must avoid. Let's dissect the ten most dangerous clauses you will encounter in an **investor term sheet guide**.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="120" rx="16" fill="#0B1220"/>
+  <text x="200" y="50" text-anchor="middle" fill="#F87171" font-size="38" font-weight="700" font-family="system-ui">10</text>
+  <text x="200" y="78" text-anchor="middle" fill="#94A3B8" font-size="13" font-family="system-ui">dangerous clauses to watch</text>
+  <line x1="340" y1="20" x2="340" y2="100" stroke="#3B7DD8" stroke-width="1" opacity="0.3"/>
+  <text x="470" y="50" text-anchor="middle" fill="#FBBF24" font-size="28" font-weight="700" font-family="system-ui">Valuation</text>
+  <text x="470" y="78" text-anchor="middle" fill="#94A3B8" font-size="13" font-family="system-ui">is NOT everything</text>
+  <text x="300" y="110" text-anchor="middle" fill="#10B981" font-size="11" font-family="system-ui">Clean terms at lower valuation > toxic terms at high valuation</text>
+</svg>
+</figure>
+
 ### Good Terms vs Bad Terms: Quick Comparison
 
 | Term | Founder-Friendly (Good) | Investor-Aggressive (Bad) |
@@ -74,6 +86,29 @@ However, watch out for **2x or higher** liquidation preferences. This is a massi
 
 Even worse is the **participating liquidation preference**. In this scenario, the investor gets their initial money back *and* then participates in the remaining distribution as if they still owned their percentage. This effectively doubles (or triples) their payout at the expense of the founders and employees.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 160" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="160" rx="12" fill="#0B1220"/>
+  <text x="300" y="25" text-anchor="middle" fill="#FFF" font-size="13" font-weight="700" font-family="system-ui">Liquidation Preference: $10M Exit with $2M Preferred</text>
+  <text x="110" y="55" text-anchor="middle" fill="#94A3B8" font-size="11" font-family="system-ui">1x Non-Participating</text>
+  <rect x="30" y="65" width="80" height="60" rx="6" fill="#FBBF24"/>
+  <text x="70" y="92" text-anchor="middle" fill="#0B1220" font-size="10" font-weight="600" font-family="system-ui">$2M</text>
+  <text x="70" y="105" text-anchor="middle" fill="#0B1220" font-size="8" font-family="system-ui">Investor</text>
+  <rect x="115" y="65" width="80" height="60" rx="6" fill="#10B981"/>
+  <text x="155" y="92" text-anchor="middle" fill="#FFF" font-size="10" font-weight="600" font-family="system-ui">$8M</text>
+  <text x="155" y="105" text-anchor="middle" fill="#d1fae5" font-size="8" font-family="system-ui">Founders</text>
+  <line x1="220" y1="40" x2="220" y2="140" stroke="#3B7DD8" stroke-width="1" opacity="0.3"/>
+  <text x="420" y="55" text-anchor="middle" fill="#94A3B8" font-size="11" font-family="system-ui">2x Participating</text>
+  <rect x="310" y="65" width="160" height="60" rx="6" fill="#F87171"/>
+  <text x="390" y="92" text-anchor="middle" fill="#FFF" font-size="10" font-weight="600" font-family="system-ui">$4M + share of $6M</text>
+  <text x="390" y="105" text-anchor="middle" fill="#fecaca" font-size="8" font-family="system-ui">Investor (double dip!)</text>
+  <rect x="475" y="65" width="100" height="60" rx="6" fill="#10B981" opacity="0.5"/>
+  <text x="525" y="92" text-anchor="middle" fill="#FFF" font-size="10" font-weight="600" font-family="system-ui">~$4.8M</text>
+  <text x="525" y="105" text-anchor="middle" fill="#d1fae5" font-size="8" font-family="system-ui">Founders</text>
+  <text x="300" y="150" text-anchor="middle" fill="#F87171" font-size="10" font-weight="600" font-family="system-ui">Participating preference costs founders $3.2M on the same $10M exit</text>
+</svg>
+</figure>
+
 ### The Impact on Your Exit
 
 Consider a scenario where you sell your company for $10 million. You have $2 million in preferred shares.
@@ -94,6 +129,22 @@ There are two main types: **Weighted Average** and **Full Ratchet**.
 
 This clause can be catastrophic. If you raise a small bridge round at a slightly lower valuation, a full ratchet could wipe out the founder's equity overnight, diluting you so severely that you lose motivation to continue building the business.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 130" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="130" rx="12" fill="#0B1220"/>
+  <text x="300" y="25" text-anchor="middle" fill="#FFF" font-size="13" font-weight="700" font-family="system-ui">Clause Risk Matrix</text>
+  <text x="100" y="55" text-anchor="end" fill="#94A3B8" font-size="10" font-family="system-ui">Broad Weighted Avg</text>
+  <rect x="110" y="42" width="150" height="18" rx="4" fill="#10B981"/>
+  <text x="270" y="56" fill="#10B981" font-size="10" font-weight="600" font-family="system-ui">Low impact</text>
+  <text x="100" y="80" text-anchor="end" fill="#94A3B8" font-size="10" font-family="system-ui">Narrow Weighted Avg</text>
+  <rect x="110" y="67" width="280" height="18" rx="4" fill="#FBBF24"/>
+  <text x="400" y="81" fill="#FBBF24" font-size="10" font-weight="600" font-family="system-ui">Moderate impact</text>
+  <text x="100" y="105" text-anchor="end" fill="#94A3B8" font-size="10" font-family="system-ui">Full Ratchet</text>
+  <rect x="110" y="92" width="450" height="18" rx="4" fill="#F87171"/>
+  <text x="570" y="106" fill="#F87171" font-size="10" font-weight="600" font-family="system-ui">Catastrophic</text>
+</svg>
+</figure>
+
 | Provision Type | Mechanism | Founder Impact |
 | :--- | :--- | :--- |
 | **Broad Weighted Average** | Adjusts price based on new shares and price. Moderate dilution. | **Low/Moderate** (Standard) |
@@ -109,6 +160,33 @@ A term sheet that grants the investor **control of the board** (a 2-1 split wher
 In the Australian context, under **Corporations Act 2001 (Cth)**, the board has specific legal duties. If an investor controls the board, they assume these duties, but it also means they can vote you out of your own company if they disagree with the direction, even if you are the majority shareholder.
 
 Look for "protective provisions" that require investor consent for specific actions like hiring a CEO, changing the business model, or raising further capital. While some vetting is reasonable, giving a single investor veto power over day-to-day operations is a recipe for deadlock.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 100" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="100" rx="12" fill="#0B1220"/>
+  <text x="300" y="22" text-anchor="middle" fill="#FFF" font-size="12" font-weight="700" font-family="system-ui">Negotiation Flow: How to Push Back</text>
+  <rect x="15" y="40" width="100" height="40" rx="8" fill="#F87171"/>
+  <text x="65" y="57" text-anchor="middle" fill="#FFF" font-size="9" font-family="system-ui">Investor</text>
+  <text x="65" y="70" text-anchor="middle" fill="#FFF" font-size="9" font-family="system-ui">proposes term</text>
+  <line x1="120" y1="60" x2="140" y2="60" stroke="#94A3B8" stroke-width="2" marker-end="url(#negArrow)"/>
+  <rect x="145" y="40" width="100" height="40" rx="8" fill="#FBBF24"/>
+  <text x="195" y="57" text-anchor="middle" fill="#0B1220" font-size="9" font-family="system-ui">Lawyer</text>
+  <text x="195" y="70" text-anchor="middle" fill="#0B1220" font-size="9" font-family="system-ui">flags red flag</text>
+  <line x1="250" y1="60" x2="270" y2="60" stroke="#94A3B8" stroke-width="2" marker-end="url(#negArrow)"/>
+  <rect x="275" y="40" width="100" height="40" rx="8" fill="#3B7DD8"/>
+  <text x="325" y="57" text-anchor="middle" fill="#FFF" font-size="9" font-family="system-ui">Counter with</text>
+  <text x="325" y="70" text-anchor="middle" fill="#FFF" font-size="9" font-family="system-ui">market standard</text>
+  <line x1="380" y1="60" x2="400" y2="60" stroke="#94A3B8" stroke-width="2" marker-end="url(#negArrow)"/>
+  <rect x="405" y="40" width="80" height="40" rx="8" fill="#FBBF24"/>
+  <text x="445" y="57" text-anchor="middle" fill="#0B1220" font-size="9" font-family="system-ui">Negotiate</text>
+  <text x="445" y="70" text-anchor="middle" fill="#0B1220" font-size="9" font-family="system-ui">compromise</text>
+  <line x1="490" y1="60" x2="510" y2="60" stroke="#94A3B8" stroke-width="2" marker-end="url(#negArrow)"/>
+  <rect x="515" y="40" width="70" height="40" rx="8" fill="#10B981"/>
+  <text x="550" y="57" text-anchor="middle" fill="#FFF" font-size="9" font-family="system-ui">Agree or</text>
+  <text x="550" y="70" text-anchor="middle" fill="#FFF" font-size="9" font-family="system-ui">walk away</text>
+  <defs><marker id="negArrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#94A3B8"/></marker></defs>
+</svg>
+</figure>
 
 ## 4. Drag-Along Rights: Forced Exits at Low Valuations
 

@@ -10,6 +10,20 @@ Understanding the nuances between patents, trademarks, trade secrets, and copyri
 
 This guide cuts through the legal jargon to provide a practical, actionable framework for Australian founders. We will break down the costs, the timing, and the strategic value of each IP type, ensuring you invest your limited resources where they drive maximum return.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="120" fill="#0B1220" rx="12"/>
+  <text x="300" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FBBF24">IP IMPACT ON STARTUP VALUE</text>
+  <text x="150" y="68" text-anchor="middle" font-family="Arial,sans-serif" font-size="32" font-weight="bold" fill="#10B981">40%</text>
+  <text x="150" y="90" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">More VC funding with</text>
+  <text x="150" y="103" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">registered IP portfolio</text>
+  <text x="450" y="68" text-anchor="middle" font-family="Arial,sans-serif" font-size="32" font-weight="bold" fill="#3B7DD8">2-3x</text>
+  <text x="450" y="90" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">Higher exit valuations</text>
+  <text x="450" y="103" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">with registered IP assets</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Impact of IP assets on startup funding and exit valuations (AVCAL data)</figcaption>
+</figure>
+
 ## The Four Pillars of Startup IP Strategy
 
 Australia's intellectual property framework is governed by *IP Australia*, but the strategic application of these laws varies significantly depending on your business model. A biotech firm requires a different approach than a SaaS platform or a consumer goods brand.
@@ -25,6 +39,31 @@ For Australian founders, the decision between a provisional and a standard paten
 A **standard patent** (costing **$5,000–$15,000+** total including attorney fees, examination, and maintenance) is the robust, enforceable asset investors want to see. It lasts up to 20 years but requires a rigorous examination process by IP Australia to ensure novelty and inventive step.
 
 > **Strategic Move:** File a provisional patent before pitching to investors or launching a beta. It secures your priority date at a fraction of the cost, buying you 12 months of "patent pending" status to raise capital.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 140" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="140" fill="#0B1220" rx="12"/>
+  <text x="300" y="25" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FBBF24">PATENT PROTECTION TIMELINE</text>
+  <line x1="60" y1="60" x2="540" y2="60" stroke="#3B7DD8" stroke-width="3"/>
+  <circle cx="60" cy="60" r="7" fill="#10B981"/>
+  <text x="60" y="82" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#94a3b8">File Provisional</text>
+  <text x="60" y="94" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#10B981">$1K-$3K</text>
+  <circle cx="180" cy="60" r="7" fill="#FBBF24"/>
+  <text x="180" y="82" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#94a3b8">12 mo: Convert</text>
+  <text x="180" y="94" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#FBBF24">to Standard</text>
+  <circle cx="360" cy="60" r="7" fill="#3B7DD8"/>
+  <text x="360" y="82" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#94a3b8">Examination</text>
+  <text x="360" y="94" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#3B7DD8">$5K-$15K+</text>
+  <circle cx="540" cy="60" r="7" fill="#10B981"/>
+  <text x="540" y="82" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#94a3b8">Patent Granted</text>
+  <text x="540" y="94" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#10B981">20yr protection</text>
+  <rect x="60" y="105" width="120" height="16" fill="#10B981" opacity="0.2" rx="3"/>
+  <text x="120" y="117" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#10B981">Provisional (12mo)</text>
+  <rect x="180" y="105" width="360" height="16" fill="#3B7DD8" opacity="0.2" rx="3"/>
+  <text x="360" y="117" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#3B7DD8">Standard patent examination (3-5 years)</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Patent protection timeline from provisional to granted</figcaption>
+</figure>
 
 ### 2. Trademarks: Protecting the Brand
 
@@ -66,8 +105,8 @@ While automatic, copyright protection is limited. It prevents others from *copyi
   <text x="350" y="46" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Scope, cost, duration, and strength of each IP asset class for Australian startups</text>
   <!-- Card 1: Patent -->
   <rect x="15" y="60" width="130" height="260" fill="white" stroke="#e2e8f0" stroke-width="1.5" rx="8"/>
-  <rect x="15" y="60" width="130" height="36" fill="#2563eb" rx="8"/>
-  <rect x="15" y="88" width="130" height="8" fill="#2563eb"/>
+  <rect x="15" y="60" width="130" height="36" fill="#3B7DD8" rx="8"/>
+  <rect x="15" y="88" width="130" height="8" fill="#3B7DD8"/>
   <text x="38" y="82" font-family="Arial,sans-serif" font-size="16" fill="white">&#9881;</text>
   <text x="58" y="84" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="white">Patent</text>
   <text x="25" y="115" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">Protects:</text>
@@ -102,8 +141,8 @@ While automatic, copyright protection is limited. It prevents others from *copyi
   <text x="217" y="304" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#64748b">with a brand</text>
   <!-- Card 3: Trade Secret -->
   <rect x="289" y="60" width="130" height="260" fill="white" stroke="#e2e8f0" stroke-width="1.5" rx="8"/>
-  <rect x="289" y="60" width="130" height="36" fill="#f59e0b" rx="8"/>
-  <rect x="289" y="88" width="130" height="8" fill="#f59e0b"/>
+  <rect x="289" y="60" width="130" height="36" fill="#FBBF24" rx="8"/>
+  <rect x="289" y="88" width="130" height="8" fill="#FBBF24"/>
   <text x="312" y="82" font-family="Arial,sans-serif" font-size="16" fill="white">&#128274;</text>
   <text x="332" y="84" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="white">Secret</text>
   <text x="299" y="115" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">Protects:</text>
@@ -115,7 +154,7 @@ While automatic, copyright protection is limited. It prevents others from *copyi
   <text x="299" y="220" font-family="Arial,sans-serif" font-size="10" fill="#1e293b" font-weight="bold">Time to grant:</text>
   <text x="299" y="235" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Immediate</text>
   <rect x="299" y="252" width="110" height="20" fill="#fef3c7" rx="4"/>
-  <text x="354" y="266" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#f59e0b">LOW if leaked</text>
+  <text x="354" y="266" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#FBBF24">LOW if leaked</text>
   <text x="354" y="292" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#64748b">Best: Proprietary algo,</text>
   <text x="354" y="304" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#64748b">customer data</text>
   <!-- Card 4: Copyright -->
@@ -264,36 +303,36 @@ Conversely, if you are a DeepTech or MedTech startup, your entire valuation rest
   <!-- Trademark: $250-$1,500 -->
   <rect x="100" y="290" width="120" height="17" fill="#10b981" rx="3"/>
   <!-- Provisional Patent: $1K-$3K -->
-  <rect x="100" y="273" width="120" height="17" fill="#2563eb" rx="3"/>
+  <rect x="100" y="273" width="120" height="17" fill="#3B7DD8" rx="3"/>
   <!-- NDAs: $0-$500 -->
-  <rect x="100" y="262" width="120" height="11" fill="#f59e0b" rx="3"/>
+  <rect x="100" y="262" width="120" height="11" fill="#FBBF24" rx="3"/>
   <!-- IP Assignment: $500-$1K -->
   <rect x="100" y="253" width="120" height="9" fill="#8b5cf6" rx="3"/>
-  <text x="160" y="246" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">$1.8K-$6K</text>
+  <text x="160" y="246" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#3B7DD8">$1.8K-$6K</text>
   <text x="160" y="325" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#1e293b">Pre-Seed</text>
   <text x="160" y="339" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#64748b">$0-$500K raised</text>
   <!-- Seed bar (stacked) -->
-  <rect x="290" y="245" width="120" height="62" fill="#2563eb" rx="3"/>
+  <rect x="290" y="245" width="120" height="62" fill="#3B7DD8" rx="3"/>
   <rect x="290" y="229" width="120" height="16" fill="#10b981" rx="3"/>
-  <rect x="290" y="215" width="120" height="14" fill="#f59e0b" rx="3"/>
+  <rect x="290" y="215" width="120" height="14" fill="#FBBF24" rx="3"/>
   <rect x="290" y="205" width="120" height="10" fill="#8b5cf6" rx="3"/>
-  <text x="350" y="198" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">$8.5K-$24K</text>
+  <text x="350" y="198" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#3B7DD8">$8.5K-$24K</text>
   <text x="350" y="325" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#1e293b">Seed</text>
   <text x="350" y="339" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#64748b">$500K-$2M raised</text>
   <!-- Series A bar (stacked) -->
-  <rect x="480" y="155" width="120" height="152" fill="#2563eb" rx="3"/>
+  <rect x="480" y="155" width="120" height="152" fill="#3B7DD8" rx="3"/>
   <rect x="480" y="125" width="120" height="30" fill="#10b981" rx="3"/>
-  <rect x="480" y="108" width="120" height="17" fill="#f59e0b" rx="3"/>
+  <rect x="480" y="108" width="120" height="17" fill="#FBBF24" rx="3"/>
   <rect x="480" y="93" width="120" height="15" fill="#8b5cf6" rx="3"/>
-  <text x="540" y="85" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">$30K-$90K</text>
+  <text x="540" y="85" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#3B7DD8">$30K-$90K</text>
   <text x="540" y="325" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#1e293b">Series A</text>
   <text x="540" y="339" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#64748b">$2M+ raised</text>
   <!-- Legend -->
-  <rect x="110" y="353" width="10" height="10" fill="#2563eb" rx="2"/>
+  <rect x="110" y="353" width="10" height="10" fill="#3B7DD8" rx="2"/>
   <text x="124" y="362" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Patents</text>
   <rect x="200" y="353" width="10" height="10" fill="#10b981" rx="2"/>
   <text x="214" y="362" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Trademarks</text>
-  <rect x="305" y="353" width="10" height="10" fill="#f59e0b" rx="2"/>
+  <rect x="305" y="353" width="10" height="10" fill="#FBBF24" rx="2"/>
   <text x="319" y="362" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Audit / Monitoring</text>
   <rect x="430" y="353" width="10" height="10" fill="#8b5cf6" rx="2"/>
   <text x="444" y="362" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Licensing / Due Diligence</text>
@@ -313,6 +352,22 @@ A strong IP portfolio allows you to command higher prices. You have a legal mono
 When a large corporation acquires a startup, they are often buying the IP portfolio, not just the team. A well-documented, robust IP portfolio makes you an attractive acquisition target for major players like Atlassian, Canva, or global multinationals expanding into Australia. It creates a "strategic asset" that justifies a premium price over similar companies without IP.
 
 According to data from the **Australian Venture Capital Association (AVCAL)**, companies with registered IP assets achieve exit valuations **2x to 3x higher** than those without.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 140" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="140" fill="#0B1220" rx="12"/>
+  <text x="300" y="25" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FBBF24">IP COST COMPARISON: PROTECT vs LOSE</text>
+  <text x="30" y="60" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">Trademark filing</text>
+  <rect x="180" y="47" width="40" height="18" fill="#10B981" rx="4"/><text x="230" y="60" font-family="Arial,sans-serif" font-size="10" fill="#10B981">$250-$1.5K</text>
+  <text x="30" y="85" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">Rebrand from infringement</text>
+  <rect x="180" y="72" width="320" height="18" fill="#F87171" rx="4"/><text x="510" y="85" font-family="Arial,sans-serif" font-size="10" fill="#F87171">$50K+</text>
+  <text x="30" y="110" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">Provisional patent</text>
+  <rect x="180" y="97" width="60" height="18" fill="#10B981" rx="4"/><text x="250" y="110" font-family="Arial,sans-serif" font-size="10" fill="#10B981">$1K-$3K</text>
+  <text x="30" y="133" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">Lost IP in DD failure</text>
+  <rect x="180" y="120" width="380" height="18" fill="#F87171" rx="4"/><text x="570" y="133" font-family="Arial,sans-serif" font-size="10" fill="#F87171">30-50% valuation loss</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Cost of early IP protection vs cost of failing to protect</figcaption>
+</figure>
 
 > **The Bottom Line:** IP is not an expense; it is a capital investment. Treating IP protection as a cost center rather than a value driver is a failure of strategic planning.
 
@@ -336,25 +391,25 @@ Before you close your next funding round or launch your next feature, run throug
 
 <svg viewBox="0 0 700 292" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
   <rect width="700" height="292" fill="#f8fafc" rx="12" stroke="#e2e8f0"/>
-  <rect width="700" height="44" fill="#2563eb" rx="12 12 0 0"/>
+  <rect width="700" height="44" fill="#3B7DD8" rx="12 12 0 0"/>
   <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="white">Key Takeaways: IP Protection for Australian Startups</text>
   <circle cx="40" cy="74" r="14" fill="#dbeafe"/>
-  <text x="40" y="79" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">1</text>
+  <text x="40" y="79" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">1</text>
   <text x="65" y="79" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">File a provisional patent ($1K-$3K) before pitching to secure your priority date</text>
   <circle cx="40" cy="110" r="14" fill="#dbeafe"/>
-  <text x="40" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">2</text>
+  <text x="40" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">2</text>
   <text x="65" y="115" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Register your trademark with IP Australia ($250-$350/class) for brand protection</text>
   <circle cx="40" cy="146" r="14" fill="#dbeafe"/>
-  <text x="40" y="151" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">3</text>
+  <text x="40" y="151" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">3</text>
   <text x="65" y="151" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Use NDAs and confidentiality clauses to protect trade secrets and algorithms</text>
   <circle cx="40" cy="182" r="14" fill="#dbeafe"/>
-  <text x="40" y="187" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">4</text>
+  <text x="40" y="187" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">4</text>
   <text x="65" y="187" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Copyright is automatic in Australia but only prevents exact copying, not concepts</text>
   <circle cx="40" cy="218" r="14" fill="#dbeafe"/>
-  <text x="40" y="223" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">5</text>
+  <text x="40" y="223" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">5</text>
   <text x="65" y="223" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Startups with registered IP attract 40% more venture capital on average</text>
   <rect x="20" y="256" width="660" height="32" fill="#eff6ff" rx="6"/>
-  <text x="350" y="277" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">Get your free Startup Value Index at blockid.au/score</text>
+  <text x="350" y="277" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#3B7DD8">Get your free Startup Value Index at blockid.au/score</text>
 </svg>
 
 

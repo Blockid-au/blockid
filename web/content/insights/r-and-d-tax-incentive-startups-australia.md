@@ -10,6 +10,23 @@ However, the gap between eligible activities and successful claims is wide. Many
 
 This guide cuts through the jargon. We will dissect exactly what qualifies as **experimental development** in the context of AI, software, and hardware, outline the strict documentation requirements, and show you how to build a governance framework that turns your R&D spend into a guaranteed asset.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="120" fill="#0B1220" rx="12"/>
+  <text x="300" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FBBF24">R&D TAX INCENTIVE AT A GLANCE</text>
+  <text x="100" y="70" text-anchor="middle" font-family="Arial,sans-serif" font-size="32" font-weight="bold" fill="#10B981">43.5%</text>
+  <text x="100" y="92" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Refundable offset</text>
+  <text x="100" y="105" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">(under $20M turnover)</text>
+  <text x="300" y="70" text-anchor="middle" font-family="Arial,sans-serif" font-size="32" font-weight="bold" fill="#F87171">30%+</text>
+  <text x="300" y="92" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">of claims flagged</text>
+  <text x="300" y="105" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">for poor documentation</text>
+  <text x="500" y="70" text-anchor="middle" font-family="Arial,sans-serif" font-size="32" font-weight="bold" fill="#3B7DD8">$43.5K</text>
+  <text x="500" y="92" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">cash back per $100K</text>
+  <text x="500" y="105" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">eligible R&D spend</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Key R&D Tax Incentive statistics for Australian startups</figcaption>
+</figure>
+
 ### Understanding the 43.5% Refundable Offset
 
 The R&D Tax Incentive operates under two distinct tiers based on your company's aggregated annual turnover. The distinction is critical for pre-seed and Series A founders.
@@ -75,6 +92,39 @@ Many founders are confused because AI and Machine Learning (ML) sound inherently
 
 The key differentiator is **technical uncertainty**. You must document a hypothesis, a method to test it, and the analysis of the results. If you are simply applying known engineering principles to solve a business problem, the ATO will likely reject the claim.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 180" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="180" fill="#0B1220" rx="12"/>
+  <text x="300" y="25" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FBBF24">R&D ELIGIBILITY DECISION TREE</text>
+  <!-- Start -->
+  <rect x="200" y="40" width="200" height="30" fill="#3B7DD8" rx="6"/>
+  <text x="300" y="60" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">Is there technical uncertainty?</text>
+  <!-- Yes path -->
+  <line x1="250" y1="70" x2="150" y2="90" stroke="#10B981" stroke-width="1.5"/>
+  <text x="190" y="82" font-family="Arial,sans-serif" font-size="8" fill="#10B981">YES</text>
+  <rect x="60" y="90" width="180" height="30" fill="#3B7DD8" rx="6"/>
+  <text x="150" y="110" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="white">Can an expert predict the result?</text>
+  <!-- No = eligible -->
+  <line x1="100" y1="120" x2="80" y2="138" stroke="#10B981" stroke-width="1.5"/>
+  <text x="75" y="133" font-family="Arial,sans-serif" font-size="8" fill="#10B981">NO</text>
+  <rect x="15" y="140" width="130" height="28" fill="#10B981" rx="6"/>
+  <text x="80" y="158" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">ELIGIBLE for R&D</text>
+  <!-- Yes = not eligible -->
+  <line x1="200" y1="120" x2="220" y2="138" stroke="#F87171" stroke-width="1.5"/>
+  <text x="225" y="133" font-family="Arial,sans-serif" font-size="8" fill="#F87171">YES</text>
+  <rect x="170" y="140" width="130" height="28" fill="#F87171" rx="6"/>
+  <text x="235" y="158" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">NOT eligible</text>
+  <!-- No path from start -->
+  <line x1="350" y1="70" x2="450" y2="90" stroke="#F87171" stroke-width="1.5"/>
+  <text x="410" y="82" font-family="Arial,sans-serif" font-size="8" fill="#F87171">NO</text>
+  <rect x="380" y="90" width="180" height="30" fill="#F87171" opacity="0.8" rx="6"/>
+  <text x="470" y="110" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="white">Routine development</text>
+  <rect x="380" y="140" width="180" height="28" fill="#F87171" rx="6"/>
+  <text x="470" y="158" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">NOT eligible for R&D</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Decision tree for determining R&D Tax Incentive eligibility</figcaption>
+</figure>
+
 ### Documentation: The Audit Shield
 
 The most common reason for claim rejection or audit failure is not the technology itself, but the lack of contemporaneous records. The ATO requires you to prove that you were conducting R&D *at the time you incurred the costs*, not six months later when you are preparing your tax return.
@@ -117,6 +167,27 @@ Claims that describe the work in vague marketing language (e.g., "revolutionary 
 
 To avoid these pitfalls, adopt a **segregated costing approach**. Only claim the time and resources spent on the experimental phases. If a developer spends 20 hours building a new experimental feature and 40 hours on routine maintenance, only the 20 hours qualify.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 150" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="150" fill="#0B1220" rx="12"/>
+  <text x="300" y="25" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FBBF24">COMMON AUDIT TRIGGERS</text>
+  <!-- Checklist items -->
+  <rect x="40" y="42" width="16" height="16" fill="#F87171" rx="3"/>
+  <text x="48" y="54" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="white">!</text>
+  <text x="65" y="54" font-family="Arial,sans-serif" font-size="10" fill="white">Claiming 90%+ of dev budget as R&D (looks like misclassification)</text>
+  <rect x="40" y="68" width="16" height="16" fill="#F87171" rx="3"/>
+  <text x="48" y="80" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="white">!</text>
+  <text x="65" y="80" font-family="Arial,sans-serif" font-size="10" fill="white">Finance-only claim preparation without CTO/tech lead input</text>
+  <rect x="40" y="94" width="16" height="16" fill="#F87171" rx="3"/>
+  <text x="48" y="106" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="white">!</text>
+  <text x="65" y="106" font-family="Arial,sans-serif" font-size="10" fill="white">Vague "revolutionary AI" descriptions instead of technical specifics</text>
+  <rect x="40" y="120" width="16" height="16" fill="#10B981" rx="3"/>
+  <text x="48" y="132" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="white">&#10003;</text>
+  <text x="65" y="132" font-family="Arial,sans-serif" font-size="10" fill="#10B981">Structured governance = 4x more likely to pass audit without issues</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Top audit triggers and the governance advantage</figcaption>
+</figure>
+
 ### Why Governance Matters for Valuation and Compliance
 
 Compliance with the R&D Tax Incentive is not just about avoiding an audit; it is a signal of maturity to investors. Institutional investors and VCs view clean, well-documented R&D claims as a sign of strong corporate governance.
@@ -139,15 +210,15 @@ Building this governance framework early saves you from a crisis later. It force
   <text x="350" y="32" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">R&D Tax Incentive Claim Process</text>
   <text x="350" y="52" text-anchor="middle" font-size="12" fill="#64748b">6 key steps from eligibility to refund</text>
   <!-- Step 1 -->
-  <rect x="40" y="72" width="290" height="60" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
-  <circle cx="66" cy="102" r="16" fill="#2563eb"/><text x="66" y="107" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">1</text>
+  <rect x="40" y="72" width="290" height="60" rx="8" fill="#ffffff" stroke="#3B7DD8" stroke-width="2"/>
+  <circle cx="66" cy="102" r="16" fill="#3B7DD8"/><text x="66" y="107" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">1</text>
   <text x="92" y="94" font-size="12" font-weight="bold" fill="#1e293b">Confirm Eligibility</text>
   <text x="92" y="112" font-size="10" fill="#64748b">Turnover under $20M, AU resident</text>
   <!-- Arrow -->
   <line x1="335" y1="102" x2="370" y2="102" stroke="#1e293b" stroke-width="2" marker-end="url(#arr3)"/>
   <!-- Step 2 -->
-  <rect x="375" y="72" width="290" height="60" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
-  <circle cx="401" cy="102" r="16" fill="#2563eb"/><text x="401" y="107" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">2</text>
+  <rect x="375" y="72" width="290" height="60" rx="8" fill="#ffffff" stroke="#3B7DD8" stroke-width="2"/>
+  <circle cx="401" cy="102" r="16" fill="#3B7DD8"/><text x="401" y="107" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">2</text>
   <text x="427" y="94" font-size="12" font-weight="bold" fill="#1e293b">Register with AusIndustry</text>
   <text x="427" y="112" font-size="10" fill="#64748b">Before FY end — cannot be retrospective</text>
   <!-- Arrow down -->
@@ -167,15 +238,15 @@ Building this governance framework early saves you from a crisis later. It force
   <!-- Arrow down -->
   <line x1="185" y1="232" x2="185" y2="262" stroke="#1e293b" stroke-width="2" marker-end="url(#arr3)"/>
   <!-- Step 5 -->
-  <rect x="40" y="267" width="290" height="60" rx="8" fill="#ffffff" stroke="#f59e0b" stroke-width="2"/>
-  <circle cx="66" cy="297" r="16" fill="#f59e0b"/><text x="66" y="302" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">5</text>
+  <rect x="40" y="267" width="290" height="60" rx="8" fill="#ffffff" stroke="#FBBF24" stroke-width="2"/>
+  <circle cx="66" cy="297" r="16" fill="#FBBF24"/><text x="66" y="302" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">5</text>
   <text x="92" y="289" font-size="12" font-weight="bold" fill="#1e293b">Lodge Tax Return + R&D Schedule</text>
   <text x="92" y="307" font-size="10" fill="#64748b">Within 10 months of FY end via ATO</text>
   <!-- Arrow right -->
   <line x1="335" y1="297" x2="370" y2="297" stroke="#1e293b" stroke-width="2" marker-end="url(#arr3)"/>
   <!-- Step 6 -->
-  <rect x="375" y="267" width="290" height="60" rx="8" fill="#ffffff" stroke="#f59e0b" stroke-width="2"/>
-  <circle cx="401" cy="297" r="16" fill="#f59e0b"/><text x="401" y="302" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">6</text>
+  <rect x="375" y="267" width="290" height="60" rx="8" fill="#ffffff" stroke="#FBBF24" stroke-width="2"/>
+  <circle cx="401" cy="297" r="16" fill="#FBBF24"/><text x="401" y="302" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">6</text>
   <text x="427" y="289" font-size="12" font-weight="bold" fill="#1e293b">Receive 43.5% Refund</text>
   <text x="427" y="307" font-size="10" fill="#64748b">Cash deposited to your account</text>
   <!-- Result callout -->
@@ -233,8 +304,8 @@ However, even with a specialist, the responsibility for the accuracy of the clai
   <text x="90" y="310" text-anchor="end" font-size="11" fill="#1e293b">$0</text>
   <line x1="95" y1="306" x2="640" y2="306" stroke="#1e293b" stroke-width="1.5"/>
   <!-- Bar: Pre-seed $100K spend -->
-  <rect x="130" y="234" width="90" height="72" rx="4" fill="#2563eb"/>
-  <text x="175" y="226" text-anchor="middle" font-size="11" fill="#2563eb" font-weight="bold">$43.5K</text>
+  <rect x="130" y="234" width="90" height="72" rx="4" fill="#3B7DD8"/>
+  <text x="175" y="226" text-anchor="middle" font-size="11" fill="#3B7DD8" font-weight="bold">$43.5K</text>
   <text x="175" y="326" text-anchor="middle" font-size="10" fill="#1e293b" font-weight="bold">Pre-Seed</text>
   <text x="175" y="340" text-anchor="middle" font-size="9" fill="#64748b">$100K R&D</text>
   <!-- Bar: Seed $300K spend -->
@@ -243,13 +314,13 @@ However, even with a specialist, the responsibility for the accuracy of the clai
   <text x="305" y="326" text-anchor="middle" font-size="10" fill="#1e293b" font-weight="bold">Seed</text>
   <text x="305" y="340" text-anchor="middle" font-size="9" fill="#64748b">$300K R&D</text>
   <!-- Bar: Series A $500K spend -->
-  <rect x="390" y="130" width="90" height="176" rx="4" fill="#f59e0b"/>
-  <text x="435" y="122" text-anchor="middle" font-size="11" fill="#f59e0b" font-weight="bold">$217K</text>
+  <rect x="390" y="130" width="90" height="176" rx="4" fill="#FBBF24"/>
+  <text x="435" y="122" text-anchor="middle" font-size="11" fill="#FBBF24" font-weight="bold">$217K</text>
   <text x="435" y="326" text-anchor="middle" font-size="10" fill="#1e293b" font-weight="bold">Series A</text>
   <text x="435" y="340" text-anchor="middle" font-size="9" fill="#64748b">$500K R&D</text>
   <!-- Bar: Scale-up $1M spend -->
-  <rect x="520" y="78" width="90" height="228" rx="4" fill="#2563eb"/>
-  <text x="565" y="70" text-anchor="middle" font-size="11" fill="#2563eb" font-weight="bold">$435K</text>
+  <rect x="520" y="78" width="90" height="228" rx="4" fill="#3B7DD8"/>
+  <text x="565" y="70" text-anchor="middle" font-size="11" fill="#3B7DD8" font-weight="bold">$435K</text>
   <text x="565" y="326" text-anchor="middle" font-size="10" fill="#1e293b" font-weight="bold">Scale-Up</text>
   <text x="565" y="340" text-anchor="middle" font-size="9" fill="#64748b">$1M R&D</text>
   <!-- Note -->
@@ -259,25 +330,25 @@ However, even with a specialist, the responsibility for the accuracy of the clai
 
 <svg viewBox="0 0 700 292" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
   <rect width="700" height="292" fill="#f8fafc" rx="12" stroke="#e2e8f0"/>
-  <rect width="700" height="44" fill="#2563eb" rx="12 12 0 0"/>
+  <rect width="700" height="44" fill="#3B7DD8" rx="12 12 0 0"/>
   <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="white">Key Takeaways: R&amp;D Tax Incentive for Startups</text>
   <circle cx="40" cy="74" r="14" fill="#dbeafe"/>
-  <text x="40" y="79" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">1</text>
+  <text x="40" y="79" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">1</text>
   <text x="65" y="79" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">The 43.5% refundable offset applies to companies with under $20M annual turnover</text>
   <circle cx="40" cy="110" r="14" fill="#dbeafe"/>
-  <text x="40" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">2</text>
+  <text x="40" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">2</text>
   <text x="65" y="115" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Eligible R&amp;D must involve systematic experimentation to resolve technical uncertainty</text>
   <circle cx="40" cy="146" r="14" fill="#dbeafe"/>
-  <text x="40" y="151" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">3</text>
+  <text x="40" y="151" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">3</text>
   <text x="65" y="151" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Document everything: hypothesis, experiments, and results before claiming the offset</text>
   <circle cx="40" cy="182" r="14" fill="#dbeafe"/>
-  <text x="40" y="187" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">4</text>
+  <text x="40" y="187" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">4</text>
   <text x="65" y="187" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Software development qualifies only when it advances technical knowledge, not routine coding</text>
   <circle cx="40" cy="218" r="14" fill="#dbeafe"/>
-  <text x="40" y="223" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">5</text>
+  <text x="40" y="223" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">5</text>
   <text x="65" y="223" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Budget for a 6-9 month lag between filing and receiving the R&amp;D tax refund</text>
   <rect x="20" y="256" width="660" height="32" fill="#eff6ff" rx="6"/>
-  <text x="350" y="277" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">Get your free Startup Value Index at blockid.au/score</text>
+  <text x="350" y="277" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#3B7DD8">Get your free Startup Value Index at blockid.au/score</text>
 </svg>
 
 ### Conclusion: Turning Uncertainty into Capital

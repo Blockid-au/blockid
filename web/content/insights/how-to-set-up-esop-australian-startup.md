@@ -10,6 +10,21 @@ Investors scrutinize your cap table before writing a cheque. A messy equity stru
 
 Before you even draft your shareholder agreement, you need to understand the sheer volume of work involved in setting this up correctly. The difference between a compliant scheme and a tax nightmare often comes down to the timing of your implementation and the specific ASIC and ATO regulations you follow.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="120" fill="#0B1220" rx="12"/>
+  <text x="300" y="30" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FBBF24">ESOP POOL SIZE BY STAGE</text>
+  <text x="120" y="65" text-anchor="middle" font-family="Arial,sans-serif" font-size="28" font-weight="bold" fill="#3B7DD8">10%</text>
+  <text x="120" y="85" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">Pre-Seed</text>
+  <text x="300" y="65" text-anchor="middle" font-family="Arial,sans-serif" font-size="28" font-weight="bold" fill="#FBBF24">12-15%</text>
+  <text x="300" y="85" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">Seed / MVP</text>
+  <text x="480" y="65" text-anchor="middle" font-family="Arial,sans-serif" font-size="28" font-weight="bold" fill="#10B981">15%</text>
+  <text x="480" y="85" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">Series A</text>
+  <text x="300" y="110" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#F87171">85% of Series A rounds review ESOP structure before term sheet</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Recommended ESOP pool sizes at each funding stage</figcaption>
+</figure>
+
 > **Don't let equity confusion derail your momentum.** A misaligned cap table can kill a deal. Start by analyzing your current equity distribution to ensure you have room for growth. [Get your free SVI score](/) to benchmark your startup's readiness for investment today.
 
 ## The Australian ESS Framework: Div 83A and Tax Concessions
@@ -27,6 +42,42 @@ To qualify for the startup concession, your company must satisfy the following c
 When these conditions are met, the **Div 83A deferral** applies. This means the tax event (taxable opportunity) is deferred until an "exit event" occurs, such as the sale of the company or the disposal of the shares. In many cases, if the employee holds the shares for more than three years, the tax can be eliminated entirely, subject to specific holding period rules.
 
 However, if your company fails the $50 million turnover test or is older than 10 years, the standard tax rules apply. Under standard rules, the "discount" (the difference between the market value and the price paid) is taxed as ordinary income in the year the options are granted or vested. This can be a massive deterrent for employees, who may not have the cash on hand to pay the tax.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 180" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="180" fill="#0B1220" rx="12"/>
+  <text x="300" y="25" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FBBF24">ESOP GRANT LIFECYCLE FLOW</text>
+  <!-- Flow boxes -->
+  <rect x="20" y="45" width="100" height="45" fill="#3B7DD8" rx="6"/>
+  <text x="70" y="65" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="white">Board</text>
+  <text x="70" y="78" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#dbeafe">Approves pool</text>
+  <path d="M125 67 L145 67" stroke="#FBBF24" stroke-width="2" marker-end="url(#esopArr)"/>
+  <rect x="150" y="45" width="100" height="45" fill="#3B7DD8" rx="6"/>
+  <text x="200" y="65" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="white">Deed Drafted</text>
+  <text x="200" y="78" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#dbeafe">Div 83A compliant</text>
+  <path d="M255 67 L275 67" stroke="#FBBF24" stroke-width="2" marker-end="url(#esopArr)"/>
+  <rect x="280" y="45" width="100" height="45" fill="#10B981" rx="6"/>
+  <text x="330" y="65" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="white">Offer Issued</text>
+  <text x="330" y="78" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#dcfce7">Strike price set</text>
+  <path d="M385 67 L405 67" stroke="#FBBF24" stroke-width="2" marker-end="url(#esopArr)"/>
+  <rect x="410" y="45" width="80" height="45" fill="#FBBF24" rx="6"/>
+  <text x="450" y="65" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#0B1220">Vesting</text>
+  <text x="450" y="78" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#0B1220">4yr / 1yr cliff</text>
+  <path d="M495 67 L510 67" stroke="#FBBF24" stroke-width="2" marker-end="url(#esopArr)"/>
+  <rect x="515" y="45" width="65" height="45" fill="#10B981" rx="6"/>
+  <text x="547" y="65" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="white">Exercise</text>
+  <text x="547" y="78" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#dcfce7">or Exit</text>
+  <!-- Tax timeline -->
+  <text x="300" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#FBBF24">Tax Event Timeline (Div 83A Startup Concession)</text>
+  <line x1="70" y1="135" x2="530" y2="135" stroke="#3B7DD8" stroke-width="2"/>
+  <circle cx="70" cy="135" r="4" fill="#10B981"/><text x="70" y="155" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#94a3b8">Grant: No tax</text>
+  <circle cx="250" cy="135" r="4" fill="#10B981"/><text x="250" y="155" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#94a3b8">Vest: No tax</text>
+  <circle cx="420" cy="135" r="4" fill="#FBBF24"/><text x="420" y="155" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#94a3b8">Exit: CGT applies</text>
+  <circle cx="530" cy="135" r="4" fill="#10B981"/><text x="530" y="155" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#94a3b8">Hold 3yr+: CGT discount</text>
+  <defs><marker id="esopArr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#FBBF24"/></marker></defs>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">ESOP grant lifecycle from board approval to exercise</figcaption>
+</figure>
 
 > **Critical Warning:** Many founders mistakenly believe that once they hit Series A, they can no longer use the startup concessions. This is a myth. As long as your annual turnover remains under **$50 million** and you are under the 10-year mark, you can still utilize the startup concession for *new* grants, even if you have raised institutional capital.
 
@@ -51,6 +102,28 @@ It is vital to understand that this pool is not "free" equity. It comes out of t
 
 When allocating this pool, avoid the "equal split" trap. Not every early employee is worth the same amount of equity. Your allocation should be based on role, impact, and time-to-market. A CTO joining at the MVP stage might warrant 1.0% - 2.0%, while a marketing manager joining later might receive 0.2% - 0.5%.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 160" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="160" fill="#0B1220" rx="12"/>
+  <text x="300" y="25" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FBBF24">DILUTION IMPACT: ADDING A 15% ESOP POOL</text>
+  <!-- Before -->
+  <text x="150" y="50" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="white">Before ESOP</text>
+  <rect x="60" y="60" width="90" height="24" fill="#3B7DD8" rx="4"/><text x="105" y="76" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="white">Founder A: 50%</text>
+  <rect x="150" y="60" width="90" height="24" fill="#10B981" rx="4"/><text x="195" y="76" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="white">Founder B: 50%</text>
+  <!-- Arrow -->
+  <text x="300" y="77" text-anchor="middle" font-family="Arial,sans-serif" font-size="20" fill="#FBBF24">&#8594;</text>
+  <!-- After -->
+  <text x="450" y="50" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="white">After 15% ESOP</text>
+  <rect x="350" y="60" width="72" height="24" fill="#3B7DD8" rx="4"/><text x="386" y="76" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="white">A: 42.5%</text>
+  <rect x="422" y="60" width="72" height="24" fill="#10B981" rx="4"/><text x="458" y="76" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="white">B: 42.5%</text>
+  <rect x="494" y="60" width="54" height="24" fill="#FBBF24" rx="4"/><text x="521" y="76" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#0B1220">ESOP 15%</text>
+  <!-- Impact note -->
+  <text x="300" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#F87171">Each founder diluted by 7.5 percentage points</text>
+  <text x="300" y="135" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">ESOP pool is created pre-money, diluting existing shareholders before investor entry</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">How a 15% ESOP pool dilutes existing founders</figcaption>
+</figure>
+
 > **Pro Tip:** Always aim to have 12 to 18 months of runway in your equity pool. Investors hate the idea of having to re-raise a bridge round just to issue more options to keep your team happy. A larger, well-structured pool signals that you are prepared for the long haul.
 
 Getting the math right on your cap table is complex. Small errors in percentage calculations can lead to massive discrepancies during valuation. Before you commit to a pool size, you need to visualize the impact on your current stakeholders. Use our **[Plan Your Equity Split](/tools/equity-split)** tool to model different scenarios and ensure your pool is sized correctly for your next fundraising round.
@@ -62,7 +135,7 @@ Getting the math right on your cap table is complex. Small errors in percentage 
   <!-- Donut: Pre-Seed -->
   <text x="130" y="90" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e293b">Pre-Seed</text>
   <circle cx="130" cy="190" r="80" fill="none" stroke="#e2e8f0" stroke-width="28"/>
-  <circle cx="130" cy="190" r="80" fill="none" stroke="#2563eb" stroke-width="28" stroke-dasharray="452.4" stroke-dashoffset="45.2" transform="rotate(-90 130 190)"/>
+  <circle cx="130" cy="190" r="80" fill="none" stroke="#3B7DD8" stroke-width="28" stroke-dasharray="452.4" stroke-dashoffset="45.2" transform="rotate(-90 130 190)"/>
   <circle cx="130" cy="190" r="80" fill="none" stroke="#10b981" stroke-width="28" stroke-dasharray="452.4" stroke-dashoffset="407.2" transform="rotate(-90 130 190)"/>
   <text x="130" y="186" text-anchor="middle" font-size="22" font-weight="bold" fill="#1e293b">10%</text>
   <text x="130" y="204" text-anchor="middle" font-size="11" fill="#64748b">ESOP Pool</text>
@@ -70,23 +143,23 @@ Getting the math right on your cap table is complex. Small errors in percentage 
   <!-- Donut: Seed -->
   <text x="350" y="90" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e293b">Seed / MVP</text>
   <circle cx="350" cy="190" r="80" fill="none" stroke="#e2e8f0" stroke-width="28"/>
-  <circle cx="350" cy="190" r="80" fill="none" stroke="#2563eb" stroke-width="28" stroke-dasharray="452.4" stroke-dashoffset="395.4" transform="rotate(-90 350 190)"/>
-  <circle cx="350" cy="190" r="80" fill="none" stroke="#f59e0b" stroke-width="28" stroke-dasharray="452.4" stroke-dashoffset="384.5" transform="rotate(-90 350 190)"/>
+  <circle cx="350" cy="190" r="80" fill="none" stroke="#3B7DD8" stroke-width="28" stroke-dasharray="452.4" stroke-dashoffset="395.4" transform="rotate(-90 350 190)"/>
+  <circle cx="350" cy="190" r="80" fill="none" stroke="#FBBF24" stroke-width="28" stroke-dasharray="452.4" stroke-dashoffset="384.5" transform="rotate(-90 350 190)"/>
   <text x="350" y="186" text-anchor="middle" font-size="22" font-weight="bold" fill="#1e293b">12–15%</text>
   <text x="350" y="204" text-anchor="middle" font-size="11" fill="#64748b">ESOP Pool</text>
   <text x="350" y="290" text-anchor="middle" font-size="11" fill="#64748b">Founders: 68–73% | Investors: 15%</text>
   <!-- Donut: Series A -->
   <text x="570" y="90" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e293b">Series A</text>
   <circle cx="570" cy="190" r="80" fill="none" stroke="#e2e8f0" stroke-width="28"/>
-  <circle cx="570" cy="190" r="80" fill="none" stroke="#2563eb" stroke-width="28" stroke-dasharray="452.4" stroke-dashoffset="384.5" transform="rotate(-90 570 190)"/>
-  <circle cx="570" cy="190" r="80" fill="none" stroke="#f59e0b" stroke-width="28" stroke-dasharray="452.4" stroke-dashoffset="339.3" transform="rotate(-90 570 190)"/>
+  <circle cx="570" cy="190" r="80" fill="none" stroke="#3B7DD8" stroke-width="28" stroke-dasharray="452.4" stroke-dashoffset="384.5" transform="rotate(-90 570 190)"/>
+  <circle cx="570" cy="190" r="80" fill="none" stroke="#FBBF24" stroke-width="28" stroke-dasharray="452.4" stroke-dashoffset="339.3" transform="rotate(-90 570 190)"/>
   <text x="570" y="186" text-anchor="middle" font-size="22" font-weight="bold" fill="#1e293b">15%</text>
   <text x="570" y="204" text-anchor="middle" font-size="11" fill="#64748b">ESOP Pool</text>
   <text x="570" y="290" text-anchor="middle" font-size="11" fill="#64748b">Founders: 55–60% | Investors: 25%</text>
   <!-- Legend -->
   <rect x="150" y="320" width="14" height="14" rx="3" fill="#10b981"/><text x="170" y="332" font-size="12" fill="#1e293b">Founders</text>
-  <rect x="280" y="320" width="14" height="14" rx="3" fill="#2563eb"/><text x="300" y="332" font-size="12" fill="#1e293b">ESOP Pool</text>
-  <rect x="410" y="320" width="14" height="14" rx="3" fill="#f59e0b"/><text x="430" y="332" font-size="12" fill="#1e293b">Investors</text>
+  <rect x="280" y="320" width="14" height="14" rx="3" fill="#3B7DD8"/><text x="300" y="332" font-size="12" fill="#1e293b">ESOP Pool</text>
+  <rect x="410" y="320" width="14" height="14" rx="3" fill="#FBBF24"/><text x="430" y="332" font-size="12" fill="#1e293b">Investors</text>
   <text x="350" y="370" text-anchor="middle" font-size="11" fill="#64748b">Investors expect 10–15% pre-diluted ESOP pool before term sheets are finalised</text>
 </svg>
 
@@ -154,8 +227,8 @@ This structure aligns the employee's tenure with their equity accumulation. It a
   <text x="360" y="270" text-anchor="middle" font-size="11" font-weight="bold" fill="#ef4444">BAD LEAVER</text>
   <text x="360" y="286" text-anchor="middle" font-size="10" fill="#64748b">Forfeits unvested + may lose vested</text>
   <text x="360" y="299" text-anchor="middle" font-size="10" fill="#64748b">Fraud, misconduct</text>
-  <rect x="470" y="250" width="190" height="55" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
-  <text x="565" y="270" text-anchor="middle" font-size="11" font-weight="bold" fill="#2563eb">CHANGE OF CONTROL</text>
+  <rect x="470" y="250" width="190" height="55" rx="8" fill="#ffffff" stroke="#3B7DD8" stroke-width="1.5"/>
+  <text x="565" y="270" text-anchor="middle" font-size="11" font-weight="bold" fill="#3B7DD8">CHANGE OF CONTROL</text>
   <text x="565" y="286" text-anchor="middle" font-size="10" fill="#64748b">Double-trigger acceleration</text>
   <text x="565" y="299" text-anchor="middle" font-size="10" fill="#64748b">Only if also terminated</text>
   <!-- Bottom note -->
@@ -221,25 +294,25 @@ Setting up an ESS is a multi-step process that involves legal, financial, and ad
 
 <svg viewBox="0 0 700 292" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
   <rect width="700" height="292" fill="#f8fafc" rx="12" stroke="#e2e8f0"/>
-  <rect width="700" height="44" fill="#2563eb" rx="12 12 0 0"/>
+  <rect width="700" height="44" fill="#3B7DD8" rx="12 12 0 0"/>
   <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="white">Key Takeaways: Setting Up an ESOP in Australia</text>
   <circle cx="40" cy="74" r="14" fill="#dbeafe"/>
-  <text x="40" y="79" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">1</text>
+  <text x="40" y="79" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">1</text>
   <text x="65" y="79" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Reserve a 10-15% ESOP pool before your first funding round to avoid later dilution</text>
   <circle cx="40" cy="110" r="14" fill="#dbeafe"/>
-  <text x="40" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">2</text>
+  <text x="40" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">2</text>
   <text x="65" y="115" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Use the Div 83A ESS framework for tax-efficient employee share schemes</text>
   <circle cx="40" cy="146" r="14" fill="#dbeafe"/>
-  <text x="40" y="151" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">3</text>
+  <text x="40" y="151" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">3</text>
   <text x="65" y="151" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Standard ESOP vesting is 4 years with a 1-year cliff; match to employee retention</text>
   <circle cx="40" cy="182" r="14" fill="#dbeafe"/>
-  <text x="40" y="187" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">4</text>
+  <text x="40" y="187" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">4</text>
   <text x="65" y="187" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Include clear termination clauses for Good Leaver and Bad Leaver scenarios</text>
   <circle cx="40" cy="218" r="14" fill="#dbeafe"/>
-  <text x="40" y="223" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">5</text>
+  <text x="40" y="223" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">5</text>
   <text x="65" y="223" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Ensure ESIC compliance so employees benefit from the 10-year CGT exemption</text>
   <rect x="20" y="256" width="660" height="32" fill="#eff6ff" rx="6"/>
-  <text x="350" y="277" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">Get your free Startup Value Index at blockid.au/score</text>
+  <text x="350" y="277" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#3B7DD8">Get your free Startup Value Index at blockid.au/score</text>
 </svg>
 
 

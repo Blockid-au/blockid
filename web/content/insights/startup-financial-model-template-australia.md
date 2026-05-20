@@ -8,6 +8,32 @@ This guide breaks down exactly how to build a defensible, audit-ready financial 
 
 > **Strategic Insight:** "Investors in Australia are increasingly skeptical of top-line growth without clear unit economics. Your model must prove that for every dollar you burn, you generate sustainable value."
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 100" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect x="0" y="25" width="100" height="50" rx="10" fill="#3B7DD8"/>
+  <text x="50" y="47" text-anchor="middle" fill="#FFF" font-size="10" font-family="system-ui">Revenue</text>
+  <text x="50" y="61" text-anchor="middle" fill="#dbeafe" font-size="9" font-family="system-ui">Model</text>
+  <line x1="105" y1="50" x2="130" y2="50" stroke="#94A3B8" stroke-width="2" marker-end="url(#fmArrow)"/>
+  <rect x="135" y="25" width="90" height="50" rx="10" fill="#FBBF24"/>
+  <text x="180" y="47" text-anchor="middle" fill="#0B1220" font-size="10" font-family="system-ui">COGS</text>
+  <text x="180" y="61" text-anchor="middle" fill="#0B1220" font-size="9" font-family="system-ui">+ GST</text>
+  <line x1="230" y1="50" x2="255" y2="50" stroke="#94A3B8" stroke-width="2" marker-end="url(#fmArrow)"/>
+  <rect x="260" y="25" width="90" height="50" rx="10" fill="#F87171"/>
+  <text x="305" y="47" text-anchor="middle" fill="#FFF" font-size="10" font-family="system-ui">OpEx</text>
+  <text x="305" y="61" text-anchor="middle" fill="#fecaca" font-size="9" font-family="system-ui">+ Super</text>
+  <line x1="355" y1="50" x2="380" y2="50" stroke="#94A3B8" stroke-width="2" marker-end="url(#fmArrow)"/>
+  <rect x="385" y="25" width="90" height="50" rx="10" fill="#10B981"/>
+  <text x="430" y="47" text-anchor="middle" fill="#FFF" font-size="10" font-family="system-ui">Cash Flow</text>
+  <text x="430" y="61" text-anchor="middle" fill="#d1fae5" font-size="9" font-family="system-ui">+ R&D</text>
+  <line x1="480" y1="50" x2="505" y2="50" stroke="#94A3B8" stroke-width="2" marker-end="url(#fmArrow)"/>
+  <rect x="510" y="25" width="85" height="50" rx="10" fill="#0B1220" stroke="#3B7DD8" stroke-width="1"/>
+  <text x="552" y="47" text-anchor="middle" fill="#3B7DD8" font-size="10" font-family="system-ui">Scenario</text>
+  <text x="552" y="61" text-anchor="middle" fill="#3B7DD8" font-size="9" font-family="system-ui">Analysis</text>
+  <defs><marker id="fmArrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#94A3B8"/></marker></defs>
+</svg>
+<figcaption style="color:#94A3B8;font-size:13px;margin-top:0.5rem">Financial model structure flow for Australian startups</figcaption>
+</figure>
+
 | Component | What It Covers | Key Inputs | Australian-Specific Considerations |
 |-----------|---------------|------------|-------------------------------------|
 | **Revenue Model** | MRR/ARR projections, pricing tiers, churn | Customer count, ARPU, conversion rates | AUD/USD FX sensitivity; smaller TAM than US |
@@ -85,6 +111,30 @@ If you are a SaaS business, your revenue should be a function of:
 *   Churn rate (monthly or annual)
 *   Customer Acquisition Cost (CAC) payback period
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 180" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="180" rx="12" fill="#0B1220"/>
+  <text x="300" y="25" text-anchor="middle" fill="#FFF" font-size="14" font-weight="700" font-family="system-ui">Bottom-Up Revenue Formula (SaaS)</text>
+  <rect x="30" y="50" width="100" height="50" rx="8" fill="#3B7DD8"/>
+  <text x="80" y="72" text-anchor="middle" fill="#FFF" font-size="11" font-weight="600" font-family="system-ui">TAM</text>
+  <text x="80" y="88" text-anchor="middle" fill="#dbeafe" font-size="9" font-family="system-ui">Penetration %</text>
+  <text x="145" y="78" fill="#FBBF24" font-size="18" font-weight="700" font-family="system-ui">x</text>
+  <rect x="165" y="50" width="100" height="50" rx="8" fill="#FBBF24"/>
+  <text x="215" y="72" text-anchor="middle" fill="#0B1220" font-size="11" font-weight="600" font-family="system-ui">ARPU</text>
+  <text x="215" y="88" text-anchor="middle" fill="#0B1220" font-size="9" font-family="system-ui">Avg revenue/user</text>
+  <text x="280" y="78" fill="#FBBF24" font-size="18" font-weight="700" font-family="system-ui">x</text>
+  <rect x="300" y="50" width="100" height="50" rx="8" fill="#10B981"/>
+  <text x="350" y="72" text-anchor="middle" fill="#FFF" font-size="11" font-weight="600" font-family="system-ui">Retention</text>
+  <text x="350" y="88" text-anchor="middle" fill="#d1fae5" font-size="9" font-family="system-ui">(1 - Churn)</text>
+  <text x="415" y="78" fill="#FBBF24" font-size="18" font-weight="700" font-family="system-ui">=</text>
+  <rect x="435" y="45" width="140" height="60" rx="8" fill="#3B7DD8" opacity="0.2" stroke="#3B7DD8" stroke-width="2"/>
+  <text x="505" y="72" text-anchor="middle" fill="#3B7DD8" font-size="16" font-weight="700" font-family="system-ui">MRR</text>
+  <text x="505" y="92" text-anchor="middle" fill="#3B7DD8" font-size="10" font-family="system-ui">Monthly recurring</text>
+  <text x="300" y="135" text-anchor="middle" fill="#94A3B8" font-size="11" font-family="system-ui">Bottom-up = Specific activities drive revenue, not assumptions</text>
+  <text x="300" y="160" text-anchor="middle" fill="#F87171" font-size="10" font-family="system-ui">Avoid top-down "hockey stick" projections without driver logic</text>
+</svg>
+</figure>
+
 If you are a physical product or marketplace, you need to model transactions, average order value, and repeat purchase rates. Do not simply guess that you will get "1,000 users in month 12." Instead, calculate how many marketing hours, sales calls, or partner integrations it takes to acquire those users.
 
 > **Ready to validate your business logic before building the spreadsheet?** [Use the BlockID Funding Plan Tool to stress-test your assumptions](/tools/funding-plan).
@@ -123,6 +173,29 @@ For a hardware startup, this is:
 It is crucial to understand that **GST (Goods and Services Tax)** treatment differs for COGS in Australia. If your startup is registered for GST, your revenue is shown *excluding* GST, and your COGS should also be recorded *excluding* GST (the GST portion goes to the ATO via your BAS). However, if you are under the GST threshold (currently $75,000 AUD turnover) and not registered, you must include the full cost.
 
 Many founders fail to account for the variable nature of transaction fees. As you scale, your Stripe processing fees (approx 1.75% + 30c in Australia) will grow linearly with revenue. If your model assumes a flat 2% fee regardless of transaction volume, your projections will be inaccurate.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 150" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="150" rx="12" fill="#0B1220"/>
+  <text x="300" y="25" text-anchor="middle" fill="#FFF" font-size="13" font-weight="700" font-family="system-ui">Unit Economics Snapshot</text>
+  <rect x="30" y="45" width="120" height="80" rx="8" fill="#3B7DD8"/>
+  <text x="90" y="70" text-anchor="middle" fill="#FFF" font-size="18" font-weight="700" font-family="system-ui">65-78%</text>
+  <text x="90" y="90" text-anchor="middle" fill="#dbeafe" font-size="10" font-family="system-ui">Target Gross</text>
+  <text x="90" y="103" text-anchor="middle" fill="#dbeafe" font-size="10" font-family="system-ui">Margin (SaaS)</text>
+  <rect x="170" y="45" width="120" height="80" rx="8" fill="#FBBF24"/>
+  <text x="230" y="70" text-anchor="middle" fill="#0B1220" font-size="18" font-weight="700" font-family="system-ui">1.75%</text>
+  <text x="230" y="90" text-anchor="middle" fill="#0B1220" font-size="10" font-family="system-ui">Stripe AU fee</text>
+  <text x="230" y="103" text-anchor="middle" fill="#0B1220" font-size="10" font-family="system-ui">+ 30c per txn</text>
+  <rect x="310" y="45" width="120" height="80" rx="8" fill="#10B981"/>
+  <text x="370" y="70" text-anchor="middle" fill="#FFF" font-size="18" font-weight="700" font-family="system-ui">43.5%</text>
+  <text x="370" y="90" text-anchor="middle" fill="#d1fae5" font-size="10" font-family="system-ui">R&D Tax Offset</text>
+  <text x="370" y="103" text-anchor="middle" fill="#d1fae5" font-size="10" font-family="system-ui">(refundable)</text>
+  <rect x="450" y="45" width="120" height="80" rx="8" fill="#F87171"/>
+  <text x="510" y="70" text-anchor="middle" fill="#FFF" font-size="18" font-weight="700" font-family="system-ui">11.5%</text>
+  <text x="510" y="90" text-anchor="middle" fill="#fecaca" font-size="10" font-family="system-ui">Superannuation</text>
+  <text x="510" y="103" text-anchor="middle" fill="#fecaca" font-size="10" font-family="system-ui">on all salaries</text>
+</svg>
+</figure>
 
 ### R&D Tax Incentive Impact on COGS
 
@@ -177,6 +250,24 @@ However, this is often too simplistic. You must model **working capital changes*
 *   **Inventory:** Cash tied up in stock.
 
 If your **3-year financial model** assumes 100% revenue collection immediately, you are dangerously over-optimistic. Model a "Days Sales Outstanding" (DSO) lag. For B2B SaaS in Australia, 45 days is a reasonable conservative assumption.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 130" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="130" rx="16" fill="#0B1220"/>
+  <text x="300" y="28" text-anchor="middle" fill="#FFF" font-size="13" font-weight="700" font-family="system-ui">Runway Calculation</text>
+  <rect x="50" y="48" width="200" height="50" rx="8" fill="#3B7DD8"/>
+  <text x="150" y="70" text-anchor="middle" fill="#FFF" font-size="13" font-weight="700" font-family="system-ui">Cash Balance</text>
+  <text x="150" y="87" text-anchor="middle" fill="#dbeafe" font-size="11" font-family="system-ui">Current bank balance</text>
+  <text x="265" y="78" fill="#FBBF24" font-size="22" font-weight="700" font-family="system-ui">/</text>
+  <rect x="290" y="48" width="200" height="50" rx="8" fill="#F87171"/>
+  <text x="390" y="70" text-anchor="middle" fill="#FFF" font-size="13" font-weight="700" font-family="system-ui">Net Monthly Burn</text>
+  <text x="390" y="87" text-anchor="middle" fill="#fecaca" font-size="11" font-family="system-ui">Expenses - Revenue</text>
+  <text x="505" y="78" fill="#FBBF24" font-size="22" font-weight="700" font-family="system-ui">=</text>
+  <rect x="520" y="48" width="60" height="50" rx="8" fill="#10B981"/>
+  <text x="550" y="78" text-anchor="middle" fill="#FFF" font-size="14" font-weight="700" font-family="system-ui">Mo.</text>
+  <text x="300" y="118" text-anchor="middle" fill="#FBBF24" font-size="11" font-family="system-ui">Target: 18-24 months runway when raising | Factor in DSO lag (45 days for B2B)</text>
+</svg>
+</figure>
 
 > **Don't guess your valuation or runway.** [Get your free Startup Value Index (SVI) Score](/) to see how your financial health compares to Australian benchmarks.
 

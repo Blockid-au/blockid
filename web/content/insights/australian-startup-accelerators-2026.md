@@ -6,6 +6,16 @@ However, the market is saturated with programs, each with distinct philosophies,
 
 Understanding the nuances of **Australian startup accelerators** is no longer optional; it is a fundamental requirement for survival and success. From the rigorous selection processes of Antler to the corporate-backed networks of BlueChilli, each program offers a unique value proposition tailored to specific stages and sectors. The key lies in aligning your startup's current needs with the specific strengths of the program.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#10B981" font-size="42" font-weight="700" font-family="system-ui">3x</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">Faster follow-on funding for accelerator graduates</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">Plus 40% higher median valuations within 12 months of completion</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Source: Startup Genome</figcaption>
+</figure>
+
 > **Key Insight:** According to recent data from *Startup Genome*, Australian startups that graduate from top-tier accelerator programs raise follow-on funding 3x faster than those that do not, with median valuations increasing by 40% within 12 months of completion.
 
 ## Accelerator vs. Incubator: Knowing Which Path Fits Your Stage
@@ -26,6 +36,23 @@ Before diving into specific programs, founders must clearly distinguish between 
 | **Intensity** | High (Daily mentorship, sprints) | Moderate (Monthly check-ins) |
 
 For founders at the pre-seed to Series A stage aiming for rapid growth, **accelerators** are generally the superior choice. The structured intensity forces accountability and accelerates the learning curve. If you are still exploring your business model, an incubator might be safer, but if you are ready to scale, the accelerator route provides the necessary velocity.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 540 150" xmlns="http://www.w3.org/2000/svg" style="max-width:540px;margin:0 auto">
+  <rect width="540" height="150" rx="16" fill="#0B1220"/>
+  <text x="270" y="28" text-anchor="middle" fill="#94A3B8" font-size="12" font-weight="600" font-family="system-ui">ACCELERATOR vs INCUBATOR</text>
+  <!-- Accelerator -->
+  <rect x="20" y="45" width="240" height="60" rx="10" fill="#3B7DD8" opacity="0.15" stroke="#3B7DD8" stroke-width="1.5"/>
+  <text x="140" y="68" text-anchor="middle" fill="#3B7DD8" font-size="14" font-weight="700" font-family="system-ui">Accelerator</text>
+  <text x="140" y="88" text-anchor="middle" fill="#94A3B8" font-size="11" font-family="system-ui">3-6 months | 5-10% equity | $50K-$150K</text>
+  <!-- Incubator -->
+  <rect x="280" y="45" width="240" height="60" rx="10" fill="#FBBF24" opacity="0.15" stroke="#FBBF24" stroke-width="1.5"/>
+  <text x="400" y="68" text-anchor="middle" fill="#FBBF24" font-size="14" font-weight="700" font-family="system-ui">Incubator</text>
+  <text x="400" y="88" text-anchor="middle" fill="#94A3B8" font-size="11" font-family="system-ui">12-24 months | 0-2% equity | Grants/loans</text>
+  <text x="270" y="130" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Accelerator = scaling speed | Incubator = idea validation</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Key differences between accelerators and incubators</figcaption>
+</figure>
 
 > **Ready to assess if your startup is ready for an accelerator?** [Get Accelerator-Ready with SVI](/score) to benchmark your maturity against top program criteria.
 
@@ -115,6 +142,16 @@ Founded by Mike Cannon-Brookes and Cameron Adams, Startmate is arguably the most
 *   **Notable Alumni:** Canva, Airwallex, SafetyCulture.
 *   **Verdict:** Best for founders with a clear vision for global domination and a product-led growth strategy. The alumni network is incredibly powerful, often leading to follow-on funding from top-tier VCs.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#3B7DD8" font-size="42" font-weight="700" font-family="system-ui">$15B+</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">Total raised by Startmate alumni (AUD)</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">Notable alumni: Canva, Airwallex, SafetyCulture</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Startmate alumni collective capital raised</figcaption>
+</figure>
+
 ### 2. Antler Australia
 Antler has rapidly expanded its footprint across Australia, differentiating itself by focusing on "pre-idea" stages. They invest in individuals first, helping them form teams and build ideas from scratch.
 
@@ -183,6 +220,25 @@ One of the most common pitfalls for founders is fixating on the headline equity 
 
 In the Australian context, programs like Startmate and Antler take a higher percentage of equity in exchange for a "stamp of approval" that significantly lowers the cost of capital in future rounds. When you graduate from a top program, your **pre-seed valuation** often jumps from $3M to $5M or higher, making the 10% dilution effectively cheaper than a 5% dilution at a lower valuation.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 140" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="140" rx="16" fill="#0B1220"/>
+  <text x="250" y="28" text-anchor="middle" fill="#94A3B8" font-size="12" font-weight="600" font-family="system-ui">VALUATION UPLIFT FROM TOP ACCELERATORS</text>
+  <!-- Before -->
+  <rect x="30" y="45" width="190" height="50" rx="10" fill="#F87171" opacity="0.15" stroke="#F87171" stroke-width="1.5"/>
+  <text x="125" y="67" text-anchor="middle" fill="#F87171" font-size="14" font-weight="700" font-family="system-ui">Before: $3M</text>
+  <text x="125" y="84" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Pre-accelerator valuation</text>
+  <!-- Arrow -->
+  <text x="250" y="75" text-anchor="middle" fill="#FBBF24" font-size="22" font-family="system-ui">&#8594;</text>
+  <!-- After -->
+  <rect x="280" y="45" width="190" height="50" rx="10" fill="#10B981" opacity="0.15" stroke="#10B981" stroke-width="1.5"/>
+  <text x="375" y="67" text-anchor="middle" fill="#10B981" font-size="14" font-weight="700" font-family="system-ui">After: $5M+</text>
+  <text x="375" y="84" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Post-graduation valuation</text>
+  <text x="250" y="120" text-anchor="middle" fill="#FBBF24" font-size="12" font-weight="600" font-family="system-ui">+67% valuation uplift offsets equity dilution</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Typical valuation impact of top-tier accelerator graduation</figcaption>
+</figure>
+
 However, not all programs are created equal. Some smaller, less prestigious accelerators may ask for 10% equity but offer minimal mentorship or no access to follow-on funding. This is a "value trap."
 
 | Program | Equity % | Investment (AUD) | Implied Pre-Seed Valuation | Net Cost of Capital |
@@ -208,6 +264,16 @@ Startmate alumni, for instance, have collectively raised over $15 billion AUD, w
 A critical trend in 2026 is the "cluster effect." Startups from top accelerators often benefit from a network effect where alumni founders invest in or advise newer cohorts. This creates a virtuous cycle of capital and knowledge.
 
 According to *Avcal*, the peak of the accelerator boom in Australia occurred around 2020-2022, but by 2026, the market has consolidated. Only programs with measurable outcomes and strong networks remain competitive. Startups applying to "vanity" accelerators are increasingly being rejected by Series A investors who recognize the lack of rigor.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#FBBF24" font-size="42" font-weight="700" font-family="system-ui">4x</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">More likely to raise Series A within 24 months</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">Top 3 accelerator graduates vs non-accelerated peers</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Source: ABS & Startup Genome Australia Report 2025</figcaption>
+</figure>
 
 > **Did you know?** Startups from top 3 Australian accelerators are 4x more likely to raise a Series A round within 24 months of graduation compared to non-accelerated peers. Source: *ABS & Startup Genome Australia Report 2025*.
 
@@ -296,6 +362,16 @@ According to *Avcal*, the peak of the accelerator boom in Australia occurred aro
 ## The Application Strategy: How to Get Selected
 
 Getting into a top accelerator is notoriously competitive. Acceptance rates for programs like Startmate and Antler often hover below 2%. Success requires a strategic application process that goes beyond a well-written pitch deck.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#F87171" font-size="42" font-weight="700" font-family="system-ui">&lt; 2%</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">Acceptance rate for top Australian accelerators</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">Tailored applications and warm intros are essential</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">The competitive reality of accelerator admissions</figcaption>
+</figure>
 
 **1. Tailor Your Narrative:** Do not send a generic application. Research the specific mentors and portfolio companies of the accelerator. Demonstrate how your startup fits their specific thesis (e.g., deep tech for Cicada, enterprise for muru-D).
 

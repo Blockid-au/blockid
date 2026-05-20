@@ -20,6 +20,20 @@ Consider the perspective of an Australian Venture Capitalist. They are looking f
 
 The risk is magnified when you consider the **equity vesting startup** landscape in Australia. Unlike some markets where informal handshake deals might survive longer, Australian regulators and institutional investors demand rigorous compliance. A messy cap table with unvested founders is a red flag that suggests a lack of professional governance.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="120" fill="#0B1220" rx="12"/>
+  <text x="300" y="30" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FBBF24">WHY VESTING MATTERS</text>
+  <text x="150" y="70" text-anchor="middle" font-family="Arial,sans-serif" font-size="36" font-weight="bold" fill="#F87171">65%</text>
+  <text x="150" y="95" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">of startups fail from</text>
+  <text x="150" y="108" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">co-founder conflict</text>
+  <text x="450" y="70" text-anchor="middle" font-family="Arial,sans-serif" font-size="36" font-weight="bold" fill="#10B981">4 yrs</text>
+  <text x="450" y="95" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">standard vesting period</text>
+  <text x="450" y="108" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#94a3b8">with 1-year cliff</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Vesting schedules protect against co-founder disputes</figcaption>
+</figure>
+
 > **Vesting Timeline at a Glance**
 >
 > ```
@@ -54,25 +68,25 @@ The risk is magnified when you consider the **equity vesting startup** landscape
   <rect x="95" y="282" width="90" height="6" fill="#ef4444" rx="4" opacity="0.3"/>
   <text x="140" y="305" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Year 0</text>
   <text x="140" y="275" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#ef4444">0%</text>
-  <rect x="215" y="235" width="90" height="50" fill="#f59e0b" rx="4"/>
+  <rect x="215" y="235" width="90" height="50" fill="#FBBF24" rx="4"/>
   <text x="260" y="305" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Year 1</text>
-  <text x="260" y="228" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#f59e0b">25%</text>
+  <text x="260" y="228" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#FBBF24">25%</text>
   <text x="260" y="260" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="white">CLIFF</text>
-  <rect x="335" y="185" width="90" height="100" fill="#2563eb" rx="4"/>
+  <rect x="335" y="185" width="90" height="100" fill="#3B7DD8" rx="4"/>
   <text x="380" y="305" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Year 2</text>
-  <text x="380" y="178" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">50%</text>
-  <rect x="455" y="135" width="90" height="150" fill="#2563eb" rx="4"/>
+  <text x="380" y="178" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#3B7DD8">50%</text>
+  <rect x="455" y="135" width="90" height="150" fill="#3B7DD8" rx="4"/>
   <text x="500" y="305" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Year 3</text>
-  <text x="500" y="128" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">75%</text>
+  <text x="500" y="128" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#3B7DD8">75%</text>
   <rect x="575" y="85" width="90" height="200" fill="#10b981" rx="4"/>
   <text x="620" y="305" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#64748b">Year 4</text>
   <text x="620" y="78" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#10b981">100%</text>
   <!-- Annotations -->
   <rect x="80" y="318" width="12" height="12" fill="#ef4444" rx="2"/>
   <text x="96" y="328" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Danger zone (0%)</text>
-  <rect x="220" y="318" width="12" height="12" fill="#f59e0b" rx="2"/>
+  <rect x="220" y="318" width="12" height="12" fill="#FBBF24" rx="2"/>
   <text x="236" y="328" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Cliff unlock</text>
-  <rect x="340" y="318" width="12" height="12" fill="#2563eb" rx="2"/>
+  <rect x="340" y="318" width="12" height="12" fill="#3B7DD8" rx="2"/>
   <text x="356" y="328" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Monthly vesting (~2.08%/mo)</text>
   <rect x="530" y="318" width="12" height="12" fill="#10b981" rx="2"/>
   <text x="546" y="328" font-family="Arial,sans-serif" font-size="10" fill="#64748b">Fully vested</text>
@@ -126,6 +140,40 @@ Need help visualizing how this split affects your overall cap table? Don't guess
 | **Best For** | Most startups (industry standard) | Very rare co-founder arrangements | Advisors, executives with clear KPIs |
 | **Risk to Company** | Low | High — "free rider" exposure | Medium — milestone disputes possible |
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 200" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="200" fill="#0B1220" rx="12"/>
+  <text x="300" y="25" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FBBF24">VESTING CURVE: EQUITY EARNED OVER TIME</text>
+  <!-- Axes -->
+  <line x1="70" y1="40" x2="70" y2="160" stroke="#3B7DD8" stroke-width="1.5"/>
+  <line x1="70" y1="160" x2="560" y2="160" stroke="#3B7DD8" stroke-width="1.5"/>
+  <!-- Y labels -->
+  <text x="60" y="48" text-anchor="end" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">100%</text>
+  <text x="60" y="88" text-anchor="end" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">50%</text>
+  <text x="60" y="163" text-anchor="end" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">0%</text>
+  <!-- X labels -->
+  <text x="70" y="178" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">0</text>
+  <text x="192" y="178" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Year 1</text>
+  <text x="315" y="178" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Year 2</text>
+  <text x="437" y="178" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Year 3</text>
+  <text x="560" y="178" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Year 4</text>
+  <!-- Cliff zone -->
+  <rect x="70" y="40" width="122" height="120" fill="#F87171" opacity="0.1"/>
+  <text x="131" y="140" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#F87171">CLIFF</text>
+  <!-- Vesting curve with cliff -->
+  <line x1="70" y1="160" x2="192" y2="160" stroke="#F87171" stroke-width="2.5"/>
+  <line x1="192" y1="160" x2="192" y2="130" stroke="#10B981" stroke-width="2.5"/>
+  <line x1="192" y1="130" x2="560" y2="42" stroke="#10B981" stroke-width="2.5"/>
+  <!-- Key points -->
+  <circle cx="192" cy="130" r="5" fill="#FBBF24"/>
+  <text x="210" y="124" font-family="Arial,sans-serif" font-size="9" fill="#FBBF24">25% cliff unlock</text>
+  <circle cx="560" cy="42" r="5" fill="#10B981"/>
+  <text x="540" y="36" text-anchor="end" font-family="Arial,sans-serif" font-size="9" fill="#10B981">100% vested</text>
+  <text x="300" y="196" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#64748B">Monthly vesting at ~2.08% per month after cliff</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Standard 4-year vesting curve with 1-year cliff</figcaption>
+</figure>
+
 ## Reverse Vesting vs. Forward Vesting: The Critical Distinction
 
 One of the biggest areas of confusion for Australian founders is the difference between **reverse vesting founders** (the correct method) and forward vesting (the dangerous method).
@@ -162,6 +210,31 @@ This is the **investor-friendly standard**. Unvested shares only accelerate if t
 If the company is sold and you stay on in your role, your shares continue to vest as normal. If the acquirer fires you after the sale, your remaining shares vest immediately. This balances the need for investor security with founder protection.
 
 For most Australian founders, aiming for **double-trigger acceleration** with at least 50% to 100% vesting is a healthy compromise. It shows you understand investor concerns while ensuring you aren't left with nothing if you are pushed out post-acquisition.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 180" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="180" fill="#0B1220" rx="12"/>
+  <text x="300" y="25" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FBBF24">ACCELERATION SCENARIOS</text>
+  <!-- Single Trigger -->
+  <rect x="30" y="45" width="250" height="55" fill="#F87171" opacity="0.15" rx="8" stroke="#F87171" stroke-width="1.5"/>
+  <text x="155" y="65" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="#F87171">Single-Trigger</text>
+  <text x="155" y="80" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Acquisition alone = 100% vest</text>
+  <text x="155" y="93" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#F87171">Investors dislike this</text>
+  <!-- Double Trigger -->
+  <rect x="320" y="45" width="250" height="55" fill="#10B981" opacity="0.15" rx="8" stroke="#10B981" stroke-width="1.5"/>
+  <text x="445" y="65" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="#10B981">Double-Trigger</text>
+  <text x="445" y="80" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Acquisition + Termination = vest</text>
+  <text x="445" y="93" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#10B981">Industry standard</text>
+  <!-- Flow -->
+  <text x="155" y="125" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Trigger 1: Company acquired</text>
+  <text x="155" y="140" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#F87171">All unvested shares vest immediately</text>
+  <text x="445" y="125" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Trigger 1: Company acquired</text>
+  <text x="445" y="140" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#94a3b8">Trigger 2: Founder terminated</text>
+  <text x="445" y="155" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#10B981">Then 50-100% unvested vest</text>
+  <text x="300" y="175" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#FBBF24">Recommended: Double-trigger with 50-100% acceleration</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Single-trigger vs double-trigger acceleration comparison</figcaption>
+</figure>
 
 ## Australian Tax Implications: ASIC, ATO, and ESIC
 
@@ -204,28 +277,28 @@ Missing one of these steps can lead to cap table restructuring disasters later. 
   <rect width="700" height="140" fill="#f8fafc" rx="12"/>
   <text x="350" y="20" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="bold" fill="#1e293b">Setting Up Your Founder Vesting Schedule — 5-Step Process</text>
   <!-- Step 1 -->
-  <rect x="12" y="38" width="112" height="56" fill="#2563eb" rx="8"/>
+  <rect x="12" y="38" width="112" height="56" fill="#3B7DD8" rx="8"/>
   <text x="68" y="60" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">1. Agree</text>
   <text x="68" y="73" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#dbeafe">Equity Split</text>
   <text x="68" y="85" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#dbeafe">Between Founders</text>
   <!-- Arrow 1 -->
   <path d="M128 66 L148 66" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrowVest)"/>
   <!-- Step 2 -->
-  <rect x="152" y="38" width="112" height="56" fill="#2563eb" rx="8"/>
+  <rect x="152" y="38" width="112" height="56" fill="#3B7DD8" rx="8"/>
   <text x="208" y="60" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">2. Set Terms</text>
   <text x="208" y="73" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#dbeafe">4-Year Vest</text>
   <text x="208" y="85" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#dbeafe">1-Year Cliff</text>
   <!-- Arrow 2 -->
   <path d="M268 66 L288 66" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrowVest)"/>
   <!-- Step 3 -->
-  <rect x="292" y="38" width="112" height="56" fill="#2563eb" rx="8"/>
+  <rect x="292" y="38" width="112" height="56" fill="#3B7DD8" rx="8"/>
   <text x="348" y="60" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">3. Issue Shares</text>
   <text x="348" y="73" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#dbeafe">Reverse Vesting</text>
   <text x="348" y="85" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#dbeafe">+ Buyback Rights</text>
   <!-- Arrow 3 -->
   <path d="M408 66 L428 66" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrowVest)"/>
   <!-- Step 4 -->
-  <rect x="432" y="38" width="112" height="56" fill="#f59e0b" rx="8"/>
+  <rect x="432" y="38" width="112" height="56" fill="#FBBF24" rx="8"/>
   <text x="488" y="60" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">4. Register</text>
   <text x="488" y="73" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="white">Update ASIC</text>
   <text x="488" y="85" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="white">& Tax Review</text>
@@ -262,25 +335,25 @@ Founders often set up vesting for themselves and forget to apply similar logic t
 
 <svg viewBox="0 0 700 292" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
   <rect width="700" height="292" fill="#f8fafc" rx="12" stroke="#e2e8f0"/>
-  <rect width="700" height="44" fill="#2563eb" rx="12 12 0 0"/>
+  <rect width="700" height="44" fill="#3B7DD8" rx="12 12 0 0"/>
   <text x="350" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="white">Key Takeaways: Founder Vesting</text>
   <circle cx="40" cy="74" r="14" fill="#dbeafe"/>
-  <text x="40" y="79" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">1</text>
+  <text x="40" y="79" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">1</text>
   <text x="65" y="79" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Use the 4-year vesting with 1-year cliff standard to protect your company</text>
   <circle cx="40" cy="110" r="14" fill="#dbeafe"/>
-  <text x="40" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">2</text>
+  <text x="40" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">2</text>
   <text x="65" y="115" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Always choose reverse vesting over forward vesting for tax efficiency</text>
   <circle cx="40" cy="146" r="14" fill="#dbeafe"/>
-  <text x="40" y="151" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">3</text>
+  <text x="40" y="151" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">3</text>
   <text x="65" y="151" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Include double-trigger acceleration clauses for acquisition scenarios</text>
   <circle cx="40" cy="182" r="14" fill="#dbeafe"/>
-  <text x="40" y="187" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">4</text>
+  <text x="40" y="187" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">4</text>
   <text x="65" y="187" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Structure vesting to qualify for ESIC tax concessions under ATO rules</text>
   <circle cx="40" cy="218" r="14" fill="#dbeafe"/>
-  <text x="40" y="223" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#2563eb">5</text>
+  <text x="40" y="223" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#3B7DD8">5</text>
   <text x="65" y="223" font-family="Arial,sans-serif" font-size="13" fill="#1e293b">Get a specialist Australian startup lawyer to review all vesting documents</text>
   <rect x="20" y="256" width="660" height="32" fill="#eff6ff" rx="6"/>
-  <text x="350" y="277" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#2563eb">Get your free Startup Value Index at blockid.au/score</text>
+  <text x="350" y="277" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="bold" fill="#3B7DD8">Get your free Startup Value Index at blockid.au/score</text>
 </svg>
 
 

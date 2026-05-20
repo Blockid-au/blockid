@@ -6,6 +6,16 @@ In the Australian startup ecosystem, where resources are tight and the path to S
 
 A poorly structured [co-founder equity agreement](/insights) is a time bomb. It leads to resentment, diluted motivation, and, in worst-case scenarios, legal disputes that can kill the company before it gains traction. Investors, particularly at the Series A stage, will scrutinise your capitalisation table with a microscope. If they see an uneven split that doesn't reflect current and future contributions, they will view it as a governance risk and walk away.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#F87171" font-size="42" font-weight="700" font-family="system-ui">#1</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">Reason pre-seed startups fail: fractured founding teams</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">Catalyst: ill-defined, unfair, or naive equity splits</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">The equity split is the most consequential early decision</figcaption>
+</figure>
+
 This guide moves beyond the generic advice. We will explore the quantitative and qualitative factors that should drive your decision, analyse real-world scenarios for 2-person and 3-person teams, and provide a framework for implementing vesting schedules that protect both the company and the founders. By the end of this article, you will have the tools to [Calculate Your Equity Split](/tools/equity-split) with confidence and build a foundation that supports long-term growth.
 
 ## Beyond the "50/50" Myth: Why Equality Isn't Always Fair
@@ -19,6 +29,27 @@ Consider the concept of "sweat equity" versus "capital equity." Under Australian
 Furthermore, a static 50/50 split ignores the dynamic nature of startup leadership. The person who has the idea on Day 1 may not be the person executing the strategy on Day 500. If you lock in equity based on who had the idea, you are rewarding a past action rather than incentivising future performance. A truly fair [founder equity split](/insights) is dynamic. It accounts for the initial contribution but, more importantly, it is anchored by a vesting schedule that ensures equity is earned over time based on continued commitment.
 
 When founders ignore these nuances, they often find themselves in the "founder's trap": one founder feels overworked and under-rewarded, while the other feels entitled to their half simply because they were there at the start. This resentment is the quiet killer of Australian startups, often surfacing just as the company is about to raise its Seed or Series A round.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 540 130" xmlns="http://www.w3.org/2000/svg" style="max-width:540px;margin:0 auto">
+  <rect width="540" height="130" rx="16" fill="#0B1220"/>
+  <text x="270" y="26" text-anchor="middle" fill="#94A3B8" font-size="11" font-weight="600" font-family="system-ui">THE 4 PILLARS OF FAIR EQUITY</text>
+  <rect x="10" y="42" width="120" height="45" rx="8" fill="#3B7DD8" opacity="0.3" stroke="#3B7DD8" stroke-width="1"/>
+  <text x="70" y="60" text-anchor="middle" fill="#3B7DD8" font-size="10" font-weight="700" font-family="system-ui">Commitment</text>
+  <text x="70" y="76" text-anchor="middle" fill="#64748B" font-size="8" font-family="system-ui">FT vs PT: 30% weight</text>
+  <rect x="140" y="42" width="120" height="45" rx="8" fill="#10B981" opacity="0.3" stroke="#10B981" stroke-width="1"/>
+  <text x="200" y="60" text-anchor="middle" fill="#10B981" font-size="10" font-weight="700" font-family="system-ui">Capital</text>
+  <text x="200" y="76" text-anchor="middle" fill="#64748B" font-size="8" font-family="system-ui">Cash injected: 20%</text>
+  <rect x="270" y="42" width="120" height="45" rx="8" fill="#FBBF24" opacity="0.3" stroke="#FBBF24" stroke-width="1"/>
+  <text x="330" y="60" text-anchor="middle" fill="#FBBF24" font-size="10" font-weight="700" font-family="system-ui">Expertise</text>
+  <text x="330" y="76" text-anchor="middle" fill="#64748B" font-size="8" font-family="system-ui">Domain + IP: 35%</text>
+  <rect x="400" y="42" width="130" height="45" rx="8" fill="#F87171" opacity="0.3" stroke="#F87171" stroke-width="1"/>
+  <text x="465" y="60" text-anchor="middle" fill="#F87171" font-size="10" font-weight="700" font-family="system-ui">Future Role</text>
+  <text x="465" y="76" text-anchor="middle" fill="#64748B" font-size="8" font-family="system-ui">CEO/CTO scope: 15%</text>
+  <text x="270" y="115" text-anchor="middle" fill="#94A3B8" font-size="10" font-family="system-ui">Score each factor, weight and sum to derive a data-backed split</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">The four pillars that should drive equity allocation decisions</figcaption>
+</figure>
 
 ## The Four Pillars of a Strategic Equity Division
 
@@ -36,7 +67,17 @@ In the Australian market, cash is oxygen. Founders who inject personal capital t
 
 When evaluating capital contributions, do not simply divide the equity by the dollar amount invested. A $50,000 investment in a pre-seed round is significant, but it should not necessarily equate to a 50% ownership stake if the other founder is building the product full-time. Instead, treat the capital as a "loan" or a "premium" on top of the standard split, or use a valuation method to determine how much of the company that cash buys.
 
-Crucially, consider the source of the funds. Is it a loan from a friend, a government grant, or personal savings? Under ASIC regulations, if you are issuing equity in exchange for cash, you must ensure you are not inadvertently creating an unlisted public company or triggering a disclosure obligation. A well-structured [co-founder equity agreement](/insights) will distinguish between founder capital (equity) and external debt (convertible notes or SAFEs).
+Crucially, consider the source of the funds. Is it a loan from a friend, a government grant, or personal savings? Under ASIC regulations, if you are issuing equity in exchange for cash, you must ensure you are not inadvertently creating an unlisted public company or triggering a disclosure obligation.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#FBBF24" font-size="38" font-weight="700" font-family="system-ui">$50K &#8800; 50%</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">Capital contribution does not equal proportional equity</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">Value cash against pre-seed valuation, not as a simple percentage</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Cash contribution must be valued in context</figcaption>
+</figure> A well-structured [co-founder equity agreement](/insights) will distinguish between founder capital (equity) and external debt (convertible notes or SAFEs).
 
 ### 3. Domain Expertise and IP
 Who brings the specific skills required to make this business work? In deep tech or regulated sectors like fintech and healthtech, which are growing rapidly in Australia, the value of domain expertise is immense.
@@ -79,6 +120,25 @@ To make this practical, let's apply these pillars to two common scenarios. Remem
     5.  **Vesting:** All three are on a 4-year vesting schedule. Priya's 10% might be structured differently, perhaps half on signing and half over 2 years, to reflect her part-time nature.
 
 These scenarios highlight that there is no "one size fits all." The most effective method is to run the numbers through a dedicated [equity split calculator](/tools/equity-split) that allows you to toggle these variables and see the impact in real-time.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 540 150" xmlns="http://www.w3.org/2000/svg" style="max-width:540px;margin:0 auto">
+  <rect width="540" height="150" rx="16" fill="#0B1220"/>
+  <text x="270" y="26" text-anchor="middle" fill="#94A3B8" font-size="11" font-weight="600" font-family="system-ui">EXAMPLE: 2-FOUNDER SCORING WALKTHROUGH</text>
+  <!-- Alex -->
+  <rect x="15" y="40" width="250" height="65" rx="10" fill="#3B7DD8" opacity="0.12" stroke="#3B7DD8" stroke-width="1.5"/>
+  <text x="140" y="58" text-anchor="middle" fill="#3B7DD8" font-size="12" font-weight="700" font-family="system-ui">Alex (Tech, Full-time)</text>
+  <text x="140" y="75" text-anchor="middle" fill="#94A3B8" font-size="10" font-family="system-ui">Commitment: 10 | Capital: 0 | Expertise: 8</text>
+  <text x="140" y="92" text-anchor="middle" fill="#3B7DD8" font-size="11" font-weight="600" font-family="system-ui">Weighted Score: 7.2 = 60% equity</text>
+  <!-- Jamie -->
+  <rect x="275" y="40" width="250" height="65" rx="10" fill="#FBBF24" opacity="0.12" stroke="#FBBF24" stroke-width="1.5"/>
+  <text x="400" y="58" text-anchor="middle" fill="#FBBF24" font-size="12" font-weight="700" font-family="system-ui">Jamie (Biz, Part-time + $100K)</text>
+  <text x="400" y="75" text-anchor="middle" fill="#94A3B8" font-size="10" font-family="system-ui">Commitment: 4 | Capital: 6 | Expertise: 5</text>
+  <text x="400" y="92" text-anchor="middle" fill="#FBBF24" font-size="11" font-weight="600" font-family="system-ui">Weighted Score: 4.8 = 40% equity</text>
+  <text x="270" y="130" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Data-backed splits prevent resentment and investor objections</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Example weighted scoring for a two-founder split</figcaption>
+</figure>
 
 | Scenario | Founder A | Founder B | Founder C | Option Pool | Rationale |
 | :--- | :---: | :---: | :---: | :---: | :--- |
@@ -157,6 +217,29 @@ For Australian founders, acceleration clauses are essential to handle M&A (Merge
 *   **Double-Trigger Acceleration:** Equity accelerates only if the company is acquired *and* the founder is fired or resigns due to the acquisition. This is the more investor-friendly approach and is common in Series A deals.
 
 Under Australian tax law (specifically the ESIC rules introduced in 2015), vesting schedules are also crucial for tax deferral. If you issue shares that are subject to "real risk of forfeiture" (i.e., a vesting schedule), founders can potentially defer the tax event until the shares actually vest, rather than at the time of grant. This can save founders tens of thousands of dollars in upfront tax liabilities.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 540 140" xmlns="http://www.w3.org/2000/svg" style="max-width:540px;margin:0 auto">
+  <rect width="540" height="140" rx="16" fill="#0B1220"/>
+  <text x="270" y="25" text-anchor="middle" fill="#94A3B8" font-size="11" font-weight="600" font-family="system-ui">VESTING: 4-YEAR STANDARD WITH 1-YEAR CLIFF</text>
+  <!-- Timeline -->
+  <line x1="40" y1="65" x2="500" y2="65" stroke="#1e293b" stroke-width="2"/>
+  <!-- Cliff -->
+  <rect x="40" y="50" width="115" height="30" rx="6" fill="#F87171" opacity="0.2" stroke="#F87171" stroke-width="1"/>
+  <text x="98" y="69" text-anchor="middle" fill="#F87171" font-size="10" font-weight="600" font-family="system-ui">CLIFF: 0%</text>
+  <!-- Markers -->
+  <circle cx="155" cy="65" r="5" fill="#FBBF24"/>
+  <text x="155" y="95" text-anchor="middle" fill="#FBBF24" font-size="10" font-weight="600" font-family="system-ui">Yr 1: 25%</text>
+  <circle cx="270" cy="65" r="5" fill="#3B7DD8"/>
+  <text x="270" y="95" text-anchor="middle" fill="#3B7DD8" font-size="10" font-weight="600" font-family="system-ui">Yr 2: 50%</text>
+  <circle cx="385" cy="65" r="5" fill="#3B7DD8"/>
+  <text x="385" y="95" text-anchor="middle" fill="#3B7DD8" font-size="10" font-weight="600" font-family="system-ui">Yr 3: 75%</text>
+  <circle cx="500" cy="65" r="5" fill="#10B981"/>
+  <text x="500" y="95" text-anchor="middle" fill="#10B981" font-size="10" font-weight="600" font-family="system-ui">Yr 4: 100%</text>
+  <text x="270" y="125" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Acceleration clauses: single-trigger (on M&amp;A) or double-trigger (M&amp;A + termination)</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Standard vesting protects the company and all founders</figcaption>
+</figure>
 
 > **Contribution Weighting Framework**
 >

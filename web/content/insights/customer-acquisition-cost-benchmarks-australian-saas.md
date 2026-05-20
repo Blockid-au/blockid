@@ -4,7 +4,17 @@ For Australian founders navigating the pre-seed to Series A journey, the differe
 
 Understanding your specific **CAC benchmarks SaaS** metrics is not just about knowing how much you spend on marketing; it is about validating your business model for investors. In the current funding climate, growth-at-all-costs is out. Efficiency is in. Investors are scrutinizing the **CAC LTV ratio** more closely than ever before, looking for signs that your unit economics can survive the Australian economic cycle.
 
-If you are raising capital or preparing for a Series A round, you need to demonstrate that your **customer acquisition cost startup** metrics are not only healthy but optimized. A common mistake is assuming that a high CAC is acceptable as long as revenue is growing. In reality, without a path to profitability defined by efficient acquisition, high growth becomes a liability. This guide breaks down the real numbers for Australian SaaS, segment by segment, and shows you how to use data to future-proof your valuation.
+If you are raising capital or preparing for a Series A round, you need to demonstrate that your **customer acquisition cost startup** metrics are not only healthy but optimized.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#F87171" font-size="38" font-weight="700" font-family="system-ui">14-18 months</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">Average SaaS payback period in Australia (2025-26)</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">Exceeding 18 months = burning runway faster than you can scale</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Australian SaaS payback period reality</figcaption>
+</figure> A common mistake is assuming that a high CAC is acceptable as long as revenue is growing. In reality, without a path to profitability defined by efficient acquisition, high growth becomes a liability. This guide breaks down the real numbers for Australian SaaS, segment by segment, and shows you how to use data to future-proof your valuation.
 
 > **The harsh reality:** In Australia, the average payback period for SaaS companies has extended to **14–18 months** due to tighter credit conditions and slower enterprise sales cycles. If your payback exceeds 18 months, you are likely burning through runway faster than you can scale.
 
@@ -22,6 +32,27 @@ For startups targeting the small business sector (revenue $0–$10M), the playbo
 *   **Primary Channels:** Google Ads, Social Media, Content Marketing, App Marketplaces
 
 In this segment, the barrier to entry is low, meaning competition is fierce. Your CAC will fluctuate based on your ad spend efficiency. If your CAC creeps above **$500** for a product with a $20/month subscription, your unit economics are broken. The key here is automation. You cannot afford a sales team for every lead.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 540 130" xmlns="http://www.w3.org/2000/svg" style="max-width:540px;margin:0 auto">
+  <rect width="540" height="130" rx="16" fill="#0B1220"/>
+  <text x="270" y="26" text-anchor="middle" fill="#94A3B8" font-size="11" font-weight="600" font-family="system-ui">CAC BY SEGMENT — AUSTRALIAN SaaS</text>
+  <!-- SMB -->
+  <rect x="15" y="42" width="160" height="48" rx="8" fill="#10B981" opacity="0.15" stroke="#10B981" stroke-width="1.5"/>
+  <text x="95" y="62" text-anchor="middle" fill="#10B981" font-size="13" font-weight="700" font-family="system-ui">SMB: $200-$500</text>
+  <text x="95" y="80" text-anchor="middle" fill="#64748B" font-size="9" font-family="system-ui">Self-serve | Days</text>
+  <!-- Mid-Market -->
+  <rect x="190" y="42" width="160" height="48" rx="8" fill="#FBBF24" opacity="0.15" stroke="#FBBF24" stroke-width="1.5"/>
+  <text x="270" y="62" text-anchor="middle" fill="#FBBF24" font-size="13" font-weight="700" font-family="system-ui">Mid: $2K-$5K</text>
+  <text x="270" y="80" text-anchor="middle" fill="#64748B" font-size="9" font-family="system-ui">Hybrid | 1-3 months</text>
+  <!-- Enterprise -->
+  <rect x="365" y="42" width="160" height="48" rx="8" fill="#F87171" opacity="0.15" stroke="#F87171" stroke-width="1.5"/>
+  <text x="445" y="62" text-anchor="middle" fill="#F87171" font-size="13" font-weight="700" font-family="system-ui">Ent: $10K-$50K+</text>
+  <text x="445" y="80" text-anchor="middle" fill="#64748B" font-size="9" font-family="system-ui">High-touch | 6-18mo</text>
+  <text x="270" y="115" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Segment your CAC targets — one size does not fit all</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">CAC ranges by customer segment</figcaption>
+</figure>
 
 ### Mid-Market SaaS: The Hybrid Approach
 Targeting businesses with $10M–$100M in revenue requires a shift. These customers need more trust, demos, and a slightly higher level of hand-holding.
@@ -133,6 +164,16 @@ In Australia, enterprise sales often require on-site meetings and custom securit
 ## The Golden Ratio: Mastering CAC:LTV and Payback
 
 Knowing your CAC is only half the battle. The real magic—and the real worry for investors—lies in the **CAC LTV ratio**. This ratio compares the Lifetime Value (LTV) of a customer to the cost of acquiring them. It tells you if your business model is scalable.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#10B981" font-size="42" font-weight="700" font-family="system-ui">3:1</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">Gold standard LTV:CAC ratio for Series A readiness</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">Below 1:1 = stop spending | Above 5:1 = spend more</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">The LTV:CAC ratio every investor examines</figcaption>
+</figure>
 
 ### The 1:3 Rule and Australian Nuances
 The global gold standard for a healthy **CAC LTV ratio** is **1:3**. This means for every $1 you spend on acquisition, you generate $3 in gross profit over the customer's lifetime.
@@ -248,6 +289,16 @@ In a market as tight-knit as Australia, referrals and partnerships are worth the
 *   **Impact:** Partner-sourced leads often have a **40–50% lower CAC** because the trust is already established.
 *   **Compliance:** Ensure your partnership agreements comply with **ATO** regulations regarding referral fees to avoid tax complications.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#FBBF24" font-size="42" font-weight="700" font-family="system-ui">40-50%</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">Lower CAC from partner-sourced leads</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">Pre-established trust dramatically reduces acquisition cost</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">The power of channel partnerships in reducing CAC</figcaption>
+</figure>
+
 ### 3. Optimize Your Sales Funnel for Efficiency
 If you are in the mid-market or enterprise space, your sales team is your biggest CAC driver.
 *   **Qualify Early:** Don't waste time selling to companies that can't afford you. Implement strict BANT (Budget, Authority, Need, Timeline) qualification.
@@ -264,6 +315,16 @@ Stop spraying and praying. Use data to find your ideal customer profile (ICP) an
 Reducing CAC is one side of the equation; increasing LTV is the other. A 5% increase in retention can increase profits by 25% to 95%.
 *   **Strategy:** Invest in Customer Success. In Australia, the "whale" culture is strong; if you treat your enterprise clients well, they will expand their contracts significantly.
 *   **Metric to watch:** Net Revenue Retention (NRR). Aim for **>110%**.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#10B981" font-size="42" font-weight="700" font-family="system-ui">&gt;110%</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">Target Net Revenue Retention (NRR)</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">5% retention improvement = 25-95% profit increase</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">The retention lever for boosting LTV</figcaption>
+</figure>
 
 > **Pro Tip:** Many founders obsess over acquisition while ignoring churn. If your churn rate is 2% per month, your LTV is capped, and no amount of CAC optimization will save you. Fix the leak in the bucket before pouring more water in.
 

@@ -6,6 +6,23 @@ Unlike generic tax incentives available in other jurisdictions, the ESIC regime 
 
 The Australian government has clearly signaled its intent to stimulate innovation capital through these measures. However, the criteria are rigorous, blending quantitative expenditure thresholds with qualitative innovation assessments. This guide breaks down the ESIC eligibility criteria, the mechanics of the investor tax offset, and the specific steps founders must take to ensure their company qualifies. By mastering these requirements, you transform your startup from a standard investment opportunity into a tax-advantaged vehicle, significantly widening your potential investor base.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 540 130" xmlns="http://www.w3.org/2000/svg" style="max-width:540px;margin:0 auto">
+  <rect width="540" height="130" rx="16" fill="#0B1220"/>
+  <text x="270" y="26" text-anchor="middle" fill="#94A3B8" font-size="11" font-weight="600" font-family="system-ui">ESIC: TWO INVESTOR BENEFITS</text>
+  <!-- Tax offset -->
+  <rect x="20" y="42" width="240" height="50" rx="10" fill="#3B7DD8" opacity="0.15" stroke="#3B7DD8" stroke-width="1.5"/>
+  <text x="140" y="64" text-anchor="middle" fill="#3B7DD8" font-size="18" font-weight="700" font-family="system-ui">20% Tax Offset</text>
+  <text x="140" y="82" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Non-refundable, up to $200K/year</text>
+  <!-- CGT -->
+  <rect x="280" y="42" width="240" height="50" rx="10" fill="#10B981" opacity="0.15" stroke="#10B981" stroke-width="1.5"/>
+  <text x="400" y="64" text-anchor="middle" fill="#10B981" font-size="18" font-weight="700" font-family="system-ui">10yr CGT Exempt</text>
+  <text x="400" y="82" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Hold 10 years for tax-free gains</text>
+  <text x="270" y="115" text-anchor="middle" fill="#FBBF24" font-size="11" font-weight="600" font-family="system-ui">$100K investment = $80K effective cost after offset</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">The dual ESIC incentive that widens your investor base</figcaption>
+</figure>
+
 ## The Dual Power of ESIC: Offsets and Exemptions
 
 The ESIC framework provides two distinct financial benefits designed to incentivize long-term capital commitment. To leverage these effectively, founders must communicate the value clearly to potential investors. These benefits are not mutually exclusive; a single qualifying investment can unlock both, provided the strict eligibility criteria are met.
@@ -23,6 +40,16 @@ The second, and potentially more lucrative, benefit is the 10-year CGT exemption
 This provision is designed to encourage "patient capital." It aligns the incentives of the investor with the long-term growth trajectory of the startup. In the early days, when valuation growth is volatile and high-risk, the promise of a tax-free exit a decade later provides a compelling narrative. While no founder expects to hold their company for a decade without a change in control, this exemption acts as a safety net and a bonus for long-term holders. It is particularly attractive to family offices and high-net-worth individuals who may view the startup as a long-term diversification play.
 
 To qualify for the CGT exemption, the shares must be newly issued to the investor. Secondary market purchases do not qualify. Furthermore, the company must remain an ESIC at the time the shares are issued, though the investor can potentially continue to enjoy the benefit even if the company loses ESIC status later, provided the 10-year holding period is maintained and the initial conditions were met.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#FBBF24" font-size="38" font-weight="700" font-family="system-ui">$200K cap</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">Maximum per investor per year for tax offset</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">20% of $200K = $40K maximum annual tax credit per investor</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">ESIC investment cap per investor</figcaption>
+</figure>
 
 | ESIC Eligibility Criteria | Requirement | Details |
 | :--- | :--- | :--- |
@@ -105,6 +132,16 @@ Before diving into the points, the company must satisfy a qualitative assessment
 
 If a company fails the principles-based test, it cannot be an ESIC, regardless of how many points it scores on the innovation checklist. This is why a robust business narrative is as important as the financials.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#3B7DD8" font-size="42" font-weight="700" font-family="system-ui">100 pts</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">Minimum score on the innovation checklist to qualify</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">R&D: 25pts | Patents: 25pts | Partnerships, tech, market expansion</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">The 100-point threshold for ESIC innovation qualification</figcaption>
+</figure>
+
 ### The 100-Point Innovation Checklist
 
 If the principles-based test is satisfied, the company must then score at least 100 points from a specific list of activities. This list is designed to cover various types of innovation, from deep-tech R&D to software development and process innovation. The points are awarded for activities undertaken in the income year for which the status is claimed.
@@ -135,6 +172,25 @@ It is important to note that general administrative overheads, marketing costs, 
 
 Founders should be aware that the expenditure test can be used in conjunction with the points test, or as a standalone qualification if the points test is difficult to meet for specific types of innovation. However, the safest route is to aim for the 100-point threshold, as it provides a more robust defense against ATO scrutiny.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 540 130" xmlns="http://www.w3.org/2000/svg" style="max-width:540px;margin:0 auto">
+  <rect width="540" height="130" rx="16" fill="#0B1220"/>
+  <text x="270" y="26" text-anchor="middle" fill="#94A3B8" font-size="11" font-weight="600" font-family="system-ui">ESIC QUALIFICATION: TWO PATHWAYS</text>
+  <!-- Path A -->
+  <rect x="20" y="42" width="240" height="50" rx="10" fill="#3B7DD8" opacity="0.15" stroke="#3B7DD8" stroke-width="1.5"/>
+  <text x="140" y="64" text-anchor="middle" fill="#3B7DD8" font-size="13" font-weight="700" font-family="system-ui">Path A: 100-Point Test</text>
+  <text x="140" y="82" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">R&D, patents, IP, partnerships</text>
+  <!-- OR -->
+  <text x="270" y="72" text-anchor="middle" fill="#FBBF24" font-size="14" font-weight="700" font-family="system-ui">OR</text>
+  <!-- Path B -->
+  <rect x="280" y="42" width="240" height="50" rx="10" fill="#10B981" opacity="0.15" stroke="#10B981" stroke-width="1.5"/>
+  <text x="400" y="64" text-anchor="middle" fill="#10B981" font-size="13" font-weight="700" font-family="system-ui">Path B: $250K+ R&D Spend</text>
+  <text x="400" y="82" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Eligible expenditure in income year</text>
+  <text x="270" y="115" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Both require passing the principles-based test first</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Two pathways to ESIC qualification</figcaption>
+</figure>
+
 ## Why Founders Must Care: The Fundraising Multiplier
 
 For a founder, the technicalities of the ESIC framework might seem like a backend accounting issue. However, the impact on the front-end fundraising strategy is profound. In the current Australian economic climate, capital is scarce, and investors are more risk-averse than in previous cycles. The ESIC status acts as a powerful differentiator.
@@ -153,6 +209,25 @@ Even if a company does not currently meet the full criteria, signaling an intent
 
 Furthermore, the process of seeking ESIC status often forces founders to clean up their cap table, document their IP, and refine their R&D processes. This "compliance hygiene" makes the company more attractive to any investor, ESIC or not.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 540 150" xmlns="http://www.w3.org/2000/svg" style="max-width:540px;margin:0 auto">
+  <rect width="540" height="150" rx="16" fill="#0B1220"/>
+  <text x="270" y="26" text-anchor="middle" fill="#94A3B8" font-size="11" font-weight="600" font-family="system-ui">ESIC AS A FUNDRAISING MULTIPLIER</text>
+  <!-- Without ESIC -->
+  <rect x="20" y="42" width="240" height="60" rx="10" fill="#F87171" opacity="0.12" stroke="#F87171" stroke-width="1.5"/>
+  <text x="140" y="64" text-anchor="middle" fill="#F87171" font-size="13" font-weight="700" font-family="system-ui">Without ESIC</text>
+  <text x="140" y="82" text-anchor="middle" fill="#94A3B8" font-size="11" font-family="system-ui">$100K invested = $100K cost</text>
+  <text x="140" y="96" text-anchor="middle" fill="#64748B" font-size="9" font-family="system-ui">Standard risk profile</text>
+  <!-- With ESIC -->
+  <rect x="280" y="42" width="240" height="60" rx="10" fill="#10B981" opacity="0.12" stroke="#10B981" stroke-width="1.5"/>
+  <text x="400" y="64" text-anchor="middle" fill="#10B981" font-size="13" font-weight="700" font-family="system-ui">With ESIC</text>
+  <text x="400" y="82" text-anchor="middle" fill="#94A3B8" font-size="11" font-family="system-ui">$100K invested = $80K net cost</text>
+  <text x="400" y="96" text-anchor="middle" fill="#64748B" font-size="9" font-family="system-ui">De-risked + CGT exempt</text>
+  <text x="270" y="130" text-anchor="middle" fill="#FBBF24" font-size="11" font-weight="600" font-family="system-ui">ESIC status lowers cost of capital and widens investor pool</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">How ESIC transforms your fundraising economics</figcaption>
+</figure>
+
 ## Common Pitfalls and Compliance Risks
 
 While the benefits are substantial, the ATO takes ESIC claims seriously. There are several common pitfalls that founders must avoid to prevent disqualification or future tax liabilities for their investors.
@@ -164,6 +239,30 @@ One of the most frequent mistakes is trying to apply for ESIC status retroactive
 ### Overstating Innovation Activities
 
 Another risk is "point stuffing" – claiming points for activities that do not genuinely meet the criteria. For example, claiming points for general software development when the software is a standard implementation of off-the-shelf tools. The ATO has the power to audit ESIC claims. If a company is found to have inflated its innovation activities, the investors may lose their tax offsets, and the company could face penalties. This can lead to significant legal and reputational damage for the founder.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 540 150" xmlns="http://www.w3.org/2000/svg" style="max-width:540px;margin:0 auto">
+  <rect width="540" height="150" rx="16" fill="#0B1220"/>
+  <text x="270" y="26" text-anchor="middle" fill="#F87171" font-size="12" font-weight="600" font-family="system-ui">COMMON ESIC COMPLIANCE PITFALLS</text>
+  <!-- Pitfall 1 -->
+  <rect x="10" y="42" width="165" height="65" rx="8" fill="#F87171" opacity="0.1" stroke="#F87171" stroke-width="1"/>
+  <text x="92" y="62" text-anchor="middle" fill="#F87171" font-size="10" font-weight="700" font-family="system-ui">Retroactive Claims</text>
+  <text x="92" y="78" text-anchor="middle" fill="#64748B" font-size="8" font-family="system-ui">Must be ESIC at time</text>
+  <text x="92" y="90" text-anchor="middle" fill="#64748B" font-size="8" font-family="system-ui">of share issuance</text>
+  <!-- Pitfall 2 -->
+  <rect x="185" y="42" width="165" height="65" rx="8" fill="#F87171" opacity="0.1" stroke="#F87171" stroke-width="1"/>
+  <text x="268" y="62" text-anchor="middle" fill="#F87171" font-size="10" font-weight="700" font-family="system-ui">Point Stuffing</text>
+  <text x="268" y="78" text-anchor="middle" fill="#64748B" font-size="8" font-family="system-ui">ATO audits inflated</text>
+  <text x="268" y="90" text-anchor="middle" fill="#64748B" font-size="8" font-family="system-ui">innovation claims</text>
+  <!-- Pitfall 3 -->
+  <rect x="360" y="42" width="165" height="65" rx="8" fill="#F87171" opacity="0.1" stroke="#F87171" stroke-width="1"/>
+  <text x="442" y="62" text-anchor="middle" fill="#F87171" font-size="10" font-weight="700" font-family="system-ui">Status Lapse</text>
+  <text x="442" y="78" text-anchor="middle" fill="#64748B" font-size="8" font-family="system-ui">Must maintain annually;</text>
+  <text x="442" y="90" text-anchor="middle" fill="#64748B" font-size="8" font-family="system-ui">pivots can disqualify</text>
+  <text x="270" y="130" text-anchor="middle" fill="#94A3B8" font-size="10" font-family="system-ui">Consequences: investor offsets clawed back, penalties, reputational damage</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Top compliance risks that can void ESIC benefits</figcaption>
+</figure>
 
 ### Failure to Maintain Status
 

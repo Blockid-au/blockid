@@ -6,6 +6,19 @@ Most Australian founders underestimate legal costs. They incorporate thinking it
 
 This guide breaks down exactly what you'll pay, what you can DIY, when to hire lawyers, and where to find affordable legal support in Australia.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="120" rx="16" fill="#0B1220"/>
+  <text x="150" y="50" text-anchor="middle" fill="#10B981" font-size="34" font-weight="700" font-family="system-ui">$20-40K</text>
+  <text x="150" y="78" text-anchor="middle" fill="#94A3B8" font-size="12" font-family="system-ui">Smart legal setup budget</text>
+  <text x="150" y="95" text-anchor="middle" fill="#94A3B8" font-size="11" font-family="system-ui">Incorporation to Series A</text>
+  <line x1="300" y1="20" x2="300" y2="100" stroke="#3B7DD8" stroke-width="1" opacity="0.3"/>
+  <text x="450" y="50" text-anchor="middle" fill="#F87171" font-size="34" font-weight="700" font-family="system-ui">$65K+</text>
+  <text x="450" y="78" text-anchor="middle" fill="#94A3B8" font-size="12" font-family="system-ui">Cost of skipping setup</text>
+  <text x="450" y="95" text-anchor="middle" fill="#94A3B8" font-size="11" font-family="system-ui">Disputes + failed raise</text>
+</svg>
+</figure>
+
 ---
 
 ## The Real Cost of "Just Winging It"
@@ -17,6 +30,29 @@ Before diving into the budget, let's talk about the hidden costs of skipping leg
 **Intellectual property problems** are equally costly. If your company doesn't formally own the code, design, or algorithm your team built, investors will flag it as a dealbreaker at due diligence. Fixing IP ownership retroactively means getting every past contractor to sign assignment agreements—which can be impossible if people have moved on.
 
 **Regulatory penalties** add up fast. The ATO can impose penalties for non-compliance with salary sacrifice arrangements or privacy rules. ASIC can fine companies for inadequate director disclosures. A single breach can cost **$1,500–$10,000 AUD** in fines alone.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 180" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="180" rx="12" fill="#0B1220"/>
+  <text x="300" y="25" text-anchor="middle" fill="#FFF" font-size="14" font-weight="700" font-family="system-ui">Legal Cost Breakdown: Pie Chart (AUD)</text>
+  <!-- Simplified pie using bars -->
+  <text x="85" y="60" text-anchor="end" fill="#94A3B8" font-size="11" font-family="system-ui">SHA</text>
+  <rect x="95" y="47" width="280" height="18" rx="4" fill="#3B7DD8"/>
+  <text x="385" y="61" fill="#3B7DD8" font-size="10" font-weight="600" font-family="system-ui">$3K-$10K (Largest)</text>
+  <text x="85" y="85" text-anchor="end" fill="#94A3B8" font-size="11" font-family="system-ui">ESOP</text>
+  <rect x="95" y="72" width="250" height="18" rx="4" fill="#FBBF24"/>
+  <text x="355" y="86" fill="#FBBF24" font-size="10" font-weight="600" font-family="system-ui">$5K-$15K</text>
+  <text x="85" y="110" text-anchor="end" fill="#94A3B8" font-size="11" font-family="system-ui">Privacy/T&C</text>
+  <rect x="95" y="97" width="150" height="18" rx="4" fill="#10B981"/>
+  <text x="255" y="111" fill="#10B981" font-size="10" font-weight="600" font-family="system-ui">$2K-$5K</text>
+  <text x="85" y="135" text-anchor="end" fill="#94A3B8" font-size="11" font-family="system-ui">IP / TM</text>
+  <rect x="95" y="122" width="130" height="18" rx="4" fill="#F87171"/>
+  <text x="235" y="136" fill="#F87171" font-size="10" font-weight="600" font-family="system-ui">$2K-$6K</text>
+  <text x="85" y="160" text-anchor="end" fill="#94A3B8" font-size="11" font-family="system-ui">ASIC/Other</text>
+  <rect x="95" y="147" width="60" height="18" rx="4" fill="#94A3B8"/>
+  <text x="165" y="161" fill="#94A3B8" font-size="10" font-weight="600" font-family="system-ui">$1K-$3K</text>
+</svg>
+</figure>
 
 > **The legal horror story:** A Sydney SaaS founder skipped IP assignment agreements with contractors and a co-founder's legal dispute over equity. When due diligence rolled around at Series A, the VC walked away. Total cost: 18 months of wasted work, legal fees of $65,000 AUD, and a failed funding round. The legal setup would have cost $15,000 initially.
 
@@ -60,6 +96,29 @@ The first step is registering your company with ASIC. This is non-negotiable and
 
 **Pro tip:** Don't rush to incorporate before you're serious. Many founders incorporate, then never use the company. Wait until you have co-founders committed and initial funding lined up.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 130" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="130" rx="12" fill="#0B1220"/>
+  <text x="300" y="25" text-anchor="middle" fill="#FFF" font-size="13" font-weight="700" font-family="system-ui">Legal Cost Timeline: When to Spend</text>
+  <rect x="20" y="50" width="130" height="50" rx="8" fill="#10B981"/>
+  <text x="85" y="70" text-anchor="middle" fill="#FFF" font-size="10" font-weight="600" font-family="system-ui">Incorporation</text>
+  <text x="85" y="87" text-anchor="middle" fill="#d1fae5" font-size="11" font-weight="700" font-family="system-ui">$576-$1.7K</text>
+  <line x1="155" y1="75" x2="170" y2="75" stroke="#94A3B8" stroke-width="2" marker-end="url(#lcArrow)"/>
+  <rect x="175" y="50" width="130" height="50" rx="8" fill="#3B7DD8"/>
+  <text x="240" y="70" text-anchor="middle" fill="#FFF" font-size="10" font-weight="600" font-family="system-ui">Co-founder Setup</text>
+  <text x="240" y="87" text-anchor="middle" fill="#dbeafe" font-size="11" font-weight="700" font-family="system-ui">$3K-$10K</text>
+  <line x1="310" y1="75" x2="325" y2="75" stroke="#94A3B8" stroke-width="2" marker-end="url(#lcArrow)"/>
+  <rect x="330" y="50" width="130" height="50" rx="8" fill="#FBBF24"/>
+  <text x="395" y="70" text-anchor="middle" fill="#0B1220" font-size="10" font-weight="600" font-family="system-ui">ESOP + Employees</text>
+  <text x="395" y="87" text-anchor="middle" fill="#0B1220" font-size="11" font-weight="700" font-family="system-ui">$5K-$16K</text>
+  <line x1="465" y1="75" x2="480" y2="75" stroke="#94A3B8" stroke-width="2" marker-end="url(#lcArrow)"/>
+  <rect x="485" y="50" width="95" height="50" rx="8" fill="#F87171"/>
+  <text x="532" y="70" text-anchor="middle" fill="#FFF" font-size="10" font-weight="600" font-family="system-ui">Raise Docs</text>
+  <text x="532" y="87" text-anchor="middle" fill="#fecaca" font-size="11" font-weight="700" font-family="system-ui">$2K-$5K</text>
+  <defs><marker id="lcArrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#94A3B8"/></marker></defs>
+</svg>
+</figure>
+
 ### Registered Office & Compliance Address ($300–$800/year)
 
 Companies must have a registered office in Australia. You have three options:
@@ -92,6 +151,22 @@ This is where many Australian startups fail. A **shareholders agreement** (or ca
 **DIY option:** Templates from **LawPath**, **Rocket Lawyer**, or **HotDocs** cost $500–$1,200 but require you to fill in the details correctly. Risk: misses edge cases that matter later.
 
 **Recommended approach:** Pay $5,000–$7,000 AUD for a lawyer to draft a standard template, then use that same template for future hires. Amortize the cost.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 130" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="130" rx="12" fill="#0B1220"/>
+  <text x="300" y="25" text-anchor="middle" fill="#FFF" font-size="13" font-weight="700" font-family="system-ui">Cost Comparison: Template vs Lawyer by Stage</text>
+  <text x="90" y="55" text-anchor="end" fill="#94A3B8" font-size="11" font-family="system-ui">Pre-Seed</text>
+  <rect x="100" y="42" width="120" height="20" rx="4" fill="#10B981"/>
+  <text x="230" y="57" fill="#10B981" font-size="10" font-weight="600" font-family="system-ui">$2-5K (Template OK)</text>
+  <text x="90" y="82" text-anchor="end" fill="#94A3B8" font-size="11" font-family="system-ui">Seed</text>
+  <rect x="100" y="69" width="250" height="20" rx="4" fill="#FBBF24"/>
+  <text x="360" y="84" fill="#FBBF24" font-size="10" font-weight="600" font-family="system-ui">$8-15K (Lawyer drafted)</text>
+  <text x="90" y="109" text-anchor="end" fill="#94A3B8" font-size="11" font-family="system-ui">Series A</text>
+  <rect x="100" y="96" width="420" height="20" rx="4" fill="#F87171"/>
+  <text x="530" y="111" fill="#F87171" font-size="10" font-weight="600" font-family="system-ui">$15-40K (Full legal)</text>
+</svg>
+</figure>
 
 ---
 

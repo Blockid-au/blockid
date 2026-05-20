@@ -4,6 +4,15 @@ For Australian founders navigating the treacherous waters of early-stage fundrai
 
 The **SAFE**, popularised by Y Combinator, has gained significant traction in the Australian ecosystem, often touted for its simplicity and speed. However, the **Convertible Note**, a debt instrument with an equity kicker, remains a staple, particularly where Australian tax regulations and creditor protections dictate a more conservative approach. Understanding the differences isn't just about legal semantics; it is about protecting your cap table, managing your relationship with investors, and ensuring compliance with ASIC and the ATO.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="120" rx="16" fill="#0B1220"/>
+  <text x="300" y="50" text-anchor="middle" fill="#3B7DD8" font-size="38" font-weight="700" font-family="system-ui">85%</text>
+  <text x="300" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">of Australian pre-seed deals use a deferral instrument</text>
+  <text x="300" y="100" text-anchor="middle" fill="#FBBF24" font-size="12" font-family="system-ui">Choice between SAFE and Note can shift effective valuation by 15-20%</text>
+</svg>
+</figure>
+
 > **Key Insight:** In the current Australian market, **85% of pre-seed deals** utilize some form of deferral instrument, but the choice between a SAFE and a Convertible Note can shift the effective valuation of your company by 15-20% at the moment of conversion.
 
 Many founders mistakenly believe that a SAFE is merely a "simpler" version of a convertible note. This is a dangerous oversimplification. A convertible note is legally a debt obligation; it sits on your balance sheet as a liability and carries an interest rate, a maturity date, and the potential for conversion into equity. A SAFE, conversely, is an agreement to issue equity in the future; it is not debt, carries no interest, and has no maturity date that forces repayment (unless specifically negotiated, which is rare in standard Australian adaptations).
@@ -11,6 +20,26 @@ Many founders mistakenly believe that a SAFE is merely a "simpler" version of a 
 The implications of this distinction are profound for Australian startups. If your startup hits a rough patch and cannot raise a priced round before the maturity date of a convertible note, you face a legal obligation to repay the principal plus accrued interest. This can cripple a company that is otherwise viable. With a SAFE, there is no maturity date, meaning the investor and founder remain locked in a partnership until a qualified financing event occurs, removing the pressure of an artificial deadline.
 
 However, the **YC SAFE Australia** adaptation has evolved. The original YC documents were US-centric, focusing on Delaware law. Australian legal counsel often have to adapt these documents to comply with the *Corporations Act 2001* (Cth), particularly regarding the definition of a "security" and the treatment of pre-emptive rights. Failing to localise a standard US SAFE can lead to unenforceable terms or regulatory headaches with ASIC.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 100" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect x="0" y="25" width="120" height="50" rx="10" fill="#3B7DD8"/>
+  <text x="60" y="55" text-anchor="middle" fill="#FFF" font-size="11" font-family="system-ui">US SAFE Draft</text>
+  <line x1="125" y1="50" x2="165" y2="50" stroke="#94A3B8" stroke-width="2" marker-end="url(#safeArrow)"/>
+  <rect x="170" y="25" width="120" height="50" rx="10" fill="#FBBF24"/>
+  <text x="230" y="48" text-anchor="middle" fill="#0B1220" font-size="11" font-family="system-ui">AU Legal</text>
+  <text x="230" y="62" text-anchor="middle" fill="#0B1220" font-size="10" font-family="system-ui">Localisation</text>
+  <line x1="295" y1="50" x2="335" y2="50" stroke="#94A3B8" stroke-width="2" marker-end="url(#safeArrow)"/>
+  <rect x="340" y="25" width="120" height="50" rx="10" fill="#10B981"/>
+  <text x="400" y="48" text-anchor="middle" fill="#FFF" font-size="11" font-family="system-ui">ASIC / ATO</text>
+  <text x="400" y="62" text-anchor="middle" fill="#FFF" font-size="10" font-family="system-ui">Compliance</text>
+  <line x1="465" y1="50" x2="505" y2="50" stroke="#94A3B8" stroke-width="2" marker-end="url(#safeArrow)"/>
+  <rect x="510" y="25" width="85" height="50" rx="10" fill="#0B1220"/>
+  <text x="552" y="55" text-anchor="middle" fill="#3B7DD8" font-size="11" font-family="system-ui">AU SAFE</text>
+  <defs><marker id="safeArrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#94A3B8"/></marker></defs>
+</svg>
+<figcaption style="color:#94A3B8;font-size:13px;margin-top:0.5rem">SAFE localisation flow for Australian compliance</figcaption>
+</figure>
 
 Before you sign the first draft, you must understand how valuation caps and discount rates interact with Australian tax laws. The **Australian Taxation Office (ATO)** has specific guidelines regarding when equity is issued and how it is valued for tax purposes, especially for employee share schemes (ESIC) and founder shares. A poorly structured instrument can inadvertently trigger immediate tax liabilities for founders and investors alike.
 
@@ -92,6 +121,28 @@ Beyond these financial levers, the legal structure includes **MFN (Most Favored 
 
 Pro-rata rights give an investor the option (or obligation, depending on the wording) to maintain their percentage ownership in future rounds. While standard for Series A investors, including this in a pre-seed SAFE can sometimes complicate the capital stack if the instrument is not carefully drafted to exclude pro-rata rights unless a specific trigger is met.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 200" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="200" rx="12" fill="#0B1220"/>
+  <text x="300" y="28" text-anchor="middle" fill="#FFF" font-size="15" font-weight="700" font-family="system-ui">Key Term Levers in Deferral Instruments</text>
+  <rect x="30" y="50" width="160" height="60" rx="8" fill="#3B7DD8"/>
+  <text x="110" y="75" text-anchor="middle" fill="#FFF" font-size="12" font-weight="700" font-family="system-ui">Valuation Cap</text>
+  <text x="110" y="95" text-anchor="middle" fill="#dbeafe" font-size="10" font-family="system-ui">Max conversion price</text>
+  <rect x="220" y="50" width="160" height="60" rx="8" fill="#FBBF24"/>
+  <text x="300" y="75" text-anchor="middle" fill="#0B1220" font-size="12" font-weight="700" font-family="system-ui">Discount Rate</text>
+  <text x="300" y="95" text-anchor="middle" fill="#0B1220" font-size="10" font-family="system-ui">15-25% off next round</text>
+  <rect x="410" y="50" width="160" height="60" rx="8" fill="#10B981"/>
+  <text x="490" y="75" text-anchor="middle" fill="#FFF" font-size="12" font-weight="700" font-family="system-ui">MFN Clause</text>
+  <text x="490" y="95" text-anchor="middle" fill="#d1fae5" font-size="10" font-family="system-ui">Adopt better terms</text>
+  <rect x="120" y="130" width="160" height="50" rx="8" fill="#F87171"/>
+  <text x="200" y="155" text-anchor="middle" fill="#FFF" font-size="12" font-weight="700" font-family="system-ui">Pro-Rata Rights</text>
+  <text x="200" y="170" text-anchor="middle" fill="#fecaca" font-size="10" font-family="system-ui">Maintain ownership %</text>
+  <rect x="320" y="130" width="160" height="50" rx="8" fill="#3B7DD8" opacity="0.7"/>
+  <text x="400" y="155" text-anchor="middle" fill="#FFF" font-size="12" font-weight="700" font-family="system-ui">"Better Of" Clause</text>
+  <text x="400" y="170" text-anchor="middle" fill="#dbeafe" font-size="10" font-family="system-ui">Investor picks lowest price</text>
+</svg>
+</figure>
+
 ### The Financial Impact: A Comparative Snapshot
 
 The following table illustrates how different term sheet structures impact the effective valuation and share allocation for a $500,000 AUD investment.
@@ -119,6 +170,20 @@ The most significant feature of a convertible note is the **Maturity Date**. Thi
 
 In Australia, interest rates on convertible notes typically range from **2% to 8% per annum**, often compounding. While this interest is rarely paid in cash, it is added to the principal balance and converts into additional shares. This effectively increases the investor's ownership percentage, diluting founders and other shareholders. If you are raising $500k at 5% interest for 18 months, your principal could grow to over $540k before conversion, a significant difference in a tight cap table.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 130" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="130" rx="16" fill="#0B1220"/>
+  <text x="150" y="40" text-anchor="middle" fill="#F87171" font-size="36" font-weight="700" font-family="system-ui">$540K+</text>
+  <text x="150" y="65" text-anchor="middle" fill="#94A3B8" font-size="12" font-family="system-ui">Principal + interest after 18mo</text>
+  <text x="150" y="85" text-anchor="middle" fill="#94A3B8" font-size="11" font-family="system-ui">on a $500K note at 5% p.a.</text>
+  <line x1="300" y1="20" x2="300" y2="110" stroke="#3B7DD8" stroke-width="1" opacity="0.3"/>
+  <text x="450" y="40" text-anchor="middle" fill="#10B981" font-size="36" font-weight="700" font-family="system-ui">$0</text>
+  <text x="450" y="65" text-anchor="middle" fill="#94A3B8" font-size="12" font-family="system-ui">Interest accrued on SAFE</text>
+  <text x="450" y="85" text-anchor="middle" fill="#94A3B8" font-size="11" font-family="system-ui">No maturity, no repayment</text>
+  <text x="300" y="118" text-anchor="middle" fill="#FBBF24" font-size="11" font-weight="600" font-family="system-ui">Interest burden: the critical SAFE vs Note difference</text>
+</svg>
+</figure>
+
 Another critical aspect of convertible notes is **Security**. In the event of a liquidation event (like an acquisition that isn't a "Qualified Financing"), convertible notes often have **seniority** over ordinary shares. They may be paid out first from the remaining assets, or they may convert immediately with a premium. This seniority protection is attractive to investors but represents a claim on the company's assets that SAFEs do not typically carry (unless specifically negotiated to be "senior to all other debts," which is rare).
 
 However, the convertible note offers certain benefits for Australian founders. Because it is a debt instrument, it is often easier to structure for investors who are looking for a clearer path to return if the company fails to grow. Additionally, the maturity date forces a conversation; it compels the founders to either achieve a financing event or restructure the deal before the deadline, preventing "zombie rounds" where a startup sits with a SAFE that never converts.
@@ -134,6 +199,20 @@ This structure aligns perfectly with the **high-growth, long-term** mindset of A
 The **Australian adaptation** of the YC SAFE has become the de facto standard for many accelerator programs and angel syndicates in Sydney and Melbourne. However, founders must be wary of "hybrid" SAFEs. Some Australian lawyers have added a "maturity date" to the SAFE to create a forced negotiation event, effectively turning it into a convertible note. This defeats the purpose of the SAFE and adds legal complexity. Always ensure the document you are signing is a true "equity-like" SAFE without a repayment trigger.
 
 One of the primary advantages of the SAFE is the **lower legal cost**. Because the instrument is standardized and short, legal fees are often a fraction of those for a convertible note, which requires more detailed debt covenants and security registrations. In the Australian market, this can save founders **$3,000 to $7,000 AUD** in legal fees per deal, a significant saving for early-stage budgets.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 160" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="160" rx="12" fill="#0B1220"/>
+  <text x="300" y="28" text-anchor="middle" fill="#FFF" font-size="14" font-weight="700" font-family="system-ui">Legal Cost Comparison (AUD)</text>
+  <text x="100" y="60" text-anchor="end" fill="#94A3B8" font-size="12" font-family="system-ui">SAFE</text>
+  <rect x="110" y="45" width="200" height="24" rx="6" fill="#10B981"/>
+  <text x="320" y="62" fill="#10B981" font-size="12" font-weight="600" font-family="system-ui">$2K - $5K</text>
+  <text x="100" y="100" text-anchor="end" fill="#94A3B8" font-size="12" font-family="system-ui">Note</text>
+  <rect x="110" y="85" width="380" height="24" rx="6" fill="#F87171"/>
+  <text x="500" y="102" fill="#F87171" font-size="12" font-weight="600" font-family="system-ui">$5K - $12K</text>
+  <text x="300" y="140" text-anchor="middle" fill="#FBBF24" font-size="11" font-family="system-ui">SAFEs save $3K-$7K in legal fees per deal</text>
+</svg>
+</figure>
 
 However, the lack of a maturity date can be a double-edged sword. Without a deadline, some investors may sit on a SAFE indefinitely, waiting for a massive exit, while the founder needs clarity for a Series A. This can create "dead equity" on the cap table. To mitigate this, some founders negotiate a **"Trigger Event"** that forces conversion upon a change of control or a specific milestone, but this must be done carefully to avoid discouraging investment.
 

@@ -4,6 +4,16 @@ For decades, the mechanics of valuing a pre-seed or Series A startup in Australi
 
 This traditional model was built for an era where information was scarce and expensive to obtain. Today, we live in an era of data abundance. Market signals, competitive landscapes, and team track records are available in real-time. Yet, the valuation process for Australian startups has lagged behind, leaving founders in a state of information asymmetry where investors often hold all the cards.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#FBBF24" font-size="38" font-weight="700" font-family="system-ui">$5K - $50K</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">Typical cost of traditional startup valuation in Australia</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">Timeline: 4-8 weeks | AI alternative: &lt;60 seconds, free</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">The cost gap between traditional and AI-powered valuation</figcaption>
+</figure>
+
 The arrival of **AI startup valuation** and **machine learning valuation** is not just an incremental improvement; it is a fundamental structural shift. It moves the industry from a bespoke, artisanal service to a scalable, data-driven science. For Australian founders navigating the path from idea to exit, understanding **AI due diligence** and **automated startup analysis** is no longer optional—it is a strategic imperative.
 
 The gap between the old way and the new way is stark. Where traditional methods require weeks and significant capital, modern AI-powered tools can deliver a robust valuation assessment in 60 seconds, often at no cost. This democratization of valuation data empowers founders to enter fundraising discussions with the same level of data literacy as the investors they are pitching.
@@ -15,6 +25,16 @@ To appreciate the disruption, we must first understand why the incumbent methods
 ### The Subjectivity Problem
 The most significant flaw in traditional valuation is its reliance on human bias. An investor's gut feeling about a market size or a team's capability often dictates the final number more than the raw data. Two experienced partners at the same firm can arrive at valuations that differ by 30% simply based on their personal network or recent deal exposure. For an Australian founder, this means the "fair" value of your company is often determined by who you know, rather than what your data says.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#F87171" font-size="42" font-weight="700" font-family="system-ui">30%</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">Valuation variance between partners at the same firm</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">Same data, different analysts, wildly different outcomes</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Human bias creates significant valuation inconsistency</figcaption>
+</figure>
+
 ### The Cost of Expertise
 Engaging a professional valuation firm in Australia for a pre-seed company is often cost-prohibitive. Firms charge premium rates for their time, typically billing in increments that quickly add up to the $5,000–$50,000 AUD range. For a startup burning cash to build a product, spending $20,000 on a valuation report before securing funding is a heavy burden that diverts scarce capital from product development and customer acquisition.
 
@@ -23,6 +43,23 @@ The fundraising cycle is already fraught with uncertainty. Spending four to eigh
 
 ### Data Silos
 Traditional valuations often suffer from data silos. An analyst might review your financial projections (which you provided) and your pitch deck (which you curated), but they rarely have the time to deeply scrape and analyse thousands of external data points regarding your competitive landscape, talent density, or emerging market trends. This creates an incomplete picture, leading to undervaluation.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 520 180" xmlns="http://www.w3.org/2000/svg" style="max-width:520px;margin:0 auto">
+  <rect width="520" height="180" rx="16" fill="#0B1220"/>
+  <text x="260" y="28" text-anchor="middle" fill="#94A3B8" font-size="12" font-weight="600" font-family="system-ui">TRADITIONAL vs AI DATA COVERAGE</text>
+  <!-- Traditional bar -->
+  <rect x="30" y="50" width="100" height="30" rx="6" fill="#F87171" opacity="0.8"/>
+  <text x="80" y="70" text-anchor="middle" fill="#fff" font-size="11" font-weight="600" font-family="system-ui">~50 pts</text>
+  <text x="30" y="100" fill="#94A3B8" font-size="11" font-family="system-ui">Traditional: Pitch deck +</text>
+  <text x="30" y="116" fill="#64748B" font-size="10" font-family="system-ui">financial projections only</text>
+  <!-- AI bar -->
+  <rect x="30" y="130" width="460" height="30" rx="6" fill="#3B7DD8"/>
+  <text x="260" y="150" text-anchor="middle" fill="#fff" font-size="11" font-weight="600" font-family="system-ui">100M+ data points (market, talent, IP, competitors, sentiment)</text>
+  <text x="350" y="116" fill="#3B7DD8" font-size="11" font-weight="600" font-family="system-ui">AI: Real-time multi-source analysis</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Data coverage: traditional analysis vs AI-powered valuation</figcaption>
+</figure>
 
 <svg viewBox="0 0 700 370" style="width:100%;max-width:700px;margin:2rem auto;display:block;" xmlns="http://www.w3.org/2000/svg" font-family="Arial">
   <rect width="700" height="370" fill="#f8fafc" rx="8"/>
@@ -91,6 +128,16 @@ In early-stage investing, the team is often the most critical variable. Traditio
 
 Machine learning algorithms can compare a founding team against thousands of other successful and failed Australian startups to identify "team fit" signals. If a CTO has a history of shipping products on time in a specific stack, or if the CEO has a track record of scaling in the Australian regulatory environment, these signals are quantified and weighted in the valuation model.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#10B981" font-size="42" font-weight="700" font-family="system-ui">100M+</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">Data points analysed per valuation by AI engines</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">Including patents, hiring trends, sentiment, and market signals</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Scale of AI data processing for startup valuation</figcaption>
+</figure>
+
 ### Mapping the Competitive Landscape
 Understanding who you are up against is vital, but manually mapping a competitive landscape is a full-time job. Automated startup analysis tools use natural language processing (NLP) to scan competitor websites, app store reviews, funding announcements, and hiring trends.
 
@@ -100,6 +147,16 @@ The AI can identify if a competitor is stalling (hiring freeze) or accelerating 
 Financial projections in startup pitch decks are often optimistic, sometimes to the point of fantasy. Traditional investors spend hours stress-testing these numbers. AI models, however, can instantly benchmark your projections against historical data from thousands of similar Australian companies.
 
 If you project 100% month-over-month growth in the SaaS sector, the AI compares this against the actual performance of 500 similar SaaS startups in Australia over the last five years. If your projection is an outlier, the model flags it and adjusts the valuation downward to reflect a more realistic growth trajectory. This not only provides a more accurate valuation but also helps founders refine their financial models before they ever speak to an investor.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#3B7DD8" font-size="42" font-weight="700" font-family="system-ui">500+</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">Comparable Australian SaaS startups benchmarked per projection</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">Outlier projections are flagged and adjusted automatically</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">AI benchmarks your projections against real startup data</figcaption>
+</figure>
 
 ## The 7-Dimension SVI Analysis: A New Standard for Australian Startups
 
@@ -187,6 +244,44 @@ Unlike traditional valuation methods that often focus narrowly on financials or 
 
 Each of these dimensions is weighted based on the current market environment and the specific stage of the startup (pre-seed vs. Series A). The machine learning engine then synthesises these seven inputs to generate a single, comparable **SVI Score**. This score is not a static number; it is a dynamic indicator that updates as new data becomes available, ensuring that founders always have the most current assessment of their company's value.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" style="max-width:400px;margin:0 auto">
+  <rect width="400" height="400" rx="16" fill="#0B1220"/>
+  <text x="200" y="30" text-anchor="middle" fill="#fff" font-size="14" font-weight="700" font-family="system-ui">SVI Radar: 7 Dimensions</text>
+  <!-- Radar grid (concentric heptagons) -->
+  <g transform="translate(200,215)">
+    <!-- Outer ring -->
+    <polygon points="0,-130 114,-63 114,63 0,130 -114,63 -114,-63 0,-130" fill="none" stroke="#1e293b" stroke-width="1"/>
+    <!-- Mid ring -->
+    <polygon points="0,-86 76,-42 76,42 0,86 -76,42 -76,-42 0,-86" fill="none" stroke="#1e293b" stroke-width="1"/>
+    <!-- Inner ring -->
+    <polygon points="0,-43 38,-21 38,21 0,43 -38,21 -38,-21 0,-43" fill="none" stroke="#1e293b" stroke-width="1"/>
+    <!-- Data shape (example scores) -->
+    <polygon points="0,-117 97,-38 80,50 0,104 -68,50 -91,-25 -23,-117" fill="#3B7DD8" fill-opacity="0.25" stroke="#3B7DD8" stroke-width="2"/>
+    <!-- Dots -->
+    <circle cx="0" cy="-117" r="4" fill="#3B7DD8"/>
+    <circle cx="97" cy="-38" r="4" fill="#3B7DD8"/>
+    <circle cx="80" cy="50" r="4" fill="#3B7DD8"/>
+    <circle cx="0" cy="104" r="4" fill="#3B7DD8"/>
+    <circle cx="-68" cy="50" r="4" fill="#3B7DD8"/>
+    <circle cx="-91" cy="-25" r="4" fill="#3B7DD8"/>
+    <circle cx="-23" cy="-117" r="4" fill="#3B7DD8"/>
+  </g>
+  <!-- Labels -->
+  <text x="200" y="72" text-anchor="middle" fill="#FBBF24" font-size="11" font-weight="600" font-family="system-ui">Market (90%)</text>
+  <text x="330" y="152" text-anchor="start" fill="#10B981" font-size="11" font-weight="600" font-family="system-ui">Team (75%)</text>
+  <text x="320" y="280" text-anchor="start" fill="#10B981" font-size="11" font-weight="600" font-family="system-ui">Product (62%)</text>
+  <text x="200" y="340" text-anchor="middle" fill="#FBBF24" font-size="11" font-weight="600" font-family="system-ui">Competition (80%)</text>
+  <text x="80" y="280" text-anchor="end" fill="#F87171" font-size="11" font-weight="600" font-family="system-ui">Financial (53%)</text>
+  <text x="70" y="165" text-anchor="end" fill="#F87171" font-size="11" font-weight="600" font-family="system-ui">Talent (70%)</text>
+  <text x="150" y="72" text-anchor="end" fill="#FBBF24" font-size="11" font-weight="600" font-family="system-ui">Sentiment (82%)</text>
+  <!-- Score -->
+  <text x="200" y="378" text-anchor="middle" fill="#3B7DD8" font-size="13" font-weight="700" font-family="system-ui">Overall SVI Score: 73/100</text>
+  <text x="200" y="395" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Example pre-seed SaaS company profile</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Example SVI radar chart showing 7-dimension scoring for a pre-seed startup</figcaption>
+</figure>
+
 The SVI approach is particularly relevant for the Australian context. It accounts for local nuances such as the **ESIC (Early Stage Innovation Company)** tax incentives, the specific regulatory hurdles imposed by **ASIC**, and the unique capital structure of the Australian venture ecosystem. By embedding these local factors into the algorithm, BlockID provides a valuation that is not just globally competitive but locally accurate.
 
 ## Comparing the Old Way vs. The New Way
@@ -219,6 +314,23 @@ The shift to AI-powered valuation gives Australian founders a distinct strategic
 
 Furthermore, the free nature of these tools lowers the barrier to entry. Startups no longer need to secure funding just to afford a valuation. This allows pre-seed founders to iterate on their business model, testing different strategies to see how they impact their SVI score in real-time. It turns valuation into a management tool rather than just a fundraising milestone.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 140" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="140" rx="16" fill="#0B1220"/>
+  <text x="250" y="30" text-anchor="middle" fill="#94A3B8" font-size="12" font-weight="600" font-family="system-ui">VALUATION APPROACH SHIFT</text>
+  <!-- Old way -->
+  <rect x="30" y="50" width="200" height="36" rx="8" fill="#F87171" opacity="0.2" stroke="#F87171" stroke-width="1"/>
+  <text x="130" y="73" text-anchor="middle" fill="#F87171" font-size="12" font-weight="600" font-family="system-ui">One-time snapshot</text>
+  <!-- Arrow -->
+  <text x="250" y="73" text-anchor="middle" fill="#FBBF24" font-size="18" font-family="system-ui">&#8594;</text>
+  <!-- New way -->
+  <rect x="270" y="50" width="200" height="36" rx="8" fill="#10B981" opacity="0.2" stroke="#10B981" stroke-width="1"/>
+  <text x="370" y="73" text-anchor="middle" fill="#10B981" font-size="12" font-weight="600" font-family="system-ui">Real-time management tool</text>
+  <text x="250" y="115" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">AI valuation: iterate strategies, test scenarios, track SVI score live</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Valuation evolves from a one-time event to a continuous strategic tool</figcaption>
+</figure>
+
 ## Navigating the Australian Regulatory Landscape with AI
 
 One of the most significant value adds of modern AI valuation tools is their ability to navigate the complex Australian regulatory environment. Unlike generic global valuation models, platforms like BlockID are calibrated to the specific realities of the Australian market.
@@ -233,6 +345,27 @@ The Early Stage Innovation Company (ESIC) regime is a critical component of Aust
 The Australian Taxation Office (ATO) has been increasingly active in scrutinizing startup valuations, particularly regarding employee share schemes (ESS) and transfer pricing. An inaccurate valuation can lead to significant tax liabilities for founders and employees. AI-powered analysis integrates ATO guidelines to ensure that the valuation models used for internal purposes (like ESS) are robust and defensible, reducing the risk of future compliance issues.
 
 By integrating these regulatory factors, the AI provides a "compliance-adjusted" valuation that is far more reliable for Australian founders than generic global models.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 520 150" xmlns="http://www.w3.org/2000/svg" style="max-width:520px;margin:0 auto">
+  <rect width="520" height="150" rx="16" fill="#0B1220"/>
+  <text x="260" y="28" text-anchor="middle" fill="#94A3B8" font-size="12" font-weight="600" font-family="system-ui">AUSTRALIAN REGULATORY INTEGRATION</text>
+  <!-- ASIC -->
+  <rect x="20" y="45" width="150" height="55" rx="10" fill="#3B7DD8" opacity="0.15" stroke="#3B7DD8" stroke-width="1.5"/>
+  <text x="95" y="70" text-anchor="middle" fill="#3B7DD8" font-size="14" font-weight="700" font-family="system-ui">ASIC</text>
+  <text x="95" y="88" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Corporate structure</text>
+  <!-- ATO -->
+  <rect x="185" y="45" width="150" height="55" rx="10" fill="#FBBF24" opacity="0.15" stroke="#FBBF24" stroke-width="1.5"/>
+  <text x="260" y="70" text-anchor="middle" fill="#FBBF24" font-size="14" font-weight="700" font-family="system-ui">ATO</text>
+  <text x="260" y="88" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Tax compliance</text>
+  <!-- ESIC -->
+  <rect x="350" y="45" width="150" height="55" rx="10" fill="#10B981" opacity="0.15" stroke="#10B981" stroke-width="1.5"/>
+  <text x="425" y="70" text-anchor="middle" fill="#10B981" font-size="14" font-weight="700" font-family="system-ui">ESIC</text>
+  <text x="425" y="88" text-anchor="middle" fill="#64748B" font-size="10" font-family="system-ui">Innovation incentives</text>
+  <text x="260" y="130" text-anchor="middle" fill="#94A3B8" font-size="11" font-family="system-ui">All three regulatory bodies factored into compliance-adjusted valuations</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Australian regulatory bodies integrated into AI valuation models</figcaption>
+</figure>
 
 
 <svg viewBox="0 0 700 292" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
@@ -265,6 +398,16 @@ Adopting AI for startup valuation is not just about getting a number; it is abou
 
 ### 1. Establish a Baseline
 Before approaching any investors, use an AI tool to generate your initial **SVI Score**. This serves as your baseline. Treat this as a diagnostic health check. If the score is lower than you anticipated, do not panic. Use the detailed breakdown to understand which of the seven dimensions is dragging down your score.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;margin:0 auto">
+  <rect width="500" height="120" rx="16" fill="#0B1220"/>
+  <text x="250" y="50" text-anchor="middle" fill="#10B981" font-size="42" font-weight="700" font-family="system-ui">&lt; 60s</text>
+  <text x="250" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">Time to generate a full SVI Score baseline</text>
+  <text x="250" y="100" text-anchor="middle" fill="#64748B" font-size="11" font-family="system-ui">Step 1: Establish your baseline before approaching any investors</text>
+</svg>
+<figcaption style="font-size:12px;color:#64748B;margin-top:8px">Speed of AI-powered baseline valuation</figcaption>
+</figure>
 
 ### 2. Stress-Test Your Narrative
 Once you have your baseline, run "what-if" scenarios. What happens to your valuation if you hit your Q3 revenue targets? What if you hire a CTO with a specific track record? What if you secure a partnership with a major Australian enterprise? By adjusting these variables in the AI model, you can see the quantitative impact of your strategic decisions. This allows you to build a roadmap that explicitly targets the drivers of your valuation.

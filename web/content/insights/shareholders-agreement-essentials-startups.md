@@ -8,6 +8,15 @@ When the business is running smoothly and everyone is friends, the fine print of
 
 In the Australian context, where the **Corporations Act 2001 (Cth)** provides a default framework that often clashes with founder intent, a tailored SHA is non-negotiable. It is the constitution of your internal relationships. It dictates how decisions are made, how shares are transferred, and how exits are handled.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="120" rx="16" fill="#0B1220"/>
+  <text x="300" y="50" text-anchor="middle" fill="#F87171" font-size="38" font-weight="700" font-family="system-ui">#1</text>
+  <text x="300" y="78" text-anchor="middle" fill="#94A3B8" font-size="14" font-family="system-ui">Founder disputes are the top reason AU startups fail to raise Series A</text>
+  <text x="300" y="100" text-anchor="middle" fill="#FBBF24" font-size="12" font-family="system-ui">Investors audit governance structures before writing a cheque</text>
+</svg>
+</figure>
+
 > **The hard truth:** A founder dispute is the number one reason early-stage Australian startups fail to raise Series A funding. Investors conduct deep due diligence on governance structures before writing a cheque. If your **SHA startup** documents are vague or non-existent, you are effectively telling investors you are a high-risk bet.
 
 Before you dive into the complex clauses, you need to understand the current health of your startup's governance. A strong valuation isn't just about revenue; it's about the structural integrity of your company.
@@ -32,6 +41,20 @@ Consider the cost of a dispute. If a disagreement arises over a clause that was 
 | **Long-term Cost** | High (risk of litigation and re-drafting). | Low (one-time cost protects multi-million dollar valuation). |
 
 The investment in a tailored agreement is an investment in your company's exit potential. Investors look at the cap table and the SHA to gauge the stability of the team. A sloppy agreement suggests sloppy management.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 140" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="140" rx="16" fill="#0B1220"/>
+  <text x="150" y="45" text-anchor="middle" fill="#F87171" font-size="32" font-weight="700" font-family="system-ui">$50K+</text>
+  <text x="150" y="70" text-anchor="middle" fill="#94A3B8" font-size="12" font-family="system-ui">Dispute resolution cost</text>
+  <text x="150" y="88" text-anchor="middle" fill="#94A3B8" font-size="11" font-family="system-ui">from ambiguous templates</text>
+  <line x1="300" y1="20" x2="300" y2="120" stroke="#3B7DD8" stroke-width="1" opacity="0.3"/>
+  <text x="450" y="45" text-anchor="middle" fill="#10B981" font-size="32" font-weight="700" font-family="system-ui">$5-15K</text>
+  <text x="450" y="70" text-anchor="middle" fill="#94A3B8" font-size="12" font-family="system-ui">Tailored SHA cost</text>
+  <text x="450" y="88" text-anchor="middle" fill="#94A3B8" font-size="11" font-family="system-ui">one-time investment</text>
+  <text x="300" y="125" text-anchor="middle" fill="#FBBF24" font-size="11" font-weight="600" font-family="system-ui">Proper setup costs 3-10x less than fixing disputes later</text>
+</svg>
+</figure>
 
 ### Key Clauses Checklist: What Every SHA Must Cover
 
@@ -90,6 +113,25 @@ Pre-emptive rights ensure that existing shareholders have the first opportunity 
 Without this clause, a founder could theoretically sell their shares to a competitor or an individual the other founders do not trust. In Australia, the default position under the **Corporations Act** does not automatically grant these rights unless they are explicitly written into the constitution or the SHA.
 
 For early-stage founders, this clause ensures that if one founder wants to exit, the other founders get the first chance to buy those shares. This keeps the ownership circle tight and controlled among those who know and trust each other.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 100" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect x="0" y="25" width="130" height="50" rx="10" fill="#3B7DD8"/>
+  <text x="65" y="47" text-anchor="middle" fill="#FFF" font-size="11" font-family="system-ui">Founder wants</text>
+  <text x="65" y="62" text-anchor="middle" fill="#FFF" font-size="11" font-family="system-ui">to sell shares</text>
+  <line x1="135" y1="50" x2="170" y2="50" stroke="#94A3B8" stroke-width="2" marker-end="url(#rofrArrow)"/>
+  <rect x="175" y="25" width="130" height="50" rx="10" fill="#FBBF24"/>
+  <text x="240" y="47" text-anchor="middle" fill="#0B1220" font-size="11" font-family="system-ui">ROFR: Existing</text>
+  <text x="240" y="62" text-anchor="middle" fill="#0B1220" font-size="11" font-family="system-ui">holders first</text>
+  <line x1="310" y1="50" x2="345" y2="50" stroke="#94A3B8" stroke-width="2" marker-end="url(#rofrArrow)"/>
+  <rect x="350" y="15" width="110" height="30" rx="8" fill="#10B981"/>
+  <text x="405" y="35" text-anchor="middle" fill="#FFF" font-size="10" font-family="system-ui">Accept: Buy shares</text>
+  <rect x="350" y="55" width="110" height="30" rx="8" fill="#F87171"/>
+  <text x="405" y="75" text-anchor="middle" fill="#FFF" font-size="10" font-family="system-ui">Decline: Sell outside</text>
+  <defs><marker id="rofrArrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#94A3B8"/></marker></defs>
+</svg>
+<figcaption style="color:#94A3B8;font-size:13px;margin-top:0.5rem">Pre-emptive rights (ROFR) flow</figcaption>
+</figure>
 
 ### 2. Tag-Along and Drag-Along Rights
 
@@ -164,6 +206,32 @@ However, the SHA must distinguish between **Good Leavers** and **Bad Leavers**.
 
 This distinction is critical. Without it, a disgruntled founder who causes significant damage could still walk away with a significant equity stake, demotivating the remaining team.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 150" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="150" rx="12" fill="#0B1220"/>
+  <text x="300" y="25" text-anchor="middle" fill="#FFF" font-size="14" font-weight="700" font-family="system-ui">Vesting Schedule: Standard 4-Year with 1-Year Cliff</text>
+  <!-- Timeline -->
+  <line x1="60" y1="70" x2="540" y2="70" stroke="#3B7DD8" stroke-width="2"/>
+  <!-- Cliff marker -->
+  <rect x="60" y="55" width="120" height="30" rx="6" fill="#F87171" opacity="0.8"/>
+  <text x="120" y="75" text-anchor="middle" fill="#FFF" font-size="10" font-weight="600" font-family="system-ui">Year 1: Cliff (0%)</text>
+  <!-- Year 2 -->
+  <rect x="180" y="55" width="120" height="30" rx="6" fill="#FBBF24"/>
+  <text x="240" y="75" text-anchor="middle" fill="#0B1220" font-size="10" font-weight="600" font-family="system-ui">Year 2: 25% vested</text>
+  <!-- Year 3 -->
+  <rect x="300" y="55" width="120" height="30" rx="6" fill="#3B7DD8"/>
+  <text x="360" y="75" text-anchor="middle" fill="#FFF" font-size="10" font-weight="600" font-family="system-ui">Year 3: 50% vested</text>
+  <!-- Year 4 -->
+  <rect x="420" y="55" width="120" height="30" rx="6" fill="#10B981"/>
+  <text x="480" y="75" text-anchor="middle" fill="#FFF" font-size="10" font-weight="600" font-family="system-ui">Year 4: 100% vested</text>
+  <!-- Labels -->
+  <text x="120" y="110" text-anchor="middle" fill="#F87171" font-size="10" font-family="system-ui">Bad Leaver:</text>
+  <text x="120" y="125" text-anchor="middle" fill="#F87171" font-size="10" font-family="system-ui">Loses unvested + discount</text>
+  <text x="420" y="110" text-anchor="middle" fill="#10B981" font-size="10" font-family="system-ui">Good Leaver:</text>
+  <text x="420" y="125" text-anchor="middle" fill="#10B981" font-size="10" font-family="system-ui">Retains vested at FMV</text>
+</svg>
+</figure>
+
 ### 5. Deadlock Resolution
 
 Deadlock occurs when the shareholders or directors cannot agree on a critical decision, paralyzing the company. This is particularly common in 50/50 founder splits.
@@ -192,6 +260,22 @@ Operating an Australian startup requires navigating a specific regulatory landsc
 The **Australian Securities and Investments Commission (ASIC)** regulates company structures. While the **Corporations Act 2001 (Cth)** provides default rules, a well-drafted SHA can override many of these defaults. For example, the Act allows for simple majority voting on many issues, but your SHA can mandate a higher threshold for protected matters.
 
 However, there is a critical distinction between the Constitution and the SHA. The Constitution is a public document registered with **ASIC**. The SHA is a private contract between shareholders. If there is a conflict, the Constitution usually prevails in the eyes of the court regarding third parties, but the SHA is binding between the shareholders. Therefore, the two documents must be perfectly aligned. Failing to update the Constitution when the SHA changes is a common compliance error.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="120" rx="12" fill="#0B1220"/>
+  <text x="300" y="25" text-anchor="middle" fill="#FFF" font-size="13" font-weight="700" font-family="system-ui">Constitution vs SHA: Document Hierarchy</text>
+  <rect x="50" y="45" width="160" height="50" rx="8" fill="#3B7DD8"/>
+  <text x="130" y="67" text-anchor="middle" fill="#FFF" font-size="11" font-weight="600" font-family="system-ui">Constitution</text>
+  <text x="130" y="82" text-anchor="middle" fill="#dbeafe" font-size="9" font-family="system-ui">Public (ASIC registered)</text>
+  <rect x="390" y="45" width="160" height="50" rx="8" fill="#FBBF24"/>
+  <text x="470" y="67" text-anchor="middle" fill="#0B1220" font-size="11" font-weight="600" font-family="system-ui">SHA</text>
+  <text x="470" y="82" text-anchor="middle" fill="#0B1220" font-size="9" font-family="system-ui">Private (between shareholders)</text>
+  <line x1="215" y1="70" x2="385" y2="70" stroke="#F87171" stroke-width="2" stroke-dasharray="6,3"/>
+  <text x="300" y="65" text-anchor="middle" fill="#F87171" font-size="10" font-weight="600" font-family="system-ui">Must align</text>
+  <text x="300" y="110" text-anchor="middle" fill="#94A3B8" font-size="10" font-family="system-ui">Conflict = Constitution prevails for third parties; SHA binding between shareholders</text>
+</svg>
+</figure>
 
 ### ATO and ESIC Implications
 The **Australian Taxation Office (ATO)** has specific rules regarding Employee Share Incentive Schemes (ESICs). If your startup grants shares or options to employees, the timing of the tax event is crucial.

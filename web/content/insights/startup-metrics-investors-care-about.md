@@ -6,6 +6,25 @@ Investors are deploying capital based on rigorous financial discipline and predi
 
 If your data doesn't align with market benchmarks, your pitch deck will fail, regardless of how polished the design is. Understanding which **startup KPIs investors** prioritise at different stages of growth is the first step toward a successful raise. Whether you are bootstrapping or preparing for a Series A, the numbers tell a story that either opens doors or closes them.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 140" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="140" rx="12" fill="#0B1220"/>
+  <text x="300" y="25" text-anchor="middle" fill="#FFF" font-size="13" font-weight="700" font-family="system-ui">Metric Categories: What Investors Scan First</text>
+  <rect x="20" y="45" width="130" height="70" rx="8" fill="#3B7DD8"/>
+  <text x="85" y="70" text-anchor="middle" fill="#FFF" font-size="12" font-weight="700" font-family="system-ui">Revenue</text>
+  <text x="85" y="88" text-anchor="middle" fill="#dbeafe" font-size="9" font-family="system-ui">MRR / ARR / Growth</text>
+  <rect x="160" y="45" width="130" height="70" rx="8" fill="#FBBF24"/>
+  <text x="225" y="70" text-anchor="middle" fill="#0B1220" font-size="12" font-weight="700" font-family="system-ui">Unit Econ</text>
+  <text x="225" y="88" text-anchor="middle" fill="#0B1220" font-size="9" font-family="system-ui">CAC / LTV / Payback</text>
+  <rect x="300" y="45" width="130" height="70" rx="8" fill="#10B981"/>
+  <text x="365" y="70" text-anchor="middle" fill="#FFF" font-size="12" font-weight="700" font-family="system-ui">Retention</text>
+  <text x="365" y="88" text-anchor="middle" fill="#d1fae5" font-size="9" font-family="system-ui">NRR / Churn / DAU</text>
+  <rect x="440" y="45" width="140" height="70" rx="8" fill="#F87171"/>
+  <text x="510" y="70" text-anchor="middle" fill="#FFF" font-size="12" font-weight="700" font-family="system-ui">Efficiency</text>
+  <text x="510" y="88" text-anchor="middle" fill="#fecaca" font-size="9" font-family="system-ui">Burn / Runway / Margin</text>
+</svg>
+</figure>
+
 > **The harsh reality:** 90% of startups fail, but those with strong, data-backed growth metrics are three times more likely to secure follow-on funding. In Australia, the gap between a "good idea" and a "fundable business" is defined by your ability to prove unit economics work at scale.
 
 ## The Foundation: Revenue and Growth Metrics
@@ -22,6 +41,29 @@ At the heart of every valuation lies revenue growth. For SaaS companies and tech
 *   **Series A:** Expect to show $500k+ MRR with a trajectory to $2M ARR within 12-18 months.
 
 Don't confuse total revenue with recurring revenue. One-off consulting fees or professional services revenue inflate your top line but do not increase your valuation multiple in the same way that recurring revenue does. Investors apply a higher multiple to **ARR** because it is predictable and scalable.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 150" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="150" rx="12" fill="#0B1220"/>
+  <text x="300" y="25" text-anchor="middle" fill="#FFF" font-size="13" font-weight="700" font-family="system-ui">SaaS Dashboard Mockup: Key Metrics at a Glance</text>
+  <rect x="20" y="45" width="130" height="80" rx="8" fill="#3B7DD8" opacity="0.15" stroke="#3B7DD8" stroke-width="1"/>
+  <text x="85" y="70" text-anchor="middle" fill="#3B7DD8" font-size="20" font-weight="700" font-family="system-ui">$50K</text>
+  <text x="85" y="88" text-anchor="middle" fill="#94A3B8" font-size="10" font-family="system-ui">MRR</text>
+  <text x="85" y="112" text-anchor="middle" fill="#10B981" font-size="10" font-family="system-ui">+18% MoM</text>
+  <rect x="160" y="45" width="130" height="80" rx="8" fill="#FBBF24" opacity="0.15" stroke="#FBBF24" stroke-width="1"/>
+  <text x="225" y="70" text-anchor="middle" fill="#FBBF24" font-size="20" font-weight="700" font-family="system-ui">3.2:1</text>
+  <text x="225" y="88" text-anchor="middle" fill="#94A3B8" font-size="10" font-family="system-ui">LTV:CAC</text>
+  <text x="225" y="112" text-anchor="middle" fill="#10B981" font-size="10" font-family="system-ui">Target: >3:1</text>
+  <rect x="300" y="45" width="130" height="80" rx="8" fill="#10B981" opacity="0.15" stroke="#10B981" stroke-width="1"/>
+  <text x="365" y="70" text-anchor="middle" fill="#10B981" font-size="20" font-weight="700" font-family="system-ui">112%</text>
+  <text x="365" y="88" text-anchor="middle" fill="#94A3B8" font-size="10" font-family="system-ui">NRR</text>
+  <text x="365" y="112" text-anchor="middle" fill="#10B981" font-size="10" font-family="system-ui">Negative churn</text>
+  <rect x="440" y="45" width="140" height="80" rx="8" fill="#F87171" opacity="0.15" stroke="#F87171" stroke-width="1"/>
+  <text x="510" y="70" text-anchor="middle" fill="#F87171" font-size="20" font-weight="700" font-family="system-ui">1.8%</text>
+  <text x="510" y="88" text-anchor="middle" fill="#94A3B8" font-size="10" font-family="system-ui">Monthly Churn</text>
+  <text x="510" y="112" text-anchor="middle" fill="#FBBF24" font-size="10" font-family="system-ui">Target: <2%</text>
+</svg>
+</figure>
 
 > **Crucial Insight:** In the Australian context, a common mistake founders make is including government grants or one-off setup fees in their ARR. Strictly exclude non-recurring income. ASIC regulations require accurate financial reporting, and inflating ARR can lead to severe reputational damage and legal complications during due diligence.
 
@@ -131,6 +173,22 @@ Even with a healthy 3:1 ratio, cash flow matters. The **payback period** is the 
 
 A payback period of under 12 months is ideal for early-stage startups. If it takes 18 or 24 months to recover your acquisition costs, your cash burn will be unsustainable unless you have significant venture capital backing.
 
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 130" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="130" rx="16" fill="#0B1220"/>
+  <text x="300" y="28" text-anchor="middle" fill="#FFF" font-size="13" font-weight="700" font-family="system-ui">LTV:CAC Benchmark Comparison</text>
+  <text x="90" y="60" text-anchor="end" fill="#94A3B8" font-size="11" font-family="system-ui">1:1 Ratio</text>
+  <rect x="100" y="47" width="80" height="20" rx="4" fill="#F87171"/>
+  <text x="190" y="62" fill="#F87171" font-size="10" font-weight="600" font-family="system-ui">Breaking even</text>
+  <text x="90" y="85" text-anchor="end" fill="#94A3B8" font-size="11" font-family="system-ui">3:1 Ratio</text>
+  <rect x="100" y="72" width="250" height="20" rx="4" fill="#10B981"/>
+  <text x="360" y="87" fill="#10B981" font-size="10" font-weight="600" font-family="system-ui">Industry standard (Healthy)</text>
+  <text x="90" y="110" text-anchor="end" fill="#94A3B8" font-size="11" font-family="system-ui">5:1 Ratio</text>
+  <rect x="100" y="97" width="400" height="20" rx="4" fill="#FBBF24"/>
+  <text x="510" y="112" fill="#FBBF24" font-size="10" font-weight="600" font-family="system-ui">Exceptional (may under-invest)</text>
+</svg>
+</figure>
+
 | Metric | Pre-Seed Benchmark | Seed Benchmark | Series A Benchmark |
 | :--- | :--- | :--- | :--- |
 | **LTV:CAC Ratio** | N/A (Focus on product) | > 2.5:1 | > 3.0:1 |
@@ -193,6 +251,22 @@ Investors in Australia are increasingly wary of startups with long burn rates re
 *   **Marketplaces:** Can vary, but should ideally trend toward **30%+**.
 
 Low gross margins signal that your business model may not be scalable. Investors will discount your valuation if your margins are thin, as there is little room for error or for covering high SG&A (Selling, General, and Administrative) expenses.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 130" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="130" rx="12" fill="#0B1220"/>
+  <text x="300" y="25" text-anchor="middle" fill="#FFF" font-size="13" font-weight="700" font-family="system-ui">Gross Margin Benchmarks by Business Type</text>
+  <text x="90" y="57" text-anchor="end" fill="#94A3B8" font-size="11" font-family="system-ui">SaaS</text>
+  <rect x="100" y="44" width="380" height="20" rx="4" fill="#10B981"/>
+  <text x="490" y="59" fill="#10B981" font-size="10" font-weight="600" font-family="system-ui">70-85%</text>
+  <text x="90" y="82" text-anchor="end" fill="#94A3B8" font-size="11" font-family="system-ui">Marketplace</text>
+  <rect x="100" y="69" width="200" height="20" rx="4" fill="#FBBF24"/>
+  <text x="310" y="84" fill="#FBBF24" font-size="10" font-weight="600" font-family="system-ui">30%+</text>
+  <text x="90" y="107" text-anchor="end" fill="#94A3B8" font-size="11" font-family="system-ui">Hardware</text>
+  <rect x="100" y="94" width="140" height="20" rx="4" fill="#F87171"/>
+  <text x="250" y="109" fill="#F87171" font-size="10" font-weight="600" font-family="system-ui">20-40%</text>
+</svg>
+</figure>
 
 > **Regulatory Note:** Ensure your financial reporting complies with **ATO** and **ASIC** standards. Misclassifying COGS to artificially inflate gross margins is a red flag during due diligence and can lead to penalties.
 
