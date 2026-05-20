@@ -1,9 +1,9 @@
-import { Composition } from "remotion";
+import { registerRoot, Composition } from "remotion";
 import { PitchVideo1Min } from "./compositions/PitchVideo1Min";
 import { PitchVideo3Min } from "./compositions/PitchVideo3Min";
 import { BRAND } from "./styles/brand";
 
-export const RemotionRoot: React.FC = () => {
+const RemotionRoot: React.FC = () => {
   return (
     <>
       <Composition
@@ -25,3 +25,5 @@ export const RemotionRoot: React.FC = () => {
     </>
   );
 };
+
+registerRoot(RemotionRoot);
