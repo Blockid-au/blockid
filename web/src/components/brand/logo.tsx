@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 /**
@@ -63,10 +64,11 @@ export function Logo({
       )}
     >
       {/* Icon — use light version on dark backgrounds */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <Image
         src={isDark ? "/images/logo-icon-light.png" : "/images/logo-icon-transparent.png"}
         alt=""
+        width={size === "hero" ? 56 : size === "large" ? 36 : 28}
+        height={size === "hero" ? 56 : size === "large" ? 36 : 28}
         className={cn(iconClass, "shrink-0")}
       />
 

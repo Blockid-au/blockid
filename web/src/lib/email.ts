@@ -886,6 +886,179 @@ export async function sendGrowthReport(args: {
   });
 }
 
+// ---------- SVI weekly review email -------------------------------------------
+
+export async function sendSVIReview(args: {
+  to: string;
+  name?: string | null;
+  svi: number;
+  stage: number;
+  stageLabel: string;
+  wins: string[];
+  gaps: Array<{ label: string; action: string; impact: number }>;
+  projectedSvi: number;
+  weekNum: number;
+}): Promise<SendResult> {
+  const dashUrl = `${siteUrl()}/dashboard/svi`;
+  const evidenceUrl = `${siteUrl()}/workspace/evidence`;
+
+  // Score color based on value
+  const scoreColor =
+    args.svi >= 140
+      ? "#4ADE80"
+      : args.svi >= 100
+        ? "#3B7DD8"
+        : "#FBBF24";
+
+  // Stage progress: what the next stage is and how far away
+  const nextStageIdx = Math.min(args.stage + 1, 7);
+  const stageLabels = [
+    "Concept",
+    "Validated Idea",
+    "MVP",
+    "Early Traction",
+    "Revenue",
+    "Growth",
+    "Scale",
+    "Corporation",
+  ];
+  const nextStageLabel = stageLabels[nextStageIdx] ?? "Corporation";
+
+  // Win rows (green checkmarks)
+  const winRows = args.wins
+    .map(
+      (w) =>
+        `<tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(w)}</td></tr>`,
+    )
+    .join("");
+
+  // Gap rows (amber warnings with action + impact)
+  const gapRows = args.gaps
+    .map(
+      (g) =>
+        `<tr><td style="padding:6px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(g.label)}<br><span style="color:#94A3B8;font-size:13px;">${escapeHtml(g.action)}</span> <span style="color:#4ADE80;font-size:12px;font-weight:600;">+${g.impact} SVI</span></td></tr>`,
+    )
+    .join("");
+
+  // Projected score bar
+  const projectedHtml =
+    args.projectedSvi > args.svi
+      ? `
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:0 0 24px 0;">
+            <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Projected Score</p>
+            <p style="margin:0 0 12px 0;color:#F8FAFC;font-size:15px;">Your SVI could reach <strong style="color:#4ADE80;">${args.projectedSvi}</strong> by completing the actions above.</p>
+            <div style="background:#1F2A44;border-radius:6px;height:8px;overflow:hidden;">
+              <div style="background:linear-gradient(90deg,#3B7DD8,#4ADE80);height:100%;width:${Math.min(100, Math.round((args.svi / Math.max(args.projectedSvi, 1)) * 100))}%;border-radius:6px;"></div>
+            </div>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 0 0;">
+              <tr>
+                <td style="color:#94A3B8;font-size:11px;">Current: ${args.svi}</td>
+                <td style="color:#4ADE80;font-size:11px;text-align:right;">Target: ${args.projectedSvi} (+${args.projectedSvi - args.svi})</td>
+              </tr>
+            </table>
+          </div>`
+      : "";
+
+  const html = shell(`
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+        <tr><td>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Week ${args.weekNum} Review</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Your Weekly SVI Review${args.name ? `, ${escapeHtml(args.name)}` : ""}</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Here is your personalised Startup Value Index review with specific actions to grow your score.</p>
+
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
+            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:64px;font-weight:600;color:${scoreColor};line-height:1;">${args.svi}</div>
+            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">SVI Score — ${escapeHtml(args.stageLabel)} Stage</p>
+            <p style="margin:4px 0 0 0;color:#64748B;font-size:12px;">Next stage: ${escapeHtml(nextStageLabel)}</p>
+          </div>
+
+          ${args.wins.length > 0 ? `
+          <p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Top Strengths</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${winRows}</table>
+          ` : ""}
+
+          ${args.gaps.length > 0 ? `
+          <p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Priority Actions</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${gapRows}</table>
+          ` : ""}
+
+          ${projectedHtml}
+
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 0 0;">
+            <tr>
+              <td width="48%" style="text-align:center;padding:4px;">
+                <a href="${evidenceUrl}" style="display:inline-block;width:100%;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">Upload Evidence</a>
+              </td>
+              <td width="4%"></td>
+              <td width="48%" style="text-align:center;padding:4px;">
+                <a href="${dashUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">View Dashboard</a>
+              </td>
+            </tr>
+          </table>
+          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
+          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:11px;line-height:1.5;">You are receiving this because you have an SVI analysis on BlockID. To stop these emails, reply with "unsubscribe".</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>`);
+
+  return sendEmail({
+    to: args.to,
+    subject: `Week ${args.weekNum} SVI Review — Score: ${args.svi} | ${args.stageLabel} Stage`,
+    html,
+  });
+}
+
+// ---------- SVI milestone celebration email ----------------------------------
+
+export async function sendMilestoneEmail(args: {
+  to: string;
+  name?: string | null;
+  badge: string;
+  badgeLabel: string;
+  message: string;
+}): Promise<SendResult> {
+  const dashUrl = `${siteUrl()}/dashboard/svi`;
+
+  const html = shell(`
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+        <tr><td>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Milestone</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${escapeHtml(args.badgeLabel)}</h1>
+          ${args.name ? `<p style="margin:0 0 16px 0;color:#94A3B8;font-size:15px;">Congratulations, ${escapeHtml(args.name)}.</p>` : ""}
+
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:32px;text-align:center;margin:0 0 24px 0;">
+            <div style="display:inline-block;width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#3B7DD8,#4ADE80);line-height:80px;margin:0 0 16px 0;">
+              <span style="font-size:36px;color:#0B1220;font-weight:700;">&#9733;</span>
+            </div>
+            <p style="margin:0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:16px;font-weight:600;color:#4ADE80;text-transform:uppercase;letter-spacing:0.1em;">${escapeHtml(args.badge.replace(/_/g, " "))}</p>
+          </div>
+
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${escapeHtml(args.message)}</p>
+
+          <p style="margin:0 0 24px 0;text-align:center;">
+            <a href="${dashUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Your Dashboard</a>
+          </p>
+          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
+          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:11px;line-height:1.5;">You are receiving this because you reached a milestone on BlockID. To stop these emails, reply with "unsubscribe".</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>`);
+
+  return sendEmail({
+    to: args.to,
+    subject: `${args.badgeLabel} — BlockID Milestone`,
+    html,
+  });
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")

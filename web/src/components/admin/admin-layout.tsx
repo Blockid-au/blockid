@@ -14,6 +14,7 @@ import {
   LayoutDashboard,
   Map,
   Shield,
+  Sparkles,
   TrendingUp,
   Users,
 } from "lucide-react";
@@ -30,6 +31,7 @@ interface AdminLayoutProps {
 
 const ADMIN_NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/admin/self-analysis", label: "Self-Assessment", icon: Sparkles },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/team", label: "Team", icon: Bot },
   { href: "/admin/roadmap", label: "Roadmap", icon: Map },

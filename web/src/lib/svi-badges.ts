@@ -28,14 +28,20 @@ export const BADGES: BadgeDef[] = [
 
   // Score badges
   { code: "svi_100", label: "Baseline", description: "Reached SVI score of 100", icon: "Target", category: "score" },
+  { code: "svi_120", label: "Above Average", description: "Reached SVI score of 120", icon: "TrendingUp", category: "score" },
+  { code: "svi_140", label: "Strong", description: "Reached SVI score of 140", icon: "Zap", category: "score" },
   { code: "svi_150", label: "Rising Star", description: "Reached SVI score of 150", icon: "Star", category: "score" },
   { code: "svi_200", label: "High Performer", description: "Reached SVI score of 200", icon: "Trophy", category: "score" },
   { code: "svi_250", label: "Investor Ready", description: "Reached SVI score of 250", icon: "Award", category: "score" },
 
   // Growth badges
   { code: "stage_advance", label: "Level Up", description: "Advanced to the next startup stage", icon: "TrendingUp", category: "growth" },
+  { code: "weekly_streak_3", label: "Momentum", description: "3 consecutive weeks with SVI increase", icon: "Flame", category: "growth" },
   { code: "weekly_streak_4", label: "Consistent", description: "Active 4 weeks in a row", icon: "Flame", category: "growth" },
   { code: "score_improved", label: "Growth Mindset", description: "Improved SVI score from previous week", icon: "ArrowUp", category: "growth" },
+
+  // Engagement badges
+  { code: "first_investor_view", label: "On the Radar", description: "Your score was viewed by an investor", icon: "Eye", category: "connection" },
 
   // Connection badges
   { code: "github_connected", label: "Code Verified", description: "Connected GitHub repository", icon: "Github", category: "connection" },

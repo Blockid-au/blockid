@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowRight,
   BarChart3,
@@ -161,14 +162,13 @@ export function Hero() {
           {/* Platform overview banner */}
           <div className="hidden xl:block relative">
             <div className="rounded-2xl border border-surface-200 bg-white shadow-lg overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src="/images/blockid-hero-banner.png"
                 alt="BlockID.au platform overview"
                 width={1560}
                 height={880}
                 className="w-full h-auto"
-                loading="eager"
+                priority
               />
             </div>
             <p className="mt-2 text-center text-xs text-ink-500">Platform overview</p>
@@ -177,14 +177,13 @@ export function Hero() {
           {/* Mobile banner */}
           <div className="xl:hidden">
             <div className="rounded-2xl border border-surface-200 bg-white shadow-lg overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src="/images/blockid-hero-banner.png"
                 alt="BlockID.au platform overview"
                 width={1560}
                 height={880}
                 className="w-full h-auto"
-                loading="eager"
+                priority
               />
             </div>
             <p className="mt-2 text-center text-xs text-ink-500">Platform overview</p>

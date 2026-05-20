@@ -218,6 +218,12 @@ export function AdminDashboardClient({
         <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {[
             {
+              href: "/admin/self-analysis",
+              label: "BlockID Self-Assessment",
+              desc: "Our own SVI analysis — platform health and next steps",
+              highlight: true,
+            },
+            {
               href: "/admin/growth",
               label: "Growth Intelligence",
               desc: "AI-powered funnel analysis & revenue recommendations",

@@ -38,6 +38,7 @@ import { isEarlyBird } from "@/lib/plans";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import type { RndReport } from "@/lib/rnd-types";
 
+import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
 
 type SubmitState = "idle" | "submitting" | "done" | "error";
@@ -587,8 +588,7 @@ export function SVIEntrance() {
       <div className="min-h-svh bg-surface-100 flex flex-col">
         <header className="px-6 py-5 flex items-center justify-between max-w-2xl mx-auto w-full">
           <Link href="/" className="inline-flex items-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/images/logo-icon-transparent.png" alt="" className="h-7 w-7" /><span className="ml-2.5 text-lg font-extrabold tracking-tight text-ink-900">BlockID<span className="text-brand-500">.au</span></span>
+            <Image src="/images/logo-icon-transparent.png" alt="" width={28} height={28} className="h-7 w-7" /><span className="ml-2.5 text-lg font-extrabold tracking-tight text-ink-900">BlockID<span className="text-brand-500">.au</span></span>
           </Link>
           <button type="button" onClick={handleReset} className="text-xs text-ink-600 hover:text-ink-800 cursor-pointer transition-colors flex items-center gap-1.5">
             <X strokeWidth={1.75} className="h-3.5 w-3.5" /> New analysis
@@ -681,17 +681,14 @@ export function SVIEntrance() {
             </div>
             {/* Right: platform overview banner */}
             <div className="relative rounded-3xl shadow-2xl overflow-hidden bg-white">
-              <picture>
-                <source srcSet="/images/blockid-hero-banner.webp" type="image/webp" />
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/images/blockid-hero-banner.png"
-                  alt="BlockID.au — Turn your idea into a valuable, investable business. Cap Table, Valuation, AI Workspace."
-                  className="w-full h-auto"
-                  loading="eager"
-                  fetchPriority="high"
-                />
-              </picture>
+              <Image
+                src="/images/blockid-hero-banner.png"
+                alt="BlockID.au — Turn your idea into a valuable, investable business. Cap Table, Valuation, AI Workspace."
+                width={1200}
+                height={675}
+                className="w-full h-auto"
+                priority
+              />
             </div>
           </div>
 
@@ -763,8 +760,7 @@ export function SVIEntrance() {
             <div className="rounded-2xl border border-brand-500/40 bg-brand-950/30 p-6 ring-1 ring-brand-500/20">
               <div className="flex items-center gap-3 mb-5">
                 <div className="h-10 w-10 rounded-xl bg-brand-600 flex items-center justify-center">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/images/logo-icon-transparent.png" alt="" className="h-6 w-6" />
+                  <Image src="/images/logo-icon-transparent.png" alt="" width={24} height={24} className="h-6 w-6" />
                 </div>
                 <div>
                   <p className="font-semibold text-white">BlockID.au solves this</p>
@@ -817,9 +813,8 @@ export function SVIEntrance() {
         </div>
         <div className="mx-auto w-full max-w-2xl px-4 sm:px-6 flex flex-col items-center relative">
           <div className="flex flex-col items-center mb-8">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <div className="flex items-center gap-4 mb-6 animate-fade-in">
-              <img src="/images/logo-icon-transparent.png" alt="" className="h-14 w-14 md:h-16 md:w-16" />
+              <Image src="/images/logo-icon-transparent.png" alt="" width={64} height={64} className="h-14 w-14 md:h-16 md:w-16" />
               <div className="flex flex-col">
                 <span className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-ink-900">BlockID<span className="text-brand-500">.au</span></span>
                 <span className="text-sm md:text-base font-medium tracking-wide text-ink-500 mt-0.5">Valuation. Ownership. Execution. Growth.</span>
@@ -1011,8 +1006,7 @@ export function SVIEntrance() {
         <div className="mx-auto max-w-6xl px-6">
           <div className="flex flex-col md:flex-row items-center gap-8 mb-8">
             <div className="flex items-center gap-3 shrink-0">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/images/logo-icon-transparent.png" alt="" className="h-7 w-7" /><span className="ml-2.5 text-lg font-extrabold tracking-tight text-ink-900">BlockID<span className="text-brand-500">.au</span></span>
+              <Image src="/images/logo-icon-transparent.png" alt="" width={28} height={28} className="h-7 w-7" /><span className="ml-2.5 text-lg font-extrabold tracking-tight text-ink-900">BlockID<span className="text-brand-500">.au</span></span>
               <div>
                 <p className="text-lg font-bold">Your Idea Is Valuable.</p>
                 <p className="text-xs text-slate-400">How you build it determines its future value.</p>
@@ -1385,8 +1379,7 @@ function TopBar() {
     <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-surface-200">
       <div className="mx-auto max-w-7xl px-4 h-14 flex items-center justify-between">
         <Link href="/" className="inline-flex items-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/logo-icon-transparent.png" alt="" className="h-7 w-7" /><span className="ml-2.5 text-lg font-extrabold tracking-tight text-ink-900">BlockID<span className="text-brand-500">.au</span></span>
+          <Image src="/images/logo-icon-transparent.png" alt="" width={28} height={28} className="h-7 w-7" /><span className="ml-2.5 text-lg font-extrabold tracking-tight text-ink-900">BlockID<span className="text-brand-500">.au</span></span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-1">
@@ -1419,8 +1412,7 @@ function TopBar() {
         <div className="fixed inset-0 z-50 bg-white md:hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-surface-200">
             <Link href="/" className="inline-flex items-center" onClick={() => setMobileOpen(false)}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/images/logo-icon-transparent.png" alt="" className="h-7 w-7" /><span className="ml-2.5 text-lg font-extrabold tracking-tight text-ink-900">BlockID<span className="text-brand-500">.au</span></span>
+              <Image src="/images/logo-icon-transparent.png" alt="" width={28} height={28} className="h-7 w-7" /><span className="ml-2.5 text-lg font-extrabold tracking-tight text-ink-900">BlockID<span className="text-brand-500">.au</span></span>
             </Link>
             <button type="button" onClick={() => setMobileOpen(false)} className="h-10 w-10 flex items-center justify-center rounded-lg text-ink-600 hover:bg-surface-100 cursor-pointer">
               <X strokeWidth={1.75} className="h-5 w-5" />
