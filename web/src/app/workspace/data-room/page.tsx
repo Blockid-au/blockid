@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { DataRoomClient } from "./data-room-client";
+import { DATA_ROOM_STRUCTURE } from "@/lib/data-room-templates";
 
 export const metadata: Metadata = {
   title: "Data Room",
@@ -124,6 +125,7 @@ export default async function DataRoomPage() {
           items={DATA_ROOM_ITEMS}
           categories={CATEGORIES}
           initialStates={itemStates}
+          templateStructure={DATA_ROOM_STRUCTURE}
         />
       </div>
     </WorkspaceLayout>

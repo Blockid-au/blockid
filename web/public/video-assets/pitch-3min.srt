@@ -1,223 +1,79 @@
 1
-00:00:03,000 --> 00:00:05,000
-Ninety percent of startups fail.
+00:00:00,500 --> 00:00:07,500
+90% of startups fail. Most don't know why until it's too late.
 
 2
-00:00:05,000 --> 00:00:08,000
-Three hundred and seventy thousand Australian businesses closed last year.
+00:00:08,000 --> 00:00:14,500
+I've watched founders build incredible products, then lose it all at the cap table.
 
 3
-00:00:08,000 --> 00:00:11,000
-Ninety-seven billion dollars poured into AI startups. Ninety percent still fail.
+00:00:15,000 --> 00:00:19,500
+Problem 1: Founders can't answer the most basic investor question.
 
 4
-00:00:11,000 --> 00:00:15,000
-The gap: AI builds products. Nothing builds businesses.
+00:00:20,000 --> 00:00:24,500
+Problem 2: Equity splits done on napkins. Vesting? Never heard of it.
 
 5
-00:00:15,000 --> 00:00:18,000
-I'm Do Van Long, founder of BlockID.
+00:00:25,000 --> 00:00:29,500
+Problem 3: No single platform. You need Carta, a lawyer, and a spreadsheet.
 
 6
-00:00:18,000 --> 00:00:23,000
-I've watched founders build incredible AI products, then struggle to value them, split equity fairly, or get investor-ready.
+00:00:30,000 --> 00:00:32,000
+Introducing BlockID — the AI valuation platform for Australian founders.
 
 7
-00:00:23,000 --> 00:00:27,000
-Everyone talks about building with AI. Nobody talks about building the business around it.
+00:00:32,000 --> 00:00:41,000
+Describe your startup in plain text. Any language. Any stage.
 
 8
-00:00:27,000 --> 00:00:30,000
-That's why I built BlockID. The platform that values startups from Day Zero.
+00:00:41,300 --> 00:00:50,500
+8 dimensions. 60 seconds. Your Startup Value Index — evidence-backed.
 
 9
-00:00:30,000 --> 00:00:33,000
-Every founder faces three impossible questions.
+00:00:50,700 --> 00:00:59,500
+Not just a number. A complete diagnostic with specific actions.
 
 10
-00:00:33,000 --> 00:00:38,000
-First: How much is my startup worth? Manual valuation costs five to fifty thousand dollars and takes two to six weeks.
+00:01:00,000 --> 00:01:09,500
+A 10-page guided report. Market. Product. Traction. Cap table. All scored.
 
 11
-00:00:38,000 --> 00:00:43,000
-Second: How do I split equity? Forty-two percent of co-founder disputes destroy startups before they even launch.
+00:01:10,000 --> 00:01:19,500
+Download as PDF. Email to co-founders. Share with investors.
 
 12
-00:00:43,000 --> 00:00:48,000
-Third: How do I get investor-ready? The average data room takes three to six weeks to prepare. Most founders never finish.
+00:01:20,000 --> 00:01:29,500
+Upload pitch decks. Connect GitHub. Verify revenue through Stripe.
 
 13
-00:00:48,000 --> 00:00:50,000
-BlockID solves all three. Let me show you.
+00:01:30,000 --> 00:01:39,500
+Every piece of evidence lifts your score. From self-declared to verified.
 
 14
-00:00:50,000 --> 00:00:53,000
-Here's BlockID in action.
+00:01:40,000 --> 00:01:59,500
+10 steps from idea to investor. Cap table. Equity. Data room. Compliance.
 
 15
-00:00:53,000 --> 00:00:56,000
-You describe your startup idea in plain English.
+00:02:00,000 --> 00:02:09,500
+600,000 Australian companies. 50,000 raising capital. Zero AI platforms.
 
 16
-00:00:56,000 --> 00:00:58,000
-BlockID detects your input type automatically.
+00:02:10,000 --> 00:02:19,500
+Free trial. $1 per analysis. $49 lifetime account. 88%+ gross margins.
 
 17
-00:00:58,000 --> 00:01:00,000
-Enter your email and hit 'Get My SVI'.
+00:02:20,000 --> 00:02:34,500
+Built for Australia. ABN. ASIC. ESIC. R&D tax. Not an afterthought.
 
 18
-00:01:00,000 --> 00:01:03,000
-Now watch. Our AI agents go to work.
+00:02:35,000 --> 00:02:49,500
+One founder. Eight AI agents. 272 files. 70 APIs. Built in 19 days.
 
 19
-00:01:03,000 --> 00:01:06,000
-Researching your market. Scanning competitors. Evaluating your business model.
+00:02:50,000 --> 00:02:54,500
+We don't just talk about AI. We ARE AI-native.
 
 20
-00:01:06,000 --> 00:01:08,000
-Generating your report.
-
-21
-00:01:08,000 --> 00:01:12,000
-And there it is. Your Startup Viability Index. A comprehensive AI-powered valuation.
-
-22
-00:01:12,000 --> 00:01:16,000
-Ten-page AI analysis. Market research. Competitor analysis. Business model evaluation. Actionable recommendations.
-
-23
-00:01:16,000 --> 00:01:20,000
-All in under a minute. What used to cost thousands and take weeks.
-
-24
-00:01:20,000 --> 00:01:24,000
-But here's what makes BlockID different. Every recommendation is actionable.
-
-25
-00:01:24,000 --> 00:01:27,000
-Click 'Build your cap table' and the tool opens right there.
-
-26
-00:01:27,000 --> 00:01:31,000
-Split equity between founders. Founder sixty percent, co-founder thirty, employee pool ten.
-
-27
-00:01:31,000 --> 00:01:35,000
-Complete the action and your score automatically increases.
-
-28
-00:01:35,000 --> 00:01:40,000
-Upload evidence. Pitch decks, revenue proof, GitHub repos. Each piece of verified evidence lifts your score.
-
-29
-00:01:40,000 --> 00:01:45,000
-Connect Stripe for revenue tracking. Connect GitHub for code activity. Your startup's value grows with you, automatically.
-
-30
-00:01:45,000 --> 00:01:49,000
-Your Living Report updates in real time. A dynamic dashboard that evolves as your startup evolves.
-
-31
-00:01:49,000 --> 00:01:55,000
-Earn milestone badges as you hit key startup milestones. Each one proves progress to investors.
-
-32
-00:01:55,000 --> 00:01:57,000
-But we're just getting started.
-
-33
-00:01:57,000 --> 00:02:00,000
-Phase One: AI Analysis. Live now. Proven. Working.
-
-34
-00:02:00,000 --> 00:02:02,000
-Phase Two: Evidence and Validation. Building your proof layer.
-
-35
-00:02:02,000 --> 00:02:04,000
-Phase Three: Dollar Valuation Engine. Real numbers, real confidence.
-
-36
-00:02:04,000 --> 00:02:06,000
-Phase Four: Full Cap Table Management.
-
-37
-00:02:06,000 --> 00:02:08,000
-Phase Five: Blockchain Tokenization on Cosmos.
-
-38
-00:02:08,000 --> 00:02:10,000
-Phase Six: Investor Matching and Fundraising.
-
-39
-00:02:10,000 --> 00:02:12,000
-Phase Seven: Revenue Tracking and Automatic Dividends.
-
-40
-00:02:12,000 --> 00:02:15,000
-Phase Eight: Growth Journal and Exit Preparation. Equity tokenized on blockchain. Automatic dividends. From idea to IPO, one platform.
-
-41
-00:02:15,000 --> 00:02:18,000
-The opportunity is massive.
-
-42
-00:02:18,000 --> 00:02:22,000
-A four-point-four trillion dollar global startup ecosystem. A three-point-two billion dollar cap table and valuation tools market.
-
-43
-00:02:22,000 --> 00:02:26,000
-Twenty-six hundred active Australian startups. Three hundred accelerators. Fifteen thousand angel investors.
-
-44
-00:02:26,000 --> 00:02:29,000
-And not one AI-native valuation platform built for Australia.
-
-45
-00:02:29,000 --> 00:02:35,000
-Start free. Your first analysis is on us. One dollar per report during early bird. Forty-nine dollars for the Founder plan: a hundred credits, lifetime access. Ninety-nine dollars per month for Growth: two hundred credits, everything included.
-
-46
-00:02:35,000 --> 00:02:38,000
-We're not just another SaaS tool. We're an AI-first company.
-
-47
-00:02:38,000 --> 00:02:42,000
-One founder supported by nine AI agent C-levels and twenty-three specialized skills. Shipping daily.
-
-48
-00:02:42,000 --> 00:02:45,000
-Built for Australian compliance from day one.
-
-49
-00:02:45,000 --> 00:02:50,000
-Carta is US-centric. Pulley starts at fundraise. Qapita covers Asia. BlockID starts at Day Zero. Before you've even incorporated.
-
-50
-00:02:52,000 --> 00:02:54,000
-Two hundred and fifty-two billion dollars invested in AI last year.
-
-51
-00:02:54,000 --> 00:02:55,500
-Ninety percent of those startups will fail.
-
-52
-00:02:55,500 --> 00:02:56,500
-Not because of bad ideas.
-
-53
-00:02:56,500 --> 00:02:57,500
-Because nobody helped them prove their value.
-
-54
-00:02:58,000 --> 00:03:00,000
-Until now.
-
-55
-00:03:00,000 --> 00:03:03,000
-BlockID dot au. Where AI meets startup valuation.
-
-56
-00:03:03,000 --> 00:03:05,000
-First analysis free. Start today.
+00:02:55,000 --> 00:03:00,000
+Get your free SVI at blockid.au
