@@ -11,6 +11,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { sendReportDelivery } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -176,7 +177,7 @@ export async function POST(request: Request) {
   // Fetch latest analysis for additional context
   const { data: latestAnalysis } = await supabase
     .from("svi_analyses")
-    .select("analysis_json, total_svi")
+    .select("id, analysis_json, total_svi")
     .eq("email", user.email)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -268,6 +269,16 @@ export async function POST(request: Request) {
       method: "POST",
       headers: { Cookie: cookieHeader },
     }).catch(() => {});
+
+    // Send report delivery email (fire-and-forget)
+    if (latestAnalysis?.id && account) {
+      void sendReportDelivery({
+        to: user.email,
+        slug: latestAnalysis.id,
+        tier,
+        sviScore: account.current_svi ?? latestAnalysis.total_svi ?? 0,
+      }).catch(() => {});
+    }
 
     return NextResponse.json({
       ok: true,
