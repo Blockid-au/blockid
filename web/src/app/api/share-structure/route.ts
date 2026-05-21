@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { computeSharePriceFromSVI, getDefaultShareStructure } from "@/lib/share-structure";
+import { computeSharePriceFromSVI, getDefaultShareStructure, type ShareMode } from "@/lib/share-structure";
 
 export const dynamic = "force-dynamic";
 
@@ -70,15 +70,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
   }
 
-  const mode = body.mode === "dynamic_shares" ? "dynamic_shares" : "fixed_shares";
+  const mode: ShareMode = body.mode === "dynamic_shares" ? "dynamic_shares" : "fixed_shares";
   const authorizedShares = Number(body.authorizedShares) || 10_000_000;
   const sviScore = body.sviScore ? Number(body.sviScore) : null;
 
-  const config = {
+  const config: {
+    mode: ShareMode;
+    authorizedShares: number;
+    sharePriceAud: number | null;
+    valuationAud: number | null;
+    lastSviScore: number | null;
+    autoRecompute: boolean;
+  } = {
     mode,
     authorizedShares,
-    sharePriceAud: null as number | null,
-    valuationAud: null as number | null,
+    sharePriceAud: null,
+    valuationAud: null,
     lastSviScore: sviScore,
     autoRecompute: true,
   };

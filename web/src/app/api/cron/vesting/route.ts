@@ -6,6 +6,7 @@ import {
   type VestingSchedule,
 } from "@/lib/vesting";
 import { sendVestingMilestone } from "@/lib/email";
+import { queueSyncEvent, getSyncConfig } from "@/lib/blockchain-sync";
 
 export const dynamic = "force-dynamic";
 
@@ -176,6 +177,27 @@ export async function GET(request: Request) {
         );
       } else {
         processed++;
+
+        // 6. Queue blockchain sync event if sync is enabled for this account
+        if (newVested > previousVested || current.percent >= 100) {
+          try {
+            const syncConfig = await getSyncConfig(row.cap_table_id);
+            if (syncConfig?.syncEnabled && syncConfig.tokenAddress) {
+              if (current.percent >= 100) {
+                // Vesting completed — queue a completion event
+                await queueSyncEvent(row.cap_table_id, "vest_grant", {
+                  beneficiary: row.shareholder_email,
+                  shareholderName: row.shareholder_name,
+                  totalShares: Number(row.total_shares),
+                  event: "vesting_completed",
+                });
+              }
+            }
+          } catch (syncErr) {
+            // Blockchain sync is non-critical — log and continue
+            console.warn("[blockid:vesting-cron] sync queue failed", syncErr);
+          }
+        }
       }
     }
 
