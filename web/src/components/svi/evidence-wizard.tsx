@@ -2,6 +2,14 @@
 
 import * as React from "react";
 import { X, FileText, Link2, GitBranch, BarChart3, CreditCard, ChevronRight, CheckCircle2, Loader2 } from "lucide-react";
+
+function LinkedInIcon({ className, strokeWidth: _sw }: { className?: string; strokeWidth?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+    </svg>
+  );
+}
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
@@ -155,7 +163,76 @@ function AnalyticsConnectStep() {
   );
 }
 
-type EvidenceType = "text" | "document" | "url" | "github" | "analytics" | "stripe";
+// ---------- LinkedIn OAuth connect step ----------
+
+function LinkedInConnectStep() {
+  const [available, setAvailable] = React.useState<boolean | null>(null);
+  const [connected, setConnected] = React.useState<boolean>(false);
+  const [connectedLabel, setConnectedLabel] = React.useState<string>("");
+
+  React.useEffect(() => {
+    fetch("/api/oauth/linkedin", { method: "HEAD", redirect: "manual" })
+      .then((res) => setAvailable(res.status !== 503))
+      .catch(() => setAvailable(false));
+
+    fetch("/api/evidence")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.ok && Array.isArray(json.evidence)) {
+          const linkedinEvidence = json.evidence.find(
+            (e: { evidence_type: string; confidence_level: string }) =>
+              e.evidence_type === "linkedin" && e.confidence_level === "connected_source",
+          );
+          if (linkedinEvidence) {
+            setConnected(true);
+            setConnectedLabel(linkedinEvidence.label ?? "LinkedIn Connected");
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  if (connected) {
+    return (
+      <div className="rounded-xl border border-teal-200 bg-teal-50 px-6 py-8 text-center">
+        <CheckCircle2 strokeWidth={1.75} className="mx-auto h-8 w-8 text-teal-600 mb-3" />
+        <p className="text-sm font-semibold text-teal-700 mb-1">LinkedIn Connected</p>
+        <p className="text-xs text-teal-600 mb-4">{connectedLabel}</p>
+        <p className="text-xs text-ink-600">Evidence automatically verified at 75% confidence.</p>
+        <a
+          href="/api/oauth/linkedin"
+          className="inline-flex h-9 items-center gap-2 rounded-xl border border-teal-200 bg-white px-4 text-xs font-medium text-teal-700 hover:bg-teal-50 transition-colors mt-3"
+        >
+          <LinkedInIcon className="h-3.5 w-3.5" /> Refresh Data
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-surface-200 bg-surface-100 px-6 py-8 text-center">
+      <LinkedInIcon strokeWidth={1.75} className="mx-auto h-8 w-8 text-brand-600 mb-3" />
+      <p className="text-sm font-medium text-ink-800 mb-1">Connect LinkedIn</p>
+      <p className="text-xs text-ink-600 mb-4">You&apos;ll be redirected to authorize access. We only read your public profile.</p>
+      {available === null ? (
+        <Loader2 strokeWidth={1.75} className="mx-auto h-5 w-5 text-ink-600 animate-spin" />
+      ) : available ? (
+        <a
+          href="/api/oauth/linkedin"
+          className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#0A66C2] px-5 text-sm font-semibold text-white hover:bg-[#004182] transition-colors"
+        >
+          <LinkedInIcon className="h-4 w-4" /> Connect LinkedIn Profile
+        </a>
+      ) : (
+        <span className="inline-flex h-10 items-center gap-2 rounded-xl bg-surface-200 px-5 text-sm font-semibold text-ink-500 cursor-not-allowed">
+          <LinkedInIcon className="h-4 w-4" /> Coming soon
+        </span>
+      )}
+    </div>
+  );
+}
+
+type EvidenceType = "text" | "document" | "url" | "github" | "linkedin" | "analytics" | "stripe";
 
 interface EvidenceTypeOption {
   id: EvidenceType;
@@ -171,6 +248,7 @@ const EVIDENCE_TYPES: EvidenceTypeOption[] = [
   { id: "document", label: "Upload Document", desc: "Upload PDF, DOCX — pitch decks, business plans, legal agreements (+5-15 SVI)", icon: FileText, impact: "+5–15 SVI", confidence: "50% confidence" },
   { id: "url", label: "Public URL", desc: "Link your website, LinkedIn, Product Hunt listing (+3-8 SVI)", icon: Link2, impact: "+3–10 SVI", confidence: "35% confidence" },
   { id: "github", label: "Connect GitHub", desc: "Connect repository to verify code quality and activity (+5-12 SVI)", icon: GitBranch, impact: "+8–12 SVI", confidence: "75% confidence" },
+  { id: "linkedin", label: "Connect LinkedIn", desc: "Link founder's LinkedIn profile to verify credibility (+5-8 SVI)", icon: LinkedInIcon, impact: "+5–8 SVI", confidence: "75% confidence" },
   { id: "analytics", label: "Connect Analytics", desc: "Link Google Analytics to prove user traction (+8-15 SVI)", icon: BarChart3, impact: "+6–10 SVI", confidence: "75% confidence" },
   { id: "stripe", label: "Connect Stripe", desc: "Connect Stripe to verify revenue and growth (+10-20 SVI)", icon: CreditCard, impact: "+15–25 SVI", confidence: "90% confidence" },
 ];
@@ -181,6 +259,7 @@ const DIMENSION_MAP: Record<EvidenceType, string> = {
   url: "mpc",
   document: "ptd",
   github: "ptd",
+  linkedin: "cgh",
   analytics: "tre",
   stripe: "tre",
 };
@@ -331,6 +410,10 @@ export function EvidenceWizard({ onClose, onSuccess }: EvidenceWizardProps) {
 
             {evidenceType === "github" && (
               <GitHubConnectStep />
+            )}
+
+            {evidenceType === "linkedin" && (
+              <LinkedInConnectStep />
             )}
 
             {evidenceType === "analytics" && (

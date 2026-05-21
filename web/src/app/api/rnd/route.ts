@@ -3,7 +3,7 @@ import { extractSignals, computeSVI, type SVITextInput } from "@/lib/svi-analysi
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { isAIConfigured } from "@/lib/ai-client";
 import { newSlug } from "@/lib/slug";
-import { detectInputType, scrapeUrl } from "@/lib/rnd-input";
+import { detectInputType, scrapeUrl, deepTechAudit, type TechAuditResult } from "@/lib/rnd-input";
 import { generateRndReport, type ReportTier } from "@/lib/rnd-analysis";
 import { canAfford, spendCredits } from "@/lib/credits";
 
@@ -139,23 +139,40 @@ export async function POST(request: Request) {
       sendEvent("status", { step: "detecting", message: "Analyzing your input..." });
       const inputType = detectInputType(rawText, fileName);
 
-      // Step 2: Scrape URL if applicable
+      // Step 2: Scrape URL + Deep Tech Audit (parallel) if applicable
       let scrapedData: Awaited<ReturnType<typeof scrapeUrl>> | undefined;
+      let techAudit: TechAuditResult | undefined;
       if (inputType === "url") {
-        sendEvent("status", { step: "scraping", message: "Scraping website data..." });
-        try {
-          scrapedData = await scrapeUrl(rawText);
+        sendEvent("status", { step: "scraping", message: "Scraping website + running deep tech audit..." });
+        // Run scrape and deep tech audit in parallel for speed
+        const [scrapeResult, auditResult] = await Promise.allSettled([
+          scrapeUrl(rawText),
+          deepTechAudit(rawText),
+        ]);
+
+        if (scrapeResult.status === "fulfilled") {
+          scrapedData = scrapeResult.value;
           sendEvent("status", {
             step: "scraped",
             message: `Found: ${scrapedData.title || "Untitled"}. Tech: ${scrapedData.techHints.join(", ") || "none detected"}.`,
           });
-        } catch (err) {
-          console.error("[rnd] Scrape failed:", err);
+        } else {
+          console.error("[rnd] Scrape failed:", scrapeResult.reason);
           sendEvent("status", { step: "scrape_failed", message: "Could not scrape URL. Continuing with text analysis..." });
+        }
+
+        if (auditResult.status === "fulfilled") {
+          techAudit = auditResult.value;
+          sendEvent("status", {
+            step: "tech_audit_complete",
+            message: `Tech Audit: Grade ${techAudit.overallGrade} | Security: ${techAudit.security.grade} | Perf: ${techAudit.performance.grade} | Stack: ${techAudit.techStack.frameworks.join(", ") || "standard"}`,
+          });
+        } else {
+          console.error("[rnd] Tech audit failed:", auditResult.reason);
         }
       }
 
-      // Step 3: Run SVI computation
+      // Step 3: Run SVI computation (enhanced with tech audit data)
       sendEvent("status", { step: "svi", message: "Computing Startup Value Index..." });
       const sviInput: SVITextInput = {
         rawText: scrapedData
@@ -163,8 +180,8 @@ export async function POST(request: Request) {
           : rawText,
         fileName,
       };
-      const signals = extractSignals(sviInput);
-      const analysis = computeSVI(signals);
+      const signals = extractSignals(sviInput, undefined, undefined, techAudit);
+      const analysis = computeSVI(signals, undefined, techAudit?.signalBoosts);
 
       sendEvent("status", {
         step: "svi_complete",
@@ -191,6 +208,10 @@ export async function POST(request: Request) {
       let slug = newSlug();
 
       if (supabase) {
+        // Embed tech audit inside analysis_json for persistence
+        const analysisWithAudit = techAudit
+          ? { ...analysis, techAudit }
+          : analysis;
         const { error } = await supabase.from("svi_analyses").insert({
           id: slug,
           email,
@@ -199,7 +220,7 @@ export async function POST(request: Request) {
           total_svi: analysis.totalSVI,
           net_adjustment: analysis.netAdjustment,
           confidence_multiplier: analysis.confidenceMultiplier,
-          analysis_json: analysis,
+          analysis_json: analysisWithAudit,
           svi_version: analysis.version,
           rnd_report_json: report,
           input_type: inputType,
@@ -258,6 +279,7 @@ export async function POST(request: Request) {
         analysis,
         totalSVI: analysis.totalSVI,
         tier,
+        ...(techAudit ? { techAudit } : {}),
       });
     } catch (err) {
       console.error("[rnd] Pipeline error:", err);

@@ -39,8 +39,39 @@ AI-powered research and development for platform growth.
 - Propose pricing experiments
 - Output: Pricing strategy recommendations
 
+### 6. Website Tech Analysis (`/rnd tech-audit [url]`)
+- Run `deepTechAudit()` from `web/src/lib/rnd-input.ts`
+- Analyze security posture (SSL, headers, CSP, HSTS)
+- Detect tech stack (frameworks, CDN, hosting, analytics, payments)
+- Assess performance (TTFB, compression, caching)
+- Evaluate product maturity (sitemap, PWA, structured data, login/dashboard)
+- Auto-populate SVI evidence fields and trigger rescore
+- Output: Full `TechAuditResult` with grades (A-F) and SVI signal boosts
+
 ## Execution
 1. Always start by fetching current metrics from Growth Intelligence
 2. Use WebSearch for external research
 3. Cross-reference with internal data (Supabase)
 4. Output actionable recommendations with specific numbers
+
+## Auto-Fill & Scoring Integration
+When R&D analysis discovers data that maps to SVI scoring fields, it MUST auto-populate:
+- Tech audit signals → PTD, SVM, TRE, LCO dimension boosts
+- Website presence → `hasWebsite`, `hasProduct` = true
+- Login/dashboard detected → `hasDemo` = true
+- Payment JS detected → `hasProduct` = true (NOT `hasRevenue` — revenue needs transaction proof)
+- Analytics JS detected → `hasAnalytics` = true
+- Testimonials/customer logos → `hasCustomers`, `hasSocialProof` = true
+- GitHub link discovered → `hasSourceCode` = true, create evidence entry
+
+### GitHub Repo Audit (Enterprise CTO Analysis)
+When user connects GitHub, `auditGitHubRepo()` runs deep analysis on the most active repo:
+- Architecture: language, TypeScript, frameworks, monorepo, linting, package manager
+- Dependencies: notable libs (Prisma, Stripe, AI SDKs), security tools, lock file
+- CI/CD: platform, build/test/lint/deploy steps, Docker, infra-as-code
+- Testing: frameworks (Jest/Vitest/Playwright), E2E, coverage, maturity grade
+- Documentation: README quality, API docs, changelog, license
+- Security: SECURITY.md, Dependabot, CodeQL, secrets management
+- Activity: commit frequency, contributors, stars, forks, maintenance status
+- Creates evidence items for PTD (architecture), FTV (team quality), SVM (tech moat)
+- See `.claude/goals/scoring-tech-audit.md` for full scoring rules

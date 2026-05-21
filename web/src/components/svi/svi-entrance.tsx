@@ -721,6 +721,138 @@ export function SVIEntrance() {
     <div className="min-h-svh bg-white flex flex-col" onDragOver={(e) => e.preventDefault()} onDrop={handleDrop}>
       <TopBar />
 
+      {/* ── SVI SEARCH SECTION (default view) ────────────────────────────── */}
+      <section id="svi" className="min-h-[calc(100svh-64px)] flex items-center gradient-section bg-gradient-to-b from-brand-50/60 via-white to-white py-16 md:py-20 relative overflow-hidden">
+        {/* Decorative background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-brand-100/40 blur-3xl" />
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-emerald-100/30 blur-3xl" />
+        </div>
+        <div className="mx-auto w-full max-w-2xl px-4 sm:px-6 flex flex-col items-center relative">
+          <div className="flex flex-col items-center mb-8">
+            <div className="flex items-center gap-4 mb-6 animate-fade-in">
+              <Image src="/images/logo-icon-transparent.png" alt="" width={64} height={64} className="h-14 w-14 md:h-16 md:w-16" />
+              <div className="flex flex-col">
+                <span className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-ink-900">BlockID<span className="text-brand-500">.au</span></span>
+                <span className="text-sm md:text-base font-medium tracking-wide text-ink-500 mt-0.5">Valuation. Ownership. Execution. Growth.</span>
+              </div>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight text-center text-ink-900">
+              Get Your <span className="text-brand-600">Startup Value Index</span>
+            </h2>
+            <p className="mt-4 text-lg text-ink-500">First analysis free. AI-powered results in under 60 seconds.</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="w-full">
+            <div className="svi-input-glow rounded-[28px] shadow-lg">
+              <div className="flex items-center px-5 py-4 gap-3">
+                <Search strokeWidth={1.75} className="h-5 w-5 text-ink-600 shrink-0" />
+                <textarea ref={textareaRef} value={text} onChange={(e) => setText(e.target.value)} onFocus={() => { setSearchFocused(true); if (!hasTrackedStart.current) { trackEvent("svi_form_started", { method: "text" }); hasTrackedStart.current = true; } }} onBlur={() => setSearchFocused(false)}
+                  placeholder="Describe your startup idea, business plan, or paste key details…" rows={1}
+                  className="flex-1 resize-none text-lg text-ink-800 placeholder:text-ink-600 focus:outline-none bg-transparent leading-relaxed"
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }} />
+                <button type="button" onClick={toggleVoice} aria-label={listening ? "Stop" : "Voice"}
+                  className={cn("shrink-0 h-9 w-9 flex items-center justify-center rounded-full cursor-pointer transition-colors",
+                    listening ? "bg-red-50 text-red-500" : "text-ink-600 hover:bg-surface-100")}>
+                  {listening ? <MicOff strokeWidth={1.75} className="h-5 w-5" /> : <Mic strokeWidth={1.75} className="h-5 w-5" />}
+                </button>
+                <button type="button" onClick={() => fileInputRef.current?.click()} aria-label="Upload"
+                  className="shrink-0 h-9 w-9 flex items-center justify-center rounded-full text-ink-600 hover:bg-surface-100 cursor-pointer transition-colors">
+                  <UploadCloud strokeWidth={1.75} className="h-5 w-5" />
+                </button>
+                <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt,.md" onChange={handleFileChange} className="sr-only" />
+              </div>
+              {file && (
+                <div className="mx-4 mb-3 flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2">
+                  <FileText strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0" />
+                  <span className="text-xs font-medium text-brand-700 truncate">{file.name}</span>
+                  <button type="button" onClick={() => setFile(null)} className="ml-auto text-brand-600 hover:text-brand-700 cursor-pointer"><X strokeWidth={1.75} className="h-3.5 w-3.5" /></button>
+                </div>
+              )}
+              {listening && <div className="px-5 pb-3"><span className="text-xs text-red-500 animate-pulse font-medium">Listening…</span></div>}
+            </div>
+
+            {/* Input type badge */}
+            {detectedInputType && (
+              <div className="mt-2 flex justify-center animate-fade-in">
+                <span className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all",
+                  detectedInputType === "url"
+                    ? "border border-brand-200 bg-brand-50 text-brand-700"
+                    : detectedInputType === "document"
+                      ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+                      : "border border-surface-300 bg-surface-50 text-ink-600",
+                )}>
+                  {detectedInputType === "url" && <><Search strokeWidth={1.75} className="h-3 w-3" /> URL Detected</>}
+                  {detectedInputType === "document" && <><FileText strokeWidth={1.75} className="h-3 w-3" /> Document Detected</>}
+                  {detectedInputType === "idea" && <><Lightbulb strokeWidth={1.75} className="h-3 w-3" /> Idea Analysis</>}
+                </span>
+              </div>
+            )}
+
+            {/* R&D Status Bar — streaming status during analysis */}
+            <RndStatusBar status={rndStatus} isActive={state === "submitting"} />
+
+            {(text.trim() || file) && (
+              <div className="mt-3 flex items-center justify-center">
+                {loggedInUser ? (
+                  <div className="flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 pl-3 pr-4 py-1.5">
+                    <div className="h-6 w-6 rounded-full bg-brand-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                      {(loggedInUser.displayName ?? loggedInUser.email)[0].toUpperCase()}
+                    </div>
+                    <span className="text-sm text-brand-700 font-medium">{loggedInUser.email}</span>
+                    <CheckCircle2 strokeWidth={1.75} className="h-3.5 w-3.5 text-brand-500" />
+                  </div>
+                ) : (
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} onBlur={(e) => checkGate(e.target.value)} placeholder="your@email.com" required
+                    className="h-10 w-56 rounded-lg border border-surface-300 bg-white px-3 text-sm text-ink-800 placeholder:text-ink-600 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors" />
+                )}
+              </div>
+            )}
+            {error && <p className="mt-2 text-center text-sm text-red-500">{error}</p>}
+
+            <div className="mt-5 flex items-center justify-center gap-3">
+              <button type="submit" disabled={state === "submitting"}
+                className="h-12 px-7 rounded-2xl bg-brand-600 text-base font-bold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50 cta-glow">
+                {state === "submitting" ? <span className="flex items-center gap-2"><span className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />Analyzing…</span> : "Get My SVI"}
+              </button>
+              <button type="button" onClick={() => { setText(QUICK_EXAMPLES[Math.floor(Math.random() * QUICK_EXAMPLES.length)]); textareaRef.current?.focus(); trackEvent("svi_form_started", { method: "example" }); }}
+                className="h-10 px-5 rounded-xl border border-surface-300 bg-white text-sm font-medium text-ink-700 hover:bg-surface-100 transition-colors cursor-pointer">
+                Try an Example
+              </button>
+            </div>
+            <div className="mt-4 flex flex-col items-center gap-2">
+              <p className="flex items-center gap-2 text-sm font-semibold text-emerald-700">
+                <CheckCircle2 strokeWidth={2} className="h-4.5 w-4.5 text-emerald-500" />
+                First analysis FREE &middot; No credit card &middot; No signup required
+              </p>
+              <p className="text-xs text-ink-500">Drag &amp; drop a PDF &middot; Voice input supported</p>
+            </div>
+            {/* Typing indicator hint — visible when textarea is empty */}
+            {!text && state === "idle" && (
+              <div className="mt-3 flex items-center justify-center gap-1.5" aria-hidden="true">
+                <span className="typing-dot h-1.5 w-1.5 rounded-full bg-brand-400" style={{ animationDelay: "0ms" }} />
+                <span className="typing-dot h-1.5 w-1.5 rounded-full bg-brand-400" style={{ animationDelay: "150ms" }} />
+                <span className="typing-dot h-1.5 w-1.5 rounded-full bg-brand-400" style={{ animationDelay: "300ms" }} />
+                <span className="ml-2 text-xs text-ink-400">Describe your startup idea...</span>
+              </div>
+            )}
+          </form>
+
+          <div className="mt-6 flex flex-col items-center px-2 sm:px-0">
+            <p className="text-xs font-medium text-brand-600 uppercase tracking-wider mb-3">Try an example</p>
+            <div className="flex flex-wrap justify-center gap-2">
+            {QUICK_EXAMPLES.map((ex) => (
+              <button key={ex} type="button" onClick={() => { setText(ex); textareaRef.current?.focus(); }}
+                className="example-chip rounded-full border-2 border-brand-200 bg-white px-4 sm:px-5 py-2.5 text-[11px] sm:text-xs font-semibold text-ink-600 hover:border-brand-500 hover:text-brand-700 hover:bg-brand-50 hover:shadow-md cursor-pointer transition-all duration-200">
+                {ex}
+              </button>
+            ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── HERO SECTION ──────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden gradient-hero pt-28 md:pt-32 pb-20 md:pb-28">
         <div className="mx-auto max-w-7xl px-6">
@@ -893,134 +1025,23 @@ export function SVIEntrance() {
         </div>
       </section>
 
-      {/* ── SVI SEARCH SECTION ────────────────────────────────────────────── */}
-      <section id="svi" className="gradient-section bg-gradient-to-b from-brand-50/60 via-white to-white py-24 md:py-32 relative overflow-hidden">
-        {/* Decorative background */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-brand-100/40 blur-3xl" />
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-emerald-100/30 blur-3xl" />
-        </div>
-        <div className="mx-auto w-full max-w-2xl px-4 sm:px-6 flex flex-col items-center relative">
-          <div className="flex flex-col items-center mb-8">
-            <div className="flex items-center gap-4 mb-6 animate-fade-in">
-              <Image src="/images/logo-icon-transparent.png" alt="" width={64} height={64} className="h-14 w-14 md:h-16 md:w-16" />
-              <div className="flex flex-col">
-                <span className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-ink-900">BlockID<span className="text-brand-500">.au</span></span>
-                <span className="text-sm md:text-base font-medium tracking-wide text-ink-500 mt-0.5">Valuation. Ownership. Execution. Growth.</span>
-              </div>
-            </div>
-            <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight text-center text-ink-900">
-              Get Your <span className="text-brand-600">Startup Value Index</span>
-            </h2>
-            <p className="mt-4 text-lg text-ink-500">First analysis free. AI-powered results in under 60 seconds.</p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="w-full">
-            <div className="svi-input-glow rounded-[28px] shadow-lg">
-              <div className="flex items-center px-5 py-4 gap-3">
-                <Search strokeWidth={1.75} className="h-5 w-5 text-ink-600 shrink-0" />
-                <textarea ref={textareaRef} value={text} onChange={(e) => setText(e.target.value)} onFocus={() => { setSearchFocused(true); if (!hasTrackedStart.current) { trackEvent("svi_form_started", { method: "text" }); hasTrackedStart.current = true; } }} onBlur={() => setSearchFocused(false)}
-                  placeholder="Describe your startup idea, business plan, or paste key details…" rows={1}
-                  className="flex-1 resize-none text-lg text-ink-800 placeholder:text-ink-600 focus:outline-none bg-transparent leading-relaxed"
-                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }} />
-                <button type="button" onClick={toggleVoice} aria-label={listening ? "Stop" : "Voice"}
-                  className={cn("shrink-0 h-9 w-9 flex items-center justify-center rounded-full cursor-pointer transition-colors",
-                    listening ? "bg-red-50 text-red-500" : "text-ink-600 hover:bg-surface-100")}>
-                  {listening ? <MicOff strokeWidth={1.75} className="h-5 w-5" /> : <Mic strokeWidth={1.75} className="h-5 w-5" />}
-                </button>
-                <button type="button" onClick={() => fileInputRef.current?.click()} aria-label="Upload"
-                  className="shrink-0 h-9 w-9 flex items-center justify-center rounded-full text-ink-600 hover:bg-surface-100 cursor-pointer transition-colors">
-                  <UploadCloud strokeWidth={1.75} className="h-5 w-5" />
-                </button>
-                <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt,.md" onChange={handleFileChange} className="sr-only" />
-              </div>
-              {file && (
-                <div className="mx-4 mb-3 flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2">
-                  <FileText strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0" />
-                  <span className="text-xs font-medium text-brand-700 truncate">{file.name}</span>
-                  <button type="button" onClick={() => setFile(null)} className="ml-auto text-brand-600 hover:text-brand-700 cursor-pointer"><X strokeWidth={1.75} className="h-3.5 w-3.5" /></button>
-                </div>
-              )}
-              {listening && <div className="px-5 pb-3"><span className="text-xs text-red-500 animate-pulse font-medium">Listening…</span></div>}
-            </div>
-
-            {/* Input type badge */}
-            {detectedInputType && (
-              <div className="mt-2 flex justify-center animate-fade-in">
-                <span className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all",
-                  detectedInputType === "url"
-                    ? "border border-brand-200 bg-brand-50 text-brand-700"
-                    : detectedInputType === "document"
-                      ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-                      : "border border-surface-300 bg-surface-50 text-ink-600",
-                )}>
-                  {detectedInputType === "url" && <><Search strokeWidth={1.75} className="h-3 w-3" /> URL Detected</>}
-                  {detectedInputType === "document" && <><FileText strokeWidth={1.75} className="h-3 w-3" /> Document Detected</>}
-                  {detectedInputType === "idea" && <><Lightbulb strokeWidth={1.75} className="h-3 w-3" /> Idea Analysis</>}
-                </span>
-              </div>
-            )}
-
-            {/* R&D Status Bar — streaming status during analysis */}
-            <RndStatusBar status={rndStatus} isActive={state === "submitting"} />
-
-            {(text.trim() || file) && (
-              <div className="mt-3 flex items-center justify-center">
-                {loggedInUser ? (
-                  <div className="flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 pl-3 pr-4 py-1.5">
-                    <div className="h-6 w-6 rounded-full bg-brand-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
-                      {(loggedInUser.displayName ?? loggedInUser.email)[0].toUpperCase()}
-                    </div>
-                    <span className="text-sm text-brand-700 font-medium">{loggedInUser.email}</span>
-                    <CheckCircle2 strokeWidth={1.75} className="h-3.5 w-3.5 text-brand-500" />
-                  </div>
-                ) : (
-                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} onBlur={(e) => checkGate(e.target.value)} placeholder="your@email.com" required
-                    className="h-10 w-56 rounded-lg border border-surface-300 bg-white px-3 text-sm text-ink-800 placeholder:text-ink-600 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors" />
-                )}
-              </div>
-            )}
-            {error && <p className="mt-2 text-center text-sm text-red-500">{error}</p>}
-
-            <div className="mt-5 flex items-center justify-center gap-3">
-              <button type="submit" disabled={state === "submitting"}
-                className="h-12 px-7 rounded-2xl bg-brand-600 text-base font-bold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50 cta-glow">
-                {state === "submitting" ? <span className="flex items-center gap-2"><span className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />Analyzing…</span> : "Get My SVI"}
-              </button>
-              <button type="button" onClick={() => { setText(QUICK_EXAMPLES[Math.floor(Math.random() * QUICK_EXAMPLES.length)]); textareaRef.current?.focus(); trackEvent("svi_form_started", { method: "example" }); }}
-                className="h-10 px-5 rounded-xl border border-surface-300 bg-white text-sm font-medium text-ink-700 hover:bg-surface-100 transition-colors cursor-pointer">
-                Try an Example
-              </button>
-            </div>
-            <div className="mt-4 flex flex-col items-center gap-2">
-              <p className="flex items-center gap-2 text-sm font-semibold text-emerald-700">
-                <CheckCircle2 strokeWidth={2} className="h-4.5 w-4.5 text-emerald-500" />
-                First analysis FREE &middot; No credit card &middot; No signup required
-              </p>
-              <p className="text-xs text-ink-500">Drag &amp; drop a PDF &middot; Voice input supported</p>
-            </div>
-            {/* Typing indicator hint — visible when textarea is empty */}
-            {!text && state === "idle" && (
-              <div className="mt-3 flex items-center justify-center gap-1.5" aria-hidden="true">
-                <span className="typing-dot h-1.5 w-1.5 rounded-full bg-brand-400" style={{ animationDelay: "0ms" }} />
-                <span className="typing-dot h-1.5 w-1.5 rounded-full bg-brand-400" style={{ animationDelay: "150ms" }} />
-                <span className="typing-dot h-1.5 w-1.5 rounded-full bg-brand-400" style={{ animationDelay: "300ms" }} />
-                <span className="ml-2 text-xs text-ink-400">Describe your startup idea...</span>
-              </div>
-            )}
-          </form>
-
-          <div className="mt-6 flex flex-col items-center px-2 sm:px-0">
-            <p className="text-xs font-medium text-brand-600 uppercase tracking-wider mb-3">Try an example</p>
-            <div className="flex flex-wrap justify-center gap-2">
-            {QUICK_EXAMPLES.map((ex) => (
-              <button key={ex} type="button" onClick={() => { setText(ex); textareaRef.current?.focus(); }}
-                className="example-chip rounded-full border-2 border-brand-200 bg-white px-4 sm:px-5 py-2.5 text-[11px] sm:text-xs font-semibold text-ink-600 hover:border-brand-500 hover:text-brand-700 hover:bg-brand-50 hover:shadow-md cursor-pointer transition-all duration-200">
-                {ex}
-              </button>
-            ))}
-            </div>
+      {/* ── VIDEO SECTION ──────────────────────────────────────────────── */}
+      <section className="py-16 md:py-20 bg-white">
+        <div className="mx-auto max-w-4xl px-6">
+          <h2 className="text-center text-2xl md:text-3xl font-extrabold tracking-tight text-ink-900 mb-3">
+            See How It Works
+          </h2>
+          <p className="text-center text-base text-ink-500 mb-8 max-w-xl mx-auto">
+            Watch how BlockID helps founders go from idea to investor-ready in minutes.
+          </p>
+          <div className="relative w-full rounded-2xl overflow-hidden shadow-xl border border-surface-200" style={{ paddingBottom: "56.25%" }}>
+            <iframe
+              className="absolute inset-0 w-full h-full"
+              src="https://www.youtube.com/embed/gaDT5svw1dQ?rel=0"
+              title="BlockID.au — How It Works"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
           </div>
         </div>
       </section>

@@ -3,6 +3,7 @@ import {
   consumeMagicLink,
   createSessionRow,
   setSessionCookie,
+  normaliseEmail,
   type PendingPayload,
 } from "@/lib/auth";
 import {
@@ -12,7 +13,7 @@ import {
   mintFounderPack,
 } from "@/lib/idea-phase/persist";
 import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
-import { getUserProjects } from "@/lib/projects";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import type { IdeaValuationInput } from "@/lib/idea-valuation";
 import type { FounderInput, EquitySettings } from "@/lib/equity-split";
 import type { FundingPlanInput } from "@/lib/funding-plan";
@@ -124,11 +125,19 @@ export async function GET(request: Request) {
   if (!sessionToken) return errorRedirect("session_failed");
   await setSessionCookie(sessionToken);
 
-  // Check if user has 0 projects → redirect to onboarding instead of default.
-  const projects = await getUserProjects(user.id);
-  const needsOnboarding = projects.length === 0;
+  // Check onboarding_completed flag — only show onboarding on first login.
+  let needsOnboarding = false;
+  const supabase = getSupabaseAdmin();
+  if (supabase) {
+    const { data: appUser } = await supabase
+      .from("app_users")
+      .select("onboarding_completed")
+      .eq("email", normaliseEmail(user.email))
+      .single();
+    needsOnboarding = !appUser?.onboarding_completed;
+  }
 
-  // Determine redirect target: pack page > explicit next > onboarding > homepage.
+  // Determine redirect target: pack page > explicit next > onboarding > dashboard.
   let target: string;
   if (packSlug) {
     target = `${siteUrl()}/s/p/${packSlug}?welcome=1`;
@@ -139,7 +148,7 @@ export async function GET(request: Request) {
   } else if (needsOnboarding) {
     target = `${siteUrl()}/onboarding?logged_in=true`;
   } else {
-    target = `${siteUrl()}/?logged_in=true`;
+    target = `${siteUrl()}/dashboard?logged_in=true`;
   }
   return NextResponse.redirect(target, { status: 303 });
 }

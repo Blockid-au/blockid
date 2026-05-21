@@ -3,6 +3,9 @@
 // 0+ open-ended index — like a stock market index, grows without limit.
 // NOT a legal valuation. An indicator of startup progress and evidence quality.
 
+import type { TechAuditResult } from "./rnd-input";
+import type { GitHubRepoAudit } from "./github-repo-audit";
+
 export const SVI_VERSION = "2.0.0";
 
 // ─── Stage labels ─────────────────────────────────────────────────────────────
@@ -209,6 +212,8 @@ export function extractSignals(
   input: SVITextInput,
   _fileName?: string,
   evidenceItems?: EvidenceItem[],
+  techAudit?: TechAuditResult,
+  repoAudit?: GitHubRepoAudit,
 ): SVIExtractedSignals {
   const text = (input.rawText + " " + (input.fileName ?? "")).toLowerCase();
 
@@ -370,6 +375,112 @@ export function extractSignals(
     }
   }
 
+  // ── Tech audit overlay: auto-populate signals from deep website analysis ───
+  if (techAudit) {
+    // Website is live and reachable
+    signals.hasWebsite = true;
+    signals.hasProduct = true;
+
+    // Upgrade evidence level — machine-verified is stronger than self-declared
+    if (signals.evidenceLevel === "self_declared" || signals.evidenceLevel === "public_url") {
+      signals.evidenceLevel = "connected_source";
+    }
+
+    // Product maturity signals
+    const pm = techAudit.productMaturity;
+    if (pm.hasSitemap && pm.sitemapPageCount >= 5) signals.hasProduct = true;
+    if (pm.hasLoginForm || pm.hasDashboard) signals.hasDemo = true;
+    if (pm.hasPWA) signals.hasApp = true;
+    if (pm.githubLink) signals.hasSourceCode = true;
+
+    // Traction signals from website content
+    if (pm.hasTestimonials || pm.hasCustomerLogos) {
+      signals.hasCustomers = true;
+      signals.hasSocialProof = true;
+    }
+    if (pm.socialLinks.length >= 2) signals.hasSocialProof = true;
+
+    // Analytics detected
+    if (techAudit.techStack.analytics.length > 0) signals.hasAnalytics = true;
+
+    // Payment integration detected — indicates revenue capability
+    // NOTE: Payment JS on a page != confirmed revenue. We set hasProduct but
+    // do NOT upgrade revenueBand automatically. Revenue needs transaction proof.
+    if (techAudit.techStack.payments.length > 0) {
+      signals.hasProduct = true;
+    }
+
+    // Tech moat signals
+    const ts = techAudit.techStack;
+    const isGenericCMS = ts.cms === "Wix" || ts.cms === "Squarespace";
+    if (!isGenericCMS && ts.frameworks.length > 0) {
+      // Custom-built product = stronger technical moat
+      signals.hasMoat = signals.hasMoat || ts.frameworks.length >= 2;
+      signals.hasSwitchingCosts = signals.hasSwitchingCosts || (pm.hasLoginForm && pm.hasDashboard);
+    }
+
+    // API sophistication = data advantage signal
+    if (techAudit.evidenceLabels.some((l) => l.includes("GraphQL") || l.includes("/api/v"))) {
+      signals.hasDataAdvantage = true;
+    }
+  }
+
+  // ── GitHub repo audit overlay: deep codebase analysis → auto-populate signals ─
+  if (repoAudit) {
+    signals.hasSourceCode = true;
+    signals.hasProduct = true;
+
+    // Upgrade evidence level — machine-verified codebase analysis
+    if (signals.evidenceLevel === "self_declared" || signals.evidenceLevel === "public_url") {
+      signals.evidenceLevel = "connected_source";
+    }
+
+    // Architecture signals → product maturity
+    const arch = repoAudit.architecture;
+    if (arch.frameworks.length > 0) signals.hasProduct = true;
+    if (arch.hasTypescript) signals.hasProduct = true;
+
+    // CI/CD → demo/deployment = product is live
+    if (repoAudit.cicd.hasCD) signals.hasDemo = true;
+
+    // Testing → product quality
+    if (repoAudit.testing.estimatedTestMaturity === "comprehensive" || repoAudit.testing.estimatedTestMaturity === "moderate") {
+      signals.hasDemo = true;
+    }
+
+    // Activity → traction
+    if (repoAudit.activity.isActivelyMaintained) {
+      signals.hasSocialProof = signals.hasSocialProof || repoAudit.activity.starsCount >= 10;
+    }
+    if (repoAudit.activity.commitFrequencyTier === "intense" || repoAudit.activity.commitFrequencyTier === "strong") {
+      signals.hasAnalytics = true;  // Strong activity = measurable traction
+    }
+
+    // Multi-contributor = team signal
+    if (repoAudit.activity.contributors >= 2) {
+      signals.hasCoFounder = signals.hasCoFounder || repoAudit.activity.contributors >= 2;
+    }
+    if (repoAudit.activity.contributors >= 3) {
+      signals.hasAdvisors = true;  // 3+ contributors = team depth
+    }
+
+    // Tech moat signals from codebase analysis
+    if (arch.hasMonorepo && arch.frameworks.length >= 2) {
+      signals.hasMoat = true;
+      signals.hasSwitchingCosts = true;
+    }
+    if (repoAudit.dependencies.notableLibs.some((l) =>
+      l.includes("AI") || l.includes("OpenAI") || l.includes("Anthropic") || l.includes("TensorFlow") || l.includes("LangChain")
+    )) {
+      signals.hasDataAdvantage = true;
+    }
+
+    // Documentation → investor readiness
+    if (repoAudit.documentation.hasApiDocs) {
+      signals.hasProduct = true;
+    }
+  }
+
   return signals;
 }
 
@@ -390,7 +501,12 @@ function calcPercentileRank(
 }
 
 // ─── SVI v2 computation ───────────────────────────────────────────────────────
-export function computeSVI(signals: SVIExtractedSignals, weeklyDelta?: number): SVIAnalysis {
+export function computeSVI(
+  signals: SVIExtractedSignals,
+  weeklyDelta?: number,
+  techAuditBoosts?: { ptdBoost: number; svmBoost: number; treBoost: number; lcoBoost: number },
+  repoAuditBoosts?: { ptdBoost: number; svmBoost: number; ftvBoost: number; treBoost: number },
+): SVIAnalysis {
   const confidence = EVIDENCE_CONFIDENCE[signals.evidenceLevel] ?? 0.20;
 
   // ── Dimension 1: FTV — Founder & Team Value (15%) ──────────────────────────
@@ -413,6 +529,13 @@ export function computeSVI(signals: SVIExtractedSignals, weeklyDelta?: number): 
 
   if (signals.hasAdvisors) { ftvRaw += 8; ftvEvidence.push("Named advisors or mentors identified"); }
   else { ftvGaps.push("Add named advisors or industry mentors to strengthen credibility"); }
+
+  // Repo audit boost for FTV (engineering team quality)
+  if (repoAuditBoosts && repoAuditBoosts.ftvBoost !== 0) {
+    ftvRaw += repoAuditBoosts.ftvBoost;
+    if (repoAuditBoosts.ftvBoost > 0) ftvEvidence.push(`Code audit: +${repoAuditBoosts.ftvBoost} (team quality, testing, CI/CD maturity)`);
+    else ftvEvidence.push(`Code audit: ${repoAuditBoosts.ftvBoost} (engineering gaps detected)`);
+  }
 
   const ftvScore = clamp(ftvRaw, 0, 100);
   const ftvAdj = Math.round((ftvScore - 50) * 0.15 * confidence);
@@ -465,6 +588,20 @@ export function computeSVI(signals: SVIExtractedSignals, weeklyDelta?: number): 
 
   if (signals.hasProduct) { ptdRaw += 10; ptdEvidence.push("Product described or referenced"); }
 
+  // Tech audit boost for PTD
+  if (techAuditBoosts && techAuditBoosts.ptdBoost !== 0) {
+    ptdRaw += techAuditBoosts.ptdBoost;
+    if (techAuditBoosts.ptdBoost > 0) ptdEvidence.push(`Tech audit: +${techAuditBoosts.ptdBoost} (security, performance, stack)`);
+    else ptdEvidence.push(`Tech audit: ${techAuditBoosts.ptdBoost} (technical gaps detected)`);
+  }
+
+  // Repo audit boost for PTD (architecture, CI/CD, testing, code quality)
+  if (repoAuditBoosts && repoAuditBoosts.ptdBoost !== 0) {
+    ptdRaw += repoAuditBoosts.ptdBoost;
+    if (repoAuditBoosts.ptdBoost > 0) ptdEvidence.push(`Code audit: +${repoAuditBoosts.ptdBoost} (architecture, CI/CD, testing)`);
+    else ptdEvidence.push(`Code audit: ${repoAuditBoosts.ptdBoost} (codebase gaps detected)`);
+  }
+
   const ptdScore = clamp(ptdRaw, 0, 100);
   const ptdAdj = Math.round((ptdScore - 50) * 0.12 * confidence);
 
@@ -489,6 +626,18 @@ export function computeSVI(signals: SVIExtractedSignals, weeklyDelta?: number): 
   else { treGaps.push("Connect Google Analytics or Search Console"); }
 
   if (signals.hasSocialProof) { treRaw = Math.min(100, treRaw + 5); treEvidence.push("Social proof / community present"); }
+
+  // Tech audit boost for TRE
+  if (techAuditBoosts && techAuditBoosts.treBoost > 0) {
+    treRaw = Math.min(100, treRaw + techAuditBoosts.treBoost);
+    treEvidence.push(`Tech audit: +${techAuditBoosts.treBoost} (social/analytics/testimonials)`);
+  }
+
+  // Repo audit boost for TRE (commit activity, stars, forks)
+  if (repoAuditBoosts && repoAuditBoosts.treBoost > 0) {
+    treRaw = Math.min(100, treRaw + repoAuditBoosts.treBoost);
+    treEvidence.push(`Code audit: +${repoAuditBoosts.treBoost} (commit activity, community traction)`);
+  }
 
   const treScore = clamp(treRaw, 0, 100);
   const treAdj = Math.round((treScore - 50) * 0.20 * confidence);
@@ -555,6 +704,12 @@ export function computeSVI(signals: SVIExtractedSignals, weeklyDelta?: number): 
   if (signals.hasLegalDocs) { lcoRaw += 15; lcoEvidence.push("Legal documentation present"); }
   else { lcoGaps.push("Engage a solicitor to draft company constitution and legal docs"); }
 
+  // Tech audit boost for LCO (security headers = compliance maturity)
+  if (techAuditBoosts && techAuditBoosts.lcoBoost > 0) {
+    lcoRaw += techAuditBoosts.lcoBoost;
+    lcoEvidence.push(`Tech audit: +${techAuditBoosts.lcoBoost} (HTTPS + security headers)`);
+  }
+
   const lcoScore = clamp(lcoRaw, 0, 100);
   const lcoAdj = Math.round((lcoScore - 50) * 0.08 * confidence);
 
@@ -571,6 +726,19 @@ export function computeSVI(signals: SVIExtractedSignals, weeklyDelta?: number): 
   if (signals.hasDataAdvantage) { svmRaw += 15; svmEvidence.push("Proprietary data advantage identified"); }
 
   if (signals.hasSwitchingCosts) { svmRaw += 15; svmEvidence.push("Switching costs or lock-in mechanism present"); }
+
+  // Tech audit boost for SVM (custom tech stack = moat)
+  if (techAuditBoosts && techAuditBoosts.svmBoost !== 0) {
+    svmRaw += techAuditBoosts.svmBoost;
+    if (techAuditBoosts.svmBoost > 0) svmEvidence.push(`Tech audit: +${techAuditBoosts.svmBoost} (custom stack, API depth)`);
+    else svmEvidence.push(`Tech audit: ${techAuditBoosts.svmBoost} (generic CMS, low tech moat)`);
+  }
+
+  // Repo audit boost for SVM (proprietary tech, AI/ML, infrastructure)
+  if (repoAuditBoosts && repoAuditBoosts.svmBoost > 0) {
+    svmRaw += repoAuditBoosts.svmBoost;
+    svmEvidence.push(`Code audit: +${repoAuditBoosts.svmBoost} (proprietary stack, notable libs, infra-as-code)`);
+  }
 
   const svmScore = clamp(svmRaw, 0, 100);
   const svmAdj = Math.round((svmScore - 50) * 0.05 * confidence);

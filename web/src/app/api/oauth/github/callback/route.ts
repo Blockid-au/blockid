@@ -15,6 +15,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { auditGitHubRepo, type GitHubRepoAudit } from "@/lib/github-repo-audit";
 
 export const dynamic = "force-dynamic";
 
@@ -301,6 +302,19 @@ export async function GET(request: Request) {
       size: r.size,
     }));
 
+    // 6b. Deep repo audit on the most recently-pushed repo (enterprise CTO analysis)
+    let repoAudit: GitHubRepoAudit | null = null;
+    if (topReposForActivity.length > 0) {
+      try {
+        repoAudit = await auditGitHubRepo(
+          topReposForActivity[0].full_name,
+          tokenData.access_token,
+        );
+      } catch (err) {
+        console.warn("[blockid:oauth:github] deep repo audit failed", err);
+      }
+    }
+
     const metadata = {
       username: ghUser.login,
       profile_url: ghUser.html_url,
@@ -322,6 +336,7 @@ export async function GET(request: Request) {
         deployed_repos_count: reposWithHomepage.length,
         has_private_repos: privateRepos > 0,
       },
+      repo_audit: repoAudit,
       connected_at: new Date().toISOString(),
     };
 
@@ -422,6 +437,94 @@ export async function GET(request: Request) {
               ...tractionPayload,
               created_at: new Date().toISOString(),
             });
+          }
+        }
+
+        // 8d. Deep repo audit evidence — architecture, CI/CD, testing, code quality
+        if (repoAudit && repoAudit.overallGrade !== "F") {
+          const auditLabel = repoAudit.evidenceLabels.join(" | ");
+          const auditNotes = repoAudit.scoringNotes.join(" ");
+
+          // Architecture & code quality → PTD
+          const { data: existingAudit } = await supabase
+            .from("svi_evidence")
+            .select("id")
+            .eq("account_id", accountId)
+            .eq("evidence_type", "github_repo_audit")
+            .eq("dimension", "ptd")
+            .maybeSingle();
+
+          const auditPtdPayload = {
+            account_id: accountId,
+            evidence_type: "github_repo_audit" as const,
+            label: `Code Audit (${repoAudit.overallGrade}): ${auditLabel}`,
+            value_or_url: repoAudit.repoUrl,
+            confidence_level: "connected_source" as const,
+            dimension: "ptd",
+            svi_impact: Math.max(0, repoAudit.signalBoosts.ptdBoost),
+            verified_at: new Date().toISOString(),
+          };
+
+          if (existingAudit) {
+            await supabase.from("svi_evidence").update(auditPtdPayload).eq("id", existingAudit.id);
+          } else {
+            await supabase.from("svi_evidence").insert({ ...auditPtdPayload, created_at: new Date().toISOString() });
+          }
+
+          // Engineering team quality → FTV (Founder & Team)
+          if (repoAudit.signalBoosts.ftvBoost > 0) {
+            const { data: existingFtv } = await supabase
+              .from("svi_evidence")
+              .select("id")
+              .eq("account_id", accountId)
+              .eq("evidence_type", "github_repo_audit")
+              .eq("dimension", "ftv")
+              .maybeSingle();
+
+            const auditFtvPayload = {
+              account_id: accountId,
+              evidence_type: "github_repo_audit" as const,
+              label: `Engineering Quality: ${repoAudit.activity.contributors} contributors, ${repoAudit.testing.estimatedTestMaturity} testing`,
+              value_or_url: repoAudit.repoUrl,
+              confidence_level: "connected_source" as const,
+              dimension: "ftv",
+              svi_impact: repoAudit.signalBoosts.ftvBoost,
+              verified_at: new Date().toISOString(),
+            };
+
+            if (existingFtv) {
+              await supabase.from("svi_evidence").update(auditFtvPayload).eq("id", existingFtv.id);
+            } else {
+              await supabase.from("svi_evidence").insert({ ...auditFtvPayload, created_at: new Date().toISOString() });
+            }
+          }
+
+          // Tech moat → SVM (Strategic Vision & Moat)
+          if (repoAudit.signalBoosts.svmBoost > 0) {
+            const { data: existingSvm } = await supabase
+              .from("svi_evidence")
+              .select("id")
+              .eq("account_id", accountId)
+              .eq("evidence_type", "github_repo_audit")
+              .eq("dimension", "svm")
+              .maybeSingle();
+
+            const auditSvmPayload = {
+              account_id: accountId,
+              evidence_type: "github_repo_audit" as const,
+              label: `Tech Moat: ${repoAudit.architecture.frameworks.join(", ")} + ${repoAudit.dependencies.notableLibs.slice(0, 3).join(", ")}`,
+              value_or_url: repoAudit.repoUrl,
+              confidence_level: "connected_source" as const,
+              dimension: "svm",
+              svi_impact: repoAudit.signalBoosts.svmBoost,
+              verified_at: new Date().toISOString(),
+            };
+
+            if (existingSvm) {
+              await supabase.from("svi_evidence").update(auditSvmPayload).eq("id", existingSvm.id);
+            } else {
+              await supabase.from("svi_evidence").insert({ ...auditSvmPayload, created_at: new Date().toISOString() });
+            }
           }
         }
 

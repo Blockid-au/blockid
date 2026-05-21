@@ -2,6 +2,14 @@
 
 import * as React from "react";
 import { GitBranch, Globe, FileText, CheckCircle2, Loader2, X } from "lucide-react";
+
+function LinkedInIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+    </svg>
+  );
+}
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
@@ -29,6 +37,9 @@ export function ConnectButtons({ evidence, onEvidenceAdded, onOpenWizard }: Conn
   const hasGitHub = evidence.some(
     (e) => e.evidence_type === "github" && e.confidence_level === "connected_source",
   );
+  const hasLinkedIn = evidence.some(
+    (e) => e.evidence_type === "linkedin" && e.confidence_level === "connected_source",
+  );
   const hasUrl = evidence.some(
     (e) => e.evidence_type === "url" || (e.evidence_type === "github" && e.confidence_level === "public_url"),
   );
@@ -36,16 +47,16 @@ export function ConnectButtons({ evidence, onEvidenceAdded, onOpenWizard }: Conn
     (e) => e.confidence_level === "document_uploaded",
   );
 
-  // Check if GitHub OAuth is available (env var check via a simple flag)
+  // Check if OAuth providers are available (env var check via HEAD)
   const [githubAvailable, setGithubAvailable] = React.useState<boolean | null>(null);
+  const [linkedinAvailable, setLinkedinAvailable] = React.useState<boolean | null>(null);
   React.useEffect(() => {
-    // Ping the OAuth endpoint to check availability
     fetch("/api/oauth/github", { method: "HEAD", redirect: "manual" })
-      .then((res) => {
-        // 307/302 = redirect to GitHub (available), 503 = not configured
-        setGithubAvailable(res.status !== 503);
-      })
+      .then((res) => setGithubAvailable(res.status !== 503))
       .catch(() => setGithubAvailable(false));
+    fetch("/api/oauth/linkedin", { method: "HEAD", redirect: "manual" })
+      .then((res) => setLinkedinAvailable(res.status !== 503))
+      .catch(() => setLinkedinAvailable(false));
   }, []);
 
   const handleUrlSubmit = async () => {
@@ -91,6 +102,20 @@ export function ConnectButtons({ evidence, onEvidenceAdded, onOpenWizard }: Conn
         if (githubAvailable === false) return;
         trackEvent("evidence_added", { evidence_type: "github", dimension: "ptd", svi_impact: 0 });
         window.location.href = "/api/oauth/github";
+      },
+    },
+    {
+      id: "linkedin" as const,
+      icon: LinkedInIcon,
+      label: "Connect LinkedIn",
+      connected: hasLinkedIn,
+      connectedLabel: "LinkedIn Connected",
+      available: linkedinAvailable !== false,
+      comingSoon: linkedinAvailable === false,
+      onClick: () => {
+        if (linkedinAvailable === false) return;
+        trackEvent("evidence_added", { evidence_type: "linkedin", dimension: "cgh", svi_impact: 0 });
+        window.location.href = "/api/oauth/linkedin";
       },
     },
     {
