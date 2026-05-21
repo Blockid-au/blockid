@@ -95,6 +95,15 @@ export async function POST(request: Request) {
   if (!supabase) {
     slug = `svi-demo-${slug.slice(0, 6)}`;
   } else {
+    // Scope to active project for data isolation
+    let projectId: string | null = null;
+    if (authenticatedUserId) {
+      try {
+        const { getProjectIdFromRequest } = await import("@/lib/projects");
+        projectId = await getProjectIdFromRequest();
+      } catch { /* guest user — no project */ }
+    }
+
     const { error } = await supabase.from("svi_analyses").insert({
       id: slug,
       email,
@@ -105,6 +114,7 @@ export async function POST(request: Request) {
       confidence_multiplier: analysis.confidenceMultiplier,
       analysis_json: analysis,
       svi_version: analysis.version,
+      project_id: projectId,
     }).select("id").single();
 
     if (error) {
