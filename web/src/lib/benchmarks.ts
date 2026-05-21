@@ -162,3 +162,46 @@ export const STAGES: Record<string, string> = {
   "series-a": "Series A",
   "series-b": "Series B+",
 };
+
+// ─── SVI Stage Benchmarks (AU startup ecosystem) ─────────────────────────────
+// Benchmark data for SVI comparison tool — compares a startup's SVI score
+// against aggregated averages for Australian startups at the same stage.
+
+export interface SVIStageBenchmark {
+  stage: number;
+  label: string;
+  avgSVI: number;
+  medianSVI: number;
+  p25: number;
+  p75: number;
+  topDecile: number;
+  dimensions: Record<string, { avg: number; top: number }>;
+}
+
+export const SVI_STAGE_BENCHMARKS: SVIStageBenchmark[] = [
+  { stage: 0, label: "Idea", avgSVI: 85, medianSVI: 80, p25: 65, p75: 100, topDecile: 125,
+    dimensions: { ftv: { avg: 35, top: 70 }, mpc: { avg: 30, top: 65 }, ptd: { avg: 15, top: 45 }, tre: { avg: 5, top: 20 }, cgh: { avg: 20, top: 55 }, iri: { avg: 15, top: 50 }, lco: { avg: 25, top: 60 }, svm: { avg: 20, top: 50 } } },
+  { stage: 1, label: "Concept", avgSVI: 95, medianSVI: 92, p25: 78, p75: 110, topDecile: 140,
+    dimensions: { ftv: { avg: 40, top: 75 }, mpc: { avg: 40, top: 70 }, ptd: { avg: 25, top: 55 }, tre: { avg: 10, top: 30 }, cgh: { avg: 25, top: 60 }, iri: { avg: 20, top: 55 }, lco: { avg: 30, top: 65 }, svm: { avg: 25, top: 55 } } },
+  { stage: 2, label: "Building", avgSVI: 110, medianSVI: 105, p25: 90, p75: 130, topDecile: 160,
+    dimensions: { ftv: { avg: 50, top: 80 }, mpc: { avg: 50, top: 75 }, ptd: { avg: 40, top: 70 }, tre: { avg: 20, top: 45 }, cgh: { avg: 35, top: 65 }, iri: { avg: 30, top: 60 }, lco: { avg: 35, top: 70 }, svm: { avg: 30, top: 60 } } },
+  { stage: 3, label: "Launched", avgSVI: 130, medianSVI: 125, p25: 105, p75: 155, topDecile: 185,
+    dimensions: { ftv: { avg: 55, top: 85 }, mpc: { avg: 60, top: 80 }, ptd: { avg: 55, top: 80 }, tre: { avg: 35, top: 60 }, cgh: { avg: 40, top: 70 }, iri: { avg: 40, top: 70 }, lco: { avg: 40, top: 75 }, svm: { avg: 35, top: 65 } } },
+  { stage: 4, label: "Traction", avgSVI: 155, medianSVI: 150, p25: 130, p75: 180, topDecile: 210,
+    dimensions: { ftv: { avg: 60, top: 90 }, mpc: { avg: 65, top: 85 }, ptd: { avg: 60, top: 85 }, tre: { avg: 50, top: 75 }, cgh: { avg: 50, top: 75 }, iri: { avg: 50, top: 75 }, lco: { avg: 45, top: 80 }, svm: { avg: 40, top: 70 } } },
+  { stage: 5, label: "Revenue", avgSVI: 180, medianSVI: 175, p25: 155, p75: 210, topDecile: 245,
+    dimensions: { ftv: { avg: 65, top: 92 }, mpc: { avg: 70, top: 90 }, ptd: { avg: 65, top: 88 }, tre: { avg: 65, top: 85 }, cgh: { avg: 55, top: 80 }, iri: { avg: 60, top: 82 }, lco: { avg: 55, top: 85 }, svm: { avg: 50, top: 78 } } },
+];
+
+export function getSVIBenchmark(stage: number): SVIStageBenchmark {
+  return SVI_STAGE_BENCHMARKS[Math.min(stage, SVI_STAGE_BENCHMARKS.length - 1)];
+}
+
+export function getSVIPercentile(svi: number, stage: number): number {
+  const b = getSVIBenchmark(stage);
+  if (svi >= b.topDecile) return 95;
+  if (svi >= b.p75) return 75 + ((svi - b.p75) / (b.topDecile - b.p75)) * 20;
+  if (svi >= b.medianSVI) return 50 + ((svi - b.medianSVI) / (b.p75 - b.medianSVI)) * 25;
+  if (svi >= b.p25) return 25 + ((svi - b.p25) / (b.medianSVI - b.p25)) * 25;
+  return Math.max(5, Math.round((svi / b.p25) * 25));
+}

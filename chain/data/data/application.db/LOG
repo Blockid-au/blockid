@@ -707,3 +707,8 @@
 06:10:04.162077 table@remove removed @273
 06:10:04.162927 table@remove removed @274
 06:10:04.163308 table@remove removed @275
+06:45:33.729110 memdb@flush N·48105 S·3MiB
+06:45:33.773004 memdb@flush created L0@298 N·48105 S·1MiB "s/13315,v1208272":"s/latest,v1208273"
+06:45:33.773070 version@stat F·[1 19] S·40MiB[1MiB 38MiB] Sc·[0.25 0.38]
+06:45:33.776595 memdb@flush committed F·1 T·47.416367ms
+06:45:33.778345 journal@remove removed @276
