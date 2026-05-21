@@ -193,6 +193,16 @@ ${gapSummary || "None"}`;
 
 // ── System prompt shared across batches ──────────────────────────────────────
 
+const AU_COMPLIANCE_NOTE = `
+IMPORTANT — Australian Compliance:
+- This analysis is produced by BlockID.au (Auschain PTY LTD, ACN 659 615 111)
+- The SVI score is NOT a financial valuation or investment recommendation
+- BlockID does not hold an Australian Financial Services Licence (AFSL)
+- For financial projections: state "forward-looking estimates only, not financial advice"
+- For legal content: state "not legal advice, consult a qualified Australian solicitor"
+- For tax references: state "consult a registered tax agent"
+- All prices referenced should be in AUD and GST-inclusive`;
+
 const SYSTEM_STANDARD = `You are a senior startup R&D analyst for BlockID.au, an Australian startup intelligence platform.
 You produce structured research reports for founders and investors.
 
@@ -202,6 +212,7 @@ Rules:
 - Be honest about weaknesses without being discouraging
 - When data is limited, say so — never fabricate numbers
 - Return ONLY valid JSON (no markdown wrapping, no explanation outside the JSON)
+${AU_COMPLIANCE_NOTE}
 
 Return format: { "pages": [ { "pageId": "...", "content": "markdown...", "score": 0-100, "highlights": ["..."], "dataPoints": { "key": "value" } } ] }
 
@@ -219,6 +230,7 @@ Rules:
 - Include specific, named competitors with their strengths/weaknesses where relevant
 - Provide actionable checklists and timelines
 - Return ONLY valid JSON (no markdown wrapping, no explanation outside the JSON)
+${AU_COMPLIANCE_NOTE}
 
 Return format: { "pages": [ { "pageId": "...", "content": "markdown...", "score": 0-100, "highlights": ["..."], "dataPoints": { "key": "value" } } ] }
 
@@ -233,6 +245,7 @@ Rules:
 - Provide detailed data points, competitor names, market figures, and financial models
 - When data is limited, provide reasonable estimates with stated assumptions
 - Return ONLY valid JSON (no markdown wrapping, no explanation outside the JSON)
+${AU_COMPLIANCE_NOTE}
 
 Return format: { "extendedSections": [ { "pageId": "...", "sections": [ { "title": "...", "content": "markdown...", "type": "competitor_profile|financial_model|action_plan|market_data|growth_tactics", "dataPoints": { "key": "value" } } ] } ] }
 
