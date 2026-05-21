@@ -7,94 +7,11 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 import { PricingCoupon } from "./pricing-coupon";
-
-interface Tier {
-  name: string;
-  planId: string;
-  price: string;
-  numericPrice?: number;
-  cadence?: string;
-  subtitle?: string;
-  audience: string;
-  features: string[];
-  cta: { label: string; href: string };
-  highlight?: boolean;
-  badge?: string;
-  urgency?: string;
-}
-
-const CREDIT_PACKS = [
-  { qty: 5, price: 5, href: "/workspace/billing#credits" },
-  { qty: 10, price: 9, href: "/workspace/billing#credits" },
-  { qty: 25, price: 20, href: "/workspace/billing#credits" },
-  { qty: 50, price: 15, href: "/workspace/billing#credits" },
-  { qty: 100, price: 25, href: "/workspace/billing#credits" },
-];
-
-const tiers: Tier[] = [
-  {
-    name: "Starter",
-    planId: "free",
-    price: "$0",
-    audience: "Try BlockID — no signup needed",
-    features: [
-      "2 free credits (~4 SVI analyses)",
-      "Investor-Ready Score",
-      "Dilution calculator",
-      "Shareable report link",
-    ],
-    cta: { label: "Analyze Your Idea Free", href: "/#svi" },
-  },
-  {
-    name: "Founder",
-    planId: "founding50",
-    price: "$49",
-    numericPrice: 49,
-    subtitle: "one-time \u00b7 lifetime access",
-    audience: "Everything you need from idea to fundraise",
-    features: [
-      "100 credits included (worth A$50)",
-      "Unlimited SVI dashboard access",
-      "Evidence Vault & export packs",
-      "Cap table & equity tools",
-      "Co-founder matching",
-      "30-day growth plan",
-      "Priority support",
-    ],
-    cta: { label: "Get Founder \u2014 $49 AUD", href: "/founding-50" },
-    highlight: true,
-    badge: "Best Value",
-    urgency: "Only 50 spots at this price",
-  },
-  {
-    name: "Growth",
-    planId: "growth",
-    price: "$99",
-    numericPrice: 99,
-    cadence: "/ month",
-    subtitle: "Early-bird \u2014 normally $499/mo",
-    audience: "For active fundraise \u00b7 Seed to Series A",
-    features: [
-      "200 credits/month included",
-      "Everything in Founder",
-      "Multi-entity cap table",
-      "Investor data room",
-      "Term Sheet AI (unlimited)",
-      "Dedicated account manager",
-      "30-day money back",
-    ],
-    cta: { label: "Start Growth \u2014 $99/mo", href: "/contact" },
-    badge: "Early Bird",
-    urgency: "Early-bird until July 1, 2026",
-  },
-];
-
-/** Prices that can be discounted (keyed by plan name). */
-const discountablePrices: Record<string, number> = Object.fromEntries(
-  tiers
-    .filter((t) => t.numericPrice !== undefined)
-    .map((t) => [t.name, t.numericPrice!]),
-);
+import {
+  PRICING_TIERS,
+  CREDIT_PACKS,
+  discountablePrices,
+} from "@/lib/pricing-data";
 
 export function Pricing() {
   const [loading, setLoading] = React.useState<string | null>(null);
@@ -169,7 +86,7 @@ export function Pricing() {
         </div>
 
         <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-          {tiers.map((tier) => (
+          {PRICING_TIERS.map((tier) => (
             <div
               key={tier.name}
               className={cn(
@@ -193,7 +110,7 @@ export function Pricing() {
                 <span className="font-mono tabular-nums text-4xl font-semibold text-brand-900">
                   {tier.price}
                 </span>
-                {tier.planId === "growth" && (
+                {tier.id === "growth" && (
                   <span className="text-base text-ink-400 line-through font-normal mb-1 ml-1">
                     $499
                   </span>
@@ -236,10 +153,10 @@ export function Pricing() {
                     variant={tier.highlight ? "primary" : "secondary"}
                     size="md"
                     className="w-full"
-                    disabled={loading === tier.planId}
-                    onClick={() => handlePaidPlan(tier.planId)}
+                    disabled={loading === tier.id}
+                    onClick={() => handlePaidPlan(tier.id)}
                   >
-                    {loading === tier.planId ? (
+                    {loading === tier.id ? (
                       <span className="flex items-center gap-2">
                         <span className="h-4 w-4 rounded-full border-2 border-current/30 border-t-current animate-spin" />
                         Redirecting...
@@ -272,13 +189,13 @@ export function Pricing() {
             <span className="font-semibold text-brand-600">A$1 each</span>.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            {CREDIT_PACKS.map(({ qty, price, href }) => (
+            {CREDIT_PACKS.map(({ credits, price, href }) => (
               <Link
-                key={qty}
+                key={credits}
                 href={href}
                 className="inline-flex items-center gap-1.5 rounded-xl border border-surface-300 bg-surface-50 px-4 py-2 text-sm font-medium text-ink-700 hover:border-brand-400 hover:bg-brand-50 hover:text-brand-700 transition-colors"
               >
-                {qty} for ${price}
+                {credits} for ${price}
               </Link>
             ))}
           </div>
