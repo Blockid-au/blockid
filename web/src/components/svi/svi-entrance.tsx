@@ -35,6 +35,7 @@ import { SVIResultsPanel } from "@/components/svi/svi-results-panel";
 import { RndResultsPanel } from "@/components/svi/rnd-results-panel";
 import { RndStatusBar } from "@/components/svi/rnd-status-bar";
 import { CreditGate } from "@/components/ui/credit-gate";
+import { LanguageToggle } from "@/components/ui/language-toggle";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import type { RndReport } from "@/lib/rnd-types";
 
@@ -1589,6 +1590,7 @@ function TopBar() {
           <Link href="/founding-50" className="px-3 py-2 text-sm text-ink-600 hover:text-ink-800 rounded-lg hover:bg-surface-100 transition-colors">Founding 50</Link>
           <Link href="/insights" className="px-3 py-2 text-sm text-ink-600 hover:text-ink-800 rounded-lg hover:bg-surface-100 transition-colors">Insights</Link>
           <Link href="/dashboard/svi" className="px-3 py-2 text-sm text-ink-600 hover:text-ink-800 rounded-lg hover:bg-surface-100 transition-colors">Dashboard</Link>
+          <LanguageToggle variant="icon" className="ml-1" />
           {user ? (
             <Link href="/dashboard/svi" className="ml-2 h-9 inline-flex items-center gap-2 rounded-full bg-brand-50 border border-brand-200 px-3 hover:bg-brand-100 transition-colors">
               <span className="h-6 w-6 rounded-full bg-brand-600 flex items-center justify-center text-white text-[10px] font-bold">
@@ -1634,6 +1636,9 @@ function TopBar() {
             ) : (
               <Link href="/auth/login" onClick={() => setMobileOpen(false)} className="mx-3 h-10 flex items-center justify-center rounded-lg bg-brand-600 text-sm font-medium text-white hover:bg-brand-700">Sign in</Link>
             )}
+            <div className="flex justify-center pt-2 pb-1">
+              <LanguageToggle variant="pill" />
+            </div>
           </nav>
         </div>
       )}
