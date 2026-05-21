@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { queueSyncEvent, getSyncConfig } from "@/lib/blockchain-sync";
 
 export const dynamic = "force-dynamic";
 
@@ -130,6 +131,25 @@ export async function POST(request: NextRequest) {
       { ok: false, error: "Failed to create vesting schedule" },
       { status: 500 },
     );
+  }
+
+  // Queue blockchain sync event if sync is enabled
+  try {
+    const syncConfig = await getSyncConfig(user.id);
+    if (syncConfig?.syncEnabled && syncConfig.tokenAddress) {
+      await queueSyncEvent(user.id, "vest_grant", {
+        scheduleId: data.id,
+        beneficiary: data.shareholder_email,
+        shareholderName: data.shareholder_name,
+        totalShares: totalShares,
+        cliffMonths,
+        totalMonths,
+        vestingType,
+      });
+    }
+  } catch (syncErr) {
+    // Blockchain sync is non-critical — log and continue
+    console.warn("[vesting] blockchain sync queue failed", syncErr);
   }
 
   return NextResponse.json({ ok: true, schedule: data }, { status: 201 });
