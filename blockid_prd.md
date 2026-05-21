@@ -1220,10 +1220,142 @@ All 8 phases have been designed and the first 2 are fully deployed in production
 
 ---
 
-*This PRD is the single source of truth for BlockID.au product decisions.*  
-*Version 1.4 | Last updated: 2026-05-19.*  
-*Total documentation: 8,500+ lines across 7 documents.*  
-*Goal files: `.claude/goals/multi-project-system.md`, `multi-startup-tokens.md`, `phase-3-growth.md`, `phase-4-scale.md`, `immediate-week1.md`*
+## Update Log: 2026-05-21 Session Summary
 
-**BlockID.au — Valuation. Ownership. Growth.**
+### Platform Metrics (Final)
+| Metric | Value |
+|--------|-------|
+| TypeScript files | **394** |
+| Pages | **70** |
+| API routes | **107** |
+| DB tables | **51** |
+| DB migrations | **34** |
+| Git commits | **178** |
+| Goal files | **74** |
+| Skill directories | **44** |
+| AI agents | **8** (all active) |
+| Unit tests | **62** |
+| Users | **8** |
+| SVI analyses | **37** |
+| Cron jobs | **8** |
+
+### Features Shipped This Session
+
+**Core Platform:**
+- Homepage redesign (Google-style hero + banner)
+- SVI 8-dimension scoring engine + 10-page guided report
+- PDF export via @react-pdf/renderer
+- Multi-project system (manage N startups per account)
+- Per-member equity tracking + vesting visualization
+- Data room checklist (21 investor items)
+- Onboarding wizard (3-step post-signup)
+- Pricing page (3 tiers + credit packs + FAQ)
+
+**Payments & Revenue:**
+- Stripe full lifecycle (checkout → portal → cancel → reactivate)
+- Credit/usage system (trial + credits + subscription)
+- 3 active coupons (LAUNCH50, BLOCKID25, EARLYBIRD)
+- Referral program (2 credits per invite)
+
+**AI & Intelligence:**
+- 8 AI agents operational (SVI, Term Sheet, Research, Report, Growth, R&D, Email, Cron)
+- AI R&D dashboard for admin
+- Growth Intelligence daily cron
+
+**Evidence & Verification:**
+- Evidence vault + Google Drive auto-share
+- GitHub OAuth connector (75% confidence)
+- URL verification endpoint
+- Auto-rescore on evidence upload
+
+**Investor Features:**
+- Polished investor share page
+- Heat scoring (track engagement: time, scroll, views)
+- Activity dashboard (hot/warm/cold investors)
+
+**Email System:**
+- 20+ templates (magic link, score, report, welcome, weekly, nurture, payment, cancellation)
+- CAN-SPAM compliant unsubscribe system
+- Vietnamese language support
+- 4 nurture sequences (free, paid, churn, re-engage)
+
+**i18n:**
+- Full Vietnamese support: reports, emails, UI
+- Cookie-based locale persistence
+- AI generates Vietnamese reports when VI selected
+
+**Admin Panel (12 pages):**
+- Dashboard, Growth Intelligence, Roadmap, Team & AI Agents
+- AI R&D Agent, Self-Assessment, Accelerator Cohorts
+- Users, Documents, Config, Notifications
+
+**B2B:**
+- Accelerator cohort dashboard (create, track, leaderboard)
+- API key management + rate limiting
+- /developers API documentation page
+
+**Compliance & Tools (10 free):**
+- ESIC eligibility checker
+- R&D tax incentive calculator
+- Dilution, cap table, term sheet, equity split, funding plan, idea valuation, data room, co-founder match
+
+**SEO & Marketing:**
+- sitemap.xml (22 URLs), robots.txt
+- SEO meta on all pages
+- Schema.org JSON-LD
+- GA4 + GTM integration
+
+**Video Production:**
+- 3-minute pitch video (voice-led, AU male, HelpNow demo)
+- 1-minute pitch video
+- Screen recording (Playwright)
+- Voiceover scripts + SRT subtitles
+
+**Documentation:**
+- PRD: 1,229 lines, 24+ sections
+- Architecture: 829 lines
+- API Reference: 1,831 lines
+- Deployment: 414 lines
+- 74 goal files across all phases
+
+### C-Level Team Structure
+| Role | Agent/Person | Responsibility |
+|------|-------------|---------------|
+| CEO/Founder | Do Van Long | Vision, strategy, fundraising |
+| CTO | AI Agent | Architecture, features, CI/CD |
+| CMO | AI Agent | SEO, content, growth, conversion |
+| CFO | AI Agent | Revenue, pricing, Stripe metrics |
+| COO | AI Agent | Sprint planning, operations |
+| CPO | AI Agent | Product strategy, UX, onboarding |
+| CRO | AI Agent | Conversion funnels, retention |
+| CDO | AI Agent | Data strategy, AI governance |
+| CLO | AI Agent | IP, contracts, compliance |
+| CISO | AI Agent | Security, data protection |
+| CHRO | AI Agent | Team, ESOP, culture |
+
+### 3 Test Use Cases Verified
+| Case | User | SVI | Evidence | Share Link |
+|------|------|-----|----------|------------|
+| HelpNow.au | info@helpnow.au | **128** | 11 items | /s/Wz4MTVpLyS8j |
+| LongCare.au | ceo@longcare.au | **130** | 2 items | /s/L24AoELdJouE |
+| BlockID.au | admin@blockid.au | **142** | 18 items | /s/5v6miPmjEu9C |
+
+### Deployment Status
+| Environment | Container | Port | Status |
+|-------------|-----------|------|--------|
+| Production | deploy-blockid-production | 4001 | Healthy |
+| Staging | deploy-blockid-staging | 4002 | Healthy |
+| Dev | deploy-blockid-dev | 4003 | Healthy |
+
+### Git: Committed + pushed to master (commit e521752)
+GitLab CI auto-deploy triggered for all 3 environments.
+
+---
+
+*This PRD is the single source of truth for BlockID.au product decisions.*  
+*Version 2.0 | Last updated: 2026-05-21.*  
+*Platform: 394 TS files, 70 pages, 107 API routes, 51 DB tables, 178 commits.*  
+*Documentation: 10,000+ lines across 7 docs + 74 goal files + 44 skills.*
+
+**BlockID.au — Valuation. Ownership. Execution. Growth.**
 
