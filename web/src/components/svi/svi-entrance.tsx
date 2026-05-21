@@ -993,7 +993,13 @@ export function SVIEntrance() {
                 Try an Example
               </button>
             </div>
-            <p className="mt-3 text-center text-xs text-ink-600">Free · No credit card · No signup · Drag &amp; drop a PDF · Voice input</p>
+            <div className="mt-4 flex flex-col items-center gap-2">
+              <p className="flex items-center gap-2 text-sm font-semibold text-emerald-700">
+                <CheckCircle2 strokeWidth={2} className="h-4.5 w-4.5 text-emerald-500" />
+                First analysis FREE &middot; No credit card &middot; No signup required
+              </p>
+              <p className="text-xs text-ink-500">Drag &amp; drop a PDF &middot; Voice input supported</p>
+            </div>
             {/* Typing indicator hint — visible when textarea is empty */}
             {!text && state === "idle" && (
               <div className="mt-3 flex items-center justify-center gap-1.5" aria-hidden="true">
@@ -1092,6 +1098,13 @@ export function SVIEntrance() {
       {/* ── PRICING TIERS ────────────────────────────────────────────────── */}
       <section className="bg-surface-100 py-14">
         <div className="mx-auto max-w-5xl px-6">
+          {/* Free analysis banner */}
+          <div className="mx-auto max-w-lg mb-10 rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-brand-50 px-6 py-4 text-center shadow-sm">
+            <p className="text-base font-bold text-emerald-800 flex items-center justify-center gap-2">
+              <span className="text-lg">🎁</span> Your first SVI analysis is completely free.
+            </p>
+            <p className="text-sm text-emerald-700 mt-1">No signup needed. Just describe your idea and go.</p>
+          </div>
           <h2 className="text-center text-2xl md:text-3xl font-bold text-ink-800 mb-2">Choose Your Starting Point</h2>
           <p className="text-center text-sm text-ink-600 mb-10">Validate your idea or unlock the full platform — start today.</p>
 
