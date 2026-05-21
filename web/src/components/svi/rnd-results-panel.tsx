@@ -922,6 +922,11 @@ export function RndResultsPanel({
           </div>
         )}
 
+        {/* Deep Tech Audit card (page 3 — product): full audit results */}
+        {pageDef.num === 3 && techAudit && (
+          <TechAuditCard audit={techAudit} />
+        )}
+
         {/* Markdown content */}
         {page.content && (
           <div className="prose-sm max-w-none">{renderMarkdown(page.content)}</div>
