@@ -1,7 +1,6 @@
 import React from "react";
 import { AbsoluteFill, Audio, Img, Sequence, staticFile } from "remotion";
 import { ComparisonTable } from "../components/ComparisonTable";
-import { DropMic } from "../components/DropMic";
 import { FlowDiagram } from "../components/FlowDiagram";
 import { ScreenDemo } from "../components/ScreenDemo";
 import { SlideTransition } from "../components/SlideTransition";
@@ -12,108 +11,110 @@ import { TeamOrg } from "../components/TeamOrg";
 import { BRAND } from "../styles/brand";
 
 /**
- * PitchVideo3Min — 3-minute pitch video for Spacubed Fellowship + Google for Startups
+ * PitchVideo3Min — 3-minute pitch video (voice-led timeline)
  *
- * Professional storytelling structure:
- *   Act 1: Hook & Problem (0:00 - 0:30)
- *     Scene 1:  Hook — crisis stat         0:00 - 0:08  (frames 0-240)
- *     Scene 2:  Founder intro              0:08 - 0:15  (frames 240-450)
- *     Scene 3:  Three pain points          0:15 - 0:30  (frames 450-900)
+ * PRINCIPLE: Voice clips play at natural speed. Video scenes expand/contract
+ * to match each voice clip's actual duration. 0.3s (9 frame) gap between clips.
  *
- *   Act 2: Solution & Demo (0:30 - 1:40)
- *     Scene 4:  The Solution (BlockID)     0:30 - 1:00  (frames 900-1800)
- *     Scene 5:  The Report                 1:00 - 1:20  (frames 1800-2400)
- *     Scene 6:  Evidence Vault             1:20 - 1:40  (frames 2400-3000)
+ * Voice clip durations (actual measured):
+ *   01.mp3: 10.7s  →  321 frames   Scene 1:  Hook
+ *   02.mp3: 10.9s  →  327 frames   Scene 2:  Founder
+ *   03.mp3: 11.2s  →  336 frames   Scene 3a: Problem 1
+ *   04.mp3:  8.7s  →  261 frames   Scene 3b: Problem 2
+ *   05.mp3:  9.2s  →  276 frames   Scene 3c: Problem 3
+ *   06.mp3:  8.6s  →  258 frames   Scene 4a: Demo intro
+ *   07.mp3: 12.3s  →  369 frames   Scene 4b: Demo search
+ *   08.mp3: 16.4s  →  492 frames   Scene 4c: Demo results
+ *   09.mp3:  9.1s  →  273 frames   Scene 4d: Demo actions
+ *   10.mp3: 16.0s  →  480 frames   Scene 5:  Report
+ *   11.mp3: 12.7s  →  381 frames   Scene 6:  Evidence
+ *   12.mp3: 15.0s  →  450 frames   Scene 7:  Roadmap
+ *   13.mp3: 14.9s  →  447 frames   Scene 8:  Market
+ *   14.mp3: 13.3s  →  399 frames   Scene 9:  Competitors
+ *   15.mp3: 12.6s  →  378 frames   Scene 10: Team
+ *   16.mp3:  8.0s  →  240 frames   Scene 12: CTA
  *
- *   Act 3: Traction & Market (1:40 - 2:35)
- *     Scene 7:  Growth Roadmap             1:40 - 2:00  (frames 3000-3600)
- *     Scene 8:  Market Opportunity         2:00 - 2:20  (frames 3600-4200)
- *     Scene 9:  Why Us                     2:20 - 2:35  (frames 4200-4650)
+ * Frame timeline (30fps, 9-frame gaps):
+ *   Scene 1:  frame    0 –  329  (330 frames)  01.mp3
+ *   Scene 2:  frame  338 –  674  (337 frames)  02.mp3
+ *   Scene 3a: frame  683 – 1019  (337 frames)  03.mp3
+ *   Scene 3b: frame 1028 – 1289  (262 frames)  04.mp3
+ *   Scene 3c: frame 1298 – 1574  (277 frames)  05.mp3
+ *   Scene 4a: frame 1583 – 1841  (259 frames)  06.mp3
+ *   Scene 4b: frame 1850 – 2218  (369 frames)  07.mp3
+ *   Scene 4c: frame 2227 – 2719  (493 frames)  08.mp3
+ *   Scene 4d: frame 2728 – 3001  (274 frames)  09.mp3
+ *   Scene 5:  frame 3010 – 3490  (481 frames)  10.mp3
+ *   Scene 6:  frame 3499 – 3880  (382 frames)  11.mp3
+ *   Scene 7:  frame 3889 – 4339  (451 frames)  12.mp3
+ *   Scene 8:  frame 4348 – 4795  (448 frames)  13.mp3
+ *   Scene 9:  frame 4804 – 5203  (400 frames)  14.mp3
+ *   Scene 10: frame 5212 – 5590  (379 frames)  15.mp3
+ *   Scene 12: frame 5599 – 5850  (252 frames)  16.mp3
  *
- *   Act 4: Team & Close (2:35 - 3:00)
- *     Scene 10: The Team                   2:35 - 2:50  (frames 4650-5100)
- *     Scene 11: Drop Mic                   2:50 - 2:55  (frames 5100-5250)
- *     Scene 12: CTA + QR                   2:55 - 3:00  (frames 5250-5400)
- *
- * 30fps, 5400 total frames
+ * Total: 5850 frames = 195s @ 30fps
  */
 export const PitchVideo3Min: React.FC = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: BRAND.colors.ink950 }}>
       {/* ═══════════════════════════════════════════════════════════════════ */}
-      {/* AUDIO — one clip per scene / sub-scene                            */}
+      {/* AUDIO — one clip per scene, placed at exact start frame           */}
       {/* ═══════════════════════════════════════════════════════════════════ */}
-      {/* Scene 1: Hook */}
       <Sequence from={0}>
         <Audio src={staticFile("video-assets/audio/3min-final/01.mp3")} />
       </Sequence>
-      {/* Scene 2: Founder */}
-      <Sequence from={240}>
+      <Sequence from={338}>
         <Audio src={staticFile("video-assets/audio/3min-final/02.mp3")} />
       </Sequence>
-      {/* Scene 3a: Problem 1 */}
-      <Sequence from={450}>
+      <Sequence from={683}>
         <Audio src={staticFile("video-assets/audio/3min-final/03.mp3")} />
       </Sequence>
-      {/* Scene 3b: Problem 2 */}
-      <Sequence from={600}>
+      <Sequence from={1028}>
         <Audio src={staticFile("video-assets/audio/3min-final/04.mp3")} />
       </Sequence>
-      {/* Scene 3c: Problem 3 */}
-      <Sequence from={750}>
+      <Sequence from={1298}>
         <Audio src={staticFile("video-assets/audio/3min-final/05.mp3")} />
       </Sequence>
-      {/* Scene 4a: Introducing BlockID */}
-      <Sequence from={900}>
+      <Sequence from={1583}>
         <Audio src={staticFile("video-assets/audio/3min-final/06.mp3")} />
       </Sequence>
-      {/* Scene 4b: Describe your startup */}
-      <Sequence from={960}>
+      <Sequence from={1850}>
         <Audio src={staticFile("video-assets/audio/3min-final/07.mp3")} />
       </Sequence>
-      {/* Scene 4c: 8 dimensions */}
-      <Sequence from={1240}>
+      <Sequence from={2227}>
         <Audio src={staticFile("video-assets/audio/3min-final/08.mp3")} />
       </Sequence>
-      {/* Scene 4d: Not just a number */}
-      <Sequence from={1520}>
+      <Sequence from={2728}>
         <Audio src={staticFile("video-assets/audio/3min-final/09.mp3")} />
       </Sequence>
-      {/* Scene 5: Report */}
-      <Sequence from={1800}>
+      <Sequence from={3010}>
         <Audio src={staticFile("video-assets/audio/3min-final/10.mp3")} />
       </Sequence>
-      {/* Scene 6: Evidence Vault */}
-      <Sequence from={2400}>
+      <Sequence from={3499}>
         <Audio src={staticFile("video-assets/audio/3min-final/11.mp3")} />
       </Sequence>
-      {/* Scene 7: Roadmap */}
-      <Sequence from={3000}>
+      <Sequence from={3889}>
         <Audio src={staticFile("video-assets/audio/3min-final/12.mp3")} />
       </Sequence>
-      {/* Scene 8: Market */}
-      <Sequence from={3600}>
+      <Sequence from={4348}>
         <Audio src={staticFile("video-assets/audio/3min-final/13.mp3")} />
       </Sequence>
-      {/* Scene 9: Why Us */}
-      <Sequence from={4200}>
+      <Sequence from={4804}>
         <Audio src={staticFile("video-assets/audio/3min-final/14.mp3")} />
       </Sequence>
-      {/* Scene 10: Team */}
-      <Sequence from={4650}>
+      <Sequence from={5212}>
         <Audio src={staticFile("video-assets/audio/3min-final/15.mp3")} />
       </Sequence>
-      {/* Scene 12: CTA */}
-      <Sequence from={5250}>
+      <Sequence from={5599}>
         <Audio src={staticFile("video-assets/audio/3min-final/16.mp3")} />
       </Sequence>
 
       {/* ═══════════════════════════════════════════════════════════════════ */}
-      {/* ACT 1: HOOK & PROBLEM (0:00 - 0:30)                               */}
+      {/* ACT 1: HOOK & PROBLEM (0:00 – 0:52)                               */}
       {/* ═══════════════════════════════════════════════════════════════════ */}
 
-      {/* ─── Scene 1: Hook (0:00-0:08, frames 0-240) ─────────────────── */}
-      <Sequence from={0} durationInFrames={240}>
+      {/* ─── Scene 1: Hook (frames 0–329, 330 frames = 11s) ────────────── */}
+      <Sequence from={0} durationInFrames={330}>
         <AbsoluteFill>
           <StatCounter
             target={90}
@@ -123,13 +124,13 @@ export const PitchVideo3Min: React.FC = () => {
             duration={60}
             source="CB Insights, Stanford HAI 2024"
           />
-          <Subtitle text="90% of startups fail. Most don't know why until it's too late." />
+          <Subtitle text="90% of startups fail. AI builds products. Nothing builds businesses." />
         </AbsoluteFill>
       </Sequence>
 
-      {/* ─── Scene 2: The Founder (0:08-0:15, frames 240-450) ────────── */}
-      <Sequence from={240} durationInFrames={210}>
-        <SlideTransition durationInFrames={210}>
+      {/* ─── Scene 2: Founder (frames 338–674, 337 frames ≈ 11.2s) ────── */}
+      <Sequence from={338} durationInFrames={337}>
+        <SlideTransition durationInFrames={337}>
           <AbsoluteFill
             style={{
               justifyContent: "center",
@@ -190,558 +191,393 @@ export const PitchVideo3Min: React.FC = () => {
               </div>
             </div>
           </AbsoluteFill>
-          <Subtitle text="I've watched founders build incredible products, then lose it all at the cap table." />
+          <Subtitle text="I'm Do Van Long. 15 years in digital transformation. I built BlockID to fix this." />
         </SlideTransition>
       </Sequence>
 
-      {/* ─── Scene 3: Three Pain Points (0:15-0:30, frames 450-900) ── */}
-      <Sequence from={450} durationInFrames={450}>
-        <SlideTransition durationInFrames={450}>
-          <AbsoluteFill>
-            {/* Problem 1 (frames 0-150 local) */}
-            <Sequence from={0} durationInFrames={150}>
-              <AbsoluteFill
+      {/* ─── Scene 3a: Problem 1 (frames 683–1019, 337 frames ≈ 11.2s) ── */}
+      <Sequence from={683} durationInFrames={337}>
+        <SlideTransition durationInFrames={337}>
+          <AbsoluteFill
+            style={{
+              justifyContent: "center",
+              alignItems: "center",
+              padding: "0 120px",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 20,
+                maxWidth: 1000,
+              }}
+            >
+              <div
                 style={{
-                  justifyContent: "center",
-                  alignItems: "center",
-                  padding: "0 120px",
+                  fontFamily: BRAND.fonts.mono,
+                  fontSize: 18,
+                  color: BRAND.colors.red400,
+                  fontWeight: 600,
                 }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: 20,
-                    maxWidth: 1000,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontFamily: BRAND.fonts.mono,
-                      fontSize: 18,
-                      color: BRAND.colors.red400,
-                      fontWeight: 600,
-                    }}
-                  >
-                    PROBLEM 1
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 72,
-                      lineHeight: 1,
-                      marginBottom: 8,
-                    }}
-                  >
-                    {"\uD83D\uDCB0"}
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: BRAND.fonts.heading,
-                      fontSize: 48,
-                      fontWeight: 700,
-                      color: BRAND.colors.white,
-                      textAlign: "center",
-                    }}
-                  >
-                    {'"How much is my startup worth?"'}
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: BRAND.fonts.heading,
-                      fontSize: 24,
-                      color: BRAND.colors.slate400,
-                      textAlign: "center",
-                      marginTop: 12,
-                    }}
-                  >
-                    Manual valuation: A$5,000 - $50,000 | 2-6 weeks
-                  </div>
-                </div>
-              </AbsoluteFill>
-              <Subtitle text="Problem 1: Founders can't answer the most basic investor question." />
-            </Sequence>
-
-            {/* Problem 2 (frames 150-300 local) */}
-            <Sequence from={150} durationInFrames={150}>
-              <AbsoluteFill
+                PROBLEM 1
+              </div>
+              <div
                 style={{
-                  justifyContent: "center",
-                  alignItems: "center",
-                  padding: "0 120px",
+                  fontSize: 72,
+                  lineHeight: 1,
+                  marginBottom: 8,
                 }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: 20,
-                    maxWidth: 1000,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontFamily: BRAND.fonts.mono,
-                      fontSize: 18,
-                      color: BRAND.colors.red400,
-                      fontWeight: 600,
-                    }}
-                  >
-                    PROBLEM 2
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 72,
-                      lineHeight: 1,
-                      marginBottom: 8,
-                    }}
-                  >
-                    {"\uD83D\uDCC4"}
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: BRAND.fonts.heading,
-                      fontSize: 48,
-                      fontWeight: 700,
-                      color: BRAND.colors.white,
-                      textAlign: "center",
-                    }}
-                  >
-                    {'"Who owns what?"'}
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: BRAND.fonts.heading,
-                      fontSize: 24,
-                      color: BRAND.colors.slate400,
-                      textAlign: "center",
-                      marginTop: 12,
-                    }}
-                  >
-                    42% of co-founder disputes destroy startups
-                  </div>
-                </div>
-              </AbsoluteFill>
-              <Subtitle text="Problem 2: Equity splits done on napkins. Vesting? Never heard of it." />
-            </Sequence>
-
-            {/* Problem 3 (frames 300-450 local) */}
-            <Sequence from={300} durationInFrames={150}>
-              <AbsoluteFill
+                {"\uD83D\uDCB0"}
+              </div>
+              <div
                 style={{
-                  justifyContent: "center",
-                  alignItems: "center",
-                  padding: "0 120px",
+                  fontFamily: BRAND.fonts.heading,
+                  fontSize: 48,
+                  fontWeight: 700,
+                  color: BRAND.colors.white,
+                  textAlign: "center",
                 }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: 20,
-                    maxWidth: 1000,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontFamily: BRAND.fonts.mono,
-                      fontSize: 18,
-                      color: BRAND.colors.red400,
-                      fontWeight: 600,
-                    }}
-                  >
-                    PROBLEM 3
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 72,
-                      lineHeight: 1,
-                      marginBottom: 8,
-                    }}
-                  >
-                    {"\u23F0"}
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: BRAND.fonts.heading,
-                      fontSize: 48,
-                      fontWeight: 700,
-                      color: BRAND.colors.white,
-                      textAlign: "center",
-                    }}
-                  >
-                    {'"When will I be investor-ready?"'}
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: BRAND.fonts.heading,
-                      fontSize: 24,
-                      color: BRAND.colors.slate400,
-                      textAlign: "center",
-                      marginTop: 12,
-                    }}
-                  >
-                    You need Carta + a lawyer + a spreadsheet
-                  </div>
-                </div>
-              </AbsoluteFill>
-              <Subtitle text="Problem 3: No single platform. You need Carta, a lawyer, and a spreadsheet." />
-            </Sequence>
+                {'"How much is my startup worth?"'}
+              </div>
+              <div
+                style={{
+                  fontFamily: BRAND.fonts.heading,
+                  fontSize: 24,
+                  color: BRAND.colors.slate400,
+                  textAlign: "center",
+                  marginTop: 12,
+                }}
+              >
+                Manual valuation: A$5,000 - $50,000 | 2-6 weeks
+              </div>
+            </div>
           </AbsoluteFill>
+          <Subtitle text="Problem 1: What is your startup worth? Most founders can't answer." />
+        </SlideTransition>
+      </Sequence>
+
+      {/* ─── Scene 3b: Problem 2 (frames 1028–1289, 262 frames ≈ 8.7s) ── */}
+      <Sequence from={1028} durationInFrames={262}>
+        <SlideTransition durationInFrames={262}>
+          <AbsoluteFill
+            style={{
+              justifyContent: "center",
+              alignItems: "center",
+              padding: "0 120px",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 20,
+                maxWidth: 1000,
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: BRAND.fonts.mono,
+                  fontSize: 18,
+                  color: BRAND.colors.red400,
+                  fontWeight: 600,
+                }}
+              >
+                PROBLEM 2
+              </div>
+              <div
+                style={{
+                  fontSize: 72,
+                  lineHeight: 1,
+                  marginBottom: 8,
+                }}
+              >
+                {"\uD83D\uDCC4"}
+              </div>
+              <div
+                style={{
+                  fontFamily: BRAND.fonts.heading,
+                  fontSize: 48,
+                  fontWeight: 700,
+                  color: BRAND.colors.white,
+                  textAlign: "center",
+                }}
+              >
+                {'"Who owns what?"'}
+              </div>
+              <div
+                style={{
+                  fontFamily: BRAND.fonts.heading,
+                  fontSize: 24,
+                  color: BRAND.colors.slate400,
+                  textAlign: "center",
+                  marginTop: 12,
+                }}
+              >
+                42% of co-founder disputes destroy startups
+              </div>
+            </div>
+          </AbsoluteFill>
+          <Subtitle text="Problem 2: Equity on napkins. No vesting. No SHA." />
+        </SlideTransition>
+      </Sequence>
+
+      {/* ─── Scene 3c: Problem 3 (frames 1298–1574, 277 frames ≈ 9.2s) ── */}
+      <Sequence from={1298} durationInFrames={277}>
+        <SlideTransition durationInFrames={277}>
+          <AbsoluteFill
+            style={{
+              justifyContent: "center",
+              alignItems: "center",
+              padding: "0 120px",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 20,
+                maxWidth: 1000,
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: BRAND.fonts.mono,
+                  fontSize: 18,
+                  color: BRAND.colors.red400,
+                  fontWeight: 600,
+                }}
+              >
+                PROBLEM 3
+              </div>
+              <div
+                style={{
+                  fontSize: 72,
+                  lineHeight: 1,
+                  marginBottom: 8,
+                }}
+              >
+                {"\u23F0"}
+              </div>
+              <div
+                style={{
+                  fontFamily: BRAND.fonts.heading,
+                  fontSize: 48,
+                  fontWeight: 700,
+                  color: BRAND.colors.white,
+                  textAlign: "center",
+                }}
+              >
+                {'"When will I be investor-ready?"'}
+              </div>
+              <div
+                style={{
+                  fontFamily: BRAND.fonts.heading,
+                  fontSize: 24,
+                  color: BRAND.colors.slate400,
+                  textAlign: "center",
+                  marginTop: 12,
+                }}
+              >
+                You need Carta + a lawyer + a spreadsheet + an accountant
+              </div>
+            </div>
+          </AbsoluteFill>
+          <Subtitle text="Problem 3: No single platform. Carta + lawyer + spreadsheet + accountant." />
         </SlideTransition>
       </Sequence>
 
       {/* ═══════════════════════════════════════════════════════════════════ */}
-      {/* ACT 2: SOLUTION & DEMO (0:30 - 1:40)                              */}
+      {/* ACT 2: SOLUTION & DEMO (0:53 – 1:56)                              */}
       {/* ═══════════════════════════════════════════════════════════════════ */}
 
-      {/* ─── Scene 4: The Solution (0:30-1:00, frames 900-1800) ──────── */}
-      <Sequence from={900} durationInFrames={900}>
-        <SlideTransition durationInFrames={900}>
-          <AbsoluteFill>
-            {/* Sub 4a: Logo reveal (2s = 60 frames) */}
-            <Sequence from={0} durationInFrames={60}>
-              <AbsoluteFill
+      {/* ─── Scene 4a: Demo intro (frames 1583–1841, 259 frames ≈ 8.6s) ─ */}
+      <Sequence from={1583} durationInFrames={259}>
+        <SlideTransition durationInFrames={259}>
+          <AbsoluteFill
+            style={{
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 20,
+              }}
+            >
+              <div
                 style={{
-                  justifyContent: "center",
-                  alignItems: "center",
+                  fontFamily: BRAND.fonts.heading,
+                  fontSize: 72,
+                  fontWeight: 700,
+                  color: BRAND.colors.white,
                 }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: 20,
-                  }}
+                Block
+                <span style={{ color: BRAND.colors.brand500 }}>ID</span>
+                <span
+                  style={{ color: BRAND.colors.slate400, fontSize: 48 }}
                 >
-                  <div
-                    style={{
-                      fontFamily: BRAND.fonts.heading,
-                      fontSize: 72,
-                      fontWeight: 700,
-                      color: BRAND.colors.white,
-                    }}
-                  >
-                    Block
-                    <span style={{ color: BRAND.colors.brand500 }}>ID</span>
-                    <span
-                      style={{ color: BRAND.colors.slate400, fontSize: 48 }}
-                    >
-                      .au
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: BRAND.fonts.heading,
-                      fontSize: 28,
-                      color: BRAND.colors.brand400,
-                    }}
-                  >
-                    The AI valuation platform for Australian founders
-                  </div>
-                </div>
-              </AbsoluteFill>
-              <Subtitle text="Introducing BlockID — the AI valuation platform for Australian founders." />
-            </Sequence>
-
-            {/* Sub 4b: Homepage screenshot (9s = 270 frames) */}
-            <Sequence from={60} durationInFrames={280}>
-              <ScreenDemo
-                url="blockid.au"
-                imageSrc="video-assets/homepage-hero.png"
-                descriptionLines={[
-                  "The agentic AI valuation platform",
-                  "Search bar ready for input",
-                ]}
-                status="Describe your startup in plain text. Any language. Any stage."
-              />
-              <Subtitle text="Describe your startup in plain text. Any language. Any stage." />
-            </Sequence>
-
-            {/* Sub 4c: SVI Search result (9s = 280 frames) */}
-            <Sequence from={340} durationInFrames={280}>
-              <ScreenDemo
-                url="blockid.au/dashboard/svi"
-                imageSrc="video-assets/svi-search.png"
-                descriptionLines={[
-                  "AI analyzes across 8 dimensions",
-                  "SVI Score gauge animating",
-                ]}
-                status="8 dimensions. 60 seconds. Evidence-backed."
-              />
-              <Subtitle text="8 dimensions. 60 seconds. Your Startup Value Index — evidence-backed." />
-            </Sequence>
-
-            {/* Sub 4d: Score page detail (9s = 280 frames) */}
-            <Sequence from={620} durationInFrames={280}>
-              <ScreenDemo
-                url="blockid.au/dashboard/svi"
-                imageSrc="video-assets/score-page.png"
-                descriptionLines={[
-                  "Complete diagnostic with actions",
-                  "10-page report generated",
-                ]}
-                status="Not just a number — a complete diagnostic."
-              />
-              <Subtitle text="Not just a number. A complete diagnostic with specific actions." />
-            </Sequence>
+                  .au
+                </span>
+              </div>
+              <div
+                style={{
+                  fontFamily: BRAND.fonts.heading,
+                  fontSize: 28,
+                  color: BRAND.colors.brand400,
+                }}
+              >
+                Real example: HelpNow.au — AI community support platform
+              </div>
+            </div>
           </AbsoluteFill>
+          <Subtitle text='Real example: HelpNow.au — AI community support platform.' />
         </SlideTransition>
       </Sequence>
 
-      {/* ─── Scene 5: The Report (1:00-1:20, frames 1800-2400) ──────── */}
-      <Sequence from={1800} durationInFrames={600}>
-        <SlideTransition durationInFrames={600}>
-          <AbsoluteFill>
-            {/* Report page with navigation */}
-            <Sequence from={0} durationInFrames={300}>
-              <ScreenDemo
-                url="blockid.au/dashboard/svi/report"
-                imageSrc="video-assets/09-score.png"
-                descriptionLines={[
-                  "10-page guided report",
-                  "Market | Product | Traction | Cap Table",
-                ]}
-                status="Market. Product. Traction. Cap table. All scored."
-              />
-              <Subtitle text="A 10-page guided report. Market. Product. Traction. Cap table. All scored." />
-            </Sequence>
-
-            {/* PDF download + sharing */}
-            <Sequence from={300} durationInFrames={300}>
-              <AbsoluteFill
-                style={{
-                  justifyContent: "center",
-                  alignItems: "center",
-                  padding: "0 120px",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: 32,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontFamily: BRAND.fonts.heading,
-                      fontSize: 42,
-                      fontWeight: 700,
-                      color: BRAND.colors.white,
-                      textAlign: "center",
-                    }}
-                  >
-                    Share with anyone
-                  </div>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 32,
-                      marginTop: 16,
-                    }}
-                  >
-                    {[
-                      { icon: "\uD83D\uDCC4", label: "Download PDF" },
-                      { icon: "\uD83D\uDCE7", label: "Email co-founders" },
-                      { icon: "\uD83D\uDD17", label: "Share with investors" },
-                    ].map((item) => (
-                      <div
-                        key={item.label}
-                        style={{
-                          padding: "28px 36px",
-                          borderRadius: 16,
-                          backgroundColor: `${BRAND.colors.ink800}80`,
-                          border: `1px solid ${BRAND.colors.brand500}30`,
-                          textAlign: "center",
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          gap: 12,
-                        }}
-                      >
-                        <div style={{ fontSize: 48 }}>{item.icon}</div>
-                        <div
-                          style={{
-                            fontFamily: BRAND.fonts.heading,
-                            fontSize: 22,
-                            fontWeight: 500,
-                            color: BRAND.colors.white,
-                          }}
-                        >
-                          {item.label}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </AbsoluteFill>
-              <Subtitle text="Download as PDF. Email to co-founders. Share with investors." />
-            </Sequence>
-          </AbsoluteFill>
+      {/* ─── Scene 4b: Demo typing (frames 1850–2218, 369 frames ≈ 12.3s) */}
+      <Sequence from={1850} durationInFrames={369}>
+        <SlideTransition durationInFrames={369}>
+          <ScreenDemo
+            url="blockid.au"
+            imageSrc="video-assets/helpnow-03-typed.png"
+            descriptionLines={[
+              "Two-sided marketplace",
+              "Working MVP with council pilots",
+              "ABN registered, raising $500K",
+            ]}
+            status="Describe your startup in plain text. Two-sided marketplace. MVP. ABN. 3 council pilots."
+          />
+          <Subtitle text="Two-sided marketplace. MVP. ABN. 3 council pilots. Raising $500K." />
         </SlideTransition>
       </Sequence>
 
-      {/* ─── Scene 6: Evidence Vault (1:20-1:40, frames 2400-3000) ──── */}
-      <Sequence from={2400} durationInFrames={600}>
-        <SlideTransition durationInFrames={600}>
+      {/* ─── Scene 4c: Demo results (frames 2227–2719, 493 frames ≈ 16.4s) */}
+      <Sequence from={2227} durationInFrames={493}>
+        <SlideTransition durationInFrames={493}>
+          <ScreenDemo
+            url="blockid.au/dashboard/svi"
+            imageSrc="video-assets/helpnow-06-results.png"
+            descriptionLines={[
+              "HelpNow.au — SVI Score: 67",
+              "Investor Readiness: 95/100",
+            ]}
+            status="8 dimensions. 60 seconds. SVI: 67. Investor Readiness: 95/100."
+          />
+          <Subtitle text="8 dimensions. 60 seconds. SVI: 67. Investor Readiness: 95/100." />
+        </SlideTransition>
+      </Sequence>
+
+      {/* ─── Scene 4d: Demo actions (frames 2728–3001, 274 frames ≈ 9.1s) */}
+      <Sequence from={2728} durationInFrames={274}>
+        <SlideTransition durationInFrames={274}>
+          <ScreenDemo
+            url="blockid.au/dashboard/svi"
+            imageSrc="video-assets/helpnow-07-results-detail.png"
+            descriptionLines={[
+              "8 dimensions scored",
+              "Specific actions to improve each one",
+            ]}
+            status="Specific actions: cap table, trademark, connect revenue data."
+          />
+          <Subtitle text="Specific actions: cap table, trademark, connect revenue data." />
+        </SlideTransition>
+      </Sequence>
+
+      {/* ─── Scene 5: Report (frames 3010–3490, 481 frames ≈ 16.0s) ───── */}
+      <Sequence from={3010} durationInFrames={481}>
+        <SlideTransition durationInFrames={481}>
+          <ScreenDemo
+            url="blockid.au/dashboard/svi/report"
+            imageSrc="video-assets/helpnow-07-results-detail.png"
+            descriptionLines={[
+              "10-page guided report",
+              "Market | Product | Cap table | Risk | Action plan",
+            ]}
+            status="10-page report. Market. Product. Cap table. Risk. Action plan. PDF export."
+          />
+          <Subtitle text="10-page report. Market. Product. Cap table. Risk. Action plan. PDF export." />
+        </SlideTransition>
+      </Sequence>
+
+      {/* ─── Scene 6: Evidence (frames 3499–3880, 382 frames ≈ 12.7s) ─── */}
+      <Sequence from={3499} durationInFrames={382}>
+        <SlideTransition durationInFrames={382}>
           <AbsoluteFill>
-            {/* Evidence upload screenshot */}
-            <Sequence from={0} durationInFrames={300}>
+            {/* Evidence Vault — first half */}
+            <Sequence from={0} durationInFrames={191}>
               <ScreenDemo
                 url="blockid.au/workspace/evidence"
-                imageSrc="video-assets/evidence-vault.png"
+                imageSrc="video-assets/helpnow-11-evidence.png"
                 descriptionLines={[
                   "Evidence Vault — upload & verify",
-                  "Pitch decks, GitHub, Stripe connected",
+                  "Upload documents. Track completion.",
                 ]}
-                status="Upload pitch decks. Connect GitHub. Verify revenue."
+                status="Evidence Vault and Data Room. Upload, verify, confidence lifts."
               />
-              <Subtitle text="Upload pitch decks. Connect GitHub. Verify revenue through Stripe." />
             </Sequence>
 
-            {/* Confidence bar animation */}
-            <Sequence from={300} durationInFrames={300}>
-              <AbsoluteFill
-                style={{
-                  justifyContent: "center",
-                  alignItems: "center",
-                  padding: "0 120px",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: 32,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontFamily: BRAND.fonts.heading,
-                      fontSize: 42,
-                      fontWeight: 700,
-                      color: BRAND.colors.white,
-                      textAlign: "center",
-                    }}
-                  >
-                    Your score grows with evidence
-                  </div>
-
-                  {/* Confidence progression */}
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 16,
-                      marginTop: 16,
-                    }}
-                  >
-                    {[
-                      { score: "20%", label: "Self-declared", color: BRAND.colors.red400 },
-                      { score: "50%", label: "+ Pitch Deck", color: BRAND.colors.gold400 },
-                      { score: "75%", label: "+ Revenue", color: BRAND.colors.brand400 },
-                      { score: "90%", label: "Verified", color: BRAND.colors.emerald500 },
-                    ].map((step, i) => (
-                      <React.Fragment key={step.label}>
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            gap: 8,
-                            padding: "24px 28px",
-                            borderRadius: 16,
-                            backgroundColor: `${step.color}12`,
-                            border: `2px solid ${step.color}60`,
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontFamily: BRAND.fonts.mono,
-                              fontSize: 36,
-                              fontWeight: 700,
-                              color: step.color,
-                            }}
-                          >
-                            {step.score}
-                          </div>
-                          <div
-                            style={{
-                              fontFamily: BRAND.fonts.heading,
-                              fontSize: 16,
-                              color: BRAND.colors.slate300,
-                            }}
-                          >
-                            {step.label}
-                          </div>
-                        </div>
-                        {i < 3 && (
-                          <div
-                            style={{
-                              fontSize: 28,
-                              color: BRAND.colors.brand400,
-                              fontWeight: 700,
-                            }}
-                          >
-                            {"\u2192"}
-                          </div>
-                        )}
-                      </React.Fragment>
-                    ))}
-                  </div>
-                </div>
-              </AbsoluteFill>
-              <Subtitle text="Every piece of evidence lifts your score. From self-declared to verified." />
+            {/* Data Room — second half */}
+            <Sequence from={191} durationInFrames={191}>
+              <ScreenDemo
+                url="blockid.au/workspace/data-room"
+                imageSrc="video-assets/helpnow-12-dataroom.png"
+                descriptionLines={[
+                  "Data Room checklist",
+                  "Every piece of proof lifts the score",
+                ]}
+                status="From self-declared to verified. Confidence 20% to 90%."
+              />
             </Sequence>
           </AbsoluteFill>
+          <Subtitle text="Evidence Vault + Data Room. Upload → verify → confidence 20% to 90%." />
         </SlideTransition>
       </Sequence>
 
       {/* ═══════════════════════════════════════════════════════════════════ */}
-      {/* ACT 3: TRACTION & MARKET (1:40 - 2:35)                            */}
+      {/* ACT 3: TRACTION & MARKET (2:10 – 2:53)                            */}
       {/* ═══════════════════════════════════════════════════════════════════ */}
 
-      {/* ─── Scene 7: Growth Roadmap (1:40-2:00, frames 3000-3600) ──── */}
-      <Sequence from={3000} durationInFrames={600}>
-        <SlideTransition durationInFrames={600}>
+      {/* ─── Scene 7: Roadmap (frames 3889–4339, 451 frames ≈ 15.0s) ──── */}
+      <Sequence from={3889} durationInFrames={451}>
+        <SlideTransition durationInFrames={451}>
           <AbsoluteFill>
-            {/* FlowDiagram — 10 steps */}
-            <Sequence from={0} durationInFrames={600}>
-              <FlowDiagram
-                title="From idea to investor — one platform"
-                steps={[
-                  { icon: "\uD83D\uDCA1", label: "Validate", sublabel: "AI scoring" },
-                  { icon: "\uD83D\uDCCA", label: "Cap Table", sublabel: "Equity splits" },
-                  { icon: "\uD83D\uDCDD", label: "Data Room", sublabel: "Evidence vault" },
-                  { icon: "\u2696\uFE0F", label: "Compliance", sublabel: "ASIC + ESIC" },
-                  { icon: "\uD83D\uDE80", label: "Raise", sublabel: "Investor-ready" },
-                ]}
-              />
-            </Sequence>
-            <Subtitle text="10 steps from idea to investor. Cap table. Equity. Data room. Compliance." />
+            <FlowDiagram
+              title="From idea to investor — one platform"
+              steps={[
+                { icon: "\uD83D\uDCA1", label: "Validate", sublabel: "AI scoring" },
+                { icon: "\uD83D\uDCCA", label: "Cap Table", sublabel: "Equity splits" },
+                { icon: "\uD83D\uDCDD", label: "Data Room", sublabel: "Evidence vault" },
+                { icon: "\u2696\uFE0F", label: "Compliance", sublabel: "ASIC + ESIC" },
+                { icon: "\uD83D\uDE80", label: "Raise", sublabel: "Investor-ready" },
+              ]}
+            />
+            <Subtitle text="10 steps. Cap table. Equity. Data room. ESIC. R&D tax. Weekly updates." />
           </AbsoluteFill>
         </SlideTransition>
       </Sequence>
 
-      {/* ─── Scene 8: Market Opportunity (2:00-2:20, frames 3600-4200) ─ */}
-      <Sequence from={3600} durationInFrames={600}>
-        <SlideTransition durationInFrames={600}>
+      {/* ─── Scene 8: Market (frames 4348–4795, 448 frames ≈ 14.9s) ───── */}
+      <Sequence from={4348} durationInFrames={448}>
+        <SlideTransition durationInFrames={448}>
           <AbsoluteFill>
-            {/* TAM/SAM/SOM circles */}
-            <Sequence from={0} durationInFrames={300}>
+            {/* TAM/SAM/SOM circles — first half */}
+            <Sequence from={0} durationInFrames={224}>
               <TAMCircles />
-              <Subtitle text="600,000 Australian companies. 50,000 raising capital. Zero AI platforms." />
             </Sequence>
 
-            {/* Pricing cards */}
-            <Sequence from={300} durationInFrames={300}>
+            {/* Pricing cards — second half */}
+            <Sequence from={224} durationInFrames={224}>
               <AbsoluteFill
                 style={{
                   justifyContent: "center",
@@ -854,15 +690,15 @@ export const PitchVideo3Min: React.FC = () => {
                   </div>
                 </div>
               </AbsoluteFill>
-              <Subtitle text="Free trial. $1 per analysis. $49 lifetime account. 88%+ gross margins." />
             </Sequence>
+            <Subtitle text="600K AU companies. 50K raising. Free trial. $1/analysis. 88% margins." />
           </AbsoluteFill>
         </SlideTransition>
       </Sequence>
 
-      {/* ─── Scene 9: Why Us (2:20-2:35, frames 4200-4650) ──────────── */}
-      <Sequence from={4200} durationInFrames={450}>
-        <SlideTransition durationInFrames={450}>
+      {/* ─── Scene 9: Competitors (frames 4804–5203, 400 frames ≈ 13.3s)  */}
+      <Sequence from={4804} durationInFrames={400}>
+        <SlideTransition durationInFrames={400}>
           <ComparisonTable
             title="Built for Australia"
             headers={["Carta", "Pulley", "AI Tools", "BlockID"]}
@@ -889,47 +725,24 @@ export const PitchVideo3Min: React.FC = () => {
               },
             ]}
           />
-          <Subtitle text="Built for Australia. ABN. ASIC. ESIC. R&D tax. Not an afterthought." />
+          <Subtitle text="Built for Australia. ABN. ASIC. ESIC. R&D tax. 8 AI agents." />
         </SlideTransition>
       </Sequence>
 
       {/* ═══════════════════════════════════════════════════════════════════ */}
-      {/* ACT 4: TEAM & CLOSE (2:35 - 3:00)                                 */}
+      {/* ACT 4: TEAM & CLOSE (2:54 – 3:15)                                 */}
       {/* ═══════════════════════════════════════════════════════════════════ */}
 
-      {/* ─── Scene 10: The Team (2:35-2:50, frames 4650-5100) ─────── */}
-      <Sequence from={4650} durationInFrames={450}>
-        <SlideTransition durationInFrames={450}>
+      {/* ─── Scene 10: Team (frames 5212–5590, 379 frames ≈ 12.6s) ────── */}
+      <Sequence from={5212} durationInFrames={379}>
+        <SlideTransition durationInFrames={379}>
           <TeamOrg />
-          <Subtitle text="One founder. Eight AI agents. 272 files. 70 APIs. Built in 19 days." />
+          <Subtitle text="1 founder. 8 AI agents. 19 days. 272 files. 70 APIs." />
         </SlideTransition>
       </Sequence>
 
-      {/* ─── Scene 11: Drop Mic (2:50-2:55, frames 5100-5250) ──────── */}
-      <Sequence from={5100} durationInFrames={150}>
-        <DropMic
-          lines={[
-            {
-              text: "We don't just talk about AI.",
-              color: BRAND.colors.slate300,
-              fontSize: 44,
-              fontWeight: 600,
-            },
-            {
-              text: "We ARE AI-native.",
-              color: BRAND.colors.brand500,
-              fontSize: 64,
-              fontWeight: 700,
-            },
-          ]}
-          beatFrames={40}
-          delay={10}
-        />
-        <Subtitle text="We don't just talk about AI. We ARE AI-native." />
-      </Sequence>
-
-      {/* ─── Scene 12: CTA + QR (2:55-3:00, frames 5250-5400) ──────── */}
-      <Sequence from={5250} durationInFrames={150}>
+      {/* ─── Scene 12: CTA + QR (frames 5599–5850, 252 frames ≈ 8.4s) ── */}
+      <Sequence from={5599} durationInFrames={252}>
         <AbsoluteFill
           style={{
             backgroundColor: BRAND.colors.ink950,
@@ -1015,7 +828,7 @@ export const PitchVideo3Min: React.FC = () => {
             </div>
           </div>
         </AbsoluteFill>
-        <Subtitle text="Get your free SVI at blockid.au" />
+        <Subtitle text="blockid.au — Build it right. Build it valuable." />
       </Sequence>
     </AbsoluteFill>
   );
