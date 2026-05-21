@@ -43,6 +43,7 @@ function useBenchmark(stage: number, svi: number) {
         const staticBench = getSVIBenchmark(stage);
         setData({
           ...staticBench,
+          stageLabel: staticBench.label,
           sampleSize: 0,
           source: "static",
           medianSVI: staticBench.medianSVI,
@@ -66,7 +67,7 @@ export function SVIComparison({
 
   // Use static data while fetching
   const staticBench = getSVIBenchmark(stage);
-  const bench = live ?? { ...staticBench, sampleSize: 0, source: "static" as const, medianSVI: staticBench.medianSVI };
+  const bench = live ?? { ...staticBench, stageLabel: staticBench.label, sampleSize: 0, source: "static" as const, medianSVI: staticBench.medianSVI };
   const percentile = live?.percentile ?? getSVIPercentile(analysis.totalSVI, stage);
 
   return (
