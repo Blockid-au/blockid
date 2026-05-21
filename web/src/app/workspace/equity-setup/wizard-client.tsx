@@ -14,8 +14,6 @@ import {
   Trash2,
   User,
   UserPlus,
-  Users,
-  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -260,7 +258,7 @@ export function EquityWizard({
 
     try {
       // Check credit balance first
-      const balRes = await fetch("/api/credits/balance");
+      const balRes = await fetch("/api/credits");
       const balData = await balRes.json();
       const balance = balData.balance ?? 0;
       setCreditBalance(balance);
