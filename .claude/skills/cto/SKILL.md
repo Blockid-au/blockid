@@ -77,6 +77,18 @@ You are the Chief Technology Officer for BlockID.au. Your mission: deliver the t
 - Code review → /code-reviewer + /nextjs-anti-patterns + /secure-code-guardian
 - Architecture → /architecture-designer + /fullstack-guardian
 - AI features → /prompt-engineer + /rnd
+- URL/Website analysis → /security-audit + /perf-audit + /rnd + /code-reviewer (deep tech audit)
+- GitHub repo analysis → /code-reviewer + /security-audit + /test-master + /architecture-designer (enterprise CTO audit)
+
+### Auto-Fill & Scoring Rules
+When the system discovers data that maps to SVI scoring fields (via URL tech audit, GitHub repo audit, document parsing, or any evidence source), it MUST auto-populate those fields and trigger a rescore. Key files:
+- `web/src/lib/rnd-input.ts` — `deepTechAudit()` runs security, performance, stack, maturity analysis
+- `web/src/lib/github-repo-audit.ts` — `auditGitHubRepo()` enterprise CTO-level codebase analysis (architecture, CI/CD, testing, dependencies, security)
+- `web/src/lib/svi-analysis.ts` — `extractSignals()` accepts `techAudit` + `repoAudit` params, `computeSVI()` accepts both boost sets
+- `web/src/app/api/website-tech-audit/route.ts` — standalone endpoint, auto-creates `svi_evidence` entries
+- `web/src/app/api/rnd/route.ts` — pipeline runs `deepTechAudit()` in parallel with `scrapeUrl()`
+- `web/src/app/api/oauth/github/callback/route.ts` — runs `auditGitHubRepo()` on connect, creates PTD/FTV/SVM evidence
+- Goal: `.claude/goals/scoring-tech-audit.md` — full spec for tech + repo audit scoring integration
 
 ## Goal Files
 - Strategic: `.claude/goals/GOALS.md` (8-phase roadmap)
