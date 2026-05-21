@@ -270,42 +270,95 @@ export function EquityWizard({
         return;
       }
 
-      // AI suggest endpoint would be called here in production
-      // For now, apply sensible defaults based on the type
+      // Call real AI endpoints
       if (type === "equity_split") {
-        // Apply Slicing Pie style defaults
-        const founderCount = stakeholders.filter(
-          (s) => s.role === "founder" || s.role === "cofounder",
-        ).length;
-        const advisorCount = stakeholders.filter(
-          (s) => s.role === "advisor",
-        ).length;
-        const employeeCount = stakeholders.filter(
-          (s) => s.role === "employee",
-        ).length;
-
-        const totalAdvisors = advisorCount * 2; // 2% each typical
-        const totalEmployees = employeeCount * 1; // 1% each typical
-        const founderPool = 100 - totalAdvisors - totalEmployees;
-        const perFounder =
-          founderCount > 0 ? founderPool / founderCount : 100;
-
-        setStakeholders((prev) =>
-          prev.map((s) => {
-            if (s.role === "founder" || s.role === "cofounder") {
-              return { ...s, equityPct: Number(perFounder.toFixed(2)) };
-            }
-            if (s.role === "advisor") return { ...s, equityPct: 2 };
-            if (s.role === "employee") return { ...s, equityPct: 1 };
-            return s;
-          }),
-        );
+        const founders = stakeholders.map((s) => ({
+          name: s.name,
+          role: s.role,
+          cashContribution: 0,
+          timeCommitment: s.role === "advisor" ? "part-time" : "full-time",
+          ipContribution: "none",
+          experienceYears: 0,
+        }));
+        const res = await fetch("/api/ai/equity-split", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ founders }),
+        });
+        const data = await res.json();
+        if (data.ok && data.recommendation?.splits) {
+          setStakeholders((prev) =>
+            prev.map((s) => {
+              const match = data.recommendation.splits.find(
+                (sp: { name: string; percentage: number }) =>
+                  sp.name.toLowerCase() === s.name.toLowerCase(),
+              );
+              if (match) return { ...s, equityPct: match.percentage };
+              return s;
+            }),
+          );
+        }
+      } else if (type.startsWith("vesting_")) {
+        const id = type.replace("vesting_", "");
+        const sh = stakeholders.find((s) => s.id === id);
+        if (sh) {
+          const res = await fetch("/api/ai/vesting", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ role: sh.role, stage: "seed", contribution: "full-time" }),
+          });
+          const data = await res.json();
+          if (data.ok && data.recommendation) {
+            const rec = data.recommendation;
+            setStakeholders((prev) =>
+              prev.map((s) =>
+                s.id === id
+                  ? {
+                      ...s,
+                      vestingTotal: rec.totalMonths ?? rec.vestingMonths ?? s.vestingTotal,
+                      vestingCliff: rec.cliffMonths ?? s.vestingCliff,
+                      vestingType: rec.vestingType === "back_weighted" ? "back-weighted" as VestingType
+                        : rec.vestingType === "front_weighted" ? "front-weighted" as VestingType
+                        : "linear" as VestingType,
+                    }
+                  : s,
+              ),
+            );
+          }
+        }
       } else if (type === "esop_pool") {
-        // Suggest based on stage
-        setEsopPool(10);
+        const res = await fetch("/api/ai/esop", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            stage: "seed",
+            teamSize: stakeholders.length,
+            plannedHires: 5,
+            currentPool: esopPool,
+          }),
+        });
+        const data = await res.json();
+        if (data.ok && data.recommendation?.poolPercentage) {
+          setEsopPool(data.recommendation.poolPercentage);
+        }
       } else if (type === "share_structure") {
-        setShareMode("fixed");
-        setPricePerShare(0.001);
+        const res = await fetch("/api/ai/share-structure", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sviScore: 100,
+            stage: "seed",
+            plannedRaise: 0,
+            teamSize: stakeholders.length,
+          }),
+        });
+        const data = await res.json();
+        if (data.ok && data.recommendation) {
+          const rec = data.recommendation;
+          setShareMode(rec.mode === "dynamic_shares" ? "dynamic" : "fixed");
+          if (rec.nominalPrice) setPricePerShare(rec.nominalPrice);
+          if (rec.authorizedShares) setAuthorizedShares(rec.authorizedShares);
+        }
       }
     } catch {
       // silently ignore
