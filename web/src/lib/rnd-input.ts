@@ -86,11 +86,83 @@ export interface TechAuditResult {
   evidenceLabels: string[];   // Human-readable evidence summaries
 }
 
+// ─── SSRF Protection ────────────────────────────────────────────────────────
+
+const PRIVATE_IP_RANGES = [
+  /^127\./,                          // loopback
+  /^10\./,                           // RFC1918
+  /^192\.168\./,                     // RFC1918
+  /^172\.(1[6-9]|2\d|3[01])\./,     // RFC1918
+  /^169\.254\./,                     // link-local
+  /^::1$/,                           // IPv6 loopback
+  /^fc00:/i,                         // IPv6 unique local
+  /^fe80:/i,                         // IPv6 link-local
+];
+
+function isSafeUrl(url: string): { ok: boolean; reason?: string } {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return { ok: false, reason: "Invalid URL" };
+  }
+
+  if (!["http:", "https:"].includes(parsed.protocol)) {
+    return { ok: false, reason: `Protocol not allowed: ${parsed.protocol}` };
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+
+  if (hostname === "localhost" || hostname === "0.0.0.0") {
+    return { ok: false, reason: "Loopback address not allowed" };
+  }
+
+  for (const range of PRIVATE_IP_RANGES) {
+    if (range.test(hostname)) {
+      return { ok: false, reason: "Private/internal address not allowed" };
+    }
+  }
+
+  // Block metadata endpoints (AWS, GCP, Azure)
+  if (["169.254.169.254", "metadata.google.internal", "169.254.170.2"].includes(hostname)) {
+    return { ok: false, reason: "Metadata endpoint not allowed" };
+  }
+
+  return { ok: true };
+}
+
+// ─── In-memory Tech Audit Cache (TTL: 1 hour) ───────────────────────────────
+
+const AUDIT_CACHE_TTL_MS = 60 * 60 * 1000;
+const _auditCache = new Map<string, { result: TechAuditResult; expiresAt: number }>();
+
+function getCachedAudit(url: string): TechAuditResult | null {
+  const entry = _auditCache.get(url);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) {
+    _auditCache.delete(url);
+    return null;
+  }
+  return entry.result;
+}
+
+function setCachedAudit(url: string, result: TechAuditResult): void {
+  _auditCache.set(url, { result, expiresAt: Date.now() + AUDIT_CACHE_TTL_MS });
+  // Evict oldest entries if cache grows beyond 100 items
+  if (_auditCache.size > 100) {
+    const oldest = [..._auditCache.entries()].sort((a, b) => a[1].expiresAt - b[1].expiresAt)[0];
+    if (oldest) _auditCache.delete(oldest[0]);
+  }
+}
+
 // ─── Scrape + Basic Tech Hints ──────────────────────────────────────────────
 
 export async function scrapeUrl(url: string): Promise<{ title: string; description: string; text: string; techHints: string[] }> {
   let fullUrl = url.trim();
   if (!fullUrl.startsWith("http")) fullUrl = `https://${fullUrl}`;
+
+  const ssrf = isSafeUrl(fullUrl);
+  if (!ssrf.ok) throw new Error(`SSRF blocked: ${ssrf.reason}`);
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);
@@ -140,6 +212,12 @@ export async function scrapeUrl(url: string): Promise<{ title: string; descripti
 export async function deepTechAudit(url: string): Promise<TechAuditResult> {
   let fullUrl = url.trim();
   if (!fullUrl.startsWith("http")) fullUrl = `https://${fullUrl}`;
+
+  const ssrf = isSafeUrl(fullUrl);
+  if (!ssrf.ok) return buildFailedAudit(fullUrl);
+
+  const cached = getCachedAudit(fullUrl);
+  if (cached) return cached;
 
   const startTime = Date.now();
   const controller = new AbortController();
@@ -476,7 +554,7 @@ export async function deepTechAudit(url: string): Promise<TechAuditResult> {
   if (customerTools.length > 0) evidenceLabels.push(`Support: ${customerTools.join(", ")}`);
   if (hasSitemap) evidenceLabels.push(`Sitemap: ${sitemapPageCount} pages`);
 
-  return {
+  const result: TechAuditResult = {
     url: fullUrl,
     auditedAt: new Date().toISOString(),
     security,
@@ -487,6 +565,9 @@ export async function deepTechAudit(url: string): Promise<TechAuditResult> {
     signalBoosts: { ptdBoost, svmBoost, treBoost, lcoBoost },
     evidenceLabels,
   };
+
+  setCachedAudit(fullUrl, result);
+  return result;
 }
 
 function buildFailedAudit(url: string): TechAuditResult {
