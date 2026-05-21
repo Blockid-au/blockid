@@ -121,3 +121,67 @@ export async function authenticateApiKey(
     rateLimited: !rateLimitResult.allowed,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Simplified API key auth for public v1 endpoints.
+// Returns a flat object or null — caller handles rate-limit via headers.
+// ---------------------------------------------------------------------------
+
+export interface APIKeyAuth {
+  userId: string;
+  email: string;
+  keyId: string;
+  plan: string;
+}
+
+/**
+ * Authenticate via API key for public /api/v1/* endpoints.
+ *
+ * Validates the key, updates last_used_at, checks rate limits, and
+ * returns a flat auth payload with plan info. Returns null if the key
+ * is invalid, inactive, or rate-limited.
+ */
+export async function authenticateAPIKey(
+  request: Request,
+): Promise<APIKeyAuth | null> {
+  const authHeader = request.headers.get("authorization");
+  if (!authHeader?.startsWith("Bearer bk_live_")) return null;
+
+  const rawKey = authHeader.slice(7); // Remove "Bearer "
+  const validated = await validateApiKey(rawKey);
+
+  if (!validated.valid || !validated.userId) return null;
+
+  // Enforce rate limit
+  const rateLimitResult = await checkRateLimit(
+    validated.keyHash!,
+    validated.rateLimitPerMin!,
+  );
+  if (!rateLimitResult.allowed) return null;
+
+  // Resolve user plan from app_users
+  const { getSupabaseAdmin } = await import("./supabase");
+  const supabase = getSupabaseAdmin();
+  let plan = "free";
+  let email = validated.email ?? "";
+
+  if (supabase) {
+    const { data: user } = await supabase
+      .from("app_users")
+      .select("email, plan")
+      .eq("id", validated.userId)
+      .maybeSingle();
+
+    if (user) {
+      email = user.email ?? email;
+      plan = user.plan ?? "free";
+    }
+  }
+
+  return {
+    userId: validated.userId,
+    email,
+    keyId: validated.keyHash ?? "",
+    plan,
+  };
+}

@@ -30,10 +30,49 @@ interface Endpoint {
 const ENDPOINTS: Endpoint[] = [
   {
     method: "POST",
-    path: "/api/svi",
-    title: "Compute SVI Analysis",
+    path: "/api/v1/analyze",
+    title: "SVI Analysis (Public API)",
     description:
-      "Submit text input (startup idea, business plan, or document content) to generate a full Startup Value Index analysis with scores across 8 dimensions.",
+      "Submit a startup description to receive a full Startup Value Index analysis with dimension scores, evidence gaps, and risk flags. Designed for third-party integrations.",
+    credits: 1,
+    body: `{
+  "description": "AI-powered accounting SaaS for Australian SMEs with $50k MRR, 200 paying customers, and a team of 4 including a serial founder."
+}`,
+    response: `{
+  "ok": true,
+  "data": {
+    "svi": 118,
+    "stage": 4,
+    "stageLabel": "Revenue",
+    "confidence": 20,
+    "summary": "...",
+    "dimensions": {
+      "ftv": { "score": 85, "adjustment": 5, "label": "Founder & Team" },
+      "mpc": { "score": 62, "adjustment": 2, "label": "Market & Problem" },
+      "...": "..."
+    },
+    "evidenceGaps": [
+      {
+        "priority": "P0",
+        "label": "Customer validation",
+        "action": "Add 5+ customer interviews",
+        "impact": 8
+      }
+    ],
+    "riskFlags": 1
+  },
+  "meta": {
+    "version": "2.0.0",
+    "creditsRemaining": 46.5
+  }
+}`,
+  },
+  {
+    method: "POST",
+    path: "/api/svi",
+    title: "Compute SVI Analysis (Session)",
+    description:
+      "Submit text input (startup idea, business plan, or document content) to generate a full Startup Value Index analysis with scores across 8 dimensions. Supports both session and API key auth.",
     credits: 1,
     body: `{
   "email": "founder@example.com",
@@ -138,33 +177,29 @@ const ENDPOINTS: Endpoint[] = [
   },
 ];
 
-const CURL_EXAMPLE = `curl -X POST https://blockid.au/api/svi \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
+const CURL_EXAMPLE = `curl -X POST https://blockid.au/api/v1/analyze \\
+  -H "Authorization: Bearer bk_live_YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "email": "founder@example.com",
-    "input": {
-      "rawText": "AI-powered accounting SaaS for Australian SMEs with $50k MRR"
-    }
+    "description": "AI-powered accounting SaaS for Australian SMEs with $50k MRR, 200 paying customers"
   }'`;
 
-const JS_EXAMPLE = `const response = await fetch("https://blockid.au/api/svi", {
+const JS_EXAMPLE = `const response = await fetch("https://blockid.au/api/v1/analyze", {
   method: "POST",
   headers: {
-    "Authorization": "Bearer YOUR_API_KEY",
+    "Authorization": "Bearer bk_live_YOUR_API_KEY",
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    email: "founder@example.com",
-    input: {
-      rawText: "AI-powered accounting SaaS for Australian SMEs with $50k MRR",
-    },
+    description: "AI-powered accounting SaaS for Australian SMEs with $50k MRR, 200 paying customers",
   }),
 });
 
 const data = await response.json();
-console.log(data.totalSVI); // e.g. 72
-console.log(data.analysis); // Full SVI breakdown`;
+console.log(data.data.svi);        // e.g. 118
+console.log(data.data.stageLabel); // e.g. "Revenue"
+console.log(data.data.dimensions); // Full dimension breakdown
+console.log(data.meta.creditsRemaining);`;
 
 /* ─── Copy Button ───────────────────────────────────────────────────────── */
 function CopyButton({ text }: { text: string }) {

@@ -176,6 +176,69 @@ function revenueMultipleMethod(
 
 // ─── Blended Valuation ──────────────────────────────────────────────────────
 
+// ─── Quick Estimate (SVI + Stage) ───────────────────────────────────────────
+// A lightweight valuation estimate driven by the SVI score and stage number.
+// Used by the dashboard widget — not a substitute for computeValuation().
+
+export interface ValuationEstimate {
+  low: number;
+  mid: number;
+  high: number;
+  method: string;
+  confidence: number;
+  currency: "AUD";
+}
+
+export function estimateValuation(
+  svi: number,
+  stage: number,
+  metrics?: { mrr?: number; arr?: number; users?: number },
+): ValuationEstimate {
+  // Stage-based baseline valuations (AUD, pre-money)
+  const stageBaselines: Record<number, { low: number; mid: number; high: number }> = {
+    0: { low: 50_000, mid: 150_000, high: 500_000 },       // Idea
+    1: { low: 150_000, mid: 400_000, high: 1_000_000 },    // Concept
+    2: { low: 400_000, mid: 1_000_000, high: 2_500_000 },  // Building
+    3: { low: 1_000_000, mid: 2_500_000, high: 5_000_000 },// Launched
+    4: { low: 2_000_000, mid: 5_000_000, high: 10_000_000 },// Traction
+    5: { low: 5_000_000, mid: 10_000_000, high: 25_000_000 },// Revenue
+    6: { low: 10_000_000, mid: 25_000_000, high: 50_000_000 },// Scale
+    7: { low: 25_000_000, mid: 50_000_000, high: 100_000_000 },// Investor-ready
+  };
+
+  const base = stageBaselines[Math.min(stage, 7)] ?? stageBaselines[0];
+
+  // SVI multiplier: 100 = 1x, 200 = 2x, 300 = 3x (linear)
+  const sviMultiplier = Math.max(0.5, svi / 100);
+
+  // Revenue multiplier if metrics available
+  let revenueMultiplier = 1;
+  if (metrics?.arr && metrics.arr > 0) {
+    revenueMultiplier = Math.max(1, Math.min(5, (metrics.arr * 8) / base.mid)); // ~8x ARR for SaaS
+  } else if (metrics?.mrr && metrics.mrr > 0) {
+    revenueMultiplier = Math.max(1, Math.min(5, (metrics.mrr * 12 * 8) / base.mid));
+  }
+
+  const finalMultiplier = sviMultiplier * 0.6 + revenueMultiplier * 0.4;
+
+  return {
+    low: Math.round(base.low * finalMultiplier),
+    mid: Math.round(base.mid * finalMultiplier),
+    high: Math.round(base.high * finalMultiplier),
+    method: metrics?.arr ? "SVI + Revenue Multiple" : "SVI + Stage Baseline",
+    confidence: Math.min(95, Math.round(svi / 3 + (metrics?.arr ? 20 : 0))),
+    currency: "AUD",
+  };
+}
+
+export function formatAUD(value: number): string {
+  if (value >= 1_000_000) return `A$${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `A$${(value / 1_000).toFixed(0)}K`;
+  return `A$${value.toLocaleString()}`;
+}
+
+// ─── Blended Valuation ──────────────────────────────────────────────────────
+
 export function computeValuation(input: ValuationInput): ValuationResult {
   const berkus = berkusMethod(input);
   const scorecard = scorecardMethod(input);
