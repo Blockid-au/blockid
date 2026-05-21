@@ -1,10 +1,13 @@
 # Blockchain Expert Sub-Goal: Vesting — On-Chain Sync & Smart Contracts
 
 ## Parent Goal
-`goals/vesting-share-structure.md`
+- `goals/vesting-share-structure.md` — Vesting system (off-chain first)
+- `goals/blockchain-clevel-goals.md` — Blockchain C-Level master goal
 
 ## Mission
-Ensure every off-chain vesting schedule has a verifiable on-chain counterpart on the BlockID private EVM chain, providing immutable transparency and enabling token-based equity claims.
+Provide an **optional** on-chain transparency layer for vesting schedules. The off-chain system is ALWAYS the source of truth. Blockchain sync is toggleable per startup — when disabled, vesting works 100% via Supabase. When enabled, vesting events sync to VestingVault.sol via the blockchain sync queue.
+
+> **Key Principle**: Vesting is independent of blockchain. Blockchain adds verification, not functionality.
 
 ---
 

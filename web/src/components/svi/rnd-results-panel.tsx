@@ -25,7 +25,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 import { RndPageLock } from "@/components/svi/rnd-page-lock";
-import type { RndReport, RndReportPage, ReportTier } from "@/lib/rnd-types";
+import type { RndReport, RndReportPage, ReportTier, ClientTechAuditResult } from "@/lib/rnd-types";
 import { PAGE_DEFS } from "@/lib/rnd-types";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
@@ -570,6 +570,208 @@ function MobileProgressDots({
   );
 }
 
+/* ─── Tech Audit Card (Page 3: Product & Technology) ────────────────── */
+
+function GradeBadge({ grade, label }: { grade: string; label: string }) {
+  const colors: Record<string, string> = {
+    A: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    B: "bg-brand-50 text-brand-700 border-brand-200",
+    C: "bg-amber-50 text-amber-700 border-amber-200",
+    D: "bg-orange-50 text-orange-700 border-orange-200",
+    F: "bg-red-50 text-red-700 border-red-200",
+  };
+  return (
+    <div className={cn("rounded-xl border px-4 py-3 text-center", colors[grade] ?? colors.C)}>
+      <p className="text-[10px] uppercase tracking-[0.15em] font-medium mb-1 opacity-70">{label}</p>
+      <p className="text-2xl font-bold font-mono">{grade}</p>
+    </div>
+  );
+}
+
+function SignalRow({ label, active }: { label: string; active: boolean }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 text-xs font-medium",
+        active ? "text-emerald-700" : "text-ink-400",
+      )}
+    >
+      {active ? (
+        <CheckCircle2 strokeWidth={2} className="h-3.5 w-3.5 text-emerald-500" />
+      ) : (
+        <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-ink-300 text-[8px] text-ink-400">x</span>
+      )}
+      {label}
+    </span>
+  );
+}
+
+function TechAuditCard({ audit }: { audit: ClientTechAuditResult }) {
+  const ts = audit.techStack;
+  const pm = audit.productMaturity;
+
+  // Collect all tech stack badges
+  const badges: { label: string; color: string }[] = [];
+  for (const fw of ts.frameworks) badges.push({ label: fw, color: "bg-blue-50 text-blue-700 border-blue-200" });
+  for (const css of ts.cssFrameworks) badges.push({ label: css, color: "bg-violet-50 text-violet-700 border-violet-200" });
+  if (ts.cms) badges.push({ label: ts.cms, color: "bg-amber-50 text-amber-700 border-amber-200" });
+  if (ts.cdn) badges.push({ label: ts.cdn, color: "bg-cyan-50 text-cyan-700 border-cyan-200" });
+  if (ts.hosting && ts.hosting !== ts.cdn) badges.push({ label: ts.hosting, color: "bg-slate-50 text-slate-700 border-slate-200" });
+  if (ts.serverTech) badges.push({ label: ts.serverTech, color: "bg-slate-50 text-slate-700 border-slate-200" });
+  for (const a of ts.analytics) badges.push({ label: a, color: "bg-emerald-50 text-emerald-700 border-emerald-200" });
+  for (const p of ts.payments) badges.push({ label: p, color: "bg-green-50 text-green-700 border-green-200" });
+  for (const c of ts.customerTools) badges.push({ label: c, color: "bg-pink-50 text-pink-700 border-pink-200" });
+
+  return (
+    <div className="rounded-xl border border-brand-200 bg-brand-50/30 p-5 mb-6">
+      <div className="flex items-center gap-2 mb-4">
+        <Shield strokeWidth={1.75} className="h-4 w-4 text-brand-600" />
+        <h4 className="text-sm font-semibold text-ink-800">Deep Tech Audit</h4>
+        <span className="text-[10px] uppercase tracking-wider text-brand-600 font-medium">Auto-Discovered</span>
+      </div>
+
+      {/* Grade cards */}
+      <div className="grid grid-cols-3 gap-3 mb-5">
+        <GradeBadge grade={audit.overallGrade} label="Overall" />
+        <GradeBadge grade={audit.security.grade} label="Security" />
+        <GradeBadge grade={audit.performance.grade} label="Performance" />
+      </div>
+
+      {/* Tech stack badges */}
+      {badges.length > 0 && (
+        <div className="mb-4">
+          <p className="text-[10px] uppercase tracking-[0.15em] text-ink-500 font-medium mb-2">Tech Stack</p>
+          <div className="flex flex-wrap gap-1.5">
+            {badges.map((b) => (
+              <span
+                key={b.label}
+                className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium", b.color)}
+              >
+                {b.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Product signals */}
+      <div className="mb-4">
+        <p className="text-[10px] uppercase tracking-[0.15em] text-ink-500 font-medium mb-2">Product Signals</p>
+        <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+          <SignalRow label="Login system" active={pm.hasLoginForm} />
+          <SignalRow label="Dashboard" active={pm.hasDashboard} />
+          <SignalRow label="PWA ready" active={pm.hasPWA} />
+          <SignalRow label="Testimonials" active={pm.hasTestimonials} />
+          <SignalRow label="Customer logos" active={pm.hasCustomerLogos} />
+          <SignalRow label="Multi-language" active={pm.hasMultiLang} />
+        </div>
+      </div>
+
+      {/* SEO signals */}
+      <div className="mb-4">
+        <p className="text-[10px] uppercase tracking-[0.15em] text-ink-500 font-medium mb-2">SEO & Discovery</p>
+        <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+          <SignalRow label="Sitemap" active={pm.hasSitemap} />
+          <SignalRow label="robots.txt" active={pm.hasRobotsTxt} />
+          <SignalRow label="Structured data" active={pm.hasStructuredData} />
+          <SignalRow label="Open Graph" active={pm.hasOpenGraph} />
+          <SignalRow label="Twitter Cards" active={pm.hasTwitterCards} />
+          <SignalRow label="Mobile viewport" active={pm.hasViewportMeta} />
+        </div>
+      </div>
+
+      {/* Performance metrics */}
+      <div className="mb-4">
+        <p className="text-[10px] uppercase tracking-[0.15em] text-ink-500 font-medium mb-2">Performance</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="rounded-lg border border-surface-200 bg-white px-3 py-2 text-center">
+            <p className="text-[10px] text-ink-400 uppercase">TTFB</p>
+            <p className={cn(
+              "text-sm font-bold font-mono",
+              audit.performance.ttfbMs < 500 ? "text-emerald-600" :
+              audit.performance.ttfbMs < 1000 ? "text-amber-600" : "text-red-600",
+            )}>
+              {audit.performance.ttfbMs >= 0 ? `${audit.performance.ttfbMs}ms` : "N/A"}
+            </p>
+          </div>
+          <div className="rounded-lg border border-surface-200 bg-white px-3 py-2 text-center">
+            <p className="text-[10px] text-ink-400 uppercase">Page Size</p>
+            <p className="text-sm font-bold font-mono text-ink-800">
+              {Math.round(audit.performance.pageSizeBytes / 1024)}KB
+            </p>
+          </div>
+          <div className="rounded-lg border border-surface-200 bg-white px-3 py-2 text-center">
+            <p className="text-[10px] text-ink-400 uppercase">Compression</p>
+            <p className="text-sm font-bold font-mono text-ink-800">
+              {audit.performance.compressionType ?? "None"}
+            </p>
+          </div>
+          <div className="rounded-lg border border-surface-200 bg-white px-3 py-2 text-center">
+            <p className="text-[10px] text-ink-400 uppercase">SSL</p>
+            <p className={cn(
+              "text-sm font-bold font-mono",
+              audit.security.ssl.valid ? "text-emerald-600" : "text-red-600",
+            )}>
+              {audit.security.ssl.valid ? "Valid" : "Invalid"}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Security headers */}
+      <div className="mb-4">
+        <p className="text-[10px] uppercase tracking-[0.15em] text-ink-500 font-medium mb-2">
+          Security Headers ({audit.security.headerCount}/6)
+        </p>
+        <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+          <SignalRow label="CSP" active={audit.security.headers.csp} />
+          <SignalRow label="HSTS" active={audit.security.headers.hsts} />
+          <SignalRow label="X-Frame-Options" active={audit.security.headers.xFrameOptions} />
+          <SignalRow label="X-Content-Type" active={audit.security.headers.xContentType} />
+          <SignalRow label="Referrer-Policy" active={audit.security.headers.referrerPolicy} />
+          <SignalRow label="Permissions-Policy" active={audit.security.headers.permissionsPolicy} />
+        </div>
+      </div>
+
+      {/* Social links */}
+      {pm.socialLinks.length > 0 && (
+        <div className="mb-4">
+          <p className="text-[10px] uppercase tracking-[0.15em] text-ink-500 font-medium mb-2">Social Presence</p>
+          <div className="flex flex-wrap gap-1.5">
+            {pm.socialLinks.map((s) => (
+              <span key={s} className="inline-flex items-center rounded-full border border-surface-200 bg-white px-2.5 py-0.5 text-xs font-medium text-ink-600">
+                {s}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* SVI signal boosts */}
+      <div className="rounded-lg border border-surface-200 bg-white px-4 py-3">
+        <p className="text-[10px] uppercase tracking-[0.15em] text-ink-500 font-medium mb-2">SVI Score Impact</p>
+        <div className="flex flex-wrap gap-3 text-xs font-mono">
+          {(["ptdBoost", "svmBoost", "treBoost", "lcoBoost"] as const).map((key) => {
+            const val = audit.signalBoosts[key];
+            const label = key.replace("Boost", "").toUpperCase();
+            return (
+              <span
+                key={key}
+                className={cn(
+                  "font-semibold",
+                  val > 0 ? "text-emerald-600" : val < 0 ? "text-red-600" : "text-ink-400",
+                )}
+              >
+                {label}: {val > 0 ? "+" : ""}{val}
+              </span>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Main Component ──────────────────────────────────────────────────── */
 
 export function RndResultsPanel({
@@ -592,6 +794,7 @@ export function RndResultsPanel({
   onUnlock: () => void;
   onUpgradeDeepDive?: () => void;
   previousAnalysis?: SVIAnalysis | null;
+  techAudit?: ClientTechAuditResult | null;
 }) {
   const [copied, setCopied] = React.useState(false);
   const tierValue: ReportTier = report.tier ?? "standard";

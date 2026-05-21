@@ -139,25 +139,39 @@ AI Idea → [BlockID Validates] → MVP → [BlockID Tracks Value] → Fundraise
 
 ---
 
-## C-Level Agent Assignments
+## Full Organization — 48 Roles, 45 Agent Skills, 11 C-Levels
+
+> See [Org Chart](org-chart.md) for complete hierarchy | [Full Company Excellence](full-company-excellence.md) for master goal
+
+### Founder & CEO — Do Van Long
+**Goal: Strategic direction, vision, fundraising, C-Level coordination**
+- All phases: Product vision, investor relations, key hires, culture
+- **Advisors**: Industry mentors, legal counsel, accounting firm
+- **Reports**: All C-Levels, Blockchain Expert, AU Compliance
+
+---
 
 ### CTO — Chief Technology Officer
 **Goal: Ship reliable, secure, performant platform across all 8 phases**
-- Phase 1-2: Platform core, API, evidence system ← NOW
+- Phase 1-2: Platform core, API, evidence system, deep tech audit ← NOW
 - Phase 3: Dollar valuation engine, revenue connectors
 - Phase 4-5: Cap table + blockchain integration
 - Phase 6-8: Data room, investor tools, exchange simulation
 - **Skills**: 22 programming + architecture skills
-- **Sub-agents**: Backend, Frontend, DevOps, QA
+- **Sub-agents**: Frontend Lead, Backend Lead, AI/ML Lead, Security Lead, Data Engineer, Dev Relations Lead
+- **Report pages**: 3 (Product & Technology), 9 (Risk — technical)
+- **Auto-upgrade**: Benchmark architecture/performance/security vs Carta, Pulley
 
-### CPO — Chief Product Officer
-**Goal: Maximize user value through evidence-backed product decisions**
-- Phase 1-2: SVI UX, onboarding flow, evidence upload UX ← NOW
-- Phase 3: Valuation dashboard UX, benchmarking views
-- Phase 4: Cap table management UX, share class editor
-- Phase 5: Wallet integration UX, token dashboard
-- **Skills**: ui-ux-pro-max, analytics, rnd, prompt-engineer
-- **Sub-agents**: UX Researcher, Design System, A/B Test Runner
+### CFO — Chief Financial Officer
+**Goal: Achieve A$10K MRR with sustainable unit economics**
+- Phase 1-2: Pricing optimization, Stripe metrics, credit economy ← NOW
+- Phase 3: Revenue dashboard, unit economics tracking
+- Phase 6: Fundraise financial modeling
+- Phase 7: Dividend engine, tax compliance
+- **Skills**: stripe-test, analytics, perf-audit, postgres-pro
+- **Sub-agents**: Revenue Analyst, Cost Controller, Compliance Lead (AU Compliance), Financial Modeler
+- **Report pages**: 4 (Business Model), 8 (Financial Projections), 15 (Exit Readiness)
+- **Auto-upgrade**: Benchmark pricing vs competitors, optimize AI cost per analysis
 
 ### CMO — Chief Marketing Officer
 **Goal: Drive 1000+ SVI analyses/month, build brand authority**
@@ -166,23 +180,20 @@ AI Idea → [BlockID Validates] → MVP → [BlockID Tracks Value] → Fundraise
 - Phase 4: Partnership with accelerators (Startmate, Antler)
 - Phase 5: "Blockchain for equity" thought leadership
 - **Skills**: seo-audit, publish, rnd, analytics, media-studio
-- **Sub-agents**: Content Writer, SEO Analyst, Social Media Manager
+- **Sub-agents**: SEO Specialist, Content Lead, Social & Community Lead, Growth Analyst, Growth Hacker
+- **Report pages**: 2 (Market & Problem), 5 (Competition & Moat), 6 (Traction & Growth)
+- **Auto-upgrade**: Benchmark SEO/content vs competitors, auto-generate content strategies
 
-### CFO — Chief Financial Officer
-**Goal: Achieve A$10K MRR with sustainable unit economics**
-- Phase 1-2: Pricing optimization, Stripe metrics ← NOW
-- Phase 3: Revenue dashboard, unit economics tracking
-- Phase 6: Fundraise financial modeling
-- Phase 7: Dividend engine, tax compliance
-- **Skills**: stripe-test, analytics, perf-audit, postgres-pro
-- **Sub-agents**: Revenue Analyst, Cost Optimizer, Tax Advisor
-
-### COO — Chief Operating Officer
-**Goal: Ship every sprint on-time with 95% quality**
-- All phases: Sprint planning, deploy management, QA coordination
-- Cross-team: Coordinate C-levels, resolve blockers
-- **Skills**: deploy, qa, devops-engineer, code-reviewer, test-master
-- **Sub-agents**: Sprint Master, Release Manager, QA Lead
+### CPO — Chief Product Officer
+**Goal: Maximize user value through evidence-backed product decisions**
+- Phase 1-2: SVI UX, onboarding flow, evidence upload UX ← NOW
+- Phase 3: Valuation dashboard UX, benchmarking views
+- Phase 4: Cap table management UX, share class editor
+- Phase 5: Wallet integration UX, token dashboard
+- **Skills**: ui-ux-pro-max, analytics, rnd, prompt-engineer
+- **Sub-agents**: UX Researcher, Product Designer, Data Analyst, Feature PM, Accessibility Lead
+- **Report pages**: 7 (Team & Execution), 10 (Recommendations)
+- **Auto-upgrade**: Benchmark UX/features vs competitors, reduce time-to-value
 
 ### CRO — Chief Revenue Officer
 **Goal: 10% free-to-paid conversion, <5% monthly churn**
@@ -190,9 +201,60 @@ AI Idea → [BlockID Validates] → MVP → [BlockID Tracks Value] → Fundraise
 - Phase 3: Upsell to premium plans
 - Phase 6: Investor-side revenue (data room access fees)
 - **Skills**: analytics, ui-ux-pro-max, stripe-test, prompt-engineer
-- **Sub-agents**: Growth Hacker, Retention Specialist, Pricing Analyst
+- **Sub-agents**: Conversion Specialist, Retention Lead, Partnerships Lead, Sales Ops, Customer Success Lead
+- **Report pages**: 6 (Traction & Growth)
+- **Auto-upgrade**: Benchmark conversion/retention vs SaaS standards
 
-### Blockchain Expert — NEW
+### COO — Chief Operating Officer
+**Goal: Ship every sprint on-time with 95% quality**
+- All phases: Sprint planning, deploy management, QA coordination
+- Cross-team: Coordinate all C-levels, resolve blockers, quality gates
+- **Skills**: deploy, qa, devops-engineer, code-reviewer, test-master
+- **Sub-agents**: Sprint Master, DevOps Lead, QA Lead, Process Analyst
+- **Report pages**: 1 (Executive Summary)
+- **Auto-upgrade**: C-Level sync protocol, report quality feedback loop
+
+### CHRO — Chief People Officer (NEW)
+**Goal: Build and retain the team that builds BlockID**
+- Phase 2-3: Team assessment framework, ESOP foundation ← NOW
+- Phase 4: ESOP administration, vesting tracker
+- Phase 5-7: Team scaling for growth, hiring playbook
+- **Skills**: `/chro`, `/au-compliance`, `/cfo`
+- **Sub-agents**: Talent Scout, Culture & Engagement Lead, ESOP Administrator
+- **Report pages**: 7 (Team & Execution), 13 (HR & Team Scaling Plan)
+- **Customer value**: Assess startup team readiness, hiring gaps, ESOP design
+
+### CLO — Chief Legal Officer (NEW)
+**Goal: Protect BlockID legally and help customers navigate AU law**
+- Phase 2-3: Legal risk framework, IP strategy, disclaimers ← NOW
+- Phase 4: Equity legal infrastructure (share classes, SHA)
+- Phase 5-6: Token legal framework, investor legal compliance
+- **Skills**: `/clo`, `/au-compliance`, `/cfo`
+- **Sub-agents**: Corporate Counsel, IP Strategist, Privacy Officer
+- **Report pages**: 9 (Risk — legal), 11 (Legal & IP Landscape), 15 (Exit Readiness)
+- **Customer value**: Legal risk scoring, IP assessment, ASIC compliance guidance
+
+### CISO — Chief Information Security Officer (NEW)
+**Goal: Protect BlockID data and assess customer security maturity**
+- Phase 2-3: Security scoring framework, incident response ← NOW
+- Phase 4: SOC2 Type I preparation
+- Phase 5: Blockchain security audit framework
+- **Skills**: `/ciso`, `/security-audit`, `/au-compliance`
+- **Sub-agents**: Incident Commander, Compliance Auditor
+- **Report pages**: 3 (Tech — security), 9 (Risk — cyber), 14 (Cybersecurity Assessment)
+- **Customer value**: Security posture grading, privacy compliance, threat assessment
+
+### CDO — Chief Data Officer (NEW)
+**Goal: Ensure data quality and help customers assess their data moat**
+- Phase 2-3: Data quality framework, analytics completeness ← NOW
+- Phase 4: AI model governance, bias monitoring
+- Phase 5-7: Data pipeline for real-time valuation
+- **Skills**: `/cdo`, `/analytics`, `/postgres-pro`, `/prompt-engineer`
+- **Sub-agents**: Data Quality Lead, AI Governance Lead
+- **Report pages**: 5 (Competition — data moat), 12 (Data & AI Strategy)
+- **Customer value**: Data moat scoring, AI strategy maturity assessment
+
+### Blockchain Expert
 **Goal: Build private Cosmos chain for equity tokenization**
 - Phase 4: Equity data model preparation
 - Phase 5: Cosmos chain + smart contracts + MetaMask
@@ -201,6 +263,29 @@ AI Idea → [BlockID Validates] → MVP → [BlockID Tracks Value] → Fundraise
 - Phase 8: Exchange simulation + IPO readiness
 - **Skills**: architecture-designer, secure-code-guardian, api-designer, test-master
 - **Sub-agents**: Smart Contract Dev, Validator Ops, Wallet Integration
+
+---
+
+### Specialist Agents (cross-functional)
+
+| Agent | Reports To | Phase | Function |
+|-------|-----------|-------|----------|
+| AU Compliance Officer | CFO + COO | 2-7 | ASIC, ACL, Privacy Act, GST, AFSL disclaimers |
+| Investor Relations | CEO + CFO | 3-7 | Pitch decks, data rooms, accelerator applications |
+| Media Studio | CMO | 2-7 | Video, image, voice, social content |
+| Customer Success | CRO | 3-7 | NPS, onboarding, churn prevention |
+| Dev Relations | CTO | 4-7 | API docs, SDK, developer community |
+
+### Advisory Board (Recommended)
+
+| Role | Why | Phase |
+|------|-----|-------|
+| Legal Advisor | AU corporate/startup law expert (solicitor) | Phase 2+ |
+| Tax Advisor | Registered tax agent for ESS, GST, R&D Tax Incentive | Phase 3+ |
+| Startup Mentor | Serial founder with AU exits | Phase 2+ |
+| VC Advisor | Investor perspective on product/market fit | Phase 4+ |
+| Blockchain Advisor | Cosmos ecosystem expert | Phase 5+ |
+| Security Advisor | SOC2/pentest consultant | Phase 3+ |
 
 ---
 

@@ -75,3 +75,19 @@ When user connects GitHub, `auditGitHubRepo()` runs deep analysis on the most ac
 - Activity: commit frequency, contributors, stars, forks, maintenance status
 - Creates evidence items for PTD (architecture), FTV (team quality), SVM (tech moat)
 - See `.claude/goals/scoring-tech-audit.md` for full scoring rules
+
+## Transparent Credit Pricing (MANDATORY)
+Every AI analysis MUST show cost BEFORE execution. Users choose sections + depth:
+- Scan (~100 words): 0.10 credits | Summary (~300): 0.25 | Standard (~500): 0.50
+- Deep (~1000): 1.00 | Expert (~2000): 2.00 | Maximum (~3000+): 3.00
+- Bundle discount: Full 10-page report at Standard = 1.00 credit (80% savings)
+- Value anchor: "A startup consultant charges A$300+ for equivalent analysis"
+- All prices AUD, GST-inclusive. See `goals/transparent-credit-pricing.md`
+
+## Australian Compliance (MANDATORY)
+All report content must comply with AU standards via `/au-compliance`:
+- Financial sections: "Not financial advice" disclaimer
+- Legal sections: "Not legal advice, consult a solicitor" disclaimer
+- Investor sections: "BlockID does not hold an AFSL" disclaimer
+- Tax references: "Consult a registered tax agent" disclaimer
+- See `.claude/skills/au-compliance/SKILL.md` for full compliance rules

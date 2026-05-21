@@ -58,6 +58,34 @@ Three-quarter rolling OKR plan aligned to the phase roadmap. Each C-level owns w
 | O2 | Activate Founding 50 | 25 seats filled, 5 success stories, referral mechanism | 35% |
 | O3 | Retention foundation | Engagement score, at-risk detection, weekly value email | 25% |
 
+### CHRO (Weight: 3%)
+
+| # | Objective | Key Results | Weight |
+|---|-----------|-------------|--------|
+| O1 | Establish team assessment framework | Team scoring rubric (10+ signals), FTV dimension enrichment, Page 13 template | 60% |
+| O2 | ESOP compliance foundation | ESS tax rules documented, ESOP template (AU-compliant), vesting tracker spec | 40% |
+
+### CLO (Weight: 3%)
+
+| # | Objective | Key Results | Weight |
+|---|-----------|-------------|--------|
+| O1 | Legal risk scoring framework | Legal risk rubric, Page 11 template, mandatory disclaimers on all reports | 60% |
+| O2 | IP strategy baseline | Trademark filed for BlockID, IP assessment checklist for customer reports | 40% |
+
+### CISO (Weight: 2%)
+
+| # | Objective | Key Results | Weight |
+|---|-----------|-------------|--------|
+| O1 | Security scoring integration | Map deepTechAudit() to NIST CSF, auditGitHubRepo() security signals, Page 14 template | 60% |
+| O2 | Incident response readiness | Incident playbook v1, Privacy Act breach procedure documented | 40% |
+
+### CDO (Weight: 2%)
+
+| # | Objective | Key Results | Weight |
+|---|-----------|-------------|--------|
+| O1 | Data quality framework | SVI signal completeness tracking, evidence confidence validation, analytics event coverage 100% | 60% |
+| O2 | Data moat assessment methodology | Data moat scoring rubric, Page 12 template, AI governance baseline | 40% |
+
 ---
 
 ## Q4 2026 (Oct - Dec) — "MVP Launch & Scale"
@@ -106,6 +134,34 @@ Three-quarter rolling OKR plan aligned to the phase roadmap. Each C-level owns w
 | O1 | Scale paid conversion | 8% signup-to-paid, Founder tier 20 subs, <5% churn | 50% |
 | O2 | Launch partnership revenue | 3 accelerator partners, API tier designed, $500/mo partnerships | 50% |
 
+### CHRO (Weight: 3%)
+
+| # | Objective | Key Results | Weight |
+|---|-----------|-------------|--------|
+| O1 | ESOP administration live | Vesting tracker integrated with cap table, ESS tax automated | 50% |
+| O2 | Customer team assessment v2 | Page 7 enriched with hiring plan, culture signals; Page 13 live for premium | 50% |
+
+### CLO (Weight: 3%)
+
+| # | Objective | Key Results | Weight |
+|---|-----------|-------------|--------|
+| O1 | Contract template library | SHA, ESOP agreement, customer ToS templates published | 50% |
+| O2 | Legal content in reports | Page 11 live for premium, legal risk scoring integrated into SVI LCO | 50% |
+
+### CISO (Weight: 2%)
+
+| # | Objective | Key Results | Weight |
+|---|-----------|-------------|--------|
+| O1 | SOC2 Type I preparation | 60% readiness, security policy documentation complete | 50% |
+| O2 | Customer security reports | Page 14 live for premium, Essential Eight alignment scoring | 50% |
+
+### CDO (Weight: 2%)
+
+| # | Objective | Key Results | Weight |
+|---|-----------|-------------|--------|
+| O1 | AI model governance | Bias monitoring live, scoring consistency +20%, quality sampling | 50% |
+| O2 | Customer data strategy reports | Page 12 live for premium, data moat scoring in SVI SVM | 50% |
+
 ---
 
 ## Q1 2027 (Jan - Mar) — "Equity & Growth"
@@ -147,12 +203,40 @@ Three-quarter rolling OKR plan aligned to the phase roadmap. Each C-level owns w
 | O1 | Design Phase 4 equity UX | Cap table tested with 10 founders, equity split + SVI, vesting viz | 50% |
 | O2 | Product-market fit signals | NPS >50, 50% multi-project, >10% organic referral | 50% |
 
-### CRO (Weight: 10%)
+### CRO (Weight: 8%)
 
 | # | Objective | Key Results | Weight |
 |---|-----------|-------------|--------|
 | O1 | Net-positive revenue retention | NRR >120%, ARPU >$30, <3% churn | 50% |
 | O2 | Enterprise tier preparation | 5 prospects validated, team features specced, first pilot signed | 50% |
+
+### CHRO (Weight: 3%)
+
+| # | Objective | Key Results | Weight |
+|---|-----------|-------------|--------|
+| O1 | Scale team for equity phase | 3 key hires, hiring playbook, onboarding <1 week | 50% |
+| O2 | ESOP for growing team | ESOP management module live, ESS compliance for 10 staff | 50% |
+
+### CLO (Weight: 3%)
+
+| # | Objective | Key Results | Weight |
+|---|-----------|-------------|--------|
+| O1 | Equity phase legal infrastructure | Share class legal framework, board resolution templates | 50% |
+| O2 | Exit readiness legal | Page 15 live, DD legal checklist, clean room procedure | 50% |
+
+### CISO (Weight: 2%)
+
+| # | Objective | Key Results | Weight |
+|---|-----------|-------------|--------|
+| O1 | SOC2 Type I audit | 85% readiness, audit scheduled, pentest completed | 50% |
+| O2 | Blockchain security | Cosmos chain security audit framework, wallet security spec | 50% |
+
+### CDO (Weight: 2%)
+
+| # | Objective | Key Results | Weight |
+|---|-----------|-------------|--------|
+| O1 | Data infrastructure for equity | Cap table data integrity, real-time valuation data pipeline | 50% |
+| O2 | AI scoring accuracy +30% | Model retraining, bias reduction, evidence correlation scoring | 50% |
 
 ---
 
@@ -160,12 +244,16 @@ Three-quarter rolling OKR plan aligned to the phase roadmap. Each C-level owns w
 
 | Role | Q3 Weight | Q4 Weight | Q1 Weight | Rationale |
 |------|-----------|-----------|-----------|-----------|
-| CTO | 25% | 25% | 25% | Always highest — engineering is the core bottleneck |
-| COO | 20% | 20% | 20% | Execution engine — consistent importance |
-| CMO | 20% | 20% | 20% | Growth driver — must scale traffic and brand |
-| CPO | 15% | 15% | 15% | Product direction — critical but depends on CTO delivery |
-| CFO | 10% | 10% | 10% | Financial health — grows in importance each quarter |
-| CRO | 10% | 10% | 10% | Revenue growth — accelerates as user base grows |
+| CTO | 25% | 23% | 22% | Core engineering — decreases as new C-levels share load |
+| COO | 18% | 18% | 18% | Execution engine — consistent importance |
+| CMO | 18% | 18% | 18% | Growth driver — must scale traffic and brand |
+| CPO | 14% | 14% | 13% | Product direction — critical but depends on CTO delivery |
+| CFO | 9% | 9% | 9% | Financial health — grows in importance each quarter |
+| CRO | 8% | 8% | 8% | Revenue growth — accelerates as user base grows |
+| CHRO | 3% | 3% | 3% | Team scaling — critical for equity/growth phases |
+| CLO | 3% | 3% | 3% | Legal infrastructure — grows with equity/investment phases |
+| CISO | 2% | 2% | 3% | Security — grows as platform handles sensitive financial data |
+| CDO | 2% | 2% | 3% | Data quality — grows as AI scoring becomes core product |
 
 ## OKR Scoring Guide
 
