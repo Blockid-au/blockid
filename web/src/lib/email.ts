@@ -17,7 +17,7 @@ import {
   getPreferencesUrl,
 } from "./email-preferences";
 
-const FROM_DEFAULT = "BlockID <admin@blockid.au>";
+const FROM_DEFAULT = "BlockID <info@blockid.au>";
 
 function fromAddress(): string {
   return process.env.SMTP_FROM_EMAIL || FROM_DEFAULT;
