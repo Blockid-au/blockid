@@ -120,3 +120,26 @@
 14:52:54.624964 version@stat F·[3 5] S·11MiB[2MiB 8MiB] Sc·[0.75 0.09]
 14:52:54.627094 memdb@flush committed F·1 T·28.184933ms
 14:52:54.628702 journal@remove removed @39
+16:48:39.023598 memdb@flush N·58044 S·3MiB
+16:48:39.053340 memdb@flush created L0@44 N·58044 S·816KiB "blo..\xe0L\xa9,v824192":"blo..\xe4(\xc0,v882208"
+16:48:39.053413 version@stat F·[4 5] S·12MiB[3MiB 8MiB] Sc·[1.00 0.09]
+16:48:39.055558 memdb@flush committed F·1 T·31.891009ms
+16:48:39.056485 journal@remove removed @41
+16:48:39.056543 table@compaction L0·4 -> L1·5 S·12MiB Q·882277
+16:48:39.162497 table@build created L1@45 N·185368 S·2MiB "blo..\x00\x01\x81,v1":"blo..\xe3m\xbd,v727535"
+16:48:39.250458 table@build created L1@46 N·161366 S·2MiB "blo..\xe3m\xca,v727577":"blo..\xe2\x1a\x8b,v446995"
+16:48:39.336676 table@build created L1@47 N·155510 S·2MiB "blo..\xe2\x1a\x98,v447037":"blo..\xe3\xf8\xc9,v842539"
+16:48:39.412337 table@build created L1@48 N·100147 S·2MiB "blo..\xe3\xf8\xd1,v842564":"blo..\xe1U\xfd,v284427"
+16:48:39.490205 table@build created L1@49 N·127735 S·2MiB "blo..\xe1U\xf0,v284385":"blo..ᒼ,v334672"
+16:48:39.606266 table@build created L1@50 N·152108 S·1MiB "blo..\xe1\x92\xc4,v334697":"blo..\xe4(\xc0,v882208"
+16:48:39.606338 version@stat F·[0 6] S·12MiB[0B 12MiB] Sc·[0.00 0.12]
+16:48:39.607624 table@compaction committed F-3 S-7KiB Ke·0 D·0 T·551.058885ms
+16:48:39.607873 table@remove removed @44
+16:48:39.608004 table@remove removed @42
+16:48:39.608205 table@remove removed @40
+16:48:39.608476 table@remove removed @38
+16:48:39.608878 table@remove removed @32
+16:48:39.609160 table@remove removed @33
+16:48:39.609565 table@remove removed @34
+16:48:39.610205 table@remove removed @35
+16:48:39.610348 table@remove removed @36

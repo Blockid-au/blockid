@@ -606,6 +606,29 @@ export function DividendsClient() {
           </div>
         </div>
       )}
+
+      {/* ── Section 4: AU Franking Credits Info ─────────────────────────── */}
+      <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
+        <h3 className="text-sm font-bold text-blue-800 mb-2">
+          Franking Credits (Australian Tax)
+        </h3>
+        <p className="text-xs text-blue-700 leading-relaxed">
+          Dividends distributed by Australian companies carry franking credits
+          representing the corporate tax already paid on the distributed profit.
+          At a 25% base rate entity tax, each $1 of dividend carries a $0.333
+          franking credit. Shareholders can offset these credits against their
+          personal income tax liability. If excess franking credits remain,
+          individuals may receive a refund from the ATO.
+        </p>
+        <div className="mt-3">
+          <a
+            href="/workspace/revenue"
+            className="text-xs font-medium text-blue-700 hover:text-blue-900 transition-colors"
+          >
+            View Revenue Dashboard &amp; P&L &rarr;
+          </a>
+        </div>
+      </div>
     </div>
   );
 }

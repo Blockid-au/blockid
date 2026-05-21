@@ -52,16 +52,71 @@ interface ExitResult {
 // ---------------------------------------------------------------------------
 
 const EXIT_METHODS = [
-  { value: "acquisition", label: "Acquisition", icon: Building2 },
-  { value: "ipo", label: "IPO", icon: Landmark },
-  { value: "secondary", label: "Secondary Sale", icon: ArrowRightLeft },
-  { value: "buyout", label: "Buyout", icon: Users },
+  { value: "acquisition", label: "Acquisition", icon: Building2, desc: "Strategic buyer (5-15x)" },
+  { value: "ipo", label: "IPO", icon: Landmark, desc: "Public listing (15-30x)" },
+  { value: "secondary", label: "Secondary Sale", icon: ArrowRightLeft, desc: "Partial exit (3-8x)" },
+  { value: "buyout", label: "Buyout", icon: Users, desc: "Management/LBO (2-5x)" },
 ] as const;
 
 function formatAUD(value: number): string {
   if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
   if (value >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
   return `$${value.toFixed(2)}`;
+}
+
+// ---------------------------------------------------------------------------
+// Bar chart component (pure CSS, no dependencies)
+// ---------------------------------------------------------------------------
+
+function ScenarioBarChart({ scenarios }: { scenarios: ExitResult[] }) {
+  if (scenarios.length === 0) return null;
+
+  const maxValuation = Math.max(...scenarios.map((s) => s.scenario.exitValuation));
+
+  return (
+    <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm">
+      <h3 className="text-sm font-semibold text-ink-800 mb-4">Scenario Comparison</h3>
+      <div className="space-y-3">
+        {scenarios.map((s) => {
+          const pct = maxValuation > 0 ? (s.scenario.exitValuation / maxValuation) * 100 : 0;
+          const colors = [
+            "bg-blue-500",
+            "bg-brand-500",
+            "bg-emerald-500",
+            "bg-amber-500",
+          ];
+          const colorIdx = scenarios.indexOf(s) % colors.length;
+
+          return (
+            <div key={s.scenario.exitMultiple} className="space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium text-ink-700">
+                  {s.scenario.exitMultiple}x Revenue
+                </span>
+                <span className="font-mono text-ink-600">
+                  {formatAUD(s.scenario.exitValuation)}
+                </span>
+              </div>
+              <div className="h-6 bg-surface-100 rounded-lg overflow-hidden">
+                <div
+                  className={cn("h-full rounded-lg transition-all duration-500", colors[colorIdx])}
+                  style={{ width: `${Math.max(4, pct)}%` }}
+                />
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-ink-400">
+                <span>{formatAUD(s.perShareValue)}/share</span>
+                {s.liquidationPreference > 0 && (
+                  <span className="text-amber-600">
+                    Liq. pref: {formatAUD(s.liquidationPreference)}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -74,6 +129,7 @@ export function ExitClient() {
   const [customResult, setCustomResult] = React.useState<ExitResult | null>(null);
   const [scenarios, setScenarios] = React.useState<ExitResult[]>([]);
   const [annualRevenue, setAnnualRevenue] = React.useState<number>(0);
+  const [revenueMultiple, setRevenueMultiple] = React.useState<number>(10);
   const [loading, setLoading] = React.useState(false);
   const [scenariosLoading, setScenariosLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -88,6 +144,10 @@ export function ExitClient() {
         if (data.ok) {
           setScenarios(data.scenarios ?? []);
           setAnnualRevenue(data.annualRevenue ?? 0);
+          // Set initial valuation based on 10x revenue
+          if (data.annualRevenue > 0) {
+            setValuation(String(data.annualRevenue * 10));
+          }
         }
       } catch (err) {
         console.error("Failed to load scenarios:", err);
@@ -97,6 +157,13 @@ export function ExitClient() {
     }
     loadScenarios();
   }, []);
+
+  // Update valuation when slider changes
+  React.useEffect(() => {
+    if (annualRevenue > 0) {
+      setValuation(String(Math.round(annualRevenue * revenueMultiple)));
+    }
+  }, [revenueMultiple, annualRevenue]);
 
   async function handleCalculate(e: React.FormEvent) {
     e.preventDefault();
@@ -111,7 +178,7 @@ export function ExitClient() {
       const res = await fetch("/api/exit-model", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ method, exitValuation: val }),
+        body: JSON.stringify({ method, exitValuation: val, exitMultiple: revenueMultiple }),
       });
       const data = await res.json();
       if (data.ok) {
@@ -129,39 +196,73 @@ export function ExitClient() {
 
   return (
     <div className="space-y-8">
+      {/* Scenario cards overview */}
+      {!scenariosLoading && scenarios.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {EXIT_METHODS.map((m) => {
+            const Icon = m.icon;
+            const isActive = method === m.value;
+            return (
+              <button
+                key={m.value}
+                type="button"
+                onClick={() => setMethod(m.value)}
+                className={cn(
+                  "rounded-2xl border p-4 text-left transition-all cursor-pointer",
+                  isActive
+                    ? "border-brand-300 bg-brand-50 shadow-sm ring-1 ring-brand-100"
+                    : "border-surface-200 bg-white hover:border-surface-300 hover:shadow-sm",
+                )}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={cn(
+                    "h-8 w-8 rounded-lg flex items-center justify-center",
+                    isActive ? "bg-brand-600 text-white" : "bg-surface-100 text-ink-500",
+                  )}>
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <span className={cn("text-sm font-semibold", isActive ? "text-brand-700" : "text-ink-700")}>
+                    {m.label}
+                  </span>
+                </div>
+                <p className="text-[11px] text-ink-400">{m.desc}</p>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Custom scenario form */}
-      <div className="rounded-2xl border border-surface-200 bg-white p-5 space-y-4 shadow-sm">
+      <div className="rounded-2xl border border-surface-200 bg-white p-5 space-y-5 shadow-sm">
         <h2 className="text-sm font-semibold text-ink-800 flex items-center gap-2">
           <DollarSign className="h-4 w-4 text-brand-500" />
-          Custom Exit Scenario
+          Exit Calculator
         </h2>
 
-        <form onSubmit={handleCalculate} className="space-y-4">
-          {/* Method selector */}
-          <div>
-            <label className="block text-xs font-medium text-ink-600 mb-1.5">Exit Method</label>
-            <div className="flex flex-wrap gap-2">
-              {EXIT_METHODS.map((m) => {
-                const Icon = m.icon;
-                return (
-                  <button
-                    key={m.value}
-                    type="button"
-                    onClick={() => setMethod(m.value)}
-                    className={cn(
-                      "inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer",
-                      method === m.value
-                        ? "bg-brand-600 text-white shadow-sm"
-                        : "bg-surface-50 text-ink-600 border border-surface-200 hover:bg-surface-100",
-                    )}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                    {m.label}
-                  </button>
-                );
-              })}
+        <form onSubmit={handleCalculate} className="space-y-5">
+          {/* Revenue Multiple Slider */}
+          {annualRevenue > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-medium text-ink-600">Revenue Multiple</label>
+                <span className="text-sm font-bold text-brand-600">{revenueMultiple}x</span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="40"
+                step="0.5"
+                value={revenueMultiple}
+                onChange={(e) => setRevenueMultiple(parseFloat(e.target.value))}
+                className="w-full h-2 bg-surface-200 rounded-lg appearance-none cursor-pointer accent-brand-600"
+              />
+              <div className="flex justify-between text-[10px] text-ink-400 mt-1">
+                <span>1x ({formatAUD(annualRevenue)})</span>
+                <span>20x ({formatAUD(annualRevenue * 20)})</span>
+                <span>40x ({formatAUD(annualRevenue * 40)})</span>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Valuation input */}
           <div>
@@ -173,7 +274,14 @@ export function ExitClient() {
               <input
                 type="number"
                 value={valuation}
-                onChange={(e) => setValuation(e.target.value)}
+                onChange={(e) => {
+                  setValuation(e.target.value);
+                  // Update slider to match
+                  if (annualRevenue > 0) {
+                    const v = parseFloat(e.target.value);
+                    if (v > 0) setRevenueMultiple(Math.round(v / annualRevenue * 10) / 10);
+                  }
+                }}
                 placeholder="5000000"
                 min="1"
                 step="1"
@@ -181,7 +289,28 @@ export function ExitClient() {
                 required
               />
             </div>
+            {annualRevenue > 0 && (
+              <p className="text-[10px] text-ink-400 mt-1">
+                Based on {formatAUD(annualRevenue)} ARR at {revenueMultiple}x multiple
+              </p>
+            )}
           </div>
+
+          {/* Current ARR display */}
+          {annualRevenue > 0 && (
+            <div className="flex items-center gap-4 p-3 rounded-xl bg-surface-50 border border-surface-200">
+              <div>
+                <span className="text-[10px] text-ink-400">Current ARR</span>
+                <p className="text-sm font-semibold text-ink-800">{formatAUD(annualRevenue)}</p>
+              </div>
+              <div>
+                <span className="text-[10px] text-ink-400">At {revenueMultiple}x</span>
+                <p className="text-sm font-semibold text-brand-600">
+                  {formatAUD(annualRevenue * revenueMultiple)}
+                </p>
+              </div>
+            </div>
+          )}
 
           {error && (
             <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
@@ -207,6 +336,11 @@ export function ExitClient() {
       {/* Custom result */}
       {customResult && <ExitResultCard result={customResult} />}
 
+      {/* Bar chart comparison */}
+      {!scenariosLoading && scenarios.length > 0 && (
+        <ScenarioBarChart scenarios={scenarios} />
+      )}
+
       {/* Pre-computed scenarios comparison */}
       <div className="space-y-4">
         <h2 className="text-sm font-semibold text-ink-800 flex items-center gap-2">
@@ -226,6 +360,9 @@ export function ExitClient() {
             <Users className="h-8 w-8 mx-auto text-ink-300" />
             <p className="text-sm text-ink-500">
               Set up your cap table first to see exit scenarios.
+            </p>
+            <p className="text-xs text-ink-400">
+              Go to Ownership &amp; Equity to add shareholders and share classes.
             </p>
           </div>
         ) : (
@@ -283,6 +420,11 @@ function ExitResultCard({
 }) {
   const { scenario, shareholderPayouts, esopExercise, liquidationPreference } = result;
 
+  // Summary stats
+  const totalGross = shareholderPayouts.reduce((s, p) => s + p.grossPayout, 0);
+  const totalCGT = shareholderPayouts.reduce((s, p) => s + p.cgtEstimate, 0);
+  const totalNet = shareholderPayouts.reduce((s, p) => s + p.netPayout, 0);
+
   return (
     <div className="rounded-2xl border border-surface-200 bg-white overflow-hidden shadow-sm">
       {/* Header */}
@@ -297,11 +439,18 @@ function ExitResultCard({
             {formatAUD(scenario.exitValuation)} valuation
           </span>
         </div>
-        {liquidationPreference > 0 && (
-          <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-md font-medium">
-            Liq. Pref: {formatAUD(liquidationPreference)}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {liquidationPreference > 0 && (
+            <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-md font-medium">
+              Liq. Pref: {formatAUD(liquidationPreference)}
+            </span>
+          )}
+          {!compact && (
+            <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-md font-medium">
+              Net: {formatAUD(totalNet)}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Payout table */}
@@ -346,6 +495,26 @@ function ExitResultCard({
               </tr>
             ))}
           </tbody>
+          {/* Totals row */}
+          {!compact && shareholderPayouts.length > 1 && (
+            <tfoot>
+              <tr className="border-t border-surface-200 bg-surface-50/50">
+                <td className="px-5 py-2.5 font-semibold text-ink-800" colSpan={compact ? 2 : 3}>
+                  Total
+                </td>
+                <td className="px-3 py-2.5 text-right font-mono text-ink-500">100%</td>
+                <td className="px-3 py-2.5 text-right font-mono text-ink-700 font-semibold">
+                  {formatAUD(totalGross)}
+                </td>
+                <td className="px-3 py-2.5 text-right font-mono text-red-500 font-medium">
+                  -{formatAUD(totalCGT)}
+                </td>
+                <td className="px-3 py-2.5 text-right font-mono text-green-700 font-bold">
+                  {formatAUD(totalNet)}
+                </td>
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
 

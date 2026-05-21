@@ -123,21 +123,54 @@ Every listing must include:
 
 ---
 
-## Sub-Goal 4: Accelerator & Grant Applications
+## Sub-Goal 4: Accelerator & Grant Applications — Sydney Focus
 **Owner:** IR + CEO | **Deadline:** Rolling
 
-### Application Calendar
+### PRIORITY APPLICATION CALENDAR (sorted by deadline)
 
-| Program | Deadline | Investment | Equity | Priority |
-|---------|----------|-----------|--------|----------|
-| Startmate Accelerator | Rolling / Aug 2026 | A$120K | 7.5% | HIGH |
-| Antler Australia | Jul 2026 cohort | A$100K | ~10% | HIGH |
-| Google for Startups AU | Varies | Benefits only | 0% | MEDIUM |
-| Techstars (any track) | Rolling | $120K USD | 6% | MEDIUM |
-| Y Combinator | Batch deadline | $500K USD | 7% | LOW (stage too early) |
-| NSW MVP to Scale | Quarterly | A$25K-$100K grant | 0% | HIGH |
-| ATO R&D Tax Incentive | Annual (Apr) | 43.5% refund | 0% | HIGH |
+#### URGENT — Apply Now (deadline within 2 weeks)
+| # | Program | Deadline | Investment | Equity | Fit for BlockID |
+|---|---------|----------|-----------|--------|-----------------|
+| 1 | **Startup World Cup Sydney 2026** | ASAP (event 17/06/2026) | Pitch competition | 0% | Has MVP + traction, investor visibility, Tank Stream Labs Haymarket |
+| 2 | **UNSW Peter Farrell Cup** | 29/05/2026 | $50K prize pool | 0% | Only if founder has UNSW connection; team 2-5, pre-revenue |
+| 3 | **Startmate Student Founder Bootcamp** | 01/06/2026 | Free program | 0% | Only if founder is current uni student; 1-day, Jul 2026, Sydney |
+
+#### HIGH PRIORITY — Apply Within 1 Month
+| # | Program | Deadline | Investment | Equity | Fit for BlockID |
+|---|---------|----------|-----------|--------|-----------------|
+| 4 | **Antler Australia Residency** | Cohort starts 27/07/2026 | A$100K | ~10% | BEST FIT — solo founder, pre-seed, build full-time, co-founder matching |
+| 5 | **Founder Institute AU Spring 2026** | Open now | Mentorship | Equity | Early-stage framework, mentoring, pre-seed network |
+| 6 | **I2N FLIP NSW** | Opens 06/2026 | Free program | 0% | If female co-founder; pre-accelerator + founder readiness |
+
+#### MEDIUM PRIORITY — Apply Within 2 Months
+| # | Program | Deadline | Investment | Equity | Fit for BlockID |
+|---|---------|----------|-----------|--------|-----------------|
+| 7 | **UNSW Impact X Health Pre-Accel** | Opens 01/07, closes 10/08/2026 | $10K prizes | 0% | Only if health-adjacent; 10 weeks, diversity focus |
+| 8 | **CSIRO ON Accelerate** | Opens 27/07–31/08/2026 | Grant | 0% | If deeptech/research angle; science commercialisation |
+| 9 | **Startmate Launch Club** | 01/08/2026 | $25K investment | TBD | Pathway to Startmate Accelerator; $1,100 fee; Sep-Oct 2026 |
+
+#### WATCH LIST — Next Round (track for re-application)
+| Program | Last Closed | Next Expected | Investment | Notes |
+|---------|------------|---------------|-----------|-------|
+| **Startmate Accelerator** | 17/05/2026 | Feb 2027 | A$120K / 7.5% | Top ANZ accelerator, 12 weeks, cohort 27/07-16/10/2026 |
+| **UNSW 10x Accelerator** | 18/05/2026 | ~May 2027 | A$100K | Need UNSW link; health/climate focus; 10 weeks |
+| **NSW MVP Ventures** | 10/04/2026 | ~Q1 2027 | A$20K-$75K grant | NSW startup, commercialise MVP, equity-free |
+| **Cicada x Tech23** | 30/04/2026 | Event 09/09/2026 | — | Deeptech (AI, biotech, climate); attend event for networking |
+| **AU Technologies Competition** | May 2026 | ~May 2027 | Awards | Track for next year if product mature |
+| **Sydney Genesis (USyd)** | Open rolling | Rolling | $30K equity-free | Only if founder has USyd connection |
+| **INCUBATE (USyd)** | EOI rolling | Rolling | $5K equity-free | USyd founders; Launch (validate) or Accelerator (MVP) |
+
+#### Also Track — Grants
+| Program | Deadline | Amount | Equity | Priority |
+|---------|----------|--------|--------|----------|
+| ATO R&D Tax Incentive | Annual (Apr 2027) | 43.5% refund | 0% | HIGH |
+| NSW Innovation grants | Quarterly | A$25K-$100K | 0% | HIGH |
 | Export Market Dev Grant | Biannual | Up to A$150K | 0% | MEDIUM |
+| Google for Startups AU | Varies | Benefits only | 0% | MEDIUM |
+
+### BlockID Best-Fit Strategy
+> **BlockID has MVP + traction (50+ founders, 200+ analyses)**
+> → Priority order: **Startup World Cup (pitch now)** → **Antler (apply Jun)** → **Startmate Launch Club (apply Jul)** → **Founder Institute (apply now)** → **Track Startmate Accelerator for Feb 2027**
 
 ### Application Readiness Tracker
 | Requirement | Status | Owner |
@@ -150,6 +183,8 @@ Every listing must include:
 | Founder bio + LinkedIn | IN PROGRESS | CEO |
 | Customer testimonials (3+) | TODO | CRO |
 | Company registration (ASIC) | DONE | CLO |
+| Live product demo URL | DONE | CTO |
+| SVI analysis count (live) | DONE (API) | CTO |
 
 ---
 
