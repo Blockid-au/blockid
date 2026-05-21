@@ -275,6 +275,11 @@ export function AdminDashboardClient({
               label: "Accelerator Cohorts",
               desc: "Track cohort SVI progress and manage programs",
             },
+            {
+              href: "/admin/tokens",
+              label: "Token Management",
+              desc: "Manage equity tokens on the BlockID private chain",
+            },
           ].map(
             ({
               href,

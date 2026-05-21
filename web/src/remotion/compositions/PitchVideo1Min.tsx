@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, Sequence } from "remotion";
+import { AbsoluteFill, Audio, Img, Sequence, staticFile } from "remotion";
 import { CTASlide } from "../components/CTASlide";
 import { DropMic } from "../components/DropMic";
 import { FlowDiagram } from "../components/FlowDiagram";
@@ -29,6 +29,17 @@ import { BRAND } from "../styles/brand";
 export const PitchVideo1Min: React.FC = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: BRAND.colors.ink950 }}>
+      {/* Voiceover audio — one clip per scene */}
+      <Sequence from={0}><Audio src={staticFile("video-assets/audio/1min-final/01.mp3")} /></Sequence>
+      <Sequence from={90}><Audio src={staticFile("video-assets/audio/1min-final/02.mp3")} /></Sequence>
+      <Sequence from={300}><Audio src={staticFile("video-assets/audio/1min-final/03.mp3")} /></Sequence>
+      <Sequence from={540}><Audio src={staticFile("video-assets/audio/1min-final/04.mp3")} /></Sequence>
+      <Sequence from={750}><Audio src={staticFile("video-assets/audio/1min-final/05.mp3")} /></Sequence>
+      <Sequence from={1200}><Audio src={staticFile("video-assets/audio/1min-final/06.mp3")} /></Sequence>
+      <Sequence from={1500}><Audio src={staticFile("video-assets/audio/1min-final/07.mp3")} /></Sequence>
+      <Sequence from={1650}><Audio src={staticFile("video-assets/audio/1min-final/08.mp3")} /></Sequence>
+      <Sequence from={1740}><Audio src={staticFile("video-assets/audio/1min-final/09.mp3")} /></Sequence>
+
       {/* ============================================= */}
       {/* Scene 1: Logo Reveal (0:00 - 0:03 = 0-90)    */}
       {/* ============================================= */}
@@ -360,10 +371,90 @@ export const PitchVideo1Min: React.FC = () => {
       {/* Scene 9: CTA (0:58 - 1:00 = 1740-1800)       */}
       {/* ============================================= */}
       <Sequence from={1740} durationInFrames={60}>
-        <CTASlide
-          ctaText="Try free: blockid.au"
-          tagline="Where AI meets startup valuation"
-        />
+        <AbsoluteFill
+          style={{
+            backgroundColor: BRAND.colors.ink950,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 16,
+            }}
+          >
+            {/* Logo */}
+            <div
+              style={{
+                fontFamily: BRAND.fonts.heading,
+                fontSize: 56,
+                fontWeight: 700,
+                color: BRAND.colors.white,
+              }}
+            >
+              Block
+              <span style={{ color: BRAND.colors.brand500 }}>ID</span>
+              <span style={{ color: BRAND.colors.slate400, fontSize: 36 }}>
+                .au
+              </span>
+            </div>
+
+            {/* QR Code */}
+            <Img
+              src={staticFile("video-assets/qr-contact.png")}
+              style={{ width: 200, height: 200, borderRadius: 8 }}
+            />
+
+            {/* Founder info */}
+            <div
+              style={{
+                fontFamily: BRAND.fonts.heading,
+                fontSize: 28,
+                fontWeight: 600,
+                color: BRAND.colors.white,
+              }}
+            >
+              Do Van Long
+            </div>
+            <div
+              style={{
+                fontFamily: BRAND.fonts.heading,
+                fontSize: 20,
+                color: BRAND.colors.brand400,
+              }}
+            >
+              CEO &amp; Founder — BlockID.au
+            </div>
+            <div
+              style={{
+                fontFamily: BRAND.fonts.heading,
+                fontSize: 16,
+                color: BRAND.colors.slate400,
+              }}
+            >
+              Executive Management | Digital Transformation | Agentic AI
+            </div>
+
+            {/* CTA */}
+            <div
+              style={{
+                marginTop: 8,
+                fontFamily: BRAND.fonts.heading,
+                fontSize: 22,
+                fontWeight: 600,
+                color: BRAND.colors.white,
+                backgroundColor: BRAND.colors.brand500,
+                padding: "12px 36px",
+                borderRadius: 10,
+              }}
+            >
+              Try free: blockid.au
+            </div>
+          </div>
+        </AbsoluteFill>
       </Sequence>
     </AbsoluteFill>
   );

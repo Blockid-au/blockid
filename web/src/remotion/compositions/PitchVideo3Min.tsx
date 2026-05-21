@@ -1,63 +1,133 @@
 import React from "react";
-import { AbsoluteFill, Sequence } from "remotion";
+import { AbsoluteFill, Audio, Img, Sequence, staticFile } from "remotion";
 import { ComparisonTable } from "../components/ComparisonTable";
-import { CTASlide } from "../components/CTASlide";
 import { DropMic } from "../components/DropMic";
 import { FlowDiagram } from "../components/FlowDiagram";
-import { LogoReveal } from "../components/LogoReveal";
-import { MetricsGrid } from "../components/MetricsGrid";
-import { RoadmapTimeline } from "../components/RoadmapTimeline";
 import { ScreenDemo } from "../components/ScreenDemo";
 import { SlideTransition } from "../components/SlideTransition";
 import { StatCounter } from "../components/StatCounter";
+import { Subtitle } from "../components/Subtitle";
 import { TAMCircles } from "../components/TAMCircles";
 import { TeamOrg } from "../components/TeamOrg";
-import { TextReveal } from "../components/TextReveal";
 import { BRAND } from "../styles/brand";
 
 /**
- * PitchVideo3Min — 3-minute pitch for Spacubed Fellowship + Google for Startups
+ * PitchVideo3Min — 3-minute pitch video for Spacubed Fellowship + Google for Startups
  *
- * Timeline (30fps, 5400 total frames):
- *   Scene 1:  Opening Crisis       0:00 - 0:08  (frames 0-240)
- *   Scene 2:  Founder Intro        0:08 - 0:15  (frames 240-450)
- *   Scene 3:  3 Problems           0:15 - 0:30  (frames 450-900)
- *   Scene 4:  Live Demo — SVI      0:30 - 1:00  (frames 900-1800)
- *   Scene 5:  Actionable Report    1:00 - 1:20  (frames 1800-2400)
- *   Scene 6:  Evidence Vault       1:20 - 1:40  (frames 2400-3000)
- *   Scene 7:  Roadmap              1:40 - 2:00  (frames 3000-3600)
- *   Scene 8:  Market & Business    2:00 - 2:20  (frames 3600-4200)
- *   Scene 9:  Competitor Compare   2:20 - 2:35  (frames 4200-4650)
- *   Scene 10: Team & Compliance    2:35 - 2:50  (frames 4650-5100)
- *   Scene 11: Drop Mic             2:50 - 2:55  (frames 5100-5250)
- *   Scene 12: CTA                  2:55 - 3:00  (frames 5250-5400)
+ * Professional storytelling structure:
+ *   Act 1: Hook & Problem (0:00 - 0:30)
+ *     Scene 1:  Hook — crisis stat         0:00 - 0:08  (frames 0-240)
+ *     Scene 2:  Founder intro              0:08 - 0:15  (frames 240-450)
+ *     Scene 3:  Three pain points          0:15 - 0:30  (frames 450-900)
+ *
+ *   Act 2: Solution & Demo (0:30 - 1:40)
+ *     Scene 4:  The Solution (BlockID)     0:30 - 1:00  (frames 900-1800)
+ *     Scene 5:  The Report                 1:00 - 1:20  (frames 1800-2400)
+ *     Scene 6:  Evidence Vault             1:20 - 1:40  (frames 2400-3000)
+ *
+ *   Act 3: Traction & Market (1:40 - 2:35)
+ *     Scene 7:  Growth Roadmap             1:40 - 2:00  (frames 3000-3600)
+ *     Scene 8:  Market Opportunity         2:00 - 2:20  (frames 3600-4200)
+ *     Scene 9:  Why Us                     2:20 - 2:35  (frames 4200-4650)
+ *
+ *   Act 4: Team & Close (2:35 - 3:00)
+ *     Scene 10: The Team                   2:35 - 2:50  (frames 4650-5100)
+ *     Scene 11: Drop Mic                   2:50 - 2:55  (frames 5100-5250)
+ *     Scene 12: CTA + QR                   2:55 - 3:00  (frames 5250-5400)
+ *
+ * 30fps, 5400 total frames
  */
 export const PitchVideo3Min: React.FC = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: BRAND.colors.ink950 }}>
-      {/* ============================================= */}
-      {/* Scene 1: Opening Crisis (0:00-0:08 = 0-240)   */}
-      {/* Dark bg, white text appearing one line at a time */}
-      {/* ============================================= */}
-      <Sequence from={0} durationInFrames={240}>
-        <TextReveal
-          lines={[
-            "90% of startups fail.",
-            "370,000 Australian businesses closed last year.",
-            "$97 billion in AI funding. 90% still fail.",
-            "The gap: AI builds products. Nothing builds businesses.",
-          ]}
-          staggerFrames={45}
-          fontSize={48}
-          color={BRAND.colors.white}
-          fontWeight={600}
-          source="ABS 2025, Stanford HAI, CB Insights"
-        />
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* AUDIO — one clip per scene / sub-scene                            */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* Scene 1: Hook */}
+      <Sequence from={0}>
+        <Audio src={staticFile("video-assets/audio/3min-final/01.mp3")} />
+      </Sequence>
+      {/* Scene 2: Founder */}
+      <Sequence from={240}>
+        <Audio src={staticFile("video-assets/audio/3min-final/02.mp3")} />
+      </Sequence>
+      {/* Scene 3a: Problem 1 */}
+      <Sequence from={450}>
+        <Audio src={staticFile("video-assets/audio/3min-final/03.mp3")} />
+      </Sequence>
+      {/* Scene 3b: Problem 2 */}
+      <Sequence from={600}>
+        <Audio src={staticFile("video-assets/audio/3min-final/04.mp3")} />
+      </Sequence>
+      {/* Scene 3c: Problem 3 */}
+      <Sequence from={750}>
+        <Audio src={staticFile("video-assets/audio/3min-final/05.mp3")} />
+      </Sequence>
+      {/* Scene 4a: Introducing BlockID */}
+      <Sequence from={900}>
+        <Audio src={staticFile("video-assets/audio/3min-final/06.mp3")} />
+      </Sequence>
+      {/* Scene 4b: Describe your startup */}
+      <Sequence from={960}>
+        <Audio src={staticFile("video-assets/audio/3min-final/07.mp3")} />
+      </Sequence>
+      {/* Scene 4c: 8 dimensions */}
+      <Sequence from={1240}>
+        <Audio src={staticFile("video-assets/audio/3min-final/08.mp3")} />
+      </Sequence>
+      {/* Scene 4d: Not just a number */}
+      <Sequence from={1520}>
+        <Audio src={staticFile("video-assets/audio/3min-final/09.mp3")} />
+      </Sequence>
+      {/* Scene 5: Report */}
+      <Sequence from={1800}>
+        <Audio src={staticFile("video-assets/audio/3min-final/10.mp3")} />
+      </Sequence>
+      {/* Scene 6: Evidence Vault */}
+      <Sequence from={2400}>
+        <Audio src={staticFile("video-assets/audio/3min-final/11.mp3")} />
+      </Sequence>
+      {/* Scene 7: Roadmap */}
+      <Sequence from={3000}>
+        <Audio src={staticFile("video-assets/audio/3min-final/12.mp3")} />
+      </Sequence>
+      {/* Scene 8: Market */}
+      <Sequence from={3600}>
+        <Audio src={staticFile("video-assets/audio/3min-final/13.mp3")} />
+      </Sequence>
+      {/* Scene 9: Why Us */}
+      <Sequence from={4200}>
+        <Audio src={staticFile("video-assets/audio/3min-final/14.mp3")} />
+      </Sequence>
+      {/* Scene 10: Team */}
+      <Sequence from={4650}>
+        <Audio src={staticFile("video-assets/audio/3min-final/15.mp3")} />
+      </Sequence>
+      {/* Scene 12: CTA */}
+      <Sequence from={5250}>
+        <Audio src={staticFile("video-assets/audio/3min-final/16.mp3")} />
       </Sequence>
 
-      {/* ============================================= */}
-      {/* Scene 2: Founder Intro (0:08-0:15 = 240-450)  */}
-      {/* ============================================= */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* ACT 1: HOOK & PROBLEM (0:00 - 0:30)                               */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+
+      {/* ─── Scene 1: Hook (0:00-0:08, frames 0-240) ─────────────────── */}
+      <Sequence from={0} durationInFrames={240}>
+        <AbsoluteFill>
+          <StatCounter
+            target={90}
+            suffix="%"
+            label="of startups fail. Most don't know why until it's too late."
+            color="red"
+            duration={60}
+            source="CB Insights, Stanford HAI 2024"
+          />
+          <Subtitle text="90% of startups fail. Most don't know why until it's too late." />
+        </AbsoluteFill>
+      </Sequence>
+
+      {/* ─── Scene 2: The Founder (0:08-0:15, frames 240-450) ────────── */}
       <Sequence from={240} durationInFrames={210}>
         <SlideTransition durationInFrames={210}>
           <AbsoluteFill
@@ -75,7 +145,6 @@ export const PitchVideo3Min: React.FC = () => {
                 gap: 24,
               }}
             >
-              {/* Founder name */}
               <div
                 style={{
                   fontFamily: BRAND.fonts.heading,
@@ -109,7 +178,7 @@ export const PitchVideo3Min: React.FC = () => {
               <div
                 style={{
                   fontFamily: BRAND.fonts.heading,
-                  fontSize: 30,
+                  fontSize: 26,
                   fontWeight: 400,
                   color: BRAND.colors.slate300,
                   textAlign: "center",
@@ -117,22 +186,19 @@ export const PitchVideo3Min: React.FC = () => {
                   maxWidth: 900,
                 }}
               >
-                {
-                  "I\u2019ve seen founders build amazing AI products, then struggle to value them, split equity fairly, or get investor-ready."
-                }
+                Executive Management | Digital Transformation | Agentic AI
               </div>
             </div>
           </AbsoluteFill>
+          <Subtitle text="I've watched founders build incredible products, then lose it all at the cap table." />
         </SlideTransition>
       </Sequence>
 
-      {/* ============================================= */}
-      {/* Scene 3: 3 Problems We Solve (0:15-0:30 = 450-900) */}
-      {/* ============================================= */}
+      {/* ─── Scene 3: Three Pain Points (0:15-0:30, frames 450-900) ── */}
       <Sequence from={450} durationInFrames={450}>
         <SlideTransition durationInFrames={450}>
           <AbsoluteFill>
-            {/* Problem 1: How much is my idea worth? */}
+            {/* Problem 1 (frames 0-150 local) */}
             <Sequence from={0} durationInFrames={150}>
               <AbsoluteFill
                 style={{
@@ -154,11 +220,20 @@ export const PitchVideo3Min: React.FC = () => {
                     style={{
                       fontFamily: BRAND.fonts.mono,
                       fontSize: 18,
-                      color: BRAND.colors.brand400,
+                      color: BRAND.colors.red400,
                       fontWeight: 600,
                     }}
                   >
                     PROBLEM 1
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 72,
+                      lineHeight: 1,
+                      marginBottom: 8,
+                    }}
+                  >
+                    {"\uD83D\uDCB0"}
                   </div>
                   <div
                     style={{
@@ -169,73 +244,25 @@ export const PitchVideo3Min: React.FC = () => {
                       textAlign: "center",
                     }}
                   >
-                    {'"How much is my idea worth?"'}
+                    {'"How much is my startup worth?"'}
                   </div>
                   <div
                     style={{
-                      display: "flex",
-                      gap: 60,
-                      marginTop: 24,
+                      fontFamily: BRAND.fonts.heading,
+                      fontSize: 24,
+                      color: BRAND.colors.slate400,
+                      textAlign: "center",
+                      marginTop: 12,
                     }}
                   >
-                    <div style={{ textAlign: "center" }}>
-                      <div
-                        style={{
-                          fontFamily: BRAND.fonts.heading,
-                          fontSize: 28,
-                          color: BRAND.colors.red400,
-                          fontWeight: 600,
-                        }}
-                      >
-                        A$5,000 - $50,000
-                      </div>
-                      <div
-                        style={{
-                          fontFamily: BRAND.fonts.heading,
-                          fontSize: 18,
-                          color: BRAND.colors.slate400,
-                        }}
-                      >
-                        Manual valuation, 2-6 weeks
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 32,
-                        color: BRAND.colors.slate400,
-                        display: "flex",
-                        alignItems: "center",
-                      }}
-                    >
-                      {"\u2192"}
-                    </div>
-                    <div style={{ textAlign: "center" }}>
-                      <div
-                        style={{
-                          fontFamily: BRAND.fonts.heading,
-                          fontSize: 28,
-                          color: BRAND.colors.emerald500,
-                          fontWeight: 600,
-                        }}
-                      >
-                        AI valuation in 60 seconds
-                      </div>
-                      <div
-                        style={{
-                          fontFamily: BRAND.fonts.heading,
-                          fontSize: 18,
-                          color: BRAND.colors.slate400,
-                        }}
-                      >
-                        From A$1
-                      </div>
-                    </div>
+                    Manual valuation: A$5,000 - $50,000 | 2-6 weeks
                   </div>
                 </div>
               </AbsoluteFill>
+              <Subtitle text="Problem 1: Founders can't answer the most basic investor question." />
             </Sequence>
 
-            {/* Problem 2: How do I split equity? */}
+            {/* Problem 2 (frames 150-300 local) */}
             <Sequence from={150} durationInFrames={150}>
               <AbsoluteFill
                 style={{
@@ -257,11 +284,20 @@ export const PitchVideo3Min: React.FC = () => {
                     style={{
                       fontFamily: BRAND.fonts.mono,
                       fontSize: 18,
-                      color: BRAND.colors.brand400,
+                      color: BRAND.colors.red400,
                       fontWeight: 600,
                     }}
                   >
                     PROBLEM 2
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 72,
+                      lineHeight: 1,
+                      marginBottom: 8,
+                    }}
+                  >
+                    {"\uD83D\uDCC4"}
                   </div>
                   <div
                     style={{
@@ -272,73 +308,25 @@ export const PitchVideo3Min: React.FC = () => {
                       textAlign: "center",
                     }}
                   >
-                    {'"How do I split equity?"'}
+                    {'"Who owns what?"'}
                   </div>
                   <div
                     style={{
-                      display: "flex",
-                      gap: 60,
-                      marginTop: 24,
+                      fontFamily: BRAND.fonts.heading,
+                      fontSize: 24,
+                      color: BRAND.colors.slate400,
+                      textAlign: "center",
+                      marginTop: 12,
                     }}
                   >
-                    <div style={{ textAlign: "center" }}>
-                      <div
-                        style={{
-                          fontFamily: BRAND.fonts.heading,
-                          fontSize: 28,
-                          color: BRAND.colors.red400,
-                          fontWeight: 600,
-                        }}
-                      >
-                        42% of co-founder disputes
-                      </div>
-                      <div
-                        style={{
-                          fontFamily: BRAND.fonts.heading,
-                          fontSize: 18,
-                          color: BRAND.colors.slate400,
-                        }}
-                      >
-                        destroy startups (Noam Wasserman)
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 32,
-                        color: BRAND.colors.slate400,
-                        display: "flex",
-                        alignItems: "center",
-                      }}
-                    >
-                      {"\u2192"}
-                    </div>
-                    <div style={{ textAlign: "center" }}>
-                      <div
-                        style={{
-                          fontFamily: BRAND.fonts.heading,
-                          fontSize: 28,
-                          color: BRAND.colors.emerald500,
-                          fontWeight: 600,
-                        }}
-                      >
-                        Fair equity calculator
-                      </div>
-                      <div
-                        style={{
-                          fontFamily: BRAND.fonts.heading,
-                          fontSize: 18,
-                          color: BRAND.colors.slate400,
-                        }}
-                      >
-                        Based on contributions
-                      </div>
-                    </div>
+                    42% of co-founder disputes destroy startups
                   </div>
                 </div>
               </AbsoluteFill>
+              <Subtitle text="Problem 2: Equity splits done on napkins. Vesting? Never heard of it." />
             </Sequence>
 
-            {/* Problem 3: How do I get investor-ready? */}
+            {/* Problem 3 (frames 300-450 local) */}
             <Sequence from={300} durationInFrames={150}>
               <AbsoluteFill
                 style={{
@@ -360,11 +348,20 @@ export const PitchVideo3Min: React.FC = () => {
                     style={{
                       fontFamily: BRAND.fonts.mono,
                       fontSize: 18,
-                      color: BRAND.colors.brand400,
+                      color: BRAND.colors.red400,
                       fontWeight: 600,
                     }}
                   >
                     PROBLEM 3
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 72,
+                      lineHeight: 1,
+                      marginBottom: 8,
+                    }}
+                  >
+                    {"\u23F0"}
                   </div>
                   <div
                     style={{
@@ -375,189 +372,146 @@ export const PitchVideo3Min: React.FC = () => {
                       textAlign: "center",
                     }}
                   >
-                    {'"How do I get investor-ready?"'}
+                    {'"When will I be investor-ready?"'}
                   </div>
                   <div
                     style={{
-                      display: "flex",
-                      gap: 60,
-                      marginTop: 24,
+                      fontFamily: BRAND.fonts.heading,
+                      fontSize: 24,
+                      color: BRAND.colors.slate400,
+                      textAlign: "center",
+                      marginTop: 12,
                     }}
                   >
-                    <div style={{ textAlign: "center" }}>
-                      <div
-                        style={{
-                          fontFamily: BRAND.fonts.heading,
-                          fontSize: 28,
-                          color: BRAND.colors.red400,
-                          fontWeight: 600,
-                        }}
-                      >
-                        3-6 weeks data room prep
-                      </div>
-                      <div
-                        style={{
-                          fontFamily: BRAND.fonts.heading,
-                          fontSize: 18,
-                          color: BRAND.colors.slate400,
-                        }}
-                      >
-                        Manual process
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 32,
-                        color: BRAND.colors.slate400,
-                        display: "flex",
-                        alignItems: "center",
-                      }}
-                    >
-                      {"\u2192"}
-                    </div>
-                    <div style={{ textAlign: "center" }}>
-                      <div
-                        style={{
-                          fontFamily: BRAND.fonts.heading,
-                          fontSize: 28,
-                          color: BRAND.colors.emerald500,
-                          fontWeight: 600,
-                        }}
-                      >
-                        Evidence vault + auto-scored
-                      </div>
-                      <div
-                        style={{
-                          fontFamily: BRAND.fonts.heading,
-                          fontSize: 18,
-                          color: BRAND.colors.slate400,
-                        }}
-                      >
-                        Investor readiness
-                      </div>
-                    </div>
+                    You need Carta + a lawyer + a spreadsheet
                   </div>
                 </div>
               </AbsoluteFill>
+              <Subtitle text="Problem 3: No single platform. You need Carta, a lawyer, and a spreadsheet." />
             </Sequence>
           </AbsoluteFill>
         </SlideTransition>
       </Sequence>
 
-      {/* ============================================= */}
-      {/* Scene 4: Live Demo - SVI (0:30-1:00 = 900-1800) */}
-      {/* ============================================= */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* ACT 2: SOLUTION & DEMO (0:30 - 1:40)                              */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+
+      {/* ─── Scene 4: The Solution (0:30-1:00, frames 900-1800) ──────── */}
       <Sequence from={900} durationInFrames={900}>
         <SlideTransition durationInFrames={900}>
           <AbsoluteFill>
-            {/* "Let me show you how BlockID works." */}
-            <Sequence from={0} durationInFrames={75}>
-              <TextReveal
-                lines={["Let me show you how BlockID works."]}
-                fontSize={52}
-                color={BRAND.colors.white}
-                fontWeight={600}
-              />
+            {/* Sub 4a: Logo reveal (2s = 60 frames) */}
+            <Sequence from={0} durationInFrames={60}>
+              <AbsoluteFill
+                style={{
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 20,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontFamily: BRAND.fonts.heading,
+                      fontSize: 72,
+                      fontWeight: 700,
+                      color: BRAND.colors.white,
+                    }}
+                  >
+                    Block
+                    <span style={{ color: BRAND.colors.brand500 }}>ID</span>
+                    <span
+                      style={{ color: BRAND.colors.slate400, fontSize: 48 }}
+                    >
+                      .au
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: BRAND.fonts.heading,
+                      fontSize: 28,
+                      color: BRAND.colors.brand400,
+                    }}
+                  >
+                    The AI valuation platform for Australian founders
+                  </div>
+                </div>
+              </AbsoluteFill>
+              <Subtitle text="Introducing BlockID — the AI valuation platform for Australian founders." />
             </Sequence>
 
-            {/* Demo: Homepage + Search */}
-            <Sequence from={60} durationInFrames={300}>
+            {/* Sub 4b: Homepage screenshot (9s = 270 frames) */}
+            <Sequence from={60} durationInFrames={280}>
               <ScreenDemo
                 url="blockid.au"
                 imageSrc="video-assets/homepage-hero.png"
                 descriptionLines={[
-                  '[Homepage] "The agentic AI valuation platform"',
-                  "[Search bar] Glowing border, ready for input",
+                  "The agentic AI valuation platform",
+                  "Search bar ready for input",
                 ]}
-                status="Describe your startup in plain text. Get an AI valuation in 60 seconds."
+                status="Describe your startup in plain text. Any language. Any stage."
               />
+              <Subtitle text="Describe your startup in plain text. Any language. Any stage." />
             </Sequence>
 
-            {/* Demo: SVI Search input */}
-            <Sequence from={340} durationInFrames={300}>
+            {/* Sub 4c: SVI Search result (9s = 280 frames) */}
+            <Sequence from={340} durationInFrames={280}>
               <ScreenDemo
-                url="blockid.au"
+                url="blockid.au/dashboard/svi"
                 imageSrc="video-assets/svi-search.png"
                 descriptionLines={[
-                  '[User types] "An AI-powered recruitment platform"',
-                  '[Badge] "Idea Analysis" input type detected',
+                  "AI analyzes across 8 dimensions",
+                  "SVI Score gauge animating",
                 ]}
-                status="AI analyzes across 8 dimensions in real time."
+                status="8 dimensions. 60 seconds. Evidence-backed."
               />
+              <Subtitle text="8 dimensions. 60 seconds. Your Startup Value Index — evidence-backed." />
             </Sequence>
 
-            {/* Demo: Score page with results */}
+            {/* Sub 4d: Score page detail (9s = 280 frames) */}
             <Sequence from={620} durationInFrames={280}>
               <ScreenDemo
                 url="blockid.au/dashboard/svi"
                 imageSrc="video-assets/score-page.png"
                 descriptionLines={[
-                  "[RESULT] SVI Score with gauge animation",
-                  "[10-page report] Market research, competitors, business model",
+                  "Complete diagnostic with actions",
+                  "10-page report generated",
                 ]}
-                status="10-page AI analysis. All in under a minute."
+                status="Not just a number — a complete diagnostic."
               />
+              <Subtitle text="Not just a number. A complete diagnostic with specific actions." />
             </Sequence>
           </AbsoluteFill>
         </SlideTransition>
       </Sequence>
 
-      {/* ============================================= */}
-      {/* Scene 5: Actionable Report (1:00-1:20 = 1800-2400) */}
-      {/* ============================================= */}
+      {/* ─── Scene 5: The Report (1:00-1:20, frames 1800-2400) ──────── */}
       <Sequence from={1800} durationInFrames={600}>
         <SlideTransition durationInFrames={600}>
           <AbsoluteFill>
-            {/* Zoom into recommendations — score page */}
+            {/* Report page with navigation */}
             <Sequence from={0} durationInFrames={300}>
               <ScreenDemo
-                url="blockid.au/dashboard/svi"
+                url="blockid.au/dashboard/svi/report"
                 imageSrc="video-assets/09-score.png"
                 descriptionLines={[
-                  "[Recommendations section]",
-                  '[Action button] "Build your cap table"',
+                  "10-page guided report",
+                  "Market | Product | Traction | Cap Table",
                 ]}
-                status="Every recommendation links directly to a tool."
+                status="Market. Product. Traction. Cap table. All scored."
               />
+              <Subtitle text="A 10-page guided report. Market. Product. Traction. Cap table. All scored." />
             </Sequence>
 
-            {/* Cap table demo */}
-            <Sequence from={280} durationInFrames={320}>
-              <ScreenDemo
-                url="blockid.au/tools/cap-table"
-                imageSrc="video-assets/cap-table.png"
-                descriptionLines={[
-                  "[Cap Table Tool] Equity split calculator",
-                  "[Founder] 60% / [Co-founder] 30% / [ESOP] 10%",
-                ]}
-                status="SVI 138 \u2192 146 \u25B2 +8 points"
-              />
-            </Sequence>
-          </AbsoluteFill>
-        </SlideTransition>
-      </Sequence>
-
-      {/* ============================================= */}
-      {/* Scene 6: Evidence Vault (1:20-1:40 = 2400-3000) */}
-      {/* ============================================= */}
-      <Sequence from={2400} durationInFrames={600}>
-        <SlideTransition durationInFrames={600}>
-          <AbsoluteFill>
-            {/* Evidence upload demo — dashboard */}
-            <Sequence from={0} durationInFrames={300}>
-              <ScreenDemo
-                url="blockid.au/workspace/evidence"
-                imageSrc="video-assets/08-dashboard.png"
-                descriptionLines={[
-                  "[Evidence Vault] Upload documents page",
-                  '[Upload] "pitch-deck.pdf" processing',
-                ]}
-                status="Each piece of verified evidence lifts your score."
-              />
-            </Sequence>
-
-            {/* Connected services + dashboard */}
-            <Sequence from={280} durationInFrames={320}>
+            {/* PDF download + sharing */}
+            <Sequence from={300} durationInFrames={300}>
               <AbsoluteFill
                 style={{
                   justifyContent: "center",
@@ -582,7 +536,7 @@ export const PitchVideo3Min: React.FC = () => {
                       textAlign: "center",
                     }}
                   >
-                    Your startup&apos;s value grows with you
+                    Share with anyone
                   </div>
 
                   <div
@@ -593,46 +547,94 @@ export const PitchVideo3Min: React.FC = () => {
                     }}
                   >
                     {[
-                      { name: "Stripe", desc: "Revenue data" },
-                      { name: "GitHub", desc: "Code activity" },
-                      { name: "Pitch Deck", desc: "Investor docs" },
-                      { name: "Milestones", desc: "4 badges earned" },
+                      { icon: "\uD83D\uDCC4", label: "Download PDF" },
+                      { icon: "\uD83D\uDCE7", label: "Email co-founders" },
+                      { icon: "\uD83D\uDD17", label: "Share with investors" },
                     ].map((item) => (
                       <div
-                        key={item.name}
+                        key={item.label}
                         style={{
-                          padding: "24px 32px",
+                          padding: "28px 36px",
                           borderRadius: 16,
                           backgroundColor: `${BRAND.colors.ink800}80`,
                           border: `1px solid ${BRAND.colors.brand500}30`,
                           textAlign: "center",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: 12,
                         }}
                       >
+                        <div style={{ fontSize: 48 }}>{item.icon}</div>
                         <div
                           style={{
                             fontFamily: BRAND.fonts.heading,
                             fontSize: 22,
-                            fontWeight: 600,
+                            fontWeight: 500,
                             color: BRAND.colors.white,
                           }}
                         >
-                          {item.name}
-                        </div>
-                        <div
-                          style={{
-                            fontFamily: BRAND.fonts.heading,
-                            fontSize: 16,
-                            color: BRAND.colors.slate400,
-                            marginTop: 4,
-                          }}
-                        >
-                          {item.desc}
+                          {item.label}
                         </div>
                       </div>
                     ))}
                   </div>
+                </div>
+              </AbsoluteFill>
+              <Subtitle text="Download as PDF. Email to co-founders. Share with investors." />
+            </Sequence>
+          </AbsoluteFill>
+        </SlideTransition>
+      </Sequence>
 
-                  {/* SVI confidence growth flow */}
+      {/* ─── Scene 6: Evidence Vault (1:20-1:40, frames 2400-3000) ──── */}
+      <Sequence from={2400} durationInFrames={600}>
+        <SlideTransition durationInFrames={600}>
+          <AbsoluteFill>
+            {/* Evidence upload screenshot */}
+            <Sequence from={0} durationInFrames={300}>
+              <ScreenDemo
+                url="blockid.au/workspace/evidence"
+                imageSrc="video-assets/evidence-vault.png"
+                descriptionLines={[
+                  "Evidence Vault — upload & verify",
+                  "Pitch decks, GitHub, Stripe connected",
+                ]}
+                status="Upload pitch decks. Connect GitHub. Verify revenue."
+              />
+              <Subtitle text="Upload pitch decks. Connect GitHub. Verify revenue through Stripe." />
+            </Sequence>
+
+            {/* Confidence bar animation */}
+            <Sequence from={300} durationInFrames={300}>
+              <AbsoluteFill
+                style={{
+                  justifyContent: "center",
+                  alignItems: "center",
+                  padding: "0 120px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 32,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontFamily: BRAND.fonts.heading,
+                      fontSize: 42,
+                      fontWeight: 700,
+                      color: BRAND.colors.white,
+                      textAlign: "center",
+                    }}
+                  >
+                    Your score grows with evidence
+                  </div>
+
+                  {/* Confidence progression */}
                   <div
                     style={{
                       display: "flex",
@@ -642,10 +644,10 @@ export const PitchVideo3Min: React.FC = () => {
                     }}
                   >
                     {[
-                      { score: "20%", label: "Initial" },
-                      { score: "55%", label: "+ Pitch Deck" },
-                      { score: "75%", label: "+ Revenue" },
-                      { score: "90%", label: "Verified" },
+                      { score: "20%", label: "Self-declared", color: BRAND.colors.red400 },
+                      { score: "50%", label: "+ Pitch Deck", color: BRAND.colors.gold400 },
+                      { score: "75%", label: "+ Revenue", color: BRAND.colors.brand400 },
+                      { score: "90%", label: "Verified", color: BRAND.colors.emerald500 },
                     ].map((step, i) => (
                       <React.Fragment key={step.label}>
                         <div
@@ -653,19 +655,19 @@ export const PitchVideo3Min: React.FC = () => {
                             display: "flex",
                             flexDirection: "column",
                             alignItems: "center",
-                            gap: 6,
-                            padding: "16px 20px",
-                            borderRadius: 12,
-                            backgroundColor: `${BRAND.colors.brand500}12`,
-                            border: `1px solid ${BRAND.colors.brand500}30`,
+                            gap: 8,
+                            padding: "24px 28px",
+                            borderRadius: 16,
+                            backgroundColor: `${step.color}12`,
+                            border: `2px solid ${step.color}60`,
                           }}
                         >
                           <div
                             style={{
                               fontFamily: BRAND.fonts.mono,
-                              fontSize: 24,
+                              fontSize: 36,
                               fontWeight: 700,
-                              color: BRAND.colors.brand400,
+                              color: step.color,
                             }}
                           >
                             {step.score}
@@ -673,8 +675,8 @@ export const PitchVideo3Min: React.FC = () => {
                           <div
                             style={{
                               fontFamily: BRAND.fonts.heading,
-                              fontSize: 14,
-                              color: BRAND.colors.slate400,
+                              fontSize: 16,
+                              color: BRAND.colors.slate300,
                             }}
                           >
                             {step.label}
@@ -683,7 +685,7 @@ export const PitchVideo3Min: React.FC = () => {
                         {i < 3 && (
                           <div
                             style={{
-                              fontSize: 22,
+                              fontSize: 28,
                               color: BRAND.colors.brand400,
                               fontWeight: 700,
                             }}
@@ -696,91 +698,50 @@ export const PitchVideo3Min: React.FC = () => {
                   </div>
                 </div>
               </AbsoluteFill>
+              <Subtitle text="Every piece of evidence lifts your score. From self-declared to verified." />
             </Sequence>
           </AbsoluteFill>
         </SlideTransition>
       </Sequence>
 
-      {/* ============================================= */}
-      {/* Scene 7: Roadmap (1:40-2:00 = 3000-3600)     */}
-      {/* ============================================= */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* ACT 3: TRACTION & MARKET (1:40 - 2:35)                            */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+
+      {/* ─── Scene 7: Growth Roadmap (1:40-2:00, frames 3000-3600) ──── */}
       <Sequence from={3000} durationInFrames={600}>
         <SlideTransition durationInFrames={600}>
           <AbsoluteFill>
-            {/* "But we're just getting started." */}
-            <Sequence from={0} durationInFrames={75}>
-              <TextReveal
-                lines={["But we\u2019re just getting started."]}
-                fontSize={52}
-                color={BRAND.colors.white}
-                fontWeight={600}
-              />
-            </Sequence>
-
-            {/* Animated roadmap */}
-            <Sequence from={60} durationInFrames={420}>
-              <RoadmapTimeline staggerFrames={15} />
-            </Sequence>
-
-            {/* Vision: founder journey flow */}
-            <Sequence from={460} durationInFrames={140}>
+            {/* FlowDiagram — 10 steps */}
+            <Sequence from={0} durationInFrames={600}>
               <FlowDiagram
-                title="From idea to IPO \u2014 one platform"
+                title="From idea to investor — one platform"
                 steps={[
-                  { icon: "\uD83D\uDCA1", label: "Idea", sublabel: "Validate & score" },
-                  { icon: "\uD83D\uDE80", label: "MVP", sublabel: "Cap table & equity" },
-                  { icon: "\uD83D\uDCC8", label: "Traction", sublabel: "Evidence vault" },
-                  { icon: "\uD83D\uDCB0", label: "Revenue", sublabel: "Investor matching" },
-                  { icon: "\uD83C\uDFC6", label: "Scale", sublabel: "Blockchain equity" },
+                  { icon: "\uD83D\uDCA1", label: "Validate", sublabel: "AI scoring" },
+                  { icon: "\uD83D\uDCCA", label: "Cap Table", sublabel: "Equity splits" },
+                  { icon: "\uD83D\uDCDD", label: "Data Room", sublabel: "Evidence vault" },
+                  { icon: "\u2696\uFE0F", label: "Compliance", sublabel: "ASIC + ESIC" },
+                  { icon: "\uD83D\uDE80", label: "Raise", sublabel: "Investor-ready" },
                 ]}
               />
             </Sequence>
+            <Subtitle text="10 steps from idea to investor. Cap table. Equity. Data room. Compliance." />
           </AbsoluteFill>
         </SlideTransition>
       </Sequence>
 
-      {/* ============================================= */}
-      {/* Scene 8: Market & Business (2:00-2:20 = 3600-4200) */}
-      {/* ============================================= */}
+      {/* ─── Scene 8: Market Opportunity (2:00-2:20, frames 3600-4200) ─ */}
       <Sequence from={3600} durationInFrames={600}>
         <SlideTransition durationInFrames={600}>
           <AbsoluteFill>
             {/* TAM/SAM/SOM circles */}
-            <Sequence from={0} durationInFrames={360}>
+            <Sequence from={0} durationInFrames={300}>
               <TAMCircles />
+              <Subtitle text="600,000 Australian companies. 50,000 raising capital. Zero AI platforms." />
             </Sequence>
 
-            {/* Market metrics */}
-            <Sequence from={250} durationInFrames={120}>
-              <MetricsGrid
-                title="Australian Startup Ecosystem"
-                metrics={[
-                  {
-                    label: "Private companies",
-                    value: 600000,
-                    color: "brand",
-                  },
-                  {
-                    label: "Raising capital / year",
-                    value: 50000,
-                    color: "gold",
-                  },
-                  {
-                    label: "Active startups",
-                    value: 2600,
-                    color: "emerald",
-                  },
-                  {
-                    label: "Angel investors",
-                    value: 15000,
-                    color: "white",
-                  },
-                ]}
-              />
-            </Sequence>
-
-            {/* Pricing */}
-            <Sequence from={350} durationInFrames={250}>
+            {/* Pricing cards */}
+            <Sequence from={300} durationInFrames={300}>
               <AbsoluteFill
                 style={{
                   justifyContent: "center",
@@ -807,12 +768,7 @@ export const PitchVideo3Min: React.FC = () => {
                     Pricing
                   </div>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 24,
-                    }}
-                  >
+                  <div style={{ display: "flex", gap: 24 }}>
                     {[
                       {
                         name: "Free",
@@ -821,22 +777,16 @@ export const PitchVideo3Min: React.FC = () => {
                         highlight: false,
                       },
                       {
-                        name: "Pay-per-report",
+                        name: "Per Report",
                         price: "A$1",
-                        desc: "Early bird rate",
+                        desc: "Pay as you go",
                         highlight: false,
                       },
                       {
                         name: "Founder",
                         price: "A$49",
-                        desc: "100 credits, lifetime",
+                        desc: "Lifetime access",
                         highlight: true,
-                      },
-                      {
-                        name: "Growth",
-                        price: "A$99/mo",
-                        desc: "200 credits/month",
-                        highlight: false,
                       },
                     ].map((plan) => (
                       <div
@@ -891,28 +841,39 @@ export const PitchVideo3Min: React.FC = () => {
                       </div>
                     ))}
                   </div>
+
+                  <div
+                    style={{
+                      fontFamily: BRAND.fonts.mono,
+                      fontSize: 20,
+                      color: BRAND.colors.emerald500,
+                      marginTop: 12,
+                    }}
+                  >
+                    88%+ gross margins
+                  </div>
                 </div>
               </AbsoluteFill>
+              <Subtitle text="Free trial. $1 per analysis. $49 lifetime account. 88%+ gross margins." />
             </Sequence>
           </AbsoluteFill>
         </SlideTransition>
       </Sequence>
 
-      {/* ============================================= */}
-      {/* Scene 9: Competitor Compare (2:20-2:35 = 4200-4650) */}
-      {/* ============================================= */}
+      {/* ─── Scene 9: Why Us (2:20-2:35, frames 4200-4650) ──────────── */}
       <Sequence from={4200} durationInFrames={450}>
         <SlideTransition durationInFrames={450}>
           <ComparisonTable
-            headers={["Carta", "Pulley", "Qapita", "BlockID"]}
+            title="Built for Australia"
+            headers={["Carta", "Pulley", "AI Tools", "BlockID"]}
             rows={[
               {
                 feature: "AI Valuation",
-                values: ["no", "no", "no", "yes"],
+                values: ["no", "no", "partial", "yes"],
               },
               {
-                feature: "AU-native",
-                values: ["no", "no", "partial", "yes"],
+                feature: "AU-native (ABN, ASIC)",
+                values: ["no", "no", "no", "yes"],
               },
               {
                 feature: "Day 0 to Exit",
@@ -923,156 +884,138 @@ export const PitchVideo3Min: React.FC = () => {
                 values: ["no", "no", "no", "yes"],
               },
               {
-                feature: "Blockchain equity",
+                feature: "ESIC + R&D Tax",
                 values: ["no", "no", "no", "yes"],
               },
             ]}
           />
+          <Subtitle text="Built for Australia. ABN. ASIC. ESIC. R&D tax. Not an afterthought." />
         </SlideTransition>
       </Sequence>
 
-      {/* ============================================= */}
-      {/* Scene 10: Team & Compliance (2:35-2:50 = 4650-5100) */}
-      {/* ============================================= */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* ACT 4: TEAM & CLOSE (2:35 - 3:00)                                 */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+
+      {/* ─── Scene 10: The Team (2:35-2:50, frames 4650-5100) ─────── */}
       <Sequence from={4650} durationInFrames={450}>
         <SlideTransition durationInFrames={450}>
-          <AbsoluteFill>
-            {/* Org chart */}
-            <Sequence from={0} durationInFrames={300}>
-              <TeamOrg />
-            </Sequence>
-
-            {/* AU Compliance section */}
-            <Sequence from={280} durationInFrames={170}>
-              <AbsoluteFill
-                style={{
-                  justifyContent: "center",
-                  alignItems: "center",
-                  padding: "0 120px",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: 24,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontFamily: BRAND.fonts.heading,
-                      fontSize: 42,
-                      fontWeight: 700,
-                      color: BRAND.colors.white,
-                    }}
-                  >
-                    Built for Australian Compliance
-                  </div>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 32,
-                      marginTop: 16,
-                    }}
-                  >
-                    {[
-                      "ASIC Registration",
-                      "ESIC Tax Incentives",
-                      "R&D Tax Offset",
-                      "AU Data Residency",
-                    ].map((item) => (
-                      <div
-                        key={item}
-                        style={{
-                          padding: "16px 24px",
-                          borderRadius: 12,
-                          backgroundColor: `${BRAND.colors.emerald500}10`,
-                          border: `1px solid ${BRAND.colors.emerald500}30`,
-                          fontFamily: BRAND.fonts.heading,
-                          fontSize: 20,
-                          fontWeight: 500,
-                          color: BRAND.colors.emerald500,
-                        }}
-                      >
-                        {"\u2713"} {item}
-                      </div>
-                    ))}
-                  </div>
-
-                  <div
-                    style={{
-                      fontFamily: BRAND.fonts.mono,
-                      fontSize: 18,
-                      color: BRAND.colors.slate400,
-                      marginTop: 16,
-                    }}
-                  >
-                    Auschain Pty Ltd (ACN 659 615 111) \u2014 Sydney, NSW,
-                    Australia
-                  </div>
-                </div>
-              </AbsoluteFill>
-            </Sequence>
-          </AbsoluteFill>
+          <TeamOrg />
+          <Subtitle text="One founder. Eight AI agents. 272 files. 70 APIs. Built in 19 days." />
         </SlideTransition>
       </Sequence>
 
-      {/* ============================================= */}
-      {/* Scene 11: Drop Mic (2:50-2:55 = 5100-5250)   */}
-      {/* ============================================= */}
+      {/* ─── Scene 11: Drop Mic (2:50-2:55, frames 5100-5250) ──────── */}
       <Sequence from={5100} durationInFrames={150}>
         <DropMic
           lines={[
             {
-              text: "$252 billion invested in AI last year.",
-              color: BRAND.colors.white,
-              fontSize: 44,
-              fontWeight: 600,
-            },
-            {
-              text: "90% of those startups will fail.",
-              color: BRAND.colors.red400,
-              fontSize: 44,
-              fontWeight: 600,
-            },
-            {
-              text: "Not because of bad ideas.",
+              text: "We don't just talk about AI.",
               color: BRAND.colors.slate300,
-              fontSize: 40,
-              fontWeight: 500,
+              fontSize: 44,
+              fontWeight: 600,
             },
             {
-              text: "Because nobody helped them prove their value.",
-              color: BRAND.colors.white,
-              fontSize: 40,
-              fontWeight: 500,
-            },
-            {
-              text: "Until now.",
+              text: "We ARE AI-native.",
               color: BRAND.colors.brand500,
               fontSize: 64,
               fontWeight: 700,
             },
           ]}
-          beatFrames={25}
-          delay={5}
+          beatFrames={40}
+          delay={10}
         />
+        <Subtitle text="We don't just talk about AI. We ARE AI-native." />
       </Sequence>
 
-      {/* ============================================= */}
-      {/* Scene 12: CTA (2:55-3:00 = 5250-5400)        */}
-      {/* ============================================= */}
+      {/* ─── Scene 12: CTA + QR (2:55-3:00, frames 5250-5400) ──────── */}
       <Sequence from={5250} durationInFrames={150}>
-        <CTASlide
-          founderName="Do Van Long"
-          founderTitle="Founder & CEO"
-          companyEntity="Auschain Pty Ltd"
-          linkedIn="linkedin.com/in/dovanlong"
-          ctaText="First analysis free. Start today."
-          tagline="Where AI meets startup valuation"
-        />
+        <AbsoluteFill
+          style={{
+            backgroundColor: BRAND.colors.ink950,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 16,
+            }}
+          >
+            {/* Logo */}
+            <div
+              style={{
+                fontFamily: BRAND.fonts.heading,
+                fontSize: 56,
+                fontWeight: 700,
+                color: BRAND.colors.white,
+              }}
+            >
+              Block
+              <span style={{ color: BRAND.colors.brand500 }}>ID</span>
+              <span style={{ color: BRAND.colors.slate400, fontSize: 36 }}>
+                .au
+              </span>
+            </div>
+
+            {/* QR Code */}
+            <Img
+              src={staticFile("video-assets/qr-contact.png")}
+              style={{ width: 200, height: 200, borderRadius: 8 }}
+            />
+
+            {/* Founder info */}
+            <div
+              style={{
+                fontFamily: BRAND.fonts.heading,
+                fontSize: 28,
+                fontWeight: 600,
+                color: BRAND.colors.white,
+              }}
+            >
+              Do Van Long
+            </div>
+            <div
+              style={{
+                fontFamily: BRAND.fonts.heading,
+                fontSize: 20,
+                color: BRAND.colors.brand400,
+              }}
+            >
+              CEO & Founder — BlockID.au
+            </div>
+            <div
+              style={{
+                fontFamily: BRAND.fonts.mono,
+                fontSize: 14,
+                color: BRAND.colors.slate400,
+                marginTop: 4,
+              }}
+            >
+              Auschain Pty Ltd (ACN 659 615 111) — linkedin.com/in/dovanlong
+            </div>
+
+            {/* CTA Button */}
+            <div
+              style={{
+                marginTop: 12,
+                fontFamily: BRAND.fonts.heading,
+                fontSize: 24,
+                fontWeight: 600,
+                color: BRAND.colors.white,
+                backgroundColor: BRAND.colors.brand500,
+                padding: "14px 42px",
+                borderRadius: 12,
+              }}
+            >
+              Get your free SVI at blockid.au
+            </div>
+          </div>
+        </AbsoluteFill>
+        <Subtitle text="Get your free SVI at blockid.au" />
       </Sequence>
     </AbsoluteFill>
   );
