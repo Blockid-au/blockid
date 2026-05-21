@@ -1271,6 +1271,72 @@ export async function sendReportDelivery(args: {
   });
 }
 
+// ---------- vesting milestone -----------------------------------------------
+
+export async function sendVestingMilestone(args: {
+  to: string;
+  shareholderName: string;
+  percentVested: number;
+  sharesVested: number;
+  totalShares: number;
+  milestoneType: "cliff_reached" | "monthly_vest" | "vesting_complete";
+}): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "svi_alerts"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
+  const dashUrl = `${siteUrl()}/workspace/vesting`;
+  const pct = Math.round(args.percentVested * 10) / 10;
+
+  const subjectMap: Record<typeof args.milestoneType, string> = {
+    cliff_reached: `Cliff Reached — ${pct}% Vested`,
+    monthly_vest: `Vesting Update — ${pct}% Vested (${Math.round(args.sharesVested).toLocaleString()} shares)`,
+    vesting_complete: `Vesting Complete — 100% Fully Vested`,
+  };
+
+  const headlineMap: Record<typeof args.milestoneType, string> = {
+    cliff_reached: "Your Cliff Has Been Reached",
+    monthly_vest: "Monthly Vesting Update",
+    vesting_complete: "Congratulations — Fully Vested!",
+  };
+
+  const bodyMap: Record<typeof args.milestoneType, string> = {
+    cliff_reached: `Great news, ${escapeHtml(args.shareholderName)}! Your cliff period has ended. ${Math.round(args.sharesVested).toLocaleString()} of your ${args.totalShares.toLocaleString()} shares (${pct}%) have now vested.`,
+    monthly_vest: `Hi ${escapeHtml(args.shareholderName)}, your equity continues to vest. You now have ${Math.round(args.sharesVested).toLocaleString()} of ${args.totalShares.toLocaleString()} shares vested (${pct}%).`,
+    vesting_complete: `Congratulations, ${escapeHtml(args.shareholderName)}! All ${args.totalShares.toLocaleString()} shares have fully vested. Your equity is now 100% yours.`,
+  };
+
+  const scoreColor = args.milestoneType === "vesting_complete" ? "#10B981" : "#3B7DD8";
+
+  const html = shell(`
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+        <tr><td>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Vesting</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${headlineMap[args.milestoneType]}</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${bodyMap[args.milestoneType]}</p>
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
+            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:48px;font-weight:600;color:${scoreColor};line-height:1;">${pct}<span style="color:#64748B;font-size:20px;">%</span></div>
+            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">${Math.round(args.sharesVested).toLocaleString()} / ${args.totalShares.toLocaleString()} shares vested</p>
+          </div>
+          <p style="margin:0 0 24px 0;text-align:center;">
+            <a href="${dashUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Your Vesting</a>
+          </p>
+          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">BlockID — Persistent Identity & Trust Infrastructure for Private Capital Markets.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+  ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
+
+  return sendEmail({
+    to: args.to,
+    subject: subjectMap[args.milestoneType],
+    html,
+    unsubscribeUrl,
+  });
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }

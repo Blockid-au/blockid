@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { computeValuation, type ValuationInput } from "@/lib/valuation";
+import { canAfford, spendCredits } from "@/lib/credits";
 
 export const dynamic = "force-dynamic";
 
@@ -117,6 +118,130 @@ export async function GET() {
     });
   } catch (err) {
     console.error("[blockid:valuation] GET error", err);
+    return NextResponse.json(
+      { ok: false, error: "Valuation computation failed" },
+      { status: 500 },
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// POST /api/valuation — Scenario modeling with custom inputs
+// Costs 0.50 credits for detailed multi-method valuation
+// ---------------------------------------------------------------------------
+
+export async function POST(request: Request) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        { ok: false, error: "Authentication required" },
+        { status: 401 },
+      );
+    }
+
+    // Parse request body
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== "object") {
+      return NextResponse.json(
+        { ok: false, error: "Invalid request body" },
+        { status: 400 },
+      );
+    }
+
+    const {
+      sviScore,
+      stage,
+      mrrAud,
+      arrAud,
+      revenueGrowthPct,
+      monthlyChurnPct,
+      burnRateAud,
+      runwayMonths,
+      sector,
+      teamSize,
+      dimensions,
+    } = body;
+
+    // Validate required fields
+    if (typeof sviScore !== "number" || sviScore < 0) {
+      return NextResponse.json(
+        { ok: false, error: "sviScore is required and must be a positive number" },
+        { status: 400 },
+      );
+    }
+    if (typeof stage !== "string" || !["idea", "validation", "mvp", "growth"].includes(stage)) {
+      return NextResponse.json(
+        { ok: false, error: 'stage must be one of: idea, validation, mvp, growth' },
+        { status: 400 },
+      );
+    }
+
+    // Check credits
+    const affordCheck = await canAfford(user.id, "valuation_detailed");
+    if (!affordCheck.allowed) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Insufficient credits",
+          balance: affordCheck.balance,
+          cost: affordCheck.cost,
+        },
+        { status: 402 },
+      );
+    }
+
+    // Build valuation input from request body
+    const input: ValuationInput = {
+      sviScore,
+      stage,
+      mrrAud: typeof mrrAud === "number" ? mrrAud : undefined,
+      arrAud: typeof arrAud === "number" ? arrAud : undefined,
+      revenueGrowthPct: typeof revenueGrowthPct === "number" ? revenueGrowthPct : undefined,
+      monthlyChurnPct: typeof monthlyChurnPct === "number" ? monthlyChurnPct : undefined,
+      burnRateAud: typeof burnRateAud === "number" ? burnRateAud : undefined,
+      runwayMonths: typeof runwayMonths === "number" ? runwayMonths : undefined,
+      sector: typeof sector === "string" ? sector : undefined,
+      teamSize: typeof teamSize === "number" ? teamSize : undefined,
+      dimensions:
+        dimensions && typeof dimensions === "object"
+          ? {
+              ftv: typeof dimensions.ftv === "number" ? dimensions.ftv : undefined,
+              mpc: typeof dimensions.mpc === "number" ? dimensions.mpc : undefined,
+              ptd: typeof dimensions.ptd === "number" ? dimensions.ptd : undefined,
+              tre: typeof dimensions.tre === "number" ? dimensions.tre : undefined,
+              cgh: typeof dimensions.cgh === "number" ? dimensions.cgh : undefined,
+              iri: typeof dimensions.iri === "number" ? dimensions.iri : undefined,
+              lco: typeof dimensions.lco === "number" ? dimensions.lco : undefined,
+              svm: typeof dimensions.svm === "number" ? dimensions.svm : undefined,
+            }
+          : undefined,
+    };
+
+    // Spend credits
+    const spend = await spendCredits(user.id, "valuation_detailed", {
+      sviScore,
+      stage,
+      scenario: true,
+    });
+    if (!spend.ok) {
+      return NextResponse.json(
+        { ok: false, error: "Credit deduction failed" },
+        { status: 402 },
+      );
+    }
+
+    // Run valuation engine
+    const valuation = computeValuation(input);
+
+    return NextResponse.json({
+      ok: true,
+      valuation,
+      input: { sviScore, stage },
+      creditsRemaining: spend.balance,
+    });
+  } catch (err) {
+    console.error("[blockid:valuation] POST error", err);
     return NextResponse.json(
       { ok: false, error: "Valuation computation failed" },
       { status: 500 },

@@ -291,3 +291,17 @@
 15:03:37.113097 table@remove removed @84
 15:03:37.113685 table@remove removed @85
 15:03:37.114096 table@remove removed @86
+16:19:09.725246 memdb@flush N·4680 S·3MiB
+16:19:09.742332 memdb@flush created L0@93 N·4680 S·903KiB "abc..719,v98599":"val..656,v103276"
+16:19:09.742399 version@stat F·[1 5] S·8MiB[903KiB 7MiB] Sc·[0.25 0.08]
+16:19:09.744449 memdb@flush committed F·1 T·19.092152ms
+16:19:09.745485 journal@remove removed @87
+16:22:00.521638 table@compaction L0·1 -> L1·2 S·4MiB Q·103448
+16:22:00.577365 table@build created L1@94 N·5367 S·2MiB "abc..649,v98249":"abc..589,v2949"
+16:22:00.661836 table@build created L1@95 N·31434 S·2MiB "abc..890,v29454":"val..587,v77931"
+16:22:00.667754 table@build created L1@96 N·6053 S·41KiB "val..588,v77936":"val..443,v12211"
+16:22:00.667902 version@stat F·[0 6] S·8MiB[0B 8MiB] Sc·[0.00 0.08]
+16:22:00.669175 table@compaction committed F~ S-521KiB Ke·0 D·1872 T·147.425703ms
+16:22:00.669526 table@remove removed @93
+16:22:00.669919 table@remove removed @90
+16:22:00.670238 table@remove removed @91

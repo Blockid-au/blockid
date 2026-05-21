@@ -38,6 +38,7 @@ import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
+import { estimateValuation, formatAUD } from "@/lib/valuation";
 import { ResearchPanel } from "@/components/svi/research-panel";
 import type { SVIAction } from "@/lib/svi-actions";
 import {
@@ -319,6 +320,28 @@ function MetricCard({
       <p className="text-[10px] uppercase tracking-[0.15em] text-ink-600 font-medium mb-1">{label}</p>
       <p className={cn("text-xl font-bold font-mono", color)}>{value}</p>
       {subtext && <p className="text-xs text-ink-600 mt-0.5">{subtext}</p>}
+    </div>
+  );
+}
+
+function ValuationRangeCard({ sviScore, stage }: { sviScore: number; stage: number }) {
+  const est = estimateValuation(sviScore, stage);
+  return (
+    <div className="mt-6 rounded-xl bg-surface-50 border border-surface-200 p-4">
+      <p className="text-xs text-ink-500 mb-2">Estimated Valuation Range</p>
+      <div className="flex items-baseline gap-3 justify-center">
+        <span className="text-sm text-ink-400">{formatAUD(est.low)}</span>
+        <span className="text-2xl font-bold text-brand-600">{formatAUD(est.mid)}</span>
+        <span className="text-sm text-ink-400">{formatAUD(est.high)}</span>
+      </div>
+      <div className="flex gap-1 mt-2">
+        <div className="h-1.5 flex-1 rounded-full bg-surface-200" />
+        <div className="h-1.5 flex-[2] rounded-full bg-brand-500" />
+        <div className="h-1.5 flex-1 rounded-full bg-surface-200" />
+      </div>
+      <p className="text-[10px] text-ink-400 mt-2 text-center">
+        Based on SVI score, stage, and available metrics. Not financial advice.
+      </p>
     </div>
   );
 }
@@ -1165,6 +1188,9 @@ export function SVIResultsPanel({
                 </div>
               </div>
             )}
+
+            {/* Estimated Valuation Range */}
+            <ValuationRangeCard sviScore={analysis.totalSVI} stage={analysis.stage} />
 
             <PageNavigation currentPage={1} onNavigate={navigateToPageNum} />
           </PageSection>
