@@ -87,3 +87,8 @@
 16:02:37.550927 version@stat F·[1 9] S·18MiB[2MiB 16MiB] Sc·[0.25 0.16]
 16:02:37.559499 memdb@flush committed F·1 T·50.760994ms
 16:02:37.561210 journal@remove removed @21
+19:35:21.089864 memdb@flush N·15246 S·3MiB
+19:35:21.110143 memdb@flush created L0@35 N·15246 S·2MiB "BH:..7e1,v126682":"blo..ore,v122749"
+19:35:21.110190 version@stat F·[2 9] S·21MiB[4MiB 16MiB] Sc·[0.50 0.16]
+19:35:21.112024 memdb@flush committed F·1 T·22.113672ms
+19:35:21.112898 journal@remove removed @32

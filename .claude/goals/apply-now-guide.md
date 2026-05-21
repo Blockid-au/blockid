@@ -179,8 +179,91 @@ Migration to Google Cloud would enable:
 - [ ] Update LinkedIn profile with BlockID info
 - [ ] Create Product Hunt teaser page
 
+### Also This Week — NVIDIA Inception (5 minutes):
+- [ ] Open https://programs.nvidia.com/phoenix/application
+- [ ] Fill form with answers from Section 4 below
+- [ ] Submit (no video needed, no fee, instant)
+
 ### Ongoing:
 - [ ] Monitor email for interview invitations
 - [ ] Track applications in /admin/listings dashboard
 - [ ] Prepare for video interview (15-20 min, demo-focused)
 - [ ] Update metrics weekly from /api/platform-stats
+
+---
+
+## APPLICATION 4: NVIDIA Inception Program (APPLY NOW — 5 MINUTES)
+
+### Why this is critical:
+- **FREE** — no fees, no equity, no dilution
+- **$25K-$100K** cloud credits (AWS via Inception)
+- **VC network access** — Inception Capital Connect links you with NVIDIA's venture capital network
+- **Hardware discounts** — preferred pricing on NVIDIA GPUs
+- **Brand credibility** — "NVIDIA Inception Member" badge for pitch decks and website
+- **Year-round** — no deadlines, no cohorts, apply anytime
+- **Acceptance rate high** — designed for early-stage AI startups
+
+### Requirements (BlockID meets ALL):
+| Requirement | BlockID Status |
+|---|---|
+| Officially incorporated | DONE — Auschain PTY LTD, ACN 659 615 111 |
+| Less than 10 years old | DONE — Founded 2023 |
+| At least 1 developer | DONE — Solo technical founder |
+| Working website | DONE — blockid.au (live, healthy) |
+| AI/ML core to product | DONE — 6 AI providers, NLP analysis engine |
+| Not crypto-focused | DONE — SaaS valuation platform (not crypto) |
+
+### How to apply (5 minutes):
+
+**Step 1:** Open https://programs.nvidia.com/phoenix/application
+
+**Step 2:** Fill the form:
+
+**Company name:** BlockID.au (Auschain PTY LTD)
+
+**Website:** https://blockid.au
+
+**Company description:**
+BlockID.au is an AI-powered startup valuation platform that uses multiple large language models (Claude, GPT-4o, Gemini) to analyse startups across 8 dimensions and generate a Startup Value Index (SVI). Our NLP engine processes unstructured founder descriptions to extract 50+ business signals, score them with weighted algorithms, and produce personalised 11-page PDF reports with actionable growth plans. We serve Australian founders from idea stage to investor-ready.
+
+**How does your company use AI/ML/HPC?**
+Core AI/ML usage across the platform:
+1. Multi-model NLP pipeline — Claude Sonnet/Haiku + GPT-4o-mini + Gemini 2.0 Flash with automatic failover chain for startup text analysis
+2. Signal extraction — NLP identifies team, market, product, traction, governance, legal, and strategic signals from unstructured text
+3. Competitive research — AI agent with web search tool analyses competitors, market size, and growth opportunities
+4. Report generation — AI writes personalised 800+ word founder-friendly reports with progressive guidance
+5. Content pipeline — Daily AI-generated SEO articles with inline SVG infographics (31 published)
+6. Pitch deck AI — Generates 12-slide pitch outlines from SVI analysis data
+
+**Industry:** SaaS / FinTech / AI
+
+**Founded:** 2023
+
+**Funding stage:** Pre-seed
+
+**Team size:** 1 (+ AI agent team)
+
+**Location:** Sydney, NSW, Australia
+
+**Step 3:** Submit. No video or pitch deck required.
+
+**Step 4:** Wait for email confirmation (typically 1-2 weeks).
+
+### After Acceptance — Unlock Benefits:
+
+1. **Cloud Credits**: Apply for AWS Activate via Inception ($25K-$100K)
+2. **Badge**: Add "NVIDIA Inception Member" to pitch deck slide 1 and blockid.au footer
+3. **Capital Connect**: Register for Inception Capital Connect to meet NVIDIA-connected VCs
+4. **Training**: Access free NVIDIA DLI courses for AI/ML skill building
+5. **Hardware**: Get preferred pricing on NVIDIA hardware if needed for ML training
+
+### NVIDIA Inception vs Other Programs:
+
+| Program | Investment | Equity | Time | Key Benefit |
+|---|---|---|---|---|
+| **NVIDIA Inception** | $0 | **0%** | **5 min apply** | Cloud credits, VC network, GPU discounts |
+| Startmate | A$120K | 7.5% | 3 months | AU founder network, mentorship |
+| Antler | A$100-250K | ~10% | 3 months | Co-founder matching, global network |
+| Google for Startups | $0 | 0% | 3 months | Google Cloud, mentorship |
+
+**NVIDIA Inception is the easiest, fastest, zero-risk program to join. Apply first.**

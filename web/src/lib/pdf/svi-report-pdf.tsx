@@ -425,9 +425,11 @@ function Signal({ label, active }: { label: string; active: boolean }) {
 interface Props {
   analysis: SVIAnalysis;
   email?: string;
+  tier?: "preview" | "standard" | "deep_dive" | "modular";
 }
 
-export function SVIReportPDF({ analysis, email }: Props) {
+export function SVIReportPDF({ analysis, email, tier = "standard" }: Props) {
+  const isPaid = tier !== "preview" && tier !== "standard";
   const date = new Date().toLocaleDateString("en-AU", {
     year: "numeric",
     month: "long",
@@ -471,6 +473,18 @@ export function SVIReportPDF({ analysis, email }: Props) {
             </Text>
           )}
           <Text style={s.coverTitle}>Your Startup Value Report</Text>
+          <Text style={{
+            fontSize: 9,
+            color: isPaid ? C.emerald600 : C.brand600,
+            fontWeight: "bold",
+            marginTop: 4,
+            paddingHorizontal: 12,
+            paddingVertical: 3,
+            backgroundColor: isPaid ? C.emerald100 : C.brand100,
+            borderRadius: 4,
+          }}>
+            {isPaid ? "Full Report — Unlimited Analysis" : "Preview Report — 10 Pages"}
+          </Text>
           <Text style={s.coverScore}>{analysis.totalSVI}</Text>
           <Text style={s.coverStage}>
             {sviLabel(analysis.totalSVI)} — Stage {analysis.stage}: {analysis.stageLabel}
@@ -1200,6 +1214,23 @@ export function SVIReportPDF({ analysis, email }: Props) {
           <Text style={{ fontSize: 9, color: C.ink600, lineHeight: 1.5 }}>
             Your dashboard at blockid.au is ready for you. Upload evidence as you complete each step, and watch your score grow. The Evidence Vault, cap table tools, and weekly tracking are all included. You're not doing this alone.
           </Text>
+          {!isPaid && (
+            <View style={{
+              marginTop: 12,
+              padding: 10,
+              backgroundColor: C.amber100,
+              borderRadius: 6,
+              borderWidth: 1,
+              borderColor: C.amber600,
+            }}>
+              <Text style={{ fontSize: 9, fontWeight: "bold", color: C.amber600, marginBottom: 2 }}>
+                Unlock Your Full Report
+              </Text>
+              <Text style={{ fontSize: 8, color: C.ink600, lineHeight: 1.4 }}>
+                This is a 10-page preview. The full report includes unlimited analysis depth, detailed competitor profiles, financial projections, 90-day action plans, and step-by-step guidance tailored to your stage. Choose individual sections or get the complete report at blockid.au/workspace.
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Footer CTA */}
@@ -1218,8 +1249,11 @@ export function SVIReportPDF({ analysis, email }: Props) {
           <Text style={{ fontSize: 9, color: C.brand600, marginTop: 4 }}>
             blockid.au
           </Text>
-          <Text style={{ fontSize: 7, color: C.ink400, marginTop: 6 }}>
-            Auschain PTY LTD | ABN 90 688 222 450 | This report is not financial advice.
+          <Text style={{ fontSize: 7, color: C.ink400, marginTop: 6, lineHeight: 1.4 }}>
+            Auschain PTY LTD | ACN 659 615 111 | ABN 79 659 615 111 | Sydney, NSW, Australia
+          </Text>
+          <Text style={{ fontSize: 6.5, color: C.ink400, marginTop: 4, lineHeight: 1.4, textAlign: "center" }}>
+            This analysis is produced by BlockID.au (Auschain PTY LTD). The Startup Value Index (SVI) is an indicative assessment tool — it is NOT a financial valuation, investment recommendation, or professional advice under the Corporations Act 2001 (Cth). BlockID does not hold an Australian Financial Services Licence (AFSL). Users should seek independent professional advice from qualified accountants, lawyers, and financial advisers. All prices are in AUD and include GST where applicable.
           </Text>
         </View>
 
