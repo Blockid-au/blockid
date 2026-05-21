@@ -91,11 +91,16 @@ export function ProjectSwitcher() {
   }, [open]);
 
   function switchProject(slug: string) {
+    if (slug === activeSlug) {
+      setOpen(false);
+      return;
+    }
     setActiveSlug(slug);
     setProjectCookie(slug);
     setOpen(false);
-    // Refresh the page to reload data in the new project context
-    router.refresh();
+    // Full page reload — forces server to re-read cookie and fetch new project data
+    // router.refresh() doesn't reliably trigger server-side re-fetch in App Router
+    window.location.reload();
   }
 
   // Don't render if loading or single project (no need for switcher)
