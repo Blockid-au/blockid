@@ -65,3 +65,76 @@ export interface RndSSEComplete {
 export interface RndSSEError {
   error: string;
 }
+
+// ── Client-safe Tech Audit types (mirrors server-only rnd-input.ts) ─────────
+
+export interface ClientSecurityAudit {
+  ssl: { valid: boolean; issuer: string; protocol: string; expiresAt: string | null };
+  headers: {
+    csp: boolean;
+    hsts: boolean;
+    xFrameOptions: boolean;
+    xContentType: boolean;
+    referrerPolicy: boolean;
+    permissionsPolicy: boolean;
+  };
+  headerCount: number;
+  grade: "A" | "B" | "C" | "D" | "F";
+}
+
+export interface ClientPerformanceAudit {
+  ttfbMs: number;
+  pageSizeBytes: number;
+  compressed: boolean;
+  compressionType: string | null;
+  cacheControl: boolean;
+  etag: boolean;
+  grade: "A" | "B" | "C" | "D" | "F";
+}
+
+export interface ClientTechStackAudit {
+  frameworks: string[];
+  cssFrameworks: string[];
+  cms: string | null;
+  cdn: string | null;
+  analytics: string[];
+  payments: string[];
+  customerTools: string[];
+  hosting: string | null;
+  serverTech: string | null;
+}
+
+export interface ClientProductMaturityAudit {
+  hasSitemap: boolean;
+  sitemapPageCount: number;
+  hasRobotsTxt: boolean;
+  hasStructuredData: boolean;
+  hasOpenGraph: boolean;
+  hasTwitterCards: boolean;
+  hasPWA: boolean;
+  hasViewportMeta: boolean;
+  hasMultiLang: boolean;
+  hasLoginForm: boolean;
+  hasDashboard: boolean;
+  hasTestimonials: boolean;
+  hasCustomerLogos: boolean;
+  socialLinks: string[];
+  githubLink: string | null;
+}
+
+export interface ClientTechAuditResult {
+  url: string;
+  auditedAt: string;
+  security: ClientSecurityAudit;
+  performance: ClientPerformanceAudit;
+  techStack: ClientTechStackAudit;
+  productMaturity: ClientProductMaturityAudit;
+  overallGrade: "A" | "B" | "C" | "D" | "F";
+  signalBoosts: {
+    ptdBoost: number;
+    svmBoost: number;
+    treBoost: number;
+    lcoBoost: number;
+  };
+  evidenceLabels: string[];
+}

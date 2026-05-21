@@ -6,10 +6,11 @@ Build a comprehensive vesting and dynamic share allocation system that enables s
 ## Core Principles
 
 1. **Founder-First**: Founder starts at 100% by default; every addition dilutes proportionally
-2. **AI-Assisted**: "Use our AI Agent" button for optimal suggestions (credit-charged)
-3. **SVI-Linked**: Share count/price grows with SVI score and evidence input
-4. **Monthly Vesting**: Linear vesting with configurable cliff, per-startup overrides
-5. **Blockchain-Ready**: On-chain vesting contracts sync with off-chain records
+2. **Off-Chain First**: ALL equity data lives in Supabase (source of truth). Blockchain is optional, toggleable transparency layer. System works 100% without blockchain.
+3. **AI-Assisted**: "Use our AI Agent" button for optimal suggestions (credit-charged)
+4. **SVI-Linked**: Share count/price grows with SVI score and evidence input
+5. **Monthly Vesting**: Linear vesting with configurable cliff, per-startup overrides
+6. **Blockchain-Optional**: On-chain sync toggle (on/off/pause/catch-up) per startup. When OFF, zero blockchain interaction. When re-enabled, automatic catch-up sync. See [Blockchain C-Level Goals](blockchain-clevel-goals.md) for full architecture.
 
 ---
 

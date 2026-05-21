@@ -58,6 +58,23 @@ export const FEATURE_COSTS: Record<string, number> = {
   ai_share_structure: 0.75,   // Fixed vs dynamic share structure
   ai_esop: 0.50,              // ESOP pool sizing recommendation
   ai_vesting_review: 1.50,    // Comprehensive vesting audit
+
+  // ── Per-section modular purchasing (word-count tiers) ────────────────
+  // Users choose individual sections at their desired depth.
+  // Formula: base_rate × (target_words / 500). Min 0.10, max 3.00.
+  section_scan: 0.10,         // ~100 words — quick signal check
+  section_summary: 0.25,      // ~300 words — key findings
+  section_standard: 0.50,     // ~500 words — detailed + gaps + recs
+  section_deep: 1.00,         // ~1000 words — benchmarks + competitors
+  section_expert: 2.00,       // ~2000 words — consultant-grade
+  section_maximum: 3.00,      // ~3000+ words — no word limit
+
+  // ── Additional purchasable analyses ──────────────────────────────────
+  investor_memo: 3.00,        // ~3000 words — investor-ready memo
+  competitive_intel: 1.00,    // ~1000 words — named competitors + features
+  seo_audit: 0.75,            // ~600 words — technical SEO + keywords
+  growth_strategy: 1.50,      // ~1500 words — 90-day growth plan
+  cap_table_review: 1.00,     // ~800 words — equity split analysis (AU benchmarks)
 };
 
 // ---------------------------------------------------------------------------
@@ -81,6 +98,95 @@ export const CREDIT_PACKS = [
   { credits: 50,  priceAudCents: 1500,  label: "50 Credits",  savings: "Save 70%" }, // A$15 = A$0.30/credit
   { credits: 100, priceAudCents: 2500,  label: "100 Credits", savings: "Save 75%" }, // A$25 = A$0.25/credit
 ] as const;
+
+// ---------------------------------------------------------------------------
+// formatCredits — display-friendly credit amount.
+// Whole numbers show as "1", fractional as "0.50".
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Section depth tiers — word count and credit pricing per section.
+// Used by the modular section picker UI to show transparent pricing.
+// ---------------------------------------------------------------------------
+
+export type SectionDepth = "scan" | "summary" | "standard" | "deep" | "expert" | "maximum";
+
+export const SECTION_DEPTH_CONFIG: Record<SectionDepth, {
+  label: string;
+  words: number;        // approximate target words
+  credits: number;
+  description: string;
+}> = {
+  scan:     { label: "Scan",     words: 100,   credits: 0.10, description: "Quick signal check" },
+  summary:  { label: "Summary",  words: 300,   credits: 0.25, description: "Key findings, top 3 takeaways" },
+  standard: { label: "Standard", words: 500,   credits: 0.50, description: "Detailed analysis with gaps + recommendations" },
+  deep:     { label: "Deep",     words: 1000,  credits: 1.00, description: "Benchmarks, competitor context, action plan" },
+  expert:   { label: "Expert",   words: 2000,  credits: 2.00, description: "Consultant-grade with financials and strategy" },
+  maximum:  { label: "Maximum",  words: 3000,  credits: 3.00, description: "Exhaustive analysis, no word limit" },
+};
+
+// Bundle discounts for full report (all 10 sections at same depth)
+export const REPORT_BUNDLES: Record<string, {
+  label: string;
+  depth: SectionDepth;
+  credits: number;
+  estWords: number;
+  savingsPercent: number;
+}> = {
+  quick_report:    { label: "Quick Report",    depth: "scan",     credits: 0.50,  estWords: 1000,   savingsPercent: 50 },
+  standard_report: { label: "Standard Report", depth: "standard", credits: 1.00,  estWords: 5000,   savingsPercent: 80 },
+  deep_report:     { label: "Deep Dive",       depth: "deep",     credits: 1.50,  estWords: 10000,  savingsPercent: 85 },
+  expert_report:   { label: "Expert Report",   depth: "expert",   credits: 3.00,  estWords: 20000,  savingsPercent: 85 },
+  premium_report:  { label: "Full Premium",    depth: "maximum",  credits: 5.00,  estWords: 30000,  savingsPercent: 83 },
+};
+
+/**
+ * Calculate credit cost for a custom word count.
+ * Formula: base_rate × (target_words / 500), clamped to [0.10, 3.00].
+ * All prices are AUD and GST-inclusive (Australian Consumer Law).
+ */
+export function calculateWordCredit(targetWords: number): number {
+  const baseRate = 0.50; // credits per 500 words
+  const raw = baseRate * (targetWords / 500);
+  return Math.max(0.10, Math.min(3.00, Math.round(raw * 100) / 100));
+}
+
+/**
+ * Calculate total cost for selected sections at chosen depths.
+ * Returns individual + total with bundle comparison.
+ */
+export function calculateSectionCost(
+  sections: Array<{ sectionId: string; depth: SectionDepth }>,
+): {
+  items: Array<{ sectionId: string; depth: SectionDepth; credits: number; words: number }>;
+  totalCredits: number;
+  totalWords: number;
+  bestBundle: { key: string; credits: number; savingsPercent: number } | null;
+} {
+  const items = sections.map(s => ({
+    sectionId: s.sectionId,
+    depth: s.depth,
+    credits: SECTION_DEPTH_CONFIG[s.depth].credits,
+    words: SECTION_DEPTH_CONFIG[s.depth].words,
+  }));
+
+  const totalCredits = items.reduce((sum, i) => sum + i.credits, 0);
+  const totalWords = items.reduce((sum, i) => sum + i.words, 0);
+
+  // Find best bundle if all 10 sections selected
+  let bestBundle: { key: string; credits: number; savingsPercent: number } | null = null;
+  if (sections.length >= 10) {
+    for (const [key, bundle] of Object.entries(REPORT_BUNDLES)) {
+      if (bundle.credits < totalCredits) {
+        if (!bestBundle || bundle.credits < bestBundle.credits) {
+          bestBundle = { key, credits: bundle.credits, savingsPercent: bundle.savingsPercent };
+        }
+      }
+    }
+  }
+
+  return { items, totalCredits, totalWords, bestBundle };
+}
 
 // ---------------------------------------------------------------------------
 // formatCredits — display-friendly credit amount.

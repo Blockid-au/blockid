@@ -2,14 +2,12 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { canSendEmail } from "@/lib/email-preferences";
 import {
-  sendNurtureFreeDay1,
-  sendNurtureFreeDay3,
+  sendNurtureFreeDay2,
+  sendNurtureFreeDay4,
   sendNurtureFreeDay7,
-  sendNurtureFreeDay14,
   sendNurturePaidDay1,
   sendNurturePaidDay3,
-  sendNurturePaidDay14,
-  sendNurturePaidDay30,
+  sendNurturePaidDay7,
 } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +44,10 @@ async function trySendNurture(
 // ---------------------------------------------------------------------------
 // GET /api/cron/nurture — daily nurture email sequences
 // Authorization: Bearer {CRON_SECRET}
+//
+// Sequences:
+//   FREE users  (4-step, 7 days): Immediate (sendSVIReport) → Day 2 → Day 4 → Day 7
+//   PAID users  (4-step, 7 days): Immediate (sendPaymentConfirmation) → Day 1 → Day 3 → Day 7
 // ---------------------------------------------------------------------------
 
 export async function GET(request: Request) {
@@ -79,7 +81,8 @@ export async function GET(request: Request) {
       const daysSinceSignup = daysBetween(createdAt, now);
 
       // Check email preferences early
-      const allowed = await canSendEmail(user.email, "promotions");
+      const category = (!user.plan || user.plan === "free") ? "promotions" : "product_updates";
+      const allowed = await canSendEmail(user.email, category);
       if (!allowed) {
         skipped++;
         continue;
@@ -103,7 +106,9 @@ export async function GET(request: Request) {
       const isFree = !user.plan || user.plan === "free";
 
       if (isFree) {
-        // ---- Free user nurture sequence -----------------------------------
+        // ---- Free user nurture sequence (Day 2, 4, 7) --------------------
+        // Email 1 (Immediate "Your SVI Score is Ready") is sent by
+        // sendSVIReport at analysis time, not by this cron.
         const freeSteps: Array<{
           day: number;
           type: string;
@@ -111,21 +116,21 @@ export async function GET(request: Request) {
           send: () => Promise<{ ok: boolean }>;
         }> = [
           {
-            day: 1,
-            type: "nurture_free_d1",
-            subject: "Your SVI score is waiting — 3 things to do next",
+            day: 2,
+            type: "nurture_free_d2",
+            subject: "Boost your SVI by 30+ points \u2014 here\u2019s how",
             send: () =>
-              sendNurtureFreeDay1({
+              sendNurtureFreeDay2({
                 to: user.email,
                 name: user.display_name,
               }),
           },
           {
-            day: 3,
-            type: "nurture_free_d3",
-            subject: "How to boost your SVI by 20+ points",
+            day: 4,
+            type: "nurture_free_d4",
+            subject: "Are you splitting equity fairly? Check now (free)",
             send: () =>
-              sendNurtureFreeDay3({
+              sendNurtureFreeDay4({
                 to: user.email,
                 name: user.display_name,
               }),
@@ -133,19 +138,9 @@ export async function GET(request: Request) {
           {
             day: 7,
             type: "nurture_free_d7",
-            subject: "Australian founders who improved their score",
+            subject: "100 credits for A$49 \u2014 here\u2019s what Founding 50 members get",
             send: () =>
               sendNurtureFreeDay7({
-                to: user.email,
-                name: user.display_name,
-              }),
-          },
-          {
-            day: 14,
-            type: "nurture_free_d14",
-            subject: "Last chance: Founding 50 early access",
-            send: () =>
-              sendNurtureFreeDay14({
                 to: user.email,
                 name: user.display_name,
               }),
@@ -165,7 +160,20 @@ export async function GET(request: Request) {
           }
         }
       } else {
-        // ---- Paid user nurture sequence -----------------------------------
+        // ---- Paid user nurture sequence (Day 1, 3, 7) --------------------
+        // Email 1 (Immediate "Welcome to Founder Plan") is sent by
+        // sendPaymentConfirmation at payment time, not by this cron.
+
+        // Fetch current SVI for the weekly progress email
+        const { data: sviAccount } = await supabase
+          .from("svi_accounts")
+          .select("current_svi")
+          .eq("email", user.email)
+          .limit(1)
+          .single();
+
+        const currentSvi = sviAccount?.current_svi ?? undefined;
+
         const paidSteps: Array<{
           day: number;
           type: string;
@@ -175,7 +183,7 @@ export async function GET(request: Request) {
           {
             day: 1,
             type: "nurture_paid_d1",
-            subject: "Your 30-day growth plan starts now",
+            subject: "Day 1: Upload your first piece of evidence",
             send: () =>
               sendNurturePaidDay1({
                 to: user.email,
@@ -185,7 +193,7 @@ export async function GET(request: Request) {
           {
             day: 3,
             type: "nurture_paid_d3",
-            subject: "Upload your first evidence — here's how",
+            subject: "Your equity, organized \u2014 try the Equity Setup Wizard",
             send: () =>
               sendNurturePaidDay3({
                 to: user.email,
@@ -193,23 +201,14 @@ export async function GET(request: Request) {
               }),
           },
           {
-            day: 14,
-            type: "nurture_paid_d14",
-            subject: "Share your SVI with investors",
+            day: 7,
+            type: "nurture_paid_d7",
+            subject: `Week 1 Progress: SVI ${currentSvi ?? ""} \u2014 here\u2019s what changed`.trim(),
             send: () =>
-              sendNurturePaidDay14({
+              sendNurturePaidDay7({
                 to: user.email,
                 name: user.display_name,
-              }),
-          },
-          {
-            day: 30,
-            type: "nurture_paid_d30",
-            subject: "Your first month review on BlockID",
-            send: () =>
-              sendNurturePaidDay30({
-                to: user.email,
-                name: user.display_name,
+                svi: currentSvi,
               }),
           },
         ];
@@ -297,6 +296,8 @@ export async function GET(request: Request) {
           ),
         );
 
+        // Email 1 (Immediate "Your SVI Score is Ready") is sent at
+        // analysis time by sendSVIReport. This cron handles Day 2+.
         const freeSteps: Array<{
           day: number;
           type: string;
@@ -304,29 +305,23 @@ export async function GET(request: Request) {
           send: () => Promise<{ ok: boolean }>;
         }> = [
           {
-            day: 1,
-            type: "nurture_free_d1",
-            subject: "Your SVI score is waiting — 3 things to do next",
+            day: 2,
+            type: "nurture_free_d2",
+            subject: "Boost your SVI by 30+ points \u2014 here\u2019s how",
             send: () =>
-              sendNurtureFreeDay1({ to: info.email, svi: info.svi }),
+              sendNurtureFreeDay2({ to: info.email, svi: info.svi }),
           },
           {
-            day: 3,
-            type: "nurture_free_d3",
-            subject: "How to boost your SVI by 20+ points",
-            send: () => sendNurtureFreeDay3({ to: info.email }),
+            day: 4,
+            type: "nurture_free_d4",
+            subject: "Are you splitting equity fairly? Check now (free)",
+            send: () => sendNurtureFreeDay4({ to: info.email }),
           },
           {
             day: 7,
             type: "nurture_free_d7",
-            subject: "Australian founders who improved their score",
+            subject: "100 credits for A$49 \u2014 here\u2019s what Founding 50 members get",
             send: () => sendNurtureFreeDay7({ to: info.email }),
-          },
-          {
-            day: 14,
-            type: "nurture_free_d14",
-            subject: "Last chance: Founding 50 early access",
-            send: () => sendNurtureFreeDay14({ to: info.email }),
           },
         ];
 

@@ -148,3 +148,14 @@ Generate investor-grade financial report.
 - **CTO** proposes infra changes → CFO evaluates cost impact with /perf-audit
 - **CMO** requests budget → CFO validates CAC with /analytics
 - **COO** tracks velocity → CFO maps to burn rate
+- **AU Compliance** → All pricing must be GST-inclusive, financial disclaimers mandatory
+
+## Transparent Credit Pricing Rules
+All credit charges MUST be shown to user BEFORE execution:
+- Per-section pricing: Scan (0.10), Summary (0.25), Standard (0.50), Deep (1.00), Expert (2.00), Maximum (3.00)
+- Bundle discounts: 80-85% savings vs individual sections
+- Formula: `credits = 0.50 × (target_words / 500)`, clamped [0.10, 3.00]
+- All prices are AUD and GST-inclusive (Australian Consumer Law)
+- Financial sections MUST include: "Not financial advice. Consult a qualified accountant."
+- See `goals/transparent-credit-pricing.md` for full pricing model
+- See `/au-compliance` skill for mandatory disclaimers

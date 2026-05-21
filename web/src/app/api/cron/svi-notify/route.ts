@@ -6,14 +6,12 @@ import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
 import {
   sendSVIWelcome,
   sendSVIWeeklyReport,
-  sendNurtureFreeDay1,
-  sendNurtureFreeDay3,
+  sendNurtureFreeDay2,
+  sendNurtureFreeDay4,
   sendNurtureFreeDay7,
-  sendNurtureFreeDay14,
   sendNurturePaidDay1,
   sendNurturePaidDay3,
-  sendNurturePaidDay14,
-  sendNurturePaidDay30,
+  sendNurturePaidDay7,
   sendNurtureReengageDay14,
   sendNurtureReengageDay30,
 } from "@/lib/email";
@@ -218,27 +216,20 @@ Write 2-3 encouraging sentences about progress and 1 specific action for next we
           {
             day: 1,
             type: "nurture_paid_day1",
-            subject: "Your 30-day growth plan starts now",
+            subject: "Day 1: Upload your first piece of evidence",
             send: () => sendNurturePaidDay1({ to: account.email, name: account.name }),
           },
           {
             day: 3,
             type: "nurture_paid_day3",
-            subject: "Upload your first evidence — here's how",
+            subject: "Your equity, organized \u2014 try the Equity Setup Wizard",
             send: () => sendNurturePaidDay3({ to: account.email, name: account.name }),
           },
-          // Day 7 is handled by the weekly report above
           {
-            day: 14,
-            type: "nurture_paid_day14",
-            subject: "Have you explored these tools?",
-            send: () => sendNurturePaidDay14({ to: account.email, name: account.name }),
-          },
-          {
-            day: 30,
-            type: "nurture_paid_day30",
-            subject: "Your first month results on BlockID",
-            send: () => sendNurturePaidDay30({ to: account.email, name: account.name, svi: account.current_svi }),
+            day: 7,
+            type: "nurture_paid_day7",
+            subject: `Week 1 Progress: SVI ${account.current_svi ?? ""} \u2014 here\u2019s what changed`.trim(),
+            send: () => sendNurturePaidDay7({ to: account.email, name: account.name, svi: account.current_svi }),
           },
         ];
 
@@ -348,28 +339,22 @@ Write 2-3 encouraging sentences about progress and 1 specific action for next we
 
         const freeNurture: Array<{ day: number; type: string; subject: string; send: () => Promise<{ ok: boolean }> }> = [
           {
-            day: 1,
-            type: "nurture_free_day1",
-            subject: "Your SVI score is waiting — 3 things to do next",
-            send: () => sendNurtureFreeDay1({ to: info.email, svi: info.svi }),
+            day: 2,
+            type: "nurture_free_day2",
+            subject: "Boost your SVI by 30+ points \u2014 here\u2019s how",
+            send: () => sendNurtureFreeDay2({ to: info.email, svi: info.svi }),
           },
           {
-            day: 3,
-            type: "nurture_free_day3",
-            subject: "How to boost your SVI by 20+ points",
-            send: () => sendNurtureFreeDay3({ to: info.email }),
+            day: 4,
+            type: "nurture_free_day4",
+            subject: "Are you splitting equity fairly? Check now (free)",
+            send: () => sendNurtureFreeDay4({ to: info.email }),
           },
           {
             day: 7,
             type: "nurture_free_day7",
-            subject: "Australian founders who improved their score",
+            subject: "100 credits for A$49 \u2014 here\u2019s what Founding 50 members get",
             send: () => sendNurtureFreeDay7({ to: info.email }),
-          },
-          {
-            day: 14,
-            type: "nurture_free_day14",
-            subject: "Last chance: Founding 50 early access",
-            send: () => sendNurtureFreeDay14({ to: info.email }),
           },
         ];
 

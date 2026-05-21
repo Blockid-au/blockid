@@ -37,7 +37,7 @@ import { RndStatusBar } from "@/components/svi/rnd-status-bar";
 import { CreditGate } from "@/components/ui/credit-gate";
 import { LanguageToggle } from "@/components/ui/language-toggle";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
-import type { RndReport } from "@/lib/rnd-types";
+import type { RndReport, ClientTechAuditResult } from "@/lib/rnd-types";
 
 import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -123,6 +123,7 @@ export function SVIEntrance() {
   const [searchFocused, setSearchFocused] = React.useState(false);
   const [rndStatus, setRndStatus] = React.useState<string | null>(null);
   const [rndReport, setRndReport] = React.useState<RndReport | null>(null);
+  const [techAudit, setTechAudit] = React.useState<ClientTechAuditResult | null>(null);
   // detectedInputType is now a useMemo — see below
   const [showPaywall, setShowPaywall] = React.useState(false);
   const [hasPaidPlan, setHasPaidPlan] = React.useState(false);
@@ -314,7 +315,7 @@ export function SVIEntrance() {
       }
     }
 
-    setError(""); setState("submitting"); setRndStatus(null); setRndReport(null); setPreviousAnalysis(null);
+    setError(""); setState("submitting"); setRndStatus(null); setRndReport(null); setTechAudit(null); setPreviousAnalysis(null);
     trackEvent("svi_submitted", { method: file ? "file" : "text", has_file: !!file });
 
     // Fetch previous analysis for delta comparison (fire-and-forget, don't block)
@@ -404,6 +405,7 @@ export function SVIEntrance() {
                       persisted: true,
                     });
                     setRndReport(data.report ?? null);
+                    setTechAudit(data.techAudit ?? null);
                     setRndStatus(null);
                     setState("done");
                     sseCompleted = true;
@@ -457,6 +459,7 @@ export function SVIEntrance() {
           persisted: data.persisted ?? true,
         });
         setRndReport(data.report ?? null);
+        setTechAudit(data.techAudit ?? null);
         setState("done");
         trackEvent("rnd_analysis_complete", { svi_score: data.totalSVI, slug: data.slug });
         // Auto-scroll to results after analysis completes
@@ -583,6 +586,7 @@ export function SVIEntrance() {
                     persisted: true,
                   });
                   setRndReport(data.report ?? null);
+                  setTechAudit(data.techAudit ?? null);
                   setRndStatus(null);
                   setState("done");
                   trackEvent("rnd_deep_dive_complete", { svi_score: data.totalSVI, slug: data.slug });
@@ -616,6 +620,7 @@ export function SVIEntrance() {
           persisted: data.persisted ?? true,
         });
         setRndReport(data.report ?? null);
+        setTechAudit(data.techAudit ?? null);
         setState("done");
         trackEvent("rnd_deep_dive_complete", { svi_score: data.totalSVI, slug: data.slug });
         return;
@@ -629,7 +634,7 @@ export function SVIEntrance() {
     }
   };
 
-  const handleReset = () => { setResult(null); setRndReport(null); setRndStatus(null); setState("idle"); setText(""); setFile(null); setEmail(""); setError(""); setLastInput(null); setPreviousAnalysis(null); };
+  const handleReset = () => { setResult(null); setRndReport(null); setTechAudit(null); setRndStatus(null); setState("idle"); setText(""); setFile(null); setEmail(""); setError(""); setLastInput(null); setPreviousAnalysis(null); };
 
   // Called when a 100% coupon grants free access — clear gate and re-submit.
   const handleCouponGrant = () => {
@@ -667,6 +672,7 @@ export function SVIEntrance() {
                 onUnlock={() => setShowPaywall(true)}
                 onUpgradeDeepDive={handleDeepDiveUpgrade}
                 previousAnalysis={previousAnalysis}
+                techAudit={techAudit}
               />
 
               {/* Deep Dive upsell banner */}

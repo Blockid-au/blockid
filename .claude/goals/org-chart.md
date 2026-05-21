@@ -41,10 +41,34 @@ Founder & CEO: Do Van Long
 │   ├── Partnerships Lead (accelerators, VCs, ecosystem)
 │   └── Sales Ops (pricing, upsell, enterprise pipeline)
 │
-└── Blockchain Expert — Blockchain Infrastructure Lead
-    ├── Smart Contract Dev (CosmWasm, Rust, vesting/dividend contracts)
-    ├── Validator Ops (Cosmos chain deployment, monitoring)
-    └── Wallet Integration (MetaMask, Keplr, custodial wallets)
+├── CHRO — Chief People Officer ← NEW
+│   ├── Talent Scout (hiring pipeline, culture fit)
+│   ├── Culture & Engagement Lead (team health, satisfaction)
+│   └── ESOP Administrator (vesting tracking, ESS tax compliance)
+│
+├── CLO — Chief Legal Officer ← NEW
+│   ├── Corporate Counsel (ToS, contracts, corporate governance)
+│   ├── IP Strategist (patents, trademarks, trade secrets)
+│   └── Privacy Officer (Privacy Act, data handling, breach notification)
+│
+├── CISO — Chief Information Security Officer ← NEW
+│   ├── Incident Commander (security incident response)
+│   └── Compliance Auditor (SOC2, Essential Eight, Privacy Act)
+│
+├── CDO — Chief Data Officer ← NEW
+│   ├── Data Quality Lead (completeness, accuracy, timeliness)
+│   └── AI Governance Lead (bias monitoring, model quality)
+│
+├── Blockchain Expert — Blockchain Infrastructure Lead
+│   ├── Smart Contract Dev (CosmWasm, Rust, vesting/dividend contracts)
+│   ├── Validator Ops (Cosmos chain deployment, monitoring)
+│   └── Wallet Integration (MetaMask, Keplr, custodial wallets)
+│
+├── AU Compliance Officer — Reports to CFO + COO
+│
+├── Investor Relations — Reports to CEO + CFO
+│
+└── Media Studio — Reports to CMO
 ```
 
 ## Role Registry
@@ -80,6 +104,25 @@ Founder & CEO: Do Van Long
 | CRO-003 | Retention Lead | CRO | Planned | Phase 4-7 | Churn prevention, engagement |
 | CRO-004 | Partnerships Lead | CRO | Planned | Phase 5-7 | Accelerators, VCs, ecosystem |
 | CRO-005 | Sales Ops | CRO | Planned | Phase 6-7 | Enterprise pipeline, upsell |
+| CHRO-001 | Chief People Officer | CEO | Active | Phase 2-7 | `/chro` — team, hiring, ESOP, culture |
+| CHRO-002 | Talent Scout | CHRO | Planned | Phase 3-7 | Hiring pipeline, culture fit |
+| CHRO-003 | Culture & Engagement Lead | CHRO | Planned | Phase 4-7 | Team health, satisfaction |
+| CHRO-004 | ESOP Administrator | CHRO | Planned | Phase 4-7 | Vesting tracking, ESS tax |
+| CLO-001 | Chief Legal Officer | CEO | Active | Phase 2-7 | `/clo` — IP, contracts, governance |
+| CLO-002 | Corporate Counsel | CLO | Planned | Phase 3-7 | ToS, SHA, corporate governance |
+| CLO-003 | IP Strategist | CLO | Planned | Phase 3-7 | Patents, trademarks, trade secrets |
+| CLO-004 | Privacy Officer | CLO | Planned | Phase 3-7 | Privacy Act, APPs, breach notification |
+| CISO-001 | Chief Info Security Officer | CEO | Active | Phase 2-7 | `/ciso` — security, SOC2, incident response |
+| CISO-002 | Incident Commander | CISO | Planned | Phase 3-7 | Security incident response |
+| CISO-003 | Compliance Auditor | CISO | Planned | Phase 4-7 | SOC2, Essential Eight |
+| CDO-001 | Chief Data Officer | CEO | Active | Phase 2-7 | `/cdo` — data quality, AI governance |
+| CDO-002 | Data Quality Lead | CDO | Planned | Phase 3-7 | Completeness, accuracy, timeliness |
+| CDO-003 | AI Governance Lead | CDO | Planned | Phase 3-7 | Bias monitoring, model quality |
+| AUC-001 | AU Compliance Officer | CFO+COO | Active | Phase 2-7 | `/au-compliance` — ASIC, ACL, Privacy |
+| IR-001 | Investor Relations | CEO+CFO | Active | Phase 3-7 | `/investor-relations` — pitch, data room |
+| MED-001 | Media Studio | CMO | Active | Phase 2-7 | `/media-studio` — video, image, social |
+| CRO-006 | Customer Success Lead | CRO | Active | Phase 3-7 | `/customer-success` — NPS, onboarding |
+| CTO-007 | Developer Relations Lead | CTO | Planned | Phase 4-7 | `/dev-relations` — API docs, SDK |
 | BLK-001 | Blockchain Expert | CEO | Planned | Phase 4-8 | `/blockchain-expert` — Cosmos, tokens, wallets |
 | BLK-002 | Smart Contract Dev | BLK | Planned | Phase 5-8 | CosmWasm, Rust, vesting/dividend |
 | BLK-003 | Validator Ops | BLK | Planned | Phase 5-8 | Chain deployment, monitoring |
