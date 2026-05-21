@@ -859,8 +859,9 @@ export function SVIEntrance() {
                 <span className="text-sm md:text-base font-medium tracking-wide text-ink-500 mt-0.5">Valuation. Ownership. Execution. Growth.</span>
               </div>
             </div>
-            <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight text-center text-ink-900">
-              Get Your <span className="text-brand-600">Startup Value Index</span>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-center text-ink-900 leading-tight">
+              Get your Idea &amp;<br className="hidden sm:block" />
+              <span className="text-brand-600">Startup Value Index</span>
             </h2>
             <p className="mt-4 text-lg text-ink-500">First analysis free. AI-powered results in under 60 seconds.</p>
           </div>
