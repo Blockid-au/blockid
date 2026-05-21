@@ -1353,9 +1353,51 @@ GitLab CI auto-deploy triggered for all 3 environments.
 ---
 
 *This PRD is the single source of truth for BlockID.au product decisions.*  
-*Version 2.0 | Last updated: 2026-05-21.*  
-*Platform: 394 TS files, 70 pages, 107 API routes, 51 DB tables, 178 commits.*  
-*Documentation: 10,000+ lines across 7 docs + 74 goal files + 44 skills.*
+### Latest Platform Metrics (2026-05-21 final)
+| Metric | Value |
+|--------|-------|
+| TypeScript files | **422** |
+| Pages | **72** |
+| API routes | **121** |
+| DB tables | **59** |
+| Migrations | **37** |
+| Git commits | **188** |
+| Workspace nav items | **25** |
+| Free tools | **10** |
+| Stripe price IDs | **13** |
+| AI agents/skills | **44** |
+| Goal files | **79** |
+| Cron jobs | **8** |
+| Email templates | **20+** |
+| Unit tests | **62** |
+| Users | **8** |
+| SVI analyses | **39** |
+| Evidence items | **33** |
+| Projects | **8** |
+| Milestones | **27** |
+
+### Pitch Deck
+Full 16-slide investor pitch deck exported to:
+`/web/public/video-assets/blockid_pitch_deck.md`
+
+Slides: Title → Problem → Solution → Demo → SVI Engine → Product Suite → Market → Business Model → Traction → Technology → Team → Competitive → Roadmap → Financials → The Ask → Contact
+
+### Video Assets
+| File | Duration | Description |
+|------|----------|-------------|
+| `blockid_pitch_3mins.mp4` | 195s | Voice-led pitch, HelpNow demo |
+| `blockid_pitch1min.mp4` | 60s | Quick pitch |
+| `helpnow_full_demo.mp4` | 61s | Screen recording |
+| `blockid_pitch_3mins.srt` | 18 cues | Subtitles |
+| `blockid_pitch_deck.md` | 16 slides | Full pitch deck |
+
+---
+
+*This PRD is the single source of truth for BlockID.au product decisions.*  
+*Version 2.1 | Last updated: 2026-05-21.*  
+*Platform: 422 TS files, 72 pages, 121 API routes, 59 DB tables, 188 commits.*  
+*Documentation: 12,000+ lines across docs + 79 goal files + 44 skills.*  
+*Pitch deck: 16 slides. Video: 3-min + 1-min + demo recording.*
 
 **BlockID.au — Valuation. Ownership. Execution. Growth.**
 
