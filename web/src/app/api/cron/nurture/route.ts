@@ -8,7 +8,9 @@ import {
   sendNurturePaidDay1,
   sendNurturePaidDay3,
   sendNurturePaidDay7,
+  sendLowCreditAlert,
 } from "@/lib/email";
+import { getBalance } from "@/lib/credits";
 
 export const dynamic = "force-dynamic";
 
@@ -226,6 +228,38 @@ export async function GET(request: Request) {
           }
         }
       }
+    }
+
+    // ==================================================================
+    // 1b. Low credit alerts for signed-up users
+    // ==================================================================
+    for (const user of users ?? []) {
+      const creditBalance = await getBalance(user.id);
+      if (creditBalance >= 1.0) continue;
+
+      const allowed = await canSendEmail(user.email, "product_updates");
+      if (!allowed) continue;
+
+      // Check if we already sent a low_credit_alert in the last 7 days
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: recentAlerts } = await supabase
+        .from("svi_notifications")
+        .select("id")
+        .or(`account_id.eq.${user.id},payload->>email.eq.${user.email}`)
+        .eq("notification_type", "low_credit_alert")
+        .gte("created_at", sevenDaysAgo)
+        .limit(1);
+
+      if (recentAlerts && recentAlerts.length > 0) continue;
+
+      const ok = await trySendNurture(supabase, {
+        accountId: user.id,
+        email: user.email,
+        notificationType: "low_credit_alert",
+        subject: "Your BlockID credits are running low",
+        sendFn: () => sendLowCreditAlert({ to: user.email, balance: creditBalance }),
+      });
+      if (ok) sent++;
     }
 
     // ==================================================================

@@ -1160,6 +1160,117 @@ export async function sendNurtureReengageDay30(args: NurtureArgs): Promise<SendR
   return sendEmail({ to: args.to, subject: "Your SVI may have changed — check your score", html, unsubscribeUrl });
 }
 
+// ---------- Low credit alert ---------------------------------------------------
+
+export async function sendLowCreditAlert(args: { to: string; balance: number }): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "product_updates"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
+  const billingUrl = `${siteUrl()}/workspace/billing#credits`;
+  const balanceStr = args.balance.toFixed(2);
+  const html = shell(nurtureCard({
+    tagline: "BlockID — Credit Alert",
+    headline: "Your Credits Are Running Low",
+    body: `Your BlockID credit balance is <strong style="color:#FBBF24;">${escapeHtml(balanceStr)}</strong> credits. Some features require credits to use, including SVI analyses, AI evidence reviews, full reports, and equity recommendations.</p>
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
+            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Features you will lose access to</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr><td style="padding:4px 8px;color:#F87171;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">SVI Analysis (0.50 credits)</td></tr>
+              <tr><td style="padding:4px 8px;color:#F87171;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">AI Evidence Review (0.10 - 1.50 credits)</td></tr>
+              <tr><td style="padding:4px 8px;color:#F87171;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Full Reports (2.00 - 5.00 credits)</td></tr>
+              <tr><td style="padding:4px 8px;color:#F87171;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">AI Equity Recommendations (0.50 - 1.50 credits)</td></tr>
+            </table>
+          </div>
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
+            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Best value credit packs</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;">10 Credits</td><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;font-weight:600;text-align:right;border-bottom:1px solid #1F2A44;">A$9 <span style="color:#4ADE80;font-size:12px;">Save 10%</span></td></tr>
+              <tr><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;">25 Credits</td><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;font-weight:600;text-align:right;border-bottom:1px solid #1F2A44;">A$20 <span style="color:#4ADE80;font-size:12px;">Save 20%</span></td></tr>
+              <tr><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">50 Credits</td><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;font-weight:600;text-align:right;">A$15 <span style="color:#4ADE80;font-size:12px;">Save 70%</span></td></tr>
+            </table>
+          </div>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">Free features like evidence upload, investor score, and dilution calculator still work without credits.`,
+    ctaLabel: "Buy Credits",
+    ctaUrl: billingUrl,
+  }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "low_credit"));
+  return sendEmail({ to: args.to, subject: "Your BlockID credits are running low", html, unsubscribeUrl });
+}
+
+// ---------- Report delivery email with upgrade CTA -----------------------------
+
+export async function sendReportDelivery(args: {
+  to: string;
+  slug: string;
+  tier: string;
+  sviScore: number;
+}): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "svi_alerts"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
+  const reportUrl = `${siteUrl()}/s/${args.slug}`;
+  const billingUrl = `${siteUrl()}/workspace/billing#credits`;
+  const trackUrl = `${siteUrl()}/api/track/open?slug=${args.slug}&email=${encodeURIComponent(args.to)}`;
+
+  // Next action CTA based on tier
+  let nextAction = "";
+  let nextCtaLabel = "";
+  let nextCtaUrl = billingUrl;
+  if (args.tier === "preview" || args.tier === "scan") {
+    nextAction = "Want the full picture? Unlock the Standard report for deeper analysis, evidence gaps, and actionable recommendations.";
+    nextCtaLabel = "Unlock Full Report (0.50 credits)";
+    nextCtaUrl = reportUrl;
+  } else if (args.tier === "standard") {
+    nextAction = "Ready to go deeper? The Deep Dive report includes benchmarking, competitor context, a detailed action plan, and investor perspective.";
+    nextCtaLabel = "Go Deeper with Deep Dive (1.50 credits)";
+    nextCtaUrl = reportUrl;
+  } else if (args.tier === "deep_dive" || args.tier === "deep") {
+    nextAction = "Take the next step with AI Equity Recommendations — get data-driven guidance on equity splits, vesting, and share structure tailored to your startup.";
+    nextCtaLabel = "Get AI Equity Advice (1.00 credits)";
+    nextCtaUrl = `${siteUrl()}/workspace/equity-setup`;
+  }
+
+  const nextActionHtml = nextAction
+    ? `<div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 24px 0;">
+        <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Next Step</p>
+        <p style="margin:0 0 16px 0;color:#94A3B8;font-size:14px;line-height:1.6;">${escapeHtml(nextAction)}</p>
+        <p style="margin:0;text-align:center;"><a href="${nextCtaUrl}" style="display:inline-block;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:10px 20px;border-radius:10px;font-size:13px;">${escapeHtml(nextCtaLabel)}</a></p>
+      </div>`
+    : "";
+
+  const scoreColor = args.sviScore >= 140 ? "#4ADE80" : args.sviScore >= 100 ? "#3B7DD8" : "#FBBF24";
+  const tierLabel = args.tier === "deep_dive" ? "Deep Dive" : args.tier === "standard" ? "Standard" : args.tier === "preview" ? "Preview" : args.tier.charAt(0).toUpperCase() + args.tier.slice(1);
+
+  const html = shell(`
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+        <tr><td>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — ${escapeHtml(tierLabel)} Report</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Your SVI Report is Ready</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Your ${escapeHtml(tierLabel)} analysis is complete. Here is your headline score.</p>
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
+            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:64px;font-weight:600;color:${scoreColor};line-height:1;">${args.sviScore}</div>
+            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">SVI Score — ${escapeHtml(tierLabel)} Report</p>
+          </div>
+          ${nextActionHtml}
+          <p style="margin:0 0 24px 0;text-align:center;">
+            <a href="${reportUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Report</a>
+          </p>
+          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+  ${unsubFooter(unsubscribeUrl, preferencesUrl)}
+  <img src="${trackUrl}" width="1" height="1" alt="" style="display:none;" />`);
+
+  return sendEmail({
+    to: args.to,
+    subject: `Your SVI Report is Ready — Score: ${args.sviScore}`,
+    html,
+    unsubscribeUrl,
+  });
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
