@@ -7,6 +7,26 @@
     {
       "path": "/api/cron/svi-notify",
       "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/cron/nurture",
+      "schedule": "0 20 * * *"
+    },
+    {
+      "path": "/api/cron/svi-review",
+      "schedule": "0 15 * * 1"
+    },
+    {
+      "path": "/api/cron/weekly-insights",
+      "schedule": "0 6 * * 1"
+    },
+    {
+      "path": "/api/cron/growth-insights",
+      "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron/ai-health",
+      "schedule": "0 9 * * *"
     }
   ]
 }
