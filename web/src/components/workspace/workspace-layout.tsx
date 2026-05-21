@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Activity, Banknote, BarChart3, Bell, BookOpen, Briefcase, ChevronLeft, ChevronRight, CreditCard, DollarSign, DoorOpen, ExternalLink, FileText, FolderCheck, FolderOpen, Gift, Home,
+  Activity, Banknote, BarChart3, Bell, BookOpen, Briefcase, Calendar, ChevronLeft, ChevronRight, CreditCard, DollarSign, DoorOpen, ExternalLink, FileText, FolderCheck, FolderOpen, Gift, Home,
   LayoutDashboard, Map, PieChart, Shield, Table2, TrendingUp, User, Users, Wand2,
   type LucideIcon,
 } from "lucide-react";
@@ -59,6 +59,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/workspace/cap-table", label: "Cap Table", icon: Table2 },
       { href: "/workspace/shareholders", label: "Shareholders", icon: Shield },
       { href: "/workspace/esop", label: "ESOP", icon: Users },
+      { href: "/workspace/vesting", label: "Vesting", icon: Calendar },
     ],
   },
   {

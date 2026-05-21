@@ -15,6 +15,10 @@ import {
   Link2,
   FileText,
   HardDrive,
+  Sparkles,
+  Copy,
+  Share2,
+  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DataRoomFolder } from "@/lib/data-room-templates";
@@ -37,6 +41,23 @@ interface DataRoomItemState {
   fileUrl: string | null;
   fileName: string | null;
   evidenceId: string | null;
+}
+
+interface GeneratedDataRoom {
+  sections: Array<{
+    id: string;
+    title: string;
+    items: Array<{
+      label: string;
+      status: "complete" | "missing" | "partial";
+      source: "auto" | "manual" | "evidence";
+      value?: string;
+      link?: string;
+    }>;
+    completeness: number;
+  }>;
+  overallCompleteness: number;
+  generatedAt: string;
 }
 
 interface DataRoomClientProps {
@@ -135,6 +156,13 @@ export function DataRoomClient({
     totalTemplates: number;
   } | null>(null);
   const [showTemplates, setShowTemplates] = React.useState(true);
+
+  // Generated data room state
+  const [generatedRoom, setGeneratedRoom] = React.useState<GeneratedDataRoom | null>(null);
+  const [generating, setGenerating] = React.useState(false);
+  const [shareLink, setShareLink] = React.useState<string | null>(null);
+  const [sharingLoading, setSharingLoading] = React.useState(false);
+  const [copied, setCopied] = React.useState(false);
 
   // Progress calculation
   const totalItems = items.length;
@@ -256,6 +284,54 @@ export function DataRoomClient({
   function downloadTemplate(templateName: string) {
     const url = `/api/dataroom/template?name=${encodeURIComponent(templateName)}`;
     window.open(url, "_blank");
+  }
+
+  async function handleGenerateDataRoom() {
+    setGenerating(true);
+    try {
+      const res = await fetch("/api/data-room/generate", { method: "POST" });
+      const data = await res.json();
+      if (data.ok) {
+        setGeneratedRoom(data.dataRoom);
+        showToast("Data room generated successfully");
+      } else {
+        showToast(data.error ?? "Failed to generate data room", "error");
+      }
+    } catch {
+      showToast("Failed to generate data room. Please try again.", "error");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  async function handleShareWithInvestor() {
+    setSharingLoading(true);
+    try {
+      const res = await fetch("/api/investor-data-room", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expiresInDays: 30 }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setShareLink(data.url);
+        showToast("Shareable link created (expires in 30 days)");
+      } else {
+        showToast(data.error ?? "Failed to create share link", "error");
+      }
+    } catch {
+      showToast("Failed to create share link. Please try again.", "error");
+    } finally {
+      setSharingLoading(false);
+    }
+  }
+
+  function handleCopyLink() {
+    if (shareLink) {
+      navigator.clipboard.writeText(shareLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   }
 
   return (
@@ -395,6 +471,123 @@ export function DataRoomClient({
           />
         </div>
       </div>
+
+      {/* One-Click Data Room Generator */}
+      <div className="rounded-xl border border-amber-100 bg-amber-50/30 p-5 shadow-sm mb-6">
+        <div className="flex items-start gap-4">
+          <div className="h-10 w-10 rounded-lg bg-white border border-amber-200 flex items-center justify-center shrink-0">
+            <Sparkles strokeWidth={1.5} className="h-5 w-5 text-amber-600" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-ink-800 mb-1">
+              One-Click Data Room Generator
+            </h3>
+            <p className="text-xs text-ink-600 mb-3">
+              Automatically compile your investor data room from existing SVI data,
+              metrics, cap table, and evidence vault. See completeness gaps at a glance.
+              <span className="font-semibold text-amber-700"> 3.00 credits</span>
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={handleGenerateDataRoom}
+                disabled={generating}
+                className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-xs font-semibold text-white hover:bg-amber-700 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                {generating ? (
+                  <>
+                    <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles strokeWidth={1.75} className="h-3.5 w-3.5" />
+                    Generate Data Room
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={handleShareWithInvestor}
+                disabled={sharingLoading}
+                className="inline-flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-4 py-2 text-xs font-semibold text-brand-700 hover:bg-brand-100 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                {sharingLoading ? (
+                  <>
+                    <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" />
+                    Creating link...
+                  </>
+                ) : (
+                  <>
+                    <Share2 strokeWidth={1.75} className="h-3.5 w-3.5" />
+                    Share with Investor
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Share link display */}
+            {shareLink && (
+              <div className="mt-3 flex items-center gap-2 rounded-lg border border-brand-200 bg-white px-3 py-2">
+                <Link2 strokeWidth={1.5} className="h-3.5 w-3.5 text-brand-500 shrink-0" />
+                <input
+                  type="text"
+                  readOnly
+                  value={shareLink}
+                  className="flex-1 text-xs text-ink-700 bg-transparent outline-none truncate"
+                />
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  className="shrink-0 text-xs font-medium text-brand-600 hover:text-brand-700 cursor-pointer"
+                >
+                  {copied ? (
+                    <span className="flex items-center gap-1">
+                      <CheckCircle2 strokeWidth={1.75} className="h-3.5 w-3.5" /> Copied
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1">
+                      <Copy strokeWidth={1.75} className="h-3.5 w-3.5" /> Copy
+                    </span>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Generated Data Room Results */}
+      {generatedRoom && (
+        <div className="rounded-xl border border-surface-200 bg-white shadow-sm mb-6 overflow-hidden">
+          <div className="px-5 py-4 border-b border-surface-200 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-ink-800">Generated Data Room</h3>
+              <p className="text-xs text-ink-500 mt-0.5">
+                Generated {new Date(generatedRoom.generatedAt).toLocaleString("en-AU")}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className={cn(
+                "h-12 w-12 rounded-full flex items-center justify-center text-sm font-bold",
+                generatedRoom.overallCompleteness >= 80
+                  ? "bg-emerald-50 text-emerald-700 border-2 border-emerald-200"
+                  : generatedRoom.overallCompleteness >= 50
+                    ? "bg-brand-50 text-brand-700 border-2 border-brand-200"
+                    : "bg-amber-50 text-amber-700 border-2 border-amber-200",
+              )}>
+                {generatedRoom.overallCompleteness}%
+              </div>
+            </div>
+          </div>
+
+          <div className="divide-y divide-surface-100">
+            {generatedRoom.sections.map((section) => (
+              <GeneratedSectionRow key={section.id} section={section} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Template Structure Toggle */}
       <div className="flex items-center justify-between mb-4">
@@ -735,6 +928,126 @@ function TemplateFolderSection({
                 >
                   <Link2 strokeWidth={1.75} className="h-3.5 w-3.5" />
                   Connect
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Generated Section Row — expandable section with completeness bar
+// ---------------------------------------------------------------------------
+
+function GeneratedSectionRow({
+  section,
+}: {
+  section: GeneratedDataRoom["sections"][number];
+}) {
+  const [expanded, setExpanded] = React.useState(false);
+  const completeCount = section.items.filter((i) => i.status === "complete").length;
+  const missingCount = section.items.filter((i) => i.status === "missing").length;
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-surface-50 transition-colors cursor-pointer"
+      >
+        <div className="flex-1 text-left">
+          <p className="text-sm font-semibold text-ink-800">{section.title}</p>
+          <p className="text-xs text-ink-500">
+            {completeCount}/{section.items.length} items
+            {missingCount > 0 && (
+              <span className="text-amber-600 ml-1">
+                ({missingCount} missing)
+              </span>
+            )}
+          </p>
+        </div>
+        {/* Completeness bar */}
+        <div className="w-20 shrink-0">
+          <div className="w-full h-1.5 bg-surface-100 rounded-full overflow-hidden">
+            <div
+              className={cn(
+                "h-full rounded-full transition-all duration-500",
+                section.completeness === 100
+                  ? "bg-emerald-500"
+                  : section.completeness >= 50
+                    ? "bg-brand-500"
+                    : "bg-amber-500",
+              )}
+              style={{ width: `${section.completeness}%` }}
+            />
+          </div>
+          <p className="text-[10px] text-ink-500 text-right mt-0.5">
+            {section.completeness}%
+          </p>
+        </div>
+        {expanded ? (
+          <ChevronDown strokeWidth={1.75} className="h-4 w-4 text-ink-400 shrink-0" />
+        ) : (
+          <ChevronRight strokeWidth={1.75} className="h-4 w-4 text-ink-400 shrink-0" />
+        )}
+      </button>
+
+      {expanded && (
+        <div className="px-5 pb-4 space-y-2">
+          {section.items.map((item, idx) => (
+            <div
+              key={idx}
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm",
+                item.status === "complete"
+                  ? "bg-emerald-50/50"
+                  : item.status === "partial"
+                    ? "bg-amber-50/50"
+                    : "bg-red-50/30",
+              )}
+            >
+              {item.status === "complete" ? (
+                <CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-emerald-500 shrink-0" />
+              ) : item.status === "partial" ? (
+                <AlertCircle strokeWidth={1.75} className="h-4 w-4 text-amber-500 shrink-0" />
+              ) : (
+                <Circle strokeWidth={1.75} className="h-4 w-4 text-red-300 shrink-0" />
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-ink-700">{item.label}</p>
+                {item.value && (
+                  <p className="text-[11px] text-ink-500 truncate">{item.value}</p>
+                )}
+              </div>
+              <span
+                className={cn(
+                  "text-[10px] font-medium px-2 py-0.5 rounded-full border shrink-0",
+                  item.source === "auto"
+                    ? "bg-brand-50 text-brand-600 border-brand-200"
+                    : item.source === "evidence"
+                      ? "bg-teal-50 text-teal-600 border-teal-200"
+                      : "bg-surface-100 text-ink-500 border-surface-200",
+                )}
+              >
+                {item.source}
+              </span>
+              {item.status === "missing" && (
+                <a
+                  href={
+                    item.source === "evidence"
+                      ? "/workspace/evidence"
+                      : item.label.toLowerCase().includes("cap table")
+                        ? "/workspace/cap-table"
+                        : item.label.toLowerCase().includes("metric")
+                          ? "/workspace/metrics"
+                          : "/workspace/evidence"
+                  }
+                  className="text-[10px] font-semibold text-brand-600 hover:text-brand-700 shrink-0"
+                >
+                  Add
                 </a>
               )}
             </div>

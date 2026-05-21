@@ -52,6 +52,9 @@ export const FEATURE_COSTS: Record<string, number> = {
   full_report_standard: 2.00, // All 8 dimensions, 2000+ words
   full_report_premium: 5.00,  // Investor memo format, 5000+ words
 
+  // ── Valuation Engine ──────────────────────────────────────────────────
+  valuation_detailed: 0.50, // A$0.50 — detailed multi-method valuation (POST scenario)
+
   // ── AI Equity Recommendations (Phase 4) ──────────────────────────────
   ai_equity_split: 1.00,      // Slicing Pie + AU benchmarks
   ai_vesting: 0.50,           // Vesting schedule recommendation
@@ -75,6 +78,10 @@ export const FEATURE_COSTS: Record<string, number> = {
   seo_audit: 0.75,            // ~600 words — technical SEO + keywords
   growth_strategy: 1.50,      // ~1500 words — 90-day growth plan
   cap_table_review: 1.00,     // ~800 words — equity split analysis (AU benchmarks)
+
+  // ── Phase 6: Investment & Fundraise ──────────────────────────────────
+  data_room_generate: 3.00,    // A$3.00 — one-click data room compilation
+  fundraise_wizard: 2.00,      // A$2.00 — fundraise round configuration + dilution
 };
 
 // ---------------------------------------------------------------------------
