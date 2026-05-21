@@ -173,8 +173,8 @@ ${gapSummary || "None"}`;
   if (techAudit) {
     ctx += `\n\n## Deep Tech Audit Results (automated scan):
 - Overall Grade: ${techAudit.overallGrade}
-- Security: ${techAudit.security.grade} (HTTPS: ${techAudit.security.https ? "yes" : "no"}, HSTS: ${techAudit.security.hsts ? "yes" : "no"}, CSP: ${techAudit.security.csp ? "yes" : "no"})
-- Performance: ${techAudit.performance.grade} (TTFB: ${techAudit.performance.ttfbMs}ms, Page size: ${Math.round(techAudit.performance.pageSizeKb)}KB)
+- Security: ${techAudit.security.grade} (HTTPS: ${techAudit.security.ssl.valid ? "yes" : "no"}, HSTS: ${techAudit.security.headers.hsts ? "yes" : "no"}, CSP: ${techAudit.security.headers.csp ? "yes" : "no"})
+- Performance: ${techAudit.performance.grade} (TTFB: ${techAudit.performance.ttfbMs}ms, Page size: ${Math.round(techAudit.performance.pageSizeBytes / 1024)}KB)
 - Frameworks: ${techAudit.techStack.frameworks.join(", ") || "None detected"}
 - CMS: ${techAudit.techStack.cms ?? "None"}
 - CDN: ${techAudit.techStack.cdn ?? "None"}
@@ -182,7 +182,7 @@ ${gapSummary || "None"}`;
 - Analytics: ${techAudit.techStack.analytics.join(", ") || "None"}
 - Payment integrations: ${techAudit.techStack.payments.join(", ") || "None"}
 - Customer tools: ${techAudit.techStack.customerTools.join(", ") || "None"}
-- Product maturity: sitemap=${techAudit.productMaturity.hasSitemap}, robots=${techAudit.productMaturity.hasRobots}, structured data=${techAudit.productMaturity.hasStructuredData}, PWA=${techAudit.productMaturity.isPwa}, login=${techAudit.productMaturity.hasLoginForm}
+- Product maturity: sitemap=${techAudit.productMaturity.hasSitemap}, robots=${techAudit.productMaturity.hasRobotsTxt}, structured data=${techAudit.productMaturity.hasStructuredData}, PWA=${techAudit.productMaturity.hasPWA}, login=${techAudit.productMaturity.hasLoginForm}
 - SVI Signal Boosts: PTD+${techAudit.signalBoosts.ptdBoost}, SVM+${techAudit.signalBoosts.svmBoost}, TRE+${techAudit.signalBoosts.treBoost}, LCO+${techAudit.signalBoosts.lcoBoost}
 - Evidence labels: ${techAudit.evidenceLabels.join(" | ")}`;
   }
