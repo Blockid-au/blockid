@@ -115,3 +115,8 @@
 12:57:15.064917 version@stat F·[2 5] S·10MiB[1MiB 8MiB] Sc·[0.50 0.09]
 12:57:15.066199 memdb@flush committed F·1 T·26.921414ms
 12:57:15.067510 journal@remove removed @37
+14:52:54.598847 memdb@flush N·58044 S·3MiB
+14:52:54.624890 memdb@flush created L0@42 N·58044 S·815KiB "blo..\xe0GC,v766148":"blo..\xe3\xe2\x92,v824164"
+14:52:54.624964 version@stat F·[3 5] S·11MiB[2MiB 8MiB] Sc·[0.75 0.09]
+14:52:54.627094 memdb@flush committed F·1 T·28.184933ms
+14:52:54.628702 journal@remove removed @39

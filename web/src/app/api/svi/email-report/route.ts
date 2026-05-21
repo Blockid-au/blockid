@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { sendSVIReport } from "@/lib/email";
@@ -27,7 +28,12 @@ export async function POST(request: Request) {
     email?: string;
     slug?: string;
     analysis?: SVIAnalysis;
+    locale?: "en" | "vi";
   } | null;
+
+  // ── Locale detection ──────────────────────────────────────────────────
+  const store = await cookies();
+  const locale = parsed?.locale === "vi" || store.get("blockid_lang")?.value === "vi" ? "vi" as const : "en" as const;
 
   if (!parsed?.email || !parsed.email.includes("@")) {
     return NextResponse.json({ ok: false, error: "Valid email is required" }, { status: 400 });
@@ -43,6 +49,7 @@ export async function POST(request: Request) {
     to: parsed.email,
     slug: parsed.slug,
     analysis: parsed.analysis,
+    locale,
   });
 
   if (result.ok) {

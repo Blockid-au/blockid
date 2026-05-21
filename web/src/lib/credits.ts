@@ -32,6 +32,25 @@ export const FEATURE_COSTS: Record<string, number> = {
   investor_score: 0,    // free
   dilution_calc: 0,     // free
   pitch_deck: 1.00,    // A$1.00 — AI pitch deck outline from SVI data
+
+  // ── Evidence AI analysis tiers ────────────────────────────────────────
+  evidence_scan: 0.10,       // Quick validation, authenticity check
+  evidence_analyze: 0.50,    // Standard: extract signals, map dimensions, gaps
+  evidence_deep_dive: 1.50,  // Comprehensive: benchmarking, roadmap, investor view
+
+  // ── Dimension-specific analyses ───────────────────────────────────────
+  dim_ftv_analysis: 0.75,    // Founder & Team deep dive
+  dim_mpc_analysis: 0.75,    // Market & Problem deep dive
+  dim_ptd_analysis: 0.75,    // Product & Technical deep dive
+  dim_tre_analysis: 1.00,    // Traction & Revenue deep dive (highest-weight dim)
+  dim_cgh_analysis: 0.75,    // Cap Table & Governance deep dive
+  dim_iri_analysis: 0.75,    // Investor Readiness deep dive
+  dim_lco_analysis: 0.50,    // Legal & Compliance deep dive
+  dim_svm_analysis: 0.75,    // Strategic Vision & Moat deep dive
+
+  // ── Comprehensive reports (no page limit for paid users) ──────────────
+  full_report_standard: 2.00, // All 8 dimensions, 2000+ words
+  full_report_premium: 5.00,  // Investor memo format, 5000+ words
 };
 
 // ---------------------------------------------------------------------------

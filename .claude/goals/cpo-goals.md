@@ -92,3 +92,10 @@ Define what BlockID.au builds and why. Own product strategy, user experience, fe
 - Product Designer (CPO-003)
 - Data Analyst (CPO-004)
 - Feature PM (CPO-005)
+
+## Auto-Upgrade Mandate
+**Standing order**: Continuously benchmark BlockID's UX, feature set, and product quality against Carta, Pulley, Cake Equity. Auto-propose feature improvements when user data shows friction or drop-off.
+
+**Customer report contribution**: CPO skills feed into R&D Report Page 7 (Team & Execution) and Page 10 (Recommendations). Product maturity assessment and actionable recommendation quality directly impacts customer satisfaction.
+
+**Sub-goals**: See `goals/ai-agent-ecosystem.md` and `goals/sub-agent-report-pipeline.md`

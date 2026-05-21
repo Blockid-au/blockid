@@ -122,3 +122,10 @@ Maximize revenue growth for BlockID.au through conversion optimization, retentio
 - 10 events defined in AnalyticsEventMap but never called in code
 - `checkout_completed` — critical revenue event missing
 - `svi_form_started` — only fires for "example" method, not organic typing
+
+## Auto-Upgrade Mandate
+**Standing order**: Continuously benchmark BlockID's conversion funnel, retention, and growth metrics against SaaS industry standards. Auto-propose A/B tests and optimization when conversion drops below target.
+
+**Customer report contribution**: CRO skills feed into R&D Report Page 6 (Traction & Growth) with conversion benchmarks, growth strategy templates, and funnel optimization recommendations for customer startups.
+
+**Sub-goals**: See `goals/ai-agent-ecosystem.md` and `goals/sub-clevel-sync.md`

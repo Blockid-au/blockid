@@ -89,3 +89,10 @@ Drive qualified traffic to BlockID.au and convert visitors into active users and
 - Content Lead (CMO-003)
 - Social & Community Lead (CMO-004)
 - Growth Analyst (CMO-005)
+
+## Auto-Upgrade Mandate
+**Standing order**: Continuously benchmark BlockID's SEO authority, content quality, and brand positioning against Carta, Pulley, and other competitors. Auto-generate content strategies when gaps detected.
+
+**Customer report contribution**: CMO skills feed into R&D Report Pages 2 (Market & Problem), 5 (Competition & Moat), and 6 (Traction & Growth). Every customer report benefits from CMO intelligence on market research, competitor profiles, and growth strategies.
+
+**Sub-goals**: See `goals/sub-cmo-auto-upgrade.md` and `goals/ai-agent-ecosystem.md`

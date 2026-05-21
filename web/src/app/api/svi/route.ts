@@ -82,6 +82,10 @@ export async function POST(request: Request) {
     }
   }
 
+  // ── Locale detection ──────────────────────────────────────────────────
+  const localeStore = await cookies();
+  const locale = localeStore.get("blockid_lang")?.value === "vi" ? "vi" as const : "en" as const;
+
   const signals = extractSignals(parsed.input);
   const analysis = computeSVI(signals);
 
@@ -153,7 +157,7 @@ export async function POST(request: Request) {
   }
 
   // After persisting, send report email (fire-and-forget)
-  void sendSVIReport({ to: email, slug, rawInput: parsed.input?.rawText, analysis }).catch(() => {});
+  void sendSVIReport({ to: email, slug, rawInput: parsed.input?.rawText, analysis, locale }).catch(() => {});
 
   // Create per-user Drive folder and link to analysis (fire-and-forget)
   if (supabase) {
@@ -198,6 +202,7 @@ export async function POST(request: Request) {
               token: result.token,
               intent: "login",
               ttlMinutes: MAGIC_LINK_TTL_MIN,
+              locale,
             }).catch(() => {});
           }
         }

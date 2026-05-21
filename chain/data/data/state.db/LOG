@@ -276,3 +276,8 @@
 13:45:17.199894 table@remove removed @79
 13:45:17.200515 table@remove removed @80
 13:45:17.201079 table@remove removed @81
+15:00:46.219792 memdb@flush N·4680 S·3MiB
+15:00:46.237480 memdb@flush created L0@88 N·4680 S·903KiB "abc..783,v93919":"val..720,v98596"
+15:00:46.237550 version@stat F·[1 5] S·8MiB[903KiB 7MiB] Sc·[0.25 0.07]
+15:00:46.239448 memdb@flush committed F·1 T·19.590041ms
+15:00:46.241592 journal@remove removed @82
