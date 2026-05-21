@@ -15,8 +15,8 @@ export const BRAND = {
     white: "#FFFFFF",
   },
   fonts: {
-    heading: "Inter, system-ui, sans-serif",
-    mono: "IBM Plex Mono, monospace",
+    heading: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
+    mono: "'IBM Plex Mono', 'SF Mono', Monaco, Consolas, monospace",
   },
   fps: 30,
   width: 1920,
