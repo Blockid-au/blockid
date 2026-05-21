@@ -1,11 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { FileText, Plus, ExternalLink, CheckCircle2, Clock, Loader2, Globe, Code, Receipt } from "lucide-react";
+import { FileText, Plus, ExternalLink, CheckCircle2, Clock, Loader2, Globe, Code, Receipt, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConnectButtons } from "@/components/ui/connect-buttons";
 import { EvidenceWizard } from "./evidence-wizard";
 import { ConnectorStatus } from "./connector-status";
+import { AnalyzeTierModal } from "./analyze-tier-modal";
 
 interface EvidenceItem {
   id: string;
@@ -61,6 +62,7 @@ export function EvidenceVaultClient({ initialEvidence }: EvidenceVaultClientProp
   const [showWizard, setShowWizard] = React.useState(false);
   const [refreshing, setRefreshing] = React.useState(false);
   const [rescoreToast, setRescoreToast] = React.useState<string | null>(null);
+  const [analyzeTarget, setAnalyzeTarget] = React.useState<{ id: string; label: string } | null>(null);
 
   const refreshEvidence = React.useCallback(async () => {
     setRefreshing(true);
@@ -200,6 +202,16 @@ export function EvidenceVaultClient({ initialEvidence }: EvidenceVaultClientProp
                     </div>
                   </div>
 
+                  {/* Analyze button */}
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setAnalyzeTarget({ id: item.id, label: item.label }); }}
+                    className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100 hover:border-brand-300 transition-all cursor-pointer"
+                  >
+                    <Sparkles strokeWidth={1.75} className="h-3.5 w-3.5" />
+                    Analyze
+                  </button>
+
                   <div className="text-right shrink-0">
                     <p className="text-sm font-bold font-mono text-teal-600">+{item.svi_impact}</p>
                     <div className="flex items-center gap-1 mt-0.5 justify-end">
@@ -251,6 +263,23 @@ export function EvidenceVaultClient({ initialEvidence }: EvidenceVaultClientProp
         <EvidenceWizard
           onClose={() => setShowWizard(false)}
           onSuccess={handleWizardSuccess}
+        />
+      )}
+
+      {analyzeTarget && (
+        <AnalyzeTierModal
+          evidenceId={analyzeTarget.id}
+          evidenceLabel={analyzeTarget.label}
+          onClose={() => setAnalyzeTarget(null)}
+          onAnalyzed={(result) => {
+            if (result.ok) {
+              void refreshEvidence();
+              if (result.sviBoost && result.sviBoost > 0) {
+                setRescoreToast(`AI Analysis: SVI +${result.sviBoost} points`);
+                setTimeout(() => setRescoreToast(null), 6000);
+              }
+            }
+          }}
         />
       )}
     </>

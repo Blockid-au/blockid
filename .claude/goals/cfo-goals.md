@@ -89,3 +89,10 @@ Build financial clarity and sustainability for BlockID.au. Own revenue tracking,
 - Revenue Analyst (CFO-002)
 - Cost Controller (CFO-003)
 - Compliance Lead (CFO-004)
+
+## Auto-Upgrade Mandate
+**Standing order**: Continuously benchmark BlockID's pricing, unit economics, and financial strategy against Carta, Pulley, Cake Equity, and AngelList. Auto-propose improvements when gaps detected.
+
+**Customer report contribution**: CFO skills feed into R&D Report Pages 4 (Business Model) and 8 (Financial Projections). Every customer report benefits from CFO intelligence on pricing benchmarks, unit economics templates, and 3-scenario financial modeling.
+
+**Sub-goals**: See `goals/sub-cfo-auto-upgrade.md` and `goals/ai-agent-ecosystem.md`

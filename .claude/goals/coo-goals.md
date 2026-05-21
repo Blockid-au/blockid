@@ -89,3 +89,10 @@ Ensure BlockID.au ships reliably, on schedule, and with high quality. Own sprint
 - Sprint Master (COO-002)
 - DevOps Lead (COO-003)
 - QA Lead (COO-004)
+
+## Auto-Upgrade Mandate
+**Standing order**: Continuously monitor operational health across all C-Level domains. Coordinate cross-agent improvements, manage sprint cadence, and ensure quality gates are met before every deploy.
+
+**Customer report contribution**: COO skills feed into R&D Report Page 1 (Executive Summary) — synthesizing all dimension data into clear, concise assessments. Also owns the report quality feedback loop and weekly aggregation.
+
+**Sub-goals**: See `goals/sub-clevel-sync.md` and `goals/ai-agent-ecosystem.md`

@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
@@ -17,6 +18,10 @@ export async function POST(request: Request) {
   if (!isAIConfigured()) {
     return NextResponse.json({ ok: false, error: "AI service not configured" }, { status: 503 });
   }
+
+  // ── Locale detection ────────────────────────────────────────────────
+  const store = await cookies();
+  const locale = store.get("blockid_lang")?.value === "vi" ? "vi" : "en";
 
   // ── Credit check ────────────────────────────────────────────────────
   const affordCheck = await canAfford(user.id, "svi_report");
@@ -55,7 +60,11 @@ export async function POST(request: Request) {
       `- [${g.priority}] ${g.label}: ${g.action} (+${g.impact} SVI potential)`
     ).join("\n");
 
-    const systemPrompt = `You are a friendly, experienced startup mentor writing a personalised report for a founder. Your tone is warm, encouraging, and practical — like a trusted advisor who genuinely wants this founder to succeed.
+    const langInstruction = locale === "vi"
+      ? `QUAN TRONG: Viet TOAN BO bao cao bang tieng Viet. Su dung giong van chuyen nghiep nhung gan gui, de hieu cho cac nha sang lap Viet Nam tai Uc. Giu nguyen cac thuat ngu ky thuat bang tieng Anh khi can thiet (vi du: "cap table", "SVI", "pitch deck") nhung giai thich bang tieng Viet.\n\n`
+      : "";
+
+    const systemPrompt = `${langInstruction}You are a friendly, experienced startup mentor writing a personalised report for a founder. Your tone is warm, encouraging, and practical — like a trusted advisor who genuinely wants this founder to succeed.
 
 Writing Style:
 - Write as if you're talking to the founder over coffee — warm, direct, no jargon
@@ -83,7 +92,25 @@ Format:
 - Bold key terms and action items
 - Use > blockquotes for "Pro Tips" that add extra value`;
 
-    const userMessage = `Write a personalised startup report for this founder.
+    const sectionHeaders = locale === "vi" ? {
+      scoreExplained: "1. Giai Thich Diem So Cua Ban",
+      doingRight: "2. Nhung Dieu Ban Dang Lam Dung",
+      biggestOpportunity: "3. Co Hoi Lon Nhat Cua Ban Ngay Bay Gio",
+      growthPlan: "4. Ke Hoach Phat Trien 30 Ngay",
+      dimensions: "5. Hieu Cac Chieu Danh Gia",
+      investorReadiness: "6. Kiem Tra San Sang Goi Von",
+      nextStep: "7. Buoc Tiep Theo",
+    } : {
+      scoreExplained: "1. Your Score Explained",
+      doingRight: "2. What You're Doing Right",
+      biggestOpportunity: "3. Your Biggest Opportunity Right Now",
+      growthPlan: "4. Your 30-Day Growth Plan",
+      dimensions: "5. Understanding Your Dimensions",
+      investorReadiness: "6. Investor Readiness Check",
+      nextStep: "7. Your Next Step",
+    };
+
+    const userMessage = `Write a personalised startup report for this founder.${locale === "vi" ? " Write the ENTIRE report in Vietnamese." : ""}
 
 ## Their Startup:
 ${body.rawText.slice(0, 4000)}
@@ -107,16 +134,16 @@ ${gapSummary || "None identified yet"}
 
 Write the report with these sections (in this order — basic to advanced):
 
-## 1. Your Score Explained
+## ${sectionHeaders.scoreExplained}
 Explain what ${analysis.totalSVI} means in plain language. Is this good for their stage? What does Stage ${analysis.stage} ("${stageLabel}") mean for them practically? Compare to typical startups at this stage. Be honest but encouraging.
 
-## 2. What You're Doing Right
+## ${sectionHeaders.doingRight}
 Celebrate their strengths. Be specific — point to actual things from their description. This builds confidence and motivates them to continue. At least 3 specific things.
 
-## 3. Your Biggest Opportunity Right Now
+## ${sectionHeaders.biggestOpportunity}
 Don't list 10 things. Identify THE ONE thing that would make the biggest difference if they did it this week. Explain WHY it matters, HOW to do it step-by-step, and what impact it would have on their score. Be very specific — like a mentor giving homework.
 
-## 4. Your 30-Day Growth Plan
+## ${sectionHeaders.growthPlan}
 A progressive roadmap, NOT a flat list. Structure it as a journey:
 - **Week 1**: The quick win (something they can do today)
 - **Week 2**: Building the foundation (setting up the basics)
@@ -124,7 +151,7 @@ A progressive roadmap, NOT a flat list. Structure it as a journey:
 - **Week 4**: Levelling up (more advanced moves)
 Each week should build on the previous one. Include specific tools, templates, or resources.
 
-## 5. Understanding Your Dimensions
+## ${sectionHeaders.dimensions}
 For each of their 8 scores, give a plain-English explanation:
 - What this dimension measures (in simple terms)
 - Why it matters for fundraising/growth
@@ -132,10 +159,10 @@ For each of their 8 scores, give a plain-English explanation:
 - ONE specific thing to improve it
 Keep each dimension to 2-3 sentences — don't overwhelm.
 
-## 6. Investor Readiness Check
+## ${sectionHeaders.investorReadiness}
 An honest but kind assessment. If they're not ready yet, frame it as "here's what you need before approaching investors" rather than "you're not ready." Include specific milestones.
 
-## 7. Your Next Step
+## ${sectionHeaders.nextStep}
 End with ONE clear call-to-action. The single most impactful thing they should do RIGHT NOW. Make it feel achievable and exciting, not overwhelming.
 
 > **Pro Tip**: Include a motivational closing that reminds them every successful startup started exactly where they are.

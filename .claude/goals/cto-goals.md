@@ -92,3 +92,10 @@ Build and maintain the technical foundation of BlockID.au. Own engineering quali
 - Backend Lead (CTO-003)
 - AI/ML Lead (CTO-004)
 - Security Lead (CTO-005)
+
+## Auto-Upgrade Mandate
+**Standing order**: Continuously benchmark BlockID's technical architecture, performance, security, and AI accuracy against market leaders. Auto-implement improvements when gaps detected.
+
+**Customer report contribution**: CTO skills feed into R&D Report Page 3 (Product & Technology) and Page 9 (Risk Assessment). `deepTechAudit()` and `auditGitHubRepo()` provide enterprise-grade technical evidence for every customer report. Auto-fill all discoverable SVI signals — never leave fields empty.
+
+**Sub-goals**: See `goals/scoring-tech-audit.md` and `goals/ai-agent-ecosystem.md`

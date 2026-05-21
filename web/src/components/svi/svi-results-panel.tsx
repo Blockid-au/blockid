@@ -29,6 +29,8 @@ import {
   TrendingUp,
   Upload,
   Zap,
+  Sparkles,
+  Loader2 as SpinnerIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -492,8 +494,154 @@ function DimensionBar({
               </div>
             ) : null;
           })()}
+          {/* Dimension AI deep dive */}
+          <DimensionAnalyzeButton dimension={keyName} label={label} />
         </div>
       )}
+    </div>
+  );
+}
+
+// Full report upsell banner — generates unlimited-length comprehensive report
+function FullReportBanner() {
+  const [loading, setLoading] = React.useState<"standard" | "premium" | null>(null);
+  const [report, setReport] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const generate = async (tier: "standard" | "premium") => {
+    setLoading(tier);
+    setError(null);
+    try {
+      const res = await fetch("/api/svi/full-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tier }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        setError(res.status === 402
+          ? `Insufficient credits (need ${tier === "premium" ? 5 : 2} credits)`
+          : (data.error ?? "Generation failed"));
+        return;
+      }
+      setReport(data.report);
+    } catch {
+      setError("Network error");
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  if (report) {
+    return (
+      <div className="rounded-2xl border border-brand-200 bg-white p-6 shadow-sm">
+        <p className="text-xs uppercase tracking-[0.18em] text-brand-600 font-medium mb-3">Full Report</p>
+        <div className="prose prose-sm max-w-none text-ink-700 leading-relaxed whitespace-pre-wrap">
+          {report}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-brand-200 bg-gradient-to-r from-brand-50 to-white p-5 shadow-sm">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles strokeWidth={1.75} className="h-4 w-4 text-brand-600" />
+            <p className="text-sm font-semibold text-ink-800">Unlock Full AI Report</p>
+          </div>
+          <p className="text-xs text-ink-600">Comprehensive analysis — no page limit. Covers tech, marketing, finance, investor readiness, legal, and more.</p>
+          {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+        </div>
+        <div className="flex gap-2 shrink-0">
+          <button
+            type="button"
+            disabled={!!loading}
+            onClick={() => void generate("standard")}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-brand-200 bg-white px-4 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 transition-all cursor-pointer disabled:opacity-50"
+          >
+            {loading === "standard" ? <SpinnerIcon strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" /> : <FileText strokeWidth={1.75} className="h-3.5 w-3.5" />}
+            Standard <span className="font-mono text-brand-500">(2 cr)</span>
+          </button>
+          <button
+            type="button"
+            disabled={!!loading}
+            onClick={() => void generate("premium")}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-700 transition-all cursor-pointer disabled:opacity-50"
+          >
+            {loading === "premium" ? <SpinnerIcon strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" /> : <Sparkles strokeWidth={1.75} className="h-3.5 w-3.5" />}
+            Premium <span className="text-brand-200 font-mono">(5 cr)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Dimension-specific AI deep dive button with inline results
+const DIMENSION_COSTS: Record<string, number> = {
+  ftv: 0.75, mpc: 0.75, ptd: 0.75, tre: 1.00,
+  cgh: 0.75, iri: 0.75, lco: 0.50, svm: 0.75,
+};
+
+function DimensionAnalyzeButton({ dimension, label }: { dimension: string; label: string }) {
+  const [loading, setLoading] = React.useState(false);
+  const [result, setResult] = React.useState<Record<string, unknown> | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+  const cost = DIMENSION_COSTS[dimension] ?? 0.75;
+
+  const handleAnalyze = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/svi/dimension-analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dimension }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        setError(res.status === 402 ? `Insufficient credits (need ${cost})` : (data.error ?? "Failed"));
+        return;
+      }
+      setResult(data.analysis as Record<string, unknown>);
+    } catch {
+      setError("Network error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (result) {
+    return (
+      <div className="mt-2 rounded-xl border border-brand-200 bg-brand-50/50 p-3">
+        <p className="text-[10px] uppercase tracking-[0.15em] text-brand-600 font-medium mb-1">AI Deep Dive — {label}</p>
+        {result.report ? (
+          <p className="text-xs text-ink-700 leading-relaxed whitespace-pre-wrap mb-2">{String(result.report).slice(0, 800)}{String(result.report).length > 800 ? "..." : ""}</p>
+        ) : null}
+        {result.nextMilestone ? (
+          <p className="text-xs text-brand-700 font-medium">Next milestone: {String(result.nextMilestone)}</p>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2 pt-2 border-t border-surface-100">
+      <button
+        type="button"
+        disabled={loading}
+        onClick={(e) => { e.stopPropagation(); void handleAnalyze(); }}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-[11px] font-medium text-brand-700 hover:bg-brand-100 transition-all cursor-pointer disabled:opacity-50"
+      >
+        {loading ? (
+          <><SpinnerIcon strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" /> Analyzing...</>
+        ) : (
+          <><Sparkles strokeWidth={1.75} className="h-3.5 w-3.5" /> Deep Analyze {label} <span className="text-brand-500 font-mono">({cost} cr)</span></>
+        )}
+      </button>
+      {error && <p className="text-[10px] text-red-600 mt-1">{error}</p>}
     </div>
   );
 }
@@ -1020,6 +1168,9 @@ export function SVIResultsPanel({
 
             <PageNavigation currentPage={1} onNavigate={navigateToPageNum} />
           </PageSection>
+
+          {/* ─── Full Report Upsell ─────────────────────────────────────── */}
+          <FullReportBanner />
 
           {/* ─── Page 2: Startup Value Breakdown ────────────────────────── */}
           <PageSection id="value-breakdown" num={2} title="Startup Value Breakdown" icon={BarChart3}>

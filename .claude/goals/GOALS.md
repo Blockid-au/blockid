@@ -30,6 +30,15 @@ Become the **#1 startup valuation and ownership platform in Australia** — acco
 - [Investor Relations](investor-relations-goals.md) — Pitch, data room, accelerator
 - **Blockchain Expert** — Cosmos chain, tokenization, MetaMask, dividends (skill: `/blockchain-expert`)
 
+## Cross-Cutting Initiatives
+- [Vesting & Dynamic Share Structure](vesting-share-structure.md) — Monthly vesting, AI equity split, SVI-linked share pricing
+  - [CTO: Technical Implementation](sub-vesting-cto.md)
+  - [CPO: Product & UX](sub-vesting-cpo.md)
+  - [CFO: Pricing & Economics](sub-vesting-cfo.md)
+  - [COO: Sprint Execution](sub-vesting-coo.md)
+  - [CRO: Conversion & Monetization](sub-vesting-cro.md)
+  - [Blockchain: On-Chain Sync](sub-vesting-blockchain.md)
+
 ## Execution Framework
 - [Sprint Cadence](sprint-cadence.md) — 2-week sprints, S2026-10 = current
 - [Quarterly OKRs](quarterly-okrs.md) — Q3/Q4 2026, Q1 2027 targets

@@ -109,15 +109,21 @@ async function prepareUnsubscribe(to: string): Promise<{
   };
 }
 
-function unsubFooter(unsubUrl: string, prefsUrl: string): string {
+function unsubFooter(unsubUrl: string, prefsUrl: string, locale?: "en" | "vi"): string {
+  const isVi = locale === "vi";
+  const receivingText = isVi
+    ? "Ban nhan duoc email nay vi ban co tai khoan BlockID.au."
+    : "You're receiving this because you have a BlockID.au account.";
+  const unsubText = isVi ? "Huy dang ky" : "Unsubscribe";
+  const prefsText = isVi ? "Quan ly tuy chon email" : "Manage email preferences";
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:0 16px 32px 16px;">
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;">
         <tr><td>
           <p style="margin:16px 0 0 0;color:#475569;font-size:11px;line-height:1.5;text-align:center;">
-            You're receiving this because you have a BlockID.au account.
-            <a href="${unsubUrl}" style="color:#475569;text-decoration:underline;">Unsubscribe</a> &middot;
-            <a href="${prefsUrl}" style="color:#475569;text-decoration:underline;">Manage email preferences</a>
+            ${receivingText}
+            <a href="${unsubUrl}" style="color:#475569;text-decoration:underline;">${unsubText}</a> &middot;
+            <a href="${prefsUrl}" style="color:#475569;text-decoration:underline;">${prefsText}</a>
           </p>
         </td></tr>
       </table>
@@ -171,15 +177,27 @@ export async function sendMagicLink(args: {
   token: string;
   intent: "save_founder_pack" | "login";
   ttlMinutes: number;
+  locale?: "en" | "vi";
 }): Promise<SendResult> {
+  const isVi = args.locale === "vi";
   const url = `${siteUrl()}/auth/verify?token=${encodeURIComponent(args.token)}`;
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
-  const headline = args.intent === "save_founder_pack" ? "Save your Founder Pack" : "Sign in to BlockID";
+  const headline = args.intent === "save_founder_pack"
+    ? (isVi ? "Luu Founder Pack cua ban" : "Save your Founder Pack")
+    : (isVi ? "Dang nhap BlockID" : "Sign in to BlockID");
   const sub = args.intent === "save_founder_pack"
-    ? "Click the button below to save your Founder Pack and create your free BlockID account. The link is single-use and expires in " + args.ttlMinutes + " minutes."
-    : "Click the button below to sign in. The link is single-use and expires in " + args.ttlMinutes + " minutes.";
-  const cta = args.intent === "save_founder_pack" ? "Save my Founder Pack" : "Sign in";
-  const subject = args.intent === "save_founder_pack" ? "Save your BlockID Founder Pack" : "Sign in to BlockID";
+    ? (isVi
+        ? "Nhan nut ben duoi de luu Founder Pack va tao tai khoan BlockID mien phi. Lien ket chi su dung mot lan va het han trong " + args.ttlMinutes + " phut."
+        : "Click the button below to save your Founder Pack and create your free BlockID account. The link is single-use and expires in " + args.ttlMinutes + " minutes.")
+    : (isVi
+        ? "Nhan nut ben duoi de dang nhap. Lien ket chi su dung mot lan va het han trong " + args.ttlMinutes + " phut."
+        : "Click the button below to sign in. The link is single-use and expires in " + args.ttlMinutes + " minutes.");
+  const cta = args.intent === "save_founder_pack"
+    ? (isVi ? "Luu Founder Pack" : "Save my Founder Pack")
+    : (isVi ? "Dang nhap" : "Sign in");
+  const subject = args.intent === "save_founder_pack"
+    ? (isVi ? "Luu Founder Pack BlockID cua ban" : "Save your BlockID Founder Pack")
+    : (isVi ? "Dang nhap BlockID" : "Sign in to BlockID");
 
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
@@ -192,15 +210,15 @@ export async function sendMagicLink(args: {
           <p style="margin:0 0 24px 0;text-align:center;">
             <a href="${url}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">${escapeHtml(cta)}</a>
           </p>
-          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Or paste this URL</p>
+          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">${isVi ? "Hoac dan lien ket nay" : "Or paste this URL"}</p>
           <p style="margin:0 0 24px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#94A3B8;word-break:break-all;">${url}</p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">If you didn't request this email, you can safely ignore it — no account will be created.</p>
+          <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">${isVi ? "Neu ban khong yeu cau email nay, ban co the bo qua — khong co tai khoan nao duoc tao." : "If you didn't request this email, you can safely ignore it — no account will be created."}</p>
         </td></tr>
       </table>
     </td></tr>
   </table>
-  ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
+  ${unsubFooter(unsubscribeUrl, preferencesUrl, args.locale)}`);
 
   if (!isSmtpConfigured()) {
     console.warn("[blockid:email] SMTP not configured — verify URL:", url);
@@ -258,26 +276,39 @@ export async function sendSVIWelcome(args: {
   name?: string | null;
   svi: number;
   stage: number;
+  locale?: "en" | "vi";
 }): Promise<SendResult> {
+  const isVi = args.locale === "vi";
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const dashUrl = `${siteUrl()}/dashboard/svi`;
   const stageLabels = ["Concept", "Validated Idea", "MVP", "Early Traction", "Revenue", "Growth", "Scale", "Corporation"];
   const stageLabel = stageLabels[args.stage] ?? "Concept";
+  const headlineText = isVi
+    ? `Chao Mung Den Voi BlockID${args.name ? `, ${escapeHtml(args.name)}` : ""}`
+    : `Welcome to BlockID${args.name ? `, ${escapeHtml(args.name)}` : ""}`;
+  const bodyText = isVi
+    ? "Chi So Gia Tri Startup (SVI) co ban cua ban da san sang. Day la vi tri cua ban:"
+    : "Your Startup Value Index baseline is ready. Here's where you stand:";
+  const evidenceText = isVi
+    ? "Them bang chung (pitch deck, bang chung doanh thu, bang von) de tang diem cua ban. Moi bang chung duoc xac minh se nang cao SVI va su san sang goi von cua ban."
+    : "Add evidence (pitch deck, revenue proof, cap table) to grow your score. Each piece of verified evidence lifts your SVI and strengthens your investor readiness.";
+  const ctaText = isVi ? "Xem bang dieu khien" : "View your dashboard";
+  const subject = isVi ? "Chao Mung Den Voi BlockID — Chi So SVI Co Ban Da San Sang" : "Welcome to BlockID — Your SVI Baseline is Ready";
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Welcome</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;">Welcome to BlockID${args.name ? `, ${escapeHtml(args.name)}` : ""}</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Your Startup Value Index baseline is ready. Here's where you stand:</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — ${isVi ? "Chao Mung" : "Welcome"}</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;">${headlineText}</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${bodyText}</p>
           <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
             <div style="font-family:'IBM Plex Mono',monospace;font-size:56px;font-weight:600;color:#3B7DD8;line-height:1;">${args.svi}</div>
-            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">SVI Score — ${escapeHtml(stageLabel)} Stage</p>
+            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">${isVi ? "Diem SVI" : "SVI Score"} — ${escapeHtml(stageLabel)} Stage</p>
           </div>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">Add evidence (pitch deck, revenue proof, cap table) to grow your score. Each piece of verified evidence lifts your SVI and strengthens your investor readiness.</p>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">${evidenceText}</p>
           <p style="margin:0 0 24px 0;text-align:center;">
-            <a href="${dashUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View your dashboard</a>
+            <a href="${dashUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">${ctaText}</a>
           </p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
           <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
@@ -285,8 +316,8 @@ export async function sendSVIWelcome(args: {
       </table>
     </td></tr>
   </table>
-  ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
-  return sendEmail({ to: args.to, subject: "Welcome to BlockID — Your SVI Baseline is Ready", html, unsubscribeUrl });
+  ${unsubFooter(unsubscribeUrl, preferencesUrl, args.locale)}`);
+  return sendEmail({ to: args.to, subject, html, unsubscribeUrl });
 }
 
 // ---------- SVI weekly report email ------------------------------------------
@@ -299,20 +330,22 @@ export async function sendSVIWeeklyReport(args: {
   weekNum: number;
   aiSummary?: string;
   topGaps?: string[];
+  locale?: "en" | "vi";
 }): Promise<SendResult> {
+  const isVi = args.locale === "vi";
   if (!(await canSendEmail(args.to, "weekly_reports"))) return { ok: false, reason: "unsubscribed" };
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const dashUrl = `${siteUrl()}/dashboard/svi`;
   const evidenceUrl = `${siteUrl()}/workspace/evidence`;
   const reportsUrl = `${siteUrl()}/workspace/reports`;
-  const deltaStr = args.delta != null ? (args.delta >= 0 ? `+${args.delta}` : `${args.delta}`) : "No change";
+  const deltaStr = args.delta != null ? (args.delta >= 0 ? `+${args.delta}` : `${args.delta}`) : (isVi ? "Khong doi" : "No change");
   const deltaColor = args.delta != null && args.delta >= 0 ? "#4ADE80" : "#F87171";
   const deltaArrow = args.delta != null ? (args.delta >= 0 ? "&#9650;" : "&#9660;") : "";
 
   // AI summary section
   const aiSummaryHtml = args.aiSummary
     ? `<div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:0 0 16px 0;">
-        <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Weekly Insight</p>
+        <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">${isVi ? "Nhan Dinh Tuan" : "Weekly Insight"}</p>
         <p style="margin:0;color:#CBD5E1;font-size:13px;line-height:1.6;">${escapeHtml(args.aiSummary)}</p>
       </div>`
     : "";
@@ -320,44 +353,46 @@ export async function sendSVIWeeklyReport(args: {
   // Top gaps section (next actions)
   const gapsHtml = args.topGaps && args.topGaps.length > 0
     ? `<div style="margin:0 0 16px 0;">
-        <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Top Actions for Next Week</p>
+        <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">${isVi ? "Hanh Dong Uu Tien Tuan Toi" : "Top Actions for Next Week"}</p>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
           ${args.topGaps.slice(0, 3).map((g, i) => `<tr><td style="padding:4px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:20px;">${i + 1}.</td><td style="padding:4px 8px;color:#F8FAFC;font-size:13px;">${escapeHtml(g)}</td></tr>`).join("")}
         </table>
       </div>`
     : "";
 
+  const progressText = args.delta != null && args.delta > 0
+    ? (isVi ? "Tien bo tuyet voi! Tiep tuc them bang chung de duy tri da." : "Great progress! Keep adding evidence to maintain momentum.")
+    : args.delta != null && args.delta < 0
+      ? (isVi ? "Diem cua ban giam nhe. Xem lai cac thieu sot bang chung va them bang chung moi de phuc hoi." : "Your score dipped. Review your evidence gaps and add new proof to recover.")
+      : (isVi ? "Diem cua ban on dinh. Them bang chung moi de day diem len cao hon." : "Your score held steady. Add new evidence to push it higher.");
+
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Week ${args.weekNum} Report</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;">Your Weekly SVI Update</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Here's how your Startup Value Index changed this week${args.name ? `, ${escapeHtml(args.name)}` : ""}.</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — ${isVi ? `Bao Cao Tuan ${args.weekNum}` : `Week ${args.weekNum} Report`}</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;">${isVi ? "Cap Nhat SVI Hang Tuan" : "Your Weekly SVI Update"}</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${isVi ? `Day la cach Chi So Gia Tri Startup cua ban thay doi tuan nay${args.name ? `, ${escapeHtml(args.name)}` : ""}.` : `Here's how your Startup Value Index changed this week${args.name ? `, ${escapeHtml(args.name)}` : ""}.`}</p>
           <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
             <div style="font-family:'IBM Plex Mono',monospace;font-size:48px;font-weight:600;color:#3B7DD8;line-height:1;">${args.svi}</div>
-            <p style="margin:8px 0 0 0;font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;color:${deltaColor};">${deltaArrow} ${escapeHtml(deltaStr)} this week</p>
+            <p style="margin:8px 0 0 0;font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;color:${deltaColor};">${deltaArrow} ${escapeHtml(deltaStr)} ${isVi ? "tuan nay" : "this week"}</p>
           </div>
           ${aiSummaryHtml}
           ${gapsHtml}
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">${args.delta != null && args.delta > 0
-            ? "Great progress! Keep adding evidence to maintain momentum."
-            : args.delta != null && args.delta < 0
-              ? "Your score dipped. Review your evidence gaps and add new proof to recover."
-              : "Your score held steady. Add new evidence to push it higher."}</p>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">${progressText}</p>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
             <tr>
               <td width="31%" style="text-align:center;padding:4px;">
-                <a href="${dashUrl}" style="display:inline-block;width:100%;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:13px;">Dashboard</a>
+                <a href="${dashUrl}" style="display:inline-block;width:100%;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:13px;">${isVi ? "Bang Dieu Khien" : "Dashboard"}</a>
               </td>
               <td width="3%"></td>
               <td width="31%" style="text-align:center;padding:4px;">
-                <a href="${evidenceUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:13px;">Add Evidence</a>
+                <a href="${evidenceUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:13px;">${isVi ? "Them Bang Chung" : "Add Evidence"}</a>
               </td>
               <td width="3%"></td>
               <td width="31%" style="text-align:center;padding:4px;">
-                <a href="${reportsUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:13px;">Full Report</a>
+                <a href="${reportsUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:13px;">${isVi ? "Bao Cao Day Du" : "Full Report"}</a>
               </td>
             </tr>
           </table>
@@ -367,8 +402,11 @@ export async function sendSVIWeeklyReport(args: {
       </table>
     </td></tr>
   </table>
-  ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
-  return sendEmail({ to: args.to, subject: `Week ${args.weekNum} SVI Report — ${deltaStr} points`, html, unsubscribeUrl });
+  ${unsubFooter(unsubscribeUrl, preferencesUrl, args.locale)}`);
+  const subjectText = isVi
+    ? `Bao Cao SVI Tuan ${args.weekNum} — ${deltaStr} diem`
+    : `Week ${args.weekNum} SVI Report — ${deltaStr} points`;
+  return sendEmail({ to: args.to, subject: subjectText, html, unsubscribeUrl });
 }
 
 // ---------- SVI Report email -------------------------------------------------
@@ -378,7 +416,9 @@ export async function sendSVIReport(args: {
   slug: string;
   rawInput?: string;
   analysis: SVIAnalysis;
+  locale?: "en" | "vi";
 }): Promise<SendResult> {
+  const isVi = args.locale === "vi";
   if (!(await canSendEmail(args.to, "svi_alerts"))) return { ok: false, reason: "unsubscribed" };
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const reportUrl = `${siteUrl()}/s/${args.slug}`;
@@ -389,7 +429,8 @@ export async function sendSVIReport(args: {
   const gaps = args.analysis.evidenceGaps.slice(0, 3);
   const strengthRows = strengths.map((s) => `<tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(s.label)} <span style="color:#64748B;">(${s.value}/100)</span></td></tr>`).join("");
   const gapRows = gaps.map((g) => `<tr><td style="padding:6px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(g.label)}: <span style="color:#94A3B8;">${escapeHtml(g.action)}</span></td></tr>`).join("");
-  const ideaSummaryHtml = ideaSummary ? `<div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:0 0 16px 0;"><p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Your Idea</p><p style="margin:0;color:#CBD5E1;font-size:13px;line-height:1.6;font-style:italic;">&ldquo;${ideaSummary}&rdquo;</p></div>` : "";
+  const ideaLabel = isVi ? "Y Tuong Cua Ban" : "Your Idea";
+  const ideaSummaryHtml = ideaSummary ? `<div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:0 0 16px 0;"><p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">${ideaLabel}</p><p style="margin:0;color:#CBD5E1;font-size:13px;line-height:1.6;font-style:italic;">&ldquo;${ideaSummary}&rdquo;</p></div>` : "";
 
   // Generate PDF attachment
   let pdfAttachment: { filename: string; content: Buffer; contentType: string } | undefined;
@@ -403,40 +444,56 @@ export async function sendSVIReport(args: {
     console.error("[blockid:email] PDF generation failed, sending email without attachment", pdfErr);
   }
 
+  const tagline = isVi ? "BlockID — Bao Cao Gia Tri Startup" : "BlockID — Startup Value Report";
+  const headline = isVi ? "Bao Cao Gia Tri Startup Cua Ban Da San Sang" : "Your Startup Value Report is Ready";
+  const bodyIntro = isVi
+    ? `Phan tich SVI cua ban da hoan tat. Day la diem so tong quan va cac phat hien chinh.${pdfAttachment ? " Bao cao PDF day du duoc dinh kem." : ""}`
+    : `Your SVI analysis is complete. Here is your headline score and key findings.${pdfAttachment ? " The full PDF report is attached." : ""}`;
+  const strengthsLabel = isVi ? "Diem Manh" : "Strengths";
+  const gapsLabel = isVi ? "Thieu Bang Chung" : "Evidence Gaps";
+  const viewReportCta = isVi ? "Xem Bao Cao Day Du" : "View Full Report";
+  const signInCta = isVi ? "Dang Nhap Bang Dieu Khien" : "Sign in to Dashboard";
+  const signInHelp = isVi
+    ? "Ban co the dang nhap bang Google hoac qua lien ket ma phep gui den email nay."
+    : "You can sign in with Google or via a magic link sent to this email.";
+  const subject = isVi
+    ? "Bao Cao Gia Tri Startup BlockID Cua Ban Da San Sang"
+    : "Your BlockID Startup Value Report is Ready";
+
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Startup Value Report</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Your Startup Value Report is Ready</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Your SVI analysis is complete. Here is your headline score and key findings.${pdfAttachment ? " The full PDF report is attached." : ""}</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">${tagline}</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${headline}</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${bodyIntro}</p>
           ${ideaSummaryHtml}
           <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
             <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:64px;font-weight:600;color:#3B7DD8;line-height:1;">${args.analysis.totalSVI}</div>
-            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">SVI Score — ${escapeHtml(args.analysis.stageLabel)} Stage</p>
+            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">${isVi ? "Diem SVI" : "SVI Score"} — ${escapeHtml(args.analysis.stageLabel)} Stage</p>
           </div>
-          ${strengths.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Strengths</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${strengthRows}</table>` : ""}
-          ${gaps.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Evidence Gaps</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${gapRows}</table>` : ""}
+          ${strengths.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">${strengthsLabel}</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${strengthRows}</table>` : ""}
+          ${gaps.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">${gapsLabel}</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${gapRows}</table>` : ""}
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 0 0;">
             <tr>
-              <td width="48%" style="text-align:center;padding:4px;"><a href="${reportUrl}" style="display:inline-block;width:100%;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">View Full Report</a></td>
+              <td width="48%" style="text-align:center;padding:4px;"><a href="${reportUrl}" style="display:inline-block;width:100%;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">${viewReportCta}</a></td>
               <td width="4%"></td>
-              <td width="48%" style="text-align:center;padding:4px;"><a href="${loginUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">Sign in to Dashboard</a></td>
+              <td width="48%" style="text-align:center;padding:4px;"><a href="${loginUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">${signInCta}</a></td>
             </tr>
           </table>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
           <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
-          <p style="margin:0;color:#64748B;font-size:11px;line-height:1.5;">You can sign in with Google or via a magic link sent to this email.</p>
+          <p style="margin:0;color:#64748B;font-size:11px;line-height:1.5;">${signInHelp}</p>
         </td></tr>
       </table>
     </td></tr>
   </table>
-  ${unsubFooter(unsubscribeUrl, preferencesUrl)}
+  ${unsubFooter(unsubscribeUrl, preferencesUrl, args.locale)}
   <img src="${trackUrl}" width="1" height="1" alt="" style="display:none;" />`);
   return sendEmail({
     to: args.to,
-    subject: "Your BlockID Startup Value Report is Ready",
+    subject,
     html,
     unsubscribeUrl,
     ...(pdfAttachment && { attachments: [pdfAttachment] }),
@@ -762,7 +819,9 @@ export async function sendGrowthReport(args: {
 export async function sendSVIReview(args: {
   to: string; name?: string | null; svi: number; stage: number; stageLabel: string;
   wins: string[]; gaps: Array<{ label: string; action: string; impact: number }>; projectedSvi: number; weekNum: number;
+  locale?: "en" | "vi";
 }): Promise<SendResult> {
+  const isVi = args.locale === "vi";
   if (!(await canSendEmail(args.to, "weekly_reports"))) return { ok: false, reason: "unsubscribed" };
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const dashUrl = `${siteUrl()}/dashboard/svi`;
@@ -772,28 +831,34 @@ export async function sendSVIReview(args: {
   const nextStageLabel = stageLabels[Math.min(args.stage + 1, 7)] ?? "Corporation";
   const winRows = args.wins.map((w) => `<tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(w)}</td></tr>`).join("");
   const gapRows = args.gaps.map((g) => `<tr><td style="padding:6px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(g.label)}<br><span style="color:#94A3B8;font-size:13px;">${escapeHtml(g.action)}</span> <span style="color:#4ADE80;font-size:12px;font-weight:600;">+${g.impact} SVI</span></td></tr>`).join("");
-  const projectedHtml = args.projectedSvi > args.svi ? `<div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:0 0 24px 0;"><p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Projected Score</p><p style="margin:0 0 12px 0;color:#F8FAFC;font-size:15px;">Your SVI could reach <strong style="color:#4ADE80;">${args.projectedSvi}</strong> by completing the actions above.</p><div style="background:#1F2A44;border-radius:6px;height:8px;overflow:hidden;"><div style="background:linear-gradient(90deg,#3B7DD8,#4ADE80);height:100%;width:${Math.min(100, Math.round((args.svi / Math.max(args.projectedSvi, 1)) * 100))}%;border-radius:6px;"></div></div><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 0 0;"><tr><td style="color:#94A3B8;font-size:11px;">Current: ${args.svi}</td><td style="color:#4ADE80;font-size:11px;text-align:right;">Target: ${args.projectedSvi} (+${args.projectedSvi - args.svi})</td></tr></table></div>` : "";
+  const projectedLabel = isVi ? "Diem Du Kien" : "Projected Score";
+  const projectedBody = isVi
+    ? `SVI cua ban co the dat <strong style="color:#4ADE80;">${args.projectedSvi}</strong> khi hoan thanh cac hanh dong tren.`
+    : `Your SVI could reach <strong style="color:#4ADE80;">${args.projectedSvi}</strong> by completing the actions above.`;
+  const currentLabel = isVi ? "Hien tai" : "Current";
+  const targetLabel = isVi ? "Muc tieu" : "Target";
+  const projectedHtml = args.projectedSvi > args.svi ? `<div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:0 0 24px 0;"><p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">${projectedLabel}</p><p style="margin:0 0 12px 0;color:#F8FAFC;font-size:15px;">${projectedBody}</p><div style="background:#1F2A44;border-radius:6px;height:8px;overflow:hidden;"><div style="background:linear-gradient(90deg,#3B7DD8,#4ADE80);height:100%;width:${Math.min(100, Math.round((args.svi / Math.max(args.projectedSvi, 1)) * 100))}%;border-radius:6px;"></div></div><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 0 0;"><tr><td style="color:#94A3B8;font-size:11px;">${currentLabel}: ${args.svi}</td><td style="color:#4ADE80;font-size:11px;text-align:right;">${targetLabel}: ${args.projectedSvi} (+${args.projectedSvi - args.svi})</td></tr></table></div>` : "";
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Week ${args.weekNum} Review</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Your Weekly SVI Review${args.name ? `, ${escapeHtml(args.name)}` : ""}</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Here is your personalised Startup Value Index review with specific actions to grow your score.</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — ${isVi ? `Danh Gia Tuan ${args.weekNum}` : `Week ${args.weekNum} Review`}</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${isVi ? `Danh Gia SVI Hang Tuan${args.name ? `, ${escapeHtml(args.name)}` : ""}` : `Your Weekly SVI Review${args.name ? `, ${escapeHtml(args.name)}` : ""}`}</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${isVi ? "Day la ban danh gia Chi So Gia Tri Startup ca nhan cua ban voi cac hanh dong cu the de tang diem." : "Here is your personalised Startup Value Index review with specific actions to grow your score."}</p>
           <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
             <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:64px;font-weight:600;color:${scoreColor};line-height:1;">${args.svi}</div>
-            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">SVI Score — ${escapeHtml(args.stageLabel)} Stage</p>
-            <p style="margin:4px 0 0 0;color:#64748B;font-size:12px;">Next stage: ${escapeHtml(nextStageLabel)}</p>
+            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">${isVi ? "Diem SVI" : "SVI Score"} — ${escapeHtml(args.stageLabel)} Stage</p>
+            <p style="margin:4px 0 0 0;color:#64748B;font-size:12px;">${isVi ? "Giai doan tiep theo" : "Next stage"}: ${escapeHtml(nextStageLabel)}</p>
           </div>
-          ${args.wins.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Top Strengths</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${winRows}</table>` : ""}
-          ${args.gaps.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Priority Actions</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${gapRows}</table>` : ""}
+          ${args.wins.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">${isVi ? "Diem Manh Hang Dau" : "Top Strengths"}</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${winRows}</table>` : ""}
+          ${args.gaps.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">${isVi ? "Hanh Dong Uu Tien" : "Priority Actions"}</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${gapRows}</table>` : ""}
           ${projectedHtml}
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 0 0;">
             <tr>
-              <td width="48%" style="text-align:center;padding:4px;"><a href="${evidenceUrl}" style="display:inline-block;width:100%;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">Upload Evidence</a></td>
+              <td width="48%" style="text-align:center;padding:4px;"><a href="${evidenceUrl}" style="display:inline-block;width:100%;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">${isVi ? "Tai Len Bang Chung" : "Upload Evidence"}</a></td>
               <td width="4%"></td>
-              <td width="48%" style="text-align:center;padding:4px;"><a href="${dashUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">View Dashboard</a></td>
+              <td width="48%" style="text-align:center;padding:4px;"><a href="${dashUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">${isVi ? "Xem Bang Dieu Khien" : "View Dashboard"}</a></td>
             </tr>
           </table>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
@@ -802,8 +867,11 @@ export async function sendSVIReview(args: {
       </table>
     </td></tr>
   </table>
-  ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
-  return sendEmail({ to: args.to, subject: `Week ${args.weekNum} SVI Review — Score: ${args.svi} | ${args.stageLabel} Stage`, html, unsubscribeUrl });
+  ${unsubFooter(unsubscribeUrl, preferencesUrl, args.locale)}`);
+  const subjectText = isVi
+    ? `Danh Gia SVI Tuan ${args.weekNum} — Diem: ${args.svi} | ${args.stageLabel} Stage`
+    : `Week ${args.weekNum} SVI Review — Score: ${args.svi} | ${args.stageLabel} Stage`;
+  return sendEmail({ to: args.to, subject: subjectText, html, unsubscribeUrl });
 }
 
 // ---------- SVI milestone celebration email ----------------------------------
