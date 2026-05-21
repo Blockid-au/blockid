@@ -13,6 +13,8 @@ import { SVIDimensionCompare } from "@/components/svi/svi-dimension-compare";
 import { SVITrendChart } from "@/components/ui/svi-trend-chart";
 import { PriorityTasks, generatePriorityTasks } from "@/components/workspace/priority-tasks";
 import { SVIComparison } from "@/components/svi/svi-comparison";
+import { SVIValuation } from "@/components/svi/svi-valuation";
+import { ComplianceChecker } from "@/components/svi/compliance-checker";
 
 // Dimension weight labels (for tooltip)
 const DIM_WEIGHTS: Record<string, string> = {
@@ -238,6 +240,12 @@ export function SVIDashboard({ analysis, startupName, snapshotHistory }: SVIDash
 
       {/* SVI Comparison — benchmark vs stage peers */}
       <SVIComparison analysis={analysis} className="mb-6" />
+
+      {/* Estimated Valuation */}
+      <SVIValuation analysis={analysis} className="mb-6" />
+
+      {/* Compliance Checker */}
+      <ComplianceChecker analysis={analysis} className="mb-6" />
 
       {/* Summary */}
       <p className="text-sm text-ink-600 leading-relaxed px-1">{analysis.summary}</p>
