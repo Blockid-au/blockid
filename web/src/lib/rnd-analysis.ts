@@ -1,7 +1,7 @@
 import "server-only";
 import type { SVIAnalysis } from "./svi-analysis";
 import { SVI_STAGE_LABELS } from "./svi-analysis";
-import type { InputType } from "./rnd-input";
+import type { InputType, TechAuditResult } from "./rnd-input";
 import { callAI } from "./ai-client";
 
 export type ReportTier = "preview" | "standard" | "deep_dive";
@@ -129,6 +129,7 @@ function buildContext(
   sviAnalysis: SVIAnalysis,
   inputType: InputType,
   scrapedData?: { title: string; description: string; text: string; techHints: string[] },
+  techAudit?: TechAuditResult,
 ): string {
   const stageLabel = SVI_STAGE_LABELS[sviAnalysis.stage ?? 0] ?? "Concept";
 
@@ -167,6 +168,23 @@ ${gapSummary || "None"}`;
 - Description: ${scrapedData.description}
 - Tech Stack Hints: ${scrapedData.techHints.join(", ") || "None detected"}
 - Page Content (excerpt): ${scrapedData.text.slice(0, 2000)}`;
+  }
+
+  if (techAudit) {
+    ctx += `\n\n## Deep Tech Audit Results (automated scan):
+- Overall Grade: ${techAudit.overallGrade}
+- Security: ${techAudit.security.grade} (HTTPS: ${techAudit.security.https ? "yes" : "no"}, HSTS: ${techAudit.security.hsts ? "yes" : "no"}, CSP: ${techAudit.security.csp ? "yes" : "no"})
+- Performance: ${techAudit.performance.grade} (TTFB: ${techAudit.performance.ttfbMs}ms, Page size: ${Math.round(techAudit.performance.pageSizeKb)}KB)
+- Frameworks: ${techAudit.techStack.frameworks.join(", ") || "None detected"}
+- CMS: ${techAudit.techStack.cms ?? "None"}
+- CDN: ${techAudit.techStack.cdn ?? "None"}
+- Hosting: ${techAudit.techStack.hosting ?? "Unknown"}
+- Analytics: ${techAudit.techStack.analytics.join(", ") || "None"}
+- Payment integrations: ${techAudit.techStack.payments.join(", ") || "None"}
+- Customer tools: ${techAudit.techStack.customerTools.join(", ") || "None"}
+- Product maturity: sitemap=${techAudit.productMaturity.hasSitemap}, robots=${techAudit.productMaturity.hasRobots}, structured data=${techAudit.productMaturity.hasStructuredData}, PWA=${techAudit.productMaturity.isPwa}, login=${techAudit.productMaturity.hasLoginForm}
+- SVI Signal Boosts: PTD+${techAudit.signalBoosts.ptdBoost}, SVM+${techAudit.signalBoosts.svmBoost}, TRE+${techAudit.signalBoosts.treBoost}, LCO+${techAudit.signalBoosts.lcoBoost}
+- Evidence labels: ${techAudit.evidenceLabels.join(" | ")}`;
   }
 
   return ctx;
@@ -407,8 +425,9 @@ export async function generateRndReport(
   scrapedData?: { title: string; description: string; text: string; techHints: string[] },
   onStatus?: (msg: string) => void,
   tier: ReportTier = "standard",
+  techAudit?: TechAuditResult,
 ): Promise<RndReport> {
-  const context = buildContext(input, sviAnalysis, inputType, scrapedData);
+  const context = buildContext(input, sviAnalysis, inputType, scrapedData, techAudit);
 
   onStatus?.("Starting R&D analysis pipeline...");
 

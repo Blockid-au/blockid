@@ -200,6 +200,7 @@ export async function POST(request: Request) {
         scrapedData,
         (msg) => sendEvent("status", { step: "rnd_progress", message: msg }),
         tier,
+        techAudit,
       );
 
       // Step 5: Persist to database
