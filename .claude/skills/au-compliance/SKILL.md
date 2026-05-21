@@ -123,6 +123,8 @@ chartered accountant for advice specific to your circumstances.
 ## Auto-Upgrade Mandate
 Continuously monitor ASIC fintech guidance, ACL updates, and Privacy Act amendments. Auto-update disclaimers and compliance rules when regulations change.
 
+All work aligns toward BlockID.au Unicorn goal (A$1B valuation). See `goals/unicorn-masterplan.md` and `goals/spiral-revenue-model.md`.
+
 ## Customer Report Contribution
 The AU Compliance agent adds AU-specific guidance to customer reports:
 - "Your company should be registered as a Pty Ltd with ASIC (A$538 fee)"

@@ -233,3 +233,13 @@ Create scripts for investor-facing videos. Coordinate with /media-studio for pro
 ├── CPO: product demo + user journey
 └── media-studio: video production + AI avatar
 ```
+
+## Self-Research & Continuous Upgrade Mandate (Unicorn Goal)
+This agent MUST weekly:
+1. **Research** domain trends (marketplace skills, industry reports, competitor features)
+2. **Benchmark** against world-class companies (Carta $8.5B, Pulley, AngelList, Stripe)
+3. **Propose** upgrades when gaps are found (new skills, process improvements, feature ideas)
+4. **Implement** improvements within 1 sprint cycle
+5. **Measure** impact with before/after metrics
+
+All work aligns toward BlockID.au Unicorn goal (A$1B valuation). See `goals/unicorn-masterplan.md` and `goals/spiral-revenue-model.md`.

@@ -1,0 +1,170 @@
+[
+  {
+    "id": "01-stat",
+    "file": "video-assets/audio/swc-final/01-stat.mp3",
+    "text": "Last year, three hundred and seventy thousand Australian businesses shut their doors.",
+    "emotion": "urgent",
+    "pauseAfterMs": 500,
+    "sizeKB": 29
+  },
+  {
+    "id": "02-reason",
+    "file": "video-assets/audio/swc-final/02-reason.mp3",
+    "text": "That is more than one thousand businesses dying every single day. And the number one reason? They ran out of cash, because they had no idea what their startup was actually worth.",
+    "emotion": "urgent",
+    "pauseAfterMs": 1000,
+    "sizeKB": 61
+  },
+  {
+    "id": "03-intro",
+    "file": "video-assets/audio/swc-final/03-intro.mp3",
+    "text": "My name is Do Van Long, founder of BlockID dot ay you, and we are fixing this.",
+    "emotion": "inspiring",
+    "pauseAfterMs": 1000,
+    "sizeKB": 31
+  },
+  {
+    "id": "04-problem-1",
+    "file": "video-assets/audio/swc-final/04-problem-1.mp3",
+    "text": "Right now, if you are an early-stage founder and you want to know your startup's value, you have two options. Pay a consultant five to fifty thousand dollars and wait six weeks. Or guess.",
+    "emotion": "urgent",
+    "pauseAfterMs": 500,
+    "sizeKB": 66
+  },
+  {
+    "id": "05-problem-2",
+    "file": "video-assets/audio/swc-final/05-problem-2.mp3",
+    "text": "Carta, Pulley, Cake Equity, they all manage cap tables, but none of them tell you what your startup is actually worth. They are spreadsheets with a subscription. And they are all built for Silicon Valley, not for Australian founders.",
+    "emotion": "urgent",
+    "pauseAfterMs": 500,
+    "sizeKB": 78
+  },
+  {
+    "id": "06-problem-3",
+    "file": "video-assets/audio/swc-final/06-problem-3.mp3",
+    "text": "The result? Sixty percent of Australian startups fail within three years. Founders fly blind.",
+    "emotion": "dramatic",
+    "pauseAfterMs": 1500,
+    "sizeKB": 55
+  },
+  {
+    "id": "07-solution-1",
+    "file": "video-assets/audio/swc-final/07-solution-1.mp3",
+    "text": "BlockID dot ay you is an AI-powered startup valuation platform. In under sixty seconds, our Startup Value Index analyses your startup across eight dimensions.",
+    "emotion": "inspiring",
+    "pauseAfterMs": 300,
+    "sizeKB": 59
+  },
+  {
+    "id": "08-solution-2",
+    "file": "video-assets/audio/swc-final/08-solution-2.mp3",
+    "text": "And generates an institutional-grade valuation report.",
+    "emotion": "excited",
+    "pauseAfterMs": 500,
+    "sizeKB": 19
+  },
+  {
+    "id": "09-evidence-1",
+    "file": "video-assets/audio/swc-final/09-evidence-1.mp3",
+    "text": "But we do not stop at a score. Founders connect their evidence, GitHub commits, Stripe revenue, Google Analytics traffic, LinkedIn profiles, and our AI watches their startup grow in real time.",
+    "emotion": "excited",
+    "pauseAfterMs": 500,
+    "sizeKB": 64
+  },
+  {
+    "id": "10-evidence-2",
+    "file": "video-assets/audio/swc-final/10-evidence-2.mp3",
+    "text": "We call it the Evidence Vault. Your score goes up as your startup proves itself.",
+    "emotion": "excited",
+    "pauseAfterMs": 500,
+    "sizeKB": 29
+  },
+  {
+    "id": "11-lifecycle",
+    "file": "video-assets/audio/swc-final/11-lifecycle.mp3",
+    "text": "We are the platform that takes founders from Day Zero idea all the way through to exit.",
+    "emotion": "inspiring",
+    "pauseAfterMs": 1000,
+    "sizeKB": 28
+  },
+  {
+    "id": "12-traction-1",
+    "file": "video-assets/audio/swc-final/12-traction-1.mp3",
+    "text": "BlockID is live today. We have over fifty Australian founders on the platform. More than two hundred SVI analyses completed. Ten free tools live, including equity split calculators, dilution modelling, and term sheet AI.",
+    "emotion": "excited",
+    "pauseAfterMs": 500,
+    "sizeKB": 85
+  },
+  {
+    "id": "13-traction-2",
+    "file": "video-assets/audio/swc-final/13-traction-2.mp3",
+    "text": "Our tech stack runs on six AI providers with automatic fallback. And we have done all of this as a solo technical founder with an AI-augmented team, seven AI agents operating as my C-suite.",
+    "emotion": "excited",
+    "pauseAfterMs": 1000,
+    "sizeKB": 64
+  },
+  {
+    "id": "14-market-1",
+    "file": "video-assets/audio/swc-final/14-market-1.mp3",
+    "text": "Australia has two point seven million active businesses. The global startup ecosystem is worth four point four trillion dollars. Cap table management alone is a three point two billion dollar market.",
+    "emotion": "inspiring",
+    "pauseAfterMs": 500,
+    "sizeKB": 68
+  },
+  {
+    "id": "15-market-2",
+    "file": "video-assets/audio/swc-final/15-market-2.mp3",
+    "text": "Our model is simple. Free SVI analysis gets founders in the door. Then subscriptions from forty-nine to four ninety-nine per month. And enterprise partnerships up to sixty thousand per year.",
+    "emotion": "inspiring",
+    "pauseAfterMs": 500,
+    "sizeKB": 69
+  },
+  {
+    "id": "16-australia",
+    "file": "video-assets/audio/swc-final/16-australia.mp3",
+    "text": "We are Australia-first. ESIC-aware. ASIC-registered. Built by an Australian founder, for Australian founders.",
+    "emotion": "inspiring",
+    "pauseAfterMs": 1000,
+    "sizeKB": 48
+  },
+  {
+    "id": "17-close-1",
+    "file": "video-assets/audio/swc-final/17-close-1.mp3",
+    "text": "BlockID is not a pitch deck. It is a live product with real users generating real analyses every day.",
+    "emotion": "inspiring",
+    "pauseAfterMs": 500,
+    "sizeKB": 40
+  },
+  {
+    "id": "18-close-2",
+    "file": "video-assets/audio/swc-final/18-close-2.mp3",
+    "text": "We are raising a pre-seed round of five hundred thousand dollars to scale to five hundred users, launch cap table management, and begin equity tokenization.",
+    "emotion": "inspiring",
+    "pauseAfterMs": 500,
+    "sizeKB": 52
+  },
+  {
+    "id": "19-vision",
+    "file": "video-assets/audio/swc-final/19-vision.mp3",
+    "text": "Our vision? Every startup in Australia knows its value on day one. Every founder has the tools to grow, fundraise, and exit, without spending fifty thousand dollars on consultants.",
+    "emotion": "dramatic",
+    "pauseAfterMs": 1500,
+    "sizeKB": 90
+  },
+  {
+    "id": "20-dropmic",
+    "file": "video-assets/audio/swc-final/20-dropmic.mp3",
+    "text": "BlockID dot ay you. From idea to exit, one platform.",
+    "emotion": "dramatic",
+    "pauseAfterMs": 2000,
+    "sizeKB": 37
+  },
+  {
+    "id": "21-thanks",
+    "file": "video-assets/audio/swc-final/21-thanks.mp3",
+    "text": "Thank you.",
+    "emotion": "neutral",
+    "pauseAfterMs": 500,
+    "sizeKB": 7
+  }
+]

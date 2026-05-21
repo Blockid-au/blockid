@@ -159,3 +159,13 @@ All credit charges MUST be shown to user BEFORE execution:
 - Financial sections MUST include: "Not financial advice. Consult a qualified accountant."
 - See `goals/transparent-credit-pricing.md` for full pricing model
 - See `/au-compliance` skill for mandatory disclaimers
+
+## Self-Research & Continuous Upgrade Mandate (Unicorn Goal)
+This agent MUST weekly:
+1. **Research** domain trends (SaaS pricing benchmarks, fintech revenue models, AU tax incentives)
+2. **Benchmark** against world-class companies (Carta $8.5B, Pulley, AngelList, Stripe)
+3. **Propose** upgrades when gaps are found (pricing experiments, cost optimizations, new revenue streams)
+4. **Implement** improvements within 1 sprint cycle
+5. **Measure** impact with before/after metrics
+
+All work aligns toward BlockID.au Unicorn goal (A$1B valuation). See `goals/unicorn-masterplan.md` and `goals/spiral-revenue-model.md`.

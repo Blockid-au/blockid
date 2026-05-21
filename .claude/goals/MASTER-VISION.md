@@ -69,65 +69,71 @@ AI Idea → [BlockID Validates] → MVP → [BlockID Tracks Value] → Fundraise
 - AI-powered SVI analysis (10-page report in 60 seconds)
 - 8-dimension scoring: Team, Market, Product, Traction, Cap Table, Investor Readiness, Legal, Moat
 - Free tools: Idea Valuation, Equity Split, Dilution Calculator, etc.
-- **Status: LIVE at blockid.au**
+- Deep website tech audit (`deepTechAudit()`) — security, performance, stack, maturity
+- Deep GitHub repo audit (`auditGitHubRepo()`) — architecture, CI/CD, testing, dependencies
+- **Status: ✅ LIVE at blockid.au**
 
-### Phase 2: Validation & Evidence ⚡ IN PROGRESS
+### Phase 2: Validation & Evidence ✅ COMPLETE
 **Owner: CTO + CRO**
 - Evidence Vault (upload docs → boost SVI score)
-- Auto-rescore on evidence upload
+- Auto-rescore on evidence upload (<5s)
 - OAuth connectors (GitHub, Analytics, Stripe)
-- Milestone badges and weekly reports
+- Milestone badges (15 badges) and weekly reports
 - Email nurture sequences (10 automated emails)
-- **Target: Q3 2026**
+- 50+ AU founders, 200+ SVI analyses, $2M+ valuations tracked
+- **Status: ✅ COMPLETE**
 
-### Phase 3: MVP & Dollar Valuation 📋 PLANNED
+### Phase 3: MVP & Dollar Valuation ⚡ IN PROGRESS
 **Owner: CPO + CFO**
-- Dollar valuation engine (multiples, comparables, DCF)
+- Dollar valuation engine (multiples, comparables, DCF) — foundation deployed
+- Modular section pricing (Scan → Expert, 6 depth tiers)
+- Transparent credit-per-word pricing model
+- 16-page report structure (10 standard + 6 premium)
 - Revenue tracking from Stripe/Xero
 - Benchmarking against 2,600 Australian startups
-- Founder Value Index (team scoring)
-- **Target: Q4 2026**
+- **Status: ⚡ Foundation deployed, completing**
 
-### Phase 4: Equity & Cap Table 📋 PLANNED
-**Owner: CTO + Blockchain Expert**
-- Full cap table management (shares, options, convertibles)
+### Phase 4: Equity & Cap Table ⚡ IN PROGRESS
+**Owner: CTO + CBO**
+- Full cap table management (shares, options, convertibles) — core deployed
 - Vesting schedule engine (4-year cliff, acceleration)
 - Share class management (ordinary, preference, seed)
-- Board resolution templates
+- AI equity recommendations (split, vesting, ESOP, share structure)
+- SVI-linked share pricing (fixed + dynamic modes)
 - ESOP pool management
-- **Target: Q1 2027**
+- **Status: ⚡ Core deployed, AI equity features building**
 
-### Phase 5: Tokenization (Cosmos Blockchain) 📋 PLANNED
-**Owner: Blockchain Expert + CTO**
-- Private Cosmos SDK blockchain (app-chain)
-- Equity-to-token mapping (1 share = 1 token)
-- CosmWasm vesting smart contracts
+### Phase 5: Tokenization (Cosmos Blockchain) ✅ CHAIN LIVE
+**Owner: CBO + CTO**
+- Private Cosmos SDK blockchain (testnet live: blockid-testnet-1)
+- Off-chain first architecture — blockchain is optional transparency layer
+- Per-startup ERC-20 tokens with NASDAQ-style tickers (3-4 chars)
+- Sync toggle per startup (on/off/pause/catch-up)
 - MetaMask wallet integration (via Ethermint EVM module)
-- Custodial + self-custody wallet options
-- Bi-directional cap table ↔ chain sync
-- **Target: Q2-Q3 2027**
+- VestingVault.sol, DividendDistributor.sol smart contracts
+- **Status: ✅ Testnet live, sync engine + token factory building**
 
-### Phase 6: Investment & Fundraise 📋 PLANNED
-**Owner: CRO + CFO + Blockchain Expert**
+### Phase 6: Investment & Fundraise ⚡ STARTING
+**Owner: CRO + CFO + CBO**
 - One-click data room generation from Evidence Vault
 - Fundraise round wizard (SAFE, convertible note, priced round)
 - Auto share-price calculation + dilution modeling
 - Investor CRM with activity tracking
 - On-chain share issuance for completed rounds
-- Term sheet comparison tool
-- **Target: Q3-Q4 2027**
+- Pitch deck v1 ready, directory profiles created
+- **Status: ⚡ Pitch deck + data room template ready, starting accelerator applications**
 
 ### Phase 7: Revenue & Dividends 📋 PLANNED
-**Owner: CFO + Blockchain Expert**
+**Owner: CFO + CBO**
 - Real-time P&L dashboard (Stripe/Xero/QuickBooks)
 - Revenue-to-SVI feed (auto-updates valuation)
 - Dividend calculation engine (net income × policy → per-share)
-- On-chain dividend distribution (proportional to token holdings)
+- Dual-mode dividend distribution (off-chain calc + optional on-chain claim)
 - Australian tax compliance (franking credits, CGT)
 - **Target: 2028**
 
 ### Phase 8: Growth, Exit & Exchange 📋 PLANNED
-**Owner: All C-Levels + Blockchain Expert**
+**Owner: All C-Levels + CBO**
 - Growth journal (decisions, pivots, milestones)
 - Quarterly revaluation reports (409A-equivalent)
 - SVI-to-exchange index simulation

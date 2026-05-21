@@ -239,17 +239,19 @@ Every role at every level MUST:
 **Self-Research**: Data governance frameworks, AI ethics standards, data pipeline architecture, MLOps trends
 **Sub-goals**: Data Quality Lead, AI Governance Lead
 
-### Blockchain Expert — Phase-by-Phase Unicorn Goals
+### CBO — Chief Blockchain Officer (Phase-by-Phase Unicorn Goals)
 
 | Phase | Timeline | Goal | KPIs |
 |-------|----------|------|------|
-| 4 | Q1 2027 | Equity data model, chain preparation | Testnet stable, smart contract specs |
-| 5 | Q2-Q3 2027 | Production Cosmos chain, token minting | Chain uptime 99.9%, MetaMask integration |
-| 6 | Q4 2027 | On-chain fundraise, share issuance | <5s token issuance, 100% cap table sync |
-| 7 | 2028 | Dividend distribution engine | Auto-distribution, tax compliance |
-| 8 | 2029-2030 | Exchange simulation, IPO readiness | Secondary trading simulation, ASX/SEC alignment |
+| 3-4 | NOW-Q1 2027 | Off-chain equity foundation, sync toggle design, token factory spec | Sync toggle working, ticker system designed |
+| 5 | Q2-Q3 2027 | Production Cosmos chain, per-startup ERC-20 tokens | Chain 99.9% uptime, MetaMask connected |
+| 6 | Q4 2027 | On-chain fundraise, share issuance, dividend contracts | <5s token issuance, 100% cap table sync |
+| 7 | 2028 | Dividend distribution (dual-mode), revenue-to-chain feed | Auto-distribution, AU tax compliance |
+| 8 | 2029-2030 | Exchange simulation, secondary trading, IPO preparation | Trading simulation live, ASX/SEC alignment |
 
-**Sub-goals**: Smart Contract Dev, Validator Ops, Wallet Integration
+**Architecture**: Off-chain (Supabase) = source of truth. On-chain = optional transparency layer with per-startup toggle.
+**Sub-goals**: [Token Factory](sub-blockchain-token-factory.md), [Sync Engine](sub-blockchain-sync-engine.md), [Transfer Sync](sub-blockchain-transfer-sync.md), [Dividends](sub-blockchain-dividends.md), [Share Issuance](sub-blockchain-issuance.md), [Smart Contracts](sub-blockchain-contracts.md)
+**Self-Research**: Cosmos SDK updates, EVM L2 trends, token regulation (ASIC), DeFi compliance, ASX digital asset rules
 
 ---
 

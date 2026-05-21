@@ -1,14 +1,18 @@
 export const BRAND = {
   colors: {
+    brand: "#3B7DD8",
     brand500: "#3B7DD8",
     brand600: "#2B6BC4",
     brand400: "#5B9AEB",
     ink950: "#0B1220",
     ink900: "#0F172A",
     ink800: "#172033",
+    ink500: "#64748B",
+    ink400: "#94A3B8",
     slate50: "#F8FAFC",
     slate300: "#CBD5E1",
     slate400: "#94A3B8",
+    gold: "#FBBF24",
     gold400: "#FBBF24",
     emerald500: "#10B981",
     red400: "#F87171",
@@ -16,6 +20,7 @@ export const BRAND = {
   },
   fonts: {
     heading: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
+    body: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
     mono: "'IBM Plex Mono', 'SF Mono', Monaco, Consolas, monospace",
   },
   fps: 30,

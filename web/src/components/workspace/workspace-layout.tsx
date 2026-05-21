@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity, Banknote, BarChart3, Bell, BookOpen, Briefcase, Calendar, ChevronLeft, ChevronRight, CreditCard, DollarSign, DoorOpen, ExternalLink, FileText, FolderCheck, FolderOpen, Gift, Home,
-  LayoutDashboard, Map, PieChart, Shield, Table2, TrendingUp, User, Users, Wand2,
+  LayoutDashboard, Link2, Map, PieChart, Shield, Table2, TrendingUp, User, Users, Wand2, Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
@@ -60,6 +60,8 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/workspace/shareholders", label: "Shareholders", icon: Shield },
       { href: "/workspace/esop", label: "ESOP", icon: Users },
       { href: "/workspace/vesting", label: "Vesting", icon: Calendar },
+      { href: "/workspace/wallet", label: "Wallet", icon: Wallet },
+      { href: "/workspace/equity-dashboard", label: "Blockchain Sync", icon: Link2 },
     ],
   },
   {

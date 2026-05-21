@@ -3,6 +3,7 @@ import type { SVIAnalysis } from "./svi-analysis";
 import { SVI_STAGE_LABELS } from "./svi-analysis";
 import type { InputType, TechAuditResult } from "./rnd-input";
 import { callAI } from "./ai-client";
+import { type SectionDepth, SECTION_DEPTH_CONFIG } from "./credits";
 
 export type ReportTier = "preview" | "standard" | "deep_dive";
 
@@ -491,4 +492,146 @@ export async function generateRndReport(
     createdAt: new Date().toISOString(),
     tier,
   };
+}
+
+// ── Modular Section Generation ──────────────────────────────────────────────
+// Generates only selected sections at chosen depth (word count).
+// Used by the per-section purchasing flow — user picks sections + depth,
+// sees transparent credit cost, confirms, then this generates.
+
+export interface SectionRequest {
+  sectionId: string;   // e.g. "executive", "market", "product"
+  depth: SectionDepth; // "scan" | "summary" | "standard" | "deep" | "expert" | "maximum"
+}
+
+const DEPTH_WORD_GUIDANCE: Record<SectionDepth, string> = {
+  scan: "Provide approximately 100 words — a quick signal check with yes/no assessments and a 1-line summary.",
+  summary: "Provide approximately 300 words — key findings with top 3 takeaways and brief rationale.",
+  standard: "Provide approximately 500 words — detailed analysis with identified gaps, evidence, and actionable recommendations.",
+  deep: "Provide approximately 1000 words — in-depth benchmarks, competitor context, data points, and a prioritized action plan.",
+  expert: "Provide approximately 2000 words — consultant-grade analysis with detailed financials, named competitors, market data, specific recommendations, and implementation timeline.",
+  maximum: "Provide 3000+ words — exhaustive, no-holds-barred analysis covering every angle. Include data tables, step-by-step plans, named competitors with URLs, financial projections, and strategic recommendations. This is the most comprehensive analysis possible.",
+};
+
+const DEPTH_SYSTEM_PROMPTS: Record<SectionDepth, string> = {
+  scan: SYSTEM_STANDARD,
+  summary: SYSTEM_STANDARD,
+  standard: SYSTEM_STANDARD,
+  deep: SYSTEM_DEEP_DIVE,
+  expert: SYSTEM_DEEP_DIVE,
+  maximum: SYSTEM_DEEP_DIVE,
+};
+
+const DEPTH_MAX_TOKENS: Record<SectionDepth, number> = {
+  scan: 1024,
+  summary: 2048,
+  standard: 4096,
+  deep: 6144,
+  expert: 8192,
+  maximum: 8192,
+};
+
+/**
+ * Generate specific report sections at chosen depth.
+ * Returns only the requested sections — not the full 10-page report.
+ * Each section is generated with a depth-appropriate word count and system prompt.
+ */
+export async function generateSectionReport(
+  input: string,
+  sviAnalysis: SVIAnalysis,
+  inputType: InputType,
+  sections: SectionRequest[],
+  scrapedData?: { title: string; description: string; text: string; techHints: string[] },
+  onStatus?: (msg: string) => void,
+  techAudit?: TechAuditResult,
+): Promise<RndReportPage[]> {
+  const context = buildContext(input, sviAnalysis, inputType, scrapedData, techAudit);
+
+  // Group sections by depth for batching efficiency (same depth = same prompt)
+  const byDepth = new Map<SectionDepth, string[]>();
+  for (const s of sections) {
+    const existing = byDepth.get(s.depth) ?? [];
+    existing.push(s.sectionId);
+    byDepth.set(s.depth, existing);
+  }
+
+  const allResults = new Map<string, BatchPageResult>();
+
+  // Generate each depth group (can run in parallel)
+  const depthPromises = [...byDepth.entries()].map(async ([depth, pageIds]) => {
+    const depthConfig = SECTION_DEPTH_CONFIG[depth];
+    const pageDefs = PAGE_DEFS.filter(p => pageIds.includes(p.id));
+    if (pageDefs.length === 0) return;
+
+    const pageDescriptions = pageDefs.map(p =>
+      `- pageId: "${p.id}" (Page ${p.num}: ${p.title} — ${p.subtitle})`
+    ).join("\n");
+
+    const wordGuidance = DEPTH_WORD_GUIDANCE[depth];
+    const disclaimer = `\n\nIMPORTANT: This analysis is produced by BlockID.au (Auschain PTY LTD, ACN 659 615 111). The Startup Value Index (SVI) is NOT a financial valuation or investment recommendation. Users should seek independent professional advice. All prices are AUD and include GST.`;
+
+    const userPrompt = `Analyse this startup and generate the following report sections at "${depthConfig.label}" depth (~${depthConfig.words} words each):
+
+${pageDescriptions}
+
+${wordGuidance}${disclaimer}
+
+## Context:
+${context}
+
+Return JSON with a "pages" array containing one object per page listed above. Each object must have: pageId, content (markdown), score (0-100), highlights (array of 2-3 key findings), dataPoints (object of key metrics).`;
+
+    onStatus?.(`Generating ${pageDefs.map(p => p.title).join(", ")} at ${depthConfig.label} depth...`);
+
+    const systemPrompt = DEPTH_SYSTEM_PROMPTS[depth];
+    const maxTokens = DEPTH_MAX_TOKENS[depth];
+
+    try {
+      const { text } = await callAI({
+        system: systemPrompt,
+        user: userPrompt,
+        maxTokens,
+      });
+
+      const parsed = parseAIResponse(text);
+      for (const page of parsed) {
+        if (page.pageId && pageIds.includes(page.pageId)) {
+          allResults.set(page.pageId, page);
+        }
+      }
+    } catch (err) {
+      console.error(`[rnd-analysis] Section batch (${depth}) failed:`, err);
+    }
+  });
+
+  await Promise.all(depthPromises);
+
+  // Build final pages for only the requested sections
+  const pages: RndReportPage[] = sections.map(({ sectionId, depth }) => {
+    const def = PAGE_DEFS.find(p => p.id === sectionId);
+    if (!def) return null;
+
+    const result = allResults.get(sectionId);
+    if (result && result.content) {
+      return {
+        pageId: def.id,
+        pageNum: def.num,
+        title: def.title,
+        subtitle: def.subtitle,
+        content: result.content,
+        score: typeof result.score === "number" ? Math.max(0, Math.min(100, result.score)) : undefined,
+        highlights: Array.isArray(result.highlights) ? result.highlights : [],
+        dataPoints: {
+          ...(result.dataPoints && typeof result.dataPoints === "object" ? result.dataPoints : {}),
+          depth,
+          targetWords: String(SECTION_DEPTH_CONFIG[depth].words),
+        },
+      };
+    }
+
+    return makeFallbackPage(def, input);
+  }).filter((p): p is RndReportPage => p !== null);
+
+  onStatus?.(`${pages.length} section${pages.length > 1 ? "s" : ""} generated.`);
+  return pages;
 }
