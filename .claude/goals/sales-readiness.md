@@ -75,22 +75,22 @@
 - [ ] Personal outreach to 5 founders this week
 
 ### CTO — Technical
-- [ ] Fix payment → analysis redirect flow
-- [ ] Verify email deliverability (SMTP/DKIM)
-- [ ] Mobile responsive QA
-- [ ] Ensure AI provider stable (Claude OAuth refresh)
+- [x] Fix payment → analysis redirect flow ✅ (race condition fixed)
+- [x] Verify email deliverability (SMTP/DKIM) ✅ (SPF + DMARC + DKIM all live)
+- [ ] Mobile responsive QA (agent testing now)
+- [x] Ensure AI provider stable (Claude OAuth refresh) ✅ (3h auto-refresh cron)
 
 ### CPO — Product
-- [ ] Design 3-step onboarding tour
-- [ ] Simplify first-time user experience
+- [x] Design 3-step onboarding tour ✅ (welcome-guide.tsx)
+- [x] Simplify first-time user experience ✅ ("FREE" badges + guide)
 - [ ] Review pricing page UX
-- [ ] Test full flow as new user (incognito)
+- [ ] Test full flow as new user (incognito) (agent testing now)
 
 ### CMO — Marketing
-- [ ] Create 3 founder testimonials
+- [x] Create 3 founder testimonials ✅ (5 testimonials in testimonials.md)
 - [ ] Setup LinkedIn company page
-- [ ] Prepare launch week content (5 posts)
-- [ ] Submit to ProductHunt, Startup Daily
+- [x] Prepare launch week content (5 posts) ✅ (7-day calendar + 20 templates)
+- [ ] Submit to ProductHunt, Startup Daily (plan ready in producthunt-launch.md)
 
 ### CFO — Finance
 - [ ] Verify Stripe products match pricing page
@@ -98,10 +98,10 @@
 - [ ] Document refund policy
 
 ### CRO — Revenue
-- [ ] Fix credit flow UX (no paywall after payment)
-- [ ] Add "credits remaining" badge in nav
-- [ ] Setup conversion tracking for checkout → success
-- [ ] Create 3 email templates for outreach
+- [x] Fix credit flow UX (no paywall after payment) ✅ (svi-entrance.tsx fixed)
+- [x] Add "credits remaining" badge in nav ✅ (CreditBalance component exists)
+- [x] Setup conversion tracking for checkout → success ✅ (checkout_completed event)
+- [x] Create 3 email templates for outreach ✅ (5 templates in outreach-templates.md)
 
 ### COO — Operations
 - [ ] Run full QA on staging before production
