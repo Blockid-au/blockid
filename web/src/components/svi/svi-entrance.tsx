@@ -896,7 +896,7 @@ export function SVIEntrance() {
           </div>
 
           {/* 4 Pillars */}
-          <div className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-5">
+          <div className="mt-20 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
             {PILLARS.map(({ icon: Icon, title, desc }) => (
               <div key={title} className="text-center rounded-2xl border border-surface-200/80 bg-white/80 backdrop-blur px-5 py-6 shadow-sm bento-card">
                 <div className="mx-auto mb-3 h-10 w-10 rounded-lg bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-600">
@@ -1135,7 +1135,7 @@ export function SVIEntrance() {
               <div className="absolute top-3 right-3 sm:top-4 sm:right-4 rounded-full bg-emerald-600 px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-wider">Launch Price</div>
               <p className="text-xs uppercase tracking-[0.15em] text-ink-500 font-medium mb-2">Per-Analysis</p>
               <h3 className="text-xl font-bold text-ink-800 mb-1">SVI Analysis Report</h3>
-              <p className="text-3xl font-extrabold text-brand-600 mb-1">A$0.50 <span className="text-base text-ink-400 line-through font-normal ml-1">$25</span></p>
+              <p className="text-2xl sm:text-3xl font-extrabold text-brand-600 mb-1">A$0.50 <span className="text-base text-ink-400 line-through font-normal ml-1">$25</span></p>
               <p className="text-xs text-emerald-600 font-semibold mb-4">Fractional credits — pay only for what you use</p>
               <ul className="text-left text-sm text-ink-700 space-y-2 mb-6 mx-auto max-w-xs">
                 <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> 1st analysis free &mdash; no signup needed</li>
@@ -1155,7 +1155,7 @@ export function SVIEntrance() {
               <div className="absolute top-3 right-3 sm:top-4 sm:right-4 rounded-full bg-brand-600 px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-wider">Best Value</div>
               <p className="text-xs uppercase tracking-[0.15em] text-brand-600 font-medium mb-2">Founder Plan</p>
               <h3 className="text-xl font-bold text-ink-800 mb-1">Founding 50 Account</h3>
-              <p className="text-3xl font-extrabold text-brand-600 mb-1">A$49 <span className="text-base text-ink-400 line-through font-normal ml-1">$99</span></p>
+              <p className="text-2xl sm:text-3xl font-extrabold text-brand-600 mb-1">A$49 <span className="text-base text-ink-400 line-through font-normal ml-1">$99</span></p>
               <p className="text-xs text-ink-500 mb-4">Lifetime access &middot; Only 50 spots</p>
               <ul className="text-left text-sm text-ink-700 space-y-2 mb-6 mx-auto max-w-xs">
                 <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> 100 credits included</li>
