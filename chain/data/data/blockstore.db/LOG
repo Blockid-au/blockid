@@ -52,3 +52,33 @@
 05:23:59.152098 version@stat F·[2 4] S·11MiB[4MiB 7MiB] Sc·[0.50 0.07]
 05:23:59.153412 memdb@flush committed F·1 T·21.159586ms
 05:23:59.154825 journal@remove removed @15
+08:57:17.368681 memdb@flush N·15300 S·3MiB
+08:57:17.388940 memdb@flush created L0@20 N·15300 S·2MiB "BH:..866,v82510":"blo..ore,v76939"
+08:57:17.389022 version@stat F·[3 4] S·14MiB[7MiB 7MiB] Sc·[0.75 0.07]
+08:57:17.390797 memdb@flush committed F·1 T·22.058161ms
+08:57:17.392159 journal@remove removed @17
+12:29:59.744798 memdb@flush N·15264 S·3MiB
+12:29:59.773281 memdb@flush created L0@22 N·15264 S·2MiB "BH:..dc8,v103588":"blo..ore,v92239"
+12:29:59.773340 version@stat F·[4 4] S·16MiB[9MiB 7MiB] Sc·[1.00 0.07]
+12:29:59.774550 memdb@flush committed F·1 T·29.679206ms
+12:29:59.776296 journal@remove removed @19
+12:29:59.776348 table@compaction L0·4 -> L1·4 S·16MiB Q·107503
+12:29:59.816941 table@build created L1@23 N·22373 S·2MiB "BH:..dc8,v103588":"C:14007,v84047"
+12:29:59.843924 table@build created L1@24 N·12621 S·2MiB "C:14008,v84053":"C:9243,v55463"
+12:29:59.872053 table@build created L1@25 N·9146 S·2MiB "C:9244,v55469":"H:17475,v104847"
+12:29:59.902961 table@build created L1@26 N·9000 S·2MiB "H:17476,v104853":"H:9450,v56697"
+12:29:59.937156 table@build created L1@27 N·6806 S·2MiB "H:9451,v56703":"P:1557:0,v9338"
+12:29:59.975157 table@build created L1@28 N·6713 S·2MiB "P:1..0:0,v93476":"P:5496:0,v32972"
+12:30:00.010969 table@build created L1@29 N·8281 S·2MiB "P:5497:0,v32978":"SC:12946,v77676"
+12:30:00.033983 table@build created L1@30 N·12600 S·2MiB "SC:12947,v77682":"SC:8161,v48966"
+12:30:00.041580 table@build created L1@31 N·2041 S·333KiB "SC:8162,v48972":"blo..ore,v107497"
+12:30:00.041667 version@stat F·[0 9] S·16MiB[0B 16MiB] Sc·[0.00 0.16]
+12:30:00.042959 table@compaction committed F+1 S+73KiB Ke·0 D·10201 T·266.586104ms
+12:30:00.043466 table@remove removed @22
+12:30:00.043952 table@remove removed @20
+12:30:00.044528 table@remove removed @18
+12:30:00.044857 table@remove removed @16
+12:30:00.045094 table@remove removed @11
+12:30:00.045532 table@remove removed @12
+12:30:00.045736 table@remove removed @13
+12:30:00.045853 table@remove removed @14
