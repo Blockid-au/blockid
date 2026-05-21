@@ -784,6 +784,7 @@ export function RndResultsPanel({
   onUnlock,
   onUpgradeDeepDive,
   previousAnalysis,
+  techAudit,
 }: {
   report: RndReport;
   analysis: SVIAnalysis;

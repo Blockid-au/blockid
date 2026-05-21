@@ -82,3 +82,8 @@
 12:30:00.045532 table@remove removed @12
 12:30:00.045736 table@remove removed @13
 12:30:00.045853 table@remove removed @14
+16:02:37.508632 memdb@flush N·15246 S·3MiB
+16:02:37.550673 memdb@flush created L0@33 N·15246 S·2MiB "BH:..666,v111376":"blo..ore,v107503"
+16:02:37.550927 version@stat F·[1 9] S·18MiB[2MiB 16MiB] Sc·[0.25 0.16]
+16:02:37.559499 memdb@flush committed F·1 T·50.760994ms
+16:02:37.561210 journal@remove removed @21

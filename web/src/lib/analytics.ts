@@ -28,6 +28,10 @@ export interface AnalyticsEventMap {
   svi_paywall_credit_pack_click: { pack: string; credits: number };
   svi_paywall_coupon_submit: { code: string };
   svi_credit_gate_shown: { balance: number; cost: number };
+  svi_paywall_founding50_click: Record<string, never>;
+  svi_section_picker_opened: Record<string, never>;
+  svi_modular_submitted: { sectionCount: number };
+  svi_modular_complete: { sectionCount: number; totalCredits: number };
 
   // ── Score Form ──
   score_form_started: Record<string, never>;

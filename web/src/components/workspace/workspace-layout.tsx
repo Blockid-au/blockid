@@ -4,12 +4,13 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Activity, Banknote, BarChart3, Bell, BookOpen, Briefcase, ChevronLeft, ChevronRight, CreditCard, DollarSign, DoorOpen, FileText, FolderCheck, FolderOpen, Gift, Home,
+  Activity, Banknote, BarChart3, Bell, BookOpen, Briefcase, ChevronLeft, ChevronRight, CreditCard, DollarSign, DoorOpen, ExternalLink, FileText, FolderCheck, FolderOpen, Gift, Home,
   LayoutDashboard, Map, PieChart, Shield, Table2, TrendingUp, User, Users, Wand2,
   type LucideIcon,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { CreditBalance } from "@/components/ui/credit-balance";
+import { CreditBadge } from "@/components/workspace/credit-badge";
 import { ProjectSwitcher } from "@/components/ui/project-switcher";
 import { cn } from "@/lib/utils";
 
@@ -91,7 +92,10 @@ const NAV_GROUPS: NavGroup[] = [
 
 const ADMIN_NAV_GROUP: NavGroup = {
   label: "Admin",
-  items: [{ href: "/admin", label: "Admin Panel", icon: Shield }],
+  items: [
+    { href: "/admin", label: "Admin Panel", icon: Shield },
+    { href: "/admin/listings", label: "Listings", icon: ExternalLink },
+  ],
 };
 
 export function WorkspaceLayout({ children, user, startupName, notificationCount = 0 }: WorkspaceLayoutProps) {
@@ -166,8 +170,9 @@ export function WorkspaceLayout({ children, user, startupName, notificationCount
           ))}
         </nav>
 
-        {/* Bottom: home link */}
-        <div className="px-2 pb-3 border-t border-surface-200 pt-3">
+        {/* Bottom: credit badge + home link */}
+        <div className="px-2 pb-3 border-t border-surface-200 pt-3 space-y-2">
+          {sidebarOpen && <div className="px-1"><CreditBadge /></div>}
           <Link href="/" className="flex items-center gap-3 px-2.5 py-2 rounded-xl text-sm text-ink-600 hover:text-ink-800 hover:bg-surface-100 transition-colors">
             <Home strokeWidth={1.75} className="h-4 w-4 shrink-0" />
             {sidebarOpen && <span>Back to Home</span>}

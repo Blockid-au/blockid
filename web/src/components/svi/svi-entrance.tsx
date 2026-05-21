@@ -35,6 +35,7 @@ import { SVIResultsPanel } from "@/components/svi/svi-results-panel";
 import { RndResultsPanel } from "@/components/svi/rnd-results-panel";
 import { RndStatusBar } from "@/components/svi/rnd-status-bar";
 import { CreditGate } from "@/components/ui/credit-gate";
+import { SectionPicker, type SectionSelection } from "@/components/svi/section-picker";
 import { LanguageToggle } from "@/components/ui/language-toggle";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import type { RndReport, ClientTechAuditResult } from "@/lib/rnd-types";
@@ -136,6 +137,10 @@ export function SVIEntrance() {
     cost: number;
     feature: string;
   }>({ open: false, balance: 0, cost: 0, feature: "svi_analysis" });
+  const [showSectionPicker, setShowSectionPicker] = React.useState(false);
+  const [sectionPickerCredits, setSectionPickerCredits] = React.useState(0);
+  const [sectionPickerLoading, setSectionPickerLoading] = React.useState(false);
+  const [modularReport, setModularReport] = React.useState<Record<string, { markdown: string; wordCount: number }> | null>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const emailRef = React.useRef("");
@@ -646,6 +651,116 @@ export function SVIEntrance() {
     // Server-side: the coupon flow handles its own DB logic; we just
     // unblock the UI here. The API route will re-check on submit.
   };
+
+  // Called when user wants to open the Custom Sections picker
+  const handleOpenSectionPicker = async () => {
+    setShowPaywall(false);
+    try {
+      const res = await fetch("/api/credits");
+      const data = await res.json();
+      if (data.ok) setSectionPickerCredits(data.balance ?? 0);
+    } catch { /* fallback to 0 */ }
+    setShowSectionPicker(true);
+    trackEvent("svi_section_picker_opened", {});
+  };
+
+  // Called when user confirms section selections from the picker
+  const handleSectionPickerConfirm = async (selections: SectionSelection) => {
+    if (!email || !email.includes("@")) {
+      setError("Please enter a valid email address.");
+      setShowSectionPicker(false);
+      return;
+    }
+    const rawText = file ? `File: ${file.name}\n${text}` : text;
+    if (!rawText.trim()) {
+      setError("Please describe your idea or upload a document first.");
+      setShowSectionPicker(false);
+      return;
+    }
+
+    setSectionPickerLoading(true);
+    trackEvent("svi_modular_submitted", { sectionCount: selections.length });
+
+    try {
+      const res = await fetch("/api/svi/modular", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, rawText: rawText.trim(), sections: selections }),
+      });
+
+      if (res.status === 401) {
+        setError("Please sign in to use Custom Sections.");
+        setShowSectionPicker(false);
+        setSectionPickerLoading(false);
+        return;
+      }
+      if (res.status === 402) {
+        const gateData = await res.json();
+        setCreditGate({ open: true, balance: gateData.balance ?? 0, cost: gateData.cost ?? 0, feature: "modular_report" });
+        setShowSectionPicker(false);
+        setSectionPickerLoading(false);
+        return;
+      }
+
+      const data = await res.json();
+      if (!data.ok) {
+        setError(data.error || "Modular analysis failed.");
+        setSectionPickerLoading(false);
+        return;
+      }
+
+      setModularReport(data.sections);
+      setShowSectionPicker(false);
+      setSectionPickerLoading(false);
+      setState("done");
+      trackEvent("svi_modular_complete", { sectionCount: Object.keys(data.sections).length, totalCredits: data.totalCredits });
+    } catch {
+      setError("Network error. Please try again.");
+      setSectionPickerLoading(false);
+    }
+  };
+
+  // ── Modular report results view
+  if (state === "done" && modularReport && !result) {
+    const sectionNames: Record<string, string> = {
+      executive: "Executive Summary", market: "Market & Problem", product: "Product & Technology",
+      business: "Business Model", competition: "Competition & Moat", traction: "Traction & Growth",
+      team: "Team & Execution", financial: "Financial Projections", risk: "Risk Assessment",
+      recommendations: "Recommendations",
+    };
+    return (
+      <div id="svi-results" className="min-h-svh bg-surface-100 flex flex-col">
+        <header className="px-6 py-5 flex items-center justify-between max-w-2xl mx-auto w-full">
+          <Link href="/" className="inline-flex items-center">
+            <Image src="/images/logo-icon-transparent.png" alt="" width={28} height={28} className="h-7 w-7" /><span className="ml-2.5 text-lg font-extrabold tracking-tight text-ink-900">BlockID<span className="text-brand-500">.au</span></span>
+          </Link>
+          <button type="button" onClick={() => { handleReset(); setModularReport(null); }} className="text-xs text-ink-600 hover:text-ink-800 cursor-pointer transition-colors flex items-center gap-1.5">
+            <X strokeWidth={1.75} className="h-3.5 w-3.5" /> New analysis
+          </button>
+        </header>
+        <main className="flex-1 px-4 pb-12">
+          <div className="mx-auto max-w-[680px]">
+            <div className="text-center mb-8">
+              <p className="text-xs uppercase tracking-[0.18em] text-brand-600 font-medium mb-2">Custom Modular Report</p>
+              <h2 className="text-2xl font-bold text-ink-900">{Object.keys(modularReport).length} Sections Generated</h2>
+              <p className="text-sm text-ink-500 mt-1">
+                {Object.values(modularReport).reduce((sum, s) => sum + s.wordCount, 0).toLocaleString()} words total
+              </p>
+            </div>
+            <div className="space-y-6">
+              {Object.entries(modularReport).map(([sectionId, data]) => (
+                <div key={sectionId} className="rounded-2xl border border-surface-200 bg-white p-6 shadow-sm">
+                  <h3 className="text-lg font-bold text-ink-900 mb-1">{sectionNames[sectionId] ?? sectionId}</h3>
+                  <p className="text-xs text-ink-500 mb-4">{data.wordCount} words</p>
+                  <div className="prose prose-sm max-w-none text-ink-700 leading-relaxed whitespace-pre-wrap">{data.markdown}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   // ── Results view
   if (state === "done" && result) {
@@ -1242,7 +1357,18 @@ export function SVIEntrance() {
         <SVIPaywall
           onClose={() => setShowPaywall(false)}
           onCouponGrant={handleCouponGrant}
+          onCustomSections={handleOpenSectionPicker}
           email={email}
+        />
+      )}
+
+      {/* ── SECTION PICKER MODAL ────────────────────────────────────── */}
+      {showSectionPicker && (
+        <SectionPicker
+          credits={sectionPickerCredits}
+          loading={sectionPickerLoading}
+          onConfirm={handleSectionPickerConfirm}
+          onClose={() => { setShowSectionPicker(false); setSectionPickerLoading(false); }}
         />
       )}
 
@@ -1317,10 +1443,12 @@ function CreditPackCard({
 function SVIPaywall({
   onClose,
   onCouponGrant,
+  onCustomSections,
   email: parentEmail,
 }: {
   onClose: () => void;
   onCouponGrant: () => void;
+  onCustomSections: () => void;
   email?: string;
 }) {
   const [couponCode, setCouponCode] = React.useState("");
@@ -1446,46 +1574,71 @@ function SVIPaywall({
           </p>
         </div>
 
-        {/* Credit packs */}
+        {/* Three options: Quick Report / Custom Sections / Founder Plan */}
         <div className="space-y-3">
+          {/* Option A: Quick Report */}
           <CreditPackCard
-            credits={1}
-            price="A$1"
-            label="Single Analysis"
-            desc="Try one more report"
+            credits={0.5}
+            price="0.50 cr"
+            label="A. Quick Report"
+            desc="3-page scan — all 10 sections at a glance"
             onClick={handleSingleAnalysis}
             highlight={false}
             loading={checkoutLoading === "single"}
           />
-          <CreditPackCard
-            credits={5}
-            price="A$5"
-            label="Starter Pack"
-            desc="A$1.00 per credit"
-            onClick={() => handleCreditPack(5, "starter")}
-            highlight={false}
-            loading={checkoutLoading === "starter"}
-          />
-          <CreditPackCard
-            credits={25}
-            price="A$20"
-            label="Growth Pack"
-            desc="A$0.80 per credit — best value"
-            onClick={() => handleCreditPack(25, "growth")}
-            highlight={true}
-            loading={checkoutLoading === "growth"}
-          />
+
+          {/* Option B: Custom Sections */}
+          <button
+            type="button"
+            onClick={onCustomSections}
+            className="flex items-center justify-between rounded-2xl border border-brand-500 bg-brand-50 p-4 transition-all hover:shadow-md w-full text-left cursor-pointer shadow-sm"
+          >
+            <div>
+              <p className="text-sm font-bold text-ink-900">B. Custom Sections</p>
+              <p className="text-xs text-ink-500 mt-0.5">Choose which sections and depth — pay only for what you need</p>
+            </div>
+            <div className="text-right shrink-0 ml-3">
+              <p className="text-lg font-bold text-brand-600">from 0.10</p>
+              <p className="text-[10px] text-ink-500">credits/section</p>
+            </div>
+          </button>
+
+          {/* Option C: Founder Plan */}
+          <button
+            type="button"
+            onClick={() => { trackEvent("svi_paywall_founding50_click", {}); window.location.href = "/founding-50"; }}
+            className="flex items-center justify-between rounded-2xl border border-surface-200 bg-white p-4 transition-all hover:shadow-md w-full text-left cursor-pointer hover:border-brand-300"
+          >
+            <div>
+              <p className="text-sm font-bold text-ink-900">C. Founder Plan</p>
+              <p className="text-xs text-ink-500 mt-0.5">100 credits + unlimited platform access</p>
+            </div>
+            <div className="text-right shrink-0 ml-3">
+              <p className="text-lg font-bold text-brand-600">A$49</p>
+              <p className="text-[10px] text-ink-500">one-time</p>
+            </div>
+          </button>
         </div>
 
-        {/* Founding 50 upgrade link */}
-        <div className="mt-4 text-center">
-          <p className="text-xs text-ink-500">
-            Or upgrade to{" "}
-            <Link href="/founding-50" className="text-brand-600 font-medium hover:text-brand-700 transition-colors">
-              Founding 50 ($49)
-            </Link>{" "}
-            for 100 credits + full platform access
-          </p>
+        {/* Credit pack upsell */}
+        <div className="mt-4 flex justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => handleCreditPack(5, "starter")}
+            disabled={!!checkoutLoading}
+            className="text-xs font-medium text-brand-600 hover:text-brand-700 transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {checkoutLoading === "starter" ? "..." : "Buy 5 credits (A$5)"}
+          </button>
+          <span className="text-xs text-ink-300">|</span>
+          <button
+            type="button"
+            onClick={() => handleCreditPack(25, "growth")}
+            disabled={!!checkoutLoading}
+            className="text-xs font-medium text-brand-600 hover:text-brand-700 transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {checkoutLoading === "growth" ? "..." : "Buy 25 credits (A$20, save 20%)"}
+          </button>
         </div>
 
         {/* Error message */}

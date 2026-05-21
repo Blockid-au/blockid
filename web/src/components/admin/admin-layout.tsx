@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Coins,
+  ExternalLink,
   FileText,
   FlaskConical,
   GraduationCap,
@@ -42,6 +43,7 @@ const ADMIN_NAV = [
   { href: "/admin/rnd", label: "R&D Reports", icon: FlaskConical },
   { href: "/admin/accelerator", label: "Accelerator", icon: GraduationCap },
   { href: "/admin/tokens", label: "Token Management", icon: Coins },
+  { href: "/admin/listings", label: "Listings", icon: ExternalLink },
 ];
 
 export function AdminLayout({ children, user }: AdminLayoutProps) {
