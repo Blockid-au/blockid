@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity, Banknote, BarChart3, Bell, BookOpen, Briefcase, ChevronLeft, ChevronRight, CreditCard, DollarSign, DoorOpen, FileText, FolderCheck, FolderOpen, Gift, Home,
-  LayoutDashboard, Map, PieChart, Shield, Table2, TrendingUp, User, Users,
+  LayoutDashboard, Map, PieChart, Shield, Table2, TrendingUp, User, Users, Wand2,
   type LucideIcon,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
@@ -53,6 +53,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Ownership & Equity",
     stage: "MVP \u2192 Launch",
     items: [
+      { href: "/workspace/equity-setup", label: "Equity Setup", icon: Wand2 },
       { href: "/workspace/equity", label: "Equity Split", icon: PieChart },
       { href: "/workspace/cap-table", label: "Cap Table", icon: Table2 },
       { href: "/workspace/shareholders", label: "Shareholders", icon: Shield },

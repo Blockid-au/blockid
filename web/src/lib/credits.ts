@@ -51,6 +51,13 @@ export const FEATURE_COSTS: Record<string, number> = {
   // ── Comprehensive reports (no page limit for paid users) ──────────────
   full_report_standard: 2.00, // All 8 dimensions, 2000+ words
   full_report_premium: 5.00,  // Investor memo format, 5000+ words
+
+  // ── AI Equity Recommendations (Phase 4) ──────────────────────────────
+  ai_equity_split: 1.00,      // Slicing Pie + AU benchmarks
+  ai_vesting: 0.50,           // Vesting schedule recommendation
+  ai_share_structure: 0.75,   // Fixed vs dynamic share structure
+  ai_esop: 0.50,              // ESOP pool sizing recommendation
+  ai_vesting_review: 1.50,    // Comprehensive vesting audit
 };
 
 // ---------------------------------------------------------------------------
