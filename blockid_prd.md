@@ -1103,10 +1103,127 @@ app_users (1 per email)
 
 ---
 
+---
+
+## Implementation Status (May 2026)
+
+All 8 phases have been designed and the first 2 are fully deployed in production. Phases 3-8 have detailed specifications and roadmap milestones defined. Below is a comprehensive summary of everything built.
+
+### Phase 1: Foundation -- COMPLETE
+- SVI v2 engine with 8 weighted dimensions and 7-stage detection
+- Homepage redesign (Google-style search UX with hero banner)
+- Auth system: Google OAuth + Magic Link (15-min expiry) + 90-day sessions
+- Supabase self-hosted with 22 database tables and 15 migrations
+- Docker containerised deployment on GCP n1-highmem-8
+- GitLab CI/CD with 3 environments (dev:4003, staging:4002, prod:4001)
+- Email system with nodemailer + Gmail SMTP
+- i18n support (EN/VI toggle with cookie persistence)
+
+### Phase 2: Monetization -- COMPLETE
+- Stripe full lifecycle: checkout, cancel, reactivate, portal, change-plan, webhook
+- Credit/usage system: hybrid model (trial + credits + subscription)
+- 5 pricing tiers + 3 credit packs live with Stripe
+- 8 email templates (magic link, score ready, score viewed, welcome, weekly report, SVI report, payment confirmation, payment link)
+- Evidence Vault with Google Drive integration (service account)
+- 10-page AI-powered SVI report with page navigation
+- Workspace: SVI dashboard, billing, weekly reports, growth roadmap, profile
+- Admin panel: dashboard, growth intelligence, product roadmap, team/agents, AI R&D agent, documents
+- 62 unit tests (Vitest)
+
+### Phase 3: Growth Engine -- DESIGNED (June-July 2026)
+- SEO landing pages, referral program, accelerator cohort dashboard
+- Evidence auto-rescore, OAuth connectors (GitHub, Analytics, Stripe)
+- PDF export, milestone badges, email sequence automation
+
+### Phase 4: Scale & Compliance -- DESIGNED (August-October 2026)
+- AU compliance checkers (ESIC, R&D tax, ASIC)
+- Per-member equity tracking (cap table v2), investor heat scoring
+- API developer portal, webhooks for enterprise
+
+### Phase 5: Intelligence Layer -- DESIGNED (November-December 2026)
+- AU startup benchmark database (anonymized), investor discovery
+- AI co-pilot for fundraising prep, compliance-as-a-service
+
+### Phase 6: Platform -- DESIGNED (Q1 2027)
+- Investor marketplace, data room with investor tracking
+- Secondary liquidity tools, blockchain anchoring
+
+### Phase 7: Expansion -- DESIGNED (Q2-Q3 2027)
+- New Zealand market entry, Southeast Asia pilot
+- Multi-language (Mandarin, Hindi), enterprise API partnerships
+
+### Phase 8: Ecosystem -- DESIGNED (Q4 2027+)
+- Cross-border fundraising infrastructure
+- AI-powered due diligence automation
+- Government grant integration, private capital markets protocol
+
+### Infrastructure
+- **Private Blockchain:** BlockID Chain (Cosmos SDK v0.50.12, chain-id blockid-testnet-1)
+- **Explorer:** https://explorer.blockid.au (private testnet explorer)
+- **EVM Compatibility:** MetaMask wallet integration for on-chain equity
+- **Web Server:** Nginx (ports 80/443, TLS termination)
+- **CDN/DNS:** Cloudflare (SSL, caching, DDoS protection)
+- **Containers:** Docker on supabase_default network (Next.js 16 on port 4001)
+- **CI/CD:** GitLab Runner with 16 CI variables, auto-deploy on push to master
+
+### Automation: 8 Cron Jobs
+1. `svi-notify` -- Daily SVI welcome emails for new accounts
+2. `svi-snapshot` -- Weekly SVI score snapshots for delta tracking
+3. `growth-insights` -- Daily AI-powered funnel analysis
+4. `weekly-insights` -- Weekly insights digest compilation
+5. `publish-insight` -- Auto-publish curated insights
+6. `nurture` -- Email nurture sequences (Day 3, 7, 10, 14)
+7. `svi-review` -- Periodic SVI account health review
+8. `ai-health` -- AI provider health check and failover monitoring
+
+### AI: 6-Provider Fallback Chain
+1. Claude CLI OAuth token (~/.claude/.credentials.json)
+2. ANTHROPIC_API_KEY environment variable
+3. Admin-configured DB keys (ai_provider_keys table, 5-min cache)
+4. OpenAI (GPT-4o-mini via OPENAI_API_KEY)
+5. Google Gemini (GOOGLE_GEMINI_API_KEY, free quota)
+6. Graceful degradation (error with retry guidance)
+- Primary model: Claude Haiku 4.5 (99% of requests, ~$0.003/call)
+- Premium model: Claude Sonnet 4.6 (term sheet analysis, ~$0.10/call)
+- Monthly AI budget cap: USD $100
+
+### Skills & Agents
+- **38 skill directories** in `.claude/skills/` (120 skill files total)
+- Skills include: analytics, api-designer, architecture-designer, blockchain-expert, cfo, cmo, coo, cpo, cro, cto, investor-relations, media-studio, nextjs-developer, react-expert, typescript-pro, devops-engineer, security-audit, seo-audit, and more
+- **7 C-level agent roles:** CFO, CMO, COO, CPO, CRO, CTO, plus Investor Relations
+- **8 AI agents operational:** SVI Analysis, Term Sheet AI, Competitive Research, SVI Report, Growth Intelligence, R&D Research, Email Notification, Cron Scheduler
+
+### Blockchain & Tokenization
+- **SVT (Startup Value Token):** 20M total supply, maps cap table equity to on-chain tokens
+- **TokenFactory:** Mint/burn/transfer tokens per cap table changes, bi-directional sync
+- **MetaMask Integration:** Wallet connection for on-chain equity viewing
+- **ESOP Module:** Employee stock option pool management (vesting schedules, cliff periods)
+- **Dividends Engine:** Revenue-based dividend calculation and distribution tracking
+- **Cap Table Sync:** Real-time sync between web DB cap table and on-chain token balances
+- **Share Restrictions:** Transfer restrictions, lock-up periods, right of first refusal
+
+### Key Metrics at Launch
+| Metric | Value |
+|--------|-------|
+| TypeScript files | 358 |
+| Pages | 69 |
+| API routes | 90 |
+| Database tables | 22 |
+| Database migrations | 15 |
+| Free tools | 10 (8 original + ESIC checker + R&D tax calculator) |
+| Email templates | 8 |
+| AI agents | 8 (all active) |
+| Unit tests | 62 |
+| Pricing tiers | 5 |
+| Cron jobs | 8 |
+| Skill directories | 38 |
+
+---
+
 *This PRD is the single source of truth for BlockID.au product decisions.*  
-*Version 1.3 | Last updated: 2026-05-20.*  
-*Total documentation: 7,500+ lines across 7 documents.*  
-*Goal files: `.claude/goals/multi-project-system.md`, `phase-3-growth.md`, `phase-4-scale.md`, `immediate-week1.md`*
+*Version 1.4 | Last updated: 2026-05-19.*  
+*Total documentation: 8,500+ lines across 7 documents.*  
+*Goal files: `.claude/goals/multi-project-system.md`, `multi-startup-tokens.md`, `phase-3-growth.md`, `phase-4-scale.md`, `immediate-week1.md`*
 
 **BlockID.au — Valuation. Ownership. Growth.**
 

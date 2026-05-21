@@ -163,6 +163,10 @@ export function SVIEntrance() {
         setShowPaywall(true);
       } else {
         setShowPaywall(false);
+        // If user has credits or a paid plan, mark as paid to skip future gate checks
+        if (data.reason === "credits" || data.reason === "paid_plan") {
+          setHasPaidPlan(true);
+        }
       }
     } catch { /* ignore — gate stays in current state */ }
   }, []);
@@ -180,8 +184,11 @@ export function SVIEntrance() {
       if (typeof window !== "undefined") {
         localStorage.removeItem(SVI_FREE_USED_KEY);
       }
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- async gate check after payment redirect
-      if (paidEmail) { checkGate(paidEmail); } else { setShowPaywall(false); }
+      // After payment, immediately clear paywall and mark as paid so the
+      // next submit bypasses the gate entirely. The server will re-verify
+      // credits on the actual API call.
+      setShowPaywall(false);
+      setHasPaidPlan(true);
       setAnalysisPaidToast(true);
       // Clean the URL params without a full page reload.
       const url = new URL(window.location.href);
@@ -192,7 +199,7 @@ export function SVIEntrance() {
       const timer = setTimeout(() => setAnalysisPaidToast(false), 5000);
       return () => clearTimeout(timer);
     }
-  }, [searchParams, router, checkGate]);
+  }, [searchParams, router]);
 
   // Logged-in user state — auto-fill email, show avatar, skip gate
   const [loggedInUser, setLoggedInUser] = React.useState<{
