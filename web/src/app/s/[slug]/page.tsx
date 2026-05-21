@@ -279,14 +279,47 @@ export default async function ShareScorePage({
   let evidenceCount = 5;
 
   if (!isDemo) {
-    row = await fetchScore(slug);
+    // Try svi_analyses first (SVI API stores slug here), then scores table
+    const supabase = getSupabaseAdmin();
+    if (supabase) {
+      const { data: sviRow } = await supabase
+        .from("svi_analyses")
+        .select("id, email, total_svi, analysis_json, created_at")
+        .eq("id", slug)
+        .maybeSingle();
+
+      if (sviRow) {
+        // Found in svi_analyses — build row from it
+        row = {
+          id: sviRow.id,
+          email: sviRow.email,
+          company_name: null,
+          total_score: sviRow.total_svi,
+          sub_scores: null,
+          inputs: null,
+          score_version: "svi",
+          created_at: sviRow.created_at,
+        } as unknown as ScoreRow;
+        if (sviRow.analysis_json) {
+          analysis = sviRow.analysis_json;
+        }
+      }
+    }
+
+    // Fallback to scores table
+    if (!row) {
+      row = await fetchScore(slug);
+    }
+
     if (!row) notFound();
     await recordView(slug);
 
-    // Fetch the full SVI analysis
-    const svi = await fetchSviAnalysis(row.email);
-    if (svi?.analysis_json) {
-      analysis = svi.analysis_json;
+    // Fetch the full SVI analysis if not already loaded
+    if (analysis === DEMO_ANALYSIS && row.email) {
+      const svi = await fetchSviAnalysis(row.email);
+      if (svi?.analysis_json) {
+        analysis = svi.analysis_json;
+      }
     }
     evidenceCount = await fetchEvidenceCount(row.email);
   }
