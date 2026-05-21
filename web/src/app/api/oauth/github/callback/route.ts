@@ -528,13 +528,9 @@ export async function GET(request: Request) {
           }
         }
 
-        // 9. Trigger SVI rescore (fire-and-forget)
+        // 9. Trigger SVI rescore (fire-and-forget, single endpoint)
         const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au";
         const cookieHeader = request.headers.get("cookie") ?? "";
-        void fetch(`${siteUrl}/api/evidence/rescore`, {
-          method: "POST",
-          headers: { Cookie: cookieHeader },
-        }).catch(() => {});
         void fetch(`${siteUrl}/api/svi/rescore-from-evidence`, {
           method: "POST",
           headers: { Cookie: cookieHeader },
