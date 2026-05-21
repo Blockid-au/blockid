@@ -115,10 +115,10 @@ function StageJourney({ currentStage }: { currentStage: number }) {
             const isPast = i < currentStage;
             const isCurrent = i === currentStage;
             return (
-              <div key={label} className="flex flex-col items-center gap-2">
+              <div key={label} className="flex flex-col items-center gap-2 min-w-0">
                 <div
                   className={cn(
-                    "h-8 w-8 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all",
+                    "h-7 w-7 sm:h-8 sm:w-8 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all shrink-0",
                     isPast ? "border-brand-500 bg-brand-500 text-white" :
                     isCurrent ? "border-brand-600 bg-brand-50 text-brand-600 ring-2 ring-brand-200" :
                     "border-surface-200 bg-surface-100 text-ink-600",
@@ -127,7 +127,7 @@ function StageJourney({ currentStage }: { currentStage: number }) {
                   {i}
                 </div>
                 <span className={cn(
-                  "text-[9px] text-center leading-tight max-w-[52px] font-medium",
+                  "text-[8px] sm:text-[9px] text-center leading-tight w-8 sm:w-[52px] font-medium break-words",
                   isCurrent ? "text-brand-600" : isPast ? "text-ink-600" : "text-ink-700",
                 )}>
                   {label}

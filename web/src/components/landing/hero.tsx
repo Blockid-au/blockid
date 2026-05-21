@@ -146,11 +146,11 @@ export function Hero() {
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-ink-600">
                 Trusted by founders, advisors & investors
               </p>
-              <div className="mt-6 flex flex-wrap items-center gap-x-10 gap-y-5">
+              <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-4 sm:gap-x-8 lg:gap-x-10">
                 {TRUSTED_BY.map((name) => (
                   <span
                     key={name}
-                    className="text-3xl font-semibold tracking-tight text-ink-600"
+                    className="text-lg font-semibold tracking-tight text-ink-600 sm:text-2xl lg:text-3xl"
                   >
                     {name}
                   </span>
@@ -191,7 +191,7 @@ export function Hero() {
         </div>
 
         {/* Five Pillars Strip */}
-        <div className="mt-12 grid rounded-2xl border border-brand-200 bg-brand-50 backdrop-blur sm:grid-cols-2 md:grid-cols-5">
+        <div className="mt-12 grid grid-cols-1 rounded-2xl border border-brand-200 bg-brand-50 backdrop-blur sm:grid-cols-2 md:grid-cols-5">
           {PILLARS.map((p, i) => {
             const Icon = p.icon;
             return (
