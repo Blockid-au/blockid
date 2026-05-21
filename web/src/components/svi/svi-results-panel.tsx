@@ -22,6 +22,7 @@ import {
   Lock,
   Mail,
   PieChart,
+  Presentation,
   Rocket,
   Shield,
   Target,
@@ -820,6 +821,8 @@ export function SVIResultsPanel({
   previousAnalysis?: SVIAnalysis | null;
 }) {
   const [copied, setCopied] = React.useState(false);
+  const [pitchDeckLoading, setPitchDeckLoading] = React.useState(false);
+  const [pitchDeckSlides, setPitchDeckSlides] = React.useState<any[] | null>(null);
   const pageIds = PAGES.map((p) => p.id);
   const activeId = useActiveSection(pageIds);
 
@@ -1697,10 +1700,65 @@ export function SVIResultsPanel({
                 analysis={analysis}
                 email={email}
               />
+              <button
+                type="button"
+                onClick={async () => {
+                  setPitchDeckLoading(true);
+                  try {
+                    const res = await fetch("/api/svi/pitch-deck", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ rawText, analysis }),
+                    });
+                    const data = await res.json();
+                    if (data.ok) {
+                      setPitchDeckSlides(data.slides);
+                    }
+                  } catch {} finally { setPitchDeckLoading(false); }
+                }}
+                disabled={pitchDeckLoading}
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cta-glow disabled:opacity-50"
+              >
+                {pitchDeckLoading ? (
+                  <><span className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" /> Generating...</>
+                ) : (
+                  <><Presentation className="h-3.5 w-3.5" /> Generate Pitch Deck</>
+                )}
+              </button>
             </div>
 
+            {/* Pitch Deck Outline */}
+            {pitchDeckSlides && (
+              <div className="mt-6 rounded-2xl border border-brand-200 bg-brand-50/50 p-5">
+                <h3 className="text-lg font-bold text-ink-900 mb-4">Your Pitch Deck Outline</h3>
+                <div className="space-y-4">
+                  {pitchDeckSlides.map((slide: any) => (
+                    <div key={slide.slide} className="rounded-xl bg-white border border-surface-200 p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="h-7 w-7 rounded-lg bg-brand-600 text-white text-xs font-bold flex items-center justify-center">{slide.slide}</span>
+                        <h4 className="text-sm font-bold text-ink-900">{slide.title}</h4>
+                      </div>
+                      <p className="text-xs text-brand-600 font-medium mb-2">{slide.keyMessage}</p>
+                      <ul className="space-y-1 mb-3">
+                        {(slide.bullets ?? []).map((b: string, i: number) => (
+                          <li key={i} className="text-xs text-ink-600 flex items-start gap-1.5">
+                            <span className="text-brand-400 mt-0.5">&bull;</span> {b}
+                          </li>
+                        ))}
+                      </ul>
+                      <details className="text-xs">
+                        <summary className="text-ink-500 cursor-pointer hover:text-ink-700">Speaker notes & visual</summary>
+                        <p className="mt-1 text-ink-600">{slide.speakerNotes}</p>
+                        <p className="mt-1 text-ink-500 italic">Visual: {slide.visual}</p>
+                      </details>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Share URL */}
-            <div className="flex items-center justify-between rounded-xl border border-surface-200 bg-white px-3 sm:px-4 py-3 shadow-sm mb-6 min-w-0">
+            <div className="flex items-center justify-between rounded-xl border border-surface-200 bg-white px-3 sm:px-4 py-3 shadow-sm mb-3 min-w-0">
               <span className="text-[11px] sm:text-xs text-ink-600 truncate font-mono min-w-0">{shareUrl}</span>
               <button
                 type="button"
@@ -1710,6 +1768,26 @@ export function SVIResultsPanel({
                 <Copy strokeWidth={1.75} className="h-3.5 w-3.5" />
                 {copied ? "Copied!" : "Copy link"}
               </button>
+            </div>
+
+            {/* Social sharing */}
+            <div className="flex items-center gap-2 mb-6">
+              <a
+                href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#0A66C2] px-4 text-sm font-medium text-white hover:bg-[#004182] transition-colors"
+              >
+                Share on LinkedIn
+              </a>
+              <a
+                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`My startup scored ${analysis.totalSVI} on the BlockID Startup Value Index!`)}&url=${encodeURIComponent(shareUrl)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-ink-800 px-4 text-sm font-medium text-white hover:bg-ink-700 transition-colors"
+              >
+                Share on X
+              </a>
             </div>
 
             {/* Analyze another */}

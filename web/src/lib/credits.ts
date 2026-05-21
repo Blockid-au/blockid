@@ -31,6 +31,7 @@ export const FEATURE_COSTS: Record<string, number> = {
   evidence_upload: 0,   // free
   investor_score: 0,    // free
   dilution_calc: 0,     // free
+  pitch_deck: 1.00,    // A$1.00 — AI pitch deck outline from SVI data
 };
 
 // ---------------------------------------------------------------------------
