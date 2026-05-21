@@ -131,6 +131,26 @@ export async function getActiveProject(
   return mapProject(data);
 }
 
+/**
+ * Get the active project_id from the request cookie.
+ * Used by all APIs to scope data to the correct startup.
+ * Returns null for unauthenticated requests or users without projects.
+ */
+export async function getProjectIdFromRequest(): Promise<string | null> {
+  try {
+    const { cookies } = await import("next/headers");
+    const { getCurrentUser } = await import("@/lib/auth");
+    const store = await cookies();
+    const slug = store.get("blockid_project")?.value;
+    const user = await getCurrentUser();
+    if (!user) return null;
+    const project = await getActiveProject(user.id, slug);
+    return project?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Get a project by its ID. */
 export async function getProjectById(projectId: string): Promise<Project | null> {
   const supabase = getSupabaseAdmin();
