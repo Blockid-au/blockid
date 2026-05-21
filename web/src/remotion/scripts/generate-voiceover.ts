@@ -96,6 +96,30 @@ const SCRIPT_3MIN: ScriptLine[] = [
   { id: "29-cta", text: "First analysis free. Start today at blockid dot ay you.", emotion: "neutral", pauseAfter: "short" },
 ];
 
+const SCRIPT_SWC: ScriptLine[] = [
+  { id: "01-stat", text: "Last year, three hundred and seventy thousand Australian businesses shut their doors.", emotion: "urgent", pauseAfter: "short" },
+  { id: "02-reason", text: "That is more than one thousand businesses dying every single day. And the number one reason? They ran out of cash, because they had no idea what their startup was actually worth.", emotion: "urgent", pauseAfter: "medium" },
+  { id: "03-intro", text: "My name is Do Van Long, founder of BlockID dot ay you, and we are fixing this.", emotion: "inspiring", pauseAfter: "medium" },
+  { id: "04-problem-1", text: "Right now, if you are an early-stage founder and you want to know your startup's value, you have two options. Pay a consultant five to fifty thousand dollars and wait six weeks. Or guess.", emotion: "urgent", pauseAfter: "short" },
+  { id: "05-problem-2", text: "Carta, Pulley, Cake Equity, they all manage cap tables, but none of them tell you what your startup is actually worth. They are spreadsheets with a subscription. And they are all built for Silicon Valley, not for Australian founders.", emotion: "urgent", pauseAfter: "short" },
+  { id: "06-problem-3", text: "The result? Sixty percent of Australian startups fail within three years. Founders fly blind.", emotion: "dramatic", pauseAfter: "long" },
+  { id: "07-solution-1", text: "BlockID dot ay you is an AI-powered startup valuation platform. In under sixty seconds, our Startup Value Index analyses your startup across eight dimensions.", emotion: "inspiring", pauseAfter: "micro" },
+  { id: "08-solution-2", text: "And generates an institutional-grade valuation report.", emotion: "excited", pauseAfter: "short" },
+  { id: "09-evidence-1", text: "But we do not stop at a score. Founders connect their evidence, GitHub commits, Stripe revenue, Google Analytics traffic, LinkedIn profiles, and our AI watches their startup grow in real time.", emotion: "excited", pauseAfter: "short" },
+  { id: "10-evidence-2", text: "We call it the Evidence Vault. Your score goes up as your startup proves itself.", emotion: "excited", pauseAfter: "short" },
+  { id: "11-lifecycle", text: "We are the platform that takes founders from Day Zero idea all the way through to exit.", emotion: "inspiring", pauseAfter: "medium" },
+  { id: "12-traction-1", text: "BlockID is live today. We have over fifty Australian founders on the platform. More than two hundred SVI analyses completed. Ten free tools live, including equity split calculators, dilution modelling, and term sheet AI.", emotion: "excited", pauseAfter: "short" },
+  { id: "13-traction-2", text: "Our tech stack runs on six AI providers with automatic fallback. And we have done all of this as a solo technical founder with an AI-augmented team, seven AI agents operating as my C-suite.", emotion: "excited", pauseAfter: "medium" },
+  { id: "14-market-1", text: "Australia has two point seven million active businesses. The global startup ecosystem is worth four point four trillion dollars. Cap table management alone is a three point two billion dollar market.", emotion: "inspiring", pauseAfter: "short" },
+  { id: "15-market-2", text: "Our model is simple. Free SVI analysis gets founders in the door. Then subscriptions from forty-nine to four ninety-nine per month. And enterprise partnerships up to sixty thousand per year.", emotion: "inspiring", pauseAfter: "short" },
+  { id: "16-australia", text: "We are Australia-first. ESIC-aware. ASIC-registered. Built by an Australian founder, for Australian founders.", emotion: "inspiring", pauseAfter: "medium" },
+  { id: "17-close-1", text: "BlockID is not a pitch deck. It is a live product with real users generating real analyses every day.", emotion: "inspiring", pauseAfter: "short" },
+  { id: "18-close-2", text: "We are raising a pre-seed round of five hundred thousand dollars to scale to five hundred users, launch cap table management, and begin equity tokenization.", emotion: "inspiring", pauseAfter: "short" },
+  { id: "19-vision", text: "Our vision? Every startup in Australia knows its value on day one. Every founder has the tools to grow, fundraise, and exit, without spending fifty thousand dollars on consultants.", emotion: "dramatic", pauseAfter: "long" },
+  { id: "20-dropmic", text: "BlockID dot ay you. From idea to exit, one platform.", emotion: "dramatic", pauseAfter: "dramatic" },
+  { id: "21-thanks", text: "Thank you.", emotion: "neutral", pauseAfter: "short" },
+];
+
 // ── Generate per-line audio ─────────────────────────────────────────────
 
 function generateLine(line: ScriptLine, outPath: string): boolean {
@@ -138,8 +162,8 @@ function generateLine(line: ScriptLine, outPath: string): boolean {
 
 function main() {
   const mode = process.argv[2] ?? "1min";
-  const script = mode === "3min" ? SCRIPT_3MIN : SCRIPT_1MIN;
-  const subDir = mode === "3min" ? "3min" : "1min";
+  const script = mode === "3min" ? SCRIPT_3MIN : mode === "swc" ? SCRIPT_SWC : SCRIPT_1MIN;
+  const subDir = mode === "3min" ? "3min" : mode === "swc" ? "swc-final" : "1min";
   const outDir = join(OUTPUT_DIR, subDir);
 
   // Check edge-tts is installed

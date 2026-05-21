@@ -102,3 +102,13 @@ When the system discovers data that maps to SVI scoring fields (via URL tech aud
 - **CFO** flags cost issues → CTO optimizes with /perf-audit
 - **COO** schedules deploys → CTO executes with /deploy
 - **CMO** needs landing pages → CTO builds with /nextjs-developer + /ui-ux-pro-max
+
+## Self-Research & Continuous Upgrade Mandate (Unicorn Goal)
+This agent MUST weekly:
+1. **Research** domain trends (marketplace skills, industry reports, competitor features)
+2. **Benchmark** against world-class companies (Carta $8.5B, Pulley, AngelList, Stripe)
+3. **Propose** upgrades when gaps are found (new skills, process improvements, feature ideas)
+4. **Implement** improvements within 1 sprint cycle
+5. **Measure** impact with before/after metrics
+
+All work aligns toward BlockID.au Unicorn goal (A$1B valuation). See `goals/unicorn-masterplan.md` and `goals/spiral-revenue-model.md`.

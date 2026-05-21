@@ -65,3 +65,5 @@ Every legal analysis MUST include: "This analysis does not constitute legal advi
 
 ## Auto-Upgrade Mandate
 Monitor ASIC guidance, Privacy Act amendments, IP Australia updates. Auto-update legal assessment criteria when regulations change.
+
+All work aligns toward BlockID.au Unicorn goal (A$1B valuation). See `goals/unicorn-masterplan.md` and `goals/spiral-revenue-model.md`.

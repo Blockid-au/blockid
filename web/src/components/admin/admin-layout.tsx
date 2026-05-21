@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   Bot,
+  Calendar,
   ChevronLeft,
   ChevronRight,
   Coins,
@@ -15,11 +16,14 @@ import {
   GraduationCap,
   Home,
   LayoutDashboard,
+  Link2,
   Map,
+  PieChart,
   Shield,
   Sparkles,
   TrendingUp,
   Users,
+  Wallet,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
@@ -32,18 +36,54 @@ interface AdminLayoutProps {
   };
 }
 
-const ADMIN_NAV = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { href: "/admin/self-analysis", label: "Self-Assessment", icon: Sparkles },
-  { href: "/admin/users", label: "Users", icon: Users },
-  { href: "/admin/team", label: "Team", icon: Bot },
-  { href: "/admin/roadmap", label: "Roadmap", icon: Map },
-  { href: "/admin/documents", label: "Documents", icon: FileText },
-  { href: "/admin/growth", label: "Growth Intelligence", icon: TrendingUp },
-  { href: "/admin/rnd", label: "R&D Reports", icon: FlaskConical },
-  { href: "/admin/accelerator", label: "Accelerator", icon: GraduationCap },
-  { href: "/admin/tokens", label: "Token Management", icon: Coins },
-  { href: "/admin/listings", label: "Listings", icon: ExternalLink },
+interface AdminNavGroup {
+  label: string;
+  items: { href: string; label: string; icon: typeof LayoutDashboard; exact?: boolean }[];
+}
+
+const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
+  {
+    label: "General",
+    items: [
+      { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+      { href: "/admin/self-analysis", label: "Self-Assessment", icon: Sparkles },
+      { href: "/admin/users", label: "Users", icon: Users },
+      { href: "/admin/team", label: "Team", icon: Bot },
+    ],
+  },
+  {
+    label: "Content & Growth",
+    items: [
+      { href: "/admin/roadmap", label: "Roadmap", icon: Map },
+      { href: "/admin/documents", label: "Documents", icon: FileText },
+      { href: "/admin/growth", label: "Growth Intelligence", icon: TrendingUp },
+      { href: "/admin/rnd", label: "R&D Reports", icon: FlaskConical },
+      { href: "/admin/accelerator", label: "Accelerator", icon: GraduationCap },
+    ],
+  },
+  {
+    label: "Equity & Vesting",
+    items: [
+      { href: "/workspace/equity-setup", label: "Equity Setup", icon: PieChart },
+      { href: "/workspace/vesting", label: "Vesting Schedules", icon: Calendar },
+      { href: "/workspace/cap-table", label: "Cap Table", icon: Shield },
+      { href: "/workspace/esop", label: "ESOP Management", icon: Users },
+    ],
+  },
+  {
+    label: "Blockchain & Tokens",
+    items: [
+      { href: "/admin/tokens", label: "Token Management", icon: Coins },
+      { href: "/workspace/wallet", label: "Wallet", icon: Wallet },
+      { href: "/workspace/equity-dashboard", label: "Blockchain Sync", icon: Link2 },
+    ],
+  },
+  {
+    label: "Other",
+    items: [
+      { href: "/admin/listings", label: "Listings", icon: ExternalLink },
+    ],
+  },
 ];
 
 export function AdminLayout({ children, user }: AdminLayoutProps) {
@@ -103,35 +143,46 @@ export function AdminLayout({ children, user }: AdminLayoutProps) {
           </button>
         </div>
 
-        {/* Nav items */}
-        <nav className="flex-1 py-3 space-y-0.5 px-2 overflow-y-auto">
-          {ADMIN_NAV.map(({ href, label, icon: Icon, exact }) => {
-            const active = exact
-              ? pathname === href
-              : pathname === href || pathname.startsWith(href + "/");
-            return (
-              <Link
-                key={href}
-                href={href}
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-2.5 py-2 rounded-xl text-sm transition-all duration-150",
-                  active
-                    ? "bg-brand-50 text-brand-700 font-semibold shadow-sm border border-brand-100"
-                    : "text-ink-500 hover:text-ink-800 hover:bg-surface-50",
-                )}
-              >
-                <Icon
-                  strokeWidth={1.75}
-                  className={cn(
-                    "h-4 w-4 shrink-0",
-                    active ? "text-brand-600" : "",
-                  )}
-                />
-                {sidebarOpen && <span className="truncate">{label}</span>}
-              </Link>
-            );
-          })}
+        {/* Nav items (grouped) */}
+        <nav className="flex-1 py-3 px-2 overflow-y-auto">
+          {ADMIN_NAV_GROUPS.map((group) => (
+            <div key={group.label} className="mb-3">
+              {sidebarOpen && (
+                <div className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-ink-400">
+                  {group.label}
+                </div>
+              )}
+              <div className="space-y-0.5">
+                {group.items.map(({ href, label, icon: Icon, exact }) => {
+                  const active = exact
+                    ? pathname === href
+                    : pathname === href || pathname.startsWith(href + "/");
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      onClick={() => setMobileOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 px-2.5 py-2 rounded-xl text-sm transition-all duration-150",
+                        active
+                          ? "bg-brand-50 text-brand-700 font-semibold shadow-sm border border-brand-100"
+                          : "text-ink-500 hover:text-ink-800 hover:bg-surface-50",
+                      )}
+                    >
+                      <Icon
+                        strokeWidth={1.75}
+                        className={cn(
+                          "h-4 w-4 shrink-0",
+                          active ? "text-brand-600" : "",
+                        )}
+                      />
+                      {sidebarOpen && <span className="truncate">{label}</span>}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* Bottom: home link */}

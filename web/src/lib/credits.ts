@@ -62,6 +62,17 @@ export const FEATURE_COSTS: Record<string, number> = {
   ai_esop: 0.50,              // ESOP pool sizing recommendation
   ai_vesting_review: 1.50,    // Comprehensive vesting audit
 
+  // ── Vesting & Share Structure (free features) ───────────────────────
+  vesting_setup: 0,            // Free — manual vesting schedule creation
+  vesting_compute: 0,          // Free — vesting timeline preview
+  share_structure_recompute: 0, // Free — recompute share prices from SVI
+  vesting_accelerate: 0,       // Free — process acceleration trigger
+
+  // ── Blockchain Features ─────────────────────────────────────────────
+  token_create: 0,             // Free — deploy equity token (MetaMask pays gas=0)
+  blockchain_sync: 0,          // Free — toggle sync on/off
+  blockchain_verify: 0,        // Free — verify off-chain vs on-chain balances
+
   // ── Per-section modular purchasing (word-count tiers) ────────────────
   // Users choose individual sections at their desired depth.
   // Formula: base_rate × (target_words / 500). Min 0.10, max 3.00.
