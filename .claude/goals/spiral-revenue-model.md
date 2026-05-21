@@ -87,7 +87,8 @@ Validated: Users will pay A$1 for AI startup analysis. Need modular section purc
 - [ ] Lead magnets: 5 templates/checklists
 - [ ] ProductHunt launch preparation
 - [ ] Accelerator applications (Startmate, Antler, Google)
-- [ ] Directory listings (Crunchbase, AngelList, F6S, G2, BetaList)
+- [x] Directory listings: LinkedIn, F6S, Crunchbase LIVE
+- [ ] Directory listings remaining: AngelList, G2, BetaList, ProductHunt
 
 ### SCALE (this spiral)
 - [x] 11 C-Level AI agents with 45 skills

@@ -21,15 +21,20 @@ partners to BlockID.au.
 ## Sub-Goal 1: Platform Research & Selection
 **Owner:** CMO + IR | **Deadline:** 2026-06-07 (2 weeks)
 
+### Tier 0 — Apply IMMEDIATELY (Free, No Equity)
+| Platform | Type | Cost | Est. Impact | Status |
+|----------|------|------|-------------|--------|
+| [NVIDIA Inception](https://programs.nvidia.com/phoenix/application) | AI startup program | **Free** | $25K-$100K cloud credits, VC network, GPU discounts, brand badge | **APPLY NOW** |
+
 ### Tier 1 — Must-Have (High Authority, High ROI)
 | Platform | Type | Cost | Est. Impact | Status |
 |----------|------|------|-------------|--------|
 | [Product Hunt](https://www.producthunt.com) | Product launch | Free | High traffic spike, backlinks, credibility | TODO |
 | [AngelList / Wellfound](https://wellfound.com) | Investor + hiring | Free | Investor discovery, talent pipeline | TODO |
 | [Crunchbase](https://www.crunchbase.com) | Company profile | Free (basic) | Investor research, media mentions | TODO |
-| [LinkedIn Company Page](https://linkedin.com) | Professional network | Free | Founder credibility, B2B reach | IN PROGRESS |
-| [Startmate Directory](https://www.startmate.com.au) | AU accelerator | Apply | Top AU accelerator, $120K for 7.5% | PLANNED |
-| [Antler](https://www.antler.co) | Global accelerator | Apply | Pre-seed, co-founder matching | PLANNED |
+| [LinkedIn Company Page](https://linkedin.com) | Professional network | Free | Founder credibility, B2B reach | DONE |
+| [Startmate Directory](https://www.startmate.com.au) | AU accelerator | Apply | Top AU accelerator, $120K for 7.5% | READY |
+| [Antler](https://www.antler.co) | Global accelerator | Apply | Pre-seed, co-founder matching | READY |
 
 ### Tier 2 — High Value (Strategic Networks)
 | Platform | Type | Cost | Est. Impact | Status |

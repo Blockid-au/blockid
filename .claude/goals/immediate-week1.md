@@ -24,7 +24,7 @@
 - [x] Run /cmo research on top 5 AU competitors
 - [x] Publish 2 insight articles via /publish
 - [x] Run /seo-audit and fix critical issues
-- [ ] Set up LinkedIn company page
+- [x] Set up LinkedIn company page (https://www.linkedin.com/company/blockid-au/)
 - [ ] Draft 5 social post templates
 
 ## CFO (/cfo)

@@ -8,11 +8,12 @@
 
 ## Application Pipeline
 
-| Accelerator | Priority | Deadline | Status |
-|-------------|----------|----------|--------|
-| Startmate Accelerator | HIGH | Rolling / Q3 2026 | Not started |
-| Antler Australia | HIGH | Cohort-based, next ~Jul 2026 | Not started |
-| Google for Startups (AU) | MEDIUM | Varies by cohort | Not started |
+| Accelerator | Priority | Deadline | Equity | Status |
+|-------------|----------|----------|--------|--------|
+| **NVIDIA Inception** | **HIGHEST** | **No deadline (apply now)** | **0%** | **READY — apply today** |
+| Startmate Accelerator | HIGH | Rolling / Q3 2026 | 7.5% | Ready — form answers prepared |
+| Antler Australia | HIGH | Cohort-based, next ~Jul 2026 | ~10% | Ready — form answers prepared |
+| Google for Startups (AU) | MEDIUM | Varies by cohort | 0% | Ready — form answers prepared |
 
 ---
 

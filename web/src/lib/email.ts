@@ -482,9 +482,21 @@ export async function sendSVIReport(args: {
               <td width="48%" style="text-align:center;padding:4px;"><a href="${loginUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">${signInCta}</a></td>
             </tr>
           </table>
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:16px 0 0 0;">
+            <p style="margin:0 0 8px 0;font-size:13px;font-weight:600;color:#4ADE80;">${isVi ? "Buoc Tiep Theo Cua Ban" : "Your Next Steps"}</p>
+            <p style="margin:0 0 6px 0;color:#CBD5E1;font-size:12px;line-height:1.5;">1. ${isVi ? "Xem bao cao va xac dinh 3 uu tien hang dau" : "Review your report and identify your top 3 priorities"}</p>
+            <p style="margin:0 0 6px 0;color:#CBD5E1;font-size:12px;line-height:1.5;">2. ${isVi ? "Tai len bang chung len Evidence Vault de tang diem" : "Upload evidence to your Evidence Vault to boost your score"}</p>
+            <p style="margin:0 0 6px 0;color:#CBD5E1;font-size:12px;line-height:1.5;">3. ${isVi ? "Thuc hien hanh dong khac phuc dau tien trong 7 ngay" : "Take your first gap-closing action within 7 days"}</p>
+            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:11px;font-style:italic;">${isVi ? "Moi hanh buoc nho deu nang gia tri startup cua ban." : "Every small step raises your startup's value. We're with you."}</p>
+          </div>
+          <div style="background:#1F2A44;border-radius:10px;padding:14px;margin:12px 0 0 0;text-align:center;">
+            <p style="margin:0 0 4px 0;font-size:12px;font-weight:600;color:#FBBF24;">${isVi ? "Mo Khoa Bao Cao Day Du" : "Unlock Your Full Report"}</p>
+            <p style="margin:0;font-size:11px;color:#94A3B8;line-height:1.5;">${isVi ? "Ban cao day du khong gioi han trang, phan tich chi tiet, doi thu canh tranh va ke hoach hanh dong 90 ngay." : "This is a 10-page preview. The full report includes unlimited depth, detailed competitor profiles, financial projections, and a 90-day action plan tailored to your stage."}</p>
+          </div>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
           <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
-          <p style="margin:0;color:#64748B;font-size:11px;line-height:1.5;">${signInHelp}</p>
+          <p style="margin:0 0 8px 0;color:#64748B;font-size:11px;line-height:1.5;">${signInHelp}</p>
+          <p style="margin:0;color:#475569;font-size:10px;line-height:1.4;">This analysis is produced by BlockID.au (Auschain PTY LTD, ACN 659 615 111). The SVI is NOT a financial valuation or investment recommendation. BlockID does not hold an AFSL. Seek independent professional advice. Prices in AUD incl. GST.</p>
         </td></tr>
       </table>
     </td></tr>
