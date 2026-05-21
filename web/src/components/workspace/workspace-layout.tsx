@@ -5,7 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity, Banknote, BarChart3, Bell, BookOpen, Briefcase, ChevronLeft, ChevronRight, CreditCard, DollarSign, DoorOpen, FileText, FolderCheck, FolderOpen, Gift, Home,
-  Key, LayoutDashboard, Map, PieChart, Shield, Table2, TrendingUp, User, Users, Wallet
+  LayoutDashboard, Map, PieChart, Shield, Table2, TrendingUp, User, Users,
+  type LucideIcon,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { CreditBalance } from "@/components/ui/credit-balance";
@@ -24,33 +25,73 @@ interface WorkspaceLayoutProps {
   notificationCount?: number;
 }
 
-const NAV_ITEMS = [
-  { href: "/workspace/projects", label: "My Startups", icon: Briefcase },
-  { href: "/dashboard/svi", label: "SVI Dashboard", icon: TrendingUp },
-  { href: "/workspace/evidence", label: "Evidence Vault", icon: FileText },
-  { href: "/workspace/data-room", label: "Data Room", icon: FolderCheck },
-  { href: "/workspace/equity-dashboard", label: "Equity Dashboard", icon: LayoutDashboard },
-  { href: "/workspace/equity", label: "Equity Split", icon: PieChart },
-  { href: "/workspace/shareholders", label: "Shareholders", icon: Shield },
-  { href: "/workspace/cap-table", label: "Cap Table", icon: Table2 },
-  { href: "/workspace/esop", label: "ESOP", icon: Users },
-  { href: "/workspace/dividends", label: "Dividends", icon: Gift },
-  { href: "/workspace/fundraise", label: "Fundraise", icon: Banknote },
-  { href: "/workspace/documents", label: "Documents", icon: FolderOpen },
-  { href: "/workspace/reports", label: "Weekly Reports", icon: Activity },
-  { href: "/workspace/roadmap", label: "Roadmap", icon: Map },
-  { href: "/workspace/metrics", label: "Metrics", icon: BarChart3 },
-  { href: "/workspace/revenue", label: "Revenue", icon: DollarSign },
-  { href: "/workspace/journal", label: "Growth Journal", icon: BookOpen },
-  { href: "/workspace/wallet", label: "Wallet", icon: Wallet },
-  { href: "/workspace/exit", label: "Exit Modeling", icon: DoorOpen },
-  { href: "/workspace/profile", label: "My Profile", icon: User },
-  { href: "/workspace/billing", label: "Billing", icon: CreditCard },
-  { href: "/workspace/api-keys", label: "API Keys", icon: Key },
-  { href: "/workspace/notifications", label: "Notifications", icon: Bell },
+interface NavGroup {
+  label: string;
+  stage?: string;
+  items: { href: string; label: string; icon: LucideIcon }[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: "Overview",
+    items: [
+      { href: "/workspace/projects", label: "My Startups", icon: Briefcase },
+      { href: "/dashboard/svi", label: "SVI Score", icon: TrendingUp },
+      { href: "/workspace/roadmap", label: "Action Plan", icon: Map },
+    ],
+  },
+  {
+    label: "Build & Validate",
+    stage: "Idea \u2192 MVP",
+    items: [
+      { href: "/workspace/evidence", label: "Evidence Vault", icon: FileText },
+      { href: "/workspace/metrics", label: "Metrics", icon: BarChart3 },
+      { href: "/workspace/reports", label: "Weekly Reports", icon: Activity },
+    ],
+  },
+  {
+    label: "Ownership & Equity",
+    stage: "MVP \u2192 Launch",
+    items: [
+      { href: "/workspace/equity", label: "Equity Split", icon: PieChart },
+      { href: "/workspace/cap-table", label: "Cap Table", icon: Table2 },
+      { href: "/workspace/shareholders", label: "Shareholders", icon: Shield },
+      { href: "/workspace/esop", label: "ESOP", icon: Users },
+    ],
+  },
+  {
+    label: "Fundraise",
+    stage: "Pre-seed \u2192 Series A",
+    items: [
+      { href: "/workspace/data-room", label: "Data Room", icon: FolderCheck },
+      { href: "/workspace/fundraise", label: "Raise Capital", icon: Banknote },
+      { href: "/workspace/documents", label: "Documents", icon: FolderOpen },
+    ],
+  },
+  {
+    label: "Grow & Scale",
+    stage: "Revenue \u2192 Scale",
+    items: [
+      { href: "/workspace/revenue", label: "Revenue", icon: DollarSign },
+      { href: "/workspace/journal", label: "Growth Journal", icon: BookOpen },
+      { href: "/workspace/dividends", label: "Dividends", icon: Gift },
+      { href: "/workspace/exit", label: "Exit Modeling", icon: DoorOpen },
+    ],
+  },
+  {
+    label: "Account",
+    items: [
+      { href: "/workspace/profile", label: "My Profile", icon: User },
+      { href: "/workspace/billing", label: "Billing", icon: CreditCard },
+      { href: "/workspace/notifications", label: "Notifications", icon: Bell },
+    ],
+  },
 ];
 
-const ADMIN_NAV = { href: "/admin", label: "Admin Panel", icon: Shield };
+const ADMIN_NAV_GROUP: NavGroup = {
+  label: "Admin",
+  items: [{ href: "/admin", label: "Admin Panel", icon: Shield }],
+};
 
 export function WorkspaceLayout({ children, user, startupName, notificationCount = 0 }: WorkspaceLayoutProps) {
   const pathname = usePathname();
@@ -58,7 +99,7 @@ export function WorkspaceLayout({ children, user, startupName, notificationCount
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const isAdmin = user.email === "admin@blockid.au" || user.role === "admin";
 
-  const navItems = isAdmin ? [...NAV_ITEMS, ADMIN_NAV] : NAV_ITEMS;
+  const navGroups = isAdmin ? [...NAV_GROUPS, ADMIN_NAV_GROUP] : NAV_GROUPS;
 
   return (
     <div className="min-h-svh bg-surface-100 text-ink-800 flex">
@@ -90,26 +131,38 @@ export function WorkspaceLayout({ children, user, startupName, notificationCount
         </div>
 
         {/* Nav items */}
-        <nav className="flex-1 py-3 space-y-0.5 px-2 overflow-y-auto">
-          {navItems.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href || pathname.startsWith(href + "/");
-            return (
-              <Link
-                key={href}
-                href={href}
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-2.5 py-2 rounded-xl text-sm transition-all duration-150",
-                  active
-                    ? "bg-brand-50 text-brand-700 font-semibold shadow-sm border border-brand-100"
-                    : "text-ink-500 hover:text-ink-800 hover:bg-surface-50",
-                )}
-              >
-                <Icon strokeWidth={1.75} className={cn("h-4 w-4 shrink-0", active ? "text-brand-600" : "")} />
-                {sidebarOpen && <span className="truncate">{label}</span>}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 py-1 px-1 overflow-y-auto">
+          {navGroups.map((group) => (
+            <div key={group.label} className="mb-1">
+              {/* Group header */}
+              {sidebarOpen && (
+                <div className="px-3 pt-4 pb-1.5 flex items-center justify-between">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-400">{group.label}</span>
+                  {group.stage && <span className="text-[9px] text-ink-400/60">{group.stage}</span>}
+                </div>
+              )}
+              {/* Group items */}
+              {group.items.map(({ href, label, icon: Icon }) => {
+                const active = pathname === href || pathname.startsWith(href + "/");
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-2.5 py-2 rounded-xl text-sm transition-all duration-150 mx-1",
+                      active
+                        ? "bg-brand-50 text-brand-700 font-semibold shadow-sm border border-brand-100"
+                        : "text-ink-500 hover:text-ink-800 hover:bg-surface-50",
+                    )}
+                  >
+                    <Icon strokeWidth={1.75} className={cn("h-4 w-4 shrink-0", active ? "text-brand-600" : "")} />
+                    {sidebarOpen && <span className="truncate">{label}</span>}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {/* Bottom: home link */}

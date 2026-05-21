@@ -11,6 +11,7 @@ import { EvidenceWizard } from "@/components/svi/evidence-wizard";
 import { SVIChart } from "@/components/svi/svi-chart";
 import { SVIDimensionCompare } from "@/components/svi/svi-dimension-compare";
 import { SVITrendChart } from "@/components/ui/svi-trend-chart";
+import { PriorityTasks, generatePriorityTasks } from "@/components/workspace/priority-tasks";
 
 // Dimension weight labels (for tooltip)
 const DIM_WEIGHTS: Record<string, string> = {
@@ -227,6 +228,12 @@ export function SVIDashboard({ analysis, startupName, snapshotHistory }: SVIDash
       {snapshotHistory && snapshotHistory.length > 0 && (
         <SVITrendChart data={snapshotHistory.map(s => ({ date: s.date, svi: s.svi }))} />
       )}
+
+      {/* Priority Tasks */}
+      <PriorityTasks
+        tasks={generatePriorityTasks(analysis, analysis.stage ?? 0)}
+        className="mb-6"
+      />
 
       {/* Summary */}
       <p className="text-sm text-ink-600 leading-relaxed px-1">{analysis.summary}</p>
