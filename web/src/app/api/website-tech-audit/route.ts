@@ -111,15 +111,15 @@ function buildEvidenceEntries(audit: TechAuditResult, accountId: string) {
     });
   }
 
-  // Payment detection evidence → TRE
+  // Payment integration detected → PTD (product maturity, not confirmed revenue)
   if (audit.techStack.payments.length > 0) {
     entries.push({
       account_id: accountId,
       evidence_type: "tech_audit",
-      label: `Payments: ${audit.techStack.payments.join(", ")}`,
+      label: `Payment integration detected: ${audit.techStack.payments.join(", ")} (presence only — not confirmed revenue)`,
       value_or_url: audit.url,
       confidence_level: "connected_source",
-      dimension: "tre",
+      dimension: "ptd",
       svi_impact: Math.max(0, audit.signalBoosts.treBoost),
       verified_at: now,
       created_at: now,
@@ -196,17 +196,15 @@ export async function POST(request: Request) {
         const entries = buildEvidenceEntries(audit, accountId);
 
         if (entries.length > 0) {
-          const { error } = await supabase.from("svi_evidence").insert(entries);
+          const { error } = await supabase
+            .from("svi_evidence")
+            .upsert(entries, { onConflict: "account_id,evidence_type,dimension" });
           if (!error) {
             evidenceCreated = entries.length;
 
-            // Fire-and-forget rescore
+            // Fire-and-forget rescore (single endpoint to avoid race condition)
             const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au";
             const cookieHeader = request.headers.get("cookie") ?? "";
-            void fetch(`${siteUrl}/api/evidence/rescore`, {
-              method: "POST",
-              headers: { Cookie: cookieHeader },
-            }).catch(() => {});
             void fetch(`${siteUrl}/api/svi/rescore-from-evidence`, {
               method: "POST",
               headers: { Cookie: cookieHeader },

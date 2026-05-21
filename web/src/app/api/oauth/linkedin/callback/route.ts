@@ -235,12 +235,8 @@ export async function GET(request: Request) {
           });
         }
 
-        // 5. Trigger SVI rescore (fire-and-forget)
+        // 5. Trigger SVI rescore (fire-and-forget, single endpoint)
         const cookieHeader = request.headers.get("cookie") ?? "";
-        void fetch(`${siteUrl}/api/evidence/rescore`, {
-          method: "POST",
-          headers: { Cookie: cookieHeader },
-        }).catch(() => {});
         void fetch(`${siteUrl}/api/svi/rescore-from-evidence`, {
           method: "POST",
           headers: { Cookie: cookieHeader },
