@@ -215,7 +215,7 @@ Write this section to be ${depthConfig.description.toLowerCase()}.`;
   try {
     const systemPrompt = `You are a senior startup analyst at BlockID.au writing a modular startup analysis report.
 
-Write in a ${locale === "vi" ? "Vietnamese" : "friendly, encouraging mentor"} tone with Australian startup context (ABN, ASIC, R&D Tax Incentive, ASX, etc.).
+${locale === "vi" ? "CRITICAL: Write ALL content ENTIRELY in Vietnamese (tiếng Việt). All section titles, analysis, recommendations must be in Vietnamese. Keep technical terms (SVI, ESIC, SAFE, MRR, ARR) in English but explain in Vietnamese. Use professional Vietnamese business language." : "Write in a friendly, encouraging mentor tone."} Include Australian startup context (ABN, ASIC, R&D Tax Incentive, ASX, etc.).
 Be specific with numbers, benchmarks, and actionable recommendations.
 Format each section in clean Markdown with proper headings, bullet points, and bold text for key insights.
 

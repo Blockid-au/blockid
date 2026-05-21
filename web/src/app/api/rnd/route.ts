@@ -193,6 +193,7 @@ export async function POST(request: Request) {
         ? "Starting Deep Dive R&D analysis (3 parallel research streams + extended analysis)..."
         : "Starting R&D analysis (3 parallel research streams)...";
       sendEvent("status", { step: "rnd_start", message: streamLabel });
+      const locale = (await cookies()).get("blockid_lang")?.value === "vi" ? "vi" as const : "en" as const;
       const report = await generateRndReport(
         rawText,
         analysis,
@@ -201,6 +202,7 @@ export async function POST(request: Request) {
         (msg) => sendEvent("status", { step: "rnd_progress", message: msg }),
         tier,
         techAudit,
+        locale,
       );
 
       // Step 5: Persist to database

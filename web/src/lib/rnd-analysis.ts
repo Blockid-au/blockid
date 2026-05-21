@@ -279,6 +279,7 @@ async function runBatch(
   context: string,
   tier: ReportTier = "standard",
   onStatus?: (msg: string) => void,
+  locale: "en" | "vi" = "en",
 ): Promise<Map<string, BatchPageResult>> {
   const pageDefs = PAGE_DEFS.filter(p => pageIds.includes(p.id));
   const pageDescriptions = pageDefs.map(p =>
@@ -308,8 +309,12 @@ Return JSON with a "pages" array containing one object per page listed above. Ea
   const results = new Map<string, BatchPageResult>();
 
   try {
+    const viInstruction = locale === "vi"
+      ? "\n\nCRITICAL: Write ALL content ENTIRELY in Vietnamese (tiếng Việt). All section titles, analysis, recommendations must be in Vietnamese. Keep technical terms (SVI, ESIC, SAFE, MRR, ARR) in English but explain in Vietnamese.\n"
+      : "";
+
     const { text } = await callAI({
-      system: systemPrompt,
+      system: systemPrompt + viInstruction,
       user: userPrompt,
       maxTokens,
     });
@@ -460,16 +465,17 @@ export async function generateRndReport(
   onStatus?: (msg: string) => void,
   tier: ReportTier = "standard",
   techAudit?: TechAuditResult,
+  locale: "en" | "vi" = "en",
 ): Promise<RndReport> {
   const context = buildContext(input, sviAnalysis, inputType, scrapedData, techAudit);
 
-  onStatus?.("Starting R&D analysis pipeline...");
+  onStatus?.(locale === "vi" ? "Bắt đầu phân tích R&D..." : "Starting R&D analysis pipeline...");
 
   // Run 3 batches concurrently (A, B, C)
   const [batchA, batchB, batchC] = await Promise.all([
-    runBatch("Core Assessment (Pages 1-3)", ["executive", "market", "product"], context, tier, onStatus),
-    runBatch("Business Deep Dive (Pages 4-7)", ["business", "competition", "traction", "team"], context, tier, onStatus),
-    runBatch("Financial & Risk (Pages 8-10)", ["financial", "risk", "recommendations"], context, tier, onStatus),
+    runBatch("Core Assessment (Pages 1-3)", ["executive", "market", "product"], context, tier, onStatus, locale),
+    runBatch("Business Deep Dive (Pages 4-7)", ["business", "competition", "traction", "team"], context, tier, onStatus, locale),
+    runBatch("Financial & Risk (Pages 8-10)", ["financial", "risk", "recommendations"], context, tier, onStatus, locale),
   ]);
 
   // Merge all batch results
