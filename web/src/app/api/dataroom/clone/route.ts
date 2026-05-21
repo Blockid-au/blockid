@@ -77,78 +77,111 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { google } = await import("googleapis");
-    const clientEmail = process.env.GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL;
-    const privateKey = process.env.GOOGLE_DRIVE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+    // Data room structure (always returned, even without Drive)
+    const structure = Object.entries(SVI_DATAROOM_STRUCTURE).map(([dim, info]) => ({
+      dimension: dim,
+      ...info,
+      folderId: null as string | null,
+      folderUrl: null as string | null,
+    }));
 
-    if (!clientEmail || !privateKey) {
-      return NextResponse.json({ error: "Google Drive not configured" }, { status: 503 });
-    }
-
-    const auth = new google.auth.GoogleAuth({
-      credentials: { client_email: clientEmail, private_key: privateKey },
-      scopes: ["https://www.googleapis.com/auth/drive"],
-    });
-    const drive = google.drive({ version: "v3", auth });
-
-    const userFolderId = account.drive_folder_id;
-
-    // 1. Create SVI-structured subfolders
+    // Try Google Drive — gracefully handle quota exceeded
+    let driveAvailable = false;
     const dimensionFolders: Record<string, string> = {};
-    for (const [dim, info] of Object.entries(SVI_DATAROOM_STRUCTURE)) {
-      // Check if subfolder already exists
-      const existing = await drive.files.list({
-        q: `name = '${info.label}' and '${userFolderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
-        fields: "files(id)",
-      });
 
-      if (existing.data.files?.length) {
-        dimensionFolders[dim] = existing.data.files[0].id!;
-      } else {
-        const created = await drive.files.create({
-          requestBody: {
-            name: info.label,
-            mimeType: "application/vnd.google-apps.folder",
-            parents: [userFolderId],
-            description: info.description,
-          },
-          fields: "id",
+    try {
+      const { google } = await import("googleapis");
+      const clientEmail = process.env.GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL;
+      const privateKey = process.env.GOOGLE_DRIVE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+
+      if (!clientEmail || !privateKey) throw new Error("Drive not configured");
+
+      const auth = new google.auth.GoogleAuth({
+        credentials: { client_email: clientEmail, private_key: privateKey },
+        scopes: ["https://www.googleapis.com/auth/drive"],
+      });
+      const drive = google.drive({ version: "v3", auth });
+      const userFolderId = account.drive_folder_id;
+
+      if (!userFolderId) throw new Error("No user Drive folder");
+
+      // 1. Create SVI-structured subfolders
+      for (const [dim, info] of Object.entries(SVI_DATAROOM_STRUCTURE)) {
+        const existing = await drive.files.list({
+          q: `name = '${info.label}' and '${userFolderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+          fields: "files(id)",
         });
-        dimensionFolders[dim] = created.data.id!;
+
+        if (existing.data.files?.length) {
+          dimensionFolders[dim] = existing.data.files[0].id!;
+        } else {
+          const created = await drive.files.create({
+            requestBody: {
+              name: info.label,
+              mimeType: "application/vnd.google-apps.folder",
+              parents: [userFolderId],
+              description: info.description,
+            },
+            fields: "id",
+          });
+          dimensionFolders[dim] = created.data.id!;
+        }
       }
+      driveAvailable = true;
+
+      // Update structure with Drive folder IDs
+      for (const s of structure) {
+        if (dimensionFolders[s.dimension]) {
+          s.folderId = dimensionFolders[s.dimension];
+          s.folderUrl = `https://drive.google.com/drive/folders/${dimensionFolders[s.dimension]}`;
+        }
+      }
+    } catch (driveErr) {
+      const errMsg = driveErr instanceof Error ? driveErr.message : String(driveErr);
+      const isQuotaError = errMsg.includes("quota") || errMsg.includes("storage") || errMsg.includes("limit") || errMsg.includes("insufficient");
+      console.warn(`[dataroom:clone] Drive ${isQuotaError ? "quota exceeded" : "unavailable"}: ${errMsg}`);
+      // Continue without Drive — data room structure still returned from DB
     }
 
-    // 2. If sourceFolderId provided, scan and clone files into SVI structure
+    // 2. If sourceFolderId provided AND Drive available, scan and clone files
     let clonedCount = 0;
-    if (body.sourceFolderId) {
-      const sourceFiles = await drive.files.list({
-        q: `'${body.sourceFolderId}' in parents and trashed = false`,
-        fields: "files(id, name, mimeType, size)",
-        pageSize: 200,
-      });
+    if (body.sourceFolderId && driveAvailable && Object.keys(dimensionFolders).length > 0) {
+      try {
+        const { google } = await import("googleapis");
+        const clientEmail = process.env.GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL;
+        const privateKey = process.env.GOOGLE_DRIVE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+        const auth = new google.auth.GoogleAuth({
+          credentials: { client_email: clientEmail!, private_key: privateKey! },
+          scopes: ["https://www.googleapis.com/auth/drive"],
+        });
+        const drive = google.drive({ version: "v3", auth });
 
-      for (const file of sourceFiles.data.files ?? []) {
-        const fileName = (file.name ?? "").toLowerCase();
-        let targetDim = "iri"; // default: investor readiness
+        const sourceFiles = await drive.files.list({
+          q: `'${body.sourceFolderId}' in parents and trashed = false`,
+          fields: "files(id, name, mimeType, size)",
+          pageSize: 200,
+        });
 
-        // Auto-classify by filename patterns
-        for (const [dim, info] of Object.entries(SVI_DATAROOM_STRUCTURE)) {
-          if (info.filePatterns.some((p) => fileName.includes(p))) {
-            targetDim = dim;
-            break;
+        for (const file of sourceFiles.data.files ?? []) {
+          const fileName = (file.name ?? "").toLowerCase();
+          let targetDim = "iri";
+
+          for (const [dim, info] of Object.entries(SVI_DATAROOM_STRUCTURE)) {
+            if (info.filePatterns.some((p) => fileName.includes(p))) {
+              targetDim = dim;
+              break;
+            }
           }
-        }
 
-        // Copy file to the appropriate SVI dimension folder
-        try {
-          const copied = await drive.files.copy({
-            fileId: file.id!,
-            requestBody: {
-              name: file.name,
-              parents: [dimensionFolders[targetDim]],
-            },
-            fields: "id, webViewLink",
-          });
+          try {
+            const copied = await drive.files.copy({
+              fileId: file.id!,
+              requestBody: {
+                name: file.name,
+                parents: [dimensionFolders[targetDim]],
+              },
+              fields: "id, webViewLink",
+            });
 
           // Record in dataroom_files
           await supabase.from("dataroom_files").insert({
@@ -166,25 +199,25 @@ export async function POST(request: Request) {
 
           clonedCount++;
         } catch {
-          // Skip files that can't be copied (permission issues)
+          // Skip files that can't be copied (permission/quota issues)
         }
+      }
+      } catch (cloneErr) {
+        console.warn("[dataroom:clone] File cloning failed (quota?):", cloneErr instanceof Error ? cloneErr.message : cloneErr);
       }
     }
 
-    // 3. Record structure in database
-    const structure = Object.entries(dimensionFolders).map(([dim, fid]) => ({
-      dimension: dim,
-      ...SVI_DATAROOM_STRUCTURE[dim],
-      folderId: fid,
-      folderUrl: `https://drive.google.com/drive/folders/${fid}`,
-    }));
+    // 3. Return structure (works with or without Drive)
+    const rootFolderId = account.drive_folder_id;
 
     return NextResponse.json({
       ok: true,
-      rootFolderId: userFolderId,
-      rootFolderUrl: `https://drive.google.com/drive/folders/${userFolderId}`,
+      driveAvailable,
+      rootFolderId: rootFolderId ?? null,
+      rootFolderUrl: rootFolderId ? `https://drive.google.com/drive/folders/${rootFolderId}` : null,
       structure,
       clonedFiles: clonedCount,
+      message: driveAvailable ? undefined : "Data room structure created (Drive unavailable — quota may be exceeded). Structure saved to database.",
     });
   } catch (err) {
     console.error("[dataroom:clone] failed", err);
