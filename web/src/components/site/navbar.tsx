@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
+import { LanguageToggle } from "@/components/ui/language-toggle";
 
 interface NavLink {
   href: string;
@@ -104,6 +105,7 @@ export function Navbar() {
               >
                 Try free tools
               </Link>
+              <LanguageToggle variant="icon" />
               <Link href="/score">
                 <Button variant="primary" size="sm" className="h-10 px-5 rounded-xl text-sm font-semibold">
                   Get your Score
@@ -182,6 +184,9 @@ export function Navbar() {
                 >
                   Or start free with your idea
                 </Link>
+                <div className="flex justify-center pt-1">
+                  <LanguageToggle variant="pill" />
+                </div>
               </div>
             </nav>
           </div>
