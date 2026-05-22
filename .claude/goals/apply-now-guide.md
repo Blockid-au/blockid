@@ -184,6 +184,11 @@ Migration to Google Cloud would enable:
 - [ ] Fill form with answers from Section 4 below
 - [ ] Submit (no video needed, no fee, instant)
 
+### Also This Week — Google Cloud Startup Credits (10 minutes):
+- [ ] Open https://cloud.google.com/startup/apply
+- [ ] Fill form with answers from Section 5 below
+- [ ] Get up to $200K cloud credits (AI startups up to $350K)
+
 ### Ongoing:
 - [ ] Monitor email for interview invitations
 - [ ] Track applications in /admin/listings dashboard
