@@ -13,6 +13,7 @@ import {
   Check,
   Upload,
   FileText,
+  X,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import type { AppUser } from "@/lib/auth";
@@ -222,12 +223,42 @@ export function OnboardingWizard({ user }: OnboardingWizardProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
+  // Skip onboarding — mark as completed and go to dashboard
+  async function handleSkip() {
+    try {
+      await fetch("/api/onboarding/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim() || user.displayName || user.email.split("@")[0],
+          role: role || "founder",
+          startupName: "",
+          stage: "",
+          industry: "",
+        }),
+      });
+    } catch {
+      // Non-blocking
+    }
+    router.push("/dashboard/svi");
+  }
+
   return (
     <main className="min-h-svh bg-white flex flex-col items-center justify-center px-6 py-16">
       <div className="w-full max-w-xl">
-        {/* Logo */}
-        <div className="flex justify-center mb-8">
+        {/* Logo + Close button */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="w-8" /> {/* Spacer for centering */}
           <Logo variant="light" />
+          <button
+            type="button"
+            onClick={handleSkip}
+            className="h-8 w-8 flex items-center justify-center rounded-lg text-ink-400 hover:text-ink-700 hover:bg-surface-100 transition-colors cursor-pointer"
+            aria-label="Skip onboarding"
+            title="Skip for now"
+          >
+            <X strokeWidth={1.75} className="h-5 w-5" />
+          </button>
         </div>
 
         {/* Progress bar (4 dots) */}
@@ -369,7 +400,14 @@ export function OnboardingWizard({ user }: OnboardingWizardProps) {
                 </div>
               </div>
 
-              <div className="flex justify-end mt-6">
+              <div className="flex items-center justify-between mt-6">
+                <button
+                  type="button"
+                  onClick={handleSkip}
+                  className="text-sm text-ink-400 hover:text-ink-600 transition-colors cursor-pointer"
+                >
+                  Skip for now
+                </button>
                 <button
                   type="button"
                   onClick={goNext}
