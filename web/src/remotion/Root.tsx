@@ -3,6 +3,7 @@ import { PitchVideo1Min } from "./compositions/PitchVideo1Min";
 import { PitchVideo1MinV2 } from "./compositions/PitchVideo1MinV2";
 import { PitchVideo3Min } from "./compositions/PitchVideo3Min";
 import { PitchVideoSWC } from "./compositions/PitchVideoSWC";
+import { PitchAntler } from "./compositions/PitchAntler";
 import { BRAND } from "./styles/brand";
 
 const RemotionRoot: React.FC = () => {
@@ -36,6 +37,14 @@ const RemotionRoot: React.FC = () => {
         id="PitchVideoSWC"
         component={PitchVideoSWC}
         durationInFrames={185 * BRAND.fps}
+        fps={BRAND.fps}
+        width={BRAND.width}
+        height={BRAND.height}
+      />
+      <Composition
+        id="PitchAntler"
+        component={PitchAntler}
+        durationInFrames={180 * BRAND.fps}
         fps={BRAND.fps}
         width={BRAND.width}
         height={BRAND.height}

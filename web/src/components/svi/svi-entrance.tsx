@@ -33,7 +33,7 @@ import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 import { SVIResultsPanel } from "@/components/svi/svi-results-panel";
 import { RndResultsPanel } from "@/components/svi/rnd-results-panel";
-import { RndStatusBar } from "@/components/svi/rnd-status-bar";
+import { RndStatusBar, type StatusEntry } from "@/components/svi/rnd-status-bar";
 import { CreditGate } from "@/components/ui/credit-gate";
 import { SectionPicker, type SectionSelection } from "@/components/svi/section-picker";
 import { LanguageToggle } from "@/components/ui/language-toggle";
@@ -122,7 +122,9 @@ export function SVIEntrance() {
   const [result, setResult] = React.useState<SVIApiResponse | null>(null);
   const [error, setError] = React.useState("");
   const [searchFocused, setSearchFocused] = React.useState(false);
-  const [rndStatus, setRndStatus] = React.useState<string | null>(null);
+  const [rndStatusEntries, setRndStatusEntries] = React.useState<StatusEntry[]>([]);
+  const addRndStatus = (step: string, message: string) => setRndStatusEntries((prev) => [...prev, { step, message, ts: Date.now() }]);
+  const clearRndStatus = () => setRndStatusEntries([]);
   const [rndReport, setRndReport] = React.useState<RndReport | null>(null);
   const [techAudit, setTechAudit] = React.useState<ClientTechAuditResult | null>(null);
   // detectedInputType is now a useMemo — see below
@@ -320,7 +322,7 @@ export function SVIEntrance() {
       }
     }
 
-    setError(""); setState("submitting"); setRndStatus(null); setRndReport(null); setTechAudit(null); setPreviousAnalysis(null);
+    setError(""); setState("submitting"); clearRndStatus(); setRndReport(null); setTechAudit(null); setPreviousAnalysis(null);
     trackEvent("svi_submitted", { method: file ? "file" : "text", has_file: !!file });
 
     // Fetch previous analysis for delta comparison (fire-and-forget, don't block)
@@ -400,7 +402,7 @@ export function SVIEntrance() {
                 try {
                   const data = JSON.parse(line.slice(6));
                   if (eventType === "status") {
-                    setRndStatus(data.message);
+                    addRndStatus(data.step ?? "progress", data.message);
                   } else if (eventType === "complete") {
                     setResult({
                       ok: true,
@@ -411,7 +413,7 @@ export function SVIEntrance() {
                     });
                     setRndReport(data.report ?? null);
                     setTechAudit(data.techAudit ?? null);
-                    setRndStatus(null);
+                    clearRndStatus();
                     setState("done");
                     sseCompleted = true;
                     trackEvent("rnd_analysis_complete", { svi_score: data.totalSVI, slug: data.slug });
@@ -424,7 +426,7 @@ export function SVIEntrance() {
                     });
                   } else if (eventType === "error") {
                     setError(data.error || "Analysis failed");
-                    setRndStatus(null);
+                    clearRndStatus();
                     setState("error");
                   }
                 } catch {

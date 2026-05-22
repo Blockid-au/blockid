@@ -393,18 +393,11 @@ function FunnelStep({ label, count, rate, prev, isFirst }: { label: string; coun
 
 function RefreshButton() {
   return (
-    <form action={`/api/cron/growth-insights`} method="get">
-      <input type="hidden" name="manual" value="1" />
-      <button
-        type="button"
-        onClick={() => {
-          // Client-side fetch to refresh (avoids exposing CRON_SECRET)
-          window.location.reload();
-        }}
-        className="text-xs text-brand-600 hover:text-brand-700 transition-colors font-medium"
-      >
-        Refresh
-      </button>
-    </form>
+    <a
+      href="/admin/growth"
+      className="text-xs text-brand-600 hover:text-brand-700 transition-colors font-medium"
+    >
+      Refresh
+    </a>
   );
 }
