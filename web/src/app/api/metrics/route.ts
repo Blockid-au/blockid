@@ -1,37 +1,10 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { findOrCreateSVIAccount, getProjectIdFromRequest } from "@/lib/projects";
 
 export const dynamic = "force-dynamic";
 
-// ---------------------------------------------------------------------------
-// Find or create svi_account by email
-// ---------------------------------------------------------------------------
-
-async function findOrCreateAccount(
-  supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
-  email: string,
-): Promise<string | null> {
-  const { data: existing } = await supabase
-    .from("svi_accounts")
-    .select("id")
-    .eq("email", email)
-    .maybeSingle();
-
-  if (existing) return existing.id as string;
-
-  const { data: created, error } = await supabase
-    .from("svi_accounts")
-    .insert({ email, last_active_at: new Date().toISOString() })
-    .select("id")
-    .single();
-
-  if (error || !created) {
-    console.error("[blockid:metrics] svi_accounts insert failed", error);
-    return null;
-  }
-  return created.id as string;
-}
 
 // ---------------------------------------------------------------------------
 // Metric field whitelist — only these columns can be written
@@ -135,7 +108,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const accountId = await findOrCreateAccount(supabase, user.email);
+    const projectId = await getProjectIdFromRequest();
+    const accountId = await findOrCreateSVIAccount(user.email, projectId);
     if (!accountId) {
       return NextResponse.json(
         { ok: false, error: "Failed to resolve account" },

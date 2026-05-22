@@ -12,6 +12,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getProjectIdFromRequest } from "@/lib/projects";
 
 export const dynamic = "force-dynamic";
 
@@ -52,27 +53,42 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Database unavailable" }, { status: 503 });
   }
 
-  // Gather all data for the report
-  const { data: account } = await supabase
+  const projectId = await getProjectIdFromRequest();
+
+  // Gather all data for the report — scoped by project_id
+  const accountQuery = supabase
     .from("svi_accounts")
     .select("id, email, startup_name, current_svi, current_stage")
-    .eq("email", user.email)
+    .eq("email", user.email);
+
+  if (projectId) {
+    accountQuery.eq("project_id", projectId);
+  } else {
+    accountQuery.is("project_id", null);
+  }
+
+  const { data: account } = await accountQuery
     .order("last_active_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
   if (!account) {
-    return NextResponse.json({ ok: false, error: "No SVI account found — run an analysis first" }, { status: 404 });
+    return NextResponse.json({ ok: false, error: "No SVI account found for this project — run an analysis first" }, { status: 404 });
   }
 
-  // Latest analysis
-  const { data: latestAnalysis } = await supabase
+  // Latest analysis — scoped by project_id
+  const analysisQuery = supabase
     .from("svi_analyses")
     .select("raw_input, total_svi, analysis_json")
     .eq("email", user.email)
     .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+
+  if (projectId) {
+    analysisQuery.eq("project_id", projectId);
+  }
+
+  const { data: latestAnalysis } = await analysisQuery.maybeSingle();
 
   // All evidence items
   const { data: evidenceItems } = await supabase
