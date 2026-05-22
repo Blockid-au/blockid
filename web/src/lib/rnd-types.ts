@@ -16,7 +16,9 @@ export interface RndReportPage {
   pageNum: number;
   title: string;
   subtitle: string;
-  content: string;  // Markdown content
+  content: string;  // Markdown narrative essay
+  lockedPreview?: string;   // Preview text of locked deeper analysis
+  lockedSections?: string[]; // Titles of sections behind paywall
   score?: number;   // 0-100 dimension score
   highlights?: string[];
   dataPoints?: Record<string, string>;
@@ -26,13 +28,14 @@ export interface RndReportPage {
 export type ReportTier = "preview" | "standard" | "deep_dive";
 
 export interface RndReport {
-  version: "1.0.0";
+  version: "1.0.0" | "2.0.0";
   inputType: string;
   inputUrl?: string;
   pages: RndReportPage[];
   overallScore: number;
   createdAt: string;
   tier?: ReportTier;  // defaults to "standard" when absent
+  potentialSVI?: number;  // Projected SVI after improvements
 }
 
 export const PAGE_DEFS = [

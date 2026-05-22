@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 import { RndPageLock } from "@/components/svi/rnd-page-lock";
+import { RndLockedSection } from "@/components/svi/rnd-locked-section";
 import type { RndReport, RndReportPage, ReportTier, ClientTechAuditResult } from "@/lib/rnd-types";
 import { PAGE_DEFS } from "@/lib/rnd-types";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
@@ -951,6 +952,18 @@ export function RndResultsPanel({
               ))}
             </ul>
           </div>
+        )}
+
+        {/* V2 Locked Section Preview — narrative report upsell */}
+        {page.lockedPreview && page.lockedSections && page.lockedSections.length > 0 && !isPaid && (
+          <RndLockedSection
+            lockedPreview={page.lockedPreview}
+            lockedSections={page.lockedSections}
+            pageTitle={page.title}
+            potentialSVI={report.potentialSVI}
+            currentSVI={report.overallScore}
+            onUnlock={onUnlock}
+          />
         )}
 
         {/* Deep Dive extended sections */}

@@ -73,6 +73,7 @@ export interface AnalyticsEventMap {
   rnd_deep_dive_complete: { svi_score: number; slug: string };
   rnd_reanalyze: { slug: string };
   rnd_link_copied: { slug: string };
+  report_unlock_click: { page: string };
 
   // ── Share / Investor Links ──
   investor_link_copied: { slug: string };
