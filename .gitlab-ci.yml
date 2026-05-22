@@ -66,6 +66,15 @@ build:production:
 
 # ═══════════════════════════════════════════════════════════════════════
 # DEPLOY
+#
+# Strategy: Generate .env.deploy file from GitLab CI Variables, then
+# pass it to docker via --env-file. This ensures ALL vars are included
+# automatically — no more forgetting individual -e flags.
+#
+# Adding a new env var:
+#   1. Add to web/.env (local dev)
+#   2. Add to GitLab CI Variables (Settings → CI/CD → Variables)
+#   3. Done — deploy will pick it up automatically
 # ═══════════════════════════════════════════════════════════════════════
 
 .deploy_template: &deploy_template
@@ -73,67 +82,100 @@ build:production:
   tags:
     - deploy
   script:
-    # Clean up legacy container name (pre-multi-env) and current name
+    # ── 1. Generate .env.deploy from CI variables ──
+    # This replaces 40+ individual -e flags with a single --env-file
+    - |
+      ENV_FILE="/tmp/blockid-${CI_ENV_SLUG}.env"
+      cat > "$ENV_FILE" <<ENVEOF
+      NODE_ENV=${NODE_ENV}
+      PORT=3000
+      HOSTNAME=0.0.0.0
+      SUPABASE_URL=${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
+      ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      IP_HASH_SALT=${IP_HASH_SALT}
+      SMTP_HOST=${SMTP_HOST}
+      SMTP_PORT=${SMTP_PORT}
+      SMTP_USER=${SMTP_USER}
+      SMTP_PASS=${SMTP_PASS}
+      SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}
+      GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL=${GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL}
+      GOOGLE_DRIVE_PRIVATE_KEY=${GOOGLE_DRIVE_PRIVATE_KEY}
+      GOOGLE_DRIVE_FOLDER_ID=${GOOGLE_DRIVE_FOLDER_ID}
+      CRON_SECRET=${CRON_SECRET}
+      STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      STRIPE_PRICE_FOUNDING50=${STRIPE_PRICE_FOUNDING50}
+      STRIPE_PRICE_FOUNDER=${STRIPE_PRICE_FOUNDER}
+      STRIPE_PRICE_GROWTH=${STRIPE_PRICE_GROWTH}
+      STRIPE_PRICE_GROWTH_499=${STRIPE_PRICE_GROWTH_499}
+      STRIPE_PRICE_PILOT=${STRIPE_PRICE_PILOT}
+      STRIPE_PRICE_ACCELERATOR=${STRIPE_PRICE_ACCELERATOR}
+      STRIPE_PRICE_CREDITS_5=${STRIPE_PRICE_CREDITS_5}
+      STRIPE_PRICE_CREDITS_10=${STRIPE_PRICE_CREDITS_10}
+      STRIPE_PRICE_CREDITS_25=${STRIPE_PRICE_CREDITS_25}
+      STRIPE_PRICE_CREDITS_50=${STRIPE_PRICE_CREDITS_50}
+      STRIPE_PRICE_CREDITS_100=${STRIPE_PRICE_CREDITS_100}
+      STRIPE_PRICE_SVI_ANALYSIS=${STRIPE_PRICE_SVI_ANALYSIS}
+      STRIPE_PRICE_SVI_ANALYSIS_25=${STRIPE_PRICE_SVI_ANALYSIS_25}
+      GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      LINKEDIN_CLIENT_ID=${LINKEDIN_CLIENT_ID}
+      LINKEDIN_CLIENT_SECRET=${LINKEDIN_CLIENT_SECRET}
+      GOOGLE_GEMINI_API_KEY=${GOOGLE_GEMINI_API_KEY}
+      OPENAI_API_KEY=${OPENAI_API_KEY}
+      ANTHROPIC_PROXY_BASE_URL=${ANTHROPIC_PROXY_BASE_URL}
+      ANTHROPIC_PROXY_API_KEY=${ANTHROPIC_PROXY_API_KEY}
+      RESEND_API_KEY=${RESEND_API_KEY}
+      RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL}
+      COSMOS_CHAIN_ID=${COSMOS_CHAIN_ID}
+      COSMOS_REST_URL=${COSMOS_REST_URL}
+      COSMOS_RPC_URL=${COSMOS_RPC_URL}
+      ENVEOF
+      # Remove leading whitespace from heredoc
+      sed -i 's/^[[:space:]]*//' "$ENV_FILE"
+      # Remove empty lines and lines with empty values
+      sed -i '/^$/d' "$ENV_FILE"
+      echo "Generated $ENV_FILE with $(wc -l < "$ENV_FILE") variables"
+
+    # ── 2. Validate critical variables ──
+    - |
+      CRITICAL_VARS="SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY ANTHROPIC_API_KEY CRON_SECRET STRIPE_SECRET_KEY"
+      MISSING=""
+      for var in $CRITICAL_VARS; do
+        if ! grep -q "^${var}=.\+" "/tmp/blockid-${CI_ENV_SLUG}.env"; then
+          MISSING="$MISSING $var"
+        fi
+      done
+      if [ -n "$MISSING" ]; then
+        echo "CRITICAL: Missing env vars:$MISSING"
+        echo "Add them in GitLab → Settings → CI/CD → Variables"
+        exit 1
+      fi
+      echo "✓ All critical env vars validated"
+
+    # ── 3. Stop old container ──
     - docker stop deploy-${PROJECT_NAME} 2>/dev/null || true
     - docker rm deploy-${PROJECT_NAME} 2>/dev/null || true
     - docker stop deploy-${PROJECT_NAME}-${CI_ENV_SLUG} 2>/dev/null || true
     - docker rm deploy-${PROJECT_NAME}-${CI_ENV_SLUG} 2>/dev/null || true
+
+    # ── 4. Start new container with --env-file ──
     - docker run -d
         --name deploy-${PROJECT_NAME}-${CI_ENV_SLUG}
         --restart unless-stopped
         --network supabase_default
         -p 127.0.0.1:${DEPLOY_PORT}:3000
-        -e NODE_ENV=${NODE_ENV}
-        -e PORT=3000
-        -e HOSTNAME=0.0.0.0
-        -e SUPABASE_URL=${SUPABASE_URL}
-        -e SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-        -e NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
-        -e ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-        -e IP_HASH_SALT=${IP_HASH_SALT}
-        -e SMTP_HOST=${SMTP_HOST}
-        -e SMTP_PORT=${SMTP_PORT}
-        -e SMTP_USER=${SMTP_USER}
-        -e SMTP_PASS=${SMTP_PASS}
-        -e "SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}"
-        -e GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-        -e GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL=${GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL}
-        -e "GOOGLE_DRIVE_PRIVATE_KEY=${GOOGLE_DRIVE_PRIVATE_KEY}"
-        -e GOOGLE_DRIVE_FOLDER_ID=${GOOGLE_DRIVE_FOLDER_ID}
-        -e CRON_SECRET=${CRON_SECRET}
-        -e STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
-        -e STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
-        -e STRIPE_PRICE_FOUNDING50=${STRIPE_PRICE_FOUNDING50}
-        -e STRIPE_PRICE_FOUNDER=${STRIPE_PRICE_FOUNDER}
-        -e STRIPE_PRICE_GROWTH=${STRIPE_PRICE_GROWTH}
-        -e STRIPE_PRICE_GROWTH_499=${STRIPE_PRICE_GROWTH_499}
-        -e STRIPE_PRICE_PILOT=${STRIPE_PRICE_PILOT}
-        -e STRIPE_PRICE_ACCELERATOR=${STRIPE_PRICE_ACCELERATOR}
-        -e STRIPE_PRICE_CREDITS_5=${STRIPE_PRICE_CREDITS_5}
-        -e STRIPE_PRICE_CREDITS_10=${STRIPE_PRICE_CREDITS_10}
-        -e STRIPE_PRICE_CREDITS_25=${STRIPE_PRICE_CREDITS_25}
-        -e STRIPE_PRICE_CREDITS_50=${STRIPE_PRICE_CREDITS_50}
-        -e STRIPE_PRICE_SVI_ANALYSIS=${STRIPE_PRICE_SVI_ANALYSIS}
-        -e STRIPE_PRICE_SVI_ANALYSIS_25=${STRIPE_PRICE_SVI_ANALYSIS_25}
-        -e GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
-        -e GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
-        -e LINKEDIN_CLIENT_ID=${LINKEDIN_CLIENT_ID}
-        -e LINKEDIN_CLIENT_SECRET=${LINKEDIN_CLIENT_SECRET}
-        -e GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-        -e GOOGLE_GEMINI_API_KEY=${GOOGLE_GEMINI_API_KEY}
-        -e OPENAI_API_KEY=${OPENAI_API_KEY}
-        -e ANTHROPIC_PROXY_BASE_URL=${ANTHROPIC_PROXY_BASE_URL}
-        -e ANTHROPIC_PROXY_API_KEY=${ANTHROPIC_PROXY_API_KEY}
-        -e RESEND_API_KEY=${RESEND_API_KEY}
-        -e "RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL}"
-        -e COSMOS_CHAIN_ID=${COSMOS_CHAIN_ID}
-        -e COSMOS_REST_URL=${COSMOS_REST_URL}
-        -e COSMOS_RPC_URL=${COSMOS_RPC_URL}
-        -e STRIPE_PRICE_CREDITS_100=${STRIPE_PRICE_CREDITS_100}
+        --env-file /tmp/blockid-${CI_ENV_SLUG}.env
         -v /home/dovanlong/.claude/.credentials.json:/home/node/.claude/.credentials.json:ro
         -v /home/dovanlong/.codex/auth.json:/home/node/.codex/auth.json:ro
         -v /home/dovanlong/blockid.au/web/content:/app/content
         gitlab-deploy/${PROJECT_NAME}:${CI_ENV_TAG}
+
+    # ── 5. Wait for healthy ──
     - echo "Waiting for container to be healthy..."
     - |
       for i in $(seq 1 30); do
@@ -145,9 +187,22 @@ build:production:
         echo "  [$i/30] Status: $STATUS"
         sleep 2
       done
+
+    # ── 6. Verify deployment ──
     - docker ps | grep deploy-${PROJECT_NAME}-${CI_ENV_SLUG}
     - echo "Deployed to ${DEPLOY_URL}"
     - curl -sf http://127.0.0.1:${DEPLOY_PORT}/ -o /dev/null && echo "Health check passed!" || echo "Warning - health check pending"
+
+    # ── 7. Count env vars in container (sanity check) ──
+    - |
+      ENV_COUNT=$(docker inspect deploy-${PROJECT_NAME}-${CI_ENV_SLUG} --format='{{range .Config.Env}}1{{end}}' | wc -c)
+      echo "Container has $ENV_COUNT env vars"
+      if [ "$ENV_COUNT" -lt 30 ]; then
+        echo "WARNING: Container has fewer than 30 env vars — check GitLab CI Variables"
+      fi
+
+    # ── 8. Cleanup temp env file ──
+    - rm -f /tmp/blockid-${CI_ENV_SLUG}.env
 
 # ── Dev ───────────────────────────────────────────────────────────────
 deploy:dev:
@@ -188,7 +243,6 @@ deploy:production:
     DEPLOY_PORT: "4001"
     NODE_ENV: production
     DEPLOY_URL: https://blockid.au
-    RESEND_FROM_EMAIL: "BlockID <noreply@blockid.au>"
   environment:
     name: production
     url: https://blockid.au
