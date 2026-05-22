@@ -1,9 +1,9 @@
 import React from "react";
 import { AbsoluteFill, Img, Sequence, staticFile, useCurrentFrame, useVideoConfig, interpolate, spring } from "remotion";
 import { ComparisonTable } from "../components/ComparisonTable";
-import { DropMic } from "../components/DropMic";
 import { FlowDiagram } from "../components/FlowDiagram";
 import { MetricsGrid } from "../components/MetricsGrid";
+import { ScreenDemo } from "../components/ScreenDemo";
 import { RoadmapTimeline } from "../components/RoadmapTimeline";
 import { SlideTransition } from "../components/SlideTransition";
 import { StatCounter } from "../components/StatCounter";
