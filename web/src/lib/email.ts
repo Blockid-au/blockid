@@ -51,6 +51,49 @@ type SendResult =
   | { ok: true; id: string }
   | { ok: false; reason: "not_configured" | "send_error" | "unsubscribed"; error?: unknown };
 
+// ---------- Resend fallback ---------------------------------------------------
+
+function isResendConfigured(): boolean {
+  return Boolean(process.env.RESEND_API_KEY);
+}
+
+async function sendViaResend(args: {
+  to: string;
+  subject: string;
+  html: string;
+}): Promise<SendResult> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return { ok: false, reason: "not_configured" };
+
+  const from = process.env.RESEND_FROM_EMAIL || fromAddress();
+
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: [args.to],
+        subject: args.subject,
+        html: args.html,
+      }),
+    });
+    const data = await res.json() as { id?: string; message?: string };
+    if (!res.ok) {
+      console.error("[blockid:email] Resend API error", data);
+      return { ok: false, reason: "send_error", error: data.message };
+    }
+    console.log("[blockid:email] sent via Resend", { to: args.to, id: data.id });
+    return { ok: true, id: data.id ?? "" };
+  } catch (error) {
+    console.error("[blockid:email] Resend fetch failed", error);
+    return { ok: false, reason: "send_error", error };
+  }
+}
+
 // ---------- Core send function ------------------------------------------------
 
 export async function sendEmail(args: {
@@ -60,38 +103,46 @@ export async function sendEmail(args: {
   unsubscribeUrl?: string;
   attachments?: { filename: string; content: Buffer | Uint8Array; contentType?: string }[];
 }): Promise<SendResult> {
+  // Priority 1: SMTP (Nodemailer)
   const transporter = getTransporter();
-  if (!transporter) {
-    console.warn("[blockid:email] SMTP not configured, skipping", { to: args.to, subject: args.subject });
-    return { ok: false, reason: "not_configured" };
-  }
-  try {
-    const headers: Record<string, string> = {};
-    if (args.unsubscribeUrl) {
-      headers["List-Unsubscribe"] = `<${args.unsubscribeUrl}>`;
-      headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click";
-    }
+  if (transporter) {
+    try {
+      const headers: Record<string, string> = {};
+      if (args.unsubscribeUrl) {
+        headers["List-Unsubscribe"] = `<${args.unsubscribeUrl}>`;
+        headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click";
+      }
 
-    const info = await transporter.sendMail({
-      from: fromAddress(),
-      to: args.to,
-      subject: args.subject,
-      html: args.html,
-      headers,
-      ...(args.attachments?.length && {
-        attachments: args.attachments.map((a) => ({
-          filename: a.filename,
-          content: Buffer.from(a.content),
-          contentType: a.contentType ?? "application/pdf",
-        })),
-      }),
-    });
-    console.log("[blockid:email] sent", { to: args.to, messageId: info.messageId });
-    return { ok: true, id: info.messageId ?? "" };
-  } catch (error) {
-    console.error("[blockid:email] send failed", error);
-    return { ok: false, reason: "send_error", error };
+      const info = await transporter.sendMail({
+        from: fromAddress(),
+        to: args.to,
+        subject: args.subject,
+        html: args.html,
+        headers,
+        ...(args.attachments?.length && {
+          attachments: args.attachments.map((a) => ({
+            filename: a.filename,
+            content: Buffer.from(a.content),
+            contentType: a.contentType ?? "application/pdf",
+          })),
+        }),
+      });
+      console.log("[blockid:email] sent via SMTP", { to: args.to, messageId: info.messageId });
+      return { ok: true, id: info.messageId ?? "" };
+    } catch (error) {
+      console.error("[blockid:email] SMTP send failed, trying Resend fallback", error);
+      // Fall through to Resend
+    }
   }
+
+  // Priority 2: Resend API
+  if (isResendConfigured()) {
+    return sendViaResend({ to: args.to, subject: args.subject, html: args.html });
+  }
+
+  // Neither configured
+  console.warn("[blockid:email] No email provider configured (set SMTP_USER+SMTP_PASS or RESEND_API_KEY)", { to: args.to, subject: args.subject });
+  return { ok: false, reason: "not_configured" };
 }
 
 // ---------- Helpers for subscription-aware sending ----------------------------
@@ -219,11 +270,6 @@ export async function sendMagicLink(args: {
     </td></tr>
   </table>
   ${unsubFooter(unsubscribeUrl, preferencesUrl, args.locale)}`);
-
-  if (!isSmtpConfigured()) {
-    console.warn("[blockid:email] SMTP not configured — verify URL:", url);
-    return { ok: false, reason: "not_configured" };
-  }
 
   return sendEmail({ to: args.to, subject, html, unsubscribeUrl });
 }
