@@ -163,19 +163,26 @@ build:production:
     - docker stop deploy-${PROJECT_NAME}-${CI_ENV_SLUG} 2>/dev/null || true
     - docker rm deploy-${PROJECT_NAME}-${CI_ENV_SLUG} 2>/dev/null || true
 
-    # ── 4. Start new container with --env-file ──
+    # ── 4. Remove multiline values from env file (docker --env-file can't handle them) ──
+    - |
+      # GOOGLE_DRIVE_PRIVATE_KEY contains newlines — pass separately via -e
+      grep -v "^GOOGLE_DRIVE_PRIVATE_KEY=" "/tmp/blockid-${CI_ENV_SLUG}.env" > "/tmp/blockid-${CI_ENV_SLUG}-clean.env" || true
+      mv "/tmp/blockid-${CI_ENV_SLUG}-clean.env" "/tmp/blockid-${CI_ENV_SLUG}.env"
+
+    # ── 5. Start new container with --env-file + multiline vars via -e ──
     - docker run -d
         --name deploy-${PROJECT_NAME}-${CI_ENV_SLUG}
         --restart unless-stopped
         --network supabase_default
         -p 127.0.0.1:${DEPLOY_PORT}:3000
         --env-file /tmp/blockid-${CI_ENV_SLUG}.env
+        -e "GOOGLE_DRIVE_PRIVATE_KEY=${GOOGLE_DRIVE_PRIVATE_KEY}"
         -v /home/dovanlong/.claude/.credentials.json:/home/node/.claude/.credentials.json:ro
         -v /home/dovanlong/.codex/auth.json:/home/node/.codex/auth.json:ro
         -v /home/dovanlong/blockid.au/web/content:/app/content
         gitlab-deploy/${PROJECT_NAME}:${CI_ENV_TAG}
 
-    # ── 5. Wait for healthy ──
+    # ── 6. Wait for healthy ──
     - echo "Waiting for container to be healthy..."
     - |
       for i in $(seq 1 30); do
@@ -188,12 +195,12 @@ build:production:
         sleep 2
       done
 
-    # ── 6. Verify deployment ──
+    # ── 7. Verify deployment ──
     - docker ps | grep deploy-${PROJECT_NAME}-${CI_ENV_SLUG}
     - echo "Deployed to ${DEPLOY_URL}"
     - curl -sf http://127.0.0.1:${DEPLOY_PORT}/ -o /dev/null && echo "Health check passed!" || echo "Warning - health check pending"
 
-    # ── 7. Count env vars in container (sanity check) ──
+    # ── 8. Count env vars in container (sanity check) ──
     - |
       ENV_COUNT=$(docker inspect deploy-${PROJECT_NAME}-${CI_ENV_SLUG} --format='{{range .Config.Env}}1{{end}}' | wc -c)
       echo "Container has $ENV_COUNT env vars"
@@ -201,7 +208,7 @@ build:production:
         echo "WARNING: Container has fewer than 30 env vars — check GitLab CI Variables"
       fi
 
-    # ── 8. Cleanup temp env file ──
+    # ── 9. Cleanup temp env file ──
     - rm -f /tmp/blockid-${CI_ENV_SLUG}.env
 
 # ── Dev ───────────────────────────────────────────────────────────────
