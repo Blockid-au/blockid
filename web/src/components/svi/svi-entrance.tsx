@@ -486,7 +486,7 @@ export function SVIEntrance() {
       throw new Error("Unexpected response from /api/rnd");
     } catch {
       // ── Fallback: original /api/svi ──────────────────────────────────
-      setRndStatus(null);
+      clearRndStatus();
       try {
         const sviRes = await fetch("/api/svi", {
           method: "POST",
@@ -534,7 +534,8 @@ export function SVIEntrance() {
 
   const handleDeepDiveUpgrade = async () => {
     if (!email || !result || !lastInput) return;
-    setRndStatus("Upgrading to Deep Dive...");
+    clearRndStatus();
+    addRndStatus("rnd_start", "Upgrading to Deep Dive...");
     setState("submitting");
     trackEvent("rnd_deep_dive_upgrade", { from_tier: rndReport?.tier ?? "standard" });
 
@@ -583,7 +584,7 @@ export function SVIEntrance() {
               try {
                 const data = JSON.parse(line.slice(6));
                 if (eventType === "status") {
-                  setRndStatus(data.message);
+                  addRndStatus(data.step ?? "progress", data.message);
                 } else if (eventType === "complete") {
                   setResult({
                     ok: true,
@@ -594,12 +595,12 @@ export function SVIEntrance() {
                   });
                   setRndReport(data.report ?? null);
                   setTechAudit(data.techAudit ?? null);
-                  setRndStatus(null);
+                  clearRndStatus();
                   setState("done");
                   trackEvent("rnd_deep_dive_complete", { svi_score: data.totalSVI, slug: data.slug });
                 } else if (eventType === "error") {
                   setError(data.error || "Deep Dive upgrade failed");
-                  setRndStatus(null);
+                  clearRndStatus();
                   setState("done");
                 }
               } catch {
@@ -641,7 +642,7 @@ export function SVIEntrance() {
     }
   };
 
-  const handleReset = () => { setResult(null); setRndReport(null); setTechAudit(null); setRndStatus(null); setState("idle"); setText(""); setFile(null); setEmail(""); setError(""); setLastInput(null); setPreviousAnalysis(null); };
+  const handleReset = () => { setResult(null); setRndReport(null); setTechAudit(null); clearRndStatus(); setState("idle"); setText(""); setFile(null); setEmail(""); setError(""); setLastInput(null); setPreviousAnalysis(null); };
 
   // Called when a 100% coupon grants free access — clear gate and re-submit.
   const handleCouponGrant = () => {
@@ -815,7 +816,7 @@ export function SVIEntrance() {
               )}
 
               {/* R&D Status Bar for Deep Dive upgrade */}
-              <RndStatusBar status={rndStatus} isActive={!!rndStatus} />
+              <RndStatusBar entries={rndStatusEntries} isActive={rndStatusEntries.length > 0} />
             </>
           ) : (
             <SVIResultsPanel analysis={result.analysis} slug={result.slug} onReset={handleReset} rawText={text} email={email} previousAnalysis={previousAnalysis} />
@@ -916,7 +917,7 @@ export function SVIEntrance() {
             )}
 
             {/* R&D Status Bar — streaming status during analysis */}
-            <RndStatusBar status={rndStatus} isActive={state === "submitting"} />
+            <RndStatusBar entries={rndStatusEntries} isActive={state === "submitting"} />
 
             {(text.trim() || file) && (
               <div className="mt-3 flex items-center justify-center">
