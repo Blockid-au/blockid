@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { getProjectIdFromRequest } from "@/lib/projects";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -38,10 +39,17 @@ export async function GET(request: Request) {
     // Cookie/session check failed — treat as unauthenticated
   }
 
-  const { data } = await supabase
+  // Scope by active project if authenticated
+  const projectId = isAuthenticated ? await getProjectIdFromRequest() : null;
+
+  const query = supabase
     .from("svi_analyses")
     .select("id, email, total_svi, input_type, created_at, rnd_report_json, analysis_json")
-    .eq("email", emailParam)
+    .eq("email", emailParam);
+  if (projectId) query.eq("project_id", projectId);
+  else if (isAuthenticated) query.is("project_id", null);
+
+  const { data } = await query
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();

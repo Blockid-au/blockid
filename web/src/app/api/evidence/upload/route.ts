@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { uploadAndShareWithAdmin } from "@/lib/google-drive";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getProjectIdFromRequest, findOrCreateSVIAccount } from "@/lib/projects";
 
 export const dynamic = "force-dynamic";
 
@@ -64,24 +65,9 @@ export async function POST(req: NextRequest) {
     let evidenceId: string | null = null;
 
     if (supabase) {
-      // Find or create SVI account
-      let accountId: string | null = null;
-      const { data: account } = await supabase
-        .from("svi_accounts")
-        .select("id")
-        .eq("email", user.email)
-        .maybeSingle();
-
-      if (account) {
-        accountId = account.id;
-      } else {
-        const { data: created } = await supabase
-          .from("svi_accounts")
-          .insert({ email: user.email })
-          .select("id")
-          .single();
-        if (created) accountId = created.id;
-      }
+      // Find or create SVI account (project-scoped)
+      const projectId = await getProjectIdFromRequest();
+      const accountId = await findOrCreateSVIAccount(user.email, projectId);
 
       if (accountId) {
         const { data: ev } = await supabase

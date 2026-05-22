@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getProjectIdFromRequest, findOrCreateSVIAccount } from "@/lib/projects";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { RoadmapSteps } from "@/components/workspace/roadmap-steps";
 
@@ -19,25 +20,28 @@ async function getCompletedSteps(email: string): Promise<number[]> {
 
   const completed: number[] = [];
 
-  // Step 1: Get SVI Baseline — at least 1 svi_analyses record
-  const { count: analysisCount } = await sb
+  // Resolve active project
+  const projectId = await getProjectIdFromRequest();
+
+  // Step 1: Get SVI Baseline — at least 1 svi_analyses record (project-scoped)
+  const countQuery = sb
     .from("svi_analyses")
     .select("id", { count: "exact", head: true })
     .eq("email", email);
+  if (projectId) countQuery.eq("project_id", projectId);
+  else countQuery.is("project_id", null);
+
+  const { count: analysisCount } = await countQuery;
   if (analysisCount && analysisCount > 0) completed.push(1);
 
-  // Find the user's svi_account to query evidence
-  const { data: account } = await sb
-    .from("svi_accounts")
-    .select("id")
-    .eq("email", email)
-    .single();
+  // Find the user's svi_account (project-scoped)
+  const accountId = await findOrCreateSVIAccount(email, projectId);
 
-  if (account) {
+  if (accountId) {
     const { data: evidence } = await sb
       .from("svi_evidence")
       .select("evidence_type, label, dimension")
-      .eq("account_id", account.id);
+      .eq("account_id", accountId);
 
     if (evidence && evidence.length > 0) {
       for (const ev of evidence) {

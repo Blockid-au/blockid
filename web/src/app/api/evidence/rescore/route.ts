@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { getProjectIdFromRequest, findOrCreateSVIAccount } from "@/lib/projects";
 import {
   extractSignals,
   computeSVI,
@@ -33,12 +34,22 @@ export async function POST() {
 
   const supabase = getSupabaseAdmin()!;
 
-  // 1. Get SVI account
+  // 1. Resolve active project + SVI account
+  const projectId = await getProjectIdFromRequest();
+  const accountId = await findOrCreateSVIAccount(user.email, projectId);
+
+  if (!accountId) {
+    return NextResponse.json(
+      { ok: false, reason: "No SVI account found" },
+      { status: 404 },
+    );
+  }
+
   const { data: account } = await supabase
     .from("svi_accounts")
     .select("id, current_svi")
-    .eq("email", user.email)
-    .maybeSingle();
+    .eq("id", accountId)
+    .single();
 
   if (!account) {
     return NextResponse.json(
@@ -47,11 +58,15 @@ export async function POST() {
     );
   }
 
-  // 2. Get the latest analysis (for the original raw text)
-  const { data: latestAnalysis } = await supabase
+  // 2. Get the latest analysis (for the original raw text) — project-scoped
+  const analysisQuery = supabase
     .from("svi_analyses")
     .select("id, raw_input, analysis_json")
-    .eq("email", user.email)
+    .eq("email", user.email);
+  if (projectId) analysisQuery.eq("project_id", projectId);
+  else analysisQuery.is("project_id", null);
+
+  const { data: latestAnalysis } = await analysisQuery
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -96,7 +111,7 @@ export async function POST() {
   const previousSVI = (account.current_svi as number) ?? 100;
   const delta = newAnalysis.totalSVI - previousSVI;
 
-  // 7. Save new analysis to svi_analyses
+  // 7. Save new analysis to svi_analyses (project-scoped)
   const { data: savedAnalysis } = await supabase
     .from("svi_analyses")
     .insert({
@@ -106,6 +121,7 @@ export async function POST() {
       net_adjustment: newAnalysis.netAdjustment,
       confidence_multiplier: newAnalysis.confidenceMultiplier,
       analysis_json: newAnalysis as unknown as Record<string, unknown>,
+      project_id: projectId,
     })
     .select("id")
     .single();

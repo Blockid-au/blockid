@@ -39,10 +39,10 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Get all accounts with recent svi_analyses
+    // Get all accounts with recent svi_analyses (each row is a unique email+project pair)
     const { data: accounts, error } = await supabase
       .from("svi_accounts")
-      .select("id, email, current_svi, current_stage");
+      .select("id, email, current_svi, current_stage, project_id");
 
     if (error) throw error;
 
@@ -50,11 +50,15 @@ export async function GET(request: Request) {
     let processed = 0;
 
     for (const account of accounts ?? []) {
-      // Get the most recent analysis for this account
-      const { data: analysis } = await supabase
+      // Get the most recent analysis for THIS account's project (not all projects!)
+      const analysisQuery = supabase
         .from("svi_analyses")
         .select("total_svi, analysis_json")
-        .eq("email", account.email)
+        .eq("email", account.email);
+      if (account.project_id) analysisQuery.eq("project_id", account.project_id);
+      else analysisQuery.is("project_id", null);
+
+      const { data: analysis } = await analysisQuery
         .order("created_at", { ascending: false })
         .limit(1)
         .single();

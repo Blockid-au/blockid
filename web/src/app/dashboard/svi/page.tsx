@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getProjectIdFromRequest, findOrCreateSVIAccount } from "@/lib/projects";
 import { SVIDashboard } from "@/components/svi/svi-dashboard";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { WelcomeGuide } from "@/components/workspace/welcome-guide";
@@ -28,11 +29,18 @@ export default async function SVIDashboardPage() {
   let snapshotHistory: Array<{ date: string; svi: number; delta: number | null }> = [];
 
   if (supabase) {
-    // Load latest SVI analysis for this user
-    const { data: latestAnalysis } = await supabase
+    // Resolve the active project for this user
+    const projectId = await getProjectIdFromRequest();
+
+    // Load latest SVI analysis for this user + project
+    const analysisQuery = supabase
       .from("svi_analyses")
       .select("analysis_json, total_svi, created_at")
-      .eq("email", user.email)
+      .eq("email", user.email);
+    if (projectId) analysisQuery.eq("project_id", projectId);
+    else analysisQuery.is("project_id", null);
+
+    const { data: latestAnalysis } = await analysisQuery
       .order("created_at", { ascending: false })
       .limit(1)
       .single();
@@ -41,22 +49,17 @@ export default async function SVIDashboardPage() {
       analysis = latestAnalysis.analysis_json as SVIAnalysis;
     }
 
-    // Load or create SVI account
-    const { data: account } = await supabase
-      .from("svi_accounts")
-      .select("id, startup_name, current_svi, current_stage")
-      .eq("email", user.email)
-      .single();
+    // Load or create SVI account (project-scoped)
+    const accountId = await findOrCreateSVIAccount(user.email, projectId);
 
-    if (!account && analysis) {
-      // Auto-create account
-      await supabase.from("svi_accounts").insert({
-        email: user.email,
-        name: user.displayName ?? null,
-        current_svi: analysis.totalSVI,
-        current_stage: analysis.stage ?? 0,
-        plan: user.plan ?? "free",
-      });
+    let account: { id: string; startup_name: string | null; current_svi: number | null; current_stage: number | null } | null = null;
+    if (accountId) {
+      const { data: row } = await supabase
+        .from("svi_accounts")
+        .select("id, startup_name, current_svi, current_stage")
+        .eq("id", accountId)
+        .single();
+      account = row;
     }
 
     if (account) {

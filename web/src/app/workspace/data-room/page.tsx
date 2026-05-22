@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getProjectIdFromRequest, findOrCreateSVIAccount } from "@/lib/projects";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { DataRoomClient } from "./data-room-client";
 import { DATA_ROOM_STRUCTURE } from "@/lib/data-room-templates";
@@ -81,13 +82,11 @@ export default async function DataRoomPage() {
   const supabase = getSupabaseAdmin();
 
   if (supabase) {
-    const { data: account } = await supabase
-      .from("svi_accounts")
-      .select("id")
-      .eq("email", user.email)
-      .maybeSingle();
+    const projectId = await getProjectIdFromRequest();
+    const accountId = await findOrCreateSVIAccount(user.email, projectId);
 
-    if (account) {
+    if (accountId) {
+      const account = { id: accountId };
       // Find evidence rows matching data room items
       const { data: evidence } = await supabase
         .from("svi_evidence")

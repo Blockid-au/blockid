@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { getProjectIdFromRequest, findOrCreateSVIAccount } from "@/lib/projects";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -14,12 +15,19 @@ export async function GET() {
 
   const supabase = getSupabaseAdmin()!;
 
-  // Find the SVI account for this user
+  // Resolve active project and find the correct SVI account
+  const projectId = await getProjectIdFromRequest();
+  const accountId = await findOrCreateSVIAccount(user.email, projectId);
+
+  if (!accountId) {
+    return NextResponse.json({ ok: true, snapshots: [], currentSVI: null, weekDelta: null, monthDelta: null });
+  }
+
   const { data: account } = await supabase
     .from("svi_accounts")
     .select("id, current_svi, current_stage")
-    .eq("email", user.email)
-    .maybeSingle();
+    .eq("id", accountId)
+    .single();
 
   if (!account) {
     return NextResponse.json({ ok: true, snapshots: [], currentSVI: null, weekDelta: null, monthDelta: null });

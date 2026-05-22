@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getProjectIdFromRequest, findOrCreateSVIAccount } from "@/lib/projects";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { MetricsClient, type MetricRow } from "./metrics-client";
 
@@ -24,35 +25,44 @@ export default async function MetricsPage() {
   let stage = "pre-seed";
 
   if (sb) {
-    // Find the SVI account for this user to determine stage
-    const { data: account } = await sb
-      .from("svi_accounts")
-      .select("id, current_stage")
-      .eq("email", user.email)
-      .maybeSingle();
+    // Resolve active project
+    const projectId = await getProjectIdFromRequest();
+    const accountId = await findOrCreateSVIAccount(user.email, projectId);
 
-    if (account) {
-      // Map numeric stage to string key
-      const stageMap: Record<number, string> = {
-        0: "pre-seed",
-        1: "seed",
-        2: "series-a",
-        3: "series-b",
-      };
-      stage = stageMap[account.current_stage ?? 0] ?? "pre-seed";
+    if (accountId) {
+      const { data: account } = await sb
+        .from("svi_accounts")
+        .select("id, current_stage")
+        .eq("id", accountId)
+        .single();
+
+      if (account) {
+        // Map numeric stage to string key
+        const stageMap: Record<number, string> = {
+          0: "pre-seed",
+          1: "seed",
+          2: "series-a",
+          3: "series-b",
+        };
+        stage = stageMap[account.current_stage ?? 0] ?? "pre-seed";
+      }
     }
 
-    // Load metrics from last 12 months
+    // Load metrics from last 12 months (project-scoped)
     const cutoffDate = new Date();
     cutoffDate.setMonth(cutoffDate.getMonth() - 12);
     const cutoff = cutoffDate.toISOString().slice(0, 10);
 
-    const { data: metricRows } = await sb
+    const metricsQuery = sb
       .from("startup_metrics")
       .select(
         "id, metric_date, mrr_aud, arr_aud, revenue_growth_pct, mau, dau, monthly_churn_pct, nrr_pct, cac_aud, ltv_aud, burn_rate_aud, runway_months, source, created_at",
       )
-      .eq("email", user.email)
+      .eq("email", user.email);
+    if (projectId) metricsQuery.eq("project_id", projectId);
+    else metricsQuery.is("project_id", null);
+
+    const { data: metricRows } = await metricsQuery
       .gte("metric_date", cutoff)
       .order("metric_date", { ascending: true });
 
