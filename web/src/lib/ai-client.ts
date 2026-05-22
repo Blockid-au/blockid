@@ -365,50 +365,6 @@ async function callGemini(opts: AICallOptions): Promise<AICallResult> {
 
 // ── Provider caller map ────────────────────────────────────────────────
 
-/** Call proxy via child_process with temp file to bypass Next.js fetch patches */
-function proxyCall(url: string, apiKey: string, body: string): Promise<string> {
-  const { execFileSync } = require("child_process") as typeof import("child_process");
-  const os = require("os") as typeof import("os");
-
-  // Write request body to temp file to avoid shell escaping issues
-  const tmpBody = path.join(os.tmpdir(), `proxy-${Date.now()}-${Math.random().toString(36).slice(2)}.json`);
-  const tmpScript = tmpBody.replace(".json", ".mjs");
-
-  fs.writeFileSync(tmpBody, body);
-  fs.writeFileSync(tmpScript, `
-import https from 'https';
-import fs from 'fs';
-const u = new URL('${url}');
-const body = fs.readFileSync('${tmpBody}', 'utf-8');
-const req = https.request({
-  hostname: u.hostname, port: 443, path: u.pathname, method: 'POST',
-  headers: { 'x-api-key': '${apiKey}', 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
-  timeout: 180000,
-}, res => {
-  let d = '';
-  res.on('data', c => { d += c.toString(); });
-  res.on('end', () => { process.stdout.write(d); });
-});
-req.on('error', e => { process.stderr.write(e.message); process.exit(1); });
-req.on('timeout', () => { req.destroy(); process.stderr.write('timeout'); process.exit(1); });
-req.write(body);
-req.end();
-`);
-
-  try {
-    const result = execFileSync("node", [tmpScript], {
-      timeout: 180_000,
-      maxBuffer: 10 * 1024 * 1024,
-      encoding: "utf-8",
-    });
-    return Promise.resolve(result);
-  } catch (err) {
-    return Promise.reject(err instanceof Error ? err : new Error(String(err)));
-  } finally {
-    try { fs.unlinkSync(tmpBody); } catch { /* ignore */ }
-    try { fs.unlinkSync(tmpScript); } catch { /* ignore */ }
-  }
-}
 
 async function callClaudeProxy(opts: AICallOptions): Promise<AICallResult> {
   const dbProxy = getDBKey("anthropic_proxy");
@@ -418,35 +374,49 @@ async function callClaudeProxy(opts: AICallOptions): Promise<AICallResult> {
   const keys = [...new Set([...envKeys, ...dbKeys])];
   const model = opts.tools?.length ? "claude-sonnet-4-6" : "claude-haiku-4-5-20251001";
 
+  // Cap tokens at 1500 to keep response under proxy's 30s gateway timeout
+  const maxTokens = Math.min(opts.maxTokens ?? 4096, 1500);
+
   let lastErr: Error | null = null;
   for (const key of keys) {
     try {
-      const raw = await proxyCall(`${baseURL}/messages`, key, JSON.stringify({
-        model,
-        max_tokens: opts.maxTokens ?? 4096,
-        stream: true,
-        system: opts.system,
-        messages: [{ role: "user", content: opts.user }],
-      }));
+      const res = await fetch(`${baseURL}/messages`, {
+        method: "POST",
+        headers: {
+          "x-api-key": key,
+          "anthropic-version": "2023-06-01",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: maxTokens,
+          stream: false,
+          system: opts.system,
+          messages: [{ role: "user", content: opts.user }],
+        }),
+        cache: "no-store",
+      });
 
-      // Parse SSE stream events from response
+      const raw = await res.text();
+
+      // Parse — may be JSON or SSE
       let text = "";
-      for (const line of raw.split("\n")) {
-        if (!line.startsWith("data: ") || line.includes("[DONE]")) continue;
-        try {
-          const d = JSON.parse(line.slice(6));
-          if (d.delta?.text) text += d.delta.text;
-          if (d.type === "content_block_start" && d.content_block?.text) text += d.content_block.text;
-        } catch { /* skip */ }
-      }
-      // Fallback: try parsing as plain JSON (proxy may return non-streaming)
-      if (!text && raw.trimStart().startsWith("{")) {
-        try {
-          const data = JSON.parse(raw);
-          for (const block of (data.content ?? [])) {
-            if (block.type === "text") text += block.text;
-          }
-        } catch { /* skip */ }
+      if (raw.trimStart().startsWith("{")) {
+        const data = JSON.parse(raw);
+        if (!res.ok) throw new Error(data.error?.message ?? `Proxy ${res.status}`);
+        for (const block of (data.content ?? [])) {
+          if (block.type === "text") text += block.text;
+        }
+      } else {
+        // SSE response
+        for (const line of raw.split("\n")) {
+          if (!line.startsWith("data: ") || line.includes("[DONE]")) continue;
+          try {
+            const d = JSON.parse(line.slice(6));
+            if (d.delta?.text) text += d.delta.text;
+            if (d.type === "content_block_start" && d.content_block?.text) text += d.content_block.text;
+          } catch { /* skip */ }
+        }
       }
       if (text) return { text, provider: "claude", model };
       throw new Error("Empty response from proxy");
