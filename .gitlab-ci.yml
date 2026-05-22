@@ -158,7 +158,7 @@ build:production:
         -e COSMOS_RPC_URL=${COSMOS_RPC_URL}
         -v /home/dovanlong/.claude/.credentials.json:/home/node/.claude/.credentials.json:ro
         -v /home/dovanlong/.codex/auth.json:/home/node/.codex/auth.json:ro
-        -v /home/dovanlong/blockid.au/web/content:/app/content
+        -v ${CONTENT_DIR}:/app/content
         gitlab-deploy/${PROJECT_NAME}:${CI_ENV_TAG}
 
     # ── 4. Wait for healthy ──
@@ -189,6 +189,8 @@ build:production:
 
 
 # ── Dev ───────────────────────────────────────────────────────────────
+# Directory: /home/dovanlong/dev.blockid.au (branch: dev)
+# URL: https://dev.blockid.au → port 4003
 deploy:dev:
   <<: *deploy_template
   variables:
@@ -197,6 +199,7 @@ deploy:dev:
     DEPLOY_PORT: "4003"
     NODE_ENV: development
     DEPLOY_URL: https://dev.blockid.au
+    CONTENT_DIR: /home/dovanlong/dev.blockid.au/web/content
   environment:
     name: dev
     url: https://dev.blockid.au
@@ -204,6 +207,9 @@ deploy:dev:
     - dev
 
 # ── Staging ───────────────────────────────────────────────────────────
+# Directory: /home/dovanlong/staging.blockid.au (branch: staging)
+# URL: https://staging.blockid.au → port 4002
+# Must pass all tests before promoting to production.
 deploy:staging:
   <<: *deploy_template
   variables:
@@ -212,6 +218,7 @@ deploy:staging:
     DEPLOY_PORT: "4002"
     NODE_ENV: production
     DEPLOY_URL: https://staging.blockid.au
+    CONTENT_DIR: /home/dovanlong/staging.blockid.au/web/content
   environment:
     name: staging
     url: https://staging.blockid.au
@@ -219,6 +226,9 @@ deploy:staging:
     - staging
 
 # ── Production ────────────────────────────────────────────────────────
+# Directory: /home/dovanlong/blockid.au (branch: master)
+# URL: https://blockid.au → port 4001
+# Only deploys after staging is verified.
 deploy:production:
   <<: *deploy_template
   variables:
@@ -227,6 +237,7 @@ deploy:production:
     DEPLOY_PORT: "4001"
     NODE_ENV: production
     DEPLOY_URL: https://blockid.au
+    CONTENT_DIR: /home/dovanlong/blockid.au/web/content
   environment:
     name: production
     url: https://blockid.au
