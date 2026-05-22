@@ -89,7 +89,7 @@ export async function POST(request: Request) {
     .order("created_at", { ascending: false });
 
   const analysis = latestAnalysis?.analysis_json as Record<string, unknown> | null;
-  const rawText = (latestAnalysis?.raw_input ?? "").slice(0, 6000);
+  const rawText = latestAnalysis?.raw_input ?? "";
   const svi = account.current_svi ?? latestAnalysis?.total_svi ?? 100;
   const stage = account.current_stage ?? 0;
 
@@ -115,29 +115,31 @@ export async function POST(request: Request) {
 
   const stageLabels = ["Concept", "Validated Idea", "MVP/Prototype", "Early Traction", "Revenue", "Growth", "Scale", "Corporation"];
 
-  const maxTokens = tier === "premium" ? 8192 : 4096;
+  // No artificial token limit for paid users — use maximum available
+  const maxTokens = tier === "premium" ? 16384 : 8192;
 
   const sections = tier === "premium"
-    ? `Write the report in these sections:
+    ? `Write the report in ALL of these sections — be EXHAUSTIVE, no word limits, analyse every dimension thoroughly:
 
 ## Executive Summary (Investor Memo Format)
-## Founder & Team Assessment
-## Market Opportunity & Problem Validation
-## Product & Technical Maturity
-## Traction & Revenue Analysis
-## Go-to-Market Strategy Assessment
-## Cap Table & Governance Health
-## Investor Readiness Assessment
-## Legal & Compliance Status
-## Strategic Vision & Competitive Moat
-## Financial Projections & Unit Economics
-## Risk Assessment & Mitigation
-## Competitive Intelligence Summary
-## 90-Day Action Roadmap (Week by Week)
-## Board-Ready Executive Summary (1-page format)
+## Founder & Team Assessment (background, experience, gaps, team composition, AI agents)
+## Market Opportunity & Problem Validation (TAM/SAM/SOM, customer interviews, market timing)
+## Product & Technical Maturity (architecture, stack, AI capabilities, blockchain, security)
+## Traction & Revenue Analysis (users, analyses, engagement, revenue model, unit economics)
+## Go-to-Market Strategy Assessment (channels, content, SEO, partnerships, community)
+## Cap Table & Governance Health (equity structure, vesting, ESOP, shareholders agreement)
+## Investor Readiness Assessment (pitch deck, data room, financial model, raise strategy)
+## Legal & Compliance Status (ASIC, ABN, IP, contracts, AFSL, privacy, ESIC eligibility)
+## Strategic Vision & Competitive Moat (first-mover, data advantage, network effects, switching costs)
+## Financial Projections & Unit Economics (MRR targets, burn rate, runway, margins, LTV:CAC)
+## Risk Assessment & Mitigation (market, execution, technical, regulatory, competition)
+## Competitive Intelligence Summary (Carta, Pulley, Cake Equity, AI tools — detailed comparison)
+## 90-Day Action Roadmap (Week by Week with specific deliverables and KPIs)
+## Board-Ready Executive Summary (1-page format for investors)
+## Australian Market Deep Dive (ESIC, R&D Tax Incentive, accelerator landscape, AU-specific opportunities)
 
-Target: 5000+ words. Be thorough and data-driven. Include specific numbers and benchmarks where possible.`
-    : `Write the report in these sections:
+NO WORD LIMIT. Write as comprehensively as the analysis demands. Each section should be a thorough essay with data, benchmarks, and actionable recommendations. Target: 8000-15000 words total.`
+    : `Write the report in ALL of these sections — be thorough and comprehensive:
 
 ## Executive Summary
 ## Founder & Team Assessment
@@ -149,21 +151,29 @@ Target: 5000+ words. Be thorough and data-driven. Include specific numbers and b
 ## Investor Readiness
 ## Legal & Compliance
 ## Strategic Vision & Moat
+## Financial Projections
 ## Risk Assessment
+## Competitive Landscape
 ## 30-Day Action Plan
 
-Target: 2000+ words. Be specific and actionable.`;
+NO WORD LIMIT for paid users. Write as comprehensively as needed. Each section should be a detailed analysis with specific numbers and actionable recommendations. Target: 5000-8000 words total.`;
 
   try {
-    const systemPrompt = `You are a senior startup analyst at BlockID.au writing a comprehensive startup valuation report.
+    const systemPrompt = `You are a senior startup analyst, management consultant, and investor advisor at BlockID.au writing an EXHAUSTIVE startup valuation report.
 
-Write in a friendly, encouraging mentor tone — supportive but honest.
-Use Australian startup context (ABN, ASIC, R&D Tax Incentive, ASX, etc.).
-Be specific with numbers, benchmarks, and actionable recommendations.
-Reference the evidence items when making assessments.
-Do NOT artificially limit the report length — write as much as needed to be thorough.
+THIS IS A PAID REPORT — THERE ARE NO PAGE LIMITS OR WORD LIMITS. Write the most comprehensive, thorough analysis possible. Every section should be a detailed essay, not a summary.
 
-Format the report in clean Markdown with proper headings, bullet points, and bold text for key insights.`;
+Writing guidelines:
+- Write in flowing NARRATIVE PROSE — connected paragraphs, not just bullet lists
+- Be specific: name real competitors, cite real market data, provide specific numbers
+- Use Australian startup context: ESIC, ASIC, ABN, R&D Tax Incentive, ABS data, ASX
+- Reference the evidence items and dimension scores when making assessments
+- Frame weaknesses constructively: "the gap between current state and opportunity"
+- Include benchmarks: "companies at your stage typically..."
+- End each section with 3-5 SPECIFIC, ACTIONABLE next steps
+- Be honest but encouraging — supportive mentor tone
+
+Format: Clean Markdown with ## headings, ### sub-headings, **bold** for key insights, and structured recommendations.`;
 
     const userMessage = `Generate a ${tier === "premium" ? "Premium" : "Standard"} Full Report for this startup:
 
