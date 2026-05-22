@@ -7,8 +7,10 @@ import { randomBytes } from "crypto";
 
 export const dynamic = "force-dynamic";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au";
+
 const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "https://upload.blockid.au",
+  "Access-Control-Allow-Origin": SITE_URL,
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, Cookie",
   "Access-Control-Allow-Credentials": "true",
@@ -19,8 +21,10 @@ export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
 }
 
-const UPLOAD_DIR = join(process.cwd(), "public", "uploads");
+// Uploads dir: /app/uploads (Docker volume mount) or /public/uploads (dev)
+const UPLOAD_DIR = existsSync("/app/uploads") ? "/app/uploads" : join(process.cwd(), "public", "uploads");
 const MAX_SIZE = 50 * 1024 * 1024; // 50MB
+// Serve via upload.blockid.au (nginx static) or fallback to blockid.au/uploads
 const UPLOAD_BASE_URL = process.env.NEXT_PUBLIC_UPLOAD_URL ?? "https://upload.blockid.au";
 
 const ALLOWED_TYPES: Record<string, string[]> = {
