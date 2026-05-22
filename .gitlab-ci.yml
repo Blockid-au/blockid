@@ -161,6 +161,7 @@ build:production:
         -v /home/dovanlong/.claude/.credentials.json:/home/node/.claude/.credentials.json:ro
         -v /home/dovanlong/.codex/auth.json:/home/node/.codex/auth.json:ro
         -v ${CONTENT_DIR}:/app/content
+        -v /home/dovanlong/blockid.au/uploads:/app/uploads
         gitlab-deploy/${PROJECT_NAME}:${CI_ENV_TAG}
 
     # ── 4. Wait for healthy ──
