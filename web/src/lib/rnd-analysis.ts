@@ -509,12 +509,10 @@ export async function generateRndReport(
 
   onStatus?.(locale === "vi" ? "Bắt đầu phân tích R&D..." : "Starting R&D analysis pipeline...");
 
-  // Run 3 batches concurrently (A, B, C)
-  const [batchA, batchB, batchC] = await Promise.all([
-    runBatch("Core Assessment (Pages 1-3)", ["executive", "market", "product"], context, tier, onStatus, locale),
-    runBatch("Business Deep Dive (Pages 4-7)", ["business", "competition", "traction", "team"], context, tier, onStatus, locale),
-    runBatch("Financial & Risk (Pages 8-10)", ["financial", "risk", "recommendations"], context, tier, onStatus, locale),
-  ]);
+  // Run 3 batches sequentially to avoid proxy rate limits
+  const batchA = await runBatch("Core Assessment (Pages 1-3)", ["executive", "market", "product"], context, tier, onStatus, locale);
+  const batchB = await runBatch("Business Deep Dive (Pages 4-7)", ["business", "competition", "traction", "team"], context, tier, onStatus, locale);
+  const batchC = await runBatch("Financial & Risk (Pages 8-10)", ["financial", "risk", "recommendations"], context, tier, onStatus, locale);
 
   // Merge all batch results
   const allResults = new Map<string, BatchPageResult>();
