@@ -13,11 +13,12 @@
 │Skills:  │Skills:   │Skills:   │Skills:   │Skills:   │Skills:        │
 │nextjs-* │ui-ux-pro │seo-audit │stripe-t  │deploy    │analytics      │
 │ts-pro   │analytics │publish   │analytics │qa        │cmo (content)  │
-│react-ex │rnd       │cmo       │perf-aud  │devops    │ui-ux-pro      │
-│api-dsgn │qa        │analytics │db-migr   │code-rev  │stripe-test    │
-│arch-dsgn│nextjs-*  │rnd       │postgres  │test-mast │rnd            │
-│postgres │prompt-eng│media     │          │fullstack │               │
-│db-migr  │          │investor  │          │security  │               │
+│react-ex │rnd       │cmo       │perf-aud  │qa-lead   │ui-ux-pro      │
+│api-dsgn │qa        │analytics │db-migr   │devops    │stripe-test    │
+│arch-dsgn│nextjs-*  │rnd       │postgres  │code-rev  │rnd            │
+│postgres │prompt-eng│media     │          │test-mast │               │
+│db-migr  │          │investor  │          │fullstack │               │
+│secure-* │          │          │          │security  │               │
 │secure-* │          │          │          │          │               │
 │debug-wiz│          │          │          │          │               │
 │devops   │          │          │          │          │               │
