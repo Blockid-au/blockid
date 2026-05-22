@@ -169,6 +169,28 @@ export async function POST(request: Request) {
   // After persisting, send report email (fire-and-forget)
   void sendSVIReport({ to: email, slug, rawInput: parsed.input?.rawText, analysis, locale }).catch(() => {});
 
+  // ── Ensure per-project svi_account exists (data isolation) ──────────
+  // Each (email, project_id) pair gets its own svi_account row.
+  // This prevents overwriting startup_name, current_svi, etc. across projects.
+  if (supabase) {
+    let projectId: string | null = null;
+    if (authenticatedUserId) {
+      try {
+        const { getProjectIdFromRequest, findOrCreateSVIAccount } = await import("@/lib/projects");
+        projectId = await getProjectIdFromRequest();
+        const accountId = await findOrCreateSVIAccount(email, projectId);
+        if (accountId) {
+          // Update ONLY this project's svi_account with the new score
+          await supabase.from("svi_accounts").update({
+            current_svi: analysis.totalSVI,
+            current_stage: analysis.stage ?? 0,
+            last_active_at: new Date().toISOString(),
+          }).eq("id", accountId);
+        }
+      } catch { /* non-blocking */ }
+    }
+  }
+
   // Create per-user Drive folder and link to analysis (fire-and-forget)
   if (supabase) {
     void (async () => {
@@ -179,11 +201,6 @@ export async function POST(request: Request) {
           drive_folder_id: userFolderId,
           drive_folder_url: folderUrl,
         }).eq("id", slug);
-        // Also update svi_accounts if exists
-        await supabase.from("svi_accounts").update({
-          drive_folder_id: userFolderId,
-          drive_folder_url: folderUrl,
-        }).eq("email", email);
       } catch { /* Drive not configured or failed — non-blocking */ }
     })();
   }
