@@ -509,16 +509,12 @@ export async function generateRndReport(
 
   onStatus?.(locale === "vi" ? "Bắt đầu phân tích R&D..." : "Starting R&D analysis pipeline...");
 
-  // Run 3 batches sequentially to avoid proxy rate limits
-  const batchA = await runBatch("Core Assessment (Pages 1-3)", ["executive", "market", "product"], context, tier, onStatus, locale);
-  const batchB = await runBatch("Business Deep Dive (Pages 4-7)", ["business", "competition", "traction", "team"], context, tier, onStatus, locale);
-  const batchC = await runBatch("Financial & Risk (Pages 8-10)", ["financial", "risk", "recommendations"], context, tier, onStatus, locale);
-
-  // Merge all batch results
+  // Generate pages one at a time — proxy has 30s gateway timeout, smaller requests succeed
   const allResults = new Map<string, BatchPageResult>();
-  for (const [k, v] of batchA) allResults.set(k, v);
-  for (const [k, v] of batchB) allResults.set(k, v);
-  for (const [k, v] of batchC) allResults.set(k, v);
+  for (const def of PAGE_DEFS) {
+    const batch = await runBatch(def.title, [def.id], context, tier, onStatus, locale);
+    for (const [k, v] of batch) allResults.set(k, v);
+  }
 
   // Run extended batch (Batch D) for ALL paid tiers (standard + deep_dive)
   let extendedResults = new Map<string, RndExtendedSection[]>();
