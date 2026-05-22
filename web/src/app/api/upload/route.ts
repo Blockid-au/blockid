@@ -77,14 +77,20 @@ function corsJson(data: any, origin?: string | null, init?: { status?: number })
   return NextResponse.json(data, { ...init, headers: corsHeaders(origin) });
 }
 
+const UPLOAD_PASSWORD = process.env.UPLOAD_PASSWORD ?? "1243";
+
 export async function POST(request: Request) {
   const origin = request.headers.get("origin");
-  const user = await getCurrentUser();
-  if (!user) {
-    return corsJson({ error: "Unauthorized — sign in to upload" }, origin, { status: 401 });
-  }
 
   const formData = await request.formData();
+
+  // Auth: accept either session cookie OR password field
+  const password = formData.get("password") as string | null;
+  const user = await getCurrentUser();
+  if (!user && password !== UPLOAD_PASSWORD) {
+    return corsJson({ error: "Unauthorized — enter password to upload" }, origin, { status: 401 });
+  }
+
   const file = formData.get("file") as File | null;
 
   if (!file) {
