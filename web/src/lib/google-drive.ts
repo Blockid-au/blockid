@@ -102,19 +102,27 @@ export async function uploadAndShareWithAdmin(
 // ── Per-user folder management ──────────────────────────────────────────
 
 /**
- * Get or create a dedicated Drive folder for a user.
- * Each user gets their own folder under the main BlockID Drive folder.
+ * Get or create a dedicated Drive folder for a user + project.
+ * Each (user, project) pair gets its own folder under the main BlockID Drive folder.
  * Folder is shared with both the user and admin.
+ *
+ * Folder naming: "ProjectName — user@email.com" or "user@email.com" if no project.
  */
 export async function getOrCreateUserFolder(
   userEmail: string,
   displayName?: string | null,
+  projectName?: string | null,
 ): Promise<{ folderId: string; folderUrl: string }> {
   const { drive, folderId: rootFolderId } = getDriveClient();
   const adminEmail = process.env.ADMIN_EMAIL ?? "admin@blockid.au";
 
-  // Check if folder already exists for this user
-  const searchQuery = `name = '${userEmail}' and '${rootFolderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+  // Folder name includes project name for multi-project isolation
+  const folderSearchName = projectName
+    ? `${projectName} — ${userEmail}`
+    : userEmail;
+
+  // Check if folder already exists for this user+project
+  const searchQuery = `name = '${folderSearchName.replace(/'/g, "\\'")}' and '${rootFolderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
   const existing = await drive.files.list({
     q: searchQuery,
     fields: "files(id, webViewLink)",
@@ -129,8 +137,10 @@ export async function getOrCreateUserFolder(
     };
   }
 
-  // Create new folder
-  const folderName = displayName ? `${displayName} (${userEmail})` : userEmail;
+  // Create new folder with project name
+  const folderName = projectName
+    ? `${projectName} — ${displayName ?? userEmail}`
+    : (displayName ? `${displayName} (${userEmail})` : userEmail);
   const created = await drive.files.create({
     requestBody: {
       name: folderName,

@@ -191,12 +191,25 @@ export async function POST(request: Request) {
     }
   }
 
-  // Create per-user Drive folder and link to analysis (fire-and-forget)
+  // Create per-project Drive folder and link to analysis (fire-and-forget)
   if (supabase) {
     void (async () => {
       try {
         const { getOrCreateUserFolder } = await import("@/lib/google-drive");
-        const { folderId: userFolderId, folderUrl } = await getOrCreateUserFolder(email);
+        // Get project name for Drive folder naming
+        let projName: string | null = null;
+        let projId: string | null = null;
+        if (authenticatedUserId) {
+          try {
+            const { getProjectIdFromRequest, getProjectById } = await import("@/lib/projects");
+            projId = await getProjectIdFromRequest();
+            if (projId) {
+              const proj = await getProjectById(projId);
+              projName = proj?.name ?? null;
+            }
+          } catch { /* no project */ }
+        }
+        const { folderId: userFolderId, folderUrl } = await getOrCreateUserFolder(email, null, projName);
         await supabase.from("svi_analyses").update({
           drive_folder_id: userFolderId,
           drive_folder_url: folderUrl,
