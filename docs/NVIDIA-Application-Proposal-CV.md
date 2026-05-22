@@ -95,7 +95,7 @@ Technology entrepreneur with 20+ years of executive experience in AI, blockchain
 ### Education
 | Degree | Institution | Year |
 |--------|------------|------|
-| **Doctor of Business Administration (DBA)** Candidate | Swiss School of Business and Management (SSBM) | 2023-2025 |
+| **Doctor of Business Administration (DBA)** Candidate | Swiss School of Business and Management (SSBM) | 2023-2027 |
 | **Research:** IoT-HCM Grid on VINAREN Network | University of Hawaii (publication) | 2008 |
 
 ### Current Ventures
