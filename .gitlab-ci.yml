@@ -34,7 +34,9 @@ lint:
     - deploy
   script:
     - cd web
+    # --no-cache on builder stage ensures NEXT_PUBLIC_* vars are always fresh
     - docker build
+        --no-cache
         --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID="${NEXT_PUBLIC_GOOGLE_CLIENT_ID}"
         --build-arg NEXT_PUBLIC_SITE_URL="${NEXT_PUBLIC_SITE_URL}"
         --build-arg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}"
