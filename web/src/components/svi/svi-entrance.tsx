@@ -217,6 +217,11 @@ export function SVIEntrance() {
     plan: string | null;
   } | null>(null);
 
+  // Project selector for logged-in users
+  const [projects, setProjects] = React.useState<Array<{ id: string; slug: string; name: string }>>([]);
+  const [selectedProject, setSelectedProject] = React.useState<string>(""); // slug or "__new__"
+  const [projectDropdownOpen, setProjectDropdownOpen] = React.useState(false);
+
   // Check if user is authenticated with a paid plan — skip the gate if so.
   // Also triggers after a login redirect (detected via ?logged_in=true).
   const justLoggedIn = searchParams.get("logged_in") === "true";
@@ -240,6 +245,21 @@ export function SVIEntrance() {
           if (data.user.plan && data.user.plan !== "free") {
             setHasPaidPlan(true);
           }
+          // Load user's projects for the selector
+          try {
+            const projRes = await fetch("/api/projects");
+            const projData = await projRes.json();
+            if (projData.ok && projData.projects?.length > 0) {
+              setProjects(projData.projects);
+              // Read current active project from cookie
+              const cookieMatch = document.cookie.match(/blockid_project=([^;]+)/);
+              if (cookieMatch) {
+                setSelectedProject(cookieMatch[1]);
+              } else {
+                setSelectedProject(projData.projects[0].slug);
+              }
+            }
+          } catch { /* no projects yet */ }
         }
       } catch {
         // Silently ignore — gate stays active.
@@ -324,6 +344,29 @@ export function SVIEntrance() {
 
     setError(""); setState("submitting"); clearRndStatus(); setRndReport(null); setTechAudit(null); setPreviousAnalysis(null);
     trackEvent("svi_submitted", { method: file ? "file" : "text", has_file: !!file });
+
+    // ── Auto-create project for logged-in users ────────────────────────
+    if (loggedInUser && selectedProject === "__new__") {
+      try {
+        // AI will name the project from the input text — use first 60 chars as fallback
+        const autoName = rawText.trim().slice(0, 60).replace(/\n/g, " ") || "My Startup";
+        const projRes = await fetch("/api/projects", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: autoName }),
+        });
+        const projData = await projRes.json();
+        if (projData.ok && projData.project) {
+          const newSlug = projData.project.slug;
+          document.cookie = `blockid_project=${newSlug};path=/;max-age=${365 * 86400};samesite=lax`;
+          setSelectedProject(newSlug);
+          setProjects(prev => [...prev, { id: projData.project.id, slug: newSlug, name: projData.project.name }]);
+        }
+      } catch { /* continue — project creation is non-blocking */ }
+    } else if (loggedInUser && selectedProject && selectedProject !== "__new__") {
+      // Ensure the cookie is set for the selected project
+      document.cookie = `blockid_project=${selectedProject};path=/;max-age=${365 * 86400};samesite=lax`;
+    }
 
     // Fetch previous analysis for delta comparison (fire-and-forget, don't block)
     try {
@@ -870,6 +913,44 @@ export function SVIEntrance() {
           </div>
 
           <form onSubmit={handleSubmit} className="w-full">
+            {/* Project selector for logged-in users */}
+            {loggedInUser && projects.length > 0 && (
+              <div className="mb-3 flex items-center justify-center gap-2">
+                <span className="text-xs text-ink-400">Project:</span>
+                <div className="relative">
+                  <button type="button" onClick={() => setProjectDropdownOpen(!projectDropdownOpen)}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-surface-200 bg-white px-3 py-1.5 text-xs font-medium text-ink-700 hover:border-brand-300 hover:bg-brand-50 transition-all cursor-pointer shadow-sm">
+                    <Sparkles strokeWidth={1.75} className="h-3 w-3 text-brand-500" />
+                    {selectedProject === "__new__" ? "New Project" : projects.find(p => p.slug === selectedProject)?.name || "Select project"}
+                    <ChevronDown strokeWidth={1.75} className="h-3 w-3 text-ink-400" />
+                  </button>
+                  {projectDropdownOpen && (
+                    <div className="absolute top-full left-0 mt-1 w-64 rounded-xl border border-surface-200 bg-white shadow-lg z-50 py-1 animate-fade-in">
+                      {projects.map(p => (
+                        <button key={p.slug} type="button"
+                          onClick={() => { setSelectedProject(p.slug); setProjectDropdownOpen(false); document.cookie = `blockid_project=${p.slug};path=/;max-age=${365*86400};samesite=lax`; }}
+                          className={cn("w-full text-left px-4 py-2.5 text-sm hover:bg-surface-50 transition-colors cursor-pointer flex items-center gap-2",
+                            selectedProject === p.slug ? "bg-brand-50 text-brand-700 font-medium" : "text-ink-700")}>
+                          <Sparkles strokeWidth={1.75} className="h-3.5 w-3.5 text-brand-500 shrink-0" />
+                          <span className="truncate">{p.name}</span>
+                          {selectedProject === p.slug && <CheckCircle2 strokeWidth={2} className="h-3.5 w-3.5 text-brand-600 ml-auto shrink-0" />}
+                        </button>
+                      ))}
+                      <div className="border-t border-surface-100 mt-1 pt-1">
+                        <button type="button"
+                          onClick={() => { setSelectedProject("__new__"); setProjectDropdownOpen(false); document.cookie = "blockid_project=;path=/;max-age=0"; }}
+                          className={cn("w-full text-left px-4 py-2.5 text-sm hover:bg-emerald-50 transition-colors cursor-pointer flex items-center gap-2",
+                            selectedProject === "__new__" ? "bg-emerald-50 text-emerald-700 font-medium" : "text-emerald-600")}>
+                          <Rocket strokeWidth={1.75} className="h-3.5 w-3.5 shrink-0" />
+                          <span>+ New Startup Project</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="svi-input-glow rounded-[28px] shadow-lg">
               <div className="flex items-center px-5 py-4 gap-3">
                 <Search strokeWidth={1.75} className="h-5 w-5 text-ink-600 shrink-0" />
