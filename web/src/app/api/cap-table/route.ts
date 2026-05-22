@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getProjectIdFromRequest } from "@/lib/projects";
 
 export const dynamic = "force-dynamic";
 
 // ---------------------------------------------------------------------------
-// GET /api/cap-table — full cap table for the logged-in user
+// GET /api/cap-table — full cap table for the logged-in user's active project
 // ---------------------------------------------------------------------------
 
 export async function GET(_request: NextRequest) {
@@ -27,24 +28,20 @@ export async function GET(_request: NextRequest) {
   }
 
   const accountId = user.id;
+  const projectId = await getProjectIdFromRequest();
 
-  // Fetch share classes, shareholders, ESOP pool in parallel
+  // Build project-scoped queries
+  function scopedQuery(table: string) {
+    const q = supabase!.from(table).select("*").eq("account_id", accountId);
+    if (projectId) q.eq("project_id", projectId);
+    return q;
+  }
+
+  // Fetch share classes, shareholders, ESOP pool in parallel (project-scoped)
   const [classesRes, holdersRes, esopRes] = await Promise.all([
-    supabase
-      .from("share_classes")
-      .select("*")
-      .eq("account_id", accountId)
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("shareholders")
-      .select("*")
-      .eq("account_id", accountId)
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("esop_pool")
-      .select("*")
-      .eq("account_id", accountId)
-      .maybeSingle(),
+    scopedQuery("share_classes").order("created_at", { ascending: true }),
+    scopedQuery("shareholders").order("created_at", { ascending: true }),
+    scopedQuery("esop_pool").maybeSingle(),
   ]);
 
   if (classesRes.error || holdersRes.error || esopRes.error) {
