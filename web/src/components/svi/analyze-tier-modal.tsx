@@ -3,6 +3,7 @@
 import * as React from "react";
 import { X, Zap, Search, Microscope, Loader2, CheckCircle2, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AIThinkingStatus, useAIThinking, EVIDENCE_ANALYSIS_STEPS } from "@/components/ui/ai-thinking-status";
 
 interface AnalysisResult {
   ok: boolean;
@@ -63,6 +64,7 @@ export function AnalyzeTierModal({ evidenceId, evidenceLabel, onClose, onAnalyze
   const [analyzing, setAnalyzing] = React.useState<string | null>(null);
   const [result, setResult] = React.useState<AnalysisResult | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const thinking = useAIThinking(EVIDENCE_ANALYSIS_STEPS);
 
   // Fetch credit balance
   React.useEffect(() => {
@@ -75,6 +77,21 @@ export function AnalyzeTierModal({ evidenceId, evidenceLabel, onClose, onAnalyze
   const handleAnalyze = async (tier: "scan" | "standard" | "deep_dive") => {
     setAnalyzing(tier);
     setError(null);
+    thinking.start();
+
+    // Step progression timers (simulate while API processes)
+    const stepDelays = tier === "scan"
+      ? [500, 1000, 1800, 2500, 3500]
+      : tier === "standard"
+        ? [800, 2500, 5000, 8000, 12000]
+        : [1000, 4000, 8000, 15000, 22000];
+
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const stepIds = ["parse", "extract", "map", "score", "recommend"];
+    stepIds.forEach((id, i) => {
+      timers.push(setTimeout(() => thinking.advance(id, undefined), stepDelays[i]));
+    });
+
     try {
       const res = await fetch("/api/evidence/analyze", {
         method: "POST",
@@ -83,7 +100,11 @@ export function AnalyzeTierModal({ evidenceId, evidenceLabel, onClose, onAnalyze
       });
       const data: AnalysisResult = await res.json();
 
+      // Clear pending timers — real response arrived
+      timers.forEach(clearTimeout);
+
       if (!data.ok) {
+        thinking.fail("recommend", data.error ?? "Analysis failed");
         if (res.status === 402) {
           setError(`Insufficient credits. You need ${data.creditsUsed ?? TIERS.find(t => t.id === tier)?.cost} credits.`);
         } else {
@@ -92,10 +113,13 @@ export function AnalyzeTierModal({ evidenceId, evidenceLabel, onClose, onAnalyze
         return;
       }
 
+      thinking.completeAll();
       setResult(data);
       if (data.balance != null) setBalance(data.balance);
       onAnalyzed?.(data);
     } catch {
+      timers.forEach(clearTimeout);
+      thinking.fail("parse", "Network error");
       setError("Network error — please try again");
     } finally {
       setAnalyzing(null);
@@ -278,7 +302,15 @@ export function AnalyzeTierModal({ evidenceId, evidenceLabel, onClose, onAnalyze
           })}
         </div>
 
-        {balance !== null && balance < 0.10 && (
+        {/* AI Thinking Status — shows step-by-step progress during analysis */}
+        <AIThinkingStatus
+          steps={thinking.steps}
+          isActive={thinking.isActive}
+          title={`Analyzing ${evidenceLabel}`}
+          className="mt-4"
+        />
+
+        {balance !== null && balance < 0.10 && !analyzing && (
           <div className="mt-4 text-center">
             <a href="/workspace/billing#credits" className="text-xs font-medium text-brand-600 hover:text-brand-700">
               Buy more credits →

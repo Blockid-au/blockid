@@ -45,6 +45,8 @@ export interface AnalyticsEventMap {
   login_google_success: Record<string, never>;
   login_email_requested: Record<string, never>;
   login_email_verified: Record<string, never>;
+  login_password_success: Record<string, never>;
+  register_password_success: Record<string, never>;
   partner_code_applied: { valid: boolean };
 
   // ── Pricing & Checkout ──
