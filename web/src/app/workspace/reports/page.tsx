@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getProjectIdFromRequest, findOrCreateSVIAccount } from "@/lib/projects";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { BarChart3 } from "lucide-react";
 import { ReportsClient, type SnapshotRow } from "./reports-client";
@@ -31,60 +32,69 @@ export default async function ReportsPage() {
   let latestAISummary: string | null = null;
 
   if (sb) {
-    // Find the SVI account for this user
-    const { data: account } = await sb
-      .from("svi_accounts")
-      .select("id, current_svi, current_stage")
-      .eq("email", user.email)
-      .single();
+    // Resolve active project
+    const projectId = await getProjectIdFromRequest();
+    const accountId = await findOrCreateSVIAccount(user.email, projectId);
 
-    if (account) {
-      // Load snapshots (latest 12) — include ai_summary and dimension_scores
-      const { data: snapshotRows } = await sb
-        .from("svi_snapshots")
-        .select("id, snapshot_date, svi_total, delta, ai_summary")
-        .eq("account_id", account.id)
-        .order("snapshot_date", { ascending: false })
-        .limit(12);
-
-      if (snapshotRows && snapshotRows.length > 0) {
-        snapshots = snapshotRows as SnapshotRow[];
-        currentSVI = snapshotRows[0].svi_total;
-        previousSVI =
-          snapshotRows.length > 1 ? snapshotRows[1].svi_total : currentSVI;
-        currentStage = account.current_stage ?? 0;
-
-        // Get the most recent AI summary from snapshots
-        for (const row of snapshotRows) {
-          if (row.ai_summary) {
-            latestAISummary = row.ai_summary as string;
-            break;
-          }
-        }
-      }
-
-      // Load latest analysis for wins/gaps
-      const { data: analysis } = await sb
-        .from("svi_analyses")
-        .select("analysis_json")
-        .eq("email", user.email)
-        .order("created_at", { ascending: false })
-        .limit(1)
+    if (accountId) {
+      const { data: account } = await sb
+        .from("svi_accounts")
+        .select("id, current_svi, current_stage")
+        .eq("id", accountId)
         .single();
 
-      if (analysis?.analysis_json) {
-        const parsed = analysis.analysis_json as SVIAnalysis;
+      if (account) {
+        // Load snapshots (latest 12) — include ai_summary and dimension_scores
+        const { data: snapshotRows } = await sb
+          .from("svi_snapshots")
+          .select("id, snapshot_date, svi_total, delta, ai_summary")
+          .eq("account_id", account.id)
+          .order("snapshot_date", { ascending: false })
+          .limit(12);
 
-        // Wins: sub-scores with value >= 60
-        if (parsed.subs && Array.isArray(parsed.subs)) {
-          wins = parsed.subs
-            .filter((s) => s.value >= 60)
-            .map((s) => s.label);
+        if (snapshotRows && snapshotRows.length > 0) {
+          snapshots = snapshotRows as SnapshotRow[];
+          currentSVI = snapshotRows[0].svi_total;
+          previousSVI =
+            snapshotRows.length > 1 ? snapshotRows[1].svi_total : currentSVI;
+          currentStage = account.current_stage ?? 0;
+
+          // Get the most recent AI summary from snapshots
+          for (const row of snapshotRows) {
+            if (row.ai_summary) {
+              latestAISummary = row.ai_summary as string;
+              break;
+            }
+          }
         }
 
-        // Gaps: top 3 evidence gaps
-        if (parsed.evidenceGaps && Array.isArray(parsed.evidenceGaps)) {
-          gaps = parsed.evidenceGaps.slice(0, 3).map((g) => g.label);
+        // Load latest analysis for wins/gaps (project-scoped)
+        const analysisQuery = sb
+          .from("svi_analyses")
+          .select("analysis_json")
+          .eq("email", user.email);
+        if (projectId) analysisQuery.eq("project_id", projectId);
+        else analysisQuery.is("project_id", null);
+
+        const { data: analysis } = await analysisQuery
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
+
+        if (analysis?.analysis_json) {
+          const parsed = analysis.analysis_json as SVIAnalysis;
+
+          // Wins: sub-scores with value >= 60
+          if (parsed.subs && Array.isArray(parsed.subs)) {
+            wins = parsed.subs
+              .filter((s) => s.value >= 60)
+              .map((s) => s.label);
+          }
+
+          // Gaps: top 3 evidence gaps
+          if (parsed.evidenceGaps && Array.isArray(parsed.evidenceGaps)) {
+            gaps = parsed.evidenceGaps.slice(0, 3).map((g) => g.label);
+          }
         }
       }
     }
