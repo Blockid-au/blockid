@@ -8,11 +8,12 @@ import {
   type SVISubScore,
 } from "@/lib/svi-analysis";
 import { checkAndAwardBadges, type BadgeContext } from "@/lib/badges";
+import { getProjectIdFromRequest } from "@/lib/projects";
 
 // POST /api/svi/rescore-from-evidence
 // Re-computes SVI using the original analysis text + all evidence items.
 // Each evidence item adds bonus points to its dimension based on confidence_level.
-// Does NOT re-run AI — only recalculates deterministic bonuses.
+// Scoped by active project_id to prevent cross-startup data leaks.
 
 // Evidence bonus points per confidence level
 const EVIDENCE_BONUS: Record<string, number> = {
@@ -38,26 +39,39 @@ export async function POST() {
   }
 
   const supabase = getSupabaseAdmin()!;
+  const projectId = await getProjectIdFromRequest();
 
-  // 1. Get SVI account
-  const { data: account } = await supabase
+  // 1. Get SVI account — scoped by project_id
+  const accountQuery = supabase
     .from("svi_accounts")
     .select("id, current_svi")
-    .eq("email", user.email)
-    .maybeSingle();
+    .eq("email", user.email);
 
-  if (!account) {
-    return NextResponse.json({ ok: false, reason: "No SVI account" }, { status: 404 });
+  if (projectId) {
+    accountQuery.eq("project_id", projectId);
+  } else {
+    accountQuery.is("project_id", null);
   }
 
-  // 2. Get the latest analysis (for the original raw text + analysis ID)
-  const { data: latestAnalysis } = await supabase
+  const { data: account } = await accountQuery.maybeSingle();
+
+  if (!account) {
+    return NextResponse.json({ ok: false, reason: "No SVI account for this project" }, { status: 404 });
+  }
+
+  // 2. Get the latest analysis — scoped by project_id
+  const analysisQuery = supabase
     .from("svi_analyses")
     .select("id, raw_input, analysis_json")
     .eq("email", user.email)
     .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+
+  if (projectId) {
+    analysisQuery.eq("project_id", projectId);
+  }
+
+  const { data: latestAnalysis } = await analysisQuery.maybeSingle();
 
   const rawInput = (latestAnalysis?.raw_input as string) ?? "";
 

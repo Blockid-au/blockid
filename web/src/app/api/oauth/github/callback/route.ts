@@ -16,6 +16,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { auditGitHubRepo, type GitHubRepoAudit } from "@/lib/github-repo-audit";
+import { findOrCreateSVIAccount, getProjectIdFromRequest } from "@/lib/projects";
 
 export const dynamic = "force-dynamic";
 
@@ -51,34 +52,6 @@ interface CommitWeek {
   days: number[];
 }
 
-// Find or create svi_account by email, return account id
-async function findOrCreateAccount(
-  supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
-  email: string,
-): Promise<string | null> {
-  const { data: existing } = await supabase
-    .from("svi_accounts")
-    .select("id")
-    .eq("email", email)
-    .maybeSingle();
-
-  if (existing) return existing.id as string;
-
-  const { data: created, error } = await supabase
-    .from("svi_accounts")
-    .insert({
-      email,
-      last_active_at: new Date().toISOString(),
-    })
-    .select("id")
-    .single();
-
-  if (error || !created) {
-    console.error("[blockid:oauth:github] svi_accounts insert failed", error);
-    return null;
-  }
-  return created.id as string;
-}
 
 // Fetch commit activity for a repo (last 52 weeks)
 async function fetchCommitActivity(
@@ -343,7 +316,8 @@ export async function GET(request: Request) {
     // 8. Save to database
     const supabase = getSupabaseAdmin();
     if (supabase) {
-      const accountId = await findOrCreateAccount(supabase, email);
+      const projectId = await getProjectIdFromRequest();
+      const accountId = await findOrCreateSVIAccount(email, projectId);
       if (accountId) {
         // 8a. Save/update oauth_connections
         await supabase

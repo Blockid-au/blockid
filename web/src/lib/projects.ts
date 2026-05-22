@@ -151,6 +151,56 @@ export async function getProjectIdFromRequest(): Promise<string | null> {
   }
 }
 
+/**
+ * Find or create an svi_accounts row scoped to (email, project_id).
+ *
+ * This is the SINGLE source of truth for resolving an SVI account.
+ * All endpoints must use this instead of inline findOrCreateAccount()
+ * to prevent cross-startup data leaks.
+ *
+ * - If project_id is provided → look up by (email, project_id)
+ * - If project_id is null → look up by email WHERE project_id IS NULL
+ * - If no match → INSERT a new row (separate startup record)
+ */
+export async function findOrCreateSVIAccount(
+  email: string,
+  projectId: string | null = null,
+): Promise<string | null> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+
+  const query = supabase
+    .from("svi_accounts")
+    .select("id")
+    .eq("email", email);
+
+  if (projectId) {
+    query.eq("project_id", projectId);
+  } else {
+    query.is("project_id", null);
+  }
+
+  const { data: existing } = await query.maybeSingle();
+  if (existing) return existing.id as string;
+
+  // Create new account for this project
+  const { data: created, error } = await supabase
+    .from("svi_accounts")
+    .insert({
+      email,
+      project_id: projectId,
+      last_active_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+
+  if (error || !created) {
+    console.error("[blockid:projects] svi_accounts insert failed", error);
+    return null;
+  }
+  return created.id as string;
+}
+
 /** Get a project by its ID. */
 export async function getProjectById(projectId: string): Promise<Project | null> {
   const supabase = getSupabaseAdmin();

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import Stripe from "stripe";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { findOrCreateSVIAccount, getProjectIdFromRequest } from "@/lib/projects";
 
 export const dynamic = "force-dynamic";
 
@@ -28,31 +29,6 @@ async function authenticateRequest(supabase: NonNullable<ReturnType<typeof getSu
   return { userId: user.id as string, email: user.email as string };
 }
 
-// Find or create svi_account by email, return account id
-async function findOrCreateAccount(
-  supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
-  email: string,
-): Promise<string | null> {
-  const { data: existing } = await supabase
-    .from("svi_accounts")
-    .select("id")
-    .eq("email", email)
-    .maybeSingle();
-
-  if (existing) return existing.id as string;
-
-  const { data: created, error } = await supabase
-    .from("svi_accounts")
-    .insert({ email, last_active_at: new Date().toISOString() })
-    .select("id")
-    .single();
-
-  if (error || !created) {
-    console.error("[blockid:stripe] svi_accounts insert failed", error);
-    return null;
-  }
-  return created.id as string;
-}
 
 export async function POST(request: Request) {
   try {
@@ -175,7 +151,8 @@ export async function POST(request: Request) {
     const label = `Stripe: MRR ${mrrDisplay}, ${customerCount} customers`;
 
     // Find or create account
-    const accountId = await findOrCreateAccount(supabase, auth.email);
+    const projectId = await getProjectIdFromRequest();
+    const accountId = await findOrCreateSVIAccount(auth.email, projectId);
     if (!accountId) {
       return NextResponse.json(
         { ok: false, error: "Failed to resolve account" },

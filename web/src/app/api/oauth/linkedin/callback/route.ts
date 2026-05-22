@@ -14,6 +14,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { findOrCreateSVIAccount, getProjectIdFromRequest } from "@/lib/projects";
 
 export const dynamic = "force-dynamic";
 
@@ -28,34 +29,6 @@ interface LinkedInUserInfo {
   locale?: { country?: string; language?: string };
 }
 
-// Find or create svi_account by email, return account id
-async function findOrCreateAccount(
-  supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
-  email: string,
-): Promise<string | null> {
-  const { data: existing } = await supabase
-    .from("svi_accounts")
-    .select("id")
-    .eq("email", email)
-    .maybeSingle();
-
-  if (existing) return existing.id as string;
-
-  const { data: created, error } = await supabase
-    .from("svi_accounts")
-    .insert({
-      email,
-      last_active_at: new Date().toISOString(),
-    })
-    .select("id")
-    .single();
-
-  if (error || !created) {
-    console.error("[blockid:oauth:linkedin] svi_accounts insert failed", error);
-    return null;
-  }
-  return created.id as string;
-}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -177,7 +150,8 @@ export async function GET(request: Request) {
     // 4. Save to database
     const supabase = getSupabaseAdmin();
     if (supabase) {
-      const accountId = await findOrCreateAccount(supabase, email);
+      const projectId = await getProjectIdFromRequest();
+      const accountId = await findOrCreateSVIAccount(email, projectId);
       if (accountId) {
         // 4a. Save/update oauth_connections
         await supabase

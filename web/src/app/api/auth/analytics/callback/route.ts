@@ -1,32 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { findOrCreateSVIAccount, getProjectIdFromRequest } from "@/lib/projects";
 
 export const dynamic = "force-dynamic";
 
-async function findOrCreateAccount(
-  supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
-  email: string,
-): Promise<string | null> {
-  const { data: existing } = await supabase
-    .from("svi_accounts")
-    .select("id")
-    .eq("email", email)
-    .maybeSingle();
-
-  if (existing) return existing.id as string;
-
-  const { data: created, error } = await supabase
-    .from("svi_accounts")
-    .insert({ email, last_active_at: new Date().toISOString() })
-    .select("id")
-    .single();
-
-  if (error || !created) {
-    console.error("[blockid:oauth:analytics] svi_accounts insert failed", error);
-    return null;
-  }
-  return created.id as string;
-}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -103,7 +80,8 @@ export async function GET(request: Request) {
     // 5. Save to database using correct svi_evidence schema
     const supabase = getSupabaseAdmin();
     if (supabase) {
-      const accountId = await findOrCreateAccount(supabase, email);
+      const projectId = await getProjectIdFromRequest();
+      const accountId = await findOrCreateSVIAccount(email, projectId);
       if (accountId) {
         // Save/update OAuth connection token
         await supabase
