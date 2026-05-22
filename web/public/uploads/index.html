@@ -1,79 +1,97 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BlockID Upload Service</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:system-ui,-apple-system,sans-serif;background:#0F172A;color:#F8FAFC;min-height:100vh;display:flex;align-items:center;justify-content:center}
-.card{text-align:center;max-width:480px;width:100%;padding:2rem}
-h1{font-size:1.5rem;color:#3B82F6;margin-bottom:.5rem}
-p{color:#94A3B8;font-size:.875rem;line-height:1.6;margin-bottom:1.5rem}
-.drop{border:2px dashed #334155;border-radius:1rem;padding:2rem;cursor:pointer;transition:border-color .2s}
-.drop:hover,.drop.over{border-color:#3B82F6;background:rgba(59,130,246,.05)}
-.drop input{display:none}
-.drop-text{color:#64748B;font-size:.875rem}
-.drop-icon{font-size:2rem;margin-bottom:.5rem}
-.btn{display:inline-block;background:#2563EB;color:#fff;border:none;padding:.75rem 1.5rem;border-radius:.5rem;font-size:.875rem;font-weight:600;cursor:pointer;margin-top:1rem;transition:background .2s}
-.btn:hover{background:#1D4ED8}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-.result{margin-top:1rem;padding:1rem;border-radius:.5rem;font-size:.75rem;word-break:break-all;text-align:left}
-.result.ok{background:#064E3B;color:#6EE7B7}
-.result.err{background:#7F1D1D;color:#FCA5A5}
-.info{color:#475569;font-size:.7rem;margin-top:1.5rem}
-a{color:#3B82F6;text-decoration:none}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload — BlockID.au</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0B1220;color:#CBD5E1;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 20px}
+    .logo{font-size:28px;font-weight:700;color:#F8FAFC;margin-bottom:8px}.logo span{color:#3B7DD8}.logo small{color:#64748B;font-size:18px;font-weight:400}
+    .sub{color:#64748B;font-size:14px;margin-bottom:32px}
+    .card{background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;width:100%;max-width:560px}
+    .drop{border:2px dashed #1F2A44;border-radius:12px;padding:48px 24px;text-align:center;cursor:pointer;transition:all .2s}
+    .drop:hover,.drop.over{border-color:#3B7DD8;background:rgba(59,125,216,.05)}
+    .drop-icon{font-size:48px;margin-bottom:12px}
+    .drop-txt{color:#94A3B8;font-size:14px;line-height:1.6}.drop-txt b{color:#3B7DD8}
+    .drop-hint{color:#475569;font-size:12px;margin-top:8px}
+    input[type=file]{display:none}
+    .prog{margin-top:16px;display:none}
+    .prog-bar{height:4px;background:#1F2A44;border-radius:2px;overflow:hidden}
+    .prog-fill{height:100%;background:#3B7DD8;border-radius:2px;transition:width .3s;width:0%}
+    .prog-txt{font-size:12px;color:#64748B;margin-top:6px}
+    .res{margin-top:16px;display:none}
+    .res-ok{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:16px}
+    .res-err{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.2);border-radius:10px;padding:16px}
+    .res-url{font-family:'IBM Plex Mono',monospace;font-size:13px;color:#3B7DD8;word-break:break-all;margin-top:8px}
+    .res-url a{color:#3B7DD8;text-decoration:none}.res-url a:hover{text-decoration:underline}
+    .res-meta{font-size:12px;color:#64748B;margin-top:6px}
+    .btn{background:#3B7DD8;color:#0B1220;border:none;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;margin-top:8px}.btn:hover{background:#5B9AEB}
+    .flist{margin-top:24px}
+    .ftitle{font-size:13px;color:#64748B;text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
+    .fitem{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:8px;background:#0B1220;margin-bottom:6px;font-size:13px}
+    .fname{color:#F8FAFC;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .fsize{color:#64748B;margin-left:12px;white-space:nowrap}
+    .flink{color:#3B7DD8;text-decoration:none;margin-left:8px}
+    .notice{text-align:center;color:#94A3B8;font-size:13px;margin-top:16px}.notice a{color:#3B7DD8;text-decoration:none}
+    .back{margin-top:24px}.back a{color:#64748B;text-decoration:none;font-size:13px}.back a:hover{color:#3B7DD8}
+  </style>
 </head>
 <body>
-<div class="card">
-  <h1>BlockID Upload</h1>
-  <p>Upload files for your BlockID workspace. Requires sign-in.</p>
-  
-  <div class="drop" id="drop" onclick="document.getElementById('file').click()">
-    <div class="drop-icon">📁</div>
-    <div class="drop-text" id="drop-text">Drop file here or click to browse</div>
-    <input type="file" id="file" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.pptx,.zip,.gz">
+  <div class="logo">Block<span>ID</span><small>.au</small></div>
+  <p class="sub">Upload files to BlockID server</p>
+  <div class="card">
+    <div class="drop" id="dz" onclick="document.getElementById('fi').click()">
+      <div class="drop-icon">📁</div>
+      <div class="drop-txt"><b>Click to choose</b> or drag &amp; drop files here</div>
+      <div class="drop-hint">Images, PDFs, documents, spreadsheets, videos — max 50MB</div>
+    </div>
+    <input type="file" id="fi" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.pptx,.txt,.md,.zip,.mp4,.webm"/>
+    <div class="prog" id="pg">
+      <div class="prog-bar"><div class="prog-fill" id="pf"></div></div>
+      <div class="prog-txt" id="pt">Uploading...</div>
+    </div>
+    <div class="res" id="rs"></div>
+    <div class="flist" id="fl"></div>
+    <div class="notice" id="nt">Sign in required. <a href="https://blockid.au/auth/login">Sign in to BlockID →</a></div>
   </div>
-  
-  <button class="btn" id="upload-btn" disabled onclick="upload()">Upload</button>
-  
-  <div id="result"></div>
-  
-  <p class="info">
-    Max 50MB · Images, Videos, PDFs, Docs, Spreadsheets, CSV, ZIP<br>
-    <a href="https://blockid.au">← Back to BlockID.au</a>
-  </p>
-</div>
-
+  <div class="back"><a href="https://blockid.au">← Back to BlockID.au</a></div>
 <script>
-const drop=document.getElementById('drop'),fileInput=document.getElementById('file'),btn=document.getElementById('upload-btn'),dropText=document.getElementById('drop-text'),result=document.getElementById('result');
-let selectedFile=null;
-
-fileInput.onchange=e=>{selectedFile=e.target.files[0];if(selectedFile){dropText.textContent=`${selectedFile.name} (${(selectedFile.size/1024/1024).toFixed(1)}MB)`;btn.disabled=false}};
-drop.ondragover=e=>{e.preventDefault();drop.classList.add('over')};
-drop.ondragleave=()=>drop.classList.remove('over');
-drop.ondrop=e=>{e.preventDefault();drop.classList.remove('over');selectedFile=e.dataTransfer.files[0];if(selectedFile){dropText.textContent=`${selectedFile.name} (${(selectedFile.size/1024/1024).toFixed(1)}MB)`;btn.disabled=false;fileInput.files=e.dataTransfer.files}};
-
-async function upload(){
-  if(!selectedFile)return;
-  btn.disabled=true;btn.textContent='Uploading...';result.innerHTML='';
-  const fd=new FormData();fd.append('file',selectedFile);
+const API='/api/upload',dz=document.getElementById('dz'),fi=document.getElementById('fi'),pg=document.getElementById('pg'),pf=document.getElementById('pf'),pt=document.getElementById('pt'),rs=document.getElementById('rs'),fl=document.getElementById('fl'),nt=document.getElementById('nt');
+fetch('/api/auth/me',{credentials:'include'}).then(r=>r.json()).then(d=>{if(d.ok&&d.user){nt.innerHTML='Signed in as <strong>'+d.user.email+'</strong>';loadFiles()}}).catch(()=>{});
+['dragenter','dragover'].forEach(e=>dz.addEventListener(e,ev=>{ev.preventDefault();dz.classList.add('over')}));
+['dragleave','drop'].forEach(e=>dz.addEventListener(e,ev=>{ev.preventDefault();dz.classList.remove('over')}));
+dz.addEventListener('drop',ev=>{if(ev.dataTransfer.files.length)uploadFiles(ev.dataTransfer.files)});
+fi.addEventListener('change',()=>{if(fi.files.length)uploadFiles(fi.files)});
+async function uploadFiles(files){for(const f of files)await uploadFile(f)}
+async function uploadFile(file){
+  pg.style.display='block';rs.style.display='none';pf.style.width='0%';pt.textContent='Uploading '+file.name+'...';
+  const fd=new FormData();fd.append('file',file);
   try{
-    const res=await fetch('https://blockid.au/api/upload',{method:'POST',body:fd,credentials:'include'});
-    const data=await res.json();
-    if(data.ok){
-      result.className='result ok';
-      result.innerHTML=`✓ Uploaded<br>URL: <a href="${data.url}" target="_blank">${data.url}</a><br>Size: ${(data.size/1024).toFixed(0)}KB · Type: ${data.type}`;
+    let p=0;const iv=setInterval(()=>{p=Math.min(p+Math.random()*20,90);pf.style.width=p+'%'},200);
+    const r=await fetch(API,{method:'POST',body:fd,credentials:'include'});
+    clearInterval(iv);pf.style.width='100%';
+    const d=await r.json();
+    if(d.ok){
+      pt.textContent='Upload complete!';rs.style.display='block';
+      rs.innerHTML='<div class="res-ok"><div style="color:#10B981;font-weight:600;font-size:14px">✓ Uploaded successfully</div><div class="res-url"><a href="'+d.url+'" target="_blank">'+d.url+'</a></div><div class="res-meta">'+d.originalName+' · '+fmtSize(d.size)+' · '+d.type+'</div><button class="btn" onclick="cpUrl(\''+d.url+'\')">Copy URL</button></div>';
+      loadFiles()
     }else{
-      result.className='result err';
-      result.textContent='✗ '+data.error;
+      pt.textContent='Failed';rs.style.display='block';
+      rs.innerHTML='<div class="res-err"><div style="color:#F87171;font-weight:600;font-size:14px">✗ '+(d.error||'Upload failed')+'</div></div>'
     }
   }catch(e){
-    result.className='result err';
-    result.textContent='✗ Network error: '+e.message;
+    pf.style.width='0%';pt.textContent='Error';rs.style.display='block';
+    rs.innerHTML='<div class="res-err"><div style="color:#F87171;font-weight:600;font-size:14px">✗ Network error — are you signed in?</div><div style="color:#94A3B8;font-size:12px;margin-top:4px"><a href="https://blockid.au/auth/login" style="color:#3B7DD8">Sign in first →</a></div></div>'
   }
-  btn.disabled=false;btn.textContent='Upload';
+}
+function cpUrl(u){navigator.clipboard.writeText(u);event.target.textContent='Copied!';setTimeout(()=>event.target.textContent='Copy URL',2000)}
+function fmtSize(b){if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';return(b/1048576).toFixed(1)+' MB'}
+async function loadFiles(){
+  try{
+    const r=await fetch(API,{credentials:'include'}),d=await r.json();
+    if(d.ok&&d.files&&d.files.length>0)fl.innerHTML='<div class="ftitle">Recent uploads ('+d.files.length+')</div>'+d.files.slice(0,20).map(f=>'<div class="fitem"><span class="fname">'+f.name+'</span><span class="fsize">'+fmtSize(f.size)+'</span><a class="flink" href="'+f.url+'" target="_blank">Open</a></div>').join('')
+  }catch{}
 }
 </script>
 </body>
