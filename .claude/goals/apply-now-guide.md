@@ -272,3 +272,105 @@ Core AI/ML usage across the platform:
 | Google for Startups | $0 | 0% | 3 months | Google Cloud, mentorship |
 
 **NVIDIA Inception is the easiest, fastest, zero-risk program to join. Apply first.**
+
+---
+
+## APPLICATION 5: Google for Startups Cloud Program (APPLY NOW — 10 MINUTES)
+
+### Why this is critical:
+- **Up to $200K** in Google Cloud credits (AI startups up to **$350K**)
+- **Equity-free** — no dilution
+- **2 years** to use credits
+- Covers: Compute, Storage, **Vertex AI**, BigQuery, Cloud Run, Document AI
+- Response time: **3-5 business days**
+- BlockID already uses Google APIs (Drive, Analytics, OAuth)
+
+### Requirements (BlockID meets ALL):
+| Requirement | BlockID Status |
+|---|---|
+| Startup less than 5 years old | DONE — Founded 2023 |
+| Pre-seed to Series A | DONE — Pre-seed |
+| AI-first product | DONE — Multi-model AI core engine |
+| Working product | DONE — blockid.au live |
+
+### How to apply (10 minutes):
+
+**Step 1:** Open **https://cloud.google.com/startup/apply**
+
+*Sign in with your Google account (ceo@longcare.au)*
+
+**Step 2:** Fill the form:
+
+**Company name:** BlockID.au (Auschain PTY LTD)
+
+**Website:** https://blockid.au
+
+**Country:** Australia
+
+**Funding stage:** Pre-seed
+
+**Year founded:** 2023
+
+**Industry:** SaaS / AI / FinTech
+
+**Number of employees:** 1
+
+**Describe your startup (use this):**
+BlockID.au is an AI-first startup valuation platform that uses multi-model NLP (Claude, GPT-4o, Gemini) to analyse startups across 8 dimensions and generate evidence-backed Startup Value Index scores. We help Australian founders from idea stage to investor readiness with personalised AI reports, cap table management, equity tools, data room templates, and automated compliance checking. Currently serving 8+ founders with 39 analyses completed and $5.5M+ valuations tracked.
+
+**How will you use Google Cloud? (use this):**
+We plan to migrate our infrastructure to Google Cloud:
+1. Vertex AI — Deploy Gemini Pro for faster SVI inference, replacing our current multi-provider API chain
+2. Cloud Run — Replace Docker/nginx for auto-scaling serverless deployment
+3. BigQuery — Power analytics dashboard (currently Supabase + GA4)
+4. Document AI — OCR for bank statements and legal documents in Evidence Vault
+5. Cloud Storage — Scale file management beyond Google Drive API
+6. Cloud TPU — Fine-tune open models for domain-specific startup analysis
+We already use Google APIs (OAuth, Drive, Analytics, Tag Manager) and Gemini 2.0 Flash as AI fallback provider.
+
+**Are you affiliated with an accelerator/VC?**
+Applying to: NVIDIA Inception (submitted), Startmate (Q3 2026), Antler (Jul 2026)
+
+**Step 3:** Submit and wait 3-5 business days.
+
+### After Approval — What You Get:
+
+| Tier | Credits | For |
+|---|---|---|
+| **Standard** | Up to **$200,000** | General cloud usage |
+| **AI Track** | Up to **$350,000** | AI-first startups (BlockID qualifies) |
+| **Unfunded** | $2,000 | If no equity funding yet |
+
+Plus:
+- Free Cloud TPU access for ML training
+- Google Workspace upgrade
+- Technical support from Google engineers
+- Access to Google for Startups community events
+
+### Google Accelerator (separate from Cloud credits):
+
+**Status:** Applications currently **CLOSED** for AU cohort.
+
+**Action:** Register interest at https://startup.google.com/programs/accelerator/australia/
+
+When next cohort opens (typically Q3/Q4):
+- 10-week hybrid program (Sydney + remote)
+- Equity-free
+- Mentoring from Google engineers
+- Bootcamp + demo day
+
+**Register interest now** so you get notified when applications open.
+
+---
+
+## COMPLETE APPLICATION PRIORITY ORDER
+
+| # | Program | Time | Credits/Value | Equity | Status |
+|---|---|---|---|---|---|
+| **1** | **NVIDIA Inception** | 5 min | $25K-$100K AWS | 0% | **Apply today** |
+| **2** | **Google Cloud Startup** | 10 min | $200K-$350K GCP | 0% | **Apply today** |
+| **3** | **Startmate** | 1 hour | A$120K cash | 7.5% | Apply this week |
+| **4** | **Antler** | 1 hour | A$100-250K cash | ~10% | Apply this week |
+| **5** | **Google Accelerator** | - | Mentoring + credits | 0% | Register interest (closed) |
+
+**Total potential value if all accepted: $470K-$820K+ in credits, cash, and resources.**
