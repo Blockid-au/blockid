@@ -20,6 +20,8 @@
     "@remotion/renderer": "^4.0.463",
     "@stripe/stripe-js": "^9.6.0",
     "@supabase/supabase-js": "^2.105.3",
+    "@types/bcryptjs": "^2.4.6",
+    "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "googleapis": "^171.4.0",

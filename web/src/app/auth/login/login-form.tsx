@@ -337,10 +337,132 @@ function CouponInput() {
 /*  Composed LoginForm                                                        */
 /* ========================================================================== */
 
+/* ========================================================================== */
+/*  Email + Password Form (Login / Register)                                   */
+/* ========================================================================== */
+
+function EmailPasswordForm({ nextUrl }: { nextUrl: string | null }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [state, setState] = useState<"idle" | "loading" | "error">("idle");
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setState("loading");
+    setError(null);
+
+    const endpoint = mode === "register" ? "/api/auth/register" : "/api/auth/login-password";
+    const body = mode === "register"
+      ? { email, password, displayName: displayName || undefined }
+      : { email, password };
+
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setError(data.error ?? "Authentication failed");
+        setState("error");
+        return;
+      }
+
+      trackEvent(mode === "register" ? "register_password_success" : "login_password_success", {});
+      const target = nextUrl ?? "/";
+      const sep = target.includes("?") ? "&" : "?";
+      window.location.href = `${target}${sep}logged_in=true`;
+    } catch {
+      setError("Network error. Please try again.");
+      setState("error");
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3">
+      {/* Mode toggle */}
+      <div className="flex rounded-lg border border-surface-200 p-0.5 bg-surface-50">
+        <button
+          type="button"
+          onClick={() => setMode("login")}
+          className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-all cursor-pointer ${
+            mode === "login" ? "bg-white text-ink-800 shadow-sm" : "text-ink-500 hover:text-ink-700"
+          }`}
+        >
+          Sign In
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode("register")}
+          className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-all cursor-pointer ${
+            mode === "register" ? "bg-white text-ink-800 shadow-sm" : "text-ink-500 hover:text-ink-700"
+          }`}
+        >
+          Create Account
+        </button>
+      </div>
+
+      {mode === "register" && (
+        <input
+          type="text"
+          placeholder="Display name (optional)"
+          value={displayName}
+          onChange={(e) => setDisplayName(e.target.value)}
+          className="w-full rounded-xl border border-surface-300 bg-white px-4 py-2.5 text-sm text-ink-800 placeholder:text-ink-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-200 outline-none transition-all"
+        />
+      )}
+
+      <input
+        type="email"
+        required
+        placeholder="Email address"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className="w-full rounded-xl border border-surface-300 bg-white px-4 py-2.5 text-sm text-ink-800 placeholder:text-ink-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-200 outline-none transition-all"
+      />
+
+      <input
+        type="password"
+        required
+        minLength={mode === "register" ? 8 : 1}
+        placeholder={mode === "register" ? "Password (min 8 characters)" : "Password"}
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        className="w-full rounded-xl border border-surface-300 bg-white px-4 py-2.5 text-sm text-ink-800 placeholder:text-ink-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-200 outline-none transition-all"
+      />
+
+      {error && (
+        <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
+      )}
+
+      <button
+        type="submit"
+        disabled={state === "loading"}
+        className="w-full rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+      >
+        {state === "loading" ? (
+          <span className="flex items-center justify-center gap-2">
+            <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+            {mode === "register" ? "Creating account..." : "Signing in..."}
+          </span>
+        ) : (
+          mode === "register" ? "Create Account" : "Sign In"
+        )}
+      </button>
+    </form>
+  );
+}
+
 export function LoginForm() {
   const searchParams = useSearchParams();
   const plan = searchParams.get("plan");
   const nextUrl = searchParams.get("next");
+  const [authMethod, setAuthMethod] = useState<"password" | "magic">("password");
 
   return (
     <div className="space-y-0">
@@ -359,7 +481,35 @@ export function LoginForm() {
       )}
       <GoogleSignIn nextUrl={nextUrl} />
       <Divider />
-      <MagicLinkForm nextUrl={nextUrl} />
+
+      {/* Auth method tabs */}
+      <div className="flex rounded-lg border border-surface-200 p-0.5 bg-surface-50 mb-4">
+        <button
+          type="button"
+          onClick={() => setAuthMethod("password")}
+          className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-all cursor-pointer ${
+            authMethod === "password" ? "bg-white text-ink-800 shadow-sm" : "text-ink-500 hover:text-ink-700"
+          }`}
+        >
+          Email & Password
+        </button>
+        <button
+          type="button"
+          onClick={() => setAuthMethod("magic")}
+          className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-all cursor-pointer ${
+            authMethod === "magic" ? "bg-white text-ink-800 shadow-sm" : "text-ink-500 hover:text-ink-700"
+          }`}
+        >
+          Magic Link
+        </button>
+      </div>
+
+      {authMethod === "password" ? (
+        <EmailPasswordForm nextUrl={nextUrl} />
+      ) : (
+        <MagicLinkForm nextUrl={nextUrl} />
+      )}
+
       <CouponInput />
     </div>
   );

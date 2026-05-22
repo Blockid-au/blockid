@@ -38,6 +38,7 @@ import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
+import { AIThinkingStatus, useAIThinking, FULL_REPORT_STEPS, DIMENSION_ANALYSIS_STEPS } from "@/components/ui/ai-thinking-status";
 import { estimateValuation, formatAUD } from "@/lib/valuation";
 import { ResearchPanel } from "@/components/svi/research-panel";
 import type { SVIAction } from "@/lib/svi-actions";
@@ -530,10 +531,23 @@ function FullReportBanner() {
   const [loading, setLoading] = React.useState<"standard" | "premium" | null>(null);
   const [report, setReport] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const thinking = useAIThinking(FULL_REPORT_STEPS);
 
   const generate = async (tier: "standard" | "premium") => {
     setLoading(tier);
     setError(null);
+    thinking.start();
+
+    // Simulate step progression while API processes
+    const delays = tier === "premium"
+      ? [1000, 5000, 12000, 20000, 28000, 35000]
+      : [800, 3000, 8000, 14000, 18000, 22000];
+    const stepIds = ["gather", "dimensions", "narrative", "benchmarks", "actions", "format"];
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    stepIds.forEach((id, i) => {
+      timers.push(setTimeout(() => thinking.advance(id), delays[i]));
+    });
+
     try {
       const res = await fetch("/api/svi/full-report", {
         method: "POST",
@@ -541,14 +555,20 @@ function FullReportBanner() {
         body: JSON.stringify({ tier }),
       });
       const data = await res.json();
+      timers.forEach(clearTimeout);
+
       if (!data.ok) {
+        thinking.fail("format", data.error ?? "Generation failed");
         setError(res.status === 402
           ? `Insufficient credits (need ${tier === "premium" ? 5 : 2} credits)`
           : (data.error ?? "Generation failed"));
         return;
       }
+      thinking.completeAll();
       setReport(data.report);
     } catch {
+      timers.forEach(clearTimeout);
+      thinking.fail("gather", "Network error");
       setError("Network error");
     } finally {
       setLoading(null);
@@ -598,6 +618,13 @@ function FullReportBanner() {
           </button>
         </div>
       </div>
+      {/* AI Thinking Status — step-by-step progress during report generation */}
+      <AIThinkingStatus
+        steps={thinking.steps}
+        isActive={thinking.isActive}
+        title="Generating your full report"
+        className="mt-3"
+      />
     </div>
   );
 }
@@ -613,10 +640,20 @@ function DimensionAnalyzeButton({ dimension, label }: { dimension: string; label
   const [result, setResult] = React.useState<Record<string, unknown> | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const cost = DIMENSION_COSTS[dimension] ?? 0.75;
+  const thinking = useAIThinking(DIMENSION_ANALYSIS_STEPS);
 
   const handleAnalyze = async () => {
     setLoading(true);
     setError(null);
+    thinking.start();
+
+    const stepIds = ["context", "analyze", "compare", "recommend"];
+    const delays = [500, 2000, 5000, 8000];
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    stepIds.forEach((id, i) => {
+      timers.push(setTimeout(() => thinking.advance(id), delays[i]));
+    });
+
     try {
       const res = await fetch("/api/svi/dimension-analyze", {
         method: "POST",
@@ -624,12 +661,18 @@ function DimensionAnalyzeButton({ dimension, label }: { dimension: string; label
         body: JSON.stringify({ dimension }),
       });
       const data = await res.json();
+      timers.forEach(clearTimeout);
+
       if (!data.ok) {
+        thinking.fail("recommend", data.error ?? "Failed");
         setError(res.status === 402 ? `Insufficient credits (need ${cost})` : (data.error ?? "Failed"));
         return;
       }
+      thinking.completeAll();
       setResult(data.analysis as Record<string, unknown>);
     } catch {
+      timers.forEach(clearTimeout);
+      thinking.fail("context", "Network error");
       setError("Network error");
     } finally {
       setLoading(false);
@@ -665,6 +708,13 @@ function DimensionAnalyzeButton({ dimension, label }: { dimension: string; label
         )}
       </button>
       {error && <p className="text-[10px] text-red-600 mt-1">{error}</p>}
+      <AIThinkingStatus
+        steps={thinking.steps}
+        isActive={thinking.isActive}
+        title={`Analyzing ${label}`}
+        compact
+        className="mt-2"
+      />
     </div>
   );
 }

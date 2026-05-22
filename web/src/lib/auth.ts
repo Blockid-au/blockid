@@ -24,6 +24,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { nanoid } from "nanoid";
+import bcrypt from "bcryptjs";
 import { getSupabaseAdmin, isSupabaseConfigured } from "./supabase";
 import { initializeCredits } from "./credits";
 import { processReferral } from "./referrals";
@@ -511,4 +512,158 @@ export async function destroySession(): Promise<void> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return;
   await supabase.from("sessions").delete().eq("token", cookie.value);
+}
+
+// -----------------------------------------------------------------------------
+// Password-based registration. Hashes the password with bcrypt (12 rounds)
+// and creates a new user.
+// -----------------------------------------------------------------------------
+
+const BCRYPT_ROUNDS = 12;
+
+export interface RegisterWithPasswordResult {
+  ok: boolean;
+  sessionToken?: string;
+  user?: AppUser;
+  reason?: "not_configured" | "email_taken" | "weak_password" | "db_error";
+}
+
+export async function registerWithPassword(args: {
+  email: string;
+  password: string;
+  displayName?: string;
+  ipHash?: string | null;
+  userAgent?: string | null;
+  referralCode?: string | null;
+}): Promise<RegisterWithPasswordResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { ok: false, reason: "not_configured" };
+
+  if (args.password.length < 8) return { ok: false, reason: "weak_password" };
+
+  const email = normaliseEmail(args.email);
+
+  // Check existing user
+  const { data: existing } = await supabase
+    .from("app_users")
+    .select("id, password_hash")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (existing) {
+    // If user exists but no password, allow setting password (merge accounts)
+    if (!existing.password_hash) {
+      const hash = await bcrypt.hash(args.password, BCRYPT_ROUNDS);
+      await supabase.from("app_users").update({
+        password_hash: hash,
+        display_name: args.displayName || undefined,
+        last_login_at: new Date().toISOString(),
+      }).eq("id", existing.id);
+
+      const sessionToken = await createSessionRow({
+        userId: existing.id,
+        ipHash: args.ipHash ?? null,
+        userAgent: args.userAgent ?? null,
+      });
+      if (!sessionToken) return { ok: false, reason: "db_error" };
+
+      const { data: user } = await supabase
+        .from("app_users")
+        .select("id, email, display_name, created_at, last_login_at, role, plan, google_id, avatar_url, discount_pct")
+        .eq("id", existing.id)
+        .single();
+
+      return { ok: true, sessionToken, user: user ? mapAppUser(user) : undefined };
+    }
+    return { ok: false, reason: "email_taken" };
+  }
+
+  // Create new user with password
+  const hash = await bcrypt.hash(args.password, BCRYPT_ROUNDS);
+  const role = isAdminEmail(email) ? "admin" : "user";
+
+  const { data: created, error: createErr } = await supabase
+    .from("app_users")
+    .insert({
+      email,
+      password_hash: hash,
+      display_name: args.displayName || null,
+      role,
+      last_login_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+
+  if (createErr || !created) {
+    console.error("[blockid:auth] password register insert failed", createErr);
+    return { ok: false, reason: "db_error" };
+  }
+
+  await initializeCredits(created.id);
+  if (args.referralCode) {
+    await processReferral(created.id, args.referralCode).catch(() => {});
+  }
+
+  const sessionToken = await createSessionRow({
+    userId: created.id,
+    ipHash: args.ipHash ?? null,
+    userAgent: args.userAgent ?? null,
+  });
+  if (!sessionToken) return { ok: false, reason: "db_error" };
+
+  const { data: user } = await supabase
+    .from("app_users")
+    .select("id, email, display_name, created_at, last_login_at, role, plan, google_id, avatar_url, discount_pct")
+    .eq("id", created.id)
+    .single();
+
+  return { ok: true, sessionToken, user: user ? mapAppUser(user) : undefined };
+}
+
+// -----------------------------------------------------------------------------
+// Password-based login. Validates email + password against bcrypt hash.
+// -----------------------------------------------------------------------------
+
+export interface LoginWithPasswordResult {
+  ok: boolean;
+  sessionToken?: string;
+  user?: AppUser;
+  reason?: "not_configured" | "invalid_credentials" | "no_password" | "db_error";
+}
+
+export async function loginWithPassword(args: {
+  email: string;
+  password: string;
+  ipHash?: string | null;
+  userAgent?: string | null;
+}): Promise<LoginWithPasswordResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { ok: false, reason: "not_configured" };
+
+  const email = normaliseEmail(args.email);
+
+  const { data: user, error } = await supabase
+    .from("app_users")
+    .select("id, email, password_hash, display_name, created_at, last_login_at, role, plan, google_id, avatar_url, discount_pct")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (error) return { ok: false, reason: "db_error" };
+  if (!user) return { ok: false, reason: "invalid_credentials" };
+  if (!user.password_hash) return { ok: false, reason: "no_password" };
+
+  const valid = await bcrypt.compare(args.password, user.password_hash);
+  if (!valid) return { ok: false, reason: "invalid_credentials" };
+
+  // Bump last login
+  await supabase.from("app_users").update({ last_login_at: new Date().toISOString() }).eq("id", user.id);
+
+  const sessionToken = await createSessionRow({
+    userId: user.id,
+    ipHash: args.ipHash ?? null,
+    userAgent: args.userAgent ?? null,
+  });
+  if (!sessionToken) return { ok: false, reason: "db_error" };
+
+  return { ok: true, sessionToken, user: mapAppUser(user) };
 }

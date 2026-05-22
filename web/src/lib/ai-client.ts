@@ -182,12 +182,12 @@ type Provider = "claude-oauth" | "claude-apikey" | "claude-proxy" | "openai-code
 
 function getAvailableProviders(): Provider[] {
   const providers: Provider[] = [];
-  // Priority: Proxy (most reliable) → Claude OAuth → Codex → API keys → Gemini
-  // 1. Proxy (TapHoaAPI — paid third-party, multi-key, most reliable)
+  // Priority: Claude OAuth (direct API, no gateway timeout) → Proxy → Codex
+  // 1. Claude CLI OAuth (real Anthropic API token — refreshes via CLI login)
+  if (readCliOAuthToken()) providers.push("claude-oauth");
+  // 2. Proxy (TapHoaAPI — fallback, has 30s gateway timeout)
   if (process.env.ANTHROPIC_PROXY_API_KEY && process.env.ANTHROPIC_PROXY_BASE_URL) providers.push("claude-proxy");
   else if (getDBKey("anthropic_proxy")) providers.push("claude-proxy");
-  // 2. Claude CLI OAuth (real Anthropic API token, auto-refreshes via CLI)
-  if (readCliOAuthToken()) providers.push("claude-oauth");
   // 3. Codex OAuth (ChatGPT session token)
   if (readCodexOAuthToken()) providers.push("openai-codex");
   // 4. Anthropic API key (env or DB)
