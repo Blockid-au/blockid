@@ -183,12 +183,24 @@ export async function findOrCreateSVIAccount(
   const { data: existing } = await query.maybeSingle();
   if (existing) return existing.id as string;
 
+  // Get project name for the startup_name field
+  let startupName: string | null = null;
+  if (projectId) {
+    const { data: proj } = await supabase
+      .from("projects")
+      .select("name")
+      .eq("id", projectId)
+      .maybeSingle();
+    startupName = (proj?.name as string) ?? null;
+  }
+
   // Create new account for this project
   const { data: created, error } = await supabase
     .from("svi_accounts")
     .insert({
       email,
       project_id: projectId,
+      startup_name: startupName,
       last_active_at: new Date().toISOString(),
     })
     .select("id")

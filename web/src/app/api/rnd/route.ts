@@ -244,6 +244,23 @@ export async function POST(request: Request) {
         slug = `rnd-demo-${slug.slice(0, 6)}`;
       }
 
+      // Step 5b: Ensure per-project svi_account exists and update score
+      let rndProjectId: string | null = null;
+      try { rndProjectId = await getProjectIdFromRequest(); } catch { /* guest */ }
+      if (authenticatedUserId && supabase) {
+        try {
+          const { findOrCreateSVIAccount } = await import("@/lib/projects");
+          const accountId = await findOrCreateSVIAccount(email, rndProjectId);
+          if (accountId) {
+            await supabase.from("svi_accounts").update({
+              current_svi: analysis.totalSVI,
+              current_stage: analysis.stage ?? 0,
+              last_active_at: new Date().toISOString(),
+            }).eq("id", accountId);
+          }
+        } catch { /* non-blocking */ }
+      }
+
       // Step 6: Spend credits (authenticated users only)
       if (authenticatedUserId) {
         const creditFeature = tierToFeature(tier);
