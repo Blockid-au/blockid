@@ -19,7 +19,9 @@ export interface RndReportPage {
   pageNum: number;
   title: string;
   subtitle: string;
-  content: string;  // Markdown content
+  content: string;  // Markdown content (narrative essay)
+  lockedPreview?: string;   // Preview text of locked deeper analysis
+  lockedSections?: string[]; // Titles of sections behind paywall
   score?: number;   // 0-100 dimension score
   highlights?: string[];
   dataPoints?: Record<string, string>;
@@ -27,13 +29,14 @@ export interface RndReportPage {
 }
 
 export interface RndReport {
-  version: "1.0.0";
+  version: "1.0.0" | "2.0.0";
   inputType: InputType;
   inputUrl?: string;
   pages: RndReportPage[];
   overallScore: number;
   createdAt: string;
   tier: ReportTier;
+  potentialSVI?: number;  // Projected SVI after improvements
 }
 
 const PAGE_DEFS = [
@@ -75,6 +78,8 @@ export interface RndSSEError {
 interface BatchPageResult {
   pageId: string;
   content: string;
+  lockedPreview?: string;
+  lockedSections?: string[];
   score?: number;
   highlights?: string[];
   dataPoints?: Record<string, string>;
@@ -152,7 +157,7 @@ function buildContext(
 ## Confidence: ${Math.round(sviAnalysis.confidenceMultiplier * 100)}%
 
 ## Startup Description:
-${input.slice(0, 3000)}
+${input.slice(0, 12000)}
 
 ## SVI Dimensions:
 ${dimSummary}
@@ -168,7 +173,7 @@ ${gapSummary || "None"}`;
 - Title: ${scrapedData.title}
 - Description: ${scrapedData.description}
 - Tech Stack Hints: ${scrapedData.techHints.join(", ") || "None detected"}
-- Page Content (excerpt): ${scrapedData.text.slice(0, 2000)}`;
+- Page Content (excerpt): ${scrapedData.text.slice(0, 8000)}`;
   }
 
   if (techAudit) {
@@ -214,44 +219,71 @@ TONE & STRUCTURE — Startup Mentoring Voice:
 - Include "How BlockID can help" hints where relevant (e.g. "Upload your pitch deck to the Evidence Vault to boost this score by +8 points").
 - The report should feel like a conversation with an experienced mentor who genuinely wants the founder to succeed.`;
 
-const SYSTEM_STANDARD = `You are a senior startup R&D analyst and mentor for BlockID.au, an Australian startup intelligence platform.
-You produce structured research reports that guide founders step-by-step from their current stage toward growth.
+const SYSTEM_STANDARD = `You are a senior startup analyst, researcher, and mentor for BlockID.au — Australia's AI startup intelligence platform.
+You write compelling NARRATIVE ESSAYS (not bullet-point lists) that analyse startups with the depth of a VC partner memo combined with the warmth of a trusted mentor.
 
-This is a 10-page preview report. It should demonstrate the depth and quality of BlockID analysis while clearly showing that deeper, unlimited analysis is available with credits.
+This report has 10 core pages. For FREE users, each page is a mini-essay with locked previews. For PAID users, each page is a comprehensive analysis with no content restrictions.
+
+## Writing Style — CRITICAL:
+- Write in FLOWING PROSE — connected paragraphs, not bullet lists
+- Open each page with a HOOK: a surprising insight, market observation, or provocative question about their space
+- Weave data points INTO sentences naturally (e.g. "With a TAM of A$4.2B growing at 12% CAGR..." not "TAM: $4.2B")
+- Name REAL competitors, tools, frameworks, and market data from your knowledge
+- Write like a McKinsey consultant who actually cares about founders
+- Use Australian context: reference ESIC, ASIC, ABS data, Australian market specifics
+- Each page should be 200-350 words of narrative prose
+- End each page with "lockedPreview" — a tantalising 1-2 sentence preview of deeper analysis available in the paid version
+- Include "lockedSections" — array of 2-3 titles of deeper analysis sections the founder would unlock with credits
+
+## Example opening (for a health-tech startup):
+"The Australian digital health market has quietly become one of the fastest-growing segments in APAC, with $2.1B in venture funding over the past 3 years alone. But here's what most founders miss: it's not the technology that determines success in this space — it's the intersection of regulatory navigation, clinician trust, and patient behaviour change. Your platform sits at precisely this intersection, and our analysis reveals both remarkable positioning and critical blind spots."
 
 Rules:
-- Be professional, evidence-based, and actionable
-- Use Australian business English
-- Be honest about weaknesses without being discouraging — frame them as growth opportunities
-- When data is limited, say so — never fabricate numbers
-- Return ONLY valid JSON (no markdown wrapping, no explanation outside the JSON)
+- Be evidence-based and specific — use real company names, real market data, real frameworks
+- Frame weaknesses as "the gap between where you are and where the opportunity is"
+- Never fabricate numbers — if data is limited, provide ranges or analogies
+- Return ONLY valid JSON (no markdown wrapping)
 ${MENTORING_TONE}
 ${AU_COMPLIANCE_NOTE}
 
-Return format: { "pages": [ { "pageId": "...", "content": "markdown...", "score": 0-100, "highlights": ["..."], "dataPoints": { "key": "value" } } ] }
+Return format: { "pages": [ { "pageId": "...", "content": "narrative markdown essay...", "lockedPreview": "tantalising preview of deeper analysis...", "lockedSections": ["Section Title 1", "Section Title 2"], "score": 0-100, "highlights": ["key insight 1", "key insight 2", "key insight 3"], "dataPoints": { "key": "value" } } ] }
 
-Each page's "content" field should be 150-300 words of markdown with headers, bullets, and bold text. End each page with a "**Next Steps**" section.`;
+The "content" field MUST be narrative prose (paragraphs), NOT bullet lists. Each page reads like a section of a professional analyst report.`;
 
-const SYSTEM_DEEP_DIVE = `You are a senior startup R&D analyst, management consultant, and startup mentor for BlockID.au, an Australian startup intelligence platform.
-You produce in-depth, consultant-grade research reports that guide founders through every step of building and growing their startup.
+const SYSTEM_DEEP_DIVE = `You are a senior startup analyst, management consultant, and startup mentor for BlockID.au — Australia's AI startup intelligence platform.
+You write in-depth, consultant-grade NARRATIVE ANALYSIS that reads like a Goldman Sachs research note combined with Y Combinator founder advice.
 
-This is a FULL paid report — no page limit, no content restriction. Provide the most comprehensive analysis possible based on all available data.
+This is a FULL PAID report — no content restrictions. Provide the most comprehensive, insightful analysis possible.
+
+## Writing Style — CRITICAL:
+- Write in FLOWING PROSE with connected paragraphs — this is an essay, not a slide deck
+- Each page is a deep-dive essay (500-800 words) with multiple sub-sections
+- Open with a compelling market insight or founder-relevant observation
+- Name SPECIFIC competitors with their funding, traction, and positioning
+- Include real market data: TAM/SAM figures, growth rates, funding landscape
+- Provide financial estimates with stated assumptions (not fabricated precision)
+- Build the narrative arc: context → analysis → insight → specific next action
+- Reference Australian-specific context: ESIC benefits, ASIC requirements, ABS statistics
+- Include "how this compares to similar startups at your stage" benchmarking
+- End each page with 3-5 specific, actionable steps with named tools/resources
+
+## Depth expectations:
+- Market page: Real TAM/SAM/SOM with sources, named market reports, timing analysis
+- Competition: 5+ named competitors with funding, strengths, weaknesses, threat level
+- Financial: 3-scenario revenue model, unit economics, funding timeline
+- Recommendations: 30/60/90 day plan with specific deliverables and KPIs
 
 Rules:
-- Be professional, evidence-based, and highly actionable with specific recommendations
-- Use Australian business English
-- Provide detailed data points, competitor names, market figures, and financial models where possible
-- Be honest about weaknesses without being discouraging — frame them as growth opportunities with specific steps to improve
-- When data is limited, say so — never fabricate numbers, but provide reasonable estimates with stated assumptions
-- Include specific, named competitors with their strengths/weaknesses where relevant
-- Provide actionable checklists and timelines
-- Return ONLY valid JSON (no markdown wrapping, no explanation outside the JSON)
+- Be evidence-based — use real company names, real market data, real frameworks
+- Provide estimates with stated assumptions when exact data is unavailable
+- Frame everything through the lens of "how to WIN in this space"
+- Return ONLY valid JSON (no markdown wrapping)
 ${MENTORING_TONE}
 ${AU_COMPLIANCE_NOTE}
 
-Return format: { "pages": [ { "pageId": "...", "content": "markdown...", "score": 0-100, "highlights": ["..."], "dataPoints": { "key": "value" } } ] }
+Return format: { "pages": [ { "pageId": "...", "content": "narrative markdown essay (500-800 words)...", "score": 0-100, "highlights": ["key insight 1", "key insight 2", "key insight 3"], "dataPoints": { "key": "value" } } ] }
 
-Each page's "content" field should be 400-600 words of markdown with headers, sub-headers, bullets, bold text, specific data points, and a "**Next Steps**" section with 3-5 concrete actions.`;
+Write each page as a compelling mini-essay that the founder would want to highlight and share with co-founders.`;
 
 const SYSTEM_DEEP_DIVE_EXTENDED = `You are a senior startup R&D analyst, management consultant, and startup mentor for BlockID.au, an Australian startup intelligence platform.
 You produce in-depth extended analysis sections for a consultant-grade startup report.
@@ -287,25 +319,31 @@ async function runBatch(
   ).join("\n");
 
   const isDeepDive = tier === "deep_dive";
+  const isPaid = tier === "standard" || tier === "deep_dive";
   const wordGuidance = isDeepDive
-    ? "Provide 400-600 words per page with specific data points, named competitors, financial estimates, and actionable recommendations."
-    : "Provide 150-200 words per page, concise and actionable.";
+    ? "Write 800-1500 words per page as an exhaustive narrative essay. No word limit — be as comprehensive as the topic demands. Include real data, named competitors, market figures, financial models, benchmarks, and specific actionable recommendations. No bullet-point lists — write flowing prose with sub-sections."
+    : isPaid
+      ? "Write 500-800 words per page as a comprehensive narrative essay with real data, named competitors, and actionable insights. No content restrictions — provide full analysis depth. No bullet-point lists — write flowing prose."
+      : "Write 200-350 words per page as a compelling narrative essay. Open with a hook, weave in data, end with a tantalising preview of deeper paid analysis. For each page, also include lockedPreview (1-2 sentences teasing deeper analysis) and lockedSections (2-3 titles of deeper sections available in paid tier).";
 
-  const userPrompt = `Analyse this startup and generate the following report pages:
+  const userPrompt = `Analyse this startup and write a compelling narrative research report. Each page should read like a section of a professional analyst essay — NOT bullet points.
 
+Pages to generate:
 ${pageDescriptions}
 
 ${wordGuidance}
 
+IMPORTANT: Write as connected prose paragraphs. Use real market data, name real competitors, reference real tools/frameworks. The founder should feel like they're reading a personal letter from an experienced advisor who has deeply researched their space.
+
 ## Context:
 ${context}
 
-Return JSON with a "pages" array containing one object per page listed above. Each object must have: pageId, content (markdown), score (0-100), highlights (array of 2-3 key findings), dataPoints (object of key metrics).`;
+Return JSON with a "pages" array containing one object per page listed above. Each object must have: pageId, content (narrative markdown essay), score (0-100), highlights (array of 2-3 key insights as sentences), dataPoints (object of key metrics)${isPaid ? "" : ", lockedPreview (string), lockedSections (array of 2-3 titles)"}.`;
 
   onStatus?.(`Generating ${batchLabel}...`);
 
-  const systemPrompt = isDeepDive ? SYSTEM_DEEP_DIVE : SYSTEM_STANDARD;
-  const maxTokens = isDeepDive ? 8192 : 4096;
+  const systemPrompt = isDeepDive ? SYSTEM_DEEP_DIVE : isPaid ? SYSTEM_DEEP_DIVE : SYSTEM_STANDARD;
+  const maxTokens = isDeepDive ? 16384 : isPaid ? 8192 : 4096;
   const results = new Map<string, BatchPageResult>();
 
   try {
@@ -484,9 +522,9 @@ export async function generateRndReport(
   for (const [k, v] of batchB) allResults.set(k, v);
   for (const [k, v] of batchC) allResults.set(k, v);
 
-  // Run Deep Dive extended batch (Batch D) if applicable
+  // Run extended batch (Batch D) for ALL paid tiers (standard + deep_dive)
   let extendedResults = new Map<string, RndExtendedSection[]>();
-  if (tier === "deep_dive") {
+  if (tier === "standard" || tier === "deep_dive") {
     extendedResults = await runDeepDiveExtended(context, onStatus);
   }
 
@@ -501,6 +539,8 @@ export async function generateRndReport(
         title: def.title,
         subtitle: def.subtitle,
         content: result.content,
+        lockedPreview: result.lockedPreview ?? undefined,
+        lockedSections: Array.isArray(result.lockedSections) ? result.lockedSections : undefined,
         score: typeof result.score === "number" ? Math.max(0, Math.min(100, result.score)) : undefined,
         highlights: Array.isArray(result.highlights) ? result.highlights : [],
         dataPoints: result.dataPoints && typeof result.dataPoints === "object" ? result.dataPoints : {},
@@ -522,14 +562,19 @@ export async function generateRndReport(
 
   onStatus?.("R&D report complete.");
 
+  // Calculate potential SVI (current + gap points that could be gained)
+  const gapPoints = (sviAnalysis.evidenceGaps ?? []).reduce((sum, g) => sum + (g.impact ?? 5), 0);
+  const potentialSVI = Math.min(300, sviAnalysis.totalSVI + Math.round(gapPoints * 0.7));
+
   return {
-    version: "1.0.0",
+    version: "2.0.0",
     inputType,
     inputUrl: inputType === "url" ? input.trim() : undefined,
     pages,
     overallScore,
     createdAt: new Date().toISOString(),
     tier,
+    potentialSVI,
   };
 }
 
@@ -565,9 +610,9 @@ const DEPTH_MAX_TOKENS: Record<SectionDepth, number> = {
   scan: 1024,
   summary: 2048,
   standard: 4096,
-  deep: 6144,
-  expert: 8192,
-  maximum: 8192,
+  deep: 8192,
+  expert: 16384,
+  maximum: 16384,
 };
 
 /**
