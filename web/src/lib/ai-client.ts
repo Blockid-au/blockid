@@ -182,14 +182,14 @@ type Provider = "claude-oauth" | "claude-apikey" | "claude-proxy" | "openai-code
 
 function getAvailableProviders(): Provider[] {
   const providers: Provider[] = [];
-  // Priority: Claude OAuth first (real API token) → Proxy → API keys → Codex → Gemini
-  // 1. Claude CLI OAuth (real Anthropic API token, auto-refreshes via CLI)
-  if (readCliOAuthToken()) providers.push("claude-oauth");
-  // 2. Codex OAuth (ChatGPT session token — may not work with public API)
-  if (readCodexOAuthToken()) providers.push("openai-codex");
-  // 3. Proxy (TapHoaAPI — paid third-party, multi-key)
+  // Priority: Proxy (most reliable) → Claude OAuth → Codex → API keys → Gemini
+  // 1. Proxy (TapHoaAPI — paid third-party, multi-key, most reliable)
   if (process.env.ANTHROPIC_PROXY_API_KEY && process.env.ANTHROPIC_PROXY_BASE_URL) providers.push("claude-proxy");
   else if (getDBKey("anthropic_proxy")) providers.push("claude-proxy");
+  // 2. Claude CLI OAuth (real Anthropic API token, auto-refreshes via CLI)
+  if (readCliOAuthToken()) providers.push("claude-oauth");
+  // 3. Codex OAuth (ChatGPT session token)
+  if (readCodexOAuthToken()) providers.push("openai-codex");
   // 4. Anthropic API key (env or DB)
   if (process.env.ANTHROPIC_API_KEY) providers.push("claude-apikey");
   else if (getDBKey("anthropic")) providers.push("claude-apikey");
@@ -376,9 +376,14 @@ async function callClaudeProxy(opts: AICallOptions): Promise<AICallResult> {
   let lastErr: Error | null = null;
   for (const key of keys) {
     try {
-      // Use raw fetch — proxy returns SSE stream which SDK may not handle
+      // Use raw fetch — cap max_tokens at 2048 for proxy to avoid 30s gateway timeout
+      const proxyMaxTokens = Math.min(opts.maxTokens ?? 4096, 2048);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90_000); // 90s timeout
+
       const res = await fetch(`${baseURL}/messages`, {
         method: "POST",
+        signal: controller.signal,
         headers: {
           "x-api-key": key,
           "anthropic-version": "2023-06-01",
@@ -386,21 +391,24 @@ async function callClaudeProxy(opts: AICallOptions): Promise<AICallResult> {
         },
         body: JSON.stringify({
           model,
-          max_tokens: opts.maxTokens ?? 4096,
+          max_tokens: proxyMaxTokens,
           stream: false,
           system: opts.system,
           messages: [{ role: "user", content: opts.user }],
         }),
       });
 
+      clearTimeout(timeoutId);
+
       const contentType = res.headers.get("content-type") ?? "";
 
       if (contentType.includes("text/event-stream")) {
-        // Parse SSE stream manually
+        // SSE response — parse stream
         const raw = await res.text();
         let text = "";
         for (const line of raw.split("\n")) {
           if (!line.startsWith("data: ")) continue;
+          if (line.includes("[DONE]")) continue;
           try {
             const d = JSON.parse(line.slice(6));
             if (d.delta?.text) text += d.delta.text;
@@ -418,7 +426,8 @@ async function callClaudeProxy(opts: AICallOptions): Promise<AICallResult> {
       for (const block of (data.content ?? [])) {
         if (block.type === "text") text = block.text;
       }
-      return { text, provider: "claude", model };
+      if (text) return { text, provider: "claude", model };
+      throw new Error("Empty response from proxy");
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
       console.warn(`[ai-client] proxy key ${key.slice(0, 12)}... failed: ${lastErr.message}`);
