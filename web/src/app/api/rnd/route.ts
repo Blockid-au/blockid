@@ -6,6 +6,7 @@ import { newSlug } from "@/lib/slug";
 import { detectInputType, scrapeUrl, deepTechAudit, type TechAuditResult } from "@/lib/rnd-input";
 import { generateRndReport, type ReportTier } from "@/lib/rnd-analysis";
 import { canAfford, spendCredits } from "@/lib/credits";
+import { getProjectIdFromRequest } from "@/lib/projects";
 
 /** Map tier to the credit feature key used for billing. */
 function tierToFeature(tier: ReportTier): string {
@@ -215,6 +216,10 @@ export async function POST(request: Request) {
         const analysisWithAudit = techAudit
           ? { ...analysis, techAudit }
           : analysis;
+        // Get project_id for data isolation (each startup gets its own analysis)
+        let projectId: string | null = null;
+        try { projectId = await getProjectIdFromRequest(); } catch { /* guest user */ }
+
         const { error } = await supabase.from("svi_analyses").insert({
           id: slug,
           email,
@@ -228,6 +233,7 @@ export async function POST(request: Request) {
           rnd_report_json: report,
           input_type: inputType,
           scraped_url: inputType === "url" ? rawText.trim() : null,
+          project_id: projectId,
         }).select("id").single();
 
         if (error) {
