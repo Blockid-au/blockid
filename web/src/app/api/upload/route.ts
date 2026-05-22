@@ -7,18 +7,26 @@ import { randomBytes } from "crypto";
 
 export const dynamic = "force-dynamic";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au";
+const ALLOWED_ORIGINS = [
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au",
+  "https://upload.blockid.au",
+  "https://staging.blockid.au",
+  "https://dev.blockid.au",
+];
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": SITE_URL,
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, Cookie",
-  "Access-Control-Allow-Credentials": "true",
-};
+function corsHeaders(requestOrigin?: string | null): Record<string, string> {
+  const origin = ALLOWED_ORIGINS.includes(requestOrigin ?? "") ? requestOrigin! : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, Cookie",
+    "Access-Control-Allow-Credentials": "true",
+  };
+}
 
 /** CORS preflight */
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+export async function OPTIONS(request: Request) {
+  return new NextResponse(null, { status: 204, headers: corsHeaders(request.headers.get("origin")) });
 }
 
 // Uploads dir: /app/uploads (Docker volume mount) or /public/uploads (dev)
@@ -65,31 +73,32 @@ function generateFilename(originalName: string): string {
  * Accessible at https://upload.blockid.au/{subdir}/{filename}
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function corsJson(data: any, init?: { status?: number }) {
-  return NextResponse.json(data, { ...init, headers: CORS_HEADERS });
+function corsJson(data: any, origin?: string | null, init?: { status?: number }) {
+  return NextResponse.json(data, { ...init, headers: corsHeaders(origin) });
 }
 
 export async function POST(request: Request) {
+  const origin = request.headers.get("origin");
   const user = await getCurrentUser();
   if (!user) {
-    return corsJson({ error: "Unauthorized — sign in to upload" }, { status: 401 });
+    return corsJson({ error: "Unauthorized — sign in to upload" }, origin, { status: 401 });
   }
 
   const formData = await request.formData();
   const file = formData.get("file") as File | null;
 
   if (!file) {
-    return corsJson({ error: "No file provided. Send as multipart/form-data with field 'file'" }, { status: 400 });
+    return corsJson({ error: "No file provided. Send as multipart/form-data with field 'file'" }, origin, { status: 400 });
   }
 
   if (file.size > MAX_SIZE) {
-    return corsJson({ error: `File too large. Max ${MAX_SIZE / 1024 / 1024}MB` }, { status: 413 });
+    return corsJson({ error: `File too large. Max ${MAX_SIZE / 1024 / 1024}MB` }, origin, { status: 413 });
   }
 
   if (!ALL_ALLOWED.includes(file.type)) {
     return corsJson({
       error: `File type '${file.type}' not allowed. Accepted: images, PDFs, documents, spreadsheets, CSV, text, ZIP`,
-    }, { status: 415 });
+    }, origin, { status: 415 });
   }
 
   const subdir = getSubdir(file.type);
@@ -116,16 +125,17 @@ export async function POST(request: Request) {
     size: file.size,
     type: file.type,
     subdir,
-  });
+  }, origin);
 }
 
 /**
  * GET /api/upload — list recent uploads (admin only)
  */
-export async function GET() {
+export async function GET(request: Request) {
+  const origin = request.headers.get("origin");
   const user = await getCurrentUser();
   if (!user || (user.email !== "admin@blockid.au" && user.role !== "admin")) {
-    return corsJson({ error: "Admin only" }, { status: 401 });
+    return corsJson({ error: "Admin only" }, origin, { status: 401 });
   }
 
   const { readdir, stat } = await import("fs/promises");
@@ -150,5 +160,5 @@ export async function GET() {
 
   files.sort((a, b) => b.modified.localeCompare(a.modified));
 
-  return corsJson({ ok: true, files: files.slice(0, 50), total: files.length });
+  return corsJson({ ok: true, files: files.slice(0, 50), total: files.length }, origin);
 }
