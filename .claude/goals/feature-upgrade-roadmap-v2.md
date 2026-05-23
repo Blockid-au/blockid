@@ -18,10 +18,10 @@
 - [x] Credit purchase upsell (enhanced credit-gate with Founding 50 CTA + pack options)
 - [ ] Enterprise tier with team features ($499/mo)
 - [ ] Accelerator partnership pricing ($20K/year per cohort)
-- [ ] Annual billing option (20% discount)
+- [x] Annual billing: Growth A$950/year (20% off) with Monthly/Annual toggle (20% discount)
 
 ### Report Quality (CTO + CPO)
-- [ ] Industry-specific report templates (SaaS, marketplace, fintech)
+- [x] Industry-specific: 7 industry guidance prompts auto-detected from input (SaaS, marketplace, fintech)
 - [ ] PDF branding customization for paid plans
 - [x] Interactive radar chart (Recharts RadarChart, 8 dimensions in report) (Chart.js/Recharts)
 - [x] SVI trend chart (Recharts LineChart, 30-day delta on dashboard)
@@ -31,7 +31,7 @@
 - [x] Onboarding wizard (3-step: profile→SVI→evidence with AIThinkingStatus)
 - [ ] Dashboard personalization (pin widgets, reorder cards)
 - [x] Dark mode toggle (ThemeToggle component + CSS custom properties + localStorage)
-- [ ] Multi-language support (Vietnamese full translation)
+- [x] Vietnamese: full report translation (page titles + AI prompt + deep dive) full translation)
 - [x] PWA setup (manifest, theme-color, apple-web-app, installable)
 
 ### Growth (CMO + CRO)
@@ -39,7 +39,7 @@
 - [x] Referral v2: referrer gets 2 cr, referee gets 1 bonus cr (2-sided) (2-sided: referrer + referee get credits)
 - [ ] Content hub with founder guides
 - [ ] Community (Discord/Slack with SVI leaderboard)
-- [ ] Partner API for accelerators (programmatic SVI)
+- [x] Partner API: POST /api/v1/analyze (API key auth, credit deduction, clean JSON) (programmatic SVI)
 
 ---
 

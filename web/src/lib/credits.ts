@@ -105,9 +105,10 @@ export const FEATURE_COSTS: Record<string, number> = {
 // ---------------------------------------------------------------------------
 
 export const PLAN_CREDITS: Record<string, { amount: number; recurring: boolean }> = {
-  free:       { amount: 2,      recurring: false },  // 2 credits = ~4 standard analyses
-  founding50: { amount: 100,    recurring: false },  // 100 credits lifetime
-  growth:     { amount: 200,    recurring: true  },  // 200 credits/month
+  free:           { amount: 2,      recurring: false },  // 2 credits = ~4 standard analyses
+  founding50:     { amount: 100,    recurring: false },  // 100 credits lifetime
+  growth:         { amount: 200,    recurring: true  },  // 200 credits/month
+  growth_annual:  { amount: 200,    recurring: true  },  // 200 credits/month (annual billing)
 };
 
 // ---------------------------------------------------------------------------

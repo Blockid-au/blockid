@@ -51,6 +51,7 @@ export interface AnalyticsEventMap {
 
   // ── Pricing & Checkout ──
   pricing_viewed: Record<string, never>;
+  pricing_toggle_billing: { annual: boolean };
   plan_cta_clicked: { plan: string; label: string };
   checkout_started: { plan: string };
   checkout_completed: { plan: string; value?: number; currency?: string };

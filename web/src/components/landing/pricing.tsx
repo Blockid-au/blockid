@@ -16,6 +16,7 @@ import {
 export function Pricing() {
   const [loading, setLoading] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [annual, setAnnual] = React.useState(false);
 
   React.useEffect(() => {
     const el = document.getElementById("pricing");
@@ -62,6 +63,13 @@ export function Pricing() {
     }
   };
 
+  // Filter tiers based on annual toggle — show only the matching Growth variant
+  const visibleTiers = PRICING_TIERS.filter((t) => {
+    if (annual && t.id === "growth") return false;
+    if (!annual && t.id === "growth_annual") return false;
+    return true;
+  });
+
   return (
     <section
       id="pricing"
@@ -85,19 +93,57 @@ export function Pricing() {
           </p>
         </div>
 
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-          {PRICING_TIERS.map((tier) => (
+        {/* Monthly / Annual toggle */}
+        <div className="mt-10 flex items-center justify-start gap-3">
+          <span
+            className={`text-sm font-medium transition-colors ${
+              !annual ? "text-brand-900" : "text-ink-400"
+            }`}
+          >
+            Monthly
+          </span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={annual}
+            aria-label="Toggle annual billing"
+            onClick={() => {
+              setAnnual((prev) => !prev);
+              trackEvent("pricing_toggle_billing", { annual: !annual });
+            }}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 ${
+              annual ? "bg-brand-600" : "bg-surface-300"
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+                annual ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
+          <span
+            className={`text-sm font-medium transition-colors ${
+              annual ? "text-brand-900" : "text-ink-400"
+            }`}
+          >
+            Annual{" "}
+            <span className="text-emerald-600 font-semibold">(Save 20%)</span>
+          </span>
+        </div>
+
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+          {visibleTiers.map((tier) => (
             <div
-              key={tier.name}
+              key={tier.id}
               className={cn(
                 "relative flex flex-col rounded-2xl border p-6 md:p-8 transition-colors duration-200",
                 tier.highlight
                   ? "border-brand-500 bg-brand-50 ring-1 ring-brand-200 scale-[1.02] shadow-lg"
-                  : "border-surface-200 bg-white shadow-sm hover:border-brand-500",
+                  : "border-surface-200 bg-surface-50 dark:bg-surface-100 shadow-sm hover:border-brand-500",
               )}
             >
               {tier.badge && (
-                <span className="absolute -top-3 left-6 inline-flex items-center gap-1 rounded-full border border-brand-500 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-brand-500">
+                <span className="absolute -top-3 left-6 inline-flex items-center gap-1 rounded-full border border-brand-500 bg-surface-50 dark:bg-surface-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-brand-500">
                   <Star strokeWidth={1.75} className="h-3 w-3" />
                   {tier.badge}
                 </span>
@@ -183,7 +229,7 @@ export function Pricing() {
         )}
 
         {/* Credit pack upsell strip */}
-        <div className="mt-12 rounded-2xl border border-surface-200 bg-white px-6 py-5 text-center shadow-sm">
+        <div className="mt-12 rounded-2xl border border-surface-200 bg-surface-50 dark:bg-surface-100 px-6 py-5 text-center shadow-sm">
           <p className="text-sm text-ink-700 mb-3">
             Need more credits? Buy analysis credits from{" "}
             <span className="font-semibold text-brand-600">A$1 each</span>.

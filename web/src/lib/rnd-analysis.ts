@@ -42,16 +42,16 @@ export interface RndReport {
 }
 
 const PAGE_DEFS = [
-  { id: "executive", num: 1, title: "Executive Summary", subtitle: "Overall startup assessment" },
-  { id: "market", num: 2, title: "Market & Problem", subtitle: "Market size, timing, validation" },
-  { id: "product", num: 3, title: "Product & Technology", subtitle: "Tech stack, AI usage, maturity" },
-  { id: "business", num: 4, title: "Business Model", subtitle: "Revenue, pricing, unit economics" },
-  { id: "competition", num: 5, title: "Competition & Moat", subtitle: "Competitors, differentiation" },
-  { id: "traction", num: 6, title: "Traction & Growth", subtitle: "Users, traffic, SEO, social proof" },
-  { id: "team", num: 7, title: "Team & Execution", subtitle: "Founder signals, domain expertise" },
-  { id: "financial", num: 8, title: "Financial Projections", subtitle: "Revenue potential, funding needs" },
-  { id: "risk", num: 9, title: "Risk Assessment", subtitle: "Key risks, red flags, mitigation" },
-  { id: "recommendations", num: 10, title: "Recommendations", subtitle: "Prioritized action plan" },
+  { id: "executive", num: 1, title: "Executive Summary", subtitle: "Overall startup assessment", titleVi: "Tóm Tắt Điều Hành", subtitleVi: "Đánh giá tổng quan startup" },
+  { id: "market", num: 2, title: "Market & Problem", subtitle: "Market size, timing, validation", titleVi: "Thị Trường & Vấn Đề", subtitleVi: "Quy mô thị trường, thời điểm, xác nhận" },
+  { id: "product", num: 3, title: "Product & Technology", subtitle: "Tech stack, AI usage, maturity", titleVi: "Sản Phẩm & Công Nghệ", subtitleVi: "Công nghệ, AI, mức độ trưởng thành" },
+  { id: "business", num: 4, title: "Business Model", subtitle: "Revenue, pricing, unit economics", titleVi: "Mô Hình Kinh Doanh", subtitleVi: "Doanh thu, định giá, kinh tế đơn vị" },
+  { id: "competition", num: 5, title: "Competition & Moat", subtitle: "Competitors, differentiation", titleVi: "Cạnh Tranh & Lợi Thế", subtitleVi: "Đối thủ, sự khác biệt" },
+  { id: "traction", num: 6, title: "Traction & Growth", subtitle: "Users, traffic, SEO, social proof", titleVi: "Tăng Trưởng & Phát Triển", subtitleVi: "Người dùng, lưu lượng, SEO, bằng chứng" },
+  { id: "team", num: 7, title: "Team & Execution", subtitle: "Founder signals, domain expertise", titleVi: "Đội Ngũ & Thực Thi", subtitleVi: "Nhà sáng lập, chuyên môn lĩnh vực" },
+  { id: "financial", num: 8, title: "Financial Projections", subtitle: "Revenue potential, funding needs", titleVi: "Dự Báo Tài Chính", subtitleVi: "Tiềm năng doanh thu, nhu cầu vốn" },
+  { id: "risk", num: 9, title: "Risk Assessment", subtitle: "Key risks, red flags, mitigation", titleVi: "Đánh Giá Rủi Ro", subtitleVi: "Rủi ro chính, cảnh báo, giảm thiểu" },
+  { id: "recommendations", num: 10, title: "Recommendations", subtitle: "Prioritized action plan", titleVi: "Khuyến Nghị", subtitleVi: "Kế hoạch hành động ưu tiên" },
 ] as const;
 
 export { PAGE_DEFS };
@@ -128,6 +128,32 @@ function makeFallbackPage(def: typeof PAGE_DEFS[number], rawText?: string): RndR
     highlights: [],
     dataPoints: {},
   };
+}
+
+// ── Industry-specific AI guidance ─────────────────────────────────────────────
+
+const INDUSTRY_GUIDANCE: Record<string, string> = {
+  saas: "Focus on: MRR/ARR metrics, churn analysis, LTV:CAC, SaaS-specific multiples (5-15x ARR). Reference Bessemer Cloud Index, SaaS Capital benchmarks.",
+  marketplace: "Focus on: GMV, take rate, liquidity, chicken-and-egg problem. Reference a16z marketplace metrics.",
+  fintech: "Focus on: regulatory requirements (AFSL, ASIC), trust signals, transaction volume. Reference AU fintech landscape.",
+  healthtech: "Focus on: clinical validation, regulatory pathway (TGA), clinician adoption. Reference AU digital health landscape.",
+  edtech: "Focus on: student engagement, completion rates, B2B vs B2C model. Reference AU education market.",
+  ecommerce: "Focus on: AOV, repeat purchase rate, CAC payback. Reference AU e-commerce growth.",
+  deeptech: "Focus on: IP protection, R&D timeline, grant eligibility (R&D Tax Incentive). Reference CSIRO collaboration opportunities.",
+};
+
+/** Detect industry from raw text or scraped data — returns the INDUSTRY_GUIDANCE key or undefined. */
+function detectIndustry(input: string, scrapedText?: string): string | undefined {
+  const combined = `${input}\n${scrapedText ?? ""}`.toLowerCase();
+  // Ordered by specificity — check compound terms first
+  if (/\bhealthtech\b|health\s*tech\b|medtech\b|digital\s*health\b|telehealth\b|clinical\b/i.test(combined)) return "healthtech";
+  if (/\bfintech\b|fin\s*tech\b|financial\s*technology\b|neobank\b|payment/i.test(combined)) return "fintech";
+  if (/\bedtech\b|ed\s*tech\b|education\s*tech\b|e-learning\b|lms\b/i.test(combined)) return "edtech";
+  if (/\bdeeptech\b|deep\s*tech\b|r&d\s*heavy\b|hardware\b|biotech\b|quantum\b/i.test(combined)) return "deeptech";
+  if (/\bmarketplace\b|two.sided\b|multi.sided\b|platform\s*connecting/i.test(combined)) return "marketplace";
+  if (/\be-?commerce\b|d2c\b|direct.to.consumer\b|online\s*store\b|shopify\b/i.test(combined)) return "ecommerce";
+  if (/\bsaas\b|software.as.a.service\b|\bmrr\b|\barr\b|subscription\s*(model|software)/i.test(combined)) return "saas";
+  return undefined;
 }
 
 // ── Context builder ──────────────────────────────────────────────────────────
@@ -220,6 +246,14 @@ ${gapSummary || "None"}`;
     if (research.summary) {
       ctx += `\n### Research Summary: ${research.summary}`;
     }
+  }
+
+  // Industry-specific guidance — detect from raw input or scraped content
+  const detectedIndustry = detectIndustry(input, scrapedData?.text);
+  if (detectedIndustry && INDUSTRY_GUIDANCE[detectedIndustry]) {
+    ctx += `\n\n## Industry-Specific Guidance (${detectedIndustry.toUpperCase()}):
+${INDUSTRY_GUIDANCE[detectedIndustry]}
+Apply this industry lens across ALL report pages — tailor market sizing, competitor analysis, financial projections, and recommendations to this specific vertical.`;
   }
 
   return ctx;
@@ -497,12 +531,17 @@ const DEEP_DIVE_EXTENDED_PAGES: Record<string, { descriptions: string }> = {
 async function runDeepDiveExtended(
   context: string,
   onStatus?: (msg: string) => void,
+  locale: "en" | "vi" = "en",
 ): Promise<Map<string, RndExtendedSection[]>> {
   const deepDivePageIds = Object.keys(DEEP_DIVE_EXTENDED_PAGES);
   const allDescriptions = deepDivePageIds.map(pageId => {
     const def = DEEP_DIVE_EXTENDED_PAGES[pageId];
     return def.descriptions;
   }).join("\n\n");
+
+  const viInstruction = locale === "vi"
+    ? "\n\nCRITICAL: Write ALL content ENTIRELY in Vietnamese (tiếng Việt). All section titles, analysis, recommendations must be in Vietnamese. Keep technical terms (SVI, ESIC, SAFE, MRR, ARR) in English but explain in Vietnamese.\n"
+    : "";
 
   const userPrompt = `Generate extended deep-dive analysis sections for the following report pages. Each section should be detailed, actionable, and consultant-grade quality with specific data points.
 
@@ -519,7 +558,7 @@ Return JSON with an "extendedSections" array. Each element must have: pageId (st
 
   try {
     const { text } = await callAI({
-      system: SYSTEM_DEEP_DIVE_EXTENDED,
+      system: SYSTEM_DEEP_DIVE_EXTENDED + viInstruction,
       user: userPrompt,
       maxTokens: 8192,
     });
@@ -582,19 +621,23 @@ export async function generateRndReport(
   let extendedResults = new Map<string, RndExtendedSection[]>();
   if (tier === "deep_dive") {
     await delay(3000);
-    extendedResults = await runDeepDiveExtended(context, onStatus);
+    extendedResults = await runDeepDiveExtended(context, onStatus, locale);
   }
+
+  const isVi = locale === "vi";
 
   // Build final pages — use AI results where available, fallback otherwise
   const pages: RndReportPage[] = PAGE_DEFS.map((def) => {
     const result = allResults.get(def.id);
     const extended = extendedResults.get(def.id);
+    const pageTitle = isVi ? def.titleVi : def.title;
+    const pageSubtitle = isVi ? def.subtitleVi : def.subtitle;
     if (result && result.content) {
       return {
         pageId: def.id,
         pageNum: def.num,
-        title: def.title,
-        subtitle: def.subtitle,
+        title: pageTitle,
+        subtitle: pageSubtitle,
         content: result.content,
         lockedPreview: result.lockedPreview ?? undefined,
         lockedSections: Array.isArray(result.lockedSections) ? result.lockedSections : undefined,
@@ -605,6 +648,8 @@ export async function generateRndReport(
       };
     }
     const fallback = makeFallbackPage(def, input);
+    fallback.title = pageTitle;
+    fallback.subtitle = pageSubtitle;
     if (extended && extended.length > 0) {
       fallback.extendedSections = extended;
     }

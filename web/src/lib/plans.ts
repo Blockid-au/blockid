@@ -61,6 +61,22 @@ export const PLANS: Plan[] = [
       "30-day money back",
     ],
   },
+  {
+    id: "growth_annual",
+    name: "Growth Annual",
+    price: 95000, // A$950/year (20% off monthly, saves A$238/year)
+    cadence: "yearly",
+    features: [
+      "Everything in Founder",
+      "Multi-entity cap table",
+      "Investor data room",
+      "One-Click Data Room",
+      "Term Sheet AI (unlimited)",
+      "Custom branding",
+      "Dedicated account manager",
+      "30-day money back",
+    ],
+  },
 ];
 
 /** Early-bird pricing deadline (AEST). After this date, SVI analysis costs $25 instead of $1. */
