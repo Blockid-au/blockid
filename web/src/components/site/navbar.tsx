@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ChevronDown, Menu, X, LayoutDashboard, LogOut } from "lucide-react";
+import { ChevronDown, Menu, X, LayoutDashboard, LogOut, BarChart3 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/ui/language-toggle";
@@ -25,6 +25,7 @@ interface NavDropdown {
 type NavEntry = NavLink | NavDropdown;
 
 const navItems: NavEntry[] = [
+  { href: "/score", label: "Get SVI Score" },
   {
     label: "Free Tools",
     groups: [
@@ -153,6 +154,14 @@ function UserMenu({ user }: { user: AuthUser }) {
             </div>
           </div>
           <div className="py-1">
+            <Link
+              href="/score"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-ink-700 hover:bg-surface-50 transition-colors"
+            >
+              <BarChart3 strokeWidth={1.75} className="h-4 w-4 text-ink-500" />
+              New Analysis
+            </Link>
             <Link
               href="/dashboard"
               onClick={() => setOpen(false)}

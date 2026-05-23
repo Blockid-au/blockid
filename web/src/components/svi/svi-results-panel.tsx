@@ -554,22 +554,46 @@ function FullReportBanner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tier }),
       });
-      const data = await res.json();
+
+      // Handle non-JSON responses (e.g. 502, 504 from reverse proxy)
+      let data: Record<string, unknown>;
+      try {
+        data = await res.json();
+      } catch {
+        timers.forEach(clearTimeout);
+        const msg = res.status >= 500
+          ? "Server is temporarily unavailable. Please try again in a moment."
+          : `Unexpected response (${res.status})`;
+        thinking.fail("gather", msg);
+        setError(msg);
+        return;
+      }
+
       timers.forEach(clearTimeout);
 
       if (!data.ok) {
-        thinking.fail("format", data.error ?? "Generation failed");
-        setError(res.status === 402
-          ? `Insufficient credits (need ${tier === "premium" ? 5 : 2} credits)`
-          : (data.error ?? "Generation failed"));
+        let errMsg: string;
+        if (res.status === 401) {
+          errMsg = "Please sign in to generate a full report.";
+        } else if (res.status === 402) {
+          errMsg = `Insufficient credits (need ${tier === "premium" ? 5 : 2} credits)`;
+        } else if (res.status === 404) {
+          errMsg = "No analysis found — run an SVI analysis first.";
+        } else if (res.status === 503) {
+          errMsg = "AI service temporarily unavailable. Please try again shortly.";
+        } else {
+          errMsg = (data.error as string) ?? "Generation failed";
+        }
+        thinking.fail("format", errMsg);
+        setError(errMsg);
         return;
       }
       thinking.completeAll();
-      setReport(data.report);
+      setReport(data.report as string);
     } catch {
       timers.forEach(clearTimeout);
-      thinking.fail("gather", "Network error");
-      setError("Network error");
+      thinking.fail("gather", "Connection error — check your internet and try again.");
+      setError("Connection error — check your internet and try again.");
     } finally {
       setLoading(null);
     }
