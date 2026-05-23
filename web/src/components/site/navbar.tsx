@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ChevronDown, Menu, X } from "lucide-react";
+import { ChevronDown, Menu, X, LayoutDashboard, LogOut } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/ui/language-toggle";
@@ -51,15 +51,128 @@ const navItems: NavEntry[] = [
   { href: "/#product", label: "Product" },
   { href: "/#pricing", label: "Pricing" },
   { href: "/insights", label: "Insights" },
-  { href: "/auth/login", label: "Login" },
 ];
 
 function isDropdown(item: NavEntry): item is NavDropdown {
   return (item as NavDropdown).groups !== undefined;
 }
 
+/* ── Auth state hook ─────────────────────────────────────────────────── */
+
+interface AuthUser {
+  id: string;
+  email: string;
+  displayName?: string | null;
+  plan?: string;
+}
+
+function useAuthUser() {
+  const [user, setUser] = React.useState<AuthUser | null | undefined>(undefined); // undefined = loading
+
+  React.useEffect(() => {
+    let cancelled = false;
+    fetch("/api/auth/me", { credentials: "same-origin" })
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled) {
+          setUser(data.ok && data.user ? data.user : null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setUser(null);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  return user;
+}
+
+/* ── User menu dropdown ──────────────────────────────────────────────── */
+
+function UserMenu({ user }: { user: AuthUser }) {
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const onClick = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const initials = (user.displayName || user.email)
+    .split(/[\s@]/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s) => s[0].toUpperCase())
+    .join("");
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-surface-50 transition-colors cursor-pointer"
+      >
+        <span className="h-8 w-8 rounded-full bg-brand-600 text-white text-xs font-bold flex items-center justify-center">
+          {initials}
+        </span>
+        <span className="hidden lg:block text-sm font-medium text-ink-700 max-w-[120px] truncate">
+          {user.displayName || user.email.split("@")[0]}
+        </span>
+        <ChevronDown strokeWidth={1.75} className="h-3.5 w-3.5 text-ink-400" />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-surface-200 bg-white shadow-xl z-50 overflow-hidden">
+          <div className="px-4 py-3 border-b border-surface-100">
+            <p className="text-sm font-medium text-ink-800 truncate">{user.displayName || user.email.split("@")[0]}</p>
+            <p className="text-xs text-ink-500 truncate">{user.email}</p>
+            {user.plan && user.plan !== "free" && (
+              <span className="inline-block mt-1 text-[10px] font-semibold uppercase tracking-wider text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full">
+                {user.plan}
+              </span>
+            )}
+          </div>
+          <div className="py-1">
+            <Link
+              href="/dashboard"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-ink-700 hover:bg-surface-50 transition-colors"
+            >
+              <LayoutDashboard strokeWidth={1.75} className="h-4 w-4 text-ink-500" />
+              Dashboard
+            </Link>
+            <form action="/api/auth/logout" method="post" className="w-full">
+              <button
+                type="submit"
+                className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-ink-700 hover:bg-surface-50 transition-colors cursor-pointer text-left"
+              >
+                <LogOut strokeWidth={1.75} className="h-4 w-4 text-ink-500" />
+                Sign out
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Navbar ───────────────────────────────────────────────────────────── */
+
 export function Navbar() {
   const [open, setOpen] = React.useState(false);
+  const user = useAuthUser();
 
   // Lock body scroll when mobile menu is open
   React.useEffect(() => {
@@ -95,6 +208,16 @@ export function Navbar() {
                   </Link>
                 ),
               )}
+
+              {/* Auth-aware: Login link or Dashboard link */}
+              {user === null && (
+                <Link
+                  href="/auth/login"
+                  className="px-3.5 py-2 text-sm font-medium text-ink-600 hover:text-ink-900 rounded-lg transition-colors"
+                >
+                  Login
+                </Link>
+              )}
             </nav>
 
             {/* Desktop CTA */}
@@ -106,11 +229,22 @@ export function Navbar() {
                 Try free tools
               </Link>
               <LanguageToggle variant="icon" />
-              <Link href="/score">
-                <Button variant="primary" size="sm" className="h-10 px-5 rounded-xl text-sm font-semibold">
-                  Get your Score
-                </Button>
-              </Link>
+
+              {/* Auth-aware CTA area */}
+              {user === undefined ? (
+                /* Loading state — show placeholder */
+                <div className="h-10 w-28 rounded-xl bg-surface-100 animate-pulse" />
+              ) : user ? (
+                /* Logged in — show user menu */
+                <UserMenu user={user} />
+              ) : (
+                /* Not logged in — show Get your Score */
+                <Link href="/score">
+                  <Button variant="primary" size="sm" className="h-10 px-5 rounded-xl text-sm font-semibold">
+                    Get your Score
+                  </Button>
+                </Link>
+              )}
             </div>
 
             {/* Hamburger button */}
@@ -171,12 +305,51 @@ export function Navbar() {
                 ),
               )}
 
+              {/* Auth-aware mobile section */}
               <div className="mt-2 pt-3 border-t border-surface-100 flex flex-col gap-2">
-                <Link href="/score" onClick={() => setOpen(false)}>
-                  <Button variant="primary" size="md" className="w-full">
-                    Get your Score
-                  </Button>
-                </Link>
+                {user ? (
+                  <>
+                    {/* Logged in — show user info + dashboard link */}
+                    <div className="flex items-center gap-3 px-4 py-2">
+                      <span className="h-9 w-9 rounded-full bg-brand-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
+                        {(user.displayName || user.email).split(/[\s@]/)[0][0].toUpperCase()}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-ink-800 truncate">{user.displayName || user.email.split("@")[0]}</p>
+                        <p className="text-xs text-ink-500 truncate">{user.email}</p>
+                      </div>
+                    </div>
+                    <Link href="/dashboard" onClick={() => setOpen(false)}>
+                      <Button variant="primary" size="md" className="w-full">
+                        Go to Dashboard
+                      </Button>
+                    </Link>
+                    <form action="/api/auth/logout" method="post">
+                      <button
+                        type="submit"
+                        className="w-full py-2 text-center text-sm font-medium text-ink-500 hover:text-ink-800 transition-colors cursor-pointer"
+                      >
+                        Sign out
+                      </button>
+                    </form>
+                  </>
+                ) : (
+                  <>
+                    {/* Not logged in — show score CTA + login */}
+                    <Link href="/score" onClick={() => setOpen(false)}>
+                      <Button variant="primary" size="md" className="w-full">
+                        Get your Score
+                      </Button>
+                    </Link>
+                    <Link
+                      href="/auth/login"
+                      onClick={() => setOpen(false)}
+                      className="py-2 text-center text-sm font-medium text-brand-600 hover:text-brand-700 transition-colors"
+                    >
+                      Sign in
+                    </Link>
+                  </>
+                )}
                 <Link
                   href="/tools/idea-valuation"
                   onClick={() => setOpen(false)}
