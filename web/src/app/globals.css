@@ -239,6 +239,18 @@ body {
   }
 }
 
+/* ── Scrollbar-hide (utility for horizontal depth buttons) ── */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+/* ── Safe area bottom padding (iPhone notch/home bar) ─────── */
+.safe-pb {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
 /* ── Scrollbar ────────────────────────────────────────────── */
 *::-webkit-scrollbar { width: 6px; height: 6px; }
 *::-webkit-scrollbar-track { background: transparent; }
