@@ -57,7 +57,13 @@ echo "  .env included in build context for NEXT_PUBLIC_* inlining"
 echo "  .env NOT in final runtime image (multi-stage build)"
 docker compose build web
 
-# Step 4: Deploy
+# Step 4: Generate clean runtime env (strip comments for --env-file)
+echo ""
+echo "=== Generating runtime env ==="
+grep -v '^\s*#\|^\s*$' .env > .env.runtime
+echo "  $(wc -l < .env.runtime) vars → .env.runtime"
+
+# Step 5: Deploy
 echo ""
 echo "=== Deploying ==="
 docker rm -f deploy-blockid-production 2>/dev/null || true
@@ -66,7 +72,7 @@ docker run -d \
   --restart unless-stopped \
   --network supabase_default \
   -p 127.0.0.1:4001:3000 \
-  --env-file .env \
+  --env-file .env.runtime \
   -v "$(pwd)/content:/app/content" \
   -v "$HOME/blockid.au/uploads:/app/uploads" \
   -v "$HOME/.claude/.credentials.json:/home/node/.claude/.credentials.json:ro" \
