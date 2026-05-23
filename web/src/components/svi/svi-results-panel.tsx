@@ -36,6 +36,7 @@ import {
   History,
 } from "lucide-react";
 import Link from "next/link";
+import Markdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
@@ -529,6 +530,151 @@ function DimensionBar({
   );
 }
 
+// ── Full Report Viewer — renders markdown with section nav + expand/collapse ──
+
+function parseSections(md: string): { id: string; title: string; content: string }[] {
+  const lines = md.split("\n");
+  const sections: { id: string; title: string; content: string }[] = [];
+  let current: { id: string; title: string; lines: string[] } | null = null;
+
+  for (const line of lines) {
+    const h2 = line.match(/^##\s+(.+)/);
+    if (h2) {
+      if (current) sections.push({ id: current.id, title: current.title, content: current.lines.join("\n") });
+      const title = h2[1].trim();
+      current = { id: title.toLowerCase().replace(/[^a-z0-9]+/g, "-"), title, lines: [] };
+    } else if (current) {
+      current.lines.push(line);
+    } else {
+      // Content before first ## (intro)
+      if (!sections.length && line.trim()) {
+        if (!current) current = { id: "introduction", title: "Introduction", lines: [] };
+        current.lines.push(line);
+      }
+    }
+  }
+  if (current) sections.push({ id: current.id, title: current.title, content: current.lines.join("\n") });
+  return sections;
+}
+
+function FullReportViewer({ report }: { report: string }) {
+  const sections = React.useMemo(() => parseSections(report), [report]);
+  const [activeSection, setActiveSection] = React.useState<string | null>(null);
+  const [expanded, setExpanded] = React.useState<Set<string>>(() => new Set(sections.map(s => s.id)));
+  const wordCount = React.useMemo(() => report.split(/\s+/).filter(Boolean).length, [report]);
+
+  const toggleSection = (id: string) => {
+    setExpanded(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const scrollToSection = (id: string) => {
+    setActiveSection(id);
+    if (!expanded.has(id)) setExpanded(prev => new Set(prev).add(id));
+    setTimeout(() => {
+      document.getElementById(`report-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  };
+
+  return (
+    <div className="rounded-2xl border border-brand-200 bg-surface-50 dark:bg-surface-100 shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="border-b border-brand-100 bg-gradient-to-r from-brand-50 to-surface-50 px-5 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FileText strokeWidth={1.75} className="h-5 w-5 text-brand-600" />
+            <h3 className="text-base font-bold text-ink-900">Full AI Report</h3>
+            <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-600">
+              {wordCount.toLocaleString()} words
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setExpanded(new Set(sections.map(s => s.id)))}
+              title="Expand all"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-ink-500 hover:bg-surface-100 transition-colors"
+            >
+              <ChevronDown strokeWidth={2} className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setExpanded(new Set())}
+              title="Collapse all"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-ink-500 hover:bg-surface-100 transition-colors"
+            >
+              <ChevronUp strokeWidth={2} className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Section Navigation — horizontal pills */}
+        {sections.length > 1 && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {sections.map((s, i) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => scrollToSection(s.id)}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium transition-colors cursor-pointer",
+                  activeSection === s.id
+                    ? "bg-brand-600 text-white"
+                    : "bg-surface-100 text-ink-600 hover:bg-brand-50 hover:text-brand-700",
+                )}
+              >
+                <span className="text-[10px] opacity-60">{i + 1}</span>
+                {s.title.length > 25 ? s.title.slice(0, 25) + "…" : s.title}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Sections */}
+      <div className="divide-y divide-surface-200">
+        {sections.map((section, i) => (
+          <div key={section.id} id={`report-${section.id}`} className="scroll-mt-20">
+            {/* Section header — clickable to expand/collapse */}
+            <button
+              type="button"
+              onClick={() => toggleSection(section.id)}
+              className="flex w-full items-center gap-3 px-5 py-3 text-left hover:bg-surface-50 dark:hover:bg-surface-200 transition-colors cursor-pointer"
+            >
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-brand-100 text-[11px] font-bold text-brand-700">
+                {i + 1}
+              </span>
+              <span className="flex-1 text-sm font-semibold text-ink-900">{section.title}</span>
+              {expanded.has(section.id) ? (
+                <ChevronUp strokeWidth={2} className="h-4 w-4 text-ink-400 shrink-0" />
+              ) : (
+                <ChevronDown strokeWidth={2} className="h-4 w-4 text-ink-400 shrink-0" />
+              )}
+            </button>
+
+            {/* Section content — markdown rendered */}
+            {expanded.has(section.id) && (
+              <div className="px-5 pb-5">
+                <div className="prose prose-sm prose-brand max-w-none text-ink-700 leading-relaxed
+                  prose-headings:text-ink-900 prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2
+                  prose-p:my-2 prose-li:my-0.5
+                  prose-strong:text-ink-800 prose-strong:font-semibold
+                  prose-ul:my-2 prose-ol:my-2
+                  prose-a:text-brand-600 prose-a:no-underline hover:prose-a:underline">
+                  <Markdown>{section.content}</Markdown>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // Full report upsell banner — generates unlimited-length comprehensive report
 function FullReportBanner() {
   const [loading, setLoading] = React.useState<"standard" | "premium" | null>(null);
@@ -603,14 +749,7 @@ function FullReportBanner() {
   };
 
   if (report) {
-    return (
-      <div className="rounded-2xl border border-brand-200 bg-white p-6 shadow-sm">
-        <p className="text-xs uppercase tracking-[0.18em] text-brand-600 font-medium mb-3">Full Report</p>
-        <div className="prose prose-sm max-w-none text-ink-700 leading-relaxed whitespace-pre-wrap">
-          {report}
-        </div>
-      </div>
-    );
+    return <FullReportViewer report={report} />;
   }
 
   return (
