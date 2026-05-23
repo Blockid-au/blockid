@@ -50,7 +50,7 @@ export function PricingCoupon({ prices }: PricingCouponProps) {
 
   return (
     <div className="mt-12 mx-auto max-w-xl">
-      <div className="rounded-2xl border border-surface-300 bg-white p-6 md:p-8 shadow-sm">
+      <div className="rounded-2xl border border-surface-300 bg-surface-50 dark:bg-surface-100 p-6 md:p-8 shadow-sm">
         <p className="text-xs uppercase tracking-[0.2em] text-gold-500 font-medium mb-1">
           Partner discount
         </p>
@@ -68,7 +68,7 @@ export function PricingCoupon({ prices }: PricingCouponProps) {
               if (state === "invalid") setState("idle");
             }}
             placeholder="Enter partner code"
-            className="flex-1 bg-white border border-surface-300 rounded-lg px-3 py-2.5 text-sm text-brand-900 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+            className="flex-1 bg-surface-50 dark:bg-surface-200 border border-surface-300 rounded-lg px-3 py-2.5 text-sm text-brand-900 placeholder:text-ink-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
           />
           <button
             type="submit"

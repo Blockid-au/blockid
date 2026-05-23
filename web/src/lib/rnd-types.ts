@@ -41,16 +41,16 @@ export interface RndReport {
 }
 
 export const PAGE_DEFS = [
-  { id: "executive", num: 1, title: "Executive Summary", subtitle: "Overall startup assessment" },
-  { id: "market", num: 2, title: "Market & Problem", subtitle: "Market size, timing, validation" },
-  { id: "product", num: 3, title: "Product & Technology", subtitle: "Tech stack, AI usage, maturity" },
-  { id: "business", num: 4, title: "Business Model", subtitle: "Revenue, pricing, unit economics" },
-  { id: "competition", num: 5, title: "Competition & Moat", subtitle: "Competitors, differentiation" },
-  { id: "traction", num: 6, title: "Traction & Growth", subtitle: "Users, traffic, SEO, social proof" },
-  { id: "team", num: 7, title: "Team & Execution", subtitle: "Founder signals, domain expertise" },
-  { id: "financial", num: 8, title: "Financial Projections", subtitle: "Revenue potential, funding needs" },
-  { id: "risk", num: 9, title: "Risk Assessment", subtitle: "Key risks, red flags, mitigation" },
-  { id: "recommendations", num: 10, title: "Recommendations", subtitle: "Prioritized action plan" },
+  { id: "executive", num: 1, title: "Executive Summary", subtitle: "Overall startup assessment", titleVi: "Tóm Tắt Điều Hành", subtitleVi: "Đánh giá tổng quan startup" },
+  { id: "market", num: 2, title: "Market & Problem", subtitle: "Market size, timing, validation", titleVi: "Thị Trường & Vấn Đề", subtitleVi: "Quy mô thị trường, thời điểm, xác nhận" },
+  { id: "product", num: 3, title: "Product & Technology", subtitle: "Tech stack, AI usage, maturity", titleVi: "Sản Phẩm & Công Nghệ", subtitleVi: "Công nghệ, AI, mức độ trưởng thành" },
+  { id: "business", num: 4, title: "Business Model", subtitle: "Revenue, pricing, unit economics", titleVi: "Mô Hình Kinh Doanh", subtitleVi: "Doanh thu, định giá, kinh tế đơn vị" },
+  { id: "competition", num: 5, title: "Competition & Moat", subtitle: "Competitors, differentiation", titleVi: "Cạnh Tranh & Lợi Thế", subtitleVi: "Đối thủ, sự khác biệt" },
+  { id: "traction", num: 6, title: "Traction & Growth", subtitle: "Users, traffic, SEO, social proof", titleVi: "Tăng Trưởng & Phát Triển", subtitleVi: "Người dùng, lưu lượng, SEO, bằng chứng" },
+  { id: "team", num: 7, title: "Team & Execution", subtitle: "Founder signals, domain expertise", titleVi: "Đội Ngũ & Thực Thi", subtitleVi: "Nhà sáng lập, chuyên môn lĩnh vực" },
+  { id: "financial", num: 8, title: "Financial Projections", subtitle: "Revenue potential, funding needs", titleVi: "Dự Báo Tài Chính", subtitleVi: "Tiềm năng doanh thu, nhu cầu vốn" },
+  { id: "risk", num: 9, title: "Risk Assessment", subtitle: "Key risks, red flags, mitigation", titleVi: "Đánh Giá Rủi Ro", subtitleVi: "Rủi ro chính, cảnh báo, giảm thiểu" },
+  { id: "recommendations", num: 10, title: "Recommendations", subtitle: "Prioritized action plan", titleVi: "Khuyến Nghị", subtitleVi: "Kế hoạch hành động ưu tiên" },
 ] as const;
 
 /** SSE event payloads from /api/rnd */

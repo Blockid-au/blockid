@@ -104,6 +104,30 @@ export const PRICING_TIERS: PricingTier[] = [
     urgency: "Early-bird until July 1, 2026",
     ctaStyle: "primary",
   },
+  {
+    id: "growth_annual",
+    name: "Growth",
+    price: "A$950",
+    numericPrice: 950,
+    cadence: "/year",
+    subtitle: "Save A$238/year (20% off monthly)",
+    credits: "100 credits/mo",
+    audience: "For active fundraise \u00b7 Seed to Series A",
+    features: [
+      "100 SVI analyses/mo",
+      "Everything in Founding 50",
+      "Multi-entity cap table",
+      "Investor data room",
+      "Term Sheet AI (unlimited)",
+      "Custom branding",
+      "Dedicated account manager",
+      "30-day money back",
+    ],
+    cta: { label: "Start Growth \u2014 A$950/yr", href: "/auth/login?plan=growth_annual" },
+    badge: "Save 20%",
+    urgency: "Early-bird until July 1, 2026",
+    ctaStyle: "primary",
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -171,7 +195,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "How does billing work?",
-    a: "Founding 50 is a one-off A$49 payment. Growth is billed monthly at A$99/mo (early-bird pricing). Credit packs are one-off purchases. All prices are in AUD and processed securely via Stripe.",
+    a: "Founding 50 is a one-off A$49 payment. Growth is available monthly at A$99/mo or annually at A$950/year (save 20%). Credit packs are one-off purchases. All prices are in AUD and processed securely via Stripe.",
   },
   {
     q: "Can I cancel anytime?",
@@ -187,9 +211,9 @@ export const FAQ_ITEMS: FaqItem[] = [
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Prices that can be discounted, keyed by plan name. */
+/** Prices that can be discounted, keyed by plan display name. Uses id-based dedup so Growth monthly & annual don't collide. */
 export const discountablePrices: Record<string, number> = Object.fromEntries(
   PRICING_TIERS
-    .filter((t) => t.numericPrice !== undefined)
+    .filter((t) => t.numericPrice !== undefined && t.id !== "growth_annual")
     .map((t) => [t.name, t.numericPrice!]),
 );

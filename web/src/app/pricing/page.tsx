@@ -8,16 +8,15 @@ import {
   X as XIcon,
   HelpCircle,
   ArrowRight,
-  Star,
   Building2,
   CreditCard,
 } from "lucide-react";
 import {
-  PRICING_TIERS,
   CREDIT_PACKS,
   COMPARISON_ROWS,
   FAQ_ITEMS,
 } from "@/lib/pricing-data";
+import { PricingPlans } from "./pricing-plans";
 
 export const metadata: Metadata = {
   title: "Pricing — BlockID.au",
@@ -52,63 +51,8 @@ export default function PricingPage() {
           </p>
         </div>
 
-        {/* Plan cards */}
-        <div className="grid md:grid-cols-3 gap-6 mb-20">
-          {PRICING_TIERS.map((plan) => (
-            <div
-              key={plan.id}
-              className={`relative rounded-2xl border bg-white p-6 shadow-sm flex flex-col ${
-                plan.badge
-                  ? "border-brand-300 ring-2 ring-brand-100"
-                  : "border-surface-200"
-              }`}
-            >
-              {/* Badge */}
-              {plan.badge && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 rounded-full bg-brand-600 px-4 py-1 text-xs font-semibold text-white shadow-sm">
-                  <Star strokeWidth={1.75} className="h-3 w-3" />
-                  {plan.badge}
-                </span>
-              )}
-
-              <div className="mb-6">
-                <h3 className="text-lg font-bold text-ink-900 mb-1">{plan.name}</h3>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-4xl font-bold text-ink-900 font-mono">
-                    {plan.price}
-                  </span>
-                  <span className="text-sm text-ink-500">{plan.cadence}</span>
-                </div>
-                <p className="text-sm text-brand-600 font-medium mt-2">
-                  {plan.credits}
-                </p>
-              </div>
-
-              {/* Features */}
-              <ul className="space-y-2.5 mb-8 flex-1">
-                {plan.features.map((feat) => (
-                  <li key={feat} className="flex items-start gap-2.5 text-sm text-ink-700">
-                    <Check strokeWidth={2} className="h-4 w-4 text-brand-500 shrink-0 mt-0.5" />
-                    <span>{feat}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {/* CTA */}
-              <Link
-                href={plan.cta.href}
-                className={`w-full inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold transition-all duration-200 ${
-                  plan.ctaStyle === "primary"
-                    ? "bg-brand-600 hover:bg-brand-700 text-white shadow-sm"
-                    : "bg-white hover:bg-surface-50 text-ink-700 border border-surface-300 shadow-sm"
-                }`}
-              >
-                {plan.cta.label}
-                <ArrowRight strokeWidth={1.75} className="h-4 w-4" />
-              </Link>
-            </div>
-          ))}
-        </div>
+        {/* Plan cards with Monthly / Annual toggle */}
+        <PricingPlans />
 
         {/* Credit packs */}
         <div className="mb-20">
@@ -122,7 +66,7 @@ export default function PricingPage() {
             {CREDIT_PACKS.map((pack) => (
               <div
                 key={pack.credits}
-                className="relative rounded-2xl border border-surface-200 bg-white p-5 text-center shadow-sm hover:border-brand-200 hover:shadow-md transition-all"
+                className="relative rounded-2xl border border-surface-200 bg-surface-50 dark:bg-surface-100 p-5 text-center shadow-sm hover:border-brand-200 hover:shadow-md transition-all"
               >
                 {pack.savings && (
                   <span className="absolute -top-2.5 right-3 inline-block rounded-full bg-brand-50 border border-brand-200 px-2.5 py-0.5 text-[10px] font-semibold text-brand-700">
@@ -200,7 +144,7 @@ export default function PricingPage() {
         {/* FAQ */}
         <div className="mb-20">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 rounded-full border border-surface-200 bg-white px-4 py-1.5 mb-4">
+            <div className="inline-flex items-center gap-2 rounded-full border border-surface-200 bg-surface-50 dark:bg-surface-100 px-4 py-1.5 mb-4">
               <HelpCircle strokeWidth={1.75} className="h-3.5 w-3.5 text-ink-500" />
               <span className="text-xs font-medium text-ink-600 uppercase tracking-[0.15em]">
                 FAQ
@@ -212,7 +156,7 @@ export default function PricingPage() {
             {FAQ_ITEMS.map(({ q, a }) => (
               <div
                 key={q}
-                className="rounded-xl border border-surface-200 bg-white p-5 shadow-sm"
+                className="rounded-xl border border-surface-200 bg-surface-50 dark:bg-surface-100 p-5 shadow-sm"
               >
                 <p className="text-sm font-semibold text-ink-800 mb-2">{q}</p>
                 <p className="text-sm text-ink-600 leading-relaxed">{a}</p>
@@ -222,7 +166,7 @@ export default function PricingPage() {
         </div>
 
         {/* Enterprise CTA */}
-        <div className="rounded-2xl border border-surface-200 bg-white p-8 md:p-12 text-center shadow-sm">
+        <div className="rounded-2xl border border-surface-200 bg-surface-50 dark:bg-surface-100 p-8 md:p-12 text-center shadow-sm">
           <Building2 strokeWidth={1.5} className="h-10 w-10 text-brand-600 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-ink-900 mb-2">
             Need custom pricing?

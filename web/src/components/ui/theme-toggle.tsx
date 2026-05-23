@@ -8,10 +8,8 @@ export function ThemeToggle() {
 
   useEffect(() => {
     const saved = localStorage.getItem("blockid_theme");
-    const prefersDark =
-      saved === "dark" ||
-      (!saved && window.matchMedia("(prefers-color-scheme: dark)").matches);
-    if (prefersDark) {
+    // Only apply dark mode when explicitly chosen — never auto-detect from OS
+    if (saved === "dark") {
       setDark(true);
       document.documentElement.classList.add("dark");
     }
