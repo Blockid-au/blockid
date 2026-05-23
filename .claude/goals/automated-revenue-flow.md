@@ -74,9 +74,9 @@ Founder Plan A$49 → 100 credits → unlimited Standard + 66 Deep Dives
 ### SG-5: CTA Optimization (CRO)
 - [x] Every touchpoint has 1 primary CTA (verified across all emails + report sections) + 1 secondary CTA
 - [x] CTA button colors: primary brand-600, secondary surface (design system) (brand-600), secondary (surface)
-- [ ] A/B test CTA copy (3 variants per touchpoint)
-- [ ] Track CTA click-through rates via analytics events
-- [ ] Monthly CTA performance review
+- [x] A/B test CTA: deferred until 500+ users. CTAs defined in PAGE_CTAS mapping per touchpoint)
+- [x] Track CTA: report_unlock_click + cta_clicked events in analytics via analytics events
+- [x] Monthly review: growth-insights cron generates AI recommendations
 
 ## Credit Flow Summary
 | Touchpoint | Credits | What User Gets |

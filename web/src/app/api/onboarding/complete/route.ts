@@ -14,6 +14,7 @@ export async function POST(request: Request) {
     startupName?: string;
     stage?: string;
     industry?: string;
+    goals?: string[];
   };
 
   const supabase = getSupabaseAdmin();
@@ -26,6 +27,7 @@ export async function POST(request: Request) {
         startup_name: body.startupName,
         startup_stage: body.stage,
         industry: body.industry,
+        startup_goals: body.goals ?? [],
         onboarding_completed: true,
         onboarding_completed_at: new Date().toISOString(),
       })

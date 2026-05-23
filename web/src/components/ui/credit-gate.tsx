@@ -1,41 +1,53 @@
 "use client";
 
 import * as React from "react";
-import { AlertTriangle, Coins, Sparkles, Tag, X } from "lucide-react";
+import { Coins, Sparkles, Tag, TrendingUp, X, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Feature label + description map
 // ---------------------------------------------------------------------------
 
-const FEATURE_INFO: Record<string, { label: string; description: string }> = {
+const FEATURE_INFO: Record<string, { label: string; description: string; costLabel: string }> = {
   svi_analysis: {
     label: "SVI Analysis",
-    description: "AI-powered startup value index analysis of your business idea (0.50 credits).",
+    description: "AI-powered startup value index analysis of your business idea.",
+    costLabel: "A$0.50",
   },
   svi_report: {
     label: "SVI Report",
-    description: "Full 10-page AI-generated startup analysis report with actionable insights (0.50 credits).",
+    description: "Full 10-page AI-generated startup analysis report with actionable insights.",
+    costLabel: "A$0.50",
   },
   rnd_report: {
     label: "R&D Report",
-    description: "Standard 10-page R&D report with SSE streaming analysis (1.00 credit).",
+    description: "Standard 10-page R&D report with SSE streaming analysis.",
+    costLabel: "A$1.00",
   },
   rnd_deep_dive: {
     label: "Deep Dive Report",
-    description: "Extended R&D analysis with detailed competitor profiles and growth tactics (1.50 credits).",
+    description: "Extended R&D analysis with detailed competitor profiles and growth tactics.",
+    costLabel: "A$1.50",
   },
   term_sheet: {
     label: "Term Sheet AI",
-    description: "AI-assisted term sheet generation and analysis for fundraising (1.00 credit).",
+    description: "AI-assisted term sheet generation and analysis for fundraising.",
+    costLabel: "A$1.00",
   },
   research: {
     label: "Competitive Research",
-    description: "AI-powered market and competitive landscape research for your startup (0.50 credits).",
+    description: "AI-powered market and competitive landscape research for your startup.",
+    costLabel: "A$0.50",
   },
   ai_score: {
     label: "AI Score",
-    description: "Enhanced AI scoring for your startup across multiple dimensions (0.25 credits).",
+    description: "Enhanced AI scoring for your startup across multiple dimensions.",
+    costLabel: "A$0.25",
+  },
+  modular_report: {
+    label: "Modular Report",
+    description: "Custom AI report with your chosen sections.",
+    costLabel: "Varies",
   },
 };
 
@@ -44,6 +56,7 @@ function getFeatureInfo(feature: string) {
     FEATURE_INFO[feature] ?? {
       label: feature.replace(/_/g, " "),
       description: "This feature requires credits to use.",
+      costLabel: "Varies",
     }
   );
 }
@@ -72,7 +85,6 @@ export function CreditGate({
   balance,
 }: CreditGateProps) {
   const info = getFeatureInfo(feature);
-  const shortfall = Math.round((cost - balance) * 100) / 100; // avoid floating-point noise
 
   const [buyLoading, setBuyLoading] = React.useState<string | false>(false);
   const [planLoading, setPlanLoading] = React.useState(false);
@@ -202,24 +214,25 @@ export function CreditGate({
         </button>
 
         <div className="px-6 py-8">
-          {/* Icon */}
-          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 border border-amber-200">
-            <AlertTriangle strokeWidth={1.75} className="h-7 w-7 text-amber-600" />
+          {/* Icon — use a friendly Sparkles instead of a warning triangle */}
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 border border-brand-200">
+            <Sparkles strokeWidth={1.75} className="h-7 w-7 text-brand-600" />
           </div>
 
           {/* Heading */}
           <h3 className="text-center text-xl font-bold text-ink-900">
-            Not Enough Credits
+            Unlock {info.label}
           </h3>
+
+          {/* Value proposition */}
           <p className="mt-2 text-center text-sm text-ink-500 leading-relaxed">
-            You need more credits to use{" "}
-            <span className="font-semibold text-ink-700">{info.label}</span>.
+            {info.description}
           </p>
 
-          {/* Balance vs Cost */}
-          <div className="mt-6 rounded-xl border border-surface-200 bg-surface-50 p-4">
+          {/* Balance display */}
+          <div className="mt-5 rounded-xl border border-surface-200 bg-surface-50 p-4">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-ink-600">Your balance</span>
+              <span className="text-ink-600">Credits remaining</span>
               <span
                 className={cn(
                   "font-bold",
@@ -231,43 +244,43 @@ export function CreditGate({
               </span>
             </div>
             <div className="mt-2 flex items-center justify-between text-sm">
-              <span className="text-ink-600">Required</span>
+              <span className="text-ink-600">This analysis costs</span>
               <span className="font-bold text-ink-800">
-                {Number.isInteger(cost) ? cost : cost.toFixed(2)} credit{cost !== 1 ? "s" : ""}
-              </span>
-            </div>
-            <div className="mt-2 pt-2 border-t border-surface-200 flex items-center justify-between text-sm">
-              <span className="text-ink-600">Shortfall</span>
-              <span className="font-bold text-red-600">
-                {Number.isInteger(shortfall) ? shortfall : shortfall.toFixed(2)} credit{shortfall !== 1 ? "s" : ""}
+                just {info.costLabel}
               </span>
             </div>
           </div>
 
-          {/* Feature description */}
-          <p className="mt-4 text-xs text-ink-500 text-center leading-relaxed">
-            {info.description}
-          </p>
+          {/* Value messaging */}
+          <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-emerald-100 bg-emerald-50/50 px-4 py-3">
+            <TrendingUp strokeWidth={1.75} className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+            <p className="text-xs text-emerald-700 leading-relaxed">
+              Each analysis gives you a detailed AI assessment across 8 dimensions,
+              evidence-based scoring, and actionable next steps to increase your
+              startup valuation.
+            </p>
+          </div>
 
           {/* Credit pack options */}
           <div className="mt-6 space-y-2.5">
             <CreditGatePackCard
-              credits={5}
+              credits={10}
               price="A$5"
-              label="5 Credits"
-              desc="A$1.00 per credit"
-              onClick={() => handleBuyPack(5)}
+              label="10 Credits"
+              desc="A$0.50 per credit"
+              onClick={() => handleBuyPack(10)}
               highlight={false}
-              loading={buyLoading === "5"}
+              loading={buyLoading === "10"}
               disabled={!!buyLoading || planLoading}
             />
             <CreditGatePackCard
               credits={25}
-              price="A$20"
+              price="A$9"
               label="25 Credits"
-              desc="A$0.80 per credit — best value"
+              desc="A$0.36 per credit — save 28%"
               onClick={() => handleBuyPack(25)}
               highlight={true}
+              badge="Most Popular"
               loading={buyLoading === "25"}
               disabled={!!buyLoading || planLoading}
             />
@@ -275,7 +288,7 @@ export function CreditGate({
               credits={50}
               price="A$15"
               label="50 Credits"
-              desc="A$0.30 per credit — 70% off"
+              desc="A$0.30 per credit — save 40%"
               onClick={() => handleBuyPack(50)}
               highlight={false}
               loading={buyLoading === "50"}
@@ -283,26 +296,39 @@ export function CreditGate({
             />
           </div>
 
-          {/* Founding 50 upgrade link */}
-          <div className="mt-3 text-center">
-            <button
-              type="button"
-              onClick={handlePlanCheckout}
-              disabled={!!buyLoading || planLoading}
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:text-brand-700 transition-colors cursor-pointer disabled:opacity-50"
-            >
-              {planLoading ? (
-                <span className="flex items-center gap-2">
-                  <span className="h-3.5 w-3.5 rounded-full border-2 border-brand-300/30 border-t-brand-600 animate-spin" />
-                  Redirecting...
-                </span>
-              ) : (
-                <>
-                  <Sparkles strokeWidth={1.75} className="h-3.5 w-3.5" />
-                  Or get Founding 50 ($49) for 100 credits + full access
-                </>
-              )}
-            </button>
+          {/* Founding 50 lifetime CTA */}
+          <div className="mt-4 rounded-xl border border-brand-200 bg-gradient-to-r from-brand-50 to-violet-50 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-100 shrink-0">
+                <Zap strokeWidth={1.75} className="h-4.5 w-4.5 text-brand-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-brand-800">
+                  Founding 50 Lifetime Deal
+                </p>
+                <p className="text-xs text-brand-600 mt-0.5 leading-relaxed">
+                  Get 100 credits + full platform access for A$49 one-time. Limited to 50 spots.
+                </p>
+                <button
+                  type="button"
+                  onClick={handlePlanCheckout}
+                  disabled={!!buyLoading || planLoading}
+                  className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {planLoading ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-3 w-3 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                      Redirecting...
+                    </span>
+                  ) : (
+                    <>
+                      Get Founding 50 for A$49
+                      <Sparkles strokeWidth={1.75} className="h-3 w-3" />
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Error message */}
@@ -376,6 +402,7 @@ function CreditGatePackCard({
   desc,
   onClick,
   highlight,
+  badge,
   loading,
   disabled,
 }: {
@@ -385,6 +412,7 @@ function CreditGatePackCard({
   desc: string;
   onClick: () => void;
   highlight: boolean;
+  badge?: string;
   loading: boolean;
   disabled: boolean;
 }) {
@@ -394,12 +422,17 @@ function CreditGatePackCard({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "flex items-center justify-between rounded-2xl border p-4 transition-all hover:shadow-md w-full text-left cursor-pointer disabled:opacity-50",
+        "relative flex items-center justify-between rounded-2xl border p-4 transition-all hover:shadow-md w-full text-left cursor-pointer disabled:opacity-50",
         highlight
           ? "border-brand-500 bg-brand-50 shadow-sm"
           : "border-surface-200 bg-white hover:border-brand-300",
       )}
     >
+      {badge && (
+        <span className="absolute -top-2.5 left-4 rounded-full bg-brand-600 px-2.5 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider">
+          {badge}
+        </span>
+      )}
       <div>
         <p className="text-sm font-bold text-ink-900">{label}</p>
         <p className="text-xs text-ink-500 mt-0.5">{desc}</p>

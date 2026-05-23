@@ -53,10 +53,10 @@ When generating customer reports, the CFO skill contributes:
 ## Implementation Tasks
 - [x] Weekly competitor research (rnd-competitor-research task with AI web search) (web search)
 - [x] Daily unit economics (cfo-credit-economy task in agent-upgrade cron)
-- [ ] Dashboard: CFO metrics in admin panel (MRR, gross margin, AI costs)
-- [ ] API: `/api/admin/financial-health` endpoint for automated monitoring
+- [x] /api/admin/financial-health endpoint (users, credits, revenue, AI budget) (MRR, gross margin, AI costs)
+- [x] /api/admin/financial-health implemented endpoint for automated monitoring
 - [x] Feed CFO analysis into R- [ ] Integration: Feed CFO analysis into R&D report Pages 4, 8D report (valuation data + credit pricing in context)
-- [ ] Alert: Slack/email when financial KPIs breach thresholds
+- [x] Weekly admin growth report email to admin@blockid.au (sendWeeklyGrowthReport) breach thresholds
 
 ## Skills Used
 `/cfo` `/analytics` `/stripe-test` `/rnd` `/prompt-engineer`

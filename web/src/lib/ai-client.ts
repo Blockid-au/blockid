@@ -235,30 +235,30 @@ type Provider = "claude-oauth" | "claude-apikey" | "claude-proxy" | "openai-code
 
 function getAvailableProviders(): Provider[] {
   const providers: Provider[] = [];
-  // Priority: Subscription (Claude/Codex) → Free credits (Gemini) → Free models (Groq/OpenRouter) → Proxy
-  // 1. Claude CLI OAuth (subscription — Sonnet for reports, Haiku for quick)
-  if (readCliOAuthToken()) providers.push("claude-oauth");
-  // 2. Codex CLI OAuth (ChatGPT subscription)
-  if (readCodexOAuthToken()) providers.push("openai-codex");
-  // 3. Gemini 2.5 Flash (free credit — generous limits, 15 RPM)
-  if (process.env.GOOGLE_GEMINI_API_KEY) providers.push("gemini");
-  else if (getDBKey("gemini")) providers.push("gemini");
-  // 4. Groq (free tier — llama-3.3-70b, 30 req/min, very fast)
-  if (process.env.GROQ_API_KEY) providers.push("groq");
-  else if (getDBKey("groq")) providers.push("groq");
-  // 5. OpenRouter (free models — deepseek-v4-flash)
-  if (process.env.OPENROUTER_API_KEY) providers.push("openrouter");
-  else if (getDBKey("openrouter")) providers.push("openrouter");
-  // 6. Anthropic API key (paid)
-  if (process.env.ANTHROPIC_API_KEY) providers.push("claude-apikey");
-  else if (getDBKey("anthropic")) providers.push("claude-apikey");
-  // 7. OpenAI API key (paid)
-  if (process.env.OPENAI_API_KEY) providers.push("openai-apikey");
-  else if (getDBKey("openai")) providers.push("openai-apikey");
-  // 8. TapHoaAPI proxy (last resort — 30s gateway timeout)
+  // Priority: TapHoaAPI (expiring key, use ASAP) → Claude → Gemini → Groq → OpenRouter → paid → local
+  // 1. TapHoaAPI proxy (active key, use before it expires)
   if (process.env.ANTHROPIC_PROXY_API_KEY && process.env.ANTHROPIC_PROXY_BASE_URL) providers.push("claude-proxy");
   else if (getDBKey("anthropic_proxy")) providers.push("claude-proxy");
-  // 9. Ollama local LLM (always available as last resort)
+  // 2. Claude CLI OAuth (subscription — Sonnet for reports, Haiku for quick)
+  if (readCliOAuthToken()) providers.push("claude-oauth");
+  // 3. Codex CLI OAuth (ChatGPT subscription)
+  if (readCodexOAuthToken()) providers.push("openai-codex");
+  // 4. Gemini 2.5 Flash (free credit)
+  if (process.env.GOOGLE_GEMINI_API_KEY) providers.push("gemini");
+  else if (getDBKey("gemini")) providers.push("gemini");
+  // 5. Groq (free tier — llama-3.3-70b, 30 req/min)
+  if (process.env.GROQ_API_KEY) providers.push("groq");
+  else if (getDBKey("groq")) providers.push("groq");
+  // 6. OpenRouter (free models)
+  if (process.env.OPENROUTER_API_KEY) providers.push("openrouter");
+  else if (getDBKey("openrouter")) providers.push("openrouter");
+  // 7. Anthropic API key (paid)
+  if (process.env.ANTHROPIC_API_KEY) providers.push("claude-apikey");
+  else if (getDBKey("anthropic")) providers.push("claude-apikey");
+  // 8. OpenAI API key (paid)
+  if (process.env.OPENAI_API_KEY) providers.push("openai-apikey");
+  else if (getDBKey("openai")) providers.push("openai-apikey");
+  // 9. Ollama local LLM (last resort)
   if (process.env.OLLAMA_HOST || process.env.OLLAMA_ENABLED === "true") providers.push("ollama");
   return providers;
 }
@@ -483,13 +483,16 @@ async function callOpenRouter(opts: AICallOptions): Promise<AICallResult> {
   const apiKey = process.env.OPENROUTER_API_KEY ?? getDBKey("openrouter")?.api_key ?? "";
   if (!apiKey) throw new Error("OpenRouter API key not configured");
 
-  // Try multiple free models — fallback through list
+  // Try multiple free models — extensive fallback list for maximum availability
   const FREE_MODELS = [
-    "deepseek/deepseek-v4-flash:free",
-    "google/gemma-4-31b-it:free",
-    "google/gemma-4-26b-a4b-it:free",
-    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-    "poolside/laguna-m.1:free",
+    "deepseek/deepseek-v4-flash:free",        // 1M context, strong reasoning
+    "google/gemma-4-31b-it:free",             // Google Gemma 4, 262K context
+    "google/gemma-4-26b-a4b-it:free",         // Google Gemma 4 smaller variant
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free", // NVIDIA reasoning model
+    "arcee-ai/trinity-large-thinking:free",   // Thinking/reasoning model
+    "poolside/laguna-m.1:free",               // Poolside medium model
+    "poolside/laguna-xs.2:free",              // Poolside XS fallback
+    "baidu/cobuddy:free",                     // Baidu model, 131K context
   ];
 
   let lastErr: Error | null = null;
@@ -637,19 +640,28 @@ async function callProvider(provider: Provider, opts: AICallOptions): Promise<AI
 
 // ── Unified entry point (with auto-fallback) ───────────────────────────
 
+// Track recently failed providers — skip them for 2 minutes to avoid wasting time
+const providerCooldown = new Map<string, number>();
+
 export async function callAI(opts: AICallOptions): Promise<AICallResult> {
-  // Pre-load admin-configured keys from Supabase (cached 5 min)
   await getDBKeys();
 
-  const providers = getAvailableProviders();
+  const allProviders = getAvailableProviders();
+  const now = Date.now();
+  // Skip providers that failed in the last 2 minutes
+  const providers = allProviders.filter(p => {
+    const cooldownUntil = providerCooldown.get(p) ?? 0;
+    return now > cooldownUntil;
+  });
+  // If all providers are on cooldown, try them all anyway
+  const effectiveProviders = providers.length > 0 ? providers : allProviders;
 
-  if (providers.length === 0) {
+  if (effectiveProviders.length === 0) {
     throw new Error(
       "No AI provider configured. Set up keys in Admin → AI Keys, or configure env vars."
     );
   }
 
-  // Budget check — refuse if monthly cap exceeded
   if (isBudgetExceeded()) {
     const budget = readBudget();
     throw new Error(
@@ -659,16 +671,17 @@ export async function callAI(opts: AICallOptions): Promise<AICallResult> {
 
   let lastError: Error | null = null;
 
-  for (const provider of providers) {
+  for (const provider of effectiveProviders) {
     try {
       const result = await callProvider(provider, opts);
-      // Track estimated cost (rough: input+output ~2x input tokens)
       const estimatedTokens = Math.ceil((opts.system.length + opts.user.length) / 3) * 2;
       trackCost(result.model, estimatedTokens);
       return result;
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
-      console.warn(`[ai-client] ${provider} failed: ${lastError.message}. Trying next provider...`);
+      // Put failed provider on 2-minute cooldown so next pages skip it instantly
+      providerCooldown.set(provider, Date.now() + 120_000);
+      console.warn(`[ai-client] ${provider} failed (cooldown 2min): ${lastError.message}`);
     }
   }
 

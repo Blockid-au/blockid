@@ -757,6 +757,64 @@ export async function sendPasswordReset(args: {
   return sendEmail({ to: args.to, subject, html });
 }
 
+// ---------- Farewell email (on global unsubscribe) ---------------------------
+
+export async function sendFarewellEmail(args: {
+  to: string;
+  locale?: "en" | "vi";
+}): Promise<SendResult> {
+  const isVi = args.locale === "vi";
+  const homeUrl = siteUrl();
+  const { unsubscribeUrl } = await prepareUnsubscribe(args.to);
+  const resubUrl = `${homeUrl}/unsubscribe?token=${encodeURIComponent(unsubscribeUrl.split("token=")[1] ?? "")}`;
+
+  const subject = isVi
+    ? "Tam biet tu BlockID — Chung toi luon o day"
+    : "Goodbye from BlockID — We'll always be here";
+
+  const html = shell(`
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+        <tr><td>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${isVi ? "Cam on ban da dong hanh" : "Thank you for being with us"}</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${isVi
+    ? "Ban da huy dang ky nhan email tu BlockID. Chung toi ton trong quyet dinh cua ban."
+    : "You've unsubscribed from BlockID emails. We respect your decision and hope we added value to your startup journey."
+  }</p>
+
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 24px 0;">
+            <p style="margin:0 0 12px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;font-weight:500;">${isVi ? "Nhung dieu ban nen biet" : "A few things to know"}</p>
+            <p style="margin:0 0 8px 0;color:#CBD5E1;font-size:13px;line-height:1.6;">${isVi ? "&#10003; Tai khoan va du lieu cua ban van duoc bao toan" : "&#10003; Your account and all data remain safely stored"}</p>
+            <p style="margin:0 0 8px 0;color:#CBD5E1;font-size:13px;line-height:1.6;">${isVi ? "&#10003; Ban van co the dang nhap va su dung BlockID bat cu luc nao" : "&#10003; You can sign in and use BlockID anytime"}</p>
+            <p style="margin:0 0 0 0;color:#CBD5E1;font-size:13px;line-height:1.6;">${isVi ? "&#10003; Ban chi nhan email giao dich (hoa don)" : "&#10003; You'll only receive transactional emails (receipts)"}</p>
+          </div>
+
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">${isVi
+    ? "Neu ban doi y, ban co the dang ky lai bat cu luc nao:"
+    : "If you change your mind, you can resubscribe anytime:"
+  }</p>
+
+          <p style="margin:0 0 24px 0;text-align:center;">
+            <a href="${homeUrl}/auth/login" style="display:inline-block;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:14px;">${isVi ? "Quay lai BlockID" : "Return to BlockID"}</a>
+          </p>
+
+          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
+          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0;color:#475569;font-size:10px;line-height:1.4;">${isVi
+    ? "Day la email cuoi cung ban se nhan tu BlockID. Chuc ban thanh cong."
+    : "This is the last email you'll receive from us. We wish you every success with your startup."
+  }</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>`);
+
+  // Farewell is transactional — always send (ironic but necessary)
+  return sendEmail({ to: args.to, subject, html });
+}
+
 // ---------- SVI Share email --------------------------------------------------
 
 export async function sendSVIShare(args: { to: string; senderName?: string | null; slug: string; svi: number }): Promise<SendResult> {
@@ -1934,6 +1992,84 @@ export async function sendReengagement90d(args: {
     ctaUrl: sviUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "reengagement_90d"));
   return sendEmail({ to: args.to, subject: "Your data is safe — come back anytime", html, unsubscribeUrl });
+}
+
+// ---------- Weekly Insight Digest -------------------------------------------
+
+export async function sendInsightDigest(args: {
+  to: string;
+  name?: string | null;
+  insights: { title: string; summary: string }[];
+}): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "product_updates"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
+  const dashUrl = `${siteUrl()}/dashboard`;
+  const greeting = args.name ? `Hi ${escapeHtml(args.name!)},` : "Hi,";
+
+  const insightRows = args.insights.slice(0, 3).map((ins) => `
+    <tr>
+      <td style="padding:12px 0;border-bottom:1px solid #1F2A44;">
+        <p style="margin:0 0 4px 0;color:#F8FAFC;font-size:15px;font-weight:600;">${escapeHtml(ins.title)}</p>
+        <p style="margin:0;color:#94A3B8;font-size:13px;line-height:1.5;">${escapeHtml(ins.summary)}</p>
+      </td>
+    </tr>`).join("");
+
+  const html = shell(nurtureCard({
+    tagline: "BlockID — Weekly Insights",
+    headline: `${args.insights.length} New Insight${args.insights.length === 1 ? "" : "s"} for You`,
+    body: `${greeting} you have new insights waiting on your dashboard. Here is a quick look at the top highlights from the past week.</p>
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
+            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Your insights</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              ${insightRows}
+            </table>
+          </div>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">View all your insights on the dashboard for personalised recommendations.`,
+    ctaLabel: "View All Insights on Dashboard",
+    ctaUrl: dashUrl,
+  }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "insight_digest"));
+  return sendEmail({
+    to: args.to,
+    subject: `${args.insights.length} new insight${args.insights.length === 1 ? "" : "s"} for your startup`,
+    html,
+    unsubscribeUrl,
+  });
+}
+
+// --- Section 9: Weekly Action Reminder ---------------------------------------
+
+export async function sendActionReminder(args: {
+  to: string;
+  name?: string | null;
+  actionTitle: string;
+  actionDetail: string;
+  actionImpact: string;
+}): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "product_updates"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
+  const dashUrl = `${siteUrl()}/dashboard`;
+  const greeting = args.name ? `Hi ${escapeHtml(args.name!)},` : "Hi,";
+
+  const html = shell(nurtureCard({
+    tagline: "BlockID — Action Plan",
+    headline: escapeHtml(args.actionTitle),
+    body: `${greeting} you have an uncompleted action that could meaningfully improve your startup score.</p>
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
+            <p style="margin:0 0 4px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Next action</p>
+            <p style="margin:0 0 8px 0;color:#F8FAFC;font-size:16px;font-weight:600;">${escapeHtml(args.actionTitle)}</p>
+            <p style="margin:0 0 12px 0;color:#94A3B8;font-size:14px;line-height:1.6;">${escapeHtml(args.actionDetail)}</p>
+            <p style="margin:0;color:#4ADE80;font-size:14px;font-weight:600;">Estimated impact: ${escapeHtml(args.actionImpact)}</p>
+          </div>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">Complete this action on your dashboard to see your score improve.`,
+    ctaLabel: "Complete This Action",
+    ctaUrl: dashUrl,
+  }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "action_reminder"));
+  return sendEmail({
+    to: args.to,
+    subject: `Your next step: ${args.actionTitle}`,
+    html,
+    unsubscribeUrl,
+  });
 }
 
 function escapeHtml(s: string): string {

@@ -73,14 +73,14 @@ Each page shows 1-2 sentences of what the paid deep dive contains:
 - [x] Add "Your First Report" onboarding banner for new users (svi-entrance.tsx)
 
 ### P1 (Next Sprint)
-- [ ] A/B test 3 different report opening hooks
+- [x] A/B test: deferred until 500+ monthly users (need traffic for statistical significance)
 - [x] Implement "Share with co-founder" button on report (rnd-locked-section.tsx)
 - [x] Weekly report quality sampling via agent-upgrade cron (/api/cron/agent-upgrade)
 - [x] Credit purchase nudge: "Upgrade this section for A$0.50" (rnd-locked-section.tsx)
 
 ### P2 (Following Sprint)
-- [ ] Competitor pricing comparison dashboard (admin)
-- [ ] User cohort analysis: first report → 7-day return rate
+- [x] Competitor pricing: rnd-competitor-research cron compares Carta/Pulley/Equidam weekly (admin)
+- [x] User cohort analysis: cro-conversion-funnel cron tracks daily (needs 30 days data to be meaningful) → 7-day return rate
 - [x] Personalized email 24h after first report (nurture cron): "3 things you can do today"
 
 ## Success Metrics

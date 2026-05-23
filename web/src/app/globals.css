@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* ── Surface palette ──────────────────────────────────────── */
   --color-surface-50: #ffffff;
@@ -51,6 +53,28 @@
 
 :root {
   color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --color-surface-50: #0f172a;
+  --color-surface-100: #1e293b;
+  --color-surface-200: #334155;
+  --color-surface-300: #475569;
+  --color-surface-400: #64748b;
+
+  --color-ink-950: #f8fafc;
+  --color-ink-900: #f1f5f9;
+  --color-ink-800: #e2e8f0;
+  --color-ink-700: #cbd5e1;
+  --color-ink-600: #94a3b8;
+  --color-ink-500: #64748b;
+
+  --color-paper-50: #1e293b;
+
+  --color-brand-50: #172554;
+  --color-brand-100: #1e3a5f;
 }
 
 html, body {
@@ -116,6 +140,9 @@ body {
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
+.dark .glass {
+  background: rgba(30,41,59,0.72);
+}
 
 /* ── Gradients ────────────────────────────────────────────── */
 .gradient-hero {
@@ -158,8 +185,20 @@ body {
   100% { transform: translate(10px, -10px) scale(1.01); }
 }
 
+.dark .gradient-hero {
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 0%, rgba(37,99,235,0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 10%, rgba(6,182,212,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 50% at 50% 80%, rgba(16,185,129,0.06) 0%, transparent 60%),
+    linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+}
+
 .gradient-section {
   background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+}
+
+.dark .gradient-section {
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
 }
 
 /* ── SVI section: floating particles background ─────────── */
@@ -283,6 +322,9 @@ body {
   background: white;
   border-radius: 28px;
 }
+.dark .svi-input-glow {
+  background: #1e293b;
+}
 
 .svi-input-glow::before {
   content: "";
@@ -351,6 +393,10 @@ body {
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid rgba(37, 99, 235, 0.1);
   box-shadow: 0 4px 24px -4px rgba(37, 99, 235, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.dark .trust-glass-strip {
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(37, 99, 235, 0.2);
 }
 
 /* ── Typing indicator dots ───────────────────────────────────── */

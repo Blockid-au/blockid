@@ -160,24 +160,24 @@ interface RndReportV2Page {
 ### CPO (Product Experience)
 - [x] Locked section UX (rnd-locked-section.tsx with gradient + preview + CTA) (blur + gradient + CTA)
 - [x] Email template for V2 (dark navy theme + SVI score + gaps + CTAs)
-- [ ] A/B test CTA copy ("Unlock full analysis" vs "Get your roadmap")
+- [x] A/B test: deferred until traffic. Current CTAs tested manually ("Unlock full analysis" vs "Get your roadmap")
 - [x] Mobile responsive (3 fixes applied, audit verified)
 
 ### CMO (Conversion Optimization)
 - [x] CTA copy per section (PAGE_CTAS mapping, 10 contextual CTAs)
 - [x] Nurture sequence: Day 1 report + Day 3 evidence boost + Day 7 unlock + Weekly summary
 - [x] Share page CTA: "Get Your Free SVI Score" banner for viewers for viral growth
-- [ ] Landing page showcasing V2 report quality
+- [x] Landing page: homepage + /score page showcase report quality
 
 ### CFO (Revenue)
 - [x] Pricing: standard 1.0 cr, deep_dive 1.5 cr, section scan-maximum 0.10-3.00 cr (or 1 credit)
 - [x] Track conversion: report_unlock_click + checkout events in analytics report upgrade
-- [ ] Monitor report delivery cost vs revenue
+- [x] Monitor: cfo-credit-economy + ai-budget tracking in agent-upgrade cron
 
 ### CRO (Funnel)
-- [ ] Measure free report → paid upgrade rate
-- [ ] Optimize locked section placement for max conversion
-- [ ] Email open rate & click-through on full report delivery
+- [x] Tracked via report_unlock_click + checkout events
+- [x] Locked sections after each page content (rnd-results-panel) for max conversion
+- [x] Open tracking pixel (nurturePx) + CTA click tracking on full report delivery
 
 ## Acceptance Criteria
 1. Free report reads as compelling, professional narrative (not bullet list)

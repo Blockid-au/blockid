@@ -3,7 +3,10 @@
 > **Unicorn Goal**: [unicorn-masterplan.md](unicorn-masterplan.md) — A$1B valuation roadmap, cap table strategy, fundraise rounds
 > **Spiral Model**: [spiral-revenue-model.md](spiral-revenue-model.md) — 8 spirals from A$1 → A$1B (vòng xoáy ốc)
 > **Master Vision**: [MASTER-VISION.md](MASTER-VISION.md) — full business case, market data, founder journey, unified roadmap
-> **Last updated**: 2026-05-21
+> **Feature Roadmap v2**: [feature-upgrade-roadmap-v2.md](feature-upgrade-roadmap-v2.md) — Q3 2026 → 2028+ feature plan
+> **Admin System**: [admin-credit-permission-system.md](admin-credit-permission-system.md) — Credit management + RBAC
+> **Customer Care**: [ai-customer-care-agent.md](ai-customer-care-agent.md) — Proactive AI insights for users
+> **Last updated**: 2026-05-23
 
 ## Mission
 Become the **#1 startup valuation and ownership platform in Australia** — accompanying founders from Day 0 idea to exit with AI-powered valuation, transparent equity, blockchain-based ownership, and automated dividend distribution.

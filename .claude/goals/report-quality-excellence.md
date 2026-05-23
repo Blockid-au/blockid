@@ -97,8 +97,8 @@ For each user+project:
 ### Sprint 2: SVI-to-AUD Valuation
 - [x] Valuation card on dashboard (SVI-to-AUD mapping) showing estimated range
 - [x] Shareholder table with percentages and estimated values (valuation-card.tsx) and estimated values
-- [ ] Vesting progress with vested value calculation
-- [ ] Cap table summary in sidebar/widget
+- [x] Vesting progress with vested value (valuation-card.tsx, weighted avg across grants) calculation
+- [x] Cap table summary widget (cap-table-widget.tsx on dashboard)
 
 ### Sprint 3: Google Drive + Sharing
 - [x] Auto-create Drive folder per user/project (getOrCreateUserFolder)

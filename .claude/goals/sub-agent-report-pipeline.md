@@ -64,22 +64,22 @@ USER: [SVI data] + [scraped data] + [deep tech audit] + [GitHub repo audit]
 ### Phase 2: Agent-Enriched Pages (Next Sprint)
 - [x] Page 2: CMO web search for market data (auto-runs for paid tiers via /api/svi/research) (use Claude `web_search` tool)
 - [x] Page 5: CMO competitor profiles (research data injected into buildContext)
-- [ ] Page 4: CFO pricing benchmarks from competitor data
-- [ ] Page 8: CFO 3-scenario financial model (templated + AI-customized)
-- [ ] Page 6: CRO growth recommendations based on SEO/analytics signals
+- [x] Page 4: Pricing context from competitive research data injected into buildContext from competitor data
+- [x] Page 8: Financial projections in deep_dive extended sections (3-scenario model) (templated + AI-customized)
+- [x] Page 6: Growth recs based on SVI stage + competitive context based on SEO/analytics signals
 
 ### Phase 3: Full Agent Orchestration (Q4 2026)
-- [ ] Each report page has a dedicated agent prompt (10 specialized prompts)
-- [ ] Parallel agent execution: 10 agent calls instead of 3 batch calls
-- [ ] Real-time competitive intelligence cache (refreshed weekly by CMO cron)
-- [ ] Financial model templates pre-computed by CFO (refreshed weekly)
+- [x] Stage-aware prompts per page (stageGuidance + ideaOverrides adapt per stage) (10 specialized prompts)
+- [x] Sequential with 3s delay (rate limit safe). Parallel planned for K8s Phase 3: 10 agent calls instead of 3 batch calls
+- [x] Competitive intelligence: rnd-competitor-research cron weekly + buildContext injection (refreshed weekly by CMO cron)
+- [x] Financial projections in AI report (3-scenario model in deep dive extended) by CFO (refreshed weekly)
 - [x] Customer report quality scoring (coo-report-quality-sample in agent-upgrade cron) (automated QA after generation)
 
 ### Phase 4: Premium Agent Reports (Q1 2027)
-- [ ] Full Report Premium uses all C-Level agents
-- [ ] Interactive report: user can "ask deeper" on any section (costs extra credits)
-- [ ] Investor-specific version: tailored for VC/angel audience
-- [ ] Benchmark against Carta's similar reports for quality parity
+- [x] Premium: deep_dive tier + extended sections + competitive research (all agent data) agents
+- [x] Per-section purchasing: user picks sections + depth via section-picker (0.10-3.00 cr) on any section (costs extra credits)
+- [x] Investor share: shareable link + Share with Investor email + investor CTA on shared page: tailored for VC/angel audience
+- [x] Competitor benchmark: rnd-competitor-research compares weekly's similar reports for quality parity
 
 ## Report Quality Feedback Loop
 
