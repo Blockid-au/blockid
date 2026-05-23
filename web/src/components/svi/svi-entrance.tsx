@@ -1099,22 +1099,20 @@ export function SVIEntrance() {
             {/* R&D Status Bar — streaming status during analysis */}
             <RndStatusBar entries={rndStatusEntries} isActive={state === "submitting"} />
 
-            {(text.trim() || file) && (
-              <div className="mt-3 flex items-center justify-center">
-                {loggedInUser ? (
-                  <div className="flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 pl-3 pr-4 py-1.5">
-                    <div className="h-6 w-6 rounded-full bg-brand-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
-                      {(loggedInUser.displayName ?? loggedInUser.email)[0].toUpperCase()}
-                    </div>
-                    <span className="text-sm text-brand-700 font-medium">{loggedInUser.email}</span>
-                    <CheckCircle2 strokeWidth={1.75} className="h-3.5 w-3.5 text-brand-500" />
+            <div className="mt-3 flex items-center justify-center">
+              {loggedInUser ? (
+                <div className="flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 pl-3 pr-4 py-1.5">
+                  <div className="h-6 w-6 rounded-full bg-brand-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                    {(loggedInUser.displayName ?? loggedInUser.email)[0].toUpperCase()}
                   </div>
-                ) : (
-                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} onBlur={(e) => checkGate(e.target.value)} placeholder="your@email.com" required
-                    className="h-10 w-full max-w-56 rounded-lg border border-surface-300 bg-white px-3 text-sm text-ink-800 placeholder:text-ink-600 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors" />
-                )}
-              </div>
-            )}
+                  <span className="text-sm text-brand-700 font-medium">{loggedInUser.email}</span>
+                  <CheckCircle2 strokeWidth={1.75} className="h-3.5 w-3.5 text-brand-500" />
+                </div>
+              ) : (
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} onBlur={(e) => checkGate(e.target.value)} placeholder="your@email.com" required
+                  className="h-10 w-full max-w-56 rounded-lg border border-surface-300 bg-white px-3 text-sm text-ink-800 placeholder:text-ink-600 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors" />
+              )}
+            </div>
             {error && <p className="mt-2 text-center text-sm text-red-500">{error}</p>}
 
             <div className="mt-5 flex w-full flex-col items-center justify-center gap-3 sm:flex-row">
