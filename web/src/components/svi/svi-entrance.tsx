@@ -861,6 +861,7 @@ export function SVIEntrance() {
             </div>
           </div>
         </main>
+        <Footer />
       </div>
     );
   }
@@ -931,6 +932,8 @@ export function SVIEntrance() {
             <SVIResultsPanel analysis={result.analysis} slug={result.slug} onReset={handleReset} rawText={text} email={email} previousAnalysis={previousAnalysis} />
           )}
         </main>
+
+        <Footer />
 
         {/* Floating "View Results" banner — helps users who don't auto-scroll */}
         {result && state === "done" && (
@@ -1024,13 +1027,13 @@ export function SVIEntrance() {
                   placeholder="Describe your startup idea, business plan, or paste key details…" rows={1}
                   className="flex-1 resize-none text-lg text-ink-800 placeholder:text-ink-600 focus:outline-none bg-transparent leading-relaxed"
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }} />
-                <button type="button" onClick={toggleVoice} aria-label={listening ? "Stop" : "Voice"}
-                  className={cn("shrink-0 h-10 w-10 flex items-center justify-center rounded-full cursor-pointer transition-colors",
+                <button type="button" onClick={toggleVoice} aria-label={listening ? "Stop voice input" : "Start voice input"}
+                  className={cn("shrink-0 h-11 w-11 flex items-center justify-center rounded-full cursor-pointer transition-colors",
                     listening ? "bg-red-50 text-red-500" : "text-ink-600 hover:bg-surface-100")}>
                   {listening ? <MicOff strokeWidth={1.75} className="h-5 w-5" /> : <Mic strokeWidth={1.75} className="h-5 w-5" />}
                 </button>
-                <button type="button" onClick={() => fileInputRef.current?.click()} aria-label="Upload"
-                  className="shrink-0 h-10 w-10 flex items-center justify-center rounded-full text-ink-600 hover:bg-surface-100 cursor-pointer transition-colors">
+                <button type="button" onClick={() => fileInputRef.current?.click()} aria-label="Upload a file"
+                  className="shrink-0 h-11 w-11 flex items-center justify-center rounded-full text-ink-600 hover:bg-surface-100 cursor-pointer transition-colors">
                   <UploadCloud strokeWidth={1.75} className="h-5 w-5" />
                 </button>
                 <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt,.md" onChange={handleFileChange} className="sr-only" />
@@ -1065,28 +1068,29 @@ export function SVIEntrance() {
 
             {/* Stage selector pills */}
             <div className="mt-3 flex flex-col items-center">
-              <p className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-medium mb-2">What stage is your startup?</p>
+              <p className="text-xs uppercase tracking-[0.15em] text-ink-400 font-medium mb-2">What stage is your startup?</p>
               <div className="flex flex-wrap justify-center gap-2">
                 {([
-                  { value: "\u{1F4A1} Idea (Stage 0)", icon: "\u{1F4A1}", label: "Idea" },
-                  { value: "\u{2705} Validated (Stage 1)", icon: "\u{2705}", label: "Validated" },
-                  { value: "\u{1F527} MVP (Stage 2)", icon: "\u{1F527}", label: "MVP" },
-                  { value: "\u{1F4C8} Traction (Stage 3)", icon: "\u{1F4C8}", label: "Traction" },
-                  { value: "\u{1F4B0} Revenue (Stage 4)", icon: "\u{1F4B0}", label: "Revenue" },
-                  { value: "\u{1F680} Growth (Stage 5+)", icon: "\u{1F680}", label: "Growth" },
+                  { value: "Idea (Stage 0)", label: "Idea", Icon: Lightbulb },
+                  { value: "Validated (Stage 1)", label: "Validated", Icon: CheckCircle2 },
+                  { value: "MVP (Stage 2)", label: "MVP", Icon: Zap },
+                  { value: "Traction (Stage 3)", label: "Traction", Icon: PieChart },
+                  { value: "Revenue (Stage 4)", label: "Revenue", Icon: Bot },
+                  { value: "Growth (Stage 5+)", label: "Growth", Icon: Rocket },
                 ] as const).map((s) => (
                   <button
                     key={s.value}
                     type="button"
                     onClick={() => setSelectedStage(selectedStage === s.value ? null : s.value)}
                     className={cn(
-                      "rounded-full px-3 py-1 text-xs cursor-pointer transition-colors",
+                      "inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium cursor-pointer transition-colors",
                       selectedStage === s.value
                         ? "bg-brand-600 text-white"
                         : "bg-surface-100 text-ink-600 hover:bg-surface-200",
                     )}
                   >
-                    {s.icon} {s.label}
+                    <s.Icon strokeWidth={1.75} className="h-3.5 w-3.5" />
+                    {s.label}
                   </button>
                 ))}
               </div>
@@ -1115,7 +1119,7 @@ export function SVIEntrance() {
 
             <div className="mt-5 flex items-center justify-center gap-3">
               <button type="submit" disabled={state === "submitting"}
-                className="h-12 px-7 rounded-2xl bg-brand-600 text-base font-bold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50 cta-glow">
+                className="h-12 px-8 rounded-2xl bg-brand-600 text-base font-bold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed cta-glow">
                 {state === "submitting" ? <span className="flex items-center gap-2"><span className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />Analyzing…</span> : "Get My SVI"}
               </button>
               <button type="button" onClick={() => { setText(QUICK_EXAMPLES[Math.floor(Math.random() * QUICK_EXAMPLES.length)]); textareaRef.current?.focus(); trackEvent("svi_form_started", { method: "example" }); }}
@@ -1251,7 +1255,7 @@ export function SVIEntrance() {
             <div className="rounded-2xl border border-surface-300 bg-white p-6 bento-card">
               <div className="flex items-center gap-3 mb-5">
                 <div className="h-10 w-10 rounded-xl bg-surface-200 flex items-center justify-center">
-                  <span className="text-lg">🤔</span>
+                  <Search strokeWidth={1.75} className="h-5 w-5 text-ink-500" />
                 </div>
                 <div>
                   <p className="font-semibold text-ink-800">The gap AI chat can&apos;t fill</p>
@@ -1421,7 +1425,7 @@ export function SVIEntrance() {
           {/* Free analysis banner */}
           <div className="mx-auto max-w-lg mb-10 rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-brand-50 px-6 py-4 text-center shadow-sm">
             <p className="text-base font-bold text-emerald-800 flex items-center justify-center gap-2">
-              <span className="text-lg">🎁</span> Your first SVI analysis is completely free.
+              <Zap strokeWidth={1.75} className="h-5 w-5 text-emerald-600" /> Your first SVI analysis is completely free.
             </p>
             <p className="text-sm text-emerald-700 mt-1">No signup needed. Just describe your idea and go.</p>
           </div>

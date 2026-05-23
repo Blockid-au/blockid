@@ -1,21 +1,25 @@
 {
-  "name": "BlockID.au",
+  "name": "BlockID.au — Startup Value Index",
   "short_name": "BlockID",
   "description": "Startup Value Index — Valuation. Ownership. Growth.",
   "start_url": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#ffffff",
-  "theme_color": "#2563eb",
+  "theme_color": "#0F172A",
+  "categories": ["business", "finance"],
   "icons": [
     {
       "src": "/images/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/images/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

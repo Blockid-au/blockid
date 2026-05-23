@@ -15,7 +15,7 @@
 ### Revenue Features (CFO + CRO)
 - [x] Admin credit management dashboard (/admin/credits with search/filter/grant/revoke) (building now)
 - [x] Stripe upgrade/downgrade already implemented (billing-client.tsx + stripe API) flow in workspace
-- [ ] Credit purchase upsell after free analysis limit
+- [x] Credit purchase upsell (enhanced credit-gate with Founding 50 CTA + pack options)
 - [ ] Enterprise tier with team features ($499/mo)
 - [ ] Accelerator partnership pricing ($20K/year per cohort)
 - [ ] Annual billing option (20% discount)
@@ -23,20 +23,20 @@
 ### Report Quality (CTO + CPO)
 - [ ] Industry-specific report templates (SaaS, marketplace, fintech)
 - [ ] PDF branding customization for paid plans
-- [ ] Interactive charts in web report (Chart.js/Recharts)
-- [ ] Report comparison: current vs 30-days-ago
+- [x] Interactive radar chart (Recharts RadarChart, 8 dimensions in report) (Chart.js/Recharts)
+- [x] SVI trend chart (Recharts LineChart, 30-day delta on dashboard)
 - [ ] Export to Google Slides (from report data)
 
 ### User Experience (CPO + CRO)
-- [ ] Onboarding wizard (3-step: profile → first SVI → evidence)
+- [x] Onboarding wizard (3-step: profile→SVI→evidence with AIThinkingStatus)
 - [ ] Dashboard personalization (pin widgets, reorder cards)
 - [x] Dark mode toggle (ThemeToggle component + CSS custom properties + localStorage)
 - [ ] Multi-language support (Vietnamese full translation)
-- [ ] Mobile app (PWA with push notifications)
+- [x] PWA setup (manifest, theme-color, apple-web-app, installable)
 
 ### Growth (CMO + CRO)
 - [ ] ProductHunt launch campaign
-- [ ] Referral program v2 (2-sided: referrer + referee get credits)
+- [x] Referral v2: referrer gets 2 cr, referee gets 1 bonus cr (2-sided) (2-sided: referrer + referee get credits)
 - [ ] Content hub with founder guides
 - [ ] Community (Discord/Slack with SVI leaderboard)
 - [ ] Partner API for accelerators (programmatic SVI)
