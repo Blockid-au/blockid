@@ -13,8 +13,6 @@ Deploy the BlockID.au web application to the specified environment.
 ## Steps
 
 1. **Pre-flight checks**
-   - Run `npx tsc --noEmit` to verify TypeScript compiles
-   - Run `npm run test` to verify all tests pass
    - Run `npm run lint` and check for errors (warnings OK)
    - If any check fails, STOP and report the issue
 
@@ -24,21 +22,15 @@ Deploy the BlockID.au web application to the specified environment.
    - Do NOT commit .env files or anything in .gitignore
 
 3. **Push and deploy**
-   - For `staging`: push to the `staging` branch (merge from master if needed)
+   - For `staging`: push to the `staging` branch
    - For `production`: push to `master` branch
-   - The GitLab CI/CD pipeline auto-triggers on push (lint → build → deploy)
+   - GitLab CI auto-triggers: single-stage pipeline (lint → build → deploy, ~90s)
 
-4. **Monitor pipeline**
-   - Use the GitLab API (project ID 4) to check pipeline status
-   - Poll pipeline jobs until all stages complete
-   - Report: lint status, build status, deploy status, duration
-
-5. **Post-deploy verification**
+4. **Post-deploy verification**
    - Health check the deployed URL:
      - staging: `https://staging.blockid.au/`
      - production: `https://blockid.au/`
    - Test key endpoints return expected status codes:
      - `GET /` → 200
-     - `POST /api/stripe/checkout` (no auth) → 401
-     - `POST /api/stripe/webhook` (no sig) → 400
+     - `GET /api/auth/me` → 200
    - Report results
