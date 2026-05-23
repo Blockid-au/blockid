@@ -96,7 +96,7 @@ Write a brief, motivating weekly update.`,
           <div style="text-align:center;margin:24px 0;">
             <a href="${siteUrl}/dashboard/svi" style="display:inline-block;background:#2563eb;color:white;padding:12px 24px;border-radius:10px;text-decoration:none;font-weight:600;">View Your Dashboard</a>
           </div>
-          <p style="color:#94a3b8;font-size:12px;text-align:center;margin-top:32px;">BlockID.au \u2014 Valuation. Ownership. Execution. Growth.</p>
+          <p style="color:#94a3b8;font-size:12px;text-align:center;margin-top:32px;">BlockID.au \u2014 Valuation. Ownership. Growth.</p>
         </div>`,
       });
 

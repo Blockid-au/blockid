@@ -5,6 +5,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { getProjectIdFromRequest, findOrCreateSVIAccount } from "@/lib/projects";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { EvidenceVaultClient } from "@/components/svi/evidence-vault-client";
+import { PageTracker } from "@/components/analytics/page-tracker";
 import type { SVIEvidenceGap } from "@/lib/svi-analysis";
 
 export const metadata: Metadata = {
@@ -72,6 +73,7 @@ export default async function EvidencePage() {
 
   return (
     <WorkspaceLayout user={user}>
+      <PageTracker page="evidence" />
       <div className="p-6 max-w-3xl mx-auto">
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         <EvidenceVaultClient

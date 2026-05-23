@@ -283,11 +283,11 @@ Reports to: CFO (financial compliance) + COO (operational compliance)
 | All report system prompts | Add AU compliance disclaimers |
 
 ## Success Criteria
-- [ ] User sees exact credit cost BEFORE any analysis runs
-- [ ] User can buy individual sections at chosen depth
-- [ ] Bundle pricing offers 80%+ discount vs individual
-- [ ] Every financial/legal section has AU compliance disclaimer
-- [ ] GST-inclusive pricing on all customer-facing pages
+- [x] User sees exact credit cost BEFORE (section-picker.tsx) any analysis runs
+- [x] User can buy individual sections (/api/rnd/sections) at chosen depth
+- [x] Bundle pricing offers (REPORT_BUNDLES in credits.ts) 80%+ discount vs individual
+- [x] Every financial/legal section has AU compliance disclaimer compliance disclaimer
+- [x] GST-inclusive pricing on all customer-facing pages on all customer-facing pages
 - [ ] Credit-per-word formula is transparent and documented
 - [ ] Section upgrade flow works (Scan → Standard → Deep → Expert)
 - [ ] Revenue per report increases 3x through modular purchasing

@@ -174,6 +174,26 @@ export function calculateWordCredit(targetWords: number): number {
 }
 
 /**
+ * Calculate the actual credit cost of a generated report based on real word counts.
+ * Used after generation to determine if additional credits should be charged
+ * beyond the pre-charged tier amount.
+ */
+export function calculateReportCost(pages: Array<{content: string}>): {
+  totalWords: number;
+  totalCredits: number;
+  perPage: Array<{pageNum: number; words: number; credits: number}>;
+} {
+  const perPage = pages.map((p, i) => {
+    const words = p.content.split(/\s+/).filter(Boolean).length;
+    const credits = calculateWordCredit(words);
+    return { pageNum: i + 1, words, credits };
+  });
+  const totalWords = perPage.reduce((s, p) => s + p.words, 0);
+  const totalCredits = perPage.reduce((s, p) => s + p.credits, 0);
+  return { totalWords, totalCredits, perPage };
+}
+
+/**
  * Calculate total cost for selected sections at chosen depths.
  * Returns individual + total with bundle comparison.
  */

@@ -3,7 +3,7 @@ import type { SVIAnalysis } from "./svi-analysis";
 import { SVI_STAGE_LABELS } from "./svi-analysis";
 import type { InputType, TechAuditResult } from "./rnd-input";
 import { callAI } from "./ai-client";
-import { type SectionDepth, SECTION_DEPTH_CONFIG } from "./credits";
+import { type SectionDepth, SECTION_DEPTH_CONFIG, calculateReportCost } from "./credits";
 
 export type ReportTier = "preview" | "standard" | "deep_dive";
 
@@ -37,6 +37,8 @@ export interface RndReport {
   createdAt: string;
   tier: ReportTier;
   potentialSVI?: number;  // Projected SVI after improvements
+  wordCount?: number;     // Actual total word count across all pages
+  creditCost?: number;    // Actual credit cost based on word count
 }
 
 const PAGE_DEFS = [
@@ -219,36 +221,18 @@ TONE & STRUCTURE — Startup Mentoring Voice:
 - Include "How BlockID can help" hints where relevant (e.g. "Upload your pitch deck to the Evidence Vault to boost this score by +8 points").
 - The report should feel like a conversation with an experienced mentor who genuinely wants the founder to succeed.`;
 
-const SYSTEM_STANDARD = `You are a senior startup analyst, researcher, and mentor for BlockID.au — Australia's AI startup intelligence platform.
-You write compelling NARRATIVE ESSAYS (not bullet-point lists) that analyse startups with the depth of a VC partner memo combined with the warmth of a trusted mentor.
+const SYSTEM_STANDARD = `You are a senior startup mentor and analyst for BlockID.au — Australia's AI startup intelligence platform.
+Write NARRATIVE ESSAYS: flowing prose paragraphs, never bullet lists. Each page opens with a compelling hook — a surprising market stat, a provocative question, or a real competitor insight that grabs the founder's attention.
 
-This report has 10 core pages. For FREE users, each page is a mini-essay with locked previews. For PAID users, each page is a comprehensive analysis with no content restrictions.
+Style: McKinsey depth meets Y Combinator warmth. Weave data into sentences naturally ("With a TAM of A$4.2B growing at 12% CAGR…"). Name REAL competitors, tools, ABS/ESIC data, and AU market specifics. Frame gaps as growth opportunities. End each page with actionable next steps.
 
-## Writing Style — CRITICAL:
-- Write in FLOWING PROSE — connected paragraphs, not bullet lists
-- Open each page with a HOOK: a surprising insight, market observation, or provocative question about their space
-- Weave data points INTO sentences naturally (e.g. "With a TAM of A$4.2B growing at 12% CAGR..." not "TAM: $4.2B")
-- Name REAL competitors, tools, frameworks, and market data from your knowledge
-- Write like a McKinsey consultant who actually cares about founders
-- Use Australian context: reference ESIC, ASIC, ABS data, Australian market specifics
-- Each page should be 200-350 words of narrative prose
-- End each page with "lockedPreview" — a tantalising 1-2 sentence preview of deeper analysis available in the paid version
-- Include "lockedSections" — array of 2-3 titles of deeper analysis sections the founder would unlock with credits
-
-## Example opening (for a health-tech startup):
-"The Australian digital health market has quietly become one of the fastest-growing segments in APAC, with $2.1B in venture funding over the past 3 years alone. But here's what most founders miss: it's not the technology that determines success in this space — it's the intersection of regulatory navigation, clinician trust, and patient behaviour change. Your platform sits at precisely this intersection, and our analysis reveals both remarkable positioning and critical blind spots."
-
-Rules:
-- Be evidence-based and specific — use real company names, real market data, real frameworks
-- Frame weaknesses as "the gap between where you are and where the opportunity is"
-- Never fabricate numbers — if data is limited, provide ranges or analogies
-- Return ONLY valid JSON (no markdown wrapping)
+Free users: 200-350 words/page with lockedPreview + lockedSections. Paid users: comprehensive, no restrictions.
 ${MENTORING_TONE}
 ${AU_COMPLIANCE_NOTE}
 
-Return format: { "pages": [ { "pageId": "...", "content": "narrative markdown essay...", "lockedPreview": "tantalising preview of deeper analysis...", "lockedSections": ["Section Title 1", "Section Title 2"], "score": 0-100, "highlights": ["key insight 1", "key insight 2", "key insight 3"], "dataPoints": { "key": "value" } } ] }
+Return ONLY valid JSON: { "pages": [ { "pageId": "...", "content": "narrative markdown essay...", "lockedPreview": "tantalising preview...", "lockedSections": ["Title 1", "Title 2"], "score": 0-100, "highlights": ["insight 1", "insight 2", "insight 3"], "dataPoints": { "key": "value" } } ] }
 
-The "content" field MUST be narrative prose (paragraphs), NOT bullet lists. Each page reads like a section of a professional analyst report.`;
+Content MUST be prose paragraphs, NOT bullet lists.`;
 
 const SYSTEM_DEEP_DIVE = `You are a senior startup analyst, management consultant, and startup mentor for BlockID.au — Australia's AI startup intelligence platform.
 You write in-depth, consultant-grade NARRATIVE ANALYSIS that reads like a Goldman Sachs research note combined with Y Combinator founder advice.
@@ -321,10 +305,10 @@ async function runBatch(
   const isDeepDive = tier === "deep_dive";
   const isPaid = tier === "standard" || tier === "deep_dive";
   const wordGuidance = isDeepDive
-    ? "Write 800-1500 words per page as an exhaustive narrative essay. No word limit — be as comprehensive as the topic demands. Include real data, named competitors, market figures, financial models, benchmarks, and specific actionable recommendations. No bullet-point lists — write flowing prose with sub-sections."
+    ? "Write 1000-2000 words per page — unlimited depth. Be exhaustive: real data, named competitors, market figures, financial models, benchmarks, actionable plans. Include sub-sections with ### headers. No bullet-point lists — write flowing prose."
     : isPaid
-      ? "Write 500-800 words per page as a comprehensive narrative essay with real data, named competitors, and actionable insights. No content restrictions — provide full analysis depth. No bullet-point lists — write flowing prose."
-      : "Write 200-350 words per page as a compelling narrative essay. Open with a hook, weave in data, end with a tantalising preview of deeper paid analysis. For each page, also include lockedPreview (1-2 sentences teasing deeper analysis) and lockedSections (2-3 titles of deeper sections available in paid tier).";
+      ? "Write 600-1000 words per page — comprehensive analysis. Real data, named competitors, actionable insights. No content restrictions. No bullet-point lists — write flowing prose."
+      : "Write 300-500 words per page as a compelling narrative essay. Open with a hook, weave in data, end with a preview of deeper paid analysis. Include lockedPreview (1-2 sentences teasing deeper analysis) and lockedSections (2-3 titles of deeper sections available in paid tier).";
 
   const userPrompt = `Analyse this startup and write a compelling narrative research report. Each page should read like a section of a professional analyst essay — NOT bullet points.
 
@@ -343,29 +327,40 @@ Return JSON with a "pages" array containing one object per page listed above. Ea
   onStatus?.(`Generating ${batchLabel}...`);
 
   const systemPrompt = isDeepDive ? SYSTEM_DEEP_DIVE : isPaid ? SYSTEM_DEEP_DIVE : SYSTEM_STANDARD;
-  const maxTokens = isDeepDive ? 16384 : isPaid ? 8192 : 4096;
+  // Tokens per page (not per batch) — single page needs fewer tokens
+  const pagesInBatch = pageIds.length;
+  const perPageTokens = isDeepDive ? 4096 : isPaid ? 3000 : 2000;
+  const maxTokens = perPageTokens * pagesInBatch;
   const results = new Map<string, BatchPageResult>();
 
-  try {
-    const viInstruction = locale === "vi"
-      ? "\n\nCRITICAL: Write ALL content ENTIRELY in Vietnamese (tiếng Việt). All section titles, analysis, recommendations must be in Vietnamese. Keep technical terms (SVI, ESIC, SAFE, MRR, ARR) in English but explain in Vietnamese.\n"
-      : "";
+  const viInstruction = locale === "vi"
+    ? "\n\nCRITICAL: Write ALL content ENTIRELY in Vietnamese (tiếng Việt). All section titles, analysis, recommendations must be in Vietnamese. Keep technical terms (SVI, ESIC, SAFE, MRR, ARR) in English but explain in Vietnamese.\n"
+    : "";
 
-    const { text } = await callAI({
-      system: systemPrompt + viInstruction,
-      user: userPrompt,
-      maxTokens,
-    });
-
-    const parsed = parseAIResponse(text);
-    for (const page of parsed) {
-      if (page.pageId && pageIds.includes(page.pageId)) {
-        results.set(page.pageId, page);
+  // Retry up to 3 times with backoff — different providers may succeed
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      if (attempt > 0) {
+        onStatus?.(`Retrying ${batchLabel} (attempt ${attempt + 1})...`);
+        await new Promise(r => setTimeout(r, 3000 * attempt)); // 3s, 6s backoff
       }
+
+      const { text } = await callAI({
+        system: systemPrompt + viInstruction,
+        user: userPrompt,
+        maxTokens,
+      });
+
+      const parsed = parseAIResponse(text);
+      for (const page of parsed) {
+        if (page.pageId && pageIds.includes(page.pageId)) {
+          results.set(page.pageId, page);
+        }
+      }
+      if (results.size > 0) break; // success
+    } catch (err) {
+      console.error(`[rnd-analysis] Batch ${batchLabel} attempt ${attempt + 1} failed:`, err);
     }
-  } catch (err) {
-    console.error(`[rnd-analysis] Batch ${batchLabel} failed:`, err);
-    // Results map stays empty — caller will fill with fallbacks
   }
 
   return results;
@@ -509,21 +504,21 @@ export async function generateRndReport(
 
   onStatus?.(locale === "vi" ? "Bắt đầu phân tích R&D..." : "Starting R&D analysis pipeline...");
 
-  // Run 3 batches concurrently for speed (OAuth can handle parallel calls)
-  const [batchA, batchB, batchC] = await Promise.all([
-    runBatch("Core Assessment (Pages 1-3)", ["executive", "market", "product"], context, tier, onStatus, locale),
-    runBatch("Business Deep Dive (Pages 4-7)", ["business", "competition", "traction", "team"], context, tier, onStatus, locale),
-    runBatch("Financial & Risk (Pages 8-10)", ["financial", "risk", "recommendations"], context, tier, onStatus, locale),
-  ]);
-
+  // Generate page-by-page with delay to avoid OAuth rate limits
+  const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
   const allResults = new Map<string, BatchPageResult>();
-  for (const [k, v] of batchA) allResults.set(k, v);
-  for (const [k, v] of batchB) allResults.set(k, v);
-  for (const [k, v] of batchC) allResults.set(k, v);
 
-  // Run extended batch (Batch D) for ALL paid tiers (standard + deep_dive)
+  for (let i = 0; i < PAGE_DEFS.length; i++) {
+    const def = PAGE_DEFS[i];
+    if (i > 0) await delay(3000); // 3s between pages
+    const batch = await runBatch(def.title, [def.id], context, tier, onStatus, locale);
+    for (const [k, v] of batch) allResults.set(k, v);
+  }
+
+  // Extended sections for paid tiers (after all pages)
   let extendedResults = new Map<string, RndExtendedSection[]>();
-  if (tier === "standard" || tier === "deep_dive") {
+  if (tier === "deep_dive") {
+    await delay(3000);
     extendedResults = await runDeepDiveExtended(context, onStatus);
   }
 
@@ -565,6 +560,9 @@ export async function generateRndReport(
   const gapPoints = (sviAnalysis.evidenceGaps ?? []).reduce((sum, g) => sum + (g.impact ?? 5), 0);
   const potentialSVI = Math.min(300, sviAnalysis.totalSVI + Math.round(gapPoints * 0.7));
 
+  // Calculate actual word count and credit cost from generated pages
+  const reportCost = calculateReportCost(pages);
+
   return {
     version: "2.0.0",
     inputType,
@@ -574,6 +572,8 @@ export async function generateRndReport(
     createdAt: new Date().toISOString(),
     tier,
     potentialSVI,
+    wordCount: reportCost.totalWords,
+    creditCost: reportCost.totalCredits,
   };
 }
 

@@ -145,7 +145,7 @@ export default function PricingPage() {
             <p className="text-ink-600">Everything you need at every stage.</p>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
+            <table className="w-full min-w-[640px] border-collapse">
               <thead>
                 <tr className="border-b border-surface-200">
                   <th className="text-left py-3 px-4 text-sm font-semibold text-ink-700">

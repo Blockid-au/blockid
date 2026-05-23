@@ -11,9 +11,13 @@ dist
 build
 coverage
 
-# Local env files — secrets must be injected at runtime, never baked in.
-.env
-.env.*
+# Local env files.
+# .env IS included so Next.js reads NEXT_PUBLIC_* at build time (client inlining).
+# Multi-stage build: .env only exists in builder stage, NOT in final runtime image.
+# Runtime secrets are injected via --env-file at docker run.
+.env.local
+.env.development
+.env.staging
 !.env.example
 
 # Editor / OS cruft

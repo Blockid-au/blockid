@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
+import { PageTracker } from "@/components/analytics/page-tracker";
 import { PLANS } from "@/lib/plans";
 import { BillingClient } from "./billing-client";
 
@@ -39,6 +40,7 @@ export default async function BillingPage() {
 
   return (
     <WorkspaceLayout user={user}>
+      <PageTracker page="billing" />
       <div className="p-6 max-w-4xl mx-auto">
         <div className="mb-6">
           <h1 className="text-xl font-bold text-ink-800">

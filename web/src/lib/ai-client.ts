@@ -15,6 +15,55 @@
 import * as fs from "fs";
 import * as path from "path";
 
+/**
+ * Call external API via ai-worker.mjs subprocess — bypasses Next.js Turbopack fetch patches
+ * that silently hang on long-running API calls (>5s).
+ */
+function workerFetch(url: string, headers: Record<string, string>, body: string): Promise<string> {
+  /* eslint-disable @typescript-eslint/no-require-imports */
+  const cp = eval('require')("child_process") as typeof import("child_process");
+  /* eslint-enable @typescript-eslint/no-require-imports */
+  const { spawn } = cp;
+
+  return new Promise((resolve, reject) => {
+    const workerPath = [
+      path.join(process.cwd(), "ai-worker.mjs"),
+      "/app/ai-worker.mjs",
+    ].find(p => fs.existsSync(p));
+
+    console.log(`[ai-worker] spawn: worker=${workerPath} url=${url.slice(0, 40)}...`);
+
+    if (!workerPath) {
+      reject(new Error("ai-worker.mjs not found"));
+      return;
+    }
+
+    const child = spawn("node", [workerPath]);
+    let stdout = "";
+    let stderr = "";
+    let killed = false;
+
+    // Hard kill after 60s — single page should never take longer
+    const killTimer = setTimeout(() => {
+      killed = true;
+      child.kill("SIGKILL");
+    }, 60_000);
+
+    child.stdout.on("data", (d: Buffer) => { stdout += d.toString(); });
+    child.stderr.on("data", (d: Buffer) => { stderr += d.toString(); });
+    child.on("close", (code: number) => {
+      clearTimeout(killTimer);
+      if (killed) reject(new Error("Worker timeout (60s)"));
+      else if (code === 0 && stdout) resolve(stdout);
+      else reject(new Error(stderr || `Worker exited ${code}`));
+    });
+    child.on("error", (err) => { clearTimeout(killTimer); reject(err); });
+
+    child.stdin.write(JSON.stringify({ url, headers, body }));
+    child.stdin.end();
+  });
+}
+
 // ── Admin-configured keys from Supabase ───────────────────────────────
 // Cache DB keys for 5 minutes to avoid hitting Supabase on every AI call.
 
@@ -64,7 +113,9 @@ const COST_PER_1K: Record<string, number> = {
   "claude-haiku-4-5-20251001": 0.001,
   "claude-sonnet-4-6": 0.015,
   "gpt-4o-mini": 0.0003,
-  "gemini-2.0-flash": 0.0001, // free tier / very cheap
+  "gemini-2.5-flash": 0.0001,
+  "llama-3.3-70b-versatile": 0, // Groq free tier
+  "deepseek/deepseek-v4-flash:free": 0, // OpenRouter free
 };
 
 interface BudgetData {
@@ -130,7 +181,7 @@ export interface AICallOptions {
 
 interface AICallResult {
   text: string;
-  provider: "claude" | "openai" | "gemini";
+  provider: "claude" | "openai" | "gemini" | "groq" | "openrouter";
   model: string;
 }
 
@@ -178,27 +229,33 @@ function readCodexOAuthToken(): string | null {
 
 // ── Provider detection ─────────────────────────────────────────────────
 
-type Provider = "claude-oauth" | "claude-apikey" | "claude-proxy" | "openai-codex" | "openai-apikey" | "gemini" | "none";
+type Provider = "claude-oauth" | "claude-apikey" | "claude-proxy" | "openai-codex" | "openai-apikey" | "gemini" | "groq" | "openrouter" | "none";
 
 function getAvailableProviders(): Provider[] {
   const providers: Provider[] = [];
-  // Priority: Claude OAuth (direct API, no gateway timeout) → Proxy → Codex
-  // 1. Claude CLI OAuth (real Anthropic API token — refreshes via CLI login)
+  // Priority: Subscription (Claude/Codex) → Free credits (Gemini) → Free models (Groq/OpenRouter) → Proxy
+  // 1. Claude CLI OAuth (subscription — Sonnet for reports, Haiku for quick)
   if (readCliOAuthToken()) providers.push("claude-oauth");
-  // 2. Proxy (TapHoaAPI — fallback, has 30s gateway timeout)
-  if (process.env.ANTHROPIC_PROXY_API_KEY && process.env.ANTHROPIC_PROXY_BASE_URL) providers.push("claude-proxy");
-  else if (getDBKey("anthropic_proxy")) providers.push("claude-proxy");
-  // 3. Codex OAuth (ChatGPT session token)
+  // 2. Codex CLI OAuth (ChatGPT subscription)
   if (readCodexOAuthToken()) providers.push("openai-codex");
-  // 4. Anthropic API key (env or DB)
-  if (process.env.ANTHROPIC_API_KEY) providers.push("claude-apikey");
-  else if (getDBKey("anthropic")) providers.push("claude-apikey");
-  // 5. OpenAI API key (env or DB)
-  if (process.env.OPENAI_API_KEY) providers.push("openai-apikey");
-  else if (getDBKey("openai")) providers.push("openai-apikey");
-  // 6. Gemini (free tier fallback)
+  // 3. Gemini 2.5 Flash (free credit — generous limits, 15 RPM)
   if (process.env.GOOGLE_GEMINI_API_KEY) providers.push("gemini");
   else if (getDBKey("gemini")) providers.push("gemini");
+  // 4. Groq (free tier — llama-3.3-70b, 30 req/min, very fast)
+  if (process.env.GROQ_API_KEY) providers.push("groq");
+  else if (getDBKey("groq")) providers.push("groq");
+  // 5. OpenRouter (free models — deepseek-v4-flash)
+  if (process.env.OPENROUTER_API_KEY) providers.push("openrouter");
+  else if (getDBKey("openrouter")) providers.push("openrouter");
+  // 6. Anthropic API key (paid)
+  if (process.env.ANTHROPIC_API_KEY) providers.push("claude-apikey");
+  else if (getDBKey("anthropic")) providers.push("claude-apikey");
+  // 7. OpenAI API key (paid)
+  if (process.env.OPENAI_API_KEY) providers.push("openai-apikey");
+  else if (getDBKey("openai")) providers.push("openai-apikey");
+  // 8. TapHoaAPI proxy (last resort — 30s gateway timeout)
+  if (process.env.ANTHROPIC_PROXY_API_KEY && process.env.ANTHROPIC_PROXY_BASE_URL) providers.push("claude-proxy");
+  else if (getDBKey("anthropic_proxy")) providers.push("claude-proxy");
   return providers;
 }
 
@@ -210,26 +267,23 @@ export function isAIConfigured(): boolean {
 
 async function callClaude(apiKey: string, opts: AICallOptions): Promise<AICallResult> {
   const isOAuth = apiKey.startsWith("sk-ant-oat");
-  const model = opts.tools?.length ? "claude-sonnet-4-6" : "claude-haiku-4-5-20251001";
+  // Use best model based on task: Sonnet for reports (>1000 tokens), Haiku for quick tasks
+  const isHeavy = opts.tools?.length || (opts.maxTokens && opts.maxTokens > 1000);
+  const model = isHeavy ? "claude-sonnet-4-6" : "claude-haiku-4-5-20251001";
 
   // Use raw fetch for OAuth tokens — SDK may send wrong header format
   if (isOAuth) {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "anthropic-version": "2023-06-01",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: opts.maxTokens ?? 4096,
-        system: opts.system,
-        messages: [{ role: "user", content: opts.user }],
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(`${res.status} ${JSON.stringify(data)}`);
+    const raw = await workerFetch("https://api.anthropic.com/v1/messages", {
+      "Authorization": `Bearer ${apiKey}`,
+      "anthropic-version": "2023-06-01",
+      "Content-Type": "application/json",
+    }, JSON.stringify({
+      model,
+      max_tokens: opts.maxTokens ?? 4096,
+      system: opts.system,
+      messages: [{ role: "user", content: opts.user }],
+    }));
+    const data = JSON.parse(raw);
     let text = "";
     for (const block of (data.content ?? [])) {
       if (block.type === "text") text = block.text;
@@ -316,32 +370,21 @@ async function callCodex(opts: AICallOptions): Promise<AICallResult> {
   const token = readCodexOAuthToken();
   if (!token) throw new Error("Codex OAuth token not available");
 
-  // Codex auth.json contains a ChatGPT session token (JWT), not an API key.
-  // Use the ChatGPT backend API directly.
   const model = "gpt-4o-mini";
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: opts.maxTokens ?? 4096,
-      messages: [
-        { role: "system", content: opts.system },
-        { role: "user", content: opts.user },
-      ],
-    }),
-  });
-
-  if (!res.ok) {
-    const errBody = await res.text().catch(() => "");
-    throw new Error(`Codex API ${res.status}: ${errBody.slice(0, 200)}`);
-  }
+  const raw = await workerFetch("https://api.openai.com/v1/chat/completions", {
+    "Authorization": `Bearer ${token}`,
+    "Content-Type": "application/json",
+  }, JSON.stringify({
+    model,
+    max_tokens: opts.maxTokens ?? 4096,
+    messages: [
+      { role: "system", content: opts.system },
+      { role: "user", content: opts.user },
+    ],
+  }));
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = await res.json() as any;
+  const data = JSON.parse(raw) as any;
   const text = data.choices?.[0]?.message?.content ?? "";
   return { text, provider: "openai", model };
 }
@@ -351,7 +394,7 @@ async function callCodex(opts: AICallOptions): Promise<AICallResult> {
 async function callGemini(opts: AICallOptions): Promise<AICallResult> {
   const { GoogleGenerativeAI } = await import("@google/generative-ai");
   const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY!);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
   const result = await model.generateContent({
     systemInstruction: opts.system,
@@ -360,7 +403,79 @@ async function callGemini(opts: AICallOptions): Promise<AICallResult> {
   });
 
   const text = result.response.text();
-  return { text, provider: "gemini", model: "gemini-2.0-flash" };
+  return { text, provider: "gemini", model: "gemini-2.5-flash" };
+}
+
+// ── Groq (OpenAI-compatible, free tier, llama-3.3-70b) ────────────────
+
+async function callGroq(opts: AICallOptions): Promise<AICallResult> {
+  const apiKey = process.env.GROQ_API_KEY ?? getDBKey("groq")?.api_key ?? "";
+  if (!apiKey) throw new Error("Groq API key not configured");
+
+  const model = "llama-3.3-70b-versatile";
+  const raw = await workerFetch("https://api.groq.com/openai/v1/chat/completions", {
+    "Authorization": `Bearer ${apiKey}`,
+    "Content-Type": "application/json",
+  }, JSON.stringify({
+    model,
+    max_tokens: Math.min(opts.maxTokens ?? 4096, 8000), // Groq free limit
+    temperature: 0.7,
+    messages: [
+      { role: "system", content: opts.system },
+      { role: "user", content: opts.user },
+    ],
+  }));
+
+  const data = JSON.parse(raw);
+  if (data.error) throw new Error(data.error.message ?? "Groq error");
+  const text = data.choices?.[0]?.message?.content ?? "";
+  if (!text) throw new Error("Empty Groq response");
+  return { text, provider: "groq", model };
+}
+
+// ── OpenRouter (OpenAI-compatible, free models) ──────────────────────
+
+async function callOpenRouter(opts: AICallOptions): Promise<AICallResult> {
+  const apiKey = process.env.OPENROUTER_API_KEY ?? getDBKey("openrouter")?.api_key ?? "";
+  if (!apiKey) throw new Error("OpenRouter API key not configured");
+
+  // Try multiple free models — fallback through list
+  const FREE_MODELS = [
+    "deepseek/deepseek-v4-flash:free",
+    "google/gemma-4-31b-it:free",
+    "google/gemma-4-26b-a4b-it:free",
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+    "poolside/laguna-m.1:free",
+  ];
+
+  let lastErr: Error | null = null;
+  for (const model of FREE_MODELS) {
+    try {
+      const raw = await workerFetch("https://openrouter.ai/api/v1/chat/completions", {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://blockid.au",
+        "X-Title": "BlockID.au",
+      }, JSON.stringify({
+        model,
+        max_tokens: opts.maxTokens ?? 4096,
+        messages: [
+          { role: "system", content: opts.system },
+          { role: "user", content: opts.user },
+        ],
+      }));
+
+      const data = JSON.parse(raw);
+      if (data.error) throw new Error(data.error.message ?? "OpenRouter error");
+      const text = data.choices?.[0]?.message?.content ?? "";
+      if (!text) throw new Error("Empty response");
+      return { text, provider: "openrouter", model };
+    } catch (err) {
+      lastErr = err instanceof Error ? err : new Error(String(err));
+      console.warn(`[ai-client] OpenRouter ${model} failed: ${lastErr.message}`);
+    }
+  }
+  throw lastErr ?? new Error("All OpenRouter free models failed");
 }
 
 // ── Provider caller map ────────────────────────────────────────────────
@@ -372,43 +487,34 @@ async function callClaudeProxy(opts: AICallOptions): Promise<AICallResult> {
   const envKeys = (process.env.ANTHROPIC_PROXY_API_KEY ?? "").split(",").map((k) => k.trim()).filter(Boolean);
   const dbKeys = dbProxy?.api_key ? dbProxy.api_key.split(",").map((k) => k.trim()).filter(Boolean) : [];
   const keys = [...new Set([...envKeys, ...dbKeys])];
-  const model = opts.tools?.length ? "claude-sonnet-4-6" : "claude-haiku-4-5-20251001";
+  // Proxy: use haiku (faster, avoids 30s timeout) unless explicitly heavy task
+  const model = "claude-haiku-4-5-20251001";
 
-  // Cap tokens at 1500 to keep response under proxy's 30s gateway timeout
-  const maxTokens = Math.min(opts.maxTokens ?? 4096, 1500);
+  const maxTokens = opts.maxTokens ?? 4096;
 
   let lastErr: Error | null = null;
   for (const key of keys) {
     try {
-      const res = await fetch(`${baseURL}/messages`, {
-        method: "POST",
-        headers: {
-          "x-api-key": key,
-          "anthropic-version": "2023-06-01",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model,
-          max_tokens: maxTokens,
-          stream: false,
-          system: opts.system,
-          messages: [{ role: "user", content: opts.user }],
-        }),
-        cache: "no-store",
-      });
-
-      const raw = await res.text();
+      const raw = await workerFetch(`${baseURL}/messages`, {
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+      }, JSON.stringify({
+        model,
+        max_tokens: maxTokens,
+        stream: false,
+        system: opts.system,
+        messages: [{ role: "user", content: opts.user }],
+      }));
 
       // Parse — may be JSON or SSE
       let text = "";
       if (raw.trimStart().startsWith("{")) {
         const data = JSON.parse(raw);
-        if (!res.ok) throw new Error(data.error?.message ?? `Proxy ${res.status}`);
         for (const block of (data.content ?? [])) {
           if (block.type === "text") text += block.text;
         }
       } else {
-        // SSE response
         for (const line of raw.split("\n")) {
           if (!line.startsWith("data: ") || line.includes("[DONE]")) continue;
           try {
@@ -441,8 +547,11 @@ async function callProvider(provider: Provider, opts: AICallOptions): Promise<AI
       return callCodex(noTools);
     case "openai-apikey":
       return callOpenAI(process.env.OPENAI_API_KEY ?? getDBKey("openai")?.api_key ?? "", noTools);
+    case "groq":
+      return callGroq(noTools);
+    case "openrouter":
+      return callOpenRouter(noTools);
     case "gemini": {
-      // Inject DB key into process.env temporarily for Gemini SDK
       const dbGemini = getDBKey("gemini");
       if (!process.env.GOOGLE_GEMINI_API_KEY && dbGemini) {
         process.env.GOOGLE_GEMINI_API_KEY = dbGemini.api_key;
@@ -514,4 +623,69 @@ export function isAnthropicConfigured(): boolean {
   if (readCliOAuthToken()) return true;
   if (process.env.ANTHROPIC_API_KEY) return true;
   return false;
+}
+
+// ── Agent Self-Upgrade AI Call ─────────────────────────────────────────
+// Uses ONLY subscription/free models — zero additional API cost.
+// Priority: Claude CLI OAuth → Codex CLI → Gemini → Groq → OpenRouter
+// NEVER uses paid API keys (ANTHROPIC_API_KEY, OPENAI_API_KEY, proxy).
+
+export async function callAIForUpgrade(opts: AICallOptions): Promise<AICallResult | null> {
+  await getDBKeys(); // ensure cache is warm
+
+  // Only use subscription and free providers — no paid API keys
+  const freeProviders: Provider[] = [];
+  if (readCliOAuthToken()) freeProviders.push("claude-oauth");
+  if (readCodexOAuthToken()) freeProviders.push("openai-codex");
+  if (process.env.GOOGLE_GEMINI_API_KEY || getDBKey("gemini")) freeProviders.push("gemini");
+  if (process.env.GROQ_API_KEY || getDBKey("groq")) freeProviders.push("groq");
+  if (process.env.OPENROUTER_API_KEY || getDBKey("openrouter")) freeProviders.push("openrouter");
+
+  if (freeProviders.length === 0) {
+    console.warn("[ai-client] No free/subscription providers available for upgrade task. Skipping.");
+    return null;
+  }
+
+  for (const provider of freeProviders) {
+    try {
+      const result = await callProvider(provider, opts);
+      // Track cost (should be $0 for subscription/free)
+      const estimatedTokens = Math.ceil((opts.system.length + opts.user.length) / 3) * 2;
+      trackCost(result.model, estimatedTokens);
+      console.log(`[ai-client:upgrade] Success via ${provider} (${result.model})`);
+      return result;
+    } catch (err) {
+      console.warn(`[ai-client:upgrade] ${provider} failed: ${err instanceof Error ? err.message : err}. Trying next...`);
+    }
+  }
+
+  console.warn("[ai-client:upgrade] All free providers failed. Upgrade task skipped.");
+  return null;
+}
+
+// ── Check if off-peak hours (AEST = UTC+10/11) ───────────────────────
+export function isOffPeakHours(): boolean {
+  const now = new Date();
+  const aestHour = (now.getUTCHours() + 10) % 24; // UTC+10 (AEST, ignoring DST)
+  // Off-peak: 10pm (22) to 6am (6) AEST
+  return aestHour >= 22 || aestHour < 6;
+}
+
+// ── Check if budget allows upgrade tasks ──────────────────────────────
+export function canRunUpgradeTasks(): boolean {
+  const budget = readBudget();
+  // Only run upgrades if budget usage is under 80%
+  return budget.totalUSD < MONTHLY_BUDGET_USD * 0.8;
+}
+
+// ── Get current AI budget usage ────────────────────────────────────────
+export function getAIBudgetStatus(): { month: string; spent: number; limit: number; percent: number; calls: number } {
+  const b = readBudget();
+  return {
+    month: b.month,
+    spent: Math.round(b.totalUSD * 100) / 100,
+    limit: MONTHLY_BUDGET_USD,
+    percent: Math.round((b.totalUSD / MONTHLY_BUDGET_USD) * 100),
+    calls: b.calls,
+  };
 }

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload — BlockID.au</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0B1220;color:#CBD5E1;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 20px}
+    .logo{font-size:28px;font-weight:700;color:#F8FAFC;margin-bottom:8px}.logo span{color:#3B7DD8}.logo small{color:#64748B;font-size:18px;font-weight:400}
+    .sub{color:#64748B;font-size:14px;margin-bottom:32px}
+    .card{background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;width:100%;max-width:560px}
+    .auth-box{text-align:center;margin-bottom:24px}
+    .auth-box input{background:#0B1220;border:1px solid #1F2A44;border-radius:10px;padding:12px 16px;color:#F8FAFC;font-size:16px;text-align:center;width:200px;letter-spacing:4px;outline:none}
+    .auth-box input:focus{border-color:#3B7DD8}
+    .auth-box input.wrong{border-color:#F87171;animation:shake .3s}
+    .auth-box p{color:#64748B;font-size:12px;margin-top:8px}
+    .auth-ok{color:#10B981;font-size:13px;font-weight:600}
+    @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+    .drop{border:2px dashed #1F2A44;border-radius:12px;padding:48px 24px;text-align:center;cursor:pointer;transition:all .2s}
+    .drop:hover,.drop.over{border-color:#3B7DD8;background:rgba(59,125,216,.05)}
+    .drop-icon{font-size:48px;margin-bottom:12px}
+    .drop-txt{color:#94A3B8;font-size:14px;line-height:1.6}.drop-txt b{color:#3B7DD8}
+    .drop-hint{color:#475569;font-size:12px;margin-top:8px}
+    input[type=file]{display:none}
+    .prog{margin-top:16px;display:none}
+    .prog-bar{height:4px;background:#1F2A44;border-radius:2px;overflow:hidden}
+    .prog-fill{height:100%;background:#3B7DD8;border-radius:2px;transition:width .3s;width:0%}
+    .prog-txt{font-size:12px;color:#64748B;margin-top:6px}
+    .res{margin-top:16px;display:none}
+    .res-ok{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:16px}
+    .res-err{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.2);border-radius:10px;padding:16px}
+    .res-url{font-family:'IBM Plex Mono',monospace;font-size:13px;color:#3B7DD8;word-break:break-all;margin-top:8px}
+    .res-url a{color:#3B7DD8;text-decoration:none}.res-url a:hover{text-decoration:underline}
+    .res-meta{font-size:12px;color:#64748B;margin-top:6px}
+    .btn{background:#3B7DD8;color:#0B1220;border:none;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;margin-top:8px}.btn:hover{background:#5B9AEB}
+    .flist{margin-top:24px}
+    .ftitle{font-size:13px;color:#64748B;text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
+    .fitem{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:8px;background:#0B1220;margin-bottom:6px;font-size:13px}
+    .fname{color:#F8FAFC;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .fsize{color:#64748B;margin-left:12px;white-space:nowrap}
+    .flink{color:#3B7DD8;text-decoration:none;margin-left:8px}
+    .hidden{display:none}
+    .back{margin-top:24px}.back a{color:#64748B;text-decoration:none;font-size:13px}.back a:hover{color:#3B7DD8}
+  </style>
+</head>
+<body>
+  <div class="logo">Block<span>ID</span><small>.au</small></div>
+  <p class="sub">Upload files to BlockID server</p>
+  <div class="card">
+    <!-- Password gate -->
+    <div class="auth-box" id="authBox">
+      <input type="password" id="pw" placeholder="Password" maxlength="10" autofocus />
+      <p>Enter password to upload</p>
+    </div>
+
+    <!-- Upload area (hidden until password correct) -->
+    <div id="uploadArea" class="hidden">
+      <div class="drop" id="dz" onclick="document.getElementById('fi').click()">
+        <div class="drop-icon">📁</div>
+        <div class="drop-txt"><b>Click to choose</b> or drag &amp; drop files here</div>
+        <div class="drop-hint">Images, PDFs, documents, spreadsheets, videos — max 50MB</div>
+      </div>
+      <input type="file" id="fi" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.pptx,.txt,.md,.zip,.mp4,.webm"/>
+      <div class="prog" id="pg">
+        <div class="prog-bar"><div class="prog-fill" id="pf"></div></div>
+        <div class="prog-txt" id="pt">Uploading...</div>
+      </div>
+      <div class="res" id="rs"></div>
+      <div class="flist" id="fl"></div>
+    </div>
+  </div>
+  <div class="back"><a href="https://blockid.au">← Back to BlockID.au</a></div>
+<script>
+const PASS='1243';
+const pw=document.getElementById('pw');
+const authBox=document.getElementById('authBox');
+const uploadArea=document.getElementById('uploadArea');
+let authed=sessionStorage.getItem('upload_auth')==='1';
+if(authed){authBox.innerHTML='<div class="auth-ok">✓ Authenticated</div>';uploadArea.classList.remove('hidden')}
+
+pw.addEventListener('input',()=>{
+  if(pw.value===PASS){
+    authed=true;
+    sessionStorage.setItem('upload_auth','1');
+    authBox.innerHTML='<div class="auth-ok">✓ Authenticated</div>';
+    uploadArea.classList.remove('hidden');
+  }
+});
+pw.addEventListener('keydown',(e)=>{
+  if(e.key==='Enter'&&pw.value!==PASS){
+    pw.classList.add('wrong');
+    setTimeout(()=>pw.classList.remove('wrong'),300);
+  }
+});
+
+const dz=document.getElementById('dz'),fi=document.getElementById('fi'),pg=document.getElementById('pg'),pf=document.getElementById('pf'),pt=document.getElementById('pt'),rs=document.getElementById('rs'),fl=document.getElementById('fl');
+
+['dragenter','dragover'].forEach(e=>dz.addEventListener(e,ev=>{ev.preventDefault();dz.classList.add('over')}));
+['dragleave','drop'].forEach(e=>dz.addEventListener(e,ev=>{ev.preventDefault();dz.classList.remove('over')}));
+dz.addEventListener('drop',ev=>{if(authed&&ev.dataTransfer.files.length)uploadFiles(ev.dataTransfer.files)});
+fi.addEventListener('change',()=>{if(authed&&fi.files.length)uploadFiles(fi.files)});
+
+async function uploadFiles(files){for(const f of files)await uploadFile(f)}
+
+async function uploadFile(file){
+  pg.style.display='block';rs.style.display='none';pf.style.width='0%';pt.textContent='Uploading '+file.name+'...';
+  const fd=new FormData();fd.append('file',file);fd.append('password',PASS);
+  try{
+    let p=0;const iv=setInterval(()=>{p=Math.min(p+Math.random()*20,90);pf.style.width=p+'%'},200);
+    const r=await fetch('/api/upload',{method:'POST',body:fd});
+    clearInterval(iv);pf.style.width='100%';
+    const d=await r.json();
+    if(d.ok){
+      pt.textContent='Upload complete!';rs.style.display='block';
+      rs.innerHTML='<div class="res-ok"><div style="color:#10B981;font-weight:600;font-size:14px">✓ Uploaded</div><div class="res-url"><a href="'+d.url+'" target="_blank">'+d.url+'</a></div><div class="res-meta">'+d.originalName+' · '+fmtSize(d.size)+' · '+d.type+'</div><button class="btn" onclick="cpUrl(\''+d.url+'\')">Copy URL</button></div>';
+    }else{
+      pt.textContent='Failed';rs.style.display='block';
+      rs.innerHTML='<div class="res-err"><div style="color:#F87171;font-weight:600;font-size:14px">✗ '+(d.error||'Upload failed')+'</div></div>'
+    }
+  }catch(e){
+    pf.style.width='0%';pt.textContent='Error';rs.style.display='block';
+    rs.innerHTML='<div class="res-err"><div style="color:#F87171;font-weight:600;font-size:14px">✗ Network error</div></div>'
+  }
+}
+function cpUrl(u){navigator.clipboard.writeText(u);event.target.textContent='Copied!';setTimeout(()=>event.target.textContent='Copy URL',2000)}
+function fmtSize(b){if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';return(b/1048576).toFixed(1)+' MB'}
+</script>
+</body>
+</html>

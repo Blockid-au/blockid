@@ -28,8 +28,18 @@ interface RescoreResult {
   evidenceCount?: number;
 }
 
+interface EvidenceGap {
+  priority: "P0" | "P1" | "P2";
+  label: string;
+  action: string;
+  impact: number;
+  evidenceType: string;
+}
+
 interface EvidenceVaultClientProps {
   initialEvidence: EvidenceItem[];
+  evidenceGaps?: EvidenceGap[];
+  currentSVI?: number | null;
 }
 
 const CONFIDENCE_LABELS: Record<string, { label: string; color: string }> = {
@@ -57,7 +67,21 @@ function formatDate(iso: string): string {
   });
 }
 
-export function EvidenceVaultClient({ initialEvidence }: EvidenceVaultClientProps) {
+const PRIORITY_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  P0: { label: "Critical", color: "text-red-700", bg: "bg-red-50", border: "border-red-200" },
+  P1: { label: "Important", color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200" },
+  P2: { label: "Recommended", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200" },
+};
+
+const EVIDENCE_TYPE_ICONS: Record<string, string> = {
+  transaction_data: "💰",
+  connected_source: "🔗",
+  document_uploaded: "📄",
+  public_url: "🌐",
+  self_declared: "✏️",
+};
+
+export function EvidenceVaultClient({ initialEvidence, evidenceGaps, currentSVI }: EvidenceVaultClientProps) {
   const [evidence, setEvidence] = React.useState<EvidenceItem[]>(initialEvidence);
   const [showWizard, setShowWizard] = React.useState(false);
   const [refreshing, setRefreshing] = React.useState(false);
@@ -149,6 +173,58 @@ export function EvidenceVaultClient({ initialEvidence }: EvidenceVaultClientProp
         onOpenWizard={() => setShowWizard(true)}
       />
 
+      {/* Evidence Gaps — What to add next */}
+      {evidenceGaps && evidenceGaps.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h2 className="text-sm font-semibold text-ink-800">What to Add Next</h2>
+              <p className="text-xs text-ink-500 mt-0.5">
+                These are the specific items that will boost your SVI the most.
+                {currentSVI != null && <span className="font-medium text-brand-600"> Current SVI: {currentSVI}</span>}
+              </p>
+            </div>
+          </div>
+          <div className="space-y-2.5">
+            {evidenceGaps.map((gap) => {
+              const config = PRIORITY_CONFIG[gap.priority] ?? PRIORITY_CONFIG.P2;
+              const icon = EVIDENCE_TYPE_ICONS[gap.evidenceType] ?? "📎";
+              return (
+                <button
+                  key={gap.label}
+                  type="button"
+                  onClick={() => setShowWizard(true)}
+                  className={`w-full text-left rounded-xl border ${config.border} ${config.bg} px-4 py-3 transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer`}
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="text-xl mt-0.5">{icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-ink-800">{gap.label}</p>
+                        <span className={`text-[10px] font-bold uppercase tracking-wider ${config.color} ${config.bg} border ${config.border} px-1.5 py-0.5 rounded`}>
+                          {config.label}
+                        </span>
+                      </div>
+                      <p className="text-xs text-ink-600 mt-0.5 leading-relaxed">{gap.action}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-bold font-mono text-teal-600">+{gap.impact}</p>
+                      <p className="text-[10px] text-ink-500">SVI pts</p>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          {evidenceGaps.length > 0 && (
+            <p className="text-[11px] text-ink-400 mt-2 text-center">
+              Total potential gain: +{evidenceGaps.reduce((s, g) => s + g.impact, 0)} SVI points
+              {currentSVI != null && ` → Projected SVI: ${currentSVI + evidenceGaps.reduce((s, g) => s + g.impact, 0)}`}
+            </p>
+          )}
+        </div>
+      )}
+
       {evidence.length > 0 ? (
         <>
           {/* Summary bar */}
@@ -235,27 +311,37 @@ export function EvidenceVaultClient({ initialEvidence }: EvidenceVaultClientProp
           <div className="text-center py-8">
             <FileText className="h-12 w-12 text-surface-300 mx-auto mb-3" />
             <h3 className="text-lg font-semibold text-ink-800">Build Your Evidence Vault</h3>
-            <p className="text-sm text-ink-500 mt-1 max-w-md mx-auto">Upload documents, connect platforms, and add proof to increase your SVI score.</p>
+            <p className="text-sm text-ink-500 mt-1 max-w-md mx-auto">
+              Upload documents, connect platforms, and add proof to increase your SVI score.
+              Each item below shows how many points you'll gain.
+            </p>
           </div>
+          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-brand-600 mb-2">Quick Wins — Boost Your Score</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
-              { icon: FileText, title: "Upload Pitch Deck", desc: "PDF or PPTX — boosts Investor Readiness", action: "Upload" },
-              { icon: Globe, title: "Add Website URL", desc: "Public site proves market presence", action: "Add URL" },
-              { icon: Code, title: "Link GitHub Repo", desc: "Source code verifies product depth", action: "Connect" },
-              { icon: Receipt, title: "Add Revenue Proof", desc: "Invoices, Stripe, or bank statements", action: "Upload" },
-            ].map(({ icon: Icon, title, desc, action }) => (
-              <button key={title} onClick={() => setShowWizard(true)} className="flex items-start gap-3 rounded-2xl border border-surface-200 bg-white p-4 text-left hover:border-brand-200 hover:shadow-md transition-all cursor-pointer">
-                <div className="h-10 w-10 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-600 shrink-0">
+              { icon: FileText, title: "Upload Pitch Deck", desc: "PDF or PPTX — boosts Investor Readiness by +8-20 pts", pts: "+8-20", action: "Upload" },
+              { icon: Globe, title: "Add Website URL", desc: "Public site proves market presence — auto tech audit runs", pts: "+6-15", action: "Add URL" },
+              { icon: Code, title: "Link GitHub Repo", desc: "Source code verifies product depth + architecture audit", pts: "+10-25", action: "Connect" },
+              { icon: Receipt, title: "Add Revenue Proof", desc: "Invoices, Stripe, or bank statements boost traction", pts: "+12-20", action: "Upload" },
+            ].map(({ icon: Icon, title, desc, pts, action }) => (
+              <button key={title} onClick={() => setShowWizard(true)} className="flex items-start gap-3 rounded-2xl border border-surface-200 bg-white p-4 text-left hover:border-brand-200 hover:shadow-md transition-all cursor-pointer group">
+                <div className="h-10 w-10 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-600 shrink-0 group-hover:bg-brand-100 transition-colors">
                   <Icon strokeWidth={1.75} className="h-5 w-5" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-ink-800">{title}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-ink-800">{title}</p>
+                    <span className="text-[10px] font-bold font-mono text-teal-600 bg-teal-50 border border-teal-200 px-1.5 py-0.5 rounded">{pts} pts</span>
+                  </div>
                   <p className="text-xs text-ink-500 mt-0.5">{desc}</p>
                 </div>
-                <span className="text-xs font-medium text-brand-600 mt-1">{action} →</span>
+                <span className="text-xs font-medium text-brand-600 mt-1 group-hover:text-brand-700">{action} →</span>
               </button>
             ))}
           </div>
+          <p className="text-[11px] text-ink-400 text-center mt-3">
+            Each piece of evidence moves your confidence from self-declared (20%) toward connected source (75%) — dramatically improving your SVI accuracy and investor trust.
+          </p>
         </div>
       )}
 

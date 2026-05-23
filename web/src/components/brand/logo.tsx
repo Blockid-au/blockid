@@ -80,7 +80,7 @@ export function Logo({
           </span>
           {showTagline && (
             <span className={cn(taglineClass, tagColor, "mt-1")}>
-              Valuation. Ownership. Execution. Growth.
+              Valuation. Ownership. Growth.
             </span>
           )}
         </div>

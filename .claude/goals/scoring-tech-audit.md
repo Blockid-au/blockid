@@ -270,10 +270,10 @@ Weighted composite of: Architecture (25pts) + CI/CD (20pts) + Testing (15pts) + 
 - [x] Creates evidence entries with "connected_source" confidence
 - [x] PTD score reflects actual technical maturity
 - [x] SVM score penalizes generic CMS, rewards custom tech
-- [ ] R&D report Page 3 shows detailed tech audit data
+- [x] R&D report Page 3 shows detailed tech audit data
 - [x] No false positives on payment/revenue detection (Stripe on page ≠ confirmed revenue)
 - [x] GitHub connect → enterprise CTO-level repo analysis
 - [x] Repo audit creates up to 3 additional evidence items (PTD, FTV, SVM)
 - [x] Architecture, CI/CD, testing, dependencies, security all scored
 - [x] `extractSignals()` and `computeSVI()` consume repo audit boosts
-- [ ] R&D report reflects repo audit data in Page 3 and Page 7
+- [x] R&D report reflects repo audit data in Page 3 and Page 7

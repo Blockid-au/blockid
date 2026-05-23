@@ -460,6 +460,7 @@ export function SVIEntrance() {
                     setState("done");
                     sseCompleted = true;
                     trackEvent("rnd_analysis_complete", { svi_score: data.totalSVI, slug: data.slug });
+                    { const ft = !localStorage.getItem("blockid_first_report_done"); trackEvent("first_report_completed", { svi_score: data.totalSVI, is_first_time: ft }); if (ft) localStorage.setItem("blockid_first_report_done", "1"); }
                     // Auto-scroll to results after analysis completes
                     queueMicrotask(() => {
                       const resultsEl = document.getElementById("svi-results");
@@ -559,7 +560,10 @@ export function SVIEntrance() {
         const data = (await sviRes.json()) as SVIApiResponse;
         if (!data.ok) { setError("Analysis failed. Please try again."); setState("error"); return; }
         setResult(data); setState("done");
+        const isFirstTime = !localStorage.getItem("blockid_first_report_done");
         trackEvent("svi_analysis_complete", { svi_score: data.totalSVI, slug: data.slug });
+        trackEvent("first_report_completed", { svi_score: data.totalSVI, is_first_time: isFirstTime });
+        if (isFirstTime) localStorage.setItem("blockid_first_report_done", "1");
         // Auto-scroll to results after analysis completes
         queueMicrotask(() => {
           const resultsEl = document.getElementById("svi-results");
@@ -823,6 +827,22 @@ export function SVIEntrance() {
         <main className="flex-1 px-4 pb-12">
           {rndReport ? (
             <>
+              {/* First-time report congratulations banner */}
+              {typeof window !== "undefined" && localStorage.getItem("blockid_first_report_done") === "1" && !localStorage.getItem("blockid_first_banner_dismissed") && (
+                <div className="mx-auto max-w-[620px] px-6 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
+                  <div className="rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-5 relative">
+                    <button type="button" onClick={() => { localStorage.setItem("blockid_first_banner_dismissed", "1"); }} className="absolute top-3 right-3 text-emerald-400 hover:text-emerald-600 text-xs cursor-pointer">Dismiss</button>
+                    <p className="text-sm font-semibold text-emerald-800">Your first startup analysis is ready!</p>
+                    <p className="text-xs text-emerald-700 mt-1 leading-relaxed">
+                      This is your 10-page preview. To unlock deeper analysis with competitor profiles, financial projections, and 90-day action plans — select individual sections below or upgrade to the full report.
+                    </p>
+                    <div className="flex gap-2 mt-3">
+                      <a href="/workspace/evidence" className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors">Upload Evidence (+8-20 pts)</a>
+                      <a href="/auth/login?next=/dashboard" className="inline-flex items-center gap-1 rounded-lg border border-emerald-300 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition-colors">Save to Dashboard</a>
+                    </div>
+                  </div>
+                </div>
+              )}
               <RndResultsPanel
                 report={rndReport}
                 analysis={result.analysis}
@@ -902,7 +922,7 @@ export function SVIEntrance() {
               <Image src="/images/logo-icon-transparent.png" alt="" width={64} height={64} className="h-14 w-14 md:h-16 md:w-16" />
               <div className="flex flex-col">
                 <span className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-ink-900">BlockID<span className="text-brand-500">.au</span></span>
-                <span className="text-sm md:text-base font-medium tracking-wide text-ink-500 mt-0.5">Valuation. Ownership. Execution. Growth.</span>
+                <span className="text-sm md:text-base font-medium tracking-wide text-ink-500 mt-0.5">Valuation. Ownership. Growth.</span>
               </div>
             </div>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-center text-ink-900 leading-tight">
@@ -1012,7 +1032,7 @@ export function SVIEntrance() {
                   </div>
                 ) : (
                   <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} onBlur={(e) => checkGate(e.target.value)} placeholder="your@email.com" required
-                    className="h-10 w-56 rounded-lg border border-surface-300 bg-white px-3 text-sm text-ink-800 placeholder:text-ink-600 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors" />
+                    className="h-10 w-full max-w-56 rounded-lg border border-surface-300 bg-white px-3 text-sm text-ink-800 placeholder:text-ink-600 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors" />
                 )}
               </div>
             )}
@@ -1066,19 +1086,16 @@ export function SVIEntrance() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left: copy */}
             <div>
+              <p className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.15em] text-brand-600 mb-6">
+                The Ownership &amp; Growth Execution Platform
+              </p>
               <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-[-0.02em] leading-[1.05] text-ink-900">
-                The <span className="bg-gradient-to-r from-brand-600 to-brand-500 bg-clip-text text-transparent">agentic AI valuation</span> platform for business growth from day one.
+                Turn Your AI-Built Idea Into A <span className="bg-gradient-to-r from-brand-600 to-brand-500 bg-clip-text text-transparent">Valuable, Investable</span> Business.
               </h1>
-              <p className="mt-3 text-lg md:text-xl font-medium text-brand-500/90 italic">
-                Keep using ChatGPT, Claude, or Gemini to build your product. Use BlockID to value it, structure ownership, and get investor-ready.
-              </p>
-              <p className="mt-5 text-lg md:text-xl font-medium text-brand-600/80">
-                Index valuation, ownership, and execution milestones from idea to scale.
-              </p>
-              <p className="mt-5 text-base md:text-lg text-ink-500 leading-relaxed max-w-xl">
-                Join 50+ Australian founders using BlockID to track valuation,
-                structure ownership, and build investor-ready records — so when the
-                right opportunity comes, you are ready.
+              <p className="mt-6 text-base md:text-lg text-ink-500 leading-relaxed max-w-xl">
+                BlockID.au helps AI-native founders, startups, and private companies
+                structure ownership, manage valuation, execute growth, and become
+                investor-ready from day one.
               </p>
               <div className="mt-10 flex flex-col sm:flex-row flex-wrap gap-4">
                 <a href="#svi" className="inline-flex h-14 sm:h-16 items-center justify-center gap-2.5 rounded-2xl bg-brand-600 px-8 sm:px-10 text-base sm:text-lg font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">

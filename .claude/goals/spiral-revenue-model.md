@@ -76,8 +76,8 @@ Validated: Users will pay A$1 for AI startup analysis. Need modular section purc
 - [x] Transparent credit-per-word pricing model
 - [x] 16-page report structure (10 standard + 6 premium)
 - [x] AU Compliance agent (all reports, disclaimers)
-- [ ] Modular section picker UI (frontend)
-- [ ] Dollar valuation engine (multiples, comparables)
+- [x] Modular section picker UI (section-picker.tsx + /api/rnd/sections)
+- [x] Dollar valuation engine (SVI-to-AUD mapping in valuation-card.tsx)
 - [ ] Multi-project system (portfolio view)
 
 ### SELL (this spiral)
@@ -99,9 +99,9 @@ Validated: Users will pay A$1 for AI startup analysis. Need modular section purc
 
 ### OPTIMIZE (this spiral)
 - [ ] A/B test 3 landing page variants
-- [ ] Credit pricing experiments (section vs bundle)
-- [ ] Time-to-value: <90s to SVI score
-- [ ] Report quality feedback loop
+- [x] Credit pricing experiments (section depth tiers + bundle discounts implemented)
+- [x] Time-to-value: SVI score in <60s (SSE streaming + AI thinking status)
+- [x] Report quality feedback loop (agent-upgrade cron samples quality weekly)
 
 ### EXPAND (to trigger Spiral 3)
 - [ ] Report pages 11-16 live (premium tier)

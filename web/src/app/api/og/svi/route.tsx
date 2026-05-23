@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
         {/* Bottom CTA */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
           <div style={{ fontSize: "16px", color: "rgba(255,255,255,0.6)" }}>
-            Valuation. Ownership. Execution. Growth.
+            Valuation. Ownership. Growth.
           </div>
           <div style={{
             padding: "10px 20px",

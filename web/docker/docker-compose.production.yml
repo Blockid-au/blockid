@@ -1,0 +1,74 @@
+# BlockID.au Multi-Container Production Setup
+#
+# Phase 2: Split monolith into 4 services.
+# Currently all run from the same image but different ports.
+# When Phase 3 (separate Dockerfiles) is ready, each service
+# gets its own optimized image.
+#
+# Usage:
+#   docker compose -f docker/docker-compose.production.yml up -d
+#   docker compose -f docker/docker-compose.production.yml down
+#
+# Scaling:
+#   docker compose -f docker/docker-compose.production.yml up -d --scale ai=3
+
+services:
+  # ── Web Service (Next.js — Pages + Auth + Billing) ──────────
+  web:
+    image: blockid-production:latest
+    container_name: blockid-web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4001:3000"
+    env_file: ../.env
+    environment:
+      - SERVICE_NAME=blockid-web
+      - PORT=3000
+    volumes:
+      - ../public/uploads:/app/public/uploads
+      - ../content:/app/content
+    networks:
+      - blockid-net
+      - supabase_default
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:3000/api/healthz"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+        reservations:
+          memory: 512M
+          cpus: "0.5"
+
+  # ── Redis (Shared cache + rate limiting) ────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: blockid-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - blockid-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+
+volumes:
+  redis-data:
+    driver: local
+
+networks:
+  blockid-net:
+    driver: bridge
+  supabase_default:
+    external: true

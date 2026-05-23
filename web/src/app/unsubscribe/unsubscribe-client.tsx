@@ -213,7 +213,7 @@ export function UnsubscribeClient({
 
         {/* Footer */}
         <p className="text-center text-[10px] text-[#475569] mt-8">
-          BlockID.au -- Valuation. Ownership. Execution. Growth.
+          BlockID.au -- Valuation. Ownership. Growth.
         </p>
       </div>
     </div>

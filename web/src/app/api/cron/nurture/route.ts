@@ -9,7 +9,12 @@ import {
   sendNurturePaidDay3,
   sendNurturePaidDay7,
   sendLowCreditAlert,
+  sendNurtureFirstReport24h,
+  sendEvidenceScoreBoost,
+  sendUnlockDeeperAnalysis,
+  sendWeeklySVISummary,
 } from "@/lib/email";
+import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { getBalance } from "@/lib/credits";
 
 export const dynamic = "force-dynamic";
@@ -371,6 +376,310 @@ export async function GET(request: Request) {
           }
         }
       }
+    }
+
+    // ==================================================================
+    // 3. First Report 24h Follow-Up
+    //    Targets users who had their FIRST SVI analysis 23–25 hours ago
+    //    and haven't received this email yet.
+    // ==================================================================
+    const twentyFiveHoursAgo = new Date(now.getTime() - 25 * 60 * 60 * 1000).toISOString();
+    const twentyThreeHoursAgo = new Date(now.getTime() - 23 * 60 * 60 * 1000).toISOString();
+
+    // Find analyses created in the 23–25 hour window
+    const { data: recentFirstAnalyses } = await supabase
+      .from("svi_analyses")
+      .select("id, email, total_svi, analysis_json, created_at")
+      .gte("created_at", twentyFiveHoursAgo)
+      .lte("created_at", twentyThreeHoursAgo)
+      .order("created_at", { ascending: true });
+
+    if (recentFirstAnalyses && recentFirstAnalyses.length > 0) {
+      // Group by email — we only want the first analysis per email
+      const emailFirstAnalysis = new Map<string, typeof recentFirstAnalyses[0]>();
+      for (const a of recentFirstAnalyses) {
+        const key = a.email.toLowerCase();
+        if (!emailFirstAnalysis.has(key)) {
+          emailFirstAnalysis.set(key, a);
+        }
+      }
+
+      for (const [emailKey, analysis] of emailFirstAnalysis) {
+        // Verify this was their FIRST ever analysis (no earlier ones exist)
+        const { data: olderAnalyses } = await supabase
+          .from("svi_analyses")
+          .select("id")
+          .eq("email", emailKey)
+          .lt("created_at", analysis.created_at)
+          .limit(1);
+
+        if (olderAnalyses && olderAnalyses.length > 0) continue; // Not their first
+
+        // Check if we already sent first_report_24h to this email
+        const { data: alreadySent } = await supabase
+          .from("svi_notifications")
+          .select("id")
+          .eq("notification_type", "first_report_24h")
+          .filter("payload->>email", "eq", analysis.email)
+          .limit(1);
+
+        if (alreadySent && alreadySent.length > 0) continue; // Already sent
+
+        // Check email preferences
+        const allowed24h = await canSendEmail(analysis.email, "promotions");
+        if (!allowed24h) {
+          skipped++;
+          continue;
+        }
+
+        // Extract evidence gaps and stage label from analysis_json
+        const analysisData = analysis.analysis_json as {
+          stageLabel?: string;
+          evidenceGaps?: { label: string; impact: number }[];
+        } | null;
+        const stageLabel = analysisData?.stageLabel ?? "Concept";
+        const evidenceGaps = (analysisData?.evidenceGaps ?? []).slice(0, 3).map(
+          (g: { label: string; impact: number }) => ({
+            label: g.label,
+            impact: g.impact,
+          }),
+        );
+
+        // Look up display name if user has an account
+        let displayName: string | null = null;
+        const { data: appUser } = await supabase
+          .from("app_users")
+          .select("display_name")
+          .eq("email", analysis.email)
+          .maybeSingle();
+        if (appUser?.display_name) displayName = appUser.display_name;
+
+        const ok = await trySendNurture(supabase, {
+          email: analysis.email,
+          notificationType: "first_report_24h",
+          subject: `Your startup scored ${analysis.total_svi} — here's how to improve`,
+          sendFn: () =>
+            sendNurtureFirstReport24h({
+              to: analysis.email,
+              name: displayName,
+              svi: analysis.total_svi,
+              stageLabel,
+              slug: analysis.id,
+              evidenceGaps,
+            }),
+        });
+        if (ok) sent++;
+      }
+    }
+
+    // ==================================================================
+    // 4. Evidence Score Boost (Day 3 after signup)
+    //    Targets users who signed up 3+ days ago, have at least 1 SVI
+    //    analysis, but 0 evidence items uploaded.
+    // ==================================================================
+    for (const user of users ?? []) {
+      const createdAt = new Date(user.created_at);
+      const daysSinceSignup = daysBetween(createdAt, now);
+      if (daysSinceSignup < 3) continue;
+
+      const allowed = await canSendEmail(user.email, "promotions");
+      if (!allowed) continue;
+
+      // Already sent?
+      const { data: boostSent } = await supabase
+        .from("svi_notifications")
+        .select("id")
+        .or(`account_id.eq.${user.id},payload->>email.eq.${user.email}`)
+        .eq("notification_type", "evidence_boost_3d")
+        .limit(1);
+      if (boostSent && boostSent.length > 0) continue;
+
+      // Must have at least 1 analysis
+      const { data: userAnalyses } = await supabase
+        .from("svi_analyses")
+        .select("total_svi, analysis_json")
+        .eq("email", user.email)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (!userAnalyses || userAnalyses.length === 0) continue;
+
+      // Must have 0 evidence items
+      const { count: evidenceCount } = await supabase
+        .from("svi_evidence")
+        .select("id", { count: "exact", head: true })
+        .eq("account_id", user.id);
+      if (evidenceCount && evidenceCount > 0) continue;
+
+      // Extract evidence gaps from latest analysis
+      const latestAnalysis = userAnalyses[0];
+      const analysisData = latestAnalysis.analysis_json as SVIAnalysis | null;
+      const evidenceGaps = (analysisData?.evidenceGaps ?? []).slice(0, 3).map(
+        (g) => ({ label: g.label, impact: g.impact }),
+      );
+      if (evidenceGaps.length === 0) continue;
+
+      const totalPoints = evidenceGaps.reduce((sum, g) => sum + g.impact, 0);
+
+      const ok = await trySendNurture(supabase, {
+        accountId: user.id,
+        email: user.email,
+        notificationType: "evidence_boost_3d",
+        subject: `Your SVI score could be ${totalPoints}% higher \u2014 here\u2019s how`,
+        sendFn: () =>
+          sendEvidenceScoreBoost({
+            to: user.email,
+            name: user.display_name,
+            svi: latestAnalysis.total_svi,
+            evidenceGaps,
+          }),
+      });
+      if (ok) sent++;
+    }
+
+    // ==================================================================
+    // 5. Unlock Deeper Analysis (Day 7 after first analysis)
+    //    Targets users whose first SVI analysis was 7+ days ago and
+    //    who have never purchased credits.
+    // ==================================================================
+    for (const user of users ?? []) {
+      const allowed = await canSendEmail(user.email, "promotions");
+      if (!allowed) continue;
+
+      // Already sent?
+      const { data: unlockSent } = await supabase
+        .from("svi_notifications")
+        .select("id")
+        .or(`account_id.eq.${user.id},payload->>email.eq.${user.email}`)
+        .eq("notification_type", "unlock_deeper_7d")
+        .limit(1);
+      if (unlockSent && unlockSent.length > 0) continue;
+
+      // Find first analysis for this user
+      const { data: firstAnalysis } = await supabase
+        .from("svi_analyses")
+        .select("created_at, analysis_json")
+        .eq("email", user.email)
+        .order("created_at", { ascending: true })
+        .limit(1);
+      if (!firstAnalysis || firstAnalysis.length === 0) continue;
+
+      const firstAnalysisDate = new Date(firstAnalysis[0].created_at);
+      const daysSinceFirstAnalysis = daysBetween(firstAnalysisDate, now);
+      if (daysSinceFirstAnalysis < 7) continue;
+
+      // Check if user ever purchased credits (any positive credit transaction)
+      const { data: creditPurchases } = await supabase
+        .from("credit_transactions")
+        .select("id")
+        .eq("user_id", user.id)
+        .gt("amount", 0)
+        .limit(1);
+      if (creditPurchases && creditPurchases.length > 0) continue;
+
+      // Extract stage label from the latest analysis
+      const { data: latestForStage } = await supabase
+        .from("svi_analyses")
+        .select("analysis_json")
+        .eq("email", user.email)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const stageLabel = (latestForStage?.[0]?.analysis_json as SVIAnalysis | null)?.stageLabel ?? "Concept";
+
+      const ok = await trySendNurture(supabase, {
+        accountId: user.id,
+        email: user.email,
+        notificationType: "unlock_deeper_7d",
+        subject: `What investors will see in your ${stageLabel} startup`,
+        sendFn: () =>
+          sendUnlockDeeperAnalysis({
+            to: user.email,
+            name: user.display_name,
+            stageLabel,
+          }),
+      });
+      if (ok) sent++;
+    }
+
+    // ==================================================================
+    // 6. Weekly SVI Summary (every week for active users)
+    //    Targets users with at least 1 analysis in the last 30 days.
+    //    Uses ISO week number to prevent duplicate sends within a week.
+    // ==================================================================
+    // Calculate current ISO week number
+    const getISOWeek = (d: Date): number => {
+      const tmp = new Date(d.getTime());
+      tmp.setHours(0, 0, 0, 0);
+      tmp.setDate(tmp.getDate() + 3 - ((tmp.getDay() + 6) % 7));
+      const week1 = new Date(tmp.getFullYear(), 0, 4);
+      return 1 + Math.round(((tmp.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
+    };
+    const currentWeek = getISOWeek(now);
+    const weekKey = `weekly_summary_${now.getFullYear()}_w${currentWeek}`;
+
+    for (const user of users ?? []) {
+      const allowed = await canSendEmail(user.email, "product_updates");
+      if (!allowed) continue;
+
+      // Already sent this week?
+      const { data: weeklySent } = await supabase
+        .from("svi_notifications")
+        .select("id")
+        .or(`account_id.eq.${user.id},payload->>email.eq.${user.email}`)
+        .eq("notification_type", weekKey)
+        .limit(1);
+      if (weeklySent && weeklySent.length > 0) continue;
+
+      // Must have at least 1 analysis
+      const { data: userAnalyses } = await supabase
+        .from("svi_analyses")
+        .select("total_svi, analysis_json, created_at")
+        .eq("email", user.email)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (!userAnalyses || userAnalyses.length === 0) continue;
+
+      // Last analysis must be within 30 days
+      const lastAnalysisDate = new Date(userAnalyses[0].created_at);
+      const daysSinceLastAnalysis = daysBetween(lastAnalysisDate, now);
+      if (daysSinceLastAnalysis > 30) continue;
+
+      const latestSvi = userAnalyses[0].total_svi;
+      const analysisData = userAnalyses[0].analysis_json as SVIAnalysis | null;
+
+      // Calculate delta from previous week's snapshot (look for last week's summary or use weeklyDelta)
+      const delta = analysisData?.weeklyDelta ?? 0;
+
+      // Count evidence uploaded in the last 7 days
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { count: recentEvidenceCount } = await supabase
+        .from("svi_evidence")
+        .select("id", { count: "exact", head: true })
+        .eq("account_id", user.id)
+        .gte("created_at", sevenDaysAgo);
+
+      // Extract top evidence gaps for recommended actions
+      const evidenceGaps = (analysisData?.evidenceGaps ?? []).slice(0, 3).map(
+        (g) => ({ label: g.label, impact: g.impact }),
+      );
+
+      const deltaStr = delta > 0 ? `+${delta}` : delta === 0 ? "no change" : `${delta}`;
+
+      const ok = await trySendNurture(supabase, {
+        accountId: user.id,
+        email: user.email,
+        notificationType: weekKey,
+        subject: `Your startup this week: SVI ${latestSvi} (${deltaStr})`,
+        sendFn: () =>
+          sendWeeklySVISummary({
+            to: user.email,
+            name: user.display_name,
+            svi: latestSvi,
+            delta,
+            evidenceCount: recentEvidenceCount ?? 0,
+            evidenceGaps,
+          }),
+      });
+      if (ok) sent++;
     }
 
     return NextResponse.json({
