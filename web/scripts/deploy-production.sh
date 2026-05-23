@@ -64,6 +64,7 @@ docker rm -f deploy-blockid-production 2>/dev/null || true
 docker run -d \
   --name deploy-blockid-production \
   --restart unless-stopped \
+  --network supabase_default \
   -p 127.0.0.1:4001:3000 \
   --env-file .env \
   -v "$(pwd)/content:/app/content" \
