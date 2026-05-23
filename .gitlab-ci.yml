@@ -24,51 +24,39 @@ variables:
   tags:
     - deploy
   script:
-    # ── 1. Lint (fast, non-blocking) ──
-    - cd web
-    - npm run lint --if-present 2>&1 || echo "⚠ Lint warnings (non-blocking)"
-
-    # ── 2. Build Docker image ──
-    # Uses layer cache — only rebuilds changed layers.
-    # NEXT_PUBLIC_* vars are inlined via two paths:
-    #   - .env file on disk (COPY . .) — primary
-    #   - --build-arg as fallback (ARG declarations in Dockerfile)
-    - echo "=== Building Docker image ==="
-    - docker compose build web
+    # ── 1. Build Docker image ──
+    - cd ${WORK_DIR}
+    - echo "Building from $(pwd) ..."
+    - docker build -t gitlab-deploy/${PROJECT_NAME}:${CI_ENV_TAG} .
     - echo "✓ Build complete"
 
-    # ── 3. Stop old container ──
+    # ── 2. Stop old → Start new ──
     - docker rm -f deploy-${PROJECT_NAME}-${CI_ENV_SLUG} 2>/dev/null || true
-
-    # ── 4. Start container ──
     - docker run -d
         --name deploy-${PROJECT_NAME}-${CI_ENV_SLUG}
         --restart unless-stopped
         --network supabase_default
         -p 127.0.0.1:${DEPLOY_PORT}:3000
-        --env-file .env
+        --env-file ${WORK_DIR}/.env
         -v /home/dovanlong/.claude/.credentials.json:/home/node/.claude/.credentials.json:ro
         -v /home/dovanlong/.codex/auth.json:/home/node/.codex/auth.json:ro
         -v ${CONTENT_DIR}:/app/content
         -v /home/dovanlong/blockid.au/uploads:/app/uploads
-        blockid/web:latest
+        gitlab-deploy/${PROJECT_NAME}:${CI_ENV_TAG}
 
-    # ── 5. Wait for healthy (max 30s) ──
+    # ── 3. Wait for healthy (max 30s) ──
     - |
       for i in $(seq 1 15); do
         STATUS=$(docker inspect --format="{{.State.Health.Status}}" deploy-${PROJECT_NAME}-${CI_ENV_SLUG} 2>/dev/null || echo "starting")
-        [ "$STATUS" = "healthy" ] && echo "✓ Container healthy" && break
+        [ "$STATUS" = "healthy" ] && echo "✓ Healthy" && break
         sleep 2
       done
 
-    # ── 6. Verify ──
-    - curl -sf http://127.0.0.1:${DEPLOY_PORT}/ -o /dev/null && echo "✓ Health check passed" || echo "⚠ Health check pending"
+    # ── 4. Verify ──
+    - curl -sf http://127.0.0.1:${DEPLOY_PORT}/ -o /dev/null && echo "✓ Live at ${DEPLOY_URL}" || echo "⚠ Health check pending"
     - |
       ENV_COUNT=$(docker exec deploy-${PROJECT_NAME}-${CI_ENV_SLUG} env 2>/dev/null | grep -c "=" || echo "0")
-      echo "✓ Container running with $ENV_COUNT env vars"
-
-    # ── 7. Purge Cloudflare cache ──
-    - bash scripts/purge-cloudflare-cache.sh 2>/dev/null || true
+      echo "✓ $ENV_COUNT env vars loaded"
 
 
 # ── Dev ───────────────────────────────────────────────────────────────
@@ -78,6 +66,8 @@ deploy:dev:
     CI_ENV_SLUG: dev
     CI_ENV_TAG: dev
     DEPLOY_PORT: "4003"
+    DEPLOY_URL: https://dev.blockid.au
+    WORK_DIR: /home/dovanlong/dev.blockid.au/web
     CONTENT_DIR: /home/dovanlong/dev.blockid.au/web/content
   environment:
     name: dev
@@ -92,6 +82,8 @@ deploy:staging:
     CI_ENV_SLUG: staging
     CI_ENV_TAG: staging
     DEPLOY_PORT: "4002"
+    DEPLOY_URL: https://staging.blockid.au
+    WORK_DIR: /home/dovanlong/staging.blockid.au/web
     CONTENT_DIR: /home/dovanlong/staging.blockid.au/web/content
   environment:
     name: staging
@@ -106,6 +98,8 @@ deploy:production:
     CI_ENV_SLUG: production
     CI_ENV_TAG: latest
     DEPLOY_PORT: "4001"
+    DEPLOY_URL: https://blockid.au
+    WORK_DIR: /home/dovanlong/blockid.au/web
     CONTENT_DIR: /home/dovanlong/blockid.au/web/content
   environment:
     name: production
