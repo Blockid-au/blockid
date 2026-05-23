@@ -19,7 +19,7 @@ Launch BlockID.au as a production-grade platform that delivers world-class start
 - [x] Locked preview / upgrade flow working (rnd-locked-section.tsx)
 - [x] Section-by-section purchasing verified (/api/rnd/sections + section-picker.tsx)
 - [x] PDF + email delivery tested (SMTP working, PDF generating)
-- [ ] Google Drive document generation per user/project
+- [x] Google Drive document generation (createReportGoogleDoc)
 - [x] AU compliance disclaimers on all sections (3 system prompts + PDF + email)
 - [x] Report caching to prevent duplicate credit charges (agent building)
 

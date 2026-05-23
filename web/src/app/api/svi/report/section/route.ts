@@ -4,6 +4,19 @@ import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
 
+function detectLanguage(text: string): "en" | "vi" | "auto" {
+  // Simple heuristic: check for Vietnamese diacritical marks
+  const viPattern = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i;
+  const viCount = (text.match(viPattern) || []).length;
+  // If more than 3% of chars are Vietnamese diacritics, it's Vietnamese
+  if (viCount > 0 && viCount / text.length > 0.03) return "vi";
+  // Check for common Vietnamese words without diacritics
+  const viWords = /\b(cua|cong|ty|ung|dung|khach|hang|thi|truong|san|pham|kinh|doanh|phat|trien)\b/gi;
+  const viWordCount = (text.match(viWords) || []).length;
+  if (viWordCount >= 3) return "vi";
+  return "en";
+}
+
 export const dynamic = "force-dynamic";
 
 const SECTIONS = {
@@ -54,8 +67,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: `Unknown section: ${section}` }, { status: 400 });
     }
 
+    const lang = detectLanguage(rawText);
+    const langNote = lang === "vi" ? " Write your response in Vietnamese." : "";
+
     const { text } = await callAI({
-      system: "You are a friendly startup mentor. Write in plain language, be encouraging. Use markdown formatting.",
+      system: `You are a friendly startup mentor.${langNote} Write in plain language, be encouraging. Use markdown formatting.`,
       user: sectionDef.prompt(analysis, rawText),
       maxTokens: 1024, // Small per section — avoids timeout
     });

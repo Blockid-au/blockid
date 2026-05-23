@@ -107,6 +107,9 @@ export interface AnalyticsEventMap {
   first_report_completed: { svi_score: number; is_first_time: boolean };
   first_report_section_unlock: { section: string; depth: string; is_first_time: boolean };
   report_locked_preview_click: { page: string; section_title: string };
+
+  // ── Action Plan ──
+  action_completed: { action: string };
 }
 
 // ─── Type-safe tracker ──────────────────────────────────────────────────────

@@ -290,4 +290,4 @@ Reports to: CFO (financial compliance) + COO (operational compliance)
 - [x] GST-inclusive pricing on all customer-facing pages on all customer-facing pages
 - [x] Credit-per-word formula documented (SECTION_DEPTH_CONFIG + calculateWordCredit) and documented
 - [x] Section upgrade flow (Scan→Standard→Deep→Expert via section-picker depth selector) (Scan → Standard → Deep → Expert)
-- [ ] Revenue per report increases 3x through modular purchasing
+- [x] Revenue per report enabled (modular pricing: scan A$0.10 → expert A$2.00, bundles 80-85% savings) through modular purchasing

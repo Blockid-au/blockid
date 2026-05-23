@@ -113,6 +113,8 @@ const COST_PER_1K: Record<string, number> = {
   "claude-haiku-4-5-20251001": 0.001,
   "claude-sonnet-4-6": 0.015,
   "gpt-4o-mini": 0.0003,
+  "o3-mini": 0.0055,
+  "gpt-4.1-mini": 0.002,
   "gemini-2.5-flash": 0.0001,
   "llama-3.3-70b-versatile": 0, // Groq free tier
   "deepseek/deepseek-v4-flash:free": 0, // OpenRouter free
@@ -366,46 +368,86 @@ async function callOpenAI(apiKey: string, opts: AICallOptions): Promise<AICallRe
   return { text, provider: "openai", model };
 }
 
-// ── OpenAI Codex OAuth call (uses ChatGPT session token) ─────────────
+// ── OpenAI Codex OAuth call (uses ChatGPT/Codex subscription token) ──
+// Model selection:
+//   - o3-mini: reasoning model for SVI analysis, reports, complex tasks (>1000 tokens)
+//   - gpt-4o-mini: fast model for quick tasks, summaries (<1000 tokens)
+// Falls back to gpt-4.1-mini if o3-mini is unavailable.
 
 async function callCodex(opts: AICallOptions): Promise<AICallResult> {
   const token = readCodexOAuthToken();
   if (!token) throw new Error("Codex OAuth token not available");
 
-  const model = "gpt-4o-mini";
-  const raw = await workerFetch("https://api.openai.com/v1/chat/completions", {
-    "Authorization": `Bearer ${token}`,
-    "Content-Type": "application/json",
-  }, JSON.stringify({
-    model,
-    max_tokens: opts.maxTokens ?? 4096,
-    messages: [
-      { role: "system", content: opts.system },
-      { role: "user", content: opts.user },
-    ],
-  }));
+  // Smart model selection: o3-mini for heavy analysis, gpt-4o-mini for quick tasks
+  const isHeavy = (opts.maxTokens && opts.maxTokens > 1000) || opts.user.length > 2000;
+  const models = isHeavy
+    ? ["o3-mini", "gpt-4.1-mini", "gpt-4o-mini"]
+    : ["gpt-4o-mini", "gpt-4.1-mini"];
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = JSON.parse(raw) as any;
-  const text = data.choices?.[0]?.message?.content ?? "";
-  return { text, provider: "openai", model };
+  let lastError: Error | null = null;
+
+  for (const model of models) {
+    try {
+      // o3-mini uses "reasoning_effort" instead of "max_tokens"
+      const isReasoning = model === "o3-mini";
+      const body: Record<string, unknown> = {
+        model,
+        messages: [
+          { role: isReasoning ? "developer" : "system", content: opts.system },
+          { role: "user", content: opts.user },
+        ],
+      };
+
+      if (isReasoning) {
+        body.reasoning_effort = "medium";
+        body.max_completion_tokens = opts.maxTokens ?? 4096;
+      } else {
+        body.max_tokens = opts.maxTokens ?? 4096;
+      }
+
+      const raw = await workerFetch("https://api.openai.com/v1/chat/completions", {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      }, JSON.stringify(body));
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = JSON.parse(raw) as any;
+      if (data.error) throw new Error(data.error.message ?? `OpenAI error: ${JSON.stringify(data.error)}`);
+      const text = data.choices?.[0]?.message?.content ?? "";
+      if (!text) throw new Error("Empty Codex response");
+      return { text, provider: "openai", model };
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      console.warn(`[ai-client:codex] ${model} failed: ${lastError.message}. Trying next model...`);
+    }
+  }
+
+  throw lastError ?? new Error("All Codex models failed");
 }
 
 // ── Gemini call ────────────────────────────────────────────────────────
 
 async function callGemini(opts: AICallOptions): Promise<AICallResult> {
-  const { GoogleGenerativeAI } = await import("@google/generative-ai");
-  const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY!);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  const apiKey = process.env.GOOGLE_GEMINI_API_KEY ?? getDBKey("gemini")?.api_key ?? "";
+  if (!apiKey) throw new Error("Gemini API key not configured");
 
-  const result = await model.generateContent({
-    systemInstruction: opts.system,
-    contents: [{ role: "user", parts: [{ text: opts.user }] }],
-    generationConfig: { maxOutputTokens: opts.maxTokens ?? 4096 },
-  });
+  const model = "gemini-2.5-flash";
+  // Use workerFetch to bypass Next.js fetch patches (same as Claude/Groq)
+  const raw = await workerFetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    { "Content-Type": "application/json" },
+    JSON.stringify({
+      system_instruction: { parts: [{ text: opts.system }] },
+      contents: [{ role: "user", parts: [{ text: opts.user }] }],
+      generationConfig: { maxOutputTokens: opts.maxTokens ?? 4096 },
+    }),
+  );
 
-  const text = result.response.text();
-  return { text, provider: "gemini", model: "gemini-2.5-flash" };
+  const data = JSON.parse(raw);
+  if (data.error) throw new Error(data.error.message ?? "Gemini error");
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+  if (!text) throw new Error("Empty Gemini response");
+  return { text, provider: "gemini", model };
 }
 
 // ── Groq (OpenAI-compatible, free tier, llama-3.3-70b) ────────────────
@@ -691,6 +733,32 @@ export async function callAIForUpgrade(opts: AICallOptions): Promise<AICallResul
 
   console.warn("[ai-client:upgrade] All free providers failed. Upgrade task skipped.");
   return null;
+}
+
+// ── Codex device auth info (for admin UI login link) ─────────────────
+
+export const CODEX_DEVICE_AUTH = {
+  clientId: "app_EMoamEEZ73f0CkXaXp7hrann",
+  authUrl: "https://auth.openai.com/authorize",
+  tokenUrl: "https://auth.openai.com/oauth/token",
+  deviceAuthUrl: "https://auth.openai.com/oauth/device/code",
+  scopes: "openai.chat openai.models.read",
+};
+
+export function getCodexAuthStatus(): {
+  hasToken: boolean;
+  tokenSource: "file" | "env" | "none";
+  authFilePath: string;
+} {
+  const home = process.env.HOME ?? "/root";
+  const authPath = path.join(home, ".codex", "auth.json");
+  const hasFile = fs.existsSync(authPath);
+  const hasEnv = !!process.env.CODEX_ACCESS_TOKEN;
+  return {
+    hasToken: !!readCodexOAuthToken(),
+    tokenSource: hasFile ? "file" : hasEnv ? "env" : "none",
+    authFilePath: authPath,
+  };
 }
 
 // ── Check if off-peak hours (AEST = UTC+10/11) ───────────────────────

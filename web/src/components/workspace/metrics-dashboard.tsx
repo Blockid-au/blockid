@@ -9,15 +9,20 @@ export interface MetricRow {
   metric_date: string;
   mrr_aud: number | null;
   arr_aud: number | null;
+  revenue: number | null;
   revenue_growth_pct: number | null;
   mau: number | null;
   dau: number | null;
+  users_total: number | null;
+  users_new: number | null;
   monthly_churn_pct: number | null;
   nrr_pct: number | null;
+  nps: number | null;
   cac_aud: number | null;
   ltv_aud: number | null;
   burn_rate_aud: number | null;
   runway_months: number | null;
+  notes: string | null;
   source: string;
   created_at: string;
 }
@@ -86,7 +91,7 @@ function MetricCard({
 }
 
 // ---------------------------------------------------------------------------
-// Mini line chart (reuses SVIChart pattern with inline SVG)
+// Mini line chart (inline SVG)
 // ---------------------------------------------------------------------------
 
 function MiniChart({
@@ -212,6 +217,93 @@ function MiniChart({
 }
 
 // ---------------------------------------------------------------------------
+// History table showing past months
+// ---------------------------------------------------------------------------
+
+function MetricsHistory({ metrics }: { metrics: MetricRow[] }) {
+  if (metrics.length === 0) {
+    return (
+      <div className="rounded-2xl border border-surface-200 bg-white p-6 text-center">
+        <p className="text-sm text-ink-500">
+          No metrics recorded yet. Use the form above to start tracking.
+        </p>
+      </div>
+    );
+  }
+
+  // Show most recent first
+  const sorted = [...metrics].reverse();
+
+  return (
+    <div className="rounded-2xl border border-surface-200 bg-white overflow-hidden">
+      <div className="px-5 py-4 border-b border-surface-200">
+        <h3 className="text-base font-semibold text-ink-800">
+          Metrics History
+        </h3>
+        <p className="text-xs text-ink-500 mt-0.5">
+          Last {metrics.length} month{metrics.length !== 1 ? "s" : ""} of recorded data
+        </p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-surface-200 bg-surface-50">
+              <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-500">Month</th>
+              <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-500">MRR</th>
+              <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-500">Revenue</th>
+              <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-500">Users</th>
+              <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-500">Churn</th>
+              <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-500">Burn</th>
+              <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-500">Runway</th>
+              <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-500">NPS</th>
+              <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-500">Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((row) => {
+              const dateObj = new Date(row.metric_date);
+              const monthLabel = dateObj.toLocaleDateString("en-AU", {
+                month: "short",
+                year: "numeric",
+              });
+              return (
+                <tr key={row.id} className="border-b border-surface-100 last:border-b-0 hover:bg-surface-50/50 transition-colors">
+                  <td className="px-4 py-2.5 font-medium text-ink-700 whitespace-nowrap">{monthLabel}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-ink-700">
+                    {row.mrr_aud != null ? `$${row.mrr_aud.toLocaleString()}` : <span className="text-ink-300">-</span>}
+                  </td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-ink-700">
+                    {row.revenue != null ? `$${row.revenue.toLocaleString()}` : <span className="text-ink-300">-</span>}
+                  </td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-ink-700">
+                    {row.users_total != null ? row.users_total.toLocaleString() : row.mau != null ? row.mau.toLocaleString() : <span className="text-ink-300">-</span>}
+                  </td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-ink-700">
+                    {row.monthly_churn_pct != null ? `${row.monthly_churn_pct}%` : <span className="text-ink-300">-</span>}
+                  </td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-ink-700">
+                    {row.burn_rate_aud != null ? `$${row.burn_rate_aud.toLocaleString()}` : <span className="text-ink-300">-</span>}
+                  </td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-ink-700">
+                    {row.runway_months != null ? `${row.runway_months}mo` : <span className="text-ink-300">-</span>}
+                  </td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-ink-700">
+                    {row.nps != null ? row.nps : <span className="text-ink-300">-</span>}
+                  </td>
+                  <td className="px-4 py-2.5 text-ink-600 max-w-[200px] truncate">
+                    {row.notes || <span className="text-ink-300">-</span>}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Connected sources status
 // ---------------------------------------------------------------------------
 
@@ -254,9 +346,9 @@ function ConnectedSources() {
 // Main dashboard component
 // ---------------------------------------------------------------------------
 
-type MetricField = keyof Omit<
+type ChartableField = keyof Omit<
   MetricRow,
-  "id" | "metric_date" | "source" | "created_at"
+  "id" | "metric_date" | "source" | "created_at" | "notes"
 >;
 
 export function MetricsDashboard({
@@ -264,10 +356,10 @@ export function MetricsDashboard({
   stage = "pre-seed",
 }: MetricsDashboardProps) {
   const [selectedMetric, setSelectedMetric] =
-    React.useState<MetricField>("mrr_aud");
+    React.useState<ChartableField>("mrr_aud");
 
   // Get latest non-null value for a given metric column
-  function getLatestValue(field: MetricField): number | null {
+  function getLatestValue(field: ChartableField): number | null {
     for (let i = metrics.length - 1; i >= 0; i--) {
       const v = metrics[i][field];
       if (v != null) return v as number;
@@ -286,15 +378,23 @@ export function MetricsDashboard({
     .filter((d): d is { date: string; value: number } => d !== null);
 
   const keyMetrics: Array<{
-    field: MetricField;
+    field: ChartableField;
     label: string;
     unit?: string;
   }> = [
     { field: "mrr_aud", label: "MRR", unit: "$" },
-    { field: "mau", label: "MAU" },
+    { field: "users_total", label: "Users" },
     { field: "monthly_churn_pct", label: "Churn", unit: "%" },
-    { field: "nrr_pct", label: "NRR", unit: "%" },
+    { field: "burn_rate_aud", label: "Burn Rate", unit: "$" },
   ];
+
+  // Chartable metric labels (exclude text-only fields)
+  const chartableLabels: Record<string, string> = {};
+  for (const [key, label] of Object.entries(METRIC_LABELS)) {
+    if (key !== "notes") {
+      chartableLabels[key] = label;
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -328,10 +428,10 @@ export function MetricsDashboard({
         <select
           id="chart-metric"
           value={selectedMetric}
-          onChange={(e) => setSelectedMetric(e.target.value as MetricField)}
+          onChange={(e) => setSelectedMetric(e.target.value as ChartableField)}
           className="rounded-lg border border-surface-200 bg-surface-50 px-2.5 py-1.5 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-300"
         >
-          {Object.entries(METRIC_LABELS).map(([key, label]) => (
+          {Object.entries(chartableLabels).map(([key, label]) => (
             <option key={key} value={key}>
               {label}
             </option>
@@ -342,8 +442,11 @@ export function MetricsDashboard({
       {/* Line chart */}
       <MiniChart
         data={chartData}
-        label={METRIC_LABELS[selectedMetric] ?? selectedMetric}
+        label={chartableLabels[selectedMetric] ?? selectedMetric}
       />
+
+      {/* History table */}
+      <MetricsHistory metrics={metrics} />
 
       {/* Connected sources */}
       <ConnectedSources />

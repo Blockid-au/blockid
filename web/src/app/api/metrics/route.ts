@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 // Metric field whitelist — only these columns can be written
 // ---------------------------------------------------------------------------
 
-const METRIC_FIELDS = [
+const NUMERIC_FIELDS = [
   "mrr_aud",
   "arr_aud",
   "revenue_growth_pct",
@@ -22,12 +22,26 @@ const METRIC_FIELDS = [
   "ltv_aud",
   "burn_rate_aud",
   "runway_months",
+  "users_total",
+  "users_new",
+  "nps",
+  "revenue",
 ] as const;
 
-type MetricField = (typeof METRIC_FIELDS)[number];
+// Text fields that accept string values
+const TEXT_FIELDS = ["notes"] as const;
 
-function isMetricField(key: string): key is MetricField {
-  return (METRIC_FIELDS as readonly string[]).includes(key);
+const METRIC_FIELDS = [...NUMERIC_FIELDS, ...TEXT_FIELDS] as const;
+
+type NumericField = (typeof NUMERIC_FIELDS)[number];
+type TextField = (typeof TEXT_FIELDS)[number];
+
+function isNumericField(key: string): key is NumericField {
+  return (NUMERIC_FIELDS as readonly string[]).includes(key);
+}
+
+function isTextField(key: string): key is TextField {
+  return (TEXT_FIELDS as readonly string[]).includes(key);
 }
 
 // ---------------------------------------------------------------------------
@@ -56,7 +70,7 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       date?: string;
       source?: string;
-      metrics?: Record<string, number | null>;
+      metrics?: Record<string, number | string | null>;
     };
 
     // Validate date
@@ -88,12 +102,20 @@ export async function POST(request: Request) {
     }
 
     // Filter to only valid metric fields
-    const metricData: Record<string, number | null> = {};
+    const metricData: Record<string, number | string | null> = {};
     for (const [key, val] of Object.entries(body.metrics)) {
-      if (isMetricField(key)) {
+      if (isNumericField(key)) {
         if (val !== null && (typeof val !== "number" || !isFinite(val))) {
           return NextResponse.json(
             { ok: false, error: `${key} must be a finite number or null` },
+            { status: 400 },
+          );
+        }
+        metricData[key] = val;
+      } else if (isTextField(key)) {
+        if (val !== null && typeof val !== "string") {
+          return NextResponse.json(
+            { ok: false, error: `${key} must be a string or null` },
             { status: 400 },
           );
         }
@@ -126,6 +148,7 @@ export async function POST(request: Request) {
           email: user.email,
           metric_date: metricDate,
           source,
+          updated_at: new Date().toISOString(),
           ...metricData,
         },
         { onConflict: "account_id,metric_date" },
@@ -188,7 +211,7 @@ export async function GET(request: Request) {
     const { data: metrics, error } = await supabase
       .from("startup_metrics")
       .select(
-        "id, metric_date, mrr_aud, arr_aud, revenue_growth_pct, mau, dau, monthly_churn_pct, nrr_pct, cac_aud, ltv_aud, burn_rate_aud, runway_months, source, created_at",
+        "id, metric_date, mrr_aud, arr_aud, revenue_growth_pct, revenue, mau, dau, users_total, users_new, monthly_churn_pct, nrr_pct, cac_aud, ltv_aud, burn_rate_aud, runway_months, nps, notes, source, created_at",
       )
       .eq("email", user.email)
       .gte("metric_date", cutoff)

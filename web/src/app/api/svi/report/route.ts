@@ -6,6 +6,19 @@ import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 
+function detectLanguage(text: string): "en" | "vi" | "auto" {
+  // Simple heuristic: check for Vietnamese diacritical marks
+  const viPattern = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i;
+  const viCount = (text.match(viPattern) || []).length;
+  // If more than 3% of chars are Vietnamese diacritics, it's Vietnamese
+  if (viCount > 0 && viCount / text.length > 0.03) return "vi";
+  // Check for common Vietnamese words without diacritics
+  const viWords = /\b(cua|cong|ty|ung|dung|khach|hang|thi|truong|san|pham|kinh|doanh|phat|trien)\b/gi;
+  const viWordCount = (text.match(viWords) || []).length;
+  if (viWordCount >= 3) return "vi";
+  return "en";
+}
+
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
@@ -45,6 +58,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "rawText and analysis required" }, { status: 400 });
     }
 
+    // Auto-detect input language (overrides cookie if input is clearly Vietnamese)
+    const inputLang = detectLanguage(body.rawText);
+    const effectiveLocale = inputLang === "vi" ? "vi" : locale;
+
     const { analysis } = body;
     const stageLabel = SVI_STAGE_LABELS[analysis.stage ?? 0] ?? "Unknown";
 
@@ -60,7 +77,7 @@ export async function POST(request: Request) {
       `- [${g.priority}] ${g.label}: ${g.action} (+${g.impact} SVI potential)`
     ).join("\n");
 
-    const langInstruction = locale === "vi"
+    const langInstruction = effectiveLocale === "vi"
       ? `QUAN TRONG: Viet TOAN BO bao cao bang tieng Viet. Su dung giong van chuyen nghiep nhung gan gui, de hieu cho cac nha sang lap Viet Nam tai Uc. Giu nguyen cac thuat ngu ky thuat bang tieng Anh khi can thiet (vi du: "cap table", "SVI", "pitch deck") nhung giai thich bang tieng Viet.\n\n`
       : "";
 
@@ -92,7 +109,7 @@ Format:
 - Bold key terms and action items
 - Use > blockquotes for "Pro Tips" that add extra value`;
 
-    const sectionHeaders = locale === "vi" ? {
+    const sectionHeaders = effectiveLocale === "vi" ? {
       scoreExplained: "1. Giai Thich Diem So Cua Ban",
       doingRight: "2. Nhung Dieu Ban Dang Lam Dung",
       biggestOpportunity: "3. Co Hoi Lon Nhat Cua Ban Ngay Bay Gio",
@@ -110,7 +127,7 @@ Format:
       nextStep: "7. Your Next Step",
     };
 
-    const userMessage = `Write a personalised startup report for this founder.${locale === "vi" ? " Write the ENTIRE report in Vietnamese." : ""}
+    const userMessage = `Write a personalised startup report for this founder.${effectiveLocale === "vi" ? " Write the ENTIRE report in Vietnamese." : ""}
 
 ## Their Startup:
 ${body.rawText.slice(0, 4000)}

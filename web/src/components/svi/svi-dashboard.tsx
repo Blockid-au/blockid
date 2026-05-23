@@ -15,6 +15,7 @@ import { SVITrendChart } from "@/components/ui/svi-trend-chart";
 import { PriorityTasks, generatePriorityTasks } from "@/components/workspace/priority-tasks";
 import { SVIComparison } from "@/components/svi/svi-comparison";
 import { ComplianceChecker } from "@/components/svi/compliance-checker";
+import { RecentAnalyses } from "@/components/dashboard/recent-analyses";
 
 import type { ReportEntry, SVIHistoryPoint } from "@/app/dashboard/svi/page";
 
@@ -412,6 +413,9 @@ export function SVIDashboard({
 
   return (
     <div className="space-y-6">
+      {/* Recent Analyses (from localStorage) */}
+      <RecentAnalyses className="mb-6" />
+
       {/* Header */}
       <div className="pt-6 pb-2">
         <h1 className="text-2xl font-bold text-ink-800">{startupName ?? "My Startup"}</h1>

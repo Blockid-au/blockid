@@ -155,23 +155,23 @@ interface RndReportV2Page {
 - [x] Add lockedContent/lockedSections fields (RndReportPage interface)
 - [x] Update report page renderer for V2 (rnd-results-panel.tsx)
 - [x] Build unlock/payment flow (rnd-locked-section.tsx + credit CTAs)
-- [ ] Email delivery with full V2 report
+- [x] Email delivery with V2 report (sendSVIReport with PDF + next steps)
 
 ### CPO (Product Experience)
-- [ ] Design the "locked section" UX (blur + gradient + CTA)
-- [ ] Design email template for V2 full report
+- [x] Locked section UX (rnd-locked-section.tsx with gradient + preview + CTA) (blur + gradient + CTA)
+- [x] Email template for V2 (dark navy theme + SVI score + gaps + CTAs)
 - [ ] A/B test CTA copy ("Unlock full analysis" vs "Get your roadmap")
-- [ ] Mobile-first report reading experience
+- [x] Mobile responsive (3 fixes applied, audit verified)
 
 ### CMO (Conversion Optimization)
-- [ ] Write CTA copy for each locked section
-- [ ] Design email nurture sequence after free report
-- [ ] "Share your SVI" social feature for viral growth
+- [x] CTA copy per section (PAGE_CTAS mapping, 10 contextual CTAs)
+- [x] Nurture sequence: Day 1 report + Day 3 evidence boost + Day 7 unlock + Weekly summary
+- [x] Share page CTA: "Get Your Free SVI Score" banner for viewers for viral growth
 - [ ] Landing page showcasing V2 report quality
 
 ### CFO (Revenue)
-- [ ] Pricing: A$1 per full report (or 1 credit)
-- [ ] Track conversion: free → paid report upgrade
+- [x] Pricing: standard 1.0 cr, deep_dive 1.5 cr, section scan-maximum 0.10-3.00 cr (or 1 credit)
+- [x] Track conversion: report_unlock_click + checkout events in analytics report upgrade
 - [ ] Monitor report delivery cost vs revenue
 
 ### CRO (Funnel)

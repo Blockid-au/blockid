@@ -143,6 +143,15 @@ function UserMenu({ user }: { user: AuthUser }) {
               </span>
             )}
           </div>
+          {/* Credit balance */}
+          <div className="px-4 py-2 border-b border-surface-100">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-ink-500">Credits</span>
+              <Link href="/workspace/billing" onClick={() => setOpen(false)} className="text-xs font-bold text-brand-600 hover:text-brand-700">
+                View billing →
+              </Link>
+            </div>
+          </div>
           <div className="py-1">
             <Link
               href="/dashboard"

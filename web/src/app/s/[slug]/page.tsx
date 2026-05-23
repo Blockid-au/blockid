@@ -582,6 +582,17 @@ export default async function ShareScorePage({
             </div>
           </section>
 
+          {/* ── Get Your Own Score CTA ───────────────────────────────────── */}
+          <section className="mt-8">
+            <div className="rounded-2xl border border-brand-200 bg-gradient-to-r from-brand-50 to-white p-6 text-center">
+              <p className="text-lg font-semibold text-ink-800">Want to know your startup&apos;s value?</p>
+              <p className="text-sm text-ink-500 mt-1">Get your free Startup Value Index in 60 seconds</p>
+              <Link href="/score" className="inline-flex items-center gap-2 mt-4 rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-700">
+                Get Your Free SVI Score →
+              </Link>
+            </div>
+          </section>
+
           {/* ── R&D Report (V2 Narrative) ────────────────────────────────── */}
           {rndReport?.pages?.length > 0 && (
             <section id="rnd-report" className="mt-8">

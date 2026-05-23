@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 import { RndPageLock } from "@/components/svi/rnd-page-lock";
 import { RndLockedSection } from "@/components/svi/rnd-locked-section";
+import { ActionPlanChecklist } from "@/components/svi/action-plan-checklist";
 import type { RndReport, RndReportPage, ReportTier, ClientTechAuditResult } from "@/lib/rnd-types";
 import { PAGE_DEFS } from "@/lib/rnd-types";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
@@ -1093,6 +1094,16 @@ export function RndResultsPanel({
           </div>
         )}
 
+        {/* Action Plan Checklist — actionable items from highlights */}
+        {page.highlights && page.highlights.length > 0 && (
+          <ActionPlanChecklist
+            slug={report.inputUrl ?? "report"}
+            pageId={page.pageId}
+            actions={page.highlights}
+            sviBoost={Math.round((100 - (page.score ?? 50)) * 0.15)}
+          />
+        )}
+
         {/* Contextual CTA — upgrade prompt for free users */}
         {!isPaid && PAGE_CTAS[pageDef.id] && (() => {
           const cta = PAGE_CTAS[pageDef.id];
@@ -1204,6 +1215,17 @@ export function RndResultsPanel({
         {/* Report pages */}
         <div className="flex-1 max-w-2xl mx-auto space-y-6 py-6">
           {Array.from({ length: pageCount }, (_, i) => renderPage(i))}
+
+          {/* Action Plan Checklist — from analysis.nextActions */}
+          {analysis?.nextActions?.length > 0 && (
+            <ActionPlanChecklist
+              slug={slug}
+              actions={analysis.nextActions}
+              sviBoost={Math.round(
+                (100 - report.overallScore) * 0.3,
+              )}
+            />
+          )}
 
           {/* Bottom actions — always visible */}
           <div className="rounded-2xl border border-surface-200 bg-white px-6 py-8 shadow-sm md:px-8">

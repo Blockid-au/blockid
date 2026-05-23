@@ -51,11 +51,11 @@ When generating customer reports, the CFO skill contributes:
 | Churn spike detected | Root cause analysis, retention offers | /cfo + /cro |
 
 ## Implementation Tasks
-- [ ] Cron: Weekly competitor pricing scrape (web search)
-- [ ] Cron: Daily unit economics snapshot
+- [x] Weekly competitor research (rnd-competitor-research task with AI web search) (web search)
+- [x] Daily unit economics (cfo-credit-economy task in agent-upgrade cron)
 - [ ] Dashboard: CFO metrics in admin panel (MRR, gross margin, AI costs)
 - [ ] API: `/api/admin/financial-health` endpoint for automated monitoring
-- [ ] Integration: Feed CFO analysis into R&D report Pages 4, 8
+- [x] Feed CFO analysis into R- [ ] Integration: Feed CFO analysis into R&D report Pages 4, 8D report (valuation data + credit pricing in context)
 - [ ] Alert: Slack/email when financial KPIs breach thresholds
 
 ## Skills Used

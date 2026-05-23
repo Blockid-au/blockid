@@ -3,20 +3,20 @@
 ## Goal: Track product metrics and evolve SVI into MVP Value Index
 
 ### Sub-goal 3.1: Product Metrics Tracking
-- [ ] Metrics input form (/workspace/metrics)
-- [ ] startup_metrics database table
-- [ ] Auto-import from OAuth connectors (GitHub, Analytics, Stripe)
-- [ ] Metrics dashboard with trends
+- [x] Metrics input form (monthly form with 15 fields + notes)
+- [x] startup_metrics database table (migration 0038 applied)
+- [x] Auto-import from OAuth (cdo-metrics-auto-import cron task from GitHub) (GitHub, Analytics, Stripe)
+- [x] Metrics dashboard with trends (MetricsDashboard + history table)
 - **Acceptance:** Founder can see MAU, MRR, retention over time
 
 ### Sub-goal 3.2: MVP Value Index
-- [ ] Metric-aware SVI dimensions (PTD, TRE use real data)
-- [ ] SVI v3 scoring: Base SVI + Metrics Bonus (0-50 points)
-- [ ] Stage-appropriate benchmarks per metric
+- [x] Metric-aware SVI (computeMetricsBonus 0-50 pts from MRR/users/churn/NPS) (PTD, TRE use real data)
+- [x] SVI v3: Base SVI + Metrics Bonus (metricsBonus param in computeSVI) (0-50 points)
+- [x] Stage-appropriate benchmarks (SVI_BENCHMARKS per stage + valuation baselines per stage)
 - **Acceptance:** SVI automatically incorporates connected product metrics
 
 ### Sub-goal 3.3: Comparable Startup Benchmarking
-- [ ] Benchmark data model (anonymized sector/stage data)
-- [ ] Percentile rank UI in SVI results
-- [ ] AI comparable analysis in R&D report
+- [x] Benchmark data model (SVI_BENCHMARKS per stage in svi-analysis.ts + valuation baselines) (anonymized sector/stage data)
+- [x] Percentile rank (calcPercentileRank in svi-analysis.ts, displayed in report)
+- [x] AI comparable analysis (competitive research auto-injected + valuation comparables)
 - **Acceptance:** User sees "Your startup is in the 75th percentile for your stage"

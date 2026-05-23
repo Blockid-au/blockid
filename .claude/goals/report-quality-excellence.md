@@ -101,9 +101,9 @@ For each user+project:
 - [ ] Cap table summary in sidebar/widget
 
 ### Sprint 3: Google Drive + Sharing
-- [ ] Auto-create Drive folder per user/project
-- [ ] Generate Google Doc from report content
-- [ ] "View in Google Drive" link on dashboard
+- [x] Auto-create Drive folder per user/project (getOrCreateUserFolder)
+- [x] Generate Google Doc from report (createReportGoogleDoc, fire-and-forget)
+- [x] "View in Google Drive" link (driveDocUrl stored in analysis_json)
 - [x] Shareable public link per report (Copy Share Link button + /s/slug)
 - [x] "Share with investor" email flow (inline form + POST /api/svi/share)
 
@@ -111,7 +111,7 @@ For each user+project:
 - [x] Stage-appropriate report templates (stage selector appends to rawText) (0-4)
 - [x] Stage selector pills on score page (6 stages: Idea→Growth)
 - [x] Stage-specific next steps (MENTORING_TONE adapts by stage 0-2 vs 3+) and recommendations
-- [ ] Cross-stage progress tracking
+- [x] Cross-stage progress tracking (svi_snapshots table + weekly delta + stage detection)
 
 ## Success Metrics
 | Metric | Current | Target |

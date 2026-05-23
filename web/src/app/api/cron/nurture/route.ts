@@ -13,6 +13,9 @@ import {
   sendEvidenceScoreBoost,
   sendUnlockDeeperAnalysis,
   sendWeeklySVISummary,
+  sendReengagement30d,
+  sendReengagement60d,
+  sendReengagement90d,
 } from "@/lib/email";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { getBalance } from "@/lib/credits";
@@ -81,7 +84,7 @@ export async function GET(request: Request) {
     // ==================================================================
     const { data: users } = await supabase
       .from("app_users")
-      .select("id, email, display_name, plan, created_at");
+      .select("id, email, display_name, plan, created_at, last_login_at");
 
     for (const user of users ?? []) {
       const createdAt = new Date(user.created_at);
@@ -680,6 +683,112 @@ export async function GET(request: Request) {
           }),
       });
       if (ok) sent++;
+    }
+
+    // ==================================================================
+    // 7. Inactive User Re-engagement (30, 60, 90 days since last login)
+    //    Targets users whose last_login_at is approximately 30, 60, or
+    //    90 days ago (±1 day window). Sends escalating re-engagement
+    //    emails to bring them back.
+    // ==================================================================
+    for (const user of users ?? []) {
+      if (!user.last_login_at) continue;
+
+      const lastLogin = new Date(user.last_login_at);
+      const daysSinceLogin = daysBetween(lastLogin, now);
+
+      const allowed = await canSendEmail(user.email, "promotions");
+      if (!allowed) {
+        skipped++;
+        continue;
+      }
+
+      // Check already-sent re-engagement notifications for this user
+      const { data: reengageSentRows } = await supabase
+        .from("svi_notifications")
+        .select("notification_type")
+        .or(
+          `account_id.eq.${user.id},payload->>email.eq.${user.email}`,
+        )
+        .like("notification_type", "reengagement_%");
+
+      const reengageSentTypes = new Set(
+        (reengageSentRows ?? []).map(
+          (s: { notification_type: string }) => s.notification_type,
+        ),
+      );
+
+      // Fetch latest SVI score for personalization (used in 30d email)
+      let latestSvi: number | null = null;
+      if (daysSinceLogin >= 29 && daysSinceLogin <= 31 && !reengageSentTypes.has("reengagement_30d")) {
+        const { data: sviData } = await supabase
+          .from("svi_analyses")
+          .select("total_svi")
+          .eq("email", user.email)
+          .order("created_at", { ascending: false })
+          .limit(1);
+        latestSvi = sviData?.[0]?.total_svi ?? null;
+      }
+
+      const reengageSteps: Array<{
+        minDays: number;
+        maxDays: number;
+        type: string;
+        subject: string;
+        send: () => Promise<{ ok: boolean }>;
+      }> = [
+        {
+          minDays: 29,
+          maxDays: 31,
+          type: "reengagement_30d",
+          subject: "Your startup score might have changed",
+          send: () =>
+            sendReengagement30d({
+              to: user.email,
+              name: user.display_name,
+              svi: latestSvi,
+            }),
+        },
+        {
+          minDays: 59,
+          maxDays: 61,
+          type: "reengagement_60d",
+          subject: "New features since you last visited BlockID",
+          send: () =>
+            sendReengagement60d({
+              to: user.email,
+              name: user.display_name,
+            }),
+        },
+        {
+          minDays: 89,
+          maxDays: 91,
+          type: "reengagement_90d",
+          subject: "Your data is safe — come back anytime",
+          send: () =>
+            sendReengagement90d({
+              to: user.email,
+              name: user.display_name,
+            }),
+        },
+      ];
+
+      for (const step of reengageSteps) {
+        if (
+          daysSinceLogin >= step.minDays &&
+          daysSinceLogin <= step.maxDays &&
+          !reengageSentTypes.has(step.type)
+        ) {
+          const ok = await trySendNurture(supabase, {
+            accountId: user.id,
+            email: user.email,
+            notificationType: step.type,
+            subject: step.subject,
+            sendFn: step.send,
+          });
+          if (ok) sent++;
+        }
+      }
     }
 
     return NextResponse.json({

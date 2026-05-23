@@ -1646,6 +1646,97 @@ export async function sendCreditLowAlert(args: {
   return sendEmail({ to: args.to, subject: "Your BlockID Credits Are Running Low", html, unsubscribeUrl });
 }
 
+// ---------- Inactive user re-engagement emails --------------------------------
+
+export async function sendReengagement30d(args: {
+  to: string;
+  name?: string | null;
+  svi?: number | null;
+}): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "promotions"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
+  const sviUrl = `${siteUrl()}/#svi`;
+  const greeting = args.name ? `Hi ${escapeHtml(args.name!)},` : "Hi,";
+
+  const sviBlock = args.svi != null ? `
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
+            <p style="margin:0 0 4px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Your last SVI score</p>
+            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:56px;font-weight:600;color:#3B7DD8;line-height:1;">${args.svi}</div>
+            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">Has your startup changed in 30 days?</p>
+          </div>` : "";
+
+  const html = shell(nurtureCard({
+    tagline: "BlockID — We Miss You",
+    headline: "Your Startup Score Might Have Changed",
+    body: `${greeting} a lot can change in 30 days — new traction, updated financials, fresh evidence. Your SVI score may no longer reflect where you really are.</p>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Re-analyze your startup for free and see your updated position.`,
+    ctaLabel: "Check Your Score Now",
+    ctaUrl: sviUrl,
+    extra: sviBlock,
+  }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "reengagement_30d"));
+  return sendEmail({ to: args.to, subject: "Your startup score might have changed", html, unsubscribeUrl });
+}
+
+export async function sendReengagement60d(args: {
+  to: string;
+  name?: string | null;
+}): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "promotions"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
+  const dashUrl = `${siteUrl()}/dashboard/svi`;
+  const greeting = args.name ? `Hi ${escapeHtml(args.name!)},` : "Hi,";
+  const html = shell(nurtureCard({
+    tagline: "BlockID — New Features",
+    headline: "New Features Since You Last Visited",
+    body: `${greeting} we have been busy building tools to help your startup grow. Here is what is new since your last visit:</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
+            <tr>
+              <td style="padding:8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:20px;">&#10003;</td>
+              <td style="padding:8px;color:#F8FAFC;font-size:14px;"><strong>Evidence Vault</strong> — securely upload pitch decks, financials, and traction data to boost your score</td>
+            </tr>
+            <tr>
+              <td style="padding:8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:20px;">&#10003;</td>
+              <td style="padding:8px;color:#F8FAFC;font-size:14px;"><strong>Cap Table Manager</strong> — model equity splits, dilution, and ESOP allocations in seconds</td>
+            </tr>
+            <tr>
+              <td style="padding:8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:20px;">&#10003;</td>
+              <td style="padding:8px;color:#F8FAFC;font-size:14px;"><strong>Competitive Research</strong> — AI-powered landscape analysis to see how you stack up</td>
+            </tr>
+          </table>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Come back and explore what has changed.`,
+    ctaLabel: "See What's New",
+    ctaUrl: dashUrl,
+  }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "reengagement_60d"));
+  return sendEmail({ to: args.to, subject: "New features since you last visited BlockID", html, unsubscribeUrl });
+}
+
+export async function sendReengagement90d(args: {
+  to: string;
+  name?: string | null;
+}): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "promotions"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
+  const sviUrl = `${siteUrl()}/#svi`;
+  const greeting = args.name ? `Hi ${escapeHtml(args.name!)},` : "Hi,";
+  const html = shell(nurtureCard({
+    tagline: "BlockID — Welcome Back",
+    headline: "Your Data Is Safe — Come Back Anytime",
+    body: `${greeting} it has been a while since we last saw you. We wanted to reassure you that all your data — SVI analyses, evidence, equity models — is safe and waiting for you.</p>
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
+            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Your data is secure</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#128274;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">All analyses and documents are encrypted and stored securely</td></tr>
+              <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#128274;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Your equity models and cap tables are preserved exactly as you left them</td></tr>
+              <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#128274;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Evidence uploads and SVI history are always available</td></tr>
+            </table>
+          </div>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">As a welcome back gift, re-analyze your startup for free and see how things have changed in the market.`,
+    ctaLabel: "Welcome Back",
+    ctaUrl: sviUrl,
+  }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "reengagement_90d"));
+  return sendEmail({ to: args.to, subject: "Your data is safe — come back anytime", html, unsubscribeUrl });
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }

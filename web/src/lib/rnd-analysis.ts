@@ -324,6 +324,10 @@ async function runBatch(
   onStatus?: (msg: string) => void,
   locale: "en" | "vi" = "en",
 ): Promise<Map<string, BatchPageResult>> {
+  // Extract startup stage from context for stage-aware report generation
+  const stageMatch = context.match(/## Stage: (\d+)/);
+  const stageNum = stageMatch ? parseInt(stageMatch[1], 10) : 3;
+
   const pageDefs = PAGE_DEFS.filter(p => pageIds.includes(p.id));
   const pageDescriptions = pageDefs.map(p =>
     `- pageId: "${p.id}" (Page ${p.num}: ${p.title} — ${p.subtitle})`
@@ -337,13 +341,44 @@ async function runBatch(
       ? "Write 600-1000 words per page — comprehensive analysis. Real data, named competitors, actionable insights. No content restrictions. No bullet-point lists — write flowing prose."
       : "Write 300-500 words per page as a compelling narrative essay. Open with a hook, weave in data, end with a preview of deeper paid analysis. Include lockedPreview (1-2 sentences teasing deeper analysis) and lockedSections (2-3 titles of deeper sections available in paid tier).";
 
+  // Stage-specific guidance — adapt report content to founder's reality
+  const stageGuidance = stageNum <= 2
+    ? `\n\nCRITICAL — This is an IDEA/EARLY-STAGE startup (Stage ${stageNum}). Adapt your analysis:
+- Do NOT ask for revenue proof, financial statements, or customer data — they don't have any yet
+- Instead of "Business Model": suggest 3 specific revenue models that work for this type of startup
+- Instead of "Traction": provide a step-by-step plan to get FIRST 10 users (free channels)
+- Instead of "Financial Projections": provide a realistic first-year budget (bootstrap track)
+- Action items must be doable THIS WEEK with A$0 budget
+- Recommend specific free tools: Figma (design), Vercel (deploy), Tally (forms), Carrd (landing page)
+- Include a "Mom Test" interview script customized for their idea (5 questions)
+- Suggest no-code MVP options if the idea allows it
+- End each page with "Your next step (this week):" — one specific action\n`
+    : stageNum <= 4
+      ? `\n\nThis is an EARLY-REVENUE startup (Stage ${stageNum}). Focus on:
+- Growth tactics specific to their sector
+- Unit economics guidance (even rough estimates)
+- Fundraise preparation checklist
+- Team building recommendations
+- End each page with concrete next steps\n`
+      : ''; // Stage 5+: keep current deep analysis approach
+
+  // For idea-stage startups, reinterpret page titles to match their reality
+  const ideaOverrides = stageNum <= 2 ? `
+NOTE: For this idea-stage startup, reinterpret these pages:
+- "Business Model" → "Revenue Model Options" (suggest 3 models, don't demand existing data)
+- "Traction & Growth" → "First Users Plan" (how to get first 10 users for free)
+- "Financial Projections" → "Startup Budget" (first 12 months, bootstrap track)
+- "Team & Execution" → "Founding Team Blueprint" (what roles needed, how to find co-founders)
+- "Recommendations" → "Your 90-Day Action Plan" (week-by-week, specific and free)
+` : '';
+
   const userPrompt = `Analyse this startup and write a compelling narrative research report. Each page should read like a section of a professional analyst essay — NOT bullet points.
 
 Pages to generate:
 ${pageDescriptions}
 
-${wordGuidance}
-
+${wordGuidance}${stageGuidance}
+${ideaOverrides}
 IMPORTANT: Write as connected prose paragraphs. Use real market data, name real competitors, reference real tools/frameworks. The founder should feel like they're reading a personal letter from an experienced advisor who has deeply researched their space.
 
 ## Context:

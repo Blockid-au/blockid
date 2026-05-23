@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { getCodexAuthStatus, getAIBudgetStatus } from "@/lib/ai-client";
 
 export const dynamic = "force-dynamic";
 
@@ -73,17 +74,17 @@ export async function GET() {
     providers.push({ id: "claude-proxy", name: "Anthropic Proxy", status: "missing", detail: "ANTHROPIC_PROXY_API_KEY / BASE_URL not set" });
   }
 
-  // 4. Codex OAuth
+  // 4. Codex OAuth (o3-mini / gpt-4.1-mini / gpt-4o-mini)
   try {
-    const fs = await import("fs");
-    const path = await import("path");
-    const home = process.env.HOME ?? "/root";
-    const authPath = path.join(home, ".codex", "auth.json");
-    if (fs.existsSync(authPath)) {
-      providers.push({ id: "openai-codex", name: "OpenAI Codex OAuth", status: "active", detail: "~/.codex/auth.json found" });
-    } else {
-      providers.push({ id: "openai-codex", name: "OpenAI Codex OAuth", status: process.env.CODEX_ACCESS_TOKEN ? "configured" : "missing", detail: process.env.CODEX_ACCESS_TOKEN ? "CODEX_ACCESS_TOKEN set" : "~/.codex/auth.json not found" });
-    }
+    const codexStatus = getCodexAuthStatus();
+    providers.push({
+      id: "openai-codex",
+      name: "OpenAI Codex OAuth (o3-mini)",
+      status: codexStatus.hasToken ? "active" : "missing",
+      detail: codexStatus.hasToken
+        ? `Token from ${codexStatus.tokenSource} — Models: o3-mini, gpt-4.1-mini, gpt-4o-mini`
+        : "Not configured — use Admin > AI Keys > Codex Login to authorize",
+    });
   } catch {
     providers.push({ id: "openai-codex", name: "OpenAI Codex OAuth", status: "missing", detail: "Cannot check" });
   }
@@ -108,6 +109,7 @@ export async function GET() {
 
   const activeCount = providers.filter((p) => p.status === "active").length;
   const configuredCount = providers.filter((p) => p.status !== "missing").length;
+  const budget = getAIBudgetStatus();
 
   return NextResponse.json({
     ok: true,
@@ -116,5 +118,7 @@ export async function GET() {
     totalProviders: providers.length,
     providers,
     priority: providers.map((p) => p.id),
+    budget,
+    codexDeviceAuthUrl: "/api/admin/codex-auth",
   });
 }
