@@ -1,0 +1,20 @@
+{
+  "name": "@blockid/svi-engine",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.4",
+    "fastify": "^5.3.3",
+    "nanoid": "^5.1.5"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}
