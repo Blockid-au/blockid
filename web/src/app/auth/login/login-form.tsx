@@ -35,13 +35,15 @@ function GoogleSignIn({ nextUrl }: { nextUrl: string | null }) {
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          throw new Error(data.error ?? "Google sign-in failed");
+          console.error("[blockid:auth] Google sign-in API error", res.status, data);
+          throw new Error(data.error ?? `Google sign-in failed (${res.status})`);
         }
         trackEvent("login_google_success", {});
         const target = nextUrl ?? data.redirect ?? "/";
         const sep = target.includes("?") ? "&" : "?";
         window.location.href = `${target}${sep}logged_in=true`;
       } catch (err) {
+        console.error("[blockid:auth] Google sign-in error", err);
         setError(err instanceof Error ? err.message : "Google sign-in failed");
         setLoading(false);
       }
@@ -338,6 +340,68 @@ function CouponInput() {
 /* ========================================================================== */
 
 /* ========================================================================== */
+/*  Forgot Password                                                            */
+/* ========================================================================== */
+
+function ForgotPasswordLink() {
+  const [show, setShow] = useState(false);
+  const [email, setEmail] = useState("");
+  const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
+
+  if (!show) {
+    return (
+      <button
+        type="button"
+        onClick={() => setShow(true)}
+        className="block w-full text-center text-xs text-ink-500 hover:text-brand-600 mt-2 cursor-pointer transition-colors"
+      >
+        Forgot your password?
+      </button>
+    );
+  }
+
+  const handleReset = async () => {
+    if (!email.includes("@")) return;
+    setState("sending");
+    await fetch("/api/auth/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    }).catch(() => {});
+    setState("sent");
+  };
+
+  if (state === "sent") {
+    return (
+      <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center">
+        <p className="text-xs text-emerald-700 font-medium">Reset link sent!</p>
+        <p className="text-[11px] text-emerald-600 mt-1">Check your email for a link to sign in and set a new password.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-3 flex gap-2">
+      <input
+        type="email"
+        placeholder="Your email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className="flex-1 rounded-lg border border-surface-300 px-3 py-1.5 text-xs text-ink-800 outline-none focus:border-brand-400"
+      />
+      <button
+        type="button"
+        disabled={state === "sending" || !email.includes("@")}
+        onClick={() => void handleReset()}
+        className="rounded-lg bg-surface-100 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-surface-200 disabled:opacity-50 cursor-pointer transition-colors"
+      >
+        {state === "sending" ? "Sending..." : "Send Reset Link"}
+      </button>
+    </div>
+  );
+}
+
+/* ========================================================================== */
 /*  Email + Password Form (Login / Register)                                   */
 /* ========================================================================== */
 
@@ -454,6 +518,10 @@ function EmailPasswordForm({ nextUrl }: { nextUrl: string | null }) {
           mode === "register" ? "Create Account" : "Sign In"
         )}
       </button>
+
+      {mode === "login" && (
+        <ForgotPasswordLink />
+      )}
     </form>
   );
 }
@@ -463,6 +531,9 @@ export function LoginForm() {
   const plan = searchParams.get("plan");
   const nextUrl = searchParams.get("next");
   const [authMethod, setAuthMethod] = useState<"password" | "magic">("password");
+
+  // Track login page view
+  useEffect(() => { trackEvent("login_page_viewed", {}); }, []);
 
   return (
     <div className="space-y-0">
