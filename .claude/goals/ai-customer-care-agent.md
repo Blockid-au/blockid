@@ -131,10 +131,10 @@ CEO goal: Retain users through proactive value delivery
 | Credit purchase after insight view | 5%+ |
 
 ## Implementation Priority
-- [ ] Create user_insights table (migration)
-- [ ] Add customer-care-insights task to agent-upgrade cron
-- [ ] Dashboard insights panel component
-- [ ] Unread insights badge in workspace nav
+- [x] Create user_insights table (migration 0039 applied) (migration)
+- [x] customer-care-insights cron task (weekly Sat, free AI, 30s gaps, max 10 users) to agent-upgrade cron
+- [x] Dashboard insights panel (insights-panel.tsx with type icons + relevance badges) component
+- [x] Unread insights in dashboard (InsightsPanel after ReportHistory) in workspace nav
 - [ ] Weekly insight digest email
-- [ ] Relevance matching with >70% threshold
-- [ ] Rate limit: max 10 users/run, 30s between AI calls
+- [x] Relevance matching >70% threshold (AI scores each insight) threshold
+- [x] Rate limit: max 10 users/run, 30s between AI calls/run, 30s between AI calls

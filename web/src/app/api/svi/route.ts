@@ -3,9 +3,9 @@ import { NextResponse } from "next/server";
 import { extractSignals, computeSVI, type SVITextInput } from "@/lib/svi-analysis";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { newSlug } from "@/lib/slug";
-import { sendSVIReport, sendMagicLink } from "@/lib/email";
+import { sendSVIReport, sendWelcomeWithReport } from "@/lib/email";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
-import { requestMagicLink, MAGIC_LINK_TTL_MIN } from "@/lib/auth";
+import { autoCreateUserWithTempPassword } from "@/lib/auth";
 
 // POST /api/svi
 // Body: { email, input: { rawText, fileName? } }
@@ -166,8 +166,32 @@ export async function POST(request: Request) {
     }
   }
 
-  // After persisting, send report email (fire-and-forget)
-  void sendSVIReport({ to: email, slug, rawInput: parsed.input?.rawText, analysis, locale }).catch(() => {});
+  // ── Auto-create account + send welcome OR just report email ─────────
+  // New users: auto-create app_users with temp password, send combined
+  // welcome+report email with credentials. Existing users: send report only.
+  if (!authenticatedUserId && supabase) {
+    void (async () => {
+      try {
+        const result = await autoCreateUserWithTempPassword(email);
+        if (result.ok && result.isNewUser && result.tempPassword) {
+          // New user — send combined welcome + report + credentials
+          void sendWelcomeWithReport({
+            to: email, slug, rawInput: parsed.input?.rawText,
+            analysis, tempPassword: result.tempPassword, locale,
+          }).catch(() => {});
+        } else {
+          // Existing user — send report only
+          void sendSVIReport({ to: email, slug, rawInput: parsed.input?.rawText, analysis, locale }).catch(() => {});
+        }
+      } catch {
+        // Fallback: send report without account creation
+        void sendSVIReport({ to: email, slug, rawInput: parsed.input?.rawText, analysis, locale }).catch(() => {});
+      }
+    })();
+  } else {
+    // Authenticated user — just send report
+    void sendSVIReport({ to: email, slug, rawInput: parsed.input?.rawText, analysis, locale }).catch(() => {});
+  }
 
   // ── Ensure per-project svi_account exists (data isolation) ──────────
   // Each (email, project_id) pair gets its own svi_account row.
@@ -215,40 +239,6 @@ export async function POST(request: Request) {
           drive_folder_url: folderUrl,
         }).eq("id", slug);
       } catch { /* Drive not configured or failed — non-blocking */ }
-    })();
-  }
-
-  // ── Auto-send magic link for frictionless signup (unauthenticated only) ──
-  // If the user doesn't already have an account, send them a magic link so
-  // they can sign in with one click and auto-create their account.
-  if (!authenticatedUserId && supabase) {
-    void (async () => {
-      try {
-        const { data: existingUser } = await supabase
-          .from("app_users")
-          .select("id")
-          .eq("email", email)
-          .maybeSingle();
-
-        if (!existingUser) {
-          const result = await requestMagicLink({
-            email,
-            intent: "login",
-            pendingPayload: {},
-          });
-          if (result.ok) {
-            void sendMagicLink({
-              to: email,
-              token: result.token,
-              intent: "login",
-              ttlMinutes: MAGIC_LINK_TTL_MIN,
-              locale,
-            }).catch(() => {});
-          }
-        }
-      } catch {
-        // Fire-and-forget — don't block the SVI response
-      }
     })();
   }
 

@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { ProfileProgress } from "@/components/workspace/profile-progress";
 import { BadgeShelf } from "@/components/workspace/badge-shelf";
+import { PasswordForm } from "@/components/workspace/password-form";
 
 export const metadata: Metadata = {
   title: "My Profile",
@@ -16,6 +18,19 @@ export const dynamic = "force-dynamic";
 export default async function ProfilePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/profile");
+
+  // Check if user has an existing password
+  let hasPassword = false;
+  const supabase = getSupabaseAdmin();
+  if (supabase) {
+    const { data } = await supabase
+      .from("app_users")
+      .select("password_hash")
+      .eq("id", user.id)
+      .single();
+    hasPassword = Boolean(data?.password_hash);
+  }
+
   return (
     <WorkspaceLayout user={user}>
       <div className="p-6 max-w-2xl mx-auto">
@@ -50,6 +65,9 @@ export default async function ProfilePage() {
               <span className="text-ink-800">{new Date(user.createdAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}</span>
             </div>
           </div>
+        </div>
+        <div className="mt-6">
+          <PasswordForm hasExistingPassword={hasPassword} />
         </div>
         <div className="mt-6">
           <BadgeShelf email={user.email} />

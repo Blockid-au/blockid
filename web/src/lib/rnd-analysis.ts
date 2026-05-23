@@ -400,7 +400,7 @@ Return JSON with a "pages" array containing one object per page listed above. Ea
     : "";
 
   // Retry up to 3 times with backoff — different providers may succeed
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < 2; attempt++) {
     try {
       if (attempt > 0) {
         onStatus?.(`Retrying ${batchLabel} (attempt ${attempt + 1})...`);

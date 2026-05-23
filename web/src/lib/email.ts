@@ -558,6 +558,205 @@ export async function sendSVIReport(args: {
   });
 }
 
+// ---------- Welcome + First Report email (new user auto-account) -------------
+// Sent when a new user creates their first report. Combines:
+//   1. Welcome to BlockID
+//   2. SVI report summary + PDF attachment
+//   3. Temporary password + login URL
+//   4. Instructions to set their own password
+
+export async function sendWelcomeWithReport(args: {
+  to: string;
+  slug: string;
+  rawInput?: string;
+  analysis: SVIAnalysis;
+  tempPassword: string;
+  locale?: "en" | "vi";
+}): Promise<SendResult> {
+  const isVi = args.locale === "vi";
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
+  const reportUrl = `${siteUrl()}/s/${args.slug}`;
+  const loginUrl = `${siteUrl()}/auth/login`;
+  const profileUrl = `${siteUrl()}/workspace/profile`;
+  const trackUrl = `${siteUrl()}/api/track/open?slug=${args.slug}&email=${encodeURIComponent(args.to)}`;
+  const ideaSummary = args.rawInput ? escapeHtml(args.rawInput.replace(/^File:.*\n/, "").trim().slice(0, 300)) + (args.rawInput.length > 300 ? "..." : "") : null;
+  const strengths = args.analysis.subs.filter((s) => s.value >= 60).sort((a, b) => b.value - a.value).slice(0, 3);
+  const gaps = args.analysis.evidenceGaps.slice(0, 3);
+  const strengthRows = strengths.map((s) => `<tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(s.label)} <span style="color:#64748B;">(${s.value}/100)</span></td></tr>`).join("");
+  const gapRows = gaps.map((g) => `<tr><td style="padding:6px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(g.label)}: <span style="color:#94A3B8;">${escapeHtml(g.action)}</span></td></tr>`).join("");
+
+  // Generate PDF attachment
+  let pdfAttachment: { filename: string; content: Buffer; contentType: string } | undefined;
+  try {
+    const pdfBuffer = await renderToBuffer(
+      SVIReportPDF({ analysis: args.analysis, email: args.to }),
+    );
+    const filename = `BlockID-SVI-Report-${args.slug}.pdf`;
+    pdfAttachment = { filename, content: Buffer.from(pdfBuffer), contentType: "application/pdf" };
+  } catch (pdfErr) {
+    console.error("[blockid:email] PDF generation failed for welcome email", pdfErr);
+  }
+
+  const ideaSummaryHtml = ideaSummary ? `<div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:0 0 16px 0;"><p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">${isVi ? "Y Tuong Cua Ban" : "Your Idea"}</p><p style="margin:0;color:#CBD5E1;font-size:13px;line-height:1.6;font-style:italic;">&ldquo;${ideaSummary}&rdquo;</p></div>` : "";
+
+  const subject = isVi
+    ? "Chao mung den BlockID — Bao Cao Dau Tien & Tai Khoan Cua Ban"
+    : "Welcome to BlockID — Your First Report & Account Details";
+
+  const html = shell(`
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+        <tr><td>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${isVi ? "Chao Mung Den BlockID!" : "Welcome to BlockID!"}</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${isVi
+    ? "Tai khoan cua ban da duoc tao tu dong. Bao cao phan tich dau tien cua ban da san sang ben duoi."
+    : "Your account has been automatically created. Your first analysis report is ready below."
+  }${pdfAttachment ? (isVi ? " Bao cao PDF day du duoc dinh kem." : " The full PDF report is attached.") : ""}</p>
+
+          <!-- Account credentials box -->
+          <div style="background:linear-gradient(135deg,#1a2744 0%,#0f1d35 100%);border:1px solid #2563EB;border-radius:12px;padding:20px;margin:0 0 24px 0;">
+            <p style="margin:0 0 12px 0;font-size:13px;font-weight:600;color:#60A5FA;">${isVi ? "Thong Tin Tai Khoan Cua Ban" : "Your Account Details"}</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="padding:4px 0;color:#94A3B8;font-size:13px;width:120px;">${isVi ? "Email:" : "Email:"}</td>
+                <td style="padding:4px 0;color:#F8FAFC;font-size:13px;font-weight:500;">${escapeHtml(args.to)}</td>
+              </tr>
+              <tr>
+                <td style="padding:4px 0;color:#94A3B8;font-size:13px;">${isVi ? "Mat khau tam:" : "Temp password:"}</td>
+                <td style="padding:4px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:15px;font-weight:600;color:#4ADE80;letter-spacing:0.05em;">${escapeHtml(args.tempPassword)}</td>
+              </tr>
+            </table>
+            <p style="margin:12px 0 0 0;color:#FBBF24;font-size:11px;line-height:1.5;">${isVi
+    ? "Hay doi mat khau nay thanh mat khau rieng cua ban sau khi dang nhap."
+    : "Please change this to your own password after signing in."
+  }</p>
+          </div>
+
+          <!-- Login button -->
+          <p style="margin:0 0 24px 0;text-align:center;">
+            <a href="${loginUrl}" style="display:inline-block;background:#2563EB;color:#FFFFFF;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:15px;">${isVi ? "Dang Nhap Ngay" : "Sign In Now"}</a>
+          </p>
+
+          <hr style="border:none;border-top:1px solid #1F2A44;margin:0 0 24px 0;">
+
+          <!-- SVI Report summary -->
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">${isVi ? "Bao Cao Gia Tri Startup" : "Startup Value Report"}</p>
+          ${ideaSummaryHtml}
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
+            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:64px;font-weight:600;color:#3B7DD8;line-height:1;">${args.analysis.totalSVI}</div>
+            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">${isVi ? "Diem SVI" : "SVI Score"} — ${escapeHtml(args.analysis.stageLabel)} Stage</p>
+          </div>
+          ${strengths.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">${isVi ? "Diem Manh" : "Strengths"}</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${strengthRows}</table>` : ""}
+          ${gaps.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">${isVi ? "Thieu Bang Chung" : "Evidence Gaps"}</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${gapRows}</table>` : ""}
+          <p style="margin:0 0 24px 0;text-align:center;">
+            <a href="${reportUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:14px;">${isVi ? "Xem Bao Cao Day Du" : "View Full Report"}</a>
+          </p>
+
+          <!-- Next steps -->
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:0 0 16px 0;">
+            <p style="margin:0 0 8px 0;font-size:13px;font-weight:600;color:#4ADE80;">${isVi ? "Buoc Tiep Theo" : "Your Next Steps"}</p>
+            <p style="margin:0 0 6px 0;color:#CBD5E1;font-size:12px;line-height:1.5;">1. ${isVi ? "Dang nhap voi mat khau tam o tren" : "Sign in with the temp password above"}</p>
+            <p style="margin:0 0 6px 0;color:#CBD5E1;font-size:12px;line-height:1.5;">2. ${isVi ? "Doi mat khau rieng tai" : "Set your own password at"} <a href="${profileUrl}" style="color:#60A5FA;text-decoration:underline;">${isVi ? "Ho So" : "Profile"}</a></p>
+            <p style="margin:0 0 6px 0;color:#CBD5E1;font-size:12px;line-height:1.5;">3. ${isVi ? "Xem bao cao va xac dinh uu tien" : "Review your report and identify priorities"}</p>
+            <p style="margin:0 0 6px 0;color:#CBD5E1;font-size:12px;line-height:1.5;">4. ${isVi ? "Tao them y tuong moi va theo doi tien trinh" : "Create more ideas and track your progress"}</p>
+            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:11px;font-style:italic;">${isVi ? "Moi buoc nho deu nang gia tri startup cua ban." : "Every small step raises your startup's value. We're with you."}</p>
+          </div>
+
+          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
+          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0 0 8px 0;color:#64748B;font-size:11px;line-height:1.5;">${isVi
+    ? "Quen mat khau? Vao trang dang nhap, nhan 'Forgot your password?' de nhan mat khau moi qua email."
+    : "Forgot your password? Visit the login page and click 'Forgot your password?' to receive a new one via email."
+  }</p>
+          <p style="margin:0;color:#475569;font-size:10px;line-height:1.4;">This analysis is produced by BlockID.au (Auschain PTY LTD, ACN 659 615 111). The SVI is NOT a financial valuation or investment recommendation. BlockID does not hold an AFSL. Seek independent professional advice. Prices in AUD incl. GST.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+  ${unsubFooter(unsubscribeUrl, preferencesUrl, args.locale)}
+  <img src="${trackUrl}" width="1" height="1" alt="" style="display:none;" />`);
+
+  return sendEmail({
+    to: args.to,
+    subject,
+    html,
+    unsubscribeUrl,
+    ...(pdfAttachment && { attachments: [pdfAttachment] }),
+  });
+}
+
+// ---------- Password reset email (with temp password) -------------------------
+
+export async function sendPasswordReset(args: {
+  to: string;
+  tempPassword: string;
+  locale?: "en" | "vi";
+}): Promise<SendResult> {
+  const isVi = args.locale === "vi";
+  const loginUrl = `${siteUrl()}/auth/login`;
+  const profileUrl = `${siteUrl()}/workspace/profile`;
+
+  const subject = isVi
+    ? "BlockID — Mat Khau Moi Cua Ban"
+    : "BlockID — Your New Password";
+
+  const html = shell(`
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+        <tr><td>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${isVi ? "Dat Lai Mat Khau" : "Password Reset"}</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${isVi
+    ? "Mat khau moi da duoc tao cho tai khoan cua ban. Hay su dung mat khau tam ben duoi de dang nhap."
+    : "A new password has been generated for your account. Use the temporary password below to sign in."
+  }</p>
+
+          <!-- New credentials box -->
+          <div style="background:linear-gradient(135deg,#1a2744 0%,#0f1d35 100%);border:1px solid #2563EB;border-radius:12px;padding:20px;margin:0 0 24px 0;">
+            <p style="margin:0 0 12px 0;font-size:13px;font-weight:600;color:#60A5FA;">${isVi ? "Mat Khau Moi" : "Your New Password"}</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="padding:4px 0;color:#94A3B8;font-size:13px;width:120px;">${isVi ? "Email:" : "Email:"}</td>
+                <td style="padding:4px 0;color:#F8FAFC;font-size:13px;font-weight:500;">${escapeHtml(args.to)}</td>
+              </tr>
+              <tr>
+                <td style="padding:4px 0;color:#94A3B8;font-size:13px;">${isVi ? "Mat khau:" : "Password:"}</td>
+                <td style="padding:4px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:15px;font-weight:600;color:#4ADE80;letter-spacing:0.05em;">${escapeHtml(args.tempPassword)}</td>
+              </tr>
+            </table>
+            <p style="margin:12px 0 0 0;color:#FBBF24;font-size:11px;line-height:1.5;">${isVi
+    ? "Hay doi mat khau nay thanh mat khau rieng sau khi dang nhap."
+    : "Please change this to your own password after signing in."
+  }</p>
+          </div>
+
+          <!-- Login + Profile buttons -->
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
+            <tr>
+              <td width="48%" style="text-align:center;padding:4px;"><a href="${loginUrl}" style="display:inline-block;width:100%;background:#2563EB;color:#FFFFFF;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">${isVi ? "Dang Nhap" : "Sign In"}</a></td>
+              <td width="4%"></td>
+              <td width="48%" style="text-align:center;padding:4px;"><a href="${profileUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">${isVi ? "Doi Mat Khau" : "Change Password"}</a></td>
+            </tr>
+          </table>
+
+          <hr style="border:none;border-top:1px solid #1F2A44;margin:0 0 16px 0;">
+          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:11px;line-height:1.5;">${isVi
+    ? "Neu ban khong yeu cau dat lai mat khau, hay lien he admin@blockid.au."
+    : "If you didn't request this password reset, please contact admin@blockid.au."
+  }</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>`);
+
+  // Password reset is transactional — always send (no unsubscribe check)
+  return sendEmail({ to: args.to, subject, html });
+}
+
 // ---------- SVI Share email --------------------------------------------------
 
 export async function sendSVIShare(args: { to: string; senderName?: string | null; slug: string; svi: number }): Promise<SendResult> {
