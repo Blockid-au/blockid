@@ -30,26 +30,34 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: true, canAnalyze: true, reason: "paid_plan", plan: account.plan });
   }
 
-  // Check usage
-  const { data: usage } = await supabase
-    .from("svi_analysis_usage")
-    .select("free_used, credits_remaining, total_analyses")
+  // Check if a free analysis was used in the last 24 hours
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data: recentAnalyses } = await supabase
+    .from("svi_analyses")
+    .select("id")
     .eq("email", email)
-    .maybeSingle();
+    .gte("created_at", oneDayAgo)
+    .limit(1);
 
-  if (!usage || !usage.free_used) {
+  if (!recentAnalyses || recentAnalyses.length === 0) {
     return NextResponse.json({ ok: true, canAnalyze: true, reason: "free_available" });
   }
 
-  if (usage.credits_remaining > 0) {
+  // Check if user has purchased credits
+  const { data: usage } = await supabase
+    .from("svi_analysis_usage")
+    .select("credits_remaining")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (usage && usage.credits_remaining > 0) {
     return NextResponse.json({ ok: true, canAnalyze: true, reason: "credits", credits: usage.credits_remaining });
   }
 
   return NextResponse.json({
     ok: true,
     canAnalyze: false,
-    reason: "limit_reached",
-    totalAnalyses: usage.total_analyses,
+    reason: "daily_limit_reached",
   });
 }
 

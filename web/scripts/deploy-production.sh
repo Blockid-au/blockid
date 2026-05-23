@@ -55,7 +55,7 @@ echo ""
 echo "=== Building Docker image ==="
 echo "  .env included in build context for NEXT_PUBLIC_* inlining"
 echo "  .env NOT in final runtime image (multi-stage build)"
-docker build -t blockid-production .
+docker compose build web
 
 # Step 4: Deploy
 echo ""
@@ -64,13 +64,13 @@ docker rm -f deploy-blockid-production 2>/dev/null || true
 docker run -d \
   --name deploy-blockid-production \
   --restart unless-stopped \
-  --network supabase_default \
   -p 127.0.0.1:4001:3000 \
   --env-file .env \
-  -v "$(pwd)/public/uploads:/app/public/uploads" \
   -v "$(pwd)/content:/app/content" \
-  -v "$HOME/.claude:/home/node/.claude:ro" \
-  blockid-production
+  -v "$HOME/blockid.au/uploads:/app/uploads" \
+  -v "$HOME/.claude/.credentials.json:/home/node/.claude/.credentials.json:ro" \
+  -v "$HOME/.codex/auth.json:/home/node/.codex/auth.json:ro" \
+  blockid/web:latest
 
 # Step 5: Wait for health
 echo ""
@@ -102,5 +102,5 @@ echo ""
 echo "============================================"
 echo "  ✅ DEPLOY COMPLETE"
 echo "  Backup: $BACKUP"
-echo "  Image: blockid-production:latest"
+echo "  Image: blockid/web:latest"
 echo "============================================"

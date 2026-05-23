@@ -64,21 +64,23 @@ export async function POST(request: Request) {
         }, { status: 402 });
       }
     } else {
-      // Unauthenticated — check if this email already used their 1 free analysis
-      const { data: existingAnalyses } = await gateSupabase
+      // Unauthenticated — allow 1 free analysis per day per email
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { data: recentAnalyses } = await gateSupabase
         .from("svi_analyses")
         .select("id")
         .eq("email", email)
+        .gte("created_at", oneDayAgo)
         .limit(1);
 
-      if (existingAnalyses && existingAnalyses.length > 0) {
+      if (recentAnalyses && recentAnalyses.length > 0) {
         return NextResponse.json({
           ok: false,
-          error: "Free analysis used. Sign in and purchase credits to continue.",
+          error: "You've used your free daily analysis. Come back tomorrow or sign in to continue.",
           needsAuth: true,
         }, { status: 402 });
       }
-      // First time for this email — allow for free (don't spend credits)
+      // No analysis in the last 24h — allow for free
     }
   }
 
