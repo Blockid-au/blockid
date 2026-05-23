@@ -181,7 +181,7 @@ export interface AICallOptions {
 
 interface AICallResult {
   text: string;
-  provider: "claude" | "openai" | "gemini" | "groq" | "openrouter";
+  provider: "claude" | "openai" | "gemini" | "groq" | "openrouter" | "ollama";
   model: string;
 }
 
@@ -229,7 +229,7 @@ function readCodexOAuthToken(): string | null {
 
 // ── Provider detection ─────────────────────────────────────────────────
 
-type Provider = "claude-oauth" | "claude-apikey" | "claude-proxy" | "openai-codex" | "openai-apikey" | "gemini" | "groq" | "openrouter" | "none";
+type Provider = "claude-oauth" | "claude-apikey" | "claude-proxy" | "openai-codex" | "openai-apikey" | "gemini" | "groq" | "openrouter" | "ollama" | "none";
 
 function getAvailableProviders(): Provider[] {
   const providers: Provider[] = [];
@@ -256,6 +256,8 @@ function getAvailableProviders(): Provider[] {
   // 8. TapHoaAPI proxy (last resort — 30s gateway timeout)
   if (process.env.ANTHROPIC_PROXY_API_KEY && process.env.ANTHROPIC_PROXY_BASE_URL) providers.push("claude-proxy");
   else if (getDBKey("anthropic_proxy")) providers.push("claude-proxy");
+  // 9. Ollama local LLM (always available as last resort)
+  if (process.env.OLLAMA_HOST || process.env.OLLAMA_ENABLED === "true") providers.push("ollama");
   return providers;
 }
 
@@ -478,6 +480,32 @@ async function callOpenRouter(opts: AICallOptions): Promise<AICallResult> {
   throw lastErr ?? new Error("All OpenRouter free models failed");
 }
 
+// ── Ollama local LLM (GPU-accelerated, on-server fallback) ────────────
+
+async function callOllama(opts: AICallOptions): Promise<AICallResult> {
+  const host = process.env.OLLAMA_HOST ?? "http://localhost:11434";
+  const model = process.env.OLLAMA_MODEL ?? "qwen2.5:3b";
+
+  const res = await fetch(`${host}/api/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model,
+      system: opts.system,
+      prompt: opts.user,
+      stream: false,
+      options: {
+        num_predict: opts.maxTokens ?? 2048,
+        temperature: 0.7,
+      },
+    }),
+  });
+
+  if (!res.ok) throw new Error(`Ollama ${res.status}: ${await res.text()}`);
+  const data = await res.json();
+  return { text: data.response ?? "", provider: "ollama", model };
+}
+
 // ── Provider caller map ────────────────────────────────────────────────
 
 
@@ -558,6 +586,8 @@ async function callProvider(provider: Provider, opts: AICallOptions): Promise<AI
       }
       return callGemini(noTools);
     }
+    case "ollama":
+      return callOllama(noTools);
     default:
       throw new Error(`Unknown provider: ${provider}`);
   }

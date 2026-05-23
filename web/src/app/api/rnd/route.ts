@@ -8,6 +8,7 @@ import { generateRndReport, type ReportTier, type CompetitiveResearchData } from
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { getProjectIdFromRequest } from "@/lib/projects";
 import { sendSVIReport } from "@/lib/email";
+import { createReportGoogleDoc } from "@/lib/google-drive";
 
 /** Map tier to the credit feature key used for billing. */
 function tierToFeature(tier: ReportTier): string {
@@ -363,6 +364,31 @@ export async function POST(request: Request) {
             }).eq("id", accountId);
           }
         } catch { /* non-blocking */ }
+      }
+
+      // Step 5c: Generate Google Doc (fire-and-forget, authenticated users only)
+      if (authenticatedUserId && supabase) {
+        void createReportGoogleDoc(email, slug, report, analysis)
+          .then(async (docResult) => {
+            if (docResult && supabase) {
+              // Persist the doc URL in analysis_json alongside existing data
+              const { data: existing } = await supabase
+                .from("svi_analyses")
+                .select("analysis_json")
+                .eq("id", slug)
+                .maybeSingle();
+              if (existing?.analysis_json) {
+                await supabase.from("svi_analyses").update({
+                  analysis_json: {
+                    ...(existing.analysis_json as Record<string, unknown>),
+                    driveDocId: docResult.docId,
+                    driveDocUrl: docResult.docUrl,
+                  },
+                }).eq("id", slug);
+              }
+            }
+          })
+          .catch(() => {});
       }
 
       // Step 6: Spend credits (authenticated users only)
