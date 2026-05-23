@@ -30,21 +30,25 @@ variables:
     - docker build -t gitlab-deploy/${PROJECT_NAME}:${CI_ENV_TAG} .
     - echo "✓ Build complete"
 
-    # ── 2. Stop old → Start new ──
+    # ── 2. Generate clean runtime env (strip comments for --env-file) ──
+    - grep -v '^\s*#\|^\s*$' .env > .env.runtime
+    - echo "✓ $(wc -l < .env.runtime) vars → .env.runtime"
+
+    # ── 3. Stop old → Start new ──
     - docker rm -f deploy-${PROJECT_NAME}-${CI_ENV_SLUG} 2>/dev/null || true
     - docker run -d
         --name deploy-${PROJECT_NAME}-${CI_ENV_SLUG}
         --restart unless-stopped
         --network supabase_default
         -p 127.0.0.1:${DEPLOY_PORT}:3000
-        --env-file ${WORK_DIR}/.env
+        --env-file ${WORK_DIR}/.env.runtime
         -v /home/dovanlong/.claude/.credentials.json:/home/node/.claude/.credentials.json:ro
         -v /home/dovanlong/.codex/auth.json:/home/node/.codex/auth.json:ro
         -v ${CONTENT_DIR}:/app/content
         -v /home/dovanlong/blockid.au/uploads:/app/uploads
         gitlab-deploy/${PROJECT_NAME}:${CI_ENV_TAG}
 
-    # ── 3. Wait for healthy (max 30s) ──
+    # ── 4. Wait for healthy (max 30s) ──
     - |
       for i in $(seq 1 15); do
         STATUS=$(docker inspect --format="{{.State.Health.Status}}" deploy-${PROJECT_NAME}-${CI_ENV_SLUG} 2>/dev/null || echo "starting")
@@ -52,7 +56,7 @@ variables:
         sleep 2
       done
 
-    # ── 4. Verify ──
+    # ── 5. Verify ──
     - curl -sf http://127.0.0.1:${DEPLOY_PORT}/ -o /dev/null && echo "✓ Live at ${DEPLOY_URL}" || echo "⚠ Health check pending"
     - |
       ENV_COUNT=$(docker exec deploy-${PROJECT_NAME}-${CI_ENV_SLUG} env 2>/dev/null | grep -c "=" || echo "0")
