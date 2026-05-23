@@ -19,7 +19,7 @@ import * as path from "path";
  * Call external API via ai-worker.mjs subprocess — bypasses Next.js Turbopack fetch patches
  * that silently hang on long-running API calls (>5s).
  */
-function workerFetch(url: string, headers: Record<string, string>, body: string): Promise<string> {
+function workerFetch(url: string, headers: Record<string, string>, body: string, timeoutMs = 30_000): Promise<string> {
   /* eslint-disable @typescript-eslint/no-require-imports */
   const cp = eval('require')("child_process") as typeof import("child_process");
   /* eslint-enable @typescript-eslint/no-require-imports */
@@ -31,7 +31,7 @@ function workerFetch(url: string, headers: Record<string, string>, body: string)
       "/app/ai-worker.mjs",
     ].find(p => fs.existsSync(p));
 
-    console.log(`[ai-worker] spawn: worker=${workerPath} url=${url.slice(0, 40)}...`);
+    console.log(`[ai-worker] spawn: worker=${workerPath} url=${url.slice(0, 40)}... timeout=${timeoutMs}ms`);
 
     if (!workerPath) {
       reject(new Error("ai-worker.mjs not found"));
@@ -43,17 +43,16 @@ function workerFetch(url: string, headers: Record<string, string>, body: string)
     let stderr = "";
     let killed = false;
 
-    // Hard kill after 30s — fail fast, let retry use next provider
     const killTimer = setTimeout(() => {
       killed = true;
       child.kill("SIGKILL");
-    }, 30_000);
+    }, timeoutMs);
 
     child.stdout.on("data", (d: Buffer) => { stdout += d.toString(); });
     child.stderr.on("data", (d: Buffer) => { stderr += d.toString(); });
     child.on("close", (code: number) => {
       clearTimeout(killTimer);
-      if (killed) reject(new Error("Worker timeout (60s)"));
+      if (killed) reject(new Error(`Worker timeout (${Math.round(timeoutMs / 1000)}s)`));
       else if (code === 0 && stdout) resolve(stdout);
       else reject(new Error(stderr || `Worker exited ${code}`));
     });
@@ -176,6 +175,8 @@ export interface AICallOptions {
   system: string;
   user: string;
   maxTokens?: number;
+  /** Worker subprocess timeout in ms. Default 30s. Use 180_000 for long reports. */
+  timeoutMs?: number;
   /** Tools for Claude (e.g. web_search). Ignored by OpenAI/Gemini. */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   tools?: any[];
@@ -286,7 +287,7 @@ async function callClaude(apiKey: string, opts: AICallOptions): Promise<AICallRe
       max_tokens: opts.maxTokens ?? 4096,
       system: opts.system,
       messages: [{ role: "user", content: opts.user }],
-    }));
+    }), opts.timeoutMs);
     const data = JSON.parse(raw);
     let text = "";
     for (const block of (data.content ?? [])) {
@@ -408,7 +409,7 @@ async function callCodex(opts: AICallOptions): Promise<AICallResult> {
       const raw = await workerFetch("https://api.openai.com/v1/chat/completions", {
         "Authorization": `Bearer ${token}`,
         "Content-Type": "application/json",
-      }, JSON.stringify(body));
+      }, JSON.stringify(body), opts.timeoutMs);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = JSON.parse(raw) as any;
@@ -441,6 +442,7 @@ async function callGemini(opts: AICallOptions): Promise<AICallResult> {
       contents: [{ role: "user", parts: [{ text: opts.user }] }],
       generationConfig: { maxOutputTokens: opts.maxTokens ?? 4096 },
     }),
+    opts.timeoutMs,
   );
 
   const data = JSON.parse(raw);
@@ -468,7 +470,7 @@ async function callGroq(opts: AICallOptions): Promise<AICallResult> {
       { role: "system", content: opts.system },
       { role: "user", content: opts.user },
     ],
-  }));
+  }), opts.timeoutMs);
 
   const data = JSON.parse(raw);
   if (data.error) throw new Error(data.error.message ?? "Groq error");
@@ -510,7 +512,7 @@ async function callOpenRouter(opts: AICallOptions): Promise<AICallResult> {
           { role: "system", content: opts.system },
           { role: "user", content: opts.user },
         ],
-      }));
+      }), opts.timeoutMs);
 
       const data = JSON.parse(raw);
       if (data.error) throw new Error(data.error.message ?? "OpenRouter error");
@@ -560,9 +562,11 @@ async function callClaudeProxy(opts: AICallOptions): Promise<AICallResult> {
   const envKeys = (process.env.ANTHROPIC_PROXY_API_KEY ?? "").split(",").map((k) => k.trim()).filter(Boolean);
   const dbKeys = dbProxy?.api_key ? dbProxy.api_key.split(",").map((k) => k.trim()).filter(Boolean) : [];
   const keys = [...new Set([...envKeys, ...dbKeys])];
-  // Proxy: haiku + capped tokens to stay within 30s gateway timeout
-  const model = "claude-haiku-4-5-20251001";
-  const maxTokens = Math.min(opts.maxTokens ?? 4096, 1500); // Cap at 1500 for proxy speed
+  // Proxy: haiku for quick tasks, sonnet for heavy reports
+  const isHeavy = (opts.maxTokens && opts.maxTokens > 4096);
+  const model = isHeavy ? "claude-sonnet-4-6" : "claude-haiku-4-5-20251001";
+  // Allow full token budget for heavy tasks (reports), cap quick tasks for speed
+  const maxTokens = isHeavy ? (opts.maxTokens ?? 8192) : Math.min(opts.maxTokens ?? 4096, 1500);
 
   let lastErr: Error | null = null;
   for (const key of keys) {
@@ -577,7 +581,7 @@ async function callClaudeProxy(opts: AICallOptions): Promise<AICallResult> {
         stream: false,
         system: opts.system,
         messages: [{ role: "user", content: opts.user }],
-      }));
+      }), opts.timeoutMs);
 
       // Parse — may be JSON or SSE
       let text = "";

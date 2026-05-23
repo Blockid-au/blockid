@@ -445,6 +445,7 @@ Return JSON with a "pages" array containing one object per page listed above. Ea
         system: systemPrompt + viInstruction,
         user: userPrompt,
         maxTokens,
+        timeoutMs: 120_000, // 2 min — R&D report pages need substantial generation time
       });
 
       const parsed = parseAIResponse(text);
@@ -561,6 +562,7 @@ Return JSON with an "extendedSections" array. Each element must have: pageId (st
       system: SYSTEM_DEEP_DIVE_EXTENDED + viInstruction,
       user: userPrompt,
       maxTokens: 8192,
+      timeoutMs: 180_000, // 3 min — deep dive generates extensive analysis
     });
 
     onStatus?.("Building financial projections...");
