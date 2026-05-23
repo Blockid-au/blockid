@@ -8,21 +8,26 @@ import {
   calculateSectionCost,
   type SectionDepth,
 } from "@/lib/credits-shared";
-import { X, ChevronDown, ChevronUp, Loader2, Package } from "lucide-react";
+import {
+  X, ChevronDown, ChevronUp, Loader2, Package,
+  BarChart3, Target, Settings, DollarSign, Trophy, TrendingUp,
+  Users, Banknote, AlertTriangle, CheckCircle2,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 // The 10 report sections
-const SECTIONS = [
-  { id: "executive", name: "Executive Summary", icon: "\u{1F4CA}" },
-  { id: "market", name: "Market & Problem", icon: "\u{1F3AF}" },
-  { id: "product", name: "Product & Technology", icon: "\u2699\uFE0F" },
-  { id: "business", name: "Business Model", icon: "\u{1F4B0}" },
-  { id: "competition", name: "Competition & Moat", icon: "\u{1F3C6}" },
-  { id: "traction", name: "Traction & Growth", icon: "\u{1F4C8}" },
-  { id: "team", name: "Team & Execution", icon: "\u{1F465}" },
-  { id: "financial", name: "Financial Projections", icon: "\u{1F4B5}" },
-  { id: "risk", name: "Risk Assessment", icon: "\u26A0\uFE0F" },
-  { id: "recommendations", name: "Recommendations", icon: "\u2705" },
-] as const;
+const SECTIONS: readonly { id: string; name: string; Icon: LucideIcon }[] = [
+  { id: "executive", name: "Executive Summary", Icon: BarChart3 },
+  { id: "market", name: "Market & Problem", Icon: Target },
+  { id: "product", name: "Product & Technology", Icon: Settings },
+  { id: "business", name: "Business Model", Icon: DollarSign },
+  { id: "competition", name: "Competition & Moat", Icon: Trophy },
+  { id: "traction", name: "Traction & Growth", Icon: TrendingUp },
+  { id: "team", name: "Team & Execution", Icon: Users },
+  { id: "financial", name: "Financial Projections", Icon: Banknote },
+  { id: "risk", name: "Risk Assessment", Icon: AlertTriangle },
+  { id: "recommendations", name: "Recommendations", Icon: CheckCircle2 },
+];
 
 const DEPTH_KEYS = Object.keys(SECTION_DEPTH_CONFIG) as SectionDepth[];
 
@@ -187,7 +192,7 @@ export function SectionPicker({ onConfirm, onClose, credits, loading }: SectionP
                   className="flex items-center gap-3 p-3 sm:p-4 cursor-pointer"
                   onClick={() => toggleSection(section.id)}
                 >
-                  <span className="text-lg sm:text-xl shrink-0">{section.icon}</span>
+                  <section.Icon strokeWidth={1.75} className="h-5 w-5 shrink-0 text-brand-600" />
                   <span className="flex-1 min-w-0 font-medium text-sm sm:text-base text-ink-800 truncate">
                     {section.name}
                   </span>

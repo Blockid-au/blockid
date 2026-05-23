@@ -7,9 +7,9 @@ const columns = [
     title: "Product",
     items: [
       { href: "/score", label: "Investor-Ready Score" },
-      { href: "/#product", label: "Cap Table OS" },
-      { href: "/#product", label: "Term Sheet AI" },
-      { href: "/#product", label: "Investor View Link" },
+      { href: "/tools/cap-table", label: "Cap Table" },
+      { href: "/tools/term-sheet", label: "Term Sheet AI" },
+      { href: "/workspace/data-room", label: "Data Room" },
     ],
   },
   {
@@ -68,11 +68,11 @@ export function Footer() {
           <div className="grid grid-cols-2 gap-10 md:grid-cols-6">
             <div className="col-span-2">
               <Logo variant="dark" />
-              <p className="mt-4 max-w-xs text-sm leading-relaxed text-slate-400">
+              <p className="mt-4 max-w-xs text-sm leading-relaxed text-slate-300">
                 The all-in-one ownership and fundraising platform for Australian
                 startups and SMEs.
               </p>
-              <div className="mt-6 space-y-2 text-xs text-slate-500">
+              <div className="mt-6 space-y-2 text-xs text-slate-400">
                 <p className="flex items-center gap-2">
                   <ShieldCheck strokeWidth={1.75} className="h-4 w-4 text-brand-400" />
                   <span>
@@ -87,7 +87,7 @@ export function Footer() {
             </div>
             {columns.map((col) => (
               <div key={col.title}>
-                <h4 className="text-[11px] uppercase tracking-[0.2em] text-brand-400 font-semibold">
+                <h4 className="text-xs uppercase tracking-[0.2em] text-brand-400 font-semibold">
                   {col.title}
                 </h4>
                 <ul className="mt-4 space-y-2.5">
@@ -95,7 +95,7 @@ export function Footer() {
                     <li key={item.label}>
                       <Link
                         href={item.href}
-                        className="text-sm text-slate-400 hover:text-white cursor-pointer transition-colors"
+                        className="text-sm text-slate-300 hover:text-white cursor-pointer transition-colors"
                       >
                         {item.label}
                       </Link>
@@ -105,7 +105,7 @@ export function Footer() {
               </div>
             ))}
           </div>
-          <div className="mt-12 flex flex-col gap-3 border-t border-ink-800 pt-6 text-xs text-slate-500 md:flex-row md:items-center md:justify-between">
+          <div className="mt-12 flex flex-col gap-3 border-t border-ink-800 pt-6 text-xs text-slate-400 md:flex-row md:items-center md:justify-between">
             <p>
               &copy; {new Date().getFullYear()} Auschain Pty Ltd (ACN 659 615 111). Sydney, NSW, Australia.
             </p>

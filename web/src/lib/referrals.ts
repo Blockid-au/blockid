@@ -2,7 +2,8 @@ import "server-only";
 import { getSupabaseAdmin } from "./supabase";
 import { grantCredits } from "./credits";
 
-const REFERRAL_CREDITS = 2;
+const REFERRER_CREDITS = 2;   // Referrer gets 2 credits when referee completes first SVI
+const REFEREE_BONUS_CREDITS = 1; // Referee gets 1 bonus credit on signup (on top of free 2)
 
 // ---------------------------------------------------------------------------
 // Get user's referral code (auto-generated on signup via migration trigger,
@@ -48,11 +49,14 @@ export function getReferralUrl(code: string): string {
 // ---------------------------------------------------------------------------
 // Process a referral (called during signup when ?ref= param exists).
 //
+// Two-sided rewards:
 //   1. Find referrer by referral_code
 //   2. Set referred_by on new user
-//   3. Grant credits to referrer
-//   4. Log referral event
-//   5. Return success
+//   3. Prevent double grants via svi_notifications (referral_bonus_given)
+//   4. Grant credits to referrer (2 credits)
+//   5. Grant bonus credit to referee (1 credit on top of free 2 = 3 total)
+//   6. Log referral event
+//   7. Return success
 // ---------------------------------------------------------------------------
 
 export async function processReferral(
@@ -86,8 +90,21 @@ export async function processReferral(
     return { ok: false };
   }
 
-  // 3. Grant credits to referrer
-  await grantCredits(referrer.id, REFERRAL_CREDITS, "referral_bonus", {
+  // 3. Prevent double grants — check svi_notifications for existing bonus
+  const { data: existingBonus } = await supabase
+    .from("svi_notifications")
+    .select("id")
+    .eq("notification_type", "referral_bonus_given")
+    .filter("payload->>referred_user_id", "eq", newUserId)
+    .limit(1);
+
+  if (existingBonus && existingBonus.length > 0) {
+    // Already processed — skip credit grants but return success
+    return { ok: true, referrerEmail: referrer.email as string };
+  }
+
+  // 4. Grant credits to referrer (2 credits)
+  await grantCredits(referrer.id, REFERRER_CREDITS, "referral_bonus", {
     referred_user_id: newUserId,
   });
 
@@ -101,16 +118,34 @@ export async function processReferral(
   const currentEarned = (referrerRow?.referral_credits_earned as number) ?? 0;
   await supabase
     .from("app_users")
-    .update({ referral_credits_earned: currentEarned + REFERRAL_CREDITS })
+    .update({ referral_credits_earned: currentEarned + REFERRER_CREDITS })
     .eq("id", referrer.id);
 
-  // 4. Log referral event
+  // 5. Grant bonus credit to referee (1 credit on top of free 2 = 3 total)
+  await grantCredits(newUserId, REFEREE_BONUS_CREDITS, "referee_welcome_bonus", {
+    referrer_id: referrer.id,
+    referral_code: referralCode,
+  });
+
+  // Log the double-grant prevention marker in svi_notifications
+  await supabase.from("svi_notifications").insert({
+    notification_type: "referral_bonus_given",
+    subject: "Referral bonus granted (2-sided)",
+    payload: {
+      referrer_id: referrer.id,
+      referred_user_id: newUserId,
+      referrer_credits: REFERRER_CREDITS,
+      referee_credits: REFEREE_BONUS_CREDITS,
+    },
+  });
+
+  // 6. Log referral event
   const { error: eventErr } = await supabase
     .from("referral_events")
     .insert({
       referrer_id: referrer.id,
       referred_id: newUserId,
-      credits_awarded: REFERRAL_CREDITS,
+      credits_awarded: REFERRER_CREDITS,
     });
 
   if (eventErr) {

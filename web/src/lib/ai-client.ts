@@ -560,10 +560,9 @@ async function callClaudeProxy(opts: AICallOptions): Promise<AICallResult> {
   const envKeys = (process.env.ANTHROPIC_PROXY_API_KEY ?? "").split(",").map((k) => k.trim()).filter(Boolean);
   const dbKeys = dbProxy?.api_key ? dbProxy.api_key.split(",").map((k) => k.trim()).filter(Boolean) : [];
   const keys = [...new Set([...envKeys, ...dbKeys])];
-  // Proxy: use haiku (faster, avoids 30s timeout) unless explicitly heavy task
+  // Proxy: haiku + capped tokens to stay within 30s gateway timeout
   const model = "claude-haiku-4-5-20251001";
-
-  const maxTokens = opts.maxTokens ?? 4096;
+  const maxTokens = Math.min(opts.maxTokens ?? 4096, 1500); // Cap at 1500 for proxy speed
 
   let lastErr: Error | null = null;
   for (const key of keys) {

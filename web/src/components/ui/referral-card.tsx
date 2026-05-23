@@ -61,7 +61,7 @@ export function ReferralCard() {
       "Check out BlockID.au - AI-powered startup valuation",
     );
     const body = encodeURIComponent(
-      `I've been using BlockID.au to track my startup's value and progress. You should try it too!\n\nSign up here and we both get credits: ${stats.url}`,
+      `I've been using BlockID.au to track my startup's value and progress. You should try it too!\n\nSign up with my link and you'll get a bonus credit on top of the free plan: ${stats.url}`,
     );
     window.open(`mailto:?subject=${subject}&body=${body}`);
   };
@@ -95,10 +95,10 @@ export function ReferralCard() {
         </div>
         <div>
           <h3 className="text-base font-bold text-ink-800">
-            Invite founders, earn credits
+            Invite founders, you both earn credits
           </h3>
           <p className="text-xs text-ink-500">
-            Share your link. Get 2 credits for each signup.
+            You get 2 credits, they get 1 bonus credit on signup.
           </p>
         </div>
       </div>

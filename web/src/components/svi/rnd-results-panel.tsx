@@ -35,6 +35,7 @@ import { PAGE_DEFS } from "@/lib/rnd-types";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { SVIRadarChart } from "@/components/svi/svi-radar-chart";
 
 const DIMENSION_TOOLTIPS: Record<string, string> = {
   ftv: "Founder & Team Value: Evaluates founder experience, co-founder presence, advisory board, domain expertise, and team completeness. Weighted 15% of total SVI.",
@@ -1214,7 +1215,21 @@ export function RndResultsPanel({
 
         {/* Report pages */}
         <div className="flex-1 max-w-2xl mx-auto space-y-6 py-6">
-          {Array.from({ length: pageCount }, (_, i) => renderPage(i))}
+          {Array.from({ length: pageCount }, (_, i) => (
+            <React.Fragment key={`page-block-${i}`}>
+              {renderPage(i)}
+              {/* Radar chart after page 1 (executive summary) */}
+              {i === 0 && analysis.subs && analysis.subs.length > 0 && (
+                <SVIRadarChart
+                  dimensions={analysis.subs.map((s) => ({
+                    label: s.label,
+                    key: s.key,
+                    value: s.value,
+                  }))}
+                />
+              )}
+            </React.Fragment>
+          ))}
 
           {/* Action Plan Checklist — from analysis.nextActions */}
           {analysis?.nextActions?.length > 0 && (
