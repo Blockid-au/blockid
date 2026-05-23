@@ -51,12 +51,17 @@ export async function POST(request: Request) {
     });
 
     if (!result.ok) {
+      console.warn("[auth:login-password] failed:", result.reason);
       const msg = result.reason === "no_password"
         ? "This account uses Google or magic link login. Set a password first or use those methods."
         : result.reason === "invalid_credentials"
           ? "Invalid email or password"
-          : "Login failed";
-      return NextResponse.json({ ok: false, error: msg }, { status: 401 });
+          : result.reason === "not_configured"
+            ? "Authentication service unavailable"
+            : result.reason === "db_error"
+              ? "Database error — please try again"
+              : `Login failed (${result.reason ?? "unknown"})`;
+      return NextResponse.json({ ok: false, error: msg, reason: result.reason }, { status: 401 });
     }
 
     await setSessionCookie(result.sessionToken!);

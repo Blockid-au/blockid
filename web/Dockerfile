@@ -65,6 +65,9 @@ COPY --from=builder --chown=node:node /app/public ./public
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 COPY --from=builder --chown=node:node /app/ai-worker.mjs ./ai-worker.mjs
+# serverExternalPackages are NOT traced by standalone — copy full node_modules
+# for packages like bcryptjs, google-auth-library, @anthropic-ai/sdk, pptxgenjs.
+COPY --from=deps --chown=node:node /app/node_modules ./node_modules
 
 USER node
 

@@ -658,7 +658,10 @@ export async function loginWithPassword(args: {
     .eq("email", email)
     .maybeSingle();
 
-  if (error) return { ok: false, reason: "db_error" };
+  if (error) {
+    console.error("[auth:loginWithPassword] DB query error:", error.message);
+    return { ok: false, reason: "db_error" };
+  }
   if (!user) return { ok: false, reason: "invalid_credentials" };
   if (!user.password_hash) return { ok: false, reason: "no_password" };
 
