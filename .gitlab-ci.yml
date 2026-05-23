@@ -87,17 +87,25 @@ build:production:
     # ── 1. Validate critical CI variables ──
     - |
       MISSING=""
+      WARN=""
       [ -z "${SUPABASE_URL}" ] && MISSING="$MISSING SUPABASE_URL"
       [ -z "${SUPABASE_SERVICE_ROLE_KEY}" ] && MISSING="$MISSING SUPABASE_SERVICE_ROLE_KEY"
       [ -z "${ANTHROPIC_API_KEY}" ] && MISSING="$MISSING ANTHROPIC_API_KEY"
       [ -z "${CRON_SECRET}" ] && MISSING="$MISSING CRON_SECRET"
       [ -z "${STRIPE_SECRET_KEY}" ] && MISSING="$MISSING STRIPE_SECRET_KEY"
+      [ -z "${STRIPE_WEBHOOK_SECRET}" ] && MISSING="$MISSING STRIPE_WEBHOOK_SECRET"
+      # Microservice secrets (warn only — services are optional)
+      [ -z "${AI_GATEWAY_SECRET}" ] && WARN="$WARN AI_GATEWAY_SECRET"
+      [ -z "${BILLING_SECRET}" ] && WARN="$WARN BILLING_SECRET"
       if [ -n "$MISSING" ]; then
         echo "CRITICAL: Missing GitLab CI Variables:$MISSING"
         echo "Add them in GitLab → Settings → CI/CD → Variables"
         exit 1
       fi
-      echo "✓ All critical env vars validated"
+      if [ -n "$WARN" ]; then
+        echo "⚠ Optional vars not set (microservices won't be used):$WARN"
+      fi
+      echo "✓ All critical env vars validated ($(echo ${STRIPE_SECRET_KEY} | head -c 7)...)"
 
     # ── 2. Stop old container ──
     - docker stop deploy-${PROJECT_NAME} 2>/dev/null || true
@@ -185,12 +193,16 @@ build:production:
         sleep 2
       done
 
-    # ── 5. Verify deployment ──
+    # ── 5. Connect to microservices network ──
+    - docker network connect supabase_default deploy-${PROJECT_NAME}-${CI_ENV_SLUG} 2>/dev/null || true
+    - echo "✓ Connected to supabase_default network (microservices)"
+
+    # ── 6. Verify deployment ──
     - docker ps | grep deploy-${PROJECT_NAME}-${CI_ENV_SLUG}
     - echo "Deployed to ${DEPLOY_URL}"
     - curl -sf http://127.0.0.1:${DEPLOY_PORT}/ -o /dev/null && echo "Health check passed!" || echo "Warning - health check pending"
 
-    # ── 6. Count env vars in container (sanity check) ──
+    # ── 7. Count env vars in container (sanity check) ──
     - |
       ENV_COUNT=$(docker inspect deploy-${PROJECT_NAME}-${CI_ENV_SLUG} --format='{{range .Config.Env}}1{{end}}' | wc -c)
       echo "Container has $ENV_COUNT env vars"
