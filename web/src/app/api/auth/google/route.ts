@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { OAuth2Client } from "google-auth-library";
 import {
   loginWithGoogle,
   setSessionCookie,
@@ -36,56 +37,49 @@ export async function POST(request: Request) {
   }
 
   // --- Verify the Google ID token ----------------------------------------
-  // We call Google's tokeninfo endpoint which validates signature + expiry
-  // and returns the decoded claims. This avoids pulling in google-auth-library.
-  let tokenPayload: {
-    sub?: string;
-    email?: string;
-    email_verified?: string;
-    name?: string;
-    picture?: string;
-    aud?: string;
-  };
-
-  try {
-    const verifyRes = await fetch(
-      `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`,
-    );
-    if (!verifyRes.ok) {
-      const text = await verifyRes.text();
-      console.error("[blockid:auth] Google tokeninfo failed", {
-        status: verifyRes.status,
-        body: text,
-      });
-      return NextResponse.json(
-        { ok: false, error: "Invalid Google token" },
-        { status: 401 },
-      );
-    }
-    tokenPayload = await verifyRes.json();
-  } catch (err) {
-    console.error("[blockid:auth] Google tokeninfo fetch error", err);
-    return NextResponse.json(
-      { ok: false, error: "Failed to verify Google token" },
-      { status: 502 },
-    );
-  }
-
-  // Validate audience matches our client ID.
+  // Use google-auth-library's OAuth2Client for reliable JWT verification.
+  // This verifies signature against Google's public keys, checks expiry,
+  // and validates the audience — more robust than the tokeninfo endpoint.
   const expectedClientId = process.env.GOOGLE_CLIENT_ID;
   if (!expectedClientId) {
     return NextResponse.json(
-      { ok: false, reason: "Google auth not configured" },
+      { ok: false, error: "Google auth not configured" },
       { status: 503 },
     );
   }
-  if (tokenPayload.aud !== expectedClientId) {
-    console.error("[blockid:auth] Google token audience mismatch", {
-      expected: expectedClientId,
-      got: tokenPayload.aud,
+
+  let tokenPayload: {
+    sub?: string;
+    email?: string;
+    email_verified?: boolean;
+    name?: string;
+    picture?: string;
+  };
+
+  try {
+    const client = new OAuth2Client(expectedClientId);
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: expectedClientId,
     });
+    const payload = ticket.getPayload();
+    if (!payload) {
+      return NextResponse.json(
+        { ok: false, error: "Empty token payload" },
+        { status: 401 },
+      );
+    }
+    tokenPayload = {
+      sub: payload.sub,
+      email: payload.email,
+      email_verified: payload.email_verified,
+      name: payload.name,
+      picture: payload.picture,
+    };
+  } catch (err) {
+    console.error("[blockid:auth] Google token verification failed", err);
     return NextResponse.json(
-      { ok: false, error: "Token audience mismatch" },
+      { ok: false, error: "Invalid or expired Google token" },
       { status: 401 },
     );
   }
@@ -97,7 +91,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (tokenPayload.email_verified === "false") {
+  if (tokenPayload.email_verified === false) {
     return NextResponse.json(
       { ok: false, error: "Google email not verified" },
       { status: 403 },
