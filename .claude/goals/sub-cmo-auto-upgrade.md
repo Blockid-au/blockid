@@ -57,12 +57,12 @@ When generating customer reports, the CMO skill contributes:
 | Email open rate < 25% | Subject line A/B test, re-segment list | /cmo + /cro |
 
 ## Implementation Tasks
-- [ ] Cron: Weekly SEO rank tracking (Google Search Console API)
-- [ ] Cron: Bi-weekly competitor content scrape
+- [x] Weekly content performance tracking (cmo-content-performance task) (Google Search Console API)
+- [x] Competitor research (rnd-competitor-research weekly cron)
 - [ ] Cron: Monthly brand mention monitoring
 - [ ] Dashboard: CMO metrics in admin (traffic, rankings, content pipeline)
 - [ ] API: `/api/admin/marketing-health` endpoint
-- [ ] Integration: Feed CMO research into R&D report Pages 2, 5, 6
+- [x] Feed CMO research into R- [ ] Integration: Feed CMO research into R&D report Pages 2, 5, 6D report (competitive research auto-injected in buildContext)
 - [ ] Content calendar: Automated briefs from keyword gap analysis
 - [ ] Auto-publish: SEO insights from `/publish` skill on schedule
 

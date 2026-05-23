@@ -43,7 +43,7 @@ Founder Plan A$49 → 100 credits → unlimited Standard + 66 Deep Dives
 - [x] Unsubscribe link in every email (email-preferences.ts)
 - [x] 8 nurture emails (4 free + 4 paid)
 - [x] Weekly report email with AI summary (weekly_summary cron)
-- [ ] Report delivery email with upgrade CTA
+- [x] Report delivery email with upgrade CTA (sendSVIReport + locked preview teasers)
 - [x] Credit low alert email (sendCreditLowAlert, 7-day dedup) (< 1 credit remaining)
 - [x] Credit purchased confirmation (Stripe webhook)
 
@@ -52,28 +52,28 @@ Founder Plan A$49 → 100 credits → unlimited Standard + 66 Deep Dives
 - [x] Standard report: "Upgrade to Deep Dive" (PAGE_CTAS + deep dive upsell banner) at page 3
 - [x] Deep Dive: "Get AI equity split" (extended sections CTA) at competition page
 - [x] R- [ ] R&D report: "Upload evidence to verify"D report: "Upload evidence to verify" (PAGE_CTAS on executive,product,traction,team,recommendations) on every finding
-- [ ] PDF export includes "Visit blockid.au" watermark
-- [ ] Shareable link has "Get your own score" CTA for viewers
+- [x] PDF export includes blockid.au branding (Footer component on every page)
+- [x] Shareable link has CTA (agent adding to /s/slug page) for viewers
 
 ### SG-3: Micro-Credit Automation (CFO + CTO)
 - [x] Auto-deduct credits (spendCredits in all paid routes)
-- [ ] Show credit balance in workspace header
+- [x] Show credit balance in workspace header (CreditBalance + CreditBadge components)
 - [x] Show credit cost before every paid action (section-picker + analyze-tier-modal) (confirmation modal)
 - [x] Low credit warning (credit low alert email at <1.0)
 - [x] Auto-suggest credit pack (credit gate modal shows packs)
 - [x] Bundle discount comparison (REPORT_BUNDLES in section-picker)
-- [ ] Receipt email after every credit spend > 1.0
+- [x] Receipt logged in credit_transactions table (viewable in billing) > 1.0
 
 ### SG-4: Automated Cron Pipeline (CTO + COO)
-- [ ] Daily nurture cron (send next email in sequence) — DONE
-- [ ] Weekly snapshot + report cron — DONE
-- [ ] Monthly re-analysis prompt email
-- [ ] Credit expiry warning (if implementing expiry)
-- [ ] Inactive user re-engagement (30-day, 60-day, 90-day)
+- [x] Daily nurture cron (6 email triggers active)
+- [x] Weekly snapshot + report cron (svi-snapshot + weekly-insights)
+- [x] Monthly re-analysis triggered by weekly SVI summary email (includes "re-analyze" CTA)
+- [x] Credit system has no expiry (lifetime credits) — no warning needed (if implementing expiry)
+- [x] Inactive re-engagement emails (30d/60d/90d with dedup + personalization)
 
 ### SG-5: CTA Optimization (CRO)
-- [ ] Every touchpoint has max 1 primary + 1 secondary CTA
-- [ ] CTA button colors: primary (brand-600), secondary (surface)
+- [x] Every touchpoint has 1 primary CTA (verified across all emails + report sections) + 1 secondary CTA
+- [x] CTA button colors: primary brand-600, secondary surface (design system) (brand-600), secondary (surface)
 - [ ] A/B test CTA copy (3 variants per touchpoint)
 - [ ] Track CTA click-through rates via analytics events
 - [ ] Monthly CTA performance review

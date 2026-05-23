@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getProjectIdFromRequest, findOrCreateSVIAccount } from "@/lib/projects";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
+import { PageTracker } from "@/components/analytics/page-tracker";
 import { MetricsClient, type MetricRow } from "./metrics-client";
 
 export const metadata: Metadata = {
@@ -56,7 +57,7 @@ export default async function MetricsPage() {
     const metricsQuery = sb
       .from("startup_metrics")
       .select(
-        "id, metric_date, mrr_aud, arr_aud, revenue_growth_pct, mau, dau, monthly_churn_pct, nrr_pct, cac_aud, ltv_aud, burn_rate_aud, runway_months, source, created_at",
+        "id, metric_date, mrr_aud, arr_aud, revenue_growth_pct, revenue, mau, dau, users_total, users_new, monthly_churn_pct, nrr_pct, cac_aud, ltv_aud, burn_rate_aud, runway_months, nps, notes, source, created_at",
       )
       .eq("email", user.email);
     if (projectId) metricsQuery.eq("project_id", projectId);
@@ -73,6 +74,7 @@ export default async function MetricsPage() {
 
   return (
     <WorkspaceLayout user={user}>
+      <PageTracker page="metrics" />
       <div className="p-6 max-w-4xl mx-auto">
         <div className="mb-6">
           <h1 className="text-xl font-bold text-ink-800">Metrics</h1>

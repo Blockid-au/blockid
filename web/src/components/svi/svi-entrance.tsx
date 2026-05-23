@@ -31,6 +31,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
+import { Navbar } from "@/components/site/navbar";
+import { Footer } from "@/components/site/footer";
 import { SVIResultsPanel } from "@/components/svi/svi-results-panel";
 import { RndResultsPanel } from "@/components/svi/rnd-results-panel";
 import { RndStatusBar, type StatusEntry } from "@/components/svi/rnd-status-bar";
@@ -463,6 +465,23 @@ export function SVIEntrance() {
                     sseCompleted = true;
                     trackEvent("rnd_analysis_complete", { svi_score: data.totalSVI, slug: data.slug });
                     { const ft = !localStorage.getItem("blockid_first_report_done"); trackEvent("first_report_completed", { svi_score: data.totalSVI, is_first_time: ft }); if (ft) localStorage.setItem("blockid_first_report_done", "1"); }
+                    if (typeof window !== "undefined") {
+                      try {
+                        const saved = JSON.parse(localStorage.getItem("blockid_analyses") ?? "[]");
+                        const entry = {
+                          slug: data.slug,
+                          totalSVI: data.totalSVI,
+                          stage: data.analysis?.stage ?? 0,
+                          stageLabel: data.analysis?.stageLabel ?? "",
+                          summary: data.analysis?.summary?.slice(0, 150) ?? "",
+                          createdAt: new Date().toISOString(),
+                          inputPreview: text.slice(0, 100),
+                          email,
+                        };
+                        const updated = [entry, ...saved.filter((a: any) => a.slug !== data.slug)].slice(0, 20);
+                        localStorage.setItem("blockid_analyses", JSON.stringify(updated));
+                      } catch {}
+                    }
                     // Auto-scroll to results after analysis completes
                     queueMicrotask(() => {
                       const resultsEl = document.getElementById("svi-results");
@@ -515,6 +534,23 @@ export function SVIEntrance() {
         setTechAudit(data.techAudit ?? null);
         setState("done");
         trackEvent("rnd_analysis_complete", { svi_score: data.totalSVI, slug: data.slug });
+        if (typeof window !== "undefined") {
+          try {
+            const saved = JSON.parse(localStorage.getItem("blockid_analyses") ?? "[]");
+            const entry = {
+              slug: data.slug,
+              totalSVI: data.totalSVI,
+              stage: data.analysis?.stage ?? 0,
+              stageLabel: data.analysis?.stageLabel ?? "",
+              summary: data.analysis?.summary?.slice(0, 150) ?? "",
+              createdAt: new Date().toISOString(),
+              inputPreview: text.slice(0, 100),
+              email,
+            };
+            const updated = [entry, ...saved.filter((a: any) => a.slug !== data.slug)].slice(0, 20);
+            localStorage.setItem("blockid_analyses", JSON.stringify(updated));
+          } catch {}
+        }
         // Auto-scroll to results after analysis completes
         queueMicrotask(() => {
           const resultsEl = document.getElementById("svi-results");
@@ -562,6 +598,23 @@ export function SVIEntrance() {
         const data = (await sviRes.json()) as SVIApiResponse;
         if (!data.ok) { setError("Analysis failed. Please try again."); setState("error"); return; }
         setResult(data); setState("done");
+        if (typeof window !== "undefined") {
+          try {
+            const saved = JSON.parse(localStorage.getItem("blockid_analyses") ?? "[]");
+            const entry = {
+              slug: data.slug,
+              totalSVI: data.totalSVI,
+              stage: data.analysis?.stage ?? 0,
+              stageLabel: data.analysis?.stageLabel ?? "",
+              summary: data.analysis?.summary?.slice(0, 150) ?? "",
+              createdAt: new Date().toISOString(),
+              inputPreview: text.slice(0, 100),
+              email,
+            };
+            const updated = [entry, ...saved.filter((a: any) => a.slug !== data.slug)].slice(0, 20);
+            localStorage.setItem("blockid_analyses", JSON.stringify(updated));
+          } catch {}
+        }
         const isFirstTime = !localStorage.getItem("blockid_first_report_done");
         trackEvent("svi_analysis_complete", { svi_score: data.totalSVI, slug: data.slug });
         trackEvent("first_report_completed", { svi_score: data.totalSVI, is_first_time: isFirstTime });
@@ -782,14 +835,12 @@ export function SVIEntrance() {
     };
     return (
       <div id="svi-results" className="min-h-svh bg-surface-100 flex flex-col">
-        <header className="px-6 py-5 flex items-center justify-between max-w-2xl mx-auto w-full">
-          <Link href="/" className="inline-flex items-center">
-            <Image src="/images/logo-icon-transparent.png" alt="" width={28} height={28} className="h-7 w-7" /><span className="ml-2.5 text-lg font-extrabold tracking-tight text-ink-900">BlockID<span className="text-brand-500">.au</span></span>
-          </Link>
+        <Navbar />
+        <div className="px-6 pt-20 pb-2 flex items-center justify-end max-w-2xl mx-auto w-full">
           <button type="button" onClick={() => { handleReset(); setModularReport(null); }} className="text-xs text-ink-600 hover:text-ink-800 cursor-pointer transition-colors flex items-center gap-1.5">
             <X strokeWidth={1.75} className="h-3.5 w-3.5" /> New analysis
           </button>
-        </header>
+        </div>
         <main className="flex-1 px-4 pb-12">
           <div className="mx-auto max-w-[680px]">
             <div className="text-center mb-8">
@@ -818,15 +869,8 @@ export function SVIEntrance() {
   if (state === "done" && result) {
     return (
       <div id="svi-results" className="min-h-svh bg-surface-100 flex flex-col">
-        <header className="px-6 py-5 flex items-center justify-between max-w-2xl mx-auto w-full">
-          <Link href="/" className="inline-flex items-center">
-            <Image src="/images/logo-icon-transparent.png" alt="" width={28} height={28} className="h-7 w-7" /><span className="ml-2.5 text-lg font-extrabold tracking-tight text-ink-900">BlockID<span className="text-brand-500">.au</span></span>
-          </Link>
-          <button type="button" onClick={handleReset} className="text-xs text-ink-600 hover:text-ink-800 cursor-pointer transition-colors flex items-center gap-1.5">
-            <X strokeWidth={1.75} className="h-3.5 w-3.5" /> New analysis
-          </button>
-        </header>
-        <main className="flex-1 px-4 pb-12">
+        <Navbar />
+        <main className="flex-1 px-4 pt-24 pb-12">
           {rndReport ? (
             <>
               {/* First-time report congratulations banner */}

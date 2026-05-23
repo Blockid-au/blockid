@@ -160,6 +160,49 @@ export interface SVIAnalysis {
   stageBonus: number;      // +0 to +35
   weeklyDelta?: number;    // Optional: difference from prior snapshot
   percentileRank?: number; // 10-90 based on benchmark for current stage
+  metricsBonus?: number;   // 0-50 bonus from real startup_metrics data
+}
+
+// ─── Startup metrics input shape ─────────────────────────────────────────────
+export interface StartupMetricsInput {
+  mrr?: number;
+  arr?: number;
+  users_total?: number;
+  churn_rate?: number;
+  nps?: number;
+  revenue?: number;
+}
+
+// ─── Metrics bonus: 0–50 pts from real startup_metrics data ──────────────────
+export function computeMetricsBonus(metrics: StartupMetricsInput): number {
+  let bonus = 0;
+
+  // Revenue tiers (MRR — pick highest qualifying tier only)
+  const mrr = metrics.mrr ?? 0;
+  if (mrr > 10000) bonus += 15;
+  else if (mrr > 1000) bonus += 10;
+  else if (mrr > 0) bonus += 5;
+
+  // User tiers (pick highest qualifying tier only)
+  const users = metrics.users_total ?? 0;
+  if (users > 1000) bonus += 15;
+  else if (users > 100) bonus += 10;
+  else if (users > 10) bonus += 5;
+
+  // Churn tiers (lower is better — pick highest qualifying tier only)
+  const churn = metrics.churn_rate;
+  if (churn !== undefined && churn !== null) {
+    if (churn < 3) bonus += 10;
+    else if (churn < 5) bonus += 5;
+  }
+
+  // NPS tiers (pick highest qualifying tier only)
+  const nps = metrics.nps ?? 0;
+  if (nps > 50) bonus += 10;
+  else if (nps > 30) bonus += 5;
+
+  // Cap at 50
+  return Math.min(bonus, 50);
 }
 
 // ─── Stage detection ──────────────────────────────────────────────────────────
@@ -214,6 +257,7 @@ export function extractSignals(
   evidenceItems?: EvidenceItem[],
   techAudit?: TechAuditResult,
   repoAudit?: GitHubRepoAudit,
+  metrics?: StartupMetricsInput,
 ): SVIExtractedSignals {
   const text = (input.rawText + " " + (input.fileName ?? "")).toLowerCase();
 
@@ -481,6 +525,35 @@ export function extractSignals(
     }
   }
 
+  // ── Metrics overlay: auto-set signals from real startup_metrics data ───────
+  if (metrics) {
+    const mrr = metrics.mrr ?? 0;
+    const users = metrics.users_total ?? 0;
+    const nps = metrics.nps ?? 0;
+
+    // Revenue signals from actual MRR
+    if (mrr > 0) {
+      signals.hasRevenue = true;
+      if (mrr > 10000 && (signals.revenueBand === "pre-revenue" || signals.revenueBand === "early" || signals.revenueBand === "growing")) {
+        signals.revenueBand = "scaling";
+      } else if (mrr > 1000 && (signals.revenueBand === "pre-revenue" || signals.revenueBand === "early")) {
+        signals.revenueBand = "growing";
+      } else if (signals.revenueBand === "pre-revenue") {
+        signals.revenueBand = "early";
+      }
+    }
+
+    // User signals from actual user count
+    if (users > 0) {
+      signals.hasCustomers = true;
+    }
+
+    // NPS signals — social proof from real customer satisfaction data
+    if (nps > 0) {
+      signals.hasSocialProof = true;
+    }
+  }
+
   return signals;
 }
 
@@ -506,6 +579,7 @@ export function computeSVI(
   weeklyDelta?: number,
   techAuditBoosts?: { ptdBoost: number; svmBoost: number; treBoost: number; lcoBoost: number },
   repoAuditBoosts?: { ptdBoost: number; svmBoost: number; ftvBoost: number; treBoost: number },
+  metricsBonus?: number,
 ): SVIAnalysis {
   const confidence = EVIDENCE_CONFIDENCE[signals.evidenceLevel] ?? 0.20;
 
@@ -862,7 +936,8 @@ export function computeSVI(
   // ── SVI total ───────────────────────────────────────────────────────────────
   const netAdj = ftvAdj + mpcAdj + ptdAdj + treAdj + cghAdj + iriAdj + lcoAdj + svmAdj;
   // SVI is an open-ended index (0+ range) — like a stock market index, it grows without limit
-  const totalSVI = Math.round(Math.max(0, 100 + netAdj + stageBonus - totalPenalty));
+  const effectiveMetricsBonus = metricsBonus ?? 0;
+  const totalSVI = Math.round(Math.max(0, 100 + netAdj + stageBonus - totalPenalty + effectiveMetricsBonus));
 
   const percentileRank = calcPercentileRank(totalSVI, stage);
 
@@ -1071,7 +1146,7 @@ export function computeSVI(
     version: SVI_VERSION,
     totalSVI,
     baselineSVI: 100,
-    netAdjustment: netAdj + stageBonus - totalPenalty,
+    netAdjustment: netAdj + stageBonus - totalPenalty + effectiveMetricsBonus,
     confidenceMultiplier: confidence,
     subs,
     riskPenalties,
@@ -1084,5 +1159,6 @@ export function computeSVI(
     stageBonus,
     weeklyDelta,
     percentileRank,
+    metricsBonus: effectiveMetricsBonus > 0 ? effectiveMetricsBonus : undefined,
   };
 }
