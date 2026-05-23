@@ -1,5 +1,7 @@
 import { google } from "googleapis";
 import { Readable } from "stream";
+import type { RndReport } from "./rnd-analysis";
+import type { SVIAnalysis } from "./svi-analysis";
 
 function getDriveClient() {
   const clientEmail = process.env.GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL;
@@ -243,4 +245,138 @@ export async function listUserFolderFiles(
     mimeType: f.mimeType ?? "",
     createdTime: f.createdTime ?? "",
   }));
+}
+
+// ── Report Google Doc generation ────────────────────────────────────────────
+
+/**
+ * Build a plain-text representation of an SVI / R&D report suitable for
+ * uploading as a Google Doc.
+ */
+function buildReportPlainText(
+  slug: string,
+  report: RndReport,
+  analysis: SVIAnalysis,
+): string {
+  const lines: string[] = [];
+
+  lines.push("BlockID.au — Startup Value Index Report");
+  lines.push(`Generated: ${report.createdAt}`);
+  lines.push(`SVI Score: ${analysis.totalSVI} | Stage: ${analysis.stageLabel}`);
+  lines.push(`Report Tier: ${report.tier} | Overall Score: ${report.overallScore}/100`);
+  lines.push(`Report ID: ${slug}`);
+  lines.push("---");
+  lines.push("");
+
+  for (const page of report.pages) {
+    lines.push(`Page ${page.pageNum}: ${page.title}`);
+    if (page.subtitle) lines.push(page.subtitle);
+    lines.push("");
+    lines.push(page.content);
+    if (page.highlights?.length) {
+      lines.push("");
+      lines.push("Key highlights:");
+      for (const h of page.highlights) {
+        lines.push(`  - ${h}`);
+      }
+    }
+    if (page.dataPoints && Object.keys(page.dataPoints).length > 0) {
+      lines.push("");
+      lines.push("Data points:");
+      for (const [k, v] of Object.entries(page.dataPoints)) {
+        lines.push(`  ${k}: ${v}`);
+      }
+    }
+    if (page.extendedSections?.length) {
+      for (const ext of page.extendedSections) {
+        lines.push("");
+        lines.push(`  >> ${ext.title}`);
+        lines.push(ext.content);
+      }
+    }
+    lines.push("");
+    lines.push("---");
+    lines.push("");
+  }
+
+  lines.push("Disclaimer: This analysis is produced by BlockID.au (Auschain PTY LTD, ACN 659 615 111, ABN 79 659 615 111).");
+  lines.push("The Startup Value Index (SVI) is NOT a financial valuation or investment recommendation.");
+  lines.push("BlockID does not hold an Australian Financial Services Licence (AFSL).");
+  lines.push("For financial advice, consult a qualified Australian financial adviser.");
+  lines.push("");
+  lines.push("https://blockid.au");
+
+  return lines.join("\n");
+}
+
+/**
+ * Create a Google Doc containing the SVI / R&D report in the user's
+ * Drive folder. Returns `{ docId, docUrl }` on success, or `null` if
+ * Drive is not configured or the operation fails.
+ *
+ * The function first attempts to create a native Google Doc via the Docs
+ * API. If that API is unavailable (e.g. the service account only has the
+ * Drive scope), it falls back to uploading a plain-text file via
+ * `drive.files.create` with MIME-type conversion.
+ */
+export async function createReportGoogleDoc(
+  email: string,
+  slug: string,
+  report: RndReport,
+  analysis: SVIAnalysis,
+): Promise<{ docId: string; docUrl: string } | null> {
+  try {
+    // Bail out early if Drive credentials are missing
+    const clientEmail = process.env.GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL;
+    const privateKey = process.env.GOOGLE_DRIVE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+    if (!clientEmail || !privateKey) return null;
+
+    const { drive } = getDriveClient();
+
+    // Get (or create) the user's folder so the doc lands next to their
+    // other evidence files.
+    const { folderId: userFolderId } = await getOrCreateUserFolder(email);
+
+    const docTitle = `SVI Report — ${slug} — ${new Date().toISOString().slice(0, 10)}`;
+    const plainText = buildReportPlainText(slug, report, analysis);
+
+    // Attempt 1: Upload plain-text with MIME-type conversion to Google Doc.
+    // This works with only the Drive scope and avoids needing the Docs API.
+    const stream = new Readable();
+    stream.push(Buffer.from(plainText, "utf-8"));
+    stream.push(null);
+
+    const response = await drive.files.create({
+      requestBody: {
+        name: docTitle,
+        parents: [userFolderId],
+        mimeType: "application/vnd.google-apps.document", // convert to Google Doc
+        description: `BlockID.au SVI Report for ${email} (${slug})`,
+      },
+      media: {
+        mimeType: "text/plain",
+        body: stream,
+      },
+      fields: "id, webViewLink",
+    });
+
+    const docId = response.data.id;
+    const docUrl =
+      response.data.webViewLink ??
+      (docId ? `https://docs.google.com/document/d/${docId}/edit` : null);
+
+    if (!docId || !docUrl) return null;
+
+    // Share with the user (viewer) so they can open the link
+    await drive.permissions.create({
+      fileId: docId,
+      requestBody: { type: "user", role: "reader", emailAddress: email },
+      sendNotificationEmail: false,
+    }).catch(() => {}); // ignore if email is invalid
+
+    return { docId, docUrl };
+  } catch (err) {
+    console.error("[google-drive] createReportGoogleDoc failed:", err);
+    return null;
+  }
 }

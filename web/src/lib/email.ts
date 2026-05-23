@@ -1598,6 +1598,54 @@ export async function sendWeeklySVISummary(args: {
   });
 }
 
+// ---------- Credit low alert ---------------------------------------------------
+
+export async function sendCreditLowAlert(args: {
+  to: string;
+  currentBalance: number;
+}): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "svi_alerts"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
+  const buyUrl = `${siteUrl()}/workspace/billing#credits`;
+  const balanceStr = args.currentBalance % 1 === 0
+    ? String(args.currentBalance)
+    : args.currentBalance.toFixed(2);
+  const html = shell(`
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+        <tr><td>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Credits Running Low</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Your Credits Are Running Low</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">You have <strong style="color:#FBBF24;">${escapeHtml(balanceStr)} credits</strong> remaining. Your next SVI analysis costs 0.50 credits, so now is a great time to top up.</p>
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
+            <p style="margin:0 0 4px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Current balance</p>
+            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:48px;font-weight:600;color:#FBBF24;line-height:1;">${escapeHtml(balanceStr)}</div>
+            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">credits remaining</p>
+          </div>
+          <div style="background:#1F2A44;border-radius:12px;padding:20px;text-align:center;margin:0 0 24px 0;">
+            <p style="margin:0 0 4px 0;color:#F8FAFC;font-size:16px;font-weight:600;">Buy 10 credits for A$5</p>
+            <p style="margin:0 0 16px 0;color:#94A3B8;font-size:13px;">That's 20 standard SVI analyses</p>
+            <a href="${buyUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 32px;border-radius:10px;font-size:15px;">Buy Credits</a>
+          </div>
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:0 0 24px 0;">
+            <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Credit costs</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr><td style="padding:4px 8px;color:#94A3B8;font-size:13px;">SVI Analysis</td><td style="padding:4px 8px;color:#F8FAFC;font-size:13px;text-align:right;font-family:'IBM Plex Mono',monospace;">0.50</td></tr>
+              <tr><td style="padding:4px 8px;color:#94A3B8;font-size:13px;">R&amp;D Report</td><td style="padding:4px 8px;color:#F8FAFC;font-size:13px;text-align:right;font-family:'IBM Plex Mono',monospace;">1.00</td></tr>
+              <tr><td style="padding:4px 8px;color:#94A3B8;font-size:13px;">Deep Dive</td><td style="padding:4px 8px;color:#F8FAFC;font-size:13px;text-align:right;font-family:'IBM Plex Mono',monospace;">1.50</td></tr>
+            </table>
+          </div>
+          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+  ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
+  return sendEmail({ to: args.to, subject: "Your BlockID Credits Are Running Low", html, unsubscribeUrl });
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }

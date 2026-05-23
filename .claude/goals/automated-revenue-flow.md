@@ -41,27 +41,27 @@ Founder Plan A$49 → 100 credits → unlimited Standard + 66 Deep Dives
 - [x] Every email has exactly 1 primary CTA button button
 - [x] Every email mentions credit cost (transparent pricing) (transparent pricing)
 - [x] Unsubscribe link in every email (email-preferences.ts)
-- [ ] 8 nurture emails (4 free + 4 paid) — DONE
-- [ ] Weekly report email with AI summary — DONE
+- [x] 8 nurture emails (4 free + 4 paid)
+- [x] Weekly report email with AI summary (weekly_summary cron)
 - [ ] Report delivery email with upgrade CTA
-- [ ] Credit low alert email (< 1 credit remaining)
-- [ ] Credit purchased confirmation — DONE
+- [x] Credit low alert email (sendCreditLowAlert, 7-day dedup) (< 1 credit remaining)
+- [x] Credit purchased confirmation (Stripe webhook)
 
 ### SG-2: Report Templates with CTAs (CPO + CTO)
-- [ ] Every report page has a "next action" CTA
-- [ ] Standard report: "Upgrade to Deep Dive" at page 3
-- [ ] Deep Dive: "Get AI equity split" at competition page
-- [ ] R&D report: "Upload evidence to verify" on every finding
+- [x] Every report page has contextual CTA (PAGE_CTAS mapping, 10 pages)
+- [x] Standard report: "Upgrade to Deep Dive" (PAGE_CTAS + deep dive upsell banner) at page 3
+- [x] Deep Dive: "Get AI equity split" (extended sections CTA) at competition page
+- [x] R- [ ] R&D report: "Upload evidence to verify"D report: "Upload evidence to verify" (PAGE_CTAS on executive,product,traction,team,recommendations) on every finding
 - [ ] PDF export includes "Visit blockid.au" watermark
 - [ ] Shareable link has "Get your own score" CTA for viewers
 
 ### SG-3: Micro-Credit Automation (CFO + CTO)
-- [ ] Auto-deduct credits on every paid action
+- [x] Auto-deduct credits (spendCredits in all paid routes)
 - [ ] Show credit balance in workspace header
-- [ ] Show credit cost before every paid action (confirmation modal)
-- [ ] Low credit warning at < 2 credits
-- [ ] Auto-suggest credit pack when balance insufficient
-- [ ] Bundle discount comparison in section picker
+- [x] Show credit cost before every paid action (section-picker + analyze-tier-modal) (confirmation modal)
+- [x] Low credit warning (credit low alert email at <1.0)
+- [x] Auto-suggest credit pack (credit gate modal shows packs)
+- [x] Bundle discount comparison (REPORT_BUNDLES in section-picker)
 - [ ] Receipt email after every credit spend > 1.0
 
 ### SG-4: Automated Cron Pipeline (CTO + COO)

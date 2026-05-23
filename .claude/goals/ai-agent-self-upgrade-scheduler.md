@@ -79,7 +79,7 @@ Key: rate-limit store separates user vs agent keys:
 | `web/src/lib/rate-limit.ts` | Add agent/cron rate limit keys |
 
 ## Success Criteria
-- [ ] Self-upgrade tasks run without using paid API budget
-- [ ] User-facing requests never impacted by agent tasks
-- [ ] Zero additional AI cost from self-upgrade (subscription + free only)
-- [ ] All upgrade results logged for audit
+- [x] Self-upgrade tasks use only subscription/free models (callAIForUpgrade)
+- [x] User-facing requests never impacted (off-peak hours check + separate rate limits)
+- [x] Zero additional AI cost (Claude CLI OAuth + Gemini/Groq/OpenRouter free) (subscription + free only)
+- [x] All upgrade results logged (growth_insights table + JSON results)

@@ -14,6 +14,7 @@
 
 import "server-only";
 import { getSupabaseAdmin } from "./supabase";
+import { sendCreditLowAlert } from "./email";
 
 // ---------------------------------------------------------------------------
 // Feature credit costs
@@ -383,6 +384,11 @@ export async function spendCredits(
     metadata: metadata ?? {},
   });
 
+  // Low credit alert (fire-and-forget)
+  if (newBalance < 1.0 && newBalance >= 0) {
+    void sendCreditLowAlertIfNeeded(supabase, userId, newBalance);
+  }
+
   return { ok: true, balance: newBalance };
 }
 
@@ -535,4 +541,60 @@ export async function initializeCredits(userId: string): Promise<void> {
     plan: "free",
     note: `Welcome — ${PLAN_CREDITS.free.amount} free credits`,
   });
+}
+
+// ---------------------------------------------------------------------------
+// sendCreditLowAlertIfNeeded — fire-and-forget email when balance < 1.0.
+// De-duplicated via svi_notifications: at most once per 7 days.
+// ---------------------------------------------------------------------------
+
+async function sendCreditLowAlertIfNeeded(
+  supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
+  userId: string,
+  newBalance: number,
+): Promise<void> {
+  try {
+    // Look up the user's email from app_users
+    const { data: user } = await supabase
+      .from("app_users")
+      .select("email")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (!user?.email) return;
+
+    // Check svi_notifications for a recent credit_low_alert (within 7 days).
+    // We use payload->>email to match since not all users have an svi_accounts row.
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: recentAlert } = await supabase
+      .from("svi_notifications")
+      .select("id")
+      .eq("notification_type", "credit_low_alert")
+      .filter("payload->>email", "eq", user.email)
+      .gte("sent_at", sevenDaysAgo)
+      .limit(1);
+
+    if (recentAlert && recentAlert.length > 0) return; // Already sent recently
+
+    // Send the email
+    await sendCreditLowAlert({ to: user.email, currentBalance: newBalance });
+
+    // Log to svi_notifications to prevent re-sending within 7 days.
+    // Try to find an svi_accounts row for the account_id FK.
+    const { data: sviAccount } = await supabase
+      .from("svi_accounts")
+      .select("id")
+      .eq("email", user.email)
+      .maybeSingle();
+
+    await supabase.from("svi_notifications").insert({
+      ...(sviAccount ? { account_id: sviAccount.id } : {}),
+      notification_type: "credit_low_alert",
+      subject: "Your BlockID Credits Are Running Low",
+      payload: { email: user.email, balance: newBalance },
+    });
+  } catch (err) {
+    // Fire-and-forget: log but never throw
+    console.error("[blockid:credits] credit low alert failed", err);
+  }
 }

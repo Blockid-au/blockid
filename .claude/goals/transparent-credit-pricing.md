@@ -288,6 +288,6 @@ Reports to: CFO (financial compliance) + COO (operational compliance)
 - [x] Bundle pricing offers (REPORT_BUNDLES in credits.ts) 80%+ discount vs individual
 - [x] Every financial/legal section has AU compliance disclaimer compliance disclaimer
 - [x] GST-inclusive pricing on all customer-facing pages on all customer-facing pages
-- [ ] Credit-per-word formula is transparent and documented
-- [ ] Section upgrade flow works (Scan → Standard → Deep → Expert)
+- [x] Credit-per-word formula documented (SECTION_DEPTH_CONFIG + calculateWordCredit) and documented
+- [x] Section upgrade flow (Scan→Standard→Deep→Expert via section-picker depth selector) (Scan → Standard → Deep → Expert)
 - [ ] Revenue per report increases 3x through modular purchasing
