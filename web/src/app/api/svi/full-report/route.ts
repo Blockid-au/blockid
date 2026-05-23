@@ -219,6 +219,7 @@ ${sections}`;
       system: systemPrompt,
       user: userMessage,
       maxTokens,
+      timeoutMs: 180_000, // 3 minutes — full reports need significant generation time
     });
 
     // Spend credits after success
