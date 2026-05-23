@@ -155,6 +155,9 @@ build:production:
         -e ANTHROPIC_PROXY_API_KEY=${ANTHROPIC_PROXY_API_KEY}
         -e RESEND_API_KEY=${RESEND_API_KEY}
         -e "RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL}"
+        -e OLLAMA_ENABLED=true
+        -e OLLAMA_HOST=http://172.19.0.1:11434
+        -e OLLAMA_MODEL=qwen2.5:3b
         -e COSMOS_CHAIN_ID=${COSMOS_CHAIN_ID}
         -e COSMOS_REST_URL=${COSMOS_REST_URL}
         -e COSMOS_RPC_URL=${COSMOS_RPC_URL}
