@@ -1,0 +1,104 @@
+# BlockID Microservices — Development Stack
+#
+# Phase 1: AI Gateway + Billing alongside the Next.js monolith.
+# The monolith calls these services internally via HTTP on the Docker network.
+#
+# Usage:
+#   docker compose -f services/docker-compose.dev.yml up -d
+#   # Services available at: ai-gateway:4010, billing:4011
+
+services:
+  ai-gateway:
+    build:
+      context: ./ai-gateway
+      dockerfile: Dockerfile
+    container_name: blockid-ai-gateway
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4010:4010"
+    environment:
+      PORT: "4010"
+      AI_GATEWAY_SECRET: ${AI_GATEWAY_SECRET:-dev-secret-change-me}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_PROXY_BASE_URL: ${ANTHROPIC_PROXY_BASE_URL:-}
+      ANTHROPIC_PROXY_API_KEY: ${ANTHROPIC_PROXY_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GOOGLE_GEMINI_API_KEY: ${GOOGLE_GEMINI_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://172.19.0.1:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+    volumes:
+      - ${HOME}/.claude/.credentials.json:/home/node/.claude/.credentials.json:ro
+      - ${HOME}/.codex/auth.json:/home/node/.codex/auth.json:ro
+    networks:
+      - blockid
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4010/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  billing:
+    build:
+      context: ./billing
+      dockerfile: Dockerfile
+    container_name: blockid-billing
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4011:4011"
+    environment:
+      PORT: "4011"
+      BILLING_SECRET: ${BILLING_SECRET:-dev-secret-change-me}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PRICE_FOUNDING50: ${STRIPE_PRICE_FOUNDING50:-}
+      STRIPE_PRICE_FOUNDER: ${STRIPE_PRICE_FOUNDER:-}
+      STRIPE_PRICE_GROWTH: ${STRIPE_PRICE_GROWTH:-}
+      STRIPE_PRICE_GROWTH_ANNUAL: ${STRIPE_PRICE_GROWTH_ANNUAL:-}
+      STRIPE_PRICE_GROWTH_499: ${STRIPE_PRICE_GROWTH_499:-}
+      STRIPE_PRICE_PILOT: ${STRIPE_PRICE_PILOT:-}
+      STRIPE_PRICE_ACCELERATOR: ${STRIPE_PRICE_ACCELERATOR:-}
+      STRIPE_PRICE_CREDITS_5: ${STRIPE_PRICE_CREDITS_5:-}
+      STRIPE_PRICE_CREDITS_10: ${STRIPE_PRICE_CREDITS_10:-}
+      STRIPE_PRICE_CREDITS_25: ${STRIPE_PRICE_CREDITS_25:-}
+      STRIPE_PRICE_CREDITS_50: ${STRIPE_PRICE_CREDITS_50:-}
+      STRIPE_PRICE_CREDITS_100: ${STRIPE_PRICE_CREDITS_100:-}
+      STRIPE_PRICE_SVI_ANALYSIS: ${STRIPE_PRICE_SVI_ANALYSIS:-}
+      STRIPE_PRICE_SVI_ANALYSIS_25: ${STRIPE_PRICE_SVI_ANALYSIS_25:-}
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://blockid.au}
+    networks:
+      - blockid
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4011/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    container_name: blockid-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - blockid
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+networks:
+  blockid:
+    name: blockid_network
+    external: true
+
+volumes:
+  redis-data:

@@ -44,3 +44,7 @@ coverage/
 infra/volumes/
 .claude/worktrees/
 chain/
+
+# Service build artifacts
+services/*/dist/
+services/*/node_modules/
