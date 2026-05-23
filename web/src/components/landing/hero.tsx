@@ -161,7 +161,7 @@ export function Hero() {
 
           {/* Platform overview banner */}
           <div className="hidden xl:block relative">
-            <div className="rounded-2xl border border-surface-200 bg-white shadow-lg overflow-hidden">
+            <div className="rounded-2xl border border-surface-200 bg-surface-50 dark:bg-surface-100 shadow-lg overflow-hidden">
               <Image
                 src="/images/blockid-hero-banner.png"
                 alt="BlockID.au platform overview"
@@ -176,7 +176,7 @@ export function Hero() {
 
           {/* Mobile banner */}
           <div className="xl:hidden">
-            <div className="rounded-2xl border border-surface-200 bg-white shadow-lg overflow-hidden">
+            <div className="rounded-2xl border border-surface-200 bg-surface-50 dark:bg-surface-100 shadow-lg overflow-hidden">
               <Image
                 src="/images/blockid-hero-banner.png"
                 alt="BlockID.au platform overview"
@@ -201,7 +201,7 @@ export function Hero() {
                   i < PILLARS.length - 1 ? "border-b sm:border-b-0 sm:border-r border-brand-200" : ""
                 }`}
               >
-                <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-brand-200 bg-white text-brand-600">
+                <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-brand-200 bg-surface-50 dark:bg-surface-100 text-brand-600">
                   <Icon strokeWidth={1.75} className="h-6 w-6" />
                 </span>
                 <span className="md:mt-3">

@@ -128,9 +128,10 @@ export async function POST(request: Request) {
       },
     });
   } catch (err) {
+    console.error("[api/v1/analyze] Analysis failed:", err);
     return NextResponse.json(
       {
-        error: { code: "analysis_failed", message: String(err) },
+        error: { code: "analysis_failed", message: "Analysis could not be completed. Please try again." },
       },
       { status: 500 },
     );

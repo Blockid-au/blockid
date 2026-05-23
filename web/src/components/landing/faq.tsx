@@ -49,7 +49,7 @@ export function FAQ() {
             Questions founders ask. Plain answers.
           </h2>
         </div>
-        <div className="mt-12 rounded-2xl border border-surface-200 bg-white px-6 shadow-sm">
+        <div className="mt-12 rounded-2xl border border-surface-200 bg-surface-50 dark:bg-surface-100 px-6 shadow-sm">
           <Accordion type="single" defaultValue="0">
             {faqs.map((item, i) => (
               <AccordionItem

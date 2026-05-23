@@ -125,7 +125,7 @@ function BentoTile({ tile }: { tile: Tile }) {
   return (
     <article
       className={cn(
-        "group relative overflow-hidden rounded-2xl border border-surface-200 bg-white p-6 md:p-8 shadow-sm card-hover cursor-default",
+        "group relative overflow-hidden rounded-2xl border border-surface-200 bg-surface-50 dark:bg-surface-100 p-6 md:p-8 shadow-sm card-hover cursor-default",
         tile.span,
       )}
     >
