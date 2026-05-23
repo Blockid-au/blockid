@@ -62,7 +62,7 @@ export function InvestorPack() {
               return (
                 <div
                   key={b.title}
-                  className="flex items-start gap-4 rounded-2xl border border-surface-200 bg-white p-6"
+                  className="flex items-start gap-4 rounded-2xl border border-surface-200 bg-surface-50 dark:bg-surface-100 p-6"
                 >
                   <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-600 ring-1 ring-brand-500/30">
                     <Icon strokeWidth={1.75} className="h-5 w-5" />

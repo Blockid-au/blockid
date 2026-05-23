@@ -88,7 +88,7 @@ export function CompsWall() {
           </div>
         </div>
 
-        <div className="mt-10 overflow-x-auto rounded-2xl border border-surface-300 bg-white">
+        <div className="mt-10 overflow-x-auto rounded-2xl border border-surface-300 bg-surface-50 dark:bg-surface-100">
           <table className="w-full text-sm">
             <thead className="text-left text-xs uppercase tracking-[0.18em] text-slate-400 border-b border-surface-300">
               <tr>

@@ -27,7 +27,7 @@ export function OwnershipVisibility() {
           </div>
 
           {/* Visual mock */}
-          <div className="rounded-2xl border border-surface-300 bg-white p-8 shadow-sm">
+          <div className="rounded-2xl border border-surface-300 bg-surface-50 dark:bg-surface-100 p-8 shadow-sm">
             <div className="flex items-start gap-8">
               {/* Pie chart */}
               <div className="shrink-0">
@@ -146,7 +146,7 @@ function FeatureCard({
   body: string;
 }) {
   return (
-    <div className="rounded-2xl border border-surface-300 bg-white p-8 shadow-sm">
+    <div className="rounded-2xl border border-surface-300 bg-surface-50 dark:bg-surface-100 p-8 shadow-sm">
       <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-brand-200 bg-brand-50 text-brand-500">
         <Icon strokeWidth={1.75} className="h-6 w-6" />
       </span>

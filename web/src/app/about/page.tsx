@@ -269,7 +269,7 @@ export default function AboutPage() {
               </Link>
               <Link
                 href="/contact"
-                className="inline-flex h-11 items-center justify-center rounded-lg border border-surface-300 bg-white px-6 text-sm font-semibold text-ink-700 hover:bg-surface-100 transition-colors"
+                className="inline-flex h-11 items-center justify-center rounded-lg border border-surface-300 bg-surface-50 dark:bg-surface-200 px-6 text-sm font-semibold text-ink-700 hover:bg-surface-100 transition-colors"
               >
                 Contact Us
               </Link>

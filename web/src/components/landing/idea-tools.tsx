@@ -114,7 +114,7 @@ function ToolCard({ tool }: { tool: Tool }) {
   return (
     <Link
       href={tool.href}
-      className="group flex flex-col rounded-2xl border border-surface-200 bg-white p-6 shadow-sm card-hover"
+      className="group flex flex-col rounded-2xl border border-surface-200 bg-surface-50 dark:bg-surface-100 p-6 shadow-sm card-hover"
     >
       <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-brand-200 bg-brand-50 text-brand-500">
         <Icon strokeWidth={1.75} className="h-7 w-7" />

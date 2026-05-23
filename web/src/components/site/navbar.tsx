@@ -133,7 +133,7 @@ function UserMenu({ user }: { user: AuthUser }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-surface-200 bg-white shadow-xl z-50 overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-surface-200 bg-surface-50 dark:bg-surface-100 shadow-xl z-50 overflow-hidden">
           <div className="px-4 py-3 border-b border-surface-100">
             <p className="text-sm font-medium text-ink-800 truncate">{user.displayName || user.email.split("@")[0]}</p>
             <p className="text-xs text-ink-500 truncate">{user.email}</p>
@@ -290,7 +290,7 @@ export function Navbar() {
           />
 
           {/* Panel — slides in from top, starts below navbar (~72px) */}
-          <div className="absolute top-[72px] left-4 right-4 max-h-[calc(100dvh-88px)] overflow-y-auto rounded-2xl border border-surface-200/80 bg-white shadow-2xl">
+          <div className="absolute top-[72px] left-4 right-4 max-h-[calc(100dvh-88px)] overflow-y-auto rounded-2xl border border-surface-200/80 bg-surface-50 dark:bg-surface-100 shadow-2xl">
             <nav
               className="flex flex-col gap-0.5 p-3"
               aria-label="Mobile navigation"
@@ -478,7 +478,7 @@ function ToolsDropdown({ entry }: { entry: NavDropdown }) {
 
       {open && (
         <div role="menu" className="absolute left-0 top-full pt-2 min-w-[260px]">
-          <div className="rounded-2xl border border-surface-200/80 bg-white/98 backdrop-blur-xl p-3 shadow-xl">
+          <div className="rounded-2xl border border-surface-200/80 bg-surface-50/98 dark:bg-surface-100/98 backdrop-blur-xl p-3 shadow-xl">
             {entry.groups.map((group, idx) => (
               <div
                 key={group.heading}

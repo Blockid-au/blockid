@@ -64,7 +64,7 @@ export function Compliance() {
             return (
               <div
                 key={item.code}
-                className="group rounded-2xl border border-surface-200 bg-white p-6 shadow-sm card-hover"
+                className="group rounded-2xl border border-surface-200 bg-surface-50 dark:bg-surface-100 p-6 shadow-sm card-hover"
               >
                 <div className="flex items-center gap-3">
                   <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-500 ring-1 ring-brand-200">
