@@ -88,24 +88,42 @@ build:production:
     - |
       MISSING=""
       WARN=""
+      # ── Core infrastructure ──
       [ -z "${SUPABASE_URL}" ] && MISSING="$MISSING SUPABASE_URL"
       [ -z "${SUPABASE_SERVICE_ROLE_KEY}" ] && MISSING="$MISSING SUPABASE_SERVICE_ROLE_KEY"
       [ -z "${ANTHROPIC_API_KEY}" ] && MISSING="$MISSING ANTHROPIC_API_KEY"
       [ -z "${CRON_SECRET}" ] && MISSING="$MISSING CRON_SECRET"
+      # ── Stripe (critical — payments will fail without these) ──
       [ -z "${STRIPE_SECRET_KEY}" ] && MISSING="$MISSING STRIPE_SECRET_KEY"
       [ -z "${STRIPE_WEBHOOK_SECRET}" ] && MISSING="$MISSING STRIPE_WEBHOOK_SECRET"
-      # Microservice secrets (warn only — services are optional)
+      [ -z "${STRIPE_PRICE_FOUNDING50}" ] && WARN="$WARN STRIPE_PRICE_FOUNDING50"
+      [ -z "${STRIPE_PRICE_GROWTH}" ] && WARN="$WARN STRIPE_PRICE_GROWTH"
+      # ── Auth (critical — OAuth will fail without these) ──
+      [ -z "${GOOGLE_CLIENT_ID}" ] && WARN="$WARN GOOGLE_CLIENT_ID"
+      [ -z "${GOOGLE_CLIENT_SECRET}" ] && WARN="$WARN GOOGLE_CLIENT_SECRET"
+      # ── Microservice secrets (optional — falls back to local) ──
       [ -z "${AI_GATEWAY_SECRET}" ] && WARN="$WARN AI_GATEWAY_SECRET"
       [ -z "${BILLING_SECRET}" ] && WARN="$WARN BILLING_SECRET"
       if [ -n "$MISSING" ]; then
+        echo "═══════════════════════════════════════════════════"
         echo "CRITICAL: Missing GitLab CI Variables:$MISSING"
+        echo "═══════════════════════════════════════════════════"
         echo "Add them in GitLab → Settings → CI/CD → Variables"
+        echo "Deploy ABORTED to prevent broken production."
         exit 1
       fi
       if [ -n "$WARN" ]; then
-        echo "⚠ Optional vars not set (microservices won't be used):$WARN"
+        echo "⚠ WARNING: Optional vars not set:$WARN"
+        echo "  Some features may not work (Stripe checkout, OAuth, microservices)"
       fi
-      echo "✓ All critical env vars validated ($(echo ${STRIPE_SECRET_KEY} | head -c 7)...)"
+      # Print env var count as sanity check
+      TOTAL_SET=0
+      for v in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY ANTHROPIC_API_KEY STRIPE_SECRET_KEY \
+               STRIPE_WEBHOOK_SECRET STRIPE_PRICE_FOUNDING50 STRIPE_PRICE_GROWTH \
+               GOOGLE_CLIENT_ID RESEND_API_KEY AI_GATEWAY_URL BILLING_URL; do
+        eval "[ -n \"\${$v}\" ]" && TOTAL_SET=$((TOTAL_SET+1))
+      done
+      echo "✓ Env vars validated: $TOTAL_SET/11 key vars set"
 
     # ── 2. Stop old container ──
     - docker stop deploy-${PROJECT_NAME} 2>/dev/null || true
@@ -126,44 +144,44 @@ build:production:
         -e SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
         -e NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
         -e ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-        -e IP_HASH_SALT=${IP_HASH_SALT}
-        -e SMTP_HOST=${SMTP_HOST}
-        -e SMTP_PORT=${SMTP_PORT}
-        -e SMTP_USER=${SMTP_USER}
-        -e SMTP_PASS=${SMTP_PASS}
-        -e "SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}"
-        -e GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-        -e GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-        -e GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL=${GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL}
-        -e "GOOGLE_DRIVE_PRIVATE_KEY=${GOOGLE_DRIVE_PRIVATE_KEY}"
-        -e GOOGLE_DRIVE_FOLDER_ID=${GOOGLE_DRIVE_FOLDER_ID}
+        -e IP_HASH_SALT=${IP_HASH_SALT:-blockid-default-salt}
+        -e SMTP_HOST=${SMTP_HOST:-}
+        -e SMTP_PORT=${SMTP_PORT:-587}
+        -e SMTP_USER=${SMTP_USER:-}
+        -e SMTP_PASS=${SMTP_PASS:-}
+        -e "SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-}"
+        -e GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+        -e GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+        -e GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL=${GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL:-}
+        -e "GOOGLE_DRIVE_PRIVATE_KEY=${GOOGLE_DRIVE_PRIVATE_KEY:-}"
+        -e GOOGLE_DRIVE_FOLDER_ID=${GOOGLE_DRIVE_FOLDER_ID:-}
         -e CRON_SECRET=${CRON_SECRET}
         -e STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
         -e STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
-        -e STRIPE_PRICE_FOUNDING50=${STRIPE_PRICE_FOUNDING50}
-        -e STRIPE_PRICE_FOUNDER=${STRIPE_PRICE_FOUNDER}
-        -e STRIPE_PRICE_GROWTH=${STRIPE_PRICE_GROWTH}
-        -e STRIPE_PRICE_GROWTH_ANNUAL=${STRIPE_PRICE_GROWTH_ANNUAL}
-        -e STRIPE_PRICE_GROWTH_499=${STRIPE_PRICE_GROWTH_499}
-        -e STRIPE_PRICE_PILOT=${STRIPE_PRICE_PILOT}
-        -e STRIPE_PRICE_ACCELERATOR=${STRIPE_PRICE_ACCELERATOR}
-        -e STRIPE_PRICE_CREDITS_5=${STRIPE_PRICE_CREDITS_5}
-        -e STRIPE_PRICE_CREDITS_10=${STRIPE_PRICE_CREDITS_10}
-        -e STRIPE_PRICE_CREDITS_25=${STRIPE_PRICE_CREDITS_25}
-        -e STRIPE_PRICE_CREDITS_50=${STRIPE_PRICE_CREDITS_50}
-        -e STRIPE_PRICE_CREDITS_100=${STRIPE_PRICE_CREDITS_100}
-        -e STRIPE_PRICE_SVI_ANALYSIS=${STRIPE_PRICE_SVI_ANALYSIS}
-        -e STRIPE_PRICE_SVI_ANALYSIS_25=${STRIPE_PRICE_SVI_ANALYSIS_25}
-        -e GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
-        -e GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
-        -e LINKEDIN_CLIENT_ID=${LINKEDIN_CLIENT_ID}
-        -e LINKEDIN_CLIENT_SECRET=${LINKEDIN_CLIENT_SECRET}
-        -e GOOGLE_GEMINI_API_KEY=${GOOGLE_GEMINI_API_KEY}
-        -e OPENAI_API_KEY=${OPENAI_API_KEY}
-        -e ANTHROPIC_PROXY_BASE_URL=${ANTHROPIC_PROXY_BASE_URL}
-        -e ANTHROPIC_PROXY_API_KEY=${ANTHROPIC_PROXY_API_KEY}
-        -e RESEND_API_KEY=${RESEND_API_KEY}
-        -e "RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL}"
+        -e STRIPE_PRICE_FOUNDING50=${STRIPE_PRICE_FOUNDING50:-}
+        -e STRIPE_PRICE_FOUNDER=${STRIPE_PRICE_FOUNDER:-}
+        -e STRIPE_PRICE_GROWTH=${STRIPE_PRICE_GROWTH:-}
+        -e STRIPE_PRICE_GROWTH_ANNUAL=${STRIPE_PRICE_GROWTH_ANNUAL:-}
+        -e STRIPE_PRICE_GROWTH_499=${STRIPE_PRICE_GROWTH_499:-}
+        -e STRIPE_PRICE_PILOT=${STRIPE_PRICE_PILOT:-}
+        -e STRIPE_PRICE_ACCELERATOR=${STRIPE_PRICE_ACCELERATOR:-}
+        -e STRIPE_PRICE_CREDITS_5=${STRIPE_PRICE_CREDITS_5:-}
+        -e STRIPE_PRICE_CREDITS_10=${STRIPE_PRICE_CREDITS_10:-}
+        -e STRIPE_PRICE_CREDITS_25=${STRIPE_PRICE_CREDITS_25:-}
+        -e STRIPE_PRICE_CREDITS_50=${STRIPE_PRICE_CREDITS_50:-}
+        -e STRIPE_PRICE_CREDITS_100=${STRIPE_PRICE_CREDITS_100:-}
+        -e STRIPE_PRICE_SVI_ANALYSIS=${STRIPE_PRICE_SVI_ANALYSIS:-}
+        -e STRIPE_PRICE_SVI_ANALYSIS_25=${STRIPE_PRICE_SVI_ANALYSIS_25:-}
+        -e GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}
+        -e GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}
+        -e LINKEDIN_CLIENT_ID=${LINKEDIN_CLIENT_ID:-}
+        -e LINKEDIN_CLIENT_SECRET=${LINKEDIN_CLIENT_SECRET:-}
+        -e GOOGLE_GEMINI_API_KEY=${GOOGLE_GEMINI_API_KEY:-}
+        -e OPENAI_API_KEY=${OPENAI_API_KEY:-}
+        -e ANTHROPIC_PROXY_BASE_URL=${ANTHROPIC_PROXY_BASE_URL:-}
+        -e ANTHROPIC_PROXY_API_KEY=${ANTHROPIC_PROXY_API_KEY:-}
+        -e RESEND_API_KEY=${RESEND_API_KEY:-}
+        -e "RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-}"
         -e OLLAMA_ENABLED=true
         -e OLLAMA_HOST=http://172.19.0.1:11434
         -e OLLAMA_MODEL=qwen2.5:3b
