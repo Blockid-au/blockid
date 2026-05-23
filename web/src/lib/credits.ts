@@ -16,6 +16,34 @@ import "server-only";
 import { getSupabaseAdmin } from "./supabase";
 import { sendCreditLowAlert } from "./email";
 
+// ── Billing Service (microservice) proxy ──────────────────────────────
+// Phase 1 Strangler Fig: try the Billing service first, fallback to local.
+const BILLING_URL = process.env.BILLING_URL; // e.g. "http://billing:4011" or "http://127.0.0.1:4011"
+const BILLING_SECRET = process.env.BILLING_SECRET;
+let billingBackoffUntil = 0;
+
+async function billingFetch<T>(path: string, body: Record<string, unknown>): Promise<T | null> {
+  if (!BILLING_URL || !BILLING_SECRET) return null;
+  if (Date.now() < billingBackoffUntil) return null;
+  try {
+    const res = await fetch(`${BILLING_URL}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Internal-Key": BILLING_SECRET },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (!res.ok) return null;
+    return await res.json() as T;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg.includes("ECONNREFUSED") || msg.includes("fetch failed")) {
+      billingBackoffUntil = Date.now() + 300_000; // 5 min
+      console.warn("[credits] Billing service unavailable, falling back to local for 5 min");
+    }
+    return null;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Feature credit costs
 // ---------------------------------------------------------------------------
@@ -278,6 +306,11 @@ export async function canAfford(
   userId: string,
   feature: string,
 ): Promise<AffordResult> {
+  // Try Billing service first
+  const remote = await billingFetch<AffordResult>("/credits/check", { userId, feature });
+  if (remote) return remote;
+
+  // Fallback: local logic
   const cost = FEATURE_COSTS[feature];
   if (cost === undefined) {
     return { allowed: false, balance: 0, cost: 0, reason: "unknown_feature" };
@@ -308,6 +341,11 @@ export async function spendCredits(
   feature: string,
   metadata?: Record<string, unknown>,
 ): Promise<{ ok: boolean; balance: number }> {
+  // Try Billing service first
+  const remote = await billingFetch<{ ok: boolean; balance: number }>("/credits/spend", { userId, feature, metadata });
+  if (remote) return remote;
+
+  // Fallback: local logic
   const cost = FEATURE_COSTS[feature];
   if (cost === undefined) return { ok: false, balance: 0 };
   if (cost === 0) {
