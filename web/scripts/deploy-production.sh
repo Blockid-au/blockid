@@ -93,6 +93,11 @@ echo "  Homepage: HTTP $HTTP_CODE"
 AUTH_OK=$(curl -s https://blockid.au/api/auth/me | python3 -c "import sys,json; print(json.load(sys.stdin).get('ok','error'))" 2>/dev/null)
 echo "  Auth API: $AUTH_OK"
 
+# Step 7: Purge Cloudflare cache
+echo ""
+echo "=== Purging Cloudflare cache ==="
+bash scripts/purge-cloudflare-cache.sh || echo "  ⚠️  Cloudflare purge failed; deployment is still live."
+
 echo ""
 echo "============================================"
 echo "  ✅ DEPLOY COMPLETE"

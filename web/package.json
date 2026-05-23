@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "cache:purge": "bash scripts/purge-cloudflare-cache.sh",
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest"
