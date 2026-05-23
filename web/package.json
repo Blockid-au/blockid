@@ -36,6 +36,7 @@
     "puppeteer-core": "^25.0.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "react-markdown": "^10.1.0",
     "recharts": "^3.8.1",
     "remotion": "^4.0.463",
     "resend": "^6.12.3",
