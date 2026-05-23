@@ -27,5 +27,8 @@ docker compose build web
 echo "==> [4/5] Bringing the stack up"
 docker compose up -d
 
-echo "==> [5/5] Service status"
+echo "==> [5/6] Service status"
 docker compose ps
+
+echo "==> [6/6] Purging Cloudflare cache"
+bash scripts/purge-cloudflare-cache.sh || echo "Cloudflare purge failed; stack is still running."

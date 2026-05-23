@@ -959,26 +959,26 @@ export function SVIEntrance() {
       <TopBar />
 
       {/* ── SVI SEARCH SECTION (default view) ────────────────────────────── */}
-      <section id="svi" className="min-h-[calc(100svh-64px)] flex items-center gradient-section bg-gradient-to-b from-brand-50/60 via-white to-white py-16 md:py-20 relative overflow-hidden">
+      <section id="svi" className="min-h-[calc(100svh-56px)] md:min-h-[calc(100svh-64px)] flex items-start gradient-section bg-gradient-to-b from-brand-50/60 via-white to-white py-10 sm:py-12 md:py-20 relative overflow-hidden">
         {/* Decorative background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-brand-100/40 blur-3xl" />
           <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-emerald-100/30 blur-3xl" />
         </div>
         <div className="mx-auto w-full max-w-2xl px-4 sm:px-6 flex flex-col items-center relative">
-          <div className="flex flex-col items-center mb-8">
-            <div className="flex items-center gap-4 mb-6 animate-fade-in">
-              <Image src="/images/logo-icon-transparent.png" alt="" width={64} height={64} className="h-14 w-14 md:h-16 md:w-16" />
+          <div className="flex flex-col items-center mb-5 sm:mb-8">
+            <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6 animate-fade-in">
+              <Image src="/images/logo-icon-transparent.png" alt="" width={64} height={64} className="h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16" />
               <div className="flex flex-col">
-                <span className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-ink-900">BlockID<span className="text-brand-500">.au</span></span>
-                <span className="text-sm md:text-base font-medium tracking-wide text-ink-500 mt-0.5">Valuation. Ownership. Growth.</span>
+                <span className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-ink-900">BlockID<span className="text-brand-500">.au</span></span>
+                <span className="text-xs sm:text-sm md:text-base font-medium tracking-wide text-ink-500 mt-0.5">Valuation. Ownership. Growth.</span>
               </div>
             </div>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-center text-ink-900 leading-tight">
-              Get your Idea &amp;<br className="hidden sm:block" />
-              <span className="text-brand-600">Startup Value Index</span>
+              <span className="block sm:inline">Get your Idea &amp;</span>
+              <span className="block text-brand-600">Startup Value Index</span>
             </h2>
-            <p className="mt-4 text-lg text-ink-500">First analysis free. AI-powered results in under 60 seconds.</p>
+            <p className="mx-auto mt-3 sm:mt-4 max-w-md text-center text-base sm:text-lg text-ink-500">First analysis free. AI-powered results in under 60 seconds.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="w-full">
@@ -1020,20 +1020,20 @@ export function SVIEntrance() {
               </div>
             )}
 
-            <div className="svi-input-glow rounded-[28px] shadow-lg">
-              <div className="flex items-center px-5 py-4 gap-3">
+            <div className="svi-input-glow rounded-2xl sm:rounded-[28px] shadow-lg">
+              <div className="flex items-center px-3 py-3 sm:px-5 sm:py-4 gap-2 sm:gap-3">
                 <Search strokeWidth={1.75} className="h-5 w-5 text-ink-600 shrink-0" />
                 <textarea ref={textareaRef} value={text} onChange={(e) => setText(e.target.value)} onFocus={() => { setSearchFocused(true); if (!hasTrackedStart.current) { trackEvent("svi_form_started", { method: "text" }); hasTrackedStart.current = true; } }} onBlur={() => setSearchFocused(false)}
                   placeholder="Describe your startup idea, business plan, or paste key details…" rows={1}
-                  className="flex-1 resize-none text-lg text-ink-800 placeholder:text-ink-600 focus:outline-none bg-transparent leading-relaxed"
+                  className="min-w-0 flex-1 resize-none text-base sm:text-lg text-ink-800 placeholder:text-ink-600 focus:outline-none bg-transparent leading-relaxed"
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }} />
                 <button type="button" onClick={toggleVoice} aria-label={listening ? "Stop voice input" : "Start voice input"}
-                  className={cn("shrink-0 h-11 w-11 flex items-center justify-center rounded-full cursor-pointer transition-colors",
+                  className={cn("shrink-0 h-10 w-10 sm:h-11 sm:w-11 flex items-center justify-center rounded-full cursor-pointer transition-colors",
                     listening ? "bg-red-50 text-red-500" : "text-ink-600 hover:bg-surface-100")}>
                   {listening ? <MicOff strokeWidth={1.75} className="h-5 w-5" /> : <Mic strokeWidth={1.75} className="h-5 w-5" />}
                 </button>
                 <button type="button" onClick={() => fileInputRef.current?.click()} aria-label="Upload a file"
-                  className="shrink-0 h-11 w-11 flex items-center justify-center rounded-full text-ink-600 hover:bg-surface-100 cursor-pointer transition-colors">
+                  className="shrink-0 h-10 w-10 sm:h-11 sm:w-11 flex items-center justify-center rounded-full text-ink-600 hover:bg-surface-100 cursor-pointer transition-colors">
                   <UploadCloud strokeWidth={1.75} className="h-5 w-5" />
                 </button>
                 <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt,.md" onChange={handleFileChange} className="sr-only" />
@@ -1050,14 +1050,14 @@ export function SVIEntrance() {
 
             {/* Input type badge */}
             {detectedInputType && (
-              <div className="mt-2 flex justify-center animate-fade-in">
+              <div className="relative z-10 mt-4 flex justify-center animate-fade-in">
                 <span className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all",
+                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium shadow-sm transition-all",
                   detectedInputType === "url"
-                    ? "border border-brand-200 bg-brand-50 text-brand-700"
+                    ? "border border-brand-200 bg-white text-brand-700"
                     : detectedInputType === "document"
-                      ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-                      : "border border-surface-300 bg-surface-50 text-ink-600",
+                      ? "border border-emerald-200 bg-white text-emerald-700"
+                      : "border border-surface-300 bg-white text-ink-600",
                 )}>
                   {detectedInputType === "url" && <><Search strokeWidth={1.75} className="h-3 w-3" /> URL Detected</>}
                   {detectedInputType === "document" && <><FileText strokeWidth={1.75} className="h-3 w-3" /> Document Detected</>}
@@ -1067,7 +1067,7 @@ export function SVIEntrance() {
             )}
 
             {/* Stage selector pills */}
-            <div className="mt-3 flex flex-col items-center">
+            <div className="mt-4 flex flex-col items-center">
               <p className="text-xs uppercase tracking-[0.15em] text-ink-400 font-medium mb-2">What stage is your startup?</p>
               <div className="flex flex-wrap justify-center gap-2">
                 {([
@@ -1083,7 +1083,7 @@ export function SVIEntrance() {
                     type="button"
                     onClick={() => setSelectedStage(selectedStage === s.value ? null : s.value)}
                     className={cn(
-                      "inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium cursor-pointer transition-colors",
+                      "inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium cursor-pointer transition-colors",
                       selectedStage === s.value
                         ? "bg-brand-600 text-white"
                         : "bg-surface-100 text-ink-600 hover:bg-surface-200",
@@ -1117,19 +1117,19 @@ export function SVIEntrance() {
             )}
             {error && <p className="mt-2 text-center text-sm text-red-500">{error}</p>}
 
-            <div className="mt-5 flex items-center justify-center gap-3">
+            <div className="mt-5 flex w-full flex-col items-center justify-center gap-3 sm:flex-row">
               <button type="submit" disabled={state === "submitting"}
-                className="h-12 px-8 rounded-2xl bg-brand-600 text-base font-bold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed cta-glow">
+                className="h-12 w-full max-w-xs px-8 rounded-2xl bg-brand-600 text-base font-bold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed cta-glow sm:w-auto">
                 {state === "submitting" ? <span className="flex items-center gap-2"><span className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />Analyzing…</span> : "Get My SVI"}
               </button>
               <button type="button" onClick={() => { setText(QUICK_EXAMPLES[Math.floor(Math.random() * QUICK_EXAMPLES.length)]); textareaRef.current?.focus(); trackEvent("svi_form_started", { method: "example" }); }}
-                className="h-10 px-5 rounded-xl border border-surface-300 bg-white text-sm font-medium text-ink-700 hover:bg-surface-100 transition-colors cursor-pointer">
+                className="h-10 w-full max-w-xs px-5 rounded-xl border border-surface-300 bg-white text-sm font-medium text-ink-700 hover:bg-surface-100 transition-colors cursor-pointer sm:w-auto">
                 Try an Example
               </button>
             </div>
             <div className="mt-4 flex flex-col items-center gap-2">
-              <p className="flex items-center gap-2 text-sm font-semibold text-emerald-700">
-                <CheckCircle2 strokeWidth={2} className="h-4.5 w-4.5 text-emerald-500" />
+              <p className="flex flex-wrap items-center justify-center gap-2 text-center text-sm font-semibold text-emerald-700">
+                <CheckCircle2 strokeWidth={2} className="h-4.5 w-4.5 shrink-0 text-emerald-500" />
                 First analysis FREE &middot; No credit card &middot; No signup required
               </p>
               <p className="text-xs text-ink-500">Drag &amp; drop a PDF &middot; Voice input supported</p>

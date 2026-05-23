@@ -28,12 +28,14 @@ case "$MODULE" in
     sleep 5
     echo "✅ Container restarted"
     curl -s -o /dev/null -w "Health: HTTP %{http_code}\n" https://blockid.au/
+    bash scripts/purge-cloudflare-cache.sh || echo "⚠️  Cloudflare purge failed; restart is still live."
     exit 0
     ;;
 
   "static"|"css"|"images")
     echo "📁 Static files: no rebuild needed (served via nginx/volume mount)"
     echo "   Files in web/public/ are live immediately."
+    bash scripts/purge-cloudflare-cache.sh || echo "⚠️  Cloudflare purge failed; static files are still live."
     exit 0
     ;;
 
@@ -42,6 +44,7 @@ case "$MODULE" in
     docker restart deploy-blockid-production
     sleep 5
     echo "✅ Container restarted with updated config"
+    bash scripts/purge-cloudflare-cache.sh || echo "⚠️  Cloudflare purge failed; config restart is still live."
     exit 0
     ;;
 
@@ -87,5 +90,6 @@ case "$MODULE" in
     echo "✅ Deploy complete"
     echo "   Container: $STATUS"
     echo "   Homepage: HTTP $HTTP"
+    bash scripts/purge-cloudflare-cache.sh || echo "⚠️  Cloudflare purge failed; deploy is still live."
     ;;
 esac
