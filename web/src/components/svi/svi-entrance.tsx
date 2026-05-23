@@ -323,13 +323,15 @@ export function SVIEntrance() {
     if (!rawText.trim() && !file) { setError("Please describe your idea or upload a document."); return; }
     if (selectedStage) rawText = `${rawText}\n\nStartup stage: ${selectedStage}`;
 
-    // ── Free-analysis gate ──────────────────────────────────────────────
+    // ── Free-analysis gate (1 per day) ────────────────────────────────
     // Paid users bypass the gate entirely. Otherwise, check localStorage
-    // as a fast cache, then the server is the source of truth via 402.
+    // as a fast cache (timestamp), then the server is the source of truth.
     if (!hasPaidPlan) {
-      const freeUsed = typeof window !== "undefined" && localStorage.getItem(SVI_FREE_USED_KEY);
-      if (freeUsed) {
-        // localStorage says used — but verify server-side (user may have purchased credits)
+      const lastUsedStr = typeof window !== "undefined" && localStorage.getItem(SVI_FREE_USED_KEY);
+      const lastUsed = lastUsedStr ? Number(lastUsedStr) : 0;
+      const isWithin24h = Date.now() - lastUsed < 24 * 60 * 60 * 1000;
+      if (isWithin24h) {
+        // localStorage says used today — but verify server-side (user may have purchased credits)
         try {
           const gateRes = await fetch(`/api/svi/check-gate?email=${encodeURIComponent(email)}`);
           const gateData = await gateRes.json();
@@ -511,7 +513,7 @@ export function SVIEntrance() {
 
         // Mark free analysis as used in localStorage
         if (sseCompleted && !hasPaidPlan && typeof window !== "undefined") {
-          localStorage.setItem(SVI_FREE_USED_KEY, "true");
+          localStorage.setItem(SVI_FREE_USED_KEY, String(Date.now()));
         }
         return;
       }
@@ -559,7 +561,7 @@ export function SVIEntrance() {
           }
         });
         if (!hasPaidPlan && typeof window !== "undefined") {
-          localStorage.setItem(SVI_FREE_USED_KEY, "true");
+          localStorage.setItem(SVI_FREE_USED_KEY, String(Date.now()));
         }
         return;
       }
@@ -628,7 +630,7 @@ export function SVIEntrance() {
         });
 
         if (!hasPaidPlan && typeof window !== "undefined") {
-          localStorage.setItem(SVI_FREE_USED_KEY, "true");
+          localStorage.setItem(SVI_FREE_USED_KEY, String(Date.now()));
         }
       } catch { setError("Network error. Please try again."); setState("error"); }
     }
@@ -886,6 +888,21 @@ export function SVIEntrance() {
                     <div className="flex gap-2 mt-3">
                       <a href="/workspace/evidence" className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors">Upload Evidence (+8-20 pts)</a>
                       <a href="/auth/login?next=/dashboard" className="inline-flex items-center gap-1 rounded-lg border border-emerald-300 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition-colors">Save to Dashboard</a>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {/* Sign-in encouragement banner for unauthenticated users */}
+              {!loggedInUser && (
+                <div className="mx-auto max-w-[620px] px-6 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
+                  <div className="rounded-2xl border border-brand-200 bg-gradient-to-r from-brand-50 to-blue-50 p-5">
+                    <p className="text-sm font-semibold text-brand-800">Your account is ready!</p>
+                    <p className="text-xs text-brand-700 mt-1 leading-relaxed">
+                      We&apos;ve sent your login credentials to <strong>{email}</strong>. Sign in to save your reports, track your SVI progress, manage your profile, and get 1 free analysis every day.
+                    </p>
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      <a href={`/auth/login?next=/dashboard`} className="inline-flex items-center gap-1 rounded-lg bg-brand-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 transition-colors">Sign In Now</a>
+                      <a href="/workspace/profile" className="inline-flex items-center gap-1 rounded-lg border border-brand-300 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100 transition-colors">Manage Profile</a>
                     </div>
                   </div>
                 </div>

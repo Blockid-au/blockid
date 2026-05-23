@@ -7,7 +7,8 @@ import { detectInputType, scrapeUrl, deepTechAudit, type TechAuditResult } from 
 import { generateRndReport, type ReportTier, type CompetitiveResearchData } from "@/lib/rnd-analysis";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { getProjectIdFromRequest } from "@/lib/projects";
-import { sendSVIReport } from "@/lib/email";
+import { sendSVIReport, sendWelcomeWithReport } from "@/lib/email";
+import { autoCreateUserWithTempPassword } from "@/lib/auth";
 import { createReportGoogleDoc } from "@/lib/google-drive";
 
 /** Map tier to the credit feature key used for billing. */
@@ -107,17 +108,19 @@ export async function POST(request: Request) {
         );
       }
     } else {
-      // Unauthenticated — check if this email already used their free analysis
-      const { data: existingAnalyses } = await gateSupabase
+      // Unauthenticated — allow 1 free analysis per day per email
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { data: recentAnalyses } = await gateSupabase
         .from("svi_analyses")
         .select("id")
         .eq("email", email)
+        .gte("created_at", oneDayAgo)
         .limit(1);
 
-      if (existingAnalyses && existingAnalyses.length > 0) {
+      if (recentAnalyses && recentAnalyses.length > 0) {
         return new Response(
           JSON.stringify({
-            error: "Free analysis used. Sign in and purchase credits to continue.",
+            error: "You've used your free daily analysis. Come back tomorrow or sign in to continue.",
             needsAuth: true,
           }),
           { status: 402, headers: { "Content-Type": "application/json" } },
@@ -428,8 +431,23 @@ export async function POST(request: Request) {
         }
       }
 
-      // Step 7: Send email with report (non-blocking)
-      sendSVIReport({ to: email, slug, analysis }).catch(() => {});
+      // Step 7: Auto-create account + send welcome OR just report email
+      if (!authenticatedUserId) {
+        void (async () => {
+          try {
+            const acct = await autoCreateUserWithTempPassword(email);
+            if (acct.ok && acct.isNewUser && acct.tempPassword) {
+              void sendWelcomeWithReport({ to: email, slug, rawInput: rawText, analysis, tempPassword: acct.tempPassword }).catch(() => {});
+            } else {
+              void sendSVIReport({ to: email, slug, analysis }).catch(() => {});
+            }
+          } catch {
+            void sendSVIReport({ to: email, slug, analysis }).catch(() => {});
+          }
+        })();
+      } else {
+        sendSVIReport({ to: email, slug, analysis }).catch(() => {});
+      }
 
       // Step 8: Send complete event
       sendEvent("complete", {
