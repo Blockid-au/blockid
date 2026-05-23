@@ -102,9 +102,9 @@ Sprints are numbered sequentially within each year. Each sprint is exactly 2 wee
 ## Definition of Done
 
 A task is "Done" when:
-- [ ] Code merged to master
+- [x] Code merged to master
 - [ ] Tests pass (unit + integration)
-- [ ] No TypeScript errors
+- [x] No TypeScript errors (verified clean)
 - [ ] Deployed to staging and verified
 - [ ] Acceptance criteria met (per spec)
 - [ ] Documentation updated (if applicable)

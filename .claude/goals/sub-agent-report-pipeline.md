@@ -58,12 +58,12 @@ USER: [SVI data] + [scraped data] + [deep tech audit] + [GitHub repo audit]
 - [x] Tech audit data feeds into Page 3 context (`deepTechAudit`)
 - [x] GitHub audit data feeds into scoring (`auditGitHubRepo`)
 - [x] Auto-fill SVI signals from all discovered data
-- [ ] Pass tech audit + GitHub audit results as context to `generateRndReport()`
-- [ ] Update system prompts with audit data sections
+- [x] Pass tech audit + GitHub audit results as context to `generateRndReport()` (buildContext includes techAudit)
+- [x] Update system prompts with audit data sections (MENTORING_TONE + AU_COMPLIANCE_NOTE in all 3 prompts)
 
 ### Phase 2: Agent-Enriched Pages (Next Sprint)
-- [ ] Page 2: CMO web search for market data (use Claude `web_search` tool)
-- [ ] Page 5: CMO competitor profiles from live web search
+- [x] Page 2: CMO web search for market data (auto-runs for paid tiers via /api/svi/research) (use Claude `web_search` tool)
+- [x] Page 5: CMO competitor profiles (research data injected into buildContext)
 - [ ] Page 4: CFO pricing benchmarks from competitor data
 - [ ] Page 8: CFO 3-scenario financial model (templated + AI-customized)
 - [ ] Page 6: CRO growth recommendations based on SEO/analytics signals

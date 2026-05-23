@@ -35,9 +35,9 @@ Ensure BlockID.au can generate full 10/10 page reports 24/7 without rate limitin
 ## Implementation Plan
 
 ### Phase 1: Smart Rotation (CTO)
-- [ ] Add Groq as provider in ai-client.ts
-- [ ] Add Cerebras as provider
-- [ ] Add SambaNova as provider  
+- [x] Add Groq as provider (llama-3.3-70b, free tier, lines 411-434)
+- [ ] Add Cerebras as provider (future)
+- [ ] Add SambaNova as provider (future)  
 - [ ] Implement round-robin rotation per page (alternate providers)
 - [ ] Add provider health tracking (success rate per provider)
 

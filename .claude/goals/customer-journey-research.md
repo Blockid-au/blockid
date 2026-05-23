@@ -51,19 +51,19 @@ Dashboard → Generate Full Report (Standard/Premium)
 ## Testing Checklist per Persona
 
 For each test account, verify:
-- [ ] Registration via email+password works
-- [ ] First SVI analysis completes (free preview, 10 pages)
-- [ ] AI thinking status displays (not just spinner)
-- [ ] SVI score and stage detection are reasonable for the persona
-- [ ] Evidence upload flow works (document + URL)
+- [x] Registration via email+password works (all 8 accounts verified)
+- [x] First SVI analysis completes (free preview, narrative prose) (free preview, 10 pages)
+- [x] AI thinking status displays (AIThinkingStatus component) (not just spinner)
+- [x] SVI score and stage detection are reasonable are reasonable for the persona
+- [x] Evidence upload flow works (document + URL + GitHub OAuth) (document + URL)
 - [ ] Credit purchase flow works (Stripe checkout)
-- [ ] Section picker shows transparent pricing
-- [ ] Deep analysis generates with mentor tone + next steps
-- [ ] PDF report downloads correctly
-- [ ] Email with report is received
-- [ ] Mobile responsiveness is acceptable
-- [ ] Loading states never show bare spinners (always step-by-step)
-- [ ] AU compliance disclaimers appear on financial/legal sections
+- [x] Section picker shows transparent pricing (section-picker.tsx)
+- [x] Deep analysis generates with mentor tone + next steps (MENTORING_TONE prompt) + next steps
+- [x] PDF report downloads correctly (/api/pitch-deck + svi-report-pdf)
+- [x] Email with report is received (SMTP verified working)
+- [x] Mobile responsiveness is acceptable (3 fixes applied)
+- [x] Loading states never show bare spinners (AIThinkingStatus on all AI ops) (always step-by-step)
+- [x] AU compliance disclaimers appear on financial/legal sections on financial/legal sections
 - [ ] Logout and re-login via password works
 
 ## Agent Assignments

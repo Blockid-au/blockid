@@ -3,6 +3,7 @@
 import * as React from "react";
 import {
   BarChart3,
+  Check,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -13,11 +14,13 @@ import {
   Mail,
   PieChart,
   Rocket,
+  Share2,
   Shield,
   Sparkles,
   Target,
   TrendingUp,
   Users,
+  X,
   Zap,
 } from "lucide-react";
 import Link from "next/link";
@@ -773,6 +776,21 @@ function TechAuditCard({ audit }: { audit: ClientTechAuditResult }) {
   );
 }
 
+/* ─── Report Page CTA mapping (upgrade prompts for free users) ───────── */
+
+const PAGE_CTAS: Record<string, { text: string; action: string; href: string; deepDive?: boolean }> = {
+  executive: { text: "Upload evidence to verify these findings", action: "Upload Evidence", href: "/workspace/evidence" },
+  market: { text: "Get deeper market research", action: "Deep Dive", href: "#", deepDive: true },
+  product: { text: "Connect GitHub for tech audit", action: "Connect", href: "/workspace/evidence" },
+  business: { text: "See pricing benchmarks", action: "Deep Dive", href: "#", deepDive: true },
+  competition: { text: "Get named competitor profiles", action: "Deep Dive", href: "#", deepDive: true },
+  traction: { text: "Connect analytics to prove traction", action: "Connect", href: "/workspace/evidence" },
+  team: { text: "Upload team bios", action: "Upload", href: "/workspace/evidence" },
+  financial: { text: "Get 3-scenario financial model", action: "Deep Dive", href: "#", deepDive: true },
+  risk: { text: "See full risk mitigation plan", action: "Deep Dive", href: "#", deepDive: true },
+  recommendations: { text: "Start your 30-day action plan", action: "Get Started", href: "/workspace/evidence" },
+};
+
 /* ─── Main Component ──────────────────────────────────────────────────── */
 
 export function RndResultsPanel({
@@ -799,6 +817,11 @@ export function RndResultsPanel({
   techAudit?: ClientTechAuditResult | null;
 }) {
   const [copied, setCopied] = React.useState(false);
+  const [shareCopied, setShareCopied] = React.useState(false);
+  const [showShareModal, setShowShareModal] = React.useState(false);
+  const [investorEmail, setInvestorEmail] = React.useState("");
+  const [shareSending, setShareSending] = React.useState(false);
+  const [shareSent, setShareSent] = React.useState(false);
   const tierValue: ReportTier = report.tier ?? "standard";
   const pageCount = report.pages.length || PAGE_DEFS.length;
   const pageIds = PAGE_DEFS.slice(0, pageCount).map((p) => p.id);
@@ -817,14 +840,44 @@ export function RndResultsPanel({
 
   const shareUrl =
     typeof window !== "undefined"
-      ? `${window.location.origin}/svi/${slug}`
-      : `/svi/${slug}`;
+      ? `${window.location.origin}/s/${slug}`
+      : `https://blockid.au/s/${slug}`;
 
   const handleCopy = () => {
     void navigator.clipboard.writeText(shareUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
     trackEvent("rnd_link_copied", { slug });
+  };
+
+  const handleShareCopy = () => {
+    void navigator.clipboard.writeText(shareUrl);
+    setShareCopied(true);
+    setTimeout(() => setShareCopied(false), 2000);
+    trackEvent("investor_link_copied", { slug });
+  };
+
+  const handleShareWithInvestor = async () => {
+    if (!investorEmail || !investorEmail.includes("@")) return;
+    setShareSending(true);
+    try {
+      await fetch("/api/svi/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recipientEmail: investorEmail, slug }),
+      });
+      trackEvent("referral_email_shared", {});
+      setShareSent(true);
+      setTimeout(() => {
+        setShareSent(false);
+        setShowShareModal(false);
+        setInvestorEmail("");
+      }, 2000);
+    } catch {
+      // Silently fail — fire-and-forget
+    } finally {
+      setShareSending(false);
+    }
   };
 
   const navigateToPage = (id: string) => {
@@ -883,6 +936,92 @@ export function RndResultsPanel({
                 </button>
               )}
             </div>
+
+            {/* Share actions */}
+            <div className="flex items-center justify-center gap-2 mt-4 mb-2">
+              <button
+                type="button"
+                onClick={handleShareCopy}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors cursor-pointer",
+                  shareCopied
+                    ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                    : "border-surface-200 bg-white text-ink-700 hover:bg-surface-50 hover:border-brand-200",
+                )}
+              >
+                {shareCopied ? (
+                  <Check strokeWidth={1.75} className="h-3.5 w-3.5" />
+                ) : (
+                  <Copy strokeWidth={1.75} className="h-3.5 w-3.5" />
+                )}
+                {shareCopied ? "Link Copied!" : "Copy Share Link"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowShareModal(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-surface-200 bg-white px-3 py-2 text-xs font-medium text-ink-700 hover:bg-surface-50 hover:border-brand-200 transition-colors cursor-pointer"
+              >
+                <Mail strokeWidth={1.75} className="h-3.5 w-3.5" />
+                Share with Investor
+              </button>
+            </div>
+
+            {/* Investor share modal */}
+            {showShareModal && (
+              <div className="rounded-xl border border-brand-200 bg-brand-50/50 px-5 py-4 mt-3 mb-2">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Share2 strokeWidth={1.75} className="h-4 w-4 text-brand-600" />
+                    <span className="text-sm font-semibold text-ink-800">Share with Investor</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setShowShareModal(false); setInvestorEmail(""); setShareSent(false); }}
+                    className="text-ink-400 hover:text-ink-600 cursor-pointer"
+                  >
+                    <X strokeWidth={1.75} className="h-4 w-4" />
+                  </button>
+                </div>
+                <p className="text-xs text-ink-500 mb-3">
+                  Send your SVI report directly to an investor. They will receive an email with your score and a link to the full report.
+                </p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="email"
+                    value={investorEmail}
+                    onChange={(e) => setInvestorEmail(e.target.value)}
+                    placeholder="investor@example.com"
+                    className="flex-1 rounded-lg border border-surface-300 bg-white px-3 py-2 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                    onKeyDown={(e) => { if (e.key === "Enter") void handleShareWithInvestor(); }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void handleShareWithInvestor()}
+                    disabled={shareSending || shareSent || !investorEmail.includes("@")}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-colors cursor-pointer",
+                      shareSent
+                        ? "bg-emerald-500 text-white"
+                        : "bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed",
+                    )}
+                  >
+                    {shareSent ? (
+                      <>
+                        <Check strokeWidth={1.75} className="h-4 w-4" />
+                        Sent!
+                      </>
+                    ) : shareSending ? (
+                      "Sending..."
+                    ) : (
+                      <>
+                        <Mail strokeWidth={1.75} className="h-4 w-4" />
+                        Send
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
 
@@ -953,6 +1092,29 @@ export function RndResultsPanel({
             </ul>
           </div>
         )}
+
+        {/* Contextual CTA — upgrade prompt for free users */}
+        {!isPaid && PAGE_CTAS[pageDef.id] && (() => {
+          const cta = PAGE_CTAS[pageDef.id];
+          return (
+            <div className="mt-4 rounded-lg bg-brand-50 border border-brand-200 px-4 py-3 flex items-center justify-between">
+              <p className="text-xs text-brand-700">{cta.text}</p>
+              {cta.deepDive && onUpgradeDeepDive ? (
+                <button
+                  type="button"
+                  onClick={onUpgradeDeepDive}
+                  className="text-xs font-semibold text-brand-600 hover:text-brand-700 cursor-pointer transition-colors"
+                >
+                  {cta.action} →
+                </button>
+              ) : (
+                <Link href={cta.href} className="text-xs font-semibold text-brand-600 hover:text-brand-700">
+                  {cta.action} →
+                </Link>
+              )}
+            </div>
+          );
+        })()}
 
         {/* V2 Locked Section Preview — narrative report upsell */}
         {page.lockedPreview && page.lockedSections && page.lockedSections.length > 0 && !isPaid && (

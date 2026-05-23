@@ -150,11 +150,11 @@ interface RndReportV2Page {
 ## Sub-Goals by Agent
 
 ### CTO (Technical Implementation)
-- [ ] Update `RndReport` interface to V2 format
-- [ ] Redesign AI prompts for narrative essay style
-- [ ] Add `lockedContent` / `lockedSections` fields
-- [ ] Update report page renderer for V2 format
-- [ ] Build unlock/payment flow for report upgrade
+- [x] Update `RndReport` interface to V2 format (lockedPreview, lockedSections, potentialSVI)
+- [x] Redesign AI prompts for narrative essay style (SYSTEM_STANDARD v2)
+- [x] Add lockedContent/lockedSections fields (RndReportPage interface)
+- [x] Update report page renderer for V2 (rnd-results-panel.tsx)
+- [x] Build unlock/payment flow (rnd-locked-section.tsx + credit CTAs)
 - [ ] Email delivery with full V2 report
 
 ### CPO (Product Experience)

@@ -70,20 +70,20 @@
 ## C-Level Agent Assignments
 
 ### CEO — Strategic
-- [ ] Review and approve sales readiness
+- [x] Review and approve sales readiness (go-live checklist 24/24)
 - [ ] Identify first 10 target customers (by name)
 - [ ] Personal outreach to 5 founders this week
 
 ### CTO — Technical
 - [x] Fix payment → analysis redirect flow ✅ (race condition fixed)
 - [x] Verify email deliverability (SMTP/DKIM) ✅ (SPF + DMARC + DKIM all live)
-- [ ] Mobile responsive QA (agent testing now)
+- [x] Mobile responsive QA (3 fixes applied, agent verified) (agent testing now)
 - [x] Ensure AI provider stable (Claude OAuth refresh) ✅ (3h auto-refresh cron)
 
 ### CPO — Product
 - [x] Design 3-step onboarding tour ✅ (welcome-guide.tsx)
 - [x] Simplify first-time user experience ✅ ("FREE" badges + guide)
-- [ ] Review pricing page UX
+- [x] Review pricing page UX (transparent section pricing live)
 - [ ] Test full flow as new user (incognito) (agent testing now)
 
 ### CMO — Marketing

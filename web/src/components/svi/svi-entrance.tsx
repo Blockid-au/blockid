@@ -143,6 +143,7 @@ export function SVIEntrance() {
   const [sectionPickerCredits, setSectionPickerCredits] = React.useState(0);
   const [sectionPickerLoading, setSectionPickerLoading] = React.useState(false);
   const [modularReport, setModularReport] = React.useState<Record<string, { markdown: string; wordCount: number }> | null>(null);
+  const [selectedStage, setSelectedStage] = React.useState<string | null>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const emailRef = React.useRef("");
@@ -316,8 +317,9 @@ export function SVIEntrance() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !email.includes("@")) { setError("Please enter a valid email address."); return; }
-    const rawText = file ? `File: ${file.name}\n${text}` : text;
+    let rawText = file ? `File: ${file.name}\n${text}` : text;
     if (!rawText.trim() && !file) { setError("Please describe your idea or upload a document."); return; }
+    if (selectedStage) rawText = `${rawText}\n\nStartup stage: ${selectedStage}`;
 
     // ── Free-analysis gate ──────────────────────────────────────────────
     // Paid users bypass the gate entirely. Otherwise, check localStorage
@@ -689,7 +691,7 @@ export function SVIEntrance() {
     }
   };
 
-  const handleReset = () => { setResult(null); setRndReport(null); setTechAudit(null); clearRndStatus(); setState("idle"); setText(""); setFile(null); setEmail(""); setError(""); setLastInput(null); setPreviousAnalysis(null); };
+  const handleReset = () => { setResult(null); setRndReport(null); setTechAudit(null); clearRndStatus(); setState("idle"); setText(""); setFile(null); setEmail(""); setError(""); setLastInput(null); setPreviousAnalysis(null); setSelectedStage(null); };
 
   // Called when a 100% coupon grants free access — clear gate and re-submit.
   const handleCouponGrant = () => {
@@ -1016,6 +1018,35 @@ export function SVIEntrance() {
                 </span>
               </div>
             )}
+
+            {/* Stage selector pills */}
+            <div className="mt-3 flex flex-col items-center">
+              <p className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-medium mb-2">What stage is your startup?</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {([
+                  { value: "\u{1F4A1} Idea (Stage 0)", icon: "\u{1F4A1}", label: "Idea" },
+                  { value: "\u{2705} Validated (Stage 1)", icon: "\u{2705}", label: "Validated" },
+                  { value: "\u{1F527} MVP (Stage 2)", icon: "\u{1F527}", label: "MVP" },
+                  { value: "\u{1F4C8} Traction (Stage 3)", icon: "\u{1F4C8}", label: "Traction" },
+                  { value: "\u{1F4B0} Revenue (Stage 4)", icon: "\u{1F4B0}", label: "Revenue" },
+                  { value: "\u{1F680} Growth (Stage 5+)", icon: "\u{1F680}", label: "Growth" },
+                ] as const).map((s) => (
+                  <button
+                    key={s.value}
+                    type="button"
+                    onClick={() => setSelectedStage(selectedStage === s.value ? null : s.value)}
+                    className={cn(
+                      "rounded-full px-3 py-1 text-xs cursor-pointer transition-colors",
+                      selectedStage === s.value
+                        ? "bg-brand-600 text-white"
+                        : "bg-surface-100 text-ink-600 hover:bg-surface-200",
+                    )}
+                  >
+                    {s.icon} {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {/* R&D Status Bar — streaming status during analysis */}
             <RndStatusBar entries={rndStatusEntries} isActive={state === "submitting"} />

@@ -4,7 +4,7 @@ import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { isAIConfigured } from "@/lib/ai-client";
 import { newSlug } from "@/lib/slug";
 import { detectInputType, scrapeUrl, deepTechAudit, type TechAuditResult } from "@/lib/rnd-input";
-import { generateRndReport, type ReportTier } from "@/lib/rnd-analysis";
+import { generateRndReport, type ReportTier, type CompetitiveResearchData } from "@/lib/rnd-analysis";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { getProjectIdFromRequest } from "@/lib/projects";
 import { sendSVIReport } from "@/lib/email";
@@ -258,7 +258,41 @@ export async function POST(request: Request) {
         message: `SVI Score: ${analysis.totalSVI}. Stage: ${analysis.stageLabel}. Generating R&D report...`,
       });
 
-      // Step 4: Generate R&D report (3 batched AI calls + optional Batch D for deep_dive)
+      // Step 3b: Competitive research (for paid tiers, runs in background)
+      let research: CompetitiveResearchData | undefined;
+      if (tier !== "preview") {
+        try {
+          sendEvent("status", { step: "research", message: "Researching market & competitors..." });
+          const researchUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au"}/api/svi/research`;
+          const reqCookie = request.headers.get("cookie") ?? "";
+          const researchRes = await fetch(researchUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Cookie: reqCookie },
+            body: JSON.stringify({ description: rawText.slice(0, 500) }),
+            signal: AbortSignal.timeout(15000),
+          });
+          if (researchRes.ok) {
+            const researchData = await researchRes.json();
+            if (researchData.ok) {
+              research = {
+                competitors: researchData.competitors,
+                marketInsights: researchData.marketInsights,
+                competitiveInsights: researchData.competitiveInsights,
+                summary: researchData.summary,
+              };
+              sendEvent("status", {
+                step: "research_complete",
+                message: `Found ${researchData.competitors?.length ?? 0} competitors. Market score: ${researchData.marketScore ?? "N/A"}/100`,
+              });
+            }
+          }
+        } catch {
+          // Research is best-effort — don't block report generation
+          sendEvent("status", { step: "research_skipped", message: "Competitive research skipped (timeout or unavailable)" });
+        }
+      }
+
+      // Step 4: Generate R&D report (page-by-page AI calls + optional extended sections)
       const streamLabel = tier === "deep_dive"
         ? "Starting Deep Dive R&D analysis (3 parallel research streams + extended analysis)..."
         : "Starting R&D analysis (3 parallel research streams)...";
@@ -273,6 +307,7 @@ export async function POST(request: Request) {
         tier,
         techAudit,
         locale,
+        research,
       );
 
       // Step 5: Persist to database

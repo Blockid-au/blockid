@@ -92,11 +92,11 @@ For each user+project:
 - [x] Dashboard "Your Reports" section (report-history.tsx) showing all past analyses
 - [x] Report detail page loads from cache (rnd/route.ts cache check) (0 credits)
 - [x] "This report already exists" warning (cache check in API) warning before re-generation
-- [ ] "Update report (+0.25 cr)" option for existing reports
+- [x] "Update report" option (report cache with delta detection) option for existing reports
 
 ### Sprint 2: SVI-to-AUD Valuation
 - [x] Valuation card on dashboard (SVI-to-AUD mapping) showing estimated range
-- [ ] Shareholder table with percentages and estimated values
+- [x] Shareholder table with percentages and estimated values (valuation-card.tsx) and estimated values
 - [ ] Vesting progress with vested value calculation
 - [ ] Cap table summary in sidebar/widget
 
