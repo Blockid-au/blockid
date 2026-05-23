@@ -641,12 +641,82 @@ async function callProvider(provider: Provider, opts: AICallOptions): Promise<AI
   }
 }
 
+// ── AI Gateway (microservice) ─────────────────────────────────────────
+// Phase 1 Strangler Fig: try the standalone AI Gateway service first.
+// If it's not available or returns an error, fall back to local providers.
+
+const AI_GATEWAY_URL = process.env.AI_GATEWAY_URL; // e.g. "http://ai-gateway:4010" or "http://127.0.0.1:4010"
+const AI_GATEWAY_SECRET = process.env.AI_GATEWAY_SECRET;
+
+let gatewayAvailable = true; // assume available until proven otherwise
+let gatewayBackoffUntil = 0; // timestamp — skip gateway until this time
+
+async function callViaGateway(opts: AICallOptions): Promise<AICallResult | null> {
+  if (!AI_GATEWAY_URL || !AI_GATEWAY_SECRET) return null;
+  if (Date.now() < gatewayBackoffUntil) return null;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), opts.timeoutMs ?? 30_000);
+
+    const res = await fetch(`${AI_GATEWAY_URL}/generate`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Internal-Key": AI_GATEWAY_SECRET,
+      },
+      body: JSON.stringify({
+        system: opts.system,
+        user: opts.user,
+        maxTokens: opts.maxTokens,
+        timeoutMs: opts.timeoutMs,
+        tools: opts.tools,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      console.warn(`[ai-client] Gateway returned ${res.status}: ${body.slice(0, 200)}`);
+      // 503 = all providers failed, 429 = budget exceeded — don't back off, just fallback
+      if (res.status >= 500) {
+        gatewayBackoffUntil = Date.now() + 60_000; // back off 1 min
+      }
+      return null;
+    }
+
+    const data = await res.json();
+    if (!data.ok) return null;
+
+    gatewayAvailable = true;
+    return { text: data.text, provider: data.provider, model: data.model };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    // Connection refused = service not running, back off 5 min
+    if (msg.includes("ECONNREFUSED") || msg.includes("fetch failed")) {
+      gatewayAvailable = false;
+      gatewayBackoffUntil = Date.now() + 300_000; // 5 min
+      console.warn("[ai-client] Gateway unavailable (ECONNREFUSED), falling back to local for 5 min");
+    } else {
+      console.warn(`[ai-client] Gateway error: ${msg}, falling back to local`);
+    }
+    return null;
+  }
+}
+
 // ── Unified entry point (with auto-fallback) ───────────────────────────
 
 // Track recently failed providers — skip them for 2 minutes to avoid wasting time
 const providerCooldown = new Map<string, number>();
 
 export async function callAI(opts: AICallOptions): Promise<AICallResult> {
+  // Phase 1: Try AI Gateway microservice first (if configured)
+  const gatewayResult = await callViaGateway(opts);
+  if (gatewayResult) return gatewayResult;
+
+  // Fallback: local provider chain (existing behavior)
   await getDBKeys();
 
   const allProviders = getAvailableProviders();

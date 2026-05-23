@@ -162,6 +162,10 @@ build:production:
         -e COSMOS_CHAIN_ID=${COSMOS_CHAIN_ID}
         -e COSMOS_REST_URL=${COSMOS_REST_URL}
         -e COSMOS_RPC_URL=${COSMOS_RPC_URL}
+        -e AI_GATEWAY_URL=${AI_GATEWAY_URL:-}
+        -e AI_GATEWAY_SECRET=${AI_GATEWAY_SECRET:-}
+        -e BILLING_URL=${BILLING_URL:-}
+        -e BILLING_SECRET=${BILLING_SECRET:-}
         -v /home/dovanlong/.claude/.credentials.json:/home/node/.claude/.credentials.json:ro
         -v /home/dovanlong/.codex/auth.json:/home/node/.codex/auth.json:ro
         -v ${CONTENT_DIR}:/app/content
