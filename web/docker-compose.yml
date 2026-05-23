@@ -22,54 +22,21 @@ services:
     image: blockid/web:latest
     container_name: blockid-web
     restart: unless-stopped
+    # ── Runtime env vars ──
+    # Primary source: .env file on disk (contains ALL 60+ secrets).
+    # The `environment:` block below only sets infrastructure defaults
+    # that are always the same regardless of .env content.
     env_file:
       - path: .env
-        required: false
+        required: true
     environment:
+      # Infrastructure defaults (override .env if present)
       NODE_ENV: production
       PORT: "3000"
-      HOSTNAME: 0.0.0.0
-      # Phase 1.5 — Supabase / Resend / share links.
-      # All values come from .env (loaded via `env_file:` above). The lines
-      # below force-pass them through so docker-compose `config` shows the
-      # mapping explicitly, and so an unset var becomes empty (callers in
-      # src/lib/{supabase,email}.ts treat empty as "not configured" and
-      # gracefully degrade).
-      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://blockid.au}
-      SUPABASE_URL: ${SUPABASE_URL:-}
-      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
-      RESEND_API_KEY: ${RESEND_API_KEY:-}
-      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-BlockID <noreply@blockid.au>}
-      IP_HASH_SALT: ${IP_HASH_SALT:-}
-      # Google OAuth + Drive
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      CRON_SECRET: ${CRON_SECRET:-}
-      GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL: ${GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL:-}
-      GOOGLE_DRIVE_PRIVATE_KEY: ${GOOGLE_DRIVE_PRIVATE_KEY:-}
-      GOOGLE_DRIVE_FOLDER_ID: ${GOOGLE_DRIVE_FOLDER_ID:-}
-      # Stripe
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
-      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
-      STRIPE_PRICE_FOUNDING50: ${STRIPE_PRICE_FOUNDING50:-}
-      STRIPE_PRICE_FOUNDER: ${STRIPE_PRICE_FOUNDER:-}
-      STRIPE_PRICE_GROWTH: ${STRIPE_PRICE_GROWTH:-}
-      STRIPE_PRICE_GROWTH_ANNUAL: ${STRIPE_PRICE_GROWTH_ANNUAL:-}
-      STRIPE_PRICE_GROWTH_499: ${STRIPE_PRICE_GROWTH_499:-}
-      STRIPE_PRICE_PILOT: ${STRIPE_PRICE_PILOT:-}
-      STRIPE_PRICE_ACCELERATOR: ${STRIPE_PRICE_ACCELERATOR:-}
-      STRIPE_PRICE_CREDITS_5: ${STRIPE_PRICE_CREDITS_5:-}
-      STRIPE_PRICE_CREDITS_10: ${STRIPE_PRICE_CREDITS_10:-}
-      STRIPE_PRICE_CREDITS_25: ${STRIPE_PRICE_CREDITS_25:-}
-      STRIPE_PRICE_CREDITS_50: ${STRIPE_PRICE_CREDITS_50:-}
-      STRIPE_PRICE_SVI_ANALYSIS: ${STRIPE_PRICE_SVI_ANALYSIS:-}
-      STRIPE_PRICE_SVI_ANALYSIS_25: ${STRIPE_PRICE_SVI_ANALYSIS_25:-}
-      # AI providers
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      GOOGLE_GEMINI_API_KEY: ${GOOGLE_GEMINI_API_KEY:-}
-      # Analytics
-      NEXT_PUBLIC_GA_MEASUREMENT_ID: ${NEXT_PUBLIC_GA_MEASUREMENT_ID:-}
-      NEXT_PUBLIC_GTM_ID: ${NEXT_PUBLIC_GTM_ID:-}
+      HOSTNAME: "0.0.0.0"
+      OLLAMA_ENABLED: "true"
+      OLLAMA_HOST: "http://172.19.0.1:11434"
+      OLLAMA_MODEL: "qwen2.5:3b"
     expose:
       - "3000"
     networks:

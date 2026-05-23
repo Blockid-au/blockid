@@ -131,74 +131,67 @@ build:production:
     - docker stop deploy-${PROJECT_NAME}-${CI_ENV_SLUG} 2>/dev/null || true
     - docker rm deploy-${PROJECT_NAME}-${CI_ENV_SLUG} 2>/dev/null || true
 
-    # ── 3. Start container (all env vars via -e flags) ──
+    # ── 3. Generate runtime env file from .env + CI overrides ──
+    # Strategy: use the on-disk .env as the base (60+ vars), then overlay
+    # any GitLab CI variables on top. This ensures no env var is ever lost
+    # even if the CI variable list is incomplete.
+    - |
+      ENV_DIR="/home/dovanlong/${CI_ENV_SLUG:-production}.blockid.au/web"
+      # Fallback to production dir if env-specific dir doesn't exist
+      [ ! -d "$ENV_DIR" ] && ENV_DIR="/home/dovanlong/blockid.au/web"
+      ENV_FILE="$ENV_DIR/.env"
+      RUNTIME_ENV="/tmp/blockid-${CI_ENV_SLUG:-production}.env"
+
+      if [ -f "$ENV_FILE" ]; then
+        # Start from on-disk .env (source of truth for all keys)
+        cp "$ENV_FILE" "$RUNTIME_ENV"
+        echo "✓ Loaded $(grep -c '=' "$RUNTIME_ENV") vars from $ENV_FILE"
+      else
+        touch "$RUNTIME_ENV"
+        echo "⚠ No .env found at $ENV_FILE — using only CI variables"
+      fi
+
+      # Overlay CI variables (these take priority over .env)
+      # Only override if CI variable is actually set (non-empty)
+      for var in \
+        NODE_ENV SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY ANTHROPIC_API_KEY \
+        STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET CRON_SECRET \
+        GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET RESEND_API_KEY \
+        AI_GATEWAY_URL AI_GATEWAY_SECRET BILLING_URL BILLING_SECRET \
+        NEXT_PUBLIC_SITE_URL; do
+        eval "val=\${$var:-}"
+        if [ -n "$val" ]; then
+          # Remove existing line and append new value
+          sed -i "/^${var}=/d" "$RUNTIME_ENV"
+          echo "${var}=${val}" >> "$RUNTIME_ENV"
+        fi
+      done
+
+      # Ensure these are always set
+      sed -i '/^PORT=/d; /^HOSTNAME=/d; /^OLLAMA_ENABLED=/d; /^OLLAMA_HOST=/d; /^OLLAMA_MODEL=/d' "$RUNTIME_ENV"
+      echo "PORT=3000" >> "$RUNTIME_ENV"
+      echo "HOSTNAME=0.0.0.0" >> "$RUNTIME_ENV"
+      echo "OLLAMA_ENABLED=true" >> "$RUNTIME_ENV"
+      echo "OLLAMA_HOST=http://172.19.0.1:11434" >> "$RUNTIME_ENV"
+      echo "OLLAMA_MODEL=qwen2.5:3b" >> "$RUNTIME_ENV"
+
+      FINAL_COUNT=$(grep -c '=' "$RUNTIME_ENV")
+      echo "✓ Runtime env file ready: $FINAL_COUNT vars → $RUNTIME_ENV"
+
+    # ── 4. Start container with --env-file (all vars from single file) ──
     - docker run -d
         --name deploy-${PROJECT_NAME}-${CI_ENV_SLUG}
         --restart unless-stopped
         --network supabase_default
         -p 127.0.0.1:${DEPLOY_PORT}:3000
-        -e NODE_ENV=${NODE_ENV}
-        -e PORT=3000
-        -e HOSTNAME=0.0.0.0
-        -e SUPABASE_URL=${SUPABASE_URL}
-        -e SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-        -e NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
-        -e ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-        -e IP_HASH_SALT=${IP_HASH_SALT:-blockid-default-salt}
-        -e SMTP_HOST=${SMTP_HOST:-}
-        -e SMTP_PORT=${SMTP_PORT:-587}
-        -e SMTP_USER=${SMTP_USER:-}
-        -e SMTP_PASS=${SMTP_PASS:-}
-        -e "SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-}"
-        -e GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
-        -e GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
-        -e GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL=${GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL:-}
-        -e "GOOGLE_DRIVE_PRIVATE_KEY=${GOOGLE_DRIVE_PRIVATE_KEY:-}"
-        -e GOOGLE_DRIVE_FOLDER_ID=${GOOGLE_DRIVE_FOLDER_ID:-}
-        -e CRON_SECRET=${CRON_SECRET}
-        -e STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
-        -e STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
-        -e STRIPE_PRICE_FOUNDING50=${STRIPE_PRICE_FOUNDING50:-}
-        -e STRIPE_PRICE_FOUNDER=${STRIPE_PRICE_FOUNDER:-}
-        -e STRIPE_PRICE_GROWTH=${STRIPE_PRICE_GROWTH:-}
-        -e STRIPE_PRICE_GROWTH_ANNUAL=${STRIPE_PRICE_GROWTH_ANNUAL:-}
-        -e STRIPE_PRICE_GROWTH_499=${STRIPE_PRICE_GROWTH_499:-}
-        -e STRIPE_PRICE_PILOT=${STRIPE_PRICE_PILOT:-}
-        -e STRIPE_PRICE_ACCELERATOR=${STRIPE_PRICE_ACCELERATOR:-}
-        -e STRIPE_PRICE_CREDITS_5=${STRIPE_PRICE_CREDITS_5:-}
-        -e STRIPE_PRICE_CREDITS_10=${STRIPE_PRICE_CREDITS_10:-}
-        -e STRIPE_PRICE_CREDITS_25=${STRIPE_PRICE_CREDITS_25:-}
-        -e STRIPE_PRICE_CREDITS_50=${STRIPE_PRICE_CREDITS_50:-}
-        -e STRIPE_PRICE_CREDITS_100=${STRIPE_PRICE_CREDITS_100:-}
-        -e STRIPE_PRICE_SVI_ANALYSIS=${STRIPE_PRICE_SVI_ANALYSIS:-}
-        -e STRIPE_PRICE_SVI_ANALYSIS_25=${STRIPE_PRICE_SVI_ANALYSIS_25:-}
-        -e GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}
-        -e GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}
-        -e LINKEDIN_CLIENT_ID=${LINKEDIN_CLIENT_ID:-}
-        -e LINKEDIN_CLIENT_SECRET=${LINKEDIN_CLIENT_SECRET:-}
-        -e GOOGLE_GEMINI_API_KEY=${GOOGLE_GEMINI_API_KEY:-}
-        -e OPENAI_API_KEY=${OPENAI_API_KEY:-}
-        -e ANTHROPIC_PROXY_BASE_URL=${ANTHROPIC_PROXY_BASE_URL:-}
-        -e ANTHROPIC_PROXY_API_KEY=${ANTHROPIC_PROXY_API_KEY:-}
-        -e RESEND_API_KEY=${RESEND_API_KEY:-}
-        -e "RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-}"
-        -e OLLAMA_ENABLED=true
-        -e OLLAMA_HOST=http://172.19.0.1:11434
-        -e OLLAMA_MODEL=qwen2.5:3b
-        -e COSMOS_CHAIN_ID=${COSMOS_CHAIN_ID}
-        -e COSMOS_REST_URL=${COSMOS_REST_URL}
-        -e COSMOS_RPC_URL=${COSMOS_RPC_URL}
-        -e AI_GATEWAY_URL=${AI_GATEWAY_URL:-}
-        -e AI_GATEWAY_SECRET=${AI_GATEWAY_SECRET:-}
-        -e BILLING_URL=${BILLING_URL:-}
-        -e BILLING_SECRET=${BILLING_SECRET:-}
+        --env-file /tmp/blockid-${CI_ENV_SLUG:-production}.env
         -v /home/dovanlong/.claude/.credentials.json:/home/node/.claude/.credentials.json:ro
         -v /home/dovanlong/.codex/auth.json:/home/node/.codex/auth.json:ro
         -v ${CONTENT_DIR}:/app/content
         -v /home/dovanlong/blockid.au/uploads:/app/uploads
         gitlab-deploy/${PROJECT_NAME}:${CI_ENV_TAG}
 
-    # ── 4. Wait for healthy ──
+    # ── 5. Wait for healthy ──
     - echo "Waiting for container to be healthy..."
     - |
       for i in $(seq 1 30); do
@@ -211,22 +204,29 @@ build:production:
         sleep 2
       done
 
-    # ── 5. Connect to microservices network ──
-    - docker network connect supabase_default deploy-${PROJECT_NAME}-${CI_ENV_SLUG} 2>/dev/null || true
-    - echo "✓ Connected to supabase_default network (microservices)"
-
     # ── 6. Verify deployment ──
     - docker ps | grep deploy-${PROJECT_NAME}-${CI_ENV_SLUG}
     - echo "Deployed to ${DEPLOY_URL}"
     - curl -sf http://127.0.0.1:${DEPLOY_PORT}/ -o /dev/null && echo "Health check passed!" || echo "Warning - health check pending"
 
-    # ── 7. Count env vars in container (sanity check) ──
+    # ── 7. Verify env vars in container (sanity check) ──
     - |
-      ENV_COUNT=$(docker inspect deploy-${PROJECT_NAME}-${CI_ENV_SLUG} --format='{{range .Config.Env}}1{{end}}' | wc -c)
+      ENV_COUNT=$(docker exec deploy-${PROJECT_NAME}-${CI_ENV_SLUG} env 2>/dev/null | grep -c "=" || echo "0")
       echo "Container has $ENV_COUNT env vars"
-      if [ "$ENV_COUNT" -lt 30 ]; then
-        echo "WARNING: Container has fewer than 30 env vars — check GitLab CI Variables"
+      if [ "$ENV_COUNT" -lt 50 ]; then
+        echo "⚠ WARNING: Container has fewer than 50 env vars ($ENV_COUNT found)"
+        echo "  Expected 60+. Check that .env file exists on the server."
+        echo "  Missing vars will cause features to fail silently."
+      else
+        echo "✓ Env var count looks good ($ENV_COUNT vars)"
       fi
+      # Spot-check critical vars inside container
+      for v in SUPABASE_URL STRIPE_SECRET_KEY ANTHROPIC_API_KEY CRON_SECRET; do
+        VAL=$(docker exec deploy-${PROJECT_NAME}-${CI_ENV_SLUG} sh -c "echo \${$v}" 2>/dev/null)
+        if [ -z "$VAL" ]; then
+          echo "  CRITICAL: $v is EMPTY inside container!"
+        fi
+      done
 
 
 # ── Dev ───────────────────────────────────────────────────────────────
