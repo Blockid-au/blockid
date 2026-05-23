@@ -147,7 +147,7 @@ export function ProjectSwitcher() {
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute left-0 top-full mt-2 w-72 rounded-xl border border-surface-200 bg-white shadow-lg z-50 overflow-hidden animate-fade-in">
+        <div className="absolute left-0 right-0 sm:right-auto top-full mt-2 w-auto sm:w-72 rounded-xl border border-surface-200 bg-white shadow-lg z-50 overflow-hidden animate-fade-in">
           {/* Header */}
           <div className="px-4 py-2.5 border-b border-surface-200 bg-surface-50">
             <div className="flex items-center justify-between">

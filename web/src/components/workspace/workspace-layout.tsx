@@ -192,7 +192,7 @@ export function WorkspaceLayout({ children, user, startupName, notificationCount
             <button
               type="button"
               onClick={() => setMobileOpen(v => !v)}
-              className="lg:hidden h-8 w-8 flex items-center justify-center rounded-lg text-ink-600 hover:text-ink-800 hover:bg-surface-100 cursor-pointer"
+              className="lg:hidden h-10 w-10 flex items-center justify-center rounded-lg text-ink-600 hover:text-ink-800 hover:bg-surface-100 cursor-pointer"
             >
               <LayoutDashboard strokeWidth={1.75} className="h-4 w-4" />
             </button>

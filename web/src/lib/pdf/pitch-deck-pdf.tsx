@@ -119,6 +119,7 @@ export function PitchDeckPDF() {
       {/* ═══ Slide 1: Title ═══ */}
       <Page size="A4" orientation="landscape" style={[s.darkPage, { paddingTop: 0, paddingBottom: 0 }]}>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
           {LOGO_SRC && <Image src={LOGO_SRC} style={{ width: 240, height: 54, marginBottom: 12 }} />}
           {!LOGO_SRC && <Text style={{ fontSize: 32, fontWeight: "bold", color: C.brand }}>BlockID<Text style={{ color: C.ink500 }}>.au</Text></Text>}
           <Text style={{ fontSize: 28, fontWeight: "bold", color: C.white, marginTop: 8, textAlign: "center" }}>
@@ -159,13 +160,13 @@ export function PitchDeckPDF() {
           <View style={s.col}>
             <View style={s.card}>
               <Text style={{ fontSize: 32, fontWeight: "bold", color: C.amber }}>70%</Text>
-              <Text style={{ fontSize: 10, color: C.ink500, marginTop: 2 }}>of failures are "ran out of cash" with hidden valuation issues (CB Insights)</Text>
+              <Text style={{ fontSize: 10, color: C.ink500, marginTop: 2 }}>of failures are &quot;ran out of cash&quot; with hidden valuation issues (CB Insights)</Text>
             </View>
             <View style={s.card}>
               <Text style={{ fontSize: 11, fontWeight: "bold", color: C.ink800, marginBottom: 4 }}>Manual Valuation</Text>
               <Text style={{ fontSize: 10, color: C.ink500 }}>A$5,000 – $50,000 per engagement</Text>
               <Text style={{ fontSize: 10, color: C.ink500 }}>2–6 weeks to complete</Text>
-              <Text style={{ fontSize: 10, color: C.ink500 }}>Outdated by the time it's done</Text>
+              <Text style={{ fontSize: 10, color: C.ink500 }}>Outdated by the time it&apos;s done</Text>
             </View>
           </View>
         </View>
@@ -500,7 +501,7 @@ export function PitchDeckPDF() {
 
           <View style={{ marginTop: 28, alignItems: "center" }}>
             <Text style={{ fontSize: 16, fontWeight: "bold", color: C.white }}>
-              Every great company started exactly where we are. Let's build this together.
+              Every great company started exactly where we are. Let&apos;s build this together.
             </Text>
           </View>
 

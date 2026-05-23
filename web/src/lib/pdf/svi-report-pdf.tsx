@@ -323,6 +323,7 @@ function Footer({ pageNum }: { pageNum: number }) {
     <View style={s.footer} fixed>
       <Text style={s.footerText}>Confidential</Text>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+        {/* eslint-disable-next-line jsx-a11y/alt-text */}
         {LOGO_SRC && <Image src={LOGO_SRC} style={{ width: 60, height: 14 }} />}
         {!LOGO_SRC && <Text style={s.footerBrand}>BlockID.au</Text>}
       </View>
@@ -465,6 +466,7 @@ export function SVIReportPDF({ analysis, email, tier = "standard" }: Props) {
       <Page size="A4" style={[s.page, { paddingTop: 0, paddingBottom: 0 }]}>
         <View style={s.coverCenter}>
           {LOGO_SRC && (
+            /* eslint-disable-next-line jsx-a11y/alt-text */
             <Image src={LOGO_SRC} style={{ width: 220, height: 50, marginBottom: 8 }} />
           )}
           {!LOGO_SRC && (
@@ -605,7 +607,7 @@ export function SVIReportPDF({ analysis, email, tier = "standard" }: Props) {
         <View style={{ marginTop: 14, borderWidth: 0.5, borderColor: C.surface200, borderRadius: 6, padding: 10, backgroundColor: C.surface50 }}>
           <Text style={{ fontSize: 9, fontWeight: "bold", color: C.ink800, marginBottom: 3 }}>How to Read This Report</Text>
           <Text style={{ fontSize: 8, color: C.ink600, lineHeight: 1.5 }}>
-            This report is your personalised startup growth guide. Start with the Action Plan on Page 10 for your immediate next steps. Pages 3-4 show your dimension scores in detail. Pages 5-7 dive deep into specific areas. Don't try to fix everything at once — focus on one thing at a time, starting with the biggest opportunity.
+            This report is your personalised startup growth guide. Start with the Action Plan on Page 10 for your immediate next steps. Pages 3-4 show your dimension scores in detail. Pages 5-7 dive deep into specific areas. Don&apos;t try to fix everything at once — focus on one thing at a time, starting with the biggest opportunity.
           </Text>
         </View>
 
@@ -1081,7 +1083,7 @@ export function SVIReportPDF({ analysis, email, tier = "standard" }: Props) {
         <Text style={s.h1}>Your 30-Day Growth Plan</Text>
 
         <Text style={[s.body, { fontSize: 10, lineHeight: 1.7 }]}>
-          Here's your personalised roadmap for the next 30 days. Don't feel overwhelmed — just start with Week 1. Each step builds naturally on the one before it. You've already taken the most important step by getting your analysis.
+          Here&apos;s your personalised roadmap for the next 30 days. Don&apos;t feel overwhelmed — just start with Week 1. Each step builds naturally on the one before it. You&apos;ve already taken the most important step by getting your analysis.
         </Text>
 
         {/* Week 1: Quick Wins */}
@@ -1106,7 +1108,7 @@ export function SVIReportPDF({ analysis, email, tier = "standard" }: Props) {
         {/* Week 2-3: Build Foundation */}
         <View style={{ borderLeftWidth: 3, borderLeftColor: C.brand600, paddingLeft: 12, marginBottom: 14 }}>
           <Text style={[s.h2, { color: C.brand600, marginTop: 0 }]}>Week 2-3: Building Your Foundation</Text>
-          <Text style={s.body}>Now that you have momentum, it's time to build the foundation that impresses investors and partners.</Text>
+          <Text style={s.body}>Now that you have momentum, it&apos;s time to build the foundation that impresses investors and partners.</Text>
           {analysis.nextActions
             .slice(0, 3)
             .map((action, i) => (
@@ -1123,7 +1125,7 @@ export function SVIReportPDF({ analysis, email, tier = "standard" }: Props) {
 
         {/* Week 4: Review & Refine */}
         <View style={{ borderLeftWidth: 3, borderLeftColor: C.amber600, paddingLeft: 12 }}>
-          <Text style={[s.h2, { color: C.amber600, marginTop: 0 }]}>Week 4: See How Far You've Come</Text>
+          <Text style={[s.h2, { color: C.amber600, marginTop: 0 }]}>Week 4: See How Far You&apos;ve Come</Text>
           <Text style={s.body}>Run your analysis again to see your progress. Most founders see a 15-30 point improvement after completing the steps above.</Text>
           <View style={s.bulletRow}>
             <Text style={{ width: 20, fontSize: 12, color: C.amber600, fontWeight: "bold" }}>↻</Text>
@@ -1178,13 +1180,13 @@ export function SVIReportPDF({ analysis, email, tier = "standard" }: Props) {
         </View>
 
         {/* Projected improvements */}
-        <Text style={s.h2}>What's Possible</Text>
+        <Text style={s.h2}>What&apos;s Possible</Text>
         <Text style={s.body}>
           By working through the action plan above, you could improve your score by an estimated +
           {analysis.evidenceGaps
             .filter((g) => g.priority === "P0" || g.priority === "P1")
             .reduce((sum, g) => sum + g.impact, 0)}{" "}
-          points. That's not just a number — it means your startup will be more credible, better structured, and closer to being investor-ready.
+          points. That&apos;s not just a number — it means your startup will be more credible, better structured, and closer to being investor-ready.
         </Text>
 
         {/* Top 3 quick wins recap */}
@@ -1209,10 +1211,10 @@ export function SVIReportPDF({ analysis, email, tier = "standard" }: Props) {
           }}
         >
           <Text style={{ fontSize: 12, fontWeight: "bold", color: C.brand600, marginBottom: 4 }}>
-            Keep Building — We're Here to Help
+            Keep Building — We&apos;re Here to Help
           </Text>
           <Text style={{ fontSize: 9, color: C.ink600, lineHeight: 1.5 }}>
-            Your dashboard at blockid.au is ready for you. Upload evidence as you complete each step, and watch your score grow. The Evidence Vault, cap table tools, and weekly tracking are all included. You're not doing this alone.
+            Your dashboard at blockid.au is ready for you. Upload evidence as you complete each step, and watch your score grow. The Evidence Vault, cap table tools, and weekly tracking are all included. You&apos;re not doing this alone.
           </Text>
           {!isPaid && (
             <View style={{

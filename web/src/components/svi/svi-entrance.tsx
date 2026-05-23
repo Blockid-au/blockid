@@ -868,7 +868,7 @@ export function SVIEntrance() {
 
         {/* Floating "View Results" banner — helps users who don't auto-scroll */}
         {result && state === "done" && (
-          <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom duration-300">
+          <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 max-w-[calc(100vw-2rem)] animate-in slide-in-from-bottom duration-300">
             <button
               onClick={() => document.getElementById("svi-results")?.scrollIntoView({ behavior: "smooth" })}
               className="flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-lg hover:bg-brand-700 transition-colors cursor-pointer"
@@ -959,12 +959,12 @@ export function SVIEntrance() {
                   className="flex-1 resize-none text-lg text-ink-800 placeholder:text-ink-600 focus:outline-none bg-transparent leading-relaxed"
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }} />
                 <button type="button" onClick={toggleVoice} aria-label={listening ? "Stop" : "Voice"}
-                  className={cn("shrink-0 h-9 w-9 flex items-center justify-center rounded-full cursor-pointer transition-colors",
+                  className={cn("shrink-0 h-10 w-10 flex items-center justify-center rounded-full cursor-pointer transition-colors",
                     listening ? "bg-red-50 text-red-500" : "text-ink-600 hover:bg-surface-100")}>
                   {listening ? <MicOff strokeWidth={1.75} className="h-5 w-5" /> : <Mic strokeWidth={1.75} className="h-5 w-5" />}
                 </button>
                 <button type="button" onClick={() => fileInputRef.current?.click()} aria-label="Upload"
-                  className="shrink-0 h-9 w-9 flex items-center justify-center rounded-full text-ink-600 hover:bg-surface-100 cursor-pointer transition-colors">
+                  className="shrink-0 h-10 w-10 flex items-center justify-center rounded-full text-ink-600 hover:bg-surface-100 cursor-pointer transition-colors">
                   <UploadCloud strokeWidth={1.75} className="h-5 w-5" />
                 </button>
                 <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt,.md" onChange={handleFileChange} className="sr-only" />
