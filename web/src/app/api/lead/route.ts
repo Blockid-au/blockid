@@ -42,8 +42,22 @@ export async function POST(request: Request) {
     );
   }
 
+  // Strip HTML tags from all string values in payload to prevent stored XSS
+  function stripHtml(val: unknown): unknown {
+    if (typeof val === "string") return val.replace(/<[^>]*>/g, "");
+    if (Array.isArray(val)) return val.map(stripHtml);
+    if (val && typeof val === "object") {
+      const out: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
+        out[k] = stripHtml(v);
+      }
+      return out;
+    }
+    return val;
+  }
+
   const safePayload =
-    payload && typeof payload === "object" ? payload : {};
+    payload && typeof payload === "object" ? stripHtml(payload) : {};
 
   const supabase = getSupabaseAdmin();
   if (supabase) {

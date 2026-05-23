@@ -65,6 +65,8 @@ export default async function DashboardPage({
 
           <Header email={user.email} />
 
+          <QuickActions hasSVI={!!summary.packs.length || !!summary.evaluations.length} hasEvidence={false} />
+
           <div className="mt-8">
             <LivingReport email={user.email} />
           </div>
@@ -90,6 +92,65 @@ export default async function DashboardPage({
       </main>
       <Footer />
     </>
+  );
+}
+
+function QuickActions({ hasSVI, hasEvidence }: { hasSVI: boolean; hasEvidence: boolean }) {
+  const actions = [];
+
+  if (!hasSVI) {
+    actions.push({
+      href: "/score",
+      icon: Sparkles,
+      label: "Get Your SVI Score",
+      desc: "Free AI analysis in 60 seconds",
+      color: "bg-brand-600 hover:bg-brand-700 text-white",
+      priority: true,
+    });
+  }
+
+  actions.push({
+    href: "/workspace/evidence",
+    icon: TrendingUp,
+    label: hasSVI ? "Upload Evidence to Boost Score" : "Upload Evidence",
+    desc: hasEvidence ? "Add more proof to grow your SVI" : "Connect GitHub, Stripe, or upload docs",
+    color: "bg-white border border-brand-200 text-brand-700 hover:bg-brand-50",
+  });
+
+  if (hasSVI) {
+    actions.push({
+      href: "/workspace/cap-table",
+      icon: PieChart,
+      label: "Set Up Cap Table",
+      desc: "Manage equity splits and vesting",
+      color: "bg-white border border-surface-200 text-ink-700 hover:bg-surface-50",
+    });
+  }
+
+  actions.push({
+    href: "/workspace/projects",
+    icon: Lightbulb,
+    label: "Manage Projects",
+    desc: "Track multiple startups",
+    color: "bg-white border border-surface-200 text-ink-700 hover:bg-surface-50",
+  });
+
+  return (
+    <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      {actions.slice(0, 4).map((a) => (
+        <Link
+          key={a.href}
+          href={a.href}
+          className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-all ${a.color} ${a.priority ? "shadow-md ring-2 ring-brand-200" : "shadow-sm"}`}
+        >
+          <a.icon strokeWidth={1.75} className="h-5 w-5 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold truncate">{a.label}</p>
+            <p className={`text-[11px] truncate ${a.priority ? "text-brand-200" : "text-ink-500"}`}>{a.desc}</p>
+          </div>
+        </Link>
+      ))}
+    </div>
   );
 }
 
@@ -143,7 +204,7 @@ function Header({ email }: { email: string }) {
           <span className="font-medium text-ink-800">{email}</span>
         </p>
       </div>
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
         <Link href="/tools/idea-valuation">
           <Button variant="primary" size="md" className="h-10">
             New idea valuation

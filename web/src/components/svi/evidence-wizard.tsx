@@ -289,12 +289,12 @@ export function EvidenceWizard({ onClose, onSuccess }: EvidenceWizardProps) {
   const selected = EVIDENCE_TYPES.find(e => e.id === evidenceType);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Modal */}
-      <div className="relative w-full max-w-lg rounded-2xl border border-surface-200 bg-white shadow-2xl">
+      {/* Modal — bottom sheet on mobile, centered on desktop */}
+      <div className="relative w-full sm:max-w-lg max-h-[95svh] sm:max-h-[85svh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-surface-200 bg-white shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-surface-200">
           <div>
@@ -310,8 +310,8 @@ export function EvidenceWizard({ onClose, onSuccess }: EvidenceWizardProps) {
 
         {/* Step 1: Choose evidence type */}
         {step === 1 && (
-          <div className="p-6">
-            <div className="grid grid-cols-2 gap-3">
+          <div className="p-4 sm:p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
               {EVIDENCE_TYPES.map(opt => {
                 const Icon = opt.icon;
                 return (
