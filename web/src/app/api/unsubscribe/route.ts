@@ -6,6 +6,7 @@ import {
   getPreferencesByToken,
   type EmailCategory,
 } from "@/lib/email-preferences";
+import { sendFarewellEmail } from "@/lib/email";
 
 const VALID_CATEGORIES: EmailCategory[] = [
   "weekly_reports",
@@ -39,6 +40,11 @@ export async function GET(request: NextRequest) {
     const result = await unsubscribeByToken(token);
     if (!result.ok) {
       return Response.json({ error: "Invalid token" }, { status: 404 });
+    }
+    // Send farewell email (fire-and-forget)
+    const prefData = await getPreferencesByToken(token);
+    if (prefData?.email) {
+      void sendFarewellEmail({ to: prefData.email }).catch(() => {});
     }
   }
 
@@ -90,5 +96,11 @@ export async function POST(request: NextRequest) {
   }
 
   await updateEmailPreferences(prefs.email, updates);
+
+  // Send farewell email if user just unsubscribed from all
+  if (updates.unsubscribed_all === true) {
+    void sendFarewellEmail({ to: prefs.email }).catch(() => {});
+  }
+
   return Response.json({ ok: true });
 }

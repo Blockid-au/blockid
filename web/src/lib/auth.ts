@@ -46,6 +46,11 @@ export interface AppUser {
   googleId: string | null;
   avatarUrl: string | null;
   discountPct: number | null;
+  startupName: string | null;
+  startupStage: string | null;
+  industry: string | null;
+  onboardingCompleted: boolean;
+  startupGoals: string[] | null;
 }
 
 export interface PendingPayload {
@@ -243,7 +248,7 @@ export async function consumeMagicLink(
   const { data: user } = await supabase
     .from("app_users")
     .select(
-      "id, email, display_name, created_at, last_login_at, role, plan, google_id, avatar_url, discount_pct",
+      "id, email, display_name, created_at, last_login_at, role, plan, google_id, avatar_url, discount_pct, startup_name, startup_stage, industry, onboarding_completed, startup_goals",
     )
     .eq("id", userId!)
     .single();
@@ -350,7 +355,7 @@ export async function getCurrentUser(): Promise<AppUser | null> {
   const { data: user } = await supabase
     .from("app_users")
     .select(
-      "id, email, display_name, created_at, last_login_at, role, plan, google_id, avatar_url, discount_pct",
+      "id, email, display_name, created_at, last_login_at, role, plan, google_id, avatar_url, discount_pct, startup_name, startup_stage, industry, onboarding_completed, startup_goals",
     )
     .eq("id", session.user_id)
     .maybeSingle();
@@ -376,6 +381,11 @@ function mapAppUser(row: any): AppUser {
     googleId: row.google_id ?? null,
     avatarUrl: row.avatar_url ?? null,
     discountPct: row.discount_pct ?? null,
+    startupName: row.startup_name ?? null,
+    startupStage: row.startup_stage ?? null,
+    industry: row.industry ?? null,
+    onboardingCompleted: row.onboarding_completed ?? false,
+    startupGoals: row.startup_goals ?? null,
   };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
@@ -495,7 +505,7 @@ export async function loginWithGoogle(
   const { data: user } = await supabase
     .from("app_users")
     .select(
-      "id, email, display_name, created_at, last_login_at, role, plan, google_id, avatar_url, discount_pct",
+      "id, email, display_name, created_at, last_login_at, role, plan, google_id, avatar_url, discount_pct, startup_name, startup_stage, industry, onboarding_completed, startup_goals",
     )
     .eq("id", userId!)
     .single();
@@ -569,7 +579,7 @@ export async function registerWithPassword(args: {
 
       const { data: user } = await supabase
         .from("app_users")
-        .select("id, email, display_name, created_at, last_login_at, role, plan, google_id, avatar_url, discount_pct")
+        .select("id, email, display_name, created_at, last_login_at, role, plan, google_id, avatar_url, discount_pct, startup_name, startup_stage, industry, onboarding_completed, startup_goals")
         .eq("id", existing.id)
         .single();
 
@@ -613,7 +623,7 @@ export async function registerWithPassword(args: {
 
   const { data: user } = await supabase
     .from("app_users")
-    .select("id, email, display_name, created_at, last_login_at, role, plan, google_id, avatar_url, discount_pct")
+    .select("id, email, display_name, created_at, last_login_at, role, plan, google_id, avatar_url, discount_pct, startup_name, startup_stage, industry, onboarding_completed, startup_goals")
     .eq("id", created.id)
     .single();
 
@@ -644,7 +654,7 @@ export async function loginWithPassword(args: {
 
   const { data: user, error } = await supabase
     .from("app_users")
-    .select("id, email, password_hash, display_name, created_at, last_login_at, role, plan, google_id, avatar_url, discount_pct")
+    .select("id, email, password_hash, display_name, created_at, last_login_at, role, plan, google_id, avatar_url, discount_pct, startup_name, startup_stage, industry, onboarding_completed, startup_goals")
     .eq("email", email)
     .maybeSingle();
 

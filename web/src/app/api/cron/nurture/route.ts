@@ -16,6 +16,8 @@ import {
   sendReengagement30d,
   sendReengagement60d,
   sendReengagement90d,
+  sendInsightDigest,
+  sendActionReminder,
 } from "@/lib/email";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { getBalance } from "@/lib/credits";
@@ -789,6 +791,111 @@ export async function GET(request: Request) {
           if (ok) sent++;
         }
       }
+    }
+
+    // ==================================================================
+    // 8. Weekly Insight Digest
+    //    Sends a digest of unread user_insights from the past 7 days.
+    //    Uses ISO week number key to prevent duplicate sends per week.
+    // ==================================================================
+    const digestWeekKey = `insight_digest_w${currentWeek}`;
+
+    for (const user of users ?? []) {
+      const allowed = await canSendEmail(user.email, "product_updates");
+      if (!allowed) continue;
+
+      // Already sent this week?
+      const { data: digestSent } = await supabase
+        .from("svi_notifications")
+        .select("id")
+        .or(`account_id.eq.${user.id},payload->>email.eq.${user.email}`)
+        .eq("notification_type", digestWeekKey)
+        .limit(1);
+      if (digestSent && digestSent.length > 0) continue;
+
+      // Find unread insights from the past 7 days
+      const sevenDaysAgoISO = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: unreadInsights } = await supabase
+        .from("user_insights")
+        .select("id, title, summary")
+        .eq("user_id", user.id)
+        .is("read_at", null)
+        .gte("created_at", sevenDaysAgoISO)
+        .order("created_at", { ascending: false })
+        .limit(3);
+
+      if (!unreadInsights || unreadInsights.length === 0) continue;
+
+      const ok = await trySendNurture(supabase, {
+        accountId: user.id,
+        email: user.email,
+        notificationType: digestWeekKey,
+        subject: `${unreadInsights.length} new insight${unreadInsights.length === 1 ? "" : "s"} for your startup`,
+        sendFn: () =>
+          sendInsightDigest({
+            to: user.email,
+            name: user.display_name,
+            insights: unreadInsights.map((i: { title: string; summary: string }) => ({
+              title: i.title,
+              summary: i.summary,
+            })),
+          }),
+      });
+      if (ok) sent++;
+    }
+
+    // ==================================================================
+    // 9. Weekly Action Reminder
+    //    Finds users with SVI analyses containing nextActions and
+    //    reminds them about their top uncompleted action item.
+    //    Uses ISO week number key to prevent duplicate sends per week.
+    // ==================================================================
+    const actionWeekKey = `action_reminder_w${currentWeek}`;
+
+    for (const user of users ?? []) {
+      const allowed = await canSendEmail(user.email, "product_updates");
+      if (!allowed) continue;
+
+      // Already sent this week?
+      const { data: actionSent } = await supabase
+        .from("svi_notifications")
+        .select("id")
+        .or(`account_id.eq.${user.id},payload->>email.eq.${user.email}`)
+        .eq("notification_type", actionWeekKey)
+        .limit(1);
+      if (actionSent && actionSent.length > 0) continue;
+
+      // Find latest analysis with nextActions
+      const { data: actionAnalyses } = await supabase
+        .from("svi_analyses")
+        .select("analysis_json")
+        .eq("email", user.email)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (!actionAnalyses || actionAnalyses.length === 0) continue;
+
+      const actionData = actionAnalyses[0].analysis_json as SVIAnalysis | null;
+      const nextActions = actionData?.nextActions;
+      if (!nextActions || nextActions.length === 0) continue;
+
+      // Pick the top (highest priority) uncompleted action
+      const topAction = nextActions[0];
+
+      const ok = await trySendNurture(supabase, {
+        accountId: user.id,
+        email: user.email,
+        notificationType: actionWeekKey,
+        subject: `Your next step: ${topAction.title}`,
+        sendFn: () =>
+          sendActionReminder({
+            to: user.email,
+            name: user.display_name,
+            actionTitle: topAction.title,
+            actionDetail: topAction.detail,
+            actionImpact: topAction.impact,
+          }),
+      });
+      if (ok) sent++;
     }
 
     return NextResponse.json({

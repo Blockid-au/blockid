@@ -4,9 +4,8 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getProjectIdFromRequest, findOrCreateSVIAccount } from "@/lib/projects";
-import { SVIDashboard } from "@/components/svi/svi-dashboard";
+import { AdvisorDashboard } from "@/components/dashboard/advisor-dashboard";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
-import { WelcomeGuide } from "@/components/workspace/welcome-guide";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 
 export const metadata: Metadata = {
@@ -149,18 +148,26 @@ export default async function SVIDashboardPage() {
     }
   }
 
-  // If no analysis yet, show empty state CTA
+  // If no analysis yet, show empty state with advisor encouragement
   if (!analysis) {
     return (
       <WorkspaceLayout user={user} startupName={startupName}>
         <div className="max-w-5xl mx-auto px-6 pb-24 pt-10">
-          <WelcomeGuide />
-          <div className="pt-10 text-center">
-          <h1 className="text-2xl font-bold text-ink-800 mb-3">No SVI analysis yet</h1>
-          <p className="text-ink-600 text-sm mb-6">Go to the home page to analyze your startup idea and get your first SVI score.</p>
-          <Link href="/" className="inline-flex h-10 items-center gap-2 rounded-[10px] bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors">
-            Get My SVI →
-          </Link>
+          <div className="rounded-2xl border border-brand-200 bg-gradient-to-br from-brand-50 via-white to-emerald-50/40 px-8 py-10 text-center shadow-sm">
+            <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-brand-100 border border-brand-200 mb-4">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="h-7 w-7 text-brand-600">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-ink-800 mb-2">Your AI Advisor is Ready</h1>
+            <p className="text-ink-600 text-sm mb-2 max-w-md mx-auto">
+              Run your first SVI analysis to unlock personalised startup guidance, evidence tracking,
+              and actionable recommendations tailored to your stage.
+            </p>
+            <p className="text-xs text-ink-500 mb-6">It takes less than 60 seconds. No credit card required.</p>
+            <Link href="/" className="inline-flex h-10 items-center gap-2 rounded-[10px] bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors">
+              Get My SVI Score →
+            </Link>
           </div>
         </div>
       </WorkspaceLayout>
@@ -179,9 +186,15 @@ export default async function SVIDashboardPage() {
   return (
     <WorkspaceLayout user={user} startupName={startupName}>
       <div className="max-w-5xl mx-auto px-6 pb-24 pt-6">
-        <WelcomeGuide />
-        <SVIDashboard
+        <AdvisorDashboard
           analysis={analysisWithDelta}
+          userProfile={{
+            displayName: user.displayName,
+            startupName: user.startupName,
+            startupStage: user.startupStage,
+            industry: user.industry,
+            startupGoals: user.startupGoals,
+          }}
           startupName={startupName}
           snapshotHistory={snapshotHistory}
           userEmail={user.email}

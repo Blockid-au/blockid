@@ -158,13 +158,13 @@ export function BillingClient({
     <div className="space-y-8">
       {/* Error banner */}
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-300">
           {error}
         </div>
       )}
 
       {/* ---- Current Plan Card ---- */}
-      <section className="rounded-2xl border border-surface-200 bg-white shadow-sm overflow-hidden">
+      <section className="rounded-2xl border border-surface-200 bg-white dark:bg-surface-100 shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-surface-200 flex items-center gap-3">
           <div className="h-9 w-9 rounded-xl bg-brand-50 flex items-center justify-center">
             <Crown strokeWidth={1.75} className="h-4.5 w-4.5 text-brand-600" />
@@ -274,7 +274,7 @@ export function BillingClient({
               <div
                 key={plan.id}
                 className={cn(
-                  "rounded-2xl border bg-white shadow-sm flex flex-col overflow-hidden transition-shadow",
+                  "rounded-2xl border bg-white dark:bg-surface-100 shadow-sm flex flex-col overflow-hidden transition-shadow",
                   isCurrent
                     ? "border-brand-300 ring-2 ring-brand-100"
                     : "border-surface-200 hover:shadow-md",
@@ -390,7 +390,7 @@ export function BillingClient({
             className="absolute inset-0 bg-black/30 backdrop-blur-sm"
             onClick={() => setShowDowngradeConfirm(null)}
           />
-          <div className="relative bg-white rounded-2xl border border-surface-200 shadow-xl max-w-sm w-full p-6 space-y-4">
+          <div className="relative bg-white dark:bg-surface-100 rounded-2xl border border-surface-200 shadow-xl max-w-sm w-full p-6 space-y-4">
             <h3 className="text-base font-semibold text-ink-800">
               Confirm Downgrade
             </h3>
@@ -512,7 +512,7 @@ function CreditsPurchaseSection() {
   }
 
   return (
-    <section id="credits" className="rounded-2xl border border-surface-200 bg-white shadow-sm overflow-hidden">
+    <section id="credits" className="rounded-2xl border border-surface-200 bg-white dark:bg-surface-100 shadow-sm overflow-hidden">
       <div className="px-6 py-5 border-b border-surface-200 flex items-center gap-3">
         <div className="h-9 w-9 rounded-xl bg-amber-50 flex items-center justify-center">
           <Coins strokeWidth={1.75} className="h-4.5 w-4.5 text-amber-600" />
@@ -542,7 +542,7 @@ function CreditsPurchaseSection() {
 
         {/* Error */}
         {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-300">
             {error}
           </div>
         )}

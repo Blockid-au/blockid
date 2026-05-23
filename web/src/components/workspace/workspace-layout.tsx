@@ -12,6 +12,7 @@ import { Logo } from "@/components/brand/logo";
 import { CreditBalance } from "@/components/ui/credit-balance";
 import { CreditBadge } from "@/components/workspace/credit-badge";
 import { ProjectSwitcher } from "@/components/ui/project-switcher";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { cn } from "@/lib/utils";
 
 interface WorkspaceLayoutProps {
@@ -111,7 +112,7 @@ export function WorkspaceLayout({ children, user, startupName, notificationCount
   const navGroups = isAdmin ? [...NAV_GROUPS, ADMIN_NAV_GROUP] : NAV_GROUPS;
 
   return (
-    <div className="min-h-svh bg-surface-100 text-ink-800 flex">
+    <div className="min-h-svh bg-surface-100 text-ink-800 dark:bg-surface-50 dark:text-ink-800 flex">
       {/* Mobile overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)} />
@@ -119,7 +120,7 @@ export function WorkspaceLayout({ children, user, startupName, notificationCount
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed top-0 left-0 h-full z-50 flex flex-col border-r border-surface-200/80 bg-white transition-all duration-200",
+        "fixed top-0 left-0 h-full z-50 flex flex-col border-r border-surface-200/80 bg-white dark:bg-surface-100 transition-all duration-200",
         "lg:relative lg:flex",
         mobileOpen ? "flex" : "hidden lg:flex",
         sidebarOpen ? "w-56" : "w-14",
@@ -187,7 +188,7 @@ export function WorkspaceLayout({ children, user, startupName, notificationCount
       {/* Main area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Topbar */}
-        <header className="h-16 border-b border-surface-200/60 bg-white/90 backdrop-blur-sm px-4 flex items-center justify-between shrink-0 sticky top-0 z-30">
+        <header className="h-16 border-b border-surface-200/60 bg-white/90 dark:bg-surface-100/90 backdrop-blur-sm px-4 flex items-center justify-between shrink-0 sticky top-0 z-30">
           <div className="flex items-center gap-3">
             {/* Mobile menu toggle */}
             <button
@@ -203,6 +204,9 @@ export function WorkspaceLayout({ children, user, startupName, notificationCount
           <div className="flex items-center gap-1 sm:gap-2">
             {/* Credit balance */}
             <CreditBalance />
+
+            {/* Dark mode toggle */}
+            <ThemeToggle />
 
             {/* Notifications */}
             <button type="button" className="relative h-8 w-8 flex items-center justify-center rounded-lg text-ink-600 hover:text-ink-800 hover:bg-surface-100 transition-colors cursor-pointer">

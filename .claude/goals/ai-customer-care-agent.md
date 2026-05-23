@@ -135,6 +135,6 @@ CEO goal: Retain users through proactive value delivery
 - [x] customer-care-insights cron task (weekly Sat, free AI, 30s gaps, max 10 users) to agent-upgrade cron
 - [x] Dashboard insights panel (insights-panel.tsx with type icons + relevance badges) component
 - [x] Unread insights in dashboard (InsightsPanel after ReportHistory) in workspace nav
-- [ ] Weekly insight digest email
+- [x] Weekly insight digest email (sendInsightDigest in nurture cron section 8)
 - [x] Relevance matching >70% threshold (AI scores each insight) threshold
 - [x] Rate limit: max 10 users/run, 30s between AI calls/run, 30s between AI calls

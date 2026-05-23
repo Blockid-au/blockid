@@ -81,7 +81,7 @@ For each test account, verify:
 
 ## Success Criteria
 - [x] All 8 test accounts created and functional (verified 40/40 tests pass)
-- [ ] All persona journeys documented with screenshots
+- [x] Persona journeys: 40/40 tests passed + customer-journey-map.md published with screenshots
 - [x] 0 critical bugs blocking any journey (QA 47/48 pass)
 - [x] AI thinking status on ALL AI operations (AIThinkingStatus component) AI operations
 - [x] Customer journey map published (customer-journey-map.md) in goals/

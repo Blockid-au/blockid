@@ -48,6 +48,7 @@ const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
       { href: "/admin/self-analysis", label: "Self-Assessment", icon: Sparkles },
       { href: "/admin/users", label: "Users", icon: Users },
+      { href: "/admin/credits", label: "Credits", icon: Coins },
       { href: "/admin/team", label: "Team", icon: Bot },
     ],
   },

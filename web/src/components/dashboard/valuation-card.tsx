@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { TrendingUp, Users } from "lucide-react";
+import { Clock, TrendingUp, Users } from "lucide-react";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import {
   estimateValuation,
@@ -49,6 +49,60 @@ export async function DashboardValuationCard({ email }: { email: string }) {
   // Assume 100% founder ownership for indicative display.
   // In a real scenario this would come from a cap table.
   const founderPct = 100;
+
+  // ── Vesting progress (graceful — shows nothing if no data) ───────────
+  let vestingSection: {
+    grantCount: number;
+    totalShares: number;
+    vestedPct: number;
+    vestedValue: number;
+  } | null = null;
+
+  try {
+    // Resolve email → user id for vesting lookup
+    const { data: appUser } = await supabase
+      .from("app_users")
+      .select("id")
+      .eq("email", email.toLowerCase().trim())
+      .maybeSingle();
+
+    if (appUser) {
+      const { data: schedules } = await supabase
+        .from("vesting_schedules")
+        .select("grant_date, total_months, total_shares, status")
+        .eq("cap_table_id", appUser.id)
+        .eq("status", "active");
+
+      if (schedules && schedules.length > 0) {
+        const now = Date.now();
+        let totalShares = 0;
+        let weightedVestedShares = 0;
+
+        for (const s of schedules) {
+          const shares = Number(s.total_shares) || 0;
+          const months = Number(s.total_months) || 48;
+          const grantMs = new Date(s.grant_date as string).getTime();
+          const elapsedMs = Math.max(0, now - grantMs);
+          const elapsedMonths = elapsedMs / (1000 * 60 * 60 * 24 * 30.44);
+          const pct = Math.min(1.0, elapsedMonths / months);
+          totalShares += shares;
+          weightedVestedShares += pct * shares;
+        }
+
+        const vestedPct = totalShares > 0 ? weightedVestedShares / totalShares : 0;
+        const vestedValue = vestedPct * est.mid;
+
+        vestingSection = {
+          grantCount: schedules.length,
+          totalShares,
+          vestedPct,
+          vestedValue,
+        };
+      }
+    }
+  } catch {
+    // Vesting table may not exist — graceful fallback
+  }
 
   return (
     <section className="mt-8 bg-white border border-surface-200 shadow-sm rounded-2xl p-6">
@@ -122,6 +176,39 @@ export async function DashboardValuationCard({ email }: { email: string }) {
           </Link>
         </div>
       </div>
+
+      {/* Vesting progress (only when schedules exist) */}
+      {vestingSection && (
+        <div className="mt-3 rounded-xl border border-surface-200 bg-surface-50 px-4 py-3">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Clock className="h-3.5 w-3.5 text-ink-500" />
+            <p className="text-[10px] uppercase tracking-[0.15em] text-ink-500">
+              Vesting Progress ({vestingSection.grantCount}{" "}
+              {vestingSection.grantCount === 1 ? "grant" : "grants"})
+            </p>
+          </div>
+          {/* Progress bar */}
+          <div className="mb-2 h-2 w-full rounded-full bg-surface-200">
+            <div
+              className="h-2 rounded-full bg-brand-500 transition-all"
+              style={{ width: `${Math.round(vestingSection.vestedPct * 100)}%` }}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-ink-800">
+              {Math.round(vestingSection.vestedPct * 100)}% vested
+            </span>
+            <span className="text-sm font-mono text-brand-600">
+              {formatAUD(Math.round(vestingSection.vestedValue))}
+            </span>
+          </div>
+          <p className="mt-1 text-[10px] text-ink-400">
+            {vestingSection.totalShares.toLocaleString()} total shares across{" "}
+            {vestingSection.grantCount}{" "}
+            {vestingSection.grantCount === 1 ? "schedule" : "schedules"}
+          </p>
+        </div>
+      )}
 
       <div className="mt-4 flex items-center justify-between text-xs text-ink-500">
         <span>

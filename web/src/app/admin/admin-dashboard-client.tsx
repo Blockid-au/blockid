@@ -251,6 +251,11 @@ export function AdminDashboardClient({
               desc: "View all users, update plans, reset access",
             },
             {
+              href: "/admin/credits",
+              label: "Credit Management",
+              desc: "Grant, revoke, and monitor user credit balances",
+            },
+            {
               href: "/admin/ai-keys",
               label: "AI Provider Keys",
               desc: "Monitor & manage AI fallback chain, test connections",
