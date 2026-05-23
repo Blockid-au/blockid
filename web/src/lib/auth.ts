@@ -667,3 +667,115 @@ export async function loginWithPassword(args: {
 
   return { ok: true, sessionToken, user: mapAppUser(user) };
 }
+
+// -----------------------------------------------------------------------------
+// Temporary password generation. Creates a readable 10-char password and
+// returns it alongside its bcrypt hash. Used for auto-account creation when
+// a user submits their first report without an existing account.
+// -----------------------------------------------------------------------------
+
+export function generateTempPassword(): string {
+  // 10 chars from a-z, A-Z, 0-9 (no confusing chars like 0/O, 1/l/I)
+  const chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  let pw = "";
+  const bytes = new Uint8Array(10);
+  crypto.getRandomValues(bytes);
+  for (const b of bytes) pw += chars[b % chars.length];
+  return pw;
+}
+
+export interface AutoCreateUserResult {
+  ok: boolean;
+  userId?: string;
+  tempPassword?: string;
+  isNewUser: boolean;
+  reason?: "not_configured" | "db_error";
+}
+
+/**
+ * Auto-create (or find) an app_users account for the given email.
+ * If the user is new AND has no password, generates a temp password so
+ * they can log in immediately without a magic link.
+ */
+export async function autoCreateUserWithTempPassword(
+  email: string,
+): Promise<AutoCreateUserResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { ok: false, isNewUser: false, reason: "not_configured" };
+
+  const normalised = normaliseEmail(email);
+
+  // Check if user already exists
+  const { data: existing } = await supabase
+    .from("app_users")
+    .select("id, password_hash")
+    .eq("email", normalised)
+    .maybeSingle();
+
+  if (existing) {
+    return { ok: true, userId: existing.id, isNewUser: false };
+  }
+
+  // New user — generate temp password and create account
+  const tempPassword = generateTempPassword();
+  const hash = await bcrypt.hash(tempPassword, BCRYPT_ROUNDS);
+
+  const { data: created, error: createErr } = await supabase
+    .from("app_users")
+    .insert({
+      email: normalised,
+      password_hash: hash,
+      last_login_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+
+  if (createErr || !created) {
+    console.error("[blockid:auth] auto-create user failed", createErr);
+    return { ok: false, isNewUser: true, reason: "db_error" };
+  }
+
+  // Grant free credits to new users
+  await initializeCredits(created.id);
+
+  return { ok: true, userId: created.id, tempPassword, isNewUser: true };
+}
+
+// -----------------------------------------------------------------------------
+// Reset password with temp password. Generates a new temp password for an
+// existing user and returns it for emailing.
+// -----------------------------------------------------------------------------
+
+export async function resetWithTempPassword(
+  email: string,
+): Promise<{ ok: boolean; tempPassword?: string; reason?: string }> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { ok: false, reason: "not_configured" };
+
+  const normalised = normaliseEmail(email);
+  const { data: user } = await supabase
+    .from("app_users")
+    .select("id")
+    .eq("email", normalised)
+    .maybeSingle();
+
+  if (!user) {
+    // Don't reveal if user exists — return ok anyway
+    return { ok: true };
+  }
+
+  const tempPassword = generateTempPassword();
+  const hash = await bcrypt.hash(tempPassword, BCRYPT_ROUNDS);
+
+  const { error } = await supabase
+    .from("app_users")
+    .update({ password_hash: hash })
+    .eq("id", user.id);
+
+  if (error) {
+    console.error("[blockid:auth] reset temp password failed", error);
+    return { ok: false, reason: "db_error" };
+  }
+
+  return { ok: true, tempPassword };
+}

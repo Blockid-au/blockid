@@ -43,11 +43,11 @@ function workerFetch(url: string, headers: Record<string, string>, body: string)
     let stderr = "";
     let killed = false;
 
-    // Hard kill after 60s — single page should never take longer
+    // Hard kill after 30s — fail fast, let retry use next provider
     const killTimer = setTimeout(() => {
       killed = true;
       child.kill("SIGKILL");
-    }, 60_000);
+    }, 30_000);
 
     child.stdout.on("data", (d: Buffer) => { stdout += d.toString(); });
     child.stderr.on("data", (d: Buffer) => { stderr += d.toString(); });

@@ -374,8 +374,8 @@ function ForgotPasswordLink() {
   if (state === "sent") {
     return (
       <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center">
-        <p className="text-xs text-emerald-700 font-medium">Reset link sent!</p>
-        <p className="text-[11px] text-emerald-600 mt-1">Check your email for a link to sign in and set a new password.</p>
+        <p className="text-xs text-emerald-700 font-medium">New password sent!</p>
+        <p className="text-[11px] text-emerald-600 mt-1">Check your email for a temporary password. Use it to sign in, then set your own password in your profile.</p>
       </div>
     );
   }

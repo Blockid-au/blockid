@@ -29,7 +29,9 @@ export async function POST(request: Request) {
       payload?: unknown;
     }) ?? {};
 
-  if (!email || typeof email !== "string" || !email.includes("@")) {
+  // Sanitize email: reject HTML tags, scripts, and invalid formats
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  if (!email || typeof email !== "string" || !emailRegex.test(email) || /<|>|script/i.test(email)) {
     return NextResponse.json(
       { ok: false, error: "Valid email is required" },
       { status: 400 },
