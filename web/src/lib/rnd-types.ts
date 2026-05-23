@@ -36,6 +36,8 @@ export interface RndReport {
   createdAt: string;
   tier?: ReportTier;  // defaults to "standard" when absent
   potentialSVI?: number;  // Projected SVI after improvements
+  wordCount?: number;     // Actual total word count across all pages
+  creditCost?: number;    // Actual credit cost based on word count
 }
 
 export const PAGE_DEFS = [

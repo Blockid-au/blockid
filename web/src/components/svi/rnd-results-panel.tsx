@@ -259,7 +259,7 @@ function ScoreGauge({ value, label }: { value: number; label?: string }) {
       {label && (
         <span className="text-sm font-medium text-ink-700">{label}</span>
       )}
-      <div className="w-48 h-2 rounded-full bg-surface-200 overflow-hidden">
+      <div className="w-full max-w-48 h-2 rounded-full bg-surface-200 overflow-hidden">
         <div
           className={cn("h-full rounded-full transition-all duration-700", bgColor)}
           style={{ width: `${value}%` }}

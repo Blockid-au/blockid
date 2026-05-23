@@ -1,6 +1,6 @@
 "use client";
 
-import { Lock, Sparkles, ArrowRight } from "lucide-react";
+import { Lock, Sparkles, ArrowRight, Share2, CreditCard } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { trackEvent } from "@/lib/analytics";
@@ -67,6 +67,15 @@ export function RndLockedSection({
           </div>
         )}
 
+        {/* Credit price anchor */}
+        <div className="mb-5 rounded-lg bg-surface-50 border border-surface-200 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-brand-500" />
+            <span className="text-xs font-semibold text-ink-700">From A$0.50 per section</span>
+            <span className="text-[10px] text-ink-500 ml-1">— A startup consultant charges A$300+ for equivalent analysis</span>
+          </div>
+        </div>
+
         {/* CTA */}
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
           <Button
@@ -81,10 +90,24 @@ export function RndLockedSection({
             Unlock full {pageTitle} analysis
             <ArrowRight className="h-4 w-4" />
           </Button>
-          <Link href="/founding-50" className="text-xs text-brand-600 hover:text-brand-700 font-medium">
-            Or get unlimited reports — A$49 lifetime
-          </Link>
+          <button
+            type="button"
+            onClick={() => {
+              const url = window.location.href;
+              void navigator.clipboard.writeText(url);
+              trackEvent("investor_link_copied", { slug: url });
+            }}
+            className="inline-flex items-center gap-1.5 text-xs text-ink-500 hover:text-brand-600 font-medium cursor-pointer transition-colors"
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            Share with co-founder
+          </button>
         </div>
+        <p className="mt-3 text-[10px] text-ink-400">
+          <Link href="/founding-50" className="text-brand-600 hover:text-brand-700 font-medium">Get unlimited reports — A$49 lifetime</Link>
+          {" "}or{" "}
+          <Link href="/workspace/billing#credits" className="text-brand-600 hover:text-brand-700 font-medium">buy credit packs from A$5</Link>
+        </p>
       </div>
     </div>
   );

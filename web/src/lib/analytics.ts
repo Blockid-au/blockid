@@ -98,6 +98,15 @@ export interface AnalyticsEventMap {
   cta_clicked: { cta_id: string; location: string };
   nav_tool_selected: { tool: string };
   mobile_menu_opened: Record<string, never>;
+
+  // ── Session ──
+  logout: Record<string, never>;
+
+  // ── First-time user tracking ──
+  first_report_started: { is_first_time: boolean };
+  first_report_completed: { svi_score: number; is_first_time: boolean };
+  first_report_section_unlock: { section: string; depth: string; is_first_time: boolean };
+  report_locked_preview_click: { page: string; section_title: string };
 }
 
 // ─── Type-safe tracker ──────────────────────────────────────────────────────

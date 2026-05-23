@@ -295,6 +295,8 @@ export default async function ShareScorePage({
   let row: ScoreRow | null = null;
   let analysis: SVIAnalysis = DEMO_ANALYSIS;
   let evidenceCount = 5;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let rndReport: any = null;
 
   if (!isDemo) {
     // Try svi_analyses first (SVI API stores slug here), then scores table
@@ -302,7 +304,7 @@ export default async function ShareScorePage({
     if (supabase) {
       const { data: sviRow } = await supabase
         .from("svi_analyses")
-        .select("id, email, total_svi, analysis_json, created_at")
+        .select("id, email, total_svi, analysis_json, rnd_report_json, created_at")
         .eq("id", slug)
         .maybeSingle();
 
@@ -320,6 +322,9 @@ export default async function ShareScorePage({
         } as unknown as ScoreRow;
         if (sviRow.analysis_json) {
           analysis = sviRow.analysis_json;
+        }
+        if (sviRow.rnd_report_json) {
+          rndReport = sviRow.rnd_report_json;
         }
       }
     }
@@ -576,6 +581,61 @@ export default async function ShareScorePage({
               </div>
             </div>
           </section>
+
+          {/* ── R&D Report (V2 Narrative) ────────────────────────────────── */}
+          {rndReport?.pages?.length > 0 && (
+            <section id="rnd-report" className="mt-8">
+              <div className="rounded-2xl border border-surface-200 bg-white shadow-sm overflow-hidden">
+                <div className="px-6 py-5 md:px-8 border-b border-surface-200 bg-gradient-to-r from-brand-50/50 to-white">
+                  <h2 className="text-lg font-semibold text-ink-800 flex items-center gap-2">
+                    <Sparkles strokeWidth={1.75} className="h-5 w-5 text-brand-500" />
+                    AI Research Report
+                    <span className="text-xs font-medium text-brand-600 bg-brand-100 px-2 py-0.5 rounded-full">
+                      V{rndReport.version}
+                    </span>
+                  </h2>
+                  <p className="text-sm text-ink-500 mt-1">
+                    {rndReport.wordCount ? `${rndReport.wordCount.toLocaleString()} words` : `${rndReport.pages.length} pages`} of narrative analysis
+                    {rndReport.potentialSVI ? ` · Your SVI could reach ${rndReport.potentialSVI}` : ""}
+                  </p>
+                </div>
+                <div className="divide-y divide-surface-100">
+                  {rndReport.pages.map((page: { pageNum: number; title: string; subtitle: string; content: string; score?: number; lockedPreview?: string; lockedSections?: string[] }, idx: number) => (
+                    <div key={idx} className="px-6 py-6 md:px-8">
+                      <div className="flex items-center gap-3 mb-4">
+                        <span className="h-7 w-7 rounded-lg bg-brand-100 flex items-center justify-center text-xs font-bold text-brand-600">
+                          {page.pageNum}
+                        </span>
+                        <div>
+                          <h3 className="text-base font-semibold text-ink-800">{page.title}</h3>
+                          <p className="text-xs text-ink-400">{page.subtitle}</p>
+                        </div>
+                        {page.score != null && (
+                          <span className="ml-auto text-sm font-mono font-bold text-brand-600">{page.score}/100</span>
+                        )}
+                      </div>
+                      <div className="prose prose-sm max-w-none text-ink-600 leading-relaxed whitespace-pre-line">
+                        {page.content}
+                      </div>
+                      {page.lockedPreview && page.lockedSections?.length ? (
+                        <div className="mt-4 rounded-xl border border-brand-200/50 bg-brand-50/30 p-4">
+                          <p className="text-sm text-ink-500 italic">&ldquo;{page.lockedPreview}&rdquo;</p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {page.lockedSections.map((s: string, i: number) => (
+                              <span key={i} className="inline-flex items-center gap-1 text-xs text-brand-600 bg-white border border-brand-200 rounded-full px-2.5 py-1">
+                                <svg className="h-3 w-3" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a4 4 0 00-4 4v2H3a1 1 0 00-1 1v6a1 1 0 001 1h10a1 1 0 001-1V8a1 1 0 00-1-1h-1V5a4 4 0 00-4-4zm2 6H6V5a2 2 0 114 0v2z"/></svg>
+                                {s}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+          )}
 
           {/* ── CTA Section ───────────────────────────────────────────────── */}
           <section id="cta-section" data-section className="mt-8">

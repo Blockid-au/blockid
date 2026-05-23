@@ -26,6 +26,7 @@ import { getPlan } from "@/lib/plans";
 import { LivingReport } from "@/components/workspace/living-report";
 import { ReferralCard } from "@/components/ui/referral-card";
 import { DashboardValuationCard } from "@/components/dashboard/valuation-card";
+import { ReportHistory } from "@/components/dashboard/report-history";
 
 // /dashboard — authed view of a founder's saved idea-phase artifacts.
 // Lists Founder Packs, idea evaluations, equity splits and funding plans,
@@ -72,6 +73,8 @@ export default async function DashboardPage({
           </div>
 
           <SummaryStrip summary={summary} />
+
+          <ReportHistory email={user.email} />
 
           <DashboardValuationCard email={user.email} />
 

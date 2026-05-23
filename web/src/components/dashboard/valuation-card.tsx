@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, Users } from "lucide-react";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import {
   estimateValuation,
@@ -10,8 +10,20 @@ import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
 // ---------------------------------------------------------------------------
 // DashboardValuationCard — server component that fetches the user's latest
 // SVI score + stage, runs the quick estimate, and displays the valuation range.
+// Enhanced with SVI-to-AUD rough mapping and shareholder ownership estimate.
 // Renders nothing when no SVI data exists yet (graceful degradation).
 // ---------------------------------------------------------------------------
+
+/** Rough SVI-to-AUD valuation band (indicative only). */
+function sviToAudBand(svi: number): { low: string; high: string; label: string } {
+  if (svi >= 200) return { low: "A$25M", high: "A$25M+", label: "Scale" };
+  if (svi >= 170) return { low: "A$8M", high: "A$25M", label: "Growth" };
+  if (svi >= 140) return { low: "A$2M", high: "A$8M", label: "Revenue" };
+  if (svi >= 110) return { low: "A$500K", high: "A$2M", label: "Early Traction" };
+  if (svi >= 80) return { low: "A$150K", high: "A$500K", label: "MVP" };
+  if (svi >= 50) return { low: "A$50K", high: "A$150K", label: "Validated Idea" };
+  return { low: "A$0", high: "A$50K", label: "Pre-revenue Concept" };
+}
 
 export async function DashboardValuationCard({ email }: { email: string }) {
   if (!isSupabaseConfigured()) return null;
@@ -32,6 +44,11 @@ export async function DashboardValuationCard({ email }: { email: string }) {
   const stage = (account.current_stage as number) ?? 0;
   const stageLabel = SVI_STAGE_LABELS[stage] ?? "Concept";
   const est = estimateValuation(svi, stage);
+  const band = sviToAudBand(svi);
+
+  // Assume 100% founder ownership for indicative display.
+  // In a real scenario this would come from a cap table.
+  const founderPct = 100;
 
   return (
     <section className="mt-8 bg-white border border-surface-200 shadow-sm rounded-2xl p-6">
@@ -69,6 +86,43 @@ export async function DashboardValuationCard({ email }: { email: string }) {
         <div className="h-1.5 flex-1 rounded-full bg-surface-200" />
       </div>
 
+      {/* SVI-to-AUD rough band */}
+      <div className="mt-5 rounded-xl border border-surface-200 bg-surface-50 px-4 py-3">
+        <p className="text-[10px] uppercase tracking-[0.15em] text-ink-500 mb-2">
+          SVI Valuation Band
+        </p>
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-semibold text-ink-800">
+            {band.low} &ndash; {band.high}
+          </span>
+          <span className="rounded-full border border-surface-200 bg-white px-2.5 py-0.5 text-[10px] font-medium text-ink-600">
+            {band.label}
+          </span>
+        </div>
+      </div>
+
+      {/* Shareholder ownership estimate */}
+      <div className="mt-3 rounded-xl border border-surface-200 bg-surface-50 px-4 py-3">
+        <div className="flex items-center gap-1.5 mb-2">
+          <Users className="h-3.5 w-3.5 text-ink-500" />
+          <p className="text-[10px] uppercase tracking-[0.15em] text-ink-500">
+            Your Ownership ({founderPct}%)
+          </p>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-semibold text-ink-800">
+            {formatAUD(Math.round(est.low * (founderPct / 100)))} &ndash;{" "}
+            {formatAUD(Math.round(est.high * (founderPct / 100)))}
+          </span>
+          <Link
+            href="/workspace/cap-table"
+            className="text-[10px] font-medium text-brand-600 hover:text-brand-700"
+          >
+            Edit cap table &rarr;
+          </Link>
+        </div>
+      </div>
+
       <div className="mt-4 flex items-center justify-between text-xs text-ink-500">
         <span>
           SVI {svi} &middot; Confidence {est.confidence}%
@@ -81,8 +135,9 @@ export async function DashboardValuationCard({ email }: { email: string }) {
         </Link>
       </div>
 
-      <p className="mt-3 text-[10px] text-ink-400 text-center">
-        Based on SVI score, stage, and available metrics. Not financial advice.
+      <p className="mt-3 text-[10px] text-ink-400 text-center leading-relaxed">
+        Indicative estimate only — not a financial valuation. Seek professional
+        advice. Based on SVI score, stage, and available metrics.
       </p>
     </section>
   );

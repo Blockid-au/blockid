@@ -16,6 +16,20 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
+export interface ReportEntry {
+  id: string;
+  total_svi: number;
+  created_at: string;
+  svi_version: string | null;
+  input_type: string | null;
+  rnd_report_json: unknown | null;
+}
+
+export interface SVIHistoryPoint {
+  total_svi: number;
+  created_at: string;
+}
+
 export default async function SVIDashboardPage() {
   const user = await getCurrentUser();
   if (!user) {
@@ -27,6 +41,10 @@ export default async function SVIDashboardPage() {
   let weeklyDelta: number | undefined;
   let startupName: string | undefined;
   let snapshotHistory: Array<{ date: string; svi: number; delta: number | null }> = [];
+  let sviHistory: SVIHistoryPoint[] = [];
+  let recentReports: ReportEntry[] = [];
+  let lastAnalysisDate: string | undefined;
+  let previousSVI: number | undefined;
 
   if (supabase) {
     // Resolve the active project for this user
@@ -47,6 +65,53 @@ export default async function SVIDashboardPage() {
 
     if (latestAnalysis?.analysis_json) {
       analysis = latestAnalysis.analysis_json as SVIAnalysis;
+      lastAnalysisDate = latestAnalysis.created_at as string;
+    }
+
+    // Load SVI score history (all analyses for the trend chart)
+    const historyQuery = supabase
+      .from("svi_analyses")
+      .select("total_svi, created_at")
+      .eq("email", user.email);
+    if (projectId) historyQuery.eq("project_id", projectId);
+    else historyQuery.is("project_id", null);
+
+    const { data: historyData } = await historyQuery
+      .order("created_at", { ascending: true })
+      .limit(50);
+
+    if (historyData && historyData.length > 0) {
+      sviHistory = historyData.map(h => ({
+        total_svi: h.total_svi as number,
+        created_at: h.created_at as string,
+      }));
+      // Previous SVI (second to last analysis) for delta comparison
+      if (historyData.length >= 2) {
+        previousSVI = historyData[historyData.length - 2].total_svi as number;
+      }
+    }
+
+    // Load recent reports (all analyses for this project)
+    const reportsQuery = supabase
+      .from("svi_analyses")
+      .select("id, total_svi, created_at, svi_version, input_type, rnd_report_json")
+      .eq("email", user.email);
+    if (projectId) reportsQuery.eq("project_id", projectId);
+    else reportsQuery.is("project_id", null);
+
+    const { data: reportsData } = await reportsQuery
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    if (reportsData) {
+      recentReports = reportsData.map(r => ({
+        id: r.id as string,
+        total_svi: r.total_svi as number,
+        created_at: r.created_at as string,
+        svi_version: r.svi_version as string | null,
+        input_type: r.input_type as string | null,
+        rnd_report_json: r.rnd_report_json,
+      }));
     }
 
     // Load or create SVI account (project-scoped)
@@ -102,10 +167,13 @@ export default async function SVIDashboardPage() {
     );
   }
 
+  // Compute delta from analysis history (fallback if no snapshots)
+  const computedDelta = previousSVI != null ? analysis.totalSVI - previousSVI : undefined;
+
   // Inject weeklyDelta into analysis
   const analysisWithDelta: SVIAnalysis = {
     ...analysis,
-    weeklyDelta: weeklyDelta ?? analysis.weeklyDelta,
+    weeklyDelta: weeklyDelta ?? computedDelta ?? analysis.weeklyDelta,
   };
 
   return (
@@ -117,6 +185,10 @@ export default async function SVIDashboardPage() {
           startupName={startupName}
           snapshotHistory={snapshotHistory}
           userEmail={user.email}
+          sviHistory={sviHistory}
+          recentReports={recentReports}
+          lastAnalysisDate={lastAnalysisDate}
+          previousSVI={previousSVI}
         />
       </div>
     </WorkspaceLayout>

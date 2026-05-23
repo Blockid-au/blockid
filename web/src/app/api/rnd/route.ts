@@ -5,8 +5,9 @@ import { isAIConfigured } from "@/lib/ai-client";
 import { newSlug } from "@/lib/slug";
 import { detectInputType, scrapeUrl, deepTechAudit, type TechAuditResult } from "@/lib/rnd-input";
 import { generateRndReport, type ReportTier } from "@/lib/rnd-analysis";
-import { canAfford, spendCredits } from "@/lib/credits";
+import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { getProjectIdFromRequest } from "@/lib/projects";
+import { sendSVIReport } from "@/lib/email";
 
 /** Map tier to the credit feature key used for billing. */
 function tierToFeature(tier: ReportTier): string {
@@ -121,6 +122,74 @@ export async function POST(request: Request) {
           { status: 402, headers: { "Content-Type": "application/json" } },
         );
       }
+    }
+  }
+
+  // ── Cache check (standard + preview only) ──────────────────────────────
+  // If an identical analysis exists for this email within 30 days, return it
+  // immediately without charging credits or running the AI pipeline.
+  if (tier !== "deep_dive" && isSupabaseConfigured()) {
+    const cacheSupabase = getSupabaseAdmin()!;
+    const inputPrefix = rawText.slice(0, 200);
+
+    const { data: cached } = await cacheSupabase
+      .from("svi_analyses")
+      .select("id, total_svi, analysis_json, rnd_report_json, created_at")
+      .eq("email", email)
+      .eq("raw_input", rawText)              // full match first
+      .gte("created_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    // Fallback: prefix match (first 200 chars) if no exact match
+    const hit = cached ?? (inputPrefix.length >= 20 ? (await cacheSupabase
+      .from("svi_analyses")
+      .select("id, total_svi, analysis_json, rnd_report_json, created_at")
+      .eq("email", email)
+      .like("raw_input", `${inputPrefix.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`)
+      .gte("created_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()).data : null);
+
+    if (hit?.analysis_json && hit?.rnd_report_json) {
+      console.log("[rnd] Cache hit for", email, "slug:", hit.id);
+
+      // Return cached result as SSE stream with a single complete event
+      const { readable: cachedReadable, writable: cachedWritable } = new TransformStream();
+      const cachedWriter = cachedWritable.getWriter();
+      const cachedEncoder = new TextEncoder();
+
+      (async () => {
+        try {
+          const statusData = JSON.stringify({
+            step: "cached",
+            message: "Found a recent identical analysis — returning cached result.",
+          });
+          cachedWriter.write(cachedEncoder.encode(`event: status\ndata: ${statusData}\n\n`));
+
+          const completeData = JSON.stringify({
+            slug: hit.id,
+            report: hit.rnd_report_json,
+            analysis: hit.analysis_json,
+            totalSVI: hit.total_svi,
+            tier,
+            cached: true,
+          });
+          cachedWriter.write(cachedEncoder.encode(`event: complete\ndata: ${completeData}\n\n`));
+        } finally {
+          cachedWriter.close();
+        }
+      })();
+
+      return new Response(cachedReadable, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+      });
     }
   }
 
@@ -298,7 +367,10 @@ export async function POST(request: Request) {
         }
       }
 
-      // Step 7: Send complete event
+      // Step 7: Send email with report (non-blocking)
+      sendSVIReport({ to: email, slug, analysis }).catch(() => {});
+
+      // Step 8: Send complete event
       sendEvent("complete", {
         slug,
         report,

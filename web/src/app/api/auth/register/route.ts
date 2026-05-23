@@ -9,9 +9,21 @@ import { registerWithPassword, setSessionCookie, isValidEmail } from "@/lib/auth
 
 export const dynamic = "force-dynamic";
 
+// Strip HTML tags to prevent stored XSS
+function sanitizeName(raw: unknown): string | undefined {
+  if (typeof raw !== "string" || !raw.trim()) return undefined;
+  return raw.replace(/<[^>]*>/g, "").trim().slice(0, 100);
+}
+
 export async function POST(request: Request) {
+  let body: Record<string, unknown> | null = null;
   try {
-    const body = await request.json();
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ ok: false, error: "Invalid request body" }, { status: 400 });
+  }
+
+  try {
     const { email, password, displayName } = body ?? {};
 
     if (!isValidEmail(email)) {
@@ -20,14 +32,14 @@ export async function POST(request: Request) {
     if (!password || typeof password !== "string") {
       return NextResponse.json({ ok: false, error: "Password is required" }, { status: 400 });
     }
-    if (password.length < 8) {
+    if ((password as string).length < 8) {
       return NextResponse.json({ ok: false, error: "Password must be at least 8 characters" }, { status: 400 });
     }
 
     const result = await registerWithPassword({
-      email,
-      password,
-      displayName: displayName || undefined,
+      email: email as string,
+      password: password as string,
+      displayName: sanitizeName(displayName),
       ipHash: request.headers.get("x-forwarded-for"),
       userAgent: request.headers.get("user-agent"),
     });

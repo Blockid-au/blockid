@@ -357,7 +357,7 @@ export async function sendSVIWelcome(args: {
             <a href="${dashUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">${ctaText}</a>
           </p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -443,7 +443,7 @@ export async function sendSVIWeeklyReport(args: {
             </tr>
           </table>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -540,7 +540,7 @@ export async function sendSVIReport(args: {
             <p style="margin:0;font-size:11px;color:#94A3B8;line-height:1.5;">${isVi ? "Ban cao day du khong gioi han trang, phan tich chi tiet, doi thu canh tranh va ke hoach hanh dong 90 ngay." : "This is a 10-page preview. The full report includes unlimited depth, detailed competitor profiles, financial projections, and a 90-day action plan tailored to your stage."}</p>
           </div>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
+          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
           <p style="margin:0 0 8px 0;color:#64748B;font-size:11px;line-height:1.5;">${signInHelp}</p>
           <p style="margin:0;color:#475569;font-size:10px;line-height:1.4;">This analysis is produced by BlockID.au (Auschain PTY LTD, ACN 659 615 111). The SVI is NOT a financial valuation or investment recommendation. BlockID does not hold an AFSL. Seek independent professional advice. Prices in AUD incl. GST.</p>
         </td></tr>
@@ -579,7 +579,7 @@ export async function sendSVIShare(args: { to: string; senderName?: string | nul
           </div>
           <p style="margin:0 0 24px 0;text-align:center;"><a href="${reportUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Full Report</a></p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -603,7 +603,7 @@ export async function sendAnalysisPurchaseConfirmation(args: { to: string }): Pr
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Thank you for your purchase. Your analysis credit is ready to use. Return to BlockID to run your analysis.</p>
           <p style="margin:0 0 24px 0;text-align:center;"><a href="${homeUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:16px;">Run Your Analysis</a></p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -631,7 +631,7 @@ export async function sendCreditPurchaseConfirmation(args: { to: string; credits
           </div>
           <p style="margin:0 0 24px 0;text-align:center;"><a href="${billingUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Your Credits</a></p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -660,7 +660,7 @@ export async function sendSubscriptionCancelled(args: { to: string }): Promise<S
           </div>
           <p style="margin:0 0 24px 0;text-align:center;"><a href="${pricingUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Resubscribe with 30% Off</a></p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -695,7 +695,7 @@ export async function sendPaymentConfirmation(args: { to: string; planName: stri
             </tr>
           </table>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -730,7 +730,7 @@ export async function sendPaymentLink(args: { to: string; name: string; checkout
           <p style="margin:0 0 24px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#94A3B8;word-break:break-all;">${args.checkoutUrl}</p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
           <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;line-height:1.6;">This link expires in 24 hours. If you have questions, reply to this email.</p>
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -755,7 +755,7 @@ export async function sendPaymentFailed(args: { to: string }): Promise<SendResul
           <p style="margin:0 0 24px 0;text-align:center;"><a href="${billingUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Update Payment Method</a></p>
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">If you believe this is an error, please reply to this email and we will investigate.</p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -785,7 +785,7 @@ export async function sendPaymentReceipt(args: { to: string; amountCents: number
           </div>
           <p style="margin:0 0 24px 0;text-align:center;"><a href="${dashUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Go to Dashboard</a></p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -816,7 +816,7 @@ export async function sendCancellationEmail(args: { to: string; activeUntil: str
           <p style="margin:0 0 24px 0;text-align:center;"><a href="${pricingUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Resubscribe with 30% Off</a></p>
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">You will continue to have full access until your plan expires. After that, your account will be downgraded to the free tier.</p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -863,7 +863,7 @@ export async function sendGrowthReport(args: {
           ${args.recommendations.length > 0 ? `<p style="margin:24px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">AI Recommendations</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;margin:0 0 24px 0;">${recRows}</table>` : ""}
           <p style="margin:24px 0 0 0;text-align:center;"><a href="${dashUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Growth Dashboard</a></p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -920,7 +920,7 @@ export async function sendSVIReview(args: {
             </tr>
           </table>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -953,7 +953,7 @@ export async function sendMilestoneEmail(args: { to: string; name?: string | nul
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${escapeHtml(args.message)}</p>
           <p style="margin:0 0 24px 0;text-align:center;"><a href="${dashUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Your Dashboard</a></p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -988,7 +988,7 @@ function nurtureCard(args: { tagline: string; headline: string; body: string; ct
             <a href="${args.ctaUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">${escapeHtml(args.ctaLabel)}</a>
           </p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">${args.footer ?? "BlockID.au — Valuation. Ownership. Execution. Growth."}</p>
+          <p style="margin:0;color:#64748B;font-size:12px;">${args.footer ?? "BlockID.au — Valuation. Ownership. Growth."}</p>
         </td></tr>
       </table>
     </td></tr>
@@ -1313,7 +1313,7 @@ export async function sendReportDelivery(args: {
             <a href="${reportUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Report</a>
           </p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Execution. Growth.</p>
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -1390,6 +1390,209 @@ export async function sendVestingMilestone(args: {
   return sendEmail({
     to: args.to,
     subject: subjectMap[args.milestoneType],
+    html,
+    unsubscribeUrl,
+  });
+}
+
+// ---------- First report 24h follow-up email --------------------------------
+
+export async function sendNurtureFirstReport24h(args: {
+  to: string;
+  name?: string | null;
+  svi: number;
+  stageLabel: string;
+  slug: string;
+  evidenceGaps: { label: string; impact: number }[];
+}): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "promotions"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
+  const evidenceUrl = `${siteUrl()}/workspace/evidence`;
+  const reportUrl = `${siteUrl()}/s/${args.slug}`;
+  const greeting = args.name ? `Hi ${escapeHtml(args.name!)},` : "Hi,";
+
+  // Build top 3 gaps table rows
+  const topGaps = args.evidenceGaps.slice(0, 3);
+  const gapRows = topGaps.map((g, i) => `
+    <tr>
+      <td style="padding:8px 12px;color:#3B7DD8;font-size:14px;vertical-align:top;width:20px;font-weight:700;">${i + 1}.</td>
+      <td style="padding:8px 12px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;">
+        <strong>${escapeHtml(g.label)}</strong> — <span style="color:#4ADE80;font-weight:600;">+${g.impact} points</span>
+      </td>
+    </tr>`).join("");
+
+  const html = shell(nurtureCard({
+    tagline: "BlockID — Your First Report",
+    headline: `Your startup scored ${args.svi} — here's how to improve`,
+    body: `${greeting} 24 hours ago, you got your first BlockID analysis.</p>
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
+            <p style="margin:0 0 4px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Your SVI Score</p>
+            <p style="margin:0 0 4px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:48px;font-weight:700;color:#4ADE80;">${args.svi}</p>
+            <p style="margin:0;font-size:14px;color:#94A3B8;">${escapeHtml(args.stageLabel)} Stage</p>
+          </div>
+          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Top ${topGaps.length} ways to boost your score</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
+            ${gapRows}
+          </table>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Upload evidence to verify these items and watch your score climb.`,
+    ctaLabel: "Upload Evidence Now",
+    ctaUrl: evidenceUrl,
+    extra: `<p style="margin:0 0 24px 0;text-align:center;">
+              <a href="${reportUrl}" style="display:inline-block;background:transparent;color:#3B7DD8;font-weight:600;text-decoration:underline;padding:8px 16px;font-size:14px;">View Your Full Report &rarr;</a>
+            </p>`,
+  }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "first_report_24h"));
+  return sendEmail({
+    to: args.to,
+    subject: `Your startup scored ${args.svi} — here's how to improve`,
+    html,
+    unsubscribeUrl,
+  });
+}
+
+// ---------- Evidence Score Boost (Day 3) --------------------------------------
+
+export async function sendEvidenceScoreBoost(args: {
+  to: string;
+  name?: string | null;
+  svi: number;
+  evidenceGaps: { label: string; impact: number }[];
+}): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "promotions"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
+  const evidenceUrl = `${siteUrl()}/workspace/evidence`;
+  const greeting = args.name ? `Hi ${escapeHtml(args.name!)},` : "Hi,";
+
+  const topGaps = args.evidenceGaps.slice(0, 3);
+  const totalPoints = topGaps.reduce((sum, g) => sum + g.impact, 0);
+  const gapRows = topGaps.map((g, i) => `
+    <tr>
+      <td style="padding:8px 12px;color:#3B7DD8;font-size:14px;vertical-align:top;width:20px;font-weight:700;">${i + 1}.</td>
+      <td style="padding:8px 12px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;">
+        <strong>${escapeHtml(g.label)}</strong> — <span style="color:#4ADE80;font-weight:600;">+${g.impact} points</span>
+      </td>
+    </tr>`).join("");
+
+  const html = shell(nurtureCard({
+    tagline: "BlockID — Evidence Boost",
+    headline: `Your SVI score could be ${totalPoints}% higher`,
+    body: `${greeting} your startup scored <strong style="color:#4ADE80;">${args.svi}</strong> on the Startup Value Index. But you have not uploaded any evidence yet.</p>
+          <p style="margin:0 0 8px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Evidence is how BlockID verifies your claims. Without it, your score only reflects what we could find publicly. Here are your top gaps:</p>
+          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Top ${topGaps.length} evidence gaps</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
+            ${gapRows}
+          </table>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Upload just one document and your score will update automatically.`,
+    ctaLabel: `Upload Evidence Now \u2192 +${totalPoints} points`,
+    ctaUrl: evidenceUrl,
+  }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "evidence_boost_3d"));
+  return sendEmail({
+    to: args.to,
+    subject: `Your SVI score could be ${totalPoints}% higher \u2014 here\u2019s how`,
+    html,
+    unsubscribeUrl,
+  });
+}
+
+// ---------- Unlock Deeper Analysis (Day 7 after first analysis) ---------------
+
+export async function sendUnlockDeeperAnalysis(args: {
+  to: string;
+  name?: string | null;
+  stageLabel: string;
+}): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "promotions"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
+  const billingUrl = `${siteUrl()}/workspace/billing#credits`;
+  const greeting = args.name ? `${escapeHtml(args.name!)}, your` : "Your";
+
+  const html = shell(nurtureCard({
+    tagline: "BlockID — Full Analysis",
+    headline: `What investors will see in your ${escapeHtml(args.stageLabel)} startup`,
+    body: `${greeting} free SVI analysis gave you a snapshot. But investors dig deeper. A full analysis unlocks the sections that matter most to them.</p>
+          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Locked in your free report</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
+            <tr><td style="padding:6px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:20px;">&#128274;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;"><strong>Competitor Profiles</strong> — How you compare to similar startups in your market</td></tr>
+            <tr><td style="padding:6px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:20px;">&#128274;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;"><strong>Financial Projections</strong> — Revenue runway, burn rate, and growth trajectory</td></tr>
+            <tr><td style="padding:6px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:20px;">&#128274;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;"><strong>Risk Assessment</strong> — Key risks with severity scoring and mitigation actions</td></tr>
+            <tr><td style="padding:6px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:20px;">&#128274;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;"><strong>Investor Readiness</strong> — What you need before approaching investors</td></tr>
+          </table>
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
+            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Credit packs</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;">1 Full Analysis</td><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;font-weight:600;text-align:right;border-bottom:1px solid #1F2A44;">from A$0.50</td></tr>
+              <tr><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;">10 Credits</td><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;font-weight:600;text-align:right;border-bottom:1px solid #1F2A44;">A$9 <span style="color:#4ADE80;font-size:12px;">Save 10%</span></td></tr>
+              <tr><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">50 Credits</td><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;font-weight:600;text-align:right;">A$15 <span style="color:#4ADE80;font-size:12px;">Save 70%</span></td></tr>
+            </table>
+          </div>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">Credits never expire. Use them for analyses, AI evidence reviews, and full reports.`,
+    ctaLabel: "Unlock Full Analysis \u2014 from A$0.50",
+    ctaUrl: billingUrl,
+  }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "unlock_deeper_7d"));
+  return sendEmail({
+    to: args.to,
+    subject: `What investors will see in your ${args.stageLabel} startup`,
+    html,
+    unsubscribeUrl,
+  });
+}
+
+// ---------- Weekly SVI Summary ------------------------------------------------
+
+export async function sendWeeklySVISummary(args: {
+  to: string;
+  name?: string | null;
+  svi: number;
+  delta: number;
+  evidenceCount: number;
+  evidenceGaps: { label: string; impact: number }[];
+}): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "product_updates"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
+  const dashUrl = `${siteUrl()}/dashboard/svi`;
+  const evidenceUrl = `${siteUrl()}/workspace/evidence`;
+  const greeting = args.name ? `Hi ${escapeHtml(args.name!)},` : "Hi,";
+
+  const deltaStr = args.delta > 0 ? `+${args.delta}` : args.delta === 0 ? "no change" : `${args.delta}`;
+  const deltaColor = args.delta > 0 ? "#4ADE80" : args.delta === 0 ? "#94A3B8" : "#F87171";
+
+  // Build recommended next actions from evidence gaps
+  const topGaps = args.evidenceGaps.slice(0, 3);
+  const actionRows = topGaps.map((g) => `
+    <tr>
+      <td style="padding:6px 8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:20px;">&#8226;</td>
+      <td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(g.label)} <span style="color:#4ADE80;font-size:12px;font-weight:600;">(+${g.impact} pts)</span></td>
+    </tr>`).join("");
+
+  const html = shell(nurtureCard({
+    tagline: "BlockID — Weekly Summary",
+    headline: `SVI ${args.svi} (${deltaStr})`,
+    body: `${greeting} here is your weekly startup summary.`,
+    ctaLabel: "View Dashboard",
+    ctaUrl: dashUrl,
+    extra: `
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
+            <p style="margin:0 0 4px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Current SVI</p>
+            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:56px;font-weight:600;color:#3B7DD8;line-height:1;">${args.svi}</div>
+            <p style="margin:4px 0 0 0;font-size:14px;color:${deltaColor};font-weight:600;">${deltaStr} this week</p>
+          </div>
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
+            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">This week</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Evidence items uploaded</td><td style="padding:4px 8px;color:#3B7DD8;font-size:14px;font-weight:600;text-align:right;">${args.evidenceCount}</td></tr>
+            </table>
+          </div>
+          ${topGaps.length > 0 ? `
+          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Recommended next actions</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">
+            ${actionRows}
+          </table>` : ""}
+          <p style="margin:0 0 24px 0;text-align:center;">
+            <a href="${evidenceUrl}" style="display:inline-block;background:transparent;color:#3B7DD8;font-weight:600;text-decoration:underline;padding:8px 16px;font-size:14px;">Upload More Evidence</a>
+          </p>`,
+  }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "weekly_summary"));
+  return sendEmail({
+    to: args.to,
+    subject: `Your startup this week: SVI ${args.svi} (${deltaStr})`,
     html,
     unsubscribeUrl,
   });

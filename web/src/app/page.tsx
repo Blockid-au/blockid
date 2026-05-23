@@ -2,9 +2,9 @@ import { Suspense } from "react";
 import { SVIEntrance } from "@/components/svi/svi-entrance";
 
 export const metadata = {
-  title: "BlockID.au — Agentic AI Valuation Platform",
+  title: "BlockID.au — The Ownership & Growth Execution Platform",
   description:
-    "The agentic AI valuation platform for business growth from day one. Index valuation, ownership, and execution milestones from idea to scale.",
+    "Turn your AI-built idea into a valuable, investable business. BlockID.au helps AI-native founders, startups, and private companies structure ownership, manage valuation, execute growth, and become investor-ready from day one.",
   alternates: {
     canonical: "https://blockid.au",
   },

@@ -27,21 +27,14 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
-# NEXT_PUBLIC_* vars must be available at build time for Next.js inlining.
-ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID
-ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID
-ARG NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-ARG NEXT_PUBLIC_GA_MEASUREMENT_ID
-ENV NEXT_PUBLIC_GA_MEASUREMENT_ID=$NEXT_PUBLIC_GA_MEASUREMENT_ID
-ARG NEXT_PUBLIC_GTM_ID
-ENV NEXT_PUBLIC_GTM_ID=$NEXT_PUBLIC_GTM_ID
-ARG NEXT_PUBLIC_GSC_VERIFICATION
-ENV NEXT_PUBLIC_GSC_VERIFICATION=$NEXT_PUBLIC_GSC_VERIFICATION
-
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# NEXT_PUBLIC_* vars must be available at build time for Next.js inlining.
+# We copy .env into the build context so Next.js reads ALL keys automatically.
+# This eliminates the need for --build-arg flags on every docker build.
+# .env is NOT copied to the final runtime image (multi-stage build).
+# Runtime secrets are injected via --env-file at docker run.
 RUN \
   if [ -f pnpm-lock.yaml ]; then \
     corepack enable && pnpm run build; \
@@ -71,6 +64,7 @@ RUN mkdir -p /app/.next && chown -R node:node /app
 COPY --from=builder --chown=node:node /app/public ./public
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
+COPY --from=builder --chown=node:node /app/ai-worker.mjs ./ai-worker.mjs
 
 USER node
 
