@@ -132,12 +132,20 @@ function makeFallbackPage(def: typeof PAGE_DEFS[number], rawText?: string): RndR
 
 // ── Context builder ──────────────────────────────────────────────────────────
 
+export interface CompetitiveResearchData {
+  competitors?: Array<{ name: string; url?: string; description: string; threat: string }>;
+  marketInsights?: string[];
+  competitiveInsights?: string[];
+  summary?: string;
+}
+
 function buildContext(
   input: string,
   sviAnalysis: SVIAnalysis,
   inputType: InputType,
   scrapedData?: { title: string; description: string; text: string; techHints: string[] },
   techAudit?: TechAuditResult,
+  research?: CompetitiveResearchData,
 ): string {
   const stageLabel = SVI_STAGE_LABELS[sviAnalysis.stage ?? 0] ?? "Concept";
 
@@ -193,6 +201,25 @@ ${gapSummary || "None"}`;
 - Product maturity: sitemap=${techAudit.productMaturity.hasSitemap}, robots=${techAudit.productMaturity.hasRobotsTxt}, structured data=${techAudit.productMaturity.hasStructuredData}, PWA=${techAudit.productMaturity.hasPWA}, login=${techAudit.productMaturity.hasLoginForm}
 - SVI Signal Boosts: PTD+${techAudit.signalBoosts.ptdBoost}, SVM+${techAudit.signalBoosts.svmBoost}, TRE+${techAudit.signalBoosts.treBoost}, LCO+${techAudit.signalBoosts.lcoBoost}
 - Evidence labels: ${techAudit.evidenceLabels.join(" | ")}`;
+  }
+
+  if (research) {
+    ctx += `\n\n## Competitive Research (live web search data):`;
+    if (research.competitors?.length) {
+      ctx += `\n### Named Competitors:`;
+      for (const c of research.competitors) {
+        ctx += `\n- ${c.name}${c.url ? ` (${c.url})` : ""}: ${c.description} [Threat: ${c.threat}]`;
+      }
+    }
+    if (research.marketInsights?.length) {
+      ctx += `\n### Market Insights:\n${research.marketInsights.map(i => `- ${i}`).join("\n")}`;
+    }
+    if (research.competitiveInsights?.length) {
+      ctx += `\n### Competitive Insights:\n${research.competitiveInsights.map(i => `- ${i}`).join("\n")}`;
+    }
+    if (research.summary) {
+      ctx += `\n### Research Summary: ${research.summary}`;
+    }
   }
 
   return ctx;
@@ -499,8 +526,9 @@ export async function generateRndReport(
   tier: ReportTier = "standard",
   techAudit?: TechAuditResult,
   locale: "en" | "vi" = "en",
+  research?: CompetitiveResearchData,
 ): Promise<RndReport> {
-  const context = buildContext(input, sviAnalysis, inputType, scrapedData, techAudit);
+  const context = buildContext(input, sviAnalysis, inputType, scrapedData, techAudit, research);
 
   onStatus?.(locale === "vi" ? "Bắt đầu phân tích R&D..." : "Starting R&D analysis pipeline...");
 

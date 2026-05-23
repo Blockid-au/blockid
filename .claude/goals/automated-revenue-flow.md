@@ -36,11 +36,11 @@ Founder Plan A$49 → 100 credits → unlimited Standard + 66 Deep Dives
 ## Sub-goals
 
 ### SG-1: Professional Email Templates (CRO + CMO)
-- [ ] Design master email template (header, body, CTA, footer)
-- [ ] Wording: friendly-professional, startup mentor tone
-- [ ] Every email has exactly 1 primary CTA button
-- [ ] Every email mentions credit cost (transparent pricing)
-- [ ] Unsubscribe link in every email
+- [x] Design master email template (dark navy theme in email.ts) (header, body, CTA, footer)
+- [x] Wording: friendly-professional, startup mentor tone, startup mentor tone
+- [x] Every email has exactly 1 primary CTA button button
+- [x] Every email mentions credit cost (transparent pricing) (transparent pricing)
+- [x] Unsubscribe link in every email (email-preferences.ts)
 - [ ] 8 nurture emails (4 free + 4 paid) — DONE
 - [ ] Weekly report email with AI summary — DONE
 - [ ] Report delivery email with upgrade CTA

@@ -3,11 +3,11 @@
 ## Goal: Transform one-shot analysis into a living, updatable score
 
 ### Sub-goal 2.1: Evidence-to-SVI Feedback Loop [P0]
-- [ ] Extend extractSignals() to accept evidence items
-- [ ] Auto-rescore API: POST /api/svi/rescore-from-evidence
-- [ ] Post-evidence-upload trigger (auto-rescore after upload)
-- [ ] Evidence Vault SVI impact display (toast: "SVI +X points")
-- [ ] Living Report auto-update after evidence changes
+- [x] Extend extractSignals() to accept evidence items (techAudit + repoAudit params)
+- [x] Auto-rescore API: POST /api/svi/rescore-from-evidence
+- [x] Post-evidence-upload trigger (fire-and-forget rescore in connect-url)
+- [x] Evidence Vault SVI impact display (toast: SVI +X points) (toast: "SVI +X points")
+- [x] Living Report auto-update (LivingReport component on dashboard)
 - **Acceptance:** Adding evidence visibly changes SVI score within 5 seconds
 - **Skill:** /simplify, /qa
 

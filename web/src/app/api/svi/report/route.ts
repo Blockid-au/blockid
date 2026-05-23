@@ -169,7 +169,36 @@ End with ONE clear call-to-action. The single most impactful thing they should d
 
 Write naturally, be thorough, and remember: this founder is trusting you with their dream. Make the report worth their investment.`;
 
-    const { text } = await callAI({ system: systemPrompt, user: userMessage, maxTokens: 4096 });
+    // Retry up to 2 times with reduced tokens on failure
+    let text = "";
+    let lastError: Error | null = null;
+    const attempts = [
+      { maxTokens: 4096, label: "full" },
+      { maxTokens: 2048, label: "compact" },
+      { maxTokens: 1024, label: "minimal" },
+    ];
+
+    for (const attempt of attempts) {
+      try {
+        const result = await callAI({
+          system: systemPrompt,
+          user: attempt.label === "full"
+            ? userMessage
+            : userMessage.replace("Minimum 800 words", "Minimum 400 words").replace("be thorough", "be concise"),
+          maxTokens: attempt.maxTokens,
+        });
+        text = result.text;
+        break; // Success
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+        console.warn(`[blockid:report] Attempt ${attempt.label} failed: ${lastError.message}`);
+      }
+    }
+
+    if (!text) {
+      console.error("[blockid:report] All attempts failed:", lastError);
+      return NextResponse.json({ ok: false, error: "Report generation failed. Please try again in a moment." }, { status: 500 });
+    }
 
     // ── Spend credits after successful generation ───────────────────
     const spend = await spendCredits(user.id, "svi_report", {
@@ -187,8 +216,9 @@ Write naturally, be thorough, and remember: this founder is trusting you with th
 
   } catch (err) {
     console.error("[blockid:report]", err);
-    return NextResponse.json({ ok: false, error: "Report generation failed" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: "Report generation failed. Please try again." }, { status: 500 });
   }
 }
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 120; // Allow up to 2 minutes for long AI reports
