@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ChevronDown, Menu, X, LayoutDashboard, LogOut, BarChart3, FileText } from "lucide-react";
+import { ChevronDown, Menu, X, LayoutDashboard, LogOut, BarChart3, FileText, TrendingUp } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/ui/language-toggle";
@@ -161,6 +161,14 @@ function UserMenu({ user }: { user: AuthUser }) {
             >
               <BarChart3 strokeWidth={1.75} className="h-4 w-4 text-ink-500" />
               New Analysis
+            </Link>
+            <Link
+              href="/dashboard/svi"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-ink-700 hover:bg-surface-50 transition-colors"
+            >
+              <TrendingUp strokeWidth={1.75} className="h-4 w-4 text-ink-500" />
+              My SVI Score
             </Link>
             <Link
               href="/workspace/reports"

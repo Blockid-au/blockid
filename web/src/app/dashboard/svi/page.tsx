@@ -37,6 +37,7 @@ export default async function SVIDashboardPage() {
 
   const supabase = getSupabaseAdmin();
   let analysis: SVIAnalysis | null = null;
+  let latestSlug: string | undefined;
   let weeklyDelta: number | undefined;
   let startupName: string | undefined;
   let snapshotHistory: Array<{ date: string; svi: number; delta: number | null }> = [];
@@ -58,6 +59,7 @@ export default async function SVIDashboardPage() {
     else analysisQuery.is("project_id", null);
 
     const { data: latestAnalysis } = await analysisQuery
+      .select("id, analysis_json, total_svi, created_at, raw_input")
       .order("created_at", { ascending: false })
       .limit(1)
       .single();
@@ -65,6 +67,7 @@ export default async function SVIDashboardPage() {
     if (latestAnalysis?.analysis_json) {
       analysis = latestAnalysis.analysis_json as SVIAnalysis;
       lastAnalysisDate = latestAnalysis.created_at as string;
+      latestSlug = latestAnalysis.id as string;
     }
 
     // Load SVI score history (all analyses for the trend chart)
@@ -203,6 +206,37 @@ export default async function SVIDashboardPage() {
           lastAnalysisDate={lastAnalysisDate}
           previousSVI={previousSVI}
         />
+
+        {/* Recent analyses — direct links to full reports */}
+        {recentReports.length > 0 && (
+          <div className="mt-8">
+            <h2 className="text-lg font-bold text-ink-900 mb-4">Your Analyses</h2>
+            <div className="grid gap-3">
+              {recentReports.slice(0, 10).map((r) => (
+                <Link
+                  key={r.id}
+                  href={`/s/${r.id}`}
+                  className="flex items-center justify-between rounded-xl border border-surface-200 bg-surface-50 dark:bg-surface-100 px-4 py-3 hover:border-brand-300 transition-colors"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-100 text-sm font-bold text-brand-700 shrink-0">
+                      {r.total_svi}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-ink-800 truncate">
+                        SVI Analysis {r.input_type === "rnd" ? "(R&D)" : ""}
+                      </p>
+                      <p className="text-xs text-ink-500">
+                        {new Date(r.created_at).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-medium text-brand-600">View report →</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </WorkspaceLayout>
   );
