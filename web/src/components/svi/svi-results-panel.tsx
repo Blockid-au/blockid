@@ -20,6 +20,7 @@ import {
   LayoutDashboard,
   Lightbulb,
   Lock,
+  Unlock,
   Mail,
   PieChart,
   Presentation,
@@ -675,124 +676,545 @@ function FullReportViewer({ report }: { report: string }) {
   );
 }
 
-// Full report upsell banner — generates unlimited-length comprehensive report
-function FullReportBanner() {
-  const [loading, setLoading] = React.useState<"standard" | "premium" | null>(null);
-  const [report, setReport] = React.useState<string | null>(null);
-  const [error, setError] = React.useState<string | null>(null);
-  const thinking = useAIThinking(FULL_REPORT_STEPS);
+// ── Progressive Report Section Definitions ───────────────────────────────────
+// Local constant matching the structure that will live in report-sections.ts.
+// The other agent is creating that file in parallel; this works standalone.
 
-  const generate = async (tier: "standard" | "premium") => {
-    setLoading(tier);
-    setError(null);
-    thinking.start();
+interface SectionDef {
+  id: string;
+  title: string;
+  subtitle: string;
+  tier: "free" | "included" | "premium";
+  creditCost: number;
+  fullWords: number;
+}
 
-    // Simulate step progression while API processes
-    const delays = tier === "premium"
-      ? [1000, 5000, 12000, 20000, 28000, 35000]
-      : [800, 3000, 8000, 14000, 18000, 22000];
-    const stepIds = ["gather", "dimensions", "narrative", "benchmarks", "actions", "format"];
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    stepIds.forEach((id, i) => {
-      timers.push(setTimeout(() => thinking.advance(id), delays[i]));
-    });
+const SECTION_DEFS: SectionDef[] = [
+  { id: "executive-summary",   title: "Executive Summary",         subtitle: "Overall startup assessment and SVI score context",        tier: "free",     creditCost: 0.50, fullWords: 1500 },
+  { id: "founder-team",        title: "Founder & Team",            subtitle: "Team composition, experience, and advisory strength",     tier: "included", creditCost: 0.50, fullWords: 1200 },
+  { id: "market-opportunity",  title: "Market Opportunity",        subtitle: "Market sizing, TAM/SAM, validation evidence",            tier: "included", creditCost: 0.75, fullWords: 1500 },
+  { id: "product-tech",        title: "Product & Tech",            subtitle: "Technical maturity, stack quality, demo readiness",       tier: "included", creditCost: 0.50, fullWords: 1200 },
+  { id: "traction-revenue",    title: "Traction & Revenue",        subtitle: "Revenue band, customer count, growth trajectory",        tier: "included", creditCost: 0.75, fullWords: 1500 },
+  { id: "go-to-market",        title: "Go-to-Market",              subtitle: "Distribution channels, CAC/LTV, launch strategy",        tier: "included", creditCost: 0.50, fullWords: 1200 },
+  { id: "cap-governance",      title: "Cap Table & Governance",    subtitle: "Equity split, vesting, board structure",                 tier: "included", creditCost: 0.50, fullWords: 1000 },
+  { id: "investor-readiness",  title: "Investor Readiness",        subtitle: "Pitch deck, data room, financial model assessment",      tier: "included", creditCost: 0.50, fullWords: 1200 },
+  { id: "legal-compliance",    title: "Legal & Compliance",        subtitle: "ASIC registration, IP protection, contracts",            tier: "included", creditCost: 0.50, fullWords: 1000 },
+  { id: "strategic-moat",      title: "Strategic Vision & Moat",   subtitle: "Defensibility, network effects, data advantage",        tier: "included", creditCost: 0.50, fullWords: 1200 },
+  { id: "financial-projections", title: "Financial Projections",   subtitle: "Revenue forecast, unit economics, runway",               tier: "included", creditCost: 0.75, fullWords: 1500 },
+  { id: "risk-mitigation",     title: "Risk & Mitigation",         subtitle: "Key risks, severity scoring, mitigation plan",          tier: "included", creditCost: 0.50, fullWords: 1200 },
+  { id: "competitive-intel",   title: "Competitive Intelligence",  subtitle: "Named competitors, feature comparison, market share",    tier: "premium",  creditCost: 0.75, fullWords: 1500 },
+  { id: "ninety-day-roadmap",  title: "90-Day Roadmap",            subtitle: "Week-by-week milestones and action items",               tier: "premium",  creditCost: 0.75, fullWords: 1500 },
+  { id: "board-summary",       title: "Board-Ready Summary",       subtitle: "One-page executive brief for board meetings",            tier: "premium",  creditCost: 1.00, fullWords: 1000 },
+  { id: "au-market-deep-dive", title: "AU Market Deep Dive",       subtitle: "Australian market landscape, grants, regulations",       tier: "premium",  creditCost: 1.00, fullWords: 1500 },
+];
 
+const INCLUDED_SECTIONS = SECTION_DEFS.filter(s => s.tier === "free" || s.tier === "included");
+const PREMIUM_SECTIONS = SECTION_DEFS.filter(s => s.tier === "premium");
+const BUNDLE_DISCOUNT = 0.30; // 30% off when unlocking all
+
+interface SectionState {
+  summary: string | null;
+  full: string | null;
+  loading: boolean;
+  error: string | null;
+}
+
+// ── ProgressiveReport — section-by-section report with per-section unlock ──
+
+function ProgressiveReport() {
+  const [sections, setSections] = React.useState<Record<string, SectionState>>(() => {
+    const initial: Record<string, SectionState> = {};
+    for (const def of SECTION_DEFS) {
+      initial[def.id] = { summary: null, full: null, loading: false, error: null };
+    }
+    return initial;
+  });
+  const [activeSection, setActiveSection] = React.useState<string | null>(null);
+  const [summariesLoading, setSummariesLoading] = React.useState(false);
+  const [unlockAllLoading, setUnlockAllLoading] = React.useState(false);
+  const [confirmUnlock, setConfirmUnlock] = React.useState<string | null>(null);
+  const [confirmUnlockAll, setConfirmUnlockAll] = React.useState(false);
+  const summariesLoaded = React.useRef(false);
+
+  // Count how many sections still need full unlock
+  const remainingSections = SECTION_DEFS.filter(s => !sections[s.id]?.full);
+  const remainingCost = remainingSections.reduce((sum, s) => sum + s.creditCost, 0);
+  const discountedCost = Math.round(remainingCost * (1 - BUNDLE_DISCOUNT) * 100) / 100;
+  const remainingWords = remainingSections.reduce((sum, s) => sum + s.fullWords, 0);
+
+  // Generate summary for a single section
+  const genSummary = React.useCallback(async (sectionId: string) => {
+    setSections(prev => ({
+      ...prev,
+      [sectionId]: { ...prev[sectionId], loading: true, error: null },
+    }));
     try {
-      const res = await fetch("/api/svi/full-report", {
+      const res = await fetch("/api/svi/report-section", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tier }),
+        body: JSON.stringify({ sectionId, depth: "summary" }),
       });
-
-      // Handle non-JSON responses (e.g. 502, 504 from reverse proxy)
       let data: Record<string, unknown>;
       try {
         data = await res.json();
       } catch {
-        timers.forEach(clearTimeout);
-        const msg = res.status >= 500
-          ? "Server is temporarily unavailable. Please try again in a moment."
-          : `Unexpected response (${res.status})`;
-        thinking.fail("gather", msg);
-        setError(msg);
+        setSections(prev => ({
+          ...prev,
+          [sectionId]: { ...prev[sectionId], loading: false, error: "Unexpected server response" },
+        }));
         return;
       }
+      if (!data.ok) {
+        setSections(prev => ({
+          ...prev,
+          [sectionId]: { ...prev[sectionId], loading: false, error: (data.error as string) ?? "Failed to generate summary" },
+        }));
+        return;
+      }
+      setSections(prev => ({
+        ...prev,
+        [sectionId]: { ...prev[sectionId], summary: data.content as string, loading: false, error: null },
+      }));
+    } catch {
+      setSections(prev => ({
+        ...prev,
+        [sectionId]: { ...prev[sectionId], loading: false, error: "Network error" },
+      }));
+    }
+  }, []);
 
-      timers.forEach(clearTimeout);
-
+  // Generate full analysis for a section (charges credits)
+  const genFull = React.useCallback(async (sectionId: string) => {
+    setSections(prev => ({
+      ...prev,
+      [sectionId]: { ...prev[sectionId], loading: true, error: null },
+    }));
+    try {
+      const res = await fetch("/api/svi/report-section", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sectionId, depth: "full" }),
+      });
+      let data: Record<string, unknown>;
+      try {
+        data = await res.json();
+      } catch {
+        setSections(prev => ({
+          ...prev,
+          [sectionId]: { ...prev[sectionId], loading: false, error: "Unexpected server response" },
+        }));
+        return;
+      }
       if (!data.ok) {
         let errMsg: string;
-        if (res.status === 401) {
-          errMsg = "Please sign in to generate a full report.";
-        } else if (res.status === 402) {
-          errMsg = `Insufficient credits (need ${tier === "premium" ? 5 : 2} credits)`;
-        } else if (res.status === 404) {
-          errMsg = "No analysis found — run an SVI analysis first.";
-        } else if (res.status === 503) {
-          errMsg = "AI service temporarily unavailable. Please try again shortly.";
-        } else {
-          errMsg = (data.error as string) ?? "Generation failed";
-        }
-        thinking.fail("format", errMsg);
-        setError(errMsg);
+        if (res.status === 401) errMsg = "Please sign in to unlock sections.";
+        else if (res.status === 402) errMsg = "Insufficient credits";
+        else errMsg = (data.error as string) ?? "Failed to generate";
+        setSections(prev => ({
+          ...prev,
+          [sectionId]: { ...prev[sectionId], loading: false, error: errMsg },
+        }));
         return;
       }
-      thinking.completeAll();
-      setReport(data.report as string);
+      setSections(prev => ({
+        ...prev,
+        [sectionId]: {
+          ...prev[sectionId],
+          full: data.content as string,
+          summary: prev[sectionId].summary ?? (data.content as string).slice(0, 600),
+          loading: false,
+          error: null,
+        },
+      }));
     } catch {
-      timers.forEach(clearTimeout);
-      thinking.fail("gather", "Connection error — check your internet and try again.");
-      setError("Connection error — check your internet and try again.");
-    } finally {
-      setLoading(null);
+      setSections(prev => ({
+        ...prev,
+        [sectionId]: { ...prev[sectionId], loading: false, error: "Network error" },
+      }));
     }
+  }, []);
+
+  // Unlock all remaining sections
+  const unlockAll = React.useCallback(async () => {
+    setUnlockAllLoading(true);
+    const toUnlock = SECTION_DEFS.filter(s => !sections[s.id]?.full);
+    for (const s of toUnlock) {
+      await genFull(s.id);
+    }
+    setUnlockAllLoading(false);
+    setConfirmUnlockAll(false);
+  }, [sections, genFull]);
+
+  // Auto-generate summaries for included sections on mount
+  React.useEffect(() => {
+    if (summariesLoaded.current) return;
+    summariesLoaded.current = true;
+    setSummariesLoading(true);
+
+    const loadSummaries = async () => {
+      const promises = INCLUDED_SECTIONS.map(s => genSummary(s.id));
+      await Promise.allSettled(promises);
+      setSummariesLoading(false);
+    };
+    void loadSummaries();
+  }, [genSummary]);
+
+  // Scroll to section
+  const scrollToSection = (id: string) => {
+    setActiveSection(id);
+    setTimeout(() => {
+      document.getElementById(`prog-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
   };
 
-  if (report) {
-    return <FullReportViewer report={report} />;
-  }
+  // Section counts by state
+  const unlockedCount = SECTION_DEFS.filter(s => sections[s.id]?.full).length;
+  const summaryCount = INCLUDED_SECTIONS.filter(s => sections[s.id]?.summary && !sections[s.id]?.full).length;
 
   return (
-    <div className="rounded-2xl border border-brand-200 bg-gradient-to-r from-brand-50 to-white p-5 shadow-sm">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Sparkles strokeWidth={1.75} className="h-4 w-4 text-brand-600" />
-            <p className="text-sm font-semibold text-ink-800">Unlock Full AI Report</p>
+    <div className="rounded-2xl border border-brand-200 bg-surface-50 dark:bg-surface-100 shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="border-b border-brand-100 bg-gradient-to-r from-brand-50 to-surface-50 px-5 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles strokeWidth={1.75} className="h-5 w-5 text-brand-600" />
+            <h3 className="text-base font-bold text-ink-900">Your SVI Report</h3>
+            <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-600">
+              {SECTION_DEFS.length} sections
+            </span>
           </div>
-          <p className="text-xs text-ink-600">Comprehensive analysis — no page limit. Covers tech, marketing, finance, investor readiness, legal, and more.</p>
-          {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+          <div className="flex items-center gap-2 text-[10px] text-ink-500 font-mono">
+            {unlockedCount > 0 && (
+              <span className="rounded-full bg-emerald-100 text-emerald-700 px-2 py-0.5 font-medium">
+                {unlockedCount} unlocked
+              </span>
+            )}
+            {summaryCount > 0 && (
+              <span className="rounded-full bg-brand-100 text-brand-600 px-2 py-0.5 font-medium">
+                {summaryCount} previewed
+              </span>
+            )}
+          </div>
         </div>
-        <div className="flex gap-2 shrink-0">
-          <button
-            type="button"
-            disabled={!!loading}
-            onClick={() => void generate("standard")}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-brand-200 bg-white px-4 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 transition-all cursor-pointer disabled:opacity-50"
-          >
-            {loading === "standard" ? <SpinnerIcon strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" /> : <FileText strokeWidth={1.75} className="h-3.5 w-3.5" />}
-            Standard <span className="font-mono text-brand-500">(2 cr)</span>
-          </button>
-          <button
-            type="button"
-            disabled={!!loading}
-            onClick={() => void generate("premium")}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-700 transition-all cursor-pointer disabled:opacity-50"
-          >
-            {loading === "premium" ? <SpinnerIcon strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" /> : <Sparkles strokeWidth={1.75} className="h-3.5 w-3.5" />}
-            Premium <span className="text-brand-200 font-mono">(5 cr)</span>
-          </button>
+
+        {/* Section navigation pills */}
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {SECTION_DEFS.map((def, i) => {
+            const state = sections[def.id];
+            const hasContent = state?.full || state?.summary;
+            const isLocked = def.tier === "premium" && !state?.full && !state?.summary;
+
+            return (
+              <button
+                key={def.id}
+                type="button"
+                onClick={() => scrollToSection(def.id)}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium transition-colors cursor-pointer",
+                  activeSection === def.id
+                    ? "bg-brand-600 text-white"
+                    : state?.full
+                      ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                      : hasContent
+                        ? "bg-surface-100 text-ink-600 hover:bg-brand-50 hover:text-brand-700"
+                        : isLocked
+                          ? "bg-surface-100 text-ink-400 hover:bg-surface-200"
+                          : "bg-surface-100 text-ink-600 hover:bg-brand-50 hover:text-brand-700",
+                )}
+              >
+                <span className="text-[10px] opacity-60">{i + 1}</span>
+                {isLocked && <Lock strokeWidth={2} className="h-2.5 w-2.5 opacity-60" />}
+                {def.title.length > 20 ? def.title.slice(0, 20) + "\u2026" : def.title}
+              </button>
+            );
+          })}
         </div>
       </div>
-      {/* AI Thinking Status — step-by-step progress during report generation */}
-      <AIThinkingStatus
-        steps={thinking.steps}
-        isActive={thinking.isActive}
-        title="Generating your full report"
-        className="mt-3"
-      />
+
+      {/* AI thinking status for initial summary generation */}
+      {summariesLoading && (
+        <div className="px-5 py-3 border-b border-surface-200 bg-brand-50/30">
+          <div className="flex items-center gap-2.5">
+            <SpinnerIcon strokeWidth={1.75} className="h-4 w-4 text-brand-600 animate-spin" />
+            <div>
+              <p className="text-xs font-semibold text-brand-700">Generating section previews...</p>
+              <p className="text-[11px] text-brand-600/80">Auto-generating summaries for all included sections</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Section cards */}
+      <div className="divide-y divide-surface-200">
+        {SECTION_DEFS.map((def) => {
+          const state = sections[def.id];
+          const hasSummary = !!state?.summary;
+          const hasFull = !!state?.full;
+          const isLocked = def.tier === "premium" && !hasSummary && !hasFull;
+          const isLoading = state?.loading ?? false;
+
+          return (
+            <div key={def.id} id={`prog-${def.id}`} className="scroll-mt-20">
+              {/* ── Locked premium section ── */}
+              {isLocked && !isLoading && (
+                <div className="relative overflow-hidden">
+                  {/* Subtle gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-surface-50/0 via-surface-50/60 to-surface-50/90 pointer-events-none" />
+                  <div className="relative px-5 py-5">
+                    <div className="flex items-center gap-2.5 mb-3">
+                      <Lock strokeWidth={1.75} className="h-4 w-4 text-ink-400" />
+                      <span className="text-sm font-semibold text-ink-600">{def.title}</span>
+                      <span className="rounded-full bg-surface-200 px-2 py-0.5 text-[10px] font-medium text-ink-500 uppercase tracking-wider">
+                        Premium
+                      </span>
+                    </div>
+                    {/* Unlock CTA */}
+                    {confirmUnlock === def.id ? (
+                      <div className="rounded-xl border border-brand-200 bg-white p-4">
+                        <p className="text-xs text-ink-700 mb-3">
+                          This will use <span className="font-mono font-semibold text-brand-600">{def.creditCost} cr</span> from your balance.
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => { setConfirmUnlock(null); void genFull(def.id); }}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer"
+                          >
+                            <Unlock strokeWidth={1.75} className="h-3.5 w-3.5" />
+                            Confirm Unlock
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmUnlock(null)}
+                            className="rounded-lg border border-surface-300 px-3 py-2 text-xs text-ink-600 hover:bg-surface-50 transition-colors cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmUnlock(def.id)}
+                        className="w-full rounded-xl border border-brand-200 bg-white hover:bg-brand-50 px-4 py-3 text-left transition-colors cursor-pointer group"
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <Unlock strokeWidth={1.75} className="h-3.5 w-3.5 text-brand-600" />
+                          <span className="text-xs font-semibold text-brand-700">
+                            Unlock <span className="font-mono text-brand-500">({def.creditCost} cr)</span>
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-ink-500 leading-relaxed">
+                          ~{def.fullWords.toLocaleString()} words &middot; {def.subtitle}
+                        </p>
+                      </button>
+                    )}
+                    {state?.error && (
+                      <p className="text-[11px] text-red-600 mt-2">{state.error}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Loading state ── */}
+              {isLoading && (
+                <div className="px-5 py-5">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <SpinnerIcon strokeWidth={1.75} className="h-4 w-4 text-brand-600 animate-spin" />
+                    <span className="text-sm font-semibold text-ink-700">{def.title}</span>
+                    <span className="text-[10px] text-brand-600 font-medium">Generating...</span>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-3 w-3/4 rounded bg-surface-200 animate-pulse" />
+                    <div className="h-3 w-full rounded bg-surface-200 animate-pulse" />
+                    <div className="h-3 w-5/6 rounded bg-surface-200 animate-pulse" />
+                    <div className="h-3 w-2/3 rounded bg-surface-200 animate-pulse" />
+                  </div>
+                </div>
+              )}
+
+              {/* ── Content section (summary or full) ── */}
+              {!isLocked && !isLoading && (hasSummary || hasFull) && (
+                <div className="px-5 py-5">
+                  {/* Section header */}
+                  <div className="flex items-center gap-2.5 mb-3">
+                    {hasFull ? (
+                      <CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-emerald-600 shrink-0" />
+                    ) : def.tier === "free" ? (
+                      <FileText strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0" />
+                    ) : (
+                      <FileText strokeWidth={1.75} className="h-4 w-4 text-ink-400 shrink-0" />
+                    )}
+                    <span className="text-sm font-semibold text-ink-900">{def.title}</span>
+                    {hasFull && (
+                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+                        Full
+                      </span>
+                    )}
+                    {!hasFull && def.tier === "free" && (
+                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+                        Free
+                      </span>
+                    )}
+                    {!hasFull && def.tier === "included" && (
+                      <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-600">
+                        Included
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Markdown content */}
+                  <div className="prose prose-sm prose-brand max-w-none text-ink-700 leading-relaxed
+                    prose-headings:text-ink-900 prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2
+                    prose-p:my-2 prose-li:my-0.5
+                    prose-strong:text-ink-800 prose-strong:font-semibold
+                    prose-ul:my-2 prose-ol:my-2
+                    prose-a:text-brand-600 prose-a:no-underline hover:prose-a:underline">
+                    <Markdown>{hasFull ? state.full! : state.summary!}</Markdown>
+                  </div>
+
+                  {/* Per-section unlock CTA (show only when summary is loaded but full is not) */}
+                  {hasSummary && !hasFull && (
+                    <div className="mt-4">
+                      {confirmUnlock === def.id ? (
+                        <div className="rounded-xl border border-brand-200 bg-white p-4">
+                          <p className="text-xs text-ink-700 mb-3">
+                            This will use <span className="font-mono font-semibold text-brand-600">{def.creditCost} cr</span> from your balance.
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => { setConfirmUnlock(null); void genFull(def.id); }}
+                              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer"
+                            >
+                              <Unlock strokeWidth={1.75} className="h-3.5 w-3.5" />
+                              Confirm Unlock
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setConfirmUnlock(null)}
+                              className="rounded-lg border border-surface-300 px-3 py-2 text-xs text-ink-600 hover:bg-surface-50 transition-colors cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmUnlock(def.id)}
+                          className="w-full rounded-xl border border-brand-200 bg-white hover:bg-brand-50 px-4 py-3 text-left transition-colors cursor-pointer group"
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <Unlock strokeWidth={1.75} className="h-3.5 w-3.5 text-brand-600" />
+                            <span className="text-xs font-semibold text-brand-700">
+                              Read full analysis <span className="font-mono text-brand-500">({def.creditCost} cr)</span>
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-ink-500 leading-relaxed">
+                            ~{def.fullWords.toLocaleString()} words &middot; {def.subtitle}
+                          </p>
+                        </button>
+                      )}
+                      {state?.error && (
+                        <p className="text-[11px] text-red-600 mt-2">{state.error}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── No content yet, not loading, not locked (waiting for summary) ── */}
+              {!isLocked && !isLoading && !hasSummary && !hasFull && (
+                <div className="px-5 py-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-4 w-4 rounded-full border-2 border-surface-300 shrink-0" />
+                    <span className="text-sm text-ink-500">{def.title}</span>
+                    <span className="text-[10px] text-ink-400">Pending</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Unlock All banner ── */}
+      {remainingSections.length > 0 && (
+        <div className="border-t border-brand-200 bg-gradient-to-r from-brand-50 to-surface-50 px-5 py-5">
+          {confirmUnlockAll ? (
+            <div className="rounded-xl border border-brand-200 bg-white p-5">
+              <p className="text-sm font-semibold text-ink-800 mb-2">Unlock All Remaining Sections</p>
+              <p className="text-xs text-ink-600 mb-4">
+                {remainingSections.length} sections &middot; ~{remainingWords.toLocaleString()} words &middot;{" "}
+                <span className="line-through text-ink-400">{remainingCost.toFixed(2)} cr</span>{" "}
+                <span className="font-mono font-semibold text-brand-600">{discountedCost.toFixed(2)} cr</span>{" "}
+                <span className="text-emerald-600 font-medium">(Save {Math.round(BUNDLE_DISCOUNT * 100)}%)</span>
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={unlockAllLoading}
+                  onClick={() => void unlockAll()}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {unlockAllLoading ? (
+                    <><SpinnerIcon strokeWidth={1.75} className="h-4 w-4 animate-spin" /> Unlocking...</>
+                  ) : (
+                    <><Unlock strokeWidth={1.75} className="h-4 w-4" /> Confirm Unlock All</>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  disabled={unlockAllLoading}
+                  onClick={() => setConfirmUnlockAll(false)}
+                  className="rounded-lg border border-surface-300 px-4 py-2.5 text-sm text-ink-600 hover:bg-surface-50 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmUnlockAll(true)}
+              className="w-full rounded-xl border border-brand-200 bg-white hover:bg-brand-50 px-5 py-4 text-left transition-colors cursor-pointer"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-ink-800">Unlock All Remaining Sections</p>
+                  <p className="text-xs text-ink-500 mt-1">
+                    {remainingSections.length} sections &middot; ~{remainingWords.toLocaleString()} words &middot;{" "}
+                    <span className="font-mono font-semibold text-brand-600">{discountedCost.toFixed(2)} cr</span>{" "}
+                    <span className="text-emerald-600 font-medium">(Save {Math.round(BUNDLE_DISCOUNT * 100)}%)</span>
+                  </p>
+                </div>
+                <div className="shrink-0 ml-4 inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-xs font-semibold text-white">
+                  <Unlock strokeWidth={1.75} className="h-3.5 w-3.5" />
+                  Unlock All
+                </div>
+              </div>
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* All sections unlocked message */}
+      {remainingSections.length === 0 && (
+        <div className="border-t border-emerald-200 bg-emerald-50 px-5 py-4 text-center">
+          <div className="flex items-center justify-center gap-2">
+            <CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-emerald-600" />
+            <p className="text-sm font-medium text-emerald-700">All sections unlocked</p>
+          </div>
+        </div>
+      )}
     </div>
   );
+}
+
+// Full report upsell banner — now renders the ProgressiveReport component
+function FullReportBanner() {
+  return <ProgressiveReport />;
 }
 
 // Dimension-specific AI deep dive button with inline results
