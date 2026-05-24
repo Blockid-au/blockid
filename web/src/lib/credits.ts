@@ -81,6 +81,24 @@ export const FEATURE_COSTS: Record<string, number> = {
   full_report_standard: 2.00, // All 8 dimensions, 2000+ words
   full_report_premium: 5.00,  // Investor memo format, 5000+ words
 
+  // ── Per-section report generation (progressive unlock) ──────────────
+  report_section_executive: 0,             // Free — always available
+  report_section_founder_team: 0.50,       // Included summary, 0.50 cr full
+  report_section_market: 0.75,             // Included summary, 0.75 cr full
+  report_section_product: 0.50,            // Included summary, 0.50 cr full
+  report_section_traction: 0.75,           // Included summary, 0.75 cr full
+  report_section_gtm: 0.50,               // Included summary, 0.50 cr full
+  report_section_cap_table: 0.50,          // Included summary, 0.50 cr full
+  report_section_investor_ready: 0.50,     // Included summary, 0.50 cr full
+  report_section_legal: 0.50,              // Included summary, 0.50 cr full
+  report_section_vision_moat: 0.50,        // Included summary, 0.50 cr full
+  report_section_financial: 0.75,          // Included summary, 0.75 cr full
+  report_section_risk: 0.50,               // Included summary, 0.50 cr full
+  report_section_competitive: 0.75,        // Paid — locked, 0.75 cr
+  report_section_roadmap: 0.75,            // Paid — locked, 0.75 cr
+  report_section_board_summary: 1.00,      // Premium — locked, 1.00 cr
+  report_section_au_market: 1.00,          // Premium — locked, 1.00 cr
+
   // ── Valuation Engine ──────────────────────────────────────────────────
   valuation_detailed: 0.50, // A$0.50 — detailed multi-method valuation (POST scenario)
 
