@@ -49,6 +49,13 @@ export default function PricingPage() {
           <p className="text-lg text-ink-600 max-w-xl mx-auto leading-relaxed">
             Start free. Scale when you&rsquo;re ready.
           </p>
+          <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200 px-4 py-2">
+            <span className="text-sm text-emerald-700 font-medium">
+              Early Bird: <span className="font-bold">5 free credits</span> on signup +
+              use code <span className="font-mono font-bold text-emerald-800">LAUNCH50</span> for 50% off Founding 50.
+              Expires July 1, 2026.
+            </span>
+          </div>
         </div>
 
         {/* Plan cards with Monthly / Annual toggle */}
