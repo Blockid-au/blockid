@@ -10,3 +10,6 @@
 
 # Daily notification check — welcome emails, weekly reports, milestone alerts
 0 22 * * *   wget -qO- --header="Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/svi-notify >> /var/log/cron.log 2>&1
+
+# Daily admin dashboard email — 22:00 UTC (8am AEST)
+5 22 * * *   wget -qO- --header="Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/daily-admin-report >> /var/log/cron.log 2>&1
