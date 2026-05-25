@@ -896,13 +896,16 @@ export function SVIEntrance() {
               {!loggedInUser && (
                 <div className="mx-auto max-w-[620px] px-6 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
                   <div className="rounded-2xl border border-brand-200 bg-gradient-to-r from-brand-50 to-blue-50 p-5">
-                    <p className="text-sm font-semibold text-brand-800">Save your report &amp; track progress</p>
+                    <p className="text-sm font-semibold text-brand-800">Sign in to unlock your full report</p>
                     <p className="text-xs text-brand-700 mt-1 leading-relaxed">
-                      Sign in with <strong>{email}</strong> to keep your analysis, unlock more sections, track your SVI over time, and get <strong>5 free credits</strong> on signup.
+                      Create a free account to get <strong>5 bonus credits</strong> — enough for 10 analyses + report sections.
+                      Your analysis is saved and waiting for you.
                     </p>
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      <a href={`/auth/login?next=/dashboard`} className="inline-flex items-center gap-1 rounded-lg bg-brand-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 transition-colors">Sign In Now</a>
-                      <a href="/workspace/profile" className="inline-flex items-center gap-1 rounded-lg border border-brand-300 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100 transition-colors">Manage Profile</a>
+                    <div className="flex flex-wrap items-center gap-2 mt-3">
+                      <a href={`/auth/login?next=/dashboard/svi`} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-700 transition-colors">
+                        Sign In &amp; Get 5 Free Credits
+                      </a>
+                      <span className="text-[10px] text-brand-500">Use code <strong>LAUNCH50</strong> for 50% off</span>
                     </div>
                   </div>
                 </div>
@@ -1132,22 +1135,41 @@ export function SVIEntrance() {
             </div>
             {error && <p className="mt-2 text-center text-sm text-red-500">{error}</p>}
 
-            <div className="mt-5 flex w-full flex-col items-center justify-center gap-3 sm:flex-row">
+            {/* Credit cost indicator — show BEFORE submit so user knows upfront */}
+            {(text.trim() || file) && !loggedInUser && (
+              <div className="mt-3 flex items-center justify-center">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-medium text-emerald-700">
+                  <CheckCircle2 strokeWidth={2} className="h-3 w-3" />
+                  This analysis is FREE — no credits needed
+                </span>
+              </div>
+            )}
+            {(text.trim() || file) && loggedInUser && (
+              <div className="mt-3 flex items-center justify-center">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 border border-brand-200 px-3 py-1 text-xs font-medium text-brand-700">
+                  Cost: <span className="font-mono font-bold">0.50</span> credits &middot; Includes 10-page report + summaries
+                </span>
+              </div>
+            )}
+
+            <div className="mt-4 flex w-full flex-col items-center justify-center gap-3 sm:flex-row">
               <button type="submit" disabled={state === "submitting"}
                 className="h-12 w-full max-w-xs px-8 rounded-2xl bg-brand-600 text-base font-bold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed cta-glow sm:w-auto">
-                {state === "submitting" ? <span className="flex items-center gap-2"><span className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />Analyzing…</span> : "Get My SVI"}
+                {state === "submitting" ? <span className="flex items-center gap-2"><span className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />Analyzing…</span> : "Get My SVI — Free"}
               </button>
               <button type="button" onClick={() => { setText(QUICK_EXAMPLES[Math.floor(Math.random() * QUICK_EXAMPLES.length)]); textareaRef.current?.focus(); trackEvent("svi_form_started", { method: "example" }); }}
                 className="h-10 w-full max-w-xs px-5 rounded-xl border border-surface-300 bg-white text-sm font-medium text-ink-700 hover:bg-surface-100 transition-colors cursor-pointer sm:w-auto">
                 Try an Example
               </button>
             </div>
-            <div className="mt-4 flex flex-col items-center gap-2">
+            <div className="mt-3 flex flex-col items-center gap-1.5">
               <p className="flex flex-wrap items-center justify-center gap-2 text-center text-sm font-semibold text-emerald-700">
-                <CheckCircle2 strokeWidth={2} className="h-4.5 w-4.5 shrink-0 text-emerald-500" />
-                First analysis FREE &middot; No credit card &middot; No signup required
+                <CheckCircle2 strokeWidth={2} className="h-4 w-4 shrink-0 text-emerald-500" />
+                5 free credits on signup &middot; No credit card required
               </p>
-              <p className="text-xs text-ink-500">Drag &amp; drop a PDF &middot; Voice input supported</p>
+              <p className="text-xs text-ink-400">
+                Early Bird: A$0.50/analysis (normally A$25) &middot; Expires July 1, 2026
+              </p>
             </div>
             {/* Typing indicator hint — visible when textarea is empty */}
             {!text && state === "idle" && (
