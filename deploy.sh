@@ -58,9 +58,11 @@ if [ "$1" != "--restart" ]; then
   log ".env loaded ($ENV_COUNT vars)"
 
   # Build Docker image from local source
+  # --no-cache ensures NEXT_PUBLIC_* from .env are baked into the JS bundle.
+  # Without it, Docker layer cache may serve stale builds with wrong keys.
   echo ""
-  echo "Building Docker image..."
-  docker build -t "$IMAGE" . 2>&1 | tail -5
+  echo "Building Docker image (--no-cache)..."
+  docker build --no-cache -t "$IMAGE" . 2>&1 | tail -5
   log "Image built: $IMAGE"
 fi
 
