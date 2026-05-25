@@ -150,8 +150,17 @@ export const FEATURE_COSTS: Record<string, number> = {
 // Plan credit grants
 // ---------------------------------------------------------------------------
 
+// ── Softlaunch promo deadline ─────────────────────────────────────────
+// Before July 1, 2026: boosted signup credits + referral rewards.
+// After: revert to standard amounts.
+const PROMO_DEADLINE = new Date("2026-07-01T00:00:00+10:00");
+export const isPromoActive = () => new Date() < PROMO_DEADLINE;
+
+/** Signup credits — 5 during promo (normally 2). */
+export const SIGNUP_CREDITS = () => isPromoActive() ? 5 : 2;
+
 export const PLAN_CREDITS: Record<string, { amount: number; recurring: boolean }> = {
-  free:           { amount: 2,      recurring: false },  // 2 credits = ~4 standard analyses
+  free:           { amount: isPromoActive() ? 5 : 2, recurring: false },  // 5 during promo, 2 after
   founding50:     { amount: 100,    recurring: false },  // 100 credits lifetime
   growth:         { amount: 200,    recurring: true  },  // 200 credits/month
   growth_annual:  { amount: 200,    recurring: true  },  // 200 credits/month (annual billing)

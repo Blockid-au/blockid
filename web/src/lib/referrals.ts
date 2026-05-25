@@ -2,8 +2,12 @@ import "server-only";
 import { getSupabaseAdmin } from "./supabase";
 import { grantCredits } from "./credits";
 
-const REFERRER_CREDITS = 2;   // Referrer gets 2 credits when referee completes first SVI
-const REFEREE_BONUS_CREDITS = 1; // Referee gets 1 bonus credit on signup (on top of free 2)
+// ── Softlaunch promo: boosted referral rewards until July 1, 2026 ──
+const PROMO_DEADLINE = new Date("2026-07-01T00:00:00+10:00");
+const isPromo = () => new Date() < PROMO_DEADLINE;
+
+const REFERRER_CREDITS = isPromo() ? 5 : 2;   // 5 during promo (normally 2)
+const REFEREE_BONUS_CREDITS = isPromo() ? 3 : 1; // 3 during promo (normally 1)
 
 // ---------------------------------------------------------------------------
 // Get user's referral code (auto-generated on signup via migration trigger,
