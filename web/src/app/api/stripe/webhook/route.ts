@@ -49,6 +49,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
+  // Idempotency: skip events we've already processed.
+  // Uses credit_transactions metadata to detect duplicates.
+  const eventId = event.id;
+  const { data: existingEvent } = await supabase
+    .from("credit_transactions")
+    .select("id")
+    .contains("metadata", { stripe_event_id: eventId })
+    .limit(1)
+    .maybeSingle();
+
+  if (existingEvent) {
+    console.log(`[blockid:stripe] Skipping duplicate event ${eventId}`);
+    return NextResponse.json({ received: true, duplicate: true });
+  }
+
   // Always acknowledge receipt to Stripe (200) after signature verification.
   // Process events best-effort — if the DB write fails, log and let Stripe
   // retry via its automatic retry mechanism rather than returning 500.
@@ -124,6 +139,7 @@ export async function POST(request: Request) {
           const grantResult = await grantCredits(creditUserId, creditAmount, "credit_pack_purchase", {
             credits: creditAmount,
             session_id: session.id,
+            stripe_event_id: eventId,
           });
           if (grantResult.ok) {
             console.log(`[blockid:stripe] granted ${creditAmount} credits to user ${creditUserId}`);
@@ -225,6 +241,7 @@ export async function POST(request: Request) {
       if (planCredits && userId) {
         const grantResult = await grantCredits(userId, planCredits.amount, "plan_grant", {
           plan: planId,
+          stripe_event_id: eventId,
         });
         if (grantResult.ok) {
           console.log(

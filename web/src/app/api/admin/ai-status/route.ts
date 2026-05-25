@@ -56,7 +56,7 @@ export async function GET() {
     id: "claude-apikey",
     name: "Anthropic API Key",
     status: anthropicKey ? "configured" : "missing",
-    detail: anthropicKey ? `Key: ${anthropicKey.slice(0, 12)}...${anthropicKey.slice(-4)}` : "ANTHROPIC_API_KEY not set",
+    detail: anthropicKey ? "Configured" : "ANTHROPIC_API_KEY not set",
   });
 
   // 3. Proxy (TapHoaAPI)
