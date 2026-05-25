@@ -27,23 +27,40 @@ interface SectionDef {
   fullWords: number;
 }
 
+// Sections organized by business phase — helps founders navigate logically
 const SECTION_DEFS: SectionDef[] = [
-  { id: "executive",       title: "Executive Summary",         subtitle: "Overall startup assessment and SVI score context",        tier: "free",     creditCost: 0.50, fullWords: 1500 },
-  { id: "founder_team",    title: "Founder & Team",            subtitle: "Team composition, experience, and advisory strength",     tier: "included", creditCost: 0.50, fullWords: 1200 },
-  { id: "market",          title: "Market Opportunity",        subtitle: "Market sizing, TAM/SAM, validation evidence",            tier: "included", creditCost: 0.75, fullWords: 1500 },
-  { id: "product",         title: "Product & Tech",            subtitle: "Technical maturity, stack quality, demo readiness",       tier: "included", creditCost: 0.50, fullWords: 1200 },
-  { id: "traction",        title: "Traction & Revenue",        subtitle: "Revenue band, customer count, growth trajectory",        tier: "included", creditCost: 0.75, fullWords: 1500 },
-  { id: "gtm",             title: "Go-to-Market",              subtitle: "Distribution channels, CAC/LTV, launch strategy",        tier: "included", creditCost: 0.50, fullWords: 1200 },
-  { id: "cap_table",       title: "Cap Table & Governance",    subtitle: "Equity split, vesting, board structure",                 tier: "included", creditCost: 0.50, fullWords: 1000 },
-  { id: "investor_ready",  title: "Investor Readiness",        subtitle: "Pitch deck, data room, financial model assessment",      tier: "included", creditCost: 0.50, fullWords: 1200 },
-  { id: "legal",           title: "Legal & Compliance",        subtitle: "ASIC registration, IP protection, contracts",            tier: "included", creditCost: 0.50, fullWords: 1000 },
-  { id: "vision_moat",     title: "Strategic Vision & Moat",   subtitle: "Defensibility, network effects, data advantage",        tier: "included", creditCost: 0.50, fullWords: 1200 },
-  { id: "financial",       title: "Financial Projections",     subtitle: "Revenue forecast, unit economics, runway",               tier: "included", creditCost: 0.75, fullWords: 1500 },
-  { id: "risk",            title: "Risk & Mitigation",         subtitle: "Key risks, severity scoring, mitigation plan",          tier: "included", creditCost: 0.50, fullWords: 1200 },
-  { id: "competitive",     title: "Competitive Intelligence",  subtitle: "Named competitors, feature comparison, market share",    tier: "premium",  creditCost: 0.75, fullWords: 1500 },
-  { id: "roadmap",         title: "90-Day Roadmap",            subtitle: "Week-by-week milestones and action items",               tier: "premium",  creditCost: 0.75, fullWords: 1500 },
-  { id: "board_summary",   title: "Board-Ready Summary",       subtitle: "One-page executive brief for board meetings",            tier: "premium",  creditCost: 1.00, fullWords: 1000 },
-  { id: "au_market",       title: "AU Market Deep Dive",       subtitle: "Australian market landscape, grants, regulations",       tier: "premium",  creditCost: 1.00, fullWords: 1500 },
+  // ── Overview ──
+  { id: "executive",       title: "Executive Summary",         subtitle: "Your startup snapshot — read this first",                 tier: "free",     creditCost: 0.50, fullWords: 1500 },
+  // ── Foundation ──
+  { id: "founder_team",    title: "Founder & Team",            subtitle: "Who's building this? Strengths, gaps, advisory needs",    tier: "included", creditCost: 0.50, fullWords: 1200 },
+  { id: "cap_table",       title: "Cap Table & Governance",    subtitle: "Equity split, vesting — are you investor-ready?",        tier: "included", creditCost: 0.50, fullWords: 1000 },
+  { id: "legal",           title: "Legal & Compliance",        subtitle: "ABN, ASIC, IP protection — essentials for AU startups",  tier: "included", creditCost: 0.50, fullWords: 1000 },
+  // ── Product-Market Fit ──
+  { id: "market",          title: "Market Opportunity",        subtitle: "Is the market big enough? TAM, competition, timing",     tier: "included", creditCost: 0.75, fullWords: 1500 },
+  { id: "product",         title: "Product & Tech",            subtitle: "How mature is your product? Tech stack, demo readiness", tier: "included", creditCost: 0.50, fullWords: 1200 },
+  { id: "traction",        title: "Traction & Revenue",        subtitle: "Do customers want this? Revenue, users, growth",         tier: "included", creditCost: 0.75, fullWords: 1500 },
+  // ── Growth & Fundraise ──
+  { id: "gtm",             title: "Go-to-Market",              subtitle: "How will you reach customers? Channels, CAC, strategy",  tier: "included", creditCost: 0.50, fullWords: 1200 },
+  { id: "financial",       title: "Financial Projections",     subtitle: "Revenue forecast, unit economics, runway remaining",     tier: "included", creditCost: 0.75, fullWords: 1500 },
+  { id: "investor_ready",  title: "Investor Readiness",        subtitle: "Pitch deck, data room — are you fundraise-ready?",       tier: "included", creditCost: 0.50, fullWords: 1200 },
+  // ── Strategic ──
+  { id: "vision_moat",     title: "Strategic Vision & Moat",   subtitle: "What makes you defensible? Network effects, data moat",  tier: "included", creditCost: 0.50, fullWords: 1200 },
+  { id: "risk",            title: "Risk & Mitigation",         subtitle: "What could go wrong? Key risks and how to address them", tier: "included", creditCost: 0.50, fullWords: 1200 },
+  // ── Deep Intelligence (Premium) ──
+  { id: "competitive",     title: "Competitive Intelligence",  subtitle: "Named competitors, feature gaps, positioning",           tier: "premium",  creditCost: 0.75, fullWords: 1500 },
+  { id: "roadmap",         title: "90-Day Roadmap",            subtitle: "Week-by-week action plan with milestones",               tier: "premium",  creditCost: 0.75, fullWords: 1500 },
+  { id: "board_summary",   title: "Board-Ready Summary",       subtitle: "One-page brief for investors and board meetings",        tier: "premium",  creditCost: 1.00, fullWords: 1000 },
+  { id: "au_market",       title: "AU Market Deep Dive",       subtitle: "ESIC, R&D grants, AU accelerators — local opportunities", tier: "premium",  creditCost: 1.00, fullWords: 1500 },
+];
+
+// Phase group labels for navigation
+const PHASE_LABELS: Array<{ label: string; ids: string[] }> = [
+  { label: "Overview", ids: ["executive"] },
+  { label: "Foundation", ids: ["founder_team", "cap_table", "legal"] },
+  { label: "Product-Market Fit", ids: ["market", "product", "traction"] },
+  { label: "Growth", ids: ["gtm", "financial", "investor_ready"] },
+  { label: "Strategic", ids: ["vision_moat", "risk"] },
+  { label: "Premium", ids: ["competitive", "roadmap", "board_summary", "au_market"] },
 ];
 
 const BUNDLE_DISCOUNT = 0.30;
