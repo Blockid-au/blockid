@@ -44,7 +44,16 @@ Writing guidelines:
 - End each section with SPECIFIC, ACTIONABLE next steps
 - Reference the startup's SVI score and dimension scores when making assessments
 - Use flowing narrative prose with structured sub-headings, not just bullet lists
-- Format: Clean Markdown with ### sub-headings, **bold** key insights`;
+- Format: Clean Markdown with ### sub-headings, **bold** key insights
+
+CRITICAL — Adapt to the startup's STAGE:
+- If stage is 0-2 (Idea/Validated/MVP): Focus on idea validation, customer discovery,
+  finding first 10 customers, MVP scope, pitch preparation, Australian grants.
+  Do NOT focus on unit economics, revenue forecasting, or cap table optimization.
+  Be encouraging — they're just starting. Show them the path forward.
+- If stage is 3-4 (Traction/Revenue): Focus on growth, monetization, fundraise readiness,
+  team scaling, and investor preparation.
+- If stage is 5+ (Growth/Scale): Focus on scaling, governance, compliance, exit planning.`;
 
 // ---------------------------------------------------------------------------
 // Helper to build summary prompt

@@ -896,9 +896,9 @@ export function SVIEntrance() {
               {!loggedInUser && (
                 <div className="mx-auto max-w-[620px] px-6 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
                   <div className="rounded-2xl border border-brand-200 bg-gradient-to-r from-brand-50 to-blue-50 p-5">
-                    <p className="text-sm font-semibold text-brand-800">Your account is ready!</p>
+                    <p className="text-sm font-semibold text-brand-800">Save your report &amp; track progress</p>
                     <p className="text-xs text-brand-700 mt-1 leading-relaxed">
-                      We&apos;ve sent your login credentials to <strong>{email}</strong>. Sign in to save your reports, track your SVI progress, manage your profile, and get 1 free analysis every day.
+                      Sign in with <strong>{email}</strong> to keep your analysis, unlock more sections, track your SVI over time, and get <strong>5 free credits</strong> on signup.
                     </p>
                     <div className="flex flex-wrap gap-2 mt-3">
                       <a href={`/auth/login?next=/dashboard`} className="inline-flex items-center gap-1 rounded-lg bg-brand-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 transition-colors">Sign In Now</a>
