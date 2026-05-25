@@ -6,11 +6,22 @@
 import { NextResponse } from "next/server";
 import { isValidEmail, normaliseEmail, resetWithTempPassword } from "@/lib/auth";
 import { sendPasswordReset } from "@/lib/email";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
+    // Rate limit: 3 resets per IP per 15 minutes (prevent email flooding)
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const rl = await checkRateLimit(`reset:${ip}`, 3, 15 * 60 * 1000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { ok: false, error: "Too many reset requests. Please try again later." },
+        { status: 429 },
+      );
+    }
+
     const body = await request.json();
     const { email } = body ?? {};
 
