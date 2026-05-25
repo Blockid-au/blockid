@@ -101,16 +101,21 @@ export function ScoreForm() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           email,
-          companyName: input.companyName,
-          inputs: input,
+          companyName: input.companyName || "My Startup",
+          inputs: { ...input, companyName: input.companyName || "My Startup" },
         }),
       });
-      if (!res.ok) throw new Error("Score API error");
-      const data = (await res.json()) as ScoreApiResponse;
-      setResult(data);
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        console.error("[score-form] API error:", data);
+        setSubmitState("err");
+        return;
+      }
+      setResult(data as ScoreApiResponse);
       setStep(STEPS.length);
       setSubmitState("ok");
-    } catch {
+    } catch (err) {
+      console.error("[score-form] Network error:", err);
       setSubmitState("err");
     }
   };
@@ -399,7 +404,7 @@ export function ScoreForm() {
           aria-live="assertive"
           className="text-sm text-amber-300"
         >
-          Couldn&apos;t generate the score. Check your email and try again.
+          Something went wrong. Please check all fields are filled and try again.
         </p>
       )}
     </form>

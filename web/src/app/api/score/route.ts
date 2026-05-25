@@ -51,9 +51,16 @@ export async function POST(request: Request) {
   }
 
   // Validate required fields exist
-  if (!parsed.inputs.sector || !parsed.inputs.companyName) {
+  // companyName can come from top-level OR inputs — fallback to "My Startup"
+  if (!parsed.inputs.companyName && parsed.companyName) {
+    parsed.inputs.companyName = parsed.companyName;
+  }
+  if (!parsed.inputs.companyName) {
+    parsed.inputs.companyName = "My Startup";
+  }
+  if (!parsed.inputs.sector) {
     return NextResponse.json(
-      { ok: false, reason: "Required fields missing in inputs" },
+      { ok: false, reason: "Sector is required" },
       { status: 400 },
     );
   }
