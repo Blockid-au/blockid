@@ -690,22 +690,22 @@ interface SectionDef {
 }
 
 const SECTION_DEFS: SectionDef[] = [
-  { id: "executive-summary",   title: "Executive Summary",         subtitle: "Overall startup assessment and SVI score context",        tier: "free",     creditCost: 0.50, fullWords: 1500 },
-  { id: "founder-team",        title: "Founder & Team",            subtitle: "Team composition, experience, and advisory strength",     tier: "included", creditCost: 0.50, fullWords: 1200 },
-  { id: "market-opportunity",  title: "Market Opportunity",        subtitle: "Market sizing, TAM/SAM, validation evidence",            tier: "included", creditCost: 0.75, fullWords: 1500 },
-  { id: "product-tech",        title: "Product & Tech",            subtitle: "Technical maturity, stack quality, demo readiness",       tier: "included", creditCost: 0.50, fullWords: 1200 },
-  { id: "traction-revenue",    title: "Traction & Revenue",        subtitle: "Revenue band, customer count, growth trajectory",        tier: "included", creditCost: 0.75, fullWords: 1500 },
-  { id: "go-to-market",        title: "Go-to-Market",              subtitle: "Distribution channels, CAC/LTV, launch strategy",        tier: "included", creditCost: 0.50, fullWords: 1200 },
-  { id: "cap-governance",      title: "Cap Table & Governance",    subtitle: "Equity split, vesting, board structure",                 tier: "included", creditCost: 0.50, fullWords: 1000 },
-  { id: "investor-readiness",  title: "Investor Readiness",        subtitle: "Pitch deck, data room, financial model assessment",      tier: "included", creditCost: 0.50, fullWords: 1200 },
-  { id: "legal-compliance",    title: "Legal & Compliance",        subtitle: "ASIC registration, IP protection, contracts",            tier: "included", creditCost: 0.50, fullWords: 1000 },
-  { id: "strategic-moat",      title: "Strategic Vision & Moat",   subtitle: "Defensibility, network effects, data advantage",        tier: "included", creditCost: 0.50, fullWords: 1200 },
-  { id: "financial-projections", title: "Financial Projections",   subtitle: "Revenue forecast, unit economics, runway",               tier: "included", creditCost: 0.75, fullWords: 1500 },
-  { id: "risk-mitigation",     title: "Risk & Mitigation",         subtitle: "Key risks, severity scoring, mitigation plan",          tier: "included", creditCost: 0.50, fullWords: 1200 },
-  { id: "competitive-intel",   title: "Competitive Intelligence",  subtitle: "Named competitors, feature comparison, market share",    tier: "premium",  creditCost: 0.75, fullWords: 1500 },
-  { id: "ninety-day-roadmap",  title: "90-Day Roadmap",            subtitle: "Week-by-week milestones and action items",               tier: "premium",  creditCost: 0.75, fullWords: 1500 },
-  { id: "board-summary",       title: "Board-Ready Summary",       subtitle: "One-page executive brief for board meetings",            tier: "premium",  creditCost: 1.00, fullWords: 1000 },
-  { id: "au-market-deep-dive", title: "AU Market Deep Dive",       subtitle: "Australian market landscape, grants, regulations",       tier: "premium",  creditCost: 1.00, fullWords: 1500 },
+  { id: "executive",       title: "Executive Summary",         subtitle: "Overall startup assessment and SVI score context",        tier: "free",     creditCost: 0.50, fullWords: 1500 },
+  { id: "founder_team",    title: "Founder & Team",            subtitle: "Team composition, experience, and advisory strength",     tier: "included", creditCost: 0.50, fullWords: 1200 },
+  { id: "market",          title: "Market Opportunity",        subtitle: "Market sizing, TAM/SAM, validation evidence",            tier: "included", creditCost: 0.75, fullWords: 1500 },
+  { id: "product",         title: "Product & Tech",            subtitle: "Technical maturity, stack quality, demo readiness",       tier: "included", creditCost: 0.50, fullWords: 1200 },
+  { id: "traction",        title: "Traction & Revenue",        subtitle: "Revenue band, customer count, growth trajectory",        tier: "included", creditCost: 0.75, fullWords: 1500 },
+  { id: "gtm",             title: "Go-to-Market",              subtitle: "Distribution channels, CAC/LTV, launch strategy",        tier: "included", creditCost: 0.50, fullWords: 1200 },
+  { id: "cap_table",       title: "Cap Table & Governance",    subtitle: "Equity split, vesting, board structure",                 tier: "included", creditCost: 0.50, fullWords: 1000 },
+  { id: "investor_ready",  title: "Investor Readiness",        subtitle: "Pitch deck, data room, financial model assessment",      tier: "included", creditCost: 0.50, fullWords: 1200 },
+  { id: "legal",           title: "Legal & Compliance",        subtitle: "ASIC registration, IP protection, contracts",            tier: "included", creditCost: 0.50, fullWords: 1000 },
+  { id: "vision_moat",     title: "Strategic Vision & Moat",   subtitle: "Defensibility, network effects, data advantage",        tier: "included", creditCost: 0.50, fullWords: 1200 },
+  { id: "financial",       title: "Financial Projections",     subtitle: "Revenue forecast, unit economics, runway",               tier: "included", creditCost: 0.75, fullWords: 1500 },
+  { id: "risk",            title: "Risk & Mitigation",         subtitle: "Key risks, severity scoring, mitigation plan",          tier: "included", creditCost: 0.50, fullWords: 1200 },
+  { id: "competitive",     title: "Competitive Intelligence",  subtitle: "Named competitors, feature comparison, market share",    tier: "premium",  creditCost: 0.75, fullWords: 1500 },
+  { id: "roadmap",         title: "90-Day Roadmap",            subtitle: "Week-by-week milestones and action items",               tier: "premium",  creditCost: 0.75, fullWords: 1500 },
+  { id: "board_summary",   title: "Board-Ready Summary",       subtitle: "One-page executive brief for board meetings",            tier: "premium",  creditCost: 1.00, fullWords: 1000 },
+  { id: "au_market",       title: "AU Market Deep Dive",       subtitle: "Australian market landscape, grants, regulations",       tier: "premium",  creditCost: 1.00, fullWords: 1500 },
 ];
 
 const INCLUDED_SECTIONS = SECTION_DEFS.filter(s => s.tier === "free" || s.tier === "included");
