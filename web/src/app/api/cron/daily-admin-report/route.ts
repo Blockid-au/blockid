@@ -138,8 +138,9 @@ export async function GET(request: Request) {
     let agentResults: Array<{ agent: string; task: string; result: string; ok: boolean }> = [];
     try {
       const cronSecret = process.env.CRON_SECRET ?? "";
+      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT || "3000"}`;
       const agentRes = await fetch(
-        `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://127.0.0.1:3000"}/api/cron/agent-upgrade`,
+        `${baseUrl}/api/cron/agent-upgrade`,
         {
           method: "POST",
           headers: { "Authorization": `Bearer ${cronSecret}` },
