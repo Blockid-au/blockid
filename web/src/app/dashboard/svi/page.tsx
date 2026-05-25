@@ -215,7 +215,7 @@ export default async function SVIDashboardPage() {
               {recentReports.slice(0, 10).map((r) => (
                 <Link
                   key={r.id}
-                  href={`/s/${r.id}`}
+                  href={`/workspace/reports/${r.id}`}
                   className="flex items-center justify-between rounded-xl border border-surface-200 bg-surface-50 dark:bg-surface-100 px-4 py-3 hover:border-brand-300 transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0">

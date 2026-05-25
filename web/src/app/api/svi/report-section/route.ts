@@ -171,10 +171,10 @@ export async function POST(request: Request) {
     );
   }
 
-  // Latest analysis
+  // Latest analysis (include id for persisting report sections)
   const analysisQuery = supabase
     .from("svi_analyses")
-    .select("raw_input, total_svi, analysis_json")
+    .select("id, raw_input, total_svi, analysis_json")
     .eq("email", user.email)
     .order("created_at", { ascending: false })
     .limit(1);
@@ -309,6 +309,24 @@ Use ## ${sectionDef.title} as the top-level heading.`;
     }
 
     const wordCount = content.split(/\s+/).filter(Boolean).length;
+
+    // ── 8. Persist generated section to DB ──────────────────────────────
+    if (latestAnalysis?.id) {
+      const validDepth = depth as "summary" | "full";
+      await supabase.from("report_sections").upsert(
+        {
+          analysis_id: latestAnalysis.id,
+          user_id: user.id,
+          section_id: sectionId,
+          depth: validDepth,
+          content,
+          word_count: wordCount,
+          credits_cost: creditsCost,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "analysis_id,section_id,depth" },
+      );
+    }
 
     return NextResponse.json({
       ok: true,
