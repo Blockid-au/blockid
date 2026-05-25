@@ -134,6 +134,52 @@ export async function GET(request: Request) {
     // AI budget
     const aiBudget = getAIBudgetStatus();
 
+    // ── 10. Run C-Level agent tasks and collect results ────────────────
+    let agentResults: Array<{ agent: string; task: string; result: string; ok: boolean }> = [];
+    try {
+      const cronSecret = process.env.CRON_SECRET ?? "";
+      const agentRes = await fetch(
+        `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://127.0.0.1:3000"}/api/cron/agent-upgrade`,
+        {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${cronSecret}` },
+          signal: AbortSignal.timeout(60_000),
+        },
+      );
+      if (agentRes.ok) {
+        const agentData = await agentRes.json();
+        agentResults = (agentData.results ?? []) as typeof agentResults;
+      }
+    } catch (err) {
+      console.warn("[daily-admin-report] agent-upgrade call failed:", err);
+    }
+
+    // ── 11. AI-generated recommendations (if free providers available) ──
+    let aiRecommendations = "";
+    try {
+      const { callAIForUpgrade } = await import("@/lib/ai-client");
+      const recResult = await callAIForUpgrade({
+        system: "You are the COO of BlockID.au, an AI-powered startup valuation platform. Write a brief daily operational summary (3-5 bullet points) with improvement recommendations based on today's metrics. Be specific and actionable. Format as markdown bullet list.",
+        user: `Today's metrics (${dateStr}):
+- New users: ${newUsers} (total: ${totalUsers})
+- Analyses run: ${analysesToday} (total: ${totalAnalyses})
+- Credits spent: ${creditsSpent}
+- Purchases: ${checkouts}
+- Page views: ${pageViews}
+- Plans: ${Object.entries(planCounts).map(([p, c]) => `${p}=${c}`).join(", ")}
+- AI budget: $${aiBudget.spent}/$${aiBudget.limit} (${aiBudget.percent}%)
+- Agent results: ${agentResults.map(r => `[${r.agent}] ${r.result}`).join("; ")}
+
+Write 3-5 concise recommendations. Focus on growth, conversion, and operational health.`,
+        maxTokens: 500,
+      });
+      if (recResult) {
+        aiRecommendations = recResult.text;
+      }
+    } catch {
+      aiRecommendations = "";
+    }
+
     // ── Locale formatting helper ───────────────────────────────────────
 
     const fmt = (n: number) => n.toLocaleString("en-AU");
@@ -253,10 +299,37 @@ export async function GET(request: Request) {
     </table>
   </div>
 
+  <!-- C-Level Agent Status -->
+  ${agentResults.length > 0 ? `
+  <div style="padding: 0 24px 24px;">
+    <h2 style="margin: 0 0 12px; font-size: 16px; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">C-Level Agent Activity</h2>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%; border-collapse: collapse;">
+      ${agentResults.map(r => `
+      <tr>
+        <td style="padding: 8px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: top;">
+          <span style="display: inline-block; background: ${r.ok ? "#dcfce7" : "#fee2e2"}; color: ${r.ok ? "#166534" : "#991b1b"}; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; letter-spacing: 0.5px;">${escapeHtml(r.agent)}</span>
+        </td>
+        <td style="padding: 8px 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #475569;">
+          <strong style="color: #1e293b;">${escapeHtml(r.task)}</strong><br>
+          <span style="color: #64748b;">${escapeHtml(r.result.slice(0, 200))}</span>
+        </td>
+      </tr>`).join("")}
+    </table>
+  </div>` : ""}
+
+  <!-- COO Recommendations -->
+  ${aiRecommendations ? `
+  <div style="padding: 0 24px 24px;">
+    <h2 style="margin: 0 0 12px; font-size: 16px; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">COO Recommendations</h2>
+    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px;">
+      <p style="margin: 0; font-size: 13px; color: #166534; line-height: 1.7; white-space: pre-line;">${escapeHtml(aiRecommendations)}</p>
+    </div>
+  </div>` : ""}
+
   <!-- Footer -->
   <div style="padding: 24px; border-top: 1px solid #e2e8f0; text-align: center;">
     <p style="margin: 0; font-size: 12px; color: #94a3b8;">
-      Automated daily report from BlockID.au platform.<br>
+      Automated daily report from BlockID.au — COO Agent<br>
       <a href="https://blockid.au/admin" style="color: #3b82f6; text-decoration: none;">View admin dashboard &#8594;</a>
     </p>
   </div>
@@ -291,6 +364,8 @@ export async function GET(request: Request) {
         planCounts,
         aiBudget,
         topAnalyses: topAnalyses.length,
+        agentTasks: agentResults.length,
+        hasRecommendations: !!aiRecommendations,
       },
       emailResult,
     });
