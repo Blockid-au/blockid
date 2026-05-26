@@ -39,13 +39,13 @@ export async function GET(request: Request) {
   // LinkedIn may return an error param (e.g. user denied access)
   if (errorParam) {
     return NextResponse.redirect(
-      new URL(`/workspace/evidence?error=linkedin_${errorParam}`, request.url),
+      `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au"}/workspace/evidence?error=linkedin_${errorParam}`,
     );
   }
 
   if (!code || !state) {
     return NextResponse.redirect(
-      new URL("/workspace/evidence?error=linkedin_missing_code", request.url),
+      `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au"}/workspace/evidence?error=linkedin_missing_code`,
     );
   }
 
@@ -55,14 +55,14 @@ export async function GET(request: Request) {
     stateData = JSON.parse(Buffer.from(state, "base64url").toString());
   } catch {
     return NextResponse.redirect(
-      new URL("/workspace/evidence?error=linkedin_invalid_state", request.url),
+      `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au"}/workspace/evidence?error=linkedin_invalid_state`,
     );
   }
 
   const email = stateData.email;
   if (!email) {
     return NextResponse.redirect(
-      new URL("/workspace/evidence?error=linkedin_no_email", request.url),
+      `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au"}/workspace/evidence?error=linkedin_no_email`,
     );
   }
 
@@ -71,7 +71,7 @@ export async function GET(request: Request) {
   const sessionToken = store.get("blockid_session")?.value ?? "";
   if (stateData.csrf && stateData.csrf !== sessionToken.slice(0, 16)) {
     return NextResponse.redirect(
-      new URL("/workspace/evidence?error=linkedin_csrf_mismatch", request.url),
+      `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au"}/workspace/evidence?error=linkedin_csrf_mismatch`,
     );
   }
 
@@ -220,12 +220,12 @@ export async function GET(request: Request) {
 
     // 6. Redirect to evidence vault with success param
     return NextResponse.redirect(
-      new URL("/workspace/evidence?connected=linkedin", request.url),
+      `${siteUrl}/workspace/evidence?connected=linkedin`,
     );
   } catch (err) {
     console.error("[blockid:oauth:linkedin] callback error", err);
     return NextResponse.redirect(
-      new URL("/workspace/evidence?error=linkedin_failed", request.url),
+      `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au"}/workspace/evidence?error=linkedin_failed`,
     );
   }
 }

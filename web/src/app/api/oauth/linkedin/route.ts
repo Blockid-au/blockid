@@ -26,9 +26,8 @@ export async function HEAD() {
 export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.redirect(
-      new URL("/auth/login?next=/workspace/evidence", request.url),
-    );
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au";
+    return NextResponse.redirect(`${siteUrl}/auth/login?next=/workspace/evidence`);
   }
 
   const clientId = process.env.LINKEDIN_CLIENT_ID;
