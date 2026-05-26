@@ -28,7 +28,7 @@ if [ ! -f "$STANDALONE/server.js" ]; then
   cp "$WEB_DIR/ai-worker.mjs" "$STANDALONE/ai-worker.mjs" 2>/dev/null || true
 fi
 
-# Load .env safely via node (handles all special chars: <>, quotes, $, etc.)
+# Load .env safely via node (handles quotes, special chars, newlines)
 cd "$STANDALONE"
 eval "$(node -e "
   const fs = require('fs');
@@ -39,7 +39,11 @@ eval "$(node -e "
     const idx = trimmed.indexOf('=');
     if (idx < 1) continue;
     const key = trimmed.slice(0, idx);
-    const val = trimmed.slice(idx + 1);
+    let val = trimmed.slice(idx + 1);
+    // Strip surrounding quotes (single or double)
+    if ((val.startsWith('\"') && val.endsWith('\"')) || (val.startsWith(\"'\") && val.endsWith(\"'\"))) {
+      val = val.slice(1, -1);
+    }
     // Single-quote the value to prevent shell interpretation
     const escaped = val.replace(/'/g, \"'\\\\\\\"'\\\\\\\"'\");
     console.log('export ' + key + \"='\" + escaped + \"'\");
