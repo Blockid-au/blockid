@@ -1250,6 +1250,39 @@ export function SVIEntrance() {
         </div>
       </section>
 
+      {/* ── ABOUT / MISSION ──────────────────────────────────────────────── */}
+      <section className="py-16 md:py-20 bg-gradient-to-b from-white to-surface-50">
+        <div className="mx-auto max-w-4xl px-6">
+          <p className="text-center text-xs uppercase tracking-[0.2em] text-brand-600 font-medium mb-4">Why BlockID.au</p>
+          <h2 className="text-center text-2xl md:text-3xl font-extrabold tracking-tight text-ink-900 mb-6">
+            The infrastructure layer for <span className="text-brand-600">AI-native startups</span>
+          </h2>
+          <div className="space-y-4 text-base text-ink-600 leading-relaxed">
+            <p>
+              Today, AI tools make it easy to build MVPs quickly — but most founders still struggle to turn those products into structured, investable businesses. They often lack clear ownership structure, valuation visibility, investor readiness, governance workflows, and growth execution systems.
+            </p>
+            <p>
+              <strong className="text-ink-800">BlockID.au helps founders move from idea &rarr; MVP &rarr; investment &rarr; scale</strong> by combining ownership management, cap tables, valuation intelligence, investor readiness, growth execution workflows, and secure data rooms in one trusted platform.
+            </p>
+          </div>
+          <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              { icon: ShieldCheck, label: "Ownership & Cap Table", desc: "Structure equity, vesting, ESOP from day one" },
+              { icon: TrendingUp, label: "Valuation Intelligence", desc: "Track SVI score and investor readiness in real-time" },
+              { icon: Rocket, label: "Growth Execution", desc: "Data rooms, fundraise tools, and 90-day action plans" },
+            ].map(({ icon: Icon, label, desc }) => (
+              <div key={label} className="rounded-xl border border-surface-200 bg-white p-5 text-center">
+                <div className="mx-auto mb-3 h-10 w-10 rounded-lg bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-600">
+                  <Icon strokeWidth={1.75} className="h-5 w-5" />
+                </div>
+                <p className="text-sm font-bold text-ink-800">{label}</p>
+                <p className="text-xs text-ink-500 mt-1">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── TRUST STRIP ────────────────────────────────────────────────────── */}
       <section className="py-10 md:py-14 relative overflow-hidden">
         <div className="mx-auto max-w-5xl px-6">

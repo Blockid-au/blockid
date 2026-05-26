@@ -96,7 +96,7 @@ export async function GET(request: Request) {
 
   if (!code || !state) {
     return NextResponse.redirect(
-      new URL("/workspace/evidence?error=github_missing_code", request.url),
+      `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au"}/workspace/evidence?error=github_missing_code`,
     );
   }
 
@@ -106,14 +106,14 @@ export async function GET(request: Request) {
     stateData = JSON.parse(Buffer.from(state, "base64url").toString());
   } catch {
     return NextResponse.redirect(
-      new URL("/workspace/evidence?error=github_invalid_state", request.url),
+      `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au"}/workspace/evidence?error=github_invalid_state`,
     );
   }
 
   const email = stateData.email;
   if (!email) {
     return NextResponse.redirect(
-      new URL("/workspace/evidence?error=github_no_email", request.url),
+      `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au"}/workspace/evidence?error=github_no_email`,
     );
   }
 
@@ -122,7 +122,7 @@ export async function GET(request: Request) {
   const sessionToken = store.get("blockid_session")?.value ?? "";
   if (stateData.csrf && stateData.csrf !== sessionToken.slice(0, 16)) {
     return NextResponse.redirect(
-      new URL("/workspace/evidence?error=github_csrf_mismatch", request.url),
+      `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au"}/workspace/evidence?error=github_csrf_mismatch`,
     );
   }
 
@@ -514,12 +514,12 @@ export async function GET(request: Request) {
 
     // 10. Redirect to evidence vault with success param
     return NextResponse.redirect(
-      new URL("/workspace/evidence?connected=github", request.url),
+      `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au"}/workspace/evidence?connected=github`,
     );
   } catch (err) {
     console.error("[blockid:oauth:github] callback error", err);
     return NextResponse.redirect(
-      new URL("/workspace/evidence?error=github_failed", request.url),
+      `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au"}/workspace/evidence?error=github_failed`,
     );
   }
 }
