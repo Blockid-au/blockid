@@ -15,9 +15,10 @@ export async function GET(request: Request) {
   const state = searchParams.get("state");
 
   // Forward the code + state to the new OAuth evidence callback
-  const newUrl = new URL("/api/oauth/github/callback", request.url);
-  if (code) newUrl.searchParams.set("code", code);
-  if (state) newUrl.searchParams.set("state", state);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au";
+  const params = new URLSearchParams();
+  if (code) params.set("code", code);
+  if (state) params.set("state", state);
 
-  return NextResponse.redirect(newUrl.toString());
+  return NextResponse.redirect(`${siteUrl}/api/oauth/github/callback?${params.toString()}`);
 }

@@ -6,7 +6,8 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.redirect(new URL("/auth/login", request.url));
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au";
+    return NextResponse.redirect(`${siteUrl}/auth/login`);
   }
 
   const clientId = process.env.GOOGLE_CLIENT_ID;

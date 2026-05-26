@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server";
 import { loginWithPassword, setSessionCookie, isValidEmail } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
     const result = await loginWithPassword({
       email,
       password,
-      ipHash: request.headers.get("x-forwarded-for"),
+      ipHash: hashIp(clientIpFromHeaders(request.headers)),
       userAgent: request.headers.get("user-agent"),
     });
 

@@ -28,13 +28,23 @@ if [ ! -f "$STANDALONE/server.js" ]; then
   cp "$WEB_DIR/ai-worker.mjs" "$STANDALONE/ai-worker.mjs" 2>/dev/null || true
 fi
 
-# Load .env safely (handles values with special chars like <>)
+# Load .env safely via node (handles all special chars: <>, quotes, $, etc.)
 cd "$STANDALONE"
-while IFS='=' read -r key value; do
-  # Skip empty keys
-  [ -z "$key" ] && continue
-  export "$key=$value"
-done < <(grep -v '^\s*#\|^\s*$' "$WEB_DIR/.env")
+eval "$(node -e "
+  const fs = require('fs');
+  const lines = fs.readFileSync('$WEB_DIR/.env', 'utf8').split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const idx = trimmed.indexOf('=');
+    if (idx < 1) continue;
+    const key = trimmed.slice(0, idx);
+    const val = trimmed.slice(idx + 1);
+    // Single-quote the value to prevent shell interpretation
+    const escaped = val.replace(/'/g, \"'\\\\\\\"'\\\\\\\"'\");
+    console.log('export ' + key + \"='\" + escaped + \"'\");
+  }
+")"
 
 # Override runtime vars
 export PORT=4001

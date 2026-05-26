@@ -9,5 +9,6 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   // Forward to the evidence connector OAuth route
-  return NextResponse.redirect(new URL("/api/oauth/github", request.url));
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au";
+  return NextResponse.redirect(`${siteUrl}/api/oauth/github`);
 }

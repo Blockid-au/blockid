@@ -120,7 +120,7 @@ export async function GET(request: Request) {
   // Verify CSRF: first 16 chars of session token must match
   const store = await cookies();
   const sessionToken = store.get("blockid_session")?.value ?? "";
-  if (stateData.csrf && stateData.csrf !== sessionToken.slice(0, 16)) {
+  if (!stateData.csrf || stateData.csrf !== sessionToken.slice(0, 16)) {
     return NextResponse.redirect(
       `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au"}/workspace/evidence?error=github_csrf_mismatch`,
     );
