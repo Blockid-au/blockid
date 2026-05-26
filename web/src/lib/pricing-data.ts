@@ -101,7 +101,7 @@ export const PRICING_TIERS: PricingTier[] = [
     ],
     cta: { label: "Start Growth \u2014 A$99/mo", href: "/auth/login?plan=growth" },
     badge: "Early Bird",
-    urgency: "Early-bird until July 1, 2026",
+    urgency: "Early-bird until July 31, 2026",
     ctaStyle: "primary",
   },
   {
@@ -125,7 +125,7 @@ export const PRICING_TIERS: PricingTier[] = [
     ],
     cta: { label: "Start Growth \u2014 A$950/yr", href: "/auth/login?plan=growth_annual" },
     badge: "Save 20%",
-    urgency: "Early-bird until July 1, 2026",
+    urgency: "Early-bird until July 31, 2026",
     ctaStyle: "primary",
   },
 ];

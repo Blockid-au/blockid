@@ -2,8 +2,8 @@ import "server-only";
 import { getSupabaseAdmin } from "./supabase";
 import { grantCredits } from "./credits";
 
-// ── Softlaunch promo: boosted referral rewards until July 1, 2026 ──
-const PROMO_DEADLINE = new Date("2026-07-01T00:00:00+10:00");
+// ── Softlaunch promo: boosted referral rewards until July 31, 2026 ──
+const PROMO_DEADLINE = new Date("2026-08-01T00:00:00+10:00");
 const isPromo = () => new Date() < PROMO_DEADLINE;
 
 const REFERRER_CREDITS = isPromo() ? 5 : 2;   // 5 during promo (normally 2)

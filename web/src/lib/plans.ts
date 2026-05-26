@@ -80,11 +80,11 @@ export const PLANS: Plan[] = [
 ];
 
 /** Early-bird pricing deadline (AEST). After this date, SVI analysis costs $25 instead of $1. */
-export const EARLY_BIRD_DEADLINE = new Date("2026-06-15T00:00:00+10:00");
+export const EARLY_BIRD_DEADLINE = new Date("2026-08-01T00:00:00+10:00");
 export const isEarlyBird = () => new Date() < EARLY_BIRD_DEADLINE;
 
 /** Growth plan early-bird deadline (AEST). Before this date Growth is $99/mo; after, $499/mo. */
-export const GROWTH_EARLY_BIRD_DEADLINE = new Date("2026-07-01T00:00:00+10:00");
+export const GROWTH_EARLY_BIRD_DEADLINE = new Date("2026-08-01T00:00:00+10:00");
 export const isGrowthEarlyBird = () => new Date() < GROWTH_EARLY_BIRD_DEADLINE;
 export const GROWTH_STANDARD_PRICE = 49900; // $499/mo after deadline
 

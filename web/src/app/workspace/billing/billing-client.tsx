@@ -307,7 +307,7 @@ export function BillingClient({
                   </p>
                   <p className="text-xs text-ink-600 mt-0.5">
                     {plan.id === "growth" && isGrowthEarlyBird()
-                      ? "Early-bird until July 1, 2026"
+                      ? "Early-bird until July 31, 2026"
                       : cadenceLabel(plan.cadence)}
                   </p>
                 </div>
