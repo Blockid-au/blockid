@@ -151,9 +151,9 @@ export const FEATURE_COSTS: Record<string, number> = {
 // ---------------------------------------------------------------------------
 
 // ── Softlaunch promo deadline ─────────────────────────────────────────
-// Before July 1, 2026: boosted signup credits + referral rewards.
+// Before August 1, 2026: boosted signup credits + referral rewards.
 // After: revert to standard amounts.
-const PROMO_DEADLINE = new Date("2026-07-01T00:00:00+10:00");
+const PROMO_DEADLINE = new Date("2026-08-01T00:00:00+10:00");
 export const isPromoActive = () => new Date() < PROMO_DEADLINE;
 
 /** Signup credits — 5 during promo (normally 2). */
@@ -333,9 +333,9 @@ export async function canAfford(
   userId: string,
   feature: string,
 ): Promise<AffordResult> {
-  // Try Billing service first
+  // Try Billing service first — only trust if it knows the feature
   const remote = await billingFetch<AffordResult>("/credits/check", { userId, feature });
-  if (remote) return remote;
+  if (remote && remote.reason !== "unknown_feature") return remote;
 
   // Fallback: local logic
   const cost = FEATURE_COSTS[feature];
@@ -368,9 +368,10 @@ export async function spendCredits(
   feature: string,
   metadata?: Record<string, unknown>,
 ): Promise<{ ok: boolean; balance: number }> {
-  // Try Billing service first
+  // Try Billing service first — only trust if it succeeded (ok=true)
+  // If billing service doesn't know the feature, fallback to local
   const remote = await billingFetch<{ ok: boolean; balance: number }>("/credits/spend", { userId, feature, metadata });
-  if (remote) return remote;
+  if (remote && remote.ok) return remote;
 
   // Fallback: local logic
   const cost = FEATURE_COSTS[feature];

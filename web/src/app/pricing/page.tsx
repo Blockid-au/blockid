@@ -53,7 +53,7 @@ export default function PricingPage() {
             <span className="text-sm text-emerald-700 font-medium">
               Early Bird: <span className="font-bold">5 free credits</span> on signup +
               use code <span className="font-mono font-bold text-emerald-800">LAUNCH50</span> for 50% off Founding 50.
-              Expires July 1, 2026.
+              Expires July 31, 2026.
             </span>
           </div>
         </div>

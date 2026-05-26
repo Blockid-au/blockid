@@ -1168,7 +1168,7 @@ export function SVIEntrance() {
                 5 free credits on signup &middot; No credit card required
               </p>
               <p className="text-xs text-ink-400">
-                Early Bird: A$0.50/analysis (normally A$25) &middot; Expires July 1, 2026
+                Early Bird: A$0.50/analysis (normally A$25) &middot; Expires July 31, 2026
               </p>
             </div>
             {/* Typing indicator hint — visible when textarea is empty */}
