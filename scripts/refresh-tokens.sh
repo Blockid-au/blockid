@@ -55,51 +55,79 @@ else
 fi
 
 # ── 2. Codex OAuth refresh ───────────────────────────────
+# Codex tokens last ~10 days. Refresh when <48h remaining.
+# Strategy: use JWT expiry check → codex CLI refresh → alert if failed.
 
 CODEX_AUTH="/home/dovanlong/.codex/auth.json"
 
 if [ -f "$CODEX_AUTH" ]; then
-  REFRESH_TOKEN=$(python3 -c "
-import json
+  # Check JWT expiry
+  CODEX_REMAINING=$(python3 -c "
+import json, time, base64
 d = json.load(open('$CODEX_AUTH'))
-print(d.get('tokens', {}).get('refresh_token', ''))
-" 2>/dev/null || echo "")
+token = d.get('tokens', {}).get('access_token', '')
+if not token:
+    print('-1')
+else:
+    payload = token.split('.')[1] + '==='
+    jwt = json.loads(base64.urlsafe_b64decode(payload))
+    remaining_h = (jwt.get('exp', 0) - time.time()) / 3600
+    print(f'{remaining_h:.1f}')
+" 2>/dev/null || echo "-1")
 
-  if [ -n "$REFRESH_TOKEN" ]; then
-    # Codex uses OpenAI's OAuth endpoint with single-use refresh tokens.
-    # If refresh fails (token already used), try device auth flow silently.
-    RESP=$(curl -s -X POST "https://auth.openai.com/oauth/token" \
-      -H "Content-Type: application/x-www-form-urlencoded" \
-      -d "grant_type=refresh_token&refresh_token=${REFRESH_TOKEN}&client_id=app_EMoamEEZ73f0CkXaXp7hrann" 2>/dev/null || echo "")
+  if [ "$(echo "$CODEX_REMAINING < 0" | bc -l 2>/dev/null || echo 1)" = "1" ] && [ "$CODEX_REMAINING" = "-1" ]; then
+    echo "$LOG_PREFIX ✗ Codex: no valid token"
+  elif python3 -c "exit(0 if float('$CODEX_REMAINING') < 48 else 1)" 2>/dev/null; then
+    echo "$LOG_PREFIX Codex token expires in ${CODEX_REMAINING}h — refreshing..."
 
-    NEW_ACCESS=$(echo "$RESP" | python3 -c "import sys,json; print(json.load(sys.stdin).get('access_token',''))" 2>/dev/null || echo "")
+    # Method 1: codex CLI internal refresh (triggers on any command)
+    if command -v codex &>/dev/null; then
+      codex login status &>/dev/null 2>&1
 
-    if [ -n "$NEW_ACCESS" ]; then
-      python3 << 'PYEOF'
-import json
-d = json.load(open("CODEX_AUTH_PLACEHOLDER"))
-resp = json.loads("""RESP_PLACEHOLDER""")
-d['tokens']['access_token'] = resp['access_token']
-if 'refresh_token' in resp:
-    d['tokens']['refresh_token'] = resp['refresh_token']
-if 'id_token' in resp:
-    d['tokens']['id_token'] = resp['id_token']
-json.dump(d, open("CODEX_AUTH_PLACEHOLDER", 'w'), indent=2)
-print('OK')
-PYEOF
-      echo "$LOG_PREFIX ✓ Codex token refreshed"
-    else
-      # Check if current access token still works (JWT may be long-lived)
-      TEST=$(curl -s -H "Authorization: Bearer $(python3 -c "import json; print(json.load(open('$CODEX_AUTH')).get('tokens',{}).get('access_token',''))")" \
-        "https://api.openai.com/v1/models" --max-time 5 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print('OK' if 'data' in d else d.get('error',{}).get('message','FAIL'))" 2>/dev/null || echo "FAIL")
-      if [ "$TEST" = "OK" ]; then
-        echo "$LOG_PREFIX Codex refresh token expired but access token still valid"
+      # Re-check expiry
+      NEW_REMAINING=$(python3 -c "
+import json, time, base64
+d = json.load(open('$CODEX_AUTH'))
+token = d.get('tokens', {}).get('access_token', '')
+payload = token.split('.')[1] + '==='
+jwt = json.loads(base64.urlsafe_b64decode(payload))
+print(f'{(jwt.get(\"exp\", 0) - time.time()) / 3600:.1f}')
+" 2>/dev/null || echo "0")
+
+      if python3 -c "exit(0 if float('$NEW_REMAINING') > float('$CODEX_REMAINING') else 1)" 2>/dev/null; then
+        echo "$LOG_PREFIX ✓ Codex refreshed via CLI (${NEW_REMAINING}h remaining)"
       else
-        echo "$LOG_PREFIX ⚠ Codex tokens expired — run: npx codex --login"
+        # Method 2: direct refresh token exchange
+        REFRESH_TOKEN=$(python3 -c "import json; print(json.load(open('$CODEX_AUTH')).get('tokens',{}).get('refresh_token',''))" 2>/dev/null)
+        if [ -n "$REFRESH_TOKEN" ]; then
+          RESP=$(curl -s -X POST "https://auth.openai.com/oauth/token" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "grant_type=refresh_token&refresh_token=${REFRESH_TOKEN}&client_id=app_EMoamEEZ73f0CkXaXp7hrann" 2>/dev/null)
+
+          NEW_ACCESS=$(echo "$RESP" | python3 -c "import sys,json; print(json.load(sys.stdin).get('access_token',''))" 2>/dev/null)
+          if [ -n "$NEW_ACCESS" ]; then
+            python3 << PYEOF
+import json
+d = json.load(open("$CODEX_AUTH"))
+resp = json.loads('''$RESP''')
+d['tokens']['access_token'] = resp['access_token']
+if 'refresh_token' in resp: d['tokens']['refresh_token'] = resp['refresh_token']
+if 'id_token' in resp: d['tokens']['id_token'] = resp['id_token']
+json.dump(d, open("$CODEX_AUTH", 'w'), indent=2)
+PYEOF
+            echo "$LOG_PREFIX ✓ Codex refreshed via API"
+          else
+            echo "$LOG_PREFIX ⚠ Codex refresh failed (${CODEX_REMAINING}h left) — run: codex login --device-auth"
+          fi
+        else
+          echo "$LOG_PREFIX ⚠ Codex no refresh token — run: codex login --device-auth"
+        fi
       fi
+    else
+      echo "$LOG_PREFIX ⚠ codex CLI not found"
     fi
   else
-    echo "$LOG_PREFIX ✗ No Codex refresh token available"
+    echo "$LOG_PREFIX Codex token valid (${CODEX_REMAINING}h remaining)"
   fi
 else
   echo "$LOG_PREFIX ✗ No Codex auth at $CODEX_AUTH"
