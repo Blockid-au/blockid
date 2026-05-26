@@ -6,6 +6,8 @@
 
 import { NextResponse } from "next/server";
 import { registerWithPassword, setSessionCookie, isValidEmail } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +18,15 @@ function sanitizeName(raw: unknown): string | undefined {
 }
 
 export async function POST(request: Request) {
+  // Rate limit: 3 registrations per IP per 15 minutes
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const rl = checkRateLimit(`register:${ip}`, 3, 15 * 60 * 1000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { ok: false, error: "Too many registration attempts. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(Math.ceil(rl.resetIn / 1000)) } },
+    );
+  }
   let body: Record<string, unknown> | null = null;
   try {
     body = await request.json();
@@ -40,7 +51,7 @@ export async function POST(request: Request) {
       email: email as string,
       password: password as string,
       displayName: sanitizeName(displayName),
-      ipHash: request.headers.get("x-forwarded-for"),
+      ipHash: hashIp(clientIpFromHeaders(request.headers)),
       userAgent: request.headers.get("user-agent"),
     });
 

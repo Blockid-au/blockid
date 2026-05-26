@@ -12,7 +12,7 @@ export async function GET(request: Request) {
 
   if (!code || !state) {
     return NextResponse.redirect(
-      new URL("/workspace/evidence?error=analytics_failed", request.url),
+      `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au"}/workspace/evidence?error=analytics_failed`,
     );
   }
 
@@ -48,13 +48,13 @@ export async function GET(request: Request) {
       email = stateData.email;
     } catch {
       return NextResponse.redirect(
-        new URL("/workspace/evidence?error=analytics_invalid_state", request.url),
+        `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au"}/workspace/evidence?error=analytics_invalid_state`,
       );
     }
 
     if (!email) {
       return NextResponse.redirect(
-        new URL("/workspace/evidence?error=analytics_no_email", request.url),
+        `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au"}/workspace/evidence?error=analytics_no_email`,
       );
     }
 
@@ -138,12 +138,12 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.redirect(
-      new URL("/workspace/evidence?connected=analytics", request.url),
+      `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au"}/workspace/evidence?connected=analytics`,
     );
   } catch (err) {
     console.error("[blockid:oauth:analytics] callback error", err);
     return NextResponse.redirect(
-      new URL("/workspace/evidence?error=analytics_failed", request.url),
+      `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au"}/workspace/evidence?error=analytics_failed`,
     );
   }
 }

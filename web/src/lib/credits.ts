@@ -392,7 +392,7 @@ export async function spendCredits(
   const supabase = getSupabaseAdmin();
   if (!supabase) return { ok: false, balance: 0 };
 
-  // Read current balance.
+  // Read current balance, then update with a WHERE guard to reduce race window.
   const { data: row } = await supabase
     .from("credit_balances")
     .select("balance, lifetime_spent")
@@ -409,21 +409,29 @@ export async function spendCredits(
   const newBalance = currentBalance - cost;
   const now = new Date().toISOString();
 
-  // Upsert balance (handles race-free update via unique constraint).
-  const { error: balErr } = await supabase
+  // Update with .gte("balance", cost) guard — if a concurrent request already
+  // spent credits and the balance dropped below cost, this update will match
+  // 0 rows and we detect the race.
+  const { data: updated, error: balErr } = await supabase
     .from("credit_balances")
-    .upsert(
-      {
-        user_id: userId,
-        balance: newBalance,
-        lifetime_spent: lifetimeSpent + cost,
-        updated_at: now,
-      },
-      { onConflict: "user_id" },
-    );
+    .update({
+      balance: newBalance,
+      lifetime_spent: lifetimeSpent + cost,
+      updated_at: now,
+    })
+    .eq("user_id", userId)
+    .gte("balance", cost)
+    .select("balance");
+
   if (balErr) {
-    console.error("[blockid:credits] balance upsert failed", balErr);
+    console.error("[blockid:credits] balance update failed", balErr);
     return { ok: false, balance: currentBalance };
+  }
+
+  if (!updated || updated.length === 0) {
+    // Race condition: another request spent credits first — re-read balance
+    const freshBalance = await getBalance(userId);
+    return { ok: false, balance: freshBalance };
   }
 
   // Insert transaction log.
