@@ -53,6 +53,7 @@ load_env() {
   export NODE_ENV=production
   export HOSTNAME=0.0.0.0
   export SUPABASE_URL=http://127.0.0.1:8000
+  export REDIS_URL=redis://127.0.0.1:6379
 }
 
 # ── Rollback ──────────────────────────────────────────────────────────
@@ -115,7 +116,14 @@ echo "=== Step 2: Preparing standalone ==="
 cp -r "$WEB_DIR/.next/static" "$STANDALONE/.next/static"
 cp -r "$WEB_DIR/public" "$STANDALONE/public"
 cp "$WEB_DIR/ai-worker.mjs" "$STANDALONE/ai-worker.mjs" 2>/dev/null || true
-echo "  ✅ Static assets copied"
+
+# Copy serverExternalPackages not traced by standalone
+for pkg in pptxgenjs gaxios gcp-metadata; do
+  if [ -d "$WEB_DIR/node_modules/$pkg" ] && [ ! -d "$STANDALONE/node_modules/$pkg" ]; then
+    cp -r "$WEB_DIR/node_modules/$pkg" "$STANDALONE/node_modules/$pkg"
+  fi
+done
+echo "  ✅ Static assets + external packages copied"
 
 # ── Step 3: Health check new build on temp port ──────────────────────
 echo ""
