@@ -1,40 +1,30 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { PageTracker } from "@/components/analytics/page-tracker";
 import {
   ArrowRight,
-  BarChart3,
-  CheckCircle,
-  Eye,
+  ChevronRight,
   FileText,
   Lightbulb,
-  PieChart,
+  ShieldCheck,
   Sparkles,
+  Target,
   TrendingUp,
+  Zap,
+  PieChart,
+  BarChart3,
+  Upload,
+  type LucideIcon,
 } from "lucide-react";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
-import { Button } from "@/components/ui/button";
+import { PageTracker } from "@/components/analytics/page-tracker";
 import { getCurrentUser } from "@/lib/auth";
-import {
-  loadDashboardSummary,
-  type DashboardSummary,
-} from "@/lib/idea-phase/persist";
-import { formatAud } from "@/lib/utils";
-import { getPlan } from "@/lib/plans";
-import { LivingReport } from "@/components/workspace/living-report";
-import { ReferralCard } from "@/components/ui/referral-card";
-import { DashboardValuationCard } from "@/components/dashboard/valuation-card";
-import { CapTableWidget } from "@/components/dashboard/cap-table-widget";
-import { ReportHistory } from "@/components/dashboard/report-history";
-import { InsightsPanel } from "@/components/dashboard/insights-panel";
-import { JourneyProgress } from "@/components/dashboard/journey-progress";
-import { SVITrendChart } from "@/components/dashboard/svi-trend-chart";
-
-// /dashboard — authed view of a founder's saved idea-phase artifacts.
-// Lists Founder Packs, idea evaluations, equity splits and funding plans,
-// each linking back to its share page or original tool.
+import { getBalance } from "@/lib/credits";
+import { getProjectIdFromRequest, getActiveProject, findOrCreateSVIAccount } from "@/lib/projects";
+import { getSupabaseAdmin } from "@/lib/supabase";
+import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
+import { JourneyBar } from "@/components/dashboard/journey-bar";
+import { LivingSVIDashboard } from "@/components/dashboard/living-svi-dashboard";
+import type { SVIAnalysis } from "@/lib/svi-analysis";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +33,160 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+/* ─── Inline MetricCard ─────────────────────────────────────────────────────── */
+
+function MetricCard({
+  title,
+  value,
+  subtitle,
+  trend,
+  icon: Icon,
+}: {
+  title: string;
+  value: string | number;
+  subtitle?: string;
+  trend?: number;
+  icon: LucideIcon;
+}) {
+  return (
+    <div className="rounded-xl border border-surface-200 bg-white p-4">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs text-ink-500 uppercase tracking-wider font-medium">{title}</p>
+        <Icon className="h-4 w-4 text-ink-400" />
+      </div>
+      <p className="text-2xl font-bold text-ink-900">{value}</p>
+      {subtitle && <p className="text-xs text-ink-500 mt-0.5">{subtitle}</p>}
+      {trend != null && trend !== 0 && (
+        <span className={`text-xs font-semibold ${trend > 0 ? "text-emerald-600" : "text-red-500"}`}>
+          {trend > 0 ? "+" : ""}
+          {trend}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/* ─── Next Action Logic ─────────────────────────────────────────────────────── */
+
+function computeNextAction(sviScore: number | null): {
+  text: string;
+  label: string;
+  url: string;
+} {
+  if (sviScore == null) {
+    return {
+      text: "Describe your startup idea to get your free SVI score. It takes less than 60 seconds and is completely free.",
+      label: "Get My SVI Score",
+      url: "/",
+    };
+  }
+  if (sviScore < 30) {
+    return {
+      text: "Upload evidence to boost your idea score (+8-20 pts). Connect GitHub, Stripe, or upload documents to strengthen your profile.",
+      label: "Upload Evidence",
+      url: "/workspace/evidence",
+    };
+  }
+  if (sviScore <= 50) {
+    return {
+      text: "Build your valuation model to unlock equity tools. Use your SVI data to generate a pre-revenue valuation range.",
+      label: "Start Valuation",
+      url: "/tools/idea-valuation",
+    };
+  }
+  if (sviScore <= 70) {
+    return {
+      text: "Set up your equity structure. Define your cap table, share classes, and founder splits before you raise capital.",
+      label: "Equity Setup",
+      url: "/workspace/equity-setup",
+    };
+  }
+  if (sviScore <= 85) {
+    return {
+      text: "Prepare your data room for fundraising. Compile your key documents, metrics, and pitch materials in one place.",
+      label: "Build Data Room",
+      url: "/workspace/data-room",
+    };
+  }
+  return {
+    text: "Your startup is investor-ready! Start fundraising with a strong data room and compelling pitch materials.",
+    label: "Start Fundraising",
+    url: "/workspace/fundraise",
+  };
+}
+
+/* ─── Phase mapping ─────────────────────────────────────────────────────────── */
+
+function computePhase(sviScore: number | null): { phase: number; name: string } {
+  if (sviScore == null) return { phase: 0, name: "Idea" };
+  if (sviScore < 30) return { phase: 0, name: "Idea" };
+  if (sviScore <= 50) return { phase: 1, name: "Validation" };
+  if (sviScore <= 70) return { phase: 2, name: "Equity" };
+  if (sviScore <= 85) return { phase: 3, name: "Fundraise" };
+  if (sviScore <= 120) return { phase: 4, name: "Traction" };
+  return { phase: 5, name: "Growth" };
+}
+
+/* ─── Quick Actions ─────────────────────────────────────────────────────────── */
+
+function QuickActionsList({ hasAnalysis }: { hasAnalysis: boolean }) {
+  const actions = [
+    {
+      href: "/",
+      icon: Sparkles,
+      label: hasAnalysis ? "Run New Analysis" : "Get SVI Score",
+      desc: hasAnalysis ? "Re-score with latest data" : "Free AI analysis in 60s",
+    },
+    {
+      href: "/workspace/evidence",
+      icon: Upload,
+      label: "Upload Evidence",
+      desc: "Connect GitHub, Stripe, docs",
+    },
+    {
+      href: "/workspace/cap-table",
+      icon: PieChart,
+      label: "Cap Table",
+      desc: "Manage equity and splits",
+    },
+    {
+      href: "/tools/idea-valuation",
+      icon: BarChart3,
+      label: "Idea Valuation",
+      desc: "Pre-revenue valuation model",
+    },
+    {
+      href: "/workspace/projects",
+      icon: Target,
+      label: "Manage Projects",
+      desc: "Track multiple startups",
+    },
+  ];
+
+  return (
+    <div className="space-y-1">
+      {actions.map((a) => (
+        <Link
+          key={a.href}
+          href={a.href}
+          className="flex items-center gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-surface-50 group"
+        >
+          <div className="h-9 w-9 flex items-center justify-center rounded-lg bg-surface-100 text-ink-500 group-hover:bg-brand-50 group-hover:text-brand-600 transition-colors shrink-0">
+            <a.icon strokeWidth={1.75} className="h-4 w-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-ink-800 truncate">{a.label}</p>
+            <p className="text-xs text-ink-500 truncate">{a.desc}</p>
+          </div>
+          <ChevronRight className="h-4 w-4 text-ink-300 group-hover:text-ink-500" />
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+/* ─── Main Dashboard Page ───────────────────────────────────────────────────── */
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -50,480 +194,420 @@ export default async function DashboardPage({
 }) {
   const user = await getCurrentUser();
   if (!user) {
-    // Bounce to login. After verify the session is set and we land back here.
     redirect("/auth/login?next=/dashboard");
   }
 
   const sp = await searchParams;
-  const summary = await loadDashboardSummary(user.id);
+  const supabase = getSupabaseAdmin();
+
+  // ── Fetch data in parallel where possible ────────────────────────────────
+  const projectId = await getProjectIdFromRequest();
+  const [activeProject, creditBalance] = await Promise.all([
+    projectId
+      ? getActiveProject(user.id, undefined).then((p) => p)
+      : getActiveProject(user.id),
+    getBalance(user.id),
+  ]);
+
+  // ── Load latest SVI analysis ─────────────────────────────────────────────
+  let analysis: SVIAnalysis | null = null;
+  let latestAnalysisId: string | undefined;
+  let rawInput: string | undefined;
+  let previousSVI: number | undefined;
+  let startupName: string | undefined;
+  let evidenceCount = 0;
+  let sviHistory: Array<{ total_svi: number; created_at: string }> = [];
+  let recentReports: Array<{
+    id: string;
+    total_svi: number;
+    created_at: string;
+    input_type: string | null;
+    raw_input?: string;
+  }> = [];
+  let snapshotHistory: Array<{ date: string; svi: number; delta: number | null }> = [];
+  let savedSections: Array<{
+    section_id: string;
+    depth: string;
+    content: string;
+    word_count: number;
+    credits_cost: number;
+  }> = [];
+  let shareViews = 0;
+  let userActions: Array<{
+    id: string;
+    action_type: string;
+    action_label: string;
+    dimension: string | null;
+    svi_impact_estimate: number;
+    completed_at: string;
+  }> = [];
+  let weeklyDelta: number | undefined;
+
+  if (supabase) {
+    // Latest analysis
+    const analysisQuery = supabase
+      .from("svi_analyses")
+      .select("id, analysis_json, total_svi, created_at, raw_input")
+      .eq("email", user.email);
+    if (projectId) analysisQuery.eq("project_id", projectId);
+    else analysisQuery.is("project_id", null);
+
+    const { data: latestAnalysis } = await analysisQuery
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (latestAnalysis?.analysis_json) {
+      analysis = latestAnalysis.analysis_json as SVIAnalysis;
+      latestAnalysisId = latestAnalysis.id as string;
+      rawInput = (latestAnalysis.raw_input as string | null) ?? undefined;
+    }
+
+    // SVI score history
+    const historyQuery = supabase
+      .from("svi_analyses")
+      .select("total_svi, created_at")
+      .eq("email", user.email);
+    if (projectId) historyQuery.eq("project_id", projectId);
+    else historyQuery.is("project_id", null);
+
+    const { data: historyData } = await historyQuery
+      .order("created_at", { ascending: true })
+      .limit(50);
+
+    if (historyData && historyData.length > 0) {
+      sviHistory = historyData.map((h) => ({
+        total_svi: h.total_svi as number,
+        created_at: h.created_at as string,
+      }));
+      if (historyData.length >= 2) {
+        previousSVI = historyData[historyData.length - 2].total_svi as number;
+      }
+    }
+
+    // Recent reports (last 5 for the dashboard card)
+    const reportsQuery = supabase
+      .from("svi_analyses")
+      .select("id, total_svi, created_at, input_type, raw_input")
+      .eq("email", user.email);
+    if (projectId) reportsQuery.eq("project_id", projectId);
+    else reportsQuery.is("project_id", null);
+
+    const { data: reportsData } = await reportsQuery
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    if (reportsData) {
+      recentReports = reportsData.map((r) => ({
+        id: r.id as string,
+        total_svi: r.total_svi as number,
+        created_at: r.created_at as string,
+        input_type: r.input_type as string | null,
+        raw_input: (r.raw_input as string | null) ?? undefined,
+      }));
+    }
+
+    // SVI account data
+    const accountId = await findOrCreateSVIAccount(user.email, projectId);
+    if (accountId) {
+      const { data: account } = await supabase
+        .from("svi_accounts")
+        .select("id, startup_name, current_svi, current_stage")
+        .eq("id", accountId)
+        .single();
+
+      if (account) {
+        startupName = (account.startup_name as string | null) ?? undefined;
+
+        // Snapshot history
+        const { data: snapshots } = await supabase
+          .from("svi_snapshots")
+          .select("snapshot_date, svi_total, delta")
+          .eq("account_id", account.id as string)
+          .order("snapshot_date", { ascending: false })
+          .limit(12);
+
+        if (snapshots && snapshots.length > 0) {
+          snapshotHistory = snapshots.map((s) => ({
+            date: s.snapshot_date as string,
+            svi: s.svi_total as number,
+            delta: s.delta as number | null,
+          }));
+          weeklyDelta = (snapshots[0].delta as number | null) ?? undefined;
+        }
+
+        // Evidence count
+        const { count: evCount } = await supabase
+          .from("svi_evidence")
+          .select("id", { count: "exact", head: true })
+          .eq("account_id", account.id as string);
+        evidenceCount = evCount ?? 0;
+      }
+    }
+
+    // Saved report sections
+    if (latestAnalysisId) {
+      const { data: sectionsData } = await supabase
+        .from("report_sections")
+        .select("section_id, depth, content, word_count, credits_cost")
+        .eq("analysis_id", latestAnalysisId)
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true });
+
+      if (sectionsData) {
+        savedSections = sectionsData.map((s) => ({
+          section_id: s.section_id as string,
+          depth: s.depth as string,
+          content: s.content as string,
+          word_count: (s.word_count as number) ?? 0,
+          credits_cost: (s.credits_cost as number) ?? 0,
+        }));
+      }
+    }
+
+    // Share link views
+    const { data: userScores } = await supabase
+      .from("scores")
+      .select("id")
+      .eq("email", user.email)
+      .limit(50);
+
+    if (userScores && userScores.length > 0) {
+      const scoreIds = userScores.map((s) => s.id as string);
+      const { count: viewCount } = await supabase
+        .from("score_views")
+        .select("id", { count: "exact", head: true })
+        .in("score_id", scoreIds);
+      shareViews = viewCount ?? 0;
+    }
+
+    // User actions
+    const { data: actionsData } = await supabase
+      .from("user_actions")
+      .select("id, action_type, action_label, dimension, svi_impact_estimate, completed_at")
+      .eq("email", user.email)
+      .order("completed_at", { ascending: false })
+      .limit(10);
+
+    if (actionsData) {
+      userActions = actionsData.map((a) => ({
+        id: a.id as string,
+        action_type: a.action_type as string,
+        action_label: a.action_label as string,
+        dimension: a.dimension as string | null,
+        svi_impact_estimate: (a.svi_impact_estimate as number) ?? 0,
+        completed_at: a.completed_at as string,
+      }));
+    }
+  }
+
+  // ── Derived values ───────────────────────────────────────────────────────
+  const sviScore = analysis?.totalSVI ?? null;
+  const delta = previousSVI != null && sviScore != null ? sviScore - previousSVI : weeklyDelta ?? null;
+  const { phase, name: phaseName } = computePhase(sviScore);
+  const readiness = sviScore != null ? Math.min(100, Math.round(sviScore * 0.8 + evidenceCount * 2)) : 0;
+  const nextAction = computeNextAction(sviScore);
+  const projectName = activeProject?.name ?? startupName ?? user.startupName ?? null;
+  const ideaSummary = rawInput ? rawInput.slice(0, 200) : analysis?.summary?.slice(0, 200) ?? null;
+
+  // For the LivingSVIDashboard
+  const computedDelta = previousSVI != null && analysis ? analysis.totalSVI - previousSVI : undefined;
+  const analysisWithDelta: SVIAnalysis | null = analysis
+    ? {
+        ...analysis,
+        weeklyDelta: weeklyDelta ?? computedDelta ?? analysis.weeklyDelta,
+      }
+    : null;
+
+  // Recent 5 reports for the summary card
+  const displayReports = recentReports.slice(0, 5);
 
   return (
-    <>
+    <WorkspaceLayout user={user} startupName={startupName}>
       <PageTracker page="dashboard" />
-      <Navbar />
-      <main className="min-h-screen bg-surface-100 pt-28 pb-24 text-ink-800">
-        <div className="mx-auto max-w-6xl px-6">
-          {sp.checkout === "success" && (
-            <CheckoutSuccessBanner plan={sp.plan} />
-          )}
-          {sp.welcome === "1" && <WelcomeBanner />}
 
-          <Header email={user.email} />
-
-          <QuickActions hasSVI={!!summary.packs.length || !!summary.evaluations.length} hasEvidence={false} />
-
-          <div className="mt-8">
-            <LivingReport email={user.email} />
-          </div>
-
-          <SummaryStrip summary={summary} />
-
-          <JourneyProgress email={user.email} />
-
-          <SVITrendChart email={user.email} />
-
-          <ReportHistory email={user.email} />
-
-          <InsightsPanel />
-
-          <DashboardValuationCard email={user.email} />
-
-          <CapTableWidget email={user.email} />
-
-          <PacksSection summary={summary} />
-
-          <div className="mt-10 grid gap-6 lg:grid-cols-3">
-            <EvaluationsCard summary={summary} />
-            <SplitsCard summary={summary} />
-            <FundingCard summary={summary} />
-          </div>
-
-          <div className="mt-10">
-            <ReferralCard />
-          </div>
-
-          <NextStepsCard />
-        </div>
-      </main>
-      <Footer />
-    </>
-  );
-}
-
-function QuickActions({ hasSVI, hasEvidence }: { hasSVI: boolean; hasEvidence: boolean }) {
-  const actions = [];
-
-  if (!hasSVI) {
-    actions.push({
-      href: "/score",
-      icon: Sparkles,
-      label: "Get Your SVI Score",
-      desc: "Free AI analysis in 60 seconds",
-      color: "bg-brand-600 hover:bg-brand-700 text-white",
-      priority: true,
-    });
-  }
-
-  actions.push({
-    href: "/workspace/evidence",
-    icon: TrendingUp,
-    label: hasSVI ? "Upload Evidence to Boost Score" : "Upload Evidence",
-    desc: hasEvidence ? "Add more proof to grow your SVI" : "Connect GitHub, Stripe, or upload docs",
-    color: "bg-white border border-brand-200 text-brand-700 hover:bg-brand-50",
-  });
-
-  if (hasSVI) {
-    actions.push({
-      href: "/workspace/cap-table",
-      icon: PieChart,
-      label: "Set Up Cap Table",
-      desc: "Manage equity splits and vesting",
-      color: "bg-white border border-surface-200 text-ink-700 hover:bg-surface-50",
-    });
-  }
-
-  actions.push({
-    href: "/workspace/projects",
-    icon: Lightbulb,
-    label: "Manage Projects",
-    desc: "Track multiple startups",
-    color: "bg-white border border-surface-200 text-ink-700 hover:bg-surface-50",
-  });
-
-  return (
-    <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      {actions.slice(0, 4).map((a) => (
-        <Link
-          key={a.href}
-          href={a.href}
-          className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-all ${a.color} ${a.priority ? "shadow-md ring-2 ring-brand-200" : "shadow-sm"}`}
-        >
-          <a.icon strokeWidth={1.75} className="h-5 w-5 shrink-0" />
-          <div className="min-w-0">
-            <p className="text-sm font-semibold truncate">{a.label}</p>
-            <p className={`text-[11px] truncate ${a.priority ? "text-brand-200" : "text-ink-500"}`}>{a.desc}</p>
-          </div>
-        </Link>
-      ))}
-    </div>
-  );
-}
-
-function CheckoutSuccessBanner({ plan }: { plan?: string }) {
-  const planDef = plan ? getPlan(plan) : undefined;
-  const planName = planDef?.name ?? plan ?? "your";
-  return (
-    <div className="mb-8 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-      <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-      <div>
-        <p className="font-semibold text-emerald-700">
-          Your {planName} plan is now active!
-        </p>
-        <p className="mt-1 text-sm text-ink-600">
-          Payment confirmed. All plan features are unlocked and ready to use.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function WelcomeBanner() {
-  return (
-    <div className="mb-8 flex items-start gap-3 rounded-xl border border-brand-200 bg-brand-50 p-4">
-      <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
-      <div>
-        <p className="font-semibold text-brand-700">
-          Welcome to BlockID. Your account is live.
-        </p>
-        <p className="mt-1 text-sm text-ink-600">
-          Anything you save from the free tools shows up here. Open a Founder
-          Pack from the list below to share it.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function Header({ email }: { email: string }) {
-  return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-600">
-          Dashboard
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink-800 sm:text-4xl">
-          Your idea-phase workspace
-        </h1>
-        <p className="mt-2 text-sm text-ink-600">
-          Signed in as{" "}
-          <span className="font-medium text-ink-800">{email}</span>
-        </p>
-      </div>
-      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-        <Link href="/tools/idea-valuation">
-          <Button variant="primary" size="md" className="h-10">
-            New idea valuation
-          </Button>
-        </Link>
-        <form action="/api/auth/logout" method="post">
-          <Button
-            type="submit"
-            variant="secondary"
-            size="md"
-            className="h-10"
-          >
-            Sign out
-          </Button>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-function SummaryStrip({ summary }: { summary: DashboardSummary }) {
-  const totalViews = summary.packs.reduce((acc, p) => acc + p.viewCount, 0);
-  const stats = [
-    {
-      label: "Founder Packs",
-      value: summary.packs.length,
-      icon: FileText,
-    },
-    {
-      label: "Idea valuations",
-      value: summary.evaluations.length,
-      icon: Lightbulb,
-    },
-    {
-      label: "Equity splits",
-      value: summary.splits.length,
-      icon: PieChart,
-    },
-    {
-      label: "Pack views",
-      value: totalViews,
-      icon: Eye,
-    },
-  ];
-  return (
-    <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {stats.map(({ label, value, icon: Icon }) => (
-        <div
-          key={label}
-          className="bg-white border border-surface-200 shadow-sm rounded-2xl p-5"
-        >
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-700">
-              {label}
-            </p>
-            <Icon className="h-4 w-4 text-brand-600" />
-          </div>
-          <p className="mt-3 text-3xl font-semibold text-ink-800">{value}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function PacksSection({ summary }: { summary: DashboardSummary }) {
-  return (
-    <section className="mt-10 bg-white border border-surface-200 shadow-sm rounded-2xl p-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-ink-800">
-          Founder Packs
-        </h2>
-        <Link
-          href="/tools/idea-valuation"
-          className="text-sm font-medium text-brand-600 hover:text-brand-700"
-        >
-          + Save a new pack
-        </Link>
-      </div>
-
-      {summary.packs.length === 0 ? (
-        <EmptyState
-          title="No packs yet."
-          body="Run any of the four free tools, then click 'Save my Founder Pack' to mint your first one."
-          ctaLabel="Open Idea Valuation"
-          href="/tools/idea-valuation"
-        />
-      ) : (
-        <ul className="mt-5 divide-y divide-surface-200">
-          {summary.packs.map((p) => (
-            <li
-              key={p.id}
-              className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div>
-                <p className="text-base font-semibold text-ink-800">
-                  {p.ideaName || "Untitled idea"}
-                </p>
-                <p className="mt-1 text-xs text-ink-700">
-                  {new Date(p.createdAt).toLocaleDateString("en-AU")} ·{" "}
-                  <span className="inline-flex items-center gap-1">
-                    <Eye className="h-3 w-3" /> {p.viewCount}{" "}
-                    {p.viewCount === 1 ? "view" : "views"}
-                  </span>
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Link href={`/s/p/${p.slug}`}>
-                  <Button variant="secondary" size="sm" className="h-9">
-                    Open share page
-                  </Button>
-                </Link>
-                <Link href={`/s/p/${p.slug}/pdf`}>
-                  <Button variant="primary" size="sm" className="h-9">
-                    Download PDF
-                  </Button>
-                </Link>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
-
-function EvaluationsCard({ summary }: { summary: DashboardSummary }) {
-  return (
-    <SectionCard
-      title="Idea valuations"
-      icon={Lightbulb}
-      empty={summary.evaluations.length === 0}
-      emptyHref="/tools/idea-valuation"
-      emptyLabel="Run idea valuation"
-    >
-      <ul className="space-y-3">
-        {summary.evaluations.slice(0, 5).map((e) => (
-          <li
-            key={e.id}
-            className="flex items-center justify-between gap-3 rounded-xl border border-surface-200 bg-surface-100 px-4 py-3"
-          >
+      <div className="max-w-5xl mx-auto px-6 pb-24 pt-6 space-y-6">
+        {/* ── Banners ───────────────────────────────────────────────────────── */}
+        {sp.checkout === "success" && (
+          <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
             <div>
-              <p className="text-sm font-semibold text-ink-800">
-                {e.ideaName || "Untitled"}
+              <p className="font-semibold text-emerald-700">
+                Your {sp.plan ?? "new"} plan is now active!
               </p>
-              <p className="text-xs text-ink-700">
-                {new Date(e.createdAt).toLocaleDateString("en-AU")}
+              <p className="mt-1 text-sm text-ink-600">
+                Payment confirmed. All plan features are unlocked and ready to use.
               </p>
             </div>
-            <p className="text-sm font-semibold text-brand-600">
-              {formatAud(e.valuationMidAud)}
-            </p>
-          </li>
-        ))}
-      </ul>
-    </SectionCard>
-  );
-}
-
-function SplitsCard({ summary }: { summary: DashboardSummary }) {
-  return (
-    <SectionCard
-      title="Equity splits"
-      icon={PieChart}
-      empty={summary.splits.length === 0}
-      emptyHref="/tools/equity-split"
-      emptyLabel="Run equity split"
-    >
-      <ul className="space-y-3">
-        {summary.splits.slice(0, 5).map((s) => (
-          <li
-            key={s.id}
-            className="flex items-center justify-between gap-3 rounded-xl border border-surface-200 bg-surface-100 px-4 py-3"
-          >
-            <p className="text-sm text-ink-800">
-              {s.founderCount}{" "}
-              {s.founderCount === 1 ? "founder" : "founders"}
-            </p>
-            <p className="text-xs text-ink-700">
-              {new Date(s.createdAt).toLocaleDateString("en-AU")}
-            </p>
-          </li>
-        ))}
-      </ul>
-    </SectionCard>
-  );
-}
-
-function FundingCard({ summary }: { summary: DashboardSummary }) {
-  return (
-    <SectionCard
-      title="Funding plans"
-      icon={TrendingUp}
-      empty={summary.fundingPlans.length === 0}
-      emptyHref="/tools/funding-plan"
-      emptyLabel="Run funding plan"
-    >
-      <ul className="space-y-3">
-        {summary.fundingPlans.slice(0, 5).map((f) => (
-          <li
-            key={f.id}
-            className="flex items-center justify-between gap-3 rounded-xl border border-surface-200 bg-surface-100 px-4 py-3"
-          >
+          </div>
+        )}
+        {sp.welcome === "1" && (
+          <div className="flex items-start gap-3 rounded-xl border border-brand-200 bg-brand-50 p-4">
+            <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
             <div>
-              <p className="text-sm font-semibold text-ink-800">
-                Raise {formatAud(f.recommendedRaise ?? 0)}
+              <p className="font-semibold text-brand-700">
+                Welcome to BlockID. Your account is live.
               </p>
-              <p className="text-xs text-ink-700">
-                {new Date(f.createdAt).toLocaleDateString("en-AU")}
+              <p className="mt-1 text-sm text-ink-600">
+                Run your first SVI analysis to unlock personalised startup guidance.
               </p>
             </div>
-            <p className="text-xs text-ink-700">
-              Need {formatAud(f.totalNeedAud ?? 0)}
-            </p>
-          </li>
-        ))}
-      </ul>
-    </SectionCard>
-  );
-}
+          </div>
+        )}
 
-function NextStepsCard() {
-  return (
-    <section className="mt-10 bg-white border border-brand-200 shadow-sm rounded-2xl p-6">
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-gold-600">
-        <BarChart3 className="h-4 w-4" />
-        Already incorporated?
-      </div>
-      <h2 className="mt-3 text-2xl font-semibold tracking-tight text-ink-800">
-        Bridge to your Investor-Ready Score.
-      </h2>
-      <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-600">
-        When you incorporate, BlockID converts your saved valuations, splits
-        and plans into your wedge product Score and dataroom. One click — no
-        re-typing.
-      </p>
-      <div className="mt-5 flex flex-wrap gap-3">
-        <Link href="/score">
-          <Button variant="primary" size="md" className="h-11">
-            Get Investor-Ready Score
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        </Link>
-      </div>
-    </section>
-  );
-}
+        {/* ── Journey Progress Bar ──────────────────────────────────────────── */}
+        <JourneyBar currentPhase={phase} sviScore={sviScore ?? 0} />
 
-function SectionCard({
-  title,
-  icon: Icon,
-  empty,
-  emptyHref,
-  emptyLabel,
-  children,
-}: {
-  title: string;
-  icon: typeof Lightbulb;
-  empty: boolean;
-  emptyHref: string;
-  emptyLabel: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="bg-white border border-surface-200 shadow-sm rounded-2xl p-5">
-      <div className="flex items-center gap-2 text-sm font-semibold text-ink-800">
-        <Icon className="h-4 w-4 text-brand-600" />
-        {title}
-      </div>
-      <div className="mt-4">
-        {empty ? (
-          <Link
-            href={emptyHref}
-            className="block rounded-xl border border-dashed border-surface-200 px-4 py-6 text-center text-sm text-ink-600 transition-colors hover:border-brand-200 hover:text-ink-800"
-          >
-            {emptyLabel} →
-          </Link>
-        ) : (
-          children
+        {/* ── Row 1: Metric Cards ───────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <MetricCard
+            title="SVI Score"
+            value={sviScore ?? "--"}
+            trend={delta ?? undefined}
+            icon={TrendingUp}
+          />
+          <MetricCard
+            title="Current Phase"
+            value={phaseName}
+            subtitle={`Phase ${phase + 1} of 6`}
+            icon={Target}
+          />
+          <MetricCard
+            title="Credits"
+            value={creditBalance % 1 === 0 ? creditBalance : creditBalance.toFixed(2)}
+            subtitle="remaining"
+            icon={Zap}
+          />
+          <MetricCard
+            title="Investor Ready"
+            value={`${readiness}%`}
+            icon={ShieldCheck}
+          />
+        </div>
+
+        {/* ── Row 2: Project Context Card ───────────────────────────────────── */}
+        {(analysis || projectName) && (
+          <div className="rounded-2xl border border-surface-200 bg-white p-6">
+            <div className="flex items-start justify-between">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs uppercase tracking-wider text-brand-600 font-medium">
+                  Current Project
+                </p>
+                <h2 className="text-xl font-bold text-ink-900 mt-1">
+                  {projectName || "My Startup"}
+                </h2>
+                {ideaSummary && (
+                  <p className="text-sm text-ink-500 mt-2 line-clamp-2">{ideaSummary}</p>
+                )}
+              </div>
+              {sviScore != null && (
+                <div className="text-right shrink-0 ml-4">
+                  <div className="text-3xl font-bold text-brand-600">{sviScore}</div>
+                  <p className="text-xs text-ink-500">SVI Score</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Row 3: Next Best Action ───────────────────────────────────────── */}
+        <div className="rounded-2xl border-2 border-brand-200 bg-brand-50/50 p-6">
+          <div className="flex items-start gap-4">
+            <Lightbulb className="h-8 w-8 text-brand-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-bold text-brand-800">Recommended Next Step</p>
+              <p className="text-sm text-brand-700 mt-1">{nextAction.text}</p>
+              <Link
+                href={nextAction.url}
+                className="mt-3 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+              >
+                {nextAction.label}
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Row 4: Recent Reports + Quick Actions ─────────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Reports */}
+          <div className="rounded-2xl border border-surface-200 bg-white p-6">
+            <h3 className="text-sm font-bold text-ink-800 mb-4">Recent Reports</h3>
+            {displayReports.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-surface-200 px-4 py-8 text-center">
+                <FileText className="h-6 w-6 mx-auto text-ink-300 mb-2" />
+                <p className="text-sm text-ink-500">No reports yet.</p>
+                <p className="text-xs text-ink-400 mt-1">
+                  Run your first SVI analysis to generate a report.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-0">
+                {displayReports.map((r) => (
+                  <Link key={r.id} href={`/workspace/reports/${r.id}`}>
+                    <div className="flex items-center gap-3 py-3 border-b border-surface-100 last:border-0 hover:bg-surface-50/50 -mx-2 px-2 rounded-lg transition-colors">
+                      <FileText className="h-4 w-4 text-ink-400 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-ink-800 truncate">
+                          {r.raw_input
+                            ? r.raw_input.slice(0, 60) + (r.raw_input.length > 60 ? "..." : "")
+                            : `Analysis ${new Date(r.created_at).toLocaleDateString("en-AU")}`}
+                        </p>
+                        <p className="text-xs text-ink-500">
+                          {new Date(r.created_at).toLocaleDateString("en-AU")} · SVI {r.total_svi}
+                        </p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-ink-400 shrink-0" />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+            {recentReports.length > 5 && (
+              <Link
+                href="/workspace/reports"
+                className="mt-3 block text-center text-xs font-medium text-brand-600 hover:text-brand-700"
+              >
+                View all reports
+              </Link>
+            )}
+          </div>
+
+          {/* Quick Actions */}
+          <div className="rounded-2xl border border-surface-200 bg-white p-6">
+            <h3 className="text-sm font-bold text-ink-800 mb-4">Quick Actions</h3>
+            <QuickActionsList hasAnalysis={!!analysis} />
+          </div>
+        </div>
+
+        {/* ── Row 5: Living SVI Dashboard ───────────────────────────────────── */}
+        {analysisWithDelta && (
+          <LivingSVIDashboard
+            analysis={analysisWithDelta}
+            sviHistory={sviHistory}
+            recentReports={recentReports}
+            savedSections={savedSections}
+            snapshotHistory={snapshotHistory}
+            startupName={startupName}
+            userEmail={user.email}
+            creditBalance={creditBalance}
+            evidenceCount={evidenceCount}
+            shareViews={shareViews}
+            lastAnalysisDate={
+              recentReports.length > 0 ? recentReports[0].created_at : undefined
+            }
+            previousSVI={previousSVI}
+            userActions={userActions}
+            userProfile={{
+              displayName: user.displayName,
+              startupName: user.startupName,
+              startupStage: user.startupStage,
+              industry: user.industry,
+              startupGoals: user.startupGoals,
+            }}
+          />
         )}
       </div>
-    </div>
-  );
-}
-
-function EmptyState({
-  title,
-  body,
-  ctaLabel,
-  href,
-}: {
-  title: string;
-  body: string;
-  ctaLabel: string;
-  href: string;
-}) {
-  return (
-    <div className="mt-5 rounded-xl border border-dashed border-surface-200 px-6 py-10 text-center">
-      <p className="text-base font-semibold text-ink-800">{title}</p>
-      <p className="mx-auto mt-2 max-w-md text-sm text-ink-600">{body}</p>
-      <Link href={href} className="mt-5 inline-block">
-        <Button variant="primary" size="md" className="h-10">
-          {ctaLabel}
-        </Button>
-      </Link>
-    </div>
+    </WorkspaceLayout>
   );
 }
