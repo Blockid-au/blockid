@@ -5,15 +5,19 @@
 
 import type { AICallOptions, AICallResult } from "../types.js";
 
+// Free models ordered by quality for report generation.
+// Priority: large context + strong reasoning first.
 const FREE_MODELS = [
-  "deepseek/deepseek-v4-flash:free",
-  "google/gemma-4-31b-it:free",
-  "google/gemma-4-26b-a4b-it:free",
-  "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-  "arcee-ai/trinity-large-thinking:free",
-  "poolside/laguna-m.1:free",
-  "poolside/laguna-xs.2:free",
-  "baidu/cobuddy:free",
+  "deepseek/deepseek-v4-flash:free",                    // 1M context, best free reasoning
+  "qwen/qwen3-coder:free",                              // Qwen 3 Coder, strong structured output
+  "nvidia/nemotron-3-super-120b-a12b:free",             // NVIDIA 120B super, excellent for reports
+  "openrouter/owl-alpha",                                // OpenRouter's own model
+  "google/gemma-4-31b-it:free",                         // Google Gemma 4, 262K context
+  "google/gemma-4-26b-a4b-it:free",                     // Google Gemma 4 smaller variant
+  "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free", // NVIDIA reasoning (smaller)
+  "arcee-ai/trinity-large-thinking:free",               // Thinking/reasoning model
+  "poolside/laguna-m.1:free",                           // Poolside medium model
+  "baidu/cobuddy:free",                                 // Baidu model, 131K context
 ];
 
 async function fetchWithTimeout(
