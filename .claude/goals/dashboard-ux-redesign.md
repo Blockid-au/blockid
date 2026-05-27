@@ -1,208 +1,296 @@
-# Dashboard UX Redesign — Startup Mentor Journey
+# Dashboard UX Redesign — Startup Journey Operating System
 
-## Mission
-Redesign toàn bộ giao diện authenticated user (My SVI Score, Reports, Dashboard)
-theo flow mentoring startup: từ Idea → Validation → MVP → Traction → Fundraise.
+## Vision
+Transform BlockID.au from a tool-first dashboard into a **journey-driven startup operating system** where every screen guides founders through their next best action — from Day 0 idea to exit. Every user sees their original idea context, clear next steps, and celebration of progress.
 
-Mỗi trang phải:
-1. Hiển thị ĐẦY ĐỦ nội dung đã trả credit (không mất, không ẩn)
-2. Hướng dẫn bước tiếp theo phù hợp với stage hiện tại
-3. Professional UI/UX design với clear hierarchy
-4. Mobile-first responsive
-
----
-
-## Current Problems
-
-### P0 — Content Loss
-- User trả credit unlock report sections → navigate away → content MẤT
-- Summaries auto-generated → không lưu vào dashboard
-- Full report chỉ show inline, không persist vào "My SVI Score"
-
-### P1 — No Stage-Aware Journey
-- Dashboard giống nhau cho Idea stage và Growth stage
-- Không có "next step" guidance phù hợp stage
-- Actions tab generic, không prioritize theo giai đoạn
-
-### P2 — Layout Overwhelming
-- 10 sections SVI results: flat list, no grouping
-- 4 tabs dashboard: quá nhiều data per tab
-- No visual hierarchy: everything looks the same importance
+## Core Principles
+1. **Journey-first, not tool-first** — Menu organized by startup phase, not feature category
+2. **Progressive disclosure** — Show 4-5 cards max, drill into details on demand  
+3. **Always show context** — Original idea summary visible in every report/screen
+4. **Clear next step** — AI-recommended action on every page
+5. **Celebrate progress** — Badges, level-ups, confetti at milestones
+6. **Nothing paid is ever lost** — All unlocked content persisted and accessible
 
 ---
 
-## Design Principles
+## Current Problems (from QA Review)
 
-### 1. Stage-Aware Content
-```
-IDEA (SVI 0-40):
-  Focus: Validate idea, find first customers
-  Show: Market research, competitor landscape, idea validation
-  Hide: Financial projections, cap table, investor readiness
-  Mentor: "Let's validate your idea before thinking about funding"
+### P0 — Lost Context
+- Original idea input disappears after analysis (only raw_input snippet in history)
+- No AI-generated project name from input content
+- Users can't tell which analysis belongs to which startup idea
 
-VALIDATED (SVI 40-70):
-  Focus: Build MVP, get first revenue
-  Show: Product development, go-to-market, early traction
-  Unlock: Basic financial planning
-  Mentor: "Your idea has potential. Let's build something people pay for"
+### P1 — No Journey Guidance  
+- Dashboard identical for Idea stage and Growth stage founders
+- No "next step" AI recommendation
+- No onboarding checklist for new users (wizard exists but skipped)
+- 20+ sidebar menu items with no priority guidance
 
-MVP/TRACTION (SVI 70-120):
-  Focus: Scale, fundraise, governance
-  Show: Everything + fundraise tools
-  Unlock: Investor readiness, cap table, term sheet
-  Mentor: "You have traction. Let's get you investor-ready"
+### P2 — Passive Dashboard
+- No notification system (bell icon exists, no inbox)
+- No "NEW" badges on unlocked features
+- No celebration/gamification on milestones
+- No visual phase progression indicator
 
-GROWTH (SVI 120+):
-  Focus: Scale, exit planning
-  Show: Full platform + advanced tools
-  Mentor: "Time to scale. Let's optimize your cap table and governance"
-```
-
-### 2. Information Architecture
-```
-My SVI Score (tabbed)
-├── TAB: Journey Map (default — stage-aware roadmap)
-│   ├── Current Stage Hero (big score + stage badge)
-│   ├── Stage Roadmap (5 stages with current highlighted)
-│   ├── "What to Do Now" (3 actions for THIS stage)
-│   └── Recent Progress (last 3 activities)
-│
-├── TAB: Full Report (ALL paid content preserved)
-│   ├── Phase headers: Foundation → PMF → Growth → Strategic
-│   ├── Each section: summary (always) + full (if unlocked)
-│   ├── Unlock CTAs for remaining sections
-│   └── "Unlock All" bundle
-│
-├── TAB: Analysis History
-│   ├── Timeline: every analysis with score delta
-│   ├── Each links to saved report with ALL sections
-│   └── SVI trend chart
-│
-└── TAB: Evidence & Actions
-    ├── Uploaded evidence (documents, links)
-    ├── Connected sources (GitHub, Analytics)
-    ├── Improvement actions from gaps
-    └── Impact calculator
-```
-
-### 3. Professional Design Language
-- Card-based layout with clear sections
-- Phase colors: Foundation=blue, PMF=purple, Growth=green, Strategic=amber
-- Stage badges: pill with icon + label
-- Progress indicators: completion % per phase
-- Mentor tone: encouraging but specific
+### P3 — Menu Confusion
+- Sidebar items have no visual cues (hover effects, badges, lock states)
+- Premium items show no credit cost indicator
+- No distinction between available and locked features
 
 ---
 
-## Sub-Goals (Implementation Order)
+## Sub-Goals (10 areas, ordered by impact)
 
-### Sub-Goal 1: Stage-Aware Journey Map Component (P0)
-**Agent: ui-ux-pro-max**
-**File: `web/src/components/dashboard/journey-map.tsx` (NEW)**
+### SG1: Journey Progress Bar
+**Agent: CTO + CPO | Priority: P0**
 
-Visual roadmap showing 5 startup stages:
+Horizontal phase indicator at top of dashboard:
 ```
-[Idea] ──→ [Validated] ──→ [MVP] ──→ [Traction] ──→ [Growth]
-                 ▲ You are here (SVI: 42)
+[Idea] ──→ [Valuation] ──→ [Equity] ──→ [Token] ──→ [Fundraise] ──→ [Exit]
+  ✓            ●              ○            ○            ○              ○
+ Done       Current        Locked       Locked       Locked         Locked
 ```
+- Current phase pulses with brand accent animation
+- Completed phases: green checkmark + glow
+- Future phases: greyed with lock icon (tooltip: "Complete Valuation to unlock")
+- Click any phase → navigate to that phase's workspace
+- Mobile: compact single-line scrollable version
+- Component: `web/src/components/dashboard/journey-bar.tsx`
 
-Below roadmap: 3 action cards specific to current stage:
-- Idea: "Describe your market", "Research competitors", "Define your customer"
-- Validated: "Build MVP scope", "Get first beta users", "Set pricing"
-- MVP: "Upload revenue data", "Connect GitHub", "Create pitch deck"
-- Traction: "Prepare data room", "Clean cap table", "Financial model"
+### SG2: Onboarding Checklist Widget
+**Agent: CPO + CRO | Priority: P0**
 
-### Sub-Goal 2: Full Report Tab with Persistent Content (P0)
-**Agent: general-purpose**
-**File: Modify `web/src/components/dashboard/living-svi-dashboard.tsx`**
+Persistent collapsible checklist in dashboard:
+```
+Your Startup Checklist (3/8 complete)
+[✓] Create your startup profile
+[✓] Describe your idea  
+[✓] Get your free SVI score
+[ ] Build your valuation model        ← [Start] button
+[ ] Set up equity structure
+[ ] Prepare pitch materials
+[ ] Connect with investors
+[ ] Plan exit strategy
+```
+- Each step has "Start" CTA deep-linking to relevant tool
+- Checkmark animation + micro-celebration on completion
+- Progress badge: "3/8 complete" in sidebar
+- Dismissible after 100% (but accessible from profile)
+- Component: `web/src/components/dashboard/onboarding-checklist.tsx`
 
-Replace current Reports tab with:
-1. Load ALL saved report_sections for latest analysis
-2. Group by phase (Foundation → PMF → Growth → Strategic → Premium)
-3. Show each section with:
-   - Phase header with color badge
-   - Summary content (always visible, rendered markdown)
+### SG3: Smart Dashboard Layout (4-5 Cards Max)
+**Agent: CTO + CPO | Priority: P0**
+
+Replace current data-heavy dashboard with progressive disclosure:
+
+**Top**: Journey Progress Bar (SG1)
+
+**Row 1**: 4 metric cards (responsive 2x2 on mobile)
+- SVI Score (with trend arrow +/- delta)
+- Current Phase (with progress ring %)
+- Credits Balance (with usage sparkline)
+- Investor Readiness % (new computed metric)
+
+**Row 2**: Next Best Action card (full-width)
+- AI-generated: "Based on your SVI of 62, upload revenue evidence to boost Traction (+15 pts)"
+- Single CTA button
+- Dismiss to reveal 2nd priority action
+
+**Row 3**: 2-column (stack on mobile)
+- Recent Reports (last 5, with idea summary snippet + SVI score + date)
+- Activity Timeline (notifications, milestones, new features)
+
+**Row 4**: Onboarding Checklist (if < 100%, SG2)
+
+### SG4: Project Context Everywhere
+**Agent: CTO | Priority: P0**
+
+- Auto-generate project name from input via AI (summarize idea in 5-8 words)
+- Fallback: first 60 chars of input text
+- Every report page header shows:
+  - Project name (editable inline)
+  - Idea summary snippet (first 150 chars)
+  - SVI score badge
+  - Date generated
+  - Report type badge (Standard / Deep Dive / Modular)
+- Breadcrumb: Dashboard > [Project Name] > [Current Page]
+- Project switcher in topbar (dropdown, not buried in sidebar)
+
+### SG5: Notification System
+**Agent: CTO + COO | Priority: P1**
+
+- Bell icon with numeric badge in navbar (already exists, wire up)
+- Notification types:
+  - "Report ready" → click → view report
+  - "SVI score changed (+12 pts)" → click → dashboard
+  - "New feature unlocked: Equity Tools" → click → feature page
+  - "Weekly insights ready" → click → insights page
+  - "Action needed: Upload evidence" → click → evidence vault
+- Toast notifications (bottom-right, auto-dismiss 5s)
+- Notification inbox at /workspace/notifications
+- Red dot badges on sidebar menu items with pending actions
+- "NEW" text badge (blue) on menu items for newly unlocked features
+
+### SG6: Interactive Menu with Visual Cues
+**Agent: CTO + CPO | Priority: P1**
+
+Sidebar menu items enhanced with:
+- **"NEW" badge** (blue pill) on newly unlocked features
+- **Red dot** on items with pending actions (evidence to review, report ready)
+- **Disabled/locked** state for features requiring prerequisite phases
+- **Hover animation**: translateX(4px) + shadow transition
+- **Credit cost** indicator on premium items (small coin icon + "0.50 cr")
+- **Active state**: brand-600 bg + left border-2 accent + bold text
+- **Tooltip** on hover: explains what each tool does (for new users)
+- **Phase group headers**: collapsible with stage labels + completion %
+
+### SG7: Report Viewer with Full Context
+**Agent: CTO | Priority: P0**
+
+Every report page must show:
+1. **Header**: Project name + idea summary + SVI badge + date + type
+2. **Phase-grouped sections**: Foundation → PMF → Growth → Strategic
+3. **Each section**: 
+   - Summary (always visible, free)
    - Full content (if unlocked, rendered markdown)
-   - "Read full analysis (X cr)" CTA if not unlocked
-4. "Unlock All Remaining" bundle at bottom
+   - "Unlock full analysis (X credits)" CTA if locked
+   - Export individual section as PDF
+4. **"Unlock All Remaining"** bundle CTA at bottom (discounted)
+5. **Comparison view**: show delta between current and previous analysis
+6. **Export PDF** button (prominent, top-right)
+7. **"Re-analyze"** button to run updated analysis with same input
 
-This is the KEY tab — user must see EVERYTHING they paid for.
+### SG8: PDF Export for All Results
+**Agent: CTO | Priority: P1**
 
-### Sub-Goal 3: Mentor Guidance Banner (P1)
-**Agent: general-purpose**
-**File: `web/src/components/dashboard/stage-mentor.tsx` (NEW)**
+- "Export PDF" button on every report page
+- PDF includes:
+  - BlockID branding header + logo
+  - Project name + idea summary
+  - SVI score gauge visualization
+  - All unlocked sections with formatted content
+  - Evidence gaps + prioritized recommendations
+  - Disclaimer + generation date
+- Extend existing react-pdf implementation to cover:
+  - Living dashboard export
+  - Individual section export
+  - Full report export (all unlocked)
 
-Context-aware banner at top of dashboard:
-- Idea stage: "Welcome! You're at the beginning. Focus on validating your idea."
-- Validated: "Good progress! Your next milestone: build an MVP."
-- MVP: "You're building. Get your first paying customer."
-- Traction: "Revenue is flowing. Time to get investor-ready."
-- Growth: "You're scaling. Optimize governance and plan your fundraise."
+### SG9: Founder Level Gamification
+**Agent: CPO + CRO | Priority: P2**
 
-Includes:
-- Stage-specific icon + color
-- 1-2 sentence guidance
-- Single CTA button for the highest-impact next action
-
-### Sub-Goal 4: Phase-Grouped SVI Dimensions (P1)
-**Agent: general-purpose**
-**File: Modify `web/src/components/svi/svi-results-panel.tsx`**
-
-Group the 8 SVI dimensions into phases:
+Level system tied to journey phases:
 ```
-FOUNDATION (Founder + Legal)
-├── Founder & Team: 65/100
-└── Legal & Compliance: 45/100
-
-PRODUCT-MARKET FIT (Market + Product + Traction)
-├── Market & Problem: 72/100
-├── Product & Tech: 58/100
-└── Traction & Revenue: 35/100
-
-GOVERNANCE (Cap Table + Investor Ready)
-├── Cap Table: 40/100
-└── Investor Readiness: 28/100
-
-STRATEGIC (Vision + Risk [calculated])
-└── Strategic Vision & Moat: 55/100
+Level 1: Dreamer       (Completed: Idea phase)
+Level 2: Builder       (Completed: Valuation)  
+Level 3: Architect     (Completed: Equity)
+Level 4: Fundraiser    (Completed: Tokenization)
+Level 5: Operator      (Completed: Dividend)
+Level 6: Exit Master   (Completed: Exit)
 ```
+- Level badge in sidebar + profile page
+- Milestone celebration modal with shareable social card
+- Streak counter: "Building for 12 days straight"
+- Achievement badges: First Score, Deep Diver, Equity Architect, Pitch Ready, Weekly Returner
+- Progress ring animation on level-up
 
-Each phase shows:
-- Phase completion % (average of dimensions)
-- Color-coded progress bar
-- Expand to see individual dimensions
+### SG10: Mobile-First Responsive
+**Agent: CTO | Priority: P1**
 
-### Sub-Goal 5: Mobile-Optimized Layout (P2)
-**Agent: ui-ux-pro-max**
-**File: Multiple dashboard components**
-
-- Stack tabs vertically on mobile
-- Collapsible phase groups
-- Sticky tab navigation
-- Touch-friendly action buttons (min 44px tap target)
-- Swipe between tabs
-
-### Sub-Goal 6: Evidence Integration in Report (P2)
-**Agent: general-purpose**
-
-Show uploaded evidence inline with relevant report sections:
-- Market section → show market research documents
-- Product section → show GitHub audit results
-- Traction section → show revenue screenshots
-- Legal section → show ABN/ASIC documents
+- **Bottom tab bar** (4 tabs): Home, Reports, Equity, Profile
+- Card-based mobile layout (stack vertically)
+- Hamburger menu for full sidebar on mobile
+- Touch-friendly tap targets (min 44px)
+- Journey bar: compact horizontal scrollable version
+- Swipeable tabs on report viewer
+- Collapsible phase groups in reports
 
 ---
 
-## Review Checklist (for Founder review)
+## Customer Journey Flow (Redesigned)
 
-Before deploying each sub-goal, verify:
+### Phase 1: First Visit (Unauthenticated)
+```
+Homepage → Enter idea → Get FREE SVI Score → See results
+→ Results show: SVI gauge + 8 dimensions + evidence gaps + mentor guidance
+→ Banner: "Your account is ready! Check email for login credentials"
+→ Email: Welcome + temp password + PDF report attached
+```
 
-□ Does this page help a DAY-1 founder understand what to do?
-□ Is every piece of paid content visible and accessible?
-□ Is the next action obvious without scrolling?
-□ Does it work on mobile (375px viewport)?
-□ Is the tone encouraging (mentor) not overwhelming (data dump)?
-□ Are sections grouped logically by startup phase?
-□ Can user find their previous analyses easily?
-□ Are credit costs shown before any charge?
+### Phase 2: First Login  
+```
+Login → Dashboard with:
+  - Journey Bar: Phase 1 (Idea) ✓ active
+  - Onboarding Checklist: 3/8 done!
+  - Metric cards: SVI 58 | Phase: Idea | Credits: 5 | Readiness: 15%
+  - Next Action: "Upload evidence to boost your score (+8-20 pts)"
+  - Recent Reports: Shows idea summary "AI SaaS for accountants..."
+  - Notification: "Welcome! Complete your profile to unlock more tools"
+```
+
+### Phase 3: Building (Idea → Valuation)
+```
+Upload evidence → SVI rescored → "+18 points!" toast celebration
+→ Notification: "Phase complete: Idea! Valuation tools unlocked"
+→ Menu: "Valuation" item gets "NEW" blue badge
+→ Checklist: 4/8 complete
+→ Next Action: "Build your valuation model"
+→ Level up: "You're now a Builder (Level 2)!" modal
+```
+
+### Phase 4: Structuring (Valuation → Equity)
+```
+Complete valuation → Equity tools unlocked
+→ Notification: "You're now an Architect! Cap Table + ESOP ready"
+→ Menu: Equity group items all get "NEW" badges  
+→ Equity Setup wizard → Cap Table auto-populated
+→ Next Action: "Prepare your pitch deck"
+```
+
+### Phase 5: Fundraising (Equity → Investment)
+```
+Pitch deck generated → Data room created → Investor readiness: 85%
+→ Next Action: "Share data room with investors"
+→ Investor link generated with tracking
+→ Notification: "3 investors viewed your data room today"
+```
+
+### Phase 6+: Growth → Exit
+```
+Each phase unlocks the next with:
+- Celebration modal
+- Menu badges
+- Level-up animation
+- Personalized mentor guidance
+```
+
+---
+
+## Agent Assignments
+
+| Agent | Sub-Goals | Focus |
+|-------|-----------|-------|
+| **CTO** | SG1, SG3, SG4, SG5, SG6, SG7, SG8, SG10 | Implementation |
+| **CPO** | SG2, SG3, SG6, SG9 | UX specs, user stories |
+| **CRO** | SG2, SG9 | Conversion optimization |
+| **CMO** | — | Content: empty states, tooltips, mentor messages |
+| **COO** | SG5 | QA, sprint coordination |
+
+## Success Metrics
+- Onboarding completion rate: 60% (up from ~10%)
+- Day-7 retention: 40% (up from ~15%)  
+- Phase 2 (Valuation) reach rate: 30% of signups
+- PDF export usage: 20% of report viewers
+- Average session duration: 8 min (up from ~3 min)
+- Notification click-through: 25%
+
+## Review Checklist
+Before deploying each sub-goal:
+- [ ] Does this page help a DAY-1 founder understand what to do?
+- [ ] Is every piece of paid content visible and accessible?
+- [ ] Is the next action obvious without scrolling?
+- [ ] Does it work on mobile (375px viewport)?
+- [ ] Is the original idea context shown?
+- [ ] Are credit costs shown before any charge?
+- [ ] Can user export results as PDF?
+- [ ] Is the tone encouraging (mentor) not overwhelming (data dump)?
