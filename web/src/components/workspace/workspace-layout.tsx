@@ -25,11 +25,15 @@ interface WorkspaceLayoutProps {
   };
   startupName?: string;
   notificationCount?: number;
+  /** Current startup phase (0-5). Controls which sidebar groups are highlighted vs dimmed. */
+  currentPhase?: number;
 }
 
 interface NavGroup {
   label: string;
   stage?: string;
+  /** Minimum phase (0-5) for this group to be fully accessible. Lower phases show dimmed. */
+  minPhase?: number;
   items: { href: string; label: string; icon: LucideIcon }[];
 }
 
@@ -46,6 +50,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Build & Validate",
     stage: "Idea \u2192 MVP",
+    minPhase: 0,
     items: [
       { href: "/workspace/evidence", label: "Evidence Vault", icon: FileText },
       { href: "/workspace/metrics", label: "Metrics", icon: BarChart3 },
@@ -55,6 +60,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Ownership & Equity",
     stage: "MVP \u2192 Launch",
+    minPhase: 2,
     items: [
       { href: "/workspace/equity-setup", label: "Equity Setup", icon: Wand2 },
       { href: "/workspace/equity", label: "Equity Split", icon: PieChart },
@@ -69,6 +75,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Fundraise",
     stage: "Pre-seed \u2192 Series A",
+    minPhase: 3,
     items: [
       { href: "/workspace/data-room", label: "Data Room", icon: FolderCheck },
       { href: "/workspace/fundraise", label: "Raise Capital", icon: Banknote },
@@ -78,6 +85,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Grow & Scale",
     stage: "Revenue \u2192 Scale",
+    minPhase: 4,
     items: [
       { href: "/workspace/revenue", label: "Revenue", icon: DollarSign },
       { href: "/workspace/journal", label: "Growth Journal", icon: BookOpen },
@@ -103,7 +111,7 @@ const ADMIN_NAV_GROUP: NavGroup = {
   ],
 };
 
-export function WorkspaceLayout({ children, user, startupName, notificationCount = 0 }: WorkspaceLayoutProps) {
+export function WorkspaceLayout({ children, user, startupName, notificationCount = 0, currentPhase = 0 }: WorkspaceLayoutProps) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const [mobileOpen, setMobileOpen] = React.useState(false);
@@ -142,13 +150,19 @@ export function WorkspaceLayout({ children, user, startupName, notificationCount
 
         {/* Nav items */}
         <nav className="flex-1 py-1 px-1 overflow-y-auto">
-          {navGroups.map((group) => (
+          {navGroups.map((group) => {
+            const isFuturePhase = group.minPhase != null && group.minPhase > currentPhase;
+            return (
             <div key={group.label} className="mb-1">
               {/* Group header */}
               {sidebarOpen && (
                 <div className="px-3 pt-4 pb-1.5 flex items-center justify-between">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-400">{group.label}</span>
-                  {group.stage && <span className="text-[9px] text-ink-400/60">{group.stage}</span>}
+                  <span className={cn("text-[10px] font-semibold uppercase tracking-[0.12em]", isFuturePhase ? "text-ink-300" : "text-ink-400")}>{group.label}</span>
+                  {group.stage && (
+                    <span className={cn("text-[9px]", isFuturePhase ? "text-ink-300/50" : "text-ink-400/60")}>
+                      {isFuturePhase ? "Coming soon" : group.stage}
+                    </span>
+                  )}
                 </div>
               )}
               {/* Group items */}
@@ -163,16 +177,19 @@ export function WorkspaceLayout({ children, user, startupName, notificationCount
                       "flex items-center gap-3 px-2.5 py-2 rounded-xl text-sm transition-all duration-150 mx-1",
                       active
                         ? "bg-brand-50 text-brand-700 font-semibold shadow-sm border border-brand-100"
-                        : "text-ink-500 hover:text-ink-800 hover:bg-surface-50",
+                        : isFuturePhase
+                          ? "text-ink-300 hover:text-ink-500 hover:bg-surface-50/50 opacity-60"
+                          : "text-ink-500 hover:text-ink-800 hover:bg-surface-50",
                     )}
                   >
-                    <Icon strokeWidth={1.75} className={cn("h-4 w-4 shrink-0", active ? "text-brand-600" : "")} />
+                    <Icon strokeWidth={1.75} className={cn("h-4 w-4 shrink-0", active ? "text-brand-600" : isFuturePhase ? "text-ink-300" : "")} />
                     {sidebarOpen && <span className="truncate">{label}</span>}
                   </Link>
                 );
               })}
             </div>
-          ))}
+            );
+          })}
         </nav>
 
         {/* Bottom: credit badge + home link */}

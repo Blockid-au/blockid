@@ -68,50 +68,67 @@ function MetricCard({
 
 /* ─── Next Action Logic ─────────────────────────────────────────────────────── */
 
+/**
+ * Phase-aware next action — follows the actual startup development roadmap.
+ * Early-stage startups (Idea/Validation) get guidance on problem validation,
+ * team building, and market research — NOT revenue evidence or fundraising.
+ */
 function computeNextAction(sviScore: number | null): {
   text: string;
   label: string;
   url: string;
+  phase: string;
 } {
   if (sviScore == null) {
     return {
-      text: "Describe your startup idea to get your free SVI score. It takes less than 60 seconds and is completely free.",
+      text: "Describe your startup idea to get your free SVI score. It takes less than 60 seconds and helps you understand where you stand.",
       label: "Get My SVI Score",
       url: "/",
+      phase: "start",
     };
   }
+  // Phase 0: Idea (SVI 0-30) — focus on idea validation, not revenue
   if (sviScore < 30) {
     return {
-      text: "Upload evidence to boost your idea score (+8-20 pts). Connect GitHub, Stripe, or upload documents to strengthen your profile.",
-      label: "Upload Evidence",
-      url: "/workspace/evidence",
+      text: "Your idea needs validation. Refine your problem statement, define your target customer, and research your market size. Run a deeper analysis with more detail to boost your score.",
+      label: "Refine Your Idea",
+      url: "/",
+      phase: "idea",
     };
   }
+  // Phase 1: Validation (SVI 30-50) — focus on market fit, team, early evidence
   if (sviScore <= 50) {
     return {
-      text: "Build your valuation model to unlock equity tools. Use your SVI data to generate a pre-revenue valuation range.",
-      label: "Start Valuation",
-      url: "/tools/idea-valuation",
+      text: "Your idea has potential! Now validate it — describe your team background, connect your LinkedIn profile, or upload a competitor analysis to strengthen your founder credibility.",
+      label: "Strengthen Your Profile",
+      url: "/workspace/evidence",
+      phase: "validation",
     };
   }
+  // Phase 2: Build (SVI 50-70) — focus on valuation, equity structure
   if (sviScore <= 70) {
     return {
-      text: "Set up your equity structure. Define your cap table, share classes, and founder splits before you raise capital.",
-      label: "Equity Setup",
+      text: "You're building something real. Set up your equity structure — define co-founder splits, share classes, and vesting schedules before you bring on investors.",
+      label: "Set Up Equity",
       url: "/workspace/equity-setup",
+      phase: "build",
     };
   }
+  // Phase 3: Pre-fundraise (SVI 70-85) — focus on investor readiness
   if (sviScore <= 85) {
     return {
-      text: "Prepare your data room for fundraising. Compile your key documents, metrics, and pitch materials in one place.",
+      text: "You're nearly investor-ready! Build your data room with key documents, a pitch deck, and financial projections. This is what investors expect to see.",
       label: "Build Data Room",
       url: "/workspace/data-room",
+      phase: "pre-fundraise",
     };
   }
+  // Phase 4+: Fundraise & Growth (SVI 85+)
   return {
-    text: "Your startup is investor-ready! Start fundraising with a strong data room and compelling pitch materials.",
+    text: "Your startup is investor-ready! Share your data room with potential investors and start your fundraising conversations.",
     label: "Start Fundraising",
     url: "/workspace/fundraise",
+    phase: "fundraise",
   };
 }
 
@@ -129,43 +146,37 @@ function computePhase(sviScore: number | null): { phase: number; name: string } 
 
 /* ─── Quick Actions ─────────────────────────────────────────────────────────── */
 
-function QuickActionsList({ hasAnalysis }: { hasAnalysis: boolean }) {
-  const actions = [
-    {
-      href: "/",
-      icon: Sparkles,
-      label: hasAnalysis ? "Run New Analysis" : "Get SVI Score",
-      desc: hasAnalysis ? "Re-score with latest data" : "Free AI analysis in 60s",
-    },
-    {
-      href: "/workspace/evidence",
-      icon: Upload,
-      label: "Upload Evidence",
-      desc: "Connect GitHub, Stripe, docs",
-    },
-    {
-      href: "/workspace/cap-table",
-      icon: PieChart,
-      label: "Cap Table",
-      desc: "Manage equity and splits",
-    },
-    {
-      href: "/tools/idea-valuation",
-      icon: BarChart3,
-      label: "Idea Valuation",
-      desc: "Pre-revenue valuation model",
-    },
-    {
-      href: "/workspace/projects",
-      icon: Target,
-      label: "Manage Projects",
-      desc: "Track multiple startups",
-    },
+/**
+ * Phase-aware quick actions — shows relevant actions for the startup's
+ * current stage. Later-phase actions appear at bottom with "Coming next" label.
+ */
+function QuickActionsList({ hasAnalysis, phase }: { hasAnalysis: boolean; phase: number }) {
+  // All actions ordered by startup development roadmap
+  const allActions: { href: string; icon: LucideIcon; label: string; desc: string; minPhase: number; badge?: string }[] = [
+    // Phase 0: Idea — always available
+    { href: "/", icon: Sparkles, label: hasAnalysis ? "Re-analyze Idea" : "Get SVI Score", desc: hasAnalysis ? "Re-score with more detail" : "Free AI analysis in 60s", minPhase: 0 },
+    { href: "/workspace/reports", icon: FileText, label: "View Reports", desc: "Your analysis history", minPhase: 0 },
+    // Phase 1: Validation
+    { href: "/workspace/evidence", icon: Upload, label: "Add Evidence", desc: "LinkedIn, team bios, market research", minPhase: 0, badge: phase < 2 ? "Boost Score" : undefined },
+    { href: "/tools/idea-valuation", icon: BarChart3, label: "Idea Valuation", desc: "Pre-revenue valuation range", minPhase: 1 },
+    // Phase 2: Build
+    { href: "/workspace/equity-setup", icon: PieChart, label: "Equity Structure", desc: "Co-founder splits & vesting", minPhase: 2 },
+    { href: "/workspace/cap-table", icon: PieChart, label: "Cap Table", desc: "Share classes & shareholders", minPhase: 2 },
+    // Phase 3: Pre-fundraise
+    { href: "/workspace/data-room", icon: Target, label: "Data Room", desc: "Investor documents & pitch", minPhase: 3 },
+    // Phase 4+: Fundraise & Growth
+    { href: "/workspace/fundraise", icon: TrendingUp, label: "Fundraise", desc: "Raise capital", minPhase: 3 },
+    { href: "/workspace/revenue", icon: BarChart3, label: "Revenue Tracking", desc: "Track MRR, ARR, metrics", minPhase: 4 },
+    { href: "/workspace/exit", icon: ShieldCheck, label: "Exit Modeling", desc: "Scenario planning", minPhase: 5 },
   ];
+
+  // Split into current-phase actions and upcoming actions
+  const currentActions = allActions.filter(a => a.minPhase <= phase).slice(0, 5);
+  const upcomingActions = allActions.filter(a => a.minPhase > phase).slice(0, 3);
 
   return (
     <div className="space-y-1">
-      {actions.map((a) => (
+      {currentActions.map((a) => (
         <Link
           key={a.href}
           href={a.href}
@@ -175,12 +186,38 @@ function QuickActionsList({ hasAnalysis }: { hasAnalysis: boolean }) {
             <a.icon strokeWidth={1.75} className="h-4 w-4" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-ink-800 truncate">{a.label}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-medium text-ink-800 truncate">{a.label}</p>
+              {a.badge && <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">{a.badge}</span>}
+            </div>
             <p className="text-xs text-ink-500 truncate">{a.desc}</p>
           </div>
           <ChevronRight className="h-4 w-4 text-ink-300 group-hover:text-ink-500" />
         </Link>
       ))}
+
+      {/* Upcoming actions — greyed out with roadmap context */}
+      {upcomingActions.length > 0 && (
+        <>
+          <div className="pt-3 pb-1 px-3">
+            <p className="text-[10px] uppercase tracking-widest text-ink-400 font-medium">Coming next in your journey</p>
+          </div>
+          {upcomingActions.map((a) => (
+            <div
+              key={a.href}
+              className="flex items-center gap-3 rounded-xl px-3 py-3 opacity-50"
+            >
+              <div className="h-9 w-9 flex items-center justify-center rounded-lg bg-surface-100 text-ink-400 shrink-0">
+                <a.icon strokeWidth={1.75} className="h-4 w-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-ink-500 truncate">{a.label}</p>
+                <p className="text-xs text-ink-400 truncate">{a.desc}</p>
+              </div>
+            </div>
+          ))}
+        </>
+      )}
     </div>
   );
 }
@@ -423,7 +460,7 @@ export default async function DashboardPage({
   const displayReports = recentReports.slice(0, 5);
 
   return (
-    <WorkspaceLayout user={user} startupName={startupName}>
+    <WorkspaceLayout user={user} startupName={startupName} currentPhase={phase}>
       <PageTracker page="dashboard" />
 
       <div className="max-w-5xl mx-auto px-6 pb-24 pt-6 space-y-6">
@@ -576,7 +613,7 @@ export default async function DashboardPage({
           {/* Quick Actions */}
           <div className="rounded-2xl border border-surface-200 bg-white p-6">
             <h3 className="text-sm font-bold text-ink-800 mb-4">Quick Actions</h3>
-            <QuickActionsList hasAnalysis={!!analysis} />
+            <QuickActionsList hasAnalysis={!!analysis} phase={phase} />
           </div>
         </div>
 
