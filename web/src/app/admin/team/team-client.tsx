@@ -1,23 +1,30 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
+  ArrowRight,
   BarChart3,
   Bot,
   BrainCircuit,
   ChevronDown,
   Clock,
   Cpu,
+  Database,
   DollarSign,
   FileSearch,
   Globe,
+  Layers,
   Lightbulb,
   Mail,
   Megaphone,
   RefreshCw,
+  Route,
   ScrollText,
+  Server,
   Settings,
   Sparkles,
+  Timer,
   TrendingUp,
   UserCircle,
   Users,
@@ -455,6 +462,44 @@ export function TeamClient({ user, emailsSent }: TeamClientProps) {
             private capital markets.
           </p>
         </div>
+
+        {/* ════════════════════════════════════════════════════════════
+            SYSTEM STATS + ARCHITECTURE LINK
+           ════════════════════════════════════════════════════════════ */}
+        <section className="rounded-2xl border border-surface-200 bg-white shadow-sm p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-5">
+            <div className="flex items-center gap-2">
+              <Layers strokeWidth={1.75} className="h-5 w-5 text-brand-600" />
+              <h2 className="text-lg font-semibold text-ink-800">System Stats</h2>
+            </div>
+            <Link
+              href="/admin/architecture"
+              className="inline-flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 rounded-xl px-4 py-2 transition-colors"
+            >
+              View System Architecture
+              <ArrowRight strokeWidth={1.75} className="h-4 w-4" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {[
+              { icon: Zap, label: "AI Providers", value: "9", sub: "14 free models", color: "text-brand-600", bg: "bg-brand-50" },
+              { icon: Route, label: "API Routes", value: "143", sub: "12 domains", color: "text-purple-600", bg: "bg-purple-50" },
+              { icon: Database, label: "DB Tables", value: "68", sub: "6 groups", color: "text-teal-600", bg: "bg-teal-50" },
+              { icon: Server, label: "Microservices", value: "4", sub: "2 live, 2 ready", color: "text-emerald-600", bg: "bg-emerald-50" },
+              { icon: Timer, label: "Cron Jobs", value: "12", sub: "automated", color: "text-amber-600", bg: "bg-amber-50" },
+              { icon: Settings, label: "Env Vars", value: "72", sub: "configured", color: "text-rose-600", bg: "bg-rose-50" },
+            ].map(({ icon: Icon, label, value, sub, color, bg }) => (
+              <div key={label} className="rounded-xl border border-surface-100 bg-surface-50 p-3 text-center">
+                <div className={cn("h-7 w-7 rounded-lg flex items-center justify-center mx-auto mb-2", bg)}>
+                  <Icon strokeWidth={1.75} className={cn("h-3.5 w-3.5", color)} />
+                </div>
+                <p className="text-lg font-bold font-mono text-ink-800">{value}</p>
+                <p className="text-[10px] font-medium text-ink-600">{label}</p>
+                <p className="text-[9px] text-ink-400">{sub}</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
         {/* ════════════════════════════════════════════════════════════
             SECTION 1: TEAM ORG CHART (Expandable Cards)

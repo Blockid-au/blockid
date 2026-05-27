@@ -15,6 +15,7 @@ import {
   FlaskConical,
   GraduationCap,
   Home,
+  Layers,
   LayoutDashboard,
   Link2,
   Map,
@@ -50,6 +51,7 @@ const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/users", label: "Users", icon: Users },
       { href: "/admin/credits", label: "Credits", icon: Coins },
       { href: "/admin/team", label: "Team", icon: Bot },
+      { href: "/admin/architecture", label: "Architecture", icon: Layers },
     ],
   },
   {
