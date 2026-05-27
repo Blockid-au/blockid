@@ -56,6 +56,7 @@ export HOSTNAME=0.0.0.0
 export NODE_ENV=production
 # Standalone runs on host — use localhost instead of Docker hostname
 export SUPABASE_URL=http://127.0.0.1:8000
+export REDIS_URL=redis://127.0.0.1:6379
 
 echo "Starting BlockID.au production on port 4001..."
 nohup node server.js > "$LOG" 2>&1 &
