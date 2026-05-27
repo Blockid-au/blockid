@@ -116,7 +116,11 @@ const COST_PER_1K: Record<string, number> = {
   "gpt-4.1-mini": 0.002,
   "gemini-2.5-flash": 0.0001,
   "llama-3.3-70b-versatile": 0, // Groq free tier
-  "deepseek/deepseek-v4-flash:free": 0, // OpenRouter free
+  // OpenRouter free models — $0 cost
+  "deepseek/deepseek-v4-flash:free": 0,
+  "qwen/qwen3-coder:free": 0,
+  "nvidia/nemotron-3-super-120b-a12b:free": 0,
+  "openrouter/owl-alpha": 0,
 };
 
 interface BudgetData {
@@ -236,30 +240,39 @@ type Provider = "claude-oauth" | "claude-apikey" | "claude-proxy" | "openai-code
 
 function getAvailableProviders(): Provider[] {
   const providers: Provider[] = [];
-  // Priority: TapHoaAPI (expiring key, use ASAP) → Claude → Gemini → Groq → OpenRouter → paid → local
-  // 1. TapHoaAPI proxy (active key, use before it expires)
-  if (process.env.ANTHROPIC_PROXY_API_KEY && process.env.ANTHROPIC_PROXY_BASE_URL) providers.push("claude-proxy");
-  else if (getDBKey("anthropic_proxy")) providers.push("claude-proxy");
-  // 2. Claude CLI OAuth (subscription — Sonnet for reports, Haiku for quick)
-  if (readCliOAuthToken()) providers.push("claude-oauth");
-  // 3. Codex CLI OAuth (ChatGPT subscription)
-  if (readCodexOAuthToken()) providers.push("openai-codex");
-  // 4. Gemini 2.5 Flash (free credit)
-  if (process.env.GOOGLE_GEMINI_API_KEY) providers.push("gemini");
-  else if (getDBKey("gemini")) providers.push("gemini");
-  // 5. Groq (free tier — llama-3.3-70b, 30 req/min)
-  if (process.env.GROQ_API_KEY) providers.push("groq");
-  else if (getDBKey("groq")) providers.push("groq");
-  // 6. OpenRouter (free models)
+  // Priority: FREE first → subscription → paid last → local backup
+  // This maximizes free usage and minimizes API costs.
+  //
+  // Tier 1: Free models (zero cost)
+  // 1. OpenRouter (10 free models: DeepSeek, Qwen3, NVIDIA 120B, Gemma...)
   if (process.env.OPENROUTER_API_KEY) providers.push("openrouter");
   else if (getDBKey("openrouter")) providers.push("openrouter");
-  // 7. Anthropic API key (paid)
+  // 2. Gemini 2.5 Flash (free credit, fast)
+  if (process.env.GOOGLE_GEMINI_API_KEY) providers.push("gemini");
+  else if (getDBKey("gemini")) providers.push("gemini");
+  // 3. Groq (free tier — llama-3.3-70b, 30 req/min)
+  if (process.env.GROQ_API_KEY) providers.push("groq");
+  else if (getDBKey("groq")) providers.push("groq");
+  //
+  // Tier 2: Subscription models (fixed monthly cost, not per-call)
+  // 4. Claude CLI OAuth (Pro subscription — Sonnet for reports, Haiku for quick)
+  if (readCliOAuthToken()) providers.push("claude-oauth");
+  // 5. Codex CLI OAuth (ChatGPT Plus subscription)
+  if (readCodexOAuthToken()) providers.push("openai-codex");
+  // 6. TapHoaAPI proxy (shared key, limited quota)
+  if (process.env.ANTHROPIC_PROXY_API_KEY && process.env.ANTHROPIC_PROXY_BASE_URL) providers.push("claude-proxy");
+  else if (getDBKey("anthropic_proxy")) providers.push("claude-proxy");
+  //
+  // Tier 3: Paid API keys (per-call cost — use only as fallback)
+  // 7. Anthropic API key (paid per token)
   if (process.env.ANTHROPIC_API_KEY) providers.push("claude-apikey");
   else if (getDBKey("anthropic")) providers.push("claude-apikey");
-  // 8. OpenAI API key (paid)
+  // 8. OpenAI API key (paid per token)
   if (process.env.OPENAI_API_KEY) providers.push("openai-apikey");
   else if (getDBKey("openai")) providers.push("openai-apikey");
-  // 9. Ollama local LLM (last resort)
+  //
+  // Tier 4: Local backup (always available, no cost, lower quality)
+  // 9. Ollama local LLM (qwen2.5:3b on server GPU)
   if (process.env.OLLAMA_HOST || process.env.OLLAMA_ENABLED === "true") providers.push("ollama");
   return providers;
 }
@@ -485,16 +498,19 @@ async function callOpenRouter(opts: AICallOptions): Promise<AICallResult> {
   const apiKey = process.env.OPENROUTER_API_KEY ?? getDBKey("openrouter")?.api_key ?? "";
   if (!apiKey) throw new Error("OpenRouter API key not configured");
 
-  // Try multiple free models — extensive fallback list for maximum availability
+  // Free models ordered by quality for report generation.
+  // Priority: large context + strong reasoning first.
   const FREE_MODELS = [
-    "deepseek/deepseek-v4-flash:free",        // 1M context, strong reasoning
-    "google/gemma-4-31b-it:free",             // Google Gemma 4, 262K context
-    "google/gemma-4-26b-a4b-it:free",         // Google Gemma 4 smaller variant
-    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free", // NVIDIA reasoning model
-    "arcee-ai/trinity-large-thinking:free",   // Thinking/reasoning model
-    "poolside/laguna-m.1:free",               // Poolside medium model
-    "poolside/laguna-xs.2:free",              // Poolside XS fallback
-    "baidu/cobuddy:free",                     // Baidu model, 131K context
+    "deepseek/deepseek-v4-flash:free",                    // 1M context, best free reasoning
+    "qwen/qwen3-coder:free",                              // Qwen 3 Coder, strong structured output
+    "nvidia/nemotron-3-super-120b-a12b:free",             // NVIDIA 120B, excellent for reports
+    "openrouter/owl-alpha",                                // OpenRouter's own model
+    "google/gemma-4-31b-it:free",                         // Google Gemma 4, 262K context
+    "google/gemma-4-26b-a4b-it:free",                     // Google Gemma 4 smaller variant
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free", // NVIDIA reasoning (smaller)
+    "arcee-ai/trinity-large-thinking:free",               // Thinking/reasoning model
+    "poolside/laguna-m.1:free",                           // Poolside medium model
+    "baidu/cobuddy:free",                                 // Baidu model, 131K context
   ];
 
   let lastErr: Error | null = null;
