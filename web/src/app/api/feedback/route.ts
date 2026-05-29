@@ -49,27 +49,24 @@ export async function POST(request: Request) {
   let creditsAwarded = 0;
 
   try {
-    const aiResponse = await callAI({
-      prompt: `You are the R&D Agent for BlockID.au (a startup platform). Evaluate this user feedback.
+    const aiResult = await callAI({
+      system: "You are the R&D Agent for BlockID.au (a startup platform). Evaluate user feedback. Respond in JSON only.",
+      user: `Evaluate this feedback:
 
 Feedback: "${feedback.slice(0, 500)}"
 Category: ${category || "general"}
 Page: ${page || "unknown"}
 
 Rate on 3 criteria (0-10 each):
-1. SPECIFICITY: Does it point to a concrete issue or improvement? (not vague like "make it better")
-2. ACTIONABILITY: Can the dev team act on it? (includes steps to reproduce or clear suggestion)
-3. VALUE: Would implementing this improve user experience for other founders?
+1. SPECIFICITY: concrete issue or improvement?
+2. ACTIONABILITY: can dev team act on it?
+3. VALUE: would it improve UX for other founders?
 
-Respond in JSON only:
-{"specificity": N, "actionability": N, "value": N, "summary": "1-sentence summary of what the user is asking for", "is_useful": true/false, "suggested_credits": 0.25 or 0.50 or 1.00}
-
-Rules:
-- suggested_credits: 0.25 for minor useful feedback, 0.50 for good actionable feedback, 1.00 for excellent detailed feedback
-- is_useful: true if total score >= 15 out of 30
-- summary should be from R&D perspective (what to improve)`,
+JSON response: {"specificity": N, "actionability": N, "value": N, "summary": "1-sentence R&D summary", "is_useful": true/false, "suggested_credits": 0.25|0.50|1.00}
+Rules: 0.25=minor, 0.50=good, 1.00=excellent. is_useful=true if total>=15/30.`,
       maxTokens: 200,
     });
+    const aiResponse = aiResult.text;
 
     try {
       const parsed = JSON.parse(aiResponse.replace(/```json\n?|```/g, "").trim());
