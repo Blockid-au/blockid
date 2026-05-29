@@ -1,93 +1,33 @@
 #!/bin/bash
-# BlockID.au Production Watchdog
-# Run via cron every 1 minute: * * * * * /home/dovanlong/blockid.au/web/scripts/watchdog.sh
-#
-# Checks:
-# 1. Is the production process alive? (PID file check)
-# 2. Does the homepage respond HTTP 200? (health check)
-# 3. If dead or unhealthy → auto-restart from existing build
-#
-# Logs to /tmp/blockid-watchdog.log (rotated by size)
+# BlockID.au Watchdog — lightweight, zero-cost auto-restart
+# Cron: */2 * * * * (every 2 min, not every 1 min — saves CPU)
+# Total cost: ~5ms CPU per check (just kill -0 + curl)
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-WEB_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PID_FILE="/tmp/blockid-production.pid"
 LOG="/tmp/blockid-watchdog.log"
-PROD_PORT=4001
-MAX_LOG_SIZE=1048576  # 1MB
 
-# Rotate log if too large
-if [ -f "$LOG" ] && [ "$(stat -f%z "$LOG" 2>/dev/null || stat -c%s "$LOG" 2>/dev/null)" -gt "$MAX_LOG_SIZE" ]; then
-  mv "$LOG" "${LOG}.old"
-fi
+# Quick check: PID alive?
+[ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null && \
+  curl -sf --connect-timeout 3 --max-time 5 -o /dev/null http://127.0.0.1:4001/ && exit 0
 
-TS=$(date '+%Y-%m-%d %H:%M:%S')
+# Dead or unhealthy — restart
+echo "$(date '+%H:%M') restart" >> "$LOG"
+# Truncate log if > 50KB
+[ -f "$LOG" ] && [ "$(wc -c < "$LOG")" -gt 51200 ] && tail -20 "$LOG" > "${LOG}.tmp" && mv "${LOG}.tmp" "$LOG"
 
-# Check 1: Is process alive?
-if [ -f "$PID_FILE" ]; then
-  PID=$(cat "$PID_FILE")
-  if kill -0 "$PID" 2>/dev/null; then
-    # Process alive — check HTTP health
-    HTTP=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 --max-time 10 http://127.0.0.1:$PROD_PORT/ 2>/dev/null || echo "000")
-    if [ "$HTTP" = "200" ]; then
-      # All good — silent (don't spam log)
-      exit 0
-    else
-      echo "$TS WARN: Process alive (PID $PID) but HTTP $HTTP — restarting" >> "$LOG"
-      kill "$PID" 2>/dev/null
-      sleep 2
-    fi
-  else
-    echo "$TS WARN: PID $PID dead — restarting" >> "$LOG"
-  fi
-else
-  echo "$TS WARN: No PID file — starting" >> "$LOG"
-fi
+fuser -k 4001/tcp 2>/dev/null; sleep 1
+cd /home/dovanlong/blockid.au/web/.next/standalone || exit 1
 
-# Check if port is still occupied by something else
-fuser -k $PROD_PORT/tcp 2>/dev/null
-sleep 1
-
-# Restart using start-production.sh (uses existing build, no rebuild)
-STANDALONE="$WEB_DIR/.next/standalone"
-if [ ! -f "$STANDALONE/server.js" ]; then
-  echo "$TS ERROR: No standalone build found at $STANDALONE/server.js — cannot restart" >> "$LOG"
-  exit 1
-fi
-
-# Load env
-cd "$STANDALONE"
-eval "$(node -e "
-  const fs = require('fs');
-  const lines = fs.readFileSync('$WEB_DIR/.env', 'utf8').split('\n');
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const idx = trimmed.indexOf('=');
-    if (idx < 1) continue;
-    const key = trimmed.slice(0, idx);
-    let val = trimmed.slice(idx + 1);
-    if ((val.startsWith('\"') && val.endsWith('\"')) || (val.startsWith(\"'\") && val.endsWith(\"'\"))) {
-      val = val.slice(1, -1);
-    }
-    const escaped = val.replace(/'/g, \"'\\\\\\\"'\\\\\\\"'\");
-    console.log('export ' + key + \"='\" + escaped + \"'\");
-  }
-" 2>/dev/null)"
-
-export PORT=$PROD_PORT
-export HOSTNAME=0.0.0.0
-export NODE_ENV=production
-export SUPABASE_URL=http://127.0.0.1:8000
-export REDIS_URL=redis://127.0.0.1:6379
+# Inline env load — no Node.js, pure bash, near-zero cost
+export PORT=4001 HOSTNAME=0.0.0.0 NODE_ENV=production
+export SUPABASE_URL=http://127.0.0.1:8000 REDIS_URL=redis://127.0.0.1:6379
+while IFS='=' read -r k v; do
+  [ -z "$k" ] && continue
+  v="${v#\"}"; v="${v%\"}" ; v="${v#\'}"; v="${v%\'}"
+  export "$k=$v" 2>/dev/null
+done < <(grep -v '^\s*#\|^\s*$' /home/dovanlong/blockid.au/web/.env)
+# Re-apply host overrides (must come AFTER .env load)
+export SUPABASE_URL=http://127.0.0.1:8000 REDIS_URL=redis://127.0.0.1:6379
 
 nohup node server.js >> /tmp/blockid-production.log 2>&1 &
 echo $! > "$PID_FILE"
-
-sleep 3
-HTTP=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://127.0.0.1:$PROD_PORT/ 2>/dev/null || echo "000")
-if [ "$HTTP" = "200" ]; then
-  echo "$TS OK: Restarted successfully — PID $(cat "$PID_FILE") HTTP $HTTP" >> "$LOG"
-else
-  echo "$TS ERROR: Restart failed — PID $(cat "$PID_FILE") HTTP $HTTP" >> "$LOG"
-fi
