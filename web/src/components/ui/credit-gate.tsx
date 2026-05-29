@@ -336,6 +336,25 @@ export function CreditGate({
             <p className="mt-3 text-center text-xs text-red-500">{errorMsg}</p>
           )}
 
+          {/* Earn credits via feedback */}
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/50 px-4 py-3">
+            <div className="flex items-start gap-2.5">
+              <span className="text-lg leading-none mt-0.5">💬</span>
+              <div>
+                <p className="text-xs font-semibold text-amber-800">Earn free credits</p>
+                <p className="text-[11px] text-amber-700 mt-0.5 leading-relaxed">
+                  Share your feedback about BlockID — useful suggestions earn <strong>0.25–1.00 credits</strong> instantly, evaluated by our AI R&amp;D team.
+                </p>
+                <a
+                  href="/workspace/notifications?tab=feedback"
+                  className="mt-2 inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-amber-800 hover:bg-amber-100 transition-colors"
+                >
+                  Share Feedback &amp; Earn Credits
+                </a>
+              </div>
+            </div>
+          </div>
+
           {/* Coupon input */}
           <div className="mt-5">
             <div className="flex items-center gap-2">
