@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { checkAndAwardBadges, type BadgeCheckContext } from "@/lib/svi-badges";
 import { extractSignals, computeSVI } from "@/lib/svi-analysis";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { getProjectIdFromRequest, findSVIAccountWithFallback, findLatestAnalysisWithFallback } from "@/lib/projects";
 
 // POST /api/svi/rescore
 // Re-calculates SVI based on the original analysis text + accumulated evidence.
@@ -23,37 +23,21 @@ export async function POST() {
   const supabase = getSupabaseAdmin()!;
   const projectId = await getProjectIdFromRequest();
 
-  // 1. Get user's SVI account — scoped by project_id
-  const accountQuery = supabase
-    .from("svi_accounts")
-    .select("*")
-    .eq("email", user.email);
-
-  if (projectId) {
-    accountQuery.eq("project_id", projectId);
-  } else {
-    accountQuery.is("project_id", null);
-  }
-
-  const { data: account } = await accountQuery.maybeSingle();
+  // 1. Get user's SVI account — with fallback for legacy records (project_id NULL)
+  const account = await findSVIAccountWithFallback(user.email, projectId, "*");
 
   if (!account) {
     return NextResponse.json({ ok: false, reason: "No SVI account found for this project" }, { status: 404 });
   }
 
-  // 2. Get the latest analysis — scoped by project_id
-  const analysisQuery = supabase
-    .from("svi_analyses")
-    .select("raw_input, analysis_json")
-    .eq("email", user.email)
-    .order("created_at", { ascending: false })
-    .limit(1);
+  const accountId = account.id as string;
 
-  if (projectId) {
-    analysisQuery.eq("project_id", projectId);
-  }
-
-  const { data: latestAnalysis } = await analysisQuery.maybeSingle();
+  // 2. Get the latest analysis — with fallback for legacy records
+  const latestAnalysis = await findLatestAnalysisWithFallback(
+    user.email,
+    projectId,
+    "raw_input, analysis_json",
+  );
 
   const rawInput = (latestAnalysis?.raw_input as string) ?? "";
 
@@ -61,13 +45,13 @@ export async function POST() {
   const { data: evidence } = await supabase
     .from("svi_evidence")
     .select("*")
-    .eq("account_id", account.id);
+    .eq("account_id", accountId);
 
   // 4. Get all completed actions (retain action boost for backward compat)
   const { data: actions } = await supabase
     .from("user_actions")
     .select("*")
-    .eq("account_id", account.id);
+    .eq("account_id", accountId);
 
   const actionBoost = (actions ?? []).reduce(
     (sum: number, a: Record<string, unknown>) => sum + ((a.svi_impact_estimate as number) ?? 0),
@@ -92,22 +76,39 @@ export async function POST() {
       current_svi: newSVI,
       last_active_at: new Date().toISOString(),
     })
-    .eq("id", account.id);
+    .eq("id", accountId);
 
   if (updateErr) {
     console.error("[blockid:svi:rescore] update failed", updateErr);
     return NextResponse.json({ ok: false, reason: "Update failed" }, { status: 500 });
   }
 
-  // 8. Save snapshot if delta is significant
+  // 8. Save snapshot if delta is significant (include estimated valuation)
+  // Valuation formula: maps SVI to realistic market range
+  const estVal = newSVI < 30 ? newSVI * 3000
+    : newSVI <= 50 ? 50_000 + (newSVI - 30) * 22_500
+    : newSVI <= 70 ? 500_000 + (newSVI - 50) * 75_000
+    : newSVI <= 85 ? 2_000_000 + (newSVI - 70) * 200_000
+    : newSVI <= 120 ? 5_000_000 + (newSVI - 85) * 142_857
+    : 10_000_000 + (newSVI - 120) * 250_000;
+
   if (Math.abs(delta) >= 2) {
     await supabase.from("svi_snapshots").insert({
-      account_id: account.id,
+      account_id: accountId,
       svi_total: newSVI,
       stage: newAnalysis.stage,
       delta,
+      estimated_valuation: Math.round(estVal),
       snapshot_date: new Date().toISOString().split("T")[0],
     });
+
+    // Update cap table share price to reflect new valuation
+    // price_per_share = estimated_valuation / total_authorized_shares
+    await supabase
+      .from("share_classes")
+      .update({ price_per_share: Math.round(estVal / 1_000_000 * 100) / 100 })
+      .eq("account_id", accountId)
+      .catch(() => {});
   }
 
   // 7. Check and award milestone badges
@@ -137,7 +138,7 @@ export async function POST() {
   const { data: prevSnapshot } = await supabase
     .from("svi_snapshots")
     .select("svi_total, stage")
-    .eq("account_id", account.id)
+    .eq("account_id", accountId)
     .order("snapshot_date", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -146,7 +147,7 @@ export async function POST() {
   const { data: recentSnapshots } = await supabase
     .from("svi_snapshots")
     .select("snapshot_date")
-    .eq("account_id", account.id)
+    .eq("account_id", accountId)
     .order("snapshot_date", { ascending: false })
     .limit(8);
 
@@ -166,7 +167,7 @@ export async function POST() {
   }
 
   const badgeCtx: BadgeCheckContext = {
-    accountId: account.id,
+    accountId,
     currentSVI: newSVI,
     previousSVI: prevSnapshot?.svi_total ?? baseSVI,
     currentStage: newAnalysis.stage ?? 0,

@@ -210,8 +210,171 @@ export async function findOrCreateSVIAccount(
     console.error("[blockid:projects] svi_accounts insert failed", error);
     return null;
   }
-  return created.id as string;
+
+  // Auto-create founder as 100% shareholder with default share allocation
+  // Shares based on estimated valuation: $100K base = 1,000,000 shares at $0.10/share
+  const accountId = created.id as string;
+  const DEFAULT_TOTAL_SHARES = 1_000_000;
+  const founderName = startupName ? `Founder (${startupName})` : "Founder";
+
+  // Create default share class
+  const { data: shareClass } = await supabase
+    .from("share_classes")
+    .insert({
+      account_id: accountId,
+      name: "Ordinary",
+      class_type: "ordinary",
+      total_authorized: DEFAULT_TOTAL_SHARES,
+      price_per_share: 0.10,
+    })
+    .select("id")
+    .single();
+
+  // Create founder shareholder with 100% of shares
+  if (shareClass) {
+    await supabase.from("shareholders").insert({
+      account_id: accountId,
+      name: founderName,
+      email,
+      role: "founder",
+      share_class_id: shareClass.id,
+      shares_held: DEFAULT_TOTAL_SHARES,
+    });
+  }
+
+  return accountId;
 }
+
+/**
+ * Find an existing SVI account with fallback for legacy records.
+ *
+ * Old accounts were created before multi-project support and have
+ * project_id = NULL. When a user now has an active project, the strict
+ * (email, project_id) lookup fails. This helper:
+ *
+ * 1. Tries exact match: email + project_id
+ * 2. If not found AND projectId is not null → falls back to email + project_id IS NULL
+ * 3. Auto-migrates the legacy account by setting its project_id
+ * 4. Also migrates orphaned svi_analyses records for the same email
+ *
+ * Returns the full account row or null.
+ */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export async function findSVIAccountWithFallback(
+  email: string,
+  projectId: string | null,
+  selectColumns = "id, email, startup_name, current_svi, current_stage",
+): Promise<Record<string, unknown> | null> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+
+  // 1. Exact match
+  const exactQuery = supabase
+    .from("svi_accounts")
+    .select(selectColumns)
+    .eq("email", email);
+
+  if (projectId) {
+    exactQuery.eq("project_id", projectId);
+  } else {
+    exactQuery.is("project_id", null);
+  }
+
+  const { data: exact } = await exactQuery
+    .order("last_active_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (exact) return exact as any;
+
+  // 2. Fallback: legacy account with project_id IS NULL
+  if (!projectId) return null; // already tried null — nothing to fall back to
+
+  const { data: legacy } = await supabase
+    .from("svi_accounts")
+    .select(selectColumns)
+    .eq("email", email)
+    .is("project_id", null)
+    .order("last_active_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!legacy) return null;
+
+  // 3. Auto-migrate: attach legacy account to current project
+  await supabase
+    .from("svi_accounts")
+    .update({
+      project_id: projectId,
+      last_active_at: new Date().toISOString(),
+    })
+    .eq("id", (legacy as any).id);
+
+  // 4. Also migrate orphaned svi_analyses for the same email
+  await supabase
+    .from("svi_analyses")
+    .update({ project_id: projectId })
+    .eq("email", email)
+    .is("project_id", null);
+
+  return legacy as any;
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+/**
+ * Find latest SVI analysis with fallback for legacy records (project_id NULL).
+ */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export async function findLatestAnalysisWithFallback(
+  email: string,
+  projectId: string | null,
+  selectColumns = "id, raw_input, total_svi, analysis_json",
+): Promise<Record<string, unknown> | null> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+
+  const exactQuery = supabase
+    .from("svi_analyses")
+    .select(selectColumns)
+    .eq("email", email);
+
+  if (projectId) {
+    exactQuery.eq("project_id", projectId);
+  } else {
+    exactQuery.is("project_id", null);
+  }
+
+  const { data: exact } = await exactQuery
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (exact) return exact as any;
+
+  // Fallback to null project_id
+  if (!projectId) return null;
+
+  const { data: legacy } = await supabase
+    .from("svi_analyses")
+    .select(selectColumns)
+    .eq("email", email)
+    .is("project_id", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (legacy) {
+    // Migrate this and other orphaned analyses
+    await supabase
+      .from("svi_analyses")
+      .update({ project_id: projectId })
+      .eq("email", email)
+      .is("project_id", null);
+  }
+
+  return (legacy as any) ?? null;
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 /** Get a project by its ID. */
 export async function getProjectById(projectId: string): Promise<Project | null> {
