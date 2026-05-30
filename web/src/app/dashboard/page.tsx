@@ -24,6 +24,10 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { JourneyBar } from "@/components/dashboard/journey-bar";
 import { LivingSVIDashboard } from "@/components/dashboard/living-svi-dashboard";
+import { GrowthRoadmap } from "@/components/dashboard/growth-roadmap";
+import { CapTableMini } from "@/components/dashboard/cap-table-mini";
+import { ActivityFeed, buildActivityItems } from "@/components/dashboard/activity-feed";
+import { StatusCards } from "@/components/dashboard/status-cards";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 
 export const dynamic = "force-dynamic";
@@ -300,6 +304,8 @@ export default async function DashboardPage({
     completed_at: string;
   }> = [];
   let weeklyDelta: number | undefined;
+  let shareholders: Array<{ name: string; percentage: number; color: string }> = [];
+  let totalShareCount = 1_000_000;
 
   if (supabase) {
     // Latest analysis
@@ -456,6 +462,22 @@ export default async function DashboardPage({
         svi_impact_estimate: (a.svi_impact_estimate as number) ?? 0,
         completed_at: a.completed_at as string,
       }));
+    }
+    // Shareholders for cap table mini chart
+    if (accountId) {
+      const { data: shData } = await supabase
+        .from("shareholders")
+        .select("name, role, shares_held")
+        .eq("account_id", accountId);
+      if (shData && shData.length > 0) {
+        const totalShares = shData.reduce((sum, s) => sum + Number(s.shares_held ?? 0), 0);
+        shareholders = shData.map((s) => ({
+          name: (s.name as string) ?? "Unknown",
+          percentage: totalShares > 0 ? (Number(s.shares_held ?? 0) / totalShares) * 100 : 0,
+          color: (s.role as string) === "founder" ? "#2563EB" : (s.role as string) === "investor" ? "#F59E0B" : "#10B981",
+        }));
+        totalShareCount = totalShares;
+      }
     }
   }
 
@@ -645,7 +667,28 @@ export default async function DashboardPage({
           </div>
         </div>
 
-        {/* ── Row 5: Living SVI Dashboard ───────────────────────────────────── */}
+        {/* ── Row 5: Status Cards ───────────────────────────────────────────── */}
+        <StatusCards
+          sviScore={sviScore}
+          evidenceCount={evidenceCount}
+          phase={phase}
+          phaseName={phaseName}
+          hasCapTable={shareholders.length > 0}
+          hasEquity={shareholders.length > 1}
+        />
+
+        {/* ── Row 6: Cap Table + Activity Feed ─────────────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <CapTableMini shareholders={shareholders} totalShares={totalShareCount} />
+          <ActivityFeed items={buildActivityItems(
+            userActions.map(a => ({ action_type: a.action_type, description: a.action_label, created_at: a.completed_at }))
+          )} />
+        </div>
+
+        {/* ── Row 7: Growth Roadmap ────────────────────────────────────────── */}
+        <GrowthRoadmap currentPhase={phase} />
+
+        {/* ── Row 8: Living SVI Dashboard ───────────────────────────────────── */}
         {analysisWithDelta && (
           <LivingSVIDashboard
             analysis={analysisWithDelta}
