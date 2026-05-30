@@ -353,28 +353,28 @@ function getAvailableProviders(): Provider[] {
   //   C-tier (<35):  Llama 3.1 8B, small models
   // ──────────────────────────────────────────────────────────────────────
 
-  // ── Ranked by strongest model first ────────────────────────────────────
-  // 1. Claude OAuth — Sonnet 4.6 (score 52, S-tier) — DEFAULT
+  // ── Ranked: free/fast first, paid/slow last ────────────────────────────
+  // 1. Claude OAuth — Sonnet 4.6 (subscription, no extra cost)
   if (readCliOAuthToken()) providers.push("claude-oauth");
-  // 2. Codex OAuth — o3-mini (S-tier reasoning)
-  if (readCodexOAuthToken()) providers.push("openai-codex");
-  // 3. Proxy — Sonnet 4.6 (score 52, S-tier via shared key)
+  // 2. Proxy — Sonnet 4.6 (shared key)
   if (process.env.ANTHROPIC_PROXY_API_KEY && process.env.ANTHROPIC_PROXY_BASE_URL) providers.push("claude-proxy");
   else if (getDBKey("anthropic_proxy")) providers.push("claude-proxy");
-  // 4. OpenRouter — Kimi K2.6 (score 54), DeepSeek V4 (47), MiniMax (50), 24 free models
+  // 3. OpenRouter — 24+ free models (Kimi K2.6, DeepSeek V4, etc.)
   if (process.env.OPENROUTER_API_KEY) providers.push("openrouter");
   else if (getDBKey("openrouter")) providers.push("openrouter");
-  // 5. SambaNova — DeepSeek V3 (score ~50, S-tier free)
+  // 4. SambaNova — DeepSeek V3 (free)
   if (process.env.SAMBANOVA_API_KEY) providers.push("sambanova");
   else if (getDBKey("sambanova")) providers.push("sambanova");
-  // 6. Cerebras — gpt-oss-120b (score ~44, A-tier, 30 RPM)
+  // 5. Cerebras — gpt-oss-120b (free, 30 RPM)
   if (process.env.CEREBRAS_API_KEY) providers.push("cerebras");
   else if (getDBKey("cerebras")) providers.push("cerebras");
-  // 7. Groq — gpt-oss-120b (score ~44, A-tier, fastest inference)
+  // 6. Groq — fastest inference (free tier)
   if (process.env.GROQ_API_KEY) providers.push("groq");
   else if (getDBKey("groq")) providers.push("groq");
-  // 8. Ollama — qwen2.5:3b (C-tier, offline backup)
+  // 7. Ollama — local backup
   if (process.env.OLLAMA_HOST || process.env.OLLAMA_ENABLED === "true") providers.push("ollama");
+  // 8. Codex OAuth — low priority (often expires, slow)
+  if (readCodexOAuthToken()) providers.push("openai-codex");
 
   // ❌ Gemini / Anthropic API / OpenAI API — DISABLED
   return providers;

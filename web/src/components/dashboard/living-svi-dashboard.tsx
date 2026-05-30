@@ -943,6 +943,7 @@ function ReportSectionRow({
 }) {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [loadingStatus, setLoadingStatus] = React.useState("");
   const [confirmingUnlock, setConfirmingUnlock] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -959,17 +960,38 @@ function ReportSectionRow({
     if (isLoading) return;
     setIsLoading(true);
     setError(null);
+    setLoadingStatus("Connecting to AI...");
+
+    // Progress status updates while waiting
+    const statusMessages = [
+      { delay: 3000, msg: "Analyzing your startup data..." },
+      { delay: 8000, msg: "Generating detailed insights..." },
+      { delay: 15000, msg: "Building recommendations..." },
+      { delay: 25000, msg: "Compiling report section..." },
+      { delay: 40000, msg: "Almost done — finalizing analysis..." },
+      { delay: 60000, msg: "AI is working hard — please wait..." },
+      { delay: 90000, msg: "Complex analysis — nearly complete..." },
+    ];
+    const timers = statusMessages.map(({ delay, msg }) =>
+      setTimeout(() => setLoadingStatus(msg), delay),
+    );
 
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 130_000);
+
       const res = await fetch("/api/svi/report-section", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sectionId, depth: "full" }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
+
       const data = await res.json();
 
       if (data.ok) {
-        // Optimistic update — add the section to local state immediately
+        setLoadingStatus("Done!");
         onUnlocked({
           section_id: sectionId,
           depth: "full",
@@ -980,14 +1002,19 @@ function ReportSectionRow({
         setConfirmingUnlock(false);
         setIsExpanded(true);
       } else {
-        setError(
-          data.error ?? "Failed to unlock section. Please try again.",
-        );
+        setError(data.error ?? "Analysis failed. Please try again — no credits were charged.");
       }
-    } catch {
-      setError("Network error. Please check your connection.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      setError(
+        msg.includes("abort")
+          ? "Analysis timed out. Our AI is busy — please try again in a moment. No credits charged."
+          : "Connection interrupted. Please check your internet and try again. No credits charged.",
+      );
     } finally {
+      timers.forEach(clearTimeout);
       setIsLoading(false);
+      setLoadingStatus("");
     }
   }
 
@@ -1114,7 +1141,7 @@ function ReportSectionRow({
                       {isLoading ? (
                         <span className="flex items-center gap-1.5">
                           <Loader2 className="h-3 w-3 animate-spin shrink-0" />
-                          <span className="text-xs truncate">Analyzing section...</span>
+                          <span className="text-xs truncate max-w-[150px]">{loadingStatus || "Starting..."}</span>
                         </span>
                       ) : (
                         "Confirm"
@@ -1157,7 +1184,7 @@ function ReportSectionRow({
                 {isLoading ? (
                   <>
                     <Loader2 className="h-3 w-3 animate-spin shrink-0" />
-                    <span className="text-xs truncate">AI agent is writing your report...</span>
+                    <span className="text-xs truncate max-w-[180px]">{loadingStatus || "Starting..."}</span>
                   </>
                 ) : (
                   <Sparkles className="h-3 w-3" />
