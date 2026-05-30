@@ -198,8 +198,8 @@ export default function AboutPage() {
             <p className="text-base leading-relaxed text-ink-600">
               The result: a platform that would typically require a team of 20+
               engineers, delivered with the speed and precision of AI-native
-              development. The entire platform — 272 TypeScript files, 57 pages,
-              70 API endpoints, 41 database tables — was built in 19 days.
+              development. The entire platform — 340+ TypeScript files, 65+ pages,
+              90+ API endpoints, 47 database tables, 11 AI agents, 40+ free models — was built in 30 days.
             </p>
           </section>
 

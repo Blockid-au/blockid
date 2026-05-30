@@ -1112,7 +1112,10 @@ function ReportSectionRow({
                       )}
                     >
                       {isLoading ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <span className="flex items-center gap-1.5">
+                          <Loader2 className="h-3 w-3 animate-spin shrink-0" />
+                          <span className="text-xs truncate">Analyzing section...</span>
+                        </span>
                       ) : (
                         "Confirm"
                       )}
@@ -1152,11 +1155,14 @@ function ReportSectionRow({
                 className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition-colors cursor-pointer"
               >
                 {isLoading ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin shrink-0" />
+                    <span className="text-xs truncate">AI agent is writing your report...</span>
+                  </>
                 ) : (
                   <Sparkles className="h-3 w-3" />
                 )}
-                Generate (free)
+                {!isLoading && "Generate (free)"}
               </button>
               {error && (
                 <p className="text-xs text-red-600 mt-1.5">{error}</p>

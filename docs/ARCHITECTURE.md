@@ -1,7 +1,7 @@
 # BlockID.au -- System Architecture
 
-> Version: 2.0 | Last updated: 2026-05-19
-> Stack: Next.js (App Router, standalone output) + Supabase + Stripe + Claude/OpenAI/Gemini + Google Drive + Gmail SMTP
+> Version: 3.0 | Last updated: 2026-05-30
+> Stack: Next.js (App Router, standalone output) + Supabase + Stripe + Claude/OpenAI/Gemini/Groq/Cerebras/SambaNova/OpenRouter + Google Drive + Gmail SMTP
 
 ---
 
@@ -99,16 +99,36 @@ web/src/app/
     page.tsx                  -- Main user dashboard
     svi/page.tsx              -- SVI dashboard (scores, history, benchmarks)
   workspace/
+    evaluation/page.tsx       -- 13-Criterion Evaluation Wizard (NEW)
     evidence/page.tsx         -- Evidence Vault (upload + manage evidence)
+    metrics/page.tsx          -- Startup Metrics dashboard
+    reports/page.tsx          -- Weekly reports + enhanced reports
+    equity-setup/page.tsx     -- Equity wizard
+    cap-table/page.tsx        -- Cap table manager
+    shareholders/page.tsx     -- Shareholders management
+    esop/page.tsx             -- ESOP management
+    vesting/page.tsx          -- Vesting schedules
+    wallet/page.tsx           -- Blockchain wallet
+    equity-dashboard/page.tsx -- Blockchain sync
+    data-room/page.tsx        -- Data room
+    fundraise/page.tsx        -- Raise capital
+    documents/page.tsx        -- Documents
+    revenue/page.tsx          -- Revenue tracking
+    journal/page.tsx          -- Growth journal
+    dividends/page.tsx        -- Dividends
+    exit/page.tsx             -- Exit modeling
     roadmap/page.tsx          -- Guided roadmap (action items)
-    reports/page.tsx          -- Weekly reports
     billing/page.tsx          -- Billing + subscription management
     profile/page.tsx          -- User profile
+    notifications/page.tsx    -- Notifications
   admin/
     page.tsx                  -- Admin dashboard (metrics, users)
     users/page.tsx            -- Admin user management
     documents/page.tsx        -- Admin document review
     growth/page.tsx           -- Growth insights dashboard
+    architecture/page.tsx     -- System architecture visualization
+    team/page.tsx             -- Team & AI agents dashboard
+    listings/page.tsx         -- Directory listings management
   tools/
     idea-valuation/page.tsx   -- Free idea valuation estimator
     equity-split/page.tsx     -- Free equity split calculator
@@ -186,22 +206,27 @@ web/src/components/
 ### Backend: API Routes Grouped by Domain
 
 ```
-/api/auth/         -- Authentication (magic link, Google OAuth, session)
-/api/svi/          -- Startup Value Index (analysis, AI score, report, research, share)
-/api/stripe/       -- Payments (checkout, webhook, portal, cancel, reactivate, change-plan, analysis)
-/api/credits/      -- Credit system (balance, check, purchase packs)
-/api/evidence/     -- Evidence Vault (list, add, upload to Drive)
-/api/score         -- Legacy Investor-Ready Score
-/api/term-sheet    -- Term Sheet AI analysis
-/api/idea-estimate -- Idea value estimator
-/api/cofounder-match -- Co-founder profile submission
-/api/investor-link -- Per-investor share link creation
-/api/svi-accounts  -- SVI account creation/upsert
-/api/actions       -- User action tracking
-/api/lead          -- Lead capture + Founding 50 checkout
-/api/coupon/       -- Coupon validation + redemption
-/api/admin/        -- Admin-only operations (Drive upload)
-/api/cron/         -- Cron jobs (SVI notify, snapshot, growth insights)
+/api/auth/            -- Authentication (magic link, Google OAuth, session)
+/api/svi/             -- Startup Value Index (analysis, AI score, report, research, share)
+/api/svi/enhanced-report/ -- Multi-agent orchestrated report (13 criteria) (NEW)
+/api/svi/docx/        -- DOCX export endpoint (NEW)
+/api/evaluation/      -- 13-Criterion evaluation CRUD + AI suggest/score (NEW)
+/api/stripe/          -- Payments (checkout, webhook, portal, cancel, reactivate)
+/api/credits/         -- Credit system (balance, check, purchase packs)
+/api/evidence/        -- Evidence Vault (list, add, upload to Drive)
+/api/valuation/       -- Idea valuation engine
+/api/upload/          -- File upload (50MB, 13+ file types)
+/api/score            -- Legacy Investor-Ready Score
+/api/term-sheet       -- Term Sheet AI analysis
+/api/pitch-deck       -- AI pitch deck generator
+/api/cofounder-match  -- Co-founder profile submission
+/api/investor-link    -- Per-investor share link creation
+/api/svi-accounts     -- SVI account creation/upsert
+/api/actions          -- User action tracking
+/api/lead             -- Lead capture + Founding 50 checkout
+/api/coupon/          -- Coupon validation + redemption
+/api/admin/           -- Admin-only operations
+/api/cron/            -- Cron jobs (agent-upgrade, agent-research, SVI notify, snapshot)
 ```
 
 ### Server-Side Libraries
@@ -214,8 +239,22 @@ web/src/lib/
   email.ts              -- Gmail SMTP wrapper (Nodemailer, 12+ email templates)
   stripe.ts             -- Stripe server client + price map
   stripe-client.ts      -- Stripe client-side loader
-  ai-client.ts          -- Unified AI client (Claude > OpenAI > Gemini fallback)
+  ai-client.ts          -- Unified AI client (9 providers, 40+ free models, auto-fallback)
+  ai-image-client.ts    -- AI image generation (Gemini/OpenRouter/DALL-E + Mermaid) (NEW)
   svi-analysis.ts       -- SVI v2 computation (8 dimensions, signals, stage detection)
+  evaluation-criteria.ts -- 13 evaluation criteria definitions + quality scoring (NEW)
+  report-pipeline/
+    orchestrator.ts     -- Multi-agent report pipeline (3-phase, 15 AI calls) (NEW)
+    agent-prompts.ts    -- Per-agent system prompts (11 C-Level agents) (NEW)
+    agent-dispatcher.ts -- Wave-based parallel AI dispatch (NEW)
+    section-assembler.ts -- 21-section report assembly (NEW)
+    chart-generator.ts  -- SVG + AI chart rendering (NEW)
+    types.ts            -- Pipeline types (NEW)
+  agent-goals/
+    goal-tree.ts        -- CEO goal hierarchy + KPIs (NEW)
+  docx/
+    svi-report-docx.ts  -- DOCX generation using docx npm package (NEW)
+  email-enhanced.ts     -- Enhanced email with DOCX+PDF attachments (NEW)
   score.ts              -- Legacy Investor-Ready Score computation
   google-drive.ts       -- Google Drive upload + share (service account)
   plans.ts              -- Plan definitions + pricing helpers

@@ -111,6 +111,45 @@ export interface SVIExtractedSignals {
 
   // Evidence quality
   evidenceLevel: keyof typeof EVIDENCE_CONFIDENCE;
+
+  // ── Extended signals for 13 evaluation criteria ─────────────────────────
+
+  // Idea signals
+  hasUniqueness: boolean;
+  hasProblemSolutionFit: boolean;
+  innovationLevel: "incremental" | "novel" | "breakthrough";
+
+  // Team Structure signals
+  hasOrgChart: boolean;
+  hasAdvisoryBoard: boolean;
+  teamSize: "solo" | "small" | "medium" | "large";
+  hasHiringPlan: boolean;
+
+  // Go-to-Market signals
+  hasGTMStrategy: boolean;
+  hasDistributionChannels: boolean;
+  hasPricingStrategy: boolean;
+  hasAcquisitionPlan: boolean;
+
+  // Code/Git signals (enhanced)
+  hasCommitHistory: boolean;
+  codeQuality: "unknown" | "basic" | "good" | "production";
+  hasArchitectureDoc: boolean;
+  hasTests: boolean;
+
+  // Customer Size signals
+  userBaseSize: "none" | "early" | "growing" | "significant";
+  hasEngagementMetrics: boolean;
+  hasGrowthRate: boolean;
+
+  // Roadmap signals
+  hasProductRoadmap: boolean;
+  hasMilestones: boolean;
+  roadmapClarity: "vague" | "clear" | "detailed";
+
+  // Document Quality signals
+  hasBusinessPlan: boolean;
+  documentCompleteness: "minimal" | "partial" | "comprehensive";
 }
 
 export interface SVISubScore {

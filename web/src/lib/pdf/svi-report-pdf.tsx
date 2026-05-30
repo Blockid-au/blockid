@@ -12,22 +12,30 @@ const LOGO_SRC = fs.existsSync(LOGO_PATH)
 
 /* ─── Brand Palette ─────────────────────────────────────────────────────── */
 const C = {
+  brand700: "#1d4ed8",
   brand600: "#2563eb",
+  brand500: "#3b82f6",
   brand100: "#dbeafe",
   brand50: "#eff6ff",
+  ink900: "#0f172a",
   ink800: "#1e293b",
   ink700: "#334155",
   ink600: "#475569",
   ink500: "#64748b",
   ink400: "#94a3b8",
+  ink300: "#cbd5e1",
   surface200: "#e2e8f0",
   surface100: "#f1f5f9",
   surface50: "#f8fafc",
   emerald600: "#059669",
+  emerald500: "#10b981",
   emerald100: "#d1fae5",
+  emerald50: "#ecfdf5",
   amber600: "#d97706",
+  amber500: "#f59e0b",
   amber100: "#fef3c7",
   red600: "#dc2626",
+  red500: "#ef4444",
   red100: "#fee2e2",
   teal600: "#0d9488",
   white: "#ffffff",
@@ -56,216 +64,204 @@ const DIM_WEIGHTS: Record<string, string> = {
   svm: "5%",
 };
 
+/* ─── Consulting-style section title map ────────────────────────────────── */
+const SECTION_TITLES: Record<string, string> = {
+  "founder": "Founding Team & Leadership Capability",
+  "ftv": "Founding Team & Leadership Capability",
+  "market": "Market Opportunity & Growth Potential",
+  "mpc": "Market Opportunity & Growth Potential",
+  "product": "Product & Technical Architecture",
+  "ptd": "Product & Technical Architecture",
+  "traction": "Traction, Revenue & Growth Metrics",
+  "tre": "Traction, Revenue & Growth Metrics",
+  "gtm": "Go-to-Market Strategy & Distribution",
+  "cap": "Equity Structure & Corporate Governance",
+  "cgh": "Equity Structure & Corporate Governance",
+  "investor": "Investor Readiness & Fundraise Positioning",
+  "iri": "Investor Readiness & Fundraise Positioning",
+  "legal": "Legal Framework & Compliance Posture",
+  "lco": "Legal Framework & Compliance Posture",
+  "vision": "Strategic Vision & Competitive Moat",
+  "svm": "Strategic Vision & Competitive Moat",
+  "financial": "Financial Projections & Unit Economics",
+  "risk": "Risk Landscape & Mitigation Strategies",
+};
+
 /* ─── Styles ────────────────────────────────────────────────────────────── */
 const s = StyleSheet.create({
-  /* Page */
   page: {
-    paddingTop: 48,
-    paddingBottom: 60,
-    paddingHorizontal: 48,
+    paddingTop: 52,
+    paddingBottom: 56,
+    paddingHorizontal: 52,
     fontFamily: "Helvetica",
     fontSize: 10,
     color: C.ink800,
+    backgroundColor: C.white,
   },
 
-  /* Footer — absolute on every page */
+  /* Header bar — fixed thin blue line at top */
+  headerBar: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 4,
+    backgroundColor: C.brand600,
+  },
+
+  /* Footer */
   footer: {
     position: "absolute",
-    bottom: 24,
-    left: 48,
-    right: 48,
+    bottom: 20,
+    left: 52,
+    right: 52,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     borderTopWidth: 0.5,
     borderTopColor: C.surface200,
-    paddingTop: 8,
+    paddingTop: 6,
   },
-  footerText: { fontSize: 7, color: C.ink400 },
-  footerBrand: { fontSize: 7, color: C.brand600, fontWeight: "bold" },
+  footerText: { fontSize: 6.5, color: C.ink400 },
+  footerBrand: { fontSize: 7, color: C.brand600, fontFamily: "Helvetica-Bold" },
 
-  /* Cover */
-  coverCenter: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  coverBrand: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: C.brand600,
-    letterSpacing: 1,
-  },
-  coverDot: { color: C.ink500 },
-  coverTitle: {
+  /* Typography */
+  h1: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: C.ink800,
-    marginTop: 32,
-    textAlign: "center",
+    fontFamily: "Helvetica-Bold",
+    color: C.ink900,
+    marginBottom: 4,
   },
-  coverScore: {
-    fontSize: 72,
-    fontWeight: "bold",
-    color: C.brand600,
-    marginTop: 24,
-    textAlign: "center",
-  },
-  coverStage: {
-    fontSize: 12,
-    color: C.ink600,
-    marginTop: 8,
-    textAlign: "center",
-  },
-  coverDate: {
+  h1Sub: {
     fontSize: 9,
     color: C.ink500,
-    marginTop: 24,
-    textAlign: "center",
-  },
-  coverConf: {
-    fontSize: 8,
-    color: C.ink400,
-    marginTop: 6,
-    textAlign: "center",
-  },
-
-  /* Section & heading */
-  h1: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: C.ink800,
-    marginBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: C.surface200,
-    paddingBottom: 6,
+    marginBottom: 16,
+    letterSpacing: 0.3,
   },
   h2: {
     fontSize: 12,
-    fontWeight: "bold",
-    color: C.ink700,
+    fontFamily: "Helvetica-Bold",
+    color: C.ink800,
     marginTop: 14,
     marginBottom: 6,
   },
   h3: {
     fontSize: 10,
-    fontWeight: "bold",
+    fontFamily: "Helvetica-Bold",
     color: C.ink700,
-    marginTop: 10,
+    marginTop: 8,
     marginBottom: 4,
   },
-  body: { fontSize: 9, color: C.ink600, lineHeight: 1.6, marginBottom: 8 },
-
-  /* Metric cards */
-  metricRow: { flexDirection: "row", gap: 8, marginBottom: 10 },
-  metricCard: {
-    flex: 1,
-    borderWidth: 0.5,
-    borderColor: C.surface200,
-    borderRadius: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    backgroundColor: C.surface50,
-    alignItems: "center",
+  body: {
+    fontSize: 9,
+    color: C.ink600,
+    lineHeight: 1.65,
+    marginBottom: 8,
   },
-  metricLabel: {
+  label: {
     fontSize: 7,
     color: C.ink500,
     textTransform: "uppercase",
     letterSpacing: 1.2,
-    marginBottom: 3,
   },
-  metricValue: { fontSize: 16, fontWeight: "bold", color: C.ink800 },
-  metricSub: { fontSize: 7, color: C.ink500, marginTop: 2 },
-
-  /* Dimension rows */
-  dimRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    borderBottomWidth: 0.5,
-    borderBottomColor: C.surface100,
+  bigNum: {
+    fontSize: 28,
+    fontFamily: "Helvetica-Bold",
+    color: C.brand600,
   },
-  dimLabel: { flex: 1, fontSize: 9, color: C.ink700 },
-  dimWeight: { width: 30, fontSize: 8, color: C.ink500, textAlign: "center" },
-  dimScore: { width: 40, fontSize: 9, fontWeight: "bold", color: C.ink800, textAlign: "right" },
-  dimAdj: { width: 35, fontSize: 8, textAlign: "right" },
 
   /* Score bar */
-  barOuter: { width: 80, height: 6, borderRadius: 3, backgroundColor: C.surface200, marginLeft: 6 },
-  barFill: { height: 6, borderRadius: 3 },
-
-  /* Bullet items */
-  bulletRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 3 },
-  bulletDot: { width: 10, fontSize: 9, color: C.emerald600 },
-  bulletDotAmber: { width: 10, fontSize: 9, color: C.amber600 },
-  bulletDotRed: { width: 10, fontSize: 9, color: C.red600 },
-  bulletText: { flex: 1, fontSize: 8.5, color: C.ink600, lineHeight: 1.5 },
-
-  /* Risk cards */
-  riskCard: {
-    borderWidth: 0.5,
-    borderRadius: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    marginBottom: 6,
+  barOuter: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: C.surface200,
   },
-  riskRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 2 },
-  riskLabel: { fontSize: 9, fontWeight: "bold", color: C.ink800 },
-  riskPts: { fontSize: 9, fontWeight: "bold", color: C.red600 },
-  riskReason: { fontSize: 8, color: C.ink600, lineHeight: 1.5 },
-
-  /* Gap cards */
-  gapCard: {
-    borderWidth: 0.5,
-    borderRadius: 6,
-    paddingVertical: 5,
-    paddingHorizontal: 8,
-    marginBottom: 5,
+  barFill: {
+    height: 8,
+    borderRadius: 4,
   },
-  gapRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  gapPriority: { fontSize: 7, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 0.8 },
-  gapLabel: { fontSize: 9, fontWeight: "bold", color: C.ink800, marginTop: 2 },
-  gapAction: { fontSize: 8, color: C.ink600, marginTop: 1, lineHeight: 1.4 },
-  gapImpact: { fontSize: 8, fontWeight: "bold", color: C.teal600 },
 
-  /* Stage journey */
-  stageRow: { flexDirection: "row", alignItems: "center", marginBottom: 4 },
-  stageCircle: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 8,
-  },
-  stageNum: { fontSize: 8, fontWeight: "bold", color: C.white },
-  stageLabel: { fontSize: 9, color: C.ink600 },
-  stageCurrent: { fontSize: 9, fontWeight: "bold", color: C.brand600 },
-
-  /* Dimension detail page */
-  detailBox: {
+  /* Metric cards */
+  metricCard: {
+    flex: 1,
     borderWidth: 0.5,
     borderColor: C.surface200,
-    borderRadius: 6,
-    padding: 10,
-    marginBottom: 10,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     backgroundColor: C.surface50,
-  },
-  detailHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+  },
+
+  /* Insight callout box */
+  insightBox: {
+    backgroundColor: C.brand600,
+    borderRadius: 8,
+    padding: 14,
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  insightText: {
+    fontSize: 9,
+    color: C.white,
+    lineHeight: 1.6,
+  },
+  insightLabel: {
+    fontSize: 7,
+    color: C.brand100,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: 4,
+    fontFamily: "Helvetica-Bold",
+  },
+
+  /* Action items */
+  actionRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
     marginBottom: 6,
   },
-  detailDimName: { fontSize: 11, fontWeight: "bold", color: C.ink800 },
-  detailScore: { fontSize: 14, fontWeight: "bold", color: C.brand600 },
+  actionNum: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: C.brand600,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+    marginTop: 1,
+  },
+  actionNumText: {
+    fontSize: 9,
+    fontFamily: "Helvetica-Bold",
+    color: C.white,
+  },
 
-  /* Signals indicator */
-  signalRow: { flexDirection: "row", alignItems: "center", marginBottom: 3 },
-  signalDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
-  signalText: { fontSize: 8.5, color: C.ink600 },
+  /* Risk card */
+  riskCard: {
+    borderLeftWidth: 3,
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+    backgroundColor: C.surface50,
+  },
+
+  /* Section number badge */
+  sectionBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: C.brand50,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  sectionBadgeText: {
+    fontSize: 18,
+    fontFamily: "Helvetica-Bold",
+    color: C.brand600,
+  },
 });
 
 /* ─── Helpers ───────────────────────────────────────────────────────────── */
@@ -288,133 +284,220 @@ function sviLabel(svi: number): string {
 }
 
 function riskSeverity(points: number): string {
-  if (points >= 12) return "Critical";
-  if (points >= 8) return "High";
-  if (points >= 5) return "Medium";
-  return "Low";
+  if (points >= 12) return "CRITICAL";
+  if (points >= 8) return "HIGH";
+  if (points >= 5) return "MEDIUM";
+  return "LOW";
 }
 
 function riskBorderColor(points: number): string {
   if (points >= 12) return C.red600;
-  if (points >= 8) return "#f87171";
+  if (points >= 8) return C.red500;
   if (points >= 5) return C.amber600;
-  return C.surface200;
+  return C.ink300;
 }
 
-function priorityColor(p: string): string {
-  if (p === "P0") return C.red600;
-  if (p === "P1") return C.amber600;
-  return C.ink500;
-}
-
-function priorityBg(p: string): string {
-  if (p === "P0") return C.red100;
-  if (p === "P1") return C.amber100;
-  return C.surface100;
+function scoreColor(score: number): string {
+  if (score >= 70) return C.emerald600;
+  if (score >= 50) return C.brand600;
+  if (score >= 35) return C.amber600;
+  return C.red600;
 }
 
 function findSub(analysis: SVIAnalysis, key: string) {
   return analysis.subs.find((sub) => sub.key === key);
 }
 
-/* ─── Shared footer with logo ──────────────────────────────────────────── */
-function Footer({ pageNum }: { pageNum: number }) {
+function getSectionTitle(id: string): string {
+  const lower = id.toLowerCase();
+  for (const [key, title] of Object.entries(SECTION_TITLES)) {
+    if (lower.includes(key)) return title;
+  }
+  return id;
+}
+
+/* ─── Shared Components ─────────────────────────────────────────────────── */
+
+function HeaderBar() {
+  return <View style={s.headerBar} fixed />;
+}
+
+function Footer({ disclaimer }: { disclaimer?: boolean }) {
   return (
     <View style={s.footer} fixed>
       <Text style={s.footerText}>Confidential</Text>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
         {/* eslint-disable-next-line jsx-a11y/alt-text */}
-        {LOGO_SRC && <Image src={LOGO_SRC} style={{ width: 60, height: 14 }} />}
+        {LOGO_SRC && <Image src={LOGO_SRC} style={{ width: 56, height: 13 }} />}
         {!LOGO_SRC && <Text style={s.footerBrand}>BlockID.au</Text>}
       </View>
-      <Text style={s.footerText}>Page {pageNum}</Text>
-    </View>
-  );
-}
-
-/* ─── Dimension detail block (reusable for pages 5-7) ──────────────────── */
-function DimensionDetail({
-  sub,
-}: {
-  sub: SVIAnalysis["subs"][number] | undefined;
-}) {
-  if (!sub) return null;
-  const label = DIM_LABELS[sub.key] ?? sub.label;
-  const weight = DIM_WEIGHTS[sub.key] ?? "";
-  const score = Math.round(sub.value);
-  return (
-    <View style={s.detailBox}>
-      <View style={s.detailHeader}>
-        <View>
-          <Text style={s.detailDimName}>
-            {sub.key.toUpperCase()} — {label}
-          </Text>
-          <Text style={{ fontSize: 8, color: C.ink500, marginTop: 1 }}>Weight: {weight}</Text>
-        </View>
-        <View style={{ alignItems: "flex-end" }}>
-          <Text style={s.detailScore}>{score}/100</Text>
-          <Text
-            style={{
-              fontSize: 8,
-              fontWeight: "bold",
-              color: sub.adjustment >= 0 ? C.emerald600 : C.red600,
-            }}
-          >
-            {sub.adjustment >= 0 ? "+" : ""}
-            {sub.adjustment} adj
-          </Text>
-        </View>
-      </View>
-
-      {/* Score bar */}
-      <View style={s.barOuter}>
-        <View style={[s.barFill, { width: `${score}%`, backgroundColor: barColor(score) }]} />
-      </View>
-
-      <Text style={[s.body, { marginTop: 6 }]}>{sub.rationale}</Text>
-
-      {sub.evidence.length > 0 && (
-        <View style={{ marginTop: 4 }}>
-          <Text style={{ fontSize: 8, fontWeight: "bold", color: C.emerald600, marginBottom: 3 }}>
-            EVIDENCE
-          </Text>
-          {sub.evidence.map((e, i) => (
-            <View key={`${sub.key}-ev-${i}`} style={s.bulletRow}>
-              <Text style={s.bulletDot}>+</Text>
-              <Text style={s.bulletText}>{e}</Text>
-            </View>
-          ))}
-        </View>
-      )}
-
-      {sub.gaps.length > 0 && (
-        <View style={{ marginTop: 4 }}>
-          <Text style={{ fontSize: 8, fontWeight: "bold", color: C.amber600, marginBottom: 3 }}>
-            GAPS
-          </Text>
-          {sub.gaps.map((g, i) => (
-            <View key={`${sub.key}-gap-${i}`} style={s.bulletRow}>
-              <Text style={s.bulletDotAmber}>!</Text>
-              <Text style={s.bulletText}>{g}</Text>
-            </View>
-          ))}
-        </View>
-      )}
-    </View>
-  );
-}
-
-/* ─── Signal indicator row ──────────────────────────────────────────────── */
-function Signal({ label, active }: { label: string; active: boolean }) {
-  return (
-    <View style={s.signalRow}>
-      <View
-        style={[
-          s.signalDot,
-          { backgroundColor: active ? C.emerald600 : C.surface200 },
-        ]}
+      <Text
+        style={s.footerText}
+        render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}
       />
-      <Text style={[s.signalText, active ? { color: C.ink800 } : {}]}>{label}</Text>
+    </View>
+  );
+}
+
+function PageTitle({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle?: string;
+}) {
+  return (
+    <View style={{ marginBottom: 16 }}>
+      <View style={{ height: 2, width: 40, backgroundColor: C.brand600, marginBottom: 10 }} />
+      <Text style={s.h1}>{title}</Text>
+      {subtitle && <Text style={s.h1Sub}>{subtitle}</Text>}
+    </View>
+  );
+}
+
+function SectionNumberBadge({ num }: { num: string }) {
+  return (
+    <View style={s.sectionBadge}>
+      <Text style={s.sectionBadgeText}>{num}</Text>
+    </View>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+  sub,
+  color,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  color?: string;
+}) {
+  return (
+    <View style={s.metricCard}>
+      <Text style={s.label}>{label}</Text>
+      <Text style={{ fontSize: 20, fontFamily: "Helvetica-Bold", color: color || C.brand600, marginTop: 2 }}>
+        {value}
+      </Text>
+      {sub && <Text style={{ fontSize: 7, color: C.ink500, marginTop: 2 }}>{sub}</Text>}
+    </View>
+  );
+}
+
+function ScoreGauge({ score, size = 64 }: { score: number; size?: number }) {
+  const color = scoreColor(score);
+  const borderW = size * 0.08;
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        borderWidth: borderW,
+        borderColor: C.surface200,
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
+      }}
+    >
+      {/* Colored arc — simulated with partial border */}
+      <View
+        style={{
+          position: "absolute",
+          top: -borderW,
+          left: -borderW,
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          borderWidth: borderW,
+          borderColor: "transparent",
+          borderTopColor: color,
+          borderRightColor: score > 25 ? color : "transparent",
+          borderBottomColor: score > 50 ? color : "transparent",
+          borderLeftColor: score > 75 ? color : "transparent",
+        }}
+      />
+      <Text style={{ fontSize: size * 0.32, fontFamily: "Helvetica-Bold", color }}>
+        {Math.round(score)}
+      </Text>
+    </View>
+  );
+}
+
+function InsightBox({ text, label }: { text: string; label?: string }) {
+  return (
+    <View style={s.insightBox}>
+      <Text style={s.insightLabel}>{label || "KEY INSIGHT"}</Text>
+      <Text style={s.insightText}>{text}</Text>
+    </View>
+  );
+}
+
+function ActionItem({ num, text, detail }: { num: number; text: string; detail?: string }) {
+  return (
+    <View style={s.actionRow}>
+      <View style={s.actionNum}>
+        <Text style={s.actionNumText}>{num}</Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: C.ink800 }}>{text}</Text>
+        {detail && (
+          <Text style={{ fontSize: 8, color: C.ink600, lineHeight: 1.5, marginTop: 2 }}>{detail}</Text>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function DimensionBar({
+  label,
+  score,
+  weight,
+  insight,
+}: {
+  label: string;
+  score: number;
+  weight: string;
+  insight?: string;
+}) {
+  const rounded = Math.round(score);
+  const color = barColor(score);
+  return (
+    <View style={{ marginBottom: 10 }}>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Text style={{ fontSize: 8, textTransform: "uppercase", letterSpacing: 0.8, color: C.ink700, fontFamily: "Helvetica-Bold" }}>
+            {label}
+          </Text>
+          <Text style={{ fontSize: 7, color: C.ink400 }}>({weight})</Text>
+        </View>
+        <Text style={{ fontSize: 10, fontFamily: "Helvetica-Bold", color }}>{rounded}/100</Text>
+      </View>
+      <View style={s.barOuter}>
+        <View style={[s.barFill, { width: `${rounded}%`, backgroundColor: color }]} />
+      </View>
+      {insight && (
+        <Text style={{ fontSize: 7.5, color: C.ink500, marginTop: 2, lineHeight: 1.4 }}>{insight}</Text>
+      )}
+    </View>
+  );
+}
+
+function Bullet({ text, color }: { text: string; color?: string }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 4 }}>
+      <View
+        style={{
+          width: 5,
+          height: 5,
+          borderRadius: 2.5,
+          backgroundColor: color || C.emerald600,
+          marginRight: 8,
+          marginTop: 3,
+        }}
+      />
+      <Text style={{ flex: 1, fontSize: 8.5, color: C.ink600, lineHeight: 1.5 }}>{text}</Text>
     </View>
   );
 }
@@ -423,490 +506,509 @@ function Signal({ label, active }: { label: string; active: boolean }) {
  *  MAIN DOCUMENT
  * ═══════════════════════════════════════════════════════════════════════════ */
 
-interface Props {
+interface SVIReportPDFProps {
   analysis: SVIAnalysis;
+  startupName?: string;
   email?: string;
-  tier?: "preview" | "standard" | "deep_dive" | "modular";
+  tier?: "preview" | "standard" | "premium" | "deep_dive" | "modular";
+  reportDate?: string;
+  sections?: Array<{
+    id: string;
+    title: string;
+    content: string;
+    score?: number;
+    keyInsight?: string;
+    actions?: string[];
+  }>;
+  charts?: Map<string, string>;
 }
 
-export function SVIReportPDF({ analysis, email, tier = "standard" }: Props) {
-  const isPaid = tier !== "preview" && tier !== "standard";
-  const date = new Date().toLocaleDateString("en-AU", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+export function SVIReportPDF({
+  analysis,
+  startupName,
+  email,
+  tier = "standard",
+  reportDate,
+  sections,
+  charts,
+}: SVIReportPDFProps) {
+  const isPaid = tier === "premium" || tier === "deep_dive";
+  const date =
+    reportDate ||
+    new Date().toLocaleDateString("en-AU", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+  const name = startupName || "Startup";
+  const sviScore = analysis.totalSVI;
+  const confidence = Math.round(analysis.confidenceMultiplier * 100);
+  const riskCount = analysis.riskPenalties.length;
+  const totalRiskPts = analysis.riskPenalties.reduce((sum, r) => sum + r.points, 0);
 
   const topStrengths = [...analysis.subs]
     .filter((sub) => sub.value >= 60)
     .sort((a, b) => b.value - a.value)
-    .slice(0, 3);
+    .slice(0, 4);
 
-  const topGaps = [...analysis.evidenceGaps]
-    .sort((a, b) => {
-      const order: Record<string, number> = { P0: 0, P1: 1, P2: 2 };
-      return (order[a.priority] ?? 3) - (order[b.priority] ?? 3);
-    })
-    .slice(0, 3);
+  const topWeaknesses = [...analysis.subs]
+    .filter((sub) => sub.value < 50)
+    .sort((a, b) => a.value - b.value)
+    .slice(0, 4);
 
   const p0Gaps = analysis.evidenceGaps.filter((g) => g.priority === "P0");
   const p1Gaps = analysis.evidenceGaps.filter((g) => g.priority === "P1");
-  const p2Gaps = analysis.evidenceGaps.filter((g) => g.priority === "P2");
 
-  const mpc = findSub(analysis, "mpc");
-  const ptd = findSub(analysis, "ptd");
-  const tre = findSub(analysis, "tre");
-  const cgh = findSub(analysis, "cgh");
-  const iri = findSub(analysis, "iri");
-  const lco = findSub(analysis, "lco");
+  // Build section pages from either the sections prop or fallback to dimension data
+  const sectionPages = sections && sections.length > 0
+    ? sections.slice(0, 6)
+    : analysis.subs.slice(0, 6).map((sub) => ({
+        id: sub.key,
+        title: SECTION_TITLES[sub.key] || DIM_LABELS[sub.key] || sub.label,
+        content: sub.rationale,
+        score: Math.round(sub.value),
+        keyInsight: sub.evidence[0] || undefined,
+        actions: sub.gaps.slice(0, 3),
+      }));
 
   return (
     <Document>
-      {/* ─── Page 1: Cover ────────────────────────────────────────────────── */}
-      <Page size="A4" style={[s.page, { paddingTop: 0, paddingBottom: 0 }]}>
-        <View style={s.coverCenter}>
-          {LOGO_SRC && (
-            /* eslint-disable-next-line jsx-a11y/alt-text */
-            <Image src={LOGO_SRC} style={{ width: 220, height: 50, marginBottom: 8 }} />
-          )}
-          {!LOGO_SRC && (
-            <Text style={s.coverBrand}>
-              BlockID<Text style={s.coverDot}>.au</Text>
-            </Text>
-          )}
-          <Text style={s.coverTitle}>Your Startup Value Report</Text>
-          <Text style={{
-            fontSize: 9,
-            color: isPaid ? C.emerald600 : C.brand600,
-            fontWeight: "bold",
-            marginTop: 4,
-            paddingHorizontal: 12,
-            paddingVertical: 3,
-            backgroundColor: isPaid ? C.emerald100 : C.brand100,
-            borderRadius: 4,
-          }}>
-            {isPaid ? "Full Report — Unlimited Analysis" : "Preview Report — 10 Pages"}
+      {/* ────────────────────────────────────────────────────────────────────
+       *  PAGE 1: COVER
+       * ──────────────────────────────────────────────────────────────────── */}
+      <Page size="A4" style={{ fontFamily: "Helvetica", fontSize: 10, color: C.ink800 }}>
+        {/* Dark blue header block */}
+        <View
+          style={{
+            backgroundColor: C.brand700,
+            height: 260,
+            paddingHorizontal: 52,
+            paddingTop: 48,
+            justifyContent: "flex-end",
+            paddingBottom: 32,
+          }}
+        >
+          {/* Logo */}
+          <View style={{ position: "absolute", top: 28, left: 52 }}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+            {LOGO_SRC && <Image src={LOGO_SRC} style={{ width: 100, height: 23, opacity: 0.9 }} />}
+            {!LOGO_SRC && (
+              <Text style={{ fontSize: 14, fontFamily: "Helvetica-Bold", color: C.white }}>
+                BlockID.au
+              </Text>
+            )}
+          </View>
+
+          <Text style={{ fontSize: 10, color: C.brand100, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>
+            STARTUP VALUATION INTELLIGENCE REPORT
           </Text>
-          <Text style={s.coverScore}>{analysis.totalSVI}</Text>
-          <Text style={s.coverStage}>
-            {sviLabel(analysis.totalSVI)} — Stage {analysis.stage}: {analysis.stageLabel}
-          </Text>
-          <Text style={s.coverDate}>Generated {date}</Text>
-          {email && (
-            <Text style={s.coverConf}>Confidential — Prepared for {email}</Text>
-          )}
-          <Text style={{ fontSize: 8, color: C.ink400, marginTop: 16, textAlign: "center" }}>
-            SVI v{analysis.version} | Evidence Confidence: {Math.round(analysis.confidenceMultiplier * 100)}%
+          <Text style={{ fontSize: 28, fontFamily: "Helvetica-Bold", color: C.white, lineHeight: 1.2 }}>
+            {name}
           </Text>
         </View>
-        <Footer pageNum={1} />
+
+        {/* Score area */}
+        <View style={{ paddingHorizontal: 52, paddingTop: 36, flex: 1 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 24 }}>
+            {/* SVI Score gauge */}
+            <View style={{ alignItems: "center" }}>
+              <View
+                style={{
+                  width: 110,
+                  height: 110,
+                  borderRadius: 55,
+                  borderWidth: 6,
+                  borderColor: C.surface200,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <View
+                  style={{
+                    position: "absolute",
+                    top: -6,
+                    left: -6,
+                    width: 110,
+                    height: 110,
+                    borderRadius: 55,
+                    borderWidth: 6,
+                    borderColor: "transparent",
+                    borderTopColor: C.brand600,
+                    borderRightColor: sviScore > 75 ? C.brand600 : "transparent",
+                    borderBottomColor: sviScore > 150 ? C.brand600 : "transparent",
+                    borderLeftColor: sviScore > 225 ? C.brand600 : "transparent",
+                  }}
+                />
+                <Text style={{ fontSize: 36, fontFamily: "Helvetica-Bold", color: C.brand600 }}>
+                  {sviScore}
+                </Text>
+                <Text style={{ fontSize: 8, color: C.ink500, marginTop: -2 }}>SVI SCORE</Text>
+              </View>
+            </View>
+
+            {/* Score details */}
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontFamily: "Helvetica-Bold", color: C.ink900, marginBottom: 4 }}>
+                {sviLabel(sviScore)}
+              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <View
+                  style={{
+                    backgroundColor: C.brand50,
+                    borderRadius: 4,
+                    paddingHorizontal: 8,
+                    paddingVertical: 3,
+                  }}
+                >
+                  <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: C.brand600 }}>
+                    Stage {analysis.stage}: {analysis.stageLabel}
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    backgroundColor: isPaid ? C.emerald50 : C.surface100,
+                    borderRadius: 4,
+                    paddingHorizontal: 8,
+                    paddingVertical: 3,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 8,
+                      fontFamily: "Helvetica-Bold",
+                      color: isPaid ? C.emerald600 : C.ink500,
+                    }}
+                  >
+                    {isPaid ? "Premium Report" : tier === "standard" ? "Standard Report" : "Preview Report"}
+                  </Text>
+                </View>
+              </View>
+              <Text style={{ fontSize: 8, color: C.ink500 }}>
+                Generated {date}
+              </Text>
+              <Text style={{ fontSize: 8, color: C.ink400, marginTop: 2 }}>
+                SVI v{analysis.version} | Confidence: {confidence}%
+              </Text>
+              {email && (
+                <Text style={{ fontSize: 7, color: C.ink400, marginTop: 4 }}>
+                  Confidential — Prepared for {email}
+                </Text>
+              )}
+            </View>
+          </View>
+
+          {/* Tagline */}
+          <View
+            style={{
+              marginTop: 32,
+              borderTopWidth: 0.5,
+              borderTopColor: C.surface200,
+              paddingTop: 16,
+            }}
+          >
+            <Text style={{ fontSize: 9, color: C.ink500, textAlign: "center" }}>
+              Powered by 11 C-Level AI Agents | Auschain PTY LTD | ACN 659 615 111
+            </Text>
+          </View>
+        </View>
+
+        <Footer />
       </Page>
 
-      {/* ─── Page 2: Executive Summary ────────────────────────────────────── */}
+      {/* ────────────────────────────────────────────────────────────────────
+       *  PAGE 2: EXECUTIVE SUMMARY
+       * ──────────────────────────────────────────────────────────────────── */}
       <Page size="A4" style={s.page}>
-        <Text style={s.h1}>Executive Summary</Text>
-        <Text style={s.body}>{analysis.summary}</Text>
+        <HeaderBar />
+        <PageTitle title="Executive Summary" subtitle="Your Startup at a Glance" />
 
-        {/* Key metrics */}
-        <View style={s.metricRow}>
-          <View style={s.metricCard}>
-            <Text style={s.metricLabel}>SVI Score</Text>
-            <Text style={[s.metricValue, { color: C.brand600 }]}>{analysis.totalSVI}</Text>
-            <Text style={s.metricSub}>{sviLabel(analysis.totalSVI)}</Text>
-          </View>
-          <View style={s.metricCard}>
-            <Text style={s.metricLabel}>Confidence</Text>
-            <Text style={s.metricValue}>{Math.round(analysis.confidenceMultiplier * 100)}%</Text>
-            <Text style={s.metricSub}>{analysis.signals.evidenceLevel.replace(/_/g, " ")}</Text>
-          </View>
-          <View style={s.metricCard}>
-            <Text style={s.metricLabel}>Percentile</Text>
-            <Text style={s.metricValue}>P{analysis.percentileRank ?? 50}</Text>
-            <Text style={s.metricSub}>For {analysis.stageLabel}</Text>
-          </View>
-          <View style={s.metricCard}>
-            <Text style={s.metricLabel}>Risk Flags</Text>
-            <Text
-              style={[
-                s.metricValue,
-                {
-                  color:
-                    analysis.riskPenalties.length > 3
-                      ? C.red600
-                      : analysis.riskPenalties.length > 0
-                        ? C.amber600
-                        : C.emerald600,
-                },
-              ]}
-            >
-              {analysis.riskPenalties.length}
-            </Text>
-            <Text style={s.metricSub}>
-              {analysis.riskPenalties.length === 0
-                ? "No flags"
-                : `-${analysis.riskPenalties.reduce((sum, r) => sum + r.points, 0)} pts`}
-            </Text>
-          </View>
+        {/* 4 metric cards */}
+        <View style={{ flexDirection: "row", gap: 8, marginBottom: 14 }}>
+          <MetricCard label="SVI SCORE" value={String(sviScore)} sub={sviLabel(sviScore)} />
+          <MetricCard
+            label="STAGE"
+            value={String(analysis.stage)}
+            sub={analysis.stageLabel}
+            color={C.ink800}
+          />
+          <MetricCard
+            label="CONFIDENCE"
+            value={`${confidence}%`}
+            sub={analysis.signals.evidenceLevel.replace(/_/g, " ")}
+            color={confidence >= 50 ? C.emerald600 : C.amber600}
+          />
+          <MetricCard
+            label="RISK FLAGS"
+            value={String(riskCount)}
+            sub={riskCount === 0 ? "No flags" : `-${totalRiskPts} pts`}
+            color={riskCount > 3 ? C.red600 : riskCount > 0 ? C.amber600 : C.emerald600}
+          />
         </View>
 
-        {/* Score breakdown */}
-        <View style={s.metricRow}>
-          <View style={s.metricCard}>
-            <Text style={s.metricLabel}>Base Score</Text>
-            <Text style={s.metricValue}>100</Text>
-          </View>
-          <View style={s.metricCard}>
-            <Text style={s.metricLabel}>Net Adjustment</Text>
-            <Text
-              style={[
-                s.metricValue,
-                { color: analysis.netAdjustment >= 0 ? C.emerald600 : C.red600 },
-              ]}
-            >
-              {analysis.netAdjustment >= 0 ? "+" : ""}
-              {analysis.netAdjustment}
-            </Text>
-          </View>
-          <View style={s.metricCard}>
-            <Text style={s.metricLabel}>Stage Bonus</Text>
-            <Text style={[s.metricValue, { color: C.brand600 }]}>+{analysis.stageBonus}</Text>
-          </View>
-        </View>
-
-        {/* Top strengths */}
-        {topStrengths.length > 0 && (
-          <View style={{ marginTop: 8 }}>
-            <Text style={s.h2}>Key Strengths</Text>
-            {topStrengths.map((sub) => (
-              <View key={sub.key} style={s.bulletRow}>
-                <Text style={s.bulletDot}>+</Text>
-                <Text style={s.bulletText}>
-                  {DIM_LABELS[sub.key] ?? sub.label}: {Math.round(sub.value)}/100
-                  {sub.evidence.length > 0 ? ` — ${sub.evidence[0]}` : ""}
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* Top gaps */}
-        {topGaps.length > 0 && (
-          <View style={{ marginTop: 8 }}>
-            <Text style={s.h2}>Key Gaps</Text>
-            {topGaps.map((gap, i) => (
-              <View key={`topgap-${i}`} style={s.bulletRow}>
-                <Text style={s.bulletDotAmber}>!</Text>
-                <Text style={s.bulletText}>
-                  [{gap.priority}] {gap.label} — {gap.action} (+{gap.impact} SVI)
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        <View style={{ marginTop: 14, borderWidth: 0.5, borderColor: C.surface200, borderRadius: 6, padding: 10, backgroundColor: C.surface50 }}>
-          <Text style={{ fontSize: 9, fontWeight: "bold", color: C.ink800, marginBottom: 3 }}>How to Read This Report</Text>
-          <Text style={{ fontSize: 8, color: C.ink600, lineHeight: 1.5 }}>
-            This report is your personalised startup growth guide. Start with the Action Plan on Page 10 for your immediate next steps. Pages 3-4 show your dimension scores in detail. Pages 5-7 dive deep into specific areas. Don&apos;t try to fix everything at once — focus on one thing at a time, starting with the biggest opportunity.
-          </Text>
-        </View>
-
-        <Footer pageNum={2} />
-      </Page>
-
-      {/* ─── Page 3-4: Dimension Breakdown ──────────────────────────────── */}
-      <Page size="A4" style={s.page}>
-        <Text style={s.h1}>Dimension Breakdown (1 of 2)</Text>
-        <Text style={s.body}>
-          Your SVI is composed of 8 weighted dimensions. Each dimension scores 0-100 and contributes
-          a weighted adjustment to your base score of 100.
+        {/* Summary paragraph */}
+        <Text style={[s.body, { fontSize: 9.5, lineHeight: 1.7 }]}>
+          {analysis.summary}
         </Text>
 
-        {/* Dimension table header */}
-        <View
-          style={[
-            s.dimRow,
-            {
-              backgroundColor: C.surface100,
-              borderBottomWidth: 1,
-              borderBottomColor: C.surface200,
-            },
-          ]}
-        >
-          <Text style={[s.dimLabel, { fontWeight: "bold", fontSize: 8 }]}>Dimension</Text>
-          <Text style={[s.dimWeight, { fontWeight: "bold", fontSize: 8 }]}>Wt.</Text>
-          <Text style={[s.dimScore, { fontSize: 8 }]}>Score</Text>
-          <Text style={[s.dimAdj, { fontWeight: "bold", fontSize: 8 }]}>Adj.</Text>
-          <View style={[s.barOuter, { backgroundColor: "transparent" }]}>
-            <Text style={{ fontSize: 8, color: C.ink500, textAlign: "center" }}>Bar</Text>
-          </View>
-        </View>
-
-        {analysis.subs.map((sub) => (
-          <View key={sub.key} style={s.dimRow}>
-            <Text style={s.dimLabel}>
-              {sub.key.toUpperCase()} — {DIM_LABELS[sub.key] ?? sub.label}
-            </Text>
-            <Text style={s.dimWeight}>{DIM_WEIGHTS[sub.key]}</Text>
-            <Text style={s.dimScore}>{Math.round(sub.value)}/100</Text>
-            <Text
-              style={[
-                s.dimAdj,
-                { color: sub.adjustment >= 0 ? C.emerald600 : C.red600 },
-              ]}
-            >
-              {sub.adjustment >= 0 ? "+" : ""}
-              {sub.adjustment}
-            </Text>
-            <View style={s.barOuter}>
-              <View
-                style={[
-                  s.barFill,
-                  {
-                    width: `${Math.round(sub.value)}%`,
-                    backgroundColor: barColor(sub.value),
-                  },
-                ]}
-              />
-            </View>
-          </View>
-        ))}
-
-        {/* First 4 dimensions detailed */}
-        <Text style={[s.h2, { marginTop: 16 }]}>Detailed Scores (1-4)</Text>
-        {analysis.subs.slice(0, 4).map((sub) => (
-          <View key={`detail-${sub.key}`} style={{ marginBottom: 6 }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 2 }}>
-              <Text style={{ fontSize: 9, fontWeight: "bold", color: C.ink800 }}>
-                {sub.key.toUpperCase()}: {DIM_LABELS[sub.key] ?? sub.label}
-              </Text>
-              <Text style={{ fontSize: 9, fontWeight: "bold", color: C.brand600 }}>
-                {Math.round(sub.value)}/100
-              </Text>
-            </View>
-            {sub.evidence.length > 0 &&
-              sub.evidence.slice(0, 2).map((e, i) => (
-                <View key={`${sub.key}-ev2-${i}`} style={s.bulletRow}>
-                  <Text style={s.bulletDot}>+</Text>
-                  <Text style={s.bulletText}>{e}</Text>
-                </View>
-              ))}
-            {sub.gaps.length > 0 &&
-              sub.gaps.slice(0, 2).map((g, i) => (
-                <View key={`${sub.key}-gap2-${i}`} style={s.bulletRow}>
-                  <Text style={s.bulletDotAmber}>!</Text>
-                  <Text style={s.bulletText}>{g}</Text>
-                </View>
-              ))}
-          </View>
-        ))}
-
-        <Footer pageNum={3} />
-      </Page>
-
-      <Page size="A4" style={s.page}>
-        <Text style={s.h1}>Dimension Breakdown (2 of 2)</Text>
-        <Text style={s.h2}>Detailed Scores (5-8)</Text>
-        {analysis.subs.slice(4).map((sub) => (
-          <View key={`detail2-${sub.key}`} style={{ marginBottom: 8 }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 2 }}>
-              <Text style={{ fontSize: 9, fontWeight: "bold", color: C.ink800 }}>
-                {sub.key.toUpperCase()}: {DIM_LABELS[sub.key] ?? sub.label}
-              </Text>
-              <Text style={{ fontSize: 9, fontWeight: "bold", color: C.brand600 }}>
-                {Math.round(sub.value)}/100
-              </Text>
-            </View>
-            <View style={s.barOuter}>
-              <View
-                style={[
-                  s.barFill,
-                  { width: `${Math.round(sub.value)}%`, backgroundColor: barColor(sub.value) },
-                ]}
-              />
-            </View>
-            <Text style={[s.body, { marginTop: 3 }]}>{sub.rationale}</Text>
-            {sub.evidence.length > 0 &&
-              sub.evidence.map((e, i) => (
-                <View key={`${sub.key}-ev3-${i}`} style={s.bulletRow}>
-                  <Text style={s.bulletDot}>+</Text>
-                  <Text style={s.bulletText}>{e}</Text>
-                </View>
-              ))}
-            {sub.gaps.length > 0 &&
-              sub.gaps.map((g, i) => (
-                <View key={`${sub.key}-gap3-${i}`} style={s.bulletRow}>
-                  <Text style={s.bulletDotAmber}>!</Text>
-                  <Text style={s.bulletText}>{g}</Text>
-                </View>
-              ))}
-          </View>
-        ))}
-
-        <Footer pageNum={4} />
-      </Page>
-
-      {/* ─── Page 5: Market & Product ──────────────────────────────────── */}
-      <Page size="A4" style={s.page}>
-        <Text style={s.h1}>Market & Product Deep Dive</Text>
-
-        <Text style={s.h2}>Market & Problem Clarity (MPC)</Text>
-        <DimensionDetail sub={mpc} />
-
-        {/* Market signals */}
-        <View style={{ flexDirection: "row", gap: 16, marginBottom: 10 }}>
+        {/* Two columns: Strengths & Gaps */}
+        <View style={{ flexDirection: "row", gap: 16, marginTop: 6 }}>
+          {/* Key Strengths */}
           <View style={{ flex: 1 }}>
-            <Text style={s.h3}>Market Signals</Text>
-            <Signal label={`Market Size: ${analysis.signals.marketSize}`} active={analysis.signals.marketSize !== "unknown"} />
-            <Signal label={`Problem Clarity: ${analysis.signals.problemClarity}`} active={analysis.signals.problemClarity !== "vague"} />
-            <Signal label="Customer Interviews" active={analysis.signals.hasCustomerInterviews} />
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
+              <View style={{ width: 3, height: 14, backgroundColor: C.emerald600, borderRadius: 1 }} />
+              <Text style={[s.h3, { marginTop: 0, marginBottom: 0, color: C.emerald600 }]}>
+                Key Strengths
+              </Text>
+            </View>
+            {topStrengths.length > 0 ? (
+              topStrengths.map((sub) => (
+                <Bullet
+                  key={sub.key}
+                  text={`${DIM_LABELS[sub.key] || sub.label}: ${Math.round(sub.value)}/100${sub.evidence[0] ? ` — ${sub.evidence[0]}` : ""}`}
+                  color={C.emerald600}
+                />
+              ))
+            ) : (
+              <Text style={{ fontSize: 8, color: C.ink400 }}>Building evidence will reveal strengths</Text>
+            )}
           </View>
+
+          {/* Critical Gaps */}
           <View style={{ flex: 1 }}>
-            <Text style={s.h3}>Competitive Moat</Text>
-            <Signal label="Moat Identified" active={analysis.signals.hasMoat} />
-            <Signal label="Network Effect" active={analysis.signals.hasNetworkEffect} />
-            <Signal label="Data Advantage" active={analysis.signals.hasDataAdvantage} />
-            <Signal label="Switching Costs" active={analysis.signals.hasSwitchingCosts} />
-            {analysis.signals.isAIWrapper && (
-              <Signal label="AI Wrapper Risk" active={true} />
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
+              <View style={{ width: 3, height: 14, backgroundColor: C.red600, borderRadius: 1 }} />
+              <Text style={[s.h3, { marginTop: 0, marginBottom: 0, color: C.red600 }]}>
+                Critical Gaps
+              </Text>
+            </View>
+            {topWeaknesses.length > 0 ? (
+              topWeaknesses.map((sub) => (
+                <Bullet
+                  key={sub.key}
+                  text={`${DIM_LABELS[sub.key] || sub.label}: ${Math.round(sub.value)}/100${sub.gaps[0] ? ` — ${sub.gaps[0]}` : ""}`}
+                  color={C.red600}
+                />
+              ))
+            ) : (
+              <Text style={{ fontSize: 8, color: C.ink400 }}>No critical gaps detected</Text>
             )}
           </View>
         </View>
 
-        <Text style={s.h2}>Product & Technical Depth (PTD)</Text>
-        <DimensionDetail sub={ptd} />
+        {/* Value Proposition insight box */}
+        <InsightBox
+          label="VALUE PROPOSITION"
+          text={
+            analysis.summary.length > 120
+              ? analysis.summary.substring(0, 120) + "..."
+              : `${name} scores ${sviScore} on the SVI index as a ${analysis.stageLabel} startup. ${sviLabel(sviScore)} positioning with ${confidence}% evidence confidence.`
+          }
+        />
 
-        {/* Product signals */}
-        <View style={{ flexDirection: "row", gap: 16 }}>
-          <View style={{ flex: 1 }}>
-            <Text style={s.h3}>Product Signals</Text>
-            <Signal label="Product Built" active={analysis.signals.hasProduct} />
-            <Signal label="Demo / Prototype" active={analysis.signals.hasDemo} />
-            <Signal label="Source Code Linked" active={analysis.signals.hasSourceCode} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={s.h3}>Distribution</Text>
-            <Signal label="Website Live" active={analysis.signals.hasWebsite} />
-            <Signal label="Mobile App" active={analysis.signals.hasApp} />
-          </View>
-        </View>
-
-        <Footer pageNum={5} />
+        <Footer />
       </Page>
 
-      {/* ─── Page 6: Traction & Cap Table ──────────────────────────────── */}
+      {/* ────────────────────────────────────────────────────────────────────
+       *  PAGE 3: PERFORMANCE DASHBOARD
+       * ──────────────────────────────────────────────────────────────────── */}
       <Page size="A4" style={s.page}>
-        <Text style={s.h1}>Traction & Governance</Text>
+        <HeaderBar />
+        <PageTitle title="Performance Dashboard" subtitle="8-Dimension Scorecard" />
 
-        <Text style={s.h2}>Traction & Revenue Evidence (TRE)</Text>
-        <DimensionDetail sub={tre} />
+        {/* Dimension bars */}
+        {analysis.subs.map((sub) => (
+          <DimensionBar
+            key={sub.key}
+            label={`${sub.key.toUpperCase()} — ${DIM_LABELS[sub.key] || sub.label}`}
+            score={sub.value}
+            weight={DIM_WEIGHTS[sub.key] || ""}
+            insight={sub.rationale.length > 100 ? sub.rationale.substring(0, 100) + "..." : sub.rationale}
+          />
+        ))}
 
-        <View style={{ flexDirection: "row", gap: 16, marginBottom: 10 }}>
-          <View style={{ flex: 1 }}>
-            <Text style={s.h3}>Revenue Signals</Text>
-            <Signal label={`Revenue Band: ${analysis.signals.revenueBand.replace(/-/g, " ")}`} active={analysis.signals.hasRevenue} />
-            <Signal label="Paying Customers" active={analysis.signals.hasCustomers} />
-            <Signal label="Analytics Connected" active={analysis.signals.hasAnalytics} />
-            <Signal label="Social Proof" active={analysis.signals.hasSocialProof} />
+        {/* Visual score grid — 4x2 */}
+        <View style={{ marginTop: 10 }}>
+          <Text style={[s.label, { marginBottom: 8 }]}>SCORE COMPARISON</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            {analysis.subs.map((sub) => {
+              const rounded = Math.round(sub.value);
+              return (
+                <View
+                  key={`grid-${sub.key}`}
+                  style={{
+                    width: "22%",
+                    borderWidth: 0.5,
+                    borderColor: C.surface200,
+                    borderRadius: 6,
+                    padding: 8,
+                    alignItems: "center",
+                    backgroundColor: C.surface50,
+                  }}
+                >
+                  <Text style={{ fontSize: 7, textTransform: "uppercase", color: C.ink500, marginBottom: 4, letterSpacing: 0.5 }}>
+                    {sub.key.toUpperCase()}
+                  </Text>
+                  <Text style={{ fontSize: 18, fontFamily: "Helvetica-Bold", color: scoreColor(sub.value) }}>
+                    {rounded}
+                  </Text>
+                  <View style={{ width: "100%", height: 4, borderRadius: 2, backgroundColor: C.surface200, marginTop: 4 }}>
+                    <View
+                      style={{
+                        height: 4,
+                        borderRadius: 2,
+                        width: `${rounded}%`,
+                        backgroundColor: scoreColor(sub.value),
+                      }}
+                    />
+                  </View>
+                </View>
+              );
+            })}
           </View>
         </View>
 
-        <Text style={s.h2}>Cap Table & Governance Health (CGH)</Text>
-        <DimensionDetail sub={cgh} />
-
-        <View style={{ flexDirection: "row", gap: 16 }}>
-          <View style={{ flex: 1 }}>
-            <Text style={s.h3}>Governance Signals</Text>
-            <Signal label="Cap Table" active={analysis.signals.hasCapTable} />
-            <Signal label="Vesting Schedule" active={analysis.signals.hasVesting} />
-            <Signal label="Shareholders Agreement" active={analysis.signals.hasShareholdersAgreement} />
+        {/* Chart image if available */}
+        {charts?.get("radar") && (
+          <View style={{ marginTop: 12, alignItems: "center" }}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+            <Image src={charts.get("radar")!} style={{ width: 280, height: 200 }} />
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={s.h3}>Corporate Health</Text>
-            <Signal label="ESOP Allocated" active={analysis.signals.esopAllocated} />
-            <Signal label="Board Cadence" active={analysis.signals.hasBoardCadence} />
-            <Signal label="Financial Audit" active={analysis.signals.hasFinancialAudit} />
-          </View>
-        </View>
+        )}
 
-        <Footer pageNum={6} />
+        <Footer />
       </Page>
 
-      {/* ─── Page 7: Investor Readiness & Legal ────────────────────────── */}
+      {/* ────────────────────────────────────────────────────────────────────
+       *  PAGES 4-9: SECTION PAGES
+       * ──────────────────────────────────────────────────────────────────── */}
+      {sectionPages.map((section, idx) => {
+        const sectionNum = String(idx + 1).padStart(2, "0");
+        const sectionScore = section.score ?? 0;
+        const title = getSectionTitle(section.id) !== section.id
+          ? getSectionTitle(section.id)
+          : section.title;
+        const chartKey = section.id.toLowerCase();
+
+        return (
+          <Page key={`section-${idx}`} size="A4" style={s.page}>
+            <HeaderBar />
+
+            {/* Section badge + title */}
+            <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 14, marginBottom: 16 }}>
+              <SectionNumberBadge num={sectionNum} />
+              <View style={{ flex: 1 }}>
+                <Text style={s.h1}>{title}</Text>
+                {section.content && (
+                  <Text style={s.h1Sub}>
+                    {section.content.length > 120
+                      ? section.content.substring(0, 120) + "..."
+                      : section.content.substring(0, 120)}
+                  </Text>
+                )}
+              </View>
+              {/* Score gauge */}
+              <ScoreGauge score={sectionScore} size={56} />
+            </View>
+
+            {/* Content area */}
+            <Text style={[s.body, { lineHeight: 1.7 }]}>
+              {section.content}
+            </Text>
+
+            {/* Chart image if available */}
+            {charts?.get(chartKey) && (
+              <View style={{ marginTop: 8, marginBottom: 8, alignItems: "center" }}>
+                {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                <Image src={charts.get(chartKey)!} style={{ width: 320, height: 160 }} />
+              </View>
+            )}
+
+            {/* Key Insight callout */}
+            {section.keyInsight && (
+              <InsightBox text={section.keyInsight} />
+            )}
+
+            {/* Recommended Actions */}
+            {section.actions && section.actions.length > 0 && (
+              <View style={{ marginTop: 8 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                  <View style={{ width: 3, height: 14, backgroundColor: C.brand600, borderRadius: 1 }} />
+                  <Text style={[s.h3, { marginTop: 0, marginBottom: 0 }]}>Recommended Actions</Text>
+                </View>
+                {section.actions.map((action, aIdx) => (
+                  <ActionItem key={`action-${idx}-${aIdx}`} num={aIdx + 1} text={action} />
+                ))}
+              </View>
+            )}
+
+            <Footer />
+          </Page>
+        );
+      })}
+
+      {/* ────────────────────────────────────────────────────────────────────
+       *  PAGE 10: RISK LANDSCAPE
+       * ──────────────────────────────────────────────────────────────────── */}
       <Page size="A4" style={s.page}>
-        <Text style={s.h1}>Investor Readiness & Legal</Text>
-
-        <Text style={s.h2}>Investor Readiness Index (IRI)</Text>
-        <DimensionDetail sub={iri} />
-
-        <View style={{ flexDirection: "row", gap: 16, marginBottom: 10 }}>
-          <View style={{ flex: 1 }}>
-            <Text style={s.h3}>Investor Materials</Text>
-            <Signal label="Pitch Deck" active={analysis.signals.hasPitchDeck} />
-            <Signal label="Financial Model" active={analysis.signals.hasFinancialModel} />
-            <Signal label="Data Room" active={analysis.signals.hasDataRoom} />
-            <Signal label="Raise Target Stated" active={analysis.signals.targetRaiseMentioned} />
-          </View>
-        </View>
-
-        <Text style={s.h2}>Legal & Compliance (LCO)</Text>
-        <DimensionDetail sub={lco} />
-
-        <View style={{ flexDirection: "row", gap: 16 }}>
-          <View style={{ flex: 1 }}>
-            <Text style={s.h3}>Legal Signals</Text>
-            <Signal label="ABN / ASIC Registration" active={analysis.signals.hasABN} />
-            <Signal label="IP Protection" active={analysis.signals.hasIPProtection} />
-            <Signal label="Contracts / ToS" active={analysis.signals.hasContracts} />
-            <Signal label="Legal Documentation" active={analysis.signals.hasLegalDocs} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={s.h3}>Founder Signals</Text>
-            <Signal label={`Experience: ${analysis.signals.founderExperience.replace(/-/g, " ")}`} active={analysis.signals.founderExperience !== "first-time"} />
-            <Signal label="Co-Founder" active={analysis.signals.hasCoFounder} />
-            <Signal label="Domain Expertise" active={analysis.signals.founderSectorFit} />
-            <Signal label="Advisors" active={analysis.signals.hasAdvisors} />
-          </View>
-        </View>
-
-        <Footer pageNum={7} />
-      </Page>
-
-      {/* ─── Page 8: Risk Assessment ───────────────────────────────────── */}
-      <Page size="A4" style={s.page}>
-        <Text style={s.h1}>Risk Assessment</Text>
+        <HeaderBar />
+        <PageTitle title="Risk Landscape" subtitle="Risk Assessment & Mitigation Strategies" />
 
         {analysis.riskPenalties.length > 0 ? (
           <>
-            <Text style={s.body}>
-              {analysis.riskPenalties.length} risk{analysis.riskPenalties.length !== 1 ? "s" : ""}{" "}
-              detected, totalling -{analysis.riskPenalties.reduce((sum, r) => sum + r.points, 0)} SVI
-              points. Risks are ranked by severity.
-            </Text>
+            {/* Risk summary bar */}
+            <View
+              style={{
+                flexDirection: "row",
+                gap: 8,
+                marginBottom: 14,
+              }}
+            >
+              <MetricCard
+                label="TOTAL RISKS"
+                value={String(riskCount)}
+                color={riskCount > 3 ? C.red600 : C.amber600}
+              />
+              <MetricCard
+                label="TOTAL IMPACT"
+                value={`-${totalRiskPts}`}
+                sub="SVI points"
+                color={C.red600}
+              />
+              <MetricCard
+                label="HIGHEST SEVERITY"
+                value={riskSeverity(Math.max(...analysis.riskPenalties.map((r) => r.points)))}
+                color={C.red600}
+              />
+            </View>
 
+            {/* Risk cards */}
             {[...analysis.riskPenalties]
               .sort((a, b) => b.points - a.points)
               .map((risk, i) => (
                 <View
                   key={`risk-${i}`}
-                  style={[s.riskCard, { borderColor: riskBorderColor(risk.points) }]}
+                  style={[s.riskCard, { borderLeftColor: riskBorderColor(risk.points) }]}
                 >
-                  <View style={s.riskRow}>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                      <Text style={s.riskLabel}>{risk.label}</Text>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      <Text style={{ fontSize: 10, fontFamily: "Helvetica-Bold", color: C.ink800 }}>
+                        {risk.label}
+                      </Text>
                       <View
                         style={{
                           backgroundColor: risk.points >= 8 ? C.red100 : C.amber100,
                           borderRadius: 3,
-                          paddingHorizontal: 4,
-                          paddingVertical: 1,
+                          paddingHorizontal: 6,
+                          paddingVertical: 2,
                         }}
                       >
                         <Text
                           style={{
                             fontSize: 7,
-                            fontWeight: "bold",
+                            fontFamily: "Helvetica-Bold",
                             textTransform: "uppercase",
+                            letterSpacing: 0.5,
                             color: risk.points >= 8 ? C.red600 : C.amber600,
                           }}
                         >
@@ -914,352 +1016,381 @@ export function SVIReportPDF({ analysis, email, tier = "standard" }: Props) {
                         </Text>
                       </View>
                     </View>
-                    <Text style={s.riskPts}>-{risk.points} pts</Text>
+                    <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold", color: C.red600 }}>
+                      -{risk.points} pts
+                    </Text>
                   </View>
-                  <Text style={s.riskReason}>{risk.reason}</Text>
+                  <Text style={{ fontSize: 8.5, color: C.ink600, lineHeight: 1.5 }}>
+                    {risk.reason}
+                  </Text>
+                  {/* Impact meter */}
+                  <View style={{ marginTop: 6 }}>
+                    <View style={{ height: 4, borderRadius: 2, backgroundColor: C.surface200 }}>
+                      <View
+                        style={{
+                          height: 4,
+                          borderRadius: 2,
+                          width: `${Math.min((risk.points / 15) * 100, 100)}%`,
+                          backgroundColor: riskBorderColor(risk.points),
+                        }}
+                      />
+                    </View>
+                  </View>
                 </View>
               ))}
           </>
         ) : (
-          <View style={{ alignItems: "center", paddingVertical: 40 }}>
-            <Text style={{ fontSize: 14, fontWeight: "bold", color: C.emerald600 }}>
+          <View
+            style={{
+              alignItems: "center",
+              paddingVertical: 48,
+              borderWidth: 1,
+              borderColor: C.emerald100,
+              borderRadius: 12,
+              backgroundColor: C.emerald50,
+            }}
+          >
+            <Text style={{ fontSize: 16, fontFamily: "Helvetica-Bold", color: C.emerald600 }}>
               No Risk Flags Detected
             </Text>
-            <Text style={[s.body, { textAlign: "center", marginTop: 6 }]}>
-              Your startup has no critical risk penalties. Continue building evidence to maintain this
-              clean profile.
+            <Text style={{ fontSize: 9, color: C.ink500, marginTop: 6, textAlign: "center", maxWidth: 300 }}>
+              Your startup has no critical risk penalties. Continue building evidence to maintain
+              this clean profile.
             </Text>
           </View>
         )}
 
-        <Footer pageNum={8} />
+        {/* Risk chart if available */}
+        {charts?.get("risk") && (
+          <View style={{ marginTop: 12, alignItems: "center" }}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+            <Image src={charts.get("risk")!} style={{ width: 320, height: 160 }} />
+          </View>
+        )}
+
+        <Footer />
       </Page>
 
-      {/* ─── Page 9: Action Plan ───────────────────────────────────────── */}
+      {/* ────────────────────────────────────────────────────────────────────
+       *  PAGE 11: 90-DAY GROWTH ROADMAP
+       * ──────────────────────────────────────────────────────────────────── */}
       <Page size="A4" style={s.page}>
-        <Text style={s.h1}>Where to Focus Next</Text>
-        <Text style={s.body}>
-          These are opportunities to strengthen your startup profile. Focus on the top items first — even small improvements can make a big difference. Remember: every successful startup built their credibility one step at a time.
-        </Text>
+        <HeaderBar />
+        <PageTitle title="Your 90-Day Growth Roadmap" subtitle="Prioritised Action Plan for Measurable Progress" />
 
-        {/* P0 — Critical */}
-        {p0Gaps.length > 0 && (
-          <View style={{ marginBottom: 10 }}>
-            <Text style={[s.h3, { color: C.red600 }]}>Critical (P0)</Text>
-            {p0Gaps.map((gap, i) => (
-              <View
-                key={`p0-${i}`}
-                style={[s.gapCard, { borderColor: C.red600, backgroundColor: C.red100 }]}
-              >
-                <View style={s.gapRow}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                    <View
-                      style={{
-                        backgroundColor: C.red600,
-                        borderRadius: 2,
-                        paddingHorizontal: 3,
-                        paddingVertical: 1,
-                      }}
-                    >
-                      <Text style={[s.gapPriority, { color: C.white }]}>P0</Text>
-                    </View>
-                  </View>
-                  <Text style={s.gapImpact}>+{gap.impact} SVI</Text>
-                </View>
-                <Text style={s.gapLabel}>{gap.label}</Text>
-                <Text style={s.gapAction}>{gap.action}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* P1 — Important */}
-        {p1Gaps.length > 0 && (
-          <View style={{ marginBottom: 10 }}>
-            <Text style={[s.h3, { color: C.amber600 }]}>Important (P1)</Text>
-            {p1Gaps.map((gap, i) => (
-              <View
-                key={`p1-${i}`}
-                style={[s.gapCard, { borderColor: C.amber600, backgroundColor: C.amber100 }]}
-              >
-                <View style={s.gapRow}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                    <View
-                      style={{
-                        backgroundColor: C.amber600,
-                        borderRadius: 2,
-                        paddingHorizontal: 3,
-                        paddingVertical: 1,
-                      }}
-                    >
-                      <Text style={[s.gapPriority, { color: C.white }]}>P1</Text>
-                    </View>
-                  </View>
-                  <Text style={s.gapImpact}>+{gap.impact} SVI</Text>
-                </View>
-                <Text style={s.gapLabel}>{gap.label}</Text>
-                <Text style={s.gapAction}>{gap.action}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* P2 — Nice to Have */}
-        {p2Gaps.length > 0 && (
-          <View style={{ marginBottom: 10 }}>
-            <Text style={[s.h3, { color: C.ink500 }]}>Nice to Have (P2)</Text>
-            {p2Gaps.map((gap, i) => (
-              <View
-                key={`p2-${i}`}
-                style={[s.gapCard, { borderColor: C.surface200, backgroundColor: C.surface50 }]}
-              >
-                <View style={s.gapRow}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                    <View
-                      style={{
-                        backgroundColor: C.ink500,
-                        borderRadius: 2,
-                        paddingHorizontal: 3,
-                        paddingVertical: 1,
-                      }}
-                    >
-                      <Text style={[s.gapPriority, { color: C.white }]}>P2</Text>
-                    </View>
-                  </View>
-                  <Text style={s.gapImpact}>+{gap.impact} SVI</Text>
-                </View>
-                <Text style={s.gapLabel}>{gap.label}</Text>
-                <Text style={s.gapAction}>{gap.action}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* Next actions */}
-        {analysis.nextActions.length > 0 && (
-          <View>
-            <Text style={[s.h2, { color: C.brand600 }]}>Recommended Actions</Text>
-            {analysis.nextActions.map((action, i) => (
-              <View key={`na-${i}`} style={{ marginBottom: 5 }}>
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
-                  <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 2 }}>
-                      <View
-                        style={{
-                          backgroundColor: priorityBg(action.priority),
-                          borderRadius: 2,
-                          paddingHorizontal: 3,
-                          paddingVertical: 1,
-                        }}
-                      >
-                        <Text
-                          style={{
-                            fontSize: 7,
-                            fontWeight: "bold",
-                            color: priorityColor(action.priority),
-                          }}
-                        >
-                          {action.priority}
-                        </Text>
-                      </View>
-                      <Text style={{ fontSize: 9, fontWeight: "bold", color: C.ink800 }}>{action.title}</Text>
-                    </View>
-                    <Text style={{ fontSize: 8, color: C.ink600, lineHeight: 1.4 }}>{action.detail}</Text>
-                  </View>
-                  <Text style={{ fontSize: 8, fontWeight: "bold", color: C.teal600, marginLeft: 8 }}>
-                    {action.impact}
-                  </Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
-
-        <Footer pageNum={9} />
-      </Page>
-
-      {/* ─── Page 10: Your Personalised Next Steps ───────────────────── */}
-      <Page size="A4" style={s.page}>
-        <Text style={s.h1}>Your 30-Day Growth Plan</Text>
-
-        <Text style={[s.body, { fontSize: 10, lineHeight: 1.7 }]}>
-          Here&apos;s your personalised roadmap for the next 30 days. Don&apos;t feel overwhelmed — just start with Week 1. Each step builds naturally on the one before it. You&apos;ve already taken the most important step by getting your analysis.
-        </Text>
-
-        {/* Week 1: Quick Wins */}
-        <View style={{ marginTop: 12, borderLeftWidth: 3, borderLeftColor: C.emerald600, paddingLeft: 12, marginBottom: 14 }}>
-          <Text style={[s.h2, { color: C.emerald600, marginTop: 0 }]}>Week 1: Your First Win</Text>
-          <Text style={s.body}>Start here — these take less than an hour and give you instant momentum.</Text>
-          {analysis.evidenceGaps
-            .filter(g => g.priority === "P0" || g.priority === "P1")
-            .slice(0, 3)
-            .map((gap, i) => (
-              <View key={`w1-${i}`} style={[s.bulletRow, { marginBottom: 5 }]}>
-                <Text style={{ width: 20, fontSize: 12, color: C.emerald600, fontWeight: "bold" }}>✓</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 9, fontWeight: "bold", color: C.ink800 }}>{gap.label}</Text>
-                  <Text style={{ fontSize: 8, color: C.ink600, lineHeight: 1.5, marginTop: 1 }}>{gap.action}</Text>
-                  <Text style={{ fontSize: 8, fontWeight: "bold", color: C.teal600, marginTop: 2 }}>Expected impact: +{gap.impact} SVI points</Text>
-                </View>
-              </View>
-            ))}
-        </View>
-
-        {/* Week 2-3: Build Foundation */}
-        <View style={{ borderLeftWidth: 3, borderLeftColor: C.brand600, paddingLeft: 12, marginBottom: 14 }}>
-          <Text style={[s.h2, { color: C.brand600, marginTop: 0 }]}>Week 2-3: Building Your Foundation</Text>
-          <Text style={s.body}>Now that you have momentum, it&apos;s time to build the foundation that impresses investors and partners.</Text>
-          {analysis.nextActions
-            .slice(0, 3)
-            .map((action, i) => (
-              <View key={`w23-${i}`} style={[s.bulletRow, { marginBottom: 5 }]}>
-                <Text style={{ width: 20, fontSize: 12, color: C.brand600, fontWeight: "bold" }}>→</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 9, fontWeight: "bold", color: C.ink800 }}>{action.title}</Text>
-                  <Text style={{ fontSize: 8, color: C.ink600, lineHeight: 1.5, marginTop: 1 }}>{action.detail}</Text>
-                  <Text style={{ fontSize: 8, fontWeight: "bold", color: C.teal600, marginTop: 2 }}>{action.impact}</Text>
-                </View>
-              </View>
-            ))}
-        </View>
-
-        {/* Week 4: Review & Refine */}
-        <View style={{ borderLeftWidth: 3, borderLeftColor: C.amber600, paddingLeft: 12 }}>
-          <Text style={[s.h2, { color: C.amber600, marginTop: 0 }]}>Week 4: See How Far You&apos;ve Come</Text>
-          <Text style={s.body}>Run your analysis again to see your progress. Most founders see a 15-30 point improvement after completing the steps above.</Text>
-          <View style={s.bulletRow}>
-            <Text style={{ width: 20, fontSize: 12, color: C.amber600, fontWeight: "bold" }}>↻</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 9, fontWeight: "bold", color: C.ink800 }}>Re-analyse your startup on BlockID.au</Text>
-              <Text style={{ fontSize: 8, color: C.ink600, lineHeight: 1.5, marginTop: 1 }}>Upload new evidence, update your description with progress, and get a fresh SVI score. Track your improvement over time.</Text>
+        {/* Three columns */}
+        <View style={{ flexDirection: "row", gap: 12 }}>
+          {/* Month 1 */}
+          <View style={{ flex: 1 }}>
+            <View
+              style={{
+                backgroundColor: C.emerald600,
+                borderRadius: 6,
+                paddingVertical: 6,
+                paddingHorizontal: 10,
+                marginBottom: 8,
+              }}
+            >
+              <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: C.white }}>
+                MONTH 1
+              </Text>
+              <Text style={{ fontSize: 7, color: C.emerald100, marginTop: 1 }}>Quick Wins</Text>
             </View>
-          </View>
-        </View>
-
-        <Footer pageNum={10} />
-      </Page>
-
-      {/* ─── Page 11: Next Steps ───────────────────────────────────────── */}
-      <Page size="A4" style={s.page}>
-        <Text style={s.h1}>Your Journey Ahead</Text>
-
-        {/* Stage Journey */}
-        <Text style={s.h2}>Stage Journey</Text>
-        <View style={{ marginBottom: 14 }}>
-          {SVI_STAGE_LABELS.map((label, idx) => {
-            const isCurrent = idx === analysis.stage;
-            const isPast = idx < analysis.stage;
-            return (
-              <View key={label} style={s.stageRow}>
-                <View
-                  style={[
-                    s.stageCircle,
-                    {
-                      backgroundColor: isCurrent
-                        ? C.brand600
-                        : isPast
-                          ? C.emerald600
-                          : C.surface200,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[s.stageNum, { color: isCurrent || isPast ? C.white : C.ink500 }]}
+            {[...p0Gaps, ...p1Gaps].slice(0, 4).map((gap, i) => (
+              <View key={`m1-${i}`} style={{ marginBottom: 6 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 2 }}>
+                  <View
+                    style={{
+                      backgroundColor: gap.priority === "P0" ? C.red100 : C.amber100,
+                      borderRadius: 2,
+                      paddingHorizontal: 4,
+                      paddingVertical: 1,
+                    }}
                   >
-                    {idx}
-                  </Text>
+                    <Text
+                      style={{
+                        fontSize: 6,
+                        fontFamily: "Helvetica-Bold",
+                        color: gap.priority === "P0" ? C.red600 : C.amber600,
+                      }}
+                    >
+                      {gap.priority}
+                    </Text>
+                  </View>
                 </View>
-                <Text style={isCurrent ? s.stageCurrent : s.stageLabel}>
-                  {label}
-                  {isCurrent ? " (Current)" : ""}
-                  {idx === analysis.stage + 1 ? " — Next target" : ""}
+                <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: C.ink800 }}>
+                  {gap.label}
+                </Text>
+                <Text style={{ fontSize: 7, color: C.ink600, lineHeight: 1.4, marginTop: 1 }}>
+                  {gap.action}
+                </Text>
+                <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: C.teal600, marginTop: 2 }}>
+                  +{gap.impact} SVI
                 </Text>
               </View>
-            );
-          })}
+            ))}
+          </View>
+
+          {/* Month 2 */}
+          <View style={{ flex: 1 }}>
+            <View
+              style={{
+                backgroundColor: C.brand600,
+                borderRadius: 6,
+                paddingVertical: 6,
+                paddingHorizontal: 10,
+                marginBottom: 8,
+              }}
+            >
+              <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: C.white }}>
+                MONTH 2
+              </Text>
+              <Text style={{ fontSize: 7, color: C.brand100, marginTop: 1 }}>Build Foundation</Text>
+            </View>
+            {analysis.nextActions.slice(0, 4).map((action, i) => (
+              <View key={`m2-${i}`} style={{ marginBottom: 6 }}>
+                <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: C.ink800 }}>
+                  {action.title}
+                </Text>
+                <Text style={{ fontSize: 7, color: C.ink600, lineHeight: 1.4, marginTop: 1 }}>
+                  {action.detail}
+                </Text>
+                <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: C.teal600, marginTop: 2 }}>
+                  {action.impact}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Month 3 */}
+          <View style={{ flex: 1 }}>
+            <View
+              style={{
+                backgroundColor: C.amber600,
+                borderRadius: 6,
+                paddingVertical: 6,
+                paddingHorizontal: 10,
+                marginBottom: 8,
+              }}
+            >
+              <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: C.white }}>
+                MONTH 3
+              </Text>
+              <Text style={{ fontSize: 7, color: C.amber100, marginTop: 1 }}>Scale & Review</Text>
+            </View>
+            <View style={{ marginBottom: 6 }}>
+              <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: C.ink800 }}>
+                Re-analyse on BlockID.au
+              </Text>
+              <Text style={{ fontSize: 7, color: C.ink600, lineHeight: 1.4, marginTop: 1 }}>
+                Upload new evidence, update your profile with progress, and track your SVI improvement.
+              </Text>
+            </View>
+            <View style={{ marginBottom: 6 }}>
+              <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: C.ink800 }}>
+                Investor Outreach
+              </Text>
+              <Text style={{ fontSize: 7, color: C.ink600, lineHeight: 1.4, marginTop: 1 }}>
+                With a stronger SVI, begin targeted outreach to investors matching your stage and sector.
+              </Text>
+            </View>
+            <View style={{ marginBottom: 6 }}>
+              <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: C.ink800 }}>
+                Board Advisory Meeting
+              </Text>
+              <Text style={{ fontSize: 7, color: C.ink600, lineHeight: 1.4, marginTop: 1 }}>
+                Review your 90-day progress with advisors and set the next quarter targets.
+              </Text>
+            </View>
+            {analysis.nextActions.length > 4 && (
+              <View style={{ marginBottom: 6 }}>
+                <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: C.ink800 }}>
+                  {analysis.nextActions[4]?.title || "Expand growth channels"}
+                </Text>
+                <Text style={{ fontSize: 7, color: C.ink600, lineHeight: 1.4, marginTop: 1 }}>
+                  {analysis.nextActions[4]?.detail || "Diversify acquisition and build repeatable playbooks."}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
 
-        {/* Projected improvements */}
-        <Text style={s.h2}>What&apos;s Possible</Text>
-        <Text style={s.body}>
-          By working through the action plan above, you could improve your score by an estimated +
-          {analysis.evidenceGaps
-            .filter((g) => g.priority === "P0" || g.priority === "P1")
-            .reduce((sum, g) => sum + g.impact, 0)}{" "}
-          points. That&apos;s not just a number — it means your startup will be more credible, better structured, and closer to being investor-ready.
-        </Text>
+        {/* Potential improvement */}
+        <View
+          style={{
+            marginTop: 14,
+            backgroundColor: C.brand50,
+            borderRadius: 8,
+            padding: 14,
+            borderWidth: 1,
+            borderColor: C.brand100,
+          }}
+        >
+          <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: C.brand600, marginBottom: 3 }}>
+            Projected Improvement
+          </Text>
+          <Text style={{ fontSize: 8.5, color: C.ink600, lineHeight: 1.5 }}>
+            By completing the Month 1-2 actions, you could improve your SVI by an estimated +
+            {analysis.evidenceGaps
+              .filter((g) => g.priority === "P0" || g.priority === "P1")
+              .reduce((sum, g) => sum + g.impact, 0)}{" "}
+            points, moving from {sviLabel(sviScore)} to a stronger positioning for investors and partners.
+          </Text>
+        </View>
 
-        {/* Top 3 quick wins recap */}
-        {analysis.nextActions.slice(0, 3).map((action, i) => (
-          <View key={`qw-${i}`} style={s.bulletRow}>
-            <Text style={s.bulletDot}>{i + 1}.</Text>
-            <Text style={s.bulletText}>
-              {action.title} — {action.impact}
-            </Text>
+        <Footer />
+      </Page>
+
+      {/* ────────────────────────────────────────────────────────────────────
+       *  PAGE 12: FINAL PAGE — NEXT STEPS & BRANDING
+       * ──────────────────────────────────────────────────────────────────── */}
+      <Page size="A4" style={s.page}>
+        <HeaderBar />
+        <PageTitle title="Next Steps" subtitle="Continue Your Growth Journey" />
+
+        {/* Stage journey */}
+        <View style={{ marginBottom: 16 }}>
+          <Text style={[s.label, { marginBottom: 8 }]}>YOUR STAGE JOURNEY</Text>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            {SVI_STAGE_LABELS.map((label, idx) => {
+              const isCurrent = idx === analysis.stage;
+              const isPast = idx < analysis.stage;
+              const bg = isCurrent ? C.brand600 : isPast ? C.emerald600 : C.surface200;
+              const textColor = isCurrent || isPast ? C.white : C.ink400;
+              return (
+                <View key={label} style={{ alignItems: "center", flex: 1 }}>
+                  <View
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 12,
+                      backgroundColor: bg,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginBottom: 4,
+                    }}
+                  >
+                    <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: textColor }}>
+                      {idx}
+                    </Text>
+                  </View>
+                  <Text
+                    style={{
+                      fontSize: 6,
+                      color: isCurrent ? C.brand600 : C.ink500,
+                      textAlign: "center",
+                      fontFamily: isCurrent ? "Helvetica-Bold" : "Helvetica",
+                    }}
+                  >
+                    {label}
+                  </Text>
+                </View>
+              );
+            })}
           </View>
-        ))}
+        </View>
 
         {/* CTA box */}
         <View
           style={{
-            marginTop: 20,
             borderWidth: 1,
             borderColor: C.brand600,
-            borderRadius: 8,
-            padding: 16,
+            borderRadius: 10,
+            padding: 20,
             backgroundColor: C.brand50,
+            marginBottom: 16,
           }}
         >
-          <Text style={{ fontSize: 12, fontWeight: "bold", color: C.brand600, marginBottom: 4 }}>
-            Keep Building — We&apos;re Here to Help
+          <Text style={{ fontSize: 14, fontFamily: "Helvetica-Bold", color: C.brand600, marginBottom: 6 }}>
+            Keep Building. We Are Here to Help.
           </Text>
-          <Text style={{ fontSize: 9, color: C.ink600, lineHeight: 1.5 }}>
-            Your dashboard at blockid.au is ready for you. Upload evidence as you complete each step, and watch your score grow. The Evidence Vault, cap table tools, and weekly tracking are all included. You&apos;re not doing this alone.
+          <Text style={{ fontSize: 9, color: C.ink600, lineHeight: 1.6, marginBottom: 10 }}>
+            Your dashboard at blockid.au is ready. Upload evidence as you complete each step
+            and watch your score grow. The Evidence Vault, cap table tools, and weekly tracking
+            are all included.
           </Text>
-          {!isPaid && (
-            <View style={{
-              marginTop: 12,
-              padding: 10,
-              backgroundColor: C.amber100,
-              borderRadius: 6,
-              borderWidth: 1,
-              borderColor: C.amber600,
-            }}>
-              <Text style={{ fontSize: 9, fontWeight: "bold", color: C.amber600, marginBottom: 2 }}>
-                Unlock Your Full Report
-              </Text>
-              <Text style={{ fontSize: 8, color: C.ink600, lineHeight: 1.4 }}>
-                This is a 10-page preview. The full report includes unlimited analysis depth, detailed competitor profiles, financial projections, 90-day action plans, and step-by-step guidance tailored to your stage. Choose individual sections or get the complete report at blockid.au/workspace.
-              </Text>
-            </View>
-          )}
+
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <ActionItem num={1} text="Log in to blockid.au/workspace" detail="Access your full dashboard and tools" />
+          </View>
+          <ActionItem num={2} text="Upload evidence for your top gaps" detail="Each piece of evidence strengthens your SVI score" />
+          <ActionItem num={3} text="Schedule your next re-analysis" detail="Track improvement monthly for investor-ready positioning" />
         </View>
 
-        {/* Footer CTA */}
+        {!isPaid && (
+          <View
+            style={{
+              backgroundColor: C.amber100,
+              borderRadius: 8,
+              padding: 14,
+              borderWidth: 1,
+              borderColor: C.amber600,
+              marginBottom: 16,
+            }}
+          >
+            <Text style={{ fontSize: 10, fontFamily: "Helvetica-Bold", color: C.amber600, marginBottom: 3 }}>
+              Unlock Your Full Premium Report
+            </Text>
+            <Text style={{ fontSize: 8.5, color: C.ink600, lineHeight: 1.5 }}>
+              This is a {tier === "preview" ? "preview" : "standard"} report. The premium report includes
+              unlimited analysis depth, detailed competitor profiles, financial projections,
+              and step-by-step guidance tailored to your stage. Visit blockid.au/workspace to upgrade.
+            </Text>
+          </View>
+        )}
+
+        {/* QR code placeholder */}
+        {charts?.get("qr") && (
+          <View style={{ alignItems: "center", marginBottom: 16 }}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+            <Image src={charts.get("qr")!} style={{ width: 80, height: 80 }} />
+            <Text style={{ fontSize: 7, color: C.ink500, marginTop: 4 }}>
+              Scan to access your dashboard
+            </Text>
+          </View>
+        )}
+
+        {/* Branding footer */}
         <View
           style={{
-            marginTop: 20,
+            marginTop: "auto",
             alignItems: "center",
-            paddingVertical: 12,
+            paddingTop: 14,
             borderTopWidth: 1,
             borderTopColor: C.surface200,
           }}
         >
-          <Text style={{ fontSize: 10, fontWeight: "bold", color: C.ink800 }}>
-            Every great company started exactly where you are. Keep building.
-          </Text>
-          <Text style={{ fontSize: 9, color: C.brand600, marginTop: 4 }}>
-            blockid.au
-          </Text>
-          <Text style={{ fontSize: 7, color: C.ink400, marginTop: 6, lineHeight: 1.4 }}>
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
+          {LOGO_SRC && <Image src={LOGO_SRC} style={{ width: 100, height: 23, marginBottom: 6 }} />}
+          {!LOGO_SRC && (
+            <Text style={{ fontSize: 14, fontFamily: "Helvetica-Bold", color: C.brand600, marginBottom: 6 }}>
+              BlockID.au
+            </Text>
+          )}
+          <Text style={{ fontSize: 8, color: C.ink500 }}>blockid.au</Text>
+          <Text style={{ fontSize: 7, color: C.ink400, marginTop: 4 }}>
             Auschain PTY LTD | ACN 659 615 111 | ABN 79 659 615 111 | Sydney, NSW, Australia
           </Text>
-          <Text style={{ fontSize: 6.5, color: C.ink400, marginTop: 4, lineHeight: 1.4, textAlign: "center" }}>
-            This analysis is produced by BlockID.au (Auschain PTY LTD). The Startup Value Index (SVI) is an indicative assessment tool — it is NOT a financial valuation, investment recommendation, or professional advice under the Corporations Act 2001 (Cth). BlockID does not hold an Australian Financial Services Licence (AFSL). Users should seek independent professional advice from qualified accountants, lawyers, and financial advisers. All prices are in AUD and include GST where applicable.
+          <Text
+            style={{
+              fontSize: 6,
+              color: C.ink400,
+              marginTop: 8,
+              lineHeight: 1.5,
+              textAlign: "center",
+              maxWidth: 420,
+            }}
+          >
+            This analysis is produced by BlockID.au (Auschain PTY LTD). The Startup Value Index (SVI)
+            is an indicative assessment tool — it is NOT a financial valuation, investment recommendation,
+            or professional advice under the Corporations Act 2001 (Cth). BlockID does not hold an
+            Australian Financial Services Licence (AFSL). Users should seek independent professional
+            advice from qualified accountants, lawyers, and financial advisers. All prices are in AUD
+            and include GST where applicable.
           </Text>
         </View>
 
-        <Footer pageNum={11} />
+        <Footer />
       </Page>
     </Document>
   );

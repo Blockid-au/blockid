@@ -144,6 +144,22 @@ export const FEATURE_COSTS: Record<string, number> = {
   // ── Phase 8: Growth Journal & Exit ─────────────────────────────────
   journal_reflect: 0.50,         // A$0.50 — AI monthly reflection narrative
   quarterly_revaluation: 1.00,   // A$1.00 — quarterly revaluation report
+
+  // ── Enhanced Multi-Agent Reports (13 criteria) ──────────────────────
+  enhanced_report_standard: 3.00,   // 13-criteria, multi-agent, charts, 5000-8000 words
+  enhanced_report_premium: 7.00,    // All above + DOCX + investor memo, 8000-15000 words
+  enhanced_report_investor: 10.00,  // Maximum depth, all agents, all visuals, board-ready
+
+  // ── Per-Criterion AI Analysis ───────────────────────────────────────
+  criterion_ai_score: 0.25,         // Score one criterion with AI
+  criterion_ai_suggest: 0.10,       // Get AI suggestions for one criterion
+
+  // ── DOCX Export ─────────────────────────────────────────────────────
+  docx_export: 0.50,                // Export existing report as DOCX
+
+  // ── AI Image Generation (for report infographics) ─────────────────
+  report_image_ai: 0.10,            // Single AI-generated infographic (Gemini free, fallback paid)
+  report_images_bundle: 0.50,       // All section images for a report (8-12 images)
 };
 
 // ---------------------------------------------------------------------------

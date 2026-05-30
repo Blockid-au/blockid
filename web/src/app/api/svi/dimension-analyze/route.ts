@@ -11,6 +11,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getProjectIdFromRequest, findSVIAccountWithFallback, findLatestAnalysisWithFallback } from "@/lib/projects";
 
 export const dynamic = "force-dynamic";
 
@@ -98,26 +99,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Database unavailable" }, { status: 503 });
   }
 
-  // Gather data
-  const { data: account } = await supabase
-    .from("svi_accounts")
-    .select("id, startup_name, current_svi, current_stage")
-    .eq("email", user.email)
-    .order("last_active_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // Gather data — with fallback for legacy records (project_id NULL)
+  const projectId = await getProjectIdFromRequest();
+  const account = await findSVIAccountWithFallback(user.email, projectId);
 
   if (!account) {
     return NextResponse.json({ ok: false, error: "No SVI account found" }, { status: 404 });
   }
 
-  const { data: latestAnalysis } = await supabase
-    .from("svi_analyses")
-    .select("raw_input, analysis_json")
-    .eq("email", user.email)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const latestAnalysis = await findLatestAnalysisWithFallback(
+    user.email,
+    projectId,
+    "raw_input, analysis_json",
+  );
 
   // Evidence items for this dimension
   const { data: dimEvidence } = await supabase
@@ -175,7 +169,7 @@ ${evidenceList || "No evidence for this dimension yet"}
 ${(allEvidence ?? []).map((e: Record<string, unknown>) => `- [${e.dimension}] ${e.label}`).join("\n") || "None"}
 
 **Startup Description:**
-${(latestAnalysis?.raw_input ?? "").slice(0, 3000) || "No description available"}
+${(String(latestAnalysis?.raw_input ?? "")).slice(0, 3000) || "No description available"}
 
 ${dimScore?.evidence ? `**Known Evidence:** ${JSON.stringify(dimScore.evidence).slice(0, 500)}` : ""}
 ${dimScore?.gaps ? `**Known Gaps:** ${JSON.stringify(dimScore.gaps).slice(0, 500)}` : ""}

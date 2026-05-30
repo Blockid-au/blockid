@@ -8,7 +8,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { getProjectIdFromRequest, findLatestAnalysisWithFallback } from "@/lib/projects";
 import { REPORT_SECTIONS } from "@/lib/report-sections";
 
 export const dynamic = "force-dynamic";
@@ -35,20 +35,9 @@ export async function GET(request: Request) {
 
   // ── 2. Resolve analysis ID ───────────────────────────────────────────
   if (!analysisId) {
-    // Find the latest analysis for this user, scoped by project
+    // Find the latest analysis — with fallback for legacy records (project_id NULL)
     const projectId = await getProjectIdFromRequest();
-    const query = supabase
-      .from("svi_analyses")
-      .select("id")
-      .eq("email", user.email)
-      .order("created_at", { ascending: false })
-      .limit(1);
-
-    if (projectId) {
-      query.eq("project_id", projectId);
-    }
-
-    const { data: latest } = await query.maybeSingle();
+    const latest = await findLatestAnalysisWithFallback(user.email, projectId, "id");
     if (!latest) {
       return NextResponse.json({ ok: true, analysisId: null, sections: [] });
     }

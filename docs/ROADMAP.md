@@ -1,7 +1,7 @@
 # BlockID.au Product Roadmap
 
 > Startup Verification Intelligence for Australian founders.
-> Last updated: 2026-05-19
+> Last updated: 2026-05-30
 
 ---
 
@@ -27,6 +27,23 @@
 - [x] Admin panel (growth analytics, documents, users)
 - [x] i18n EN/VI
 - [x] 62 unit tests
+
+## Phase 2.5: Enhanced SVI & Multi-Agent Reports (Completed - May 30, 2026)
+
+- [x] 13-Criterion Evaluation System (Idea, Market, Founder, Code/Git, Website, Team, Customer Size, GTM, Documents, Dataroom, Team Structure, Roadmap, Revenue)
+- [x] Multi-agent report pipeline (CEO orchestrator + 10 C-Level agents)
+- [x] 3-phase report generation: Gather → Analyze (3 waves) → Synthesize
+- [x] 21 report sections with agent ownership
+- [x] DOCX export with embedded charts and brand styling
+- [x] AI image generation for reports (Gemini/OpenRouter/DALL-E + Mermaid diagrams)
+- [x] Enhanced email with DOCX+PDF attachments
+- [x] Agent self-research cron (scheduled per agent role)
+- [x] CEO Goal Tree with KPIs per agent
+- [x] Evaluation wizard UI (13 criterion cards with file upload, links, AI suggest/score)
+- [x] 9 AI providers: OpenRouter (24 free models), Gemini, Groq (4 models), Cerebras, SambaNova, Claude OAuth, OpenAI Codex, Claude/OpenAI API, Ollama
+- [x] Agent knowledge base for self-improving prompts
+- [x] SVG chart renderers (radar, bar, funnel, heatmap, progress gauge)
+- [x] Credit pricing: Standard 3.0, Premium 7.0, Investor 10.0
 
 ## Phase 3: Growth (June - July 2026)
 

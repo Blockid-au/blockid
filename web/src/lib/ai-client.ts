@@ -13,7 +13,74 @@
  */
 
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
+
+// Embedded AI worker source. Written to a temp file as a last-resort fallback
+// when no on-disk ai-worker.mjs can be found — e.g. an incomplete standalone
+// deploy where the file wasn't copied alongside the server's cwd. Keeping a
+// copy here means a missing worker file can never take down the whole AI stack.
+// NOTE: keep this in sync with ai-worker.mjs (path uses pathname + search so
+// query-string auth like Gemini's ?key= survives).
+const AI_WORKER_SRC = `import https from 'https';
+let input = '';
+process.stdin.on('data', chunk => { input += chunk; });
+process.stdin.on('end', () => {
+  try {
+    const { url, headers, body } = JSON.parse(input);
+    const u = new URL(url);
+    const req = https.request({
+      hostname: u.hostname,
+      port: 443,
+      path: u.pathname + u.search,
+      method: 'POST',
+      headers: { ...headers, 'Content-Length': Buffer.byteLength(body) },
+      timeout: 180000,
+    }, res => {
+      let data = '';
+      res.on('data', c => { data += c.toString(); });
+      res.on('end', () => {
+        if (res.statusCode >= 400) {
+          process.stderr.write('HTTP ' + res.statusCode + ': ' + data.slice(0, 200));
+          process.exit(1);
+        }
+        process.stdout.write(data);
+      });
+    });
+    req.on('error', e => { process.stderr.write(e.message); process.exit(1); });
+    req.on('timeout', () => { req.destroy(); process.stderr.write('timeout'); process.exit(1); });
+    req.write(body);
+    req.end();
+  } catch (e) {
+    process.stderr.write('[ai-worker] ' + e.message);
+    process.exit(1);
+  }
+});
+`;
+
+// Resolve the ai-worker.mjs path once, with a self-healing temp-file fallback.
+let cachedWorkerPath: string | null = null;
+function resolveWorkerPath(): string {
+  if (cachedWorkerPath && fs.existsSync(cachedWorkerPath)) return cachedWorkerPath;
+
+  const candidates = [
+    path.join(process.cwd(), "ai-worker.mjs"),
+    "/app/ai-worker.mjs",
+    path.join(process.cwd(), ".next", "standalone", "ai-worker.mjs"),
+  ];
+  // __dirname may be undefined in some bundling modes — guard the reference.
+  try { if (typeof __dirname === "string") candidates.push(path.join(__dirname, "ai-worker.mjs")); } catch { /* ignore */ }
+
+  const found = candidates.find(p => { try { return fs.existsSync(p); } catch { return false; } });
+  if (found) { cachedWorkerPath = found; return found; }
+
+  // Last resort: materialize the embedded worker to a temp file (write once).
+  const tmp = path.join(os.tmpdir(), "blockid-ai-worker.mjs");
+  if (!fs.existsSync(tmp)) fs.writeFileSync(tmp, AI_WORKER_SRC, "utf-8");
+  console.warn(`[ai-worker] no on-disk worker found; using embedded fallback at ${tmp}`);
+  cachedWorkerPath = tmp;
+  return tmp;
+}
 
 /**
  * Call external API via ai-worker.mjs subprocess — bypasses Next.js Turbopack fetch patches
@@ -26,17 +93,15 @@ function workerFetch(url: string, headers: Record<string, string>, body: string,
   const { spawn } = cp;
 
   return new Promise((resolve, reject) => {
-    const workerPath = [
-      path.join(process.cwd(), "ai-worker.mjs"),
-      "/app/ai-worker.mjs",
-    ].find(p => fs.existsSync(p));
-
-    console.log(`[ai-worker] spawn: worker=${workerPath} url=${url.slice(0, 40)}... timeout=${timeoutMs}ms`);
-
-    if (!workerPath) {
-      reject(new Error("ai-worker.mjs not found"));
+    let workerPath: string;
+    try {
+      workerPath = resolveWorkerPath();
+    } catch (err) {
+      reject(new Error(`ai-worker.mjs not found and fallback failed: ${err instanceof Error ? err.message : String(err)}`));
       return;
     }
+
+    console.log(`[ai-worker] spawn: worker=${workerPath} url=${url.slice(0, 40)}... timeout=${timeoutMs}ms`);
 
     const child = spawn("node", [workerPath]);
     let stdout = "";
@@ -114,13 +179,50 @@ const COST_PER_1K: Record<string, number> = {
   "gpt-4o-mini": 0.0003,
   "o3-mini": 0.0055,
   "gpt-4.1-mini": 0.002,
-  "gemini-2.5-flash": 0.0001,
+  "gemini-2.5-flash": 0.0014,   // PAID: $0.30/1M input + $2.50/1M output averaged
   "llama-3.3-70b-versatile": 0, // Groq free tier
-  // OpenRouter free models — $0 cost
+  "openai/gpt-oss-120b": 0,     // Groq free tier
+  "openai/gpt-oss-20b": 0,      // Groq free tier
+  "llama-3.1-8b-instant": 0,    // Groq free tier
+  // Cerebras free tier
+  "llama-3.3-70b": 0,
+  "llama-3.1-8b": 0,
+  // SambaNova free tier
+  "DeepSeek-V3-0324": 0,
+  "Meta-Llama-3.3-70B-Instruct": 0,
+  "Qwen2.5-72B-Instruct": 0,
+  "Meta-Llama-3.1-8B-Instruct": 0,
+  // OpenRouter free models — all $0 cost
   "deepseek/deepseek-v4-flash:free": 0,
   "qwen/qwen3-coder:free": 0,
   "nvidia/nemotron-3-super-120b-a12b:free": 0,
   "openrouter/owl-alpha": 0,
+  "openai/gpt-oss-120b:free": 0,
+  "openai/gpt-oss-20b:free": 0,
+  "moonshotai/kimi-k2.6:free": 0,
+  "qwen/qwen3-next-80b-a3b-instruct:free": 0,
+  "google/gemma-4-31b-it:free": 0,
+  "google/gemma-4-26b-a4b-it:free": 0,
+  "poolside/laguna-m.1:free": 0,
+  "poolside/laguna-xs.2:free": 0,
+  "nvidia/nemotron-3-nano-30b-a3b:free": 0,
+  "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free": 0,
+  "minimax/minimax-m2.5:free": 0,
+  "meta-llama/llama-3.3-70b-instruct:free": 0,
+  "z-ai/glm-4.5-air:free": 0,
+  "nousresearch/hermes-3-llama-3.1-405b:free": 0,
+  "nvidia/nemotron-nano-12b-v2-vl:free": 0,
+  "nvidia/nemotron-nano-9b-v2:free": 0,
+  "meta-llama/llama-3.2-3b-instruct:free": 0,
+  "cognitivecomputations/dolphin-mistral-24b-venice-edition:free": 0,
+  "liquid/lfm-2.5-1.2b-thinking:free": 0,
+  "liquid/lfm-2.5-1.2b-instruct:free": 0,
+  // Image generation models
+  "gemini-2.5-flash-preview-image-generation": 0,  // Free with API key
+  "google/gemini-2.5-flash-preview-image-generation": 0,
+  "google/gemini-3.1-flash-image-preview": 0.0001,
+  "gpt-image-1": 0.04,              // ~$0.04 per standard image
+  "x-ai/grok-imagine-image-quality": 0.05,
 };
 
 interface BudgetData {
@@ -236,44 +338,45 @@ function readCodexOAuthToken(): string | null {
 
 // ── Provider detection ─────────────────────────────────────────────────
 
-type Provider = "claude-oauth" | "claude-apikey" | "claude-proxy" | "openai-codex" | "openai-apikey" | "gemini" | "groq" | "openrouter" | "ollama" | "none";
+type Provider = "claude-oauth" | "claude-apikey" | "claude-proxy" | "openai-codex" | "openai-apikey" | "gemini" | "groq" | "openrouter" | "cerebras" | "sambanova" | "ollama" | "none";
 
 function getAvailableProviders(): Provider[] {
   const providers: Provider[] = [];
-  // Priority: FREE first → subscription → paid last → local backup
-  // This maximizes free usage and minimizes API costs.
+  // ──────────────────────────────────────────────────────────────────────
+  // PRIORITY: Subscription (best quality) → FREE (unlimited) → Local
+  // NO paid API keys — zero marginal cost only.
   //
-  // Tier 1: Free models (zero cost)
-  // 1. OpenRouter (10 free models: DeepSeek, Qwen3, NVIDIA 120B, Gemma...)
-  if (process.env.OPENROUTER_API_KEY) providers.push("openrouter");
-  else if (getDBKey("openrouter")) providers.push("openrouter");
-  // 2. Gemini 2.5 Flash (free credit, fast)
-  if (process.env.GOOGLE_GEMINI_API_KEY) providers.push("gemini");
-  else if (getDBKey("gemini")) providers.push("gemini");
-  // 3. Groq (free tier — llama-3.3-70b, 30 req/min)
-  if (process.env.GROQ_API_KEY) providers.push("groq");
-  else if (getDBKey("groq")) providers.push("groq");
-  //
-  // Tier 2: Subscription models (fixed monthly cost, not per-call)
-  // 4. Claude CLI OAuth (Pro subscription — Sonnet for reports, Haiku for quick)
+  // Benchmark intelligence (May 2026):
+  //   S-tier (52+): Claude Sonnet 4.6, o3-mini, DeepSeek V3/V4, Kimi K2.6
+  //   A-tier (40-50): Qwen3, Nemotron 120B, gpt-oss-120b, GLM-5
+  //   B-tier (35-42): Llama 3.3 70B, Gemma 4, gpt-4o-mini
+  //   C-tier (<35):  Llama 3.1 8B, small models
+  // ──────────────────────────────────────────────────────────────────────
+
+  // ── Ranked by strongest model first ────────────────────────────────────
+  // 1. Claude OAuth — Sonnet 4.6 (score 52, S-tier) — DEFAULT
   if (readCliOAuthToken()) providers.push("claude-oauth");
-  // 5. Codex CLI OAuth (ChatGPT Plus subscription)
+  // 2. Codex OAuth — o3-mini (S-tier reasoning)
   if (readCodexOAuthToken()) providers.push("openai-codex");
-  // 6. TapHoaAPI proxy (shared key, limited quota)
+  // 3. Proxy — Sonnet 4.6 (score 52, S-tier via shared key)
   if (process.env.ANTHROPIC_PROXY_API_KEY && process.env.ANTHROPIC_PROXY_BASE_URL) providers.push("claude-proxy");
   else if (getDBKey("anthropic_proxy")) providers.push("claude-proxy");
-  //
-  // Tier 3: Paid API keys (per-call cost — use only as fallback)
-  // 7. Anthropic API key (paid per token)
-  if (process.env.ANTHROPIC_API_KEY) providers.push("claude-apikey");
-  else if (getDBKey("anthropic")) providers.push("claude-apikey");
-  // 8. OpenAI API key (paid per token)
-  if (process.env.OPENAI_API_KEY) providers.push("openai-apikey");
-  else if (getDBKey("openai")) providers.push("openai-apikey");
-  //
-  // Tier 4: Local backup (always available, no cost, lower quality)
-  // 9. Ollama local LLM (qwen2.5:3b on server GPU)
+  // 4. OpenRouter — Kimi K2.6 (score 54), DeepSeek V4 (47), MiniMax (50), 24 free models
+  if (process.env.OPENROUTER_API_KEY) providers.push("openrouter");
+  else if (getDBKey("openrouter")) providers.push("openrouter");
+  // 5. SambaNova — DeepSeek V3 (score ~50, S-tier free)
+  if (process.env.SAMBANOVA_API_KEY) providers.push("sambanova");
+  else if (getDBKey("sambanova")) providers.push("sambanova");
+  // 6. Cerebras — gpt-oss-120b (score ~44, A-tier, 30 RPM)
+  if (process.env.CEREBRAS_API_KEY) providers.push("cerebras");
+  else if (getDBKey("cerebras")) providers.push("cerebras");
+  // 7. Groq — gpt-oss-120b (score ~44, A-tier, fastest inference)
+  if (process.env.GROQ_API_KEY) providers.push("groq");
+  else if (getDBKey("groq")) providers.push("groq");
+  // 8. Ollama — qwen2.5:3b (C-tier, offline backup)
   if (process.env.OLLAMA_HOST || process.env.OLLAMA_ENABLED === "true") providers.push("ollama");
+
+  // ❌ Gemini / Anthropic API / OpenAI API — ALL DISABLED (costs money)
   return providers;
 }
 
@@ -285,9 +388,8 @@ export function isAIConfigured(): boolean {
 
 async function callClaude(apiKey: string, opts: AICallOptions): Promise<AICallResult> {
   const isOAuth = apiKey.startsWith("sk-ant-oat");
-  // Use best model based on task: Sonnet for reports (>1000 tokens), Haiku for quick tasks
-  const isHeavy = opts.tools?.length || (opts.maxTokens && opts.maxTokens > 1000);
-  const model = isHeavy ? "claude-sonnet-4-6" : "claude-haiku-4-5-20251001";
+  // Always use Sonnet 4.6 (S-tier, score 52) — subscription = no extra cost.
+  const model = "claude-sonnet-4-6";
 
   // Use raw fetch for OAuth tokens — SDK may send wrong header format
   if (isOAuth) {
@@ -392,11 +494,9 @@ async function callCodex(opts: AICallOptions): Promise<AICallResult> {
   const token = readCodexOAuthToken();
   if (!token) throw new Error("Codex OAuth token not available");
 
-  // Smart model selection: o3-mini for heavy analysis, gpt-4o-mini for quick tasks
-  const isHeavy = (opts.maxTokens && opts.maxTokens > 1000) || opts.user.length > 2000;
-  const models = isHeavy
-    ? ["o3-mini", "gpt-4.1-mini", "gpt-4o-mini"]
-    : ["gpt-4o-mini", "gpt-4.1-mini"];
+  // Always try strongest model first — subscription = no extra cost per call.
+  // o3-mini (S-tier reasoning) → gpt-4.1-mini (B-tier) → gpt-4o-mini (B-tier fallback)
+  const models = ["o3-mini", "gpt-4.1-mini", "gpt-4o-mini"];
 
   let lastError: Error | null = null;
 
@@ -471,25 +571,134 @@ async function callGroq(opts: AICallOptions): Promise<AICallResult> {
   const apiKey = process.env.GROQ_API_KEY ?? getDBKey("groq")?.api_key ?? "";
   if (!apiKey) throw new Error("Groq API key not configured");
 
-  const model = "llama-3.3-70b-versatile";
-  const raw = await workerFetch("https://api.groq.com/openai/v1/chat/completions", {
-    "Authorization": `Bearer ${apiKey}`,
-    "Content-Type": "application/json",
-  }, JSON.stringify({
-    model,
-    max_tokens: Math.min(opts.maxTokens ?? 4096, 8000), // Groq free limit
-    temperature: 0.7,
-    messages: [
-      { role: "system", content: opts.system },
-      { role: "user", content: opts.user },
-    ],
-  }), opts.timeoutMs);
+  // Groq models ranked by benchmark, all free tier:
+  // gpt-oss-120b (A-tier ~44, 500t/s) > llama-3.3-70b (B-tier ~42, 280t/s)
+  // > gpt-oss-20b (C-tier ~34, 1000t/s) > llama-3.1-8b (C-tier ~28, 560t/s)
+  const GROQ_MODELS = [
+    "openai/gpt-oss-120b",       // A-tier: 117B MoE, best quality
+    "llama-3.3-70b-versatile",    // B-tier: 70B, reliable general
+    "openai/gpt-oss-20b",        // C-tier: 20B, fast
+    "llama-3.1-8b-instant",       // C-tier: 8B, ultra-fast fallback
+  ];
 
-  const data = JSON.parse(raw);
-  if (data.error) throw new Error(data.error.message ?? "Groq error");
-  const text = data.choices?.[0]?.message?.content ?? "";
-  if (!text) throw new Error("Empty Groq response");
-  return { text, provider: "groq", model };
+  let lastErr: Error | null = null;
+  for (const model of GROQ_MODELS) {
+    try {
+      const raw = await workerFetch("https://api.groq.com/openai/v1/chat/completions", {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      }, JSON.stringify({
+        model,
+        max_tokens: Math.min(opts.maxTokens ?? 4096, 8000), // Groq free limit
+        temperature: 0.7,
+        messages: [
+          { role: "system", content: opts.system },
+          { role: "user", content: opts.user },
+        ],
+      }), opts.timeoutMs);
+
+      const data = JSON.parse(raw);
+      if (data.error) throw new Error(data.error.message ?? "Groq error");
+      const text = data.choices?.[0]?.message?.content ?? "";
+      if (!text) throw new Error("Empty Groq response");
+      return { text, provider: "groq", model };
+    } catch (err) {
+      lastErr = err instanceof Error ? err : new Error(String(err));
+      console.warn(`[ai-client] Groq ${model} failed: ${lastErr.message}`);
+    }
+  }
+  throw lastErr ?? new Error("All Groq models failed");
+}
+
+// ── Cerebras (OpenAI-compatible, free tier, ultra-fast inference) ─────
+// Free: 30 RPM, 60K TPM, ~1M tokens/day. No credit card required.
+// API: https://api.cerebras.ai/v1 (OpenAI-compatible)
+
+async function callCerebras(opts: AICallOptions): Promise<AICallResult> {
+  const apiKey = process.env.CEREBRAS_API_KEY ?? getDBKey("cerebras")?.api_key ?? "";
+  if (!apiKey) throw new Error("Cerebras API key not configured");
+
+  // Cerebras models ranked by benchmark:
+  // gpt-oss-120b (A-tier ~44) > llama-3.3-70b (B-tier ~42) > llama-3.1-8b (C-tier ~28)
+  const CEREBRAS_MODELS = [
+    "openai/gpt-oss-120b",    // A-tier: 117B MoE, best quality on Cerebras
+    "llama-3.3-70b",           // B-tier: Llama 3.3 70B, reliable
+    "llama-3.1-8b",            // C-tier: 8B fast fallback
+  ];
+
+  let lastErr: Error | null = null;
+  for (const model of CEREBRAS_MODELS) {
+    try {
+      const raw = await workerFetch("https://api.cerebras.ai/v1/chat/completions", {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      }, JSON.stringify({
+        model,
+        max_tokens: Math.min(opts.maxTokens ?? 4096, 8192),
+        temperature: 0.7,
+        messages: [
+          { role: "system", content: opts.system },
+          { role: "user", content: opts.user },
+        ],
+      }), opts.timeoutMs);
+
+      const data = JSON.parse(raw);
+      if (data.error) throw new Error(data.error.message ?? "Cerebras error");
+      const text = data.choices?.[0]?.message?.content ?? "";
+      if (!text) throw new Error("Empty Cerebras response");
+      return { text, provider: "groq" as const, model }; // reuse "groq" provider type for compat
+    } catch (err) {
+      lastErr = err instanceof Error ? err : new Error(String(err));
+      console.warn(`[ai-client] Cerebras ${model} failed: ${lastErr.message}`);
+    }
+  }
+  throw lastErr ?? new Error("All Cerebras models failed");
+}
+
+// ── SambaNova (OpenAI-compatible, free tier, high throughput) ─────────
+// Free: ~294 TPS, DeepSeek + Llama + Qwen models. No credit card.
+// API: https://api.sambanova.ai/v1 (OpenAI-compatible)
+
+async function callSambaNova(opts: AICallOptions): Promise<AICallResult> {
+  const apiKey = process.env.SAMBANOVA_API_KEY ?? getDBKey("sambanova")?.api_key ?? "";
+  if (!apiKey) throw new Error("SambaNova API key not configured");
+
+  // SambaNova models ranked by benchmark intelligence score:
+  // DeepSeek-V3 (score ~50) > Qwen2.5-72B (~46) > Llama-3.3-70B (~42) > Llama-3.1-8B (~28)
+  const SAMBANOVA_MODELS = [
+    "DeepSeek-V3-0324",            // S-tier: DeepSeek V3, best open-source reasoning
+    "Qwen2.5-72B-Instruct",        // A-tier: Qwen 2.5 72B, strong structured output
+    "Meta-Llama-3.3-70B-Instruct",  // B-tier: Llama 3.3 70B, reliable general
+    "Meta-Llama-3.1-8B-Instruct",   // C-tier: Llama 3.1 8B, fast fallback
+  ];
+
+  let lastErr: Error | null = null;
+  for (const model of SAMBANOVA_MODELS) {
+    try {
+      const raw = await workerFetch("https://api.sambanova.ai/v1/chat/completions", {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      }, JSON.stringify({
+        model,
+        max_tokens: Math.min(opts.maxTokens ?? 4096, 8192),
+        temperature: 0.7,
+        messages: [
+          { role: "system", content: opts.system },
+          { role: "user", content: opts.user },
+        ],
+      }), opts.timeoutMs);
+
+      const data = JSON.parse(raw);
+      if (data.error) throw new Error(data.error.message ?? "SambaNova error");
+      const text = data.choices?.[0]?.message?.content ?? "";
+      if (!text) throw new Error("Empty SambaNova response");
+      return { text, provider: "groq" as const, model }; // reuse "groq" provider type for compat
+    } catch (err) {
+      lastErr = err instanceof Error ? err : new Error(String(err));
+      console.warn(`[ai-client] SambaNova ${model} failed: ${lastErr.message}`);
+    }
+  }
+  throw lastErr ?? new Error("All SambaNova models failed");
 }
 
 // ── OpenRouter (OpenAI-compatible, free models) ──────────────────────
@@ -498,19 +707,41 @@ async function callOpenRouter(opts: AICallOptions): Promise<AICallResult> {
   const apiKey = process.env.OPENROUTER_API_KEY ?? getDBKey("openrouter")?.api_key ?? "";
   if (!apiKey) throw new Error("OpenRouter API key not configured");
 
-  // Free models ordered by quality for report generation.
-  // Priority: large context + strong reasoning first.
+  // Free models ranked by intelligence benchmark (May 2026).
+  // S-tier (50+) → A-tier (42-50) → B-tier (35-42) → C-tier (<35)
+  // Last updated: 2026-05-30 — 24 free models for maximum uptime.
   const FREE_MODELS = [
-    "deepseek/deepseek-v4-flash:free",                    // 1M context, best free reasoning
-    "qwen/qwen3-coder:free",                              // Qwen 3 Coder, strong structured output
-    "nvidia/nemotron-3-super-120b-a12b:free",             // NVIDIA 120B, excellent for reports
-    "openrouter/owl-alpha",                                // OpenRouter's own model
-    "google/gemma-4-31b-it:free",                         // Google Gemma 4, 262K context
-    "google/gemma-4-26b-a4b-it:free",                     // Google Gemma 4 smaller variant
-    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free", // NVIDIA reasoning (smaller)
-    "arcee-ai/trinity-large-thinking:free",               // Thinking/reasoning model
-    "poolside/laguna-m.1:free",                           // Poolside medium model
-    "baidu/cobuddy:free",                                 // Baidu model, 131K context
+    // ── S-tier: Frontier-class free models (score 47-54) ────────────
+    "moonshotai/kimi-k2.6:free",                          // 262K ctx, score ~54, Moonshot best
+    "deepseek/deepseek-v4-flash:free",                    // 1M ctx, score ~47, MoE 284B reasoning
+    "minimax/minimax-m2.5:free",                          // 205K ctx, score ~50, matches Opus on SWE-bench
+    "qwen/qwen3-next-80b-a3b-instruct:free",             // 262K ctx, score ~46, Qwen3 next-gen
+    "qwen/qwen3-coder:free",                              // 1M ctx, score ~45, strongest free coding
+
+    // ── A-tier: Strong general-purpose (score 40-47) ────────────────
+    "nvidia/nemotron-3-super-120b-a12b:free",             // 1M ctx, NVIDIA 120B, excellent reports
+    "openai/gpt-oss-120b:free",                           // 131K ctx, OpenAI 117B MoE open-weight
+    "z-ai/glm-4.5-air:free",                              // 131K ctx, Zhipu GLM 4.5 (GLM-5 family)
+    "openrouter/owl-alpha",                                // 1M ctx, OpenRouter agentic model
+    "nousresearch/hermes-3-llama-3.1-405b:free",          // 131K ctx, 405B params — largest free
+
+    // ── B-tier: Solid quality, reliable (score 35-42) ───────────────
+    "google/gemma-4-31b-it:free",                         // 262K ctx, Gemma 4 multimodal
+    "meta-llama/llama-3.3-70b-instruct:free",             // 131K ctx, Meta Llama 3.3 70B
+    "google/gemma-4-26b-a4b-it:free",                     // 262K ctx, Gemma 4 smaller
+    "poolside/laguna-m.1:free",                           // 262K ctx, Poolside coding agent
+    "nvidia/nemotron-3-nano-30b-a3b:free",                // 256K ctx, NVIDIA 30B
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free", // 256K ctx, NVIDIA reasoning
+    "cognitivecomputations/dolphin-mistral-24b-venice-edition:free", // 33K ctx, Mistral 24B
+
+    // ── C-tier: Fast fallback / small models (score <35) ────────────
+    "openai/gpt-oss-20b:free",                            // 131K ctx, OpenAI 20B fast
+    "poolside/laguna-xs.2:free",                          // 262K ctx, Poolside small
+    "nvidia/nemotron-nano-12b-v2-vl:free",                // 128K ctx, NVIDIA 12B vision
+    "nvidia/nemotron-nano-9b-v2:free",                    // 128K ctx, NVIDIA 9B
+    "meta-llama/llama-3.2-3b-instruct:free",              // 131K ctx, Meta 3B ultra-fast
+    "liquid/lfm-2.5-1.2b-thinking:free",                  // 33K ctx, Liquid 1.2B thinking
+    "liquid/lfm-2.5-1.2b-instruct:free",                  // 33K ctx, Liquid 1.2B instruct
   ];
 
   let lastErr: Error | null = null;
@@ -578,11 +809,9 @@ async function callClaudeProxy(opts: AICallOptions): Promise<AICallResult> {
   const envKeys = (process.env.ANTHROPIC_PROXY_API_KEY ?? "").split(",").map((k) => k.trim()).filter(Boolean);
   const dbKeys = dbProxy?.api_key ? dbProxy.api_key.split(",").map((k) => k.trim()).filter(Boolean) : [];
   const keys = [...new Set([...envKeys, ...dbKeys])];
-  // Proxy: haiku for quick tasks, sonnet for heavy reports
-  const isHeavy = (opts.maxTokens && opts.maxTokens > 4096);
-  const model = isHeavy ? "claude-sonnet-4-6" : "claude-haiku-4-5-20251001";
-  // Allow full token budget for heavy tasks (reports), cap quick tasks for speed
-  const maxTokens = isHeavy ? (opts.maxTokens ?? 8192) : Math.min(opts.maxTokens ?? 4096, 1500);
+  // Always use Sonnet 4.6 (S-tier) — maximize quality for every call.
+  const model = "claude-sonnet-4-6";
+  const maxTokens = opts.maxTokens ?? 8192;
 
   let lastErr: Error | null = null;
   for (const key of keys) {
@@ -641,6 +870,10 @@ async function callProvider(provider: Provider, opts: AICallOptions): Promise<AI
       return callOpenAI(process.env.OPENAI_API_KEY ?? getDBKey("openai")?.api_key ?? "", noTools);
     case "groq":
       return callGroq(noTools);
+    case "cerebras":
+      return callCerebras(noTools);
+    case "sambanova":
+      return callSambaNova(noTools);
     case "openrouter":
       return callOpenRouter(noTools);
     case "gemini": {
@@ -807,13 +1040,17 @@ export function isAnthropicConfigured(): boolean {
 export async function callAIForUpgrade(opts: AICallOptions): Promise<AICallResult | null> {
   await getDBKeys(); // ensure cache is warm
 
-  // Only use subscription and free providers — no paid API keys
+  // Only use FREE and subscription providers — NO paid API keys (Gemini, Anthropic, OpenAI)
   const freeProviders: Provider[] = [];
+  // 100% free providers first
+  if (process.env.OPENROUTER_API_KEY || getDBKey("openrouter")) freeProviders.push("openrouter");
+  if (process.env.GROQ_API_KEY || getDBKey("groq")) freeProviders.push("groq");
+  if (process.env.CEREBRAS_API_KEY || getDBKey("cerebras")) freeProviders.push("cerebras");
+  if (process.env.SAMBANOVA_API_KEY || getDBKey("sambanova")) freeProviders.push("sambanova");
+  // Subscription providers (fixed cost, not per-call)
   if (readCliOAuthToken()) freeProviders.push("claude-oauth");
   if (readCodexOAuthToken()) freeProviders.push("openai-codex");
-  if (process.env.GOOGLE_GEMINI_API_KEY || getDBKey("gemini")) freeProviders.push("gemini");
-  if (process.env.GROQ_API_KEY || getDBKey("groq")) freeProviders.push("groq");
-  if (process.env.OPENROUTER_API_KEY || getDBKey("openrouter")) freeProviders.push("openrouter");
+  // NOTE: Gemini EXCLUDED — it costs $0.30-$2.50/1M tokens, NOT free
 
   if (freeProviders.length === 0) {
     console.warn("[ai-client] No free/subscription providers available for upgrade task. Skipping.");

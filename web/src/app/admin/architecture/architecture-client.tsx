@@ -125,15 +125,18 @@ const MICROSERVICES: MicroService[] = [
 ];
 
 const AI_PROVIDERS: AIProvider[] = [
-  { name: "OpenRouter", tier: "1", tierLabel: "Free", models: "gemma-3, llama-4, deepseek-r1, phi-4, qwen3, mistral-small, command-a, etc.", modelCount: 10, costPer1k: "$0.00", status: "active" },
-  { name: "Gemini", tier: "1", tierLabel: "Free", models: "gemini-2.0-flash, gemini-2.5-flash", modelCount: 2, costPer1k: "$0.00", status: "active" },
-  { name: "Groq", tier: "1", tierLabel: "Free", models: "llama-3.3-70b, gemma2-9b", modelCount: 2, costPer1k: "$0.00", status: "active" },
-  { name: "Claude OAuth", tier: "2", tierLabel: "Sub", models: "claude-sonnet-4-5, claude-haiku-4-5", modelCount: 2, costPer1k: "$0.00*", status: "active" },
-  { name: "Codex", tier: "2", tierLabel: "Sub", models: "codex-mini", modelCount: 1, costPer1k: "$0.00*", status: "active" },
-  { name: "Proxy", tier: "2", tierLabel: "Sub", models: "various", modelCount: 1, costPer1k: "$0.00*", status: "inactive" },
-  { name: "Anthropic API", tier: "3", tierLabel: "Paid", models: "claude-sonnet-4-5, claude-haiku-4-5", modelCount: 2, costPer1k: "$0.003", status: "active" },
-  { name: "OpenAI API", tier: "3", tierLabel: "Paid", models: "gpt-4o-mini", modelCount: 1, costPer1k: "$0.002", status: "active" },
-  { name: "Ollama (local)", tier: "4", tierLabel: "Local", models: "qwen2.5:3b", modelCount: 1, costPer1k: "$0.00", status: "active" },
+  // Priority: Subscription (S-tier default) → Free (unlimited) → Local. NO paid APIs.
+  { name: "Codex OAuth", tier: "1", tierLabel: "Default", models: "o3-mini (S-tier reasoning), gpt-4.1-mini (B), gpt-4o-mini (B)", modelCount: 3, costPer1k: "$0.00", status: "active" },
+  { name: "Claude OAuth", tier: "1", tierLabel: "Default", models: "claude-sonnet-4-6 (S-tier, score 52), claude-haiku-4-5 (B)", modelCount: 2, costPer1k: "$0.00", status: "active" },
+  { name: "Proxy", tier: "1", tierLabel: "Default", models: "claude-sonnet-4-6 (S), claude-haiku-4-5 (B)", modelCount: 2, costPer1k: "$0.00", status: "active" },
+  { name: "SambaNova", tier: "2", tierLabel: "Free", models: "DeepSeek-V3 (S), Qwen2.5-72B (A), Llama-3.3-70B (B), Llama-3.1-8B (C)", modelCount: 4, costPer1k: "$0.00", status: "active" },
+  { name: "OpenRouter", tier: "2", tierLabel: "Free", models: "Kimi-K2.6 (S), DeepSeek-V4 (S), MiniMax-M2.5 (S), Qwen3 (A), +20 more", modelCount: 24, costPer1k: "$0.00", status: "active" },
+  { name: "Cerebras", tier: "2", tierLabel: "Free", models: "gpt-oss-120b (A), llama-3.3-70b (B), llama-3.1-8b (C). 30 RPM", modelCount: 3, costPer1k: "$0.00", status: "active" },
+  { name: "Groq", tier: "2", tierLabel: "Free", models: "gpt-oss-120b (A), llama-3.3-70b (B), gpt-oss-20b (C), llama-3.1-8b (C)", modelCount: 4, costPer1k: "$0.00", status: "active" },
+  { name: "Ollama (local)", tier: "3", tierLabel: "Local", models: "qwen2.5:3b (C-tier, offline backup)", modelCount: 1, costPer1k: "$0.00", status: "inactive" },
+  { name: "Gemini", tier: "4", tierLabel: "Disabled", models: "DISABLED — costs money", modelCount: 0, costPer1k: "N/A", status: "inactive" },
+  { name: "Anthropic API", tier: "4", tierLabel: "Disabled", models: "DISABLED — costs money", modelCount: 0, costPer1k: "N/A", status: "inactive" },
+  { name: "OpenAI API", tier: "4", tierLabel: "Disabled", models: "DISABLED — costs money", modelCount: 0, costPer1k: "N/A", status: "inactive" },
 ];
 
 const DB_TABLE_GROUPS: DBTableGroup[] = [
@@ -144,13 +147,15 @@ const DB_TABLE_GROUPS: DBTableGroup[] = [
     tables: ["app_users", "sessions", "api_keys", "oauth_tokens", "login_attempts"],
   },
   {
-    domain: "SVI",
+    domain: "SVI & Evaluation",
     color: "text-brand-600",
     bgColor: "bg-brand-50",
     tables: [
       "svi_analyses", "svi_accounts", "svi_evidence", "svi_scores",
       "svi_dimensions", "report_sections", "report_bundles",
       "svi_share_links", "svi_notifications", "svi_projects",
+      "evaluation_criteria", "agent_report_tasks", "assembled_reports",
+      "agent_knowledge_base", "evidence_analyses",
     ],
   },
   {
@@ -196,7 +201,7 @@ const DB_TABLE_GROUPS: DBTableGroup[] = [
 
 const API_ROUTE_GROUPS: APIRouteGroup[] = [
   { domain: "Auth", count: 9, color: "bg-purple-500" },
-  { domain: "SVI Analysis", count: 23, color: "bg-brand-500" },
+  { domain: "SVI & Evaluation", count: 28, color: "bg-brand-500" },
   { domain: "Equity & Vesting", count: 15, color: "bg-teal-500" },
   { domain: "Billing & Credits", count: 12, color: "bg-emerald-500" },
   { domain: "Reports", count: 18, color: "bg-blue-500" },
@@ -222,6 +227,8 @@ const CRON_JOBS: CronJob[] = [
   { schedule: "0 2 * * *", name: "Cache Warmup", description: "Warms Redis cache for popular queries", endpoint: "/api/cron/cache-warmup" },
   { schedule: "0 6 1 * *", name: "Monthly Revenue Report", description: "Calculates MRR, churn, LTV for CFO dashboard", endpoint: "/api/cron/monthly-report" },
   { schedule: "0 0 * * *", name: "Token Cleanup", description: "Expires stale sessions, rotates temp tokens", endpoint: "/api/cron/token-cleanup" },
+  { schedule: "0 16 * * *", name: "Agent Self-Research", description: "C-Level agents research benchmarks, regulations, competitors (off-peak 2am AEST)", endpoint: "/api/cron/agent-research" },
+  { schedule: "0 16 * * *", name: "Agent Self-Upgrade", description: "Operational agent tasks: health checks, quality sampling, metrics import", endpoint: "/api/cron/agent-upgrade" },
 ];
 
 /* ── Status Badge ──────────────────────────────────────────────────────── */

@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
 import { callAI } from "@/lib/ai-client";
+import { optimizeForSearch } from "@/lib/adk/agents";
+
+/** Adapter: ADK ModelCaller (system, user, maxTokens) → free callAI(). */
+const adkModel = async (system: string, user: string, maxTokens: number): Promise<string> =>
+  (await callAI({ system, user, maxTokens, timeoutMs: 60_000 })).text;
 
 export const dynamic = "force-dynamic";
 
@@ -81,6 +86,16 @@ No markdown, no explanation, just the JSON object.`,
     }
     const nextTopic = topic;
 
+    // 2.5 Brand Search Optimization (Google Agent Garden port) — expand the
+    // topic's keywords and tighten the title for search intent before writing.
+    // Fully fail-safe: returns the original title/keywords if the agents fail.
+    const seo = await optimizeForSearch(
+      { title: nextTopic.title, keywords: nextTopic.keywords, angle: nextTopic.angle },
+      adkModel,
+    );
+    const articleTitle = seo.optimizedTitle;
+    const articleKeywords = seo.expandedKeywords;
+
     // 3. Generate article via AI
     const aiResult = await callAI({
       system: `You are an expert SEO content writer and growth marketer for BlockID.au, an Australian AI-powered startup valuation platform. Write a comprehensive, visually rich blog post in markdown format.
@@ -138,9 +153,9 @@ Example SVG bar chart:
 Do NOT include the H1 title (added separately). Do NOT include frontmatter. Start with the first H2.`,
       user: `Write a blog post on:
 
-Title: ${nextTopic.title}
+Title: ${articleTitle}
 Category: ${nextTopic.category}
-Target keywords: ${nextTopic.keywords.join(", ")}
+Target keywords: ${articleKeywords.join(", ")}
 Angle/brief: ${nextTopic.angle}
 
 Internal links to include:
@@ -161,7 +176,8 @@ Write the full article in markdown. Make it genuinely helpful, visually rich wit
       maxTokens: 100,
     });
 
-    const description = descResult.text.trim().slice(0, 155);
+    // Prefer the SEO-optimised meta description when the agent produced one.
+    const description = (seo.metaDescription || descResult.text.trim()).slice(0, 155);
 
     // 5. Estimate reading time
     const wordCount = articleContent.split(/\s+/).length;
@@ -175,9 +191,9 @@ Write the full article in markdown. Make it genuinely helpful, visually rich wit
     const today = new Date().toISOString().split("T")[0];
     const newArticle: ManifestArticle = {
       slug: nextTopic.slug,
-      title: nextTopic.title,
+      title: articleTitle,
       description,
-      keywords: nextTopic.keywords,
+      keywords: articleKeywords,
       category: nextTopic.category,
       publishedAt: today,
       readingTime,
@@ -197,7 +213,7 @@ Write the full article in markdown. Make it genuinely helpful, visually rich wit
       ok: true,
       published: {
         slug: nextTopic.slug,
-        title: nextTopic.title,
+        title: articleTitle,
         url: `https://blockid.au/insights/${nextTopic.slug}`,
         wordCount,
         readingTime,

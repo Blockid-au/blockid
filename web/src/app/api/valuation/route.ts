@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { computeValuation, type ValuationInput } from "@/lib/valuation";
 import { canAfford, spendCredits } from "@/lib/credits";
+import { getProjectIdFromRequest, findSVIAccountWithFallback } from "@/lib/projects";
 
 export const dynamic = "force-dynamic";
 
@@ -37,12 +38,13 @@ export async function GET() {
       );
     }
 
-    // 1. Find the user's SVI account
-    const { data: account } = await supabase
-      .from("svi_accounts")
-      .select("id, current_svi, current_stage")
-      .eq("email", user.email)
-      .maybeSingle();
+    // 1. Find the user's SVI account — with fallback for legacy records
+    const projectId = await getProjectIdFromRequest();
+    const account = await findSVIAccountWithFallback(
+      user.email,
+      projectId,
+      "id, current_svi, current_stage",
+    );
 
     if (!account) {
       return NextResponse.json(
