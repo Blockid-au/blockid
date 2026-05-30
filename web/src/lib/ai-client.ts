@@ -376,7 +376,7 @@ function getAvailableProviders(): Provider[] {
   // 8. Ollama — qwen2.5:3b (C-tier, offline backup)
   if (process.env.OLLAMA_HOST || process.env.OLLAMA_ENABLED === "true") providers.push("ollama");
 
-  // ❌ Gemini / Anthropic API / OpenAI API — ALL DISABLED (costs money)
+  // ❌ Gemini / Anthropic API / OpenAI API — DISABLED
   return providers;
 }
 

@@ -180,6 +180,7 @@ Provide a thorough ${info.label} assessment.`;
       system: systemPrompt,
       user: userMessage,
       maxTokens: 3072,
+      timeoutMs: 120_000,
     });
 
     let analysisData: Record<string, unknown>;
@@ -224,7 +225,18 @@ Provide a thorough ${info.label} assessment.`;
       creditsUsed: FEATURE_COSTS[featureKey],
     });
   } catch (err) {
-    console.error("[blockid:dimension-analyze]", err);
-    return NextResponse.json({ ok: false, error: "Dimension analysis failed" }, { status: 500 });
+    const msg = err instanceof Error ? err.message : String(err);
+    const isTimeout = msg.includes("timeout") || msg.includes("Timeout");
+    const isRateLimit = msg.includes("429") || msg.includes("rate");
+    console.error("[blockid:dimension-analyze]", msg);
+    return NextResponse.json({
+      ok: false,
+      error: isTimeout
+        ? "AI analysis is taking longer than usual. Please try again in a moment — no credits were charged."
+        : isRateLimit
+          ? "Our AI service is busy. Please try again in 1-2 minutes — no credits charged."
+          : "Dimension analysis failed. Please try again.",
+      retryable: true,
+    }, { status: isRateLimit ? 429 : 500 });
   }
 }

@@ -269,7 +269,7 @@ Formatting for visual impact:
       system: promptTemplate,
       user: userMessage,
       maxTokens,
-      timeoutMs: 60_000, // 1 section = fast, 60s is generous
+      timeoutMs: 120_000, // free models are slow — allow 120s
     });
 
     // ── 7. Charge credits (only after successful generation) ───────────
@@ -327,15 +327,23 @@ Formatting for visual impact:
       generatedAt: new Date().toISOString(),
     });
   } catch (err) {
-    console.error(`[blockid:report-section] ${sectionId}/${depth}`, err);
+    const msg = err instanceof Error ? err.message : String(err);
+    const isTimeout = msg.includes("timeout") || msg.includes("Timeout");
+    const isRateLimit = msg.includes("429") || msg.includes("rate");
+    console.error(`[blockid:report-section] ${sectionId}/${depth}`, msg);
     return NextResponse.json(
       {
         ok: false,
-        error: `Failed to generate "${sectionDef.title}" section`,
+        error: isTimeout
+          ? `AI analysis is taking longer than usual. Please try again in a moment — your credits were not charged.`
+          : isRateLimit
+            ? `Our AI service is busy right now. Please try again in 1-2 minutes — your credits were not charged.`
+            : `Failed to generate "${sectionDef.title}" section. Please try again.`,
+        retryable: true,
         sectionId,
         depth,
       },
-      { status: 500 },
+      { status: isRateLimit ? 429 : 500 },
     );
   }
 }
