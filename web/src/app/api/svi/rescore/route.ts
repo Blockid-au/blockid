@@ -103,12 +103,11 @@ export async function POST() {
     });
 
     // Update cap table share price to reflect new valuation
-    // price_per_share = estimated_valuation / total_authorized_shares
+    const pricePerShare = Math.round(estVal / 1_000_000 * 100) / 100;
     await supabase
       .from("share_classes")
-      .update({ price_per_share: Math.round(estVal / 1_000_000 * 100) / 100 })
-      .eq("account_id", accountId)
-      .catch(() => {});
+      .update({ price_per_share: pricePerShare })
+      .eq("account_id", accountId);
   }
 
   // 7. Check and award milestone badges
