@@ -91,6 +91,76 @@ export function extractSignals(
 
   const targetRaiseMentioned = has("raising", "raise", "funding", "investment", "seed round", "series");
 
+  // ── Extended signals for 13 evaluation criteria ─────────────────────────
+
+  // Idea signals
+  const hasUniqueness = has("unique", "first", "only", "novel", "breakthrough", "innovative", "patent pending");
+  const hasProblemSolutionFit = has("solve", "solution", "fix", "address", "eliminate") && problemClarity !== "vague";
+  const innovationLevel: SVIExtractedSignals["innovationLevel"] = has("breakthrough", "world first", "patent", "novel")
+    ? "breakthrough"
+    : has("innovative", "new approach", "unique", "different")
+      ? "novel"
+      : "incremental";
+
+  // Team Structure signals
+  const hasOrgChart = has("org chart", "organization chart", "organisation chart", "reporting structure");
+  const hasAdvisoryBoard = has("advisory board", "advisory panel", "advisors board", "board of advisors");
+  const teamSize: SVIExtractedSignals["teamSize"] = has("50+", "100+", "large team")
+    ? "large"
+    : has("10+", "15", "20", "medium team", "growing team")
+      ? "medium"
+      : has("team of", "co-founder", "2 founders", "3 founders", "small team")
+        ? "small"
+        : "solo";
+  const hasHiringPlan = has("hiring plan", "hiring", "recruit", "open roles", "job posting");
+
+  // Go-to-Market signals
+  const hasGTMStrategy = has("go-to-market", "gtm", "go to market", "launch strategy", "market entry");
+  const hasDistributionChannels = has("channel", "distribution", "partnership", "affiliate", "referral", "marketplace");
+  const hasPricingStrategy = has("pricing", "price point", "freemium", "subscription", "tiered pricing", "pay per");
+  const hasAcquisitionPlan = has("acquisition", "customer acquisition", "growth plan", "marketing plan", "sales plan");
+
+  // Code/Git signals (enhanced)
+  const hasCommitHistory = has("commit", "git history", "version control", "pull request", "merge");
+  const codeQuality: SVIExtractedSignals["codeQuality"] = has("production", "deployed", "live", "ci/cd", "automated test")
+    ? "production"
+    : has("test", "testing", "unit test", "coverage", "code review")
+      ? "good"
+      : has("code", "github", "repository")
+        ? "basic"
+        : "unknown";
+  const hasArchitectureDoc = has("architecture", "system design", "tech spec", "technical documentation");
+  const hasTests = has("test", "testing", "unit test", "integration test", "e2e", "coverage");
+
+  // Customer Size signals
+  const userBaseSize: SVIExtractedSignals["userBaseSize"] = has("10000", "10k", "100k", "million user")
+    ? "significant"
+    : has("1000", "1k", "growing user", "hundreds")
+      ? "growing"
+      : has("user", "customer", "beta user", "early adopter")
+        ? "early"
+        : "none";
+  const hasEngagementMetrics = has("engagement", "dau", "mau", "session", "retention", "nps");
+  const hasGrowthRate = has("growth rate", "growing", "month over month", "yoy", "week over week");
+
+  // Roadmap signals
+  const hasProductRoadmap = has("roadmap", "product plan", "feature plan", "backlog");
+  const hasMilestones = has("milestone", "deliverable", "target date", "deadline", "q1", "q2", "q3", "q4");
+  const roadmapClarity: SVIExtractedSignals["roadmapClarity"] = has("detailed roadmap", "week by week", "sprint", "gantt")
+    ? "detailed"
+    : has("roadmap", "milestone", "plan", "timeline")
+      ? "clear"
+      : "vague";
+
+  // Document Quality signals
+  const hasBusinessPlan = has("business plan", "business model", "business case", "one pager");
+  const documentCompleteness: SVIExtractedSignals["documentCompleteness"] =
+    (has("pitch deck") && has("financial model") && has("data room"))
+      ? "comprehensive"
+      : (has("pitch deck") || has("financial model") || has("business plan"))
+        ? "partial"
+        : "minimal";
+
   const signals: SVIExtractedSignals = {
     hasCoFounder: has("co-founder", "cofounder", "co founder", "2 founders", "three founders", "team of"),
     founderExperience,
@@ -131,6 +201,31 @@ export function extractSignals(
     hasContracts: has("contract", "agreement", "terms of service", "tos"),
     hasLegalDocs: has("legal", "lawyer", "solicitor", "company constitution"),
     evidenceLevel,
+
+    // Extended 13-criteria signals
+    hasUniqueness,
+    hasProblemSolutionFit,
+    innovationLevel,
+    hasOrgChart,
+    hasAdvisoryBoard,
+    teamSize,
+    hasHiringPlan,
+    hasGTMStrategy,
+    hasDistributionChannels,
+    hasPricingStrategy,
+    hasAcquisitionPlan,
+    hasCommitHistory,
+    codeQuality,
+    hasArchitectureDoc,
+    hasTests,
+    userBaseSize,
+    hasEngagementMetrics,
+    hasGrowthRate,
+    hasProductRoadmap,
+    hasMilestones,
+    roadmapClarity,
+    hasBusinessPlan,
+    documentCompleteness,
   };
 
   // ── Evidence overlay: boost signals from uploaded/connected evidence ──────

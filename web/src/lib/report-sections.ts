@@ -25,6 +25,12 @@ export interface ReportSectionDef {
   icon: string;
   summaryPrompt: string;
   fullPrompt: string;
+  /** Primary C-Level agent responsible for this section */
+  agentOwner?: string;
+  /** Supporting agents that contribute data */
+  supportingAgents?: string[];
+  /** Which of the 13 evaluation criteria this section covers */
+  criteriaKeys?: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -98,12 +104,15 @@ export const REPORT_SECTIONS: ReportSectionDef[] = [
   {
     id: "executive",
     title: "Executive Summary",
-    subtitle: "Overall assessment and investor memo",
+    subtitle: "Your startup at a glance — investment thesis and critical path",
     tier: "free",
     summaryWords: 300,
     fullWords: 1500,
     creditCost: 0,
     icon: "FileText",
+    agentOwner: "ceo",
+    supportingAgents: ["cdo"],
+    criteriaKeys: [],
     summaryPrompt: summaryPrompt(
       "Executive Summary",
       `- One-paragraph startup overview and value proposition
@@ -127,13 +136,16 @@ export const REPORT_SECTIONS: ReportSectionDef[] = [
   // ── 2. Founder & Team (INCLUDED) ────────────────────────────────────
   {
     id: "founder_team",
-    title: "Founder & Team",
-    subtitle: "Background, experience, and team composition",
+    title: "Founding Team & Leadership",
+    subtitle: "Background, capability gaps, and team-building roadmap",
     tier: "included",
     summaryWords: 200,
     fullWords: 1200,
     creditCost: 0.50,
     icon: "Users",
+    agentOwner: "chro",
+    supportingAgents: ["cpo", "clo"],
+    criteriaKeys: ["founder_profile", "team", "team_structure"],
     summaryPrompt: summaryPrompt(
       "Founder & Team Assessment",
       `- Founder background and relevant experience
@@ -158,13 +170,16 @@ export const REPORT_SECTIONS: ReportSectionDef[] = [
   // ── 3. Market Opportunity (INCLUDED) ────────────────────────────────
   {
     id: "market",
-    title: "Market Opportunity",
-    subtitle: "TAM/SAM/SOM, validation, and timing",
+    title: "Market Opportunity & Growth Potential",
+    subtitle: "TAM/SAM/SOM analysis, timing, and competitive landscape",
     tier: "included",
     summaryWords: 200,
     fullWords: 1500,
     creditCost: 0.75,
     icon: "TrendingUp",
+    agentOwner: "cmo",
+    supportingAgents: ["cro", "cfo", "cdo"],
+    criteriaKeys: ["market"],
     summaryPrompt: summaryPrompt(
       "Market Opportunity",
       `- Market size estimate (TAM/SAM/SOM)
@@ -189,13 +204,16 @@ export const REPORT_SECTIONS: ReportSectionDef[] = [
   // ── 4. Product & Technical (INCLUDED) ───────────────────────────────
   {
     id: "product",
-    title: "Product & Technical",
-    subtitle: "Architecture, tech stack, and maturity",
+    title: "Product & Technical Architecture",
+    subtitle: "Tech stack maturity, security posture, and scalability assessment",
     tier: "included",
     summaryWords: 200,
     fullWords: 1200,
     creditCost: 0.50,
     icon: "Code",
+    agentOwner: "cto",
+    supportingAgents: ["ciso", "cdo"],
+    criteriaKeys: ["code_git", "website"],
     summaryPrompt: summaryPrompt(
       "Product & Technical",
       `- Product maturity assessment (concept/MVP/beta/production)
@@ -221,13 +239,16 @@ export const REPORT_SECTIONS: ReportSectionDef[] = [
   // ── 5. Traction & Revenue (INCLUDED) ────────────────────────────────
   {
     id: "traction",
-    title: "Traction & Revenue",
-    subtitle: "Users, revenue, and engagement metrics",
+    title: "Traction, Revenue & Growth Metrics",
+    subtitle: "Users, revenue, unit economics, and growth trajectory",
     tier: "included",
     summaryWords: 200,
     fullWords: 1500,
     creditCost: 0.75,
     icon: "BarChart3",
+    agentOwner: "cro",
+    supportingAgents: ["cmo", "cdo", "cfo"],
+    criteriaKeys: ["customer_size", "revenue"],
     summaryPrompt: summaryPrompt(
       "Traction & Revenue",
       `- Current user/customer metrics
@@ -253,13 +274,16 @@ export const REPORT_SECTIONS: ReportSectionDef[] = [
   // ── 6. Go-to-Market (INCLUDED) ──────────────────────────────────────
   {
     id: "gtm",
-    title: "Go-to-Market",
-    subtitle: "Channels, positioning, and growth strategy",
+    title: "Go-to-Market Strategy & Distribution",
+    subtitle: "Channels, pricing, acquisition funnel, and CAC optimization",
     tier: "included",
     summaryWords: 200,
     fullWords: 1200,
     creditCost: 0.50,
     icon: "Megaphone",
+    agentOwner: "cmo",
+    supportingAgents: ["cro", "cfo", "cpo"],
+    criteriaKeys: ["gtm_strategy"],
     summaryPrompt: summaryPrompt(
       "Go-to-Market Strategy",
       `- Current distribution channels
@@ -285,13 +309,16 @@ export const REPORT_SECTIONS: ReportSectionDef[] = [
   // ── 7. Cap Table & Governance (INCLUDED) ────────────────────────────
   {
     id: "cap_table",
-    title: "Cap Table & Governance",
-    subtitle: "Equity structure, vesting, and ESOP",
+    title: "Equity Structure & Corporate Governance",
+    subtitle: "Cap table health, vesting, ESOP, and board composition",
     tier: "included",
     summaryWords: 200,
     fullWords: 1000,
     creditCost: 0.50,
     icon: "PieChart",
+    agentOwner: "clo",
+    supportingAgents: ["cfo", "chro"],
+    criteriaKeys: ["team_structure", "dataroom"],
     summaryPrompt: summaryPrompt(
       "Cap Table & Governance",
       `- Current equity structure overview
@@ -317,13 +344,16 @@ export const REPORT_SECTIONS: ReportSectionDef[] = [
   // ── 8. Investor Readiness (INCLUDED) ────────────────────────────────
   {
     id: "investor_ready",
-    title: "Investor Readiness",
-    subtitle: "Pitch deck, data room, and raise strategy",
+    title: "Investor Readiness & Fundraise Positioning",
+    subtitle: "Pitch deck, data room, and raise strategy assessment",
     tier: "included",
     summaryWords: 200,
     fullWords: 1200,
     creditCost: 0.50,
     icon: "Briefcase",
+    agentOwner: "cfo",
+    supportingAgents: ["clo", "cpo"],
+    criteriaKeys: ["documents", "dataroom"],
     summaryPrompt: summaryPrompt(
       "Investor Readiness",
       `- Overall fundraise readiness assessment
@@ -349,13 +379,16 @@ export const REPORT_SECTIONS: ReportSectionDef[] = [
   // ── 9. Legal & Compliance (INCLUDED) ────────────────────────────────
   {
     id: "legal",
-    title: "Legal & Compliance",
-    subtitle: "ASIC, IP, contracts, and ESIC eligibility",
+    title: "Legal Framework & Compliance Posture",
+    subtitle: "ASIC, IP, contracts, ESIC eligibility, and regulatory readiness",
     tier: "included",
     summaryWords: 200,
     fullWords: 1000,
     creditCost: 0.50,
     icon: "Scale",
+    agentOwner: "clo",
+    supportingAgents: ["ciso"],
+    criteriaKeys: ["documents"],
     summaryPrompt: summaryPrompt(
       "Legal & Compliance",
       `- Corporate registration status (ABN, ASIC, ACN)
@@ -381,13 +414,16 @@ export const REPORT_SECTIONS: ReportSectionDef[] = [
   // ── 10. Strategic Vision & Moat (INCLUDED) ──────────────────────────
   {
     id: "vision_moat",
-    title: "Strategic Vision & Moat",
+    title: "Strategic Vision & Competitive Moat",
     subtitle: "Defensibility, network effects, and long-term strategy",
     tier: "included",
     summaryWords: 200,
     fullWords: 1200,
     creditCost: 0.50,
     icon: "Shield",
+    agentOwner: "cpo",
+    supportingAgents: ["cto", "cmo"],
+    criteriaKeys: ["idea", "roadmap"],
     summaryPrompt: summaryPrompt(
       "Strategic Vision & Moat",
       `- Competitive moat assessment
@@ -413,13 +449,16 @@ export const REPORT_SECTIONS: ReportSectionDef[] = [
   // ── 11. Financial Projections (INCLUDED) ────────────────────────────
   {
     id: "financial",
-    title: "Financial Projections",
-    subtitle: "Revenue forecasts, burn rate, and unit economics",
+    title: "Financial Projections & Unit Economics",
+    subtitle: "Revenue forecasts, burn rate, and path to profitability",
     tier: "included",
     summaryWords: 200,
     fullWords: 1500,
     creditCost: 0.75,
     icon: "DollarSign",
+    agentOwner: "cfo",
+    supportingAgents: ["cro", "cmo"],
+    criteriaKeys: ["revenue"],
     summaryPrompt: summaryPrompt(
       "Financial Projections",
       `- Revenue projection summary (12-month outlook)
@@ -445,13 +484,16 @@ export const REPORT_SECTIONS: ReportSectionDef[] = [
   // ── 12. Risk & Mitigation (INCLUDED) ────────────────────────────────
   {
     id: "risk",
-    title: "Risk & Mitigation",
-    subtitle: "Market, execution, technical, and regulatory risks",
+    title: "Risk Landscape & Mitigation Strategies",
+    subtitle: "Market, execution, technical, and regulatory risk assessment",
     tier: "included",
     summaryWords: 200,
     fullWords: 1200,
     creditCost: 0.50,
     icon: "AlertTriangle",
+    agentOwner: "clo",
+    supportingAgents: ["ciso", "cto", "cfo"],
+    criteriaKeys: [],
     summaryPrompt: summaryPrompt(
       "Risk & Mitigation",
       `- Top 3 critical risks identified
@@ -477,13 +519,16 @@ export const REPORT_SECTIONS: ReportSectionDef[] = [
   // ── 13. Competitive Intelligence (PAID) ─────────────────────────────
   {
     id: "competitive",
-    title: "Competitive Intelligence",
-    subtitle: "Named competitors, feature comparison, and positioning",
+    title: "Competitive Intelligence & Positioning",
+    subtitle: "Named competitors, feature comparison, and differentiation strategy",
     tier: "paid",
     summaryWords: 0,
     fullWords: 1500,
     creditCost: 0.75,
     icon: "Crosshair",
+    agentOwner: "cmo",
+    supportingAgents: ["cpo", "cto"],
+    criteriaKeys: ["market"],
     summaryPrompt: "", // No summary for paid-locked sections
     fullPrompt: fullPrompt(
       "Competitive Intelligence",
@@ -503,13 +548,16 @@ export const REPORT_SECTIONS: ReportSectionDef[] = [
   // ── 14. 90-Day Action Roadmap (PAID) ────────────────────────────────
   {
     id: "roadmap",
-    title: "90-Day Action Roadmap",
-    subtitle: "Week-by-week execution plan with KPIs",
+    title: "Your 90-Day Growth Roadmap",
+    subtitle: "Week-by-week execution plan with KPIs and milestones",
     tier: "paid",
     summaryWords: 0,
     fullWords: 1500,
     creditCost: 0.75,
     icon: "Map",
+    agentOwner: "coo",
+    supportingAgents: ["cpo", "cto", "cfo"],
+    criteriaKeys: ["roadmap"],
     summaryPrompt: "", // No summary for paid-locked sections
     fullPrompt: fullPrompt(
       "90-Day Action Roadmap",
@@ -533,13 +581,16 @@ export const REPORT_SECTIONS: ReportSectionDef[] = [
   // ── 15. Board-Ready Summary (PREMIUM) ───────────────────────────────
   {
     id: "board_summary",
-    title: "Board-Ready Summary",
-    subtitle: "One-page executive brief for investors and board",
+    title: "Board-Ready Investor Memo",
+    subtitle: "One-page executive brief for investors and board members",
     tier: "premium",
     summaryWords: 0,
     fullWords: 1000,
     creditCost: 1.00,
     icon: "Award",
+    agentOwner: "ceo",
+    supportingAgents: ["cfo", "chro"],
+    criteriaKeys: [],
     summaryPrompt: "", // No summary for premium-locked sections
     fullPrompt: fullPrompt(
       "Board-Ready Summary",
@@ -559,13 +610,16 @@ export const REPORT_SECTIONS: ReportSectionDef[] = [
   // ── 16. Australian Market Deep Dive (PREMIUM) ──────────────────────
   {
     id: "au_market",
-    title: "Australian Market Deep Dive",
+    title: "Australian Market & Regulatory Landscape",
     subtitle: "ESIC, R&D Tax, accelerators, and AU-specific opportunities",
     tier: "premium",
     summaryWords: 0,
     fullWords: 1500,
     creditCost: 1.00,
     icon: "Globe",
+    agentOwner: "cfo",
+    supportingAgents: ["clo", "cmo"],
+    criteriaKeys: ["market", "revenue"],
     summaryPrompt: "", // No summary for premium-locked sections
     fullPrompt: fullPrompt(
       "Australian Market Deep Dive",
@@ -586,6 +640,163 @@ export const REPORT_SECTIONS: ReportSectionDef[] = [
 - ASX listing pathways and considerations
 - Export Market Development Grant (EMDG) for international expansion
 - AU talent market: where to hire, visa sponsorship (482/494), remote policies`,
+    ),
+  },
+  // ── 17. Idea & Innovation (INCLUDED) ──────────────────────────────
+  {
+    id: "idea_innovation",
+    title: "Innovation Assessment & Idea Validation",
+    subtitle: "Uniqueness, problem-solution fit, and market validation evidence",
+    tier: "included",
+    summaryWords: 200,
+    fullWords: 1200,
+    creditCost: 0.50,
+    icon: "Lightbulb",
+    agentOwner: "cpo",
+    supportingAgents: ["cto", "cmo", "cdo"],
+    criteriaKeys: ["idea"],
+    summaryPrompt: summaryPrompt(
+      "Idea & Innovation",
+      `- Innovation level assessment (incremental vs novel vs breakthrough)
+- Problem-solution fit evidence
+- Uniqueness and differentiation
+- Idea validation status`,
+    ),
+    fullPrompt: fullPrompt(
+      "Idea & Innovation",
+      `- Innovation assessment: is this incremental improvement or category creation?
+- Problem-solution fit: how well does the solution address the validated problem?
+- Uniqueness analysis: what makes this approach different from alternatives?
+- Defensibility of the idea: can it be easily replicated?
+- Customer validation evidence: interviews, surveys, LOIs, pilot data
+- Market need urgency: is this a vitamin or a painkiller?
+- Timing assessment: why is now the right time for this idea?
+- Comparison to similar ideas that succeeded or failed
+- IP potential: is this patentable or protectable?
+- Pivot risk: how adaptable is the core idea?`,
+    ),
+  },
+
+  // ── 18. Cybersecurity Assessment (PREMIUM) ─────────────────────────
+  {
+    id: "cybersecurity",
+    title: "Security & Data Protection Assessment",
+    subtitle: "OWASP compliance, Essential Eight, and SOC2 readiness",
+    tier: "premium",
+    summaryWords: 0,
+    fullWords: 1200,
+    creditCost: 1.00,
+    icon: "Lock",
+    agentOwner: "ciso",
+    supportingAgents: ["cto"],
+    criteriaKeys: ["code_git"],
+    summaryPrompt: "",
+    fullPrompt: fullPrompt(
+      "Cybersecurity Assessment",
+      `- Security headers and CSP analysis
+- OWASP Top 10 vulnerability surface assessment
+- Data protection: encryption at rest and in transit, access controls
+- Essential Eight maturity model alignment (AU-specific)
+- Dependency security: known CVEs, Dependabot status
+- Secret management and credential hygiene
+- Authentication and authorization architecture
+- Incident response readiness and runbook status
+- SOC2 / ISO27001 readiness assessment
+- Privacy and data handling compliance (Privacy Act 1988)
+- Recommendations prioritized by risk severity`,
+    ),
+  },
+
+  // ── 19. Data & AI Strategy (PREMIUM) ──────────────────────────────
+  {
+    id: "data_strategy",
+    title: "Data Strategy & AI Governance",
+    subtitle: "Data moat, analytics maturity, and responsible AI practices",
+    tier: "premium",
+    summaryWords: 0,
+    fullWords: 1200,
+    creditCost: 1.00,
+    icon: "Database",
+    agentOwner: "cdo",
+    supportingAgents: ["cto"],
+    criteriaKeys: [],
+    summaryPrompt: "",
+    fullPrompt: fullPrompt(
+      "Data & AI Strategy",
+      `- Data moat assessment: proprietary datasets, compounding advantage
+- Analytics maturity: what metrics are tracked, how, and how well
+- Data quality: completeness, accuracy, freshness of available data
+- AI/ML capabilities: current use of AI, potential for AI-driven features
+- Data governance: policies, access controls, data lineage
+- AI governance: responsible AI practices, bias monitoring
+- Competitive data advantage: does the startup accumulate valuable data?
+- NIST AI Risk Management Framework alignment
+- Recommendations for data strategy improvement
+- Data monetization opportunities`,
+    ),
+  },
+
+  // ── 20. Website & Digital Presence (INCLUDED) ─────────────────────
+  {
+    id: "website_digital",
+    title: "Digital Presence & Conversion Analysis",
+    subtitle: "Website quality, SEO, social media, and conversion optimization",
+    tier: "included",
+    summaryWords: 200,
+    fullWords: 1200,
+    creditCost: 0.50,
+    icon: "Globe",
+    agentOwner: "cmo",
+    supportingAgents: ["cto", "cro", "cpo"],
+    criteriaKeys: ["website"],
+    summaryPrompt: summaryPrompt(
+      "Website & Digital Presence",
+      `- Website design quality and UX assessment
+- SEO and content strategy evaluation
+- Conversion optimization opportunities
+- Mobile responsiveness and performance`,
+    ),
+    fullPrompt: fullPrompt(
+      "Website & Digital Presence",
+      `- Website design quality: visual appeal, brand consistency, professionalism
+- UX assessment: navigation, information architecture, user flow
+- Performance: Core Web Vitals, loading speed, mobile responsiveness
+- SEO analysis: technical SEO, meta tags, content quality, keyword strategy
+- Conversion optimization: CTA placement, form design, social proof
+- Content quality: blog, documentation, case studies
+- Social media presence: channels, engagement, consistency
+- App store presence (if applicable): ratings, reviews, screenshots
+- Competitor website comparison
+- Quick wins for digital presence improvement`,
+    ),
+  },
+
+  // ── 21. Organizational Structure (PAID) ───────────────────────────
+  {
+    id: "org_structure",
+    title: "Organizational Design & Governance",
+    subtitle: "Org chart, advisory board, roles, and governance maturity",
+    tier: "paid",
+    summaryWords: 0,
+    fullWords: 1200,
+    creditCost: 0.75,
+    icon: "Network",
+    agentOwner: "chro",
+    supportingAgents: ["coo", "clo"],
+    criteriaKeys: ["team_structure"],
+    summaryPrompt: "",
+    fullPrompt: fullPrompt(
+      "Organizational Structure",
+      `- Current org chart analysis: reporting lines, spans of control
+- Role clarity: are responsibilities well-defined?
+- Advisory board quality: domain expertise, network value, engagement level
+- Governance maturity: board meetings, minutes, decision processes
+- Operational efficiency: process maturity, communication channels
+- Key person dependencies and succession planning
+- Culture indicators: remote vs in-office, values, team dynamics
+- Comparison to org structures at similar-stage AU startups
+- ESOP allocation across the org
+- Recommendations for org structure evolution as the company scales`,
     ),
   },
 ];

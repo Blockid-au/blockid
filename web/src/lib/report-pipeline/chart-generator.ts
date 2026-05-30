@@ -1,11 +1,11 @@
 // Chart Generator — Server-side chart/visual rendering for report exports.
 //
-// Generates chart specifications that can be rendered as:
-// 1. Inline SVG for web display
-// 2. PNG images for DOCX/PDF embedding
+// Three rendering tiers (ưu tiên AI image trước):
+//   1. AI Image Generation — Gemini/OpenRouter/DALL-E for infographics
+//   2. Mermaid Diagrams — org charts, timelines, flowcharts (local, free)
+//   3. Built-in SVG — radar, bar, funnel, progress charts (local, free)
 //
-// Uses simple SVG generation (no external rendering dependencies in Phase A).
-// Phase E will add resvg-js for SVG→PNG conversion.
+// The pipeline tries AI images first, falls back to Mermaid/SVG.
 
 import type { VisualSpec, ChartType, AgentRole, ReportContext } from "./types";
 import type { CriterionKey } from "@/lib/evaluation-criteria";
@@ -265,4 +265,199 @@ export function getChartForSection(sectionId: string, context: ReportContext): V
     placement: "inline",
     agentId: template.agentId,
   };
+}
+
+// ── AI-Enhanced Chart Generation ────────────────────────────────────────────
+// Generates both AI infographics AND SVG fallback charts for each section.
+// Priority: AI image → Mermaid → SVG (always generates SVG as fallback).
+
+export interface EnhancedChartResult {
+  sectionId: string;
+  /** AI-generated image (infographic/diagram) — may be null if AI unavailable */
+  aiImage?: {
+    base64: string;
+    mimeType: string;
+    provider: string;
+    model: string;
+  };
+  /** SVG fallback chart (always generated) */
+  svgChart?: string;
+  /** Mermaid diagram SVG (for org charts, timelines, flows) */
+  mermaidSvg?: string;
+}
+
+/**
+ * Generate enhanced visuals for all report sections.
+ * Ưu tiên: AI image (Gemini/OpenRouter) → Mermaid → SVG charts.
+ */
+export async function generateEnhancedCharts(
+  context: ReportContext,
+  sectionIds: string[],
+): Promise<Map<string, EnhancedChartResult>> {
+  const results = new Map<string, EnhancedChartResult>();
+
+  // Lazy import to avoid "server-only" issues in non-server contexts
+  let generateSectionImage: typeof import("@/lib/ai-image-client").generateSectionImage | null = null;
+  try {
+    const mod = await import("@/lib/ai-image-client");
+    generateSectionImage = mod.generateSectionImage;
+  } catch {
+    // ai-image-client not available — continue with SVG only
+  }
+
+  for (const sectionId of sectionIds) {
+    const result: EnhancedChartResult = { sectionId };
+
+    // 1. Always generate SVG chart as fallback
+    const svgChart = getChartForSection(sectionId, context);
+    if (svgChart) {
+      const data = svgChart.data as Record<string, unknown>;
+      if (svgChart.type === "radar" && data.labels && data.values) {
+        result.svgChart = renderRadarSVG(data as { labels: string[]; values: number[]; max: number });
+      } else if (svgChart.type === "bar" && data.labels && data.values) {
+        result.svgChart = renderBarSVG(data as { labels: string[]; values: number[]; max: number });
+      }
+    }
+
+    // 2. Try AI image generation (ưu tiên)
+    if (generateSectionImage) {
+      try {
+        const milestones = context.criterionResults.get("roadmap")?.nextSteps ?? [];
+        const roles = Object.keys(
+          context.criterionResults.get("team_structure")?.dataPoints ?? {},
+        );
+        const actionSteps = context.criterionResults.get("roadmap")?.nextSteps
+          ?? [...context.criterionResults.values()].flatMap((r) => r.nextSteps).slice(0, 6);
+
+        const imageResult = await generateSectionImage(sectionId, {
+          startupName: context.startupName,
+          sviScore: context.sviAnalysis.totalSVI,
+          stage: context.sviAnalysis.stageLabel,
+          milestones,
+          roles,
+          actionSteps,
+        });
+
+        if (imageResult) {
+          result.aiImage = {
+            base64: imageResult.base64,
+            mimeType: imageResult.mimeType,
+            provider: imageResult.provider,
+            model: imageResult.model,
+          };
+          // If Mermaid was used, also store as mermaidSvg
+          if (imageResult.provider === "mermaid") {
+            result.mermaidSvg = Buffer.from(imageResult.base64, "base64").toString("utf-8");
+          }
+        }
+      } catch (err) {
+        console.warn(`[chart-gen] AI image failed for ${sectionId}:`, err);
+      }
+    }
+
+    results.set(sectionId, result);
+  }
+
+  return results;
+}
+
+// ── Render funnel SVG ───────────────────────────────────────────────────────
+
+export function renderFunnelSVG(data: {
+  levels: string[];
+  values?: number[];
+}): string {
+  const { levels } = data;
+  const w = 500, h = 300;
+  const colors = ["#2563eb", "#3b82f6", "#60a5fa", "#93c5fd"];
+
+  const funnelParts = levels.map((label, i) => {
+    const topWidth = w - (i * 80);
+    const bottomWidth = w - ((i + 1) * 80);
+    const topX = (w - topWidth) / 2;
+    const bottomX = (w - bottomWidth) / 2;
+    const y = 40 + i * 70;
+    const color = colors[i % colors.length];
+
+    return `<polygon points="${topX},${y} ${topX + topWidth},${y} ${bottomX + bottomWidth},${y + 60} ${bottomX},${y + 60}" fill="${color}" opacity="0.85"/>
+    <text x="${w / 2}" y="${y + 35}" text-anchor="middle" font-size="13" font-family="Arial" fill="white" font-weight="bold">${label}</text>`;
+  });
+
+  return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
+  ${funnelParts.join("\n  ")}
+</svg>`;
+}
+
+// ── Render progress gauge SVG ───────────────────────────────────────────────
+
+export function renderProgressSVG(data: {
+  score: number;
+  label?: string;
+  maxScore?: number;
+}): string {
+  const { score, label, maxScore = 100 } = data;
+  const ratio = Math.min(score / maxScore, 1);
+  const w = 200, h = 200;
+  const r = 80;
+  const circumference = 2 * Math.PI * r;
+  const offset = circumference * (1 - ratio);
+  const color = ratio >= 0.7 ? "#10b981" : ratio >= 0.5 ? "#2563eb" : ratio >= 0.35 ? "#f59e0b" : "#ef4444";
+
+  return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="${w / 2}" cy="${w / 2}" r="${r}" fill="none" stroke="#e5e7eb" stroke-width="12"/>
+  <circle cx="${w / 2}" cy="${w / 2}" r="${r}" fill="none" stroke="${color}" stroke-width="12"
+    stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" stroke-linecap="round"
+    transform="rotate(-90 ${w / 2} ${w / 2})"/>
+  <text x="${w / 2}" y="${w / 2 + 8}" text-anchor="middle" font-size="28" font-family="Arial" fill="#111827" font-weight="bold">${score}</text>
+  ${label ? `<text x="${w / 2}" y="${w / 2 + 28}" text-anchor="middle" font-size="11" font-family="Arial" fill="#6b7280">${label}</text>` : ""}
+</svg>`;
+}
+
+// ── Render heat map SVG ─────────────────────────────────────────────────────
+
+export function renderHeatMapSVG(data: {
+  risks: Array<{ label: string; impact: number }>;
+}): string {
+  const { risks } = data;
+  const w = 500, h = 350, pad = 60;
+  const cellW = (w - pad * 2) / 5;
+  const cellH = (h - pad * 2) / 5;
+
+  // Grid
+  const gridCells: string[] = [];
+  const impactLabels = ["Very Low", "Low", "Medium", "High", "Critical"];
+  const colors = ["#dcfce7", "#bbf7d0", "#fef9c3", "#fed7aa", "#fecaca"];
+
+  for (let row = 0; row < 5; row++) {
+    for (let col = 0; col < 5; col++) {
+      const x = pad + col * cellW;
+      const y = pad + (4 - row) * cellH;
+      const colorIdx = Math.min(row + col, 4);
+      gridCells.push(`<rect x="${x}" y="${y}" width="${cellW}" height="${cellH}" fill="${colors[colorIdx]}" stroke="#e5e7eb" stroke-width="0.5"/>`);
+    }
+  }
+
+  // Place risks on the map
+  const riskDots = risks.slice(0, 8).map((risk, i) => {
+    const col = Math.min(Math.floor(risk.impact / 4), 4);
+    const row = Math.min(2 + Math.floor(i / 3), 4);
+    const x = pad + col * cellW + cellW / 2;
+    const y = pad + (4 - row) * cellH + cellH / 2;
+    return `<circle cx="${x}" cy="${y}" r="8" fill="#ef4444" opacity="0.8"/>
+    <text x="${x}" y="${y + 3}" text-anchor="middle" font-size="8" font-family="Arial" fill="white">${i + 1}</text>`;
+  });
+
+  // Labels
+  const xLabels = impactLabels.map((label, i) =>
+    `<text x="${pad + i * cellW + cellW / 2}" y="${h - 20}" text-anchor="middle" font-size="9" font-family="Arial" fill="#6b7280">${label}</text>`,
+  );
+
+  return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
+  <text x="${w / 2}" y="20" text-anchor="middle" font-size="13" font-family="Arial" fill="#111827" font-weight="bold">Risk Heat Map</text>
+  <text x="${w / 2}" y="${h - 5}" text-anchor="middle" font-size="10" font-family="Arial" fill="#6b7280">Impact →</text>
+  <text x="15" y="${h / 2}" text-anchor="middle" font-size="10" font-family="Arial" fill="#6b7280" transform="rotate(-90 15 ${h / 2})">Likelihood →</text>
+  ${gridCells.join("\n  ")}
+  ${riskDots.join("\n  ")}
+  ${xLabels.join("\n  ")}
+</svg>`;
 }

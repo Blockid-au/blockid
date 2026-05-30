@@ -10,7 +10,7 @@ import { AdvisorGuidance } from "./advisor-guidance";
 import { QuickWinTasks } from "./quick-win-tasks";
 import { EvidenceImpactCalc } from "./evidence-impact-calc";
 import { StageJourney } from "./stage-journey";
-import { ActivityFeed } from "./activity-feed";
+import { ActivityFeed, buildActivityItems } from "./activity-feed";
 import { DeepDiveUpsell } from "./deep-dive-upsell";
 import { InsightsPanel } from "./insights-panel";
 
@@ -94,12 +94,13 @@ export function AdvisorDashboard({
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div className="lg:col-span-3">
           <ActivityFeed
-            reports={(recentReports ?? []).map((r) => ({
-              id: r.id,
-              total_svi: r.total_svi,
-              created_at: r.created_at,
-              input_type: r.input_type,
-            }))}
+            items={buildActivityItems(
+              (recentReports ?? []).map((r) => ({
+                action_type: r.input_type === "url" ? "svi_analysis" : r.input_type === "deep_dive" ? "report_generated" : "svi_analysis",
+                description: `${r.input_type === "url" ? "URL Analysis" : r.input_type === "deep_dive" ? "Deep Dive" : "SVI Analysis"} — Score: ${r.total_svi}`,
+                created_at: r.created_at,
+              })),
+            )}
           />
         </div>
         <div className="lg:col-span-2">

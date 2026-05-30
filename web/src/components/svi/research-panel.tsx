@@ -57,10 +57,26 @@ interface ResearchPanelProps {
   websiteUrl?: string;
 }
 
+const RESEARCH_STATUS_MESSAGES = [
+  "Searching competitor databases...",
+  "Analyzing market data...",
+  "Finding growth trends...",
+  "Compiling competitive intelligence...",
+];
+
 export function ResearchPanel({ description, keywords, websiteUrl }: ResearchPanelProps) {
   const [state, setState] = React.useState<"idle" | "loading" | "done" | "error">("idle");
   const [result, setResult] = React.useState<ResearchResult | null>(null);
   const [errorMsg, setErrorMsg] = React.useState("");
+  const [researchStatusIdx, setResearchStatusIdx] = React.useState(0);
+
+  React.useEffect(() => {
+    if (state !== "loading") { setResearchStatusIdx(0); return; }
+    const timer = setInterval(() => {
+      setResearchStatusIdx((i) => (i + 1) % RESEARCH_STATUS_MESSAGES.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [state]);
 
   const runResearch = async () => {
     setState("loading");
@@ -124,11 +140,11 @@ export function ResearchPanel({ description, keywords, websiteUrl }: ResearchPan
     return (
       <div className="rounded-2xl border border-surface-200 bg-white px-5 py-8 text-center shadow-sm">
         <div className="inline-flex items-center gap-3 text-sm text-ink-600">
-          <span className="h-5 w-5 rounded-full border-2 border-brand-200 border-t-brand-600 animate-spin" />
+          <span className="h-5 w-5 rounded-full border-2 border-brand-200 border-t-brand-600 animate-spin shrink-0" />
           <span>
             <span className="font-medium text-ink-800">AI is searching the web...</span>
             <br />
-            <span className="text-xs">Finding competitors, market data and growth trends. ~15-30 seconds.</span>
+            <span className="text-xs truncate">{RESEARCH_STATUS_MESSAGES[researchStatusIdx]}</span>
           </span>
         </div>
       </div>

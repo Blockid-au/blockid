@@ -436,16 +436,7 @@ export async function generateSectionImage(
     height: 600,
   };
 
-  // Priority 2: Gemini Flash Image (free)
-  if (process.env.GOOGLE_GEMINI_API_KEY) {
-    try {
-      return await callGeminiImage(req);
-    } catch (err) {
-      console.warn(`[ai-image] Gemini Image failed: ${err instanceof Error ? err.message : err}`);
-    }
-  }
-
-  // Priority 3: OpenRouter (free/cheap models)
+  // Priority 2: OpenRouter (free image models via OpenRouter key)
   if (process.env.OPENROUTER_API_KEY) {
     try {
       return await callOpenRouterImage(req);
@@ -454,7 +445,14 @@ export async function generateSectionImage(
     }
   }
 
-  // Priority 4: OpenAI DALL-E (paid, ~$0.04/image)
+  // ❌ Gemini Image DISABLED — Gemini API costs $0.30-$2.50/1M tokens
+  // Uncomment to re-enable as paid fallback:
+  // if (process.env.GOOGLE_GEMINI_API_KEY) {
+  //   try { return await callGeminiImage(req); }
+  //   catch (err) { console.warn(`[ai-image] Gemini Image failed:`, err); }
+  // }
+
+  // Priority 3: OpenAI DALL-E (paid, ~$0.04/image — last resort)
   if (process.env.OPENAI_API_KEY) {
     try {
       return await callOpenAIImage(req);

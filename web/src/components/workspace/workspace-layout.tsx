@@ -52,6 +52,7 @@ const NAV_GROUPS: NavGroup[] = [
     stage: "Idea \u2192 MVP",
     minPhase: 0,
     items: [
+      { href: "/workspace/evaluation", label: "Evaluation (13)", icon: FileText },
       { href: "/workspace/evidence", label: "Evidence Vault", icon: FileText },
       { href: "/workspace/metrics", label: "Metrics", icon: BarChart3 },
       { href: "/workspace/reports", label: "Weekly Reports", icon: Activity },

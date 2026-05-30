@@ -15,7 +15,7 @@ process.stdin.on('end', () => {
     const req = https.request({
       hostname: u.hostname,
       port: 443,
-      path: u.pathname,
+      path: u.pathname + u.search,
       method: 'POST',
       headers: { ...headers, 'Content-Length': Buffer.byteLength(body) },
       timeout: 180000,

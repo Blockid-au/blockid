@@ -12,7 +12,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { getProjectIdFromRequest, findSVIAccountWithFallback, findLatestAnalysisWithFallback } from "@/lib/projects";
 
 export const dynamic = "force-dynamic";
 
@@ -55,40 +55,19 @@ export async function POST(request: Request) {
 
   const projectId = await getProjectIdFromRequest();
 
-  // Gather all data for the report — scoped by project_id
-  const accountQuery = supabase
-    .from("svi_accounts")
-    .select("id, email, startup_name, current_svi, current_stage")
-    .eq("email", user.email);
-
-  if (projectId) {
-    accountQuery.eq("project_id", projectId);
-  } else {
-    accountQuery.is("project_id", null);
-  }
-
-  const { data: account } = await accountQuery
-    .order("last_active_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // SVI account — with fallback for legacy records (project_id NULL)
+  const account = await findSVIAccountWithFallback(user.email, projectId);
 
   if (!account) {
     return NextResponse.json({ ok: false, error: "No SVI account found for this project — run an analysis first" }, { status: 404 });
   }
 
-  // Latest analysis — scoped by project_id
-  const analysisQuery = supabase
-    .from("svi_analyses")
-    .select("raw_input, total_svi, analysis_json")
-    .eq("email", user.email)
-    .order("created_at", { ascending: false })
-    .limit(1);
-
-  if (projectId) {
-    analysisQuery.eq("project_id", projectId);
-  }
-
-  const { data: latestAnalysis } = await analysisQuery.maybeSingle();
+  // Latest analysis — with fallback for legacy records
+  const latestAnalysis = await findLatestAnalysisWithFallback(
+    user.email,
+    projectId,
+    "raw_input, total_svi, analysis_json",
+  );
 
   // All evidence items
   const { data: evidenceItems } = await supabase
@@ -104,20 +83,38 @@ export async function POST(request: Request) {
     .eq("account_id", account.id)
     .order("created_at", { ascending: false });
 
+  // Previously purchased report sections (paid content to reuse)
+  let savedSectionsContent = "";
+  if (latestAnalysis?.id) {
+    const { data: savedSections } = await supabase
+      .from("report_sections")
+      .select("section_id, depth, content, word_count")
+      .eq("analysis_id", latestAnalysis.id)
+      .eq("user_id", user.id)
+      .order("updated_at", { ascending: false });
+
+    if (savedSections && savedSections.length > 0) {
+      savedSectionsContent = (savedSections as Record<string, unknown>[])
+        .filter((s) => s.depth === "full" && s.content)
+        .map((s) => `### Previously Generated: ${s.section_id} (${s.word_count} words)\n${String(s.content).slice(0, 3000)}`)
+        .join("\n\n");
+    }
+  }
+
   const analysis = latestAnalysis?.analysis_json as Record<string, unknown> | null;
-  const rawText = latestAnalysis?.raw_input ?? "";
-  const svi = account.current_svi ?? latestAnalysis?.total_svi ?? 100;
-  const stage = account.current_stage ?? 0;
+  const rawText = String(latestAnalysis?.raw_input ?? "");
+  const svi = Number(account.current_svi ?? latestAnalysis?.total_svi ?? 100);
+  const stage = Number(account.current_stage ?? 0);
 
   // Build evidence summary
   const evidenceSummary = (evidenceItems ?? []).map((e: Record<string, unknown>) =>
     `- [${e.evidence_type}] ${e.label} (${e.confidence_level}, +${e.svi_impact} SVI, dimension: ${e.dimension})`
   ).join("\n");
 
-  // Build previous analyses summary
+  // Build previous analyses summary (include full content for paid analyses)
   const analysesSummary = (evidenceAnalyses ?? []).map((a: Record<string, unknown>) => {
     const aj = a.analysis_json as Record<string, unknown>;
-    const summary = aj?.summary ?? aj?.executiveSummary ?? JSON.stringify(aj).slice(0, 300);
+    const summary = aj?.summary ?? aj?.executiveSummary ?? JSON.stringify(aj).slice(0, 1500);
     return `- [${a.tier}/${a.dimension}] ${summary}`;
   }).join("\n");
 
@@ -188,8 +185,11 @@ Writing guidelines:
 - Include benchmarks: "companies at your stage typically..."
 - End each section with 3-5 SPECIFIC, ACTIONABLE next steps
 - Be honest but encouraging — supportive mentor tone
+- Where possible, include visual-friendly formatting: comparison tables, score breakdowns, metric dashboards in markdown table format
+- Use infographic-style data presentation: key metrics in bold callouts, progress bars using Unicode blocks, and structured data tables
 
-Format: Clean Markdown with ## headings, ### sub-headings, **bold** for key insights, and structured recommendations.`;
+Format: Clean Markdown with ## headings, ### sub-headings, **bold** for key insights, comparison tables, metric dashboards, and structured recommendations.
+When presenting scores or comparisons, use markdown tables for clarity. For key metrics, use callout blocks (> **Key Metric:** value).`;
 
     const userMessage = `Generate a ${tier === "premium" ? "Premium" : "Standard"} Full Report for this startup:
 
@@ -213,6 +213,11 @@ ${analysis?.summary ? `**AI Summary:** ${String(analysis.summary).slice(0, 1000)
 ${analysis?.risks ? `**Risk Flags:** ${JSON.stringify(analysis.risks).slice(0, 500)}` : ""}
 ${analysis?.evidenceGaps ? `**Evidence Gaps:** ${JSON.stringify(analysis.evidenceGaps).slice(0, 500)}` : ""}
 
+${savedSectionsContent ? `**Previously Purchased Section Analyses (incorporate and expand on these — the user already paid for them):**
+${savedSectionsContent}
+
+IMPORTANT: The user has already paid for the section analyses above. Build upon them, expand their insights, and ensure consistency. Do NOT contradict or repeat them verbatim — enrich and synthesise them into the full report.
+` : ""}
 ${sections}`;
 
     const { text: report } = await callAI({
@@ -231,6 +236,24 @@ ${sections}`;
     });
 
     const wordCount = report.split(/\s+/).length;
+
+    // Save full report for later viewing (so users can revisit without re-generating)
+    if (latestAnalysis?.id) {
+      const sectionId = tier === "premium" ? "full_report_premium" : "full_report_standard";
+      await supabase.from("report_sections").upsert(
+        {
+          analysis_id: latestAnalysis.id as string,
+          user_id: user.id,
+          section_id: sectionId,
+          depth: "full" as const,
+          content: report,
+          word_count: wordCount,
+          credits_cost: FEATURE_COSTS[featureKey],
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "analysis_id,section_id,depth" },
+      );
+    }
 
     return NextResponse.json({
       ok: true,

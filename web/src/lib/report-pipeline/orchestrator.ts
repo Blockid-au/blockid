@@ -22,6 +22,10 @@ import { CRITERION_KEYS } from "@/lib/evaluation-criteria";
 import { WAVE_1, WAVE_2, WAVE_3, dispatchWave } from "./agent-dispatcher";
 import { assembleReport } from "./section-assembler";
 import { buildAgentPrompt } from "./agent-prompts";
+import { auditText } from "./llm-auditor";
+import { researchMarket } from "@/lib/adk/agents";
+
+type AICaller = (systemPrompt: string, userPrompt: string, maxTokens: number) => Promise<string>;
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -76,7 +80,7 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
 
   // ── Phase 1: GATHER ─────────────────────────────────────────────────
   notify("gathering", 5);
-  context.gatherResults = await gatherData(context);
+  context.gatherResults = await gatherData(context, input.callAI);
 
   // ── Phase 2: ANALYZE ────────────────────────────────────────────────
   // Wave 1: Independent analyses
@@ -99,6 +103,15 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
 
   // CEO executive summary
   context.executiveSummary = await generateExecutiveSummary(context, input.callAI);
+
+  // LLM Auditor (ported from Google Agent Garden's llm-auditor sample) —
+  // ground the executive summary against the real evidence + SVI scores and
+  // strip any fabricated specifics the free models may have invented. Runs on
+  // the same free provider chain and is fully fail-safe.
+  const audit = await auditExecutiveSummary(context, input.callAI);
+  context.executiveSummary = audit.revised;
+  context.auditFindings = audit.findings;
+
   context.qualityScore = computeFinalQuality(context);
 
   // ── Assemble ────────────────────────────────────────────────────────
@@ -111,12 +124,30 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
 
 // ── Phase 1: Data Gathering ─────────────────────────────────────────────────
 
-async function gatherData(context: ReportContext): Promise<GatherResults> {
+async function gatherData(context: ReportContext, callAI: AICaller): Promise<GatherResults> {
   const results: GatherResults = {};
 
   // Gather runs are fire-and-forget — failures don't block the pipeline
   try {
     const gatherPromises: Promise<void>[] = [];
+
+    // Market & competitive research (Agent Garden port) — populates the
+    // `competitiveResearch` slot the CMO's market prompt already consumes.
+    gatherPromises.push(
+      (async () => {
+        const research = await researchMarket(
+          {
+            startupName: context.startupName,
+            description: context.rawText,
+            sector: context.criteriaData.market?.textInput || undefined,
+          },
+          callAI,
+        );
+        if (research) {
+          results.competitiveResearch = research as unknown as Record<string, unknown>;
+        }
+      })(),
+    );
 
     // Extract any URLs from criteria data for tech audit
     const websiteData = context.criteriaData.website;
@@ -240,6 +271,38 @@ Include:
   } catch {
     return `## Executive Summary\n\n**${context.startupName}** — SVI Score: ${context.sviAnalysis.totalSVI} (${context.sviAnalysis.stageLabel})\n\n*Executive summary generation encountered an error. Please refer to individual section analyses below.*`;
   }
+}
+
+// ── LLM Auditor (Agent Garden pattern) ──────────────────────────────────────
+
+async function auditExecutiveSummary(
+  context: ReportContext,
+  callAI: (systemPrompt: string, userPrompt: string, maxTokens: number) => Promise<string>,
+): Promise<{ revised: string; findings: string[] }> {
+  const draft = context.executiveSummary ?? "";
+  if (!draft.trim()) return { revised: draft, findings: [] };
+
+  // Build the grounding evidence: startup description + actual SVI scores +
+  // per-criterion scores. The auditor treats this as the ONLY source of truth.
+  const sviScores = context.sviAnalysis.subs
+    .map((s: { label: string; value: number }) => `- ${s.label}: ${s.value}/100`)
+    .join("\n");
+  const criterionScores = [...context.criterionResults.entries()]
+    .map(([key, r]) => `- ${key}: ${r.score}/100`)
+    .join("\n");
+
+  const evidence = [
+    `Startup: ${context.startupName}`,
+    `Stage: ${context.sviAnalysis.stageLabel}`,
+    `Overall SVI: ${context.sviAnalysis.totalSVI}/100`,
+    `## Startup Description\n${context.rawText.slice(0, 4000)}`,
+    `## SVI Dimension Scores\n${sviScores}`,
+    `## Per-Criterion Scores\n${criterionScores}`,
+  ].join("\n\n");
+
+  // ModelCaller signature matches the pipeline's injected callAI exactly.
+  const result = await auditText(draft, evidence, callAI, 2000);
+  return { revised: result.revised, findings: result.findings };
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────

@@ -138,6 +138,8 @@ export interface ReportContext {
   executiveSummary?: string;
   qualityScore?: number;
   consistencyIssues?: string[];
+  /** Unsupported/fabricated claims flagged by the LLM Auditor (Agent Garden pattern). */
+  auditFindings?: string[];
 }
 
 export interface CriterionData {

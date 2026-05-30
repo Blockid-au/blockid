@@ -137,6 +137,28 @@ export function SVIEntrance() {
     const id = setInterval(() => setTick((t) => t + 1), 1000);
     return () => clearInterval(id);
   }, [state]);
+
+  // Cycling fallback status messages when SSE hasn't started
+  const SVI_FALLBACK_MESSAGES = React.useMemo(() => [
+    "Reading your startup description...",
+    "Extracting 50+ startup signals...",
+    "Scoring 8 SVI dimensions...",
+    "Computing stage and benchmarks...",
+    "Building evidence gap analysis...",
+    "Generating action plan...",
+  ], []);
+  const [sviFallbackIdx, setSviFallbackIdx] = React.useState(0);
+  React.useEffect(() => {
+    if (state !== "submitting" || rndStatusEntries.length > 0) {
+      setSviFallbackIdx(0);
+      return;
+    }
+    const timer = setInterval(() => {
+      setSviFallbackIdx((i) => (i + 1) % SVI_FALLBACK_MESSAGES.length);
+    }, 2500);
+    return () => clearInterval(timer);
+  }, [state, rndStatusEntries.length, SVI_FALLBACK_MESSAGES]);
+
   // detectedInputType is now a useMemo — see below
   const [showPaywall, setShowPaywall] = React.useState(false);
   const [hasPaidPlan, setHasPaidPlan] = React.useState(false);
@@ -1163,7 +1185,7 @@ export function SVIEntrance() {
             <div className="mt-4 flex w-full flex-col items-center justify-center gap-3 sm:flex-row">
               <button type="submit" disabled={state === "submitting"}
                 className="h-12 w-full max-w-xs px-8 rounded-2xl bg-brand-600 text-base font-bold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed cta-glow sm:w-auto">
-                {state === "submitting" ? <span className="flex items-center gap-2"><span className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" /><span className="truncate max-w-[200px]">{rndStatusEntries.length > 0 ? (rndStatusEntries[rndStatusEntries.length - 1].message.length > 30 ? rndStatusEntries[rndStatusEntries.length - 1].message.slice(0, 30) + "…" : rndStatusEntries[rndStatusEntries.length - 1].message) : "Analyzing…"}</span></span> : "Get My SVI — Free"}
+                {state === "submitting" ? <span className="flex items-center gap-2"><span className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" /><span className="truncate max-w-[200px]">{rndStatusEntries.length > 0 ? (rndStatusEntries[rndStatusEntries.length - 1].message.length > 30 ? rndStatusEntries[rndStatusEntries.length - 1].message.slice(0, 30) + "…" : rndStatusEntries[rndStatusEntries.length - 1].message) : SVI_FALLBACK_MESSAGES[sviFallbackIdx]}</span></span> : "Get My SVI — Free"}
               </button>
               <button type="button" onClick={() => { setText(QUICK_EXAMPLES[Math.floor(Math.random() * QUICK_EXAMPLES.length)]); textareaRef.current?.focus(); trackEvent("svi_form_started", { method: "example" }); }}
                 className="h-10 w-full max-w-xs px-5 rounded-xl border border-surface-300 bg-white text-sm font-medium text-ink-700 hover:bg-surface-100 transition-colors cursor-pointer sm:w-auto">

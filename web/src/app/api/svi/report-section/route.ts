@@ -12,7 +12,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { getProjectIdFromRequest, findSVIAccountWithFallback, findLatestAnalysisWithFallback } from "@/lib/projects";
 import { getSection, REPORT_SECTIONS } from "@/lib/report-sections";
 
 export const dynamic = "force-dynamic";
@@ -144,22 +144,8 @@ export async function POST(request: Request) {
 
   const projectId = await getProjectIdFromRequest();
 
-  // SVI account
-  const accountQuery = supabase
-    .from("svi_accounts")
-    .select("id, email, startup_name, current_svi, current_stage")
-    .eq("email", user.email);
-
-  if (projectId) {
-    accountQuery.eq("project_id", projectId);
-  } else {
-    accountQuery.is("project_id", null);
-  }
-
-  const { data: account } = await accountQuery
-    .order("last_active_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // SVI account — with fallback for legacy records (project_id NULL)
+  const account = await findSVIAccountWithFallback(user.email, projectId);
 
   if (!account) {
     return NextResponse.json(
@@ -171,19 +157,12 @@ export async function POST(request: Request) {
     );
   }
 
-  // Latest analysis (include id for persisting report sections)
-  const analysisQuery = supabase
-    .from("svi_analyses")
-    .select("id, raw_input, total_svi, analysis_json")
-    .eq("email", user.email)
-    .order("created_at", { ascending: false })
-    .limit(1);
-
-  if (projectId) {
-    analysisQuery.eq("project_id", projectId);
-  }
-
-  const { data: latestAnalysis } = await analysisQuery.maybeSingle();
+  // Latest analysis — with fallback for legacy records
+  const latestAnalysis = await findLatestAnalysisWithFallback(
+    user.email,
+    projectId,
+    "id, raw_input, total_svi, analysis_json",
+  );
 
   // Evidence items
   const { data: evidenceItems } = await supabase
@@ -200,9 +179,9 @@ export async function POST(request: Request) {
     .order("created_at", { ascending: false });
 
   const analysis = latestAnalysis?.analysis_json as Record<string, unknown> | null;
-  const rawText = latestAnalysis?.raw_input ?? "";
-  const svi = account.current_svi ?? latestAnalysis?.total_svi ?? 100;
-  const stage = account.current_stage ?? 0;
+  const rawText = String(latestAnalysis?.raw_input ?? "");
+  const svi = Number(account.current_svi ?? latestAnalysis?.total_svi ?? 100);
+  const stage = Number(account.current_stage ?? 0);
 
   // Build evidence summary
   const evidenceSummary = (evidenceItems ?? [])
@@ -273,7 +252,14 @@ ${analysis?.risks ? `**Risk Flags:** ${JSON.stringify(analysis.risks).slice(0, 5
 ${analysis?.evidenceGaps ? `**Evidence Gaps:** ${JSON.stringify(analysis.evidenceGaps).slice(0, 500)}` : ""}
 
 Write ONLY the "${sectionDef.title}" section. Do NOT include other sections.
-Use ## ${sectionDef.title} as the top-level heading.`;
+Use ## ${sectionDef.title} as the top-level heading.
+
+Formatting for visual impact:
+- Use markdown tables for comparisons and metric dashboards
+- Use > blockquotes for key insights and callouts (e.g. > **Key Finding:** ...)
+- Use **bold** for critical numbers and metrics
+- Structure data visually: score breakdowns, progress indicators, comparison matrices
+- End with a clear ### Next Steps subsection with actionable items`;
 
   // ── 6. Call AI ───────────────────────────────────────────────────────
   const maxTokens = depth === "summary" ? 1024 : 4096;

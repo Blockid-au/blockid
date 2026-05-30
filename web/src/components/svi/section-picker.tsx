@@ -40,10 +40,27 @@ interface SectionPickerProps {
   loading?: boolean;
 }
 
+const PICKER_STATUS_MESSAGES = [
+  "Processing your startup data...",
+  "AI agents analyzing selected sections...",
+  "Computing benchmarks and scores...",
+  "Generating recommendations...",
+  "Formatting your report...",
+];
+
 export function SectionPicker({ onConfirm, onClose, credits, loading }: SectionPickerProps) {
   const [selections, setSelections] = React.useState<Record<string, SectionDepth>>({});
   const [showBundles, setShowBundles] = React.useState(false);
   const [showLegend, setShowLegend] = React.useState(false);
+  const [statusIdx, setStatusIdx] = React.useState(0);
+
+  React.useEffect(() => {
+    if (!loading) { setStatusIdx(0); return; }
+    const timer = setInterval(() => {
+      setStatusIdx((i) => (i + 1) % PICKER_STATUS_MESSAGES.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [loading]);
 
   const toggleSection = (sectionId: string) => {
     setSelections((prev) => {
@@ -316,9 +333,9 @@ export function SectionPicker({ onConfirm, onClose, credits, loading }: SectionP
             >
               {loading ? (
                 <span className="flex items-center gap-2">
-                  <Loader2 strokeWidth={1.75} className="h-4 w-4 animate-spin" />
-                  <span className="hidden sm:inline">Analyzing...</span>
-                  <span className="sm:hidden">...</span>
+                  <Loader2 strokeWidth={1.75} className="h-4 w-4 animate-spin shrink-0" />
+                  <span className="hidden sm:inline text-xs truncate">{PICKER_STATUS_MESSAGES[statusIdx]}</span>
+                  <span className="sm:hidden text-xs truncate">{PICKER_STATUS_MESSAGES[statusIdx].slice(0, 20)}...</span>
                 </span>
               ) : !canAfford && selectedItems.length > 0 ? (
                 <span className="text-xs">Low credits</span>
