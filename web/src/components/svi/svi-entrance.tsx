@@ -129,6 +129,14 @@ export function SVIEntrance() {
   const clearRndStatus = () => setRndStatusEntries([]);
   const [rndReport, setRndReport] = React.useState<RndReport | null>(null);
   const [techAudit, setTechAudit] = React.useState<ClientTechAuditResult | null>(null);
+
+  // Elapsed timer — re-renders every second during analysis for live countdown
+  const [, setTick] = React.useState(0);
+  React.useEffect(() => {
+    if (state !== "submitting") return;
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, [state]);
   // detectedInputType is now a useMemo — see below
   const [showPaywall, setShowPaywall] = React.useState(false);
   const [hasPaidPlan, setHasPaidPlan] = React.useState(false);
@@ -1155,13 +1163,30 @@ export function SVIEntrance() {
             <div className="mt-4 flex w-full flex-col items-center justify-center gap-3 sm:flex-row">
               <button type="submit" disabled={state === "submitting"}
                 className="h-12 w-full max-w-xs px-8 rounded-2xl bg-brand-600 text-base font-bold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed cta-glow sm:w-auto">
-                {state === "submitting" ? <span className="flex items-center gap-2"><span className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />Analyzing…</span> : "Get My SVI — Free"}
+                {state === "submitting" ? <span className="flex items-center gap-2"><span className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" /><span className="truncate max-w-[200px]">{rndStatusEntries.length > 0 ? (rndStatusEntries[rndStatusEntries.length - 1].message.length > 30 ? rndStatusEntries[rndStatusEntries.length - 1].message.slice(0, 30) + "…" : rndStatusEntries[rndStatusEntries.length - 1].message) : "Analyzing…"}</span></span> : "Get My SVI — Free"}
               </button>
               <button type="button" onClick={() => { setText(QUICK_EXAMPLES[Math.floor(Math.random() * QUICK_EXAMPLES.length)]); textareaRef.current?.focus(); trackEvent("svi_form_started", { method: "example" }); }}
                 className="h-10 w-full max-w-xs px-5 rounded-xl border border-surface-300 bg-white text-sm font-medium text-ink-700 hover:bg-surface-100 transition-colors cursor-pointer sm:w-auto">
                 Try an Example
               </button>
             </div>
+
+            {/* Live progress summary — visible below buttons during analysis */}
+            {state === "submitting" && rndStatusEntries.length > 0 && (
+              <div className="mt-3 flex items-center justify-center gap-2 animate-in fade-in duration-300">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-500" />
+                </span>
+                <p className="text-xs text-brand-600">
+                  Step {rndStatusEntries.length}: {rndStatusEntries[rndStatusEntries.length - 1].message.slice(0, 50)}{rndStatusEntries[rndStatusEntries.length - 1].message.length > 50 ? "…" : ""}
+                  <span className="ml-1.5 text-brand-400 tabular-nums">
+                    {Math.round((Date.now() - rndStatusEntries[0].ts) / 1000)}s
+                  </span>
+                </p>
+              </div>
+            )}
+
             <div className="mt-3 flex flex-col items-center gap-1.5">
               <p className="flex flex-wrap items-center justify-center gap-2 text-center text-sm font-semibold text-emerald-700">
                 <CheckCircle2 strokeWidth={2} className="h-4 w-4 shrink-0 text-emerald-500" />
