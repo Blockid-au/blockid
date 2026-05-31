@@ -1042,13 +1042,16 @@ export async function callAIForUpgrade(opts: AICallOptions): Promise<AICallResul
 
   // Only use FREE and subscription providers — NO paid API keys (Gemini, Anthropic, OpenAI)
   const freeProviders: Provider[] = [];
-  // 100% free providers first
-  if (process.env.OPENROUTER_API_KEY || getDBKey("openrouter")) freeProviders.push("openrouter");
+  // 100% free providers first. OpenRouter is heavily rate-limited (429 spam),
+  // so it's deprioritized to just BEFORE codex — try the more reliable free
+  // tiers (Groq/Cerebras/SambaNova) and the Claude subscription first.
   if (process.env.GROQ_API_KEY || getDBKey("groq")) freeProviders.push("groq");
   if (process.env.CEREBRAS_API_KEY || getDBKey("cerebras")) freeProviders.push("cerebras");
   if (process.env.SAMBANOVA_API_KEY || getDBKey("sambanova")) freeProviders.push("sambanova");
   // Subscription providers (fixed cost, not per-call)
   if (readCliOAuthToken()) freeProviders.push("claude-oauth");
+  // OpenRouter moved down — right before codex in the fallback chain.
+  if (process.env.OPENROUTER_API_KEY || getDBKey("openrouter")) freeProviders.push("openrouter");
   if (readCodexOAuthToken()) freeProviders.push("openai-codex");
   // NOTE: Gemini EXCLUDED — it costs $0.30-$2.50/1M tokens, NOT free
 
