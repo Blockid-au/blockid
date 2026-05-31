@@ -125,7 +125,7 @@ if [ "${1:-}" = "--rollback" ]; then
   fuser -k $PROD_PORT/tcp 2>/dev/null || true
   sleep 1
   cd "$STANDALONE"
-  nohup node server.js > "$LOG" 2>&1 &
+  nohup node server.js > "$LOG" 2>&1 9>&- &
   echo $! > "$PID_FILE"
   sleep 3
   HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:$PROD_PORT/)
@@ -285,7 +285,7 @@ fuser -k $TEMP_PORT/tcp 2>/dev/null || true
 sleep 1
 
 cd "$STANDALONE"
-nohup node server.js > "$LOG_NEW" 2>&1 &
+nohup node server.js > "$LOG_NEW" 2>&1 9>&- &
 NEW_PID=$!
 
 # Wait for healthy (max 15s)
@@ -366,7 +366,7 @@ sleep 1
 # Start new on production port
 export PORT=$PROD_PORT
 cd "$STANDALONE"
-nohup node server.js > "$LOG" 2>&1 &
+nohup node server.js > "$LOG" 2>&1 9>&- &
 echo $! > "$PID_FILE"
 pass "New process started (PID $(cat "$PID_FILE"))"
 
