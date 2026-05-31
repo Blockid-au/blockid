@@ -68,6 +68,38 @@ Without these → `InvariantError: client reference manifest does not exist` →
 | `EADDRINUSE 4001` | Old process holding port | `fuser -k -9 4001/tcp` |
 | `PEM error DECODER unsupported` | .env quotes not stripped | Deploy script strips quotes |
 | `Functions cannot be passed to Client Components` | Server→client serialization | Pass plain data, map icons in client |
+| Build fails mid-way, `.next` half-empty | **Two deploys ran at once** (`rm -rf .next` race) | Deploy lock — see below |
+
+---
+
+## Reliability Mechanism (anti-regression — DO NOT REMOVE)
+
+Goal: auto-update / auto-deploy must NOT repeat past failures, and the **last
+successful build is the standard** every future build must clear.
+
+1. **Deploy lock** — `deploy-live.sh` takes `flock` on `/tmp/blockid-deploy.lock`.
+   Only ONE deploy runs at a time; a second aborts immediately. This kills the
+   #1 recurring failure (concurrent builds wiping each other's `.next`). All
+   auto-deploy triggers (agent webhook, cron, manual) go through this lock — so
+   they queue, never collide.
+
+2. **Last-Known-Good (LKG) = the baseline.** Every all-gates-pass deploy:
+   - keeps the previous build in `.next-backup/` (instant rollback target), and
+   - records `content/reports/last-good-build.json` `{ts, buildId, gates, note}`.
+   A build that fails ANY gate is **never swapped in** — the LKG keeps serving.
+   So production only ever moves forward to a build at least as good as the last.
+
+3. **Integrity guard before swap.** After syncing standalone, the script asserts
+   `server.js` + `ai-worker.mjs` + `.next/BUILD_ID` + `.next/server` all exist;
+   if not, it restores the LKG and aborts. This permanently encodes the
+   "ai-worker.mjs not found" and "partial build from a race" failures as checks.
+
+4. **Every successful deploy is logged** to `content/reports/deploy-log.jsonl`
+   (read by the daily Telegram report as "work shipped today" — internal CI/CD,
+   not git). Describe a release with `DEPLOY_NOTE="..." bash scripts/deploy-live.sh`.
+
+**Rule:** never bypass the lock or the integrity guard, and never hand-swap a
+build that didn't pass all 9 gates. `--quick` (skip lint/tsc) is emergency-only.
 
 ---
 
