@@ -33,7 +33,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://accounts.google.com https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob: https: http:",
-              "connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://accounts.google.com https://oauth2.googleapis.com https://api.stripe.com https://*.supabase.co wss://*.supabase.co",
+              "connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://accounts.google.com https://oauth2.googleapis.com https://api.stripe.com https://*.supabase.co wss://*.supabase.co https://chain.blockid.au https://explorer.blockid.au",
               "frame-src 'self' https://accounts.google.com https://js.stripe.com https://hooks.stripe.com https://www.youtube.com https://www.youtube-nocookie.com",
               "frame-ancestors 'none'",
               "base-uri 'self'",
