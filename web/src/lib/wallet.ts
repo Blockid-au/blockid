@@ -912,7 +912,10 @@ export async function isDividendClaimed(
 export function onAccountsChanged(
   handler: (accounts: string[]) => void,
 ): () => void {
-  const provider = getProvider();
+  // No wallet installed → no-op (do NOT throw; callers subscribe on mount and
+  // an exception here would crash the whole page via the React error boundary).
+  if (typeof window === "undefined" || !window.ethereum) return () => {};
+  const provider = window.ethereum;
   const wrappedHandler = (...args: unknown[]) => {
     handler(args[0] as string[]);
   };
@@ -924,7 +927,8 @@ export function onAccountsChanged(
  * Listen for chain changes in MetaMask.
  */
 export function onChainChanged(handler: (chainId: string) => void): () => void {
-  const provider = getProvider();
+  if (typeof window === "undefined" || !window.ethereum) return () => {};
+  const provider = window.ethereum;
   const wrappedHandler = (...args: unknown[]) => {
     handler(args[0] as string);
   };
