@@ -41,6 +41,8 @@ while IFS='=' read -r k v; do
   export "$k=$v" 2>/dev/null
 done < <(grep -v '^\s*#\|^\s*$' /home/dovanlong/blockid.au/web/.env)
 export SUPABASE_URL=http://127.0.0.1:8000 REDIS_URL=redis://127.0.0.1:6379
+# Override PORT again — .env may contain PORT=3000 (for Docker) which must not win here
+export PORT=4001
 
 nohup node server.js >> /tmp/blockid-production.log 2>&1 &
 echo $! > "$PID_FILE"
