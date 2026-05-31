@@ -36,6 +36,7 @@ import {
   shortenAddress,
   type VestingInfo,
 } from "@/lib/wallet";
+import { useStartupToken } from "@/components/wallet/use-startup-token";
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -51,6 +52,10 @@ interface TokenPortfolio {
 // ── WalletClient ──────────────────────────────────────────────────────
 
 export function WalletClient() {
+  // This startup's own equity token (falls back to the legacy shared token).
+  const { token: startupToken } = useStartupToken();
+  const tokenAddress = startupToken?.address ?? CONTRACTS.svt;
+
   const [account, setAccount] = React.useState<string | null>(null);
   const [chainOk, setChainOk] = React.useState(false);
   const [connecting, setConnecting] = React.useState(false);
@@ -114,7 +119,7 @@ export function WalletClient() {
       loadVesting(account);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [account, chainOk]);
+  }, [account, chainOk, tokenAddress]);
 
   // ── Actions ─────────────────────────────────────────────────────────
 
@@ -151,8 +156,9 @@ export function WalletClient() {
   async function loadTokens(addr: string) {
     setLoadingTokens(true);
     try {
-      // Load SVT token info
-      const tokenAddr = CONTRACTS.svt;
+      // Load this startup's token info
+      const tokenAddr = tokenAddress;
+      setTransferToken(tokenAddr);
       const [name, symbol, decimals, balance, totalSupply] = await Promise.all([
         getTokenName(tokenAddr),
         getTokenSymbol(tokenAddr),
@@ -181,8 +187,8 @@ export function WalletClient() {
   async function loadVesting(addr: string) {
     try {
       const [grant, vested] = await Promise.all([
-        getVestingGrant(CONTRACTS.svt, addr),
-        getVestedAmount(CONTRACTS.svt, addr),
+        getVestingGrant(tokenAddress, addr),
+        getVestedAmount(tokenAddress, addr),
       ]);
       if (grant.totalAmount > 0n) {
         setVesting(grant);
