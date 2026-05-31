@@ -26,6 +26,8 @@ import {
   formatTokenAmount,
   shortenAddress,
 } from "@/lib/wallet";
+import { CreateShareToken } from "@/components/wallet/create-share-token";
+import { useStartupToken } from "@/components/wallet/use-startup-token";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -211,6 +213,12 @@ export function EquityDashboardClient({ isAdmin }: { isAdmin: boolean }) {
   const [recentTxs, setRecentTxs] = React.useState<OnChainTx[]>([]);
   const [loadingTxs, setLoadingTxs] = React.useState(false);
 
+  // This startup's own equity token (falls back to the legacy shared token
+  // until the startup deploys its own via "Create shares on blockchain").
+  const { token: startupToken } = useStartupToken();
+  const tokenAddress = startupToken?.address ?? CONTRACTS.svt;
+  const tokenSymbol = startupToken?.symbol ?? "SVT";
+
   // ── Fetch cap table data ────────────────────────────────────────────
 
   const fetchData = React.useCallback(async () => {
@@ -241,14 +249,14 @@ export function EquityDashboardClient({ isAdmin }: { isAdmin: boolean }) {
       .then(async (account) => {
         if (!account) return;
         try {
-          const supply = await getTokenTotalSupply(CONTRACTS.svt);
+          const supply = await getTokenTotalSupply(tokenAddress);
           setChainSupply(formatTokenAmount(supply, TOKEN_DECIMALS));
         } catch {
           // Chain might not be reachable
         }
       })
       .catch(() => {});
-  }, []);
+  }, [tokenAddress]);
 
   // ── Fetch recent on-chain activity ──────────────────────────────────
 
@@ -265,7 +273,7 @@ export function EquityDashboardClient({ isAdmin }: { isAdmin: boolean }) {
           method: "eth_getLogs",
           params: [
             {
-              address: CONTRACTS.svt,
+              address: tokenAddress,
               // Transfer(address,address,uint256) topic
               topics: [
                 "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
@@ -321,7 +329,7 @@ export function EquityDashboardClient({ isAdmin }: { isAdmin: boolean }) {
     } finally {
       setLoadingTxs(false);
     }
-  }, []);
+  }, [tokenAddress]);
 
   React.useEffect(() => {
     fetchRecentActivity();
@@ -422,6 +430,9 @@ export function EquityDashboardClient({ isAdmin }: { isAdmin: boolean }) {
         </button>
       </div>
 
+      {/* Tokenize: create this startup's own equity token on-chain */}
+      <CreateShareToken />
+
       {/* Section 1: Company Overview */}
       <div className="rounded-2xl border border-surface-200 bg-white overflow-hidden">
         <div className="px-6 py-4 border-b border-surface-200">
@@ -442,11 +453,9 @@ export function EquityDashboardClient({ isAdmin }: { isAdmin: boolean }) {
             <p className="text-xs text-ink-500 font-medium uppercase tracking-wider mb-1">
               Token
             </p>
-            <p className="text-sm font-bold text-ink-800">SVT</p>
+            <p className="text-sm font-bold text-ink-800">{tokenSymbol}</p>
             <p className="text-xs text-ink-500 mt-0.5">
-              {chainSupply
-                ? `${chainSupply} on-chain`
-                : "20,000,000 shares"}
+              {chainSupply ? `${chainSupply} on-chain` : "—"}
             </p>
           </div>
           <div className="bg-white p-5">
@@ -454,12 +463,12 @@ export function EquityDashboardClient({ isAdmin }: { isAdmin: boolean }) {
               Contract
             </p>
             <a
-              href={`${EXPLORER_URL}/address/${CONTRACTS.svt}`}
+              href={`${EXPLORER_URL}/address/${tokenAddress}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-sm font-mono font-bold text-brand-600 hover:text-brand-700 transition-colors"
             >
-              {shortenAddress(CONTRACTS.svt)}
+              {shortenAddress(tokenAddress)}
               <ExternalLink strokeWidth={1.75} className="h-3 w-3" />
             </a>
             <p className="text-xs text-ink-500 mt-0.5">ERC-1400 Security Token</p>

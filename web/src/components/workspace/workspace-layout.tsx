@@ -13,6 +13,7 @@ import { CreditBalance } from "@/components/ui/credit-balance";
 import { CreditBadge } from "@/components/workspace/credit-badge";
 import { ProjectSwitcher } from "@/components/ui/project-switcher";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { cn } from "@/lib/utils";
 
 interface WorkspaceLayoutProps {
@@ -220,6 +221,9 @@ export function WorkspaceLayout({ children, user, startupName, notificationCount
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2">
+            {/* Wallet connect (auto-adds/switches to the BlockID chain) */}
+            <ConnectWalletButton compact />
+
             {/* Credit balance */}
             <CreditBalance />
 

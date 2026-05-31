@@ -28,6 +28,7 @@ import {
   formatTokenAmount,
   shortenAddress,
 } from "@/lib/wallet";
+import { useStartupToken } from "@/components/wallet/use-startup-token";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -389,9 +390,11 @@ function TransferModal({
 function ShareCertificate({
   shareholder,
   onClose,
+  tokenAddress = CONTRACTS.svt,
 }: {
   shareholder: Shareholder;
   onClose: () => void;
+  tokenAddress?: string;
 }) {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
@@ -477,7 +480,7 @@ function ShareCertificate({
           )}
 
           <div className="text-center text-[10px] text-ink-400 pt-2 border-t border-surface-200">
-            Token Contract: {CONTRACTS.svt} | Chain: BlockID.au - Startup Value
+            Token Contract: {tokenAddress} | Chain: BlockID.au - Startup Value
             Chain (ID 420)
           </div>
         </div>
@@ -501,6 +504,10 @@ function ShareCertificate({
 // ---------------------------------------------------------------------------
 
 export function ShareholdersClient({ isAdmin }: { isAdmin: boolean }) {
+  // This startup's own equity token (falls back to the legacy shared token).
+  const { token: startupToken } = useStartupToken();
+  const tokenAddress = startupToken?.address ?? CONTRACTS.svt;
+
   const [data, setData] = React.useState<CapTableData | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -615,7 +622,7 @@ export function ShareholdersClient({ isAdmin }: { isAdmin: boolean }) {
           }
 
           const amount = parseTokenAmount(shares.toString(), TOKEN_DECIMALS);
-          await mintTokens(CONTRACTS.svt, form.evmAddress.trim(), amount);
+          await mintTokens(tokenAddress, form.evmAddress.trim(), amount);
 
           setSuccess(
             `${shares.toLocaleString()} SVT shares issued to ${form.name} (on-chain mint completed)`,
@@ -668,7 +675,7 @@ export function ShareholdersClient({ isAdmin }: { isAdmin: boolean }) {
       }
 
       const amountWei = parseTokenAmount(amount.toString(), TOKEN_DECIMALS);
-      await transferTokens(CONTRACTS.svt, toAddress, amountWei);
+      await transferTokens(tokenAddress, toAddress, amountWei);
 
       setSuccess(
         `Transferred ${amount.toLocaleString()} shares to ${shortenAddress(toAddress)}`,
@@ -1016,6 +1023,7 @@ export function ShareholdersClient({ isAdmin }: { isAdmin: boolean }) {
         <ShareCertificate
           shareholder={certModal}
           onClose={() => setCertModal(null)}
+          tokenAddress={tokenAddress}
         />
       )}
     </div>

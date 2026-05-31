@@ -382,3 +382,16 @@ echo "  Public: HTTP $PUBLIC"
 echo "  Log:   $LOG"
 echo "  Rollback: bash scripts/deploy-live.sh --rollback"
 echo "════════════════════════════════════════════"
+
+# ══════════════════════════════════════════════════════════════════════
+# Record CI/CD deploy event (internal src → public pipeline).
+# The daily Telegram report reads THIS as "work shipped today" — NOT git.
+# Describe the release with:  DEPLOY_NOTE="what shipped" bash scripts/deploy-live.sh
+# ══════════════════════════════════════════════════════════════════════
+DEPLOY_LOG="$WEB_DIR/content/reports/deploy-log.jsonl"
+mkdir -p "$(dirname "$DEPLOY_LOG")"
+DEPLOY_TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+DEPLOY_NOTE_JSON=$(printf '%s' "${DEPLOY_NOTE:-Triển khai từ src lên public}" | python3 -c "import json,sys; print(json.dumps(sys.stdin.read().strip()))" 2>/dev/null || echo '"Trien khai tu src len public"')
+printf '{"ts":"%s","status":"success","gates":"%s/%s","pid":"%s","note":%s}\n' \
+  "$DEPLOY_TS" "$GATE_PASSED" "$GATE_TOTAL" "$(cat "$PID_FILE" 2>/dev/null)" "$DEPLOY_NOTE_JSON" >> "$DEPLOY_LOG"
+echo "  📝 Deploy event logged → content/reports/deploy-log.jsonl"
