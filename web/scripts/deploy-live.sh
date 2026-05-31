@@ -36,8 +36,23 @@ TEMP_PORT=4099
 PROD_PORT=4001
 GATE_PASSED=0
 GATE_TOTAL=0
+LKG_FILE="$WEB_DIR/content/reports/last-good-build.json"
 
 cd "$WEB_DIR"
+
+# ══════════════════════════════════════════════════════════════════════
+# DEPLOY LOCK — only ONE deploy at a time.
+# Prevents concurrent runs from racing `rm -rf .next` / build output, which
+# was the #1 recurring failure. Auto-update/auto-deploy jobs queue instead of
+# colliding. The lock auto-releases when this process exits.
+# ══════════════════════════════════════════════════════════════════════
+LOCK_FILE="/tmp/blockid-deploy.lock"
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+  echo "❌ Another deploy is already running (lock: $LOCK_FILE)."
+  echo "   Aborting to avoid a build race. Retry after it finishes."
+  exit 1
+fi
 
 # ── Helpers ───────────────────────────────────────────────────────────
 
@@ -248,6 +263,21 @@ for pkg in pptxgenjs gaxios gcp-metadata; do
   fi
 done
 
+# ── Integrity guard: standalone must be COMPLETE before we trust it. ───
+# Encodes past production breakages as a permanent check so they can't recur:
+#   - missing ai-worker.mjs  → entire AI stack died ("ai-worker.mjs not found")
+#   - missing server.js / BUILD_ID → broken/partial build from a race
+for required in server.js ai-worker.mjs .next/BUILD_ID .next/server; do
+  if [ ! -e "$STANDALONE/$required" ]; then
+    if [ -d "$BACKUP_DIR" ]; then
+      rm -rf "$WEB_DIR/.next"; mv "$BACKUP_DIR" "$WEB_DIR/.next"
+      echo "  Backup (last-good build) restored."
+    fi
+    fail "Standalone incomplete: missing '$required' (build race or bad build). Kept last-good build."
+  fi
+done
+echo "  ✅ Standalone integrity OK (server.js + ai-worker.mjs + BUILD_ID present)"
+
 # Start on temp port
 load_env
 export PORT=$TEMP_PORT
@@ -397,3 +427,14 @@ DEPLOY_NOTE_JSON=$(printf '%s' "${DEPLOY_NOTE:-Triển khai từ src lên public
 printf '{"ts":"%s","status":"success","gates":"%s/%s","pid":"%s","note":%s}\n' \
   "$DEPLOY_TS" "$GATE_PASSED" "$GATE_TOTAL" "$(cat "$PID_FILE" 2>/dev/null)" "$DEPLOY_NOTE_JSON" >> "$DEPLOY_LOG"
 echo "  📝 Deploy event logged → content/reports/deploy-log.jsonl"
+
+# ══════════════════════════════════════════════════════════════════════
+# Record the LAST-KNOWN-GOOD build = the new baseline/standard.
+# Only a build that passed ALL gates reaches here. Its BUILD_ID + backup
+# (.next-backup) define the rollback target and the bar every future build
+# must clear. A failed build never overwrites this — the LKG keeps serving.
+# ══════════════════════════════════════════════════════════════════════
+LKG_BUILD_ID=$(cat "$STANDALONE/.next/BUILD_ID" 2>/dev/null || echo "unknown")
+printf '{"ts":"%s","buildId":"%s","gates":"%s/%s","pid":"%s","note":%s}\n' \
+  "$DEPLOY_TS" "$LKG_BUILD_ID" "$GATE_PASSED" "$GATE_TOTAL" "$(cat "$PID_FILE" 2>/dev/null)" "$DEPLOY_NOTE_JSON" > "$LKG_FILE"
+echo "  📌 Last-known-good build recorded (BUILD_ID $LKG_BUILD_ID) → content/reports/last-good-build.json"
