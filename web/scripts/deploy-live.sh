@@ -364,6 +364,12 @@ else
 fi
 
 # ══════════════════════════════════════════════════════════════════════
+# Post-deploy: Purge caches
+# ══════════════════════════════════════════════════════════════════════
+bash "$WEB_DIR/scripts/purge-cloudflare-cache.sh" 2>/dev/null && echo "  ✅ Cloudflare cache purged" || echo "  ⚠ Cloudflare purge skipped"
+rm -rf /tmp/nginx-blockid-cache/* 2>/dev/null && echo "  ✅ Nginx cache cleared" || true
+
+# ══════════════════════════════════════════════════════════════════════
 # Summary
 # ══════════════════════════════════════════════════════════════════════
 echo ""
