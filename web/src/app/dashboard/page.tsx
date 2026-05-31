@@ -27,7 +27,6 @@ import { LivingSVIDashboard } from "@/components/dashboard/living-svi-dashboard"
 import { GrowthRoadmap } from "@/components/dashboard/growth-roadmap";
 import { CapTableMini } from "@/components/dashboard/cap-table-mini";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
-import { buildActivityItems } from "@/components/dashboard/activity-feed-utils";
 import { StatusCards } from "@/components/dashboard/status-cards";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 
@@ -681,9 +680,9 @@ export default async function DashboardPage({
         {/* ── Row 6: Cap Table + Activity Feed ─────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <CapTableMini shareholders={shareholders} totalShares={totalShareCount} />
-          <ActivityFeed items={buildActivityItems(
+          <ActivityFeed rawActions={
             userActions.map(a => ({ action_type: a.action_type, description: a.action_label, created_at: a.completed_at }))
-          )} />
+          } />
         </div>
 
         {/* ── Row 7: Growth Roadmap ────────────────────────────────────────── */}
