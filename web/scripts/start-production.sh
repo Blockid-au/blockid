@@ -24,8 +24,12 @@ if [ ! -f "$STANDALONE/server.js" ]; then
   echo "No standalone build found. Running: npm run build"
   cd "$WEB_DIR" && npm run build
   cp -r "$WEB_DIR/.next/static" "$STANDALONE/.next/static"
+  cp -r "$WEB_DIR/.next/server" "$STANDALONE/.next/server"
   cp -r "$WEB_DIR/public" "$STANDALONE/public"
   cp "$WEB_DIR/ai-worker.mjs" "$STANDALONE/ai-worker.mjs" 2>/dev/null || true
+  for pkg in pptxgenjs gaxios gcp-metadata; do
+    [ -d "$WEB_DIR/node_modules/$pkg" ] && [ ! -d "$STANDALONE/node_modules/$pkg" ] && cp -r "$WEB_DIR/node_modules/$pkg" "$STANDALONE/node_modules/$pkg"
+  done
 fi
 
 # Load .env safely via node (handles quotes, special chars, newlines)

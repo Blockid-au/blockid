@@ -235,11 +235,13 @@ fi
 gate "Prepare standalone + smoke test"
 
 # Copy assets
+# Sync ALL build output into standalone (fixes missing manifests)
 cp -r "$WEB_DIR/.next/static" "$STANDALONE/.next/static"
+cp -r "$WEB_DIR/.next/server" "$STANDALONE/.next/server"
 cp -r "$WEB_DIR/public" "$STANDALONE/public"
 cp "$WEB_DIR/ai-worker.mjs" "$STANDALONE/ai-worker.mjs" 2>/dev/null || true
 
-# Copy serverExternalPackages
+# Copy serverExternalPackages not traced by standalone
 for pkg in pptxgenjs gaxios gcp-metadata; do
   if [ -d "$WEB_DIR/node_modules/$pkg" ] && [ ! -d "$STANDALONE/node_modules/$pkg" ]; then
     cp -r "$WEB_DIR/node_modules/$pkg" "$STANDALONE/node_modules/$pkg"
