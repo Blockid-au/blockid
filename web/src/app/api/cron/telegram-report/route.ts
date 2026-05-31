@@ -9,7 +9,6 @@
 import { NextResponse } from "next/server";
 import * as fs from "fs";
 import * as path from "path";
-import { execFileSync } from "child_process";
 
 export const dynamic = "force-dynamic";
 
@@ -17,23 +16,38 @@ const TELEGRAM_BOT_TOKEN = "8866491988:AAF24ixnoNFzubydEARc28klTd0lw1V5fCk";
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID ?? "";
 const CRON_SECRET = process.env.CRON_SECRET;
 const REPORTS_DIR = "/home/dovanlong/blockid.au/web/content/reports";
-const REPO_DIR = "/home/dovanlong/blockid.au";
+const DEPLOY_LOG = path.join(REPORTS_DIR, "deploy-log.jsonl");
 
 // Escape Telegram Markdown (v1) special chars in dynamic text.
 function mdEscape(s: string): string {
   return s.replace(/([_*`\[])/g, "\\$1");
 }
 
-// Concrete "work done today" — derived from git commits since midnight so the
-// report shows ACTUAL changes inline (not a file link).
-function todaysWork(): string[] {
+interface DeployEvent {
+  time: string; // HH:MM
+  note: string;
+}
+
+// Concrete "work shipped today" — sourced from the INTERNAL CI/CD pipeline
+// (deploy-live.sh src → public), NOT git. Each successful deploy appends an
+// entry to deploy-log.jsonl; here we read today's entries and show them inline.
+function todaysDeploys(today: string): DeployEvent[] {
   try {
-    const out = execFileSync(
-      "git",
-      ["-C", REPO_DIR, "log", "--since=midnight", "--no-merges", "--pretty=format:%s"],
-      { encoding: "utf8", timeout: 5000 },
-    );
-    return out.split("\n").map((l) => l.trim()).filter(Boolean);
+    const raw = fs.readFileSync(DEPLOY_LOG, "utf8");
+    const events: DeployEvent[] = [];
+    for (const line of raw.split("\n")) {
+      const t = line.trim();
+      if (!t) continue;
+      try {
+        const e = JSON.parse(t) as { ts?: string; note?: string; status?: string };
+        if (!e.ts || !e.ts.startsWith(today)) continue;
+        if (e.status && e.status !== "success") continue;
+        events.push({ time: e.ts.slice(11, 16), note: e.note ?? "Triển khai" });
+      } catch {
+        /* skip malformed line */
+      }
+    }
+    return events;
   } catch {
     return [];
   }
@@ -109,16 +123,19 @@ export async function POST(request: Request) {
     prodStatus = "🔴 Unreachable";
   }
 
-  // Concrete work done today (direct content, not a file link)
-  const commits = todaysWork();
-  const MAX_COMMITS = 15;
+  // Work shipped today via the internal CI/CD pipeline (src → public) — direct
+  // content, not a file link, and NOT sourced from git.
+  const deploys = todaysDeploys(today);
+  const MAX_DEPLOYS = 15;
   let workSection: string;
-  if (commits.length === 0) {
-    workSection = "_Không có thay đổi code hôm nay._";
+  if (deploys.length === 0) {
+    workSection = "_Chưa có bản triển khai nào hôm nay._";
   } else {
-    const shown = commits.slice(0, MAX_COMMITS).map((c) => `• ${mdEscape(c)}`);
-    if (commits.length > MAX_COMMITS) {
-      shown.push(`… và ${commits.length - MAX_COMMITS} thay đổi khác`);
+    const shown = deploys
+      .slice(0, MAX_DEPLOYS)
+      .map((d) => `• ${d.time} — ${mdEscape(d.note)}`);
+    if (deploys.length > MAX_DEPLOYS) {
+      shown.push(`… và ${deploys.length - MAX_DEPLOYS} bản triển khai khác`);
     }
     workSection = shown.join("\n");
   }
@@ -127,7 +144,7 @@ export async function POST(request: Request) {
   const message = `📊 *BlockID.au — Báo cáo hàng ngày*
 📅 ${today}
 
-🛠 *Công việc đã làm hôm nay* (${commits.length})
+🚀 *Đã triển khai hôm nay (CI/CD src→public)* (${deploys.length})
 ${workSection}
 
 👥 *Trạng thái C-Level Agents:*
@@ -141,7 +158,7 @@ ${summaries.join("\n")}
     ok: true,
     sent,
     chatId: TELEGRAM_CHAT_ID || "NOT_SET",
-    commitsToday: commits.length,
+    deploysToday: deploys.length,
     agentsReported: summaries.filter(s => !s.includes("No report")).length,
     total: agents.length,
   });

@@ -81,6 +81,78 @@ function getProvider(): EthereumProvider {
   return window.ethereum;
 }
 
+/** True if an injected EIP-1193 wallet (MetaMask) is available in this browser. */
+export function isMetaMaskInstalled(): boolean {
+  return typeof window !== "undefined" && !!window.ethereum;
+}
+
+/** Current chain id (hex string, e.g. "0x1a4") or null if unavailable. */
+export async function getCurrentChainId(): Promise<string | null> {
+  try {
+    const provider = getProvider();
+    const chainId = (await provider.request({ method: "eth_chainId" })) as string;
+    return chainId;
+  } catch {
+    return null;
+  }
+}
+
+/** True if the wallet is currently on the BlockID chain (420). */
+export async function isOnBlockIDChain(): Promise<boolean> {
+  const chainId = await getCurrentChainId();
+  return chainId?.toLowerCase() === BLOCKID_CHAIN.chainId.toLowerCase();
+}
+
+/**
+ * Switch the wallet to the BlockID chain, adding it first if MetaMask
+ * doesn't know it yet. Safe to call when already on the chain.
+ */
+export async function switchToBlockIDChain(): Promise<void> {
+  const provider = getProvider();
+  try {
+    await provider.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: BLOCKID_CHAIN.chainId }],
+    });
+  } catch (switchError: unknown) {
+    const err = switchError as { code?: number };
+    // 4902 = chain not added yet → add it (which also switches).
+    if (err.code === 4902) {
+      await provider.request({
+        method: "wallet_addEthereumChain",
+        params: [
+          {
+            chainId: BLOCKID_CHAIN.chainId,
+            chainName: BLOCKID_CHAIN.chainName,
+            nativeCurrency: BLOCKID_CHAIN.nativeCurrency,
+            rpcUrls: [...BLOCKID_CHAIN.rpcUrls],
+            blockExplorerUrls: [...BLOCKID_CHAIN.blockExplorerUrls],
+          },
+        ],
+      });
+    } else {
+      throw switchError;
+    }
+  }
+}
+
+/**
+ * Best-effort disconnect. MetaMask has no true "disconnect", but we can
+ * revoke the dApp's account permission so the next connect re-prompts.
+ * Callers should also clear their own UI state.
+ */
+export async function disconnectWallet(): Promise<void> {
+  try {
+    const provider = getProvider();
+    await provider.request({
+      method: "wallet_revokePermissions",
+      params: [{ eth_accounts: {} }],
+    });
+  } catch {
+    /* older MetaMask lacks wallet_revokePermissions — ignore */
+  }
+}
+
 /** Pad a hex address to 32 bytes (64 hex chars). */
 function padAddress(addr: string): string {
   return addr.toLowerCase().replace("0x", "").padStart(64, "0");
