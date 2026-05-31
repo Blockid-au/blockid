@@ -26,7 +26,8 @@ import { JourneyBar } from "@/components/dashboard/journey-bar";
 import { LivingSVIDashboard } from "@/components/dashboard/living-svi-dashboard";
 import { GrowthRoadmap } from "@/components/dashboard/growth-roadmap";
 import { CapTableMini } from "@/components/dashboard/cap-table-mini";
-import { ActivityFeed, buildActivityItems } from "@/components/dashboard/activity-feed";
+import { ActivityFeed } from "@/components/dashboard/activity-feed";
+import { buildActivityItems } from "@/components/dashboard/activity-feed-utils";
 import { StatusCards } from "@/components/dashboard/status-cards";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 
