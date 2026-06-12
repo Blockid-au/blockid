@@ -267,16 +267,25 @@ done
 # Encodes past production breakages as a permanent check so they can't recur:
 #   - missing ai-worker.mjs  → entire AI stack died ("ai-worker.mjs not found")
 #   - missing server.js / BUILD_ID → broken/partial build from a race
-for required in server.js ai-worker.mjs .next/BUILD_ID .next/server; do
-  if [ ! -e "$STANDALONE/$required" ]; then
-    if [ -d "$BACKUP_DIR" ]; then
-      rm -rf "$WEB_DIR/.next"; mv "$BACKUP_DIR" "$WEB_DIR/.next"
-      echo "  Backup (last-good build) restored."
-    fi
-    fail "Standalone incomplete: missing '$required' (build race or bad build). Kept last-good build."
+restore_lkg_and_fail() {
+  if [ -d "$BACKUP_DIR" ]; then
+    rm -rf "$WEB_DIR/.next"; mv "$BACKUP_DIR" "$WEB_DIR/.next"
+    echo "  Backup (last-good build) restored."
   fi
+  fail "$1"
+}
+for required in server.js ai-worker.mjs .next/BUILD_ID .next/server; do
+  [ -e "$STANDALONE/$required" ] || restore_lkg_and_fail "Standalone incomplete: missing '$required' (build race / bad build). Kept last-good build."
 done
-echo "  ✅ Standalone integrity OK (server.js + ai-worker.mjs + BUILD_ID present)"
+# BUILD_ID must be non-empty (empty = interrupted build).
+[ -s "$STANDALONE/.next/BUILD_ID" ] || restore_lkg_and_fail "Standalone .next/BUILD_ID is empty (interrupted build). Kept last-good build."
+# App routes must have their client-reference-manifests (missing → per-route 500
+# "client reference manifest does not exist", e.g. /score). Require a healthy count.
+MANIFEST_COUNT=$(find "$STANDALONE/.next/server/app" -name "*_client-reference-manifest.js" 2>/dev/null | wc -l)
+if [ "$MANIFEST_COUNT" -lt 20 ]; then
+  restore_lkg_and_fail "Standalone has only $MANIFEST_COUNT route manifests (expected 20+) — incomplete .next/server. Kept last-good build."
+fi
+echo "  ✅ Standalone integrity OK (server.js + ai-worker.mjs + BUILD_ID + $MANIFEST_COUNT route manifests)"
 
 # Start on temp port
 load_env

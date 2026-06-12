@@ -3,7 +3,6 @@ import { Inter, IBM_Plex_Mono } from "next/font/google";
 import { GoogleAnalytics, GTMNoScript } from "@/components/analytics/google-analytics";
 import { OrganizationJsonLd, SoftwareApplicationJsonLd } from "@/components/seo/json-ld";
 import { Providers } from "@/components/providers";
-import { PromoBanner } from "@/components/ui/promo-banner";
 import "./globals.css";
 
 const inter = Inter({
@@ -105,7 +104,6 @@ export default function RootLayout({
       <body className="min-h-full bg-surface-50 text-brand-900 dark:text-ink-800 font-sans flex flex-col">
         <GTMNoScript />
         <Providers>
-          <PromoBanner />
           {children}
           <GoogleAnalytics />
           <OrganizationJsonLd />
