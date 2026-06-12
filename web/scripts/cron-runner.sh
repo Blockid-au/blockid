@@ -83,8 +83,8 @@ while :; do
   fi
 
   # Retry once for transient blips (connection error / non-JSON HTML).
-  if { [ "$STATUS" = "error" ] || [ "$STATUS" = "transient" ]; } && [ $ATTEMPT -lt 2 ]; then
-    sleep 5
+  if { [ "$STATUS" = "error" ] || [ "$STATUS" = "transient" ]; } && [ $ATTEMPT -lt 3 ]; then
+    sleep 8
     continue
   fi
   # A transient that survived the retry is a genuine failure.
@@ -101,18 +101,29 @@ echo "$TS_SHORT $ENDPOINT: $STATUS (${DURATION_MS}ms)" >> "$LOG"
 # Log to structured health file
 echo "{\"ts\":\"$TS\",\"endpoint\":\"$ENDPOINT\",\"status\":\"$STATUS\",\"duration_ms\":$DURATION_MS,\"detail\":$(echo "$DETAIL" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read().strip()))" 2>/dev/null || echo "\"\"")}" >> "$HEALTH_LOG"
 
-# Alert on failure via Telegram (rate_limited is expected, not a failure)
+# Suppress alerts when a deploy is mid-flight — the server is restarting, so a
+# blip is EXPECTED, not a real cron failure (this caused the false alarms).
+DEPLOY_ACTIVE=false
+if command -v flock >/dev/null 2>&1 && ! flock -n /tmp/blockid-deploy.lock -c true 2>/dev/null; then
+  DEPLOY_ACTIVE=true
+fi
+
+# Alert on failure via Telegram (rate_limited is expected, not a failure).
 if [ "$STATUS" != "ok" ] && [ "$STATUS" != "rate_limited" ]; then
-  MSG="⚠️ *Cron Failed*: \`$ENDPOINT\`
+  if [ "$DEPLOY_ACTIVE" = true ]; then
+    log "$ENDPOINT failed during active deploy — alert suppressed (expected restart blip)"
+  else
+    MSG="⚠️ *Cron Failed*: \`$ENDPOINT\`
 ⏰ $TS
 ⏱️ ${DURATION_MS}ms
 ❌ $STATUS: $(echo "$DETAIL" | head -c 100)"
 
-  curl -s "https://api.telegram.org/bot${TELEGRAM_BOT}/sendMessage" \
-    -d "chat_id=$TELEGRAM_CHAT" \
-    -d "text=$MSG" \
-    -d "parse_mode=Markdown" \
-    -d "disable_web_page_preview=true" > /dev/null 2>&1
+    curl -s "https://api.telegram.org/bot${TELEGRAM_BOT}/sendMessage" \
+      -d "chat_id=$TELEGRAM_CHAT" \
+      -d "text=$MSG" \
+      -d "parse_mode=Markdown" \
+      -d "disable_web_page_preview=true" > /dev/null 2>&1
+  fi
 fi
 
 exit 0
