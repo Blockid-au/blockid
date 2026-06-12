@@ -430,6 +430,15 @@ export async function POST(request: Request) {
 
   const results: StageResult[] = [];
   for (const stage of stages) {
+    // Pre-save: mark stage completed BEFORE running it.
+    // The code stage triggers agent-deploy → deploy-live.sh → server restart,
+    // which kills this in-flight request. Pre-saving ensures the pipeline
+    // advances past the code stage on next invocation.
+    state.dailyStagesCompleted.push(stage);
+    state.lastStage = stage;
+    state.lastRun = new Date().toISOString();
+    saveState(state);
+
     let result: StageResult;
     try {
       switch (stage) {
@@ -448,17 +457,17 @@ export async function POST(request: Request) {
     }
 
     results.push(result);
-    state.dailyStagesCompleted.push(stage);
     state.dailyAICalls += result.aiCalls;
-    state.lastStage = stage;
     logHistory({ ...result, timestamp: new Date().toISOString() });
+    saveState(state);
 
     if (!result.ok && stage === "deploy") {
-      // Deploy failure — trigger fix stage
       if (!stages.includes("fix")) {
+        state.dailyStagesCompleted.push("fix");
+        saveState(state);
         const fixResult = await stageFix(state);
         results.push(fixResult);
-        state.dailyStagesCompleted.push("fix");
+        saveState(state);
       }
       break;
     }
@@ -468,10 +477,8 @@ export async function POST(request: Request) {
   if (!stages.includes("report") && results.some(r => !r.ok)) {
     const reportResult = await stageReport(state, results);
     results.push(reportResult);
+    saveState(state);
   }
-
-  state.lastRun = new Date().toISOString();
-  saveState(state);
 
   return NextResponse.json({
     ok: true,
