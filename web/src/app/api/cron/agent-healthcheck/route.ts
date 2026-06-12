@@ -69,34 +69,42 @@ export async function POST(request: Request) {
   // ═══════════════════════════════════════════════════════════════
 
   // A1: TypeScript compilation
-  const tsResult = run("npx tsc --noEmit 2>&1 | tail -30 || true", 90_000);
-  const tsErrors = (tsResult.output.match(/error TS/g) ?? []).length;
-  items.push({
-    category: "code", check: "TypeScript",
-    status: tsErrors === 0 ? "pass" : tsErrors <= 3 ? "warn" : "fail",
-    detail: tsErrors === 0 ? "No errors" : `${tsErrors} errors`,
-    fixable: tsErrors > 0,
-  });
+  try {
+    const tsResult = run("npx tsc --noEmit 2>&1 | tail -30 || true", 90_000);
+    const tsErrors = (tsResult.output.match(/error TS/g) ?? []).length;
+    items.push({
+      category: "code", check: "TypeScript",
+      status: tsErrors === 0 ? "pass" : tsErrors <= 3 ? "warn" : "fail",
+      detail: tsErrors === 0 ? "No errors" : `${tsErrors} errors`,
+      fixable: tsErrors > 0,
+    });
+  } catch {
+    items.push({ category: "code", check: "TypeScript", status: "warn", detail: "Check skipped (no dev deps)", fixable: false });
+  }
 
   // A2: ESLint (with autofix attempt)
-  const lintResult = run("npm run lint 2>&1 || true", 60_000);
-  const lintOk = lintResult.ok && !lintResult.output.includes("Error");
-  items.push({
-    category: "code", check: "ESLint",
-    status: lintOk ? "pass" : "warn",
-    detail: lintOk ? "Clean" : "Issues found",
-    fixable: !lintOk,
-  });
-  if (!lintOk) {
-    try {
-      execSync("npx eslint --fix src/ 2>/dev/null || true", { cwd: WEB_DIR, timeout: 60_000 });
-      const recheck = run("npm run lint 2>&1 || true", 60_000);
-      if (recheck.ok) {
-        items[items.length - 1].status = "pass";
-        items[items.length - 1].detail = "Fixed by eslint --fix";
-        items[items.length - 1].fixed = true;
-      }
-    } catch { /* best effort */ }
+  try {
+    const lintResult = run("npm run lint 2>&1 || true", 60_000);
+    const lintOk = lintResult.ok && !lintResult.output.includes("Error");
+    items.push({
+      category: "code", check: "ESLint",
+      status: lintOk ? "pass" : "warn",
+      detail: lintOk ? "Clean" : "Issues found",
+      fixable: !lintOk,
+    });
+    if (!lintOk) {
+      try {
+        execSync("npx eslint --fix src/ 2>/dev/null || true", { cwd: WEB_DIR, timeout: 60_000 });
+        const recheck = run("npm run lint 2>&1 || true", 60_000);
+        if (recheck.ok) {
+          items[items.length - 1].status = "pass";
+          items[items.length - 1].detail = "Fixed by eslint --fix";
+          items[items.length - 1].fixed = true;
+        }
+      } catch { /* best effort */ }
+    }
+  } catch {
+    items.push({ category: "code", check: "ESLint", status: "warn", detail: "Check skipped (no dev deps)", fixable: false });
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -112,17 +120,17 @@ export async function POST(request: Request) {
       items.push({
         category: "security", check: "SSL Certificate",
         status: daysLeft > 30 ? "pass" : daysLeft > 7 ? "warn" : "fail",
-        detail: `Expires in ${daysLeft} days (${sslOut.output.trim()})`,
+        detail: `Expires in ${daysLeft} days`,
         fixable: false,
       });
     }
-  } catch { /* skip if openssl not available */ }
+  } catch { /* skip */ }
 
   // B2: Security headers
   try {
     const headRes = await fetch("https://blockid.au", { method: "HEAD", signal: AbortSignal.timeout(10_000) });
     const missing: string[] = [];
-    if (!headRes.headers.get("x-frame-options") && !headRes.headers.get("content-security-policy")) missing.push("X-Frame-Options/CSP");
+    if (!headRes.headers.get("x-frame-options") && !headRes.headers.get("content-security-policy")) missing.push("CSP");
     if (!headRes.headers.get("x-content-type-options")) missing.push("X-Content-Type-Options");
     if (!headRes.headers.get("strict-transport-security")) missing.push("HSTS");
     items.push({
@@ -134,42 +142,46 @@ export async function POST(request: Request) {
   } catch { /* skip */ }
 
   // B3: Exposed sensitive files
-  const sensitiveFiles = [".env", ".env.local", "dump.rdb"];
-  const exposed: string[] = [];
-  for (const f of sensitiveFiles) {
-    try {
-      const res = await fetch(`https://blockid.au/${f}`, { signal: AbortSignal.timeout(5_000) });
-      if (res.ok && res.status === 200) exposed.push(f);
-    } catch { /* not exposed */ }
-  }
-  items.push({
-    category: "security", check: "Exposed Files",
-    status: exposed.length === 0 ? "pass" : "fail",
-    detail: exposed.length === 0 ? "None exposed" : `EXPOSED: ${exposed.join(", ")}`,
-    fixable: false,
-  });
+  try {
+    const sensitiveFiles = [".env", ".env.local", "dump.rdb"];
+    const exposed: string[] = [];
+    for (const f of sensitiveFiles) {
+      try {
+        const res = await fetch(`https://blockid.au/${f}`, { signal: AbortSignal.timeout(5_000) });
+        if (res.ok && res.status === 200) exposed.push(f);
+      } catch { /* not exposed = good */ }
+    }
+    items.push({
+      category: "security", check: "Exposed Files",
+      status: exposed.length === 0 ? "pass" : "fail",
+      detail: exposed.length === 0 ? "None exposed" : `EXPOSED: ${exposed.join(", ")}`,
+      fixable: false,
+    });
+  } catch { /* skip */ }
 
   // B4: File permissions on sensitive files
-  const permResult = run("stat -c '%a %n' /home/dovanlong/blockid.au/web/.env* 2>/dev/null || echo 'no .env'");
-  const badPerms = permResult.output.split("\n").filter(l => {
-    const perm = parseInt(l.split(" ")[0], 8);
-    return perm > 0o600 && !l.includes("no .env");
-  });
-  items.push({
-    category: "security", check: "File Permissions",
-    status: badPerms.length === 0 ? "pass" : "warn",
-    detail: badPerms.length === 0 ? ".env files secured" : `${badPerms.length} files too permissive`,
-    fixable: badPerms.length > 0,
-    action: badPerms.length > 0 ? "chmod 600 .env*" : undefined,
-  });
-  if (badPerms.length > 0) {
-    try {
-      execSync("chmod 600 /home/dovanlong/blockid.au/web/.env* 2>/dev/null || true", { timeout: 5_000 });
-      items[items.length - 1].fixed = true;
-      items[items.length - 1].detail = "Fixed: chmod 600";
-      items[items.length - 1].status = "pass";
-    } catch { /* best effort */ }
-  }
+  try {
+    const permResult = run("stat -c '%a %n' /home/dovanlong/blockid.au/web/.env* 2>/dev/null || echo 'no .env'");
+    const badPerms = permResult.output.split("\n").filter(l => {
+      const perm = parseInt(l.split(" ")[0], 8);
+      return perm > 0o600 && !l.includes("no .env");
+    });
+    items.push({
+      category: "security", check: "File Permissions",
+      status: badPerms.length === 0 ? "pass" : "warn",
+      detail: badPerms.length === 0 ? ".env files secured" : `${badPerms.length} files too permissive`,
+      fixable: badPerms.length > 0,
+      action: badPerms.length > 0 ? "chmod 600 .env*" : undefined,
+    });
+    if (badPerms.length > 0) {
+      try {
+        execSync("chmod 600 /home/dovanlong/blockid.au/web/.env* 2>/dev/null || true", { timeout: 5_000 });
+        items[items.length - 1].fixed = true;
+        items[items.length - 1].detail = "Fixed: chmod 600";
+        items[items.length - 1].status = "pass";
+      } catch { /* best effort */ }
+    }
+  } catch { /* skip */ }
 
   // ═══════════════════════════════════════════════════════════════
   // C. PERFORMANCE
