@@ -90,3 +90,5 @@ async function alertAdmin(error: string) {
     console.error("[ai-health] Failed to send alert email");
   }
 }
+
+export { GET as POST };
