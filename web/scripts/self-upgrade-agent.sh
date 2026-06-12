@@ -58,6 +58,7 @@ Pick from (in rough priority): a real bug fix; UX/copy/SEO/accessibility/perform
 HARD RULES:
 - Keep the change FOCUSED and small (ideally 1-3 files). Do NOT do sweeping refactors.
 - NEVER touch secrets/.env, auth, payments/Stripe, equity/cap-table math, or blockchain/contract core logic.
+- NEVER implement, enable, schedule, or trigger anything that SPENDS MONEY — especially PAID ADVERTISING (Google/Meta/TikTok Ads, boosted or sponsored posts, paid campaigns, ad-account spend). Marketing must stay 100% organic (SEO, content, email we already own). No automated paid posts of any kind.
 - It MUST compile and lint: run `cd /home/dovanlong/blockid.au/web && npx tsc --noEmit` and `npm run lint` and fix any errors you introduced before committing.
 - Stage ONLY the files you changed (git add <those files>), then commit with a clear message prefixed `feat(auto):` or `fix(auto):`. Do NOT push and do NOT run any deploy script — the wrapper handles deploy.
 - If you cannot find a safe, worthwhile improvement, make NO commit and stop.
