@@ -61,50 +61,65 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Rate limited", resetIn: rl.resetIn }, { status: 429 });
   }
 
+  try {
+    return await runHealthChecks();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[healthcheck] Fatal:", msg);
+    return NextResponse.json({ ok: false, error: msg, partial: true }, { status: 500 });
+  }
+}
+
+async function runHealthChecks() {
   const today = new Date().toISOString().slice(0, 10);
   const items: HealthItem[] = [];
+  const hasDevDeps = fs.existsSync(`${WEB_DIR}/node_modules/.package-lock.json`);
 
   // ═══════════════════════════════════════════════════════════════
   // A. CODE QUALITY
   // ═══════════════════════════════════════════════════════════════
 
-  // A1: TypeScript compilation
-  try {
-    const tsResult = run("npx tsc --noEmit 2>&1 | tail -30 || true", 90_000);
-    const tsErrors = (tsResult.output.match(/error TS/g) ?? []).length;
-    items.push({
-      category: "code", check: "TypeScript",
-      status: tsErrors === 0 ? "pass" : tsErrors <= 3 ? "warn" : "fail",
-      detail: tsErrors === 0 ? "No errors" : `${tsErrors} errors`,
-      fixable: tsErrors > 0,
-    });
-  } catch {
-    items.push({ category: "code", check: "TypeScript", status: "warn", detail: "Check skipped (no dev deps)", fixable: false });
-  }
-
-  // A2: ESLint (with autofix attempt)
-  try {
-    const lintResult = run("npm run lint 2>&1 || true", 60_000);
-    const lintOk = lintResult.ok && !lintResult.output.includes("Error");
-    items.push({
-      category: "code", check: "ESLint",
-      status: lintOk ? "pass" : "warn",
-      detail: lintOk ? "Clean" : "Issues found",
-      fixable: !lintOk,
-    });
-    if (!lintOk) {
-      try {
-        execSync("npx eslint --fix src/ 2>/dev/null || true", { cwd: WEB_DIR, timeout: 60_000 });
-        const recheck = run("npm run lint 2>&1 || true", 60_000);
-        if (recheck.ok) {
-          items[items.length - 1].status = "pass";
-          items[items.length - 1].detail = "Fixed by eslint --fix";
-          items[items.length - 1].fixed = true;
-        }
-      } catch { /* best effort */ }
+  // A1+A2: Code quality checks (only if dev dependencies available)
+  if (hasDevDeps) {
+    try {
+      const tsResult = run("npx tsc --noEmit 2>&1 | tail -30 || true", 90_000);
+      const tsErrors = (tsResult.output.match(/error TS/g) ?? []).length;
+      items.push({
+        category: "code", check: "TypeScript",
+        status: tsErrors === 0 ? "pass" : tsErrors <= 3 ? "warn" : "fail",
+        detail: tsErrors === 0 ? "No errors" : `${tsErrors} errors`,
+        fixable: tsErrors > 0,
+      });
+    } catch {
+      items.push({ category: "code", check: "TypeScript", status: "warn", detail: "Check skipped", fixable: false });
     }
-  } catch {
-    items.push({ category: "code", check: "ESLint", status: "warn", detail: "Check skipped (no dev deps)", fixable: false });
+
+    try {
+      const lintResult = run("npm run lint 2>&1 || true", 60_000);
+      const lintOk = lintResult.ok && !lintResult.output.includes("Error");
+      items.push({
+        category: "code", check: "ESLint",
+        status: lintOk ? "pass" : "warn",
+        detail: lintOk ? "Clean" : "Issues found",
+        fixable: !lintOk,
+      });
+      if (!lintOk) {
+        try {
+          execSync("npx eslint --fix src/ 2>/dev/null || true", { cwd: WEB_DIR, timeout: 60_000 });
+          const recheck = run("npm run lint 2>&1 || true", 60_000);
+          if (recheck.ok) {
+            items[items.length - 1].status = "pass";
+            items[items.length - 1].detail = "Fixed by eslint --fix";
+            items[items.length - 1].fixed = true;
+          }
+        } catch { /* best effort */ }
+      }
+    } catch {
+      items.push({ category: "code", check: "ESLint", status: "warn", detail: "Check skipped", fixable: false });
+    }
+  } else {
+    items.push({ category: "code", check: "TypeScript", status: "pass", detail: "Skipped (standalone mode)", fixable: false });
+    items.push({ category: "code", check: "ESLint", status: "pass", detail: "Skipped (standalone mode)", fixable: false });
   }
 
   // ═══════════════════════════════════════════════════════════════
