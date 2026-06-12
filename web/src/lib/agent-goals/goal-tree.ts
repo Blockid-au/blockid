@@ -270,6 +270,29 @@ export const CEO_GOAL_TREE: AgentGoal = {
       researchFrequency: "bi-weekly-fri",
       subGoals: [],
     },
+    {
+      id: "rnd-goal",
+      agent: "rnd",
+      title: "Continuous Market R&D & Experimentation",
+      mission: "Scan the market every day — competitor moves, AU startup ecosystem shifts, emerging founder pain points, and new AI tooling — and feed fresh intelligence to CMO/CPO for features, positioning, and experiments. This is the platform's time-sensitive radar: research that must refresh daily, not weekly.",
+      kpis: [
+        { metric: "features_proposed", label: "Features Proposed", target: 8, unit: "ideas/mo" },
+        { metric: "experiments_run", label: "Experiments Run", target: 4, unit: "experiments/mo" },
+        { metric: "competitor_coverage", label: "Competitors Tracked", target: 6, unit: "competitors" },
+      ],
+      criteriaOwned: [],
+      reportSections: [],
+      skills: ["/rnd", "/deep-research"],
+      researchTopics: [
+        "Competitor moves (Carta, Pulley, Equidam, Cake Equity, Finta, SeedLegals) — features, pricing, funding",
+        "AU startup ecosystem: new grants, accelerators, funding rounds, ESIC/R&D Tax changes",
+        "Emerging founder pain points & feature opportunities",
+        "Conversion/CTA experiment ideas & A/B test hypotheses",
+        "New AI tools & capabilities relevant to startup tooling",
+      ],
+      researchFrequency: "daily",
+      subGoals: [],
+    },
   ],
 };
 

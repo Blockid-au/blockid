@@ -30,6 +30,8 @@ function shouldResearchToday(frequency: string): boolean {
   const week = Math.ceil(date / 7); // 1st, 2nd, 3rd, 4th week of month
 
   switch (frequency) {
+    case "daily":
+      return true;
     case "weekly-mon":
       return day === 1;
     case "weekly-tue":
