@@ -19,9 +19,21 @@ import {
   callAIForUpgrade,
   canRunUpgradeTasks,
   getAIBudgetStatus,
+  isOffPeakHours,
 } from "@/lib/ai-client";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { sendTelegram, mdEscape } from "@/lib/telegram";
+import {
+  loadProjectState,
+  saveProjectState,
+  bumpVersion,
+  maxImpact,
+  syncPackageVersion,
+  nextTaskId,
+  nextMilestoneId,
+  type VersionImpact,
+  type PlanTask,
+} from "@/lib/project-state";
 import { exec } from "child_process";
 import * as fs from "fs";
 
@@ -37,14 +49,15 @@ const BASE_URL = "http://127.0.0.1:4001";
 // ── Pipeline stages — BlockID.au self-upgrade sequence ──────────────────
 
 type PipelineStage =
-  | "research"     // C-Level agents gather domain knowledge
-  | "plan"         // AI plans which agents should upgrade what
-  | "code"         // agent-auto-improve → agent-deploy (write+CI+commit+push+deploy)
-  | "deploy"       // Verify deploy succeeded, re-run deploy-live.sh if needed
-  | "git_push"     // Ensure all changes are pushed to GitHub origin/master
-  | "qa"           // Full healthcheck post-deploy
-  | "fix"          // Auto-fix via guardian if QA found issues
-  | "report"       // Telegram summary of platform changes
+  | "research"         // C-Level agents gather domain knowledge
+  | "plan"             // CEO turns research into an implementing plan (project-state)
+  | "code"             // agent-auto-improve → agent-deploy (write+CI+commit+push+deploy)
+  | "deploy"           // Verify deploy succeeded, re-run deploy-live.sh if needed
+  | "git_push"         // Ensure all changes are pushed to GitHub origin/master
+  | "update_artifacts" // Close out shipped tasks → bump version, milestone, architecture
+  | "qa"               // Full healthcheck post-deploy
+  | "fix"              // Auto-fix via guardian if QA found issues
+  | "report"           // Telegram summary of platform changes
   | "idle";
 
 interface OrchestratorState {
@@ -195,31 +208,69 @@ async function stagePlan(state: OrchestratorState): Promise<StageResult> {
     return { stage: "plan", ok: true, message: "No recent research — need agent-research first", aiCalls: 0, durationMs: Date.now() - start };
   }
 
-  const knowledgeSummary = recentKB.map(k => `${(k.agent as string).toUpperCase()}: ${k.topic}`).join("\n");
+  const knowledgeSummary = recentKB
+    .map(k => `${(k.agent as string).toUpperCase()} — ${k.topic}: ${String((k as Record<string, unknown>).content ?? "").slice(0, 240)}`)
+    .join("\n");
 
-  // Check git status for uncommitted improvements
-  const gitStatus = await runShell("git status --short");
+  const ps = loadProjectState();
+  const openTasks = ps.plan.tasks.filter(t => t.status === "pending" || t.status === "in_progress");
 
   const aiResult = await callAIForUpgrade({
-    system: `You are the BlockID.au AI Orchestrator. Your job is to plan which C-Level agent domain modules
-should be upgraded TODAY based on recent research. BlockID.au is a startup valuation platform — each
-C-Level agent has a domain module under src/lib/agents/ that you are upgrading.
+    system: `You are the CEO Agent of BlockID.au — a Startup Navigation System (SCN) for Australian founders.
+Each C-Level agent (cto, cfo, cpo, cmo, cro, clo, chro, ciso, cdo, coo, rnd) researches its domain and you,
+the CEO, decide what gets BUILT. Turn the latest research into a concrete IMPLEMENTING PLAN: a short list of
+the highest-leverage code changes, each owned by one agent's domain module under src/lib/agents/.
 
-Output a JSON plan: { "priorities": [{"agent": "cmo|cto|cfo|...", "action": "what to improve", "reason": "why"}], "summary": "..." }
-Max 3 priorities. Focus on agents with fresh research that hasn't been applied yet.`,
-    user: `Recent research in knowledge base:\n${knowledgeSummary}\n\nGit status:\n${gitStatus.output.slice(0, 500) || "(clean)"}\n\nDecide: which agents should upgrade their domain modules today?`,
-    maxTokens: 600,
+Rules:
+- Max 3 tasks. Prefer fresh research not yet implemented; avoid duplicating existing open tasks.
+- Each task names ONE agent and a precise, shippable change.
+- versionImpact: "patch" (data/benchmark refresh, copy), "minor" (new capability/function), "major" (architecture shift).
+
+Output STRICT JSON only:
+{ "summary": "one line", "tasks": [ { "agent": "cmo", "title": "...", "rationale": "...", "versionImpact": "patch|minor|major" } ] }`,
+    user: `Current version: v${ps.version}\n\nOpen tasks (do not duplicate):\n${openTasks.map(t => `- ${t.agent}: ${t.title}`).join("\n") || "(none)"}\n\nRecent C-Level research:\n${knowledgeSummary}\n\nDecide the implementing plan.`,
+    maxTokens: 800,
   });
 
   if (!aiResult) {
-    return { stage: "plan", ok: false, message: "AI plan failed", aiCalls: 1, durationMs: Date.now() - start };
+    return { stage: "plan", ok: false, message: "CEO plan failed", aiCalls: 1, durationMs: Date.now() - start };
+  }
+
+  // Parse the CEO decision and persist it into the durable implementing plan.
+  let added = 0;
+  try {
+    const jsonMatch = aiResult.text.match(/\{[\s\S]*\}/);
+    const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { tasks: [] };
+    const tasks: Array<{ agent?: string; title?: string; rationale?: string; versionImpact?: string }> = Array.isArray(parsed.tasks) ? parsed.tasks : [];
+    const existingTitles = new Set(ps.plan.tasks.map(t => t.title.toLowerCase().trim()));
+    for (const t of tasks.slice(0, 3)) {
+      if (!t.agent || !t.title) continue;
+      if (existingTitles.has(t.title.toLowerCase().trim())) continue;
+      const impact: VersionImpact = t.versionImpact === "major" ? "major" : t.versionImpact === "minor" ? "minor" : "patch";
+      ps.plan.tasks.push({
+        id: nextTaskId(ps),
+        agent: String(t.agent).toLowerCase(),
+        title: String(t.title).slice(0, 160),
+        rationale: String(t.rationale ?? "").slice(0, 300),
+        versionImpact: impact,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      });
+      existingTitles.add(t.title.toLowerCase().trim());
+      added++;
+    }
+    ps.plan.decidedAt = new Date().toISOString();
+    ps.plan.decidedBy = "ceo";
+    saveProjectState(ps);
+  } catch {
+    /* keep raw output even if JSON parse failed */
   }
 
   state.lastPlanOutput = aiResult.text;
   return {
     stage: "plan",
     ok: true,
-    message: `Plan: ${aiResult.text.slice(0, 200)}`,
+    message: `CEO implementing plan updated — ${added} new task(s), ${ps.plan.tasks.filter(t => t.status === "pending").length} pending`,
     aiCalls: 1,
     durationMs: Date.now() - start,
   };
@@ -233,7 +284,6 @@ async function stageCode(): Promise<StageResult> {
   const data = result.data ?? {};
   const deployed = (data.deployed as number) ?? 0;
   const failed = (data.failed as number) ?? 0;
-  const skipped = (data.skipped as number);
 
   if (data.skipped === true) {
     return { stage: "code", ok: true, message: `Skipped: ${data.reason ?? "budget"}`, aiCalls: 0, durationMs: Date.now() - start };
@@ -329,6 +379,83 @@ async function stageGitPush(): Promise<StageResult> {
   };
 }
 
+async function stageUpdateArtifacts(): Promise<StageResult> {
+  // Close out plan tasks that shipped, then bump version + record milestone +
+  // architecture note. All artifacts live under content/ (no rebuild); the
+  // package.json version sync deploys on the next off-peak cycle.
+  const start = Date.now();
+  const ps = loadProjectState();
+  const openTasks = ps.plan.tasks.filter(t => t.status === "pending" || t.status === "in_progress");
+  if (openTasks.length === 0) {
+    return { stage: "update_artifacts", ok: true, message: "No open tasks to reconcile", aiCalls: 0, durationMs: Date.now() - start };
+  }
+
+  // Which agent domain modules changed in recent commits? That's how we know a task shipped.
+  const recentChanges = await runShell("git log --since='2 days ago' --name-only --pretty=format:%h 2>/dev/null | head -200");
+  const shippedAgents = new Set<string>();
+  let lastCommit = "";
+  for (const line of recentChanges.output.split("\n")) {
+    const m = line.match(/^src\/lib\/agents\/([a-z]+)-/);
+    if (m) shippedAgents.add(m[1]);
+    if (/^[0-9a-f]{7,40}$/.test(line.trim())) lastCommit = line.trim();
+  }
+
+  const completed: PlanTask[] = [];
+  for (const t of openTasks) {
+    if (shippedAgents.has(t.agent)) {
+      t.status = "done";
+      t.completedAt = new Date().toISOString();
+      t.commit = lastCommit || undefined;
+      completed.push(t);
+    }
+  }
+
+  if (completed.length === 0) {
+    saveProjectState(ps);
+    return { stage: "update_artifacts", ok: true, message: `${openTasks.length} task(s) still in flight`, aiCalls: 0, durationMs: Date.now() - start };
+  }
+
+  // Version bump from the strongest impact among shipped tasks.
+  const impact = maxImpact(completed.map(t => t.versionImpact));
+  const prevVersion = ps.version;
+  ps.version = bumpVersion(ps.version, impact);
+
+  // Milestone + history.
+  ps.milestones.push({
+    id: nextMilestoneId(ps),
+    title: completed.map(t => `${t.agent.toUpperCase()}: ${t.title}`).join("; ").slice(0, 200),
+    version: ps.version,
+    completedAt: new Date().toISOString(),
+    taskIds: completed.map(t => t.id),
+  });
+  ps.history.push({ ts: new Date().toISOString(), action: "release", version: ps.version, note: `${completed.length} task(s), ${impact} bump (v${prevVersion}→v${ps.version})` });
+
+  // Architecture note only for capability/structural changes.
+  if (impact !== "patch") {
+    ps.architecture.lastReviewedAt = new Date().toISOString();
+    for (const t of completed.filter(c => c.versionImpact !== "patch")) {
+      ps.architecture.notes.push(`v${ps.version} — ${t.agent.toUpperCase()}: ${t.title}`);
+    }
+  }
+
+  saveProjectState(ps);
+  const pkgSynced = syncPackageVersion(ps.version);
+
+  // Commit the artifact updates (content-only + package.json) — pushed by git_push stage.
+  await runShell(`git add content/reports/project-state.json content/reports/implementing-plan.md content/reports/architecture.md package.json 2>/dev/null`);
+  await runShell(
+    `git commit -m "chore(release): v${ps.version} — ${completed.length} task(s) shipped (${impact})\n\nCEO implementing-plan loop: ${completed.map(t => t.id).join(", ")}.\n\nCo-Authored-By: BlockID CEO Agent <ceo@blockid.au>" --allow-empty 2>&1`,
+  );
+
+  return {
+    stage: "update_artifacts",
+    ok: true,
+    message: `Released v${ps.version} (${impact}) — ${completed.length} task(s), milestone ${ps.milestones[ps.milestones.length - 1].id}${pkgSynced ? ", package.json synced" : ""}`,
+    aiCalls: 0,
+    durationMs: Date.now() - start,
+  };
+}
+
 async function stageQA(): Promise<StageResult> {
   const start = Date.now();
   const result = await callInternalAgent("agent-healthcheck", 120_000);
@@ -389,24 +516,33 @@ async function stageReport(state: OrchestratorState, results: StageResult[]): Pr
 
 function determineStages(state: OrchestratorState, budget: { callsRemaining: number; shouldRun: boolean }): PipelineStage[] {
   const completed = state.date === todayStr() ? state.dailyStagesCompleted : [];
+  const offPeak = isOffPeakHours();
+
+  // Stages that trigger deploy-live.sh (server restart) only run off-peak
+  // (AEST 22:00–06:00) so blockid.au stays available during peak user hours.
+  // Research / CEO planning / artifact recording / reporting are read-only or
+  // content-only and run anytime.
+  const PEAK_BLOCKED: PipelineStage[] = ["code", "deploy"];
+  const allow = (s: PipelineStage) => offPeak || !PEAK_BLOCKED.includes(s);
 
   if (!budget.shouldRun) {
     // No AI budget — only run non-AI infrastructure stages
-    const noAI: PipelineStage[] = ["deploy", "git_push", "qa"];
-    return noAI.filter(s => !completed.includes(s));
+    const noAI: PipelineStage[] = ["deploy", "update_artifacts", "git_push", "qa"];
+    return noAI.filter(s => !completed.includes(s) && allow(s));
   }
 
   const pipeline: PipelineStage[] = [
     "research",
-    "plan",
-    "code",        // includes agent-deploy → git commit → push → deploy
-    "deploy",      // verify + catch any missed deploys
-    "git_push",    // verify + push any unpushed commits
-    "qa",          // full healthcheck
+    "plan",             // CEO decision → implementing plan (content-only, anytime)
+    "code",             // ships src/ via agent-deploy → off-peak only
+    "deploy",           // verify + catch any missed deploys → off-peak only
+    "update_artifacts", // version / milestone / architecture (content-only)
+    "git_push",         // verify + push any unpushed commits
+    "qa",               // full healthcheck
     "report",
   ];
 
-  const remaining = pipeline.filter(s => !completed.includes(s));
+  const remaining = pipeline.filter(s => !completed.includes(s) && allow(s));
   const maxPerRun = budget.callsRemaining >= 6 ? 4 : 2;
   return remaining.slice(0, maxPerRun);
 }
@@ -466,6 +602,7 @@ export async function POST(request: Request) {
         case "plan":      result = await stagePlan(state); break;
         case "code":      result = await stageCode(); break;
         case "deploy":    result = await stageDeploy(); break;
+        case "update_artifacts": result = await stageUpdateArtifacts(); break;
         case "git_push":  result = await stageGitPush(); break;
         case "qa":        result = await stageQA(); break;
         case "fix":       result = await stageFix(state); break;
