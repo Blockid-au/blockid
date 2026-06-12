@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { SVIReportPDF } from "@/lib/pdf/svi-report-pdf";
@@ -43,26 +42,6 @@ export async function POST(request: Request) {
 
       const supabase = getSupabaseAdmin()!;
 
-      // Resolve authenticated user email from session cookie
-      let sessionEmail: string | null = null;
-      const store = await cookies();
-      const sessionToken = store.get("blockid_session")?.value;
-      if (sessionToken) {
-        const { data: session } = await supabase
-          .from("sessions")
-          .select("user_id")
-          .eq("token", sessionToken)
-          .maybeSingle();
-        if (session) {
-          const { data: user } = await supabase
-            .from("app_users")
-            .select("email")
-            .eq("id", session.user_id)
-            .maybeSingle();
-          sessionEmail = (user?.email as string) ?? null;
-        }
-      }
-
       // Load analysis
       const { data: row, error } = await supabase
         .from("svi_analyses")
@@ -77,8 +56,11 @@ export async function POST(request: Request) {
         );
       }
 
-      // Ownership check: session user must match analysis email
-      if (sessionEmail && row.email && sessionEmail !== row.email) {
+      // Ownership check (fail-closed): the authenticated user from getCurrentUser()
+      // above must own this analysis. Compare against the authed user's email
+      // directly — never against a separately re-derived value that could be
+      // null and silently skip the check (the previous IDOR).
+      if (row.email && row.email !== user.email) {
         return NextResponse.json(
           { error: "Forbidden — you do not own this analysis" },
           { status: 403 },
