@@ -29,7 +29,9 @@ import { GrowthProgressDashboard } from "@/components/dashboard/growth-progress-
 import { CapTableMini } from "@/components/dashboard/cap-table-mini";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { StatusCards } from "@/components/dashboard/status-cards";
+import { ScnPositionHero } from "@/components/dashboard/scn-position-hero";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
+import { getSVIPercentile } from "@/lib/benchmarks";
 
 export const dynamic = "force-dynamic";
 
@@ -489,6 +491,10 @@ export default async function DashboardPage({
   const readiness = sviScore != null ? Math.min(100, Math.round(sviScore * 0.8 + evidenceCount * 2)) : 0;
   const valuation = estimateValuation(sviScore);
   const nextAction = computeNextAction(sviScore);
+  // SCN POSITION: rank the founder's SVI against the AU cohort distribution for their stage.
+  const scnStage = analysis?.stage ?? phase;
+  const scnPercentile =
+    sviScore != null ? Math.round(getSVIPercentile(sviScore, scnStage)) : null;
   const projectName = activeProject?.name ?? startupName ?? user.startupName ?? null;
   const ideaSummary = rawInput ? rawInput.slice(0, 200) : analysis?.summary?.slice(0, 200) ?? null;
 
@@ -539,6 +545,14 @@ export default async function DashboardPage({
 
         {/* ── Journey Progress Bar ──────────────────────────────────────────── */}
         <JourneyBar currentPhase={phase} sviScore={sviScore ?? 0} />
+
+        {/* ── SCN POSITION hero — "Where am I?" above valuation ─────────────── */}
+        <ScnPositionHero
+          sviScore={sviScore}
+          stageLabel={phaseName}
+          percentile={scnPercentile}
+          valuationLabel={valuation.value}
+        />
 
         {/* ── Row 1: Metric Cards ───────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">

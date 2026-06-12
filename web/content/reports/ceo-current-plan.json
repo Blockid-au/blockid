@@ -1,62 +1,8 @@
 {
   "date": "2026-06-12",
-  "theme": "SCN — Reposition SVI as a Startup Navigation System (Google Maps for Startups): Validation → Position → Value → Direction → Capital. Spec: .claude/goals/scn-startup-navigation-system.md.",
-  "northStar": "Founder opens the dashboard and instantly sees Where am I (Index + Stage + Top X% percentile) and What to do Next (Next Best Action), in SCN order.",
-  "overallAssessment": "All teams operating smoothly. Strategic focus this cycle: rebuild the report/analysis + dashboard around the SCN framework, with the Position percentile and Next-Best-Action navigation as the hero differentiator vs Crunchbase/PitchBook/Carta.",
-  "agentDirectives": [
-    {
-      "agent": "cpo",
-      "task": "Make POSITION the dashboard hero: Startup Index NN/100 + Current Stage + percentile vs AU peers ('Top X%'), placed ABOVE valuation; reorder sections to SCN sequence (Validation, Position, Value, Direction, Capital).",
-      "priority": "high",
-      "collaboration": ["cto", "cmo"]
-    },
-    {
-      "agent": "cto",
-      "task": "Build a percentile/positioning model: rank a startup's SVI against the AU cohort distribution and expose 'Top X% of AU startups' as a reusable function + API field.",
-      "priority": "high",
-      "collaboration": ["cdo", "cpo"]
-    },
-    {
-      "agent": "cpo",
-      "task": "Build the DIRECTION 'Next Best Action' navigation (You are here → Next → Then), Google-Maps-style, driven by the weakest SCN layer + current stage. Key differentiator vs Crunchbase/PitchBook/Carta.",
-      "priority": "high",
-      "collaboration": ["cro"]
-    },
-    {
-      "agent": "cro",
-      "task": "Add a Funding Readiness % gauge (CAPITAL) and a Validation panel for early startups (problem/market/willingness-to-pay), surfaced per SCN sequence.",
-      "priority": "medium",
-      "collaboration": ["cfo", "cmo"]
-    },
-    {
-      "agent": "cmo",
-      "task": "Reframe product copy/positioning across landing + dashboard + report as a 'Startup Navigation System', not a valuation/equity tool.",
-      "priority": "medium",
-      "collaboration": ["cpo"]
-    },
-    {
-      "agent": "cpo",
-      "task": "Redesign the SVI report (on-screen + PDF) to SCN order with a first-principles question opening each section (problem → Position hero → Next Best Action). Spec: .claude/goals/scn-report-firstprinciples-redesign.md. PDF: reuse ScoreGauge/MetricCard/InsightBox/ActionItem on cover + sections.",
-      "priority": "high",
-      "collaboration": ["cmo", "cro"]
-    },
-    {
-      "agent": "cro",
-      "task": "Add progressive CTAs + conversion to the report: each section ends with a contextual feature CTA; free report = teaser (Position + 1 action) that locks Direction+Capital depth behind login/credit unlock; end-CTA 'next 3 actions — log in to start'. No paid-ad spend.",
-      "priority": "high",
-      "collaboration": ["cmo", "cpo"]
-    }
-  ],
-  "newFeatures": [
-    "Startup Positioning Engine — Index + Stage + 'Top X% of AU startups' percentile hero",
-    "Next Best Action navigation (Google Maps style) driven by the weakest SCN layer",
-    "SCN Validation panel for early-stage founders + Funding Readiness % gauge",
-    "SCN report + PDF redesign with first-principles questions leading founders into BlockID features",
-    "Progressive report CTAs + login/credit unlock to convert free readers (organic only, no paid ads)"
-  ],
-  "risksIdentified": [
-    "Scope creep — keep each auto-improve change small and gated",
-    "Percentile model needs enough cohort data to be meaningful"
-  ],
-  "version": "scn-1.0.0"
+  "overallAssessment": "{\n  \"overallAssessment\": \"The team is well‑aligned on leveraging Next.js 16 streaming SSR to deliver a fast, mobile‑first experience while keeping AI infrastructure costs within the free tier. By coupling performance work with a LinkedIn‑centric content and lead‑capture strategy, we can boost user a",
+  "agentDirectives": [],
+  "newFeatures": [],
+  "risksIdentified": [],
+  "version": "0.0.1"
 }
