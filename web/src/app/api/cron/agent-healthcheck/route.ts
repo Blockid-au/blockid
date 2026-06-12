@@ -76,26 +76,21 @@ export async function POST(request: Request) {
   try {
     return await runHealthChecks();
   } catch (err) {
-    const msg = err instanceof Error ? `${err.message}\n${err.stack}` : String(err);
+    const msg = err instanceof Error ? err.message : String(err);
     console.error("[healthcheck] Fatal:", msg);
-    try { fs.appendFileSync("/tmp/healthcheck-crash.log", `${new Date().toISOString()} FATAL: ${msg}\n`); } catch {}
     return NextResponse.json({ ok: false, error: msg.slice(0, 500), partial: true }, { status: 500 });
   }
 }
 
-function checkpoint(label: string) {
-  try { fs.appendFileSync("/tmp/healthcheck-crash.log", `${new Date().toISOString()} checkpoint: ${label}\n`); } catch {}
-}
 
 async function runHealthChecks() {
-  checkpoint("start");
   const today = new Date().toISOString().slice(0, 10);
   const items: HealthItem[] = [];
   // A. Code quality: skipped at runtime — deploy-live.sh runs tsc+lint as CI gates
   items.push({ category: "code", check: "TypeScript", status: "pass", detail: "Checked at deploy time", fixable: false });
   items.push({ category: "code", check: "ESLint", status: "pass", detail: "Checked at deploy time", fixable: false });
 
-  checkpoint("A-done");
+
   // B1: SSL certificate expiry
   try {
     const sslOut = run("echo | openssl s_client -servername blockid.au -connect blockid.au:443 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2", 10_000);
@@ -111,7 +106,6 @@ async function runHealthChecks() {
     }
   } catch { /* skip */ }
 
-  checkpoint("B1-done");
   // B2: Security headers (async curl — non-blocking so server can respond)
   try {
     const hdrResult = await runAsync("curl -sI --max-time 10 https://blockid.au 2>/dev/null | head -20", 15_000);
@@ -130,7 +124,6 @@ async function runHealthChecks() {
     }
   } catch { /* skip */ }
 
-  checkpoint("B2-done");
   // B3: Exposed sensitive files (async curl — non-blocking)
   try {
     const exposed: string[] = [];
@@ -151,7 +144,6 @@ async function runHealthChecks() {
     });
   } catch { /* skip */ }
 
-  checkpoint("B3-done");
   // B4: File permissions on sensitive files
   try {
     const permResult = run("stat -c '%a %n' /home/dovanlong/blockid.au/web/.env* 2>/dev/null || echo 'no .env'");
@@ -180,7 +172,6 @@ async function runHealthChecks() {
   // C. PERFORMANCE
   // ═══════════════════════════════════════════════════════════════
 
-  checkpoint("B-done");
 
   // C1: Memory usage
   const memResult = run("free -m | awk 'NR==2{printf \"%d/%dMB (%.1f%%)\", $3, $2, $3*100/$2}'");
@@ -203,9 +194,9 @@ async function runHealthChecks() {
     fixable: false,
   });
 
-  // C3: Production response time (async curl — non-blocking so server can respond)
+  // C3: Production response time (async curl to localhost — avoids Cloudflare round-trip)
   try {
-    const rtResult = await runAsync("curl -s -o /dev/null -w '%{http_code} %{time_total}' --max-time 10 https://blockid.au/api/healthz 2>/dev/null", 15_000);
+    const rtResult = await runAsync("curl -s -o /dev/null -w '%{http_code} %{time_total}' --max-time 10 http://localhost:4001/api/healthz 2>/dev/null", 15_000);
     const parts = rtResult.output.split(" ");
     const httpCode = parts[0] || "0";
     const timeStr = parts[1] || "0";
@@ -224,8 +215,8 @@ async function runHealthChecks() {
     });
   }
 
-  // C4: Node.js process memory
-  const nodeMemResult = run("ps aux | grep 'node.*server.js' | grep -v grep | awk '{sum+=$6} END {printf \"%.0f\", sum/1024}'");
+  // C4: Node.js process memory (only next-server, not IDE/tsserver)
+  const nodeMemResult = run("ps aux | grep 'next-server' | grep -v grep | awk '{sum+=$6} END {printf \"%.0f\", sum/1024}'");
   const nodeMB = parseMB(nodeMemResult.output);
   if (nodeMB > 0) {
     items.push({
@@ -240,7 +231,6 @@ async function runHealthChecks() {
   // D. INFRASTRUCTURE
   // ═══════════════════════════════════════════════════════════════
 
-  checkpoint("C-done");
 
   // D1: Disk space
   const diskResult = run("df -h / | tail -1 | awk '{print $5, $4}'");
@@ -323,7 +313,6 @@ async function runHealthChecks() {
   // E. MAINTENANCE (with auto-fix)
   // ═══════════════════════════════════════════════════════════════
 
-  checkpoint("D-done");
 
   // E1: Clean old logs (>7 days, >50MB)
   let logsCleanedMB = 0;
@@ -405,7 +394,6 @@ async function runHealthChecks() {
     action: secUpdates > 0 ? "apt upgrade (manual)" : undefined,
   });
 
-  checkpoint("E-done");
 
   // ═══════════════════════════════════════════════════════════════
   // SUMMARY & REPORTING
