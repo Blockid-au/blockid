@@ -1,0 +1,42 @@
+{"ts":"2026-05-31T02:59:50Z","status":"success","gates":"9/9","pid":"307328","note":"Merge nh\u00e1nh blockchain: explorer Otterscan + Connect Wallet + token c\u1ed5 ph\u1ea7n per-startup + b\u00e1o c\u00e1o Telegram l\u1ea5y t\u1eeb CI/CD n\u1ed9i b\u1ed9 (deploy-log, kh\u00f4ng git)"}
+{"ts":"2026-05-31T03:09:18Z","status":"success","gates":"9/9","pid":"338357","note":"C\u01a1 ch\u1ebf deploy: lock ch\u1ed1ng \u0111ua build + integrity guard + last-known-good baseline"}
+{"ts":"2026-05-31T03:41:41Z","status":"success","gates":"9/9","pid":"437737","note":"Fix crash dashboard khi ch\u01b0a c\u00e0i MetaMask + CSP chain.blockid.au + s\u1eeda deadlock deploy-lock (fd leak) + OpenRouter xu\u1ed1ng tr\u01b0\u1edbc codex"}
+{"ts":"2026-06-12T09:18:38Z","status":"success","gates":"9/9","pid":"88078","note":"T\u1ef1 \u0111\u1ed9ng t\u00ecm top-5 model free m\u1ea1nh nh\u1ea5t m\u1ed7i ng\u00e0y (cron refresh-models) + ai-client \u0111\u1ecdc \u0111\u1ed9ng"}
+{"ts":"2026-06-12T09:27:15Z","status":"success","gates":"9/9","pid":"119127","note":"fix: add POST handler to 11 cron routes (crontab sends POST)"}
+{"ts":"2026-06-12T09:33:07Z","status":"success","gates":"9/9","pid":"140127","note":"Per-model cooldown (429/404) \u2014 kh\u00f4ng spam limit/credit; k\u00e8m auto-refresh top-5 free h\u1eb1ng ng\u00e0y"}
+{"ts":"2026-06-12T09:39:44Z","status":"success","gates":"9/9","pid":"164157","note":"feat: GitHub webhook auto-deploy + 11 cron POST fixes"}
+{"ts":"2026-06-12T09:52:11Z","status":"success","gates":"9/9","pid":"208698","note":"fix: cron POST handlers + GitHub webhook + crontab cleanup (18 routines)"}
+{"ts":"2026-06-12T10:03:24.238Z","event":"github-push-master","detail":"Blockid-au: feat: GitHub CI/CD webhook + lifecycle emails + cron fixes (2 commits)","source":"github-webhook"}
+{"ts":"2026-06-12T10:03:40Z","status":"success","gates":"9/9","pid":"249621","note":"refactor: lifecycle-only emails (4 per user), disable nurture/svi-notify spam, GitHub webhook"}
+{"ts":"2026-06-12T10:23:47.169Z","event":"github-push-master","detail":"Blockid-au: feat(cron): monitored runner + health endpoint + Telegram failure alerts (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-12T10:24:13Z","status":"success","gates":"9/9","pid":"324332","note":"fix: cron monitoring (cron-runner.sh + cron-health endpoint + Telegram alerts)"}
+{"ts":"2026-06-12T10:40:00Z","status":"success","gates":"9/9","pid":"381534","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-12T10:40:41.407Z","event":"github-push-master","detail":"Blockid-au: feat(agents): daily report files + fix telegram summary pipeline (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-12T11:01:46Z","status":"success","gates":"9/9","pid":"459836","note":"Rebuild s\u1ea1ch (fix .next h\u1ecfng \u2192 /score 500) + b\u1ecf promo banner + integrity gate ch\u1eb7n build thi\u1ebfu manifest"}
+{"ts":"2026-06-12T11:05:12Z","status":"success","gates":"9/9","pid":"472559","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-12T11:07:46.854Z","event":"github-push-master","detail":"Blockid-au: feat: CEO goal tree, SVI market index, financial engine, C-Level domain modules (2 commits)","source":"github-webhook"}
+{"ts":"2026-06-12T11:24:49Z","status":"success","gates":"9/9","pid":"542481","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-12T11:29:29Z","status":"success","gates":"9/9","pid":"559270","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-12T11:29:37.095Z","event":"github-push-master","detail":"Blockid-au: feat(qa): comprehensive healthcheck — security, perf, maintenance, email report (2 commits)","source":"github-webhook"}
+{"ts":"2026-06-12T11:40:43Z","status":"success","gates":"9/9","pid":"599180","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-12T11:50:15.635Z","event":"github-push-master","detail":"Blockid-au: feat: startup growth phases framework + visual SVI reports (2 commits)","source":"github-webhook"}
+{"ts":"2026-06-12T11:50:27Z","status":"success","gates":"9/9","pid":"628396","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-12T12:12:21.840Z","event":"github-push-master","detail":"Blockid-au: feat: CEO daily summary agent + optimized crontab with 2-pass schedule (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-12T12:13:11Z","status":"success","gates":"9/9","pid":"696535","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-12T12:16:04.763Z","event":"github-push-master","detail":"Blockid-au: fix: use 'origin' remote instead of 'github' for GitHub push/pull (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-12T12:17:49Z","status":"success","gates":"7/7","pid":"710372","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-12T12:27:06Z","status":"success","gates":"7/7","pid":"737440","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-12T12:39:31Z","status":"success","gates":"9/9","pid":"773608","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-12T12:48:19Z","status":"success","gates":"9/9","pid":"799263","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-12T13:02:11Z","status":"success","gates":"9/9","pid":"839804","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-12T13:12:42Z","status":"success","gates":"9/9","pid":"870407","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-12T13:22:45Z","status":"success","gates":"9/9","pid":"899788","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-12T13:32:14Z","status":"success","gates":"9/9","pid":"927470","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-12T13:41:32Z","status":"success","gates":"9/9","pid":"955496","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-12T13:42:23.397Z","event":"github-push-master","detail":"Blockid-au: fix(qa): test localhost response time, filter next-server memory, cleanup (5 commits)","source":"github-webhook"}
+{"ts":"2026-06-12T14:43:30Z","status":"success","gates":"9/9","pid":"1137732","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-12T14:53:41Z","status":"success","gates":"9/9","pid":"1168759","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-12T14:58:57.490Z","event":"github-push-master","detail":"Blockid-au: feat(reports): integrate progress dashboard + phase checklists into SVI reports (4 commits)","source":"github-webhook"}
+{"ts":"2026-06-12T15:00:23Z","status":"success","gates":"9/9","pid":"1189197","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-12T15:19:17Z","status":"success","gates":"9/9","pid":"1246073","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-12T15:31:49Z","status":"success","gates":"9/9","pid":"1284444","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
