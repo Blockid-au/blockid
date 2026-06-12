@@ -144,12 +144,32 @@ async function stageResearch(): Promise<StageResult> {
   const start = Date.now();
   const result = await callInternalAgent("agent-research", 240_000);
   const data = result.data ?? {};
+
+  // agent-research early-returns { skipped: true } on days when no agent is
+  // scheduled. It makes ZERO AI calls in that case — do not charge budget for
+  // phantom calls, or the daily cap trips early and starves plan/code.
+  if (data.skipped === true) {
+    return {
+      stage: "research",
+      ok: true,
+      message: `No research scheduled today — ${data.reason ?? "no agents due"}`,
+      aiCalls: 0,
+      durationMs: Date.now() - start,
+    };
+  }
+
   const topics = Array.isArray(data.results) ? (data.results as Array<{ agent?: string }>).length : 0;
+  // Each researched topic = exactly one callAIForUpgrade. Count the real calls
+  // agent-research reports instead of a hardcoded guess.
+  const aiCalls =
+    (Number(data.tasksCompleted) || 0) +
+    (Number(data.tasksFailed) || 0) +
+    (Number(data.tasksNoNewData) || 0);
   return {
     stage: "research",
     ok: result.ok,
     message: result.ok ? `Research done — ${topics} topics gathered for C-Level agents` : `Research failed: ${result.error}`,
-    aiCalls: result.ok ? 2 : 0,
+    aiCalls: result.ok ? aiCalls : 0,
     durationMs: Date.now() - start,
   };
 }
