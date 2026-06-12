@@ -1,0 +1,23 @@
+{
+  "version": "0.1.0",
+  "updatedAt": "2026-06-12T00:00:00.000Z",
+  "architecture": {
+    "summary": "BlockID.au — Startup Navigation System (SCN: Validation → Position → Value → Direction → Capital). Next.js standalone + Supabase, zero-downtime deploys (immutable releases + port swap). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade their domain modules under src/lib/agents/.",
+    "lastReviewedAt": "2026-06-12T00:00:00.000Z",
+    "notes": []
+  },
+  "plan": {
+    "decidedAt": "",
+    "decidedBy": "ceo",
+    "tasks": []
+  },
+  "milestones": [],
+  "history": [
+    {
+      "ts": "2026-06-12T00:00:00.000Z",
+      "action": "bootstrap",
+      "version": "0.1.0",
+      "note": "CEO implementing-plan loop initialised — research → CEO decision → code → version/milestone/architecture."
+    }
+  ]
+}
