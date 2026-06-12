@@ -1,5 +1,5 @@
 # BlockID.au — Production Cron Schedule (Single Source of Truth)
-# ======================================
+# ══════════════════════════════════════════════════════════════
 # All times in UTC. Server in UTC, users in AEST (UTC+10).
 #
 # IMPORTANT: Edit THIS file, then apply with:
@@ -14,9 +14,9 @@
 CRON_SECRET=4b76f13574efd401640cb5dce996f01aa8b8169c02cb1b1949ceb6354ee15f32
 RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 
-# ═══════════════════════════════════════════════════════════════════
-# SYSTEM (no AI, infrastructure only)
-# ═══════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════
+# SYSTEM — Infrastructure (no AI)
+# ═══════════════════════════════════════════════════════════════
 
 # Watchdog — auto-restart if production is dead
 */2 * * * * /home/dovanlong/blockid.au/web/scripts/watchdog.sh
@@ -37,117 +37,137 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 0 */3 * * * bash $RUN ai-health
 
 # Git Sync — pull from GitHub + push local commits + deploy if new
-# Runs every 30 min to catch manual GitHub pushes or external PRs
 */30 * * * * /home/dovanlong/blockid.au/web/scripts/git-sync-deploy.sh
 
-# ═══════════════════════════════════════════════════════════════════
-# DAILY PIPELINE — 2am-9:30am AEST (4pm-11:30pm UTC)
+# ═══════════════════════════════════════════════════════════════
+# DAILY PIPELINE — 2am-10:30am AEST (4pm-12:30am+1 UTC)
 #
-# Flow: Data → Health → Research → Improve → Deploy → Report
-# ═══════════════════════════════════════════════════════════════════
+# Goal: Auto-upgrade → check → fix → deploy → verify → report
+# Optimized for continuous improvement throughout the day
+# ═══════════════════════════════════════════════════════════════
 
-# ── Phase 1: Data Collection (2:00-2:30am AEST) ─────────────────
-# SVI snapshot — save daily SVI + index values for all accounts
+# ── Phase 1: Data Collection (2:00-2:30am AEST / 16:xx UTC) ──
 0 16 * * * bash $RUN svi-snapshot
-
-# SVI notifications — lifecycle milestone check
 5 16 * * * bash $RUN svi-notify
-
-# Nurture (disabled — lifecycle emails only via weekly-insights)
 10 16 * * * bash $RUN nurture
-
-# Vesting schedule processing
 15 16 * * * bash $RUN vesting
 
-# ── Phase 2: Agent Health & Metrics (3:00am AEST) ───────────────
-# Agent upgrade — health checks, metrics collection, daily reports
+# ── Phase 2: Health & Metrics (3:00am AEST / 17:00 UTC) ──────
 0 17 * * * bash $RUN agent-upgrade --timeout 120
 
-# ── Phase 3: Intelligence Gathering (4:00-6:00am AEST) ──────────
-# Growth insights — analyze growth patterns
+# ── Phase 3: Intelligence (4:00-6:00am AEST / 18-20 UTC) ─────
 0 18 * * * bash $RUN growth-insights --timeout 120
-
-# SVI review — quality checks on analyses
 0 19 * * * bash $RUN svi-review
-
-# Agent research — C-Level agents gather fresh knowledge (AI)
 0 20 * * * bash $RUN agent-research --timeout 300
 
-# ── Phase 4: Auto-Improve & Deploy (7:00am AEST) ────────────────
-# Agent auto-improve — read research → generate code → CI/CD → deploy → GitHub
+# ── Phase 4: Auto-Improve + CI/CD (7:00am AEST / 21:00 UTC) ──
 0 21 * * * bash $RUN agent-auto-improve --timeout 300
-
-# Refresh free AI models — discover top-5 per provider
 5 21 * * * bash $RUN refresh-models
-
-# Publish insight articles — AI-generated content
 30 21 * * * bash $RUN publish-insight --timeout 120
 
-# ── Phase 5: Reporting (8:00-9:30am AEST) ────────────────────────
-# Daily admin report — email + Telegram summary
-0 22 * * * bash $RUN daily-admin-report
+# ── Phase 5: QA + Security + Performance (8:00am AEST) ────────
+0 22 * * * bash $RUN agent-healthcheck --timeout 180
 
-# QA Agent healthcheck — full test/fix + report (8:30am AEST)
-30 22 * * * bash $RUN agent-healthcheck --timeout 180
+# ── Phase 6: Reporting (8:30-10:00am AEST) ────────────────────
+# Daily admin report — platform KPIs + email
+30 22 * * * bash $RUN daily-admin-report
 
-# Telegram daily report — C-Level agent status + prod health + deploys
+# Telegram daily report — C-Level agent status
 30 23 * * * bash $RUN telegram-report
 
-# ═══════════════════════════════════════════════════════════════════
-# WEEKLY — Sunday only
-# ═══════════════════════════════════════════════════════════════════
+# CEO Daily Summary — aggregates ALL agent reports + AI recommendations
+# Runs LAST at 10:00am AEST, after all agents have reported
+0 0 * * * bash $RUN ceo-daily-summary --timeout 120
 
-# 6:30am AEST Sunday — Lifecycle follow-up emails (1w/1m/3m milestones)
+# ── Phase 7: Self-Healing (10:30am AEST) ──────────────────────
+30 0 * * * bash $RUN cron-health
+
+# ═══════════════════════════════════════════════════════════════
+# AFTERNOON: Second Pass (2:00-4:00pm AEST / 4-6am UTC)
+# Use remaining Claude Code limits for continuous improvement
+# ═══════════════════════════════════════════════════════════════
+
+# Second agent-healthcheck — catch issues from morning deploys
+0 6 * * * bash $RUN agent-healthcheck --timeout 180
+
+# Second auto-improve pass — apply any remaining research
+0 7 * * * bash $RUN agent-auto-improve --timeout 300
+
+# ═══════════════════════════════════════════════════════════════
+# WEEKLY — Sunday only
+# ═══════════════════════════════════════════════════════════════
+
+# 6:30am AEST Sunday — Lifecycle follow-up emails
 30 20 * * 0 bash $RUN weekly-insights --timeout 120
 
-# ═══════════════════════════════════════════════════════════════════
-# SELF-HEALING: Daily cron health check
-# Runs at 11:30pm UTC (9:30am AEST) — AFTER all daily routines
-# ═══════════════════════════════════════════════════════════════════
-30 23 * * * bash $RUN cron-health
-
-# ═══════════════════════════════════════════════════════════════════
-# DAILY PIPELINE DIAGRAM
-# ═══════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════
+# PIPELINE FLOW DIAGRAM
+# ═══════════════════════════════════════════════════════════════
 #
-#   2:00am ─── Data Collection ──┐
-#   │ svi-snapshot                │
-#   │ svi-notify                  │
-#   │ vesting                     │
-#   │                             ▼
-#   3:00am ─── Agent Health ─────┐
-#   │ agent-upgrade (metrics)    │
-#   │ → saves daily reports      │
-#   │                             ▼
-#   4:00am ─── Intelligence ─────┐
-#   │ growth-insights            │
-#   │ svi-review                 │
-#   │ agent-research (AI)        │
-#   │ → knowledge_base update    │
-#   │                             ▼
-#   7:00am ─── Auto-Improve ─────┐   ◄── NEW: the automation loop
-#   │ agent-auto-improve (AI)    │
-#   │ → reads research           │
-#   │ → generates code           │
-#   │ → runs CI gates (tsc/lint) │
-#   │ → deploys via deploy-live  │
-#   │ → pushes to GitHub         │
-#   │ refresh-models             │
-#   │ publish-insight            │
-#   │                             ▼
-#   8:00am ─── Reporting ─────────┐
-#   │ daily-admin-report         │
-#   │ telegram-report            │
-#   │ cron-health                │
-#   └─────────────────────────────┘
+# MORNING CYCLE (2am-10:30am AEST):
+#   ┌─ Phase 1: Data ──────────────┐
+#   │ svi-snapshot, svi-notify     │
+#   │ nurture, vesting             │
+#   └──────────┬───────────────────┘
+#              ▼
+#   ┌─ Phase 2: Health ────────────┐
+#   │ agent-upgrade (metrics+reports│
+#   └──────────┬───────────────────┘
+#              ▼
+#   ┌─ Phase 3: Intelligence ──────┐
+#   │ growth-insights              │
+#   │ svi-review                   │
+#   │ agent-research (AI)          │
+#   └──────────┬───────────────────┘
+#              ▼
+#   ┌─ Phase 4: Auto-Improve ─────┐
+#   │ agent-auto-improve (AI)      │
+#   │ → read research              │
+#   │ → generate code              │
+#   │ → CI gates (tsc/lint)        │
+#   │ → autofix if fail            │
+#   │ → deploy-live.sh             │
+#   │ → push to GitHub             │
+#   │ refresh-models               │
+#   │ publish-insight              │
+#   └──────────┬───────────────────┘
+#              ▼
+#   ┌─ Phase 5: QA Verify ────────┐
+#   │ agent-healthcheck            │
+#   │ → TypeScript + ESLint        │
+#   │ → Security (SSL, headers)    │
+#   │ → Performance (mem, CPU)     │
+#   │ → Infrastructure (DB, Redis) │
+#   │ → Maintenance (clean logs)   │
+#   │ → Email + Telegram report    │
+#   └──────────┬───────────────────┘
+#              ▼
+#   ┌─ Phase 6: Reporting ────────┐
+#   │ daily-admin-report (email)   │
+#   │ telegram-report              │
+#   │ ceo-daily-summary            │ ◄── NEW: CEO aggregates ALL
+#   │ → reads all agent reports    │
+#   │ → AI analysis + recs         │
+#   │ → email + Telegram           │
+#   └──────────┬───────────────────┘
+#              ▼
+#   ┌─ Phase 7: Self-Healing ─────┐
+#   │ cron-health                  │
+#   └──────────────────────────────┘
+#
+# AFTERNOON CYCLE (2-4pm AEST):
+#   ┌─ Second Pass ────────────────┐
+#   │ agent-healthcheck (2pm)      │
+#   │ agent-auto-improve (3pm)     │
+#   │ → use remaining AI budget    │
+#   └──────────────────────────────┘
 #
 # CONTINUOUS (every 30 min):
-#   git-sync-deploy — pull GitHub → deploy if new commits
-#   (catches manual pushes, external PRs, agent deployments)
+#   git-sync-deploy — GitHub ↔ server sync
 #
-# ═══════════════════════════════════════════════════════════════════
-# SCHEDULE SUMMARY (21 routines)
-# ═══════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════
+# SCHEDULE SUMMARY (25 routines)
+# ═══════════════════════════════════════════════════════════════
 #
 # Time (AEST)     | Job                | AI  | Phase       | Monitored
 # ────────────────┼────────────────────┼─────┼─────────────┼──────────
@@ -160,7 +180,7 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Every 4h        | token-refresh      | 0   | system      | logfile
 # 2:00am          | svi-snapshot       | 0   | data        | ✅ runner
 # 2:05am          | svi-notify         | 0   | data        | ✅ runner
-# 2:10am          | nurture (disabled) | 0   | data        | ✅ runner
+# 2:10am          | nurture            | 0   | data        | ✅ runner
 # 2:15am          | vesting            | 0   | data        | ✅ runner
 # 3:00am          | agent-upgrade      | 0-3 | health      | ✅ runner
 # 4:00am          | growth-insights    | 0-1 | intelligence| ✅ runner
@@ -169,10 +189,15 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # 7:00am          | agent-auto-improve | 1-3 | auto-deploy | ✅ runner
 # 7:05am          | refresh-models     | 0   | auto-deploy | ✅ runner
 # 7:30am          | publish-insight    | 0-1 | auto-deploy | ✅ runner
-# 8:00am          | daily-admin-report | 0-1 | reporting   | ✅ runner
+# 8:00am          | agent-healthcheck  | 0   | QA/security | ✅ runner
+# 8:30am          | daily-admin-report | 0-1 | reporting   | ✅ runner
 # 9:30am          | telegram-report    | 0   | reporting   | ✅ runner
-# 9:30am          | cron-health        | 0   | reporting   | ✅ runner
+# 10:00am         | ceo-daily-summary  | 0-1 | CEO report  | ✅ runner
+# 10:30am         | cron-health        | 0   | self-heal   | ✅ runner
+# 2:00pm          | agent-healthcheck  | 0   | QA (2nd)    | ✅ runner
+# 3:00pm          | agent-auto-improve | 1-3 | auto (2nd)  | ✅ runner
 # 6:30am (Sun)    | weekly-insights    | 0-1 | weekly      | ✅ runner
 # ────────────────┼────────────────────┼─────┼─────────────┼──────────
-# Total AI/day: 5-12 calls | Failures → Telegram alert instantly
-# CI/CD: auto-improve → tsc → lint → deploy-live → GitHub push
+# Total AI/day: 6-16 calls | Failures → Telegram alert instantly
+# CI/CD: auto-improve → tsc → lint → autofix → deploy-live → GitHub
+# Reports: Telegram (real-time) + Email (daily digest) + CEO summary
