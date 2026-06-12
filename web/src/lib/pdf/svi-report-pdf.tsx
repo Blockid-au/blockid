@@ -1,8 +1,18 @@
-import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
+import {
+  Document, Page, Text, View, Image, StyleSheet,
+  Svg, Path, Circle, Rect, Line, Polygon,
+} from "@react-pdf/renderer";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
-import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
+import { SVI_STAGE_LABELS, SVI_BENCHMARKS } from "@/lib/svi-analysis";
+import { estimateValuation, formatAUD } from "@/lib/valuation";
 import * as path from "path";
 import * as fs from "fs";
+
+/* Report template version — SCN = Startup Navigation System narrative
+ * (Validation → Position → Value → Direction → Capital). Native vector
+ * infographics render from analysis data so charts always appear, even when
+ * upstream AI image generation is unavailable. */
+const REPORT_TEMPLATE_VERSION = "SCN 3.0";
 
 // Load logo as base64 data URI for PDF embedding
 const LOGO_PATH = path.join(process.cwd(), "public", "images", "logo-transparent.png");
@@ -503,6 +513,200 @@ function Bullet({ text, color }: { text: string; color?: string }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+ *  NATIVE VECTOR INFOGRAPHICS  (always render from analysis data)
+ *  Drawn with @react-pdf SVG primitives so charts never depend on upstream
+ *  AI image generation — guarantees every report ships with visuals.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+function clampN(v: number, lo: number, hi: number): number {
+  return Math.max(lo, Math.min(hi, v));
+}
+
+/* SCN stage banner — the navigation spine of the whole report. */
+const SCN_COLORS = [C.teal600, C.brand600, C.emerald600, C.amber600, C.brand700];
+function ScnBanner({
+  index,
+  label,
+  question,
+  color,
+}: {
+  index: string;
+  label: string;
+  question: string;
+  color: string;
+}) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14 }}>
+      <View
+        style={{
+          width: 30,
+          height: 30,
+          borderRadius: 8,
+          backgroundColor: color,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold", color: C.white }}>{index}</Text>
+      </View>
+      <View>
+        <Text style={{ fontSize: 6.5, letterSpacing: 2, color: C.ink400, textTransform: "uppercase" }}>
+          SCN · Startup Navigation System
+        </Text>
+        <Text style={{ fontSize: 14, fontFamily: "Helvetica-Bold", color: C.ink900 }}>
+          {label} <Text style={{ color: C.ink400, fontFamily: "Helvetica", fontSize: 11 }}>— {question}</Text>
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+/* 8-axis radar / spider chart of the SVI dimensions. */
+function RadarChartSVG({ subs, size = 230 }: { subs: SVIAnalysis["subs"]; size?: number }) {
+  const cx = size / 2;
+  const cy = size / 2;
+  const R = size * 0.34;
+  const n = Math.max(subs.length, 3);
+  const ang = (i: number) => -Math.PI / 2 + (i * 2 * Math.PI) / n;
+  const pt = (i: number, frac: number): [number, number] => [
+    cx + Math.cos(ang(i)) * R * frac,
+    cy + Math.sin(ang(i)) * R * frac,
+  ];
+  const fmt = (p: [number, number]) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`;
+  const rings = [0.25, 0.5, 0.75, 1];
+  const dataPts = subs.map((sub, i) => pt(i, clampN(sub.value, 3, 100) / 100));
+  return (
+    <Svg width={size} height={size}>
+      {rings.map((r, ri) => (
+        <Polygon
+          key={`ring-${ri}`}
+          points={subs.map((_, i) => fmt(pt(i, r))).join(" ")}
+          fill="none"
+          stroke={C.surface200}
+          strokeWidth={0.7}
+        />
+      ))}
+      {subs.map((_, i) => {
+        const [x, y] = pt(i, 1);
+        return <Line key={`axis-${i}`} x1={cx} y1={cy} x2={x} y2={y} stroke={C.surface200} strokeWidth={0.6} />;
+      })}
+      <Polygon
+        points={dataPts.map(fmt).join(" ")}
+        fill={C.brand500}
+        fillOpacity={0.25}
+        stroke={C.brand600}
+        strokeWidth={1.5}
+      />
+      {dataPts.map(([x, y], i) => (
+        <Circle key={`dot-${i}`} cx={x} cy={y} r={1.9} fill={C.brand700} />
+      ))}
+      {subs.map((sub, i) => {
+        const [lx, ly] = pt(i, 1.17);
+        return (
+          <Text key={`lbl-${i}`} x={lx} y={ly + 2} fill={C.ink500} style={{ fontSize: 6.5 }} textAnchor="middle">
+            {sub.key.toUpperCase()}
+          </Text>
+        );
+      })}
+    </Svg>
+  );
+}
+
+/* Percentile-position band — where you sit vs AU peers at your stage. */
+function PercentileBandSVG({ percentile, width = 460, height = 34 }: { percentile: number; width?: number; height?: number }) {
+  const pct = clampN(percentile, 2, 98);
+  const x0 = 6;
+  const x1 = width - 6;
+  const trackW = x1 - x0;
+  const y = 14;
+  const h = 9;
+  const markerX = x0 + (pct / 100) * trackW;
+  const segs = [
+    { from: 0, to: 25, color: C.red100 },
+    { from: 25, to: 50, color: C.amber100 },
+    { from: 50, to: 75, color: C.brand100 },
+    { from: 75, to: 100, color: C.emerald100 },
+  ];
+  return (
+    <Svg width={width} height={height}>
+      {segs.map((seg, i) => (
+        <Rect
+          key={`seg-${i}`}
+          x={x0 + (seg.from / 100) * trackW}
+          y={y}
+          width={((seg.to - seg.from) / 100) * trackW}
+          height={h}
+          fill={seg.color}
+        />
+      ))}
+      <Line x1={markerX} y1={y - 6} x2={markerX} y2={y + h + 6} stroke={C.ink900} strokeWidth={1.5} />
+      <Polygon
+        points={`${markerX - 4},${y - 6} ${markerX + 4},${y - 6} ${markerX},${y - 1}`}
+        fill={C.brand700}
+      />
+      <Circle cx={markerX} cy={y + h + 5} r={2} fill={C.brand700} />
+    </Svg>
+  );
+}
+
+/* Indicative valuation range bar (low → mid → high), AUD. */
+function ValuationRangeSVG({ low, mid, high, width = 460, height = 30 }: { low: number; mid: number; high: number; width?: number; height?: number }) {
+  const x0 = 6;
+  const x1 = width - 6;
+  const trackW = x1 - x0;
+  const y = 12;
+  const h = 8;
+  const frac = high > low ? clampN((mid - low) / (high - low), 0.05, 0.95) : 0.5;
+  const midX = x0 + frac * trackW;
+  return (
+    <Svg width={width} height={height}>
+      <Rect x={x0} y={y} width={trackW} height={h} rx={4} fill={C.surface200} />
+      <Rect x={x0} y={y} width={midX - x0} height={h} rx={4} fill={C.brand500} />
+      <Circle cx={x0} cy={y + h / 2} r={3} fill={C.ink400} />
+      <Circle cx={x1} cy={y + h / 2} r={3} fill={C.ink400} />
+      <Circle cx={midX} cy={y + h / 2} r={6} fill={C.brand700} />
+      <Circle cx={midX} cy={y + h / 2} r={2.4} fill={C.white} />
+    </Svg>
+  );
+}
+
+/* Google-Maps-style route — "You are here → Next → Then → Then". */
+function RouteMapSVG({ count, width = 500, height = 64 }: { count: number; width?: number; height?: number }) {
+  const stops = clampN(count, 2, 4);
+  const y = 36;
+  const xs: number[] = [];
+  for (let i = 0; i < stops; i++) xs.push(22 + (i * (width - 44)) / (stops - 1));
+  let d = `M ${xs[0]} ${y}`;
+  for (let i = 1; i < stops; i++) {
+    const mx = (xs[i - 1] + xs[i]) / 2;
+    const cyc = i % 2 ? y - 16 : y + 16;
+    d += ` Q ${mx.toFixed(1)} ${cyc} ${xs[i].toFixed(1)} ${y}`;
+  }
+  return (
+    <Svg width={width} height={height}>
+      <Path d={d} stroke={C.surface200} strokeWidth={10} fill="none" strokeLinecap="round" />
+      <Path d={d} stroke={C.brand500} strokeWidth={1.6} strokeDasharray="2 4" fill="none" />
+      {xs.map((x, i) => (
+        <Circle
+          key={`stop-${i}`}
+          cx={x}
+          cy={y}
+          r={i === 0 ? 9 : 7}
+          fill={i === 0 ? C.brand700 : C.white}
+          stroke={C.brand600}
+          strokeWidth={1.5}
+        />
+      ))}
+      {xs.map((x, i) => (
+        <Text key={`num-${i}`} x={x} y={y + 3} fill={i === 0 ? C.white : C.brand700} style={{ fontSize: 8, fontFamily: "Helvetica-Bold" }} textAnchor="middle">
+          {i === 0 ? "X" : String(i)}
+        </Text>
+      ))}
+    </Svg>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
  *  MAIN DOCUMENT
  * ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -560,6 +764,24 @@ export function SVIReportPDF({
   const p0Gaps = analysis.evidenceGaps.filter((g) => g.priority === "P0");
   const p1Gaps = analysis.evidenceGaps.filter((g) => g.priority === "P1");
 
+  // ── SCN navigation data (Position / Value / Direction) ─────────────────
+  const valuation = estimateValuation(sviScore, analysis.stage);
+  const percentile = analysis.percentileRank ?? 50;
+  const topPercent = Math.max(1, 100 - percentile);
+  const weakestSub = [...analysis.subs].sort((a, b) => a.value - b.value)[0];
+  const stageBenchmark = SVI_BENCHMARKS[analysis.stage] ?? SVI_BENCHMARKS[0];
+
+  // Direction route — "You are here → Next → Then → Then"
+  const directionSteps = (analysis.nextActions && analysis.nextActions.length > 0
+    ? analysis.nextActions
+    : [...p0Gaps, ...p1Gaps].map((g) => ({
+        priority: g.priority,
+        title: g.label,
+        detail: g.action,
+        impact: `+${g.impact} SVI`,
+      }))
+  ).slice(0, 3);
+
   // Build section pages from either the sections prop or fallback to dimension data
   const sectionPages = sections && sections.length > 0
     ? sections.slice(0, 6)
@@ -601,10 +823,13 @@ export function SVIReportPDF({
           </View>
 
           <Text style={{ fontSize: 10, color: C.brand100, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>
-            STARTUP VALUATION INTELLIGENCE REPORT
+            STARTUP NAVIGATION REPORT
           </Text>
           <Text style={{ fontSize: 28, fontFamily: "Helvetica-Bold", color: C.white, lineHeight: 1.2 }}>
             {name}
+          </Text>
+          <Text style={{ fontSize: 8.5, color: C.brand100, marginTop: 8, letterSpacing: 0.5 }}>
+            Validation  ·  Position  ·  Value  ·  Direction  ·  Capital
           </Text>
         </View>
 
@@ -688,7 +913,7 @@ export function SVIReportPDF({
                 Generated {date}
               </Text>
               <Text style={{ fontSize: 8, color: C.ink400, marginTop: 2 }}>
-                SVI v{analysis.version} | Confidence: {confidence}%
+                {REPORT_TEMPLATE_VERSION} · SVI v{analysis.version} | Confidence: {confidence}%
               </Text>
               {email && (
                 <Text style={{ fontSize: 7, color: C.ink400, marginTop: 4 }}>
@@ -721,7 +946,7 @@ export function SVIReportPDF({
        * ──────────────────────────────────────────────────────────────────── */}
       <Page size="A4" style={s.page}>
         <HeaderBar />
-        <PageTitle title="Executive Summary" subtitle="Your Startup at a Glance" />
+        <ScnBanner index="01" label="Validation" question="Am I solving the right problem?" color={SCN_COLORS[0]} />
 
         {/* 4 metric cards */}
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 14 }}>
@@ -810,11 +1035,85 @@ export function SVIReportPDF({
       </Page>
 
       {/* ────────────────────────────────────────────────────────────────────
-       *  PAGE 3: PERFORMANCE DASHBOARD
+       *  SCN 02 — POSITION ("Where am I?")
        * ──────────────────────────────────────────────────────────────────── */}
       <Page size="A4" style={s.page}>
         <HeaderBar />
-        <PageTitle title="Performance Dashboard" subtitle="8-Dimension Scorecard" />
+        <ScnBanner index="02" label="Position" question="Where am I?" color={SCN_COLORS[1]} />
+
+        {/* Index + stage + percentile + value */}
+        <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
+          <MetricCard label="STARTUP INDEX" value={String(sviScore)} sub={sviLabel(sviScore)} />
+          <MetricCard label="STAGE" value={String(analysis.stage)} sub={analysis.stageLabel} color={C.ink800} />
+          <MetricCard label="VS AU PEERS" value={`Top ${topPercent}%`} sub={`P${percentile} at stage`} color={C.emerald600} />
+          <MetricCard label="EST. VALUE" value={formatAUD(valuation.mid)} sub="indicative" color={C.teal600} />
+        </View>
+
+        <Text style={[s.body, { marginBottom: 6 }]}>
+          {name} sits at{" "}
+          <Text style={{ fontFamily: "Helvetica-Bold", color: C.ink800 }}>{sviScore} on the Startup Index</Text>{" "}
+          — {sviLabel(sviScore)} for a {analysis.stageLabel} startup, ahead of roughly {percentile}% of Australian
+          startups at the same stage. The estimated value is an output of this position, not the goal.
+        </Text>
+
+        {/* Radar + percentile band */}
+        <View style={{ flexDirection: "row", gap: 16, marginTop: 4, alignItems: "center" }}>
+          <View style={{ width: 220, alignItems: "center" }}>
+            <Text style={[s.label, { marginBottom: 2 }]}>YOUR 8-DIMENSION SHAPE</Text>
+            <RadarChartSVG subs={analysis.subs} size={210} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[s.label, { marginBottom: 6 }]}>PERCENTILE vs AU PEERS</Text>
+            <PercentileBandSVG percentile={percentile} width={250} />
+            <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 1, width: 250 }}>
+              <Text style={{ fontSize: 6.5, color: C.ink400 }}>Bottom</Text>
+              <Text style={{ fontSize: 6.5, color: C.ink400 }}>Median</Text>
+              <Text style={{ fontSize: 6.5, color: C.ink400 }}>Top</Text>
+            </View>
+            <Text style={{ fontSize: 8.5, color: C.ink600, lineHeight: 1.5, marginTop: 12 }}>
+              Benchmark band for {analysis.stageLabel}: median {stageBenchmark.p50}, top-decile{" "}
+              {stageBenchmark.p90}. You are at {sviScore}.
+            </Text>
+          </View>
+        </View>
+
+        <InsightBox
+          label="WHERE YOU STAND"
+          text={`At ${sviScore} you rank in the top ${topPercent}% of ${analysis.stageLabel} startups. Reaching the stage top-decile (${stageBenchmark.p90}) is a matter of closing the gaps set out in Direction.`}
+        />
+
+        <Footer />
+      </Page>
+
+      {/* ────────────────────────────────────────────────────────────────────
+       *  SCN 03 — VALUE ("What's my startup worth?") + 8-dimension scorecard
+       * ──────────────────────────────────────────────────────────────────── */}
+      <Page size="A4" style={s.page}>
+        <HeaderBar />
+        <ScnBanner index="03" label="Value" question="What's my startup worth?" color={SCN_COLORS[2]} />
+
+        {/* Indicative valuation range */}
+        <View style={{ borderWidth: 0.5, borderColor: C.surface200, borderRadius: 8, padding: 14, backgroundColor: C.surface50, marginBottom: 14 }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 6 }}>
+            <Text style={s.label}>INDICATIVE PRE-MONEY VALUATION (AUD)</Text>
+            <Text style={{ fontSize: 7, color: C.ink400 }}>{valuation.method} · {Math.round(valuation.confidence * 100)}% conf.</Text>
+          </View>
+          <Text style={{ fontSize: 24, fontFamily: "Helvetica-Bold", color: C.teal600, marginBottom: 6 }}>
+            {formatAUD(valuation.low)} – {formatAUD(valuation.high)}
+          </Text>
+          <ValuationRangeSVG low={valuation.low} mid={valuation.mid} high={valuation.high} width={250} />
+          <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 1, width: 250 }}>
+            <Text style={{ fontSize: 6.5, color: C.ink400 }}>{formatAUD(valuation.low)}</Text>
+            <Text style={{ fontSize: 6.5, color: C.brand700, fontFamily: "Helvetica-Bold" }}>{formatAUD(valuation.mid)}</Text>
+            <Text style={{ fontSize: 6.5, color: C.ink400 }}>{formatAUD(valuation.high)}</Text>
+          </View>
+          <Text style={{ fontSize: 7.5, color: C.ink500, marginTop: 8, lineHeight: 1.45 }}>
+            Triangulated from Berkus, Scorecard and revenue-multiple methods calibrated to 2024–2025 Australian
+            market comparables. Indicative only — not a formal valuation under the Corporations Act 2001 (Cth).
+          </Text>
+        </View>
+
+        <Text style={[s.label, { marginBottom: 8 }]}>8-DIMENSION SCORECARD — WHAT DRIVES THE NUMBER</Text>
 
         {/* Dimension bars */}
         {analysis.subs.map((sub) => (
@@ -948,7 +1247,85 @@ export function SVIReportPDF({
       })}
 
       {/* ────────────────────────────────────────────────────────────────────
-       *  PAGE 10: RISK LANDSCAPE
+       *  SCN 04 — DIRECTION ("What do I do next?") — Google-Maps-style route
+       * ──────────────────────────────────────────────────────────────────── */}
+      <Page size="A4" style={s.page}>
+        <HeaderBar />
+        <ScnBanner index="04" label="Direction" question="What do I do next?" color={SCN_COLORS[3]} />
+
+        {/* You are here */}
+        <View style={{ flexDirection: "row", gap: 10, alignItems: "center", backgroundColor: C.surface50, borderWidth: 0.5, borderColor: C.surface200, borderRadius: 8, padding: 12, marginBottom: 12 }}>
+          <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: C.brand600, alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: C.white }}>YOU</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 7, letterSpacing: 1.2, color: C.ink400, textTransform: "uppercase" }}>You are here</Text>
+            <Text style={{ fontSize: 12, fontFamily: "Helvetica-Bold", color: C.ink900 }}>
+              Stage {analysis.stage} · {analysis.stageLabel}
+            </Text>
+            <Text style={{ fontSize: 8, color: C.ink600, marginTop: 2 }}>
+              Weakest layer: {DIM_LABELS[weakestSub?.key] || weakestSub?.label} ({Math.round(weakestSub?.value ?? 0)}/100) —
+              the moves below are sequenced from here.
+            </Text>
+          </View>
+        </View>
+
+        {/* Route */}
+        <View style={{ alignItems: "center", marginBottom: 4 }}>
+          <RouteMapSVG count={directionSteps.length + 1} width={490} />
+        </View>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 12, paddingHorizontal: 14 }}>
+          <Text style={{ fontSize: 6.5, color: C.ink400 }}>You are here</Text>
+          <Text style={{ fontSize: 6.5, color: C.ink400 }}>Next</Text>
+          {directionSteps.length > 1 && <Text style={{ fontSize: 6.5, color: C.ink400 }}>Then</Text>}
+          {directionSteps.length > 2 && <Text style={{ fontSize: 6.5, color: C.ink400 }}>Then</Text>}
+        </View>
+
+        {/* Step cards */}
+        {directionSteps.length > 0 ? directionSteps.map((step, i) => {
+          const isNext = i === 0;
+          const pColor = step.priority === "P0" ? C.red600 : step.priority === "P1" ? C.amber600 : C.ink500;
+          return (
+            <View
+              key={`dir-${i}`}
+              style={{
+                borderWidth: isNext ? 1 : 0.5,
+                borderColor: isNext ? C.brand600 : C.surface200,
+                borderRadius: 8,
+                padding: 12,
+                marginBottom: 8,
+                backgroundColor: isNext ? C.brand50 : C.white,
+              }}
+            >
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: isNext ? C.brand600 : C.ink300, alignItems: "center", justifyContent: "center" }}>
+                    <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: C.white }}>{i + 1}</Text>
+                  </View>
+                  <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: isNext ? C.brand600 : C.ink400, textTransform: "uppercase", letterSpacing: 0.8 }}>
+                    {isNext ? "Next step" : "Then"}
+                  </Text>
+                  <View style={{ backgroundColor: C.surface100, borderRadius: 3, paddingHorizontal: 5, paddingVertical: 1 }}>
+                    <Text style={{ fontSize: 6.5, fontFamily: "Helvetica-Bold", color: pColor }}>{step.priority}</Text>
+                  </View>
+                </View>
+                {step.impact && <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: C.teal600 }}>{step.impact}</Text>}
+              </View>
+              <Text style={{ fontSize: 10, fontFamily: "Helvetica-Bold", color: C.ink800 }}>{step.title}</Text>
+              <Text style={{ fontSize: 8, color: C.ink600, lineHeight: 1.5, marginTop: 2 }}>{step.detail}</Text>
+            </View>
+          );
+        }) : (
+          <Text style={s.body}>Add evidence on blockid.au to generate your next-best-action route.</Text>
+        )}
+
+        <InsightBox label="HOW TO USE THIS" text="Like a map: take one turn at a time. Complete the Next step, upload the evidence on blockid.au, and your position re-computes — revealing the following turn." />
+
+        <Footer />
+      </Page>
+
+      {/* ────────────────────────────────────────────────────────────────────
+       *  RISK LANDSCAPE
        * ──────────────────────────────────────────────────────────────────── */}
       <Page size="A4" style={s.page}>
         <HeaderBar />
@@ -1246,7 +1623,7 @@ export function SVIReportPDF({
        * ──────────────────────────────────────────────────────────────────── */}
       <Page size="A4" style={s.page}>
         <HeaderBar />
-        <PageTitle title="Next Steps" subtitle="Continue Your Growth Journey" />
+        <ScnBanner index="05" label="Capital" question="How do I grow faster?" color={SCN_COLORS[4]} />
 
         {/* Stage journey */}
         <View style={{ marginBottom: 16 }}>
