@@ -33,8 +33,11 @@ tg()   { curl -s "https://api.telegram.org/bot$TG_BOT/sendMessage" -d "chat_id=$
 
 cd "$REPO" || { log "repo missing"; exit 0; }
 
-# Skip if a deploy is already running (avoid racing the gated pipeline / lock).
-if [ -f "$LOCK" ]; then log "skip — deploy lock present"; exit 0; fi
+# Skip if a deploy is already running. NB: the lock FILE always exists after the
+# first deploy; check whether it's actually HELD (flock), not just present.
+if command -v flock >/dev/null 2>&1 && ! flock -n "$LOCK" -c true 2>/dev/null; then
+  log "skip — deploy in progress (lock held)"; exit 0
+fi
 
 # Ensure the Claude OAuth subscription token is fresh (guardian also does this).
 bash "$WEB_DIR/scripts/refresh-claude-oauth.sh" >/dev/null 2>&1 || true
