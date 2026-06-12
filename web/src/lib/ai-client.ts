@@ -204,10 +204,12 @@ function modelReady(model: string): boolean {
 }
 
 /** Order a model list with cooled-down models dropped; if ALL are cooling,
- *  return the full list so we still attempt (degraded) rather than give up. */
+ *  return the full list so we still attempt (degraded) rather than give up.
+ *  Within whichever set we return, chronically-failing models are sunk to the
+ *  bottom so the models that actually answer get tried first. */
 function readyModels(models: string[]): string[] {
   const ready = models.filter(modelReady);
-  return ready.length > 0 ? ready : models;
+  return demoteFlaky(ready.length > 0 ? ready : models);
 }
 
 function coolDownModel(model: string, errMsg: string): void {
@@ -219,6 +221,61 @@ function coolDownModel(model: string, errMsg: string): void {
     ms = 5 * 60_000; // out of credit / rate-limited → 5 min
   }
   modelCooldownUntil.set(model, Date.now() + ms);
+  recordModelOutcome(model, false);
+}
+
+// ── Persistent model reliability (demote flaky models in fallback order) ──
+// The cooldown above avoids a flaky model for a few minutes, but it resets on
+// restart and never changes the ORDER models are tried. This layer persists a
+// lightweight fail/ok tally per model to disk and sinks chronically-failing
+// models to the BOTTOM of every fallback chain — so models that actually answer
+// are tried first, even across restarts and daily model refreshes. The daily
+// refresh ranks by raw capability; this reranks by real-world reliability.
+const MODEL_HEALTH_FILE = "/tmp/blockid-model-health.json";
+interface ModelHealth { fails: number; ok: number; lastFail: number }
+let modelHealthCache: { data: Record<string, ModelHealth>; at: number } | null = null;
+
+function readModelHealth(): Record<string, ModelHealth> {
+  const now = Date.now();
+  if (modelHealthCache && now - modelHealthCache.at < 30_000) return modelHealthCache.data;
+  let data: Record<string, ModelHealth> = {};
+  try { data = JSON.parse(fs.readFileSync(MODEL_HEALTH_FILE, "utf-8")); } catch { /* none yet */ }
+  modelHealthCache = { data, at: now };
+  return data;
+}
+
+function recordModelOutcome(model: string, ok: boolean): void {
+  const data = readModelHealth();
+  const h = data[model] ?? { fails: 0, ok: 0, lastFail: 0 };
+  if (ok) {
+    h.ok += 1;
+    if (h.fails > 0) h.fails -= 1; // reward recovery: successes slowly forgive past fails
+  } else {
+    h.fails += 1;
+    h.lastFail = Date.now();
+  }
+  data[model] = h;
+  modelHealthCache = { data, at: Date.now() };
+  try { fs.writeFileSync(MODEL_HEALTH_FILE, JSON.stringify(data)); } catch { /* ignore */ }
+}
+
+/** Unreliability score: higher = sink lower. Recent failures weigh double. */
+function unreliability(model: string): number {
+  const h = readModelHealth()[model];
+  if (!h) return 0;
+  const total = h.fails + h.ok;
+  const ratio = total > 0 ? h.fails / total : 0;
+  const recent = h.lastFail && Date.now() - h.lastFail < 60 * 60_000 ? 2 : 1;
+  return (ratio * 10 + Math.min(h.fails, 5)) * recent;
+}
+
+/** Stable-sort so chronically-failing models drop to the bottom; ties keep the
+ *  curated/refresh order (capability ranking) intact. */
+function demoteFlaky(models: string[]): string[] {
+  return models
+    .map((m, i) => ({ m, i, u: unreliability(m) }))
+    .sort((a, b) => a.u - b.u || a.i - b.i)
+    .map((x) => x.m);
 }
 
 // ── Budget tracking ($100/month cap) ───────────────────────────────────
@@ -657,6 +714,7 @@ async function callGroq(opts: AICallOptions): Promise<AICallResult> {
       if (data.error) throw new Error(data.error.message ?? "Groq error");
       const text = data.choices?.[0]?.message?.content ?? "";
       if (!text) throw new Error("Empty Groq response");
+      recordModelOutcome(model, true);
       return { text, provider: "groq", model };
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
@@ -703,6 +761,7 @@ async function callCerebras(opts: AICallOptions): Promise<AICallResult> {
       if (data.error) throw new Error(data.error.message ?? "Cerebras error");
       const text = data.choices?.[0]?.message?.content ?? "";
       if (!text) throw new Error("Empty Cerebras response");
+      recordModelOutcome(model, true);
       return { text, provider: "groq" as const, model }; // reuse "groq" provider type for compat
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
@@ -750,6 +809,7 @@ async function callSambaNova(opts: AICallOptions): Promise<AICallResult> {
       if (data.error) throw new Error(data.error.message ?? "SambaNova error");
       const text = data.choices?.[0]?.message?.content ?? "";
       if (!text) throw new Error("Empty SambaNova response");
+      recordModelOutcome(model, true);
       return { text, provider: "groq" as const, model }; // reuse "groq" provider type for compat
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
@@ -824,6 +884,7 @@ async function callOpenRouter(opts: AICallOptions): Promise<AICallResult> {
       if (data.error) throw new Error(data.error.message ?? "OpenRouter error");
       const text = data.choices?.[0]?.message?.content ?? "";
       if (!text) throw new Error("Empty response");
+      recordModelOutcome(model, true);
       return { text, provider: "openrouter", model };
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
