@@ -18,6 +18,7 @@ import {
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getAllArticles } from "@/lib/insights";
 import { sendEmail } from "@/lib/email";
+import * as fs from "fs";
 
 export const dynamic = "force-dynamic";
 
@@ -725,10 +726,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Rate limit: max 1 run per 30 minutes
+  // De-dupe guard: agent-upgrade is expensive (many AI calls). If it already ran
+  // recently, skip GRACEFULLY (200) instead of failing the cron with a 429 —
+  // the CRON_SECRET above is the real access gate, and AI spend is independently
+  // capped by the budget/off-peak guards below. A 429 here only produced noisy
+  // false "cron fail" alerts when multiple internal triggers overlapped.
   const rl = checkRateLimit("cron:agent-upgrade", 2, 30 * 60 * 1000);
   if (!rl.allowed) {
-    return NextResponse.json({ error: "Rate limited", resetIn: rl.resetIn }, { status: 429 });
+    return NextResponse.json({ ok: true, skipped: true, reason: "ran recently", resetIn: rl.resetIn });
   }
 
   const now = new Date();
@@ -824,7 +829,6 @@ export async function POST(request: Request) {
 
   // Save daily report files per agent for telegram-report to read
   try {
-    const fs = require("fs");
     const reportsDir = "/home/dovanlong/blockid.au/web/content/reports";
     const dateStr = now.toISOString().slice(0, 10);
     const agentResults: Record<string, typeof results> = {};
