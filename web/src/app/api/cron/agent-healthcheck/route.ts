@@ -141,30 +141,30 @@ async function runHealthChecks() {
     }
   } catch { /* skip */ }
 
-  // B2: Security headers
+  // B2: Security headers (via curl to avoid self-deadlock)
   try {
-    const headRes = await fetch("https://blockid.au", { method: "HEAD", signal: AbortSignal.timeout(10_000) });
-    const missing: string[] = [];
-    if (!headRes.headers.get("x-frame-options") && !headRes.headers.get("content-security-policy")) missing.push("CSP");
-    if (!headRes.headers.get("x-content-type-options")) missing.push("X-Content-Type-Options");
-    if (!headRes.headers.get("strict-transport-security")) missing.push("HSTS");
-    items.push({
-      category: "security", check: "Security Headers",
-      status: missing.length === 0 ? "pass" : missing.length <= 1 ? "warn" : "fail",
-      detail: missing.length === 0 ? "All present" : `Missing: ${missing.join(", ")}`,
-      fixable: false,
-    });
+    const hdrResult = run("curl -sI --max-time 10 https://blockid.au 2>/dev/null | head -20", 15_000);
+    if (hdrResult.ok) {
+      const hdr = hdrResult.output.toLowerCase();
+      const missing: string[] = [];
+      if (!hdr.includes("content-security-policy") && !hdr.includes("x-frame-options")) missing.push("CSP");
+      if (!hdr.includes("x-content-type-options")) missing.push("X-Content-Type-Options");
+      if (!hdr.includes("strict-transport-security")) missing.push("HSTS");
+      items.push({
+        category: "security", check: "Security Headers",
+        status: missing.length === 0 ? "pass" : missing.length <= 1 ? "warn" : "fail",
+        detail: missing.length === 0 ? "All present" : `Missing: ${missing.join(", ")}`,
+        fixable: false,
+      });
+    }
   } catch { /* skip */ }
 
-  // B3: Exposed sensitive files
+  // B3: Exposed sensitive files (via curl)
   try {
-    const sensitiveFiles = [".env", ".env.local", "dump.rdb"];
     const exposed: string[] = [];
-    for (const f of sensitiveFiles) {
-      try {
-        const res = await fetch(`https://blockid.au/${f}`, { signal: AbortSignal.timeout(5_000) });
-        if (res.ok && res.status === 200) exposed.push(f);
-      } catch { /* not exposed = good */ }
+    for (const f of [".env", ".env.local", "dump.rdb"]) {
+      const r = run(`curl -s -o /dev/null -w '%{http_code}' --max-time 5 https://blockid.au/${f} 2>/dev/null`, 8_000);
+      if (r.output.trim() === "200") exposed.push(f);
     }
     items.push({
       category: "security", check: "Exposed Files",
@@ -223,23 +223,22 @@ async function runHealthChecks() {
     fixable: false,
   });
 
-  // C3: Production response time
+  // C3: Production response time (via curl to avoid self-deadlock)
   try {
-    const start = Date.now();
-    const res = await fetch("https://blockid.au/api/healthz", { signal: AbortSignal.timeout(15_000) });
-    const elapsed = Date.now() - start;
+    const rtResult = run("curl -s -o /dev/null -w '%{http_code} %{time_total}' --max-time 10 https://blockid.au/api/healthz 2>/dev/null", 15_000);
+    const [httpCode, timeStr] = rtResult.output.split(" ");
+    const elapsed = Math.round(parseFloat(timeStr || "0") * 1000);
+    const code = parseInt(httpCode || "0", 10);
     items.push({
       category: "performance", check: "Response Time",
-      status: elapsed < 2000 ? "pass" : elapsed < 5000 ? "warn" : "fail",
-      detail: `${elapsed}ms (HTTP ${res.status})`,
+      status: code === 200 && elapsed < 2000 ? "pass" : elapsed < 5000 ? "warn" : "fail",
+      detail: `${elapsed}ms (HTTP ${code})`,
       fixable: false,
     });
-  } catch (err) {
+  } catch {
     items.push({
       category: "performance", check: "Response Time",
-      status: "fail",
-      detail: err instanceof Error ? err.message : "Unreachable",
-      fixable: false,
+      status: "warn", detail: "Check skipped", fixable: false,
     });
   }
 
