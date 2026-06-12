@@ -15,6 +15,7 @@ import { NextResponse } from "next/server";
 import { execSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
+import { sendTelegram, mdEscape } from "@/lib/telegram";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // 5 min for build
@@ -154,6 +155,15 @@ export async function POST(request: Request) {
       results.push("Deploy: skipped (content-only, no rebuild needed)");
     }
 
+    // Notify success via Telegram
+    await sendTelegram(
+      `🚀 *Agent Deploy Success*\n` +
+      `Agent: \`${mdEscape(agent)}\`\n` +
+      `Description: ${mdEscape(description)}\n` +
+      `Files: ${files.length}\n` +
+      `Results: ${results.join(", ")}`,
+    ).catch(() => {});
+
     return NextResponse.json({
       ok: true,
       agent,
@@ -176,9 +186,20 @@ export async function POST(request: Request) {
     }
     try { execSync("git checkout master 2>/dev/null && git checkout -- . 2>/dev/null", { cwd: WEB_DIR }); } catch { /* ignore */ }
 
+    const errorMsg = err instanceof Error ? err.message : "Patch failed";
+
+    // Notify failure via Telegram
+    await sendTelegram(
+      `❌ *Agent Deploy Failed*\n` +
+      `Agent: \`${mdEscape(agent)}\`\n` +
+      `Description: ${mdEscape(description)}\n` +
+      `Error: ${mdEscape(errorMsg.slice(0, 200))}\n` +
+      `Reverted: true`,
+    ).catch(() => {});
+
     return NextResponse.json({
       ok: false,
-      error: err instanceof Error ? err.message : "Patch failed",
+      error: errorMsg,
       results,
       reverted: true,
     }, { status: 422 });
