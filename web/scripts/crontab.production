@@ -36,6 +36,9 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # AI health check — test provider availability (no AI calls)
 0 */3 * * * bash $RUN ai-health
 
+# Auto-Guardian — monitor thresholds, auto-fix at 80%, alert on critical
+*/10 * * * * bash $RUN agent-guardian --timeout 90
+
 # Git Sync — pull from GitHub + push local commits + deploy if new
 */30 * * * * /home/dovanlong/blockid.au/web/scripts/git-sync-deploy.sh
 
@@ -162,17 +165,26 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 #   │ → use remaining AI budget    │
 #   └──────────────────────────────┘
 #
-# CONTINUOUS (every 30 min):
-#   git-sync-deploy — GitHub ↔ server sync
+# CONTINUOUS:
+#   ┌─ Auto-Guardian (every 10m) ──┐
+#   │ 9 metrics: disk, mem, CPU,   │
+#   │ inodes, swap, node RSS,      │
+#   │ open FDs, zombies, /tmp      │
+#   │ ≥80% → auto-fix + re-check  │
+#   │ ≥95% → aggressive cleanup   │
+#   │ → Telegram + Email alert     │
+#   └──────────────────────────────┘
+#   git-sync-deploy (every 30m) — GitHub ↔ server sync
 #
 # ═══════════════════════════════════════════════════════════════
-# SCHEDULE SUMMARY (25 routines)
+# SCHEDULE SUMMARY (26 routines)
 # ═══════════════════════════════════════════════════════════════
 #
 # Time (AEST)     | Job                | AI  | Phase       | Monitored
 # ────────────────┼────────────────────┼─────┼─────────────┼──────────
 # Every 2m        | watchdog           | 0   | system      | PID+HTTP
 # Every 5m        | cloudflare-ddns    | 0   | system      | logfile
+# Every 10m       | agent-guardian     | 0   | auto-heal   | ✅ runner
 # Every 15m       | blockchain-sync    | 0   | system      | ✅ runner
 # Every 30m       | ai-token-guardian  | 0   | system      | logfile
 # Every 30m       | git-sync-deploy    | 0   | CI/CD       | logfile
