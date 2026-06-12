@@ -51,29 +51,49 @@ TS=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
 TS_SHORT=$(date -u '+%m-%d %H:%M')
 START_NS=$(date +%s%N)
 
-BODY=$(curl -s -X POST "$BASE/$ENDPOINT" \
-  -H "Authorization: Bearer $CRON_SECRET" \
-  --connect-timeout 5 \
-  --max-time "$TIMEOUT" 2>&1)
-CURL_EXIT=$?
+# Run the endpoint with ONE retry on transient failure. The server briefly
+# returns HTML / refuses connections during deploys & restarts; a single retry
+# after a short wait avoids false "Cron Failed" alerts for those blips. Real app
+# failures (valid JSON with ok:false) are NOT retried — they're reported as-is.
+ATTEMPT=0
+while :; do
+  ATTEMPT=$((ATTEMPT + 1))
+  BODY=$(curl -s -X POST "$BASE/$ENDPOINT" \
+    -H "Authorization: Bearer $CRON_SECRET" \
+    --connect-timeout 5 \
+    --max-time "$TIMEOUT" 2>&1)
+  CURL_EXIT=$?
+
+  # Parse result
+  if [ $CURL_EXIT -ne 0 ]; then
+    STATUS="error"
+    DETAIL="curl exit $CURL_EXIT (timeout or connection refused)"
+  elif echo "$BODY" | python3 -c "import sys,json; d=json.load(sys.stdin); exit(0 if d.get('ok') else 1)" 2>/dev/null; then
+    STATUS="ok"
+    DETAIL=$(echo "$BODY" | python3 -c "import sys,json; d=json.load(sys.stdin); del d['ok']; print(json.dumps(d))" 2>/dev/null | head -c 200)
+  elif echo "$BODY" | python3 -c "import sys,json; d=json.load(sys.stdin); exit(0 if 'Rate limited' in d.get('error','') or 'resetIn' in d else 1)" 2>/dev/null; then
+    STATUS="rate_limited"
+    DETAIL=$(echo "$BODY" | head -c 200)
+  elif echo "$BODY" | python3 -c "import sys,json; json.load(sys.stdin)" 2>/dev/null; then
+    STATUS="fail"   # valid JSON ok:false → real app failure, report it
+    DETAIL=$(echo "$BODY" | head -c 200)
+  else
+    STATUS="transient"   # non-JSON (HTML/empty) → server mid-restart/deploy
+    DETAIL=$(echo "$BODY" | head -c 120)
+  fi
+
+  # Retry once for transient blips (connection error / non-JSON HTML).
+  if { [ "$STATUS" = "error" ] || [ "$STATUS" = "transient" ]; } && [ $ATTEMPT -lt 2 ]; then
+    sleep 5
+    continue
+  fi
+  # A transient that survived the retry is a genuine failure.
+  [ "$STATUS" = "transient" ] && STATUS="fail"
+  break
+done
 
 END_NS=$(date +%s%N)
 DURATION_MS=$(( (END_NS - START_NS) / 1000000 ))
-
-# Parse result
-if [ $CURL_EXIT -ne 0 ]; then
-  STATUS="error"
-  DETAIL="curl exit $CURL_EXIT (timeout or connection refused)"
-elif echo "$BODY" | python3 -c "import sys,json; d=json.load(sys.stdin); exit(0 if d.get('ok') else 1)" 2>/dev/null; then
-  STATUS="ok"
-  DETAIL=$(echo "$BODY" | python3 -c "import sys,json; d=json.load(sys.stdin); del d['ok']; print(json.dumps(d))" 2>/dev/null | head -c 200)
-elif echo "$BODY" | python3 -c "import sys,json; d=json.load(sys.stdin); exit(0 if 'Rate limited' in d.get('error','') or 'resetIn' in d else 1)" 2>/dev/null; then
-  STATUS="rate_limited"
-  DETAIL=$(echo "$BODY" | head -c 200)
-else
-  STATUS="fail"
-  DETAIL=$(echo "$BODY" | head -c 200)
-fi
 
 # Log to text file
 echo "$TS_SHORT $ENDPOINT: $STATUS (${DURATION_MS}ms)" >> "$LOG"
