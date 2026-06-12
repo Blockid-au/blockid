@@ -36,7 +36,10 @@ const MAX_SIZE = 50 * 1024 * 1024; // 50MB
 const UPLOAD_BASE_URL = process.env.NEXT_PUBLIC_UPLOAD_URL ?? "https://upload.blockid.au";
 
 const ALLOWED_TYPES: Record<string, string[]> = {
-  image: ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"],
+  // NOTE: image/svg+xml is deliberately excluded — SVGs can carry inline
+  // <script>, and uploads are served from the trusted upload.blockid.au origin,
+  // which would make any uploaded SVG a stored-XSS vector.
+  image: ["image/jpeg", "image/png", "image/gif", "image/webp"],
   video: ["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo", "video/x-matroska"],
   document: ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
   spreadsheet: ["application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "text/csv"],
@@ -77,18 +80,22 @@ function corsJson(data: any, origin?: string | null, init?: { status?: number })
   return NextResponse.json(data, { ...init, headers: corsHeaders(origin) });
 }
 
-const UPLOAD_PASSWORD = process.env.UPLOAD_PASSWORD ?? "1243";
+// No insecure default — password upload only works if UPLOAD_PASSWORD is
+// explicitly configured. When unset (the production default), uploads require
+// an authenticated session. This removes the previously hardcoded "1243".
+const UPLOAD_PASSWORD = process.env.UPLOAD_PASSWORD;
 
 export async function POST(request: Request) {
   const origin = request.headers.get("origin");
 
   const formData = await request.formData();
 
-  // Auth: accept either session cookie OR password field
+  // Auth: require a session cookie, OR a password field that matches a
+  // configured UPLOAD_PASSWORD (no default — disabled unless set).
   const password = formData.get("password") as string | null;
   const user = await getCurrentUser();
-  if (!user && password !== UPLOAD_PASSWORD) {
-    return corsJson({ error: "Unauthorized — enter password to upload" }, origin, { status: 401 });
+  if (!user && (!UPLOAD_PASSWORD || password !== UPLOAD_PASSWORD)) {
+    return corsJson({ error: "Unauthorized — sign in to upload" }, origin, { status: 401 });
   }
 
   const file = formData.get("file") as File | null;
