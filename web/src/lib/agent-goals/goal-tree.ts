@@ -34,8 +34,8 @@ export interface AgentGoal {
 export const CEO_GOAL_TREE: AgentGoal = {
   id: "ceo-master",
   agent: "ceo",
-  title: "Transform BlockID into #1 AU Startup Valuation Platform",
-  mission: "Orchestrate all C-Level agents to deliver world-class startup evaluation reports and continuously improve the platform to reach A$1B valuation.",
+  title: "Build the #1 Startup Navigation System for AU — SVI = Startup Positioning Engine",
+  mission: "Reposition BlockID from a valuation/equity tool into a Startup Navigation System ('Google Maps for Startups') built on the SCN framework — Validation → Position → Value → Direction → Capital (see .claude/goals/scn-startup-navigation-system.md). Orchestrate all C-Level agents to research each layer deeply and continuously upgrade the report/analysis + dashboard so founders instantly see 'Where am I' (Index + Stage + Top X% percentile) and 'What to do next' (Next Best Action). Reach A$1B.",
   kpis: [
     { metric: "total_users", label: "Total Users", target: 10000, unit: "users" },
     { metric: "mrr_aud", label: "Monthly Recurring Revenue", target: 50000, unit: "AUD" },
@@ -45,8 +45,14 @@ export const CEO_GOAL_TREE: AgentGoal = {
   criteriaOwned: [],
   reportSections: ["executive", "board_memo"],
   skills: [],
-  researchTopics: ["Global startup ecosystem trends", "Platform strategy benchmarks"],
-  researchFrequency: "monthly",
+  researchTopics: [
+    "SCN framework: Validation → Position → Value → Direction → Capital sequencing",
+    "Startup Navigation System positioning vs Crunchbase/PitchBook/Carta (the Direction gap)",
+    "Startup percentile/positioning models — ranking 'Top X% of AU startups'",
+    "Next-Best-Action engines for founders (You-are-here → Next → Then)",
+    "Global startup ecosystem trends",
+  ],
+  researchFrequency: "weekly-sun",
   subGoals: [
     {
       id: "cto-goal",
@@ -108,6 +114,8 @@ export const CEO_GOAL_TREE: AgentGoal = {
         "UX benchmarks for SaaS tools",
         "Product-led growth case studies",
         "Feature prioritization frameworks",
+        "SCN dashboard design: Position hero (Index + Stage + percentile) above valuation, SCN section ordering",
+        "Validation panel for early-stage founders (problem-worth, market, willingness-to-pay)",
       ],
       researchFrequency: "bi-weekly-thu",
       subGoals: [],
@@ -130,6 +138,7 @@ export const CEO_GOAL_TREE: AgentGoal = {
         "SEO algorithm updates",
         "AU startup ecosystem reports",
         "Content marketing benchmarks",
+        "Positioning a 'Startup Navigation System' (Google Maps for Startups) — messaging vs valuation/equity tools",
       ],
       researchFrequency: "weekly-tue",
       subGoals: [],
@@ -151,6 +160,8 @@ export const CEO_GOAL_TREE: AgentGoal = {
         "SaaS conversion benchmarks by stage",
         "Retention curve norms",
         "Pricing psychology research",
+        "Next-Best-Action / DIRECTION engine: sequencing founder actions by weakest SCN layer + stage",
+        "Funding Readiness scoring (CAPITAL) — what makes a startup investor-ready",
       ],
       researchFrequency: "weekly-wed",
       subGoals: [],
