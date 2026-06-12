@@ -59,3 +59,5 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "Sync cron failed" }, { status: 500 });
   }
 }
+
+export { GET as POST };

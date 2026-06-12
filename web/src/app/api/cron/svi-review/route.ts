@@ -429,3 +429,5 @@ async function checkMilestones(
 
   return awarded;
 }
+
+export { GET as POST };

@@ -177,7 +177,9 @@ async function researchTopic(
 
 export async function GET(request: Request) {
   // Verify cron secret
+  const bearer = request.headers.get("authorization")?.replace("Bearer ", "");
   const secret =
+    bearer ||
     request.headers.get("x-cron-secret") ||
     new URL(request.url).searchParams.get("secret");
   if (secret !== process.env.CRON_SECRET && secret !== "local-dev") {
@@ -322,3 +324,5 @@ export async function GET(request: Request) {
 
   return NextResponse.json(summary);
 }
+
+export { GET as POST };

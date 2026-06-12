@@ -386,3 +386,5 @@ function generateFallbackRecommendations(m: {
 
   return recs.slice(0, 5);
 }
+
+export { GET as POST };
