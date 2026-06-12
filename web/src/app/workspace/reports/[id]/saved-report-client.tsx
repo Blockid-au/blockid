@@ -283,6 +283,49 @@ export function SavedReportClient({ analysis, savedSections, analysisId }: Saved
         </div>
       </div>
 
+      {/* Growth Journey Visual */}
+      <div className="rounded-2xl border border-surface-200 bg-white dark:bg-surface-100 px-4 py-4 mb-6 shadow-sm overflow-hidden">
+        <h2 className="text-sm font-bold text-ink-800 mb-3 flex items-center gap-2">
+          <Sparkles strokeWidth={1.75} className="h-4 w-4 text-brand-600" />
+          Your Growth Journey
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
+          {[
+            { phase: "Vision", icon: "🎯", stage: 0 },
+            { phase: "Customers", icon: "👥", stage: 1 },
+            { phase: "Revenue", icon: "💰", stage: 2 },
+            { phase: "Pitch", icon: "🎤", stage: 2 },
+            { phase: "Legal", icon: "⚖️", stage: 3 },
+            { phase: "GTM", icon: "🚀", stage: 3 },
+            { phase: "Product", icon: "🛠️", stage: 4 },
+            { phase: "Team", icon: "🏢", stage: 4 },
+            { phase: "Growth", icon: "📈", stage: 5 },
+            { phase: "Funding", icon: "🏦", stage: 6 },
+          ].map((p) => {
+            const currentStage = Math.floor(analysis.totalSvi / 30);
+            const done = currentStage > p.stage;
+            const active = currentStage === p.stage;
+            return (
+              <div
+                key={p.phase}
+                className={cn(
+                  "rounded-lg px-2 py-2 text-center text-[11px] font-medium border transition-all",
+                  done && "bg-emerald-50 border-emerald-200 text-emerald-700",
+                  active && "bg-brand-50 border-brand-300 text-brand-700 ring-2 ring-brand-200",
+                  !done && !active && "bg-surface-100 border-surface-200 text-ink-400",
+                )}
+              >
+                <span className="text-base block">{p.icon}</span>
+                {p.phase}
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-[10px] text-ink-400 mt-2 text-center">
+          Based on SVI {analysis.totalSvi} — answering: Where am I now? What am I worth? What should I do next?
+        </p>
+      </div>
+
       {/* Error banner */}
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 mb-4">

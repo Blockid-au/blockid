@@ -5,6 +5,12 @@ import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
+import {
+  getPhaseProgress,
+  renderGrowthJourneySVG,
+  renderThreeQuestionsSVG,
+  GROWTH_PHASES,
+} from "@/lib/startup-growth-phases";
 
 function detectLanguage(text: string): "en" | "vi" | "auto" {
   // Simple heuristic: check for Vietnamese diacritical marks
@@ -127,6 +133,12 @@ Format:
       nextStep: "7. Your Next Step",
     };
 
+    // Growth phase context
+    const stage = analysis.stage ?? 0;
+    const { completed, current, upcoming } = getPhaseProgress(stage);
+    const currentPhases = current.map(p => `${p.title} (${p.subtitle}) — Lead: ${p.leadAgent.toUpperCase()}`).join("; ");
+    const nextPhases = upcoming.slice(0, 2).map(p => `${p.title}`).join(", ");
+
     const userMessage = `Write a personalised startup report for this founder.${effectiveLocale === "vi" ? " Write the ENTIRE report in Vietnamese." : ""}
 
 ## Their Startup:
@@ -135,6 +147,11 @@ ${body.rawText.slice(0, 4000)}
 ## Current Score: ${analysis.totalSVI} out of 300 (starting baseline is 100)
 ## Journey Stage: ${analysis.stage ?? 0} — "${stageLabel}"
 ## Evidence Confidence: ${Math.round(analysis.confidenceMultiplier * 100)}%
+## Growth Journey: ${completed.length}/${GROWTH_PHASES.length} phases complete
+## Current Phase: ${currentPhases || "Getting started"}
+## Next Phases: ${nextPhases || "Complete current phase first"}
+## Current Phase Key Questions: ${current.flatMap(p => p.keyQuestions).join("; ") || "Define your vision"}
+## Current Phase Deliverables: ${current.flatMap(p => p.deliverables).join("; ") || "Vision statement, Problem-solution fit"}
 
 ## What's Working:
 ${dimSummary}
@@ -182,6 +199,13 @@ An honest but kind assessment. If they're not ready yet, frame it as "here's wha
 ## ${sectionHeaders.nextStep}
 End with ONE clear call-to-action. The single most impactful thing they should do RIGHT NOW. Make it feel achievable and exciting, not overwhelming.
 
+IMPORTANT: In each section, reference the startup's position in the Growth Journey (${completed.length} of ${GROWTH_PHASES.length} phases complete). Frame advice in terms of their current phase: "${current.map(p => p.title).join(", ") || "Getting started"}". Show them the path forward through each growth phase.
+
+Structure the advice to answer three core questions:
+1. **Where am I now?** — Their current stage, strengths, and gaps
+2. **What am I worth?** — Their potential valuation based on evidence and stage
+3. **What should I do next?** — Phase-specific action items with deliverables
+
 > **Pro Tip**: Include a motivational closing that reminds them every successful startup started exactly where they are.
 
 Write naturally, be thorough, and remember: this founder is trusting you with their dream. Make the report worth their investment.`;
@@ -222,6 +246,17 @@ Write naturally, be thorough, and remember: this founder is trusting you with th
       email: body.email,
     });
 
+    // Generate SVG visuals
+    const startupName = body.rawText.split("\n")[0]?.slice(0, 50) || "Your Startup";
+    const journeySvg = renderGrowthJourneySVG(stage, startupName);
+    const threeQSvg = renderThreeQuestionsSVG({
+      startupName,
+      currentStage: stageLabel,
+      sviScore: analysis.totalSVI,
+      valuationRange: stage <= 1 ? "A$50K – A$250K" : stage === 2 ? "A$250K – A$1M" : stage === 3 ? "A$500K – A$3M" : stage === 4 ? "A$1M – A$10M" : stage === 5 ? "A$5M – A$50M" : "A$20M+",
+      nextSteps: current.flatMap(p => p.deliverables).slice(0, 4),
+    });
+
     return NextResponse.json({
       ok: true,
       report: text,
@@ -229,6 +264,12 @@ Write naturally, be thorough, and remember: this founder is trusting you with th
       generatedAt: new Date().toISOString(),
       balance: spend.balance,
       creditsUsed: FEATURE_COSTS.svi_report,
+      visuals: {
+        growthJourney: journeySvg,
+        threeQuestions: threeQSvg,
+        currentPhases: current.map(p => ({ id: p.id, title: p.title, order: p.order, color: p.color })),
+        progress: { completed: completed.length, total: GROWTH_PHASES.length },
+      },
     });
 
   } catch (err) {
