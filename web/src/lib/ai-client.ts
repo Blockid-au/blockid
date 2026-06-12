@@ -1122,9 +1122,16 @@ export async function callAI(opts: AICallOptions): Promise<AICallResult> {
       return result;
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
-      // Put failed provider on 2-minute cooldown so next pages skip it instantly
-      providerCooldown.set(provider, Date.now() + 120_000);
-      console.warn(`[ai-client] ${provider} failed (cooldown 2min): ${lastError.message}`);
+      // Cooldown so the next call skips this provider instantly. A rate-limited
+      // provider (Claude subscription / OpenRouter free tier) stays limited for
+      // minutes-to-hours, so back off LONGER than a generic transient failure —
+      // otherwise we hammer it every 2 min and spam 429s in the logs.
+      const msg = lastError.message.toLowerCase();
+      const cooldownMs = /rate.?limit|\b429\b|quota|too many requests|overloaded|capacity/.test(msg)
+        ? 15 * 60_000 // rate-limited → 15 min
+        : 120_000;    // transient → 2 min
+      providerCooldown.set(provider, Date.now() + cooldownMs);
+      console.warn(`[ai-client] ${provider} failed (cooldown ${Math.round(cooldownMs / 60_000)}min): ${lastError.message}`);
     }
   }
 

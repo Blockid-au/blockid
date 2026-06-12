@@ -338,9 +338,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // CRON_SECRET above is the access gate. If the guardian already ran very
+  // recently, skip gracefully (200) rather than failing the cron with a 429.
   const rl = checkRateLimit("cron:agent-guardian", 8, 10 * 60 * 1000);
   if (!rl.allowed) {
-    return NextResponse.json({ error: "Rate limited", resetIn: rl.resetIn }, { status: 429 });
+    return NextResponse.json({ ok: true, skipped: true, reason: "ran recently", resetIn: rl.resetIn });
   }
 
   const state = loadState();
