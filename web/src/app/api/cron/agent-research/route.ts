@@ -191,17 +191,7 @@ export async function GET(request: Request) {
   const offPeak = isOffPeakHours();
   const canUpgrade = canRunUpgradeTasks();
 
-  // Gate checks — research only runs during off-peak with available budget
-  if (!offPeak) {
-    return NextResponse.json({
-      ok: true,
-      skipped: true,
-      reason: "Not off-peak hours (requires 10pm-6am AEST)",
-      timestamp: now.toISOString(),
-      budget,
-    });
-  }
-
+  // Gate check — only budget matters (uses free models, no off-peak restriction)
   if (!canUpgrade) {
     return NextResponse.json({
       ok: true,

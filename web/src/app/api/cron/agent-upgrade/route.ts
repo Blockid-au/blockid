@@ -757,14 +757,14 @@ export async function POST(request: Request) {
       continue;
     }
 
-    // Skip AI tasks if not off-peak or budget exceeded
-    if (task.needsAI && (!offPeak || !canUpgrade)) {
+    // Skip AI tasks if budget exceeded (uses free models, no off-peak restriction)
+    if (task.needsAI && !canUpgrade) {
       results.push({
         id: task.id,
         agent: task.agent,
         task: task.task,
         status: "skipped",
-        result: `Skipped: offPeak=${offPeak}, budgetOK=${canUpgrade}`,
+        result: `Skipped: budgetOK=${canUpgrade} (budget ${budget.percent}%)`,
       });
       continue;
     }
@@ -821,6 +821,37 @@ export async function POST(request: Request) {
       });
     } catch { /* non-blocking */ }
   }
+
+  // Save daily report files per agent for telegram-report to read
+  try {
+    const fs = require("fs");
+    const reportsDir = "/home/dovanlong/blockid.au/web/content/reports";
+    const dateStr = now.toISOString().slice(0, 10);
+    const agentResults: Record<string, typeof results> = {};
+    for (const r of results) {
+      const key = r.agent.toLowerCase();
+      if (!agentResults[key]) agentResults[key] = [];
+      agentResults[key].push(r);
+    }
+    for (const [agent, tasks] of Object.entries(agentResults)) {
+      const okCount = tasks.filter(t => t.status === "ok").length;
+      const failCount = tasks.filter(t => t.status === "failed").length;
+      const status = failCount > 0 ? "YELLOW" : "GREEN";
+      const lines = [
+        `# ${agent.toUpperCase()} Daily Report — ${dateStr}`,
+        ``,
+        `**Status: ${status}**`,
+        ``,
+        `## Tasks (${okCount}/${tasks.length} passed)`,
+        ``,
+        ...tasks.map(t => `- **${t.task}**: ${t.status === "ok" ? "✅" : t.status === "skipped" ? "⏭️" : "❌"} ${t.result ?? t.error ?? ""}`),
+        ``,
+        `---`,
+        `Generated: ${now.toISOString()} | Budget: $${budget.spent}/$${budget.limit}`,
+      ];
+      fs.writeFileSync(`${reportsDir}/${agent}-daily-${dateStr}.md`, lines.join("\n"), "utf8");
+    }
+  } catch { /* non-blocking */ }
 
   return NextResponse.json({
     ok: true,
