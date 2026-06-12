@@ -140,6 +140,8 @@ export interface ReportContext {
   consistencyIssues?: string[];
   /** Unsupported/fabricated claims flagged by the LLM Auditor (Agent Garden pattern). */
   auditFindings?: string[];
+  /** Per-phase completed step IDs — phaseId → string[] of step IDs */
+  phaseStepsCompleted?: Record<string, string[]>;
 }
 
 export interface CriterionData {

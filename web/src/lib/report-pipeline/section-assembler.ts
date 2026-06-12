@@ -19,6 +19,10 @@ import {
   getPhaseProgress,
   renderGrowthJourneySVG,
   renderThreeQuestionsSVG,
+  renderProgressDashboardSVG,
+  renderPhaseChecklistSVG,
+  computePhaseProgress,
+  getNextActionableSteps,
   GROWTH_PHASES,
 } from "@/lib/startup-growth-phases";
 
@@ -296,16 +300,41 @@ function sectionsToMarkdown(sections: ReportSection[], context: ReportContext): 
     parts.push("---");
   }
 
-  // Phase-by-phase next steps
+  // Progress Dashboard (SVG)
+  const stepsData: Record<string, string[]> = context.phaseStepsCompleted ?? {};
+  const phaseProgress = computePhaseProgress(stepsData);
+  const dashboardSvg = renderProgressDashboardSVG(context.startupName, phaseProgress);
+  parts.push("## Startup Progress Dashboard");
+  parts.push(`<!-- progress-dashboard-svg -->\n${dashboardSvg}\n<!-- /progress-dashboard-svg -->`);
+  parts.push("---");
+
+  // Phase-by-phase next steps with checklist
   if (current.length > 0) {
-    parts.push("## Your Next Phase: Step-by-Step");
+    parts.push("## Your Next Phase: Step-by-Step Action Plan");
     for (const phase of current) {
+      const completedStepIds = stepsData[phase.id] ?? [];
+      const checklistSvg = renderPhaseChecklistSVG(phase, completedStepIds, context.startupName);
       parts.push(`### Phase ${phase.order}: ${phase.title}`);
       parts.push(`*${phase.subtitle}* — Led by ${phase.leadAgent.toUpperCase()}, supported by ${phase.supportAgents.map(a => a.toUpperCase()).join(", ")}`);
+      parts.push(`<!-- phase-checklist-svg -->\n${checklistSvg}\n<!-- /phase-checklist-svg -->`);
       parts.push("**Key Questions to Answer:**");
       parts.push(phase.keyQuestions.map(q => `- ${q}`).join("\n"));
-      parts.push("**Deliverables:**");
-      parts.push(phase.deliverables.map(d => `- [ ] ${d}`).join("\n"));
+      parts.push("**Steps to Complete:**");
+      for (const step of phase.steps) {
+        const done = completedStepIds.includes(step.id);
+        parts.push(`- [${done ? "x" : " "}] **${step.title}** — ${step.description} *(Agent: ${step.agentHint.toUpperCase()})*`);
+      }
+    }
+    parts.push("---");
+  }
+
+  // Priority next actions across all phases
+  const nextActions = getNextActionableSteps(stepsData, 5);
+  if (nextActions.length > 0) {
+    parts.push("## Priority Next Actions");
+    parts.push("*These are your most impactful uncompleted steps, in order:*\n");
+    for (const { phase, step } of nextActions) {
+      parts.push(`1. **${step.title}** (Phase: ${phase.title}) — ${step.description} → Ask your ${step.agentHint.toUpperCase()} agent`);
     }
     parts.push("---");
   }
