@@ -33,12 +33,26 @@
       "task": "Reframe product copy/positioning across landing + dashboard + report as a 'Startup Navigation System', not a valuation/equity tool.",
       "priority": "medium",
       "collaboration": ["cpo"]
+    },
+    {
+      "agent": "cpo",
+      "task": "Redesign the SVI report (on-screen + PDF) to SCN order with a first-principles question opening each section (problem → Position hero → Next Best Action). Spec: .claude/goals/scn-report-firstprinciples-redesign.md. PDF: reuse ScoreGauge/MetricCard/InsightBox/ActionItem on cover + sections.",
+      "priority": "high",
+      "collaboration": ["cmo", "cro"]
+    },
+    {
+      "agent": "cro",
+      "task": "Add progressive CTAs + conversion to the report: each section ends with a contextual feature CTA; free report = teaser (Position + 1 action) that locks Direction+Capital depth behind login/credit unlock; end-CTA 'next 3 actions — log in to start'. No paid-ad spend.",
+      "priority": "high",
+      "collaboration": ["cmo", "cpo"]
     }
   ],
   "newFeatures": [
     "Startup Positioning Engine — Index + Stage + 'Top X% of AU startups' percentile hero",
     "Next Best Action navigation (Google Maps style) driven by the weakest SCN layer",
-    "SCN Validation panel for early-stage founders + Funding Readiness % gauge"
+    "SCN Validation panel for early-stage founders + Funding Readiness % gauge",
+    "SCN report + PDF redesign with first-principles questions leading founders into BlockID features",
+    "Progressive report CTAs + login/credit unlock to convert free readers (organic only, no paid ads)"
   ],
   "risksIdentified": [
     "Scope creep — keep each auto-improve change small and gated",
