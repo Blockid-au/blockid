@@ -88,7 +88,7 @@ export async function POST(request: Request) {
   }
 
   const today = new Date().toISOString().slice(0, 10);
-  const agents = ["coo", "cto", "cfo", "rnd", "ceo", "ir", "cmo"];
+  const agents = ["coo", "cto", "cfo", "cmo", "cro", "cdo", "ciso", "rnd"];
   const summaries: string[] = [];
 
   // Read each agent's report
