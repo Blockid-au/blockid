@@ -165,6 +165,33 @@ export function invalidateAIKeysCache(): void {
   dbKeysCache = null;
 }
 
+// ── Dynamic free-model lists (auto-refreshed daily) ───────────────────
+// /api/cron/refresh-models discovers the strongest currently-available FREE
+// models each day and writes them here, ranked. ai-client reads this at runtime
+// (cached 5 min) and falls back to the hardcoded defaults if the file is
+// missing/stale — so a bad refresh can never break the provider chain.
+export const FREE_MODELS_CONFIG = "/home/dovanlong/blockid.au/web/content/reports/ai-free-models.json";
+let modelCfgCache: { data: Record<string, string[]>; at: number } | null = null;
+
+function getDynamicModels(provider: string, fallback: string[]): string[] {
+  try {
+    const now = Date.now();
+    if (!modelCfgCache || now - modelCfgCache.at > 5 * 60 * 1000) {
+      const raw = fs.readFileSync(FREE_MODELS_CONFIG, "utf8");
+      modelCfgCache = { data: JSON.parse(raw), at: now };
+    }
+    const list = modelCfgCache.data?.[provider];
+    if (Array.isArray(list) && list.length > 0) {
+      // Use ONLY the top picks (keeps the chain short → far fewer 429 retries).
+      // The curated `fallback` is the safety net when no config file exists.
+      return list;
+    }
+  } catch {
+    /* no config yet → curated defaults */
+  }
+  return fallback;
+}
+
 // ── Budget tracking ($100/month cap) ───────────────────────────────────
 // Tracks estimated cost per provider per month. Persisted to disk so it
 // survives container restarts. When budget exceeded, provider is skipped.
@@ -574,12 +601,12 @@ async function callGroq(opts: AICallOptions): Promise<AICallResult> {
   // Groq models ranked by benchmark, all free tier:
   // gpt-oss-120b (A-tier ~44, 500t/s) > llama-3.3-70b (B-tier ~42, 280t/s)
   // > gpt-oss-20b (C-tier ~34, 1000t/s) > llama-3.1-8b (C-tier ~28, 560t/s)
-  const GROQ_MODELS = [
+  const GROQ_MODELS = getDynamicModels("groq", [
     "openai/gpt-oss-120b",       // A-tier: 117B MoE, best quality
     "llama-3.3-70b-versatile",    // B-tier: 70B, reliable general
     "openai/gpt-oss-20b",        // C-tier: 20B, fast
     "llama-3.1-8b-instant",       // C-tier: 8B, ultra-fast fallback
-  ];
+  ]);
 
   let lastErr: Error | null = null;
   for (const model of GROQ_MODELS) {
@@ -620,11 +647,11 @@ async function callCerebras(opts: AICallOptions): Promise<AICallResult> {
 
   // Cerebras models ranked by benchmark:
   // gpt-oss-120b (A-tier ~44) > llama-3.3-70b (B-tier ~42) > llama-3.1-8b (C-tier ~28)
-  const CEREBRAS_MODELS = [
+  const CEREBRAS_MODELS = getDynamicModels("cerebras", [
     "openai/gpt-oss-120b",    // A-tier: 117B MoE, best quality on Cerebras
     "llama-3.3-70b",           // B-tier: Llama 3.3 70B, reliable
     "llama-3.1-8b",            // C-tier: 8B fast fallback
-  ];
+  ]);
 
   let lastErr: Error | null = null;
   for (const model of CEREBRAS_MODELS) {
@@ -665,12 +692,12 @@ async function callSambaNova(opts: AICallOptions): Promise<AICallResult> {
 
   // SambaNova models ranked by benchmark intelligence score:
   // DeepSeek-V3 (score ~50) > Qwen2.5-72B (~46) > Llama-3.3-70B (~42) > Llama-3.1-8B (~28)
-  const SAMBANOVA_MODELS = [
+  const SAMBANOVA_MODELS = getDynamicModels("sambanova", [
     "DeepSeek-V3-0324",            // S-tier: DeepSeek V3, best open-source reasoning
     "Qwen2.5-72B-Instruct",        // A-tier: Qwen 2.5 72B, strong structured output
     "Meta-Llama-3.3-70B-Instruct",  // B-tier: Llama 3.3 70B, reliable general
     "Meta-Llama-3.1-8B-Instruct",   // C-tier: Llama 3.1 8B, fast fallback
-  ];
+  ]);
 
   let lastErr: Error | null = null;
   for (const model of SAMBANOVA_MODELS) {
@@ -710,7 +737,7 @@ async function callOpenRouter(opts: AICallOptions): Promise<AICallResult> {
   // Free models ranked by intelligence benchmark (May 2026).
   // S-tier (50+) → A-tier (42-50) → B-tier (35-42) → C-tier (<35)
   // Last updated: 2026-05-30 — 24 free models for maximum uptime.
-  const FREE_MODELS = [
+  const FREE_MODELS = getDynamicModels("openrouter", [
     // ── S-tier: Frontier-class free models (score 47-54) ────────────
     "moonshotai/kimi-k2.6:free",                          // 262K ctx, score ~54, Moonshot best
     "deepseek/deepseek-v4-flash:free",                    // 1M ctx, score ~47, MoE 284B reasoning
@@ -742,7 +769,7 @@ async function callOpenRouter(opts: AICallOptions): Promise<AICallResult> {
     "meta-llama/llama-3.2-3b-instruct:free",              // 131K ctx, Meta 3B ultra-fast
     "liquid/lfm-2.5-1.2b-thinking:free",                  // 33K ctx, Liquid 1.2B thinking
     "liquid/lfm-2.5-1.2b-instruct:free",                  // 33K ctx, Liquid 1.2B instruct
-  ];
+  ]);
 
   let lastErr: Error | null = null;
   for (const model of FREE_MODELS) {
