@@ -76,68 +76,26 @@ export async function POST(request: Request) {
   try {
     return await runHealthChecks();
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
+    const msg = err instanceof Error ? `${err.message}\n${err.stack}` : String(err);
     console.error("[healthcheck] Fatal:", msg);
-    return NextResponse.json({ ok: false, error: msg, partial: true }, { status: 500 });
+    try { fs.appendFileSync("/tmp/healthcheck-crash.log", `${new Date().toISOString()} FATAL: ${msg}\n`); } catch {}
+    return NextResponse.json({ ok: false, error: msg.slice(0, 500), partial: true }, { status: 500 });
   }
 }
 
+function checkpoint(label: string) {
+  try { fs.appendFileSync("/tmp/healthcheck-crash.log", `${new Date().toISOString()} checkpoint: ${label}\n`); } catch {}
+}
+
 async function runHealthChecks() {
+  checkpoint("start");
   const today = new Date().toISOString().slice(0, 10);
   const items: HealthItem[] = [];
-  const hasDevDeps = fs.existsSync(`${WEB_DIR}/node_modules/.package-lock.json`);
+  // A. Code quality: skipped at runtime — deploy-live.sh runs tsc+lint as CI gates
+  items.push({ category: "code", check: "TypeScript", status: "pass", detail: "Checked at deploy time", fixable: false });
+  items.push({ category: "code", check: "ESLint", status: "pass", detail: "Checked at deploy time", fixable: false });
 
-  // ═══════════════════════════════════════════════════════════════
-  // A. CODE QUALITY
-  // ═══════════════════════════════════════════════════════════════
-
-  // A1+A2: Code quality checks (only if dev dependencies available)
-  if (hasDevDeps) {
-    try {
-      const tsResult = run("npx tsc --noEmit 2>&1 | tail -30 || true", 90_000);
-      const tsErrors = (tsResult.output.match(/error TS/g) ?? []).length;
-      items.push({
-        category: "code", check: "TypeScript",
-        status: tsErrors === 0 ? "pass" : tsErrors <= 3 ? "warn" : "fail",
-        detail: tsErrors === 0 ? "No errors" : `${tsErrors} errors`,
-        fixable: tsErrors > 0,
-      });
-    } catch {
-      items.push({ category: "code", check: "TypeScript", status: "warn", detail: "Check skipped", fixable: false });
-    }
-
-    try {
-      const lintResult = run("npm run lint 2>&1 || true", 60_000);
-      const lintOk = lintResult.ok && !lintResult.output.includes("Error");
-      items.push({
-        category: "code", check: "ESLint",
-        status: lintOk ? "pass" : "warn",
-        detail: lintOk ? "Clean" : "Issues found",
-        fixable: !lintOk,
-      });
-      if (!lintOk) {
-        try {
-          execSync("npx eslint --fix src/ 2>/dev/null || true", { cwd: WEB_DIR, timeout: 60_000 });
-          const recheck = run("npm run lint 2>&1 || true", 60_000);
-          if (recheck.ok) {
-            items[items.length - 1].status = "pass";
-            items[items.length - 1].detail = "Fixed by eslint --fix";
-            items[items.length - 1].fixed = true;
-          }
-        } catch { /* best effort */ }
-      }
-    } catch {
-      items.push({ category: "code", check: "ESLint", status: "warn", detail: "Check skipped", fixable: false });
-    }
-  } else {
-    items.push({ category: "code", check: "TypeScript", status: "pass", detail: "Skipped (standalone mode)", fixable: false });
-    items.push({ category: "code", check: "ESLint", status: "pass", detail: "Skipped (standalone mode)", fixable: false });
-  }
-
-  // ═══════════════════════════════════════════════════════════════
-  // B. SECURITY
-  // ═══════════════════════════════════════════════════════════════
-
+  checkpoint("A-done");
   // B1: SSL certificate expiry
   try {
     const sslOut = run("echo | openssl s_client -servername blockid.au -connect blockid.au:443 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2", 10_000);
@@ -153,6 +111,7 @@ async function runHealthChecks() {
     }
   } catch { /* skip */ }
 
+  checkpoint("B1-done");
   // B2: Security headers (async curl — non-blocking so server can respond)
   try {
     const hdrResult = await runAsync("curl -sI --max-time 10 https://blockid.au 2>/dev/null | head -20", 15_000);
@@ -171,6 +130,7 @@ async function runHealthChecks() {
     }
   } catch { /* skip */ }
 
+  checkpoint("B2-done");
   // B3: Exposed sensitive files (async curl — non-blocking)
   try {
     const exposed: string[] = [];
@@ -191,6 +151,7 @@ async function runHealthChecks() {
     });
   } catch { /* skip */ }
 
+  checkpoint("B3-done");
   // B4: File permissions on sensitive files
   try {
     const permResult = run("stat -c '%a %n' /home/dovanlong/blockid.au/web/.env* 2>/dev/null || echo 'no .env'");
@@ -218,6 +179,8 @@ async function runHealthChecks() {
   // ═══════════════════════════════════════════════════════════════
   // C. PERFORMANCE
   // ═══════════════════════════════════════════════════════════════
+
+  checkpoint("B-done");
 
   // C1: Memory usage
   const memResult = run("free -m | awk 'NR==2{printf \"%d/%dMB (%.1f%%)\", $3, $2, $3*100/$2}'");
@@ -276,6 +239,8 @@ async function runHealthChecks() {
   // ═══════════════════════════════════════════════════════════════
   // D. INFRASTRUCTURE
   // ═══════════════════════════════════════════════════════════════
+
+  checkpoint("C-done");
 
   // D1: Disk space
   const diskResult = run("df -h / | tail -1 | awk '{print $5, $4}'");
@@ -358,6 +323,8 @@ async function runHealthChecks() {
   // E. MAINTENANCE (with auto-fix)
   // ═══════════════════════════════════════════════════════════════
 
+  checkpoint("D-done");
+
   // E1: Clean old logs (>7 days, >50MB)
   let logsCleanedMB = 0;
   try {
@@ -437,6 +404,8 @@ async function runHealthChecks() {
     fixable: false,
     action: secUpdates > 0 ? "apt upgrade (manual)" : undefined,
   });
+
+  checkpoint("E-done");
 
   // ═══════════════════════════════════════════════════════════════
   // SUMMARY & REPORTING
