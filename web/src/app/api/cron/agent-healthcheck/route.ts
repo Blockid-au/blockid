@@ -11,7 +11,7 @@
 // Reports: saves .md report, sends Telegram (always), email to admin (daily digest)
 
 import { NextResponse } from "next/server";
-import { execSync } from "child_process";
+import { execSync, exec } from "child_process";
 import * as fs from "fs";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendTelegram, mdEscape } from "@/lib/telegram";
@@ -44,6 +44,18 @@ function run(cmd: string, timeout = 30_000): { ok: boolean; output: string } {
     const raw = err instanceof Error ? (err as { stdout?: string }).stdout ?? err.message : String(err);
     return { ok: false, output: (typeof raw === "string" ? raw : String(raw)).slice(0, 500) };
   }
+}
+
+function runAsync(cmd: string, timeout = 30_000): Promise<{ ok: boolean; output: string }> {
+  return new Promise((resolve) => {
+    exec(cmd, { cwd: WEB_DIR, timeout }, (error, stdout) => {
+      if (error) {
+        resolve({ ok: false, output: (stdout || error.message || "").slice(0, 500).trim() });
+      } else {
+        resolve({ ok: true, output: (stdout || "").trim() });
+      }
+    });
+  });
 }
 
 function parseMB(str: string): number {
@@ -141,9 +153,9 @@ async function runHealthChecks() {
     }
   } catch { /* skip */ }
 
-  // B2: Security headers (via curl to avoid self-deadlock)
+  // B2: Security headers (async curl — non-blocking so server can respond)
   try {
-    const hdrResult = run("curl -sI --max-time 10 https://blockid.au 2>/dev/null | head -20", 15_000);
+    const hdrResult = await runAsync("curl -sI --max-time 10 https://blockid.au 2>/dev/null | head -20", 15_000);
     if (hdrResult.ok) {
       const hdr = hdrResult.output.toLowerCase();
       const missing: string[] = [];
@@ -159,12 +171,17 @@ async function runHealthChecks() {
     }
   } catch { /* skip */ }
 
-  // B3: Exposed sensitive files (via curl)
+  // B3: Exposed sensitive files (async curl — non-blocking)
   try {
     const exposed: string[] = [];
-    for (const f of [".env", ".env.local", "dump.rdb"]) {
-      const r = run(`curl -s -o /dev/null -w '%{http_code}' --max-time 5 https://blockid.au/${f} 2>/dev/null`, 8_000);
-      if (r.output.trim() === "200") exposed.push(f);
+    const fileChecks = await Promise.all(
+      [".env", ".env.local", "dump.rdb"].map(f =>
+        runAsync(`curl -s -o /dev/null -w '%{http_code}' --max-time 5 https://blockid.au/${f} 2>/dev/null`, 8_000)
+          .then(r => ({ file: f, code: r.output.trim() }))
+      )
+    );
+    for (const { file, code } of fileChecks) {
+      if (code === "200") exposed.push(file);
     }
     items.push({
       category: "security", check: "Exposed Files",
@@ -223,12 +240,14 @@ async function runHealthChecks() {
     fixable: false,
   });
 
-  // C3: Production response time (via curl to avoid self-deadlock)
+  // C3: Production response time (async curl — non-blocking so server can respond)
   try {
-    const rtResult = run("curl -s -o /dev/null -w '%{http_code} %{time_total}' --max-time 10 https://blockid.au/api/healthz 2>/dev/null", 15_000);
-    const [httpCode, timeStr] = rtResult.output.split(" ");
-    const elapsed = Math.round(parseFloat(timeStr || "0") * 1000);
-    const code = parseInt(httpCode || "0", 10);
+    const rtResult = await runAsync("curl -s -o /dev/null -w '%{http_code} %{time_total}' --max-time 10 https://blockid.au/api/healthz 2>/dev/null", 15_000);
+    const parts = rtResult.output.split(" ");
+    const httpCode = parts[0] || "0";
+    const timeStr = parts[1] || "0";
+    const elapsed = Math.round(parseFloat(timeStr) * 1000);
+    const code = parseInt(httpCode, 10);
     items.push({
       category: "performance", check: "Response Time",
       status: code === 200 && elapsed < 2000 ? "pass" : elapsed < 5000 ? "warn" : "fail",
