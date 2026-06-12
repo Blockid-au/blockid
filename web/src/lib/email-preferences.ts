@@ -212,6 +212,64 @@ export async function getPreferencesByToken(
   return data as EmailPreferences | null;
 }
 
+// ---- Daily email cap — max 1 marketing email per user per day ---------------
+// Prevents over-emailing. Transactional emails (payment_receipts) are exempt.
+
+export async function canSendMarketingToday(email: string): Promise<boolean> {
+  const sb = getSupabaseAdmin();
+  if (!sb) return true;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const { count } = await sb
+    .from("svi_notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("email", email.toLowerCase().trim())
+    .gte("created_at", `${today}T00:00:00Z`)
+    .in("notification_type", [
+      "nurture_free_d2", "nurture_free_d4", "nurture_free_d7",
+      "nurture_paid_d1", "nurture_paid_d3", "nurture_paid_d7",
+      "first_report_24h", "evidence_score_boost", "unlock_deeper",
+      "weekly_summary", "weekly_insights", "weekly_digest", "weekly_action",
+      "reengage_30d", "reengage_60d", "reengage_90d", "low_credit",
+    ]);
+
+  return (count ?? 0) < 1;
+}
+
+// ---- Pre-send checklist (call before ANY automated email) -------------------
+// Returns { ok, reason } — only send if ok === true.
+
+export async function emailSendChecklist(
+  email: string,
+  category: EmailCategory,
+  notificationType?: string,
+): Promise<{ ok: boolean; reason?: string }> {
+  // 1. Preference check
+  const allowed = await canSendEmail(email, category);
+  if (!allowed) return { ok: false, reason: "user_unsubscribed" };
+
+  // 2. Daily cap (skip for transactional)
+  if (category !== "payment_receipts") {
+    const canToday = await canSendMarketingToday(email);
+    if (!canToday) return { ok: false, reason: "daily_cap_reached" };
+  }
+
+  // 3. Dedup check (if notification type provided)
+  if (notificationType) {
+    const sb = getSupabaseAdmin();
+    if (sb) {
+      const { count } = await sb
+        .from("svi_notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("email", email.toLowerCase().trim())
+        .eq("notification_type", notificationType);
+      if ((count ?? 0) > 0) return { ok: false, reason: "already_sent" };
+    }
+  }
+
+  return { ok: true };
+}
+
 // ---- Get unsubscribe URL for embedding in emails ---------------------------
 
 export function getUnsubscribeUrl(

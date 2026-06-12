@@ -1,82 +1,108 @@
-# BlockID.au Production Cron Schedule
-# ====================================
-# All times in UTC. Server is in UTC, users in AEST (UTC+10).
-# AI tasks run off-peak: 10pm-6am AEST = 12pm-8pm UTC (previous day)
-#
-# RATE LIMIT MANAGEMENT:
-#   - Claude CLI OAuth: ~50 req/hr (subscription, no cost)
-#   - Gemini Flash: 15 RPM free tier
-#   - Groq: 30 RPM free tier
-#   - Agent-upgrade has 60s delay between AI tasks
-#   - Max 3 AI tasks per agent-upgrade run
-#   - Total AI requests/day: ~3-5 (well within limits)
-#
-# CRON_SECRET must be set in environment
+# BlockID.au — Production Cron Schedule (Single Source of Truth)
+# ======================================
+# All times in UTC. Server in UTC, users in AEST (UTC+10).
 # Install: crontab scripts/crontab.production
+#
+# IMPORTANT: Edit THIS file, then apply with:
+#   crontab /home/dovanlong/blockid.au/web/scripts/crontab.production
 
 CRON_SECRET=4b76f13574efd401640cb5dce996f01aa8b8169c02cb1b1949ceb6354ee15f32
 BASE=https://blockid.au/api/cron
 
-# ─── Every 5 minutes ──────────────────────────────────────────────
-# Blockchain sync (no AI, just DB queue processing)
-*/5 * * * * curl -s -X POST "$BASE/blockchain-sync" -H "Authorization: Bearer $CRON_SECRET" > /dev/null 2>&1
+# ═══════════════════════════════════════════════════════════════════
+# SYSTEM (no AI, infrastructure only)
+# ═══════════════════════════════════════════════════════════════════
 
-# ─── Every 3 hours ────────────────────────────────────────────────
-# AI health check (no AI calls, just checks provider availability)
+# Watchdog — auto-restart if production is dead
+*/2 * * * * /home/dovanlong/blockid.au/web/scripts/watchdog.sh
+
+# Cloudflare DDNS — keep DNS pointing to this server
+*/5 * * * * /usr/local/bin/cloudflare-ddns-update.sh >> /var/log/cloudflare-ddns.log 2>&1
+
+# AI token guardian — refresh Claude OAuth + provider keys
+*/30 * * * * /home/dovanlong/blockid.au/web/scripts/ai-token-guardian.sh >> /tmp/ai-guardian.log 2>&1
+
+# Token refresh — OAuth tokens (Google, GitHub, etc.)
+0 */4 * * * /home/dovanlong/blockid.au/scripts/refresh-tokens.sh >> /tmp/blockid-token-refresh.log 2>&1
+
+# Blockchain sync — process DB queue (no AI)
+*/15 * * * * curl -s -X POST "$BASE/blockchain-sync" -H "Authorization: Bearer $CRON_SECRET" > /dev/null 2>&1
+
+# AI health check — test provider availability (no AI calls)
 0 */3 * * * curl -s -X POST "$BASE/ai-health" -H "Authorization: Bearer $CRON_SECRET" > /dev/null 2>&1
 
-# ─── Daily at 2am AEST (4pm UTC previous day) ────────────────────
-# SVI snapshot (no AI — DB aggregation only)
+# ═══════════════════════════════════════════════════════════════════
+# DAILY — 2am-9:30am AEST (4pm-11:30pm UTC) — off-peak window
+# ═══════════════════════════════════════════════════════════════════
+
+# 2:00am AEST — SVI snapshot (DB aggregation, no AI)
 0 16 * * * curl -s -X POST "$BASE/svi-snapshot" -H "Authorization: Bearer $CRON_SECRET" > /dev/null 2>&1
 
-# SVI notifications (no AI — checks score changes, sends alerts)
+# 2:05am AEST — SVI notifications (check score changes)
 5 16 * * * curl -s -X POST "$BASE/svi-notify" -H "Authorization: Bearer $CRON_SECRET" > /dev/null 2>&1
 
-# Nurture emails (no AI — template-based email sequences)
+# 2:10am AEST — Nurture emails (template-based sequences)
 10 16 * * * curl -s -X POST "$BASE/nurture" -H "Authorization: Bearer $CRON_SECRET" > /dev/null 2>&1
 
-# Vesting schedule processing (no AI — monthly vesting computation)
+# 2:15am AEST — Vesting schedule processing
 15 16 * * * curl -s -X POST "$BASE/vesting" -H "Authorization: Bearer $CRON_SECRET" > /dev/null 2>&1
 
-# ─── Daily at 3am AEST (5pm UTC) — Agent upgrade (staggered AI) ──
-# Contains 13 tasks. Non-AI tasks run instantly.
-# AI tasks (3 max) have 60s gap between them = ~3 min total.
-# Off-peak check ensures no user-facing AI impact.
+# 3:00am AEST — Agent upgrade (AI: max 3 calls with 60s gaps)
 0 17 * * * curl -s -X POST "$BASE/agent-upgrade" -H "Authorization: Bearer $CRON_SECRET" > /dev/null 2>&1
 
-# ─── Daily at 4am AEST (6pm UTC) ─────────────────────────────────
-# Growth insights (may use AI for recommendations — 1 call max)
+# 4:00am AEST — Growth insights (AI: 0-1 call)
 0 18 * * * curl -s -X POST "$BASE/growth-insights" -H "Authorization: Bearer $CRON_SECRET" > /dev/null 2>&1
 
-# ─── Daily at 5am AEST (7pm UTC) ─────────────────────────────────
-# SVI review (no AI — quality checks on recent analyses)
+# 5:00am AEST — SVI review (quality checks, no AI)
 0 19 * * * curl -s -X POST "$BASE/svi-review" -H "Authorization: Bearer $CRON_SECRET" > /dev/null 2>&1
 
-# ─── Weekly Monday 6am AEST (8pm UTC Sunday) ─────────────────────
-# Weekly insights report (may use AI — 1 call max)
-0 20 * * 0 curl -s -X POST "$BASE/weekly-insights" -H "Authorization: Bearer $CRON_SECRET" > /dev/null 2>&1
+# 6:00am AEST — Agent research (AI: staggered, budget-aware)
+0 20 * * * curl -s -X POST "$BASE/agent-research" -H "Authorization: Bearer $CRON_SECRET" > /dev/null 2>&1
 
-# ─── Publish insight articles (no AI — publishes scheduled content)
-# Daily at 7am AEST (9pm UTC) — good time for AU audience
+# 7:00am AEST — Publish insight articles (no AI)
 0 21 * * * curl -s -X POST "$BASE/publish-insight" -H "Authorization: Bearer $CRON_SECRET" > /dev/null 2>&1
 
-# ====================================
-# RATE LIMIT SUMMARY:
-# ────────────────────────────────────
-# Time (AEST)  | Cron Job              | AI Calls
-# ────────────────────────────────────
-# 2:00am       | svi-snapshot          | 0
-# 2:05am       | svi-notify            | 0
-# 2:10am       | nurture               | 0
-# 2:15am       | vesting               | 0
-# 3:00am       | agent-upgrade         | 3 max (60s gaps)
-# 4:00am       | growth-insights       | 0-1
-# 5:00am       | svi-review            | 0
-# 6:00am (Mon) | weekly-insights       | 0-1
-# 7:00am       | publish-insight       | 0
-# Every 3h     | ai-health             | 0
-# Every 5m     | blockchain-sync       | 0
-# ────────────────────────────────────
-# Total AI calls/day: 3-5 (well within 50/hr limit)
-# Peak AI window: 3:00-3:05am AEST (3 calls with 60s gaps)
-# User-facing AI: unaffected (separate request pool)
+# 7:05am AEST — Refresh free AI models (discover top-5 per provider)
+5 21 * * * curl -s -X POST "$BASE/refresh-models" -H "Authorization: Bearer $CRON_SECRET" > /dev/null 2>&1
+
+# 8:00am AEST — Daily admin report (Telegram + email summary)
+0 22 * * * curl -s -X POST "$BASE/daily-admin-report" -H "Authorization: Bearer $CRON_SECRET" > /dev/null 2>&1
+
+# 9:30am AEST — Telegram daily report (C-Level agents + prod health)
+30 23 * * * curl -s -X POST "$BASE/telegram-report" -H "Authorization: Bearer $CRON_SECRET" > /dev/null 2>&1
+
+# ═══════════════════════════════════════════════════════════════════
+# WEEKLY — Sunday only
+# ═══════════════════════════════════════════════════════════════════
+
+# 6:30am AEST Sunday — Weekly insights email (AI: 0-1 call per user, max 10)
+30 20 * * 0 curl -s -X POST "$BASE/weekly-insights" -H "Authorization: Bearer $CRON_SECRET" > /dev/null 2>&1
+
+# ═══════════════════════════════════════════════════════════════════
+# SCHEDULE SUMMARY (18 routines)
+# ═══════════════════════════════════════════════════════════════════
+#
+# Time (AEST)     | Job                | AI  | Freq
+# ────────────────┼────────────────────┼─────┼──────────
+# Every 2m        | watchdog           | 0   | always
+# Every 5m        | cloudflare-ddns    | 0   | always
+# Every 15m       | blockchain-sync    | 0   | always
+# Every 30m       | ai-token-guardian  | 0   | always
+# Every 3h        | ai-health          | 0   | always
+# Every 4h        | token-refresh      | 0   | always
+# 2:00am          | svi-snapshot       | 0   | daily
+# 2:05am          | svi-notify         | 0   | daily
+# 2:10am          | nurture            | 0   | daily
+# 2:15am          | vesting            | 0   | daily
+# 3:00am          | agent-upgrade      | 3   | daily
+# 4:00am          | growth-insights    | 0-1 | daily
+# 5:00am          | svi-review         | 0   | daily
+# 6:00am          | agent-research     | 1-3 | daily
+# 6:30am (Sun)    | weekly-insights    | 0-1 | weekly
+# 7:00am          | publish-insight    | 0   | daily
+# 7:05am          | refresh-models     | 0   | daily
+# 8:00am          | daily-admin-report | 0-1 | daily
+# 9:30am          | telegram-report    | 0   | daily
+# ────────────────┼────────────────────┼─────┼──────────
+# Total AI/day: 4-8 calls (well within 50/hr limit)
+# Peak AI: 3:00-6:00am AEST (off-peak, no user impact)

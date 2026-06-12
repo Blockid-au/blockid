@@ -229,3 +229,5 @@ Write the full article in markdown. Make it genuinely helpful, visually rich wit
     );
   }
 }
+
+export { GET as POST };
