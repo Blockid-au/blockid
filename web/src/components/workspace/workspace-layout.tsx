@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity, Banknote, BarChart3, Bell, BookOpen, Briefcase, Calendar, ChevronLeft, ChevronRight, CreditCard, DollarSign, DoorOpen, ExternalLink, FileText, FolderCheck, FolderOpen, Gift, Home,
-  LayoutDashboard, Link2, Map, PieChart, Shield, Table2, TrendingUp, User, Users, Wand2, Wallet, Zap,
+  LayoutDashboard, Link2, Map, PieChart, Shield, Table2, Target, TrendingUp, User, Users, Wand2, Wallet, Zap,
   type LucideIcon,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
@@ -109,6 +109,7 @@ const ADMIN_NAV_GROUP: NavGroup = {
   label: "Admin",
   items: [
     { href: "/admin", label: "Admin Panel", icon: Shield },
+    { href: "/admin/goals", label: "CEO Goals", icon: Target },
     { href: "/admin/listings", label: "Listings", icon: ExternalLink },
   ],
 };
