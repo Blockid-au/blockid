@@ -192,6 +192,35 @@ function getDynamicModels(provider: string, fallback: string[]): string[] {
   return fallback;
 }
 
+// ── Per-model failure cooldown ────────────────────────────────────────
+// When a specific free model returns 429 (rate-limited / out of credit) or 404
+// (removed / no endpoints), skip it for a while instead of hammering it. This
+// is what keeps the chain from spamming 429s and retrying dead models between
+// daily refreshes — and lets the next model in the list answer immediately.
+const modelCooldownUntil = new Map<string, number>();
+
+function modelReady(model: string): boolean {
+  return Date.now() >= (modelCooldownUntil.get(model) ?? 0);
+}
+
+/** Order a model list with cooled-down models dropped; if ALL are cooling,
+ *  return the full list so we still attempt (degraded) rather than give up. */
+function readyModels(models: string[]): string[] {
+  const ready = models.filter(modelReady);
+  return ready.length > 0 ? ready : models;
+}
+
+function coolDownModel(model: string, errMsg: string): void {
+  const m = errMsg.toLowerCase();
+  let ms = 90_000; // default 90s for transient errors
+  if (/not found|no endpoints|no allowed providers|invalid model|\b404\b|does not exist|unsupported model/.test(m)) {
+    ms = 60 * 60_000; // model gone → 1h (next daily refresh usually drops it)
+  } else if (/rate.?limit|\b429\b|quota|temporarily|too many requests|capacity/.test(m)) {
+    ms = 5 * 60_000; // out of credit / rate-limited → 5 min
+  }
+  modelCooldownUntil.set(model, Date.now() + ms);
+}
+
 // ── Budget tracking ($100/month cap) ───────────────────────────────────
 // Tracks estimated cost per provider per month. Persisted to disk so it
 // survives container restarts. When budget exceeded, provider is skipped.
@@ -609,7 +638,7 @@ async function callGroq(opts: AICallOptions): Promise<AICallResult> {
   ]);
 
   let lastErr: Error | null = null;
-  for (const model of GROQ_MODELS) {
+  for (const model of readyModels(GROQ_MODELS)) {
     try {
       const raw = await workerFetch("https://api.groq.com/openai/v1/chat/completions", {
         "Authorization": `Bearer ${apiKey}`,
@@ -631,6 +660,7 @@ async function callGroq(opts: AICallOptions): Promise<AICallResult> {
       return { text, provider: "groq", model };
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
+      coolDownModel(model, lastErr.message);
       console.warn(`[ai-client] Groq ${model} failed: ${lastErr.message}`);
     }
   }
@@ -654,7 +684,7 @@ async function callCerebras(opts: AICallOptions): Promise<AICallResult> {
   ]);
 
   let lastErr: Error | null = null;
-  for (const model of CEREBRAS_MODELS) {
+  for (const model of readyModels(CEREBRAS_MODELS)) {
     try {
       const raw = await workerFetch("https://api.cerebras.ai/v1/chat/completions", {
         "Authorization": `Bearer ${apiKey}`,
@@ -676,6 +706,7 @@ async function callCerebras(opts: AICallOptions): Promise<AICallResult> {
       return { text, provider: "groq" as const, model }; // reuse "groq" provider type for compat
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
+      coolDownModel(model, lastErr.message);
       console.warn(`[ai-client] Cerebras ${model} failed: ${lastErr.message}`);
     }
   }
@@ -700,7 +731,7 @@ async function callSambaNova(opts: AICallOptions): Promise<AICallResult> {
   ]);
 
   let lastErr: Error | null = null;
-  for (const model of SAMBANOVA_MODELS) {
+  for (const model of readyModels(SAMBANOVA_MODELS)) {
     try {
       const raw = await workerFetch("https://api.sambanova.ai/v1/chat/completions", {
         "Authorization": `Bearer ${apiKey}`,
@@ -722,6 +753,7 @@ async function callSambaNova(opts: AICallOptions): Promise<AICallResult> {
       return { text, provider: "groq" as const, model }; // reuse "groq" provider type for compat
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
+      coolDownModel(model, lastErr.message);
       console.warn(`[ai-client] SambaNova ${model} failed: ${lastErr.message}`);
     }
   }
@@ -772,7 +804,7 @@ async function callOpenRouter(opts: AICallOptions): Promise<AICallResult> {
   ]);
 
   let lastErr: Error | null = null;
-  for (const model of FREE_MODELS) {
+  for (const model of readyModels(FREE_MODELS)) {
     try {
       const raw = await workerFetch("https://openrouter.ai/api/v1/chat/completions", {
         "Authorization": `Bearer ${apiKey}`,
@@ -795,6 +827,7 @@ async function callOpenRouter(opts: AICallOptions): Promise<AICallResult> {
       return { text, provider: "openrouter", model };
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
+      coolDownModel(model, lastErr.message);
       console.warn(`[ai-client] OpenRouter ${model} failed: ${lastErr.message}`);
     }
   }
