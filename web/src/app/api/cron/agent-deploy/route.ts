@@ -16,6 +16,7 @@ import { execSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import { sendTelegram, mdEscape } from "@/lib/telegram";
+import { callAIForUpgrade } from "@/lib/ai-client";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // 5 min for build
@@ -23,6 +24,119 @@ export const maxDuration = 300; // 5 min for build
 // process.cwd() in standalone = .next/standalone/, not the web/ source dir
 const WEB_DIR = process.env.BLOCKID_WEB_DIR ?? "/home/dovanlong/blockid.au/web";
 const CRON_SECRET = process.env.CRON_SECRET;
+
+// ── Autofix CI Agent ────────────────────────────────────────────────────
+// Runs tsc + lint. If either fails, asks AI to fix the code and retries once.
+
+async function runCIWithAutofix(
+  files: { path: string; content: string; action: "write" | "delete" }[],
+  results: string[],
+): Promise<{ passed: boolean; error?: string }> {
+  const MAX_RETRIES = 1;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    // TypeScript check
+    try {
+      const tsOutput = execSync("npx tsc --noEmit 2>&1 || true", {
+        cwd: WEB_DIR, timeout: 60_000, encoding: "utf8",
+      });
+      const tsErrors = (tsOutput.match(/error TS/g) ?? []).length;
+      if (tsErrors > 0) {
+        if (attempt < MAX_RETRIES) {
+          results.push(`Gate: TypeScript ❌ (${tsErrors} errors) → autofix attempt`);
+          const fixed = await autofixErrors("typescript", tsOutput, files);
+          if (!fixed) return { passed: false, error: `TypeScript: ${tsErrors} errors (autofix failed)` };
+          results.push("Autofix: applied TypeScript fixes");
+          continue;
+        }
+        return { passed: false, error: `TypeScript: ${tsErrors} errors after autofix` };
+      }
+      results.push("Gate: TypeScript ✅");
+    } catch (err) {
+      return { passed: false, error: `TypeScript check crashed: ${err instanceof Error ? err.message : String(err)}` };
+    }
+
+    // ESLint check
+    try {
+      execSync("npm run lint 2>&1", { cwd: WEB_DIR, timeout: 60_000 });
+      results.push("Gate: ESLint ✅");
+    } catch (lintErr) {
+      if (attempt < MAX_RETRIES) {
+        // Try eslint --fix first
+        try {
+          const fixPaths = files.filter(f => f.path.startsWith("src/")).map(f => f.path).join(" ");
+          if (fixPaths) {
+            execSync(`npx eslint --fix ${fixPaths} 2>/dev/null || true`, { cwd: WEB_DIR, timeout: 30_000 });
+          }
+          // Re-check
+          execSync("npm run lint 2>&1", { cwd: WEB_DIR, timeout: 60_000 });
+          results.push("Gate: ESLint ✅ (after --fix)");
+        } catch {
+          const lintOutput = lintErr instanceof Error ? lintErr.message : String(lintErr);
+          results.push("Gate: ESLint ❌ → autofix attempt");
+          const fixed = await autofixErrors("eslint", lintOutput.slice(0, 1500), files);
+          if (!fixed) return { passed: false, error: "ESLint failed (autofix failed)" };
+          results.push("Autofix: applied ESLint fixes");
+          continue;
+        }
+      } else {
+        return { passed: false, error: "ESLint failed after autofix" };
+      }
+    }
+
+    return { passed: true };
+  }
+
+  return { passed: false, error: "CI failed after all retries" };
+}
+
+async function autofixErrors(
+  errorType: "typescript" | "eslint",
+  errorOutput: string,
+  files: { path: string; content: string; action: "write" | "delete" }[],
+): Promise<boolean> {
+  // Read the files that were modified
+  const fileContents = files
+    .filter(f => f.action === "write" && f.path.startsWith("src/"))
+    .map(f => {
+      try {
+        const content = fs.readFileSync(path.join(WEB_DIR, f.path), "utf8");
+        return `--- ${f.path} ---\n${content}`;
+      } catch { return ""; }
+    })
+    .filter(Boolean)
+    .join("\n\n");
+
+  if (!fileContents) return false;
+
+  const result = await callAIForUpgrade({
+    system: `You are an expert TypeScript developer. Fix the ${errorType} errors in the code below. Return ONLY the fixed file content, no explanations. If multiple files need fixing, separate them with "--- filepath ---" headers.`,
+    user: `Errors:\n${errorOutput.slice(0, 1000)}\n\nFiles:\n${fileContents.slice(0, 4000)}`,
+    maxTokens: 3000,
+  });
+
+  if (!result?.text) return false;
+
+  // Parse fixed files and write them back
+  const fixedText = result.text;
+  for (const f of files) {
+    if (f.action !== "write" || !f.path.startsWith("src/")) continue;
+    const marker = `--- ${f.path} ---`;
+    const idx = fixedText.indexOf(marker);
+    if (idx >= 0) {
+      const start = idx + marker.length;
+      const nextMarker = fixedText.indexOf("--- ", start + 1);
+      let content = nextMarker > 0 ? fixedText.slice(start, nextMarker) : fixedText.slice(start);
+      // Strip markdown fences
+      content = content.replace(/^```(?:typescript|ts)?\s*\n/m, "").replace(/\n```\s*$/m, "").trim();
+      if (content.length > 50) {
+        fs.writeFileSync(path.join(WEB_DIR, f.path), content + "\n", "utf8");
+      }
+    }
+  }
+
+  return true;
+}
 
 export async function POST(request: Request) {
   // Auth check
@@ -100,32 +214,16 @@ export async function POST(request: Request) {
     const hasSourceChanges = files.some(f => f.path.startsWith("src/"));
 
     if (hasSourceChanges) {
-      // Step 3: TypeScript check (only for source changes)
-      try {
-        const tsOutput = execSync("npx tsc --noEmit 2>&1 | grep -c 'error TS' || echo 0", {
-          cwd: WEB_DIR, timeout: 60_000, encoding: "utf8",
-        }).trim();
-        const tsErrors = parseInt(tsOutput, 10);
-        if (tsErrors > 0) {
-          throw new Error(`TypeScript: ${tsErrors} errors`);
-        }
-        results.push("Gate: TypeScript ✅");
-      } catch (err) {
-        throw new Error(`TypeScript check failed: ${err instanceof Error ? err.message : String(err)}`);
-      }
-
-      // Step 4: Lint check
-      try {
-        execSync("npm run lint 2>&1", { cwd: WEB_DIR, timeout: 60_000 });
-        results.push("Gate: ESLint ✅");
-      } catch {
-        throw new Error("ESLint check failed");
+      // Step 3+4: CI Gates — TypeScript + ESLint with autofix retry
+      const ciResult = await runCIWithAutofix(files, results);
+      if (!ciResult.passed) {
+        throw new Error(ciResult.error ?? "CI gates failed after autofix attempt");
       }
     } else {
       results.push("Skip CI gates (content-only patch)");
     }
 
-    // Step 5: Git commit on branch
+    // Step 5: Git commit + push to GitHub
     try {
       const branch = `agent/${agent}-${new Date().toISOString().slice(0, 10)}`;
       const filePaths = files.map(f => f.path).join(" ");
@@ -135,8 +233,15 @@ export async function POST(request: Request) {
       execSync("git checkout master", { cwd: WEB_DIR });
       execSync(`git merge ${branch} --no-edit`, { cwd: WEB_DIR });
       results.push(`Git: committed + merged to master`);
+
+      // Push to GitHub (non-blocking — deploy still succeeds if push fails)
+      try {
+        execSync("git push github master 2>&1", { cwd: WEB_DIR, timeout: 30_000 });
+        results.push("GitHub: pushed ✅");
+      } catch {
+        results.push("GitHub: push failed (will sync next time)");
+      }
     } catch (err) {
-      // Git commit optional — don't fail the deploy
       results.push(`Git: skipped (${err instanceof Error ? err.message.slice(0, 50) : "error"})`);
       try { execSync("git checkout master 2>/dev/null", { cwd: WEB_DIR }); } catch { /* ignore */ }
     }

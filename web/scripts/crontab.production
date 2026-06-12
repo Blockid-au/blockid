@@ -36,44 +36,61 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # AI health check — test provider availability (no AI calls)
 0 */3 * * * bash $RUN ai-health
 
+# Git Sync — pull from GitHub + push local commits + deploy if new
+# Runs every 30 min to catch manual GitHub pushes or external PRs
+*/30 * * * * /home/dovanlong/blockid.au/web/scripts/git-sync-deploy.sh
+
 # ═══════════════════════════════════════════════════════════════════
-# DAILY — 2am-9:30am AEST (4pm-11:30pm UTC) — off-peak window
+# DAILY PIPELINE — 2am-9:30am AEST (4pm-11:30pm UTC)
+#
+# Flow: Data → Health → Research → Improve → Deploy → Report
 # ═══════════════════════════════════════════════════════════════════
 
-# 2:00am AEST — SVI snapshot (DB aggregation, no AI)
+# ── Phase 1: Data Collection (2:00-2:30am AEST) ─────────────────
+# SVI snapshot — save daily SVI + index values for all accounts
 0 16 * * * bash $RUN svi-snapshot
 
-# 2:05am AEST — SVI notifications (lifecycle check)
+# SVI notifications — lifecycle milestone check
 5 16 * * * bash $RUN svi-notify
 
-# 2:10am AEST — Nurture (disabled — lifecycle emails only)
+# Nurture (disabled — lifecycle emails only via weekly-insights)
 10 16 * * * bash $RUN nurture
 
-# 2:15am AEST — Vesting schedule processing
+# Vesting schedule processing
 15 16 * * * bash $RUN vesting
 
-# 3:00am AEST — Agent upgrade (AI: max 3 calls with 60s gaps)
+# ── Phase 2: Agent Health & Metrics (3:00am AEST) ───────────────
+# Agent upgrade — health checks, metrics collection, daily reports
 0 17 * * * bash $RUN agent-upgrade --timeout 120
 
-# 4:00am AEST — Growth insights (AI: 0-1 call)
+# ── Phase 3: Intelligence Gathering (4:00-6:00am AEST) ──────────
+# Growth insights — analyze growth patterns
 0 18 * * * bash $RUN growth-insights --timeout 120
 
-# 5:00am AEST — SVI review (quality checks, no AI)
+# SVI review — quality checks on analyses
 0 19 * * * bash $RUN svi-review
 
-# 6:00am AEST — Agent research (AI: staggered, budget-aware)
+# Agent research — C-Level agents gather fresh knowledge (AI)
 0 20 * * * bash $RUN agent-research --timeout 300
 
-# 7:00am AEST — Publish insight articles (AI: content generation)
-0 21 * * * bash $RUN publish-insight --timeout 120
+# ── Phase 4: Auto-Improve & Deploy (7:00am AEST) ────────────────
+# Agent auto-improve — read research → generate code → CI/CD → deploy → GitHub
+0 21 * * * bash $RUN agent-auto-improve --timeout 300
 
-# 7:05am AEST — Refresh free AI models (discover top-5 per provider)
+# Refresh free AI models — discover top-5 per provider
 5 21 * * * bash $RUN refresh-models
 
-# 8:00am AEST — Daily admin report (Telegram + email summary)
+# Publish insight articles — AI-generated content
+30 21 * * * bash $RUN publish-insight --timeout 120
+
+# ── Phase 5: Reporting (8:00-9:30am AEST) ────────────────────────
+# Daily admin report — email + Telegram summary
 0 22 * * * bash $RUN daily-admin-report
 
-# 9:30am AEST — Telegram daily report (C-Level agents + prod health)
+# QA Agent healthcheck — full test/fix + report (8:30am AEST)
+30 22 * * * bash $RUN agent-healthcheck --timeout 180
+
+# Telegram daily report — C-Level agent status + prod health + deploys
 30 23 * * * bash $RUN telegram-report
 
 # ═══════════════════════════════════════════════════════════════════
@@ -84,36 +101,78 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 30 20 * * 0 bash $RUN weekly-insights --timeout 120
 
 # ═══════════════════════════════════════════════════════════════════
-# SELF-HEALING: Daily cron health check + catch-up missed routines
+# SELF-HEALING: Daily cron health check
 # Runs at 11:30pm UTC (9:30am AEST) — AFTER all daily routines
 # ═══════════════════════════════════════════════════════════════════
 30 23 * * * bash $RUN cron-health
 
 # ═══════════════════════════════════════════════════════════════════
-# SCHEDULE SUMMARY (19 routines + health check)
+# DAILY PIPELINE DIAGRAM
 # ═══════════════════════════════════════════════════════════════════
 #
-# Time (AEST)     | Job                | AI  | Freq     | Monitored
-# ────────────────┼────────────────────┼─────┼──────────┼──────────
-# Every 2m        | watchdog           | 0   | always   | PID+HTTP
-# Every 5m        | cloudflare-ddns    | 0   | always   | logfile
-# Every 15m       | blockchain-sync    | 0   | always   | ✅ runner
-# Every 30m       | ai-token-guardian  | 0   | always   | logfile
-# Every 3h        | ai-health          | 0   | always   | ✅ runner
-# Every 4h        | token-refresh      | 0   | always   | logfile
-# 2:00am          | svi-snapshot       | 0   | daily    | ✅ runner
-# 2:05am          | svi-notify         | 0   | daily    | ✅ runner
-# 2:10am          | nurture (disabled) | 0   | daily    | ✅ runner
-# 2:15am          | vesting            | 0   | daily    | ✅ runner
-# 3:00am          | agent-upgrade      | 3   | daily    | ✅ runner
-# 4:00am          | growth-insights    | 0-1 | daily    | ✅ runner
-# 5:00am          | svi-review         | 0   | daily    | ✅ runner
-# 6:00am          | agent-research     | 1-3 | daily    | ✅ runner
-# 6:30am (Sun)    | weekly-insights    | 0-1 | weekly   | ✅ runner
-# 7:00am          | publish-insight    | 0-1 | daily    | ✅ runner
-# 7:05am          | refresh-models     | 0   | daily    | ✅ runner
-# 8:00am          | daily-admin-report | 0-1 | daily    | ✅ runner
-# 9:30am          | telegram-report    | 0   | daily    | ✅ runner
-# 9:30am          | cron-health        | 0   | daily    | ✅ runner
-# ────────────────┼────────────────────┼─────┼──────────┼──────────
-# Total AI/day: 4-8 calls | Failures → Telegram alert instantly
+#   2:00am ─── Data Collection ──┐
+#   │ svi-snapshot                │
+#   │ svi-notify                  │
+#   │ vesting                     │
+#   │                             ▼
+#   3:00am ─── Agent Health ─────┐
+#   │ agent-upgrade (metrics)    │
+#   │ → saves daily reports      │
+#   │                             ▼
+#   4:00am ─── Intelligence ─────┐
+#   │ growth-insights            │
+#   │ svi-review                 │
+#   │ agent-research (AI)        │
+#   │ → knowledge_base update    │
+#   │                             ▼
+#   7:00am ─── Auto-Improve ─────┐   ◄── NEW: the automation loop
+#   │ agent-auto-improve (AI)    │
+#   │ → reads research           │
+#   │ → generates code           │
+#   │ → runs CI gates (tsc/lint) │
+#   │ → deploys via deploy-live  │
+#   │ → pushes to GitHub         │
+#   │ refresh-models             │
+#   │ publish-insight            │
+#   │                             ▼
+#   8:00am ─── Reporting ─────────┐
+#   │ daily-admin-report         │
+#   │ telegram-report            │
+#   │ cron-health                │
+#   └─────────────────────────────┘
+#
+# CONTINUOUS (every 30 min):
+#   git-sync-deploy — pull GitHub → deploy if new commits
+#   (catches manual pushes, external PRs, agent deployments)
+#
+# ═══════════════════════════════════════════════════════════════════
+# SCHEDULE SUMMARY (21 routines)
+# ═══════════════════════════════════════════════════════════════════
+#
+# Time (AEST)     | Job                | AI  | Phase       | Monitored
+# ────────────────┼────────────────────┼─────┼─────────────┼──────────
+# Every 2m        | watchdog           | 0   | system      | PID+HTTP
+# Every 5m        | cloudflare-ddns    | 0   | system      | logfile
+# Every 15m       | blockchain-sync    | 0   | system      | ✅ runner
+# Every 30m       | ai-token-guardian  | 0   | system      | logfile
+# Every 30m       | git-sync-deploy    | 0   | CI/CD       | logfile
+# Every 3h        | ai-health          | 0   | system      | ✅ runner
+# Every 4h        | token-refresh      | 0   | system      | logfile
+# 2:00am          | svi-snapshot       | 0   | data        | ✅ runner
+# 2:05am          | svi-notify         | 0   | data        | ✅ runner
+# 2:10am          | nurture (disabled) | 0   | data        | ✅ runner
+# 2:15am          | vesting            | 0   | data        | ✅ runner
+# 3:00am          | agent-upgrade      | 0-3 | health      | ✅ runner
+# 4:00am          | growth-insights    | 0-1 | intelligence| ✅ runner
+# 5:00am          | svi-review         | 0   | intelligence| ✅ runner
+# 6:00am          | agent-research     | 1-3 | intelligence| ✅ runner
+# 7:00am          | agent-auto-improve | 1-3 | auto-deploy | ✅ runner
+# 7:05am          | refresh-models     | 0   | auto-deploy | ✅ runner
+# 7:30am          | publish-insight    | 0-1 | auto-deploy | ✅ runner
+# 8:00am          | daily-admin-report | 0-1 | reporting   | ✅ runner
+# 9:30am          | telegram-report    | 0   | reporting   | ✅ runner
+# 9:30am          | cron-health        | 0   | reporting   | ✅ runner
+# 6:30am (Sun)    | weekly-insights    | 0-1 | weekly      | ✅ runner
+# ────────────────┼────────────────────┼─────┼─────────────┼──────────
+# Total AI/day: 5-12 calls | Failures → Telegram alert instantly
+# CI/CD: auto-improve → tsc → lint → deploy-live → GitHub push
