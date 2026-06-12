@@ -149,6 +149,7 @@ export async function POST(request: Request) {
     agent: string;
     description: string;
     files: { path: string; content: string; action: "write" | "delete" }[];
+    via?: string;
   };
 
   try {
@@ -161,6 +162,19 @@ export async function POST(request: Request) {
   if (!agent || !description || !files?.length) {
     return NextResponse.json({ ok: false, error: "Missing agent, description, or files" }, { status: 400 });
   }
+
+  // Liveness heartbeat — record every deploy call keyed by agent + origin so
+  // cron-health can detect when a cloud routine goes silent. Cloud routines
+  // pass "via":"cloud"; the local self-upgrade pipeline omits it (→ "local").
+  // The two layers share agent names + report files, so this marker is the
+  // only reliable way to tell a dead cloud routine from a healthy local run.
+  try {
+    const via = body.via === "cloud" ? "cloud" : "local";
+    fs.appendFileSync(
+      `${WEB_DIR}/content/reports/routine-heartbeat.jsonl`,
+      JSON.stringify({ ts: new Date().toISOString(), agent: String(agent).toLowerCase(), via, files: files.length }) + "\n",
+    );
+  } catch { /* non-blocking */ }
 
   // Safety: max 5 files, max 50KB each, only allow src/ content/ .claude/ paths
   if (files.length > 5) {
