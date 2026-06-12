@@ -29,10 +29,15 @@ sleep 2
 fuser -k -9 $PORT/tcp 2>/dev/null
 sleep 1
 
-STANDALONE="/home/dovanlong/blockid.au/web/.next/standalone"
-[ -f "$STANDALONE/server.js" ] || exit 1
+# Restart from the immutable CURRENT release (releases/<BUILD_ID>), NOT from
+# .next/standalone — a build does `rm -rf .next`, so standalone can vanish
+# mid-deploy. The release symlink always points at a complete, frozen build.
+CURRENT_LINK="/home/dovanlong/blockid.au/web/.next-current"
+RELEASE="$(readlink -f "$CURRENT_LINK" 2>/dev/null)"
+[ -n "$RELEASE" ] && [ -f "$RELEASE/server.js" ] || RELEASE="/home/dovanlong/blockid.au/web/.next/standalone"
+[ -f "$RELEASE/server.js" ] || exit 1
 
-cd "$STANDALONE"
+cd "$RELEASE"
 export PORT=$PORT HOSTNAME=0.0.0.0 NODE_ENV=production
 export SUPABASE_URL=http://127.0.0.1:8000 REDIS_URL=redis://127.0.0.1:6379
 while IFS='=' read -r k v; do

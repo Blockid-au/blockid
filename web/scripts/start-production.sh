@@ -8,8 +8,18 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WEB_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 STANDALONE="$WEB_DIR/.next/standalone"
+CURRENT_LINK="$WEB_DIR/.next-current"
 LOG="/tmp/blockid-production.log"
 PID_FILE="/tmp/blockid-production.pid"
+
+# Prefer the immutable CURRENT release (releases/<BUILD_ID>) produced by
+# deploy-live.sh. It survives a build's `rm -rf .next`, so a manual restart
+# never reintroduces the "missing static / 500" outage. Fall back to the raw
+# standalone only when no release exists yet (first build).
+RELEASE="$(readlink -f "$CURRENT_LINK" 2>/dev/null || true)"
+if [ -n "$RELEASE" ] && [ -f "$RELEASE/server.js" ]; then
+  STANDALONE="$RELEASE"
+fi
 
 # Stop existing
 if [ -f "$PID_FILE" ]; then

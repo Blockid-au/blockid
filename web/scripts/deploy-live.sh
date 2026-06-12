@@ -29,6 +29,16 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WEB_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 STANDALONE="$WEB_DIR/.next/standalone"
 BACKUP_DIR="$WEB_DIR/.next-backup"
+# ── Immutable release dirs (the real zero-downtime fix) ───────────────
+# The live server runs from releases/<BUILD_ID>, NOT from .next/standalone.
+# Because of that, the NEXT build's `rm -rf .next` can no longer delete the
+# directory the running server is serving /_next/static/* from. Past outage:
+# every deploy did `rm -rf .next`, which nuked the live server's cwd mid-build
+# (cwd → "(deleted)") so every JS/CSS chunk 500'd for the whole build window.
+RELEASES_DIR="$WEB_DIR/releases"
+CURRENT_LINK="$WEB_DIR/.next-current"     # symlink → releases/<BUILD_ID> now live
+PREV_LINK="$WEB_DIR/.next-previous"       # symlink → previous live release (rollback)
+RELEASES_KEEP=4                           # how many release dirs to retain
 LOG="/tmp/blockid-production.log"
 LOG_NEW="/tmp/blockid-production-new.log"
 PID_FILE="/tmp/blockid-production.pid"
@@ -47,11 +57,34 @@ cd "$WEB_DIR"
 # colliding. The lock auto-releases when this process exits.
 # ══════════════════════════════════════════════════════════════════════
 LOCK_FILE="/tmp/blockid-deploy.lock"
+# ⚠ NEVER `rm -f` this lock to "unstick" a deploy — deleting the file lets a new
+# `exec 9>` create a fresh inode that flock won't see as conflicting, so two
+# builds race and each `rm -rf .next` clobbers the other. If a deploy is wedged,
+# kill its PID instead. (This footgun caused the static-asset 500 outage.)
 exec 9>"$LOCK_FILE"
 if ! flock -n 9; then
   echo "❌ Another deploy is already running (lock: $LOCK_FILE)."
   echo "   Aborting to avoid a build race. Retry after it finishes."
   exit 1
+fi
+
+# ── Debounce: collapse rapid duplicate deploys of the SAME commit ─────
+# Multiple triggers (GitHub webhook + agent self-upgrade loops) used to fire
+# deploy-live.sh within minutes of each other for the same HEAD, each doing a
+# full rebuild. If the current HEAD is already live and was deployed less than
+# DEPLOY_MIN_INTERVAL seconds ago, skip. A NEW commit always proceeds; override
+# with DEPLOY_FORCE=1. Not applied to --rollback/--skip-build/--quick.
+DEPLOY_MIN_INTERVAL="${DEPLOY_MIN_INTERVAL:-90}"
+if [ "${1:-}" != "--rollback" ] && [ "${1:-}" != "--skip-build" ] && [ "${1:-}" != "--quick" ] && [ "${DEPLOY_FORCE:-0}" != "1" ]; then
+  HEAD_SHA="$(git -C "$WEB_DIR" rev-parse HEAD 2>/dev/null || echo none)"
+  LAST_SHA="$(node -e "try{process.stdout.write(String(require('$LKG_FILE').sha||''))}catch(e){}" 2>/dev/null)"
+  LAST_TS="$(node -e "try{process.stdout.write(String(require('$LKG_FILE').epoch||0))}catch(e){process.stdout.write('0')}" 2>/dev/null)"
+  NOW="$(date +%s)"
+  if [ -n "$LAST_SHA" ] && [ "$HEAD_SHA" = "$LAST_SHA" ] && [ $((NOW - LAST_TS)) -lt "$DEPLOY_MIN_INTERVAL" ]; then
+    echo "⏭  Skipping deploy: HEAD $HEAD_SHA already deployed $((NOW - LAST_TS))s ago (< ${DEPLOY_MIN_INTERVAL}s)."
+    echo "   A new commit deploys immediately; set DEPLOY_FORCE=1 to force a rebuild of the same commit."
+    exit 0
+  fi
 fi
 
 # ── Helpers ───────────────────────────────────────────────────────────
@@ -102,20 +135,59 @@ load_env() {
   export REDIS_URL=redis://127.0.0.1:6379
 }
 
+# Keep only the newest $RELEASES_KEEP release dirs. NEVER delete the dir the
+# live server is currently running from (CURRENT_LINK) or the rollback target
+# (PREV_LINK) — they may be older than the keep window but must survive.
+prune_releases() {
+  [ -d "$RELEASES_DIR" ] || return 0
+  local keep_cur keep_prev d
+  keep_cur="$(readlink -f "$CURRENT_LINK" 2>/dev/null || true)"
+  keep_prev="$(readlink -f "$PREV_LINK" 2>/dev/null || true)"
+  ls -1dt "$RELEASES_DIR"/*/ 2>/dev/null | tail -n +$((RELEASES_KEEP + 1)) | while read -r d; do
+    d="${d%/}"
+    [ "$(readlink -f "$d")" = "$keep_cur" ] && continue
+    [ "$(readlink -f "$d")" = "$keep_prev" ] && continue
+    rm -rf "$d"
+  done
+}
+
 echo "════════════════════════════════════════════"
 echo "  BlockID.au — Zero-Downtime Deploy + CI"
 echo "  $(date '+%Y-%m-%d %H:%M:%S %Z')"
 echo "════════════════════════════════════════════"
 
 # ── Rollback ──────────────────────────────────────────────────────────
+# Prefer the previous immutable release dir (instant, isolated). Fall back to
+# the legacy .next-backup restore only if no previous release exists.
 if [ "${1:-}" = "--rollback" ]; then
   echo ""
   echo "=== ROLLBACK ==="
+  PREV_DIR="$(readlink -f "$PREV_LINK" 2>/dev/null || true)"
+  if [ -n "$PREV_DIR" ] && [ -f "$PREV_DIR/server.js" ]; then
+    echo "Rolling back to previous release: $PREV_DIR"
+    load_env
+    export PORT=$PROD_PORT
+    if [ -f "$PID_FILE" ]; then kill "$(cat "$PID_FILE")" 2>/dev/null || true; fi
+    fuser -k $PROD_PORT/tcp 2>/dev/null || true
+    sleep 1
+    cd "$PREV_DIR"
+    nohup node server.js > "$LOG" 2>&1 9>&- &
+    echo $! > "$PID_FILE"
+    # current and previous swap places
+    CUR_BEFORE="$(readlink -f "$CURRENT_LINK" 2>/dev/null || true)"
+    ln -sfn "$PREV_DIR" "$CURRENT_LINK"
+    [ -n "$CUR_BEFORE" ] && ln -sfn "$CUR_BEFORE" "$PREV_LINK"
+    sleep 3
+    HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:$PROD_PORT/)
+    echo "✅ Rolled back to release $(basename "$PREV_DIR"): HTTP $HTTP — PID $(cat "$PID_FILE")"
+    exit 0
+  fi
+  # ── Legacy fallback: restore .next-backup ──
   if [ ! -d "$BACKUP_DIR" ]; then
-    echo "❌ No backup found at $BACKUP_DIR"
+    echo "❌ No previous release and no backup found ($PREV_LINK / $BACKUP_DIR)"
     exit 1
   fi
-  echo "Restoring backup..."
+  echo "No previous release — restoring legacy backup..."
   rm -rf "$WEB_DIR/.next"
   mv "$BACKUP_DIR" "$WEB_DIR/.next"
   STANDALONE="$WEB_DIR/.next/standalone"
@@ -129,7 +201,7 @@ if [ "${1:-}" = "--rollback" ]; then
   echo $! > "$PID_FILE"
   sleep 3
   HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:$PROD_PORT/)
-  echo "✅ Rolled back: HTTP $HTTP — PID $(cat "$PID_FILE")"
+  echo "✅ Rolled back (legacy): HTTP $HTTP — PID $(cat "$PID_FILE")"
   exit 0
 fi
 
@@ -249,12 +321,25 @@ fi
 # ══════════════════════════════════════════════════════════════════════
 gate "Prepare standalone + smoke test"
 
-# Copy assets
-# Sync ALL build output into standalone (fixes missing manifests)
-cp -r "$WEB_DIR/.next/static" "$STANDALONE/.next/static"
-cp -r "$WEB_DIR/.next/server" "$STANDALONE/.next/server"
-cp -r "$WEB_DIR/public" "$STANDALONE/public"
-cp "$WEB_DIR/ai-worker.mjs" "$STANDALONE/ai-worker.mjs" 2>/dev/null || true
+# Copy assets — sync ALL build output into standalone (fixes missing manifests).
+# Only after a fresh build: --skip-build means the standalone is already
+# assembled, so re-copying is needless and would briefly disturb the live
+# server's static. Idempotent: remove dst first so a re-run never nests a copy
+# inside the existing dir (cp -r src existing_dst → existing_dst/src); only copy
+# when the source exists, so a missing source never deletes a good standalone.
+if [ "${1:-}" != "--skip-build" ]; then
+  for a in static server; do
+    if [ -d "$WEB_DIR/.next/$a" ]; then
+      rm -rf "$STANDALONE/.next/$a"
+      cp -r "$WEB_DIR/.next/$a" "$STANDALONE/.next/$a"
+    fi
+  done
+  if [ -d "$WEB_DIR/public" ]; then
+    rm -rf "$STANDALONE/public"
+    cp -r "$WEB_DIR/public" "$STANDALONE/public"
+  fi
+  cp "$WEB_DIR/ai-worker.mjs" "$STANDALONE/ai-worker.mjs" 2>/dev/null || true
+fi
 
 # Copy serverExternalPackages not traced by standalone
 for pkg in pptxgenjs gaxios gcp-metadata; do
@@ -287,13 +372,27 @@ if [ "$MANIFEST_COUNT" -lt 20 ]; then
 fi
 echo "  ✅ Standalone integrity OK (server.js + ai-worker.mjs + BUILD_ID + $MANIFEST_COUNT route manifests)"
 
-# Start on temp port
+# ── Freeze this build into an immutable release dir ───────────────────
+# From here on, the temp smoke test AND the production server run from
+# releases/<BUILD_ID> — never from .next/standalone. This is the fix that
+# makes deploys truly zero-downtime: a later `rm -rf .next` cannot touch a
+# running release. Hardlink copy (cp -al) is near-instant and space-cheap
+# (standalone files are immutable at runtime); falls back to a full copy.
+BUILD_ID="$(cat "$STANDALONE/.next/BUILD_ID")"
+RELEASE_DIR="$RELEASES_DIR/$BUILD_ID"
+mkdir -p "$RELEASES_DIR"
+rm -rf "$RELEASE_DIR"
+cp -al "$STANDALONE" "$RELEASE_DIR" 2>/dev/null || cp -a "$STANDALONE" "$RELEASE_DIR"
+[ -f "$RELEASE_DIR/server.js" ] || restore_lkg_and_fail "Failed to freeze release dir $RELEASE_DIR."
+echo "  ✅ Release frozen: releases/$BUILD_ID"
+
+# Start on temp port (from the immutable release dir)
 load_env
 export PORT=$TEMP_PORT
 fuser -k $TEMP_PORT/tcp 2>/dev/null || true
 sleep 1
 
-cd "$STANDALONE"
+cd "$RELEASE_DIR"
 nohup node server.js > "$LOG_NEW" 2>&1 9>&- &
 NEW_PID=$!
 
@@ -310,6 +409,7 @@ if [ "$HEALTHY" != "true" ]; then
   kill $NEW_PID 2>/dev/null || true
   echo "  Last 10 lines of log:"
   tail -10 "$LOG_NEW"
+  rm -rf "$RELEASE_DIR"   # discard failed release; live release untouched
   if [ -d "$BACKUP_DIR" ]; then
     rm -rf "$WEB_DIR/.next"; mv "$BACKUP_DIR" "$WEB_DIR/.next"
     echo "  Backup restored."
@@ -336,6 +436,7 @@ fuser -k $TEMP_PORT/tcp 2>/dev/null || true
 sleep 1
 
 if [ "$SMOKE_FAIL" -gt 0 ]; then
+  rm -rf "$RELEASE_DIR"   # discard failed release; live release untouched
   if [ -d "$BACKUP_DIR" ]; then
     rm -rf "$WEB_DIR/.next"; mv "$BACKUP_DIR" "$WEB_DIR/.next"
     echo "  Backup restored."
@@ -363,6 +464,10 @@ fi
 # ══════════════════════════════════════════════════════════════════════
 gate "Swap to production port $PROD_PORT"
 
+# Record the outgoing release as the rollback target BEFORE we swap.
+OUTGOING="$(readlink -f "$CURRENT_LINK" 2>/dev/null || true)"
+[ -n "$OUTGOING" ] && [ "$OUTGOING" != "$RELEASE_DIR" ] && ln -sfn "$OUTGOING" "$PREV_LINK"
+
 # Kill old process
 if [ -f "$PID_FILE" ]; then
   OLD_PID=$(cat "$PID_FILE")
@@ -372,12 +477,15 @@ fi
 fuser -k $PROD_PORT/tcp 2>/dev/null || true
 sleep 1
 
-# Start new on production port
+# Start new on production port — from the immutable release dir.
 export PORT=$PROD_PORT
-cd "$STANDALONE"
+cd "$RELEASE_DIR"
 nohup node server.js > "$LOG" 2>&1 9>&- &
 echo $! > "$PID_FILE"
-pass "New process started (PID $(cat "$PID_FILE"))"
+# Mark this release as the live one, then prune stale releases.
+ln -sfn "$RELEASE_DIR" "$CURRENT_LINK"
+prune_releases
+pass "New process started (PID $(cat "$PID_FILE")) from release $BUILD_ID"
 
 # ══════════════════════════════════════════════════════════════════════
 # GATE 9: Post-Deploy Verification
@@ -418,6 +526,7 @@ echo "════════════════════════�
 echo "  ✅ DEPLOY COMPLETE"
 echo "  Gates: $GATE_PASSED/$GATE_TOTAL passed"
 echo "  PID:   $(cat "$PID_FILE")"
+echo "  Release: ${BUILD_ID:-?} (releases/${BUILD_ID:-?})"
 echo "  Local: HTTP $LOCAL"
 echo "  Public: HTTP $PUBLIC"
 echo "  Log:   $LOG"
@@ -444,6 +553,8 @@ echo "  📝 Deploy event logged → content/reports/deploy-log.jsonl"
 # must clear. A failed build never overwrites this — the LKG keeps serving.
 # ══════════════════════════════════════════════════════════════════════
 LKG_BUILD_ID=$(cat "$STANDALONE/.next/BUILD_ID" 2>/dev/null || echo "unknown")
-printf '{"ts":"%s","buildId":"%s","gates":"%s/%s","pid":"%s","note":%s}\n' \
-  "$DEPLOY_TS" "$LKG_BUILD_ID" "$GATE_PASSED" "$GATE_TOTAL" "$(cat "$PID_FILE" 2>/dev/null)" "$DEPLOY_NOTE_JSON" > "$LKG_FILE"
-echo "  📌 Last-known-good build recorded (BUILD_ID $LKG_BUILD_ID) → content/reports/last-good-build.json"
+LKG_SHA="$(git -C "$WEB_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
+LKG_EPOCH="$(date +%s)"
+printf '{"ts":"%s","epoch":%s,"sha":"%s","buildId":"%s","gates":"%s/%s","pid":"%s","note":%s}\n' \
+  "$DEPLOY_TS" "$LKG_EPOCH" "$LKG_SHA" "$LKG_BUILD_ID" "$GATE_PASSED" "$GATE_TOTAL" "$(cat "$PID_FILE" 2>/dev/null)" "$DEPLOY_NOTE_JSON" > "$LKG_FILE"
+echo "  📌 Last-known-good build recorded (BUILD_ID $LKG_BUILD_ID, sha ${LKG_SHA:0:8}) → content/reports/last-good-build.json"
