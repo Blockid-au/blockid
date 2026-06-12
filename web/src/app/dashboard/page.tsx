@@ -25,6 +25,7 @@ import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { JourneyBar } from "@/components/dashboard/journey-bar";
 import { LivingSVIDashboard } from "@/components/dashboard/living-svi-dashboard";
 import { GrowthRoadmap } from "@/components/dashboard/growth-roadmap";
+import { GrowthProgressDashboard } from "@/components/dashboard/growth-progress-dashboard";
 import { CapTableMini } from "@/components/dashboard/cap-table-mini";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { StatusCards } from "@/components/dashboard/status-cards";
@@ -687,6 +688,9 @@ export default async function DashboardPage({
 
         {/* ── Row 7: Growth Roadmap ────────────────────────────────────────── */}
         <GrowthRoadmap currentPhase={phase} />
+
+        {/* ── Row 7b: Growth Phase Progress Dashboard ─────────────────────── */}
+        <GrowthProgressDashboard />
 
         {/* ── Row 8: Living SVI Dashboard ───────────────────────────────────── */}
         {analysisWithDelta && (
