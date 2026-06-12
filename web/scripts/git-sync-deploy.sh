@@ -26,10 +26,10 @@ if [ -f "$LOCK" ]; then
 fi
 
 # Step 1: Push any local-only commits to GitHub
-LOCAL_AHEAD=$(git rev-list github/master..HEAD 2>/dev/null | wc -l)
+LOCAL_AHEAD=$(git rev-list origin/master..HEAD 2>/dev/null | wc -l)
 if [ "$LOCAL_AHEAD" -gt 0 ]; then
   log "pushing $LOCAL_AHEAD local commits to GitHub"
-  if git push github master 2>/dev/null; then
+  if git push origin master 2>/dev/null; then
     log "push OK ($LOCAL_AHEAD commits)"
   else
     log "push FAILED"
@@ -37,8 +37,8 @@ if [ "$LOCAL_AHEAD" -gt 0 ]; then
 fi
 
 # Step 2: Pull from GitHub (fast-forward only)
-git fetch github master --quiet 2>/dev/null
-REMOTE_AHEAD=$(git rev-list HEAD..github/master 2>/dev/null | wc -l)
+git fetch origin master --quiet 2>/dev/null
+REMOTE_AHEAD=$(git rev-list HEAD..origin/master 2>/dev/null | wc -l)
 
 if [ "$REMOTE_AHEAD" -eq 0 ]; then
   log "in sync — no new commits from GitHub"
@@ -46,7 +46,7 @@ if [ "$REMOTE_AHEAD" -eq 0 ]; then
 fi
 
 log "pulling $REMOTE_AHEAD new commits from GitHub"
-if ! git merge github/master --ff-only 2>/dev/null; then
+if ! git merge origin/master --ff-only 2>/dev/null; then
   log "merge FAILED — non-fast-forward, needs manual resolution"
   # Alert via Telegram
   curl -s "https://api.telegram.org/bot${TELEGRAM_BOT}/sendMessage" \

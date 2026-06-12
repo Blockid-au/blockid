@@ -236,7 +236,7 @@ export async function POST(request: Request) {
 
       // Push to GitHub (non-blocking — deploy still succeeds if push fails)
       try {
-        execSync("git push github master 2>&1", { cwd: WEB_DIR, timeout: 30_000 });
+        execSync("git push origin master 2>&1", { cwd: WEB_DIR, timeout: 30_000 });
         results.push("GitHub: pushed ✅");
       } catch {
         results.push("GitHub: push failed (will sync next time)");
