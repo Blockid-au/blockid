@@ -30,9 +30,9 @@ cd "$REPO" || exit 0
 bash "$WEB_DIR/scripts/refresh-claude-oauth.sh" >/dev/null 2>&1 || true
 tg "🧭 *SCN auto-build started* — implementing up to $MAX features (gated deploy + push)."
 
-PROMPT='You are the BlockID.au autonomous engineer building the SCN "Startup Navigation System" goal. Read the spec at /home/dovanlong/blockid.au/.claude/goals/scn-startup-navigation-system.md and the C-level plan at /home/dovanlong/blockid.au/web/content/reports/ceo-current-plan.json.
+PROMPT='You are the BlockID.au autonomous engineer building the SCN "Startup Navigation System" goal. Read the specs at /home/dovanlong/blockid.au/.claude/goals/scn-startup-navigation-system.md and /home/dovanlong/blockid.au/.claude/goals/scn-report-firstprinciples-redesign.md, plus the C-level plan at /home/dovanlong/blockid.au/web/content/reports/ceo-current-plan.json.
 
-Implement the SINGLE highest-value SCN feature that is NOT yet built, end-to-end, then commit. Priority order: (1) POSITION hero — Startup Index + Stage + "Top X% of AU startups" percentile placed above valuation; (2) DIRECTION Next-Best-Action navigation (You are here → Next → Then), Google-Maps style, driven by weakest SCN layer + stage; (3) VALIDATION panel for early startups; (4) Funding Readiness % gauge; (5) reframe copy to "Startup Navigation System". The Next.js app is in web/.
+Implement the SINGLE highest-value SCN feature that is NOT yet built, end-to-end, then commit. Priority order: (1) POSITION hero — Startup Index + Stage + "Top X% of AU startups" percentile placed above valuation; (2) DIRECTION Next-Best-Action navigation (You are here → Next → Then), Google-Maps style, driven by weakest SCN layer + stage; (3) SCN REPORT redesign — open each section with a first-principles question, SCN order, problem framing + value-prop, per the scn-report-firstprinciples-redesign spec; (4) PROGRESSIVE CTAs in the report (contextual feature CTA per section; free teaser locks Direction+Capital behind login/credit unlock); (5) VALIDATION panel for early startups; (6) Funding Readiness % gauge; (7) reframe copy to "Startup Navigation System". The Next.js app is in web/.
 
 HARD RULES:
 - Keep the change FOCUSED (a few files). One feature per run. Reuse existing SVI/dashboard components and data.

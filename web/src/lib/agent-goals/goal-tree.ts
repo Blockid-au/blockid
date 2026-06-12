@@ -116,6 +116,8 @@ export const CEO_GOAL_TREE: AgentGoal = {
         "Feature prioritization frameworks",
         "SCN dashboard design: Position hero (Index + Stage + percentile) above valuation, SCN section ordering",
         "Validation panel for early-stage founders (problem-worth, market, willingness-to-pay)",
+        "First-principles question engine: Socratic prompts that surface the founder's real problem and route to the next BlockID feature",
+        "SCN report + PDF redesign: problem framing → Position hero → Next-Best-Action, with contextual CTAs (scn-report-firstprinciples-redesign brief)",
       ],
       researchFrequency: "bi-weekly-thu",
       subGoals: [],
