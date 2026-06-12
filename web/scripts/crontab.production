@@ -80,6 +80,9 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Daily admin report — platform KPIs + email
 30 22 * * * bash $RUN daily-admin-report
 
+# Daily traffic + funnel report (GA4 traffic + internal funnel) → email + Telegram
+30 22 * * * bash $RUN traffic-report --timeout 120
+
 # Telegram daily report — C-Level agent status
 30 23 * * * bash $RUN telegram-report
 
