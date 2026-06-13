@@ -217,6 +217,40 @@ export async function POST(request: Request) {
     }
   }
 
+  // Write anonymised snapshot to SVI Index (fire-and-forget)
+  if (supabase && authenticatedUserId) {
+    void (async () => {
+      try {
+        const { findOrCreateSVIAccount } = await import("@/lib/projects");
+        const { getProjectIdFromRequest } = await import("@/lib/projects");
+        const projectId = await getProjectIdFromRequest();
+        const accountId = await findOrCreateSVIAccount(email, projectId);
+
+        if (accountId) {
+          // Extract anonymised metrics from analysis
+          const sviSnapshot = {
+            account_id: accountId,
+            svi: analysis.totalSVI,
+            revenue_estimate: analysis.metrics?.annualRevenue ? Number(analysis.metrics.annualRevenue) : null,
+            runway_months: analysis.metrics?.runwayMonths ? Number(analysis.metrics.runwayMonths) : null,
+            burn_rate: analysis.metrics?.monthlyBurn ? Number(analysis.metrics.monthlyBurn) : null,
+            cap_table_entries: analysis.capTableSize ?? null,
+            sector: analysis.metrics?.sector ?? null,
+            state: analysis.metrics?.state ?? null,
+            stage: analysis.stage ?? null,
+          };
+
+          // Insert snapshot (ignore duplicates for same day)
+          await supabase
+            .from("svi_index_snapshots")
+            .insert([sviSnapshot])
+            .select("id")
+            .maybeSingle();
+        }
+      } catch { /* snapshot write non-blocking — doesn't affect user */ }
+    })();
+  }
+
   // Create per-project Drive folder and link to analysis (fire-and-forget)
   if (supabase) {
     void (async () => {
