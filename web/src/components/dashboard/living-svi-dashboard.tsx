@@ -45,6 +45,7 @@ import {
   Sparkles,
   AlertTriangle,
   Share2,
+  Download,
 } from "lucide-react";
 import type { SVIAnalysis, SVIEvidenceGap } from "@/lib/svi-analysis";
 import { REPORT_SECTIONS, getUnlockAllCost } from "@/lib/report-sections";
@@ -332,6 +333,31 @@ export function LivingSVIDashboard(props: LivingDashboardProps) {
 
   const [activeTab, setActiveTab] = React.useState<TabId>("journey");
   const [shareCopied, setShareCopied] = React.useState(false);
+  const [pdfLoading, setPdfLoading] = React.useState(false);
+
+  const handleExportPdf = React.useCallback(async () => {
+    if (!analysisId || pdfLoading) return;
+    setPdfLoading(true);
+    try {
+      const res = await fetch("/api/svi/pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ analysisId }),
+      });
+      if (!res.ok) throw new Error("PDF generation failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `blockid-svi-report-${analysisId.slice(0, 8)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert("PDF export failed. Please try again.");
+    } finally {
+      setPdfLoading(false);
+    }
+  }, [analysisId, pdfLoading]);
 
   const handleShareCopy = React.useCallback(() => {
     if (!analysisId) return;
@@ -462,22 +488,36 @@ export function LivingSVIDashboard(props: LivingDashboardProps) {
             {/* CTAs */}
             <div className="flex items-center gap-2 shrink-0 self-start sm:self-center flex-wrap">
               {analysisId && (
-                <button
-                  type="button"
-                  onClick={handleShareCopy}
-                  className={cn(
-                    "inline-flex h-10 items-center gap-2 rounded-xl border px-4 text-sm font-semibold transition-all",
-                    shareCopied
-                      ? "border-teal-300 bg-teal-50 text-teal-700"
-                      : "border-surface-200 bg-white text-ink-700 hover:border-brand-300 hover:bg-brand-50",
-                  )}
-                >
-                  {shareCopied ? (
-                    <><CheckCircle2 className="h-4 w-4 text-teal-600" />Copied!</>
-                  ) : (
-                    <><Share2 className="h-4 w-4" />Share Score</>
-                  )}
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={handleShareCopy}
+                    className={cn(
+                      "inline-flex h-10 items-center gap-2 rounded-xl border px-4 text-sm font-semibold transition-all",
+                      shareCopied
+                        ? "border-teal-300 bg-teal-50 text-teal-700"
+                        : "border-surface-200 bg-white text-ink-700 hover:border-brand-300 hover:bg-brand-50",
+                    )}
+                  >
+                    {shareCopied ? (
+                      <><CheckCircle2 className="h-4 w-4 text-teal-600" />Copied!</>
+                    ) : (
+                      <><Share2 className="h-4 w-4" />Share Score</>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExportPdf}
+                    disabled={pdfLoading}
+                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-surface-200 bg-white px-4 text-sm font-semibold text-ink-700 hover:border-brand-300 hover:bg-brand-50 disabled:opacity-50 transition-all"
+                  >
+                    {pdfLoading ? (
+                      <><Loader2 className="h-4 w-4 animate-spin" />Generating…</>
+                    ) : (
+                      <><Download className="h-4 w-4" />Export PDF</>
+                    )}
+                  </button>
+                </>
               )}
               <Link
                 href="/"
