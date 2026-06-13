@@ -438,9 +438,14 @@ function EmailPasswordForm({ nextUrl }: { nextUrl: string | null }) {
       }
 
       trackEvent(mode === "register" ? "register_password_success" : "login_password_success", {});
-      const target = nextUrl ?? "/";
+      // New registrations go to Evidence Vault for guided onboarding
+      const target = mode === "register" && !nextUrl
+        ? "/workspace/evidence?onboarding=true"
+        : nextUrl ?? "/";
       const sep = target.includes("?") ? "&" : "?";
-      window.location.href = `${target}${sep}logged_in=true`;
+      window.location.href = mode === "register" && !nextUrl
+        ? target
+        : `${target}${sep}logged_in=true`;
     } catch {
       setError("Network error. Please try again.");
       setState("error");
