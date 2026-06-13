@@ -7,9 +7,9 @@ import { Zap, TrendingUp, BarChart3, Lock } from "lucide-react";
 import { IndexWaitlistForm } from "./index-waitlist-form";
 
 export const metadata: Metadata = {
-  title: "BlockID Startup Index — Real-time Australian Startup Valuations",
+  title: "BlockID Startup Index™ — Real-time Australian Startup Valuations",
   description:
-    "The BlockID Startup Index (BSI-AU) tracks real-time SVI trends across Australian startups. Early beta access for VCs, accelerators, and founders.",
+    "The BlockID Startup Index™ (BSI-AU) is BlockID's proprietary market index built from real-time SVI analyses. Track valuation trends, sector momentum, and benchmark across Australian startups.",
 };
 
 export default function IndexPage() {
@@ -28,10 +28,13 @@ export default function IndexPage() {
             </span>
           </div>
           <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-ink-900 mb-4">
-            BlockID Startup Index
+            BlockID Startup Index<span className="text-amber-600">™</span>
           </h1>
-          <p className="text-xl text-ink-600 max-w-2xl mx-auto leading-relaxed mb-6">
-            Real-time SVI trends across Australian startups. Like Nikkei or Dow Jones, but for startup valuations.
+          <p className="text-xl text-ink-600 max-w-2xl mx-auto leading-relaxed mb-2">
+            BlockID's proprietary market index for Australian startups.
+          </p>
+          <p className="text-lg text-ink-500 max-w-2xl mx-auto leading-relaxed mb-6">
+            Real-time SVI trends built from actual startup valuations. Like Nikkei or Dow Jones, but for startup valuations.
           </p>
           <p className="text-lg text-ink-500 max-w-xl mx-auto">
             Track sector momentum, benchmark against peers, and discover emerging valuations.
@@ -42,23 +45,23 @@ export default function IndexPage() {
         <div className="grid md:grid-cols-3 gap-8 mb-20">
           <div className="rounded-2xl border border-surface-200 bg-white p-8">
             <BarChart3 className="h-8 w-8 text-brand-600 mb-4" />
-            <h3 className="text-lg font-bold text-ink-900 mb-2">Real-time Data</h3>
+            <h3 className="text-lg font-bold text-ink-900 mb-2">Proprietary Data Source</h3>
             <p className="text-ink-600">
-              Updated daily from BlockID SVI analyses. Tracks valuation trends, burn rates, and runway across 50+ sectors.
+              Built from thousands of BlockID SVI analyses. BlockID's competitive moat: only platform with real startup valuation data.
             </p>
           </div>
           <div className="rounded-2xl border border-surface-200 bg-white p-8">
             <Lock className="h-8 w-8 text-emerald-600 mb-4" />
-            <h3 className="text-lg font-bold text-ink-900 mb-2">Privacy-First</h3>
+            <h3 className="text-lg font-bold text-ink-900 mb-2">Privacy Protected</h3>
             <p className="text-ink-600">
-              All startup data is anonymised. No individual company names or identifiable info. Pure aggregate insights.
+              All data is anonymised and aggregated. No company names or PII. Pure market intelligence that founders, VCs, and accelerators can trust.
             </p>
           </div>
           <div className="rounded-2xl border border-surface-200 bg-white p-8">
             <Zap className="h-8 w-8 text-sky-600 mb-4" />
-            <h3 className="text-lg font-bold text-ink-900 mb-2">API Access</h3>
+            <h3 className="text-lg font-bold text-ink-900 mb-2">Market Intelligence API</h3>
             <p className="text-ink-600">
-              RESTful API for VCs, funds, and accelerators. Query index snapshots, sector trends, and historical data.
+              RESTful API for institutional users. Real-time sector momentum, valuation benchmarks, and historical trends.
             </p>
           </div>
         </div>
