@@ -205,6 +205,18 @@ export const FAQ_ITEMS: FaqItem[] = [
     q: "Do you offer refunds?",
     a: "Growth plan includes a 30-day money-back guarantee. For Founding 50, we assess refund requests on a case-by-case basis within 14 days of purchase. Credit packs are non-refundable once used.",
   },
+  {
+    q: "Is my data secure?",
+    a: "Yes. All data is encrypted in transit (TLS 1.3) and at rest. We use Supabase with row-level security so your company data is strictly isolated from other users. Payments are handled by Stripe — we never store card details.",
+  },
+  {
+    q: "Where is my data stored?",
+    a: "Your data is stored on servers in Australia (Sydney region). We do not transfer your data outside AU/NZ. This ensures compliance with the Australian Privacy Act 1988 and GDPR where applicable.",
+  },
+  {
+    q: "Do I need technical knowledge?",
+    a: "No. BlockID is built for founders, not engineers. You can run a full SVI analysis by pasting a company description — no integrations required. OAuth connectors (Stripe, Xero, Google Analytics) are optional and take under 2 minutes to set up.",
+  },
 ];
 
 // ---------------------------------------------------------------------------
