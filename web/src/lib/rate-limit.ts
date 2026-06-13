@@ -74,7 +74,7 @@ class RedisStore implements RateLimitStore {
       this.redis.connect().then(() => { this.connected = true; }).catch(() => {
         console.warn("[rate-limit] Redis connection failed — falling back to in-memory");
       });
-    } catch (err) {
+    } catch {
       console.warn("[rate-limit] ioredis not available — using in-memory fallback");
       this.redis = null;
     }
@@ -225,6 +225,32 @@ export function enforceRateLimit(
     );
   }
   return null;
+}
+
+/**
+ * Returns all current rate-limit entries for the admin dashboard.
+ * Only available server-side; reflects in-memory state (single container).
+ */
+export function getRateLimitSnapshot(): Array<{
+  key: string;
+  count: number;
+  resetAt: number;
+  resetInMs: number;
+}> {
+  const store = getStore();
+  const now = Date.now();
+  if (!(store instanceof MemoryStore)) {
+    // Redis store: no local snapshot available
+    return [];
+  }
+  const storeMap = (store as unknown as { store: Map<string, { count: number; resetAt: number }> }).store;
+  const entries: Array<{ key: string; count: number; resetAt: number; resetInMs: number }> = [];
+  for (const [key, entry] of storeMap) {
+    if (entry.resetAt > now) {
+      entries.push({ key, count: entry.count, resetAt: entry.resetAt, resetInMs: entry.resetAt - now });
+    }
+  }
+  return entries.sort((a, b) => b.count - a.count);
 }
 
 /**
