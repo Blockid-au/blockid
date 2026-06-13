@@ -1,6 +1,28 @@
 {
   "articles": [
     {
+      "slug": "optimise-startup-cap-table-for-fundraising",
+      "title": "Optimise Cap Table for Fundraising in Australia: Expert Guide",
+      "description": "Learn how to optimise your cap table for fundraising in Australia. Get expert insights on startup equity management, best practices & common mistakes to av",
+      "keywords": [
+        "optimise cap table for fundraising australia",
+        "startup equity management australia",
+        "cap table template australia",
+        "australian startup fundraising",
+        "equity management for startups australia",
+        "cap table best practices australia",
+        "how to manage startup equity australia",
+        "australian cap table mistakes to avoid"
+      ],
+      "category": "cap-table",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Get Your Free Cap Table Template",
+        "href": "/tools/cap-table-template"
+      }
+    },
+    {
       "slug": "scorecard-method-startup-valuation-australia-2026",
       "title": "How to Value an Australian Startup in 2026: The Scorecard Method",
       "description": "Learn how to apply the Scorecard Method to value your Australian startup in 2026. Includes benchmarks, worked examples, and 5 weighted factors used by AU angel investors.",
@@ -1141,7 +1163,7 @@
     {
       "slug": "how-to-value-a-startup-idea-australia",
       "title": "How to Value a Startup Idea in Australia (2026 Guide)",
-      "description": "Five practical methods to value your startup from idea stage \u2014 Berkus, Scorecard, VC Method, Cost-to-Duplicate, and AI-powered valuation. Calibrated for Australian founders with AUD benchmarks.",
+      "description": "Five practical methods to value your startup from idea stage — Berkus, Scorecard, VC Method, Cost-to-Duplicate, and AI-powered valuation. Calibrated for Australian founders with AUD benchmarks.",
       "keywords": [
         "startup valuation Australia",
         "how to value a startup idea",
@@ -1162,7 +1184,7 @@
     {
       "slug": "safe-note-australia-founders-guide",
       "title": "SAFE Notes in Australia: What Founders Need to Know Before Signing",
-      "description": "A practical guide to SAFE notes under Australian law \u2014 how they work, Y Combinator SAFE vs AU variants, and when to use them vs convertible notes.",
+      "description": "A practical guide to SAFE notes under Australian law — how they work, Y Combinator SAFE vs AU variants, and when to use them vs convertible notes.",
       "keywords": [
         "safe note australia",
         "convertible note vs safe note australia",
