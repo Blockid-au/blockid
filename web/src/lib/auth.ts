@@ -29,6 +29,19 @@ import { getSupabaseAdmin, isSupabaseConfigured } from "./supabase";
 import { initializeCredits } from "./credits";
 import { processReferral } from "./referrals";
 
+async function seedWelcomeNotification(userId: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return;
+  await supabase.from("notifications").insert({
+    user_id: userId,
+    type: "welcome",
+    title: "Welcome to BlockID!",
+    body: "Your Startup Value Index journey starts here. Run your first SVI analysis to see your score.",
+  }).then(({ error }) => {
+    if (error) console.error("[blockid:auth] welcome notification failed", error);
+  });
+}
+
 export const SESSION_COOKIE = "blockid_session";
 export const SESSION_TTL_DAYS = 90;
 export const MAGIC_LINK_TTL_MIN = 15;
@@ -234,6 +247,7 @@ export async function consumeMagicLink(
 
     // Grant free credits to new users.
     await initializeCredits(created.id);
+    await seedWelcomeNotification(created.id);
 
     // Process referral if a referral code was passed in the pending payload.
     const pendingRef = (row.pending_payload as PendingPayload)?.referralCode;
@@ -484,6 +498,7 @@ export async function loginWithGoogle(
 
     // Grant free credits to new users.
     await initializeCredits(created.id);
+    await seedWelcomeNotification(created.id);
 
     // Process referral if a referral code was provided (from cookie/session).
     if (opts?.referralCode) {
@@ -610,6 +625,7 @@ export async function registerWithPassword(args: {
   }
 
   await initializeCredits(created.id);
+  await seedWelcomeNotification(created.id);
   if (args.referralCode) {
     await processReferral(created.id, args.referralCode).catch(() => {});
   }
@@ -750,6 +766,7 @@ export async function autoCreateUserWithTempPassword(
 
   // Grant free credits to new users
   await initializeCredits(created.id);
+  await seedWelcomeNotification(created.id);
 
   return { ok: true, userId: created.id, tempPassword, isNewUser: true };
 }

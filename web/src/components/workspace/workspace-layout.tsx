@@ -16,6 +16,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { FeedbackWidget } from "@/components/ui/feedback-widget";
 import { UpgradePrompt } from "@/components/ui/upgrade-prompt";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { cn } from "@/lib/utils";
 
 interface WorkspaceLayoutProps {
@@ -235,12 +236,7 @@ export function WorkspaceLayout({ children, user, startupName, notificationCount
             <ThemeToggle />
 
             {/* Notifications */}
-            <button type="button" className="relative h-8 w-8 flex items-center justify-center rounded-lg text-ink-600 hover:text-ink-800 hover:bg-surface-100 transition-colors cursor-pointer">
-              <Bell strokeWidth={1.75} className="h-4 w-4" />
-              {notificationCount > 0 && (
-                <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-brand-500 ring-2 ring-white" />
-              )}
-            </button>
+            <NotificationBell />
 
             {/* Avatar */}
             <div className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-surface-100 transition-colors cursor-pointer">
