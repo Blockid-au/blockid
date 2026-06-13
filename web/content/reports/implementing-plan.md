@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v1.3.0  ·  **Updated:** 2026-06-13T08:00:00.000Z  ·  **Decided by:** ceo
+**Version:** v1.4.0  ·  **Updated:** 2026-06-13T09:00:00.000Z  ·  **Decided by:** ceo
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -16,7 +16,7 @@
 | Runway | ~18 months at A$3K/mo opex |
 | AI Budget | US$0.18 / US$100 (0.18%) |
 | Valuation (blended mid) | A$488K |
-| Platform version | v1.1.0 (M010) |
+| Platform version | v1.4.0 (M012) |
 | Build status | tsc 0 errors · eslint clean · 94/94 tests |
 
 **SCN Priority Frame:** Pre-seed pre-revenue → Revenue Activation first, then Conversion funnel, then Evidence Vault depth, then SEO flywheel. Every task below is scored against this frame.
@@ -50,6 +50,8 @@
 ---
 
 ## Recently shipped
+- ✅ `T0029` **CMO** — Post-signup onboarding email sequence: D+1 (welcome), D+3 (Evidence Vault), D+7 (Founding 50 upgrade CTA). Fires for users who haven't yet run SVI analysis. /api/cron/onboarding-sequence (2026-06-13, sha 035d27c)
+- ✅ `T0033` **CPO** — Bank statement CSV import: POST /api/evidence/bank-statement parses ANZ/CBA/NAB/Westpac CSVs, extracts burn rate + net cash flow, creates financial_health evidence. BankStatementImport drag-drop UI in Evidence Vault (2026-06-13, sha 40657ab)
 - ✅ `T0035` **CTO** — Usage analytics dashboard: /dashboard/admin/usage with KPI grid (8 metrics), 14-day daily analyses chart, recent signups table (2026-06-13, sha 8b7db4d)
 - ✅ `T0028+T0036` **CPO** — Upgrade CTA threshold raised to ≤5 credits + localStorage 48h dismiss; Founding50Spots live counter widget (GET /api/founding50/spots) on /founding-50 + upgrade banner (2026-06-13, sha d12379e)
 - ✅ `T0034` **CMO** — 7 new AU startup insight articles: SAFE note, due diligence, legal structures, IP assignment, SaaS pricing, customer discovery, co-founder agreement (2026-06-13, pending)
@@ -84,6 +86,7 @@
 
 ## Milestones
 
+- **M012** v1.4.0 — T0029: post-signup onboarding sequence (D+1/D+3/D+7). T0033: bank statement CSV import (ANZ/CBA/NAB/Westpac). T0034: 45 total insight articles (7 new). tsc 0 errors, eslint clean (2026-06-13, sha c019047)
 - **M011** v1.3.0 — T0028+T0036: upgrade CTA ≤5 credits + Founding50Spots live counter. T0035: usage analytics. T0034: 7 insight articles. All previously "pending" tasks verified complete (T0027/T0030/T0032/T0037 pre-existing). tsc 0 errors, eslint clean (2026-06-13, sha 8b7db4d)
 - **M010** v1.1.0 — T0025: SVI score sharing. T0026: Rate limit admin dashboard. All tsc 0 errors, eslint clean (2026-06-13, sha 439ce5b)
 - **M009** v1.0.0 — T0021: Valuation PDF export. T0022: Post-signup onboarding flow. All tsc 0 errors, eslint clean, 7/7 cfo-valuation tests (2026-06-13, sha ff33fac)
