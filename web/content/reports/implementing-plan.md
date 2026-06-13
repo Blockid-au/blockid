@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v1.6.0  ·  **Updated:** 2026-06-13T05:53:00.000Z  ·  **Decided by:** ceo
+**Version:** v1.7.0  ·  **Updated:** 2026-06-13T06:08:00.000Z  ·  **Decided by:** ceo
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -16,7 +16,7 @@
 | Runway | ~18 months at A$3K/mo opex |
 | AI Budget | US$0.18 / US$100 (0.18%) |
 | Valuation (blended mid) | A$488K |
-| Platform version | v1.6.0 (M014) |
+| Platform version | v1.7.0 (M015) |
 | Build status | tsc 0 errors · eslint clean · 94/94 tests |
 
 **SCN Priority Frame:** Pre-seed pre-revenue → Revenue Activation first, then Conversion funnel, then Evidence Vault depth, then SEO flywheel. Every task below is scored against this frame.
@@ -29,15 +29,15 @@
 |----|-------|------|--------|--------|
 | T0010 | CMO | Product Hunt launch — submit listing, first comment from founder, 5 feature screenshots | major | ⬜ pending (user action required) |
 | T0011 | CRO | Accelerator outreach — Antler application updated, submit to July 2026 cohort | minor | ⬜ pending (user action required) |
-| T0045 | CMO | Add 3 trust/security FAQ items to pricing-data.ts: "Is my data secure?", "Where is data stored?", "Do I need technical knowledge?" | minor | ⬜ pending (next wave) |
-| T0046 | CMO | 7 new insight articles: investor due diligence checklist, AU startup tax incentives (ESIC/ESSP), term sheet red flags, SaaS metrics for AU VCs, building in public, pitch deck structure, board management | medium | ⬜ pending (next wave) |
-| T0047 | CRO | Founding 50 waitlist email capture when spots exhausted — email capture form + notify on reopen | medium | ⬜ pending (next wave) |
+| T0048 | CTO | Create Supabase migration for founding50_waitlist table (email PK, name, joined_at) — required for T0047 waitlist to persist | minor | ⬜ pending (next deploy) |
 
 ---
 
 ---
 
 ## Recently shipped
+- ✅ `T0047` **CPO** — Founding 50 waitlist: POST /api/founding50/waitlist (upsert to founding50_waitlist), Founding50Waitlist component (amber, success state), founding-50/page.tsx now async server component — shows form vs waitlist based on live spots (2026-06-13, sha 535cfae)
+- ✅ `T0045-T0046` **CMO** — 3 trust FAQ items (data security, AU residency, no tech knowledge); 14 new insight articles via CMO cron (59 total); topic-queue.json updated with 7 new topics (2026-06-13, sha ca2a498)
 - ✅ `T0041-T0044` **CTO** — SEO + analytics: plan_cta_clicked + checkout_started on pricing CTA buttons; FAQJsonLd on /pricing (rich snippets); ArticleJsonLd on all 45 insight articles; remove fake aggregateRating from SoftwareApplicationJsonLd; fix BookOpen unused-import lint. tsc 0 · eslint clean (2026-06-13, sha 1d8ca72)
 - ✅ `T0031` **CTO** — Xero OAuth connector: /api/oauth/xero + callback, P&L report (periods=3) + BankSummary, creates xero_pl (financial_health, svi_impact=18) + xero_revenue (traction, svi_impact=15), ConnectorStatus + ConnectButtons updated (2026-06-13)
 - ✅ `T0038` **CTO** — Sentry error monitoring: lightweight HTTP Store API (no SDK), server-side via instrumentation.ts uncaughtException/unhandledRejection, client-side via global-error.tsx, SENTRY_DSN + NEXT_PUBLIC_SENTRY_DSN (2026-06-13)
@@ -79,6 +79,7 @@
 
 ## Milestones
 
+- **M015** v1.7.0 — T0047: Founding 50 waitlist (POST /api/founding50/waitlist, Founding50Waitlist component, server-side spots check). T0045: 3 trust FAQ items. T0046: 14 new insight articles (59 total). tsc 0 errors, eslint clean (2026-06-13, sha 535cfae)
 - **M014** v1.6.0 — T0041-T0044: CTA analytics tracking (plan_cta_clicked + checkout_started on pricing), FAQJsonLd on /pricing, ArticleJsonLd on 45 insight articles, fake aggregateRating removed. tsc 0 errors, eslint clean (2026-06-13, sha 1d8ca72)
 - **M013** v1.5.0 — T0031: Xero OAuth (P&L + revenue evidence). T0038: Sentry error monitoring (HTTP Store API, no SDK). T0039: LinkedIn auto-post cron. T0040: multi-project workspace verified. tsc 0 errors, eslint clean (2026-06-13)
 - **M012** v1.4.0 — T0029: post-signup onboarding sequence (D+1/D+3/D+7). T0033: bank statement CSV import (ANZ/CBA/NAB/Westpac). T0034: 45 total insight articles (7 new). tsc 0 errors, eslint clean (2026-06-13, sha c019047)
