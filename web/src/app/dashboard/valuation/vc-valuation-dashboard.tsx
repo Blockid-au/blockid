@@ -101,6 +101,31 @@ export function VcValuationDashboard() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [svi, setSvi] = React.useState<number | null>(null);
+  const [pdfLoading, setPdfLoading] = React.useState(false);
+
+  const handlePdfExport = React.useCallback(async () => {
+    if (!report || pdfLoading) return;
+    setPdfLoading(true);
+    try {
+      const res = await fetch("/api/valuation/pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ report }),
+      });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `blockid-valuation-${new Date().toISOString().slice(0, 10)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // Silently fail
+    } finally {
+      setPdfLoading(false);
+    }
+  }, [report, pdfLoading]);
 
   React.useEffect(() => {
     fetch("/api/valuation/vc")
@@ -167,14 +192,25 @@ export function VcValuationDashboard() {
               <p className="text-3xl font-bold tabular-nums">{report.blended.confidence}%</p>
               {svi && <p className="text-xs text-brand-300 mt-0.5">SVI {svi}</p>}
             </div>
-            <button
-              type="button"
-              onClick={() => exportCsv(report)}
-              className="flex items-center gap-1.5 rounded-lg bg-white/10 hover:bg-white/20 px-3 py-1.5 text-xs font-medium text-white transition-colors"
-            >
-              <Download strokeWidth={1.75} className="h-3 w-3" />
-              Export CSV
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => exportCsv(report)}
+                className="flex items-center gap-1.5 rounded-lg bg-white/10 hover:bg-white/20 px-3 py-1.5 text-xs font-medium text-white transition-colors"
+              >
+                <Download strokeWidth={1.75} className="h-3 w-3" />
+                Export CSV
+              </button>
+              <button
+                type="button"
+                onClick={() => void handlePdfExport()}
+                disabled={pdfLoading}
+                className="flex items-center gap-1.5 rounded-lg bg-white/10 hover:bg-white/20 px-3 py-1.5 text-xs font-medium text-white transition-colors disabled:opacity-60"
+              >
+                <Download strokeWidth={1.75} className="h-3 w-3" />
+                {pdfLoading ? "Generating..." : "Export PDF"}
+              </button>
+            </div>
           </div>
         </div>
         <div className="mt-6 grid grid-cols-3 gap-3">
