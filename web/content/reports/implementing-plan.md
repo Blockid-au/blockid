@@ -1,19 +1,19 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v1.0.0  ·  **Updated:** 2026-06-13T05:00:00.000Z  ·  **Decided by:** ceo
+**Version:** v1.1.0  ·  **Updated:** 2026-06-13T07:00:00.000Z  ·  **Decided by:** ceo
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
 ## Active tasks
 | ID | Agent | Task | Impact | Status |
 |----|-------|------|--------|--------|
-| T0024 | CMO | Insight cross-linking — add related article links at bottom of each insight page | minor | ⬜ pending |
-| T0025 | CPO | SVI score sharing — shareable URL with og:image preview (open graph meta from analysis) | major | ⬜ pending |
-| T0026 | CTO | Rate limit dashboard — /dashboard/admin show per-user rate limit usage (admin only) | minor | ⬜ pending |
 | T0010 | CMO | Product Hunt launch — submit listing, first comment from founder, 5 feature screenshots | major | ⬜ pending (user action required) |
 | T0011 | CRO | Accelerator outreach — Antler application updated, submit to July 2026 cohort | minor | ⬜ pending (user action required) |
 
 ## Recently shipped
+- ✅ `T0026` **CTO** — Rate limit dashboard: /dashboard/admin shows per-route/per-identity rate-limit usage with count, reset time, amber highlight; getRateLimitSnapshot() + GET /api/admin/rate-limits (admin-only) (2026-06-13, sha 439ce5b)
+- ✅ `T0025` **CPO** — SVI score sharing: Share Score button in LivingSVIDashboard copies /s/{scoreId} URL with teal confirmation state, og:image meta via existing /s/[slug] route (2026-06-13, sha 9d12e52)
+- ✅ `T0024` **CMO** — Insight cross-linking already implemented via related articles section in /insights/[slug]/page.tsx (2026-06-13)
 - ✅ `T0021` **CFO** — Valuation report PDF export: 2-page @react-pdf/renderer PDF (blended valuation, market sizing, methods, unit economics, projections, raise plan). Export PDF button on valuation dashboard (2026-06-13, sha ff33fac)
 - ✅ `T0022` **CPO** — Post-signup onboarding: new users redirect to /workspace/evidence?onboarding=true, welcome banner with CTA to connect first source (2026-06-13, sha 75b6d9e)
 - ✅ `T0019+T0020` **CPO+CTO** — OAuth success/error toast, disconnect button per connector, DELETE /api/evidence/disconnect, STRIPE_CLIENT_ID docs (2026-06-13, sha 80bbce6)
@@ -32,6 +32,7 @@
 - ✅ `T0001` **COO** — Daily C-Level reporting template (2026-06-13)
 
 ## Milestones
+- **M010** v1.1.0 — T0025: SVI score sharing. T0026: Rate limit admin dashboard. All tsc 0 errors, eslint clean (2026-06-13, sha 439ce5b)
 - **M009** v1.0.0 — T0021: Valuation PDF export. T0022: Post-signup onboarding flow. All tsc 0 errors, eslint clean, 7/7 cfo-valuation tests (2026-06-13, sha ff33fac)
 - **M008** v0.9.0 — T0019+T0020: OAuth toast UX, disconnect button, env docs. T0018: 7 SEO articles (2026-06-13, sha 80bbce6)
 - **M007** v0.8.0 — T0016: Stripe Connect OAuth + GA4 OAuth connectors (2026-06-13, sha b659f83)
