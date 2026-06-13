@@ -240,6 +240,198 @@
       "keywords": ["startup legal costs Australia", "company setup cost startup", "legal fees startup Australia", "incorporation cost Australia"],
       "cta": { "label": "Check Your Compliance Score", "href": "/score" },
       "angle": "Cost breakdown: company registration ($576 ASIC), shareholders agreement ($3-10K), ESOP setup ($5-15K), privacy policy ($2-5K), terms of service ($2-5K), IP assignment ($1-3K), trademark ($1-3K). Budget tips: when to use templates vs lawyers."
+    },
+    {
+      "slug": "cap-table-red-flags-that-kill-fundraising",
+      "title": "Cap Table Red Flags That Kill Fundraising Rounds (and How to Fix Them)",
+      "category": "cap-table",
+      "keywords": ["cap table red flags", "cap table problems fundraising", "startup cap table mistakes", "clean cap table investors"],
+      "cta": { "label": "Audit Your Cap Table Free", "href": "/tools/cap-table" },
+      "angle": "The 8 cap table issues that make VCs walk away: too many small angels, missing vesting, wrong share classes, family member equity, advisor over-allocation, founder loans converting to equity, missing IP assignments. How to fix each before raising."
+    },
+    {
+      "slug": "australian-vc-landscape-2026-who-is-investing",
+      "title": "Australian VC Landscape 2026: Who's Investing, What They Want, How to Get a Meeting",
+      "category": "fundraising",
+      "keywords": ["Australian VC investors 2026", "top VCs Australia", "venture capital Australia", "VC funds Australia"],
+      "cta": { "label": "Get Investor-Ready in 10 Minutes", "href": "/score" },
+      "angle": "Map of active Australian VCs by stage and sector: Blackbird, Square Peg, Folklore, AirTree, Afterpay Fund, Rampersand, Main Sequence. What each looks for, cheque sizes, portfolio themes. How to get a warm intro vs cold outreach."
+    },
+    {
+      "slug": "government-grants-startups-australia-2026",
+      "title": "Government Grants for Australian Startups in 2026: $50K to $5M+ Non-Dilutive Funding",
+      "category": "fundraising",
+      "keywords": ["government grants startups Australia", "non-dilutive funding startup Australia", "startup grants 2026", "Entrepreneurs Program Australia"],
+      "cta": { "label": "Check Your Funding Readiness", "href": "/tools/funding-plan" },
+      "angle": "Complete guide: Entrepreneurs Programme (Growth Stream up to $1M), CRC-P grants, Accelerating Commercialisation ($1.1M), MTP Connect, state-based grants (NSW MVP Fund, Vic LaunchVic). Eligibility, application tips, timeline. Non-dilutive = no equity given."
+    },
+    {
+      "slug": "how-much-equity-give-early-employees-australia",
+      "title": "How Much Equity to Give Early Employees in Your Australian Startup (2026 Guide)",
+      "category": "equity",
+      "keywords": ["startup employee equity Australia", "how much equity early employees", "startup stock options Australia", "ESOP grant sizes"],
+      "cta": { "label": "Plan Your Equity Pool", "href": "/tools/equity-split" },
+      "angle": "Benchmarks by role: engineer 0.1-0.5%, designer 0.05-0.3%, VP/Head 0.25-1%, first 10 employees vs employees 11-50. Cliff and vesting mechanics. Australian ESS tax concession usage. Common founder mistake: being too generous early kills later hires."
+    },
+    {
+      "slug": "startup-runway-calculator-guide-australia",
+      "title": "Startup Runway Calculator: How to Extend Your Runway Beyond 18 Months",
+      "category": "growth",
+      "keywords": ["startup runway calculator", "startup burn rate", "how long does startup funding last", "extend startup runway"],
+      "cta": { "label": "Model Your Funding Plan", "href": "/tools/funding-plan" },
+      "angle": "Formula: Runway = Cash / Monthly Burn. Benchmarks: raise when 12+ months left. Strategies to extend: reduce salaries (founder pay last), kill low-ROI channels, negotiate vendor payment terms, R&D tax offset timing, revenue-based bridge. Link to funding plan tool."
+    },
+    {
+      "slug": "how-to-negotiate-vc-term-sheet-australia",
+      "title": "How to Negotiate a VC Term Sheet in Australia: Clauses That Actually Matter",
+      "category": "fundraising",
+      "keywords": ["negotiate term sheet startup", "VC term sheet negotiation", "startup term sheet tips", "investor term sheet clauses to watch"],
+      "cta": { "label": "Analyse Your Term Sheet with AI", "href": "/tools/term-sheet" },
+      "angle": "What founders actually have leverage on: valuation cap, pro-rata rights, board seats, information rights, redemption rights. What is non-negotiable at pre-seed vs seed. How to run a competitive process to get leverage. Common Australian VC term sheet norms vs US terms."
+    },
+    {
+      "slug": "asic-company-registration-startup-guide",
+      "title": "ASIC Company Registration for Startups: Step-by-Step Guide (Pty Ltd vs Trust)",
+      "category": "compliance",
+      "keywords": ["ASIC company registration startup", "how to register startup Australia", "Pty Ltd vs trust startup", "ASIC ABN registration"],
+      "cta": { "label": "Check Your Compliance Score", "href": "/score" },
+      "angle": "Pty Ltd vs discretionary trust vs unit trust for startups. Step-by-step ASIC registration ($576, online). Getting ABN and ACN. Director duties from day one. Setting up correctly for ESIC eligibility. Common mistakes: registering as sole trader when raising equity."
+    },
+    {
+      "slug": "startup-salary-benchmarks-australia-2026",
+      "title": "Startup Salary Benchmarks Australia 2026: Engineering, Product, Marketing, Sales",
+      "category": "growth",
+      "keywords": ["startup salaries Australia 2026", "startup engineer salary Sydney", "startup team salary benchmarks", "tech startup compensation Australia"],
+      "cta": { "label": "Model Your Team Costs", "href": "/tools/funding-plan" },
+      "angle": "Salary data by role and stage: software engineer ($90-160K), product manager ($110-150K), growth marketer ($80-120K), sales rep ($70-100K + commission), CTO ($140-200K). Equity offsets for below-market. Contractor vs employee considerations."
+    },
+    {
+      "slug": "minimum-viable-product-strategy-australia",
+      "title": "MVP Strategy for Australian Startups: How to Build, Launch, and Validate Fast",
+      "category": "growth",
+      "keywords": ["minimum viable product strategy", "MVP startup Australia", "how to build MVP", "startup MVP validation"],
+      "cta": { "label": "Validate Your Idea Score", "href": "/tools/idea-valuation" },
+      "angle": "3 types of MVP: Concierge, Wizard-of-Oz, Landing Page. AU market validation tips: use SEEK data for problem validation, LinkedIn for ICP targeting, Stripe + Webflow for paid MVP. How to measure MVP success. Link to BlockID idea valuation tool."
+    },
+    {
+      "slug": "angel-investor-vs-vc-australia",
+      "title": "Angel Investor vs VC in Australia: Which is Right for Your Stage?",
+      "category": "fundraising",
+      "keywords": ["angel investor vs VC Australia", "angel investment Australia", "when to approach VC startup", "Australian angel investor networks"],
+      "cta": { "label": "Get Your Investor-Ready Score", "href": "/score" },
+      "angle": "Compare: Angel (A$25K-200K, 1-3 checks, fast decision, relationship-driven) vs VC (A$500K-15M, 12-24 months process, board seats, reporting requirements). Australian networks: Sydney Angels, AAAI, Scale Investors, AngelList AU. When hybrid rounds work best."
+    },
+    {
+      "slug": "startup-board-of-directors-setup-guide",
+      "title": "How to Set Up a Startup Board of Directors in Australia (Governance Done Right)",
+      "category": "compliance",
+      "keywords": ["startup board of directors Australia", "startup governance board", "independent director startup", "board composition early stage"],
+      "cta": { "label": "Check Your Governance Score", "href": "/score" },
+      "angle": "When to form a formal board (at seed, not before). Board composition: founder, investor, 1-2 independent directors. Director duties under Corporations Act. Board meeting cadence. What VCs expect from board governance. Common mistakes: too many board seats given too early."
+    },
+    {
+      "slug": "how-to-do-competitive-analysis-startup-pitch",
+      "title": "Competitive Analysis for Your Startup Pitch: How Investors Really Think About Competition",
+      "category": "fundraising",
+      "keywords": ["startup competitive analysis", "competition slide pitch deck", "competitive landscape startup", "how to analyse competitors startup"],
+      "cta": { "label": "Get AI Competitive Intelligence", "href": "/score" },
+      "angle": "Why saying 'no competition' kills pitches. 2x2 competitive matrix done right. How to position against incumbents. Moat types: network effect, switching cost, data advantage, brand. How BlockID SVI analyses competitive positioning. Australian market differentiation."
+    },
+    {
+      "slug": "revenue-based-financing-australia",
+      "title": "Revenue-Based Financing in Australia: Non-Dilutive Capital for Growing Startups",
+      "category": "fundraising",
+      "keywords": ["revenue based financing Australia", "RBF startup Australia", "non-dilutive startup funding", "Capchase Australia alternative"],
+      "cta": { "label": "Explore Funding Options", "href": "/tools/funding-plan" },
+      "angle": "How RBF works: advance 3-12x MRR, repay 3-12% of monthly revenue until 1.3-1.5x repaid. AU providers: Clearco, Ondeck, Moula. Who it's right for: SaaS with $30K+ MRR, >12-month track record. Compare economics vs equity dilution."
+    },
+    {
+      "slug": "startup-ceo-salary-guide-australia",
+      "title": "What Should a Startup CEO Pay Themselves in Australia? (2026 Salary Guide)",
+      "category": "growth",
+      "keywords": ["startup CEO salary Australia", "founder salary startup", "how much to pay yourself startup", "CEO compensation early stage"],
+      "cta": { "label": "Model Your Team Budget", "href": "/tools/funding-plan" },
+      "angle": "Benchmarks by stage: pre-seed ($0-80K), seed ($80-150K), Series A ($150-250K). The founder salary vs investor expectations tension. How to justify founder salary in board discussions. Tax efficiency: salary vs dividends vs super. When to increase salary vs take equity."
+    },
+    {
+      "slug": "investor-updates-best-practices-australia",
+      "title": "Investor Updates: How Australian Founders Keep Investors Engaged (Monthly Template)",
+      "category": "fundraising",
+      "keywords": ["investor update template startup", "monthly investor update", "startup investor communication", "investor relations startup"],
+      "cta": { "label": "Automate Your Investor Reports", "href": "/score" },
+      "angle": "Why 80% of founders send bad investor updates (too long, no asks, vanity metrics). Template: 3 wins, 3 challenges, 1 ask, key metrics table (MRR, runway, users). Cadence: monthly for active investors, quarterly for angels. How BlockID automates reporting."
+    },
+    {
+      "slug": "how-to-find-product-market-fit-b2b-saas-australia",
+      "title": "Finding Product-Market Fit for B2B SaaS in Australia: Signals, Frameworks & Benchmarks",
+      "category": "growth",
+      "keywords": ["B2B SaaS product market fit Australia", "PMF B2B startup", "SaaS product market fit signals", "startup PMF framework B2B"],
+      "cta": { "label": "Measure Your Traction Score", "href": "/" },
+      "angle": "B2B PMF signals: logo retention >90%, NPS >40, organic referrals, deals closing in <30 days. Australian B2B nuances: SME buying cycles, accounting software integration expectations, local support expectations. How to move from 'nice to have' to 'must have'."
+    },
+    {
+      "slug": "startup-due-diligence-checklist-australia",
+      "title": "Startup Due Diligence Checklist: Prepare Before Investors Ask (Australia 2026)",
+      "category": "fundraising",
+      "keywords": ["startup due diligence checklist", "investor due diligence startup", "pre-diligence startup Australia", "DD checklist fundraising"],
+      "cta": { "label": "Run Your Pre-Diligence Now", "href": "/score" },
+      "angle": "10-category due diligence checklist: corporate structure, cap table, financials, IP, customers, team, market, technology, compliance, data room. What surprises founders in DD. How 3 months of prep saves 3 months of delays. BlockID automates pre-diligence."
+    },
+    {
+      "slug": "non-dilutive-funding-strategies-australia",
+      "title": "7 Non-Dilutive Funding Strategies for Australian Startups (Keep 100% of Your Equity)",
+      "category": "fundraising",
+      "keywords": ["non-dilutive funding Australia", "startup funding without equity", "bootstrap funding strategies", "grants loans startup Australia"],
+      "cta": { "label": "Find Your Best Funding Path", "href": "/tools/funding-plan" },
+      "angle": "7 strategies: R&D tax offset ($150-750K/year), government grants (Entrepreneurs Programme), revenue-based financing, bank loans (startup-friendly banks), invoice financing, customer prepayments, strategic partnerships. When each makes sense vs equity."
+    },
+    {
+      "slug": "startup-valuation-methods-pre-revenue",
+      "title": "How to Value a Pre-Revenue Startup in Australia: 5 Methods VCs Actually Use",
+      "category": "valuation",
+      "keywords": ["startup valuation pre-revenue", "how to value early stage startup", "pre-revenue startup valuation methods", "startup valuation Australia"],
+      "cta": { "label": "Get Your AI Valuation Free", "href": "/" },
+      "angle": "5 methods: Berkus Method (idea+prototype+team+execution+market), Scorecard (vs comparable companies), Risk Factor Summation, VC Method (exit/return), Comparable transactions. Australian benchmarks: pre-seed $1-4M, seed $3-10M. How BlockID AI applies these."
+    },
+    {
+      "slug": "asic-director-duties-startup-founders",
+      "title": "ASIC Director Duties Every Australian Startup Founder Must Know",
+      "category": "compliance",
+      "keywords": ["ASIC director duties", "startup director responsibilities Australia", "company director duties Corporations Act", "insolvent trading startup"],
+      "cta": { "label": "Check Your Governance Compliance", "href": "/score" },
+      "angle": "Key duties under Corporations Act 2001: care and diligence, good faith, proper purpose, avoid conflicts, no improper use of position/information. Personal liability for insolvent trading. D&O insurance (get it at Series A). How founder duties change with external investors."
+    },
+    {
+      "slug": "startup-insurance-guide-australia",
+      "title": "Startup Insurance Guide Australia: What Coverage You Actually Need at Each Stage",
+      "category": "compliance",
+      "keywords": ["startup insurance Australia", "business insurance startup", "D&O insurance startup", "professional indemnity startup Australia"],
+      "cta": { "label": "Check Your Risk Profile", "href": "/score" },
+      "angle": "Essential covers by stage: Pre-seed (public liability $2M, cyber). Seed (D&O, PI). Series A (key man, EPL, product liability). Costs and who to use (Startup Shield, Agile Underwriting, Embroker). What VC term sheets require. Common claims startups face."
+    },
+    {
+      "slug": "building-startup-australia-vs-silicon-valley",
+      "title": "Building a Startup in Australia vs Silicon Valley: Honest Comparison for Founders",
+      "category": "growth",
+      "keywords": ["startup Australia vs Silicon Valley", "building startup Australia", "why build startup Australia", "Australian startup ecosystem"],
+      "cta": { "label": "Track Your Startup Journey", "href": "/" },
+      "angle": "Real comparison: talent (AU more loyal, less equity-hungry), funding (smaller, more conservative but less competitive), customers (AU enterprise buys slower but stickier), government support (R&D tax, grants), quality of life. Why AU is better for B2B, worse for consumer moonshots."
+    },
+    {
+      "slug": "how-to-write-business-plan-investors-australia",
+      "title": "How to Write a Business Plan That Investors Actually Read (Australia Template 2026)",
+      "category": "fundraising",
+      "keywords": ["business plan investors Australia", "startup business plan template", "investor business plan", "one-page business plan startup"],
+      "cta": { "label": "Build Your Investor Pack", "href": "/score" },
+      "angle": "Modern investors don't read 50-page plans. Cover: executive summary (1 page), problem/solution, market size, business model, traction, team, financials, ask. Australian VC preferences: show evidence, not projections. One-page vs full plan by stage."
+    },
+    {
+      "slug": "product-hunt-launch-strategy-australian-startups",
+      "title": "Product Hunt Launch Strategy for Australian Startups: How to Get #1 Product of the Day",
+      "category": "growth",
+      "keywords": ["product hunt launch strategy", "product hunt Australia", "how to launch on product hunt", "startup launch marketing"],
+      "cta": { "label": "Measure Your Launch Readiness", "href": "/" },
+      "angle": "Complete PH launch guide: hunter choice, timing (Tuesday-Thursday 12:01am PST), hunter brief, media assets, community activation, first-hour strategy. AU founder advantage: launch at 5pm AEST = prime US morning. Link to post-launch SVI tracking."
     }
   ]
 }
