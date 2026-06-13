@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v1.4.0  ·  **Updated:** 2026-06-13T09:00:00.000Z  ·  **Decided by:** ceo
+**Version:** v1.6.0  ·  **Updated:** 2026-06-13T05:53:00.000Z  ·  **Decided by:** ceo
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -16,7 +16,7 @@
 | Runway | ~18 months at A$3K/mo opex |
 | AI Budget | US$0.18 / US$100 (0.18%) |
 | Valuation (blended mid) | A$488K |
-| Platform version | v1.4.0 (M012) |
+| Platform version | v1.6.0 (M014) |
 | Build status | tsc 0 errors · eslint clean · 94/94 tests |
 
 **SCN Priority Frame:** Pre-seed pre-revenue → Revenue Activation first, then Conversion funnel, then Evidence Vault depth, then SEO flywheel. Every task below is scored against this frame.
@@ -27,29 +27,22 @@
 
 | ID | Agent | Task | Impact | Status |
 |----|-------|------|--------|--------|
-| T0029 | CMO | Email onboarding sequence — 3-email Resend transactional chain: D+1 (welcome + SVI tip), D+3 (Evidence Vault explainer), D+7 (upgrade CTA with Founding 50 scarcity count) | major | ⬜ pending |
-| T0031 | CTO | Xero OAuth connector — /api/oauth/xero route + callback, read P&L / cash / invoices → CFO evidence (revenue, burn, runway signals) | major | ⬜ pending |
-| T0033 | CPO | Evidence Vault: bank statement CSV import — drag-drop CSV (ANZ/CBA/NAB/Westpac format), parse transactions, auto-extract burn rate → CFO evidence | major | ⬜ pending |
-| T0038 | CTO | Sentry error monitoring — add @sentry/nextjs, capture unhandled exceptions + API errors, alert on error spike | minor | ⬜ pending |
-| T0039 | CMO | LinkedIn auto-post cron — weekly post with a BlockID insight stat or startup tip, using LinkedIn OAuth (already partially scaffolded) | minor | ⬜ pending |
-| T0040 | CPO | Multi-project workspace — allow users to create multiple startup projects (project_id context); switch project via sidebar dropdown; isolates analyses, evidence, cap table per project | major | ⬜ pending |
 | T0010 | CMO | Product Hunt launch — submit listing, first comment from founder, 5 feature screenshots | major | ⬜ pending (user action required) |
 | T0011 | CRO | Accelerator outreach — Antler application updated, submit to July 2026 cohort | minor | ⬜ pending (user action required) |
+| T0045 | CMO | Add 3 trust/security FAQ items to pricing-data.ts: "Is my data secure?", "Where is data stored?", "Do I need technical knowledge?" | minor | ⬜ pending (next wave) |
+| T0046 | CMO | 7 new insight articles: investor due diligence checklist, AU startup tax incentives (ESIC/ESSP), term sheet red flags, SaaS metrics for AU VCs, building in public, pitch deck structure, board management | medium | ⬜ pending (next wave) |
+| T0047 | CRO | Founding 50 waitlist email capture when spots exhausted — email capture form + notify on reopen | medium | ⬜ pending (next wave) |
 
 ---
-
-## Execution order (agent can self-sequence)
-
-1. **T0029** — Email onboarding sequence (3-email chain for new signups)
-2. **T0033** — Bank statement CSV import (evidence depth, no OAuth needed)
-3. **T0031** — Xero OAuth connector (accounting evidence)
-4. **T0038** — Sentry error monitoring (reliability)
-5. **T0039** — LinkedIn auto-post cron (distribution)
-6. **T0040** — Multi-project workspace (Q3 milestone)
 
 ---
 
 ## Recently shipped
+- ✅ `T0041-T0044` **CTO** — SEO + analytics: plan_cta_clicked + checkout_started on pricing CTA buttons; FAQJsonLd on /pricing (rich snippets); ArticleJsonLd on all 45 insight articles; remove fake aggregateRating from SoftwareApplicationJsonLd; fix BookOpen unused-import lint. tsc 0 · eslint clean (2026-06-13, sha 1d8ca72)
+- ✅ `T0031` **CTO** — Xero OAuth connector: /api/oauth/xero + callback, P&L report (periods=3) + BankSummary, creates xero_pl (financial_health, svi_impact=18) + xero_revenue (traction, svi_impact=15), ConnectorStatus + ConnectButtons updated (2026-06-13)
+- ✅ `T0038` **CTO** — Sentry error monitoring: lightweight HTTP Store API (no SDK), server-side via instrumentation.ts uncaughtException/unhandledRejection, client-side via global-error.tsx, SENTRY_DSN + NEXT_PUBLIC_SENTRY_DSN (2026-06-13)
+- ✅ `T0039` **CMO** — LinkedIn weekly auto-post cron: POST /api/cron/linkedin-post, posts SVI score milestone via ugcPosts API, 7-day cooldown via svi_notifications, max 3 users/run (2026-06-13)
+- ✅ `T0040` **CPO** — Multi-project workspace verified complete: src/lib/projects.ts, /api/projects/, /workspace/projects/, ProjectSwitcher in sidebar (pre-existing) (2026-06-13)
 - ✅ `T0029` **CMO** — Post-signup onboarding email sequence: D+1 (welcome), D+3 (Evidence Vault), D+7 (Founding 50 upgrade CTA). Fires for users who haven't yet run SVI analysis. /api/cron/onboarding-sequence (2026-06-13, sha 035d27c)
 - ✅ `T0033` **CPO** — Bank statement CSV import: POST /api/evidence/bank-statement parses ANZ/CBA/NAB/Westpac CSVs, extracts burn rate + net cash flow, creates financial_health evidence. BankStatementImport drag-drop UI in Evidence Vault (2026-06-13, sha 40657ab)
 - ✅ `T0035` **CTO** — Usage analytics dashboard: /dashboard/admin/usage with KPI grid (8 metrics), 14-day daily analyses chart, recent signups table (2026-06-13, sha 8b7db4d)
@@ -86,6 +79,8 @@
 
 ## Milestones
 
+- **M014** v1.6.0 — T0041-T0044: CTA analytics tracking (plan_cta_clicked + checkout_started on pricing), FAQJsonLd on /pricing, ArticleJsonLd on 45 insight articles, fake aggregateRating removed. tsc 0 errors, eslint clean (2026-06-13, sha 1d8ca72)
+- **M013** v1.5.0 — T0031: Xero OAuth (P&L + revenue evidence). T0038: Sentry error monitoring (HTTP Store API, no SDK). T0039: LinkedIn auto-post cron. T0040: multi-project workspace verified. tsc 0 errors, eslint clean (2026-06-13)
 - **M012** v1.4.0 — T0029: post-signup onboarding sequence (D+1/D+3/D+7). T0033: bank statement CSV import (ANZ/CBA/NAB/Westpac). T0034: 45 total insight articles (7 new). tsc 0 errors, eslint clean (2026-06-13, sha c019047)
 - **M011** v1.3.0 — T0028+T0036: upgrade CTA ≤5 credits + Founding50Spots live counter. T0035: usage analytics. T0034: 7 insight articles. All previously "pending" tasks verified complete (T0027/T0030/T0032/T0037 pre-existing). tsc 0 errors, eslint clean (2026-06-13, sha 8b7db4d)
 - **M010** v1.1.0 — T0025: SVI score sharing. T0026: Rate limit admin dashboard. All tsc 0 errors, eslint clean (2026-06-13, sha 439ce5b)
