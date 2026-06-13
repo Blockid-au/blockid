@@ -1,6 +1,111 @@
 {
   "articles": [
     {
+      "slug": "scorecard-method-startup-valuation-australia-2026",
+      "title": "How to Value an Australian Startup in 2026: The Scorecard Method",
+      "description": "Learn how to apply the Scorecard Method to value your Australian startup in 2026. Includes benchmarks, worked examples, and 5 weighted factors used by AU angel investors.",
+      "keywords": [
+        "startup valuation australia",
+        "scorecard method startup valuation",
+        "how to value a startup australia 2026",
+        "pre-money valuation australia",
+        "startup valuation methods australia",
+        "pre-seed valuation australia",
+        "angel investor valuation method"
+      ],
+      "category": "valuation",
+      "publishedAt": "2026-06-13",
+      "readingTime": 8,
+      "cta": {
+        "label": "Run Your Free Valuation",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "australian-startup-funding-rounds-2026-guide",
+      "title": "Australian Startup Funding Rounds Explained: Pre-Seed to Series B in 2026",
+      "description": "The definitive 2026 guide to Australian startup funding stages. Pre-seed to Series B benchmarks, valuation ranges, dilution expectations, and ESIC tips for AU founders.",
+      "keywords": [
+        "startup funding australia 2026",
+        "australian startup funding rounds",
+        "pre-seed funding australia",
+        "seed round australia 2026",
+        "series a australia",
+        "startup funding stages explained australia",
+        "AVCAL australia startup investment"
+      ],
+      "category": "funding",
+      "publishedAt": "2026-06-13",
+      "readingTime": 9,
+      "cta": {
+        "label": "Model Your Funding Round",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "safe-note-convertible-note-australia-2026-comparison",
+      "title": "SAFE Notes vs Convertible Notes: What Australian Founders Need to Know in 2026",
+      "description": "SAFE note vs convertible note Australia 2026: Legal differences, ASIC implications, valuation cap benchmarks, discount rates, and when to use each instrument.",
+      "keywords": [
+        "safe note australia",
+        "convertible note australia",
+        "safe vs convertible note australia 2026",
+        "SAFE note australia founders",
+        "startup fundraising instruments australia",
+        "ASIC SAFE note compliance",
+        "valuation cap australia 2026"
+      ],
+      "category": "funding",
+      "publishedAt": "2026-06-13",
+      "readingTime": 8,
+      "cta": {
+        "label": "Get Your Investor Readiness Score",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "equity-split-calculator-australia-2026",
+      "title": "How to Calculate Your Startup Equity Split in Australia: 2026 Framework",
+      "description": "Calculate a fair equity split for your Australian startup co-founders in 2026. 5-factor framework, worked examples, vesting schedules, and ESOP pool planning.",
+      "keywords": [
+        "equity split calculator australia",
+        "co-founder equity split australia",
+        "how to split equity startup australia",
+        "founder equity australia 2026",
+        "startup equity framework australia",
+        "vesting schedule australia startup",
+        "ESOP pool australia"
+      ],
+      "category": "equity",
+      "publishedAt": "2026-06-13",
+      "readingTime": 8,
+      "cta": {
+        "label": "Calculate Your Equity Split",
+        "href": "/tools/equity-split"
+      }
+    },
+    {
+      "slug": "antler-australia-2026-application-guide",
+      "title": "Antler Australia 2026: Application Guide and What VCs Look For",
+      "description": "Complete guide to applying to Antler Australia in 2026. Acceptance rates, application process, IC criteria, and how to maximise your chances of being funded.",
+      "keywords": [
+        "antler australia cohort",
+        "antler australia 2026",
+        "antler sydney application",
+        "antler australia acceptance rate",
+        "antler australia investment terms",
+        "australian startup accelerator 2026",
+        "antler vs startmate australia"
+      ],
+      "category": "funding",
+      "publishedAt": "2026-06-13",
+      "readingTime": 9,
+      "cta": {
+        "label": "Benchmark Your Startup Readiness",
+        "href": "/score"
+      }
+    },
+    {
       "slug": "building-startup-australia-vs-silicon-valley",
       "title": "Australia vs Silicon Valley: Startup Hub Comparison",
       "description": "Discover why Australia is a top choice for startups. Compare the Australian and Silicon Valley ecosystems, funding options, and benefits of starting a busi",
