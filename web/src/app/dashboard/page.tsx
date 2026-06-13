@@ -31,6 +31,7 @@ import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { StatusCards } from "@/components/dashboard/status-cards";
 import { ScnPositionHero } from "@/components/dashboard/scn-position-hero";
 import { ScnDirectionNavigator, type DirectionStep } from "@/components/dashboard/scn-direction-navigator";
+import { AIConfidenceActionPlan } from "@/components/dashboard/ai-confidence-action-plan";
 import type { SVIAnalysis, SVISubScore } from "@/lib/svi-analysis";
 import { getSVIPercentile } from "@/lib/benchmarks";
 
@@ -723,6 +724,11 @@ export default async function DashboardPage({
               )}
             </div>
           </div>
+        )}
+
+        {/* ── AI Confidence + Action Plan (T0076) ──────────────────────────── */}
+        {analysis?.subs && analysis.subs.length > 0 && (
+          <AIConfidenceActionPlan subs={analysis.subs} />
         )}
 
         {/* ── Row 3: SCN DIRECTION — Google-Maps-style navigation ───────────── */}
