@@ -45,6 +45,12 @@ export function GoogleAnalytics() {
               gtag('js', new Date());
               gtag('config', '${GA_MEASUREMENT_ID}', {
                 send_page_view: true,
+                custom_map: {
+                  dimension1: 'article_category',
+                  dimension2: 'article_primary_keyword',
+                  dimension3: 'content_type',
+                  dimension4: 'article_reading_time',
+                },
               });
             `}
           </Script>

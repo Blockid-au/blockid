@@ -9,13 +9,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
   invalidateCache(); // ensure fresh read from disk (content volume)
   const lastModified = new Date();
 
-  // Dynamic insight articles
-  const insightEntries: MetadataRoute.Sitemap = getAllArticles().map((a) => ({
-    url: `${SITE_URL}/insights/${a.slug}`,
-    lastModified: new Date(a.updatedAt ?? a.publishedAt),
-    changeFrequency: "monthly" as const,
-    priority: 0.7,
-  }));
+  // Dynamic insight articles — recent (last 30d) get weekly crawl + higher priority
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const insightEntries: MetadataRoute.Sitemap = getAllArticles().map((a) => {
+    const isRecent = new Date(a.publishedAt) >= thirtyDaysAgo;
+    const keywordBoost = a.keywords.length >= 4 ? 0.05 : 0;
+    return {
+      url: `${SITE_URL}/insights/${a.slug}`,
+      lastModified: new Date(a.updatedAt ?? a.publishedAt),
+      changeFrequency: isRecent ? ("weekly" as const) : ("monthly" as const),
+      priority: isRecent ? Math.min(0.9, 0.8 + keywordBoost) : Math.min(0.8, 0.7 + keywordBoost),
+    };
+  });
 
   return [
     {
