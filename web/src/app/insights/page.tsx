@@ -99,8 +99,25 @@ export default function InsightsPage() {
           </div>
         )}
 
+        {/* Benchmarks teaser */}
+        <div className="mt-14 rounded-2xl border border-ink-800 bg-ink-950 text-white p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-brand-400 font-semibold mb-1">Free Data</p>
+            <h2 className="text-xl font-semibold text-white">AU Startup Benchmarks</h2>
+            <p className="mt-1 text-sm text-slate-400">
+              MRR, ARR, burn rate, churn and SVI scores by stage — compare your startup against 2,700+ AU peers.
+            </p>
+          </div>
+          <Link
+            href="/benchmarks"
+            className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-700 transition-colors whitespace-nowrap"
+          >
+            View Benchmarks <ArrowRight strokeWidth={1.75} className="h-4 w-4" />
+          </Link>
+        </div>
+
         {/* CTA */}
-        <div className="mt-20 rounded-2xl bg-gradient-to-br from-brand-50 to-brand-100/60 border border-brand-200 p-10 md:p-14 text-center">
+        <div className="mt-10 rounded-2xl bg-gradient-to-br from-brand-50 to-brand-100/60 border border-brand-200 p-10 md:p-14 text-center">
           <h2 className="text-2xl md:text-3xl font-bold text-ink-900 mb-3">
             Know your startup&apos;s value today
           </h2>
