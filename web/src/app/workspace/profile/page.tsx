@@ -6,6 +6,7 @@ import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { ProfileProgress } from "@/components/workspace/profile-progress";
 import { BadgeShelf } from "@/components/workspace/badge-shelf";
 import { PasswordForm } from "@/components/workspace/password-form";
+import { NotificationPrefs } from "@/components/workspace/notification-prefs";
 
 export const metadata: Metadata = {
   title: "My Profile",
@@ -66,6 +67,7 @@ export default async function ProfilePage() {
             </div>
           </div>
         </div>
+        <NotificationPrefs />
         <div className="mt-6">
           <PasswordForm hasExistingPassword={hasPassword} />
         </div>
