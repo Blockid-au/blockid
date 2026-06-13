@@ -4,6 +4,7 @@ import { SVIReportPDF } from "@/lib/pdf/svi-report-pdf";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { getCurrentUser } from "@/lib/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,11 @@ export async function POST(request: Request) {
         { status: 401 },
       );
     }
+
+    // Per-user throttle — PDF render is synchronous CPU work that blocks the
+    // event loop; cap to keep one user from stalling the instance.
+    const limited = enforceRateLimit("svi-pdf", user.email, request, 40, 60 * 60 * 1000);
+    if (limited) return limited;
 
     const body = (await request.json()) as {
       analysis?: SVIAnalysis;
