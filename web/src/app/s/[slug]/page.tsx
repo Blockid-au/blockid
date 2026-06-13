@@ -164,6 +164,16 @@ async function recordView(slug: string) {
     console.error("[blockid:s] view insert failed", error);
   }
 
+  // Fire-and-forget investor access log (does not block render)
+  supabase.from("investor_access_log").insert({
+    score_id: slug,
+    accessed_at: new Date().toISOString(),
+    user_agent: h.get("user-agent")?.slice(0, 512) ?? null,
+    ip_hash: hashIp(ip),
+  }).then(({ error: logErr }) => {
+    if (logErr) console.error("[blockid:s] investor_access_log insert failed", logErr);
+  });
+
   // Also upsert investor_heat total_views
   const viewerHash = hashIp(ip);
   if (viewerHash) {
