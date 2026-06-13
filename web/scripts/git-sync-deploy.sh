@@ -12,8 +12,10 @@ set -u
 WEB_DIR="/home/dovanlong/blockid.au/web"
 LOCK="/tmp/blockid-deploy.lock"
 LOG="/tmp/blockid-cron.log"
-TELEGRAM_BOT="8866491988:AAF24ixnoNFzubydEARc28klTd0lw1V5fCk"
-TELEGRAM_CHAT="${TELEGRAM_CHAT_ID:-539796782}"
+# Secret read from the gitignored .env (never hardcoded in committed scripts).
+env_val() { grep -E "^$1=" "$WEB_DIR/.env" "$WEB_DIR/.env.runtime" 2>/dev/null | head -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//'; }
+TELEGRAM_BOT="${TELEGRAM_BOT_TOKEN:-$(env_val TELEGRAM_BOT_TOKEN)}"
+TELEGRAM_CHAT="${TELEGRAM_CHAT_ID:-$(env_val TELEGRAM_CHAT_ID)}"
 
 log() { echo "$(date -u '+%m-%d %H:%M') git-sync: $1" >> "$LOG"; }
 

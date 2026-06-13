@@ -30,13 +30,20 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+# Secrets are read from the gitignored .env (never hardcoded in committed
+# scripts). An already-exported env var wins; otherwise we pull the single key
+# out of .env without sourcing the whole (not-shell-safe) file.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WEB_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+env_val() { grep -E "^$1=" "$WEB_DIR/.env" "$WEB_DIR/.env.runtime" 2>/dev/null | head -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//'; }
+
 # Config
-CRON_SECRET="${CRON_SECRET:-4b76f13574efd401640cb5dce996f01aa8b8169c02cb1b1949ceb6354ee15f32}"
+CRON_SECRET="${CRON_SECRET:-$(env_val CRON_SECRET)}"
 BASE="http://127.0.0.1:4001/api/cron"
 LOG="/tmp/blockid-cron.log"
 HEALTH_LOG="/home/dovanlong/blockid.au/web/content/reports/cron-health.jsonl"
-TELEGRAM_BOT="8866491988:AAF24ixnoNFzubydEARc28klTd0lw1V5fCk"
-TELEGRAM_CHAT="${TELEGRAM_CHAT_ID:-539796782}"
+TELEGRAM_BOT="${TELEGRAM_BOT_TOKEN:-$(env_val TELEGRAM_BOT_TOKEN)}"
+TELEGRAM_CHAT="${TELEGRAM_CHAT_ID:-$(env_val TELEGRAM_CHAT_ID)}"
 
 # Rotate log at 200KB
 if [ -f "$LOG" ] && [ "$(stat -c%s "$LOG" 2>/dev/null || echo 0)" -gt 200000 ]; then

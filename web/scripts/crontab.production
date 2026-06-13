@@ -11,7 +11,8 @@
 #   ✅ Telegram alert on failure
 #   ✅ Auto log rotation (200KB cap)
 
-CRON_SECRET=4b76f13574efd401640cb5dce996f01aa8b8169c02cb1b1949ceb6354ee15f32
+# CRON_SECRET is no longer set here — cron-runner.sh reads it from the gitignored
+# web/.env at runtime (keeps the secret out of version control). Set it in .env.
 RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 
 # ═══════════════════════════════════════════════════════════════
