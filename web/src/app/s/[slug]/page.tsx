@@ -24,6 +24,7 @@ import {
   recordInvestorLinkView,
   type InvestorLink,
 } from "@/lib/investor-links";
+import { sendScoreViewed } from "@/lib/email";
 import {
   SVI_STAGE_LABELS,
   SVI_BENCHMARKS,
@@ -157,19 +158,51 @@ async function fetchEvidenceCount(email: string): Promise<number> {
   return count ?? 0;
 }
 
-async function recordView(slug: string) {
+async function recordView(slug: string, notify?: {
+  ownerEmail: string;
+  companyName: string | null;
+  viewerLabel?: string;
+}) {
   const supabase = getSupabaseAdmin();
   if (!supabase) return;
   const h = await headers();
   const ip = clientIpFromHeaders(h);
+  const viewerHash = hashIp(ip);
+
+  // 24h dedupe for owner notification: was this same viewer hash already seen
+  // on this score in the last 24h? If so, suppress the email.
+  let shouldNotify = Boolean(notify?.ownerEmail);
+  if (shouldNotify && viewerHash) {
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count: priorCount } = await supabase
+      .from("score_views")
+      .select("id", { count: "exact", head: true })
+      .eq("score_id", slug)
+      .eq("viewer_ip_hash", viewerHash)
+      .gte("viewed_at", since);
+    if ((priorCount ?? 0) > 0) shouldNotify = false;
+  }
+
   const { error } = await supabase.from("score_views").insert({
     score_id: slug,
-    viewer_ip_hash: hashIp(ip),
+    viewer_ip_hash: viewerHash,
     viewer_ua: h.get("user-agent")?.slice(0, 512) ?? null,
     referer: h.get("referer")?.slice(0, 512) ?? null,
   });
   if (error) {
     console.error("[blockid:s] view insert failed", error);
+  }
+
+  // Fire-and-forget owner notification (respects email_preferences.svi_alerts).
+  if (shouldNotify && notify) {
+    void sendScoreViewed({
+      to: notify.ownerEmail,
+      slug,
+      viewerLabel: notify.viewerLabel,
+      companyName: notify.companyName,
+    }).catch((e) =>
+      console.error("[blockid:s] sendScoreViewed failed", e),
+    );
   }
 
   // Fire-and-forget investor access log (does not block render)
@@ -183,7 +216,6 @@ async function recordView(slug: string) {
   });
 
   // Also upsert investor_heat total_views
-  const viewerHash = hashIp(ip);
   if (viewerHash) {
     const { data: existing } = await supabase
       .from("investor_heat")
@@ -397,7 +429,21 @@ export default async function ShareScorePage({
     }
 
     if (!row) notFound();
-    await recordView(scoreSlug);
+
+    // Build a friendly viewer label for the owner notification email.
+    // Per-investor links carry the name/fund so we can identify the viewer;
+    // anonymous public links fall back to "by a viewer".
+    const viewerLabel = investorLink
+      ? [investorLink.investorName, investorLink.fundName]
+          .filter(Boolean)
+          .join(" · ") || undefined
+      : undefined;
+
+    await recordView(scoreSlug, {
+      ownerEmail: row.email,
+      companyName: row.company_name ?? null,
+      viewerLabel,
+    });
 
     // If this was an investor-link slug, also record in investor_link_views
     if (investorLink) {
