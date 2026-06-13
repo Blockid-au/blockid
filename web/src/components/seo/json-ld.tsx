@@ -41,11 +41,6 @@ export function SoftwareApplicationJsonLd() {
       priceCurrency: "AUD",
       description: "First SVI analysis free",
     },
-    aggregateRating: {
-      "@type": "AggregateRating",
-      ratingValue: "4.8",
-      ratingCount: "50",
-    },
   };
   return (
     <script
@@ -68,6 +63,51 @@ export function FAQJsonLd({
       name: question,
       acceptedAnswer: { "@type": "Answer", text: answer },
     })),
+  };
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+    />
+  );
+}
+
+export function ArticleJsonLd({
+  title,
+  description,
+  url,
+  publishedAt,
+  updatedAt,
+  authorName,
+}: {
+  title: string;
+  description: string;
+  url: string;
+  publishedAt: string;
+  updatedAt?: string;
+  authorName?: string;
+}) {
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: title,
+    description,
+    url,
+    datePublished: publishedAt,
+    dateModified: updatedAt ?? publishedAt,
+    author: {
+      "@type": "Organization",
+      name: authorName ?? "BlockID.au",
+      url: "https://blockid.au",
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "BlockID.au",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://blockid.au/images/logo-transparent.png",
+      },
+    },
   };
   return (
     <script

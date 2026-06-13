@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, BookOpen, Calendar, Clock, User } from "lucide-react";
+import { ArrowLeft, ArrowRight, Calendar, Clock, User } from "lucide-react";
 import { getAllArticles, getArticleBySlug, getArticleContent, getArticlesByCategory } from "@/lib/insights";
 import { InsightBody } from "./insight-body";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
+import { ArticleJsonLd } from "@/components/seo/json-ld";
 
 const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
   valuation: { label: "Valuation", color: "bg-brand-100 text-brand-700" },
@@ -73,6 +74,13 @@ export default async function InsightPage({
 
   return (
     <div className="min-h-svh bg-white text-ink-800">
+      <ArticleJsonLd
+        title={article.title}
+        description={article.description}
+        url={`https://blockid.au/insights/${slug}`}
+        publishedAt={article.publishedAt}
+        updatedAt={article.updatedAt}
+      />
       <Navbar />
 
       {/* Article header */}
