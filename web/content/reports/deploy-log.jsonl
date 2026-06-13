@@ -106,3 +106,15 @@
 {"ts":"2026-06-13T07:13:46.511Z","event":"github-push-master","detail":"Blockid-au: Merge pull request #4 from Blockid-au/cto/startup-index-2026-06-13 (2 commits)","source":"github-webhook"}
 {"ts":"2026-06-13T08:43:37Z","status":"success","gates":"10/10","pid":"82395","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-06-13T09:09:35Z","status":"success","gates":"10/10","pid":"156121","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-13T09:42:28Z","status":"success","gates":"10/10","pid":"249887","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-13T10:20:07.815Z","event":"github-push-master","detail":"Blockid-au: doc(T0073): Progressive Monetization spec — tier gates, unlock flow, conversion funnel (18 commits)","source":"github-webhook"}
+{"ts":"2026-06-13T10:23:58.623Z","event":"github-push-master","detail":"Blockid-au: feat(T0074): Progressive monetization — tier gates, unlock CTAs, upgrade funnel (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-13T10:26:43.862Z","event":"github-push-master","detail":"Blockid-au: fix(pdf): resolve TypeScript errors in svi-report-pdf blocking deploy (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-13T10:29:52Z","status":"success","gates":"10/10","pid":"382564","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-13T11:02:35Z","status":"success","gates":"10/10","pid":"474822","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-13T11:10:09.064Z","event":"github-push-master","detail":"Blockid-au: feat(T0081): SVI score history — trend chart on dashboard (7 commits)","source":"github-webhook"}
+{"ts":"2026-06-13T11:13:17Z","status":"success","gates":"10/10","pid":"505455","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-13T11:21:37.246Z","event":"github-push-master","detail":"Blockid-au: content(T0082): 5 SEO articles — AU startup funding, SAFE notes, equity split, Antler (2 commits)","source":"github-webhook"}
+{"ts":"2026-06-13T11:47:26Z","status":"success","gates":"10/10","pid":"602351","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-13T11:47:44.709Z","event":"github-push-master","detail":"Blockid-au: feat(T0084): C-Level blended valuation engine + BlockID self-analysis financial model (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-13T12:03:49Z","status":"success","gates":"10/10","pid":"649262","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}

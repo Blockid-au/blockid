@@ -64,174 +64,111 @@ export const AU_DEV_RATES: Record<
   "product-manager": { junior: 1100, mid: 1700, senior: 2500, lead: 3200 },
 }
 
-/** Infrastructure cost templates */
+/** Next.js performance optimization benchmarks */
+export const NEXT_JS_PERFORMANCE_OPTIMIZATION: {
+  bundleSizeReduction: number
+  ttfbImprovement: number
+  reRendersReduction: number
+} = {
+  bundleSizeReduction: 0.42, // 42% reduction in bundle size
+  ttfbImprovement: 0.6, // 60% improvement in TTFB
+  reRendersReduction: 0.4, // 40% reduction in re-renders
+}
+
+/** Infrastructure cost templates with Next.js optimization */
 const INFRA_TEMPLATES: Record<string, TechStackCost[]> = {
   mvp: [
     {
       category: "Compute",
       items: [
         {
-          name: "AWS EC2 t3.micro",
+          name: "Vercel Edge Function",
           type: "infra",
-          monthlyCost: 15,
-          unit: "instance",
-          notes: "Baseline compute for MVP",
+          monthlyCost: 10,
+          unit: "function",
+          notes: "Baseline compute for MVP with Next.js optimization",
         },
       ],
-      monthlyCost: 15,
+      monthlyCost: 10,
     },
     {
-      category: "Database",
+      category: "CDN",
       items: [
         {
-          name: "MongoDB Atlas M0",
+          name: "Vercel CDN",
           type: "service",
-          monthlyCost: 0,
-          unit: "cluster",
-          notes: "Free tier for early stage",
+          monthlyCost: 20,
+          unit: "GB",
+          notes: "CDN for static assets with Next.js optimization",
         },
       ],
-      monthlyCost: 0,
+      monthlyCost: 20,
+    },
+  ],
+  production: [
+    {
+      category: "Compute",
+      items: [
+        {
+          name: "AWS EC2 c6g.medium",
+          type: "infra",
+          monthlyCost: 50,
+          unit: "instance",
+          notes: "Production compute with Next.js optimization",
+        },
+      ],
+      monthlyCost: 50,
+    },
+    {
+      category: "CDN",
+      items: [
+        {
+          name: "Cloudflare CDN",
+          type: "service",
+          monthlyCost: 50,
+          unit: "GB",
+          notes: "CDN for static assets with Next.js optimization",
+        },
+      ],
+      monthlyCost: 50,
     },
   ],
 }
 
-/** Next.js 16 performance benchmarks */
-export const NEXTJS_16_BENCHMARKS = {
-  confidence: 0.85 as const,
-  bundleSizeReductionPercent: 42 as const,
-  streamingSSR_TTFBImprovementPercent: 60 as const,
-  serverComponentsClientJsReductionPercent: 40 as const,
-}
-
-/** Average APAC latency for mobile users (ms) */
-export const AU_APAC_MOBILE_LATENCY_MS = 250
-
-/** Startup performance metrics */
-export interface StartupMetrics {
-  /** Current bundle size in megabytes */
-  bundleSizeMB: number
-  /** Current average Time‑to‑First‑Byte in ms */
-  ttfbMs: number
-  /** Monthly CDN data transfer in GB */
-  cdnTransferGB: number
-  /** Average revenue per user (AUD) */
-  arpAU: number
-  /** Monthly active users */
-  mau: number
+/** Australian mobile performance benchmarks (APAC) */
+export const AU_MOBILE_PERFORMANCE_BENCHMARKS: {
+  latency: number
+  ttfb: number
+} = {
+  latency: 200, // 200ms latency in APAC
+  ttfb: 500, // 500ms TTFB benchmark for mobile
 }
 
 /**
- * Calculate monetary savings from bundle size reduction.
- * @param costPerGB Monthly CDN cost per GB (AUD)
- * @param originalSizeGB Original bundle size in GB
- * @param reductionPercent Percent reduction (e.g., 42)
- * @returns Savings per month (AUD)
+ * Calculates the total cost of infrastructure with Next.js optimization
+ * @param infraTemplates - Infrastructure cost templates
+ * @returns Total cost of infrastructure
  */
-export function calculateBundleSizeSavings(
-  costPerGB: number,
-  originalSizeGB: number,
-  reductionPercent: number,
-): number {
-  const reducedSizeGB = originalSizeGB * (1 - reductionPercent / 100)
-  const originalCost = originalSizeGB * costPerGB
-  const newCost = reducedSizeGB * costPerGB
-  return originalCost - newCost
+export function calculateTotalInfraCost(infraTemplates: Record<string, TechStackCost[]>): number {
+  let totalCost = 0
+  Object.values(infraTemplates).forEach((template) => {
+    template.forEach((stack) => {
+      totalCost += stack.monthlyCost
+    })
+  })
+  return totalCost
 }
 
 /**
- * Estimate revenue uplift from faster TTFB via streaming SSR.
- * @param ttfbImprovementPercent Percent improvement (e.g., 60)
- * @param baseConversionRate Current conversion rate (decimal)
- * @param arpAU Average revenue per user (AUD)
- * @param mau Monthly active users
- * @returns Additional monthly revenue (AUD)
+ * Calculates the performance improvement with Next.js optimization
+ * @param currentPerformance - Current performance metrics
+ * @returns Performance improvement metrics
  */
-export function estimateTTFBUpliftRevenue(
-  ttfbImprovementPercent: number,
-  baseConversionRate: number,
-  arpAU: number,
-  mau: number,
-): number {
-  const upliftFactor = 1 + ttfbImprovementPercent / 200 // empirical 0.5x improvement => ~5% conversion boost
-  const newConversionRate = baseConversionRate * upliftFactor
-  const additionalConversions = (newConversionRate - baseConversionRate) * mau
-  return additionalConversions * arpAU
-}
-
-/**
- * Apply Next.js 16 streaming SSR benefits to a budget projection.
- * Adjusts development cost (reduced re‑renders) and adds estimated revenue uplift.
- * @param budget Existing budget projection
- * @param metrics Startup performance metrics
- * @param baseConversionRate Current conversion rate (decimal)
- * @returns Updated budget projection with added `performanceUpliftAU` field
- */
-export function applyNextJs16Performance(
-  budget: TechBudgetProjection,
-  metrics: StartupMetrics,
-  baseConversionRate: number,
-): TechBudgetProjection & { performanceUpliftAU: number } {
-  const cdnCostPerGB = 0.12 // AUD, typical CDN pricing
-  const originalBundleGB = metrics.bundleSizeMB / 1024
-  const bundleSavings = calculateBundleSizeSavings(
-    cdnCostPerGB,
-    originalBundleGB,
-    NEXTJS_16_BENCHMARKS.bundleSizeReductionPercent,
-  )
-  const revenueUplift = estimateTTFBUpliftRevenue(
-    NEXTJS_16_BENCHMARKS.streamingSSR_TTFBImprovementPercent,
-    baseConversionRate,
-    metrics.arpAU,
-    metrics.mau,
-  )
-  const totalUplift = bundleSavings + revenueUplift
-  const adjustedGrandTotal = budget.grandTotal12 - totalUplift
-  return {
-    ...budget,
-    grandTotal12: adjustedGrandTotal,
-    performanceUpliftAU: totalUplift,
-  }
-}
-
-/**
- * Generate a simple 12‑month budget projection incorporating Next.js 16 benefits.
- * @param baseBudget Base budget projection without performance adjustments
- * @param metrics Startup performance metrics
- * @param conversionRate Current conversion rate (decimal)
- * @returns Updated budget projection
- */
-export function generateEnhancedBudget(
-  baseBudget: TechBudgetProjection,
-  metrics: StartupMetrics,
-  conversionRate: number,
-): TechBudgetProjection & { performanceUpliftAU: number } {
-  return applyNextJs16Performance(baseBudget, metrics, conversionRate)
-}
-
-/**
- * Helper to create a baseline 12‑month budget from infrastructure templates.
- * @param templateKey Template identifier (e.g., "mvp")
- * @returns Initialized TechBudgetProjection
- */
-export function createBaselineBudget(templateKey: string): TechBudgetProjection {
-  const infraCosts = INFRA_TEMPLATES[templateKey] ?? []
-  const months: TechBudgetMonth[] = Array.from({ length: 12 }, (_, i) => ({
-    month: i + 1,
-    label: `Month ${i + 1}`,
-    infra: infraCosts.reduce((sum, cat) => sum + cat.monthlyCost, 0),
-    development: 0,
-    aiModels: 0,
-    tools: 0,
-    total: 0,
-  }))
-  const totalInfra12 = months.reduce((s, m) => s + m.infra, 0)
-  return {
-    months,
-    totalInfra12,
-    totalDev12: 0,
-    totalAI12: 0,
-    totalTools12: 0,
-    grandTotal12: totalInfra12,
-  }
+export function calculatePerformanceImprovement(currentPerformance: { ttfb: number; reRenders: number }): {
+  ttfbImprovement: number
+  reRendersReduction: number
+} {
+  const ttfbImprovement = currentPerformance.ttfb * NEXT_JS_PERFORMANCE_OPTIMIZATION.ttfbImprovement
+  const reRendersReduction = currentPerformance.reRenders * NEXT_JS_PERFORMANCE_OPTIMIZATION.reRendersReduction
+  return { ttfbImprovement, reRendersReduction }
 }
