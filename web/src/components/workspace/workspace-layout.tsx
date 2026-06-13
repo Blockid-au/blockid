@@ -75,6 +75,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/workspace/esop", label: "ESOP", icon: Users },
       { href: "/workspace/vesting", label: "Vesting", icon: Calendar },
       { href: "/workspace/wallet", label: "Wallet", icon: Wallet },
+      { href: "/workspace/equity-esop", label: "Equity & ESOP", icon: PieChart },
       { href: "/workspace/equity-dashboard", label: "Blockchain Sync", icon: Link2 },
     ],
   },
