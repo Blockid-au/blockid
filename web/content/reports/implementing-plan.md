@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v1.7.0  ·  **Updated:** 2026-06-13T06:08:00.000Z  ·  **Decided by:** ceo
+**Version:** v1.8.0  ·  **Updated:** 2026-06-13T06:35:00.000Z  ·  **Decided by:** ceo
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -16,7 +16,8 @@
 | Runway | ~18 months at A$3K/mo opex |
 | AI Budget | US$0.18 / US$100 (0.18%) |
 | Valuation (blended mid) | A$488K |
-| Platform version | v1.7.0 (M015) |
+| Platform version | v1.8.0 (M016) |
+| Disk (root) | 97G/276G (37% used — fixed from 121G) |
 | Build status | tsc 0 errors · eslint clean · 94/94 tests |
 
 **SCN Priority Frame:** Pre-seed pre-revenue → Revenue Activation first, then Conversion funnel, then Evidence Vault depth, then SEO flywheel. Every task below is scored against this frame.
@@ -30,6 +31,8 @@
 | T0010 | CMO | Product Hunt launch — submit listing, first comment from founder, 5 feature screenshots | major | ⬜ pending (user action required) |
 | T0011 | CRO | Accelerator outreach — Antler application updated, submit to July 2026 cohort | minor | ⬜ pending (user action required) |
 | T0048 | CTO | Create Supabase migration for founding50_waitlist table (email PK, name, joined_at) — required for T0047 waitlist to persist | minor | ⬜ pending (next deploy) |
+| T0049 | CTO | **PR #3** — Merge disk-fix branch after review. Then: bash scripts/deploy-live.sh | major | ⬜ pending (review → merge → deploy) |
+| T0050 | COO | Add weekly cron entry for `bash scripts/clean-disk.sh --apply` (Sunday 03:00 AEST) to prevent future disk growth | minor | ⬜ pending |
 
 ---
 
@@ -79,6 +82,7 @@
 
 ## Milestones
 
+- **M016** v1.8.0 — T0049: Disk fix PR #3: outputFileTracingExcludes (stops releases/ being bundled in standalone), deploy-live.sh nested-dir purge, clean-disk.sh maintenance script. npm cache cleaned (~2GB freed). Disk: 121G→97G (37%). PR: https://github.com/Blockid-au/blockid/pull/3 (pending merge + deploy) (2026-06-13)
 - **M015** v1.7.0 — T0047: Founding 50 waitlist (POST /api/founding50/waitlist, Founding50Waitlist component, server-side spots check). T0045: 3 trust FAQ items. T0046: 14 new insight articles (59 total). tsc 0 errors, eslint clean (2026-06-13, sha 535cfae)
 - **M014** v1.6.0 — T0041-T0044: CTA analytics tracking (plan_cta_clicked + checkout_started on pricing), FAQJsonLd on /pricing, ArticleJsonLd on 45 insight articles, fake aggregateRating removed. tsc 0 errors, eslint clean (2026-06-13, sha 1d8ca72)
 - **M013** v1.5.0 — T0031: Xero OAuth (P&L + revenue evidence). T0038: Sentry error monitoring (HTTP Store API, no SDK). T0039: LinkedIn auto-post cron. T0040: multi-project workspace verified. tsc 0 errors, eslint clean (2026-06-13)
