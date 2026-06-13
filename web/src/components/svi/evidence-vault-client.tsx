@@ -7,6 +7,7 @@ import { ConnectButtons } from "@/components/ui/connect-buttons";
 import { EvidenceWizard } from "./evidence-wizard";
 import { ConnectorStatus } from "./connector-status";
 import { AnalyzeTierModal } from "./analyze-tier-modal";
+import { BankStatementImport } from "./bank-statement-import";
 
 interface EvidenceItem {
   id: string;
@@ -253,6 +254,18 @@ export function EvidenceVaultClient({ initialEvidence, evidenceGaps, currentSVI 
         }}
         onOpenWizard={() => setShowWizard(true)}
       />
+
+      {/* Bank statement CSV import */}
+      <div className="mb-6">
+        <h2 className="text-sm font-semibold text-ink-800 mb-1">Import Bank Statement</h2>
+        <p className="text-xs text-ink-500 mb-3">Auto-extract burn rate and cash flow from your AU bank CSV export.</p>
+        <BankStatementImport
+          onImported={() => {
+            void refreshEvidence();
+            void triggerRescore();
+          }}
+        />
+      </div>
 
       {/* Evidence Gaps — What to add next */}
       {evidenceGaps && evidenceGaps.length > 0 && (
