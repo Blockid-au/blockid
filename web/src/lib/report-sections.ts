@@ -1251,3 +1251,18 @@ export function getSectionsByTier(): Record<string, ReportSectionDef[]> {
   }
   return grouped;
 }
+
+export function calculateReportCost(tier: "preview" | "standard" | "premium"): {
+  totalCredits: number;
+  pricingAUD: number;
+  description: string;
+} {
+  switch (tier) {
+    case "preview":
+      return { totalCredits: 0, pricingAUD: 0, description: "Free preview — Hook + Validation" };
+    case "standard":
+      return { totalCredits: 5, pricingAUD: 29, description: "Full SCN Report — all 5 layers" };
+    case "premium":
+      return { totalCredits: 10, pricingAUD: 79, description: "Premium — all sections + advanced insights" };
+  }
+}

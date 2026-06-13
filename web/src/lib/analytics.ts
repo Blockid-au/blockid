@@ -120,6 +120,12 @@ export interface AnalyticsEventMap {
 
   // ── Action Plan ──
   action_completed: { action: string };
+
+  // ── Progressive Monetization (T0074) ──
+  report_viewed_tier_preview: { report_id: string };
+  report_unlock_cta_shown: { section: string; tier: string };
+  report_unlock_cta_clicked: { section: string; tier: string };
+  report_upgraded_to_paid: { from_tier: string; to_tier: string };
 }
 
 // ─── Type-safe tracker ──────────────────────────────────────────────────────

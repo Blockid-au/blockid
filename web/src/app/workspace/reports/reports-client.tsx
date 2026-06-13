@@ -10,6 +10,33 @@ export interface SnapshotRow {
   svi_total: number;
   delta: number | null;
   ai_summary?: string | null;
+  tier?: "preview" | "standard" | "premium" | null;
+}
+
+const TIER_BADGE_STYLES: Record<"preview" | "standard" | "premium", { label: string; className: string }> = {
+  preview: {
+    label: "Free Preview",
+    className: "bg-amber-100 text-amber-800 border-amber-200",
+  },
+  standard: {
+    label: "Standard",
+    className: "bg-blue-100 text-blue-800 border-blue-200",
+  },
+  premium: {
+    label: "Premium",
+    className: "bg-purple-100 text-purple-800 border-purple-200",
+  },
+};
+
+function TierBadge({ tier }: { tier: "preview" | "standard" | "premium" }) {
+  const style = TIER_BADGE_STYLES[tier];
+  return (
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${style.className}`}
+    >
+      {style.label}
+    </span>
+  );
 }
 
 interface ReportsClientProps {
@@ -82,6 +109,9 @@ export function ReportsClient({
                 <th className="text-left px-4 py-2.5 text-[10px] uppercase tracking-[0.14em] text-ink-700 font-medium">
                   Date
                 </th>
+                <th className="text-left px-4 py-2.5 text-[10px] uppercase tracking-[0.14em] text-ink-700 font-medium">
+                  Tier
+                </th>
                 <th className="text-right px-4 py-2.5 text-[10px] uppercase tracking-[0.14em] text-ink-700 font-medium">
                   SVI
                 </th>
@@ -102,6 +132,9 @@ export function ReportsClient({
                       month: "short",
                       year: "numeric",
                     })}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    {s.tier ? <TierBadge tier={s.tier} /> : <span className="text-ink-700 text-xs">—</span>}
                   </td>
                   <td className="px-4 py-2.5 text-right text-ink-800 font-mono font-semibold">
                     {s.svi_total}
