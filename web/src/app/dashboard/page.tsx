@@ -893,6 +893,25 @@ export default async function DashboardPage({
           />
         )}
 
+        {/* ── Row 5c: Cohort Benchmark CTA (T0090) ─────────────────────────── */}
+        <Link
+          href="/dashboard/benchmark"
+          className="flex items-center justify-between gap-4 rounded-2xl border border-surface-200 bg-white p-5 hover:border-brand-300 hover:shadow-sm transition-all"
+        >
+          <div className="flex items-center gap-3">
+            <BarChart3 className="h-5 w-5 text-brand-600" />
+            <div>
+              <p className="text-sm font-semibold text-ink-900">
+                See your cohort percentile
+              </p>
+              <p className="text-xs text-ink-500">
+                Compare your SVI against anonymised AU pre-seed/seed startups.
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="h-4 w-4 text-ink-400" />
+        </Link>
+
         {/* ── Row 6: Cap Table + Activity Feed ─────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <CapTableMini shareholders={shareholders} totalShares={totalShareCount} />
