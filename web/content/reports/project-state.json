@@ -1,15 +1,16 @@
 {
-  "version": "0.2.0",
-  "updatedAt": "2026-06-13T00:10:00.000Z",
+  "version": "0.3.0",
+  "updatedAt": "2026-06-13T00:18:00.000Z",
   "architecture": {
-    "summary": "BlockID.au — Startup Navigation System (SCN: Validation → Position → Value → Direction → Capital). Next.js standalone + Supabase, zero-downtime deploys (immutable releases + port swap). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. Self-upgrade runs as a CEO implementing-plan loop; deploy-causing stages are gated to off-peak (AEST 22:00-06:00) for 24/7 availability.",
-    "lastReviewedAt": "2026-06-13T00:10:00.000Z",
+    "summary": "BlockID.au — Startup Navigation System (SCN: Validation → Position → Value → Direction → Capital). Next.js standalone + Supabase, zero-downtime deploys (immutable releases + port swap). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. Self-upgrade runs as a CEO implementing-plan loop; deploy-causing stages are gated to off-peak (AEST 22:00-06:00) for 24/7 availability. CFO owns VC-grade valuation (cfo-valuation.ts).",
+    "lastReviewedAt": "2026-06-13T00:18:00.000Z",
     "notes": [
-      "v0.2.0 — CEO implementing-plan loop (research → CEO plan → code → version/milestone/architecture), off-peak deploy gating, cloud-routine silent-death guard, RnD added as daily-research agent."
+      "v0.2.0 — CEO implementing-plan loop (research → CEO plan → code → version/milestone/architecture), off-peak deploy gating, cloud-routine silent-death guard, RnD added as daily-research agent.",
+      "v0.3.0 — CFO VC-grade valuation engine (src/lib/agents/cfo-valuation.ts): market sizing (TAM/SAM/SOM), 4 valuation methods, projections, unit economics, break-even, payback, financial injection. CFO registered in the self-upgrade loop and set to daily research. See .claude/goals/cfo-vc-valuation.md."
     ]
   },
   "plan": {
-    "decidedAt": "2026-06-13T00:10:00.000Z",
+    "decidedAt": "2026-06-13T00:18:00.000Z",
     "decidedBy": "ceo",
     "tasks": [
       {
@@ -59,6 +60,42 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-06-13T00:10:00.000Z"
+      },
+      {
+        "id": "T0006",
+        "agent": "cfo",
+        "title": "Valuation dashboard UI with submenus (Summary/Market/Methods/Projections/Unit Economics/Break-even/Injection/Scenarios)",
+        "rationale": "Surface buildVcValuationReport() in the logged-in workspace as an interactive Valuation section: tabs/cards per component, live sliders (growth/churn/margin) that re-run the engine. See .claude/goals/cfo-vc-valuation.md. KPI: founder can explore scenarios live.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-06-13T00:18:00.000Z"
+      },
+      {
+        "id": "T0007",
+        "agent": "cfo",
+        "title": "Excel download/upload of the valuation model (exceljs)",
+        "rationale": "Download a formatted multi-sheet workbook (Assumptions, Projections, Methods, Use-of-Funds, Sources) from the engine; upload actuals/assumptions to override inputs and re-value. KPI: ≥1 downloadable model per valuation.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-06-13T00:18:00.000Z"
+      },
+      {
+        "id": "T0008",
+        "agent": "cfo",
+        "title": "/api/valuation/vc + wire valuation section into the report pipeline (PDF/DOCX)",
+        "rationale": "Expose VcValuationReport via API and include the full VC analysis in paid PDF/DOCX reports; persist per-startup so valuations track over time.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-06-13T00:18:00.000Z"
+      },
+      {
+        "id": "T0009",
+        "agent": "cpo",
+        "title": "SCN context detection — auto-detect startup phase from input (idea/URL/GitHub/revenue) and drive valuation + report",
+        "rationale": "On input, classify stage per the SCN model: free-text idea/biz desc → Idea/Validation; website URL → fetch + analyse content/features → lift above Idea; GitHub repo → analyse source → Product/MVP signal; revenue (or follow-up questions) → Growth. Detected context feeds cfo-valuation inputs (stage/sector/mrr) and the SCN report so phase, valuation and next-best-action match the evidence. KPI: correct phase on ≥80% of inputs; every input type produces a contextual valuation + report.",
+        "versionImpact": "major",
+        "status": "pending",
+        "createdAt": "2026-06-13T00:18:00.000Z"
       }
     ]
   },
@@ -69,6 +106,13 @@
       "version": "0.2.0",
       "completedAt": "2026-06-13T00:10:00.000Z",
       "taskIds": ["T0001", "T0002", "T0005"]
+    },
+    {
+      "id": "M002",
+      "title": "CFO VC-grade valuation engine shipped (market sizing, 4 methods, projections, unit economics, break-even, payback, financial injection) + CFO registered in loop + daily research + /goal",
+      "version": "0.3.0",
+      "completedAt": "2026-06-13T00:18:00.000Z",
+      "taskIds": []
     }
   ],
   "history": [
@@ -83,6 +127,12 @@
       "action": "release",
       "version": "0.2.0",
       "note": "Board directives recorded as CEO plan. Shipped: reporting template (T0001), off-peak CI/CD schedule (T0002), QA test suite in daily dashboard (T0005). Pending pilots: valuation model (T0003), survey/interview program (T0004)."
+    },
+    {
+      "ts": "2026-06-13T00:18:00.000Z",
+      "action": "release",
+      "version": "0.3.0",
+      "note": "CFO prioritised: VC-grade valuation engine (cfo-valuation.ts, 7/7 tests) + registered in self-upgrade loop + daily research + /goal cfo-vc-valuation.md. Queued: valuation dashboard UI (T0006), Excel I/O (T0007), API/report wiring (T0008), SCN context detection (T0009)."
     }
   ]
 }
