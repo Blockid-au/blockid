@@ -60,6 +60,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/workspace/evidence", label: "Evidence Vault", icon: FileText },
       { href: "/workspace/metrics", label: "Metrics", icon: BarChart3 },
       { href: "/workspace/reports", label: "Weekly Reports", icon: Activity },
+      { href: "/workspace/knowledge-base", label: "Knowledge Base", icon: BookOpen },
     ],
   },
   {
