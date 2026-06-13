@@ -7,6 +7,7 @@ import { ConnectButtons } from "@/components/ui/connect-buttons";
 import { EvidenceWizard } from "./evidence-wizard";
 import { ConnectorStatus } from "./connector-status";
 import { AnalyzeTierModal } from "./analyze-tier-modal";
+import { BankStatementImport } from "./bank-statement-import";
 
 interface EvidenceItem {
   id: string;
@@ -81,12 +82,46 @@ const EVIDENCE_TYPE_ICONS: Record<string, string> = {
   self_declared: "✏️",
 };
 
+const PROVIDER_LABELS: Record<string, string> = {
+  github: "GitHub",
+  linkedin: "LinkedIn",
+  stripe: "Stripe",
+  analytics: "Google Analytics",
+};
+
 export function EvidenceVaultClient({ initialEvidence, evidenceGaps, currentSVI }: EvidenceVaultClientProps) {
   const [evidence, setEvidence] = React.useState<EvidenceItem[]>(initialEvidence);
   const [showWizard, setShowWizard] = React.useState(false);
   const [refreshing, setRefreshing] = React.useState(false);
   const [rescoreToast, setRescoreToast] = React.useState<string | null>(null);
+  const [connectedToast, setConnectedToast] = React.useState<{ text: string; isError: boolean } | null>(() => {
+    // Read URL params once on first render to show OAuth callback result
+    if (typeof window === "undefined") return null;
+    const params = new URLSearchParams(window.location.search);
+    const connected = params.get("connected");
+    const error = params.get("error");
+    if (connected) {
+      window.history.replaceState({}, "", window.location.pathname);
+      const label = PROVIDER_LABELS[connected] ?? connected;
+      return { text: `${label} connected — evidence added to your vault`, isError: false };
+    }
+    if (error) {
+      window.history.replaceState({}, "", window.location.pathname);
+      return { text: `Connection failed: ${error.replace(/_/g, " ")}`, isError: true };
+    }
+    return null;
+  });
+  const [showOnboardingBanner, setShowOnboardingBanner] = React.useState(() => {
+    if (typeof window === "undefined") return false;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("onboarding") === "true") {
+      window.history.replaceState({}, "", window.location.pathname);
+      return true;
+    }
+    return false;
+  });
   const [analyzeTarget, setAnalyzeTarget] = React.useState<{ id: string; label: string } | null>(null);
+  const [disconnecting, setDisconnecting] = React.useState<string | null>(null);
 
   const refreshEvidence = React.useCallback(async () => {
     setRefreshing(true);
@@ -125,10 +160,57 @@ export function EvidenceVaultClient({ initialEvidence, evidenceGaps, currentSVI 
     void triggerRescore();
   }, [refreshEvidence, triggerRescore]);
 
+  const handleDisconnect = React.useCallback(async (evidenceType: string) => {
+    setDisconnecting(evidenceType);
+    try {
+      const res = await fetch(`/api/evidence/disconnect`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ evidence_type: evidenceType }),
+      });
+      if (res.ok) {
+        await refreshEvidence();
+        setConnectedToast({ text: `${PROVIDER_LABELS[evidenceType] ?? evidenceType} disconnected`, isError: false });
+        setTimeout(() => setConnectedToast(null), 4000);
+      }
+    } catch {
+      // Silently fail
+    } finally {
+      setDisconnecting(null);
+    }
+  }, [refreshEvidence]);
+
   const totalImpact = evidence.reduce((sum, e) => sum + (e.svi_impact ?? 0), 0);
 
   return (
     <>
+      {/* Onboarding welcome banner for new users */}
+      {showOnboardingBanner && (
+        <div className="mb-4 rounded-2xl border border-brand-200 bg-brand-50 px-5 py-4 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-brand-800">Welcome to BlockID! Start by connecting your first source.</p>
+              <p className="text-xs text-brand-600 mt-0.5">Connect GitHub, Stripe, or Google Analytics to automatically verify your startup&apos;s traction and boost your SVI score.</p>
+            </div>
+            <button type="button" onClick={() => setShowOnboardingBanner(false)} className="text-brand-600 hover:text-brand-800 text-xs font-medium cursor-pointer shrink-0">Dismiss</button>
+          </div>
+        </div>
+      )}
+
+      {/* Connected / error toast from OAuth callbacks */}
+      {connectedToast && (
+        <div className={`mb-4 flex items-center justify-between rounded-xl border px-5 py-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300 ${connectedToast.isError ? "border-red-200 bg-red-50" : "border-teal-200 bg-teal-50"}`}>
+          <p className={`text-sm font-semibold ${connectedToast.isError ? "text-red-700" : "text-teal-700"}`}>{connectedToast.text}</p>
+          <button
+            type="button"
+            onClick={() => setConnectedToast(null)}
+            className={`text-xs font-medium ml-4 cursor-pointer ${connectedToast.isError ? "text-red-600 hover:text-red-800" : "text-teal-600 hover:text-teal-800"}`}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* SVI rescore toast */}
       {rescoreToast && (
         <div className="mb-4 flex items-center justify-between rounded-xl border border-teal-200 bg-teal-50 px-5 py-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
@@ -172,6 +254,18 @@ export function EvidenceVaultClient({ initialEvidence, evidenceGaps, currentSVI 
         }}
         onOpenWizard={() => setShowWizard(true)}
       />
+
+      {/* Bank statement CSV import */}
+      <div className="mb-6">
+        <h2 className="text-sm font-semibold text-ink-800 mb-1">Import Bank Statement</h2>
+        <p className="text-xs text-ink-500 mb-3">Auto-extract burn rate and cash flow from your AU bank CSV export.</p>
+        <BankStatementImport
+          onImported={() => {
+            void refreshEvidence();
+            void triggerRescore();
+          }}
+        />
+      </div>
 
       {/* Evidence Gaps — What to add next */}
       {evidenceGaps && evidenceGaps.length > 0 && (
@@ -278,6 +372,20 @@ export function EvidenceVaultClient({ initialEvidence, evidenceGaps, currentSVI 
                     </div>
                   </div>
 
+                  {/* Disconnect button for OAuth-connected sources */}
+                  {item.confidence_level === "connected_source" && ["github", "linkedin", "stripe", "analytics"].includes(item.evidence_type) && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); void handleDisconnect(item.evidence_type); }}
+                      disabled={disconnecting === item.evidence_type}
+                      className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-surface-200 bg-surface-50 px-2.5 py-1.5 text-xs font-medium text-ink-600 hover:bg-red-50 hover:border-red-200 hover:text-red-700 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {disconnecting === item.evidence_type ? (
+                        <Loader2 strokeWidth={1.75} className="h-3 w-3 animate-spin" />
+                      ) : "Disconnect"}
+                    </button>
+                  )}
+
                   {/* Analyze button */}
                   <button
                     type="button"
@@ -313,7 +421,7 @@ export function EvidenceVaultClient({ initialEvidence, evidenceGaps, currentSVI 
             <h3 className="text-lg font-semibold text-ink-800">Build Your Evidence Vault</h3>
             <p className="text-sm text-ink-500 mt-1 max-w-md mx-auto">
               Upload documents, connect platforms, and add proof to increase your SVI score.
-              Each item below shows how many points you'll gain.
+              Each item below shows how many points you&apos;ll gain.
             </p>
           </div>
           <p className="text-xs font-semibold uppercase tracking-[0.15em] text-brand-600 mb-2">Quick Wins — Boost Your Score</p>

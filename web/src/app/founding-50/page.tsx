@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Founding50Form } from "./founding-50-form";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
+import { Founding50Spots } from "@/components/ui/founding50-spots";
 import {
   CheckCircle2,
   Clock,
@@ -99,6 +99,9 @@ export default function Founding50Page() {
               Only limited spots remaining
             </span>
           </div>
+
+          {/* Live spots counter */}
+          <Founding50Spots className="max-w-xs mx-auto mb-6" />
 
           {/* Price */}
           <div className="inline-flex items-baseline gap-3 rounded-2xl border border-surface-200 bg-white px-8 py-4 shadow-sm">

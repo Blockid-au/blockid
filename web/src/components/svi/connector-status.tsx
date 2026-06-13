@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { GitBranch, BarChart3, CreditCard, CheckCircle2, Loader2, ExternalLink } from "lucide-react";
+import { GitBranch, BarChart3, CreditCard, Building2, CheckCircle2, Loader2, ExternalLink } from "lucide-react";
 
 function LinkedInIcon({ className }: { className?: string }) {
   return (
@@ -26,6 +26,7 @@ interface ConnectorDef {
   label: string;
   icon: React.ElementType;
   connectUrl: string;
+  headUrl?: string;
   /** Whether the connector uses a POST request instead of a redirect */
   usePost?: boolean;
 }
@@ -36,25 +37,35 @@ const CONNECTORS: ConnectorDef[] = [
     label: "GitHub",
     icon: GitBranch,
     connectUrl: "/api/oauth/github",
+    headUrl: "/api/oauth/github",
   },
   {
     id: "analytics",
     label: "Analytics",
     icon: BarChart3,
-    connectUrl: "/api/auth/analytics",
+    connectUrl: "/api/oauth/ga4",
+    headUrl: "/api/oauth/ga4",
   },
   {
     id: "linkedin",
     label: "LinkedIn",
     icon: LinkedInIcon,
     connectUrl: "/api/oauth/linkedin",
+    headUrl: "/api/oauth/linkedin",
   },
   {
     id: "stripe",
     label: "Stripe",
     icon: CreditCard,
-    connectUrl: "/api/auth/stripe/connect",
-    usePost: true,
+    connectUrl: "/api/oauth/stripe",
+    headUrl: "/api/oauth/stripe",
+  },
+  {
+    id: "xero",
+    label: "Xero",
+    icon: Building2,
+    connectUrl: "/api/oauth/xero",
+    headUrl: "/api/oauth/xero",
   },
 ];
 
@@ -62,6 +73,7 @@ export function ConnectorStatus() {
   const [evidence, setEvidence] = React.useState<EvidenceItem[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [connectingId, setConnectingId] = React.useState<string | null>(null);
+  const [availability, setAvailability] = React.useState<Record<string, boolean>>({});
 
   React.useEffect(() => {
     let cancelled = false;
@@ -78,7 +90,24 @@ export function ConnectorStatus() {
         if (!cancelled) setLoading(false);
       }
     }
+
+    async function checkAvailability() {
+      const results: Record<string, boolean> = {};
+      await Promise.all(
+        CONNECTORS.filter((c) => c.headUrl).map(async (c) => {
+          try {
+            const res = await fetch(c.headUrl!, { method: "HEAD", redirect: "manual" });
+            results[c.id] = res.status !== 503;
+          } catch {
+            results[c.id] = false;
+          }
+        }),
+      );
+      if (!cancelled) setAvailability(results);
+    }
+
     void load();
+    void checkAvailability();
     return () => { cancelled = true; };
   }, []);
 
@@ -108,7 +137,12 @@ export function ConnectorStatus() {
           return `${data.name}`;
         }
         if (item.evidence_type === "analytics" && data.sessions != null) {
-          return `${data.sessions} sessions, ${data.pageviews ?? 0} pageviews`;
+          return `${data.sessions.toLocaleString()} sessions/mo`;
+        }
+        if (item.evidence_type === "xero_pl" && data.totalIncomeAud != null) {
+          const income = data.totalIncomeAud as number;
+          const incomeStr = income >= 1000 ? `$${(income / 1000).toFixed(1)}k` : `$${income.toFixed(0)}`;
+          return `Income ${incomeStr} (3 mo)`;
         }
       } catch {
         // Fall through to label
@@ -127,7 +161,6 @@ export function ConnectorStatus() {
         const res = await fetch(connector.connectUrl, { method: "POST" });
         const json = await res.json();
         if (json.ok) {
-          // Refresh evidence list
           const evidenceRes = await fetch("/api/evidence");
           const evidenceJson = await evidenceRes.json();
           if (evidenceJson.ok && Array.isArray(evidenceJson.evidence)) {
@@ -142,9 +175,13 @@ export function ConnectorStatus() {
         setConnectingId(null);
       }
     } else {
-      // OAuth redirect flow
-      window.location.href = connector.connectUrl;
+      window.location.assign(connector.connectUrl);
     }
+  }
+
+  function isAvailable(connector: ConnectorDef): boolean {
+    if (!connector.headUrl) return true;
+    return availability[connector.id] !== false;
   }
 
   if (loading) {
@@ -175,12 +212,13 @@ export function ConnectorStatus() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
         {CONNECTORS.map((connector) => {
           const Icon = connector.icon;
           const ev = getConnectorEvidence(connector.id);
           const isConnected = !!ev;
           const isConnecting = connectingId === connector.id;
+          const available = isAvailable(connector);
 
           return (
             <div
@@ -218,6 +256,8 @@ export function ConnectorStatus() {
 
               {isConnected && ev ? (
                 <p className="text-xs text-ink-600 truncate">{getMetricSummary(ev)}</p>
+              ) : !available ? (
+                <span className="text-xs text-ink-400 italic">Not configured</span>
               ) : (
                 <button
                   type="button"

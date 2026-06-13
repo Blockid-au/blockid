@@ -9,6 +9,10 @@
 // dilution, runway). Every benchmark cites a published source so the output is
 // defensible. Berkus method activates for pre-revenue startups (mrrAud = 0).
 //
+// AU-market comparables (T0003): comparablesMethod applies a stage-based
+// AU discount factor (AVCAL/Cut Through Venture 2025) so multiples reflect
+// Australian private-market conditions, not just global SaaS/PitchBook medians.
+//
 // Self-upgraded by the agent loop (registered in AGENT_DOMAIN_FILES). Keep the
 // math sound and the `sources` current — the CFO agent refreshes these from
 // daily research (Bessemer, SaaS Capital, Carta, PitchBook, a16z, AVCAL).
@@ -141,6 +145,33 @@ const STAGE_EXIT_YEARS: Record<string, number> = {
   "pre-seed": 8, "seed": 7, "series-a": 6, "series-b": 5, "growth": 4, "default": 6,
 };
 
+// ── AU-market comparable calibration ─────────────────────────────────────
+// Australian private tech companies trade at a discount vs US/global comps.
+// Sources: AVCAL Q1 2025, Cut Through Venture AU Startup Ecosystem Report 2025,
+// PitchBook AU private-market data, Carta State of Private Markets 2025.
+// Discount shrinks at later stages as AU companies approach global parity.
+
+const AU_STAGE_MULTIPLE_DISCOUNT: Record<string, number> = {
+  "pre-seed": 0.65, // ~35% below global (limited liquidity + smaller exit pool)
+  "seed":     0.75,
+  "series-a": 0.85,
+  "series-b": 0.92,
+  "growth":   0.97,
+  "default":  0.75,
+};
+
+// Reference AU private SaaS comparables (sector → company examples for rationale)
+const AU_COMPARABLES: Partial<Record<string, string>> = {
+  saas:        "Culture Amp, Canva, SafetyCulture, Employment Hero",
+  fintech:     "Airwallex, Monoova, MYOB, Frankie",
+  marketplace: "Airtasker, Expert360, Buildkite",
+  healthtech:  "Hireup, MedAdvisor, Eucalyptus",
+  ai:          "Prolog AI, Aragon AI AU, Harrison.ai",
+  deeptech:    "Fleet Space, Morse Micro, Vow Food",
+  ecommerce:   "Afterpay, Shippit, Cin7",
+  default:     "AU private SaaS / tech comparables (AVCAL 2025)",
+};
+
 // ── Helpers ───────────────────────────────────────────────────────────────
 
 function clamp(v: number, lo: number, hi: number): number { return Math.max(lo, Math.min(hi, v)); }
@@ -259,15 +290,26 @@ function comparablesMethod(input: VcValuationInput, projection: ProjectionRow[])
   const bm = vcBenchmark(input.sector);
   const arr12 = projection.slice(0, 12).reduce((s, r) => s + r.revenueAud, 0);
   const fwdArr = projection[11]?.mrrAud ? projection[11].mrrAud * 12 : arr12;
+
+  // Apply AU-market stage discount to global sector multiples (AVCAL/Cut Through Venture 2025).
+  const stage = normStage(input.stage);
+  const auDiscount = AU_STAGE_MULTIPLE_DISCOUNT[stage] ?? AU_STAGE_MULTIPLE_DISCOUNT.default;
+  const auLow  = round10(bm.arrMultiple.low  * auDiscount);
+  const auMid  = round10(bm.arrMultiple.mid  * auDiscount);
+  const auHigh = round10(bm.arrMultiple.high * auDiscount);
+  const auComps = AU_COMPARABLES[bm.sector] ?? AU_COMPARABLES.default!;
+
   return {
     method: "comparables",
-    lowAud: round(fwdArr * bm.arrMultiple.low),
-    midAud: round(fwdArr * bm.arrMultiple.mid),
-    highAud: round(fwdArr * bm.arrMultiple.high),
+    lowAud: round(fwdArr * auLow),
+    midAud: round(fwdArr * auMid),
+    highAud: round(fwdArr * auHigh),
     weight: 0.35,
-    rationale: `Forward ARR (A$${round(fwdArr).toLocaleString()}) × ${bm.sector} ARR multiple ${bm.arrMultiple.low}–${bm.arrMultiple.high}x.`,
+    rationale: `AU Comparables: forward ARR A$${round(fwdArr).toLocaleString()} × AU-adjusted ${bm.sector} multiple ${auLow}–${auHigh}x (global ${bm.arrMultiple.low}–${bm.arrMultiple.high}x × ${round10(auDiscount * 100)}% AU ${stage} discount). Comparable AU cos: ${auComps}. Source: AVCAL Q1 2025, Cut Through Venture 2025.`,
   };
 }
+
+function round10(v: number): number { return Math.round(v * 10) / 10; }
 
 function vcMethod(input: VcValuationInput, projection: ProjectionRow[]): ValuationMethodResult {
   const bm = vcBenchmark(input.sector);

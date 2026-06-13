@@ -15,6 +15,7 @@ import { ProjectSwitcher } from "@/components/ui/project-switcher";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { FeedbackWidget } from "@/components/ui/feedback-widget";
+import { UpgradePrompt } from "@/components/ui/upgrade-prompt";
 import { cn } from "@/lib/utils";
 
 interface WorkspaceLayoutProps {
@@ -262,6 +263,9 @@ export function WorkspaceLayout({ children, user, startupName, notificationCount
             </form>
           </div>
         </header>
+
+        {/* Founding 50 upgrade nudge — shown when user has 1 free credit left */}
+        <UpgradePrompt />
 
         {/* Page content */}
         <main className="flex-1 overflow-auto">

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { GitBranch, Globe, FileText, CheckCircle2, Loader2, X } from "lucide-react";
+import { GitBranch, Globe, FileText, CheckCircle2, Loader2, X, BarChart3, CreditCard, Building2 } from "lucide-react";
 
 function LinkedInIcon({ className }: { className?: string }) {
   return (
@@ -40,6 +40,15 @@ export function ConnectButtons({ evidence, onEvidenceAdded, onOpenWizard }: Conn
   const hasLinkedIn = evidence.some(
     (e) => e.evidence_type === "linkedin" && e.confidence_level === "connected_source",
   );
+  const hasStripe = evidence.some(
+    (e) => e.evidence_type === "stripe" && e.confidence_level === "connected_source",
+  );
+  const hasXero = evidence.some(
+    (e) => (e.evidence_type === "xero_pl" || e.evidence_type === "xero_revenue") && e.confidence_level === "connected_source",
+  );
+  const hasAnalytics = evidence.some(
+    (e) => e.evidence_type === "analytics" && e.confidence_level === "connected_source",
+  );
   const hasUrl = evidence.some(
     (e) => e.evidence_type === "url" || (e.evidence_type === "github" && e.confidence_level === "public_url"),
   );
@@ -50,6 +59,9 @@ export function ConnectButtons({ evidence, onEvidenceAdded, onOpenWizard }: Conn
   // Check if OAuth providers are available (env var check via HEAD)
   const [githubAvailable, setGithubAvailable] = React.useState<boolean | null>(null);
   const [linkedinAvailable, setLinkedinAvailable] = React.useState<boolean | null>(null);
+  const [stripeAvailable, setStripeAvailable] = React.useState<boolean | null>(null);
+  const [analyticsAvailable, setAnalyticsAvailable] = React.useState<boolean | null>(null);
+  const [xeroAvailable, setXeroAvailable] = React.useState<boolean | null>(null);
   React.useEffect(() => {
     fetch("/api/oauth/github", { method: "HEAD", redirect: "manual" })
       .then((res) => setGithubAvailable(res.status !== 503))
@@ -57,6 +69,15 @@ export function ConnectButtons({ evidence, onEvidenceAdded, onOpenWizard }: Conn
     fetch("/api/oauth/linkedin", { method: "HEAD", redirect: "manual" })
       .then((res) => setLinkedinAvailable(res.status !== 503))
       .catch(() => setLinkedinAvailable(false));
+    fetch("/api/oauth/stripe", { method: "HEAD", redirect: "manual" })
+      .then((res) => setStripeAvailable(res.status !== 503))
+      .catch(() => setStripeAvailable(false));
+    fetch("/api/oauth/ga4", { method: "HEAD", redirect: "manual" })
+      .then((res) => setAnalyticsAvailable(res.status !== 503))
+      .catch(() => setAnalyticsAvailable(false));
+    fetch("/api/oauth/xero", { method: "HEAD", redirect: "manual" })
+      .then((res) => setXeroAvailable(res.status !== 503))
+      .catch(() => setXeroAvailable(false));
   }, []);
 
   const handleUrlSubmit = async () => {
@@ -116,6 +137,48 @@ export function ConnectButtons({ evidence, onEvidenceAdded, onOpenWizard }: Conn
         if (linkedinAvailable === false) return;
         trackEvent("evidence_added", { evidence_type: "linkedin", dimension: "cgh", svi_impact: 0 });
         window.location.href = "/api/oauth/linkedin";
+      },
+    },
+    {
+      id: "stripe" as const,
+      icon: CreditCard,
+      label: "Connect Stripe",
+      connected: hasStripe,
+      connectedLabel: "Stripe Connected",
+      available: stripeAvailable !== false,
+      comingSoon: stripeAvailable === false,
+      onClick: () => {
+        if (stripeAvailable === false) return;
+        trackEvent("evidence_added", { evidence_type: "stripe", dimension: "tre", svi_impact: 0 });
+        window.location.href = "/api/oauth/stripe";
+      },
+    },
+    {
+      id: "analytics" as const,
+      icon: BarChart3,
+      label: "Connect Analytics",
+      connected: hasAnalytics,
+      connectedLabel: "Analytics Connected",
+      available: analyticsAvailable !== false,
+      comingSoon: analyticsAvailable === false,
+      onClick: () => {
+        if (analyticsAvailable === false) return;
+        trackEvent("evidence_added", { evidence_type: "analytics", dimension: "tre", svi_impact: 0 });
+        window.location.href = "/api/oauth/ga4";
+      },
+    },
+    {
+      id: "xero" as const,
+      icon: Building2,
+      label: "Connect Xero",
+      connected: hasXero,
+      connectedLabel: "Xero Connected",
+      available: xeroAvailable !== false,
+      comingSoon: xeroAvailable === false,
+      onClick: () => {
+        if (xeroAvailable === false) return;
+        trackEvent("evidence_added", { evidence_type: "xero_pl", dimension: "financial_health", svi_impact: 0 });
+        window.location.href = "/api/oauth/xero";
       },
     },
     {
