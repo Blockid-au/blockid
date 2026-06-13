@@ -1161,6 +1161,214 @@
         "label": "Model Your Cap Table",
         "href": "/workspace/cap-table"
       }
+    },
+    {
+      "slug": "startup-board-first-meeting-australia",
+      "title": "First Board Meeting Australia: Startup Governance Essentials",
+      "description": "Prepare for your first board meeting with our guide on Australian startup governance requirements, ASIC director duties & board meeting templates.",
+      "keywords": [
+        "first board meeting australia startup",
+        "asic director duties australia",
+        "board minutes template australia",
+        "startup governance requirements",
+        "australian startup board obligations",
+        "seed stage board meeting agenda",
+        "director responsibilities corporations act",
+        "quorum rules australia company"
+      ],
+      "category": "compliance",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Track Governance Milestones",
+        "href": "/dashboard"
+      }
+    },
+    {
+      "slug": "startup-insurance-australia-guide",
+      "title": "Startup Insurance Australia: Essential Guide for Founders",
+      "description": "Discover the essential insurance coverage your Australian startup needs. Learn about startup insurance costs, types & benefits. Get protected today!",
+      "keywords": [
+        "startup insurance Australia",
+        "public liability insurance for startups",
+        "professional indemnity insurance SaaS Australia",
+        "D&O insurance for startups",
+        "cyber liability insurance Australia",
+        "startup insurance costs Australia",
+        "what insurance do startups need Australia",
+        "Australian startup insurance guide"
+      ],
+      "category": "compliance",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Check Your Startup Risk Profile",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "investor-update-email-template-australia",
+      "title": "Investor Update Email Template Australia: Best Practices for Startups",
+      "description": "Learn how to write effective investor updates in Australia. Get a template and discover best practices for engaging investors between funding rounds.",
+      "keywords": [
+        "investor update email template Australia",
+        "startup investor communication best practices AU",
+        "monthly investor update template for Australian startups",
+        "how to write investor updates for seed stage startups",
+        "Australian startup investor relations",
+        "investor reporting cadence Australia",
+        "what to include in monthly investor updates AU",
+        "investor update examples for pre-seed startups in Australia"
+      ],
+      "category": "fundraising",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Track Metrics for Your Updates",
+        "href": "/dashboard"
+      }
+    },
+    {
+      "slug": "hiring-first-employee-australia-startup",
+      "title": "Hiring First Employee in Australia: A Startup Guide",
+      "description": "Learn about hiring your first employee in Australia, including super, PAYG withholding, and equity options, to make informed decisions for your startup.",
+      "keywords": [
+        "hiring first employee Australia",
+        "startup employee super",
+        "PAYG withholding startup",
+        "startup equity employees",
+        "Fair Work Act startups",
+        "ABN vs employment Australia",
+        "super guarantee rate 2026",
+        "payroll tax thresholds Australia",
+        "equity vs salary startup",
+        "option pool sizing Australia"
+      ],
+      "category": "compliance",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Model Your Cap Table Impact",
+        "href": "/tools/cap-table"
+      }
+    },
+    {
+      "slug": "startup-burn-rate-cash-flow-australia",
+      "title": "Manage Startup Burn Rate Australia: Pre-Seed Cash Flow Tips",
+      "description": "Learn how to manage startup burn rate in Australia. Get expert tips on pre-seed cash flow strategies and extend your runway with our guide.",
+      "keywords": [
+        "startup burn rate Australia",
+        "pre-seed runway Australia",
+        "cash flow management for startups Australia",
+        "default alive startup",
+        "cash burn rate calculator Australia",
+        "managing burn rate for pre-seed startups",
+        "Australian startup cash flow strategies",
+        "pre-seed startup runway extension Australia"
+      ],
+      "category": "growth",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Calculate Your Runway",
+        "href": "/tools/runway-calculator"
+      }
+    },
+    {
+      "slug": "saas-metrics-au-vcs-care-about",
+      "title": "SaaS Metrics for VC Fundraising in Australia: Key Benchmarks",
+      "description": "Unlock Australian VC funding with key SaaS metrics: MRR, ARR, NRR, CAC payback & LTV:CAC ratios. Learn benchmarks for Series A funding success.",
+      "keywords": [
+        "SaaS metrics Australia",
+        "Australian VC SaaS benchmarks",
+        "MRR ARR valuation Australia",
+        "SaaS KPIs for fundraising Australia",
+        "net revenue retention benchmarks Australia",
+        "CAC payback period Australia",
+        "LTV:CAC ratio for Australian startups",
+        "Series A funding metrics Australia"
+      ],
+      "category": "fundraising",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Get Your Investor-Ready Score",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "building-in-public-au-founders",
+      "title": "Building in Public Australia: Boost Credibility & Raise Capital",
+      "description": "Learn how building in public in Australia can increase startup transparency, credibility & investor trust. Discover effective founder marketing strategies ",
+      "keywords": [
+        "building in public Australia",
+        "Australian startup transparency",
+        "founder marketing strategies AU",
+        "build in public examples Australia",
+        "startup credibility through transparency",
+        "sharing metrics with investors Australia",
+        "Australian founder community building in public",
+        "transparent startup valuation Australia",
+        "AU startup marketing tips",
+        "how to build credibility with investors Australia",
+        "sharing startup milestones Australia",
+        "build in public best practices"
+      ],
+      "category": "growth",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Track Your Startup Progress",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "product-hunt-launch-strategy-australian-startups",
+      "title": "Product Hunt Launch Strategy Australia: A Guide for Startups",
+      "description": "Discover the ultimate Product Hunt launch strategy for Australian startups. Learn how to get #1 Product of the Day, optimal launch timing & post-launch tra",
+      "keywords": [
+        "product hunt launch strategy Australia",
+        "how to get #1 product of the day on product hunt",
+        "product hunt launch timing",
+        "product hunt hunter choice",
+        "product hunt launch guide for startups",
+        "australian startup product hunt launch",
+        "product hunt marketing strategy",
+        "launching on product hunt as an australian founder",
+        "product hunt post-launch tracking",
+        "svvi product hunt",
+        "product hunt australia success stories",
+        "product hunt launch tips for australian startups"
+      ],
+      "category": "growth",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Measure Your Launch Readiness",
+        "href": "/"
+      }
+    },
+    {
+      "slug": "how-to-write-business-plan-investors-australia",
+      "title": "How to Write a Business Plan for Investors in Australia",
+      "description": "Learn how to write a business plan for Australian investors. Get a modern template and expert guidance to secure funding and grow your startup.",
+      "keywords": [
+        "how to write a business plan for investors australia",
+        "australian startup business plan template",
+        "one page business plan for investors",
+        "startup business plan for venture capital australia",
+        "writing a business plan for australian investors",
+        "business plan requirements for australian startups",
+        "modern business plan for investors",
+        "executive summary business plan australia"
+      ],
+      "category": "fundraising",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Build Your Investor Pack",
+        "href": "/score"
+      }
     }
   ]
 }
