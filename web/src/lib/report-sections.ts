@@ -96,18 +96,373 @@ Reference the startup's SVI score, dimension scores, evidence items, and any pri
 }
 
 // ---------------------------------------------------------------------------
-// 16 Report Sections
+// SCN Report Sections (Startup Core Needs Framework)
+// Order: Validation → Position → Value → Direction → Capital
+//
+// This reframes the report around first-principles founder questions and
+// routes each section to actionable BlockID features (Evidence Vault,
+// Valuation Engine, Action Plan, Data Room, etc).
 // ---------------------------------------------------------------------------
 
 export const REPORT_SECTIONS: ReportSectionDef[] = [
-  // ── 1. Executive Summary (FREE) ─────────────────────────────────────
+  // ── 1. Hook / Problem Framing (FREE) ─────────────────────────────────
+  // NEW: Opens with founder's REAL problem + Position hero (Index/Stage/Top X%)
+  {
+    id: "hook_problem",
+    title: "Your Startup at a Glance",
+    subtitle: "Problem worth solving? Where you stand. What's next.",
+    tier: "free",
+    summaryWords: 400,
+    fullWords: 800,
+    creditCost: 0,
+    icon: "Compass",
+    agentOwner: "ceo",
+    supportingAgents: ["cpo", "cdo"],
+    criteriaKeys: [],
+    summaryPrompt: summaryPrompt(
+      "Hook: Problem & Position",
+      `CRITICAL — This is the founder's first impression. Open with:
+1. "What problem do you solve, for whom?" — name it clearly from their data
+2. "Where are you?" — Show their Startup Index (NN/100), current Stage, Top X% of AU ranking
+3. "What moves it?" — 1-2 biggest leverage points to improve position
+4. First-principles hook: strip assumptions, name the REAL problem
+
+Layout:
+- Problem statement (1 sentence from founder's data)
+- Startup Index score with percentile visualization
+- Stage assessment
+- Top strengths (3 bullets)
+- Biggest gap (1 bullet) → "Continue to [FEATURE]"`,
+    ),
+    fullPrompt: fullPrompt(
+      "Hook: Problem & Position",
+      `Generate a COMPELLING HOOK (500-600 words) that:
+1. Opens with a sharp problem statement from the founder's inputs: "You're solving [problem] for [customer]"
+2. Frames BlockID's value: "This report shows WHERE YOU ARE and WHAT TO DO NEXT — your Startup Navigation System"
+3. Showcases their Position:
+   - Startup Index: NN/100 with percentile ("Top X% of AU startups")
+   - Current Stage with context ("you're in [Stage], typically funded at $XM")
+   - Key strength ranking ("you're strongest in [dimension]")
+4. Identifies ONE critical gap
+5. Routes to the Validation section with clear CTA: "→ Unlock your full Navigation Plan"
+
+Tone: coach/mentor, specific, encouraging. Lead with their win, acknowledge the gap.
+Reference their SVI data directly.`,
+    ),
+  },
+
+  // ── 2. VALIDATION (First-Principles Question: "Am I solving the right problem?") ─
+  {
+    id: "validation",
+    title: "Problem Validation & Market Proof",
+    subtitle: "Is this problem worth solving? Is there a market? Will anyone pay?",
+    tier: "included",
+    summaryWords: 250,
+    fullWords: 1000,
+    creditCost: 0,
+    icon: "CheckCircle",
+    agentOwner: "cpo",
+    supportingAgents: ["cmo", "cro"],
+    criteriaKeys: ["idea", "market"],
+    summaryPrompt: summaryPrompt(
+      "Validation: Problem Worth Solving",
+      `First-principles question: "Am I solving the right problem?"
+
+Show from their data:
+- Evidence they've validated the problem (interviews, surveys, customer feedback)
+- Willingness to pay signals (LOIs, pilots, early revenue)
+- Market urgency: is this a vitamin or a painkiller?
+- Validation gaps to close immediately
+
+End with CTA: "→ Continue in Evidence Vault to strengthen validation"`,
+    ),
+    fullPrompt: fullPrompt(
+      "Validation: Problem Worth Solving",
+      `Write VALIDATION deep-dive (700-800 words) answering: "Is this the right problem to solve?"
+
+Structure:
+1. Problem reframing: strip assumptions, name the CORE problem from founder's data
+2. Customer discovery evidence: interviews, surveys, beta feedback, LOIs
+3. Market demand signals: willingness to pay, revenue, user acquisition rate
+4. Painfulness assessment: vitamin (nice-to-have) vs painkiller (must-have)
+5. Timing: why NOW is the right time for this problem
+6. Validation gaps: what's the weakest proof? (e.g., "paid customer count is 3, need 10+")
+7. Next validation milestone: "In 30 days, you'll know [this] by doing [X]"
+8. CTA: "Log in to Evidence Vault to document and track validation milestones"
+
+Reference their SVI data (IDEA, MARKET dimensions).`,
+    ),
+  },
+
+  // ── 3. POSITION (First-Principles Question: "Where am I really?") ───────────
+  {
+    id: "position",
+    title: "Your Startup Position in Market",
+    subtitle: "Stage. Startup Index ranking. Top X% of Australian startups.",
+    tier: "included",
+    summaryWords: 250,
+    fullWords: 1000,
+    creditCost: 0,
+    icon: "TrendingUp",
+    agentOwner: "ceo",
+    supportingAgents: ["cpo", "cfo"],
+    criteriaKeys: [],
+    summaryPrompt: summaryPrompt(
+      "Position: Where Am I?",
+      `First-principles question: "Where am I really?"
+
+Show the HERO metrics:
+- Startup Index: NN/100 (big, visual)
+- Current Stage (Idea/Validated/MVP/Traction/Revenue/Growth/Scale)
+- Top X% percentile ranking vs AU startups (e.g., "Top 23% of 4,200 analyzed startups")
+- Score by dimension (FTV, MPC, PTD, TRE, GTM, etc) — visual heatmap
+- What this position MEANS: "You're here... companies at this stage typically..."
+
+Anchor to reality: what moves your position? (3 key leverage points)
+CTA: "→ See full Position analysis and historical trends"`,
+    ),
+    fullPrompt: fullPrompt(
+      "Position: Where Am I?",
+      `Write POSITION analysis (700-800 words) answering: "Where am I in the startup journey?"
+
+Structure:
+1. The hero: big Startup Index score + percentile + stage
+   "You are NN/100, in the top X% of Australian startups, at [Stage]"
+2. What this means: benchmark context — "Companies at your stage typically..."
+3. Strength map: dimension-by-dimension breakdown (show where you excel)
+4. Positioning relative to peers: "You're stronger than X% in [dimension]"
+5. The positioning opportunity: "Your biggest leverage is in [dimension] — 10 points here = [outcome]"
+6. Stage-specific insights: what success looks like at your current stage
+7. Position trajectory: are you trending up? stalled? (if data available)
+8. CTA: "View your full Position over time in SVI Dashboard"
+
+Make this the HERO of the report — position before value, value before capital.
+Use visuals/gauges wherever possible. Reference percentile model data.`,
+    ),
+  },
+
+  // ── 4. VALUE (First-Principles Question: "What is my startup worth?") ───────
+  {
+    id: "value",
+    title: "Estimated Value & Value Drivers",
+    subtitle: "Your startup's estimated valuation. What moves it up?",
+    tier: "included",
+    summaryWords: 200,
+    fullWords: 900,
+    creditCost: 0,
+    icon: "DollarSign",
+    agentOwner: "cfo",
+    supportingAgents: ["cro", "cpo"],
+    criteriaKeys: ["revenue"],
+    summaryPrompt: summaryPrompt(
+      "Value: What Am I Worth?",
+      `First-principles question: "What is my startup worth?"
+
+Frame as OUTPUT of Position, not the headline:
+- Estimated valuation: $XM (with confidence range)
+- How it was calculated (stage benchmarks, revenue multiple, SVI positioning)
+- Value drivers: what moves valuation up? (ARR, user count, market size, moat strength)
+- Top 3 levers you can pull in next 90 days
+- What you need for 2x valuation growth
+
+CTA: "→ Run valuation scenarios and model your growth in Valuation Engine"`,
+    ),
+    fullPrompt: fullPrompt(
+      "Value: What Am I Worth?",
+      `Write VALUE analysis (600-700 words) answering: "What is this startup worth?"
+
+Structure:
+1. Estimated valuation: $XM ± Y (confidence: High/Medium/Low)
+2. Valuation methodology: which framework applied and why
+   - Stage-based benchmark (e.g., "Series A startups at your stage avg $X–$Y")
+   - Revenue multiple (if applicable): ARR × multiple = valuation
+   - SVI-adjusted positioning: "Companies with your SVI positioning typically valued at..."
+3. Value drivers breakdown:
+   - Revenue/ARR ($): biggest lever
+   - User/customer count: growth signal
+   - Gross margin: profitability indicator
+   - Team/market fit: execution quality signal
+4. What doubles valuation: "To reach $XM, you need [Y metric] at [Z level]"
+5. 90-day value inflection points: "If you [achieve this], valuation moves to $XM"
+6. De-risking roadmap: which risks are priced in? How to reduce them?
+7. CTA: "Explore value scenarios in Valuation Engine or consult a valuator"
+
+Keep it simple: Position matters more than exact valuation at early stage.`,
+    ),
+  },
+
+  // ── 5. DIRECTION (First-Principles Question: "What do I do next?") ──────────
+  {
+    id: "direction",
+    title: "Your Next Best Actions & Growth Roadmap",
+    subtitle: "You are here. Next 3 months. Then 6 months. Google Maps for growth.",
+    tier: "included",
+    summaryWords: 300,
+    fullWords: 1200,
+    creditCost: 0,
+    icon: "Map",
+    agentOwner: "coo",
+    supportingAgents: ["cpo", "cro", "cfo"],
+    criteriaKeys: ["roadmap"],
+    summaryPrompt: summaryPrompt(
+      "Direction: What Next?",
+      `First-principles question: "What do I do next?"
+
+THE DIFFERENTIATOR — nobody else does this:
+- You are here: [current stage + top gap]
+- Next (30 days): [ONE highest-leverage action] + success metric
+- Then (60 days): [follow-on action] + success metric
+- Then (90 days): [position inflection] + success metric
+
+Visual: Google Maps-style "You are here → Next → Then → Then"
+CTA: "→ Build your 90-day roadmap in Action Plan + assign owners"`,
+    ),
+    fullPrompt: fullPrompt(
+      "Direction: What Next?",
+      `Write DIRECTION analysis (800-1000 words) as a GOOGLE-MAPS-STYLE NAVIGATION PLAN.
+
+Structure:
+1. "You are here":
+   - Current position (stage + SVI + top gap)
+   - What got you here: biggest wins to date
+   - What's blocking progress: the ONE thing limiting growth
+
+2. "Next (30 days)" — ONE highest-leverage action:
+   - What to do: specific, measurable action
+   - Why it matters: unlocks what? (traction, clarity, capital, moat)
+   - Success metric: "You'll know you succeeded when [X metric reaches Y]"
+   - Owner: who owns this
+   - Dependencies: what else needs to happen first?
+
+3. "Then (60 days)" — follow-on action:
+   - Builds on 30-day win
+   - Next-highest-leverage move
+   - Success metric
+
+4. "Then (90 days)" — position inflection:
+   - Where you'll be if you execute
+   - Position improvement (SVI points gained)
+   - Valuation impact
+   - Next funding milestone unlocked
+
+5. Weekly milestones for Month 1:
+   - Week 1: deliverable A + owner
+   - Week 2: deliverable B + owner
+   - Week 3: deliverable C + owner
+   - Week 4: checkpoint + success metric
+
+6. Contingency: "If [blocker], do [alternative]"
+7. CTA: "Log in to Action Plan to assign owners, track weekly, and adjust"
+
+This is THE DIFFERENTIATOR — Crunchbase/Carta don't do this.
+Make it visual, specific, actionable. No fluff.`,
+    ),
+  },
+
+  // ── 6. CAPITAL (First-Principles Question: "How do I grow faster?") ─────────
+  {
+    id: "capital_fundraise",
+    title: "Fundraising Readiness & Capital Strategy",
+    subtitle: "Funding readiness %. What's missing. Investor targeting plan.",
+    tier: "included",
+    summaryWords: 250,
+    fullWords: 1000,
+    creditCost: 0.25,
+    icon: "Briefcase",
+    agentOwner: "cfo",
+    supportingAgents: ["cro", "cpo", "clo"],
+    criteriaKeys: ["dataroom", "documents"],
+    summaryPrompt: summaryPrompt(
+      "Capital: How Do I Grow?",
+      `First-principles question: "How do I grow faster?"
+
+Only relevant AFTER validating 1-5. Show:
+- Funding Readiness %: (e.g., "73% investor-ready")
+- What's missing (gaps to close): pitch deck? cap table? data room?
+- Raise strategy: how much, at what valuation, from whom?
+- Timeline: typical AU fundraise takes 3-6 months
+- 3 immediate gaps to close (30/60/90 day targets)
+
+CTA: "→ Close gaps in Data Room, Pitch Deck, Cap Table features"`,
+    ),
+    fullPrompt: fullPrompt(
+      "Capital: How Do I Grow?",
+      `Write CAPITAL/FUNDRAISE analysis (700-800 words):
+
+Structure:
+1. Funding Readiness Score: X% (calculated from: pitch deck %, cap table %, data room %, legal %)
+   - Pitch deck: complete? investor-grade? (gap: ...)
+   - Cap table: clean? ESOP allocated? (gap: ...)
+   - Data room: organized? audit-ready? (gap: ...)
+   - Legal: contracts, IP, ESIC-ready? (gap: ...)
+
+2. Raise strategy:
+   - How much to raise: based on runway + growth plan
+   - Round type: Pre-seed / Seed / Series A / other
+   - Expected valuation range in AU market
+   - Ideal investor profile: stage, check size, value-add
+   - Timeline: typical AU fundraise = 3–6 months
+
+3. Funding gaps (prioritized by urgency):
+   - Gap #1: [what's missing] → fix in [30 days] using [feature]
+   - Gap #2: [what's missing] → fix in [60 days] using [feature]
+   - Gap #3: [what's missing] → fix in [90 days] using [feature]
+
+4. Investor targeting:
+   - Warm intro channels: founders, angels, accelerators, advisors
+   - Accelerator fit: Startmate, Antler, HAX, etc.
+   - AU VC landscape: who's actively investing in your vertical?
+   - Angel networks: AngelList, The Fold, local angels
+
+5. AU-specific advantage:
+   - ESIC eligibility (taxation incentive for investors)
+   - R&D Tax Incentive (43.5% for you)
+   - Export Market Dev Grant (EMDG) if applicable
+
+6. CTA: "Build your Data Room, create/refine Pitch Deck, clean Cap Table"
+
+Keep it clear: Capital comes AFTER you've nailed 1-5. Don't raise before you're ready.`,
+    ),
+  },
+
+  // ── 7. COMPETITIVE INTELLIGENCE (PAID) ──────────────────────────────
+  {
+    id: "competitive",
+    title: "Competitive Intelligence & Positioning",
+    subtitle: "Named competitors, feature comparison, and differentiation strategy",
+    tier: "paid",
+    summaryWords: 0,
+    fullWords: 1500,
+    creditCost: 0.75,
+    icon: "Crosshair",
+    agentOwner: "cmo",
+    supportingAgents: ["cpo", "cto"],
+    criteriaKeys: ["market"],
+    summaryPrompt: "", // No summary for paid-locked sections
+    fullPrompt: fullPrompt(
+      "Competitive Intelligence",
+      `- Named competitor identification: direct, indirect, and adjacent
+- Feature-by-feature comparison matrix
+- Pricing comparison across competitors
+- Market positioning map: price vs. value, simple vs. complex
+- Competitor strengths to learn from and weaknesses to exploit
+- Competitive response playbook: what to do when competitors react
+- Win/loss analysis framework
+- Differentiation strategy: where to compete and where to avoid
+- AU-specific competitors and international entrants
+- Strategic windows: timing advantages and market gaps to exploit`,
+    ),
+  },
+
+  // ── EXECUTIVE SUMMARY moved below as reference (retained for back-compatibility)
+  // ── 8. Executive Summary (INCLUDED) ─────────────────────────────────────
   {
     id: "executive",
     title: "Executive Summary",
-    subtitle: "Your startup at a glance — investment thesis and critical path",
-    tier: "free",
-    summaryWords: 300,
-    fullWords: 1500,
+    subtitle: "Full startup analysis and investment thesis (companion piece)",
+    tier: "included",
+    summaryWords: 250,
+    fullWords: 1200,
     creditCost: 0,
     icon: "FileText",
     agentOwner: "ceo",
@@ -116,7 +471,7 @@ export const REPORT_SECTIONS: ReportSectionDef[] = [
     summaryPrompt: summaryPrompt(
       "Executive Summary",
       `- One-paragraph startup overview and value proposition
-- Current SVI score interpretation (what it means for investability)
+- SVI score interpretation and what it means for investability
 - Stage assessment and key strengths
 - Top 3 critical gaps that need attention
 - Overall investor readiness verdict`,
