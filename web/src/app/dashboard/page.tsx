@@ -32,6 +32,8 @@ import { StatusCards } from "@/components/dashboard/status-cards";
 import { ScnPositionHero } from "@/components/dashboard/scn-position-hero";
 import { ScnDirectionNavigator, type DirectionStep } from "@/components/dashboard/scn-direction-navigator";
 import { AIConfidenceActionPlan } from "@/components/dashboard/ai-confidence-action-plan";
+import { GitHubEvidenceCard } from "@/components/dashboard/github-evidence-card";
+import { fetchRepoStats, parseRepoInput } from "@/lib/github";
 import type { SVIAnalysis, SVISubScore } from "@/lib/svi-analysis";
 import { getSVIPercentile } from "@/lib/benchmarks";
 
@@ -417,6 +419,13 @@ export default async function DashboardPage({
   let weeklyDelta: number | undefined;
   let shareholders: Array<{ name: string; percentage: number; color: string }> = [];
   let totalShareCount = 1_000_000;
+  let githubEvidence: {
+    label: string;
+    url: string;
+    commitsLast90: number | null;
+    stars: number | null;
+    pushedAt: string | null;
+  } | null = null;
 
   if (supabase) {
     // Latest analysis
@@ -576,6 +585,51 @@ export default async function DashboardPage({
         completed_at: a.completed_at as string,
       }));
     }
+    // GitHub evidence (Product Activity)
+    if (accountId) {
+      const { data: ghEv } = await supabase
+        .from("svi_evidence")
+        .select("label, value_or_url, verified_at")
+        .eq("account_id", accountId)
+        .eq("evidence_type", "github_repo")
+        .order("verified_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (ghEv?.value_or_url) {
+        const parsed = parseRepoInput(ghEv.value_or_url as string);
+        if (parsed) {
+          try {
+            const stats = await fetchRepoStats(parsed.owner, parsed.repo);
+            if (stats) {
+              githubEvidence = {
+                label: ghEv.label as string,
+                url: stats.url,
+                commitsLast90: stats.commitsLast90,
+                stars: stats.stars,
+                pushedAt: stats.pushedAt,
+              };
+            } else {
+              githubEvidence = {
+                label: ghEv.label as string,
+                url: ghEv.value_or_url as string,
+                commitsLast90: null,
+                stars: null,
+                pushedAt: null,
+              };
+            }
+          } catch {
+            githubEvidence = {
+              label: ghEv.label as string,
+              url: ghEv.value_or_url as string,
+              commitsLast90: null,
+              stars: null,
+              pushedAt: null,
+            };
+          }
+        }
+      }
+    }
+
     // Shareholders for cap table mini chart
     if (accountId) {
       const { data: shData } = await supabase
@@ -729,6 +783,17 @@ export default async function DashboardPage({
         {/* ── AI Confidence + Action Plan (T0076) ──────────────────────────── */}
         {analysis?.subs && analysis.subs.length > 0 && (
           <AIConfidenceActionPlan subs={analysis.subs} />
+        )}
+
+        {/* ── GitHub Activity Evidence (T0079) ─────────────────────────────── */}
+        {githubEvidence && (
+          <GitHubEvidenceCard
+            repoLabel={githubEvidence.label}
+            repoUrl={githubEvidence.url}
+            commitsLast90={githubEvidence.commitsLast90}
+            stars={githubEvidence.stars}
+            pushedAt={githubEvidence.pushedAt}
+          />
         )}
 
         {/* ── Row 3: SCN DIRECTION — Google-Maps-style navigation ───────────── */}
