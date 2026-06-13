@@ -14,6 +14,7 @@ import { CreditBadge } from "@/components/workspace/credit-badge";
 import { ProjectSwitcher } from "@/components/ui/project-switcher";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
+import { FeedbackWidget } from "@/components/ui/feedback-widget";
 import { cn } from "@/lib/utils";
 
 interface WorkspaceLayoutProps {
@@ -267,6 +268,9 @@ export function WorkspaceLayout({ children, user, startupName, notificationCount
           {children}
         </main>
       </div>
+
+      {/* Floating feedback FAB */}
+      <FeedbackWidget page={pathname} />
     </div>
   );
 }
