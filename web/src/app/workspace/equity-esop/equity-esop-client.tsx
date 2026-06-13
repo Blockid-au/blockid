@@ -14,12 +14,16 @@ import {
   Legend,
 } from "recharts";
 import {
+  Activity,
+  AlertTriangle,
   Download,
   FileText,
   Loader2,
   Plus,
   Trash2,
+  TrendingUp,
   Users,
+  X,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -88,11 +92,61 @@ interface EsopState {
   au_tax_concession: boolean;
 }
 
+// Grant Register types
+interface Grant {
+  memberId: string;
+  name: string;
+  email: string | null;
+  role: string;
+  grantDate: string;
+  shares: number;
+  vestingMonths: number | null;
+  cliffMonths: number | null;
+  scheduleType: string | null;
+  vestedPct: number;
+  vestedShares: number;
+  unvestedShares: number;
+  valueAud: number | null;
+  vestedValueAud: number | null;
+  scheduleId: string | null;
+}
+
+interface PoolSummary {
+  poolId: string;
+  poolSize: number;
+  totalGranted: number;
+  available: number;
+  utilizationPct: number;
+  schemeType: string;
+  auTaxConcession: boolean;
+  avgGrantSize: number;
+  health: {
+    utilization: number;
+    utilizationStatus: "healthy" | "warning" | "critical";
+    needsRefresh: boolean;
+    refreshRecommended: boolean;
+    industryBenchmarkGrantSize: number;
+    grantVsIndustry: "above_benchmark" | "at_benchmark" | "below_benchmark" | null;
+  };
+}
+
+interface AddGrantForm {
+  memberName: string;
+  memberEmail: string;
+  memberRole: string;
+  grantDate: string;
+  shares: number;
+  vestingMonths: number;
+  cliffMonths: number;
+  scheduleType: "monthly" | "quarterly" | "annual";
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export function EquityEsopClient() {
+  const [activeTab, setActiveTab] = React.useState<"captable" | "esop" | "vesting" | "grants" | "documents">("captable");
   const [plan, setPlan] = React.useState<Plan>(() => emptyPlan());
   const [members, setMembers] = React.useState<Member[]>([]);
   const [esop, setEsop] = React.useState<EsopState>({
@@ -103,6 +157,15 @@ export function EquityEsopClient() {
   const [addOpen, setAddOpen] = React.useState(false);
   const [generating, setGenerating] = React.useState<string | null>(null);
   const [docsLog, setDocsLog] = React.useState<Array<{ kind: string; markdown: string; ts: number }>>([]);
+
+  // Grant Register state
+  const [grants, setGrants] = React.useState<Grant[]>([]);
+  const [poolSummary, setPoolSummary] = React.useState<PoolSummary | null>(null);
+  const [grantsLoading, setGrantsLoading] = React.useState(false);
+  const [grantsError, setGrantsError] = React.useState<string | null>(null);
+  const [addGrantOpen, setAddGrantOpen] = React.useState(false);
+  const [addingGrant, setAddingGrant] = React.useState(false);
+  const [selectedGrantId, setSelectedGrantId] = React.useState<string | null>(null);
 
   // Cap table — derived
   const capTable: CapTableRow[] = React.useMemo(() => {
@@ -169,6 +232,81 @@ export function EquityEsopClient() {
       cancelled = true;
     };
   }, [members]);
+
+  // Load grants when grants tab is activated and plan has an id
+  React.useEffect(() => {
+    if (activeTab !== "grants" || !plan.id) return;
+    let cancelled = false;
+    async function loadGrants() {
+      setGrantsLoading(true);
+      setGrantsError(null);
+      try {
+        const r = await fetch(`/api/equity/grants?planId=${encodeURIComponent(plan.id)}`);
+        const j = (await r.json()) as {
+          ok: boolean;
+          grants?: Grant[];
+          poolSummary?: PoolSummary | null;
+          error?: string;
+        };
+        if (!cancelled) {
+          if (j.ok) {
+            setGrants(j.grants ?? []);
+            setPoolSummary(j.poolSummary ?? null);
+          } else {
+            setGrantsError(j.error ?? "Failed to load grants");
+          }
+        }
+      } catch {
+        if (!cancelled) setGrantsError("Failed to load grants");
+      } finally {
+        if (!cancelled) setGrantsLoading(false);
+      }
+    }
+    loadGrants();
+    return () => { cancelled = true; };
+  }, [activeTab, plan.id]);
+
+  async function handleAddGrant(form: AddGrantForm) {
+    if (!plan.id) {
+      alert("Save the plan first (plan ID is required to create grants)");
+      return;
+    }
+    setAddingGrant(true);
+    try {
+      const r = await fetch("/api/equity/grants", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planId: plan.id,
+          memberName: form.memberName,
+          memberEmail: form.memberEmail || undefined,
+          memberRole: form.memberRole,
+          grantDate: form.grantDate,
+          shares: form.shares,
+          vestingMonths: form.vestingMonths,
+          cliffMonths: form.cliffMonths,
+          scheduleType: form.scheduleType,
+        }),
+      });
+      const j = (await r.json()) as { ok: boolean; error?: string };
+      if (j.ok) {
+        setAddGrantOpen(false);
+        // Reload grants
+        const r2 = await fetch(`/api/equity/grants?planId=${encodeURIComponent(plan.id)}`);
+        const j2 = (await r2.json()) as { ok: boolean; grants?: Grant[]; poolSummary?: PoolSummary | null };
+        if (j2.ok) {
+          setGrants(j2.grants ?? []);
+          setPoolSummary(j2.poolSummary ?? null);
+        }
+      } else {
+        alert(j.error ?? "Failed to create grant");
+      }
+    } catch {
+      alert("Failed to create grant");
+    } finally {
+      setAddingGrant(false);
+    }
+  }
 
   // Total allocated for ESOP
   const allocatedOptions = members
@@ -251,8 +389,40 @@ export function EquityEsopClient() {
 
       <PlanCard plan={plan} onChange={setPlan} />
 
+      {/* Tab Navigation */}
+      <div className="flex gap-1 border-b border-surface-200 overflow-x-auto">
+        {(
+          [
+            { id: "captable", label: "Cap Table" },
+            { id: "esop", label: "ESOP Pool" },
+            { id: "grants", label: "Grant Register" },
+            { id: "vesting", label: "Vesting Timeline" },
+            { id: "documents", label: "Documents" },
+          ] as const
+        ).map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            className={`shrink-0 px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
+              activeTab === tab.id
+                ? "border-brand-600 text-brand-700"
+                : "border-transparent text-ink-600 hover:text-ink-800 hover:border-surface-300"
+            }`}
+          >
+            {tab.label}
+            {tab.id === "grants" && grants.length > 0 && (
+              <span className="ml-1.5 inline-flex items-center justify-center h-5 min-w-[20px] rounded-full bg-brand-100 text-brand-700 text-[10px] font-bold px-1">
+                {grants.length}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
       {/* Section 1: Cap Table */}
-      <Section
+      {activeTab === "captable" && <Section
+
         title="Cap Table"
         action={
           <div className="flex gap-2">
@@ -338,10 +508,10 @@ export function EquityEsopClient() {
             </table>
           </div>
         )}
-      </Section>
+      </Section>}
 
       {/* Section 2: ESOP Pool */}
-      <Section title="ESOP Pool">
+      {activeTab === "esop" && <Section title="ESOP Pool">
         <div className="grid gap-4 md:grid-cols-3">
           <Stat
             label="Pool size (shares)"
@@ -433,10 +603,10 @@ export function EquityEsopClient() {
             </ul>
           )}
         </div>
-      </Section>
+      </Section>}
 
       {/* Section 3: Vesting timeline */}
-      <Section title="Vesting Timeline">
+      {activeTab === "vesting" && <Section title="Vesting Timeline">
         {Object.keys(timelinesByMember).length === 0 ? (
           <EmptyHint text="Add members with a vesting schedule to see cumulative-vested over time." />
         ) : (
@@ -494,10 +664,24 @@ export function EquityEsopClient() {
             </ResponsiveContainer>
           </div>
         )}
-      </Section>
+      </Section>}
+
+      {/* Section 3.5: Grant Register */}
+      {activeTab === "grants" && (
+        <GrantRegisterSection
+          grants={grants}
+          poolSummary={poolSummary}
+          loading={grantsLoading}
+          error={grantsError}
+          selectedGrantId={selectedGrantId}
+          onSelectGrant={setSelectedGrantId}
+          onAddGrant={() => setAddGrantOpen(true)}
+          planId={plan.id}
+        />
+      )}
 
       {/* Section 4: Documents */}
-      <Section title="Documents">
+      {activeTab === "documents" && <Section title="Documents">
         <p className="text-sm text-ink-600">
           Generate AU-compliant markdown documents from your equity data. Each document includes
           a disclaimer and is intended as a starting point for legal review.
@@ -549,13 +733,21 @@ export function EquityEsopClient() {
             ))}
           </ul>
         )}
-      </Section>
+      </Section>}
 
       {addOpen && (
         <AddMemberModal
           plan={plan}
           onClose={() => setAddOpen(false)}
           onAdd={addMember}
+        />
+      )}
+
+      {addGrantOpen && (
+        <AddGrantModal
+          onClose={() => setAddGrantOpen(false)}
+          onAdd={handleAddGrant}
+          adding={addingGrant}
         />
       )}
     </div>
@@ -917,4 +1109,404 @@ function downloadText(filename: string, body: string) {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// ---------------------------------------------------------------------------
+// Grant Register Section — T0099
+// ---------------------------------------------------------------------------
+
+function GrantRegisterSection({
+  grants,
+  poolSummary,
+  loading,
+  error,
+  selectedGrantId,
+  onSelectGrant,
+  onAddGrant,
+  planId,
+}: {
+  grants: Grant[];
+  poolSummary: PoolSummary | null;
+  loading: boolean;
+  error: string | null;
+  selectedGrantId: string | null;
+  onSelectGrant: (id: string | null) => void;
+  onAddGrant: () => void;
+  planId: string;
+}) {
+  const selectedGrant = grants.find((g) => g.memberId === selectedGrantId) ?? null;
+
+  const healthColor = {
+    healthy: "text-emerald-700 bg-emerald-50 border-emerald-200",
+    warning: "text-amber-700 bg-amber-50 border-amber-200",
+    critical: "text-red-700 bg-red-50 border-red-200",
+  };
+
+  return (
+    <div className="space-y-6">
+      <Section
+        title="Grant Register"
+        action={
+          <button
+            type="button"
+            onClick={onAddGrant}
+            disabled={!planId}
+            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-3 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+            title={!planId ? "Save plan first to enable grants" : undefined}
+          >
+            <Plus className="size-4" /> Add Grant
+          </button>
+        }
+      >
+        {/* Pool Health Indicators */}
+        {poolSummary && (
+          <div className="mb-5 grid gap-3 md:grid-cols-4">
+            <Stat
+              label="Pool size"
+              value={fmtInt(poolSummary.poolSize)}
+              sub={`${poolSummary.schemeType} scheme`}
+            />
+            <Stat
+              label="Granted"
+              value={fmtInt(poolSummary.totalGranted)}
+              sub={`${poolSummary.utilizationPct}% utilised`}
+            />
+            <Stat
+              label="Available"
+              value={fmtInt(poolSummary.available)}
+              sub={poolSummary.health.refreshRecommended ? "Refresh recommended" : "Healthy buffer"}
+            />
+            <Stat
+              label="Avg grant size"
+              value={fmtInt(poolSummary.avgGrantSize)}
+              sub={poolSummary.health.grantVsIndustry?.replace("_", " ") ?? ""}
+            />
+          </div>
+        )}
+
+        {/* Pool utilization bar */}
+        {poolSummary && (
+          <div className="mb-5 rounded-xl border border-surface-200 bg-white p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-semibold text-ink-800">Pool Utilisation</span>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${healthColor[poolSummary.health.utilizationStatus]}`}>
+                {poolSummary.utilizationPct}% — {poolSummary.health.utilizationStatus}
+              </span>
+            </div>
+            <div className="w-full h-3 bg-surface-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  poolSummary.health.utilizationStatus === "critical"
+                    ? "bg-red-500"
+                    : poolSummary.health.utilizationStatus === "warning"
+                    ? "bg-amber-500"
+                    : "bg-emerald-500"
+                }`}
+                style={{ width: `${Math.min(100, poolSummary.utilizationPct)}%` }}
+              />
+            </div>
+            {poolSummary.health.refreshRecommended && (
+              <div className="mt-3 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                <AlertTriangle className="size-4 text-amber-600 shrink-0" />
+                <p className="text-xs text-amber-700">
+                  <strong>Pool refresh recommended.</strong> Available shares ({fmtInt(poolSummary.available)}) are below 5% of pool size.
+                  Consider authorising a pool top-up before your next funding round.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {loading && (
+          <div className="flex items-center gap-2 py-8 justify-center text-ink-500">
+            <Loader2 className="size-5 animate-spin" />
+            <span className="text-sm">Loading grants...</span>
+          </div>
+        )}
+
+        {error && (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+
+        {!loading && !error && grants.length === 0 && (
+          <EmptyHint text="No ESOP grants yet. Click 'Add Grant' to record your first option grant." />
+        )}
+
+        {!loading && grants.length > 0 && (
+          <div className="overflow-x-auto rounded-xl border border-surface-200 bg-white">
+            <table className="w-full text-sm">
+              <thead className="bg-surface-50 text-ink-600">
+                <tr>
+                  <Th>Grantee</Th>
+                  <Th>Role</Th>
+                  <Th>Grant date</Th>
+                  <Th className="text-right">Shares</Th>
+                  <Th className="text-right">Vested %</Th>
+                  <Th className="text-right">Vested</Th>
+                  <Th className="text-right">Unvested</Th>
+                  <Th className="text-right">Value (AUD)</Th>
+                  <Th />
+                </tr>
+              </thead>
+              <tbody>
+                {grants.map((g) => (
+                  <tr
+                    key={g.memberId}
+                    className={`border-t border-surface-100 cursor-pointer hover:bg-surface-50 ${
+                      selectedGrantId === g.memberId ? "bg-brand-50/30" : ""
+                    }`}
+                    onClick={() => onSelectGrant(selectedGrantId === g.memberId ? null : g.memberId)}
+                  >
+                    <Td className="font-medium text-ink-900">{g.name}</Td>
+                    <Td className="capitalize text-ink-600">{g.role.replace("_", " ")}</Td>
+                    <Td className="text-ink-600 tabular-nums">{g.grantDate}</Td>
+                    <Td className="text-right tabular-nums">{fmtInt(g.shares)}</Td>
+                    <Td className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <div className="w-16 h-1.5 bg-surface-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-brand-500 rounded-full"
+                            style={{ width: `${g.vestedPct}%` }}
+                          />
+                        </div>
+                        <span className="tabular-nums text-ink-700">{g.vestedPct}%</span>
+                      </div>
+                    </Td>
+                    <Td className="text-right tabular-nums text-emerald-700">{fmtInt(g.vestedShares)}</Td>
+                    <Td className="text-right tabular-nums text-ink-600">{fmtInt(g.unvestedShares)}</Td>
+                    <Td className="text-right tabular-nums text-ink-700">
+                      {g.vestedValueAud != null ? fmtAud(g.vestedValueAud) : "—"}
+                    </Td>
+                    <Td className="text-right">
+                      <TrendingUp className="size-4 text-brand-400" />
+                    </Td>
+                  </tr>
+                ))}
+                {grants.length > 0 && (
+                  <tr className="border-t-2 border-surface-200 bg-surface-50/50 font-semibold">
+                    <Td colSpan={3}>Totals ({grants.length} grants)</Td>
+                    <Td className="text-right tabular-nums">{fmtInt(grants.reduce((s, g) => s + g.shares, 0))}</Td>
+                    <Td />
+                    <Td className="text-right tabular-nums text-emerald-700">{fmtInt(grants.reduce((s, g) => s + g.vestedShares, 0))}</Td>
+                    <Td className="text-right tabular-nums">{fmtInt(grants.reduce((s, g) => s + g.unvestedShares, 0))}</Td>
+                    <Td className="text-right tabular-nums">
+                      {grants.some((g) => g.vestedValueAud != null)
+                        ? fmtAud(grants.reduce((s, g) => s + (g.vestedValueAud ?? 0), 0))
+                        : "—"}
+                    </Td>
+                    <Td />
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Vesting detail for selected grant */}
+        {selectedGrant && (
+          <div className="mt-4 rounded-xl border border-brand-200 bg-brand-50/20 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h4 className="text-sm font-semibold text-ink-900">
+                  {selectedGrant.name} — Vesting Detail
+                </h4>
+                <p className="text-xs text-ink-500 mt-0.5">
+                  {fmtInt(selectedGrant.shares)} options · {selectedGrant.vestingMonths}m vest · {selectedGrant.cliffMonths}m cliff · {selectedGrant.scheduleType}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => onSelectGrant(null)}
+                className="text-ink-400 hover:text-ink-600"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="rounded-lg border border-surface-200 bg-white p-3">
+                <p className="text-xs text-ink-500">Vested to date</p>
+                <p className="text-lg font-bold text-emerald-700 mt-0.5">{fmtInt(selectedGrant.vestedShares)}</p>
+                <p className="text-xs text-ink-500">{selectedGrant.vestedPct}% of grant</p>
+              </div>
+              <div className="rounded-lg border border-surface-200 bg-white p-3">
+                <p className="text-xs text-ink-500">Still unvested</p>
+                <p className="text-lg font-bold text-ink-700 mt-0.5">{fmtInt(selectedGrant.unvestedShares)}</p>
+                <p className="text-xs text-ink-500">{100 - selectedGrant.vestedPct}% remaining</p>
+              </div>
+              <div className="rounded-lg border border-surface-200 bg-white p-3">
+                <p className="text-xs text-ink-500">Vested value (AUD)</p>
+                <p className="text-lg font-bold text-brand-700 mt-0.5">
+                  {selectedGrant.vestedValueAud != null ? fmtAud(selectedGrant.vestedValueAud) : "Set valuation"}
+                </p>
+                <p className="text-xs text-ink-500">At current pre-money</p>
+              </div>
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+              <Activity className="size-4 text-brand-500 shrink-0" />
+              <p className="text-xs text-ink-600">
+                <strong>Schedule:</strong> {selectedGrant.scheduleType} vesting over {selectedGrant.vestingMonths} months
+                {selectedGrant.cliffMonths ? ` with ${selectedGrant.cliffMonths}-month cliff` : ""}
+                {" "}starting {selectedGrant.grantDate}.
+              </p>
+            </div>
+          </div>
+        )}
+      </Section>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Add Grant Modal — T0099
+// ---------------------------------------------------------------------------
+
+function AddGrantModal({
+  onClose,
+  onAdd,
+  adding,
+}: {
+  onClose: () => void;
+  onAdd: (form: AddGrantForm) => void;
+  adding: boolean;
+}) {
+  const [form, setForm] = React.useState<AddGrantForm>({
+    memberName: "",
+    memberEmail: "",
+    memberRole: "employee",
+    grantDate: new Date().toISOString().slice(0, 10),
+    shares: 100000,
+    vestingMonths: 48,
+    cliffMonths: 12,
+    scheduleType: "monthly",
+  });
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.memberName.trim()) return;
+    if (form.shares <= 0) return;
+    onAdd(form);
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={onClose}
+    >
+      <form
+        onClick={(e) => e.stopPropagation()}
+        onSubmit={submit}
+        className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-ink-900">Add ESOP Grant</h3>
+          <button type="button" onClick={onClose} className="text-ink-400 hover:text-ink-600">
+            <X className="size-5" />
+          </button>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <Field label="Grantee name *">
+            <input
+              value={form.memberName}
+              onChange={(e) => setForm({ ...form, memberName: e.target.value })}
+              className={inputCls}
+              required
+              placeholder="Jane Smith"
+            />
+          </Field>
+          <Field label="Email">
+            <input
+              type="email"
+              value={form.memberEmail}
+              onChange={(e) => setForm({ ...form, memberEmail: e.target.value })}
+              className={inputCls}
+              placeholder="jane@startup.com"
+            />
+          </Field>
+          <Field label="Role">
+            <select
+              value={form.memberRole}
+              onChange={(e) => setForm({ ...form, memberRole: e.target.value })}
+              className={inputCls}
+            >
+              <option value="employee">Employee</option>
+              <option value="advisor">Advisor</option>
+              <option value="option_holder">Option holder</option>
+              <option value="cofounder">Co-founder</option>
+            </select>
+          </Field>
+          <Field label="Grant date *">
+            <input
+              type="date"
+              value={form.grantDate}
+              onChange={(e) => setForm({ ...form, grantDate: e.target.value })}
+              className={inputCls}
+              required
+            />
+          </Field>
+          <Field label="Number of options *">
+            <input
+              type="number"
+              min={1}
+              value={form.shares}
+              onChange={(e) => setForm({ ...form, shares: Number(e.target.value) || 0 })}
+              className={inputCls}
+              required
+            />
+          </Field>
+          <Field label="Vesting cadence">
+            <select
+              value={form.scheduleType}
+              onChange={(e) => setForm({ ...form, scheduleType: e.target.value as AddGrantForm["scheduleType"] })}
+              className={inputCls}
+            >
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="annual">Annual</option>
+            </select>
+          </Field>
+          <Field label="Cliff (months)">
+            <input
+              type="number"
+              min={0}
+              value={form.cliffMonths}
+              onChange={(e) => setForm({ ...form, cliffMonths: Number(e.target.value) || 0 })}
+              className={inputCls}
+            />
+          </Field>
+          <Field label="Total vest (months)">
+            <input
+              type="number"
+              min={1}
+              value={form.vestingMonths}
+              onChange={(e) => setForm({ ...form, vestingMonths: Number(e.target.value) || 1 })}
+              className={inputCls}
+            />
+          </Field>
+        </div>
+        <p className="mt-3 text-xs text-ink-500">
+          Standard AU ESOP: 4-year vest, 1-year cliff, monthly cadence.
+          Division 83A ESS concession applies if startup is an &lsquo;eligible startup&rsquo;.
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-9 rounded-[10px] border border-surface-300 px-4 text-sm font-semibold text-ink-700 hover:bg-surface-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={adding}
+            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+          >
+            {adding ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+            {adding ? "Creating..." : "Create Grant"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
 }

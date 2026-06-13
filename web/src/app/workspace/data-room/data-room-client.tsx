@@ -19,6 +19,8 @@ import {
   Copy,
   Share2,
   AlertCircle,
+  Target,
+  Wand2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DataRoomFolder } from "@/lib/data-room-templates";
@@ -65,6 +67,38 @@ interface DataRoomClientProps {
   categories: string[];
   initialStates: DataRoomItemState[];
   templateStructure: DataRoomFolder[];
+}
+
+// Goals types (T0098)
+interface DataRoomGoal {
+  id: string;
+  templateId: string;
+  progressId: string | null;
+  goalType: "document_upload" | "template_fill" | "ai_generate" | "connect_integration";
+  section: string;
+  title: string;
+  description: string;
+  priority: "P0" | "P1" | "P2";
+  targetCompletionDays: number;
+  creditsReward: number;
+  status: "pending" | "in_progress" | "complete" | "skipped";
+  completedAt: string | null;
+  creditsAwarded: number;
+}
+
+interface GoalSection {
+  section: string;
+  total: number;
+  complete: number;
+  pct: number;
+}
+
+interface GoalsData {
+  goals: DataRoomGoal[];
+  completionScore: number;
+  p0Score: number;
+  sections: GoalSection[];
+  stats: { total: number; completed: number; pending: number };
 }
 
 // ---------------------------------------------------------------------------
@@ -147,6 +181,35 @@ export function DataRoomClient({
   const [expandedCategories, setExpandedCategories] = React.useState<Set<string>>(
     () => new Set(categories),
   );
+
+  // Goals state (T0098)
+  const [goalsData, setGoalsData] = React.useState<GoalsData | null>(null);
+  const [goalsLoading, setGoalsLoading] = React.useState(false);
+  const [showGoals, setShowGoals] = React.useState(true);
+  const [autoFillDocId, setAutoFillDocId] = React.useState<string | null>(null);
+  const [autoFilling, setAutoFilling] = React.useState(false);
+  const [autoFillResult, setAutoFillResult] = React.useState<{ content: string; docId: string } | null>(null);
+
+  // Load goals on mount
+  React.useEffect(() => {
+    let cancelled = false;
+    async function loadGoals() {
+      setGoalsLoading(true);
+      try {
+        const r = await fetch("/api/data-room/goals");
+        const data = (await r.json()) as GoalsData & { ok: boolean };
+        if (!cancelled && data.ok) {
+          setGoalsData(data);
+        }
+      } catch {
+        // Non-fatal
+      } finally {
+        if (!cancelled) setGoalsLoading(false);
+      }
+    }
+    loadGoals();
+    return () => { cancelled = true; };
+  }, []);
   const [toast, setToast] = React.useState<{ message: string; type: "success" | "error" } | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [pendingItemId, setPendingItemId] = React.useState<string | null>(null);
@@ -334,6 +397,63 @@ export function DataRoomClient({
     }
   }
 
+  async function handleAutoFill(documentId: string, templateSlug?: string) {
+    setAutoFillDocId(documentId);
+    setAutoFilling(true);
+    setAutoFillResult(null);
+    try {
+      const res = await fetch("/api/data-room/auto-fill", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentId, templateSlug }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setAutoFillResult({ content: data.filledContent, docId: documentId });
+        showToast(`Auto-filled document (${data.wordsGenerated} words generated). 0.25 credits used.`);
+      } else {
+        showToast(data.error ?? "Auto-fill failed", "error");
+      }
+    } catch {
+      showToast("Auto-fill failed. Please try again.", "error");
+    } finally {
+      setAutoFillDocId(null);
+      setAutoFilling(false);
+    }
+  }
+
+  async function handleMarkGoalComplete(templateId: string, dataRoomId?: string) {
+    try {
+      const res = await fetch("/api/data-room/goals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          templateId,
+          dataRoomId: dataRoomId ?? "default",
+          status: "complete",
+        }),
+      });
+      const data = await res.json();
+      if (data.ok && goalsData) {
+        // Update local goals state
+        setGoalsData((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            goals: prev.goals.map((g) =>
+              g.templateId === templateId
+                ? { ...g, status: "complete", completedAt: new Date().toISOString() }
+                : g
+            ),
+          };
+        });
+        showToast(`Goal completed! ${data.creditsAwarded > 0 ? `+${data.creditsAwarded} credits` : ""}`);
+      }
+    } catch {
+      // Non-fatal
+    }
+  }
+
   return (
     <>
       {/* Hidden file input */}
@@ -471,6 +591,150 @@ export function DataRoomClient({
           />
         </div>
       </div>
+
+      {/* Goals Progress Panel (T0098) */}
+      <div className="rounded-xl border border-surface-200 bg-white shadow-sm mb-6 overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setShowGoals((v) => !v)}
+          className="w-full flex items-center gap-3 px-5 py-4 hover:bg-surface-50 transition-colors cursor-pointer"
+        >
+          <div className="h-8 w-8 rounded-lg bg-purple-50 border border-purple-100 flex items-center justify-center shrink-0">
+            <Target strokeWidth={1.5} className="h-4 w-4 text-purple-600" />
+          </div>
+          <div className="flex-1 text-left">
+            <h3 className="text-sm font-semibold text-ink-800">
+              Automation Goals
+              {goalsData && (
+                <span className={cn(
+                  "ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border",
+                  goalsData.completionScore >= 80
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : goalsData.completionScore >= 40
+                    ? "bg-brand-50 text-brand-700 border-brand-200"
+                    : "bg-amber-50 text-amber-700 border-amber-200",
+                )}>
+                  {goalsData.completionScore}% complete
+                </span>
+              )}
+            </h3>
+            <p className="text-xs text-ink-500 mt-0.5">
+              {goalsData
+                ? `${goalsData.stats.completed}/${goalsData.stats.total} goals done · P0 score: ${goalsData.p0Score}%`
+                : "Track automation goals for each data room section"}
+            </p>
+          </div>
+          {goalsLoading && <Loader2 strokeWidth={1.75} className="h-4 w-4 text-ink-400 animate-spin shrink-0" />}
+          {showGoals ? (
+            <ChevronDown strokeWidth={1.75} className="h-4 w-4 text-ink-400 shrink-0" />
+          ) : (
+            <ChevronRight strokeWidth={1.75} className="h-4 w-4 text-ink-400 shrink-0" />
+          )}
+        </button>
+
+        {showGoals && goalsData && (
+          <div className="border-t border-surface-100">
+            {/* Section progress grid */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-0 divide-x divide-y divide-surface-100 border-b border-surface-100">
+              {goalsData.sections.map((sec) => (
+                <div key={sec.section} className="p-3">
+                  <p className="text-[10px] font-semibold text-ink-600 leading-tight truncate" title={sec.section}>
+                    {sec.section.replace(/^\d+\.\s+/, "")}
+                  </p>
+                  <div className="mt-1.5 flex items-center gap-1.5">
+                    <div className="flex-1 h-1.5 bg-surface-100 rounded-full overflow-hidden">
+                      <div
+                        className={cn(
+                          "h-full rounded-full",
+                          sec.pct === 100 ? "bg-emerald-500" : sec.pct >= 50 ? "bg-brand-500" : "bg-amber-400"
+                        )}
+                        style={{ width: `${sec.pct}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] tabular-nums text-ink-500 shrink-0">{sec.pct}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* P0 goals list */}
+            <div className="px-5 py-3">
+              <p className="text-xs font-semibold text-ink-700 mb-2">Critical (P0) Goals</p>
+              <div className="space-y-2">
+                {goalsData.goals
+                  .filter((g) => g.priority === "P0")
+                  .slice(0, 6)
+                  .map((g) => (
+                    <div key={g.id} className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => g.status !== "complete" && handleMarkGoalComplete(g.templateId)}
+                        className="shrink-0"
+                      >
+                        {g.status === "complete" ? (
+                          <CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-emerald-500" />
+                        ) : (
+                          <Circle strokeWidth={1.75} className="h-4 w-4 text-surface-300" />
+                        )}
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <p className={cn(
+                          "text-xs font-medium truncate",
+                          g.status === "complete" ? "line-through text-ink-400" : "text-ink-800"
+                        )}>
+                          {g.title}
+                        </p>
+                        <p className="text-[10px] text-ink-500 truncate">{g.section.replace(/^\d+\.\s+/, "")}</p>
+                      </div>
+                      <span className={cn(
+                        "shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded border",
+                        g.goalType === "ai_generate"
+                          ? "text-amber-700 bg-amber-50 border-amber-200"
+                          : g.goalType === "connect_integration"
+                          ? "text-teal-700 bg-teal-50 border-teal-200"
+                          : g.goalType === "template_fill"
+                          ? "text-brand-700 bg-brand-50 border-brand-200"
+                          : "text-ink-600 bg-surface-100 border-surface-200"
+                      )}>
+                        {g.goalType === "ai_generate" ? "AI" : g.goalType === "connect_integration" ? "Connect" : g.goalType === "template_fill" ? "Fill" : "Upload"}
+                      </span>
+                      {g.creditsReward > 0 && g.status !== "complete" && (
+                        <span className="shrink-0 text-[10px] text-amber-600 font-semibold">
+                          +{g.creditsReward}cr
+                        </span>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Auto-Fill Result Display */}
+      {autoFillResult && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50/30 shadow-sm mb-6 overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-emerald-100">
+            <div className="flex items-center gap-2">
+              <Wand2 strokeWidth={1.5} className="h-4 w-4 text-emerald-600" />
+              <span className="text-sm font-semibold text-ink-800">Auto-Fill Result</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAutoFillResult(null)}
+              className="text-xs text-ink-500 hover:text-ink-700"
+            >
+              Dismiss
+            </button>
+          </div>
+          <div className="px-5 py-4">
+            <pre className="text-xs text-ink-700 whitespace-pre-wrap font-mono bg-white rounded-lg border border-emerald-100 p-3 max-h-64 overflow-y-auto">
+              {autoFillResult.content.slice(0, 2000)}
+              {autoFillResult.content.length > 2000 ? "\n\n[... truncated, document saved in full]" : ""}
+            </pre>
+          </div>
+        </div>
+      )}
 
       {/* One-Click Data Room Generator */}
       <div className="rounded-xl border border-amber-100 bg-amber-50/30 p-5 shadow-sm mb-6">
@@ -610,6 +874,8 @@ export function DataRoomClient({
               folder={folder}
               onDownload={downloadTemplate}
               onUpload={triggerUpload}
+              onAutoFill={(docName) => handleAutoFill(docName)}
+              autoFillingId={autoFilling ? autoFillDocId : null}
             />
           ))}
         </div>
@@ -824,10 +1090,14 @@ function TemplateFolderSection({
   folder,
   onDownload,
   onUpload,
+  onAutoFill,
+  autoFillingId,
 }: {
   folder: DataRoomFolder;
   onDownload: (name: string) => void;
   onUpload: (id: string) => void;
+  onAutoFill?: (docName: string) => void;
+  autoFillingId?: string | null;
 }) {
   const [expanded, setExpanded] = React.useState(false);
 
@@ -902,14 +1172,32 @@ function TemplateFolderSection({
 
               {/* Action button */}
               {doc.type === "template" && (
-                <button
-                  type="button"
-                  onClick={() => onDownload(doc.name)}
-                  className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100 transition-colors cursor-pointer"
-                >
-                  <Download strokeWidth={1.75} className="h-3.5 w-3.5" />
-                  Template
-                </button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => onDownload(doc.name)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100 transition-colors cursor-pointer"
+                  >
+                    <Download strokeWidth={1.75} className="h-3.5 w-3.5" />
+                    Template
+                  </button>
+                  {onAutoFill && (
+                    <button
+                      type="button"
+                      onClick={() => onAutoFill(doc.name)}
+                      disabled={autoFillingId === doc.name}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 transition-colors cursor-pointer disabled:opacity-50"
+                      title="Auto-fill with AI (0.25 credits)"
+                    >
+                      {autoFillingId === doc.name ? (
+                        <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Wand2 strokeWidth={1.75} className="h-3.5 w-3.5" />
+                      )}
+                      AI Fill
+                    </button>
+                  )}
+                </div>
               )}
               {doc.type === "upload" && (
                 <button
