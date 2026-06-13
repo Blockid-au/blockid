@@ -110,6 +110,15 @@ export function EvidenceVaultClient({ initialEvidence, evidenceGaps, currentSVI 
     }
     return null;
   });
+  const [showOnboardingBanner, setShowOnboardingBanner] = React.useState(() => {
+    if (typeof window === "undefined") return false;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("onboarding") === "true") {
+      window.history.replaceState({}, "", window.location.pathname);
+      return true;
+    }
+    return false;
+  });
   const [analyzeTarget, setAnalyzeTarget] = React.useState<{ id: string; label: string } | null>(null);
   const [disconnecting, setDisconnecting] = React.useState<string | null>(null);
 
@@ -174,6 +183,19 @@ export function EvidenceVaultClient({ initialEvidence, evidenceGaps, currentSVI 
 
   return (
     <>
+      {/* Onboarding welcome banner for new users */}
+      {showOnboardingBanner && (
+        <div className="mb-4 rounded-2xl border border-brand-200 bg-brand-50 px-5 py-4 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-brand-800">Welcome to BlockID! Start by connecting your first source.</p>
+              <p className="text-xs text-brand-600 mt-0.5">Connect GitHub, Stripe, or Google Analytics to automatically verify your startup&apos;s traction and boost your SVI score.</p>
+            </div>
+            <button type="button" onClick={() => setShowOnboardingBanner(false)} className="text-brand-600 hover:text-brand-800 text-xs font-medium cursor-pointer shrink-0">Dismiss</button>
+          </div>
+        </div>
+      )}
+
       {/* Connected / error toast from OAuth callbacks */}
       {connectedToast && (
         <div className={`mb-4 flex items-center justify-between rounded-xl border px-5 py-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300 ${connectedToast.isError ? "border-red-200 bg-red-50" : "border-teal-200 bg-teal-50"}`}>
