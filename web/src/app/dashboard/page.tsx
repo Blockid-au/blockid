@@ -393,6 +393,7 @@ export default async function DashboardPage({
     credits_cost: number;
   }> = [];
   let shareViews = 0;
+  let latestScoreId: string | undefined;
   let userActions: Array<{
     id: string;
     action_type: string;
@@ -530,11 +531,13 @@ export default async function DashboardPage({
     // Share link views
     const { data: userScores } = await supabase
       .from("scores")
-      .select("id")
+      .select("id, created_at")
       .eq("email", user.email)
+      .order("created_at", { ascending: false })
       .limit(50);
 
     if (userScores && userScores.length > 0) {
+      latestScoreId = userScores[0].id as string;
       const scoreIds = userScores.map((s) => s.id as string);
       const { count: viewCount } = await supabase
         .from("score_views")
@@ -826,6 +829,7 @@ export default async function DashboardPage({
             creditBalance={creditBalance}
             evidenceCount={evidenceCount}
             shareViews={shareViews}
+            analysisId={latestScoreId}
             lastAnalysisDate={
               recentReports.length > 0 ? recentReports[0].created_at : undefined
             }

@@ -44,6 +44,7 @@ import {
   Loader2,
   Sparkles,
   AlertTriangle,
+  Share2,
 } from "lucide-react";
 import type { SVIAnalysis, SVIEvidenceGap } from "@/lib/svi-analysis";
 import { REPORT_SECTIONS, getUnlockAllCost } from "@/lib/report-sections";
@@ -89,6 +90,7 @@ export interface LivingDashboardProps {
   creditBalance: number;
   evidenceCount: number;
   shareViews: number;
+  analysisId?: string;
   lastAnalysisDate?: string;
   previousSVI?: number;
   userActions: UserAction[];
@@ -322,12 +324,23 @@ export function LivingSVIDashboard(props: LivingDashboardProps) {
     startupName,
     creditBalance,
     shareViews,
+    analysisId,
     lastAnalysisDate,
     previousSVI,
     userProfile,
   } = props;
 
   const [activeTab, setActiveTab] = React.useState<TabId>("journey");
+  const [shareCopied, setShareCopied] = React.useState(false);
+
+  const handleShareCopy = React.useCallback(() => {
+    if (!analysisId) return;
+    const shareUrl = `${window.location.origin}/s/${analysisId}`;
+    void navigator.clipboard.writeText(shareUrl).then(() => {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2500);
+    });
+  }, [analysisId]);
 
   // Optimistic local state: track sections unlocked during this session.
   // We store only the *new* sections added by the user. The full list is
@@ -446,14 +459,34 @@ export function LivingSVIDashboard(props: LivingDashboardProps) {
               </div>
             </div>
 
-            {/* CTA */}
-            <Link
-              href="/"
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors shrink-0 self-start sm:self-center"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Run New Analysis
-            </Link>
+            {/* CTAs */}
+            <div className="flex items-center gap-2 shrink-0 self-start sm:self-center flex-wrap">
+              {analysisId && (
+                <button
+                  type="button"
+                  onClick={handleShareCopy}
+                  className={cn(
+                    "inline-flex h-10 items-center gap-2 rounded-xl border px-4 text-sm font-semibold transition-all",
+                    shareCopied
+                      ? "border-teal-300 bg-teal-50 text-teal-700"
+                      : "border-surface-200 bg-white text-ink-700 hover:border-brand-300 hover:bg-brand-50",
+                  )}
+                >
+                  {shareCopied ? (
+                    <><CheckCircle2 className="h-4 w-4 text-teal-600" />Copied!</>
+                  ) : (
+                    <><Share2 className="h-4 w-4" />Share Score</>
+                  )}
+                </button>
+              )}
+              <Link
+                href="/"
+                className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Run New Analysis
+              </Link>
+            </div>
           </div>
         </div>
       </div>
