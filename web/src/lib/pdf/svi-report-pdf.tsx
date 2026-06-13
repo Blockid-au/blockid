@@ -25,6 +25,7 @@ const C = {
   brand700: "#1d4ed8",
   brand600: "#2563eb",
   brand500: "#3b82f6",
+  brand200: "#bfdbfe",
   brand100: "#dbeafe",
   brand50: "#eff6ff",
   ink900: "#0f172a",
@@ -39,15 +40,21 @@ const C = {
   surface50: "#f8fafc",
   emerald600: "#059669",
   emerald500: "#10b981",
+  emerald400: "#34d399",
+  emerald200: "#a7f3d0",
   emerald100: "#d1fae5",
   emerald50: "#ecfdf5",
+  amber700: "#b45309",
   amber600: "#d97706",
   amber500: "#f59e0b",
   amber100: "#fef3c7",
+  amber50: "#fffbeb",
   red600: "#dc2626",
   red500: "#ef4444",
   red100: "#fee2e2",
   teal600: "#0d9488",
+  teal200: "#99f6e4",
+  teal50: "#f0fdfa",
   white: "#ffffff",
 };
 
@@ -795,8 +802,12 @@ export function SVIReportPDF({
       }));
 
   // Calculate hook/problem statement from analysis
-  const problemStatement = analysis.problemStatementFromFounder
-    || `Solving a key problem for ${analysis.targetMarket || "your market"}`
+  const analysisExtra = analysis as SVIAnalysis & {
+    problemStatementFromFounder?: string;
+    targetMarket?: string;
+  };
+  const problemStatement = analysisExtra.problemStatementFromFounder
+    || `Solving a key problem for ${analysisExtra.targetMarket || "your market"}`
     || `${name} is focused on a specific opportunity in their market`;
 
   return (
@@ -822,7 +833,7 @@ export function SVIReportPDF({
           <Text style={[s.label, { marginBottom: 6 }]}>YOUR PROBLEM</Text>
           <View style={{ backgroundColor: C.surface50, borderRadius: 8, padding: 12, borderWidth: 0.5, borderColor: C.surface200 }}>
             <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold", color: C.ink900, lineHeight: 1.6 }}>
-              {problemStatement || `${name} is solving a critical problem in ${analysis.targetMarket || "the startup ecosystem"}.`}
+              {problemStatement || `${name} is solving a critical problem in ${analysisExtra.targetMarket || "the startup ecosystem"}.`}
             </Text>
           </View>
         </View>
