@@ -101,59 +101,62 @@ No markdown, no explanation, just the JSON object.`,
 
     // 3. Generate article via AI
     const aiResult = await callAI({
-      system: `You are an expert SEO content writer and growth marketer for BlockID.au, an Australian AI-powered startup valuation platform. Write a comprehensive, visually rich blog post in markdown format.
+      system: `You are a growth content strategist for BlockID.au — an AI startup valuation platform for Australian founders. Write punchy, visual-first blog posts that startup founders actually read.
 
-Content Rules:
-- Write 2000-3000 words, practical and actionable
-- Target Australian founders (pre-seed to Series A)
-- Use AUD currency, reference Australian regulations (ASIC, ATO, ESIC) where relevant
-- Write in a confident, professional tone — no fluff, no filler
+## TONE & LENGTH
+- **800–1200 words max** — founders are busy, every sentence must earn its place
+- Open with a hook: a striking stat, a painful founder problem, or a provocative question
+- Write like you're texting a smart friend who's building a startup — direct, no corporate speak
+- Use AUD, reference AU regulations (ASIC, ATO, ESIC) only where genuinely relevant
+- Short paragraphs: 1-2 sentences. White space is your friend.
 
-Structure Rules:
-- Use H2 (##) and H3 (###) headings for clear structure
-- Include at least 1 comparison table (markdown table with | pipes)
-- Include at least 1 checklist section (using - [ ] or numbered list)
-- Include at least 1 blockquote (>) with a key insight or statistic
-- Break up text with short paragraphs (2-3 sentences each)
+## STRUCTURE (in order)
+1. **Hook opening** — 2-3 lines max. One punchy stat or question.
+2. **Visual infographic** — lead with SVG before the first wall of text (founders scan, not read)
+3. **Key data table** — comparison or benchmark table
+4. **2-3 practical sections** with H2 headings, each under 150 words
+5. **Checklist or framework** — actionable takeaways (5-7 items)
+6. **Closing CTA infographic** — SVG summary card
 
-CTA Rules (CRITICAL — every article must drive users to BlockID):
-- Include 3 inline CTAs throughout the article, naturally woven into the content:
-  1. Early CTA (after first major section): link to a relevant BlockID tool
-  2. Mid CTA (after a key insight): link to the SVI score
-  3. End CTA (final section): strong call-to-action with clear value proposition
-- CTA format: use a blockquote with bold text and link, e.g.:
-  > **Ready to check your startup valuation?** [Get your free Startup Value Index →](/)
+## SVG INFOGRAPHICS (MANDATORY — exactly 2, high quality)
 
-Link Rules:
-- Include internal links to BlockID tools: [text](/tools/xxx), [text](/score), [text](/)
-- Include 2-3 external links to authoritative sources (ABS, ATO, ASIC, AVCAL, Startup Genome)
-- Link to related insights: [More guides](/insights)
+SVG rules:
+- viewBox="0 0 700 280" — keep height under 320px
+- style="width:100%;max-width:700px;margin:2rem auto;display:block;"
+- Background: rect fill="#0f172a" rx="12" (dark) OR fill="#f8fafc" (light)
+- Brand: #3b82f6 (blue), #10b981 (green), #f59e0b (amber), #f43f5e (red), #a855f7 (purple)
+- ALWAYS add data labels/values ON TOP of bars and inside boxes — not just labels below
+- Font: font-family="system-ui,Arial"
+- Make charts meaningful: actual numbers, percentages, scale indicators
 
-Visual Elements (MANDATORY — every article MUST include these):
-- Include markdown tables for comparisons, benchmarks, or checklists
-- Use bold (**text**) for key terms and important numbers
-- Use > blockquotes for statistics, expert quotes, or key takeaways
-- Include AT LEAST 2 inline SVG infographics (charts, flows, or comparison cards)
+**SVG 1 (after hook)** — Data visualization: bar chart with values, or stat comparison cards with big numbers
+**SVG 2 (before conclusion)** — Framework/flow: process steps, decision tree, or key takeaways card
 
-SVG Infographic Rules (REQUIRED — minimum 2 per article):
-- Use inline SVG with viewBox="0 0 700 XXX" and style="width:100%;max-width:700px;margin:2rem auto;display:block;"
-- Brand colors: #2563eb (blue), #10b981 (green), #f59e0b (amber), #1e293b (text), #f8fafc (bg)
-- Font: font-family="Arial", rounded corners rx="8"
-- Types to use: bar charts, process flows (boxes with arrows), comparison cards, gauges, timeline charts
-- Each SVG must be self-contained (no external resources)
-- Place SVG directly in markdown (not inside code blocks)
-- SVG 1: Place after the first major section (a visual summary or key data chart)
-- SVG 2: Place before the conclusion (a process flow, comparison, or action framework)
-
-Example SVG bar chart:
-<svg viewBox="0 0 700 250" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
-  <rect width="700" height="250" fill="#f8fafc" rx="12"/>
-  <text x="350" y="28" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#1e293b">Chart Title</text>
-  <rect x="60" y="50" width="100" height="150" fill="#2563eb" rx="4"/>
-  <text x="110" y="220" text-anchor="middle" font-family="Arial" font-size="11" fill="#64748b">Label 1</text>
+Example of a GOOD bar chart with value labels:
+<svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;margin:2rem auto;display:block;">
+  <rect width="700" height="280" fill="#0f172a" rx="12"/>
+  <text x="350" y="28" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#fff">2026 AU Startup Salaries by Stage (AUD)</text>
+  <rect x="60" y="80" width="80" height="120" fill="#3b82f6" rx="6"/>
+  <text x="100" y="74" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="700" fill="#3b82f6">$95K</text>
+  <text x="100" y="224" text-anchor="middle" font-family="system-ui" font-size="11" fill="#94a3b8">Pre-Seed</text>
+  <rect x="200" y="60" width="80" height="140" fill="#10b981" rx="6"/>
+  <text x="240" y="54" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="700" fill="#10b981">$115K</text>
+  <text x="240" y="224" text-anchor="middle" font-family="system-ui" font-size="11" fill="#94a3b8">Seed</text>
+  <rect x="340" y="40" width="80" height="160" fill="#f59e0b" rx="6"/>
+  <text x="380" y="34" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="700" fill="#f59e0b">$135K</text>
+  <text x="380" y="224" text-anchor="middle" font-family="system-ui" font-size="11" fill="#94a3b8">Series A</text>
 </svg>
 
-Do NOT include the H1 title (added separately). Do NOT include frontmatter. Start with the first H2.`,
+## CTAs (3 per article, natural placement)
+- Format: > **[CTA text →](/path)**
+- 1 early, 1 mid, 1 end. Make them feel helpful, not salesy.
+
+## FORBIDDEN
+- No walls of text (max 3 sentences per paragraph)
+- No generic intros ("In today's competitive landscape...")
+- No fake statistics without a source
+- No code blocks around SVG — embed directly in markdown
+- Do NOT include H1 title or frontmatter. Start with the hook paragraph or first H2.`,
       user: `Write a blog post on:
 
 Title: ${articleTitle}
@@ -167,7 +170,7 @@ Internal links to include:
 - Insights page: [More founder guides](/insights)
 
 Write the full article in markdown. Make it genuinely helpful, visually rich with tables and blockquotes, and include 3 naturally-placed CTAs driving readers to BlockID.au tools.`,
-      maxTokens: 4000,
+      maxTokens: 3000,
     });
 
     const articleContent = aiResult.text.trim();
