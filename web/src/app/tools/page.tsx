@@ -123,6 +123,13 @@ const CATEGORIES: Category[] = [
         desc: "Create an investor-ready data room checklist with document tracking and completion scores.",
         icon: "📁",
       },
+      {
+        slug: "financial-projections",
+        name: "Financial Projection Norms",
+        desc: "Compare your burn, runway, growth, CAC and LTV against AU pre-seed / seed / Series A benchmarks. Instant percentile scoring.",
+        icon: "📈",
+        tag: "AU Specific",
+      },
     ],
   },
   {
