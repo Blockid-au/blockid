@@ -16,6 +16,7 @@ import {
   COMPARISON_ROWS,
   FAQ_ITEMS,
 } from "@/lib/pricing-data";
+import { FAQJsonLd } from "@/components/seo/json-ld";
 import { PricingPlans } from "./pricing-plans";
 
 export const metadata: Metadata = {
@@ -31,6 +32,7 @@ export const metadata: Metadata = {
 export default function PricingPage() {
   return (
     <div className="min-h-svh bg-surface-50 text-ink-800">
+      <FAQJsonLd items={FAQ_ITEMS.map(({ q, a }) => ({ question: q, answer: a }))} />
       <PageViewTracker event="pricing_viewed" params={{}} />
       <Navbar />
 

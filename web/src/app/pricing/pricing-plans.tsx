@@ -123,6 +123,12 @@ export function PricingPlans() {
             {/* CTA */}
             <Link
               href={plan.cta.href}
+              onClick={() => {
+                trackEvent("plan_cta_clicked", { plan: plan.id, label: plan.cta.label });
+                if (plan.id !== "free") {
+                  trackEvent("checkout_started", { plan: plan.id });
+                }
+              }}
               className={`w-full inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold transition-all duration-200 ${
                 plan.ctaStyle === "primary"
                   ? "bg-brand-600 hover:bg-brand-700 text-white shadow-sm"
