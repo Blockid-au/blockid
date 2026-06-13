@@ -101,6 +101,9 @@ export interface AnalyticsEventMap {
   insight_read_complete: { slug: string; category: string; primary_keyword: string };
   insight_cta_clicked: { slug: string; cta_label: string; cta_href: string; position: "early" | "mid" | "end" };
 
+  // ── BlockID Startup Index ──
+  index_viewed: Record<string, never>;
+
   // ── Navigation ──
   cta_clicked: { cta_id: string; location: string };
   nav_tool_selected: { tool: string };
