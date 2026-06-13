@@ -1,20 +1,22 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v0.8.0  ·  **Updated:** 2026-06-13T04:30:00.000Z  ·  **Decided by:** ceo
+**Version:** v0.9.0  ·  **Updated:** 2026-06-13T04:45:00.000Z  ·  **Decided by:** ceo
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
 ## Active tasks
 | ID | Agent | Task | Impact | Status |
 |----|-------|------|--------|--------|
-| T0018 | CMO | SEO: 7 new AU startup insight articles to /insights (already drafted, needs manifest + routes) | major | ⬜ pending |
-| T0019 | CPO | Evidence Vault UI: success toast on ?connected= param + disconnect button per connector | minor | ⬜ pending |
-| T0020 | CTO | /api/oauth/stripe env docs — add STRIPE_CLIENT_ID + STRIPE_CLIENT_SECRET to .env.example | minor | ⬜ pending |
+| T0021 | CFO | Valuation report PDF export — downloadable PDF from /dashboard/valuation (jsPDF or Puppeteer) | major | ⬜ pending |
+| T0022 | CPO | Onboarding flow: post-signup redirect to /workspace/evidence with guided first-step prompt | minor | ⬜ pending |
+| T0023 | CMO | /insights sitemap.xml — add all 38 article slugs to sitemap for SEO indexing | minor | ⬜ pending |
 | T0010 | CMO | Product Hunt launch — submit listing, first comment from founder, 5 feature screenshots | major | ⬜ pending (user action required) |
 | T0011 | CRO | Accelerator outreach — Antler application updated, submit to July 2026 cohort | minor | ⬜ pending (user action required) |
 
 ## Recently shipped
-- ✅ `T0016` **CTO** — Evidence Vault Phase 2: Stripe Connect OAuth + GA4 OAuth connectors with CSRF, HEAD availability checks, TRE+MPC+PMF evidence, connector-status.tsx + connect-buttons.tsx updated (2026-06-13, sha b659f83)
+- ✅ `T0019+T0020` **CPO+CTO** — OAuth success/error toast on ?connected= param, disconnect button per connector, DELETE /api/evidence/disconnect, STRIPE_CLIENT_ID docs in .env.example (2026-06-13, sha 80bbce6)
+- ✅ `T0018` **CMO** — 7 new AU startup insight articles: ASIC registration, VC landscape 2026, cap table red flags, government grants, employee equity, VC term sheet, startup runway (2026-06-13, sha 1070d9d)
+- ✅ `T0016` **CTO** — Evidence Vault Phase 2: Stripe Connect OAuth + GA4 OAuth, CSRF, HEAD checks, TRE+MPC+PMF evidence, connector UI updated (2026-06-13, sha b659f83)
 - ✅ `T0003` **RND** — AU comparable company multiples in cfo-valuation.ts: AU-stage discount factors (AVCAL Q1 2025, Cut Through Venture 2025), sector-specific AU comparable companies, 7/7 tests pass (2026-06-13, sha 0b48584)
 - ✅ `self_analysis.md` — Full project self-analysis: website, source, captable, financial injection, risks, next 90 days (2026-06-13)
 - ✅ `T0004` **CRO** — FeedbackWidget FAB on all workspace pages: category selector, credits-on-submit, connects to /api/feedback (2026-06-13)
@@ -28,6 +30,7 @@
 - ✅ `T0001` **COO** — Mandatory daily C-Level reporting template + EOD enforcement
 
 ## Milestones
+- **M008** v0.9.0 — T0019+T0020: OAuth toast UX, disconnect button, env docs. T0018: 7 SEO articles. All tsc 0 errors, eslint clean (2026-06-13, sha 80bbce6)
 - **M007** v0.8.0 — T0016: Stripe Connect OAuth + GA4 OAuth — 4 new routes, CSRF-verified, HEAD checks, evidence TRE+MPC+PMF, connector UI updated (2026-06-13, sha b659f83)
 - **M006** v0.7.0 — T0003: AU comparable company multiples + AU stage discount in comparablesMethod. self_analysis.md added at project root. 7/7 cfo-valuation tests, tsc 0 errors (2026-06-13, sha 0b48584)
 - **M005** v0.6.0 — Berkus method (5-element pre-revenue valuation, 30% weight when mrrAud=0), onboarding wizard verified. 94/94 tests passing (2026-06-13, sha e234613)
