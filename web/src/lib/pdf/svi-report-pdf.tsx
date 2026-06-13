@@ -794,8 +794,119 @@ export function SVIReportPDF({
         actions: sub.gaps.slice(0, 3),
       }));
 
+  // Calculate hook/problem statement from analysis
+  const problemStatement = analysis.problemStatementFromFounder
+    || `Solving a key problem for ${analysis.targetMarket || "your market"}`
+    || `${name} is focused on a specific opportunity in their market`;
+
   return (
     <Document>
+      {/* ────────────────────────────────────────────────────────────────────
+       *  PAGE 0: HOOK — Problem + Position Hero (opens with first-principles)
+       * ──────────────────────────────────────────────────────────────────── */}
+      <Page size="A4" style={s.page}>
+        <HeaderBar />
+
+        {/* First-principles hook question */}
+        <View style={{ marginBottom: 20, backgroundColor: C.brand50, borderRadius: 8, padding: 16, borderLeftWidth: 4, borderLeftColor: C.brand600 }}>
+          <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: C.brand600, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 4 }}>
+            First-Principles Question
+          </Text>
+          <Text style={{ fontSize: 14, fontFamily: "Helvetica-Bold", color: C.ink900, lineHeight: 1.4 }}>
+            What problem do you solve, for whom?
+          </Text>
+        </View>
+
+        {/* Problem statement */}
+        <View style={{ marginBottom: 16 }}>
+          <Text style={[s.label, { marginBottom: 6 }]}>YOUR PROBLEM</Text>
+          <View style={{ backgroundColor: C.surface50, borderRadius: 8, padding: 12, borderWidth: 0.5, borderColor: C.surface200 }}>
+            <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold", color: C.ink900, lineHeight: 1.6 }}>
+              {problemStatement || `${name} is solving a critical problem in ${analysis.targetMarket || "the startup ecosystem"}.`}
+            </Text>
+          </View>
+        </View>
+
+        {/* THE HERO: Position */}
+        <View style={{
+          backgroundColor: C.brand700,
+          borderRadius: 12,
+          padding: 20,
+          marginBottom: 16,
+          alignItems: "center",
+          textAlign: "center",
+        }}>
+          <Text style={{ fontSize: 8, color: C.brand100, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 8 }}>
+            Where You Stand Right Now
+          </Text>
+
+          {/* Big index score */}
+          <View style={{ alignItems: "center", marginBottom: 12 }}>
+            <Text style={{ fontSize: 32, fontFamily: "Helvetica-Bold", color: C.white }}>
+              {sviScore}
+            </Text>
+            <Text style={{ fontSize: 10, color: C.brand100, marginTop: 2 }}>
+              Startup Index Score
+            </Text>
+          </View>
+
+          {/* Stage + percentile */}
+          <View style={{ flexDirection: "row", justifyContent: "center", gap: 16, marginBottom: 12 }}>
+            <View style={{ alignItems: "center" }}>
+              <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: C.white }}>
+                {analysis.stageLabel}
+              </Text>
+              <Text style={{ fontSize: 7, color: C.brand100, marginTop: 2 }}>Current Stage</Text>
+            </View>
+            <View style={{ width: 1, backgroundColor: C.brand500 }} />
+            <View style={{ alignItems: "center" }}>
+              <Text style={{ fontSize: 14, fontFamily: "Helvetica-Bold", color: C.emerald400 }}>
+                Top {topPercent}%
+              </Text>
+              <Text style={{ fontSize: 7, color: C.brand100, marginTop: 2 }}>of AU Startups</Text>
+            </View>
+          </View>
+
+          <Text style={{ fontSize: 8.5, color: C.brand100, lineHeight: 1.5, textAlign: "center", maxWidth: 280 }}>
+            You're ahead of {percentile}% of startups at your stage. This is your starting point.
+          </Text>
+        </View>
+
+        {/* Top gap (biggest leverage) */}
+        <View style={{ marginBottom: 12 }}>
+          <Text style={[s.label, { marginBottom: 6 }]}>BIGGEST OPPORTUNITY</Text>
+          <View style={{ borderWidth: 0.5, borderColor: C.amber600, borderRadius: 8, padding: 12, backgroundColor: C.amber50 }}>
+            <Text style={{ fontSize: 8, color: C.amber700, fontFamily: "Helvetica-Bold", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 3 }}>
+              Immediate Gap
+            </Text>
+            <Text style={{ fontSize: 10, fontFamily: "Helvetica-Bold", color: C.ink800 }}>
+              {DIM_LABELS[weakestSub?.key] || "Validation"} is your weakest layer
+            </Text>
+            <Text style={{ fontSize: 8, color: C.ink600, marginTop: 3, lineHeight: 1.4 }}>
+              Strengthening this from {Math.round(weakestSub?.value ?? 0)}/100 to {Math.round((weakestSub?.value ?? 0) + 15)} is your highest-leverage move in the next 30 days.
+            </Text>
+          </View>
+        </View>
+
+        {/* CTA to full navigation */}
+        <View style={{
+          backgroundColor: C.brand600,
+          borderRadius: 8,
+          padding: 14,
+          marginTop: 16,
+          alignItems: "center",
+        }}>
+          <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: C.white, textAlign: "center" }}>
+            Continue to your full Startup Navigation Plan
+          </Text>
+          <Text style={{ fontSize: 7, color: C.brand100, marginTop: 3, textAlign: "center" }}>
+            The pages ahead show: Validation → Position → Value → Direction → Capital
+          </Text>
+        </View>
+
+        <Footer />
+      </Page>
+
       {/* ────────────────────────────────────────────────────────────────────
        *  PAGE 1: COVER
        * ──────────────────────────────────────────────────────────────────── */}
@@ -1031,6 +1142,23 @@ export function SVIReportPDF({
           }
         />
 
+        {/* CTA: Continue to Evidence Vault */}
+        <View style={{
+          backgroundColor: C.brand50,
+          borderRadius: 8,
+          padding: 12,
+          marginTop: 12,
+          borderWidth: 1,
+          borderColor: C.brand200,
+        }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: C.brand600 }}>→ Continue in Evidence Vault</Text>
+          </View>
+          <Text style={{ fontSize: 7, color: C.ink500 }}>
+            Log in to blockid.au to document your customer interviews, market research, and willingness-to-pay signals. Track validation progress in real-time.
+          </Text>
+        </View>
+
         <Footer />
       </Page>
 
@@ -1081,6 +1209,23 @@ export function SVIReportPDF({
           label="WHERE YOU STAND"
           text={`At ${sviScore} you rank in the top ${topPercent}% of ${analysis.stageLabel} startups. Reaching the stage top-decile (${stageBenchmark.p90}) is a matter of closing the gaps set out in Direction.`}
         />
+
+        {/* CTA: SVI Dashboard */}
+        <View style={{
+          backgroundColor: C.emerald50,
+          borderRadius: 8,
+          padding: 12,
+          marginTop: 12,
+          borderWidth: 1,
+          borderColor: C.emerald200,
+        }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: C.emerald600 }}>→ Track Position Over Time</Text>
+          </View>
+          <Text style={{ fontSize: 7, color: C.ink500 }}>
+            Log in to SVI Dashboard on blockid.au to see how your score trends as you close gaps. Watch your percentile rank rise as you strengthen each dimension.
+          </Text>
+        </View>
 
         <Footer />
       </Page>
@@ -1174,6 +1319,23 @@ export function SVIReportPDF({
             <Image src={charts.get("radar")!} style={{ width: 280, height: 200 }} />
           </View>
         )}
+
+        {/* CTA: Valuation Engine */}
+        <View style={{
+          backgroundColor: C.teal50,
+          borderRadius: 8,
+          padding: 12,
+          marginTop: 12,
+          borderWidth: 1,
+          borderColor: C.teal200,
+        }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: C.teal600 }}>→ Model Valuation Scenarios</Text>
+          </View>
+          <Text style={{ fontSize: 7, color: C.ink500 }}>
+            Log in to Valuation Engine on blockid.au to run "what-if" scenarios. See how improvements in revenue, user count, or team strength move your valuation up.
+          </Text>
+        </View>
 
         <Footer />
       </Page>
@@ -1320,6 +1482,23 @@ export function SVIReportPDF({
         )}
 
         <InsightBox label="HOW TO USE THIS" text="Like a map: take one turn at a time. Complete the Next step, upload the evidence on blockid.au, and your position re-computes — revealing the following turn." />
+
+        {/* CTA: Action Plan */}
+        <View style={{
+          backgroundColor: C.brand50,
+          borderRadius: 8,
+          padding: 12,
+          marginTop: 12,
+          borderWidth: 1,
+          borderColor: C.brand200,
+        }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: C.brand600 }}>→ Build Your Action Plan</Text>
+          </View>
+          <Text style={{ fontSize: 7, color: C.ink500 }}>
+            Log in to Action Plan on blockid.au. Assign owners to each step, set weekly milestones, and track progress. Your plan updates as your position improves.
+          </Text>
+        </View>
 
         <Footer />
       </Page>
@@ -1667,6 +1846,23 @@ export function SVIReportPDF({
           </View>
         </View>
 
+        {/* CTA: Data Room + Fundraising features */}
+        <View style={{
+          backgroundColor: C.emerald50,
+          borderRadius: 8,
+          padding: 12,
+          marginBottom: 16,
+          borderWidth: 1,
+          borderColor: C.emerald200,
+        }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: C.emerald600 }}>→ Get Fundraise-Ready in 30 Days</Text>
+          </View>
+          <Text style={{ fontSize: 7, color: C.ink500 }}>
+            Log in to Data Room on blockid.au. Organize cap table, legal docs, financials, and pitch materials in one secure place. Track your Funding Readiness % as you complete gaps.
+          </Text>
+        </View>
+
         {/* CTA box */}
         <View
           style={{
@@ -1688,10 +1884,10 @@ export function SVIReportPDF({
           </Text>
 
           <View style={{ flexDirection: "row", gap: 8 }}>
-            <ActionItem num={1} text="Log in to blockid.au/workspace" detail="Access your full dashboard and tools" />
+            <ActionItem num={1} text="Build your Data Room" detail="Organize cap table, legal docs, pitch deck for investors" />
           </View>
-          <ActionItem num={2} text="Upload evidence for your top gaps" detail="Each piece of evidence strengthens your SVI score" />
-          <ActionItem num={3} text="Schedule your next re-analysis" detail="Track improvement monthly for investor-ready positioning" />
+          <ActionItem num={2} text="Create your Pitch Deck" detail="BlockID templates guide you through investor storytelling" />
+          <ActionItem num={3} text="Clean your Cap Table" detail="Get investor-ready equity structure and ESOP allocation" />
         </View>
 
         {!isPaid && (
