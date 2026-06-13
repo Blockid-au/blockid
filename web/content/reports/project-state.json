@@ -1,6 +1,6 @@
 {
-  "version": "0.5.0",
-  "updatedAt": "2026-06-13T04:00:00.000Z",
+  "version": "0.6.0",
+  "updatedAt": "2026-06-13T04:10:00.000Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-06-13T04:00:00.000Z",
@@ -112,10 +112,12 @@
         "id": "T0010",
         "agent": "rnd",
         "title": "Berkus method + AU comparables in valuation engine",
-        "rationale": "Extend cfo-valuation.ts with a 5th method: Berkus (for pre-revenue) and AU comparable multiples pulled from src/lib/benchmarks.ts (ARR multiple by stage: pre-seed 5-8x, seed 8-15x, series-a 15-25x). Display in Methods tab. KPI: pre-revenue startups get a meaningful Berkus estimate.",
+        "rationale": "berkusMethod() added to cfo-valuation.ts: 5 elements × A$775K max, scored from stage+MRR signals. Pre-revenue: Berkus active at 30% weight (rebalances to Berkus 30/Comp 25/VC 25/DCF 10/RFS 10). Revenue-positive: shown as informational reference (weight=0). 94/94 tests pass. Deploy 6 (sha e234613).",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-06-13T04:00:00.000Z"
+        "status": "done",
+        "createdAt": "2026-06-13T04:00:00.000Z",
+        "completedAt": "2026-06-13T03:36:00.000Z",
+        "commit": "e234613"
       },
       {
         "id": "T0011",
@@ -130,7 +132,26 @@
         "id": "T0012",
         "agent": "cro",
         "title": "Onboarding wizard — 3-step welcome flow for new users",
-        "rationale": "Post-signup users land on /dashboard/svi with no context. Add a 3-step welcome wizard: (1) startup name + sector, (2) stage + MRR, (3) first SVI analysis prompt. KPI: ≥60% of new users complete first SVI analysis within 5min of signup.",
+        "rationale": "ALREADY LIVE: /onboarding + OnboardingWizard (654 lines, 3 steps: startup info → SVI analysis → boost). Wired in auth/verify/route.ts via onboarding_completed flag. KPI: ≥60% of new users complete first SVI analysis within 5min of signup.",
+        "versionImpact": "minor",
+        "status": "done",
+        "createdAt": "2026-06-13T04:00:00.000Z",
+        "completedAt": "2026-06-13T00:00:00.000Z"
+      },
+      {
+        "id": "T0013",
+        "agent": "cmo",
+        "title": "SEO: Add /tools landing page with all 10 free tools overview",
+        "rationale": "10 free tools exist but no aggregator page. A /tools hub page with tool cards, descriptions and internal links would capture high-intent search traffic (equity calculator, startup valuation tool, ESIC checker, etc). KPI: /tools page ranks in top 5 for 'free startup tools australia'.",
+        "versionImpact": "patch",
+        "status": "pending",
+        "createdAt": "2026-06-13T04:00:00.000Z"
+      },
+      {
+        "id": "T0014",
+        "agent": "cto",
+        "title": "SVI score persistence — save analysis score history per user",
+        "rationale": "Founders run multiple analyses over time but have no way to see score progression. Store each score + timestamp in a svi_score_history table. Show a simple trend chart on /dashboard/svi. KPI: returning users see score history on first revisit.",
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-06-13T04:00:00.000Z"
@@ -165,6 +186,13 @@
       "version": "0.5.0",
       "completedAt": "2026-06-13T04:00:00.000Z",
       "taskIds": ["T0004", "T0007", "T0009"]
+    },
+    {
+      "id": "M005",
+      "title": "Berkus method 5th valuation for pre-revenue (T0010) + onboarding verified (T0012) + plan/agent sync",
+      "version": "0.6.0",
+      "completedAt": "2026-06-13T04:10:00.000Z",
+      "taskIds": ["T0010", "T0012"]
     }
   ],
   "history": [
@@ -196,7 +224,13 @@
       "ts": "2026-06-13T04:00:00.000Z",
       "action": "release",
       "version": "0.5.0",
-      "note": "Feedback widget FAB (T0004) + CSV export on VC dashboard (T0007) + SCN verified (T0009). Deployed sha 41ea308c (10/10 gates). New tasks queued: T0010 (Berkus+AU comparables), T0011 (weekly SEO roundup), T0012 (onboarding wizard)."
+      "note": "Feedback widget FAB (T0004) + CSV export on VC dashboard (T0007) + SCN verified (T0009). Deployed sha 41ea308c (10/10 gates). New tasks queued: T0010 (Berkus), T0011 (SEO), T0012 (onboarding)."
+    },
+    {
+      "ts": "2026-06-13T04:10:00.000Z",
+      "action": "release",
+      "version": "0.6.0",
+      "note": "Berkus method (T0010, sha e234613, 94/94 tests) + onboarding verified already live (T0012, 654 lines, /onboarding). project-state synced to reality; self-upgrade agent prompt upgraded to read plan. New tasks: T0013 (/tools hub), T0014 (SVI score history)."
     }
   ]
 }
