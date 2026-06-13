@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v1.9.0  ·  **Updated:** 2026-06-13T06:50:00.000Z  ·  **Decided by:** ceo
+**Version:** v2.0.0  ·  **Updated:** 2026-06-13T09:10:00.000Z  ·  **Decided by:** cto+cpo
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 > 
@@ -69,6 +69,11 @@
 - ✅ `T0029` **CMO** — Post-signup onboarding email sequence: D+1 (welcome), D+3 (Evidence Vault), D+7 (Founding 50 upgrade CTA). Fires for users who haven't yet run SVI analysis. /api/cron/onboarding-sequence (2026-06-13, sha 035d27c)
 - ✅ `T0033` **CPO** — Bank statement CSV import: POST /api/evidence/bank-statement parses ANZ/CBA/NAB/Westpac CSVs, extracts burn rate + net cash flow, creates financial_health evidence. BankStatementImport drag-drop UI in Evidence Vault (2026-06-13, sha 40657ab)
 - ✅ `T0035` **CTO** — Usage analytics dashboard: /dashboard/admin/usage with KPI grid (8 metrics), 14-day daily analyses chart, recent signups table (2026-06-13, sha 8b7db4d)
+- ✅ `T0060` **CTO** — SVI full report PDF export: "Export PDF" button on LivingSVIDashboard, calls existing /api/svi/pdf POST with analysisId, streams download (2026-06-13, sha 2365549)
+- ✅ `T0059` **CPO** — In-app notification center: notifications table migration, GET/POST /api/notifications APIs, NotificationBell+NotificationPanel client component in WorkspaceHeader, welcome notification seeded on new user signup (2026-06-13, sha cd98359)
+- ✅ `T0058` **CPO** — Data room investor tracking: investor_access_log migration, fire-and-forget logging on /s/[slug] GET, /dashboard/data-room page with share links + access history (2026-06-13, sha 1f74487)
+- ✅ `T0057` **CFO** — Cap table health check: POST /api/cap-table/health (founder dilution, vesting cliff, option pool, ASIC threshold → score 0-100 + issues + recommendations), CapTableHealthWidget in /workspace/evidence (2026-06-13, sha f7e231c)
+- ✅ `T0056` **COO** — Accelerator cohort dashboard: /dashboard/admin/cohorts page grouped by startup_stage (or join month fallback) with avg SVI + top performer per cohort (2026-06-13, sha 609bf94)
 - ✅ `T0028+T0036` **CPO** — Upgrade CTA threshold raised to ≤5 credits + localStorage 48h dismiss; Founding50Spots live counter widget (GET /api/founding50/spots) on /founding-50 + upgrade banner (2026-06-13, sha d12379e)
 - ✅ `T0034` **CMO** — 7 new AU startup insight articles: SAFE note, due diligence, legal structures, IP assignment, SaaS pricing, customer discovery, co-founder agreement (2026-06-13, pending)
 - ✅ `T0027` **CFO** — Stripe Checkout already complete: /api/stripe/checkout, /checkout/success, billing-client.tsx (verified pre-existing) (2026-06-13)
@@ -102,6 +107,7 @@
 
 ## Milestones
 
+- **M018** v2.0.0 — Phase 3 Growth: T0056 cohort dashboard, T0057 cap table health check, T0058 investor access log + data room dashboard, T0059 notification center (bell + panel + APIs), T0060 SVI PDF export button. 10/10 deploy gates. tsc 0 errors, eslint clean (2026-06-13, sha b06d405)
 - **M017** v1.9.0 — 300GB /data disk mounted (sdb, ext4, UUID in fstab); releases/ symlinked to /data/releases; npm cache moved to /data/npm-cache; Pricing reform: free 5 credits + founding50 100 credits + A$2 micro pack; clevel-operations.md + startup-index-vision.md created; plan updated. tsc 0 errors (2026-06-13)
 - **M016** v1.8.0 — T0049: Disk fix PR #3: outputFileTracingExcludes (stops releases/ being bundled in standalone), deploy-live.sh nested-dir purge, clean-disk.sh maintenance script. npm cache cleaned (~2GB freed). Disk: 121G→97G (37%). PR: https://github.com/Blockid-au/blockid/pull/3 (pending merge + deploy) (2026-06-13)
 - **M015** v1.7.0 — T0047: Founding 50 waitlist (POST /api/founding50/waitlist, Founding50Waitlist component, server-side spots check). T0045: 3 trust FAQ items. T0046: 14 new insight articles (59 total). tsc 0 errors, eslint clean (2026-06-13, sha 535cfae)
