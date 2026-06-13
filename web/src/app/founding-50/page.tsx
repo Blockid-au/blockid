@@ -4,6 +4,8 @@ import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { Founding50Spots } from "@/components/ui/founding50-spots";
+import { Founding50Waitlist } from "@/components/ui/founding50-waitlist";
+import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import {
   CheckCircle2,
   Clock,
@@ -57,7 +59,23 @@ const INCLUDES = [
   },
 ];
 
-export default function Founding50Page() {
+async function getSpots(): Promise<number> {
+  if (!isSupabaseConfigured()) return 50;
+  try {
+    const supabase = getSupabaseAdmin();
+    if (!supabase) return 50;
+    const { count } = await supabase
+      .from("users")
+      .select("id", { count: "exact", head: true })
+      .eq("plan_id", "founding50");
+    return Math.max(0, 50 - (count ?? 0));
+  } catch {
+    return 50;
+  }
+}
+
+export default async function Founding50Page() {
+  const spotsRemaining = await getSpots();
   return (
     <>
       <PageViewTracker event="founding50_viewed" params={{}} />
@@ -163,8 +181,8 @@ export default function Founding50Page() {
             </div>
           </div>
 
-          {/* Form */}
-          <Founding50Form />
+          {/* Form or Waitlist */}
+          {spotsRemaining > 0 ? <Founding50Form /> : <Founding50Waitlist />}
         </div>
 
         {/* FAQ */}
