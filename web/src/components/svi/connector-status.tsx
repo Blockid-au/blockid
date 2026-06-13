@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { GitBranch, BarChart3, CreditCard, CheckCircle2, Loader2, ExternalLink } from "lucide-react";
+import { GitBranch, BarChart3, CreditCard, Building2, CheckCircle2, Loader2, ExternalLink } from "lucide-react";
 
 function LinkedInIcon({ className }: { className?: string }) {
   return (
@@ -59,6 +59,13 @@ const CONNECTORS: ConnectorDef[] = [
     icon: CreditCard,
     connectUrl: "/api/oauth/stripe",
     headUrl: "/api/oauth/stripe",
+  },
+  {
+    id: "xero",
+    label: "Xero",
+    icon: Building2,
+    connectUrl: "/api/oauth/xero",
+    headUrl: "/api/oauth/xero",
   },
 ];
 
@@ -132,6 +139,11 @@ export function ConnectorStatus() {
         if (item.evidence_type === "analytics" && data.sessions != null) {
           return `${data.sessions.toLocaleString()} sessions/mo`;
         }
+        if (item.evidence_type === "xero_pl" && data.totalIncomeAud != null) {
+          const income = data.totalIncomeAud as number;
+          const incomeStr = income >= 1000 ? `$${(income / 1000).toFixed(1)}k` : `$${income.toFixed(0)}`;
+          return `Income ${incomeStr} (3 mo)`;
+        }
       } catch {
         // Fall through to label
       }
@@ -200,7 +212,7 @@ export function ConnectorStatus() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
         {CONNECTORS.map((connector) => {
           const Icon = connector.icon;
           const ev = getConnectorEvidence(connector.id);

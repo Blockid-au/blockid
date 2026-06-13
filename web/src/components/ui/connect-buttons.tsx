@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { GitBranch, Globe, FileText, CheckCircle2, Loader2, X, BarChart3, CreditCard } from "lucide-react";
+import { GitBranch, Globe, FileText, CheckCircle2, Loader2, X, BarChart3, CreditCard, Building2 } from "lucide-react";
 
 function LinkedInIcon({ className }: { className?: string }) {
   return (
@@ -43,6 +43,9 @@ export function ConnectButtons({ evidence, onEvidenceAdded, onOpenWizard }: Conn
   const hasStripe = evidence.some(
     (e) => e.evidence_type === "stripe" && e.confidence_level === "connected_source",
   );
+  const hasXero = evidence.some(
+    (e) => (e.evidence_type === "xero_pl" || e.evidence_type === "xero_revenue") && e.confidence_level === "connected_source",
+  );
   const hasAnalytics = evidence.some(
     (e) => e.evidence_type === "analytics" && e.confidence_level === "connected_source",
   );
@@ -58,6 +61,7 @@ export function ConnectButtons({ evidence, onEvidenceAdded, onOpenWizard }: Conn
   const [linkedinAvailable, setLinkedinAvailable] = React.useState<boolean | null>(null);
   const [stripeAvailable, setStripeAvailable] = React.useState<boolean | null>(null);
   const [analyticsAvailable, setAnalyticsAvailable] = React.useState<boolean | null>(null);
+  const [xeroAvailable, setXeroAvailable] = React.useState<boolean | null>(null);
   React.useEffect(() => {
     fetch("/api/oauth/github", { method: "HEAD", redirect: "manual" })
       .then((res) => setGithubAvailable(res.status !== 503))
@@ -71,6 +75,9 @@ export function ConnectButtons({ evidence, onEvidenceAdded, onOpenWizard }: Conn
     fetch("/api/oauth/ga4", { method: "HEAD", redirect: "manual" })
       .then((res) => setAnalyticsAvailable(res.status !== 503))
       .catch(() => setAnalyticsAvailable(false));
+    fetch("/api/oauth/xero", { method: "HEAD", redirect: "manual" })
+      .then((res) => setXeroAvailable(res.status !== 503))
+      .catch(() => setXeroAvailable(false));
   }, []);
 
   const handleUrlSubmit = async () => {
@@ -158,6 +165,20 @@ export function ConnectButtons({ evidence, onEvidenceAdded, onOpenWizard }: Conn
         if (analyticsAvailable === false) return;
         trackEvent("evidence_added", { evidence_type: "analytics", dimension: "tre", svi_impact: 0 });
         window.location.href = "/api/oauth/ga4";
+      },
+    },
+    {
+      id: "xero" as const,
+      icon: Building2,
+      label: "Connect Xero",
+      connected: hasXero,
+      connectedLabel: "Xero Connected",
+      available: xeroAvailable !== false,
+      comingSoon: xeroAvailable === false,
+      onClick: () => {
+        if (xeroAvailable === false) return;
+        trackEvent("evidence_added", { evidence_type: "xero_pl", dimension: "financial_health", svi_impact: 0 });
+        window.location.href = "/api/oauth/xero";
       },
     },
     {
