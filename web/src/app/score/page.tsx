@@ -11,12 +11,22 @@ const DESCRIPTION =
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
+  keywords: [
+    "startup investor ready score",
+    "startup valuation australia free",
+    "SVI score startup",
+    "investor readiness score australia",
+    "startup valuation tool australia",
+    "free startup score australia",
+    "startup value index",
+  ],
   openGraph: {
     title: TITLE,
     description: DESCRIPTION,
     type: "website",
     url: "https://blockid.au/score",
     siteName: "BlockID",
+    locale: "en_AU",
   },
   twitter: {
     card: "summary_large_image",

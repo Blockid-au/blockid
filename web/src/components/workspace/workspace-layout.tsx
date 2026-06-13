@@ -79,6 +79,7 @@ const NAV_GROUPS: NavGroup[] = [
     stage: "Pre-seed \u2192 Series A",
     minPhase: 3,
     items: [
+      { href: "/dashboard/valuation", label: "VC Valuation", icon: Target },
       { href: "/workspace/data-room", label: "Data Room", icon: FolderCheck },
       { href: "/workspace/fundraise", label: "Raise Capital", icon: Banknote },
       { href: "/workspace/documents", label: "Documents", icon: FolderOpen },
