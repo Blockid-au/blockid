@@ -23,7 +23,7 @@ export function ScnPositionHero({ sviScore, stageLabel, percentile, valuationLab
     topPctRaw == null ? null : topPctRaw < 1 ? "<1" : Math.max(1, Math.round(topPctRaw)).toString();
 
   return (
-    <div className="rounded-2xl border border-brand-200 bg-gradient-to-br from-brand-50 via-white to-surface-50 p-6 shadow-sm">
+    <div className="rounded-2xl border border-brand-200 bg-gradient-to-br from-brand-50 via-surface-50 to-surface-50 p-6 shadow-sm">
       <div className="mb-4 flex items-center gap-2">
         <Compass className="h-4 w-4 text-brand-600" />
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-700">
