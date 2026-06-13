@@ -7,6 +7,7 @@ import { getProjectIdFromRequest, findOrCreateSVIAccount } from "@/lib/projects"
 import { getBalance } from "@/lib/credits";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { LivingSVIDashboard } from "@/components/dashboard/living-svi-dashboard";
+import { ScoreHistoryChart } from "@/components/svi/score-history-chart";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 
 export const metadata: Metadata = {
@@ -292,7 +293,15 @@ export default async function SVIDashboardPage() {
   // ── Render the living dashboard ──────────────────────────────────────────
   return (
     <WorkspaceLayout user={user} startupName={startupName}>
-      <div className="max-w-5xl mx-auto px-6 pb-24 pt-6">
+      <div className="max-w-5xl mx-auto px-6 pb-24 pt-6 space-y-6">
+        {/* ── SVI Score History Trend Chart (T0081) ──────────────────────── */}
+        {sviHistory.length > 0 && (
+          <ScoreHistoryChart
+            history={sviHistory}
+            startupName={startupName}
+          />
+        )}
+
         <LivingSVIDashboard
           analysis={analysisWithDelta}
           sviHistory={sviHistory}

@@ -33,6 +33,7 @@ import { ScnPositionHero } from "@/components/dashboard/scn-position-hero";
 import { ScnDirectionNavigator, type DirectionStep } from "@/components/dashboard/scn-direction-navigator";
 import { AIConfidenceActionPlan } from "@/components/dashboard/ai-confidence-action-plan";
 import { GitHubEvidenceCard } from "@/components/dashboard/github-evidence-card";
+import { ScoreHistoryChart } from "@/components/svi/score-history-chart";
 import { fetchRepoStats, parseRepoInput } from "@/lib/github";
 import type { SVIAnalysis, SVISubScore } from "@/lib/svi-analysis";
 import { getSVIPercentile } from "@/lib/benchmarks";
@@ -883,6 +884,14 @@ export default async function DashboardPage({
           hasCapTable={shareholders.length > 0}
           hasEquity={shareholders.length > 1}
         />
+
+        {/* ── Row 5b: SVI Score History Chart (T0081) ──────────────────────── */}
+        {sviHistory.length > 0 && (
+          <ScoreHistoryChart
+            history={sviHistory}
+            startupName={projectName ?? undefined}
+          />
+        )}
 
         {/* ── Row 6: Cap Table + Activity Feed ─────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
