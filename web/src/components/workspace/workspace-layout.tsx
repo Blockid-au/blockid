@@ -118,7 +118,7 @@ const ADMIN_NAV_GROUP: NavGroup = {
   ],
 };
 
-export function WorkspaceLayout({ children, user, startupName, notificationCount = 0, currentPhase = 0 }: WorkspaceLayoutProps) {
+export function WorkspaceLayout({ children, user, startupName, currentPhase = 0 }: Omit<WorkspaceLayoutProps, "notificationCount">) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const [mobileOpen, setMobileOpen] = React.useState(false);
