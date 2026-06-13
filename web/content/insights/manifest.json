@@ -1,6 +1,166 @@
 {
   "articles": [
     {
+      "slug": "asic-company-registration-startup-guide",
+      "title": "Register a Startup in Australia: ASIC Company Registration Guide",
+      "description": "Learn how to register a startup in Australia with ASIC. Compare Pty Ltd vs trust structures, understand ABN registration & ESIC eligibility, and get starte",
+      "keywords": [
+        "ASIC company registration startup",
+        "register startup Australia",
+        "Pty Ltd vs trust for startups",
+        "ASIC ABN registration",
+        "startup company registration Australia",
+        "Pty Ltd vs discretionary trust for startups",
+        "ESIC eligibility Australia",
+        "ASIC online registration"
+      ],
+      "category": "compliance",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Check Your Compliance Score",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "how-to-negotiate-vc-term-sheet-australia",
+      "title": "Negotiate VC Term Sheet Australia: Expert Tips for Founders",
+      "description": "Learn how to negotiate a VC term sheet in Australia with expert tips and strategies to secure a fair deal for your startup.",
+      "keywords": [
+        "negotiate VC term sheet Australia",
+        "VC term sheet negotiation tips",
+        "startup term sheet clauses to watch",
+        "Australian VC term sheet norms",
+        "pre-seed term sheet negotiation",
+        "seed funding term sheet leverage",
+        "competitive VC term sheet process",
+        "VC term sheet clauses for founders",
+        "Australian startup valuation negotiation"
+      ],
+      "category": "fundraising",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Analyse Your Term Sheet with AI",
+        "href": "/tools/term-sheet"
+      }
+    },
+    {
+      "slug": "startup-runway-calculator-guide-australia",
+      "title": "Extend Startup Runway: Calculator & Tips for Australian Founders",
+      "description": "Learn how to calculate & extend your startup runway with our free calculator & expert tips. Maximize your funding & reduce burn rate for a longer financial",
+      "keywords": [
+        "startup runway calculator australia",
+        "extend startup runway",
+        "how to calculate startup runway",
+        "startup burn rate calculator",
+        "australian startup funding runway",
+        "pre seed startup runway",
+        "startup cash runway",
+        "how long does startup funding last australia"
+      ],
+      "category": "growth",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Model Your Funding Plan",
+        "href": "/tools/funding-plan"
+      }
+    },
+    {
+      "slug": "how-much-equity-give-early-employees-australia",
+      "title": "Australian Startup Equity Benchmarks: Early Employee Allocation Guide",
+      "description": "Discover Australian startup equity benchmarks for early employees. Learn how much equity to give, ESOP grant sizes, and tax concession benefits to attract ",
+      "keywords": [
+        "how much equity to give early employees australia",
+        "australian startup employee equity benchmarks",
+        "esop grant sizes australia",
+        "startup stock options for early employees",
+        "equity for first 10 employees australia",
+        "cliff and vesting mechanics australia",
+        "australian ess tax concession benefits",
+        "equity distribution for startup employees australia"
+      ],
+      "category": "equity",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Plan Your Equity Pool",
+        "href": "/tools/equity-split"
+      }
+    },
+    {
+      "slug": "government-grants-startups-australia-2026",
+      "title": "Australian Government Grants for Startups 2026: Non-Dilutive Funding",
+      "description": "Discover Australian government grants for startups with no equity required. Learn about eligibility, application process & options for growth stage compani",
+      "keywords": [
+        "government grants for startups Australia",
+        "non-dilutive funding for startups Australia",
+        "startup grants 2026 Australia",
+        "Entrepreneurs Program Australia funding",
+        "Australian government startup grants",
+        "government grants for startups no equity",
+        "startup funding options Australia",
+        "non-dilutive startup funding Australia",
+        "government startup grants eligibility Australia",
+        "how to apply for startup grants Australia",
+        "Australian startup grants for growth stage companies"
+      ],
+      "category": "fundraising",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Check Your Funding Readiness",
+        "href": "/tools/funding-plan"
+      }
+    },
+    {
+      "slug": "australian-vc-landscape-2026-who-is-investing",
+      "title": "Australian VC Investors 2026: Top Firms & Funding Options",
+      "description": "Discover top Australian VC investors & firms investing in startups. Learn how to get a meeting & what VCs look for in 2026. Expert insights on funding opti",
+      "keywords": [
+        "Australian VC investors 2026",
+        "top VCs in Australia",
+        "venture capital firms Australia",
+        "VC funds investing in Australian startups",
+        "how to get a meeting with Australian VC investors",
+        "Australian startup funding options",
+        "best VC investors for early-stage startups Australia",
+        "VC investment criteria Australia"
+      ],
+      "category": "fundraising",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Get Investor-Ready in 10 Minutes",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "cap-table-red-flags-that-kill-fundraising",
+      "title": "Cap Table Red Flags Australia: Avoid Common Startup Mistakes",
+      "description": "Identify cap table red flags Australia and fix common mistakes before fundraising. Learn how to ensure ASIC compliance and attract VC investment.",
+      "keywords": [
+        "cap table red flags australia",
+        "common cap table mistakes australian startups",
+        "how to fix cap table before fundraising australia",
+        "VC red flags cap table australia",
+        "startup vesting schedule requirements australia",
+        "advisor equity allocation cap table australia",
+        "founder loan conversion cap table australia",
+        "share class errors cap table australia",
+        "family member equity cap table australia",
+        "ASIC cap table compliance australia"
+      ],
+      "category": "cap-table",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Audit Your Cap Table Free",
+        "href": "/tools/cap-table"
+      }
+    },
+    {
       "slug": "startup-legal-costs-australia-budget-guide",
       "title": "Startup Legal Costs in Australia: Budget Guide from Incorporation to Series A",
       "description": "Comprehensive guide to startup legal costs in Australia, covering incorporation through Series A funding. Learn budgeting tips and what to expect.",
