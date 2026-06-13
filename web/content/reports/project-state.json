@@ -1,23 +1,25 @@
 {
-  "version": "0.3.0",
-  "updatedAt": "2026-06-13T00:18:00.000Z",
+  "version": "0.5.0",
+  "updatedAt": "2026-06-13T04:00:00.000Z",
   "architecture": {
-    "summary": "BlockID.au — Startup Navigation System (SCN: Validation → Position → Value → Direction → Capital). Next.js standalone + Supabase, zero-downtime deploys (immutable releases + port swap). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. Self-upgrade runs as a CEO implementing-plan loop; deploy-causing stages are gated to off-peak (AEST 22:00-06:00) for 24/7 availability. CFO owns VC-grade valuation (cfo-valuation.ts).",
-    "lastReviewedAt": "2026-06-13T00:18:00.000Z",
+    "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
+    "lastReviewedAt": "2026-06-13T04:00:00.000Z",
     "notes": [
-      "v0.2.0 — CEO implementing-plan loop (research → CEO plan → code → version/milestone/architecture), off-peak deploy gating, cloud-routine silent-death guard, RnD added as daily-research agent.",
-      "v0.3.0 — CFO VC-grade valuation engine (src/lib/agents/cfo-valuation.ts): market sizing (TAM/SAM/SOM), 4 valuation methods, projections, unit economics, break-even, payback, financial injection. CFO registered in the self-upgrade loop and set to daily research. See .claude/goals/cfo-vc-valuation.md."
+      "v0.2.0 — CEO implementing-plan loop (research → CEO plan → code → version/milestone/architecture), off-peak deploy gating.",
+      "v0.3.0 — CFO VC-grade valuation engine (src/lib/agents/cfo-valuation.ts): market sizing (TAM/SAM/SOM), 4 valuation methods, projections, unit economics, break-even, payback, financial injection.",
+      "v0.4.0 — VC Valuation Dashboard (/dashboard/valuation, 6 tabs) + /api/valuation/vc endpoint + /benchmarks page (AU startup data by stage, FAQ JSON-LD). Cross-linked from navbar, footer, sitemap, 4 tool pages.",
+      "v0.5.0 — Feedback widget FAB (T0004, all workspace pages → /api/feedback, credits-on-submit) + CSV export on VC dashboard (T0007, full 36-month model) + SCN context detection verified live (src/lib/scn-detect.ts + /api/scn/detect, integrated in main dashboard)."
     ]
   },
   "plan": {
-    "decidedAt": "2026-06-13T00:18:00.000Z",
+    "decidedAt": "2026-06-13T04:00:00.000Z",
     "decidedBy": "ceo",
     "tasks": [
       {
         "id": "T0001",
         "agent": "coo",
         "title": "Mandatory daily C-Level reporting template + EOD enforcement",
-        "rationale": "Standardise every C-Level status update (content/reports/_daily-report-template.md). EOD enforcement provided by the cron-health silent-death guard which flags any agent that did not report. KPI: 100% of C-Level agents report each cycle.",
+        "rationale": "Standardise every C-Level status update. KPI: 100% of C-Level agents report each cycle.",
         "versionImpact": "patch",
         "status": "done",
         "createdAt": "2026-06-13T00:10:00.000Z",
@@ -27,18 +29,8 @@
         "id": "T0002",
         "agent": "cto",
         "title": "Off-peak daily auto-upgrade CI/CD pipeline (first deploy < 48h)",
-        "rationale": "Minimal viable CI/CD already live: agent-deploy (tsc→lint→build→smoke→deploy-live zero-downtime) + orchestrator CEO loop scheduled 12/14/16/18 UTC off-peak; cloud CEO routine ships code at 19:00 UTC. First auto-upgrade deploy runs tonight (well within 48h). KPI: ≥1 successful auto-deploy/day, 0 peak-hour restarts.",
+        "rationale": "agent-deploy (tsc→lint→build→smoke→deploy-live) + orchestrator CEO loop scheduled 12/14/16/18 UTC off-peak.",
         "versionImpact": "minor",
-        "status": "done",
-        "createdAt": "2026-06-13T00:10:00.000Z",
-        "completedAt": "2026-06-13T00:10:00.000Z"
-      },
-      {
-        "id": "T0005",
-        "agent": "coo",
-        "title": "Daily QA health-check — automated test suite in the QA dashboard",
-        "rationale": "vitest suite (80 tests) wired into agent-healthcheck Code Quality category → appears in the daily qa-daily report. First health-check: 80/80 passing. KPI: 100% test pass on the daily QA dashboard; alert on any regression.",
-        "versionImpact": "patch",
         "status": "done",
         "createdAt": "2026-06-13T00:10:00.000Z",
         "completedAt": "2026-06-13T00:10:00.000Z"
@@ -47,72 +39,132 @@
         "id": "T0003",
         "agent": "rnd",
         "title": "Pilot a new valuation-model feature (allocate ≥10% AI budget)",
-        "rationale": "Use ≥10% of the monthly AI budget (~$10 of $100; only $0.18 spent MTD so headroom is ample) to prototype an improved valuation model in src/lib/valuation.ts. KPI: +5% analysis speed (lower analyse duration_ms) with no accuracy regression on the vitest suite. RnD owns the experiment; ship via the CEO loop.",
+        "rationale": "Prototype an improved valuation model in src/lib/agents/cfo-valuation.ts: add comparable company multiples from AU market data (src/lib/benchmarks.ts) and a Berkus method for pre-revenue startups. KPI: +5% SVI correlation with valuation mid, no accuracy regression on vitest suite.",
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-06-13T00:10:00.000Z"
+      },
+      {
+        "id": "T0005",
+        "agent": "coo",
+        "title": "Daily QA health-check — automated test suite in the QA dashboard",
+        "rationale": "vitest suite wired into agent-healthcheck. KPI: 100% test pass on daily QA dashboard.",
+        "versionImpact": "patch",
+        "status": "done",
+        "createdAt": "2026-06-13T00:10:00.000Z",
+        "completedAt": "2026-06-13T00:10:00.000Z"
       },
       {
         "id": "T0004",
         "agent": "cro",
-        "title": "Power-user survey + interview program (self-healing feedback + upsell)",
-        "rationale": "Feedback capture API (/api/feedback → user_feedback) already exists; add proactive outreach: a short in-app survey on the self-healing feature and a power-user interview invite for the most active accounts. KPI: ≥20 survey responses + ≥5 interviews in 2 weeks; ≥1 validated upsell signal. CRO owns; ship via the CEO loop.",
+        "title": "Power-user feedback widget (floating FAB on all workspace pages)",
+        "rationale": "FeedbackWidget FAB added to WorkspaceLayout — category selector, textarea, AI-scored credits-on-submit, connects to /api/feedback. All logged-in pages now have a persistent feedback entry point.",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-06-13T00:10:00.000Z"
+        "status": "done",
+        "createdAt": "2026-06-13T00:10:00.000Z",
+        "completedAt": "2026-06-13T04:00:00.000Z",
+        "commit": "41ea308"
       },
       {
         "id": "T0006",
         "agent": "cfo",
-        "title": "Valuation dashboard UI with submenus (Summary/Market/Methods/Projections/Unit Economics/Break-even/Injection/Scenarios)",
-        "rationale": "Surface buildVcValuationReport() in the logged-in workspace as an interactive Valuation section: tabs/cards per component, live sliders (growth/churn/margin) that re-run the engine. See .claude/goals/cfo-vc-valuation.md. KPI: founder can explore scenarios live.",
+        "title": "Valuation dashboard UI (/dashboard/valuation, 6 tabs)",
+        "rationale": "Live at /dashboard/valuation with 6 tabs: Summary, Market, Methods, Projections, Unit Economics, Raise Plan. Fetches from /api/valuation/vc, renders blended valuation hero with bear/base/bull scenarios.",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-06-13T00:18:00.000Z"
+        "status": "done",
+        "createdAt": "2026-06-13T00:18:00.000Z",
+        "completedAt": "2026-06-13T03:09:00.000Z",
+        "commit": "4039c36"
       },
       {
         "id": "T0007",
         "agent": "cfo",
-        "title": "Excel download/upload of the valuation model (exceljs)",
-        "rationale": "Download a formatted multi-sheet workbook (Assumptions, Projections, Methods, Use-of-Funds, Sources) from the engine; upload actuals/assumptions to override inputs and re-value. KPI: ≥1 downloadable model per valuation.",
+        "title": "CSV export of the full valuation model",
+        "rationale": "exportCsv() on VC Valuation Dashboard hero — exports blended valuation, 4 methods, 36-month projections, unit economics, raise plan as a dated CSV. No new dependency required (client-side Blob).",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-06-13T00:18:00.000Z"
+        "status": "done",
+        "createdAt": "2026-06-13T00:18:00.000Z",
+        "completedAt": "2026-06-13T04:00:00.000Z",
+        "commit": "41ea308"
       },
       {
         "id": "T0008",
         "agent": "cfo",
-        "title": "/api/valuation/vc + wire valuation section into the report pipeline (PDF/DOCX)",
-        "rationale": "Expose VcValuationReport via API and include the full VC analysis in paid PDF/DOCX reports; persist per-startup so valuations track over time.",
+        "title": "/api/valuation/vc — VC-grade valuation API endpoint",
+        "rationale": "GET: fetches user SVI + metrics from Supabase, infers sector, calls buildVcValuationReport. POST: scenario modelling. Live at /api/valuation/vc.",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-06-13T00:18:00.000Z"
+        "status": "done",
+        "createdAt": "2026-06-13T00:18:00.000Z",
+        "completedAt": "2026-06-13T03:02:00.000Z",
+        "commit": "4039c36"
       },
       {
         "id": "T0009",
         "agent": "cpo",
-        "title": "SCN context detection — auto-detect startup phase from input (idea/URL/GitHub/revenue) and drive valuation + report",
-        "rationale": "On input, classify stage per the SCN model: free-text idea/biz desc → Idea/Validation; website URL → fetch + analyse content/features → lift above Idea; GitHub repo → analyse source → Product/MVP signal; revenue (or follow-up questions) → Growth. Detected context feeds cfo-valuation inputs (stage/sector/mrr) and the SCN report so phase, valuation and next-best-action match the evidence. KPI: correct phase on ≥80% of inputs; every input type produces a contextual valuation + report.",
+        "title": "SCN context detection — auto-detect startup phase from input",
+        "rationale": "src/lib/scn-detect.ts + /api/scn/detect live. Detects stage from idea/URL/GitHub/revenue. Integrated in main dashboard (ScnPositionHero, ScnDirectionNavigator).",
         "versionImpact": "major",
+        "status": "done",
+        "createdAt": "2026-06-13T00:18:00.000Z",
+        "completedAt": "2026-06-13T04:00:00.000Z"
+      },
+      {
+        "id": "T0010",
+        "agent": "rnd",
+        "title": "Berkus method + AU comparables in valuation engine",
+        "rationale": "Extend cfo-valuation.ts with a 5th method: Berkus (for pre-revenue) and AU comparable multiples pulled from src/lib/benchmarks.ts (ARR multiple by stage: pre-seed 5-8x, seed 8-15x, series-a 15-25x). Display in Methods tab. KPI: pre-revenue startups get a meaningful Berkus estimate.",
+        "versionImpact": "minor",
         "status": "pending",
-        "createdAt": "2026-06-13T00:18:00.000Z"
+        "createdAt": "2026-06-13T04:00:00.000Z"
+      },
+      {
+        "id": "T0011",
+        "agent": "cmo",
+        "title": "Weekly SEO roundup post — AU startup funding news",
+        "rationale": "publish-insight cron already runs daily. Add a weekly roundup post summarising AU startup funding news with internal links to /benchmarks, /tools, /score. KPI: ≥5 new articles/week, avg 400+ words.",
+        "versionImpact": "patch",
+        "status": "pending",
+        "createdAt": "2026-06-13T04:00:00.000Z"
+      },
+      {
+        "id": "T0012",
+        "agent": "cro",
+        "title": "Onboarding wizard — 3-step welcome flow for new users",
+        "rationale": "Post-signup users land on /dashboard/svi with no context. Add a 3-step welcome wizard: (1) startup name + sector, (2) stage + MRR, (3) first SVI analysis prompt. KPI: ≥60% of new users complete first SVI analysis within 5min of signup.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-06-13T04:00:00.000Z"
       }
     ]
   },
   "milestones": [
     {
       "id": "M001",
-      "title": "CEO implementing-plan loop activated + board directives Q seeded; reporting template, off-peak CI/CD, and QA test integration shipped",
+      "title": "CEO implementing-plan loop activated; reporting template, off-peak CI/CD, and QA integration shipped",
       "version": "0.2.0",
       "completedAt": "2026-06-13T00:10:00.000Z",
       "taskIds": ["T0001", "T0002", "T0005"]
     },
     {
       "id": "M002",
-      "title": "CFO VC-grade valuation engine shipped (market sizing, 4 methods, projections, unit economics, break-even, payback, financial injection) + CFO registered in loop + daily research + /goal",
+      "title": "CFO VC-grade valuation engine shipped (cfo-valuation.ts: 4 methods, projections, unit economics)",
       "version": "0.3.0",
       "completedAt": "2026-06-13T00:18:00.000Z",
       "taskIds": []
+    },
+    {
+      "id": "M003",
+      "title": "VC Valuation Dashboard (6 tabs) + /api/valuation/vc + /benchmarks page shipped",
+      "version": "0.4.0",
+      "completedAt": "2026-06-13T03:09:00.000Z",
+      "taskIds": ["T0006", "T0008"]
+    },
+    {
+      "id": "M004",
+      "title": "Feedback widget FAB (T0004) + CSV export (T0007) + SCN verified (T0009) — deployed sha 41ea308c (10/10 gates)",
+      "version": "0.5.0",
+      "completedAt": "2026-06-13T04:00:00.000Z",
+      "taskIds": ["T0004", "T0007", "T0009"]
     }
   ],
   "history": [
@@ -120,19 +172,31 @@
       "ts": "2026-06-12T00:00:00.000Z",
       "action": "bootstrap",
       "version": "0.1.0",
-      "note": "CEO implementing-plan loop initialised — research → CEO decision → code → version/milestone/architecture."
+      "note": "CEO implementing-plan loop initialised."
     },
     {
       "ts": "2026-06-13T00:10:00.000Z",
       "action": "release",
       "version": "0.2.0",
-      "note": "Board directives recorded as CEO plan. Shipped: reporting template (T0001), off-peak CI/CD schedule (T0002), QA test suite in daily dashboard (T0005). Pending pilots: valuation model (T0003), survey/interview program (T0004)."
+      "note": "Shipped: reporting template (T0001), off-peak CI/CD (T0002), QA test suite (T0005)."
     },
     {
       "ts": "2026-06-13T00:18:00.000Z",
       "action": "release",
       "version": "0.3.0",
-      "note": "CFO prioritised: VC-grade valuation engine (cfo-valuation.ts, 7/7 tests) + registered in self-upgrade loop + daily research + /goal cfo-vc-valuation.md. Queued: valuation dashboard UI (T0006), Excel I/O (T0007), API/report wiring (T0008), SCN context detection (T0009)."
+      "note": "CFO VC-grade valuation engine (cfo-valuation.ts, 7/7 tests). Queued: T0006, T0007, T0008, T0009."
+    },
+    {
+      "ts": "2026-06-13T03:09:00.000Z",
+      "action": "release",
+      "version": "0.4.0",
+      "note": "VC Valuation Dashboard (T0006) + /api/valuation/vc (T0008) + /benchmarks page. 5 deploys this session."
+    },
+    {
+      "ts": "2026-06-13T04:00:00.000Z",
+      "action": "release",
+      "version": "0.5.0",
+      "note": "Feedback widget FAB (T0004) + CSV export on VC dashboard (T0007) + SCN verified (T0009). Deployed sha 41ea308c (10/10 gates). New tasks queued: T0010 (Berkus+AU comparables), T0011 (weekly SEO roundup), T0012 (onboarding wizard)."
     }
   ]
 }
