@@ -306,11 +306,15 @@ fi
 if [ "${1:-}" != "--skip-build" ]; then
   gate "Next.js production build"
 
-  # Backup current build
-  if [ -d "$WEB_DIR/.next" ]; then
+  # Backup current build (ONLY if no previous release exists for rollback).
+  # Since we freeze releases to immutable dirs, we have a release-based rollback.
+  # Only create the backup if we don't have a previous release to restore from.
+  PREV_DIR="$(readlink -f "$PREV_LINK" 2>/dev/null || true)"
+  if [ -z "$PREV_DIR" ] && [ -d "$WEB_DIR/.next" ]; then
     rm -rf "$BACKUP_DIR"
-    cp -r "$WEB_DIR/.next" "$BACKUP_DIR" 2>/dev/null || true
-    echo "  Backup: .next-backup/"
+    # Use hardlinks (cp -al) for speed; falls back to full copy if it fails
+    cp -al "$WEB_DIR/.next" "$BACKUP_DIR" 2>/dev/null || cp -a "$WEB_DIR/.next" "$BACKUP_DIR" 2>/dev/null || true
+    echo "  Backup: .next-backup/ (legacy fallback)"
   fi
 
   rm -rf "$WEB_DIR/.next"
