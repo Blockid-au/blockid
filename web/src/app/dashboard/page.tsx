@@ -360,6 +360,17 @@ export default async function DashboardPage({
   const sp = await searchParams;
   const supabase = getSupabaseAdmin();
 
+  // First-time user: redirect to onboarding wizard before showing the dashboard
+  if (supabase && !user.onboardingCompleted) {
+    const { count: priorSviCount } = await supabase
+      .from("svi_analyses")
+      .select("id", { count: "exact", head: true })
+      .eq("email", user.email);
+    if (!priorSviCount || priorSviCount === 0) {
+      redirect("/dashboard/onboarding");
+    }
+  }
+
   // ── Fetch data in parallel where possible ────────────────────────────────
   const projectId = await getProjectIdFromRequest();
   const [activeProject, creditBalance] = await Promise.all([
