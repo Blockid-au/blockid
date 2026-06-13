@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
@@ -9,6 +10,9 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "Auth required" }, { status: 401 });
+
+  const limited = enforceRateLimit("svi-pitch-deck", user.email, request, 12, 60 * 60 * 1000);
+  if (limited) return limited;
 
   if (!isAIConfigured()) {
     return NextResponse.json({ ok: false, error: "AI not configured" }, { status: 503 });

@@ -9,6 +9,7 @@
 
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -23,6 +24,11 @@ export async function POST(request: Request) {
   if (!user) {
     return NextResponse.json({ ok: false, reason: "Authentication required" }, { status: 401 });
   }
+
+  // Per-user throttle — a full report fans out ~13 AI calls; cap to protect the
+  // event loop, free-tier quotas, and AI budget from runaway/abusive use.
+  const limited = enforceRateLimit("full-report", user.email, request, 12, 60 * 60 * 1000);
+  if (limited) return limited;
 
   if (!isAIConfigured()) {
     return NextResponse.json({ ok: false, error: "AI service not configured" }, { status: 503 });

@@ -10,6 +10,7 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
@@ -37,6 +38,9 @@ export async function POST(request: Request) {
       { status: 401 },
     );
   }
+
+  const limited = enforceRateLimit("enhanced-report", user.email, request, 12, 60 * 60 * 1000);
+  if (limited) return limited;
 
   if (!isAIConfigured()) {
     return NextResponse.json(

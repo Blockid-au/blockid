@@ -9,6 +9,7 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { canAfford, spendCredits } from "@/lib/credits";
 import { generateSVIDocx } from "@/lib/docx/svi-report-docx";
@@ -28,6 +29,9 @@ export async function POST(request: Request) {
       { status: 401 },
     );
   }
+
+  const limited = enforceRateLimit("svi-docx", user.email, request, 30, 60 * 60 * 1000);
+  if (limited) return limited;
 
   // ── Parse body ──────────────────────────────────────────────────────────
   let body: { reportId?: string; analysisId?: string };

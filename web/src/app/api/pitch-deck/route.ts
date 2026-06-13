@@ -5,11 +5,17 @@
 
 import { renderToBuffer } from "@react-pdf/renderer";
 import { PitchDeckPDF } from "@/lib/pdf/pitch-deck-pdf";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    // Public endpoint, but the PDF render is synchronous CPU work — IP-limit to
+    // stop a flood of renders from stalling the single-instance event loop.
+    const limited = enforceRateLimit("pitch-deck-public", null, request, 20, 60 * 60 * 1000);
+    if (limited) return limited;
+
     const pdfBuffer = await renderToBuffer(PitchDeckPDF());
 
     return new Response(Buffer.from(pdfBuffer), {

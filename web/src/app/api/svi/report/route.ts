@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
@@ -33,6 +34,9 @@ export async function POST(request: Request) {
       { status: 401 },
     );
   }
+
+  const limited = enforceRateLimit("svi-report", user.email, request, 20, 60 * 60 * 1000);
+  if (limited) return limited;
 
   if (!isAIConfigured()) {
     return NextResponse.json({ ok: false, error: "AI service not configured" }, { status: 503 });

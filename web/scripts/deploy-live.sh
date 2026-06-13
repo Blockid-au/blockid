@@ -6,6 +6,7 @@
 #   Gate 2: Verify Supabase + Redis connectivity
 #   Gate 3: TypeScript compilation (zero errors)
 #   Gate 4: ESLint (zero errors, warnings OK)
+#   Gate 4b: Unit tests (vitest) — runs even on --quick
 #   Gate 5: npm run build
 #   Gate 6: Start on temp port → smoke test 7 endpoints
 #   Gate 7: Supabase query test from new process
@@ -278,6 +279,23 @@ if [ "${1:-}" != "--skip-build" ] && [ "${1:-}" != "--quick" ]; then
     fail "ESLint found errors. Fix before deploy."
   fi
   pass "ESLint clean (warnings OK)"
+fi
+
+# ══════════════════════════════════════════════════════════════════════
+# GATE 4b: Unit tests (vitest)
+# Runs even on --quick (only --skip-build skips it). Tests are fast (~3s) and
+# are the ONLY behavioural gate that can catch logic regressions the smoke test
+# (200-OK only) and tsc/lint cannot — the key guard for autonomous AI deploys.
+# ══════════════════════════════════════════════════════════════════════
+if [ "${1:-}" != "--skip-build" ]; then
+  gate "Unit tests (vitest)"
+
+  TEST_EXIT=0
+  npm test 2>&1 | tail -10 || TEST_EXIT=$?
+  if [ "$TEST_EXIT" -ne 0 ]; then
+    fail "Unit tests failed. Fix before deploy."
+  fi
+  pass "All unit tests pass"
 fi
 
 # ══════════════════════════════════════════════════════════════════════

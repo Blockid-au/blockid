@@ -1,4 +1,5 @@
 import "server-only";
+import { NextResponse } from "next/server";
 
 /**
  * Rate limiter with pluggable storage backend.
@@ -187,6 +188,43 @@ export function checkRateLimit(
     remaining: maxAttempts - entry.count,
     resetIn: entry.resetAt - now,
   };
+}
+
+/**
+ * Per-identity rate-limit guard for expensive endpoints (AI reports, PDF/DOCX
+ * generation). Returns a ready-to-return 429 NextResponse when the identity has
+ * exceeded the limit, else null. Prefers a stable identity (user id/email) and
+ * falls back to the client IP for anonymous/public endpoints.
+ *
+ *   const limited = enforceRateLimit("full-report", user.email, request, 12, 3_600_000);
+ *   if (limited) return limited;
+ */
+export function enforceRateLimit(
+  route: string,
+  identity: string | null | undefined,
+  request: Request,
+  max: number,
+  windowMs: number,
+): NextResponse | null {
+  const ip =
+    request.headers.get("cf-connecting-ip") ??
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    request.headers.get("x-real-ip") ??
+    "anon";
+  const id = (identity && identity.trim()) || ip;
+  const rl = checkRateLimit(`rl:${route}:${id}`, max, windowMs);
+  if (!rl.allowed) {
+    const secs = Math.ceil(rl.resetIn / 1000);
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Rate limit exceeded — please wait a moment before generating more.",
+        retryInSeconds: secs,
+      },
+      { status: 429, headers: { "Retry-After": String(secs) } },
+    );
+  }
+  return null;
 }
 
 /**
