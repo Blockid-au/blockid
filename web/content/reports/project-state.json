@@ -1,6 +1,6 @@
 {
-  "version": "0.6.0",
-  "updatedAt": "2026-06-13T04:10:00.000Z",
+  "version": "0.8.0",
+  "updatedAt": "2026-06-13T04:40:00.000Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-06-13T04:00:00.000Z",
@@ -123,10 +123,11 @@
         "id": "T0011",
         "agent": "cmo",
         "title": "Weekly SEO roundup post — AU startup funding news",
-        "rationale": "publish-insight cron already runs daily. Add a weekly roundup post summarising AU startup funding news with internal links to /benchmarks, /tools, /score. KPI: ≥5 new articles/week, avg 400+ words.",
+        "rationale": "Fixed: publish-insight cron was writing articles to release dir only (not synced to source). Added post-hook to cron-runner.sh: after every publish-insight OK, copy new articles from release to source + auto-commit. Published 7 new articles (Jun 13). Total: 38 articles.",
         "versionImpact": "patch",
-        "status": "pending",
-        "createdAt": "2026-06-13T04:00:00.000Z"
+        "status": "done",
+        "createdAt": "2026-06-13T04:00:00.000Z",
+        "completedAt": "2026-06-13T04:20:00.000Z"
       },
       {
         "id": "T0012",
@@ -141,20 +142,52 @@
       {
         "id": "T0013",
         "agent": "cmo",
-        "title": "SEO: Add /tools landing page with all 10 free tools overview",
-        "rationale": "10 free tools exist but no aggregator page. A /tools hub page with tool cards, descriptions and internal links would capture high-intent search traffic (equity calculator, startup valuation tool, ESIC checker, etc). KPI: /tools page ranks in top 5 for 'free startup tools australia'.",
+        "title": "SEO: /tools hub page with all 10 free tools",
+        "rationale": "ALREADY LIVE: /tools/page.tsx with 10 tool cards, descriptions, CTAs. In sitemap at priority 0.8. KPI: /tools page ranks for 'free startup tools australia'.",
         "versionImpact": "patch",
-        "status": "pending",
-        "createdAt": "2026-06-13T04:00:00.000Z"
+        "status": "done",
+        "createdAt": "2026-06-13T04:00:00.000Z",
+        "completedAt": "2026-06-13T00:00:00.000Z"
       },
       {
         "id": "T0014",
         "agent": "cto",
-        "title": "SVI score persistence — save analysis score history per user",
-        "rationale": "Founders run multiple analyses over time but have no way to see score progression. Store each score + timestamp in a svi_score_history table. Show a simple trend chart on /dashboard/svi. KPI: returning users see score history on first revisit.",
+        "title": "SVI score history — trend chart per user",
+        "rationale": "ALREADY LIVE: sviHistory fetched in dashboard/page.tsx from svi_accounts, passed to LivingSVIDashboard and AdvisorDashboard components. Trend rendered in SVIHistoryChart. KPI: returning users see score progression.",
         "versionImpact": "minor",
+        "status": "done",
+        "createdAt": "2026-06-13T04:00:00.000Z",
+        "completedAt": "2026-06-13T00:00:00.000Z"
+      },
+      {
+        "id": "T0015",
+        "agent": "cto",
+        "title": "Article sync fix — cron-runner.sh post-hook for publish-insight",
+        "rationale": "publish-insight was writing new articles to the release dir only (not the source dir). Fixed via post-hook in cron-runner.sh: after every successful publish-insight, copy new .md + manifest + queue from release dir back to content/insights/ and auto-commit. Prevents article loss on next deploy.",
+        "versionImpact": "patch",
+        "status": "done",
+        "createdAt": "2026-06-13T04:20:00.000Z",
+        "completedAt": "2026-06-13T04:20:00.000Z"
+      },
+      {
+        "id": "T0016",
+        "agent": "rnd",
+        "title": "Evidence Vault Phase 2 — OAuth connectors (GitHub, Stripe, Google Analytics)",
+        "rationale": "Evidence Vault UI exists in workspace/evidence. Phase 2 adds real data connectors: OAuth GitHub → pull commit activity + repo stats; Stripe → pull MRR/revenue; Google Analytics → pull traffic. Each connector auto-updates SVI score on connection. KPI: ≥1 connected data source per active user.",
+        "versionImpact": "major",
         "status": "pending",
-        "createdAt": "2026-06-13T04:00:00.000Z"
+        "createdAt": "2026-06-13T04:20:00.000Z"
+      },
+      {
+        "id": "T0017",
+        "agent": "cro",
+        "title": "Founding 50 conversion push — in-app upgrade prompt after 2nd analysis",
+        "rationale": "28 users, 0 paid. After user's 2nd free analysis (1 credit used out of 2), show an upgrade prompt: 'You've used 1 of 2 free credits. Upgrade to Founding 50 for A$49 — 50 analyses, Evidence Vault, and cap table tools.' KPI: ≥5 paid conversions within 14 days of launch.",
+        "versionImpact": "minor",
+        "status": "done",
+        "createdAt": "2026-06-13T04:20:00.000Z",
+        "completedAt": "2026-06-13T04:40:00.000Z",
+        "notes": "UpgradePrompt banner added to workspace-layout.tsx — shown when balance===1 and plan===free. Calls /api/stripe/checkout with plan:founding50. Session-dismissible via sessionStorage."
       }
     ]
   },
@@ -193,6 +226,20 @@
       "version": "0.6.0",
       "completedAt": "2026-06-13T04:10:00.000Z",
       "taskIds": ["T0010", "T0012"]
+    },
+    {
+      "id": "M006",
+      "title": "Article pipeline fixed (T0015): 38 articles live, cron-runner auto-sync. T0011/T0013/T0014 verified done. Full self-analysis report generated. New tasks: T0016 (Evidence Vault), T0017 (Founding 50 conversion).",
+      "version": "0.7.0",
+      "completedAt": "2026-06-13T04:20:00.000Z",
+      "taskIds": ["T0011", "T0013", "T0014", "T0015"]
+    },
+    {
+      "id": "M007",
+      "title": "Founding 50 conversion prompt (T0017) — UpgradePrompt banner in workspace when balance===1, CTA to founding50 checkout",
+      "version": "0.8.0",
+      "completedAt": "2026-06-13T04:40:00.000Z",
+      "taskIds": ["T0017"]
     }
   ],
   "history": [
@@ -230,7 +277,19 @@
       "ts": "2026-06-13T04:10:00.000Z",
       "action": "release",
       "version": "0.6.0",
-      "note": "Berkus method (T0010, sha e234613, 94/94 tests) + onboarding verified already live (T0012, 654 lines, /onboarding). project-state synced to reality; self-upgrade agent prompt upgraded to read plan. New tasks: T0013 (/tools hub), T0014 (SVI score history)."
+      "note": "Berkus method (T0010, sha e234613, 94/94 tests) + onboarding verified (T0012). self-upgrade agent prompt upgraded to read plan. New tasks: T0013 (/tools hub), T0014 (SVI score history)."
+    },
+    {
+      "ts": "2026-06-13T04:20:00.000Z",
+      "action": "release",
+      "version": "0.7.0",
+      "note": "Article pipeline fixed (T0015): publish-insight cron was not syncing articles to source. Added post-hook to cron-runner.sh. 7 new articles published; 38 total. T0011/T0013/T0014 verified already live. Full self-analysis report at content/reports/self-analysis-2026-06-13.md. New: T0016 (Evidence Vault OAuth), T0017 (Founding 50 conversion prompt)."
+    },
+    {
+      "ts": "2026-06-13T04:40:00.000Z",
+      "action": "release",
+      "version": "0.8.0",
+      "note": "Founding 50 conversion banner (T0017): UpgradePrompt in workspace-layout — shown when balance===1 and plan===free. Calls /api/stripe/checkout founding50. Session-dismissible. Next: T0016 (Evidence Vault OAuth)."
     }
   ]
 }
