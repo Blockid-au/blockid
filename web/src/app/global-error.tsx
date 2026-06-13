@@ -1,6 +1,37 @@
 "use client";
 
-export default function GlobalError({ reset }: { error: Error; reset: () => void }) {
+import * as React from "react";
+
+// Inline Sentry client report — cannot import server-only modules in client error boundary
+function reportToSentry(err: Error) {
+  const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
+  if (!dsn) return;
+  try {
+    const url = new URL(dsn);
+    const key = url.username;
+    const pid = url.pathname.replace(/^\//, "");
+    const host = url.hostname;
+    void fetch(`https://${host}/api/${pid}/store/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Sentry-Auth": `Sentry sentry_version=7, sentry_client=blockid/1.0, sentry_key=${key}`,
+      },
+      body: JSON.stringify({
+        level: "error",
+        platform: "javascript",
+        environment: process.env.NODE_ENV,
+        exception: { values: [{ type: err.name, value: err.message }] },
+      }),
+    });
+  } catch { /* fail silently */ }
+}
+
+export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  React.useEffect(() => {
+    reportToSentry(error);
+  }, [error]);
+
   return (
     <html lang="en-AU">
       <body style={{ margin: 0, fontFamily: "system-ui, sans-serif", background: "#f8fafc" }}>
@@ -11,6 +42,11 @@ export default function GlobalError({ reset }: { error: Error; reset: () => void
             <p style={{ fontSize: "14px", color: "#64748b", margin: "0 0 24px 0" }}>
               We hit a temporary issue. Please try again.
             </p>
+            {error.digest && (
+              <p style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "16px", fontFamily: "monospace" }}>
+                Error ID: {error.digest}
+              </p>
+            )}
             <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
               <button
                 type="button"
@@ -19,6 +55,7 @@ export default function GlobalError({ reset }: { error: Error; reset: () => void
               >
                 Try Again
               </button>
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- global-error renders its own html root, next/link not available */}
               <a
                 href="/"
                 style={{ height: "44px", padding: "0 24px", borderRadius: "12px", background: "white", color: "#334155", fontWeight: 600, fontSize: "14px", border: "1px solid #e2e8f0", textDecoration: "none", display: "inline-flex", alignItems: "center" }}
