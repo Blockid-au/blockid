@@ -86,9 +86,24 @@ export async function POST(request: Request) {
 async function runHealthChecks() {
   const today = new Date().toISOString().slice(0, 10);
   const items: HealthItem[] = [];
-  // A. Code quality: skipped at runtime — deploy-live.sh runs tsc+lint as CI gates
+  // A. Code quality: tsc+lint run as deploy-live.sh CI gates; here we run the
+  // automated unit-test suite so its result lands in the daily QA dashboard.
   items.push({ category: "code", check: "TypeScript", status: "pass", detail: "Checked at deploy time", fixable: false });
   items.push({ category: "code", check: "ESLint", status: "pass", detail: "Checked at deploy time", fixable: false });
+
+  // A2: Unit tests (vitest) — first health-check of the automated test suite.
+  try {
+    const testOut = run("npx vitest run --reporter=dot 2>&1 | tail -8", 120_000);
+    const m = testOut.output.match(/Tests\s+(?:(\d+)\s+failed[^|]*\|\s*)?(\d+)\s+passed/);
+    const failed = m && m[1] ? parseInt(m[1], 10) : 0;
+    const passed = m ? parseInt(m[2], 10) : 0;
+    items.push({
+      category: "code", check: "Unit Tests (vitest)",
+      status: testOut.ok && failed === 0 ? "pass" : "fail",
+      detail: passed || failed ? `${passed} passed, ${failed} failed` : "no result",
+      fixable: false,
+    });
+  } catch { /* skip — never block the healthcheck on the test runner */ }
 
 
   // B1: SSL certificate expiry
