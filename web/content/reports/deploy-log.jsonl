@@ -42,3 +42,18 @@
 {"ts":"2026-06-12T15:31:49Z","status":"success","gates":"9/9","pid":"1284444","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-06-12T16:49:31Z","status":"success","gates":"9/9","pid":"1517501","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-06-12T16:52:10Z","status":"success","gates":"9/9","pid":"1525549","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-12T23:28:17.842Z","event":"github-push-master","detail":"Blockid-au: fix(ai): reliability-rank fallback models + exclude releases/ from tsc (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-12T23:34:06.703Z","event":"github-push-master","detail":"Blockid-au: fix(orchestrator): stop phantom AI-call accounting that starved pipeline (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-12T23:36:40.900Z","event":"github-push-master","detail":"Blockid-au: feat(report): SVI PDF → SCN navigation template (v3.0) with native SVG infographics (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-12T23:41:11.365Z","event":"github-push-master","detail":"Blockid-au: feat(monitoring): silent-death guard for cloud routines (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-12T23:46:43.414Z","event":"github-push-master","detail":"Blockid-au: feat(agents): add RnD as a daily-research C-Level agent (2 commits)","source":"github-webhook"}
+{"ts":"2026-06-12T23:57:00.353Z","event":"github-push-master","detail":"Blockid-au: feat(orchestrator): CEO implementing-plan loop + off-peak deploy gating (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-12T23:58:11.247Z","event":"github-push-master","detail":"Blockid-au: fix(security): remove hardcoded upload password + SVG XSS vector, close PDF IDOR (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-13T00:00:27.808Z","event":"github-push-master","detail":"Blockid-au: chore(cron): schedule all auto-upgrade activity off-peak for 24/7 uptime (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-13T00:08:23.231Z","event":"github-push-master","detail":"Blockid-au: feat(release): v0.2.0 — execute board directives via CEO implementing plan (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-13T00:08:31.733Z","event":"github-push-master","detail":"Blockid-au: feat(reliability): unit-test deploy gate + per-user rate limits on heavy endpoints (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-13T00:10:54.457Z","event":"github-push-master","detail":"Blockid-au: fix(security): move CRON_SECRET + Telegram bot token out of committed scripts (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-13T00:13:13.365Z","event":"github-push-master","detail":"Blockid-au: feat(security): enable RLS on 25 user-data tables (defense-in-depth) (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-13T00:17:09.326Z","event":"github-push-master","detail":"Blockid-au: perf(ai): in-process pooled HTTP transport (drop subprocess-per-AI-call) (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-13T00:19:26.006Z","event":"github-push-master","detail":"Blockid-au: feat(cfo): v0.3.0 — VC-grade valuation engine + prioritise CFO agent (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-13T00:21:34.301Z","event":"github-push-master","detail":"Blockid-au: fix(ui): dark-mode the SCN dashboard heroes + add route loading skeletons (1 commits)","source":"github-webhook"}

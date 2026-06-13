@@ -73,7 +73,10 @@ No markdown, no explanation, just the JSON object.`,
           user: `Already published:\n- ${existingTitles}\n\nGenerate a NEW topic (not duplicate) targeting a high-intent keyword Australian founders search for. Focus on practical, actionable content that showcases BlockID tools.`,
           maxTokens: 500,
         });
-        topic = JSON.parse(researchResult.text.replace(/```json?\n?/g, "").replace(/```/g, "").trim()) as TopicItem;
+        const raw = researchResult.text;
+        const jsonMatch = raw.match(/\{[\s\S]*\}/);
+        const cleaned = jsonMatch ? jsonMatch[0] : raw.replace(/```json?\n?/g, "").replace(/```/g, "").trim();
+        topic = JSON.parse(cleaned) as TopicItem;
         queue.topics.push(topic);
         writeFileSync(queuePath, JSON.stringify(queue, null, 2) + "\n", "utf-8");
       } catch (researchErr) {
