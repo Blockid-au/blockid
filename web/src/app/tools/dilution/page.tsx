@@ -66,7 +66,7 @@ export default function DilutionPage() {
               },
               {
                 title: "Why is the AU pre-money different?",
-                body: "AU seed-to-Series A pre-money in 2025 typically lands at $4M–$12M depending on sector heat, ARR and ESIC eligibility. Compare against your sector with the BlockID Comparable Companies Wall.",
+                body: "AU seed-to-Series A pre-money in 2026 typically lands at $4M–$12M depending on sector heat, ARR and ESIC eligibility. Compare against your sector with the BlockID Benchmarks.",
               },
               {
                 title: "Want it baked into your raise?",

@@ -26,6 +26,7 @@ const columns = [
     title: "Company",
     items: [
       { href: "/about", label: "About" },
+      { href: "/benchmarks", label: "AU Benchmarks" },
       { href: "/insights", label: "Insights" },
       { href: "/investors", label: "Investors" },
       { href: "/contact", label: "Contact" },
