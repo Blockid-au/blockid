@@ -637,6 +637,24 @@ function ResultPanel({
       aria-labelledby="ts-result"
       className="rounded-2xl border border-surface-200 bg-white p-6 md:p-8"
     >
+      {analysisId && (
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 px-4 py-3">
+          <div className="flex items-center gap-2 text-sm text-emerald-800">
+            <CheckCircle2 strokeWidth={1.75} className="h-4 w-4" aria-hidden />
+            <span>
+              <strong className="font-semibold">Saved to your library.</strong>{" "}
+              Analysis ID <code className="font-mono text-xs">{analysisId.slice(0, 8)}</code> — re-open anytime from your dashboard.
+            </span>
+          </div>
+          <a
+            href="/dashboard"
+            className="inline-flex items-center gap-1 text-xs font-medium text-brand-700 hover:text-brand-800"
+          >
+            View my SVI score
+            <ArrowRight strokeWidth={1.75} className="h-3.5 w-3.5" aria-hidden />
+          </a>
+        </div>
+      )}
       <div className="flex items-center justify-between gap-3">
         <h2
           id="ts-result"
