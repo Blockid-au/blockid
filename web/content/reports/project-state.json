@@ -1,18 +1,19 @@
 {
-  "version": "0.7.0",
-  "updatedAt": "2026-06-13T12:03:53.171Z",
+  "version": "2.0.0",
+  "updatedAt": "2026-06-13T12:10:00.000Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
-    "lastReviewedAt": "2026-06-13T04:00:00.000Z",
+    "lastReviewedAt": "2026-06-13T12:10:00.000Z",
     "notes": [
       "v0.2.0 — CEO implementing-plan loop (research → CEO plan → code → version/milestone/architecture), off-peak deploy gating.",
       "v0.3.0 — CFO VC-grade valuation engine (src/lib/agents/cfo-valuation.ts): market sizing (TAM/SAM/SOM), 4 valuation methods, projections, unit economics, break-even, payback, financial injection.",
       "v0.4.0 — VC Valuation Dashboard (/dashboard/valuation, 6 tabs) + /api/valuation/vc endpoint + /benchmarks page (AU startup data by stage, FAQ JSON-LD). Cross-linked from navbar, footer, sitemap, 4 tool pages.",
-      "v0.5.0 — Feedback widget FAB (T0004, all workspace pages → /api/feedback, credits-on-submit) + CSV export on VC dashboard (T0007, full 36-month model) + SCN context detection verified live (src/lib/scn-detect.ts + /api/scn/detect, integrated in main dashboard)."
+      "v0.5.0 — Feedback widget FAB (T0004, all workspace pages → /api/feedback, credits-on-submit) + CSV export on VC dashboard (T0007, full 36-month model) + SCN context detection verified live (src/lib/scn-detect.ts + /api/scn/detect, integrated in main dashboard).",
+      "v2.0.0 — T0086–T0090 Feature Batch 8: Financial Projection Norms calculator, Term Sheet AI v2 persistence + Lawyer Questions, Fundraising Readiness Report v2 (checklist + AU comparable raises), Google Analytics OAuth evidence connector, SVI Cohort Benchmark page."
     ]
   },
   "plan": {
-    "decidedAt": "2026-06-13T12:03:53.170Z",
+    "decidedAt": "2026-06-13T12:10:00.000Z",
     "decidedBy": "ceo",
     "tasks": [
       {
@@ -217,6 +218,171 @@
         "versionImpact": "patch",
         "status": "pending",
         "createdAt": "2026-06-13T12:03:53.170Z"
+      },
+      {
+        "id": "T0075",
+        "agent": "cro",
+        "title": "AI Onboarding Welcome Flow",
+        "rationale": "Stage-aware 3-step onboarding wizard for first-time users to drive activation.",
+        "versionImpact": "minor",
+        "status": "done",
+        "createdAt": "2026-06-13T05:00:00.000Z",
+        "completedAt": "2026-06-13T05:30:00.000Z",
+        "commit": "de5a83e"
+      },
+      {
+        "id": "T0076",
+        "agent": "cpo",
+        "title": "AI Score Confidence + Action Plan Cards",
+        "rationale": "Surface SVI score confidence and AI-generated action cards on dashboard.",
+        "versionImpact": "minor",
+        "status": "done",
+        "createdAt": "2026-06-13T05:30:00.000Z",
+        "completedAt": "2026-06-13T06:00:00.000Z",
+        "commit": "7b9c23a"
+      },
+      {
+        "id": "T0077",
+        "agent": "cmo",
+        "title": "SAFE Note Calculator (Free SEO tool)",
+        "rationale": "Public calculator for AU founders comparing SAFE terms across investors.",
+        "versionImpact": "minor",
+        "status": "done",
+        "createdAt": "2026-06-13T06:00:00.000Z",
+        "completedAt": "2026-06-13T06:30:00.000Z",
+        "commit": "cf4a1fe"
+      },
+      {
+        "id": "T0078",
+        "agent": "cro",
+        "title": "Investor View Notification Email",
+        "rationale": "Email founder when an investor opens a shared SVI link.",
+        "versionImpact": "patch",
+        "status": "done",
+        "createdAt": "2026-06-13T06:30:00.000Z",
+        "completedAt": "2026-06-13T07:00:00.000Z",
+        "commit": "85edaa8"
+      },
+      {
+        "id": "T0079",
+        "agent": "rnd",
+        "title": "GitHub Activity Evidence Integration",
+        "rationale": "OAuth GitHub connector pulls commits/contributors as svi_evidence (tech traction).",
+        "versionImpact": "minor",
+        "status": "done",
+        "createdAt": "2026-06-13T07:00:00.000Z",
+        "completedAt": "2026-06-13T07:30:00.000Z",
+        "commit": "4782f63"
+      },
+      {
+        "id": "T0080",
+        "agent": "cmo",
+        "title": "/tools hub page — SEO aggregator",
+        "rationale": "Single landing page for 10 free founder tools to capture organic search traffic.",
+        "versionImpact": "minor",
+        "status": "done",
+        "createdAt": "2026-06-13T07:30:00.000Z",
+        "completedAt": "2026-06-13T08:00:00.000Z",
+        "commit": "7d32c8a"
+      },
+      {
+        "id": "T0081",
+        "agent": "cto",
+        "title": "SVI score history trend chart",
+        "rationale": "Show users their SVI trajectory over time on the main dashboard.",
+        "versionImpact": "patch",
+        "status": "done",
+        "createdAt": "2026-06-13T08:00:00.000Z",
+        "completedAt": "2026-06-13T08:30:00.000Z",
+        "commit": "3e39de6"
+      },
+      {
+        "id": "T0082",
+        "agent": "cmo",
+        "title": "5 SEO articles — AU funding, SAFE, equity split, Antler",
+        "rationale": "Long-form content for high-intent search terms.",
+        "versionImpact": "patch",
+        "status": "done",
+        "createdAt": "2026-06-13T08:30:00.000Z",
+        "completedAt": "2026-06-13T09:00:00.000Z",
+        "commit": "306b1a7"
+      },
+      {
+        "id": "T0083",
+        "agent": "rnd",
+        "title": "AU comparable companies data — 30+ startups",
+        "rationale": "Expanded comparables in valuation engine for AU-specific multiples.",
+        "versionImpact": "minor",
+        "status": "done",
+        "createdAt": "2026-06-13T09:00:00.000Z",
+        "completedAt": "2026-06-13T09:30:00.000Z",
+        "commit": "23974fb"
+      },
+      {
+        "id": "T0084",
+        "agent": "cfo",
+        "title": "C-Level blended valuation engine + BlockID self-analysis",
+        "rationale": "Blend C-Level inputs into single valuation; produce BlockID self-financial model.",
+        "versionImpact": "minor",
+        "status": "done",
+        "createdAt": "2026-06-13T09:30:00.000Z",
+        "completedAt": "2026-06-13T10:00:00.000Z",
+        "commit": "4f9def9"
+      },
+      {
+        "id": "T0085",
+        "agent": "ceo",
+        "title": "Sync implementing-plan.md and project-state.json with shipped tasks",
+        "rationale": "Drift-correct the plan/state files (stuck at T0017) to reflect T0018–T0084. Bump to v2.0.0. Register T0086–T0090.",
+        "versionImpact": "patch",
+        "status": "done",
+        "createdAt": "2026-06-13T12:05:00.000Z",
+        "completedAt": "2026-06-13T12:10:00.000Z"
+      },
+      {
+        "id": "T0086",
+        "agent": "cfo",
+        "title": "Financial Projection Norms Calculator (/tools/financial-projections)",
+        "rationale": "Free interactive calculator: founders input stage/sector/ARR/headcount, receive AU benchmark norms (burn, runway, growth, CAC, LTV) from benchmarks.ts.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-06-13T12:10:00.000Z"
+      },
+      {
+        "id": "T0087",
+        "agent": "clo",
+        "title": "Term Sheet AI v2 — persist analyses, Lawyer Questions, SVI link",
+        "rationale": "Persist authenticated analyses to term_sheet_analyses Supabase table; add Save button; expose Lawyer Questions section; link to user SVI score.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-06-13T12:10:00.000Z"
+      },
+      {
+        "id": "T0088",
+        "agent": "cfo",
+        "title": "Fundraising Readiness Report v2 — checklist + AU comparable raises",
+        "rationale": "Augment SVI report PDF with Fundraising Checklist (from data_room_checklist) and Comparable Raises (from benchmarks.ts).",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-06-13T12:10:00.000Z"
+      },
+      {
+        "id": "T0089",
+        "agent": "cto",
+        "title": "Google Analytics OAuth evidence connector",
+        "rationale": "Add GA4 OAuth flow on /dashboard/integrations; fetch monthly sessions + bounce rate; store as svi_evidence dimension mkt. Env stubs GOOGLE_CLIENT_ID/SECRET.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-06-13T12:10:00.000Z"
+      },
+      {
+        "id": "T0090",
+        "agent": "cdo",
+        "title": "SVI Cohort Benchmark page (/dashboard/benchmark)",
+        "rationale": "Show user SVI vs anonymised AU pre-seed/seed cohort percentile; bar chart distribution, highlight user position.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-06-13T12:10:00.000Z"
       }
     ]
   },
@@ -289,6 +455,46 @@
       "completedAt": "2026-06-13T04:40:00.000Z",
       "taskIds": [
         "T0017"
+      ]
+    },
+    {
+      "id": "M016",
+      "title": "T0075–T0083 — Onboarding flow, score confidence, SAFE calculator, investor email, GitHub evidence, /tools hub, SVI history, SEO content, AU comparables",
+      "version": "1.8.0",
+      "completedAt": "2026-06-13T09:30:00.000Z",
+      "taskIds": [
+        "T0075",
+        "T0076",
+        "T0077",
+        "T0078",
+        "T0079",
+        "T0080",
+        "T0081",
+        "T0082",
+        "T0083"
+      ]
+    },
+    {
+      "id": "M017",
+      "title": "T0084 — C-Level blended valuation engine + BlockID self-analysis financial model",
+      "version": "1.9.0",
+      "completedAt": "2026-06-13T10:00:00.000Z",
+      "taskIds": [
+        "T0084"
+      ]
+    },
+    {
+      "id": "M018",
+      "title": "Feature Batch 8 (T0086–T0090): Financial Projection Norms calculator, Term Sheet AI v2 persistence, Fundraising Report v2, Google Analytics evidence connector, SVI Cohort Benchmark page",
+      "version": "2.0.0",
+      "completedAt": "2026-06-13T12:10:00.000Z",
+      "taskIds": [
+        "T0085",
+        "T0086",
+        "T0087",
+        "T0088",
+        "T0089",
+        "T0090"
       ]
     }
   ],
