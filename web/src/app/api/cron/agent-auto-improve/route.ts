@@ -38,6 +38,7 @@ interface ImprovementResult {
 
 // Map agent to their domain module file
 const AGENT_DOMAIN_FILES: Record<string, string> = {
+  cfo: "src/lib/agents/cfo-valuation.ts",
   cmo: "src/lib/agents/cmo-market-research.ts",
   cto: "src/lib/agents/cto-cost-modeling.ts",
   cro: "src/lib/agents/cro-conversion.ts",
