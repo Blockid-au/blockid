@@ -402,6 +402,9 @@ mkdir -p "$RELEASES_DIR"
 rm -rf "$RELEASE_DIR"
 cp -al "$STANDALONE" "$RELEASE_DIR" 2>/dev/null || cp -a "$STANDALONE" "$RELEASE_DIR"
 [ -f "$RELEASE_DIR/server.js" ] || restore_lkg_and_fail "Failed to freeze release dir $RELEASE_DIR."
+# Belt-and-suspenders: remove any nested dirs that standalone file-tracing may have
+# pulled in. These add no runtime value and cause exponential disk growth on redeploy.
+rm -rf "$RELEASE_DIR/releases" "$RELEASE_DIR/.git" "$RELEASE_DIR/.next-backup"
 echo "  ✅ Release frozen: releases/$BUILD_ID"
 
 # Start on temp port (from the immutable release dir)
