@@ -74,6 +74,13 @@ const TOOLS: ToolDef[] = [
     tag: "AU Specific",
   },
   {
+    slug: "asic",
+    name: "ASIC Compliance Checker",
+    desc: "Verify your startup meets all ASIC obligations under the Corporations Act 2001 — ABN, annual reviews, directors, records, and more.",
+    icon: "\u{2696}\u{FE0F}",
+    tag: "AU Specific",
+  },
+  {
     slug: "funding-plan",
     name: "Funding Plan Generator",
     desc: "Generate a stage-appropriate fundraise plan with milestones, target raise amounts, and investor strategy.",

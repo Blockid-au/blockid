@@ -25,6 +25,48 @@ interface Props {
   links: LinkRow[];
 }
 
+function heatLevel(
+  viewCount: number,
+  lastViewedAt: string | null,
+): "hot" | "warm" | "cold" {
+  if (!lastViewedAt && viewCount === 0) return "cold";
+  const ageDays = lastViewedAt
+    ? (Date.now() - new Date(lastViewedAt).getTime()) / 86_400_000
+    : Infinity;
+  if (ageDays <= 1 || viewCount >= 5) return "hot";
+  if (ageDays <= 7 && viewCount >= 2) return "warm";
+  return "cold";
+}
+
+function HeatBadge({
+  viewCount,
+  lastViewedAt,
+}: {
+  viewCount: number;
+  lastViewedAt: string | null;
+}) {
+  const level = heatLevel(viewCount, lastViewedAt);
+  if (level === "hot") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-700">
+        🔥 Hot
+      </span>
+    );
+  }
+  if (level === "warm") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-semibold text-yellow-700">
+        ✨ Warm
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-surface-100 px-2 py-0.5 text-xs font-medium text-ink-400">
+      ❄ Cold
+    </span>
+  );
+}
+
 function StatusBadge({ status }: { status: "active" | "revoked" | "expired" }) {
   if (status === "active") {
     return (
@@ -392,6 +434,9 @@ export function InvestorLinksClient({ links: initialLinks }: Props) {
                   Investor
                 </th>
                 <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-ink-400">
+                  Heat
+                </th>
+                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-ink-400">
                   Views
                 </th>
                 <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-ink-400">
@@ -422,6 +467,12 @@ export function InvestorLinksClient({ links: initialLinks }: Props) {
                     {link.fundName && (
                       <p className="text-xs text-ink-400 truncate">{link.fundName}</p>
                     )}
+                  </td>
+                  <td className="px-4 py-4">
+                    <HeatBadge
+                      viewCount={link.viewCount}
+                      lastViewedAt={link.lastViewedAt}
+                    />
                   </td>
                   <td className="px-4 py-4">
                     <span className="font-mono tabular-nums font-semibold text-ink-700">
