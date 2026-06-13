@@ -4,9 +4,10 @@
 //
 // Produces the same depth a professional VC / investment analyst would: market
 // sizing (TAM/SAM/SOM), multi-method valuation (VC Method, DCF, Comparables,
-// Risk-Factor Summation), full financial projections, unit economics, break-even,
-// payback period, and a financial-injection plan (raise, use of funds, dilution,
-// runway). Every benchmark cites a published source so the output is defensible.
+// Risk-Factor Summation, Berkus), full financial projections, unit economics,
+// break-even, payback period, and a financial-injection plan (raise, use of funds,
+// dilution, runway). Every benchmark cites a published source so the output is
+// defensible. Berkus method activates for pre-revenue startups (mrrAud = 0).
 //
 // Self-upgraded by the agent loop (registered in AGENT_DOMAIN_FILES). Keep the
 // math sound and the `sources` current — the CFO agent refreshes these from
@@ -40,7 +41,7 @@ export interface MarketSizing {
 }
 
 export interface ValuationMethodResult {
-  method: "vc_method" | "dcf" | "comparables" | "risk_factor_summation" | "scorecard";
+  method: "vc_method" | "dcf" | "comparables" | "risk_factor_summation" | "berkus" | "scorecard";
   lowAud: number;
   midAud: number;
   highAud: number;
@@ -320,6 +321,64 @@ function riskFactorSummation(input: VcValuationInput, base: number): ValuationMe
   };
 }
 
+// ── Berkus method (pre-revenue only) ────────────────────────────────────────
+// Dave Berkus's 5-element model: each element worth up to A$775K (≈ US$500K).
+// Applied only when mrrAud is zero or missing; for revenue-positive startups
+// a Berkus estimate is available but not included in the blended weight.
+
+const BERKUS_MAX_AUD = 775_000; // US$500K × ~1.55 AUD/USD
+
+interface BerkusElement {
+  name: string;
+  score: number; // 0–1 representing presence/strength
+}
+
+function berkusElements(input: VcValuationInput): BerkusElement[] {
+  const stage = normStage(input.stage);
+  const hasRevenue = (input.mrrAud ?? 0) > 0;
+  // Score each element 0–1 based on available signals
+  return [
+    {
+      name: "Sound Idea (basic value / concept risk)",
+      // Any input strong enough to get a valuation implies a defined idea
+      score: 0.8,
+    },
+    {
+      name: "Prototype (reduces technology risk)",
+      // Has revenue → has product; seed/series-a → likely has prototype
+      score: hasRevenue ? 1.0 : stage === "seed" || stage === "series-a" ? 0.7 : stage === "pre-seed" ? 0.35 : 0.5,
+    },
+    {
+      name: "Quality Management Team (reduces execution risk)",
+      // Signal via stage — later stage implies validated team
+      score: stage === "series-a" ? 0.9 : stage === "seed" ? 0.65 : 0.45,
+    },
+    {
+      name: "Strategic Relationships (reduces market risk)",
+      // Presence of an MRR implies at least some customer traction
+      score: hasRevenue ? 0.6 : 0.3,
+    },
+    {
+      name: "Product Rollout / Sales (reduces financial/production risk)",
+      score: hasRevenue ? 0.75 : stage === "seed" ? 0.4 : 0.2,
+    },
+  ];
+}
+
+export function berkusMethod(input: VcValuationInput): ValuationMethodResult {
+  const elements = berkusElements(input);
+  const total = elements.reduce((s, e) => s + e.score * BERKUS_MAX_AUD, 0);
+  const elementLines = elements.map((e) => `${e.name}: A$${round(e.score * BERKUS_MAX_AUD).toLocaleString()}`).join("; ");
+  return {
+    method: "berkus",
+    lowAud: round(total * 0.7),
+    midAud: round(total),
+    highAud: round(total * 1.3),
+    weight: 0, // informational only unless pre-revenue (set by assembler)
+    rationale: `Berkus Method (5 elements × A$${(BERKUS_MAX_AUD / 1000).toFixed(0)}K max each): ${elementLines}.`,
+  };
+}
+
 // ── Financial injection (the "ask") ─────────────────────────────────────────
 
 export function financialInjection(input: VcValuationInput, projection: ProjectionRow[], preMoneyAud: number): FinancialInjection {
@@ -356,13 +415,30 @@ export function buildVcValuationReport(input: VcValuationInput): VcValuationRepo
   const market = estimateMarketSizing(input);
   const ue = unitEconomics(input);
 
+  const isPreRevenue = (input.mrrAud ?? 0) === 0;
+
   const comparables = comparablesMethod(input, projection);
   const vc = vcMethod(input, projection);
   const dcf = dcfMethod(input, projection);
   const base = (comparables.midAud * comparables.weight + vc.midAud * vc.weight + dcf.midAud * dcf.weight) /
     (comparables.weight + vc.weight + dcf.weight);
   const rfs = riskFactorSummation(input, base);
-  const methods = [comparables, vc, dcf, rfs];
+
+  // Berkus: active (weighted) for pre-revenue, informational (weight=0) otherwise.
+  // When active it replaces some weight from comparables/vc which are unreliable
+  // at zero revenue — so we rebalance: Berkus 30%, Comparables 25%, VC 25%, DCF 10%, RFS 10%.
+  const berkus = berkusMethod(input);
+  if (isPreRevenue) {
+    berkus.weight = 0.30;
+    comparables.weight = 0.25;
+    vc.weight = 0.25;
+    dcf.weight = 0.10;
+    rfs.weight = 0.10;
+  }
+
+  const methods = isPreRevenue
+    ? [berkus, comparables, vc, dcf, rfs]
+    : [comparables, vc, dcf, rfs, { ...berkus, weight: 0 }];
 
   const totalW = methods.reduce((s, m) => s + m.weight, 0);
   const blendedMid = round(methods.reduce((s, m) => s + m.midAud * m.weight, 0) / totalW);
@@ -388,7 +464,9 @@ export function buildVcValuationReport(input: VcValuationInput): VcValuationRepo
     injection,
     scenarios: { base: blendedMid, bull: round(blendedMid * 1.6), bear: round(blendedMid * 0.55) },
     notes: [
-      `Valuation blends Comparables (${round(comparables.weight * 100)}%), VC Method (${round(vc.weight * 100)}%), DCF (${round(dcf.weight * 100)}%) and a Risk-Factor adjustment (${round(rfs.weight * 100)}%).`,
+      isPreRevenue
+        ? `Pre-revenue blend: Berkus (${round(berkus.weight * 100)}%), Comparables (${round(comparables.weight * 100)}%), VC Method (${round(vc.weight * 100)}%), DCF (${round(dcf.weight * 100)}%), Risk-Factor (${round(rfs.weight * 100)}%).`
+        : `Valuation blends Comparables (${round(comparables.weight * 100)}%), VC Method (${round(vc.weight * 100)}%), DCF (${round(dcf.weight * 100)}%), Risk-Factor (${round(rfs.weight * 100)}%). Berkus shown as reference.`,
       `Rule of 40: ${ue.ruleOf40} (target ≥ ${bm.ruleOf40Target}). LTV/CAC: ${ue.ltvCacRatio}x (target ≥ ${bm.ltvCacTarget}x).`,
       market.methodology,
     ],
