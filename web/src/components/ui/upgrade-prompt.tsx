@@ -2,22 +2,27 @@
 
 import * as React from "react";
 import { Sparkles, X, Zap } from "lucide-react";
+import { Founding50Spots } from "@/components/ui/founding50-spots";
 
-const DISMISS_KEY = "blockid_upgrade_prompt_dismissed_v1";
+const DISMISS_KEY = "blockid_upgrade_prompt_dismissed_v2";
+const DISMISS_HOURS = 48;
 
 export function UpgradePrompt() {
   const [visible, setVisible] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
 
   React.useEffect(() => {
-    if (typeof window !== "undefined" && sessionStorage.getItem(DISMISS_KEY)) return;
+    if (typeof window !== "undefined") {
+      const ts = localStorage.getItem(DISMISS_KEY);
+      if (ts && Date.now() - Number(ts) < DISMISS_HOURS * 3_600_000) return;
+    }
 
     (async () => {
       try {
         const res = await fetch("/api/credits");
         if (!res.ok) return;
         const data = await res.json();
-        if (data.ok && data.plan === "free" && data.balance === 1) {
+        if (data.ok && data.plan === "free" && data.balance <= 5) {
           setVisible(true);
         }
       } catch {
@@ -27,7 +32,7 @@ export function UpgradePrompt() {
   }, []);
 
   const dismiss = () => {
-    sessionStorage.setItem(DISMISS_KEY, "1");
+    localStorage.setItem(DISMISS_KEY, String(Date.now()));
     setVisible(false);
   };
 
@@ -60,12 +65,13 @@ export function UpgradePrompt() {
     <div className="relative flex items-center gap-3 bg-gradient-to-r from-brand-600 to-violet-600 px-4 py-2.5 text-white">
       <Zap strokeWidth={1.75} className="h-4 w-4 shrink-0 text-brand-200" />
       <p className="flex-1 text-xs leading-snug">
-        <span className="font-semibold">1 free credit left.</span>{" "}
+        <span className="font-semibold">Credits running low.</span>{" "}
         Upgrade to{" "}
         <span className="font-semibold">Founding 50</span> — A$49 one-time for
         100 credits, Evidence Vault &amp; cap table tools.{" "}
         <span className="opacity-75 text-[10px]">Only 50 spots.</span>
       </p>
+      <Founding50Spots className="hidden sm:block w-36 shrink-0 mx-2" />
       <button
         type="button"
         onClick={handleUpgrade}
