@@ -143,7 +143,7 @@
         "label": "Plan Your Funding Round",
         "href": "/tools/funding-plan"
       },
-      "angle": "Map each stage: bootstrapping \u2192 friends/family \u2192 pre-seed ($50-500K) \u2192 seed ($500K-3M) \u2192 Series A ($3-15M). Australian benchmarks, typical dilution, timeline expectations. Link to BlockID funding plan tool."
+      "angle": "Map each stage: bootstrapping → friends/family → pre-seed ($50-500K) → seed ($500K-3M) → Series A ($3-15M). Australian benchmarks, typical dilution, timeline expectations. Link to BlockID funding plan tool."
     },
     {
       "slug": "dilution-calculator-how-fundraising-affects-ownership",
@@ -880,7 +880,7 @@
         "label": "Track Your Startup Progress",
         "href": "/score"
       },
-      "angle": "Practical guide for AU founders on building in public \u2014 sharing metrics, milestones, and failures on Twitter/LinkedIn/Reddit. How transparency builds credibility with investors and customers. Examples of AU founders doing it well. What to share vs what to keep private. Link to BlockID SVI score as a shareable proof of traction."
+      "angle": "Practical guide for AU founders on building in public — sharing metrics, milestones, and failures on Twitter/LinkedIn/Reddit. How transparency builds credibility with investors and customers. Examples of AU founders doing it well. What to share vs what to keep private. Link to BlockID SVI score as a shareable proof of traction."
     },
     {
       "slug": "saas-metrics-au-vcs-care-about",
@@ -965,7 +965,7 @@
         "label": "Check Your Startup Risk Profile",
         "href": "/score"
       },
-      "angle": "Practical AU startup insurance guide: what is mandatory vs optional. Public liability (required if you have customers). Professional indemnity (PI) for SaaS \u2014 threshold where it matters. D&O insurance \u2014 when to get it before you raise. Cyber liability for SaaS handling customer data. Typical costs and AU providers. What investors check in due diligence."
+      "angle": "Practical AU startup insurance guide: what is mandatory vs optional. Public liability (required if you have customers). Professional indemnity (PI) for SaaS — threshold where it matters. D&O insurance — when to get it before you raise. Cyber liability for SaaS handling customer data. Typical costs and AU providers. What investors check in due diligence."
     },
     {
       "slug": "startup-board-first-meeting-australia",
@@ -983,6 +983,22 @@
         "href": "/dashboard"
       },
       "angle": "What AU founders need to know before their first formal board meeting post-investment: ASIC director duties (Corporations Act s180-184), board minutes requirements, quorum rules, conflicts of interest register. Template agenda for a seed-stage board meeting. When to upgrade from informal founder meetings to formal boards. Investor board seat expectations."
+    },
+    {
+      "slug": "optimise-startup-cap-table-for-fundraising",
+      "title": "Optimise Your Cap Table for Fundraising in Australia",
+      "category": "cap-table",
+      "keywords": [
+        "startup cap table",
+        "fundraising",
+        "australia",
+        "equity management"
+      ],
+      "cta": {
+        "label": "Get Your Free Cap Table Template",
+        "href": "/tools/cap-table-template"
+      },
+      "angle": "Learn how to optimise your startup's cap table for fundraising success in Australia. Discover common mistakes to avoid and best practices to implement, and get access to our free cap table template to streamline your equity management."
     }
   ]
 }
