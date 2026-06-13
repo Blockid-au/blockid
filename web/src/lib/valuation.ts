@@ -5,7 +5,12 @@
 //   2. Scorecard Method (stage-based with SVI adjustments)
 //   3. Revenue Multiple (when revenue exists)
 
+import type { ComparablesBenchmark } from "./data/au-comparables";
+import { buildComparablesBenchmark } from "./data/au-comparables";
+
 // ─── Types ───────────────────────────────────────────────────────────────────
+
+export type { ComparablesBenchmark };
 
 export interface ValuationInput {
   sviScore: number; // 0-200+
@@ -42,6 +47,8 @@ export interface ValuationResult {
     revenueMultiple?: { value: number; multiple: number };
   };
   confidence: number; // 0-100
+  /** AU comparable companies benchmark for the startup's industry and stage. */
+  comparablesBenchmark?: ComparablesBenchmark;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -191,6 +198,8 @@ export interface ValuationEstimate {
   method: string;
   confidence: number;
   currency: "AUD";
+  /** AU comparable companies benchmark for the startup's industry and stage. */
+  comparablesBenchmark?: ComparablesBenchmark;
 }
 
 /**
@@ -325,6 +334,8 @@ export function estimateValuation(
   if (metrics?.sector) confidence += 5;
   confidence = clamp(confidence, 5, 95);
 
+  const comparablesBenchmark = buildComparablesBenchmark(metrics?.sector, stage);
+
   return {
     low: lowAud,
     mid: midAud,
@@ -332,6 +343,7 @@ export function estimateValuation(
     method,
     confidence,
     currency: "AUD",
+    comparablesBenchmark,
   };
 }
 
@@ -395,6 +407,8 @@ export function computeValuation(input: ValuationInput): ValuationResult {
     breakdown.revenueMultiple = revMultiple;
   }
 
+  const comparablesBenchmark = buildComparablesBenchmark(input.sector, input.stage);
+
   return {
     lowAud,
     midAud,
@@ -402,5 +416,6 @@ export function computeValuation(input: ValuationInput): ValuationResult {
     method,
     breakdown,
     confidence,
+    comparablesBenchmark,
   };
 }
