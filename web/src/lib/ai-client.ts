@@ -15,6 +15,8 @@
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
+import * as https from "https";
+import * as http from "http";
 
 // Embedded AI worker source. Written to a temp file as a last-resort fallback
 // when no on-disk ai-worker.mjs can be found — e.g. an incomplete standalone
@@ -82,11 +84,83 @@ function resolveWorkerPath(): string {
   return tmp;
 }
 
+// Pooled keep-alive agents — reuse TLS connections across AI calls instead of
+// paying a fresh handshake (or a whole node subprocess) per call.
+const httpsKeepAlive = new https.Agent({ keepAlive: true, maxSockets: 64 });
+const httpKeepAlive = new http.Agent({ keepAlive: true, maxSockets: 64 });
+
 /**
- * Call external API via ai-worker.mjs subprocess — bypasses Next.js Turbopack fetch patches
- * that silently hang on long-running API calls (>5s).
+ * In-process API call via node:https — bypasses Next.js's patched GLOBAL fetch
+ * (the reason the subprocess existed: the patched fetch could silently hang on
+ * long calls). `https.request` is NOT patched, so we keep that isolation while
+ * avoiding a node spawn per call. This is the default transport.
  */
-function workerFetch(url: string, headers: Record<string, string>, body: string, timeoutMs = 30_000): Promise<string> {
+function inprocessFetch(url: string, headers: Record<string, string>, body: string, timeoutMs: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let u: URL;
+    try { u = new URL(url); } catch { reject(new Error(`Invalid URL: ${url}`)); return; }
+    const isHttps = u.protocol === "https:";
+    const lib = isHttps ? https : http;
+    const req = lib.request(
+      {
+        hostname: u.hostname,
+        port: u.port || (isHttps ? 443 : 80),
+        path: u.pathname + u.search,
+        method: "POST",
+        agent: isHttps ? httpsKeepAlive : httpKeepAlive,
+        headers: { ...headers, "Content-Length": Buffer.byteLength(body) },
+      },
+      (res) => {
+        let data = "";
+        res.setEncoding("utf8");
+        res.on("data", (c) => { data += c; });
+        res.on("end", () => {
+          clearTimeout(timer);
+          const code = res.statusCode ?? 0;
+          if (code >= 400) reject(new Error(`HTTP ${code}: ${data.slice(0, 200)}`));
+          else if (!data) reject(new Error("Empty response"));
+          else resolve(data);
+        });
+      },
+    );
+    const timer = setTimeout(() => {
+      req.destroy(new Error(`Worker timeout (${Math.round(timeoutMs / 1000)}s)`));
+    }, timeoutMs);
+    req.on("error", (err) => { clearTimeout(timer); reject(err); });
+    req.write(body);
+    req.end();
+  });
+}
+
+/**
+ * Default AI transport. Uses the in-process pooled fetch above, with a global
+ * kill-switch (AI_FETCH_MODE=subprocess) and an automatic one-shot fallback to
+ * the legacy subprocess worker on any UNEXPECTED failure — so AI can never go
+ * fully dark even if the in-process path misbehaves in some environment.
+ */
+async function workerFetch(url: string, headers: Record<string, string>, body: string, timeoutMs = 30_000): Promise<string> {
+  if (process.env.AI_FETCH_MODE !== "subprocess") {
+    try {
+      return await inprocessFetch(url, headers, body, timeoutMs);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      // Real HTTP errors / timeouts are genuine — propagate so the model/provider
+      // cooldown + fallback chain handles them (a subprocess retry would repeat them).
+      if (/^HTTP \d/.test(msg) || /timeout/i.test(msg) || /Empty response/.test(msg)) throw err;
+      // Anything else (unexpected runtime/env issue) → fall back to the subprocess once.
+      console.warn(`[ai-worker] in-process fetch failed (${msg}); falling back to subprocess`);
+      return subprocessFetch(url, headers, body, timeoutMs);
+    }
+  }
+  return subprocessFetch(url, headers, body, timeoutMs);
+}
+
+/**
+ * Legacy transport: call external API via the ai-worker.mjs subprocess. Kept as
+ * a resilient fallback and selectable via AI_FETCH_MODE=subprocess — it bypasses
+ * Next's patched fetch by running in a clean node process.
+ */
+function subprocessFetch(url: string, headers: Record<string, string>, body: string, timeoutMs: number): Promise<string> {
   /* eslint-disable @typescript-eslint/no-require-imports */
   const cp = eval('require')("child_process") as typeof import("child_process");
   /* eslint-enable @typescript-eslint/no-require-imports */
