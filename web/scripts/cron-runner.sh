@@ -115,6 +115,28 @@ if command -v flock >/dev/null 2>&1 && ! flock -n /tmp/blockid-deploy.lock -c tr
   DEPLOY_ACTIVE=true
 fi
 
+# Post-hook: for publish-insight, sync newly written content back to the
+# source tree so it survives the next deploy (releases are ephemeral).
+if [ "$ENDPOINT" = "publish-insight" ] && [ "$STATUS" = "ok" ]; then
+  SOURCE_INSIGHTS="$WEB_DIR/content/insights"
+  # Find the active release dir from symlink or last-known-good build id.
+  BUILD_ID=$(python3 -c "import json; d=json.load(open('$WEB_DIR/content/reports/last-good-build.json')); print(d.get('buildId',''))" 2>/dev/null)
+  RELEASE_INSIGHTS="$WEB_DIR/releases/$BUILD_ID/content/insights"
+  if [ -n "$BUILD_ID" ] && [ -d "$RELEASE_INSIGHTS" ]; then
+    for f in "$RELEASE_INSIGHTS"/*.md; do
+      base=$(basename "$f")
+      [ ! -f "$SOURCE_INSIGHTS/$base" ] && cp "$f" "$SOURCE_INSIGHTS/$base"
+    done
+    cp "$RELEASE_INSIGHTS/manifest.json" "$SOURCE_INSIGHTS/manifest.json" 2>/dev/null || true
+    cp "$RELEASE_INSIGHTS/topic-queue.json" "$SOURCE_INSIGHTS/topic-queue.json" 2>/dev/null || true
+    # Stage and commit if anything changed (silent — no deploy triggered here)
+    cd "$WEB_DIR" && git add content/insights/ 2>/dev/null && \
+      git diff --cached --quiet || \
+      git commit -m "feat(auto): publish SEO article via cron" --no-verify 2>/dev/null || true
+    cd - > /dev/null 2>&1 || true
+  fi
+fi
+
 # Alert on failure via Telegram (rate_limited is expected, not a failure).
 if [ "$STATUS" != "ok" ] && [ "$STATUS" != "rate_limited" ]; then
   if [ "$DEPLOY_ACTIVE" = true ]; then

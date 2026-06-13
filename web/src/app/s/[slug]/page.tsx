@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   ArrowRight,
   BarChart3,
+  Download,
   FileText,
   ShieldCheck,
   Sparkles,
@@ -18,11 +19,18 @@ import { ViewTracker } from "@/components/tracking/view-tracker";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
 import {
+  getInvestorLinkBySlug,
+  isInvestorLinkActive,
+  recordInvestorLinkView,
+  type InvestorLink,
+} from "@/lib/investor-links";
+import {
   SVI_STAGE_LABELS,
   SVI_BENCHMARKS,
   type SVIAnalysis,
   type SVISubScore,
 } from "@/lib/svi-analysis";
+import { ProofButton } from "@/components/proof/proof-button";
 
 export const dynamic = "force-dynamic";
 
@@ -307,15 +315,59 @@ export default async function ShareScorePage({
   let evidenceCount = 5;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let rndReport: any = null;
+  // Per-investor link resolved from slug (v2 attribution)
+  let investorLink: InvestorLink | null = null;
 
   if (!isDemo) {
+    // Check if this slug belongs to a per-investor link (v2)
+    investorLink = await getInvestorLinkBySlug(slug);
+    if (investorLink) {
+      // Guard: revoked or expired — show a blocked state
+      if (!isInvestorLinkActive(investorLink)) {
+        const isRevoked = !!investorLink.revokedAt;
+        return (
+          <>
+            <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-surface-200/60">
+              <div className="mx-auto max-w-5xl px-6 py-3 flex items-center gap-2.5">
+                <Link href="/" aria-label="BlockID home" className="inline-flex items-center gap-2.5">
+                  <Image src="/images/logo-icon-transparent.png" alt="" width={28} height={28} className="h-7 w-7 shrink-0" />
+                  <span className="font-extrabold tracking-tight text-lg text-ink-900">BlockID<span className="text-brand-500">.au</span></span>
+                </Link>
+              </div>
+            </header>
+            <main className="flex-1 flex items-center justify-center pt-20 pb-24">
+              <div className="mx-auto max-w-md px-6 text-center">
+                <div className="rounded-2xl border border-surface-200 bg-white p-10 shadow-sm">
+                  <AlertTriangle strokeWidth={1.5} className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+                  <h1 className="text-xl font-semibold text-ink-800">
+                    {isRevoked ? "Link Revoked" : "Link Expired"}
+                  </h1>
+                  <p className="mt-2 text-sm text-ink-500">
+                    {isRevoked
+                      ? "This investor link has been revoked by the founder and is no longer accessible."
+                      : "This investor link has expired. Please contact the founder to request a new link."}
+                  </p>
+                  <Link href="/" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">
+                    Go to BlockID.au
+                  </Link>
+                </div>
+              </div>
+            </main>
+          </>
+        );
+      }
+    }
+
+    // When reached via an investor link slug, resolve the score using the link's scoreId
+    const scoreSlug = investorLink ? investorLink.scoreId : slug;
+
     // Try svi_analyses first (SVI API stores slug here), then scores table
     const supabase = getSupabaseAdmin();
     if (supabase) {
       const { data: sviRow } = await supabase
         .from("svi_analyses")
         .select("id, email, total_svi, analysis_json, rnd_report_json, created_at")
-        .eq("id", slug)
+        .eq("id", scoreSlug)
         .maybeSingle();
 
       if (sviRow) {
@@ -341,11 +393,23 @@ export default async function ShareScorePage({
 
     // Fallback to scores table
     if (!row) {
-      row = await fetchScore(slug);
+      row = await fetchScore(scoreSlug);
     }
 
     if (!row) notFound();
-    await recordView(slug);
+    await recordView(scoreSlug);
+
+    // If this was an investor-link slug, also record in investor_link_views
+    if (investorLink) {
+      const h = await headers();
+      const ip = clientIpFromHeaders(h);
+      void recordInvestorLinkView({
+        link: investorLink,
+        viewerIpHash: hashIp(ip),
+        viewerUa: h.get("user-agent")?.slice(0, 512) ?? null,
+        referer: h.get("referer")?.slice(0, 512) ?? null,
+      });
+    }
 
     // Fetch the full SVI analysis if not already loaded
     if (analysis === DEMO_ANALYSIS && row.email) {
@@ -417,6 +481,15 @@ export default async function ShareScorePage({
             <span className="text-xs font-mono tabular-nums text-ink-300">
               {createdAt.slice(0, 10)}
             </span>
+            <Link
+              href={`/s/${slug}/report`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-100 transition-colors"
+            >
+              <Download strokeWidth={1.75} className="h-3.5 w-3.5" />
+              Full Report PDF
+            </Link>
           </div>
         </div>
       </header>
@@ -480,6 +553,11 @@ export default async function ShareScorePage({
                   detail={`${evidenceCount} evidence items`}
                 />
               </div>
+
+              {/* ── Tamper-evident proof ────────────────────────────────── */}
+              {!isDemo && (
+                <ProofButton scoreId={slug} />
+              )}
             </div>
           </section>
 
@@ -662,14 +740,25 @@ export default async function ShareScorePage({
           <section id="cta-section" data-section className="mt-8">
             <div className="rounded-2xl border border-brand-200/40 bg-gradient-to-br from-brand-50/50 to-white p-6 md:p-8 shadow-sm">
               <div className="grid md:grid-cols-3 gap-6">
-                <div className="rounded-xl border border-surface-200 bg-white p-5">
-                  <div className="h-10 w-10 rounded-lg bg-brand-50 flex items-center justify-center mb-3">
-                    <FileText strokeWidth={1.75} className="h-5 w-5 text-brand-600" />
+                <div className="rounded-xl border border-brand-200/60 bg-brand-50/30 p-5">
+                  <div className="h-10 w-10 rounded-lg bg-brand-100 flex items-center justify-center mb-3">
+                    <Download strokeWidth={1.75} className="h-5 w-5 text-brand-600" />
                   </div>
-                  <h3 className="text-sm font-semibold text-ink-800">Full Report</h3>
+                  <h3 className="text-sm font-semibold text-ink-800">Download Full Report</h3>
                   <p className="mt-1 text-xs text-ink-400 leading-relaxed">
-                    Want to see the complete 10-page deep dive with evidence, benchmarks, and action plan? Ask the founder for access.
+                    A complete PDF Fundraising Readiness Report — SVI score, dimension breakdown, action plan, cap table, and data room checklist.
                   </p>
+                  <Link
+                    href={`/s/${slug}/report`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex"
+                  >
+                    <Button variant="primary" size="sm" className="text-xs">
+                      <Download strokeWidth={1.75} className="h-3.5 w-3.5" />
+                      Download PDF
+                    </Button>
+                  </Link>
                 </div>
                 <div className="rounded-xl border border-surface-200 bg-white p-5">
                   <div className="h-10 w-10 rounded-lg bg-emerald-50 flex items-center justify-center mb-3">

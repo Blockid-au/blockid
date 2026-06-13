@@ -4,15 +4,20 @@ import * as React from "react";
 import {
   ArrowRight,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   ClipboardPaste,
+  Download,
   FileSignature,
   Info,
   Loader2,
+  MessageCircleQuestion,
   Plus,
   Sparkles,
   Trash2,
   TriangleAlert,
   XCircle,
+  Zap,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -110,6 +115,9 @@ interface ApiResponse {
   analysis?: TermSheetAnalysis;
   dilution?: CapTableDiff | null;
   error?: string;
+  analysis_id?: string | null;
+  balance?: number;
+  creditsUsed?: number;
 }
 
 export function TermSheetTool() {
@@ -501,6 +509,7 @@ export function TermSheetTool() {
             dilution={result.dilution ?? null}
             activeTab={activeTab}
             onTabChange={setActiveTab}
+            analysisId={result.analysis_id ?? null}
           />
 
           {/* Email capture row */}
@@ -598,28 +607,58 @@ function ResultPanel({
   dilution,
   activeTab,
   onTabChange,
+  analysisId,
 }: {
   analysis: TermSheetAnalysis;
   dilution: CapTableDiff | null;
   activeTab: string;
   onTabChange: (v: string) => void;
+  analysisId: string | null;
 }) {
+  const handleExportJson = () => {
+    const payload = {
+      exported_at: new Date().toISOString(),
+      analysis_id: analysisId,
+      analysis,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `blockid-term-sheet-analysis-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <section
       aria-labelledby="ts-result"
       className="rounded-2xl border border-surface-200 bg-white p-6 md:p-8"
     >
-      <h2
-        id="ts-result"
-        className="text-lg font-semibold text-ink-800 flex items-center gap-2"
-      >
-        <Sparkles
-          strokeWidth={1.75}
-          className="h-5 w-5 text-brand-600"
-          aria-hidden
-        />
-        Analysis
-      </h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2
+          id="ts-result"
+          className="text-lg font-semibold text-ink-800 flex items-center gap-2"
+        >
+          <Sparkles
+            strokeWidth={1.75}
+            className="h-5 w-5 text-brand-600"
+            aria-hidden
+          />
+          Analysis
+        </h2>
+        <button
+          type="button"
+          onClick={handleExportJson}
+          className="inline-flex items-center gap-1.5 rounded-md border border-surface-200 bg-surface-100/60 px-2.5 py-1.5 text-xs font-medium text-ink-500 hover:border-brand-500/40 hover:text-ink-800 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
+          title="Download full analysis as JSON"
+        >
+          <Download strokeWidth={1.75} className="h-3.5 w-3.5" aria-hidden />
+          Export JSON
+        </button>
+      </div>
       <Tabs value={activeTab} onValueChange={onTabChange} defaultValue="summary">
         <div className="mt-5 overflow-x-auto">
           <TabsList>
@@ -628,6 +667,8 @@ function ResultPanel({
               Redline ({analysis.redline.length})
             </TabsTrigger>
             <TabsTrigger value="comparison">AU comparison</TabsTrigger>
+            <TabsTrigger value="lawyer">Lawyer Q&amp;A</TabsTrigger>
+            <TabsTrigger value="actions">Actions</TabsTrigger>
             {dilution && <TabsTrigger value="dilution">Dilution</TabsTrigger>}
           </TabsList>
         </div>
@@ -640,6 +681,12 @@ function ResultPanel({
         </TabsContent>
         <TabsContent value="comparison">
           <ComparisonTab analysis={analysis} />
+        </TabsContent>
+        <TabsContent value="lawyer">
+          <LawyerQuestionsTab analysis={analysis} />
+        </TabsContent>
+        <TabsContent value="actions">
+          <FounderActionsTab analysis={analysis} />
         </TabsContent>
         {dilution && (
           <TabsContent value="dilution">
@@ -746,6 +793,51 @@ function RedlineTab({ analysis }: { analysis: TermSheetAnalysis }) {
   );
 }
 
+/** Color-coded confidence badge: green ≥0.8, yellow ≥0.5, red <0.5 */
+function ConfidenceBadge({ value }: { value: number }) {
+  const pct = Math.round(value * 100);
+  const cls =
+    value >= 0.8
+      ? "border-green-500/40 bg-green-500/10 text-green-600"
+      : value >= 0.5
+        ? "border-amber-500/40 bg-amber-500/10 text-amber-400"
+        : "border-red-500/40 bg-red-500/10 text-red-400";
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-mono tabular-nums",
+        cls,
+      )}
+      title={`Clause confidence: ${pct}%`}
+    >
+      {pct}%
+    </span>
+  );
+}
+
+type RedlineRiskLevel = "low" | "medium" | "high" | "critical";
+
+/** Per-clause risk level badge */
+function RiskLevelBadge({ level }: { level: RedlineRiskLevel }) {
+  const map: Record<RedlineRiskLevel, { cls: string; label: string }> = {
+    low: { cls: "border-slate-400/40 bg-slate-400/10 text-slate-500", label: "Low risk" },
+    medium: { cls: "border-amber-400/40 bg-amber-400/10 text-amber-400", label: "Medium risk" },
+    high: { cls: "border-orange-500/40 bg-orange-500/10 text-orange-500", label: "High risk" },
+    critical: { cls: "border-red-500/40 bg-red-500/10 text-red-400", label: "Critical" },
+  };
+  const { cls, label } = map[level] ?? map.low;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider",
+        cls,
+      )}
+    >
+      {label}
+    </span>
+  );
+}
+
 function RedlineCard({
   item,
 }: {
@@ -795,14 +887,22 @@ function RedlineCard({
           />
           {item.clause}
         </h3>
-        <span
-          className={cn(
-            "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wider",
-            tone.pill,
+        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+          {item.risk_level != null && (
+            <RiskLevelBadge level={item.risk_level as RedlineRiskLevel} />
           )}
-        >
-          {tone.label}
-        </span>
+          <span
+            className={cn(
+              "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wider",
+              tone.pill,
+            )}
+          >
+            {tone.label}
+          </span>
+          {item.clause_confidence != null && (
+            <ConfidenceBadge value={item.clause_confidence} />
+          )}
+        </div>
       </div>
       <p className="text-sm leading-relaxed text-ink-500">{item.issue}</p>
       <blockquote className="rounded-lg border-l-2 border-brand-500/60 bg-white px-4 py-3 text-sm leading-relaxed text-ink-500">
@@ -812,6 +912,138 @@ function RedlineCard({
         <p className="mt-1.5">{item.suggestedRevision}</p>
       </blockquote>
     </li>
+  );
+}
+
+function LawyerQuestionsTab({ analysis }: { analysis: TermSheetAnalysis }) {
+  const [open, setOpen] = React.useState(true);
+  const questions = analysis.lawyer_questions ?? [];
+
+  if (questions.length === 0) {
+    return (
+      <p className="text-sm text-ink-400">
+        No lawyer questions generated for this analysis.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-surface-200 bg-surface-100/40 overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left hover:bg-surface-100/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 cursor-pointer"
+          aria-expanded={open}
+        >
+          <span className="flex items-center gap-2 text-sm font-medium text-ink-800">
+            <MessageCircleQuestion
+              strokeWidth={1.75}
+              className="h-4 w-4 text-brand-600 shrink-0"
+              aria-hidden
+            />
+            Questions your lawyer will ask ({questions.length})
+          </span>
+          {open ? (
+            <ChevronUp strokeWidth={1.75} className="h-4 w-4 text-ink-400 shrink-0" aria-hidden />
+          ) : (
+            <ChevronDown strokeWidth={1.75} className="h-4 w-4 text-ink-400 shrink-0" aria-hidden />
+          )}
+        </button>
+        {open && (
+          <ul className="divide-y divide-surface-200/70 border-t border-surface-200">
+            {questions.map((q, i) => (
+              <li key={i} className="flex items-start gap-3 px-5 py-4">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-brand-500/30 bg-brand-500/10 text-[10px] font-semibold text-brand-600">
+                  {i + 1}
+                </span>
+                <p className="text-sm leading-relaxed text-ink-500">{q}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <p className="text-xs leading-relaxed text-ink-8000">
+        These questions surface material ambiguities in your term sheet. Prepare answers before your first lawyer consultation to save billable time.
+      </p>
+    </div>
+  );
+}
+
+function FounderActionsTab({ analysis }: { analysis: TermSheetAnalysis }) {
+  const [checked, setChecked] = React.useState<Record<number, boolean>>({});
+  const actions = analysis.founder_actions ?? [];
+
+  if (actions.length === 0) {
+    return (
+      <p className="text-sm text-ink-400">
+        No founder actions generated for this analysis.
+      </p>
+    );
+  }
+
+  const toggleChecked = (i: number) =>
+    setChecked((prev) => ({ ...prev, [i]: !prev[i] }));
+
+  const doneCount = Object.values(checked).filter(Boolean).length;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Zap strokeWidth={1.75} className="h-4 w-4 text-gold-600" aria-hidden />
+          <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium">
+            Immediate actions ({doneCount}/{actions.length} done)
+          </p>
+        </div>
+      </div>
+
+      <ul className="space-y-3">
+        {actions.map((action, i) => (
+          <li key={i}>
+            <label
+              className={cn(
+                "flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-colors",
+                checked[i]
+                  ? "border-green-500/30 bg-green-500/5"
+                  : "border-surface-200 bg-surface-100/40 hover:border-brand-500/30 hover:bg-brand-500/5",
+              )}
+            >
+              <input
+                type="checkbox"
+                checked={!!checked[i]}
+                onChange={() => toggleChecked(i)}
+                className="mt-0.5 h-4 w-4 rounded border-surface-200 bg-white text-brand-500 focus:ring-brand-500/30 cursor-pointer shrink-0"
+              />
+              <span
+                className={cn(
+                  "text-sm leading-relaxed",
+                  checked[i] ? "line-through text-ink-400" : "text-ink-500",
+                )}
+              >
+                <span className="font-mono tabular-nums text-[11px] text-ink-8000 mr-2">
+                  #{i + 1}
+                </span>
+                {action}
+              </span>
+            </label>
+          </li>
+        ))}
+      </ul>
+
+      {doneCount === actions.length && actions.length > 0 && (
+        <div className="rounded-xl border border-green-500/30 bg-green-500/5 p-4 flex items-center gap-3">
+          <CheckCircle2 strokeWidth={1.75} className="h-5 w-5 text-green-500 shrink-0" aria-hidden />
+          <p className="text-sm text-ink-500">
+            All actions checked — you&apos;re ready to engage your lawyer for final review.
+          </p>
+        </div>
+      )}
+
+      <p className="text-xs leading-relaxed text-ink-8000">
+        Ordered by urgency. Tick each action as you complete it. This checklist is not saved — export the JSON if you want a record.
+      </p>
+    </div>
   );
 }
 
