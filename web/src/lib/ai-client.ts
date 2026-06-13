@@ -530,40 +530,49 @@ type Provider = "claude-oauth" | "claude-apikey" | "claude-proxy" | "openai-code
 function getAvailableProviders(): Provider[] {
   const providers: Provider[] = [];
   // ──────────────────────────────────────────────────────────────────────
-  // PRIORITY: Subscription (best quality) → FREE (unlimited) → Local
+  // PRIORITY: Subscription (best quality) → FREE stable → OpenRouter last
   // NO paid API keys — zero marginal cost only.
   //
-  // Benchmark intelligence (May 2026):
-  //   S-tier (52+): Claude Sonnet 4.6, o3-mini, DeepSeek V3/V4, Kimi K2.6
-  //   A-tier (40-50): Qwen3, Nemotron 120B, gpt-oss-120b, GLM-5
-  //   B-tier (35-42): Llama 3.3 70B, Gemma 4, gpt-4o-mini
+  // Benchmark intelligence (June 2026):
+  //   S-tier (52+): Claude Sonnet 4.6, o3-mini, DeepSeek V3, Kimi K2.6
+  //   A-tier (40-50): gpt-oss-120b, Nemotron 120B, Qwen3
+  //   B-tier (35-42): Llama 3.3 70B, Gemma 4
   //   C-tier (<35):  Llama 3.1 8B, small models
+  //
+  // Stability ranking:
+  //   claude-oauth  — subscription, 100% uptime, Sonnet 4.6
+  //   claude-proxy  — shared key, Sonnet 4.6
+  //   groq          — 400 RPM free, ultra-fast (500+ t/s), very stable
+  //   cerebras      — 30 RPM free, ultra-fast hardware, reliable
+  //   sambanova     — high-throughput free, DeepSeek V3, stable
+  //   openai-codex  — subscription but token expires, low priority
+  //   ollama        — local GPU, offline fallback
+  //   openrouter    — LAST: 24+ free models but variable uptime + rate limits
   // ──────────────────────────────────────────────────────────────────────
 
-  // ── Ranked: free/fast first, paid/slow last ────────────────────────────
-  // 1. Claude OAuth — Sonnet 4.6 (subscription, no extra cost)
+  // 1. Claude OAuth — Sonnet 4.6 (subscription, best quality, zero cost)
   if (readCliOAuthToken()) providers.push("claude-oauth");
   // 2. Proxy — Sonnet 4.6 (shared key)
   if (process.env.ANTHROPIC_PROXY_API_KEY && process.env.ANTHROPIC_PROXY_BASE_URL) providers.push("claude-proxy");
   else if (getDBKey("anthropic_proxy")) providers.push("claude-proxy");
-  // 3. OpenRouter — 24+ free models (Kimi K2.6, DeepSeek V4, etc.)
-  if (process.env.OPENROUTER_API_KEY) providers.push("openrouter");
-  else if (getDBKey("openrouter")) providers.push("openrouter");
-  // 4. SambaNova — DeepSeek V3 (free)
-  if (process.env.SAMBANOVA_API_KEY) providers.push("sambanova");
-  else if (getDBKey("sambanova")) providers.push("sambanova");
-  // 5. Cerebras — gpt-oss-120b (free, 30 RPM)
-  if (process.env.CEREBRAS_API_KEY) providers.push("cerebras");
-  else if (getDBKey("cerebras")) providers.push("cerebras");
-  // 6. Groq — fastest inference (free tier)
+  // 3. Groq — fastest free inference (400 RPM, 500+ t/s, very stable)
   if (process.env.GROQ_API_KEY) providers.push("groq");
   else if (getDBKey("groq")) providers.push("groq");
-  // 7. Ollama — local backup
-  if (process.env.OLLAMA_HOST || process.env.OLLAMA_ENABLED === "true") providers.push("ollama");
-  // 8. Codex OAuth — low priority (often expires, slow)
+  // 4. Cerebras — ultra-fast hardware, 30 RPM free, consistent uptime
+  if (process.env.CEREBRAS_API_KEY) providers.push("cerebras");
+  else if (getDBKey("cerebras")) providers.push("cerebras");
+  // 5. SambaNova — DeepSeek V3 free, high throughput, stable
+  if (process.env.SAMBANOVA_API_KEY) providers.push("sambanova");
+  else if (getDBKey("sambanova")) providers.push("sambanova");
+  // 6. Codex OAuth — subscription but often expires, slow
   if (readCodexOAuthToken()) providers.push("openai-codex");
+  // 7. Ollama — local GPU backup
+  if (process.env.OLLAMA_HOST || process.env.OLLAMA_ENABLED === "true") providers.push("ollama");
+  // 8. OpenRouter — LAST: 24+ free models but variable uptime and rate limits
+  if (process.env.OPENROUTER_API_KEY) providers.push("openrouter");
+  else if (getDBKey("openrouter")) providers.push("openrouter");
 
-  // ❌ Gemini / Anthropic API / OpenAI API — DISABLED
+  // ❌ Gemini / Anthropic API / OpenAI API — DISABLED (paid, not free)
   return providers;
 }
 
