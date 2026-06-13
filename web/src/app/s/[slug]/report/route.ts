@@ -5,6 +5,46 @@ import {
 } from "@/lib/pdf/fundraising-report-pdf";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { SVI_VERSION, type SVISubScore } from "@/lib/svi-analysis";
+import { BENCHMARKS, STAGES } from "@/lib/benchmarks";
+
+// ── v2 helpers ───────────────────────────────────────────────────────────────
+
+type StageKey = "pre-seed" | "seed" | "series-a" | "series-b";
+
+function stageKeyForSvi(stage: number): StageKey {
+  if (stage <= 1) return "pre-seed";
+  if (stage <= 3) return "seed";
+  if (stage <= 5) return "series-a";
+  return "series-b";
+}
+
+function buildComparableRaises(stage: number): FundraisingReportData["comparableRaises"] {
+  const key = stageKeyForSvi(stage);
+  const b = BENCHMARKS[key];
+  return {
+    stageLabel: STAGES[key],
+    typicalArrAud: b.arr_aud,
+    typicalBurnAud: b.burn_rate_aud,
+    typicalRunwayMonths: b.runway_months,
+    typicalGrowthMonthPct: b.revenue_growth_pct,
+    notes:
+      "Bands are aggregated from anonymised AU startup ecosystem reports across pre-seed, seed, Series A and Series B+. Investor benchmarks vary by sector — treat these as a directional anchor, not a ceiling.",
+  };
+}
+
+async function fetchChecklist(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  userId: string | null,
+): Promise<FundraisingReportData["fundraisingChecklist"]> {
+  if (!supabase || !userId) return undefined;
+  const { data, error } = await supabase
+    .from("data_room_checklist")
+    .select("label, category, status, priority, notes")
+    .eq("user_id", userId)
+    .order("priority", { ascending: true });
+  if (error || !data) return undefined;
+  return data as FundraisingReportData["fundraisingChecklist"];
+}
 
 // GET /s/[slug]/report
 // Streams a full Fundraising Readiness Report as application/pdf.
@@ -160,6 +200,17 @@ const DEMO: Omit<FundraisingReportData, "slug" | "shareUrl"> = {
   proofHash: null,
   summary:
     "This is a seed-stage SaaS company with a co-founder team, early revenue traction, and a clear problem statement. The cap table and governance foundations are in place. Key areas to strengthen include investor readiness materials (pitch deck, financial model) and articulating a clearer competitive moat.",
+  fundraisingChecklist: [
+    { label: "Pitch Deck (latest)", category: "Narrative", status: "in_progress", priority: "P0", notes: "v2 in draft" },
+    { label: "Financial Model (3-yr)", category: "Financials", status: "pending", priority: "P0" },
+    { label: "Cap Table", category: "Cap Table", status: "complete", priority: "P0" },
+    { label: "Shareholders Agreement", category: "Legal", status: "pending", priority: "P0" },
+    { label: "Customer Contracts (top 3)", category: "Traction", status: "in_progress", priority: "P1" },
+    { label: "Privacy Policy + ToS", category: "Legal", status: "complete", priority: "P1" },
+    { label: "Employee NDAs / IP Assignment", category: "Legal", status: "complete", priority: "P1" },
+    { label: "ASIC Annual Review", category: "Compliance", status: "complete", priority: "P2" },
+  ],
+  comparableRaises: buildComparableRaises(2),
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -245,6 +296,19 @@ export async function GET(
           )
         : [];
 
+      // v2 — resolve user_id from email to pull their fundraising checklist.
+      let ownerUserId: string | null = null;
+      if (sviRow.email) {
+        const { data: appUser } = await supabase!
+          .from("app_users")
+          .select("id")
+          .eq("email", sviRow.email.toLowerCase())
+          .maybeSingle();
+        ownerUserId = (appUser as { id?: string } | null)?.id ?? null;
+      }
+      const fundraisingChecklist = await fetchChecklist(supabase, ownerUserId);
+      const stageVal = (analysis.stage as number) ?? 0;
+
       reportData = {
         slug,
         shareUrl,
@@ -255,7 +319,7 @@ export async function GET(
         sviVersion: (analysis.version as string) ?? SVI_VERSION,
         confidenceMultiplier:
           (analysis.confidenceMultiplier as number) ?? 0.5,
-        stage: (analysis.stage as number) ?? 0,
+        stage: stageVal,
         stageLabel:
           (analysis.stageLabel as string) ?? "Concept",
         percentileRank: (analysis.percentileRank as number) ?? undefined,
@@ -267,6 +331,8 @@ export async function GET(
         capTableData: undefined,
         proofHash: null,
         summary: (analysis.summary as string) ?? null,
+        fundraisingChecklist,
+        comparableRaises: buildComparableRaises(stageVal),
       };
     } else {
       // Fall back to scores table
@@ -399,6 +465,8 @@ export async function GET(
         },
         proofHash: null,
         summary: null,
+        fundraisingChecklist: undefined,
+        comparableRaises: buildComparableRaises(0),
       };
     }
   }

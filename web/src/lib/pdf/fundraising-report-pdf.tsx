@@ -106,6 +106,25 @@ export interface FundraisingReportData {
 
   // AI summary
   summary?: string | null;
+
+  // v2 — Fundraising Checklist (data_room_checklist)
+  fundraisingChecklist?: {
+    label: string;
+    category: string;
+    status: "pending" | "in_progress" | "complete" | "not_applicable";
+    priority: "P0" | "P1" | "P2";
+    notes?: string | null;
+  }[];
+
+  // v2 — Comparable AU raises at this stage (from benchmarks.ts)
+  comparableRaises?: {
+    stageLabel: string;
+    typicalArrAud: { p25: number; p50: number; p75: number };
+    typicalBurnAud: { p25: number; p50: number; p75: number };
+    typicalRunwayMonths: { p25: number; p50: number; p75: number };
+    typicalGrowthMonthPct: { p25: number; p50: number; p75: number };
+    notes?: string;
+  };
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -1187,6 +1206,156 @@ function ProofPage({ data }: { data: FundraisingReportData }) {
   );
 }
 
+// ── v2 — Page: Fundraising Checklist ──────────────────────────────────────────
+
+function FundraisingChecklistPage({ data }: { data: FundraisingReportData }) {
+  const reportDate = data.createdAt.slice(0, 10);
+  const items = data.fundraisingChecklist ?? [];
+  const total = items.length;
+  const complete = items.filter((i) => i.status === "complete").length;
+  const completionPct = total > 0 ? Math.round((complete / total) * 100) : 0;
+
+  const statusColor = (status: string) =>
+    status === "complete"
+      ? C.green500
+      : status === "in_progress"
+        ? C.amber500
+        : status === "not_applicable"
+          ? C.slate400
+          : C.red400;
+
+  const statusLabel = (status: string) =>
+    status === "complete"
+      ? "Complete"
+      : status === "in_progress"
+        ? "In progress"
+        : status === "not_applicable"
+          ? "N/A"
+          : "Missing";
+
+  return (
+    <Page size="A4" style={s.page}>
+      <PageHeader company={data.companyName} reportDate={reportDate} />
+
+      <Text style={s.sectionEyebrow}>Section 5</Text>
+      <Text style={s.sectionTitle}>Fundraising Checklist</Text>
+      <Text style={s.disclaimerText}>
+        Every document and artefact a typical AU investor will ask for before
+        committing. Source: your live data_room_checklist; fall back to the
+        BlockID stage-appropriate default if no checklist exists.
+      </Text>
+
+      <View style={[s.proofCard, { marginBottom: 14 }]}>
+        <View style={s.proofRow}>
+          <Text style={s.proofLabel}>Completion</Text>
+          <Text style={[s.proofValue, { color: scoreColor(completionPct) }]}>
+            {complete} / {total} items · {completionPct}%
+          </Text>
+        </View>
+        <View style={s.proofRow}>
+          <Text style={s.proofLabel}>P0 missing</Text>
+          <Text style={[s.proofValue, { color: C.red400 }]}>
+            {items.filter((i) => i.priority === "P0" && i.status !== "complete").length}
+          </Text>
+        </View>
+      </View>
+
+      {items.length === 0 && (
+        <Text style={[s.disclaimerText, { marginBottom: 12 }]}>
+          No checklist items recorded yet — head to /workspace/data-room to
+          start tracking your fundraising readiness items.
+        </Text>
+      )}
+
+      {items.map((item, i) => (
+        <View key={i} style={s.actionCard}>
+          <View
+            style={[
+              s.actionBadge,
+              { backgroundColor: impactBadgeColor(item.priority) },
+            ]}
+          >
+            <Text style={s.actionBadgeText}>{item.priority}</Text>
+          </View>
+          <View style={s.actionContent}>
+            <Text style={s.actionTitle}>
+              {item.label}{" "}
+              <Text style={{ color: C.slate400, fontSize: 9 }}>
+                · {item.category}
+              </Text>
+            </Text>
+            <Text style={[s.actionDetail, { color: statusColor(item.status) }]}>
+              {statusLabel(item.status)}
+              {item.notes ? ` — ${item.notes}` : ""}
+            </Text>
+          </View>
+        </View>
+      ))}
+
+      <PageFooter shareUrl={data.shareUrl} />
+    </Page>
+  );
+}
+
+// ── v2 — Page: AU Comparable Raises ───────────────────────────────────────────
+
+function ComparableRaisesPage({ data }: { data: FundraisingReportData }) {
+  const reportDate = data.createdAt.slice(0, 10);
+  const cmp = data.comparableRaises;
+
+  if (!cmp) {
+    return (
+      <Page size="A4" style={s.page}>
+        <PageHeader company={data.companyName} reportDate={reportDate} />
+        <Text style={s.sectionEyebrow}>Section 6</Text>
+        <Text style={s.sectionTitle}>AU Comparable Raises</Text>
+        <Text style={s.disclaimerText}>
+          Comparable AU raise data unavailable for your stage.
+        </Text>
+        <PageFooter shareUrl={data.shareUrl} />
+      </Page>
+    );
+  }
+
+  const row = (label: string, band: { p25: number; p50: number; p75: number }, fmt: (n: number) => string) => (
+    <View style={s.proofRow}>
+      <Text style={s.proofLabel}>{label}</Text>
+      <Text style={s.proofValue}>
+        p25 {fmt(band.p25)} · p50 {fmt(band.p50)} · p75 {fmt(band.p75)}
+      </Text>
+    </View>
+  );
+
+  return (
+    <Page size="A4" style={s.page}>
+      <PageHeader company={data.companyName} reportDate={reportDate} />
+
+      <Text style={s.sectionEyebrow}>Section 6</Text>
+      <Text style={s.sectionTitle}>AU Comparable Raises — {cmp.stageLabel}</Text>
+      <Text style={s.disclaimerText}>
+        Where you sit relative to anonymised Australian startups at the same
+        stage. Data sourced from the BlockID benchmarks dataset (pre-seed →
+        Series B+).
+      </Text>
+
+      <View style={s.proofCard}>
+        {row("ARR (AUD)", cmp.typicalArrAud, fmtCurrency)}
+        {row("Monthly burn (AUD)", cmp.typicalBurnAud, fmtCurrency)}
+        {row("Runway (months)", cmp.typicalRunwayMonths, (n) => `${n.toFixed(0)} mo`)}
+        {row("Growth / month (%)", cmp.typicalGrowthMonthPct, (n) => `${n.toFixed(0)}%`)}
+      </View>
+
+      {cmp.notes && (
+        <View style={s.disclaimerBox}>
+          <Text style={s.disclaimerText}>{cmp.notes}</Text>
+        </View>
+      )}
+
+      <PageFooter shareUrl={data.shareUrl} />
+    </Page>
+  );
+}
+
 // ── Document root ─────────────────────────────────────────────────────────────
 
 export function FundraisingReportPDF({ data }: { data: FundraisingReportData }) {
@@ -1203,6 +1372,8 @@ export function FundraisingReportPDF({ data }: { data: FundraisingReportData }) 
       <ScorePage data={data} />
       <DimensionsPage data={data} />
       <ActionPlanPage data={data} />
+      <FundraisingChecklistPage data={data} />
+      <ComparableRaisesPage data={data} />
       <CapTablePage data={data} />
       <ProofPage data={data} />
     </Document>
