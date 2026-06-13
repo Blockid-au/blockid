@@ -95,6 +95,12 @@ export interface AnalyticsEventMap {
   referral_email_shared: Record<string, never>;
   referral_linkedin_shared: Record<string, never>;
 
+  // ── Insight Articles (SEO + GTM keyword tracking) ──
+  insight_article_viewed: { slug: string; category: string; primary_keyword: string; keyword_count: number; reading_time: number };
+  insight_scroll_depth: { slug: string; depth: 25 | 50 | 75 | 100; category: string };
+  insight_read_complete: { slug: string; category: string; primary_keyword: string };
+  insight_cta_clicked: { slug: string; cta_label: string; cta_href: string; position: "early" | "mid" | "end" };
+
   // ── Navigation ──
   cta_clicked: { cta_id: string; location: string };
   nav_tool_selected: { tool: string };

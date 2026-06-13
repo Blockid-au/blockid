@@ -7,6 +7,7 @@ import { InsightBody } from "./insight-body";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { ArticleJsonLd } from "@/components/seo/json-ld";
+import { InsightTracker } from "@/components/analytics/insight-tracker";
 
 const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
   valuation: { label: "Valuation", color: "bg-brand-100 text-brand-700" },
@@ -80,6 +81,13 @@ export default async function InsightPage({
         url={`https://blockid.au/insights/${slug}`}
         publishedAt={article.publishedAt}
         updatedAt={article.updatedAt}
+      />
+      <InsightTracker
+        slug={slug}
+        category={article.category}
+        keywords={article.keywords}
+        readingTime={article.readingTime}
+        title={article.title}
       />
       <Navbar />
 
