@@ -1,0 +1,70 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2026-06-13",
+  "source": "T0097 — Equity & ESOP Pillar (BlockID.au)",
+  "category": "equity",
+  "articles": [
+    {
+      "slug": "equity-kb-esop-design-au",
+      "title": "ESOP Design for AU Startups",
+      "author": "blockid-equity-engine",
+      "is_public": false,
+      "content": "# ESOP Design for AU Startups\n\nA well-designed ESOP (Employee Share Option Plan) is the single biggest equity lever an Australian startup has for talent. Get it right early — it is painful to fix later.\n\n## Pool sizing\n\n- **Pre-seed:** 10% pool. Enough to grant 2–4 early hires generous options without blowing fully-diluted ownership for founders.\n- **Seed:** 10–12.5% pool, typically topped up *pre-money* at the seed round (investors expect this).\n- **Series A:** 12.5–15% pool, refreshed at the round.\n- **Series B+:** 15–20% in aggregate as the team scales.\n\nRule of thumb: each round, top up to cover the *next 12–18 months* of hires, plus a 20% buffer for promotions and out-of-band grants.\n\n## Grant sizing per hire (% of fully-diluted)\n\n| Role                         | Pre-seed | Seed     | Series A |\n|------------------------------|---------:|---------:|---------:|\n| First 5 engineers / sr eng   | 1.0–2.5% | 0.5–1.5% | 0.25–0.75% |\n| Head of Eng / VP / Director  | 1.5–4%   | 1.0–2.5% | 0.5–1.5%   |\n| Mid-level individual contrib | 0.25–1%  | 0.1–0.5% | 0.05–0.25% |\n| Advisor (per advisor)        | 0.25–1%  | 0.1–0.5% | 0.05–0.25% |\n\nGrants are at fair market value strike. Use a board-approved valuation (most AU startups rely on the most recent priced round, or a Section 83A startup-concession valuation method for unlisted companies).\n\n## Scheme structure (AU-specific)\n\n- **ESS (Employee Share Scheme)** under Division 83A ITAA 1997 — the standard for AU startups. Options or shares.\n- **Startup tax concession (section 83A-33)** — applies where the company is unlisted, Australian-resident, < 10 years old, aggregated turnover < A$50M, and the scheme meets concession conditions. Recipients defer tax until disposal (up to 15 years).\n- **Phantom / SAR schemes** — cash-settled. Avoid unless equity isn't possible (e.g. contractor in a hostile tax regime); they lose the CGT discount.\n\n## Documentation checklist\n\n1. Board-approved ESS rules.\n2. Grant letter per recipient (template in BlockID equity engine).\n3. ESS Statement to recipient each year a taxing event occurs.\n4. ESS Annual Report lodged with the ATO (due 14 July).\n5. Section 1100W / ASIC Instrument 2022/1021 reliance noted in board minutes.\n\n## Common mistakes\n\n- Granting options *without* an exercise price = a share grant in disguise, taxable at grant.\n- Forgetting the cliff — undermines retention purpose.\n- Top-ups *post-money* at the next round — dilutes existing investors and signals weak planning.\n- No leaver provisions — bad leavers retain fully-vested upside.\n",
+      "metadata": {
+        "topic": "esop-design",
+        "jurisdiction": "AU",
+        "refs": [
+          { "source": "Division 83A ITAA 1997" },
+          { "source": "ASIC Corporations (Employee Share Schemes) Instrument 2022/1021" },
+          { "source": "Corporations Act 2001 s1100W" }
+        ]
+      }
+    },
+    {
+      "slug": "equity-kb-vesting-best-practices-au",
+      "title": "Vesting Schedule Best Practices (AU)",
+      "author": "blockid-equity-engine",
+      "is_public": false,
+      "content": "# Vesting Schedule Best Practices (AU)\n\nVesting protects the cap table when someone leaves. For Australian startups, the standard is **4 years total with a 12-month cliff** — but the details below matter as much as the headline.\n\n## Default schedule\n\n- **Total vesting period:** 48 months.\n- **Cliff:** 12 months. On the cliff date, 12/48 of the grant vests in one tranche.\n- **Cadence after cliff:** monthly (1/48 per month) is the AU/global default; quarterly is acceptable for senior hires.\n- **Start date:** date of joining the company, **not** the option grant date.\n\n## When to deviate\n\n- **Founders post-product-market-fit:** 3-year remaining schedule with no cliff (they've already earned their stripes).\n- **Late-stage execs:** 4 years with a 6–12 month cliff plus a single-trigger acceleration on Change of Control.\n- **Advisors:** 2 years monthly, no cliff. Replace anyone not pulling weight after 12 months.\n\n## Acceleration\n\n- **Single-trigger** (acceleration on Change of Control alone) — common for execs, rare for ICs.\n- **Double-trigger** (Change of Control *and* termination without cause within 12 months) — the more buyer-friendly standard; recommended for everyone except founders if you want clean exit comparables.\n- Founder shares: full single-trigger on Change of Control is standard.\n\n## Leaver provisions\n\n- **Good leaver:** death, permanent disability, redundancy, retirement at normal retirement age. Keep vested shares; unvested bought back at fair value.\n- **Bad leaver:** resignation in first 12 months, summary dismissal for cause, material breach. All shares (vested + unvested) bought back at the lower of issue price and fair value, or A$0.001 for unvested.\n\n## Restraints (AU law)\n\nRestraints attached to vesting must be reasonable. Use cascading restraints (12/9/6/3 months × NSW/AU/state/city) so a court can strike the unreasonable layers under the *Restraints of Trade Act 1976* (NSW) without voiding the whole clause.\n\n## Milestone vesting\n\nUse only for advisors or for one-off project grants. Pure time vesting is auditable; milestone vesting is fight-prone. If you must:\n\n- Define each milestone with binary, objective criteria.\n- Allocate a fixed share count per milestone.\n- Require board sign-off on \"achieved_at\" before vesting.\n\n## Anti-patterns\n\n- Backdating vesting start dates — ATO does not like it; treated as a separate taxing event.\n- Resetting vesting at a new round — signals dysfunction. Top up with a new grant instead.\n- Verbal acceleration promises — not enforceable, will surface in diligence.\n",
+      "metadata": {
+        "topic": "vesting",
+        "jurisdiction": "AU",
+        "refs": [
+          { "source": "Division 83A ITAA 1997" },
+          { "source": "Restraints of Trade Act 1976 (NSW)" }
+        ]
+      }
+    },
+    {
+      "slug": "equity-kb-founder-equity-split",
+      "title": "Founder Equity Split Framework",
+      "author": "blockid-equity-engine",
+      "is_public": false,
+      "content": "# Founder Equity Split Framework\n\nFounder equity is a multi-year, near-irreversible decision made at the moment founders know each other least. Use a framework, not a gut feel.\n\n## The default is 50/50 — and that is wrong more often than not\n\nThe Noam Wasserman / *Founder's Dilemmas* data shows even splits are *correlated with worse outcomes* because the conversation that produces a 50/50 split usually didn't happen. A real conversation, even one that ends near 50/50, is the point.\n\n## The framework (weight × multiplier)\n\nFor each founder, score the following dimensions on 1–10 and apply weights:\n\n| Dimension                  | Weight |\n|---------------------------|-------:|\n| Idea & vision              | 10%    |\n| Domain expertise           | 15%    |\n| Time committed to date     | 10%    |\n| Forward time commitment    | 20%    |\n| Capital contributed (cash) | 10%    |\n| Risk taken (left job, etc) | 15%    |\n| Relevant network           | 10%    |\n| Skills critical to MVP     | 10%    |\n\nNormalise each founder's weighted score so the total = 100%. That is your starting cap table.\n\n## CEO premium\n\nThe CEO (the one accountable to investors and the board) typically receives a 5–10% absolute premium over the framework score. The CEO carries fundraising load, hiring, and board reporting — quantifiable workload that justifies the premium.\n\n## Vesting always\n\nEven 50/50 cofounders must vest 4 years / 1-year cliff against each other. This is non-negotiable in AU startup diligence; investors will require it at the seed round, and retro-fitting it after a falling-out is litigation territory.\n\n## When to revisit\n\nNever, except via:\n\n- A new grant from the ESOP pool (transparent, board-approved).\n- A clawback under the Vesting Agreement (bad-leaver buyback).\n\nNever \"adjust\" splits in private. Cap-table changes outside the share register are a giant red flag in due diligence.\n\n## Signal: if you cannot have the conversation\n\nIf you can't have a 2-hour conversation with your cofounders today about who deserves what and why, you cannot run a company together. The split conversation is a forcing function for cofounder fit.\n",
+      "metadata": {
+        "topic": "founder-equity",
+        "jurisdiction": "AU",
+        "refs": [
+          { "source": "Noam Wasserman, The Founder's Dilemmas (2012)" },
+          { "source": "Corporations Act 2001 (Cth)" }
+        ]
+      }
+    },
+    {
+      "slug": "equity-kb-au-tax-concessions",
+      "title": "AU Tax Concessions (ESS / ESIC)",
+      "author": "blockid-equity-engine",
+      "is_public": false,
+      "content": "# AU Tax Concessions: ESS Startup Concession & ESIC\n\nTwo AU-specific tax regimes shape almost every BlockID startup's equity strategy.\n\n## 1. ESS Startup Tax Concession (Division 83A-33 ITAA 1997)\n\n**The concession.** For ESS interests in qualifying startups, the discount is *not* assessed at grant; CGT rules apply on disposal (12-month CGT discount available).\n\n**Eligibility (all must be true at grant):**\n\n- The Company is unlisted on any approved stock exchange.\n- The Company is an Australian resident for tax purposes.\n- The Company was incorporated < 10 years ago (including all related entities in the corporate group, aggregated).\n- Aggregated turnover for the prior year ≤ **A$50M**.\n- Scheme conditions: shares offered at ≥ 85% of market value (for shares) or strike ≥ market value (for options); 75% test (75% of permanent employees who have worked 3 yrs must be entitled to acquire ESS interests under the scheme); 3-year holding rule.\n\n**Implication.** Plan grants to slot under this concession wherever possible. The structure is materially better for the recipient than ordinary ESS treatment.\n\n**Documentation:**\n\n- ESS Statement issued to each recipient with a taxing event in the year (by 14 July).\n- ESS Annual Report lodged with the ATO (by 14 August).\n- Maintain evidence of eligibility annually (turnover, incorporation date, unlisted status).\n\n## 2. Early Stage Innovation Company (ESIC) — Sections 360-15 to 360-50 ITAA 1997\n\n**The concession (for investors, not the company directly).** Investors in an ESIC may claim:\n\n- A **20% non-refundable carry-forward tax offset** on the value of investment, capped at **A$200,000 per year** (sophisticated investor) or **A$10,000** (retail), and\n- A **10-year CGT exemption** on the increase in value of qualifying shares (no CGT on sale if held > 12 months and ≤ 10 years).\n\nThis is a *huge* fundraising selling point with AU angel investors.\n\n**Eligibility tests (the company must meet both):**\n\n- **Early stage test:** incorporated within last 3 years (or 6 with restrictions); expenses ≤ A$1M and assessable income ≤ A$200,000 in prior year; not listed.\n- **Innovation test:** either the **100-point innovation test** (objective gateway scoring R&D spend, accelerator participation, prior equity raises, IP held, etc.) or the **principles-based test** (genuinely focused on innovation, high-growth potential, scalability, broader-than-local market, competitive advantage).\n\n**Reporting:** company files an ESIC report with the ATO for each investor each year shares are issued.\n\n## Practical advice\n\n1. If you're raising in AU and qualify as an ESIC, **say so in the deck**. It's a 20% sweetener for sophisticated investors.\n2. Test ESIC eligibility *before* the round closes; the principles-based test is judgement-heavy, so commission a written advice from a tax specialist if the company is anywhere near the borderline.\n3. ESIC + ESS startup concession often apply together — your cap table can be designed so founders, employees and investors all enjoy concessional treatment.\n",
+      "metadata": {
+        "topic": "au-tax-concessions",
+        "jurisdiction": "AU",
+        "refs": [
+          { "source": "Division 83A ITAA 1997 (ESS startup concession)" },
+          { "source": "Subdivision 360-A ITAA 1997 (ESIC tax incentives)" },
+          { "source": "Tax and Superannuation Laws Amendment (Tax Incentives for Innovation) Act 2016" }
+        ]
+      }
+    }
+  ]
+}
