@@ -70,8 +70,8 @@ export default function IdeaValuationPage() {
                 body: "Idea-stage valuations aren't calculated, they're negotiated. The ±35% band is honest: until you have paying customers and a first lead investor, your number is a story, not a spreadsheet.",
               },
               {
-                title: "Want it baked into your raise?",
-                body: "Generate an Investor-Ready Score and pair this estimate with sector comps, ESIC eligibility and a live cap table on one shareable link.",
+                title: "How does my valuation compare?",
+                body: "See how AU peers are valued at the same stage. Our free Benchmarks page shows MRR, ARR, burn rate and SVI score percentiles for 2,700+ Australian startups by stage.",
               },
             ].map((b) => (
               <article

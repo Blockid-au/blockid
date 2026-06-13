@@ -38,9 +38,60 @@ export const metadata: Metadata = {
   },
 };
 
+const FAQ_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "What is a good MRR for a seed-stage Australian startup?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "The median Australian seed-stage startup runs $10,000 MRR. The top quartile exceeds $50,000 MRR. Pre-seed startups often have $0–$3,000 MRR as they're still finding product-market fit.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What burn rate is typical for a pre-seed startup in Australia?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "The median AU pre-seed burn rate is $15,000/month. Top-performing pre-seed startups keep burn under $5,000/month. At seed stage the median rises to $50,000/month as teams scale up.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What SVI score should I aim for?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "The median SVI score for a launched (seed-equivalent) startup is 125. Scores above 155 place you in the top quartile. If you're fundraising, investors typically expect 130+ with strong traction and founder scores.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What is a healthy churn rate for an Australian SaaS startup?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "The median monthly churn at seed stage is 7%. Top-quartile startups achieve under 3%. Pre-seed averages 10% as teams iterate on product. At Series A the bar tightens to 5% median / 2% top quartile.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How is the benchmark data sourced?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Data is compiled from Startup Genome's AU cohorts, AVCAL deal data, Cut Through Venture's AU report, ABS business entry/exit statistics, and publicly available accelerator cohort data from Startmate, Antler, and YC AU cohorts.",
+      },
+    },
+  ],
+};
+
 export default function BenchmarksPage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_SCHEMA) }}
+      />
       <Navbar />
       <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
         <div className="mx-auto max-w-4xl px-6">
