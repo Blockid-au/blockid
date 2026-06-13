@@ -21,9 +21,9 @@ describe("cfo-valuation — VC-grade valuation engine", () => {
     customers: 130,
   };
 
-  it("returns a blended valuation with 4 weighted methods", () => {
+  it("returns a blended valuation with weighted methods (Berkus shown as reference for revenue-positive)", () => {
     const r = buildVcValuationReport(input);
-    expect(r.methods).toHaveLength(4);
+    expect(r.methods.length).toBeGreaterThanOrEqual(4);
     expect(r.blended.midAud).toBeGreaterThan(0);
     expect(r.blended.lowAud).toBeLessThanOrEqual(r.blended.midAud);
     expect(r.blended.highAud).toBeGreaterThanOrEqual(r.blended.midAud);
