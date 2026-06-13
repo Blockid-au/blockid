@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import {
   BarChart3, TrendingUp, DollarSign, Zap, PieChart, Target,
-  ChevronDown, ArrowRight, Info,
+  ChevronDown, ArrowRight, Info, Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { VcValuationReport } from "@/lib/agents/cfo-valuation";
@@ -18,6 +18,69 @@ function fmtAud(v: number): string {
 }
 function fmtPct(v: number): string { return `${v.toFixed(1)}%`; }
 function fmtX(v: number): string { return `${v.toFixed(1)}x`; }
+
+/* ─── CSV Export ──────────────────────────────────────────────────────────── */
+function exportCsv(report: VcValuationReport) {
+  const rows: string[][] = [];
+  const row = (...cols: (string | number)[]) => rows.push(cols.map(String));
+
+  row("BlockID.au — VC Valuation Report");
+  row("Generated", new Date().toISOString().slice(0, 10));
+  row("Stage", report.stage, "Sector", report.sector, "Currency", report.currency);
+  row("");
+
+  row("BLENDED VALUATION");
+  row("Bear", report.blended.lowAud, "Base", report.blended.midAud, "Bull", report.blended.highAud);
+  row("Confidence %", report.blended.confidence);
+  row("");
+
+  row("MARKET SIZING");
+  row("TAM (AUD)", report.market.tamAud);
+  row("SAM (AUD)", report.market.samAud);
+  row("SOM (AUD)", report.market.somAud);
+  row("CAGR %", report.market.cagrPct);
+  row("");
+
+  row("VALUATION METHODS");
+  row("Method", "Low AUD", "Mid AUD", "High AUD", "Weight %", "Rationale");
+  for (const m of report.methods) {
+    row(m.method, m.lowAud, m.midAud, m.highAud, (m.weight * 100).toFixed(1), m.rationale);
+  }
+  row("");
+
+  row("36-MONTH PROJECTIONS");
+  row("Month", "MRR (AUD)", "Revenue (AUD)", "COGS (AUD)", "OPEX (AUD)", "EBITDA (AUD)", "Cash Balance (AUD)");
+  for (const p of report.projection) {
+    row(p.month, p.mrrAud, p.revenueAud, p.cogsAud, p.opexAud, p.ebitdaAud, p.cashBalanceAud);
+  }
+  row("");
+
+  row("UNIT ECONOMICS");
+  const u = report.unitEconomics;
+  row("CAC (AUD)", u.cacAud, "LTV (AUD)", u.ltvAud, "LTV:CAC", u.ltvCacRatio.toFixed(2));
+  row("Gross Margin %", u.grossMarginPct, "Rule of 40", u.ruleOf40, "CAC Payback (mo)", u.cacPaybackMonths ?? "N/A");
+  row("Verdict", u.verdict);
+  row("");
+
+  row("RAISE PLAN");
+  const inj = report.injection;
+  row("Raise (AUD)", inj.raiseAud, "Pre-money (AUD)", inj.preMoneyAud, "Post-money (AUD)", inj.postMoneyAud);
+  row("Dilution %", inj.dilutionPct, "Runway Extension (mo)", inj.runwayExtensionMonths);
+  row("Next Milestone", inj.nextMilestone);
+  row("Use of Funds (Category)", "% Allocation", "AUD Amount");
+  for (const f of inj.useOfFunds) {
+    row(f.category, f.pct, f.aud);
+  }
+
+  const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `blockid-valuation-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 /* ─── Tabs ────────────────────────────────────────────────────────────────── */
 const TABS = [
@@ -98,10 +161,20 @@ export function VcValuationDashboard() {
               {fmtAud(report.blended.lowAud)} – {fmtAud(report.blended.highAud)} range
             </p>
           </div>
-          <div className="text-right">
-            <p className="text-xs text-brand-300">Confidence</p>
-            <p className="text-3xl font-bold tabular-nums">{report.blended.confidence}%</p>
-            {svi && <p className="text-xs text-brand-300 mt-0.5">SVI {svi}</p>}
+          <div className="text-right flex flex-col items-end gap-2">
+            <div>
+              <p className="text-xs text-brand-300">Confidence</p>
+              <p className="text-3xl font-bold tabular-nums">{report.blended.confidence}%</p>
+              {svi && <p className="text-xs text-brand-300 mt-0.5">SVI {svi}</p>}
+            </div>
+            <button
+              type="button"
+              onClick={() => exportCsv(report)}
+              className="flex items-center gap-1.5 rounded-lg bg-white/10 hover:bg-white/20 px-3 py-1.5 text-xs font-medium text-white transition-colors"
+            >
+              <Download strokeWidth={1.75} className="h-3 w-3" />
+              Export CSV
+            </button>
           </div>
         </div>
         <div className="mt-6 grid grid-cols-3 gap-3">
