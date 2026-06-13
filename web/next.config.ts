@@ -2,6 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Exclude dirs that must never be bundled into standalone (prevents exponential
+  // disk growth: each release would otherwise re-include all previous releases).
+  outputFileTracingExcludes: {
+    "**/*": ["releases/**", ".git/**", ".next-backup/**", "**/*.log", ".next/**"],
+  },
   reactStrictMode: true,
   poweredByHeader: false, // Remove X-Powered-By: Next.js
   // Include native/binary packages in standalone output

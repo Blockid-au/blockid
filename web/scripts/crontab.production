@@ -127,6 +127,9 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # 6:30am AEST Sunday — Lifecycle follow-up emails
 30 20 * * 0 bash $RUN weekly-insights --timeout 120
 
+# 3:00am AEST Sunday (17:00 UTC Sat) — Disk cleanup (nested releases, npm cache, /tmp, Docker)
+0 17 * * 0 bash /home/dovanlong/blockid.au/web/scripts/clean-disk.sh --apply >> /tmp/blockid-clean-disk.log 2>&1
+
 # ═══════════════════════════════════════════════════════════════
 # PIPELINE FLOW DIAGRAM
 # ═══════════════════════════════════════════════════════════════

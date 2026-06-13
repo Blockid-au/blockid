@@ -29,17 +29,19 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WEB_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 STANDALONE="$WEB_DIR/.next/standalone"
-BACKUP_DIR="$WEB_DIR/.next-backup"
+BACKUP_DIR="${DATA_DIR:-/data}/backups/next-backup"
+# Fallback: if /data not mounted, use legacy location so deploys never fail
+[ -d "/data/backups" ] || BACKUP_DIR="$WEB_DIR/.next-backup"
 # ── Immutable release dirs (the real zero-downtime fix) ───────────────
 # The live server runs from releases/<BUILD_ID>, NOT from .next/standalone.
 # Because of that, the NEXT build's `rm -rf .next` can no longer delete the
 # directory the running server is serving /_next/static/* from. Past outage:
 # every deploy did `rm -rf .next`, which nuked the live server's cwd mid-build
 # (cwd → "(deleted)") so every JS/CSS chunk 500'd for the whole build window.
-RELEASES_DIR="$WEB_DIR/releases"
+RELEASES_DIR="$WEB_DIR/releases"           # symlink → /data/releases (300GB disk)
 CURRENT_LINK="$WEB_DIR/.next-current"     # symlink → releases/<BUILD_ID> now live
 PREV_LINK="$WEB_DIR/.next-previous"       # symlink → previous live release (rollback)
-RELEASES_KEEP=4                           # how many release dirs to retain
+RELEASES_KEEP=6                           # retain 6 releases (space is ample on /data)
 LOG="/tmp/blockid-production.log"
 LOG_NEW="/tmp/blockid-production-new.log"
 PID_FILE="/tmp/blockid-production.pid"
@@ -402,6 +404,9 @@ mkdir -p "$RELEASES_DIR"
 rm -rf "$RELEASE_DIR"
 cp -al "$STANDALONE" "$RELEASE_DIR" 2>/dev/null || cp -a "$STANDALONE" "$RELEASE_DIR"
 [ -f "$RELEASE_DIR/server.js" ] || restore_lkg_and_fail "Failed to freeze release dir $RELEASE_DIR."
+# Belt-and-suspenders: remove any nested dirs that standalone file-tracing may have
+# pulled in. These add no runtime value and cause exponential disk growth on redeploy.
+rm -rf "$RELEASE_DIR/releases" "$RELEASE_DIR/.git" "$RELEASE_DIR/.next-backup"
 echo "  ✅ Release frozen: releases/$BUILD_ID"
 
 # Start on temp port (from the immutable release dir)
