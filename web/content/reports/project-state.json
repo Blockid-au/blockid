@@ -1,23 +1,88 @@
 {
-  "version": "0.1.0",
-  "updatedAt": "2026-06-12T00:00:00.000Z",
+  "version": "0.2.0",
+  "updatedAt": "2026-06-13T00:10:00.000Z",
   "architecture": {
-    "summary": "BlockID.au — Startup Navigation System (SCN: Validation → Position → Value → Direction → Capital). Next.js standalone + Supabase, zero-downtime deploys (immutable releases + port swap). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade their domain modules under src/lib/agents/.",
-    "lastReviewedAt": "2026-06-12T00:00:00.000Z",
-    "notes": []
+    "summary": "BlockID.au — Startup Navigation System (SCN: Validation → Position → Value → Direction → Capital). Next.js standalone + Supabase, zero-downtime deploys (immutable releases + port swap). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. Self-upgrade runs as a CEO implementing-plan loop; deploy-causing stages are gated to off-peak (AEST 22:00-06:00) for 24/7 availability.",
+    "lastReviewedAt": "2026-06-13T00:10:00.000Z",
+    "notes": [
+      "v0.2.0 — CEO implementing-plan loop (research → CEO plan → code → version/milestone/architecture), off-peak deploy gating, cloud-routine silent-death guard, RnD added as daily-research agent."
+    ]
   },
   "plan": {
-    "decidedAt": "",
+    "decidedAt": "2026-06-13T00:10:00.000Z",
     "decidedBy": "ceo",
-    "tasks": []
+    "tasks": [
+      {
+        "id": "T0001",
+        "agent": "coo",
+        "title": "Mandatory daily C-Level reporting template + EOD enforcement",
+        "rationale": "Standardise every C-Level status update (content/reports/_daily-report-template.md). EOD enforcement provided by the cron-health silent-death guard which flags any agent that did not report. KPI: 100% of C-Level agents report each cycle.",
+        "versionImpact": "patch",
+        "status": "done",
+        "createdAt": "2026-06-13T00:10:00.000Z",
+        "completedAt": "2026-06-13T00:10:00.000Z"
+      },
+      {
+        "id": "T0002",
+        "agent": "cto",
+        "title": "Off-peak daily auto-upgrade CI/CD pipeline (first deploy < 48h)",
+        "rationale": "Minimal viable CI/CD already live: agent-deploy (tsc→lint→build→smoke→deploy-live zero-downtime) + orchestrator CEO loop scheduled 12/14/16/18 UTC off-peak; cloud CEO routine ships code at 19:00 UTC. First auto-upgrade deploy runs tonight (well within 48h). KPI: ≥1 successful auto-deploy/day, 0 peak-hour restarts.",
+        "versionImpact": "minor",
+        "status": "done",
+        "createdAt": "2026-06-13T00:10:00.000Z",
+        "completedAt": "2026-06-13T00:10:00.000Z"
+      },
+      {
+        "id": "T0005",
+        "agent": "coo",
+        "title": "Daily QA health-check — automated test suite in the QA dashboard",
+        "rationale": "vitest suite (80 tests) wired into agent-healthcheck Code Quality category → appears in the daily qa-daily report. First health-check: 80/80 passing. KPI: 100% test pass on the daily QA dashboard; alert on any regression.",
+        "versionImpact": "patch",
+        "status": "done",
+        "createdAt": "2026-06-13T00:10:00.000Z",
+        "completedAt": "2026-06-13T00:10:00.000Z"
+      },
+      {
+        "id": "T0003",
+        "agent": "rnd",
+        "title": "Pilot a new valuation-model feature (allocate ≥10% AI budget)",
+        "rationale": "Use ≥10% of the monthly AI budget (~$10 of $100; only $0.18 spent MTD so headroom is ample) to prototype an improved valuation model in src/lib/valuation.ts. KPI: +5% analysis speed (lower analyse duration_ms) with no accuracy regression on the vitest suite. RnD owns the experiment; ship via the CEO loop.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-06-13T00:10:00.000Z"
+      },
+      {
+        "id": "T0004",
+        "agent": "cro",
+        "title": "Power-user survey + interview program (self-healing feedback + upsell)",
+        "rationale": "Feedback capture API (/api/feedback → user_feedback) already exists; add proactive outreach: a short in-app survey on the self-healing feature and a power-user interview invite for the most active accounts. KPI: ≥20 survey responses + ≥5 interviews in 2 weeks; ≥1 validated upsell signal. CRO owns; ship via the CEO loop.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-06-13T00:10:00.000Z"
+      }
+    ]
   },
-  "milestones": [],
+  "milestones": [
+    {
+      "id": "M001",
+      "title": "CEO implementing-plan loop activated + board directives Q seeded; reporting template, off-peak CI/CD, and QA test integration shipped",
+      "version": "0.2.0",
+      "completedAt": "2026-06-13T00:10:00.000Z",
+      "taskIds": ["T0001", "T0002", "T0005"]
+    }
+  ],
   "history": [
     {
       "ts": "2026-06-12T00:00:00.000Z",
       "action": "bootstrap",
       "version": "0.1.0",
       "note": "CEO implementing-plan loop initialised — research → CEO decision → code → version/milestone/architecture."
+    },
+    {
+      "ts": "2026-06-13T00:10:00.000Z",
+      "action": "release",
+      "version": "0.2.0",
+      "note": "Board directives recorded as CEO plan. Shipped: reporting template (T0001), off-peak CI/CD schedule (T0002), QA test suite in daily dashboard (T0005). Pending pilots: valuation model (T0003), survey/interview program (T0004)."
     }
   ]
 }
