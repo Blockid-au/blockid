@@ -19,9 +19,10 @@
 set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WEB_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-RELEASES_DIR="$WEB_DIR/releases"
+RELEASES_DIR="${DATA_DIR:-/data}/releases"  # /data (300GB disk) or fallback
 CURRENT_LINK="$WEB_DIR/.next-current"
 PREV_LINK="$WEB_DIR/.next-previous"
+DATA_DISK="${DATA_DIR:-/data}"
 DRY_RUN=true
 FREED=0
 
