@@ -720,6 +720,76 @@
         "label": "Get Your Free Startup Valuation",
         "href": "/"
       }
+    },
+    {
+      "slug": "safe-note-australia-founders-guide",
+      "title": "SAFE Notes in Australia: What Founders Need to Know Before Signing",
+      "description": "A practical guide to SAFE notes under Australian law — how they work, Y Combinator SAFE vs AU variants, and when to use them vs convertible notes.",
+      "keywords": ["safe note australia", "convertible note vs safe note australia", "Y Combinator safe note AU law", "startup investment agreement australia"],
+      "category": "fundraising",
+      "publishedAt": "2026-06-13",
+      "readingTime": 6,
+      "cta": { "label": "Check Your Funding Readiness", "href": "/score" }
+    },
+    {
+      "slug": "startup-due-diligence-checklist-australia",
+      "title": "Due Diligence Checklist for Australian Startups: What Investors Will Ask",
+      "description": "Complete due diligence checklist for AU startups: legal docs, financials, IP, cap table, and team documents VCs will request before writing a cheque.",
+      "keywords": ["due diligence checklist startup australia", "investor due diligence australia", "pre-seed due diligence", "startup DD checklist"],
+      "category": "fundraising",
+      "publishedAt": "2026-06-13",
+      "readingTime": 7,
+      "cta": { "label": "Run Your SVI Analysis", "href": "/score" }
+    },
+    {
+      "slug": "startup-legal-structures-australia-comparison",
+      "title": "Startup Legal Structures in Australia: Pty Ltd vs Trust vs Partnership",
+      "description": "Compare Pty Ltd, discretionary trust, unit trust and partnership for AU startups. Tax, liability, and investor-readiness implications explained.",
+      "keywords": ["startup legal structure australia", "pty ltd vs trust startup", "company structure australia", "best legal structure for startup australia"],
+      "category": "legal",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": { "label": "Check ESIC Eligibility", "href": "/tools/esic-checker" }
+    },
+    {
+      "slug": "ip-assignment-agreement-startup-australia",
+      "title": "IP Assignment for Australian Startups: Protecting Your Intellectual Property",
+      "description": "How to assign IP to your Australian startup company, what needs assigning, and why investors will kill your deal if it's missing.",
+      "keywords": ["ip assignment startup australia", "intellectual property agreement startup", "IP protection startup australia", "founder IP agreement"],
+      "category": "legal",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": { "label": "Build Your Data Room", "href": "/tools/data-room" }
+    },
+    {
+      "slug": "saas-pricing-strategy-australia-startups",
+      "title": "SaaS Pricing Strategy for Australian Startups: Models, Psychology & Data",
+      "description": "Value-based, cost-plus, and competitive pricing models for AU SaaS startups. Includes AU market benchmarks, psychological pricing tactics, and common mistakes.",
+      "keywords": ["saas pricing strategy australia", "startup pricing model", "saas pricing psychology", "how to price saas product australia"],
+      "category": "growth",
+      "publishedAt": "2026-06-13",
+      "readingTime": 6,
+      "cta": { "label": "See Your Unit Economics", "href": "/dashboard/valuation" }
+    },
+    {
+      "slug": "customer-discovery-framework-australian-startups",
+      "title": "Customer Discovery Framework for Australian Startups: Validate Before You Build",
+      "description": "A concrete customer discovery framework for AU founders: 20 problem interviews, concierge MVPs, validation metrics, and AU-specific distribution channels.",
+      "keywords": ["customer discovery australia", "startup customer validation", "problem-solution fit australia", "how to do customer discovery startup"],
+      "category": "growth",
+      "publishedAt": "2026-06-13",
+      "readingTime": 7,
+      "cta": { "label": "Check Your PMF Score", "href": "/score" }
+    },
+    {
+      "slug": "startup-co-founder-agreement-australia",
+      "title": "Co-Founder Agreement Template for Australian Startups: What to Include",
+      "description": "Essential clauses for an AU co-founder agreement: equity split, 4-year vesting, IP assignment, decision rights, and exit provisions that investors expect.",
+      "keywords": ["co-founder agreement australia", "startup co-founder contract", "founder equity agreement", "co-founder legal agreement australia"],
+      "category": "legal",
+      "publishedAt": "2026-06-13",
+      "readingTime": 6,
+      "cta": { "label": "Model Your Cap Table", "href": "/workspace/cap-table" }
     }
   ]
 }
