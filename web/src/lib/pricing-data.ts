@@ -44,15 +44,15 @@ export const PRICING_TIERS: PricingTier[] = [
     name: "Free",
     price: "$0",
     cadence: "forever",
-    credits: "2 credits",
-    audience: "Try BlockID — no signup needed",
+    credits: "5 credits",
+    audience: "Get your startup valuation score instantly — no card needed",
     features: [
-      "1 SVI analysis",
-      "Investor-Ready Score",
-      "Basic dilution calculator",
-      "Shareable web link",
+      "Full SVI analysis (instant score)",
+      "Investor-Ready Score + AI valuation (AUD)",
+      "Equity dilution calculator",
+      "Shareable score link",
     ],
-    cta: { label: "Get Started Free", href: "/#svi" },
+    cta: { label: "Get My Free Valuation Score", href: "/#svi" },
     ctaStyle: "secondary",
   },
   {
@@ -62,16 +62,16 @@ export const PRICING_TIERS: PricingTier[] = [
     numericPrice: 49,
     cadence: "one-off",
     subtitle: "one-time \u00b7 lifetime access",
-    credits: "50 credits",
-    audience: "Everything you need from idea to fundraise",
+    credits: "100 credits (never expires)",
+    audience: "Everything from idea to investor-ready — pay once, own it forever",
     features: [
-      "50 SVI analyses",
-      "Evidence Vault & export packs",
-      "Cap table & equity tools",
-      "Term Sheet AI",
-      "Co-founder matching",
-      "30-day growth plan",
-      "Referral credits",
+      "100 SVI analyses (lifetime)",
+      "PDF investor-ready report",
+      "Evidence Vault & document storage",
+      "Cap table & ESOP calculator",
+      "Term Sheet AI analysis",
+      "30-day SVI growth action plan",
+      "Referral credits (earn free analyses)",
       "Priority support",
     ],
     cta: { label: "Get Founding 50 \u2014 A$49", href: "/founding-50" },
@@ -145,10 +145,10 @@ export interface CreditPack {
 }
 
 export const CREDIT_PACKS: CreditPack[] = [
-  { credits: 10, price: 5, savings: null, href: "/workspace/billing#credits" },
-  { credits: 25, price: 9, savings: "Save 28%", href: "/workspace/billing#credits" },
-  { credits: 50, price: 15, savings: "Save 40%", href: "/workspace/billing#credits" },
-  { credits: 100, price: 25, savings: "Save 50%", href: "/workspace/billing#credits" },
+  { credits: 5, price: 2, savings: null, href: "/workspace/billing#credits" },
+  { credits: 15, price: 5, savings: "Save 33%", href: "/workspace/billing#credits" },
+  { credits: 35, price: 9, savings: "Save 49%", href: "/workspace/billing#credits" },
+  { credits: 100, price: 19, savings: "Save 62%", href: "/workspace/billing#credits" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -163,7 +163,7 @@ export interface ComparisonRow {
 }
 
 export const COMPARISON_ROWS: ComparisonRow[] = [
-  { feature: "SVI Analyses", free: "1", founding: "50", growth: "100/mo" },
+  { feature: "SVI Analyses", free: "5 free (instant)", founding: "100 (lifetime)", growth: "Unlimited" },
   { feature: "PDF Export", free: "-", founding: "Yes", growth: "Yes" },
   { feature: "Evidence Vault", free: "-", founding: "Yes", growth: "Yes" },
   { feature: "Term Sheet AI", free: "-", founding: "Yes", growth: "Unlimited" },

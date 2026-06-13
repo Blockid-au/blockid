@@ -1,8 +1,10 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v1.7.0  ·  **Updated:** 2026-06-13T06:08:00.000Z  ·  **Decided by:** ceo
+**Version:** v1.9.0  ·  **Updated:** 2026-06-13T06:50:00.000Z  ·  **Decided by:** ceo
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
+> 
+> **Strategic direction (2026-06-13):** Unicorn ops model active. Pricing reformed to freemium+pay-per-result. 300GB /data disk live. Roadmap: Startup Index (BSI-AU) as long-term category moat.
 
 ---
 
@@ -16,10 +18,24 @@
 | Runway | ~18 months at A$3K/mo opex |
 | AI Budget | US$0.18 / US$100 (0.18%) |
 | Valuation (blended mid) | A$488K |
-| Platform version | v1.7.0 (M015) |
+| Platform version | v1.9.0 (M017) |
+| Disk (root /sda1) | 95G/276G (36%) |
+| Disk (/data sdb) | 3.6G/295G (2%) — new 300GB disk live |
 | Build status | tsc 0 errors · eslint clean · 94/94 tests |
+| Operating model | Unicorn C-Level ops (see clevel-operations.md) |
+| Strategic goal | BlockID Startup Index (BSI-AU) — Phase 1 data collection |
 
-**SCN Priority Frame:** Pre-seed pre-revenue → Revenue Activation first, then Conversion funnel, then Evidence Vault depth, then SEO flywheel. Every task below is scored against this frame.
+**SCN Priority Frame (updated):** Free → immediate value → micro-upgrade (A$2) → Founding 50 (A$49) → Startup Index ARR. Every task below is scored against: customer benefit first, then revenue activation, then data moat.
+
+### Data architecture (/data disk — 300GB)
+```
+/data/releases/          ← web/releases symlink (replaces root disk)
+/data/backups/           ← .next-backup, DB dumps
+/data/logs/              ← archived prod logs
+/data/npm-cache/         ← npm cache (was 2.5GB on root)
+/data/supabase-volumes/  ← future Supabase volume mount
+/data/media/             ← future user-uploaded media
+```
 
 ---
 
@@ -30,6 +46,13 @@
 | T0010 | CMO | Product Hunt launch — submit listing, first comment from founder, 5 feature screenshots | major | ⬜ pending (user action required) |
 | T0011 | CRO | Accelerator outreach — Antler application updated, submit to July 2026 cohort | minor | ⬜ pending (user action required) |
 | T0048 | CTO | Create Supabase migration for founding50_waitlist table (email PK, name, joined_at) — required for T0047 waitlist to persist | minor | ⬜ pending (next deploy) |
+| T0049 | CTO | **PR #3** — Merge disk-fix branch after review. Then: bash scripts/deploy-live.sh | major | ⬜ pending (review → merge → deploy) |
+| T0050 | COO | Apply updated crontab: `crontab web/scripts/crontab.production` (adds Sunday disk cleanup) | minor | ⬜ pending (user: run crontab command) |
+| T0051 | CRO | Pricing reform live: free tier 5 credits, founding50 100 credits, micro pack A$2/5cr — deploy with T0049 | major | ⬜ pending (in PR #3) |
+| T0052 | CTO | Supabase migration: `svi_index_snapshots` table for Startup Index data collection (see startup-index-vision.md) | major | ⬜ pending |
+| T0053 | CTO | Hook SVI analysis endpoint to write anonymised snapshot to svi_index_snapshots on every run | major | ⬜ pending |
+| T0054 | CMO | Create `/index` landing page — "BlockID Startup Index" concept, waitlist for beta API access | minor | ⬜ pending |
+| T0055 | CEO | Outreach to 3 AU VC funds for BSI beta data-feed partnership (Blackbird, Square Peg, Airtree) | major | ⬜ pending (user action) |
 
 ---
 
@@ -79,6 +102,8 @@
 
 ## Milestones
 
+- **M017** v1.9.0 — 300GB /data disk mounted (sdb, ext4, UUID in fstab); releases/ symlinked to /data/releases; npm cache moved to /data/npm-cache; Pricing reform: free 5 credits + founding50 100 credits + A$2 micro pack; clevel-operations.md + startup-index-vision.md created; plan updated. tsc 0 errors (2026-06-13)
+- **M016** v1.8.0 — T0049: Disk fix PR #3: outputFileTracingExcludes (stops releases/ being bundled in standalone), deploy-live.sh nested-dir purge, clean-disk.sh maintenance script. npm cache cleaned (~2GB freed). Disk: 121G→97G (37%). PR: https://github.com/Blockid-au/blockid/pull/3 (pending merge + deploy) (2026-06-13)
 - **M015** v1.7.0 — T0047: Founding 50 waitlist (POST /api/founding50/waitlist, Founding50Waitlist component, server-side spots check). T0045: 3 trust FAQ items. T0046: 14 new insight articles (59 total). tsc 0 errors, eslint clean (2026-06-13, sha 535cfae)
 - **M014** v1.6.0 — T0041-T0044: CTA analytics tracking (plan_cta_clicked + checkout_started on pricing), FAQJsonLd on /pricing, ArticleJsonLd on 45 insight articles, fake aggregateRating removed. tsc 0 errors, eslint clean (2026-06-13, sha 1d8ca72)
 - **M013** v1.5.0 — T0031: Xero OAuth (P&L + revenue evidence). T0038: Sentry error monitoring (HTTP Store API, no SDK). T0039: LinkedIn auto-post cron. T0040: multi-project workspace verified. tsc 0 errors, eslint clean (2026-06-13)
