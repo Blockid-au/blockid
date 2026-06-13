@@ -1,6 +1,339 @@
 {
   "articles": [
     {
+      "slug": "building-startup-australia-vs-silicon-valley",
+      "title": "Australia vs Silicon Valley: Startup Hub Comparison",
+      "description": "Discover why Australia is a top choice for startups. Compare the Australian and Silicon Valley ecosystems, funding options, and benefits of starting a busi",
+      "keywords": [
+        "startup Australia vs Silicon Valley",
+        "building a startup in Australia",
+        "Australian startup ecosystem",
+        "why start a business in Australia",
+        "Australia vs Silicon Valley startup funding",
+        "startup valuation Australia",
+        "benefits of starting a business in Australia",
+        "Australian startup founders",
+        "startup success stories Australia"
+      ],
+      "category": "growth",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Track Your Startup Journey",
+        "href": "/"
+      }
+    },
+    {
+      "slug": "startup-insurance-guide-australia",
+      "title": "Startup Insurance Australia: Essential Coverage for Founders",
+      "description": "Learn about startup insurance in Australia, including costs, and essential coverage like D&O, professional indemnity & cyber insurance for pre-seed, seed s",
+      "keywords": [
+        "startup insurance Australia",
+        "business insurance for startups",
+        "D&O insurance for startups Australia",
+        "professional indemnity insurance startup Australia",
+        "pre-seed startup insurance",
+        "seed stage startup insurance",
+        "startup cyber insurance Australia",
+        "Australian startup insurance costs"
+      ],
+      "category": "compliance",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Check Your Risk Profile",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "asic-director-duties-startup-founders",
+      "title": "ASIC Director Duties Australia: A Startup Founder's Guide",
+      "description": "Understand ASIC director duties and liabilities in Australia. Learn key responsibilities, insolvent trading risks and checklist for startup founders.",
+      "keywords": [
+        "ASIC director duties Australia",
+        "startup director responsibilities",
+        "company director duties Corporations Act",
+        "insolvent trading startup Australia",
+        "director liabilities Australia",
+        "ASIC director duties checklist",
+        "startup founder director responsibilities",
+        "director duties with investors Australia"
+      ],
+      "category": "compliance",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Check Your Governance Compliance",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "startup-valuation-methods-pre-revenue",
+      "title": "Valuing Pre-Revenue Startups in Australia: A Founder's Guide",
+      "description": "Learn how to value a pre-revenue startup in Australia with our expert guide. Discover pre-revenue startup valuation methods and benchmarks.",
+      "keywords": [
+        "how to value a pre-revenue startup australia",
+        "pre-revenue startup valuation methods",
+        "startup valuation australia",
+        "berkus method startup valuation",
+        "scorecard method startup valuation",
+        "vc method startup valuation",
+        "australian startup valuation benchmarks",
+        "pre seed startup valuation australia"
+      ],
+      "category": "valuation",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Get Your AI Valuation Free",
+        "href": "/"
+      }
+    },
+    {
+      "slug": "non-dilutive-funding-strategies-australia",
+      "title": "Non-Dilutive Funding Australia: Boost Your Startup Without Equity",
+      "description": "Discover non-dilutive funding options in Australia to grow your startup without giving up equity. Learn about grants, loans & R&D tax offsets.",
+      "keywords": [
+        "non-dilutive funding Australia",
+        "startup funding without equity",
+        "bootstrap funding strategies",
+        "Australian startup grants",
+        "R&D tax offset Australia",
+        "government grants for startups Australia",
+        "revenue-based financing Australia",
+        "startup loans without equity"
+      ],
+      "category": "fundraising",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Find Your Best Funding Path",
+        "href": "/tools/funding-plan"
+      }
+    },
+    {
+      "slug": "startup-due-diligence-checklist-australia",
+      "title": "Startup Due Diligence Checklist Australia: Prepare for Fundraising",
+      "description": "Discover the ultimate startup due diligence checklist for Australia. Learn how to prepare for investor due diligence and streamline your fundraising proces",
+      "keywords": [
+        "startup due diligence checklist Australia",
+        "investor due diligence process startup",
+        "pre-diligence checklist for fundraising",
+        "startup DD checklist for investors",
+        "Australian startup due diligence requirements",
+        "how to prepare for startup due diligence",
+        "due diligence surprises for startup founders",
+        "benefits of automating pre-diligence Australia"
+      ],
+      "category": "fundraising",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Run Your Pre-Diligence Now",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "how-to-find-product-market-fit-b2b-saas-australia",
+      "title": "Achieve B2B SaaS Product Market Fit in Australia: Strategies & Metrics",
+      "description": "Discover how to achieve product market fit for your B2B SaaS in Australia. Learn the signs, frameworks, and metrics to validate your product's success.",
+      "keywords": [
+        "B2B SaaS product market fit Australia",
+        "achieving product market fit B2B SaaS",
+        "signs of product market fit B2B startup",
+        "product market fit framework B2B SaaS Australia",
+        "measuring PMF B2B SaaS",
+        "product market fit signals B2B SaaS",
+        "B2B SaaS benchmarks Australia",
+        "SaaS PMF metrics Australia"
+      ],
+      "category": "growth",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Measure Your Traction Score",
+        "href": "/"
+      }
+    },
+    {
+      "slug": "investor-updates-best-practices-australia",
+      "title": "Effective Investor Updates in Australia: Templates & Best Practices",
+      "description": "Discover how to write a good investor update with our Australia-specific templates and best practices for startup investor communication.",
+      "keywords": [
+        "investor update template australia",
+        "monthly investor update startup",
+        "startup investor communication best practices",
+        "australian startup investor relations",
+        "how to write a good investor update",
+        "investor reporting for startups",
+        "startup metrics for investors",
+        "automated investor update tools"
+      ],
+      "category": "fundraising",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Automate Your Investor Reports",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "startup-ceo-salary-guide-australia",
+      "title": "Startup CEO Salary Australia: Fair Pay Benchmarks & Tax Tips",
+      "description": "Discover fair startup CEO salary benchmarks in Australia and learn tax-efficient strategies for founder remuneration to maximise your earnings.",
+      "keywords": [
+        "startup CEO salary Australia",
+        "founder salary in Australia",
+        "how much should a startup CEO pay themselves",
+        "Australian startup founder compensation",
+        "pre-seed startup CEO salary",
+        "seed stage founder salary",
+        "Series A CEO pay",
+        "tax efficient founder remuneration Australia"
+      ],
+      "category": "growth",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Model Your Team Budget",
+        "href": "/tools/funding-plan"
+      }
+    },
+    {
+      "slug": "revenue-based-financing-australia",
+      "title": "Revenue Based Financing Australia: Non-Dilutive Funding for Startups",
+      "description": "Discover revenue based financing in Australia, a non-dilutive funding option for SaaS startups. Learn how RBF works and its valuation implications.",
+      "keywords": [
+        "revenue based financing Australia",
+        "non-dilutive startup funding Australia",
+        "RBF startup Australia",
+        "Capchase alternative Australia",
+        "revenue based funding for SaaS",
+        "Australian startup financing options",
+        "non-dilutive capital for startups Australia",
+        "how to value a SaaS startup Australia"
+      ],
+      "category": "fundraising",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Explore Funding Options",
+        "href": "/tools/funding-plan"
+      }
+    },
+    {
+      "slug": "how-to-do-competitive-analysis-startup-pitch",
+      "title": "Startup Competitive Analysis Australia: Boost Your Pitch",
+      "description": "Learn how to do competitive analysis for startup pitches in Australia. Get a competitive landscape analysis template and create a winning investor pitch wi",
+      "keywords": [
+        "startup competitive analysis australia",
+        "competitive landscape analysis template",
+        "how to do competitive analysis for startup pitch",
+        "competitive matrix 2x2",
+        "analysing competitors for pitch deck",
+        "australian startup market analysis",
+        "competitive positioning in australian market",
+        "startup valuation competitive advantage"
+      ],
+      "category": "fundraising",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Get AI Competitive Intelligence",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "startup-board-of-directors-setup-guide",
+      "title": "Setting Up a Startup Board of Directors in Australia",
+      "description": "Learn how to set up a startup board of directors in Australia, including best practices, composition, and director duties under the Corporations Act.",
+      "keywords": [
+        "startup board of directors Australia",
+        "setting up a startup board of directors",
+        "early stage board composition",
+        "independent director for startup",
+        "Australian startup governance",
+        "board of directors for seed stage startup",
+        "startup board best practices Australia",
+        "director duties Corporations Act Australia"
+      ],
+      "category": "compliance",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Check Your Governance Score",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "angel-investor-vs-vc-australia",
+      "title": "Angel Investor vs VC Australia: Funding Options for Startups",
+      "description": "Understand angel investor vs VC funding in Australia. Learn when to approach VCs, explore angel networks like Sydney Angels & choose the best early-stage f",
+      "keywords": [
+        "angel investor vs VC Australia",
+        "when to approach VC startup Australia",
+        "Australian angel investor networks",
+        "Sydney Angels",
+        "angel investment Australia",
+        "VC funding vs angel investment Australia",
+        "hybrid funding rounds Australia",
+        "early stage startup funding options Australia",
+        "best funding for pre-seed startups Australia",
+        "Australian startup valuation methods"
+      ],
+      "category": "fundraising",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Get Your Investor-Ready Score",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "minimum-viable-product-strategy-australia",
+      "title": "Minimum Viable Product Strategy Australia: A Founder's Guide",
+      "description": "Learn how to build a successful MVP in Australia. Discover the best strategies for validation, from concierge to landing page MVPs, and measure success.",
+      "keywords": [
+        "minimum viable product strategy Australia",
+        "MVP startup validation",
+        "how to build a minimum viable product",
+        "MVP strategy for Australian startups",
+        "concierge MVP Australia",
+        "wizard of oz MVP example",
+        "landing page MVP validation",
+        "measuring MVP success Australia"
+      ],
+      "category": "growth",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Validate Your Idea Score",
+        "href": "/tools/idea-valuation"
+      }
+    },
+    {
+      "slug": "startup-salary-benchmarks-australia-2026",
+      "title": "2026 Australian Startup Salary Benchmarks: Guide to Competitive Pay",
+      "description": "Discover the latest 2026 startup salary benchmarks in Australia. Get data-driven insights on competitive pay for engineers, product managers, marketing & s",
+      "keywords": [
+        "startup salary benchmarks Australia 2026",
+        "average startup engineer salary Sydney 2026",
+        "startup team salary ranges Australia",
+        "tech startup compensation packages 2026",
+        "Australian startup salary guide by role",
+        "software engineer salary startup Australia",
+        "product manager salary startup Sydney",
+        "marketing sales salaries startup Australia 2026"
+      ],
+      "category": "growth",
+      "publishedAt": "2026-06-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Model Your Team Costs",
+        "href": "/tools/funding-plan"
+      }
+    },
+    {
       "slug": "asic-company-registration-startup-guide",
       "title": "Register a Startup in Australia: ASIC Company Registration Guide",
       "description": "Learn how to register a startup in Australia with ASIC. Compare Pty Ltd vs trust structures, understand ABN registration & ESIC eligibility, and get starte",
@@ -703,7 +1036,7 @@
     {
       "slug": "how-to-value-a-startup-idea-australia",
       "title": "How to Value a Startup Idea in Australia (2026 Guide)",
-      "description": "Five practical methods to value your startup from idea stage — Berkus, Scorecard, VC Method, Cost-to-Duplicate, and AI-powered valuation. Calibrated for Australian founders with AUD benchmarks.",
+      "description": "Five practical methods to value your startup from idea stage \u2014 Berkus, Scorecard, VC Method, Cost-to-Duplicate, and AI-powered valuation. Calibrated for Australian founders with AUD benchmarks.",
       "keywords": [
         "startup valuation Australia",
         "how to value a startup idea",
@@ -724,72 +1057,110 @@
     {
       "slug": "safe-note-australia-founders-guide",
       "title": "SAFE Notes in Australia: What Founders Need to Know Before Signing",
-      "description": "A practical guide to SAFE notes under Australian law — how they work, Y Combinator SAFE vs AU variants, and when to use them vs convertible notes.",
-      "keywords": ["safe note australia", "convertible note vs safe note australia", "Y Combinator safe note AU law", "startup investment agreement australia"],
+      "description": "A practical guide to SAFE notes under Australian law \u2014 how they work, Y Combinator SAFE vs AU variants, and when to use them vs convertible notes.",
+      "keywords": [
+        "safe note australia",
+        "convertible note vs safe note australia",
+        "Y Combinator safe note AU law",
+        "startup investment agreement australia"
+      ],
       "category": "fundraising",
       "publishedAt": "2026-06-13",
       "readingTime": 6,
-      "cta": { "label": "Check Your Funding Readiness", "href": "/score" }
-    },
-    {
-      "slug": "startup-due-diligence-checklist-australia",
-      "title": "Due Diligence Checklist for Australian Startups: What Investors Will Ask",
-      "description": "Complete due diligence checklist for AU startups: legal docs, financials, IP, cap table, and team documents VCs will request before writing a cheque.",
-      "keywords": ["due diligence checklist startup australia", "investor due diligence australia", "pre-seed due diligence", "startup DD checklist"],
-      "category": "fundraising",
-      "publishedAt": "2026-06-13",
-      "readingTime": 7,
-      "cta": { "label": "Run Your SVI Analysis", "href": "/score" }
+      "cta": {
+        "label": "Check Your Funding Readiness",
+        "href": "/score"
+      }
     },
     {
       "slug": "startup-legal-structures-australia-comparison",
       "title": "Startup Legal Structures in Australia: Pty Ltd vs Trust vs Partnership",
       "description": "Compare Pty Ltd, discretionary trust, unit trust and partnership for AU startups. Tax, liability, and investor-readiness implications explained.",
-      "keywords": ["startup legal structure australia", "pty ltd vs trust startup", "company structure australia", "best legal structure for startup australia"],
-      "category": "legal",
+      "keywords": [
+        "startup legal structure australia",
+        "pty ltd vs trust startup",
+        "company structure australia",
+        "best legal structure for startup australia"
+      ],
+      "category": "compliance",
       "publishedAt": "2026-06-13",
       "readingTime": 5,
-      "cta": { "label": "Check ESIC Eligibility", "href": "/tools/esic-checker" }
+      "cta": {
+        "label": "Check ESIC Eligibility",
+        "href": "/tools/esic-checker"
+      }
     },
     {
       "slug": "ip-assignment-agreement-startup-australia",
       "title": "IP Assignment for Australian Startups: Protecting Your Intellectual Property",
-      "description": "How to assign IP to your Australian startup company, what needs assigning, and why investors will kill your deal if it's missing.",
-      "keywords": ["ip assignment startup australia", "intellectual property agreement startup", "IP protection startup australia", "founder IP agreement"],
-      "category": "legal",
+      "description": "How to assign IP to your Australian startup company, what needs assigning, and why investors will kill your deal if it is missing.",
+      "keywords": [
+        "ip assignment startup australia",
+        "intellectual property agreement startup",
+        "IP protection startup australia",
+        "founder IP agreement"
+      ],
+      "category": "compliance",
       "publishedAt": "2026-06-13",
       "readingTime": 5,
-      "cta": { "label": "Build Your Data Room", "href": "/tools/data-room" }
+      "cta": {
+        "label": "Build Your Data Room",
+        "href": "/tools/data-room"
+      }
     },
     {
       "slug": "saas-pricing-strategy-australia-startups",
       "title": "SaaS Pricing Strategy for Australian Startups: Models, Psychology & Data",
       "description": "Value-based, cost-plus, and competitive pricing models for AU SaaS startups. Includes AU market benchmarks, psychological pricing tactics, and common mistakes.",
-      "keywords": ["saas pricing strategy australia", "startup pricing model", "saas pricing psychology", "how to price saas product australia"],
+      "keywords": [
+        "saas pricing strategy australia",
+        "startup pricing model",
+        "saas pricing psychology",
+        "how to price saas product australia"
+      ],
       "category": "growth",
       "publishedAt": "2026-06-13",
       "readingTime": 6,
-      "cta": { "label": "See Your Unit Economics", "href": "/dashboard/valuation" }
+      "cta": {
+        "label": "See Your Unit Economics",
+        "href": "/dashboard/valuation"
+      }
     },
     {
       "slug": "customer-discovery-framework-australian-startups",
       "title": "Customer Discovery Framework for Australian Startups: Validate Before You Build",
       "description": "A concrete customer discovery framework for AU founders: 20 problem interviews, concierge MVPs, validation metrics, and AU-specific distribution channels.",
-      "keywords": ["customer discovery australia", "startup customer validation", "problem-solution fit australia", "how to do customer discovery startup"],
+      "keywords": [
+        "customer discovery australia",
+        "startup customer validation",
+        "problem-solution fit australia",
+        "how to do customer discovery startup"
+      ],
       "category": "growth",
       "publishedAt": "2026-06-13",
       "readingTime": 7,
-      "cta": { "label": "Check Your PMF Score", "href": "/score" }
+      "cta": {
+        "label": "Check Your PMF Score",
+        "href": "/score"
+      }
     },
     {
       "slug": "startup-co-founder-agreement-australia",
       "title": "Co-Founder Agreement Template for Australian Startups: What to Include",
       "description": "Essential clauses for an AU co-founder agreement: equity split, 4-year vesting, IP assignment, decision rights, and exit provisions that investors expect.",
-      "keywords": ["co-founder agreement australia", "startup co-founder contract", "founder equity agreement", "co-founder legal agreement australia"],
-      "category": "legal",
+      "keywords": [
+        "co-founder agreement australia",
+        "startup co-founder contract",
+        "founder equity agreement",
+        "co-founder legal agreement australia"
+      ],
+      "category": "compliance",
       "publishedAt": "2026-06-13",
       "readingTime": 6,
-      "cta": { "label": "Model Your Cap Table", "href": "/workspace/cap-table" }
+      "cta": {
+        "label": "Model Your Cap Table",
+        "href": "/workspace/cap-table"
+      }
     }
   ]
 }
