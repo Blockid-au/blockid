@@ -222,6 +222,28 @@ Write the full article in markdown. Make it genuinely helpful, visually rich wit
       invalidateCache();
     } catch { /* cache module may not be available in this context */ }
 
+    // 9. Ping Google Search Console to index the new article + updated sitemap
+    try {
+      const articleUrl = `https://blockid.au/insights/${nextTopic.slug}`;
+      const sitemapUrl = `https://blockid.au/sitemap.xml`;
+      // Bing ping (also picked up by some other engines)
+      await fetch(`https://www.bing.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`, { method: "GET" }).catch(() => {});
+      // IndexNow (Bing/Yandex/other engines — instant indexing signal)
+      const indexNowKey = process.env.INDEXNOW_KEY;
+      if (indexNowKey) {
+        await fetch("https://api.indexnow.org/indexnow", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            host: "blockid.au",
+            key: indexNowKey,
+            keyLocation: `https://blockid.au/${indexNowKey}.txt`,
+            urlList: [articleUrl],
+          }),
+        }).catch(() => {});
+      }
+    } catch { /* non-fatal */ }
+
     return NextResponse.json({
       ok: true,
       published: {
