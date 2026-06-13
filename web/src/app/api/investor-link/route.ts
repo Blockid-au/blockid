@@ -1,23 +1,24 @@
 import { NextResponse } from "next/server";
-import { createInvestorLink } from "@/lib/investor-links";
+import { createInvestorLink, listInvestorLinksForFounder, revokeInvestorLink } from "@/lib/investor-links";
+import { getCurrentUser } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase";
 
 // POST /api/investor-link
 // Body: {
-//   scoreId: string,         // existing score slug
-//   founderEmail: string,    // must match scores.email — proves ownership
-//   investorEmail?: string,
+//   scoreId: string,           // existing svi_analyses id
+//   investorEmail: string,     // required in v2
 //   investorName?: string,
 //   fundName?: string,
 //   note?: string,
+//   expiresAt?: string,        // ISO date string
 // }
-//
-// Returns: { ok, token, url } where url is /s/i/<token>.
-//
-// Auth note: until proper accounts ship, ownership is enforced by matching
-// founderEmail against the score's recorded email server-side. This is weaker
-// than a session, but the "lookup-then-insert" pattern in createInvestorLink
-// rejects mismatches with a 404-equivalent (score_not_found).
+// Returns: { ok, token, slug, url, investorEmail, investorName, fundName, createdAt }
+
+// GET /api/investor-link
+// Returns: { ok, links: InvestorLink[] } — all links for the authenticated founder
+
+// DELETE /api/investor-link?id=<token>
+// Revokes a specific link owned by the authenticated founder.
 
 function siteUrl(): string {
   return (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(
@@ -26,17 +27,32 @@ function siteUrl(): string {
   );
 }
 
+function notConfigured() {
+  return NextResponse.json(
+    {
+      ok: false,
+      error:
+        "Per-investor links require Supabase. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
+    },
+    { status: 503 },
+  );
+}
+
+function unauthorized() {
+  return NextResponse.json(
+    { ok: false, error: "Authentication required." },
+    { status: 401 },
+  );
+}
+
+// ---------------------------------------------------------------------------
+// POST — create a new per-investor link
+// ---------------------------------------------------------------------------
 export async function POST(request: Request) {
-  if (!isSupabaseConfigured()) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error:
-          "Per-investor links require Supabase. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
-      },
-      { status: 503 },
-    );
-  }
+  if (!isSupabaseConfigured()) return notConfigured();
+
+  const user = await getCurrentUser();
+  if (!user) return unauthorized();
 
   let body: unknown = null;
   try {
@@ -50,25 +66,18 @@ export async function POST(request: Request) {
 
   const parsed = body as {
     scoreId?: unknown;
-    founderEmail?: unknown;
     investorEmail?: unknown;
     investorName?: unknown;
     fundName?: unknown;
     note?: unknown;
+    expiresAt?: unknown;
   } | null;
 
-  const scoreId = typeof parsed?.scoreId === "string" ? parsed.scoreId.trim() : "";
-  const founderEmail =
-    typeof parsed?.founderEmail === "string" ? parsed.founderEmail.trim() : "";
+  const scoreId =
+    typeof parsed?.scoreId === "string" ? parsed.scoreId.trim() : "";
   if (!scoreId) {
     return NextResponse.json(
       { ok: false, error: "scoreId is required" },
-      { status: 400 },
-    );
-  }
-  if (!founderEmail || !founderEmail.includes("@")) {
-    return NextResponse.json(
-      { ok: false, error: "founderEmail is required" },
       { status: 400 },
     );
   }
@@ -77,15 +86,28 @@ export async function POST(request: Request) {
     typeof parsed?.investorEmail === "string" && parsed.investorEmail.trim()
       ? parsed.investorEmail.trim()
       : null;
-  if (investorEmail && !investorEmail.includes("@")) {
+  if (!investorEmail || !investorEmail.includes("@")) {
     return NextResponse.json(
-      { ok: false, error: "investorEmail must be a valid email" },
+      { ok: false, error: "investorEmail is required and must be a valid email" },
       { status: 400 },
     );
   }
 
+  let expiresAt: Date | null = null;
+  if (typeof parsed?.expiresAt === "string" && parsed.expiresAt.trim()) {
+    const d = new Date(parsed.expiresAt.trim());
+    if (isNaN(d.getTime())) {
+      return NextResponse.json(
+        { ok: false, error: "expiresAt must be a valid ISO date string" },
+        { status: 400 },
+      );
+    }
+    expiresAt = d;
+  }
+
   const result = await createInvestorLink({
     scoreId,
+    founderUserId: user.id,
     investorEmail,
     investorName:
       typeof parsed?.investorName === "string" && parsed.investorName.trim()
@@ -99,13 +121,14 @@ export async function POST(request: Request) {
       typeof parsed?.note === "string" && parsed.note.trim()
         ? parsed.note.trim().slice(0, 1000)
         : null,
-    createdByEmail: founderEmail,
+    createdByEmail: user.email,
+    expiresAt,
   });
 
   if (!result.ok) {
     if (result.reason === "score_not_found") {
       return NextResponse.json(
-        { ok: false, error: "Score not found or email does not match." },
+        { ok: false, error: "Score not found or you do not own it." },
         { status: 404 },
       );
     }
@@ -121,16 +144,71 @@ export async function POST(request: Request) {
     );
   }
 
-  const url = `${siteUrl()}/s/i/${result.link.token}`;
+  const { link } = result;
+  const url = link.slug
+    ? `${siteUrl()}/s/${link.slug}`
+    : `${siteUrl()}/s/i/${link.token}`;
+
   return NextResponse.json({
     ok: true,
-    token: result.link.token,
+    token: link.token,
+    slug: link.slug,
     url,
-    investorEmail: result.link.investorEmail,
-    investorName: result.link.investorName,
-    fundName: result.link.fundName,
-    createdAt: result.link.createdAt,
+    investorEmail: link.investorEmail,
+    investorName: link.investorName,
+    fundName: link.fundName,
+    createdAt: link.createdAt,
   });
+}
+
+// ---------------------------------------------------------------------------
+// GET — list all investor links for the authenticated founder
+// ---------------------------------------------------------------------------
+export async function GET() {
+  if (!isSupabaseConfigured()) return notConfigured();
+
+  const user = await getCurrentUser();
+  if (!user) return unauthorized();
+
+  const links = await listInvestorLinksForFounder(user.id, user.email);
+
+  return NextResponse.json({ ok: true, links });
+}
+
+// ---------------------------------------------------------------------------
+// DELETE — revoke a link by token (query param: ?id=<token>)
+// ---------------------------------------------------------------------------
+export async function DELETE(request: Request) {
+  if (!isSupabaseConfigured()) return notConfigured();
+
+  const user = await getCurrentUser();
+  if (!user) return unauthorized();
+
+  const { searchParams } = new URL(request.url);
+  const token = searchParams.get("id")?.trim() ?? "";
+  if (!token) {
+    return NextResponse.json(
+      { ok: false, error: "?id=<token> is required" },
+      { status: 400 },
+    );
+  }
+
+  const result = await revokeInvestorLink(token, user.id, user.email);
+
+  if (!result.ok) {
+    if (result.reason === "not_found") {
+      return NextResponse.json(
+        { ok: false, error: "Link not found or you do not own it." },
+        { status: 404 },
+      );
+    }
+    return NextResponse.json(
+      { ok: false, error: "Could not revoke link." },
+      { status: 500 },
+    );
+  }
+
+  return NextResponse.json({ ok: true });
 }
 
 export const dynamic = "force-dynamic";

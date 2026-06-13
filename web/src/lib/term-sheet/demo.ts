@@ -52,6 +52,8 @@ export const DEMO_ANALYSIS: TermSheetAnalysis = {
       severity: "warning",
       suggestedRevision:
         "Add a 24-month sunset: \"Pro-rata rights expire 24 months after the closing date of this SAFE, or upon the closing of a qualified financing of AUD $3M+, whichever is earlier.\"",
+      clause_confidence: 0.95,
+      risk_level: "medium",
     },
     {
       clause: "Founder vesting on conversion",
@@ -60,6 +62,8 @@ export const DEMO_ANALYSIS: TermSheetAnalysis = {
       severity: "critical",
       suggestedRevision:
         'Add to the SAFE: "On conversion, founders\' shares will retain credit for time served from each founder\'s individual start date and will not be subject to a new vesting cliff. Acceleration on change of control: double-trigger (sale + termination without cause within 12 months)."',
+      clause_confidence: 0.85,
+      risk_level: "critical",
     },
     {
       clause: "MFN scope",
@@ -68,6 +72,8 @@ export const DEMO_ANALYSIS: TermSheetAnalysis = {
       severity: "info",
       suggestedRevision:
         'Tighten to: "MFN applies to economic terms only (valuation cap, discount, conversion mechanics) and not to governance terms (board, information rights, transfer restrictions)."',
+      clause_confidence: 0.9,
+      risk_level: "low",
     },
     {
       clause: "ESIC representation",
@@ -76,6 +82,8 @@ export const DEMO_ANALYSIS: TermSheetAnalysis = {
       severity: "warning",
       suggestedRevision:
         'Add: "Issuer will use reasonable endeavours to remain ESIC-eligible until conversion, and will notify investors within 14 days of any event that would cause it to fail the ESIC tests. No clawback or indemnity arises if ESIC eligibility is lost despite reasonable endeavours."',
+      clause_confidence: 1.0,
+      risk_level: "high",
     },
   ],
   auMarketComparison: {
@@ -127,5 +135,22 @@ export const DEMO_ANALYSIS: TermSheetAnalysis = {
       flag: "Pro-rata clutter at Series A",
       why: "Five investors with pro-rata and no sunset means at least 5 conversations to clear the pre-emption process for the Series A. Sunsets make Series A 4–6 weeks faster.",
     },
+  ],
+  lawyer_questions: [
+    "Has each co-investor provided a current accountant certificate confirming wholesale/sophisticated investor status under s708 Corporations Act? If not, the issue may be void.",
+    "What is the company's current assessable income — are you within 6 months of breaching the AUD $200k ESIC income threshold?",
+    "Are founders' shares currently under a vesting deed? If so, does it survive conversion automatically or does it need to be novated under the Series A shareholders' agreement?",
+    "Who controls the 'qualified financing' trigger definition — can a strategic co-investor force conversion with a small bridge at an unfavourable cap?",
+    "Are any of the five co-investors related parties under Corporations Act s208? If the company is a public company or has obligations under its constitution, board approval may be required.",
+    "Does the no-shop clause prevent founders from responding to unsolicited interest — or just from actively seeking competing term sheets?",
+    "What acceleration does the double-trigger provide — full 100% vest on the second trigger, or just the unvested tranche at termination?",
+  ],
+  founder_actions: [
+    "URGENT: Engage an AU startup lawyer (Cornwalls, Gilbert + Tobin, Mills Oakley Ventures, or Lander & Rogers) to add 'credit for time served' and double-trigger acceleration language to the SAFE before signing — this is not a negotiation you can defer.",
+    "Confirm ESIC eligibility with your accountant in writing this week: request a written opinion stating the company passes the 100-point innovation test as at the signing date.",
+    "Add a pro-rata sunset clause (24 months or qualified financing of AUD $3M+) — model the language from the Blackbird SAFE template and present it to Atlas as a market-standard edit.",
+    "Collect sophisticated/wholesale investor certificates from all five co-investors and have your lawyer verify each certificate complies with s761G(7) or s708(8) Corporations Act.",
+    "Clarify the MFN scope in writing with Atlas — get agreement that MFN applies only to economic terms, not governance terms, before the SAFE is executed.",
+    "Set a calendar alert for 90 days before the SAFE's 24-month MFN expiry to review whether any subsequent SAFEs have better terms that this SAFE should inherit.",
   ],
 };

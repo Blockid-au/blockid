@@ -163,17 +163,17 @@ Built specifically for AU founders with AU-specific tools (R&D Tax Calculator, E
 
 ---
 
-### Traction to Date
+### Traction to Date (Updated 13 June 2026)
 
-- **Live product** at [blockid.au](https://blockid.au) -- fully operational
-- **Phase 1 (Idea & Analysis): COMPLETE** -- SVI scoring engine, 10-page AI reports in 60 seconds
-- **Phase 2 (Validation & Evidence): IN PROGRESS** -- Evidence Vault, auto-rescore, OAuth connectors, target Q3 2026
-- **10 free tools** deployed and functional
-- **Multi-model AI engine** with 4 provider fallback (Claude, OpenAI, Gemini, proxy)
-- **30+ SEO articles** published driving organic traffic
-- **10 automated email** nurture sequences operational
-- **Growth Intelligence dashboard** with real-time analytics
-- **SVI scoring algorithm v2.0** with deterministic computation and evidence confidence weighting
+- **Live product** at [blockid.au](https://blockid.au) -- 28 registered users, 118 analyses generated
+- **Phase 1 (Idea & Analysis): COMPLETE** -- SVI scoring engine v2.0, 10-page AI reports in 60 seconds
+- **Phase 2 (Validation & Evidence): IN PROGRESS** -- Evidence Vault, SCN context detection, VC-grade valuation dashboard (4-method blended: VC Method, DCF, Comparables, Risk Factor Summation)
+- **10 free tools** deployed and functional (+ ESIC Eligibility Checker, R&D Tax Calculator)
+- **AU Benchmarks page** live -- percentile data (MRR, ARR, burn, churn, SVI) for 2,700+ AU startups by stage
+- **Multi-model AI engine** with 8-provider fallback (Claude Pro, Groq, Cerebras, SambaNova, OpenRouter)
+- **31 SEO articles** published on AU founder keywords, daily auto-publish via cron
+- **AI self-upgrade system** -- 34 cron jobs, C-level agent team (CFO, CTO, CMO, CRO, CISO, etc.) doing daily research and autonomous code improvements
+- **SVI scoring algorithm v3.0** -- 8-dimension + 13-criteria engine + SCN startup navigation system
 - **48+ operational skills** deployed across 6 C-level domains
 - **Admin AI key management** with dynamic database-driven provider configuration
 

@@ -58,7 +58,25 @@ If a term is unspecified in the pasted term sheet (e.g. no liquidation preferenc
 
 Risk flags should highlight non-obvious downstream risks the founder may not have noticed — e.g. "ESIC eligibility tested at conversion, not at signing", "vesting reset risk if shareholders' agreement isn't pre-negotiated", "ASIC disclosure obligation if 20-investor cap breached".
 
-Use the AU Private Capital Market reference data that follows to ground your analysis. If the term sheet has US drafting tics (Delaware, Stockholder, NVCA forms) flag this as an info-severity redline.`;
+Use the AU Private Capital Market reference data that follows to ground your analysis. If the term sheet has US drafting tics (Delaware, Stockholder, NVCA forms) flag this as an info-severity redline.
+
+v2 schema additions — you MUST populate these fields:
+
+clause_confidence (per redline item, 0.0–1.0):
+  - 1.0 = you found a verbatim quote for this clause in the pasted text
+  - 0.7–0.9 = the clause language is strongly implied by adjacent text
+  - 0.4–0.6 = you inferred the clause from context or surrounding provisions
+  - 0.1–0.3 = you are flagging an absence of a clause (it should be there but isn't)
+
+risk_level (per redline item):
+  - "low" = minor stylistic or drafting nit; no material harm
+  - "medium" = worth negotiating but not a deal-breaker
+  - "high" = materially harms founders' ownership, control, or upside
+  - "critical" = do not sign without resolving this
+
+lawyer_questions: 5–8 pointed questions a senior AU startup lawyer would ask the founder before giving advice. Target ambiguities, missing clauses, and downstream risks SPECIFIC to this term sheet — not generic questions.
+
+founder_actions: 4–6 specific, ordered-by-urgency action items the founder should take BEFORE signing. Be concrete: name the professional to engage, the clause to challenge, the document to check. No vague advice.`;
 
 interface UsageStats {
   input_tokens: number;

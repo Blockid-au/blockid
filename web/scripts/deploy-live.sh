@@ -357,7 +357,7 @@ gate "Prepare standalone + smoke test"
 # inside the existing dir (cp -r src existing_dst → existing_dst/src); only copy
 # when the source exists, so a missing source never deletes a good standalone.
 if [ "${1:-}" != "--skip-build" ]; then
-  for a in static server; do
+  for a in static server node_modules; do
     if [ -d "$WEB_DIR/.next/$a" ]; then
       rm -rf "$STANDALONE/.next/$a"
       cp -r "$WEB_DIR/.next/$a" "$STANDALONE/.next/$a"
@@ -411,7 +411,9 @@ BUILD_ID="$(cat "$STANDALONE/.next/BUILD_ID")"
 RELEASE_DIR="$RELEASES_DIR/$BUILD_ID"
 mkdir -p "$RELEASES_DIR"
 rm -rf "$RELEASE_DIR"
-cp -al "$STANDALONE" "$RELEASE_DIR" 2>/dev/null || cp -a "$STANDALONE" "$RELEASE_DIR"
+# Copy contents into release dir (add trailing slash to avoid nesting)
+mkdir -p "$RELEASE_DIR"
+cp -al "$STANDALONE/." "$RELEASE_DIR/" 2>/dev/null || cp -a "$STANDALONE/." "$RELEASE_DIR/"
 [ -f "$RELEASE_DIR/server.js" ] || restore_lkg_and_fail "Failed to freeze release dir $RELEASE_DIR."
 # Belt-and-suspenders: remove any nested dirs that standalone file-tracing may have
 # pulled in. These add no runtime value and cause exponential disk growth on redeploy.
