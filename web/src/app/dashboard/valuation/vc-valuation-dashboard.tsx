@@ -283,7 +283,7 @@ function ProjectionsTab({ report }: { report: VcValuationReport }) {
         <table className="w-full text-xs">
           <thead className="bg-surface-50 border-b border-surface-200">
             <tr>
-              {["Month", "MRR", "ARR", "Customers", "Burn", "Cash"].map((h) => (
+              {["Month", "MRR", "Revenue", "EBITDA", "OPEX", "Cash Balance"].map((h) => (
                 <th key={h} className="px-3 py-2.5 text-left font-semibold text-ink-600">{h}</th>
               ))}
             </tr>
@@ -293,14 +293,16 @@ function ProjectionsTab({ report }: { report: VcValuationReport }) {
               <tr key={r.month} className="border-b border-surface-100 hover:bg-surface-50">
                 <td className="px-3 py-2 font-semibold text-ink-700">M{r.month}</td>
                 <td className="px-3 py-2 tabular-nums text-emerald-700">{fmtAud(r.mrrAud)}</td>
-                <td className="px-3 py-2 tabular-nums text-ink-700">{fmtAud(r.arrAud)}</td>
-                <td className="px-3 py-2 tabular-nums text-ink-600">{r.customers.toLocaleString()}</td>
-                <td className="px-3 py-2 tabular-nums text-red-600">({fmtAud(r.burnAud)})</td>
+                <td className="px-3 py-2 tabular-nums text-ink-700">{fmtAud(r.revenueAud)}</td>
+                <td className={cn("px-3 py-2 tabular-nums", r.ebitdaAud >= 0 ? "text-emerald-600" : "text-red-500")}>
+                  {r.ebitdaAud >= 0 ? "" : "("}{fmtAud(Math.abs(r.ebitdaAud))}{r.ebitdaAud < 0 ? ")" : ""}
+                </td>
+                <td className="px-3 py-2 tabular-nums text-red-500">({fmtAud(r.opexAud)})</td>
                 <td className={cn(
                   "px-3 py-2 tabular-nums font-semibold",
-                  r.cashAud >= 0 ? "text-ink-700" : "text-red-600"
+                  r.cashBalanceAud >= 0 ? "text-ink-700" : "text-red-600"
                 )}>
-                  {fmtAud(Math.abs(r.cashAud))}{r.cashAud < 0 ? " (neg)" : ""}
+                  {fmtAud(Math.abs(r.cashBalanceAud))}{r.cashBalanceAud < 0 ? " (neg)" : ""}
                 </td>
               </tr>
             ))}
@@ -310,10 +312,10 @@ function ProjectionsTab({ report }: { report: VcValuationReport }) {
       <div className="grid sm:grid-cols-2 gap-4">
         <div className="rounded-xl border border-surface-200 bg-white p-4">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-500 mb-1">Break-even</p>
-          {report.breakEven.reachedMonth ? (
+          {report.breakEven.month ? (
             <>
-              <p className="text-2xl font-bold text-emerald-600 tabular-nums">Month {report.breakEven.reachedMonth}</p>
-              <p className="text-xs text-ink-500 mt-0.5">MRR at break-even: {fmtAud(report.breakEven.mrrAtBreakEven)}</p>
+              <p className="text-2xl font-bold text-emerald-600 tabular-nums">Month {report.breakEven.month}</p>
+              <p className="text-xs text-ink-500 mt-0.5">MRR at break-even: {fmtAud(report.breakEven.mrrAtBreakEvenAud ?? 0)}</p>
             </>
           ) : (
             <p className="text-sm text-ink-500">Not reached in 36-month projection</p>
@@ -387,8 +389,7 @@ function InjectionTab({ report }: { report: VcValuationReport }) {
             { label: "Pre-money", value: fmtAud(inj.preMoneyAud) },
             { label: "Post-money", value: fmtAud(inj.postMoneyAud) },
             { label: "Founder Dilution", value: fmtPct(inj.dilutionPct) },
-            { label: "Runway Gained", value: `${inj.runwayMonths}mo` },
-            { label: "Burn Coverage", value: `${inj.burnCoverageMonths.toFixed(0)}mo` },
+            { label: "Runway Extension", value: `${inj.runwayExtensionMonths}mo` },
           ].map((c) => (
             <div key={c.label} className="flex items-center justify-between rounded-lg bg-surface-50 px-4 py-2.5">
               <span className="text-xs text-ink-500">{c.label}</span>
@@ -410,18 +411,14 @@ function InjectionTab({ report }: { report: VcValuationReport }) {
               </div>
               <span className="text-xs font-medium text-ink-700 w-24 shrink-0">{f.category}</span>
               <span className="text-xs tabular-nums text-ink-500 w-12 text-right shrink-0">{fmtPct(f.pct)}</span>
-              <span className="text-xs tabular-nums text-ink-600 w-16 text-right shrink-0">{fmtAud(f.amountAud)}</span>
+              <span className="text-xs tabular-nums text-ink-600 w-16 text-right shrink-0">{fmtAud(f.aud)}</span>
             </div>
           ))}
         </div>
       </div>
       <div className="rounded-xl border border-surface-200 bg-white p-5">
-        <p className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">Milestone Triggers</p>
-        <ul className="space-y-1">
-          {inj.milestones.map((m, i) => (
-            <li key={i} className="text-sm text-ink-600">• {m}</li>
-          ))}
-        </ul>
+        <p className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">Next Milestone</p>
+        <p className="text-sm text-ink-600">{inj.nextMilestone}</p>
       </div>
     </div>
   );
