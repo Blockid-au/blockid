@@ -228,15 +228,16 @@ export async function POST(request: Request) {
 
         if (accountId) {
           // Extract anonymised metrics from analysis
+          // Only include fields that are available in SVIAnalysis type
           const sviSnapshot = {
             account_id: accountId,
             svi: analysis.totalSVI,
-            revenue_estimate: analysis.metrics?.annualRevenue ? Number(analysis.metrics.annualRevenue) : null,
-            runway_months: analysis.metrics?.runwayMonths ? Number(analysis.metrics.runwayMonths) : null,
-            burn_rate: analysis.metrics?.monthlyBurn ? Number(analysis.metrics.monthlyBurn) : null,
-            cap_table_entries: analysis.capTableSize ?? null,
-            sector: analysis.metrics?.sector ?? null,
-            state: analysis.metrics?.state ?? null,
+            revenue_estimate: null, // Will be populated from startup_metrics table in future
+            runway_months: null,    // Will be populated from startup_metrics table in future
+            burn_rate: null,        // Will be populated from startup_metrics table in future
+            cap_table_entries: null, // Will be populated from cap_table entries in future
+            sector: null,           // Will be populated from startup_metrics table in future
+            state: null,            // Will be populated from startup_metrics table in future
             stage: analysis.stage ?? null,
           };
 
