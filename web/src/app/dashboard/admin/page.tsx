@@ -43,6 +43,8 @@ export default async function AdminPage() {
           <p className="text-sm text-ink-500 mt-1">
             Live in-memory rate-limit state · {entries.length} active entries ·{" "}
             <span className="font-mono">{generatedAt}</span>
+            {" · "}
+            <a href="/dashboard/admin/usage" className="text-brand-600 hover:underline">Usage Analytics →</a>
           </p>
         </div>
 
