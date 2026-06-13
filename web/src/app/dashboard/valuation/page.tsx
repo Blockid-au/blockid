@@ -16,7 +16,7 @@ export default async function ValuationDashboardPage() {
   if (!user) redirect("/auth/login?next=/dashboard/valuation");
 
   return (
-    <WorkspaceLayout>
+    <WorkspaceLayout user={user}>
       <div className="max-w-4xl">
         <header className="mb-8">
           <p className="text-xs uppercase tracking-[0.2em] text-brand-600 font-semibold">VC-Grade Analysis</p>
