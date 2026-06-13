@@ -53,7 +53,22 @@ PROMPT='You are the BlockID.au autonomous self-improvement engineer. Repo root: 
 
 GOAL: make exactly ONE concrete, high-value, LOW-RISK improvement to the codebase this run, then commit it.
 
-Pick from (in rough priority): a real bug fix; UX/copy/SEO/accessibility/performance polish; a small missing test; an agent prompt or report-quality improvement; a small clearly-beneficial feature. Look at web/content/reports/*.md (agent research/insights) and recent code for ideas. Prefer impact with minimal blast radius.
+STEP 1 — Read the CEO implementing plan and project state FIRST:
+  cat /home/dovanlong/blockid.au/web/content/reports/implementing-plan.md
+  cat /home/dovanlong/blockid.au/web/content/reports/project-state.json
+
+STEP 2 — Pick the highest-priority PENDING task from project-state.json that is:
+  (a) small enough to implement safely in 1-3 files, and
+  (b) not blocked by another pending task.
+  If no pending task is safe to ship alone, fall back to: bug fix → UX polish → SEO → test → copy improvement.
+
+PRIORITY ORDER (from project-state.json pending tasks):
+  T0010 — Berkus method + AU comparables in cfo-valuation.ts (add 5th valuation method for pre-revenue)
+  T0012 — Onboarding wizard: 3-step welcome modal for new users after first login
+  T0011 — Weekly SEO roundup post template for publish-insight cron
+  T0003 — Pilot valuation model improvement (≥10% AI budget, per existing rationale)
+
+Also look at: web/content/reports/*.md (agent research/insights) and recent git log for ideas.
 
 HARD RULES:
 - Keep the change FOCUSED and small (ideally 1-3 files). Do NOT do sweeping refactors.
