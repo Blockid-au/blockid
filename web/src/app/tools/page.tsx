@@ -86,6 +86,13 @@ const TOOLS: ToolDef[] = [
     desc: "Generate a stage-appropriate fundraise plan with milestones, target raise amounts, and investor strategy.",
     icon: "\u{1F680}",
   },
+  {
+    slug: "safe-calculator",
+    name: "SAFE Note Calculator",
+    desc: "Model SAFE conversion at the next priced round — cap, discount, shares issued and dilution. Tuned for AU SAFE templates.",
+    icon: "\u{1F4B0}",
+    tag: "AU Specific",
+  },
 ];
 
 export default function ToolsPage() {
