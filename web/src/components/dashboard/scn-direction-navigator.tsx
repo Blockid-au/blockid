@@ -33,7 +33,7 @@ export function ScnDirectionNavigator({ stageLabel, weakestLayer, steps }: Props
   const laterSteps = rest.slice(0, 2);
 
   return (
-    <div className="rounded-2xl border border-brand-200 bg-white p-6 shadow-sm">
+    <div className="rounded-2xl border border-brand-200 bg-surface-50 p-6 shadow-sm">
       <div className="mb-4 flex items-center gap-2">
         <Navigation className="h-4 w-4 text-brand-600" />
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-700">
@@ -103,7 +103,7 @@ export function ScnDirectionNavigator({ stageLabel, weakestLayer, steps }: Props
               <div className="ml-3.5 h-3 w-px bg-surface-200" aria-hidden />
               <Link
                 href={s.url}
-                className="group flex items-start gap-3 rounded-xl border border-surface-200 bg-white px-4 py-3 transition-colors hover:border-brand-200 hover:bg-brand-50/30"
+                className="group flex items-start gap-3 rounded-xl border border-surface-200 bg-surface-100 px-4 py-3 transition-colors hover:border-brand-200 hover:bg-brand-50/30"
               >
                 <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-100 text-ink-600 ring-1 ring-surface-200">
                   <span className="text-xs font-bold">{i + 2}</span>
