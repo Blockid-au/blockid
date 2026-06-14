@@ -18,9 +18,9 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Founding 50 — Startup Value Account",
+  title: "Founding 100 — Startup Value Account",
   description:
-    "Claim one of 50 Founding accounts. Get your Startup Value Index for AUD $49 (normally $99). Includes cap table, Evidence Vault, and exports.",
+    "Claim one of 100 Founding accounts. Get your Startup Value Index for AUD $1 (limited time). Includes cap table, Evidence Vault, and exports.",
   alternates: {
     canonical: "https://blockid.au/founding-50",
   },
@@ -60,17 +60,17 @@ const INCLUDES = [
 ];
 
 async function getSpots(): Promise<number> {
-  if (!isSupabaseConfigured()) return 50;
+  if (!isSupabaseConfigured()) return 100;
   try {
     const supabase = getSupabaseAdmin();
-    if (!supabase) return 50;
+    if (!supabase) return 100;
     const { count } = await supabase
       .from("users")
       .select("id", { count: "exact", head: true })
       .eq("plan_id", "founding50");
-    return Math.max(0, 50 - (count ?? 0));
+    return Math.max(0, 100 - (count ?? 0));
   } catch {
-    return 50;
+    return 100;
   }
 }
 
@@ -94,7 +94,7 @@ export default async function Founding50Page() {
 
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-ink-900 mb-4">
             Claim Your{" "}
-            <span className="text-brand-600">Founding 50</span>{" "}
+            <span className="text-brand-600">Founding 100</span>{" "}
             Account
           </h1>
           <p className="text-lg text-ink-600 max-w-xl mx-auto leading-relaxed mb-2">
@@ -123,7 +123,7 @@ export default async function Founding50Page() {
             <div className="flex items-center justify-center gap-2 mb-2">
               <span className="inline-block h-2 w-2 rounded-full bg-red-500 animate-pulse" />
               <span className="text-sm font-semibold text-ink-800">
-                <span className="text-red-600">27 spots remaining</span> out of 50
+                <span className="text-red-600">27 spots remaining</span> out of 100
               </span>
             </div>
           </div>
@@ -131,8 +131,8 @@ export default async function Founding50Page() {
 
           {/* Price */}
           <div className="inline-flex items-baseline gap-3 rounded-2xl border border-surface-200 bg-white px-8 py-4 shadow-sm">
-            <span className="text-ink-700 text-xl line-through font-mono">$99</span>
-            <span className="text-5xl font-bold font-mono text-ink-800">$49</span>
+            <span className="text-ink-700 text-xl line-through font-mono">$49</span>
+            <span className="text-5xl font-bold font-mono text-ink-800">$1</span>
             <span className="text-ink-600 text-sm">AUD · one-off</span>
           </div>
           <p className="mt-3 text-xs text-ink-700">
@@ -180,7 +180,7 @@ export default async function Founding50Page() {
                 },
                 {
                   quote:
-                    "Getting in as a Founding 50 member felt like a no-brainer at $49. The 30-day growth plan is genuinely useful — not just generic startup advice.",
+                    "Getting in as a Founding 100 member felt like a no-brainer at $1. The 30-day growth plan is genuinely useful — not just generic startup advice.",
                   name: "Marcus T.",
                   role: "Founder, HealthTech · Brisbane",
                 },
@@ -211,7 +211,7 @@ export default async function Founding50Page() {
                 "AU data residency",
                 "No credit card required",
                 "Secure checkout",
-                "50 spots only",
+                "100 spots only",
               ].map((t) => (
                 <span
                   key={t}
@@ -239,9 +239,9 @@ export default async function Founding50Page() {
                 <CheckCircle2 strokeWidth={2} className="h-4 w-4" />
               </span>
               <div>
-                <p className="text-sm font-semibold text-ink-800">Early-access pricing — $49 instead of $99</p>
+                <p className="text-sm font-semibold text-ink-800">Early-access pricing — $1 instead of $49</p>
                 <p className="text-xs text-ink-600 mt-0.5">
-                  Once the 50 spots are gone, the standard price applies. This discount never comes back.
+                  Once the 100 spots are gone, the standard price applies. This discount never comes back.
                 </p>
               </div>
             </li>
@@ -290,12 +290,12 @@ export default async function Founding50Page() {
                 a: "You'll receive access to your Startup Value Account within 24 hours via email. We'll also send you a 30-day growth plan.",
               },
               {
-                q: "Why only 50 spots?",
-                a: "We're delivering the first 50 accounts with white-glove onboarding. This lets us refine the product with real founder feedback before opening broadly.",
+                q: "Why only 100 spots?",
+                a: "We're delivering the first 100 accounts with white-glove onboarding. This lets us refine the product with real founder feedback before opening broadly.",
               },
               {
                 q: "Can I upgrade later?",
-                a: "Yes. Founding 50 gives you access to all current features. As we ship Founder Pro and Growth plans, you'll get priority upgrade pricing.",
+                a: "Yes. Founding 100 gives you access to all current features. As we ship Founder Pro and Growth plans, you'll get priority upgrade pricing.",
               },
               {
                 q: "Is my data private?",

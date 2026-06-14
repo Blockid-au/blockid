@@ -2,7 +2,7 @@
 //
 // All prices are in AUD cents. Billing periods and semantics vary by plan:
 //   - free         : $0
-//   - founding50   : $49 one-off (Founder plan)
+//   - founding50   : $1 one-off (Founding 100 plan)
 //   - growth       : $99/mo early-bird (normally $499/mo)
 
 export interface Plan {
@@ -31,7 +31,7 @@ export const PLANS: Plan[] = [
   {
     id: "founding50",
     name: "Founder",
-    price: 4900, // AUD $49 one-off
+    price: 100, // AUD $1 one-off (Founding 100)
     cadence: "once",
     features: [
       "Everything in Starter",
