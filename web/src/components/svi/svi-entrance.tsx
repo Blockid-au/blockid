@@ -1574,9 +1574,9 @@ export function SVIEntrance() {
             <div className="rounded-2xl border-2 border-brand-400 bg-white px-5 sm:px-8 py-8 text-center shadow-lg flex flex-col relative overflow-hidden">
               <div className="absolute top-3 right-3 sm:top-4 sm:right-4 rounded-full bg-brand-600 px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-wider">Best Value</div>
               <p className="text-xs uppercase tracking-[0.15em] text-brand-600 font-medium mb-2">Founder Plan</p>
-              <h3 className="text-xl font-bold text-ink-800 mb-1">Founding 50 Account</h3>
-              <p className="text-2xl sm:text-3xl font-extrabold text-brand-600 mb-1">A$49 <span className="text-base text-ink-400 line-through font-normal ml-1">$99</span></p>
-              <p className="text-xs text-ink-500 mb-4">Lifetime access &middot; Only 50 spots</p>
+              <h3 className="text-xl font-bold text-ink-800 mb-1">Founding 100 Account</h3>
+              <p className="text-2xl sm:text-3xl font-extrabold text-brand-600 mb-1">A$1 <span className="text-base text-ink-400 line-through font-normal ml-1">$99</span></p>
+              <p className="text-xs text-ink-500 mb-4">Lifetime access &middot; Only 100 spots</p>
               <ul className="text-left text-sm text-ink-700 space-y-2 mb-6 mx-auto max-w-xs">
                 <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> 100 credits included</li>
                 <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Unlimited dashboard</li>
@@ -1587,7 +1587,7 @@ export function SVIEntrance() {
               </ul>
               <div className="mt-auto">
                 <Link href="/founding-50" className="inline-flex h-11 items-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
-                  Claim Your Founding 50 Spot <ArrowRight strokeWidth={2} className="h-4 w-4" />
+                  Claim Your Founding 100 Spot <ArrowRight strokeWidth={2} className="h-4 w-4" />
                 </Link>
               </div>
             </div>
@@ -1736,7 +1736,7 @@ function CreditPackCard({
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Paywall overlay — shown after the first free analysis is consumed.
-// Displays credit pack upsell options and a Founding 50 upgrade link.
+// Displays credit pack upsell options and a Founding 100 upgrade link.
 // ═══════════════════════════════════════════════════════════════════════════════
 function SVIPaywall({
   onClose,
@@ -1912,7 +1912,7 @@ function SVIPaywall({
               <p className="text-xs text-ink-500 mt-0.5">100 credits + unlimited platform access</p>
             </div>
             <div className="text-right shrink-0 ml-3">
-              <p className="text-lg font-bold text-brand-600">A$49</p>
+              <p className="text-lg font-bold text-brand-600">A$1</p>
               <p className="text-[10px] text-ink-500">one-time</p>
             </div>
           </button>
@@ -2044,7 +2044,7 @@ function TopBar() {
               </div>
             )}
           </div>
-          <Link href="/founding-50" className="px-3 py-2 text-sm text-ink-600 hover:text-ink-800 rounded-lg hover:bg-surface-100 transition-colors">Founding 50</Link>
+          <Link href="/founding-50" className="px-3 py-2 text-sm text-ink-600 hover:text-ink-800 rounded-lg hover:bg-surface-100 transition-colors">Founding 100</Link>
           <Link href="/insights" className="px-3 py-2 text-sm text-ink-600 hover:text-ink-800 rounded-lg hover:bg-surface-100 transition-colors">Insights</Link>
           <Link href="/dashboard/svi" className="px-3 py-2 text-sm text-ink-600 hover:text-ink-800 rounded-lg hover:bg-surface-100 transition-colors">Dashboard</Link>
           <LanguageToggle variant="icon" className="ml-1" />
@@ -2079,7 +2079,7 @@ function TopBar() {
             <p className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-[0.15em] text-ink-600 font-semibold">Free Tools</p>
             {TOOLS.map((t) => (<Link key={t.href} href={t.href} onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm text-ink-700 hover:bg-surface-100 rounded-lg transition-colors">{t.label}</Link>))}
             <div className="my-2 border-t border-surface-200" />
-            <Link href="/founding-50" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm font-medium text-ink-700 hover:bg-surface-100 rounded-lg">Founding 50</Link>
+            <Link href="/founding-50" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm font-medium text-ink-700 hover:bg-surface-100 rounded-lg">Founding 100</Link>
             <Link href="/insights" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm font-medium text-ink-700 hover:bg-surface-100 rounded-lg">Insights</Link>
             <Link href="/dashboard/svi" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm font-medium text-ink-700 hover:bg-surface-100 rounded-lg">Dashboard</Link>
             <div className="my-2 border-t border-surface-200" />

@@ -67,9 +67,9 @@ export function UpgradePrompt() {
       <p className="flex-1 text-xs leading-snug">
         <span className="font-semibold">Credits running low.</span>{" "}
         Upgrade to{" "}
-        <span className="font-semibold">Founding 50</span> — A$49 one-time for
+        <span className="font-semibold">Founding 100</span> — A$1 one-time for
         100 credits, Evidence Vault &amp; cap table tools.{" "}
-        <span className="opacity-75 text-[10px]">Only 50 spots.</span>
+        <span className="opacity-75 text-[10px]">Only 100 spots.</span>
       </p>
       <Founding50Spots className="hidden sm:block w-36 shrink-0 mx-2" />
       <button
@@ -83,7 +83,7 @@ export function UpgradePrompt() {
         ) : (
           <>
             <Sparkles strokeWidth={1.75} className="h-3 w-3" />
-            Upgrade A$49
+            Upgrade A$1
           </>
         )}
       </button>

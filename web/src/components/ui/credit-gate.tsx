@@ -304,10 +304,10 @@ export function CreditGate({
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-brand-800">
-                  Founding 50 Lifetime Deal
+                  Founding 100 Lifetime Deal
                 </p>
                 <p className="text-xs text-brand-600 mt-0.5 leading-relaxed">
-                  Get 100 credits + full platform access for A$49 one-time. Limited to 50 spots.
+                  Get 100 credits + full platform access for A$1 one-time. Limited to 100 spots.
                 </p>
                 <button
                   type="button"
@@ -322,7 +322,7 @@ export function CreditGate({
                     </span>
                   ) : (
                     <>
-                      Get Founding 50 for A$49
+                      Get Founding 100 for A$1
                       <Sparkles strokeWidth={1.75} className="h-3 w-3" />
                     </>
                   )}

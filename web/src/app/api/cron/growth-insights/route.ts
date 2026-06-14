@@ -186,7 +186,7 @@ BlockID.au Growth Metrics (${today}):
 
 Platform context:
 - Free: SVI analysis + shareable link
-- Founding 50: AUD $49 one-time (lifetime SVI account + tools)
+- Founding 100: AUD $1 one-time (lifetime SVI account + tools)
 - SVI Report: AUD $25 one-off AI report
 - Founder plan: $99/mo, Growth plan: $499/mo
 - Free tools: Idea Valuation, Equity Split, Funding Plan, Dilution Calculator, Cap Table, Term Sheet AI, Data Room Checklist, Co-founder Match
@@ -347,9 +347,9 @@ function generateFallbackRecommendations(m: {
   if (m.payingUsers === 0 && m.totalUsers > 0) {
     recs.push({
       priority: "critical",
-      title: "Launch time-limited Founding 50 push",
-      detail: `${m.totalUsers} users but $0 revenue. Send personal email to every SVI user offering Founding 50 ($49) with urgency: "Only X spots left." Include their SVI score in the email.`,
-      impact: "AUD $245-490 from first 5-10 conversions",
+      title: "Launch time-limited Founding 100 push",
+      detail: `${m.totalUsers} users but $0 revenue. Send personal email to every SVI user offering Founding 100 ($1) with urgency: "Only X spots left." Include their SVI score in the email.`,
+      impact: "AUD $50-100 from first 50-100 conversions",
       action_type: "pricing",
     });
   }
@@ -378,7 +378,7 @@ function generateFallbackRecommendations(m: {
     recs.push({
       priority: "high",
       title: "Email nurture sequence for leads",
-      detail: `${m.leadsWeek} leads captured but no conversions. Set up a 3-email drip: Day 1: SVI score reminder, Day 3: "Top founders do X", Day 7: Founding 50 offer with deadline.`,
+      detail: `${m.leadsWeek} leads captured but no conversions. Set up a 3-email drip: Day 1: SVI score reminder, Day 3: "Top founders do X", Day 7: Founding 100 offer ($1) with deadline.`,
       impact: "5-10% lead-to-paid conversion",
       action_type: "marketing",
     });

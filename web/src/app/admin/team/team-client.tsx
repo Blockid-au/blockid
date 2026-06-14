@@ -84,7 +84,7 @@ const TEAM_MEMBERS: TeamMember[] = [
     ],
     priorities: [
       "Scale to 200 users by Aug 2026",
-      "Close Founding 50 cohort",
+      "Close Founding 100 cohort",
       "Launch Phase 3 growth features",
       "Secure pre-seed funding",
     ],

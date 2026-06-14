@@ -316,7 +316,7 @@ export function PitchDeckPDF() {
         <View style={s.row}>
           {[
             { tier: "Free", price: "$0", features: ["SVI score", "Basic tools", "1 analysis"], color: C.ink500 },
-            { tier: "Founding 50", price: "A$49", features: ["50 credits lifetime", "Evidence vault", "Cap table tools", "Term sheet AI"], color: C.brand },
+            { tier: "Founding 100", price: "A$1", features: ["100 credits lifetime", "Evidence vault", "Cap table tools", "Term sheet AI"], color: C.brand },
             { tier: "Growth", price: "A$99/mo", features: ["100 credits/month", "Full reports", "Data room", "Priority support"], color: C.emerald },
             { tier: "Enterprise", price: "Custom", features: ["Portfolio dashboard", "API access", "White-label", "Dedicated CSM"], color: C.gold },
           ].map((t) => (

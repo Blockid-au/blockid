@@ -54,7 +54,7 @@ export function Founding50Waitlist() {
       <div className="flex items-center gap-3 mb-4">
         <Bell className="h-6 w-6 text-amber-600 shrink-0" strokeWidth={1.5} />
         <div>
-          <h3 className="text-lg font-bold text-amber-900">All 50 spots are taken</h3>
+          <h3 className="text-lg font-bold text-amber-900">All 100 spots are taken</h3>
           <p className="text-sm text-amber-700">Join the waitlist — we&apos;ll notify you when new spots open.</p>
         </div>
       </div>

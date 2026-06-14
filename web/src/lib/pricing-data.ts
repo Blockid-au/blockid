@@ -199,7 +199,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "Can I cancel anytime?",
-    a: "Yes. Growth plan subscriptions can be cancelled at any time from your billing page. Your credits remain available until the end of the billing period. Founding 50 has no recurring charges to cancel.",
+    a: "Yes. Growth plan subscriptions can be cancelled at any time from your billing page. Your credits remain available until the end of the billing period. Founding 100 has no recurring charges to cancel.",
   },
   {
     q: "Do you offer refunds?",
