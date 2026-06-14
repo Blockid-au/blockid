@@ -423,8 +423,11 @@ export interface LoginWithGoogleResult {
   reason?: "not_configured" | "db_error";
 }
 
+/** Primary admin email — override with ADMIN_EMAIL env var if needed. */
+export const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "admin@blockid.au";
+
 function isAdminEmail(email: string): boolean {
-  return normaliseEmail(email) === "admin@blockid.au";
+  return normaliseEmail(email) === ADMIN_EMAIL;
 }
 
 export async function loginWithGoogle(

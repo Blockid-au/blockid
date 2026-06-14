@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, ADMIN_EMAIL} from "@/lib/auth";
 import { Logo } from "@/components/brand/logo";
 import { ArrowLeft, Shield } from "lucide-react";
 import { AIKeysClient } from "./ai-keys-client";
@@ -17,7 +17,7 @@ export default async function AIKeysPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/admin/ai-keys");
 
-  const isAdmin = user.email === "admin@blockid.au" || user.role === "admin";
+  const isAdmin = user.email === ADMIN_EMAIL || user.role === "admin";
   if (!isAdmin) {
     return (
       <div className="min-h-svh bg-surface-100 flex items-center justify-center">

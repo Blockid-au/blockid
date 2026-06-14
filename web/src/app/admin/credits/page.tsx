@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, ADMIN_EMAIL} from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { CreditsClient } from "./credits-client";
 
@@ -30,7 +30,7 @@ export default async function AdminCreditsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/admin/credits");
 
-  const isAdmin = user.email === "admin@blockid.au" || user.role === "admin";
+  const isAdmin = user.email === ADMIN_EMAIL || user.role === "admin";
   if (!isAdmin) redirect("/admin");
 
   const supabase = getSupabaseAdmin();

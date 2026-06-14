@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, ADMIN_EMAIL} from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
@@ -85,7 +85,7 @@ export default async function SelfAnalysisPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/admin/self-analysis");
 
-  const isAdmin = user.email === "admin@blockid.au" || user.role === "admin";
+  const isAdmin = user.email === ADMIN_EMAIL || user.role === "admin";
   if (!isAdmin) {
     return (
       <div className="min-h-svh bg-surface-100 flex items-center justify-center">
