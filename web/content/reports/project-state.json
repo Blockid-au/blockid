@@ -1,15 +1,16 @@
 {
-  "version": "2.0.0",
-  "updatedAt": "2026-06-13T12:10:00.000Z",
+  "version": "2.1.0",
+  "updatedAt": "2026-06-14T01:00:00.000Z",
   "architecture": {
-    "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
+    "summary": "BlockID.au \u2014 AI-powered startup valuation SaaS for AU founders (pre-seed \u2192 Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation\u2192Position\u2192Value\u2192Direction\u2192Capital) drives the full product flow.",
     "lastReviewedAt": "2026-06-13T12:10:00.000Z",
     "notes": [
-      "v0.2.0 — CEO implementing-plan loop (research → CEO plan → code → version/milestone/architecture), off-peak deploy gating.",
-      "v0.3.0 — CFO VC-grade valuation engine (src/lib/agents/cfo-valuation.ts): market sizing (TAM/SAM/SOM), 4 valuation methods, projections, unit economics, break-even, payback, financial injection.",
-      "v0.4.0 — VC Valuation Dashboard (/dashboard/valuation, 6 tabs) + /api/valuation/vc endpoint + /benchmarks page (AU startup data by stage, FAQ JSON-LD). Cross-linked from navbar, footer, sitemap, 4 tool pages.",
-      "v0.5.0 — Feedback widget FAB (T0004, all workspace pages → /api/feedback, credits-on-submit) + CSV export on VC dashboard (T0007, full 36-month model) + SCN context detection verified live (src/lib/scn-detect.ts + /api/scn/detect, integrated in main dashboard).",
-      "v2.0.0 — T0086–T0090 Feature Batch 8: Financial Projection Norms calculator, Term Sheet AI v2 persistence + Lawyer Questions, Fundraising Readiness Report v2 (checklist + AU comparable raises), Google Analytics OAuth evidence connector, SVI Cohort Benchmark page."
+      "v0.2.0 \u2014 CEO implementing-plan loop (research \u2192 CEO plan \u2192 code \u2192 version/milestone/architecture), off-peak deploy gating.",
+      "v0.3.0 \u2014 CFO VC-grade valuation engine (src/lib/agents/cfo-valuation.ts): market sizing (TAM/SAM/SOM), 4 valuation methods, projections, unit economics, break-even, payback, financial injection.",
+      "v0.4.0 \u2014 VC Valuation Dashboard (/dashboard/valuation, 6 tabs) + /api/valuation/vc endpoint + /benchmarks page (AU startup data by stage, FAQ JSON-LD). Cross-linked from navbar, footer, sitemap, 4 tool pages.",
+      "v0.5.0 \u2014 Feedback widget FAB (T0004, all workspace pages \u2192 /api/feedback, credits-on-submit) + CSV export on VC dashboard (T0007, full 36-month model) + SCN context detection verified live (src/lib/scn-detect.ts + /api/scn/detect, integrated in main dashboard).",
+      "v2.0.0 \u2014 T0086\u2013T0090 Feature Batch 8: Financial Projection Norms calculator, Term Sheet AI v2 persistence + Lawyer Questions, Fundraising Readiness Report v2 (checklist + AU comparable raises), Google Analytics OAuth evidence connector, SVI Cohort Benchmark page.",
+      "v2.1.0 \u2014 T0094\u2013T0101: ESOP Manager (pool + grants UI + API), 36-month financial model, data room 13-section structure, BlockID SVI 68/100 self-analysis, C-Level knowledge base (4 modules), valuation A$440K pre-money."
     ]
   },
   "plan": {
@@ -30,7 +31,7 @@
         "id": "T0002",
         "agent": "cto",
         "title": "Off-peak daily auto-upgrade CI/CD pipeline (first deploy < 48h)",
-        "rationale": "agent-deploy (tsc→lint→build→smoke→deploy-live) + orchestrator CEO loop scheduled 12/14/16/18 UTC off-peak.",
+        "rationale": "agent-deploy (tsc\u2192lint\u2192build\u2192smoke\u2192deploy-live) + orchestrator CEO loop scheduled 12/14/16/18 UTC off-peak.",
         "versionImpact": "minor",
         "status": "done",
         "createdAt": "2026-06-13T00:10:00.000Z",
@@ -39,7 +40,7 @@
       {
         "id": "T0003",
         "agent": "rnd",
-        "title": "Pilot a new valuation-model feature (allocate ≥10% AI budget)",
+        "title": "Pilot a new valuation-model feature (allocate \u226510% AI budget)",
         "rationale": "Prototype an improved valuation model in src/lib/agents/cfo-valuation.ts: add comparable company multiples from AU market data (src/lib/benchmarks.ts) and a Berkus method for pre-revenue startups. KPI: +5% SVI correlation with valuation mid, no accuracy regression on vitest suite. AU-stage discount factors (AVCAL 2025) added to comparablesMethod; AU comparable companies cited by sector. 7/7 tests pass.",
         "versionImpact": "minor",
         "status": "done",
@@ -50,7 +51,7 @@
       {
         "id": "T0005",
         "agent": "coo",
-        "title": "Daily QA health-check — automated test suite in the QA dashboard",
+        "title": "Daily QA health-check \u2014 automated test suite in the QA dashboard",
         "rationale": "vitest suite wired into agent-healthcheck. KPI: 100% test pass on daily QA dashboard.",
         "versionImpact": "patch",
         "status": "done",
@@ -61,7 +62,7 @@
         "id": "T0004",
         "agent": "cro",
         "title": "Power-user feedback widget (floating FAB on all workspace pages)",
-        "rationale": "FeedbackWidget FAB added to WorkspaceLayout — category selector, textarea, AI-scored credits-on-submit, connects to /api/feedback. All logged-in pages now have a persistent feedback entry point.",
+        "rationale": "FeedbackWidget FAB added to WorkspaceLayout \u2014 category selector, textarea, AI-scored credits-on-submit, connects to /api/feedback. All logged-in pages now have a persistent feedback entry point.",
         "versionImpact": "minor",
         "status": "done",
         "createdAt": "2026-06-13T00:10:00.000Z",
@@ -83,7 +84,7 @@
         "id": "T0007",
         "agent": "cfo",
         "title": "CSV export of the full valuation model",
-        "rationale": "exportCsv() on VC Valuation Dashboard hero — exports blended valuation, 4 methods, 36-month projections, unit economics, raise plan as a dated CSV. No new dependency required (client-side Blob).",
+        "rationale": "exportCsv() on VC Valuation Dashboard hero \u2014 exports blended valuation, 4 methods, 36-month projections, unit economics, raise plan as a dated CSV. No new dependency required (client-side Blob).",
         "versionImpact": "minor",
         "status": "done",
         "createdAt": "2026-06-13T00:18:00.000Z",
@@ -93,7 +94,7 @@
       {
         "id": "T0008",
         "agent": "cfo",
-        "title": "/api/valuation/vc — VC-grade valuation API endpoint",
+        "title": "/api/valuation/vc \u2014 VC-grade valuation API endpoint",
         "rationale": "GET: fetches user SVI + metrics from Supabase, infers sector, calls buildVcValuationReport. POST: scenario modelling. Live at /api/valuation/vc.",
         "versionImpact": "minor",
         "status": "done",
@@ -104,7 +105,7 @@
       {
         "id": "T0009",
         "agent": "cpo",
-        "title": "SCN context detection — auto-detect startup phase from input",
+        "title": "SCN context detection \u2014 auto-detect startup phase from input",
         "rationale": "src/lib/scn-detect.ts + /api/scn/detect live. Detects stage from idea/URL/GitHub/revenue. Integrated in main dashboard (ScnPositionHero, ScnDirectionNavigator).",
         "versionImpact": "major",
         "status": "done",
@@ -115,7 +116,7 @@
         "id": "T0010",
         "agent": "rnd",
         "title": "Berkus method + AU comparables in valuation engine",
-        "rationale": "berkusMethod() added to cfo-valuation.ts: 5 elements × A$775K max, scored from stage+MRR signals. Pre-revenue: Berkus active at 30% weight (rebalances to Berkus 30/Comp 25/VC 25/DCF 10/RFS 10). Revenue-positive: shown as informational reference (weight=0). 94/94 tests pass. Deploy 6 (sha e234613).",
+        "rationale": "berkusMethod() added to cfo-valuation.ts: 5 elements \u00d7 A$775K max, scored from stage+MRR signals. Pre-revenue: Berkus active at 30% weight (rebalances to Berkus 30/Comp 25/VC 25/DCF 10/RFS 10). Revenue-positive: shown as informational reference (weight=0). 94/94 tests pass. Deploy 6 (sha e234613).",
         "versionImpact": "minor",
         "status": "done",
         "createdAt": "2026-06-13T04:00:00.000Z",
@@ -125,7 +126,7 @@
       {
         "id": "T0011",
         "agent": "cmo",
-        "title": "Weekly SEO roundup post — AU startup funding news",
+        "title": "Weekly SEO roundup post \u2014 AU startup funding news",
         "rationale": "Fixed: publish-insight cron was writing articles to release dir only (not synced to source). Added post-hook to cron-runner.sh: after every publish-insight OK, copy new articles from release to source + auto-commit. Published 7 new articles (Jun 13). Total: 38 articles.",
         "versionImpact": "patch",
         "status": "done",
@@ -135,8 +136,8 @@
       {
         "id": "T0012",
         "agent": "cro",
-        "title": "Onboarding wizard — 3-step welcome flow for new users",
-        "rationale": "ALREADY LIVE: /onboarding + OnboardingWizard (654 lines, 3 steps: startup info → SVI analysis → boost). Wired in auth/verify/route.ts via onboarding_completed flag. KPI: ≥60% of new users complete first SVI analysis within 5min of signup.",
+        "title": "Onboarding wizard \u2014 3-step welcome flow for new users",
+        "rationale": "ALREADY LIVE: /onboarding + OnboardingWizard (654 lines, 3 steps: startup info \u2192 SVI analysis \u2192 boost). Wired in auth/verify/route.ts via onboarding_completed flag. KPI: \u226560% of new users complete first SVI analysis within 5min of signup.",
         "versionImpact": "minor",
         "status": "done",
         "createdAt": "2026-06-13T04:00:00.000Z",
@@ -155,7 +156,7 @@
       {
         "id": "T0014",
         "agent": "cto",
-        "title": "SVI score history — trend chart per user",
+        "title": "SVI score history \u2014 trend chart per user",
         "rationale": "ALREADY LIVE: sviHistory fetched in dashboard/page.tsx from svi_accounts, passed to LivingSVIDashboard and AdvisorDashboard components. Trend rendered in SVIHistoryChart. KPI: returning users see score progression.",
         "versionImpact": "minor",
         "status": "done",
@@ -165,7 +166,7 @@
       {
         "id": "T0015",
         "agent": "cto",
-        "title": "Article sync fix — cron-runner.sh post-hook for publish-insight",
+        "title": "Article sync fix \u2014 cron-runner.sh post-hook for publish-insight",
         "rationale": "publish-insight was writing new articles to the release dir only (not the source dir). Fixed via post-hook in cron-runner.sh: after every successful publish-insight, copy new .md + manifest + queue from release dir back to content/insights/ and auto-commit. Prevents article loss on next deploy.",
         "versionImpact": "patch",
         "status": "done",
@@ -175,8 +176,8 @@
       {
         "id": "T0016",
         "agent": "rnd",
-        "title": "Evidence Vault Phase 2 — OAuth connectors (GitHub, Stripe, Google Analytics)",
-        "rationale": "Evidence Vault UI exists in workspace/evidence. Phase 2 adds real data connectors: OAuth GitHub → pull commit activity + repo stats; Stripe → pull MRR/revenue; Google Analytics → pull traffic. Each connector auto-updates SVI score on connection. KPI: ≥1 connected data source per active user.",
+        "title": "Evidence Vault Phase 2 \u2014 OAuth connectors (GitHub, Stripe, Google Analytics)",
+        "rationale": "Evidence Vault UI exists in workspace/evidence. Phase 2 adds real data connectors: OAuth GitHub \u2192 pull commit activity + repo stats; Stripe \u2192 pull MRR/revenue; Google Analytics \u2192 pull traffic. Each connector auto-updates SVI score on connection. KPI: \u22651 connected data source per active user.",
         "versionImpact": "major",
         "status": "pending",
         "createdAt": "2026-06-13T04:20:00.000Z"
@@ -184,13 +185,13 @@
       {
         "id": "T0017",
         "agent": "cro",
-        "title": "Founding 50 conversion push — in-app upgrade prompt after 2nd analysis",
-        "rationale": "28 users, 0 paid. After user's 2nd free analysis (1 credit used out of 2), show an upgrade prompt: 'You've used 1 of 2 free credits. Upgrade to Founding 50 for A$49 — 50 analyses, Evidence Vault, and cap table tools.' KPI: ≥5 paid conversions within 14 days of launch.",
+        "title": "Founding 50 conversion push \u2014 in-app upgrade prompt after 2nd analysis",
+        "rationale": "28 users, 0 paid. After user's 2nd free analysis (1 credit used out of 2), show an upgrade prompt: 'You've used 1 of 2 free credits. Upgrade to Founding 50 for A$49 \u2014 50 analyses, Evidence Vault, and cap table tools.' KPI: \u22655 paid conversions within 14 days of launch.",
         "versionImpact": "minor",
         "status": "done",
         "createdAt": "2026-06-13T04:20:00.000Z",
         "completedAt": "2026-06-13T04:40:00.000Z",
-        "notes": "UpgradePrompt banner added to workspace-layout.tsx — shown when balance===1 and plan===free. Calls /api/stripe/checkout with plan:founding50. Session-dismissible via sessionStorage."
+        "notes": "UpgradePrompt banner added to workspace-layout.tsx \u2014 shown when balance===1 and plan===free. Calls /api/stripe/checkout with plan:founding50. Session-dismissible via sessionStorage."
       },
       {
         "id": "T0033",
@@ -277,7 +278,7 @@
       {
         "id": "T0080",
         "agent": "cmo",
-        "title": "/tools hub page — SEO aggregator",
+        "title": "/tools hub page \u2014 SEO aggregator",
         "rationale": "Single landing page for 10 free founder tools to capture organic search traffic.",
         "versionImpact": "minor",
         "status": "done",
@@ -299,7 +300,7 @@
       {
         "id": "T0082",
         "agent": "cmo",
-        "title": "5 SEO articles — AU funding, SAFE, equity split, Antler",
+        "title": "5 SEO articles \u2014 AU funding, SAFE, equity split, Antler",
         "rationale": "Long-form content for high-intent search terms.",
         "versionImpact": "patch",
         "status": "done",
@@ -310,7 +311,7 @@
       {
         "id": "T0083",
         "agent": "rnd",
-        "title": "AU comparable companies data — 30+ startups",
+        "title": "AU comparable companies data \u2014 30+ startups",
         "rationale": "Expanded comparables in valuation engine for AU-specific multiples.",
         "versionImpact": "minor",
         "status": "done",
@@ -333,7 +334,7 @@
         "id": "T0085",
         "agent": "ceo",
         "title": "Sync implementing-plan.md and project-state.json with shipped tasks",
-        "rationale": "Drift-correct the plan/state files (stuck at T0017) to reflect T0018–T0084. Bump to v2.0.0. Register T0086–T0090.",
+        "rationale": "Drift-correct the plan/state files (stuck at T0017) to reflect T0018\u2013T0084. Bump to v2.0.0. Register T0086\u2013T0090.",
         "versionImpact": "patch",
         "status": "done",
         "createdAt": "2026-06-13T12:05:00.000Z",
@@ -351,7 +352,7 @@
       {
         "id": "T0087",
         "agent": "clo",
-        "title": "Term Sheet AI v2 — persist analyses, Lawyer Questions, SVI link",
+        "title": "Term Sheet AI v2 \u2014 persist analyses, Lawyer Questions, SVI link",
         "rationale": "Persist authenticated analyses to term_sheet_analyses Supabase table; add Save button; expose Lawyer Questions section; link to user SVI score.",
         "versionImpact": "minor",
         "status": "pending",
@@ -360,7 +361,7 @@
       {
         "id": "T0088",
         "agent": "cfo",
-        "title": "Fundraising Readiness Report v2 — checklist + AU comparable raises",
+        "title": "Fundraising Readiness Report v2 \u2014 checklist + AU comparable raises",
         "rationale": "Augment SVI report PDF with Fundraising Checklist (from data_room_checklist) and Comparable Raises (from benchmarks.ts).",
         "versionImpact": "minor",
         "status": "pending",
@@ -383,6 +384,94 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-06-13T12:10:00.000Z"
+      },
+      {
+        "id": "T0094",
+        "agent": "cfo",
+        "title": "ESOP Pool Structure Design (12% pool, 4yr/1yr cliff, AU ESS compliant)",
+        "rationale": "Design ESOP pool for BlockID.au investor readiness. Fixes major cap table governance gap (+8 SVI).",
+        "versionImpact": "minor",
+        "status": "done",
+        "createdAt": "2026-06-13T11:00:00.000Z",
+        "completedAt": "2026-06-13T12:00:00.000Z",
+        "commit": "dc0c8cd"
+      },
+      {
+        "id": "T0095",
+        "agent": "clo",
+        "title": "ESOP Legal Templates (Plan Deed, Offer Letter, Founder Vesting, Shareholders Agreement)",
+        "rationale": "AU-specific legal docs ready for lawyer review. Required for Antler pitch June 30.",
+        "versionImpact": "minor",
+        "status": "done",
+        "createdAt": "2026-06-13T11:00:00.000Z",
+        "completedAt": "2026-06-13T12:00:00.000Z",
+        "commit": "dc0c8cd"
+      },
+      {
+        "id": "T0096",
+        "agent": "cto",
+        "title": "ESOP Technical Spec \u2014 Database schema, API endpoints, vesting engine",
+        "rationale": "Complete technical specification for ESOP implementation in Supabase + Next.js.",
+        "versionImpact": "minor",
+        "status": "done",
+        "createdAt": "2026-06-13T11:00:00.000Z",
+        "completedAt": "2026-06-13T12:00:00.000Z",
+        "commit": "dc0c8cd"
+      },
+      {
+        "id": "T0097",
+        "agent": "cto",
+        "title": "ESOP Manager UI \u2014 Pool status, grant wizard, grants table, /dashboard/esop page",
+        "rationale": "Full ESOP Manager UI: EsopPoolStatus, EsopGrantForm (3-step), EsopGrantsTable, /dashboard/esop, API routes /api/esop/pool + /api/esop/grants. Added to Fundraise nav.",
+        "versionImpact": "minor",
+        "status": "done",
+        "createdAt": "2026-06-14T00:00:00.000Z",
+        "completedAt": "2026-06-14T01:00:00.000Z",
+        "commit": "dc0c8cd"
+      },
+      {
+        "id": "T0098",
+        "agent": "ceo",
+        "title": "BlockID.au SVI Self-Analysis \u2014 68/100 score, investor path to 85+",
+        "rationale": "Comprehensive 8-dimension SVI analysis of BlockID.au. Valuation: A$440K pre-money. Antler readiness: 65-75%.",
+        "versionImpact": "patch",
+        "status": "done",
+        "createdAt": "2026-06-13T11:00:00.000Z",
+        "completedAt": "2026-06-13T14:00:00.000Z",
+        "commit": "dc0c8cd"
+      },
+      {
+        "id": "T0099",
+        "agent": "cfo",
+        "title": "36-Month Financial Projections \u2014 A$250K\u2192A$1M\u2192A$3.6M ARR, 5-method valuation",
+        "rationale": "Conservative 3-year P&L, unit economics (LTV:CAC 10:1), break-even Month 13, A$440K pre-money valuation.",
+        "versionImpact": "patch",
+        "status": "done",
+        "createdAt": "2026-06-13T11:00:00.000Z",
+        "completedAt": "2026-06-13T14:00:00.000Z",
+        "commit": "dc0c8cd"
+      },
+      {
+        "id": "T0100",
+        "agent": "cdo",
+        "title": "Data Room Structure \u2014 13-section framework, 47% complete, roadmap to 70% by Antler",
+        "rationale": "Professional investor data room framework. 13 sections, priority checklists, security practices.",
+        "versionImpact": "patch",
+        "status": "done",
+        "createdAt": "2026-06-13T11:00:00.000Z",
+        "completedAt": "2026-06-13T14:00:00.000Z",
+        "commit": "dc0c8cd"
+      },
+      {
+        "id": "T0101",
+        "agent": "ceo",
+        "title": "C-Level Knowledge Base Consolidation \u2014 11 agents, 8 modules, 99KB",
+        "rationale": "Master knowledge base injected into all C-Level agents: ESOP, valuation, SVI, data room expertise.",
+        "versionImpact": "minor",
+        "status": "done",
+        "createdAt": "2026-06-13T11:00:00.000Z",
+        "completedAt": "2026-06-14T01:00:00.000Z",
+        "commit": "dc0c8cd"
       }
     ]
   },
@@ -417,7 +506,7 @@
     },
     {
       "id": "M004",
-      "title": "Feedback widget FAB (T0004) + CSV export (T0007) + SCN verified (T0009) — deployed sha 41ea308c (10/10 gates)",
+      "title": "Feedback widget FAB (T0004) + CSV export (T0007) + SCN verified (T0009) \u2014 deployed sha 41ea308c (10/10 gates)",
       "version": "0.5.0",
       "completedAt": "2026-06-13T04:00:00.000Z",
       "taskIds": [
@@ -450,7 +539,7 @@
     },
     {
       "id": "M007",
-      "title": "Founding 50 conversion prompt (T0017) — UpgradePrompt banner in workspace when balance===1, CTA to founding50 checkout",
+      "title": "Founding 50 conversion prompt (T0017) \u2014 UpgradePrompt banner in workspace when balance===1, CTA to founding50 checkout",
       "version": "0.8.0",
       "completedAt": "2026-06-13T04:40:00.000Z",
       "taskIds": [
@@ -459,7 +548,7 @@
     },
     {
       "id": "M016",
-      "title": "T0075–T0083 — Onboarding flow, score confidence, SAFE calculator, investor email, GitHub evidence, /tools hub, SVI history, SEO content, AU comparables",
+      "title": "T0075\u2013T0083 \u2014 Onboarding flow, score confidence, SAFE calculator, investor email, GitHub evidence, /tools hub, SVI history, SEO content, AU comparables",
       "version": "1.8.0",
       "completedAt": "2026-06-13T09:30:00.000Z",
       "taskIds": [
@@ -476,7 +565,7 @@
     },
     {
       "id": "M017",
-      "title": "T0084 — C-Level blended valuation engine + BlockID self-analysis financial model",
+      "title": "T0084 \u2014 C-Level blended valuation engine + BlockID self-analysis financial model",
       "version": "1.9.0",
       "completedAt": "2026-06-13T10:00:00.000Z",
       "taskIds": [
@@ -485,7 +574,7 @@
     },
     {
       "id": "M018",
-      "title": "Feature Batch 8 (T0086–T0090): Financial Projection Norms calculator, Term Sheet AI v2 persistence, Fundraising Report v2, Google Analytics evidence connector, SVI Cohort Benchmark page",
+      "title": "Feature Batch 8 (T0086\u2013T0090): Financial Projection Norms calculator, Term Sheet AI v2 persistence, Fundraising Report v2, Google Analytics evidence connector, SVI Cohort Benchmark page",
       "version": "2.0.0",
       "completedAt": "2026-06-13T12:10:00.000Z",
       "taskIds": [
@@ -495,6 +584,22 @@
         "T0088",
         "T0089",
         "T0090"
+      ]
+    },
+    {
+      "id": "M019",
+      "title": "T0094\u2013T0101 ESOP + SVI + Data Room + Knowledge Base \u2014 investor-ready documents, ESOP Manager UI live",
+      "version": "2.1.0",
+      "completedAt": "2026-06-14T01:00:00.000Z",
+      "taskIds": [
+        "T0094",
+        "T0095",
+        "T0096",
+        "T0097",
+        "T0098",
+        "T0099",
+        "T0100",
+        "T0101"
       ]
     }
   ],
@@ -545,7 +650,7 @@
       "ts": "2026-06-13T04:40:00.000Z",
       "action": "release",
       "version": "0.8.0",
-      "note": "Founding 50 conversion banner (T0017): UpgradePrompt in workspace-layout — shown when balance===1 and plan===free. Calls /api/stripe/checkout founding50. Session-dismissible. Next: T0016 (Evidence Vault OAuth)."
+      "note": "Founding 50 conversion banner (T0017): UpgradePrompt in workspace-layout \u2014 shown when balance===1 and plan===free. Calls /api/stripe/checkout founding50. Session-dismissible. Next: T0016 (Evidence Vault OAuth)."
     }
   ]
 }
