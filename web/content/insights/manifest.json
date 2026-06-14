@@ -1,6 +1,28 @@
 {
   "articles": [
     {
+      "slug": "pre-money-valuation-calculator-for-australian-startups",
+      "title": "Pre-Money Valuation Calculator Australia | BlockID.au",
+      "description": "Calculate your startup's pre-money valuation with our free calculator. Learn how to value your Australian startup with our expert guide and tools.",
+      "keywords": [
+        "pre-money valuation calculator",
+        "australian startup valuation",
+        "calculate pre-money valuation australia",
+        "startup funding calculator australia",
+        "pre-money valuation for australian startups",
+        "how to calculate pre-money valuation australia",
+        "australian startup pre-money valuation guide",
+        "pre-money valuation tools for startups australia"
+      ],
+      "category": "valuation",
+      "publishedAt": "2026-06-14",
+      "readingTime": 5,
+      "cta": {
+        "label": "Get Your Pre-Money Valuation",
+        "href": "/score"
+      }
+    },
+    {
       "slug": "esop-australian-startups-2026",
       "title": "ESOP for Australian Startups: The Complete 2026 Guide",
       "description": "Complete guide to setting up an ESOP for Australian startups in 2026. Covers ESS tax rules, Division 83A, pool sizing, vesting schedules, legal requirements, and common mistakes.",

@@ -999,6 +999,21 @@
         "href": "/tools/cap-table-template"
       },
       "angle": "Learn how to optimise your startup's cap table for fundraising success in Australia. Discover common mistakes to avoid and best practices to implement, and get access to our free cap table template to streamline your equity management."
+    },
+    {
+      "slug": "pre-money-valuation-calculator-for-australian-startups",
+      "title": "Pre-Money Valuation Calculator: Australian Startups Guide",
+      "category": "valuation",
+      "keywords": [
+        "pre-money valuation",
+        "startup valuation calculator",
+        "australian startup funding"
+      ],
+      "cta": {
+        "label": "Get Your Pre-Money Valuation",
+        "href": "/score"
+      },
+      "angle": "Learn how to calculate your pre-money valuation with our calculator and expert guide, essential for Australian founders raising capital and negotiating with investors."
     }
   ]
 }
