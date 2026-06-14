@@ -1,0 +1,158 @@
+## Cap Table 101: How to Set Up and Manage Equity for Australian Startups
+
+A cap table — short for capitalisation table — is the master document of who owns what in your company and under what terms. For Australian founders, it is simultaneously the most important legal document you maintain, the most frequently mismanaged, and the most consequential to get wrong.
+
+Investor disputes, M&A complications, and funding round delays are frequently traced back to a poorly managed cap table. This guide covers the full arc of cap table management for Australian startups: how to set it up correctly from day one, how it evolves through SAFE notes, ESOP grants, and investment rounds, and how dilution and anti-dilution provisions affect your ownership over time.
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="120" rx="16" fill="#0B1220"/>
+  <text x="150" y="48" text-anchor="middle" fill="#F87171" font-size="28" font-weight="700" font-family="system-ui">3 sources</text>
+  <text x="150" y="74" text-anchor="middle" fill="#94A3B8" font-size="11" font-family="system-ui">That must reconcile: cap table, ASIC register, SHA</text>
+  <line x1="300" y1="20" x2="300" y2="100" stroke="#3B7DD8" stroke-width="1" opacity="0.3"/>
+  <text x="450" y="48" text-anchor="middle" fill="#10B981" font-size="28" font-weight="700" font-family="system-ui">Fully diluted</text>
+  <text x="450" y="74" text-anchor="middle" fill="#94A3B8" font-size="11" font-family="system-ui">The only cap table view that matters to investors</text>
+</svg>
+</figure>
+
+> **Key Insight:** Investors do not look at your basic cap table — they look at the **fully diluted** cap table. This includes all issued shares, all outstanding options (vested and unvested), all SAFE and convertible note conversions at the capped valuation, and the ESOP pool (both granted and ungranted). If you cannot produce this document on request, you are not investor-ready.
+
+## What Is a Cap Table?
+
+A cap table records every form of equity ownership in your company:
+
+- **Ordinary shares:** Held by founders and early employees who received shares directly
+- **Preference shares:** Typically held by investors, with rights that rank above ordinary shares on exit
+- **Options:** Granted under ESOP, giving optionholders the right to buy shares at a fixed exercise price
+- **SAFE notes and convertible notes:** Instruments that convert into equity at a future funding round
+- **Warrants:** Less common at early stage, but occasionally issued to advisors or service providers in lieu of cash
+
+At incorporation, a typical two-founder Australian startup has a very simple cap table: two founders, 10M shares each, total 20M shares. By the time you reach Series A, the same company might have 50+ stakeholders across multiple share classes, an ESOP pool, and two rounds of SAFE conversions to model.
+
+## Setting Up Your Cap Table at Incorporation
+
+**Step 1: Choose your total share count**
+
+Australian startups typically issue between 1 million and 100 million shares at incorporation. The actual number matters less than the structure. Most founders use 10M shares per founder as a starting point — round numbers make dilution calculations straightforward.
+
+**Step 2: Decide on founder share split**
+
+The split at incorporation should reflect long-term contribution expectations, not politeness. Equal splits are common and defensible. Unequal splits require clear rationale (different capital contributions, different role intensity) and should be documented in a cofounder agreement. Whatever the split, agree on it before incorporation — changing it later is expensive and relationship-damaging.
+
+**Step 3: Establish founder vesting**
+
+Australian investors expect founders to be on vesting schedules. This protects the company if a cofounder leaves early, and it protects remaining founders from holding a large equity stake alongside someone who is no longer contributing. Standard founder vesting: **four years with a one-year cliff**, matching the employee ESOP vesting standard.
+
+**Step 4: Set up the ESOP pool**
+
+Before any investment, establish an ESOP pool of 10–15% of fully diluted shares. This pool sits pre-investment, which means it dilutes founders. Investors expect this — it is standard. Trying to establish the ESOP pool after the investment closes creates unnecessary complexity and signals governance immaturity.
+
+**Step 5: Register share issuances with ASIC**
+
+Every share issuance must be documented via an **ASIC Form 484** lodged within 28 days. Your ASIC shareholder register must exactly match your cap table at all times. Discrepancies between these two sources are among the most common due diligence blockers in Australian startup funding rounds.
+
+## SAFE Notes: How They Affect Your Cap Table
+
+**SAFE notes** (Simple Agreements for Future Equity) are the most common pre-seed and seed instrument in Australia, largely replacing convertible notes in the ecosystem over the last five years. A SAFE is not equity — it is a promise to issue equity at a future funding round at a predetermined valuation cap or discount.
+
+**Key SAFE mechanics:**
+
+- **Valuation cap:** The maximum pre-money valuation at which the SAFE converts. If you raise at a valuation above the cap, SAFE holders convert at the cap — which means they receive more shares than investors who invest at the round price.
+- **Discount rate:** An alternative conversion mechanism — the SAFE converts at a percentage discount to the round price (typically 15–25%).
+- **Pro-rata rights:** Most SAFE agreements give holders the right to invest in the subsequent round to maintain their percentage ownership.
+
+**Cap table impact of SAFE conversion:**
+
+SAFE conversions can cause surprising amounts of dilution. A $500K SAFE with a $3M valuation cap that converts in a $6M seed round will issue shares at the $3M cap price — meaning the SAFE holder receives shares worth twice as much as a seed investor paying the round price. Model all SAFE conversions at their cap before you agree to the valuation of any subsequent round.
+
+**Example modelling:**
+- Pre-SAFE: 2 founders × 10M shares = 20M shares, 12% ESOP pool = 2.4M options
+- $500K SAFE at $3M cap: converts to 3.33M shares (500K ÷ $0.15/share at cap price)
+- Post-SAFE fully diluted: 25.73M shares — founders diluted from 100% to 77.7% before seed round
+
+## ESOP Pool: How Equity Grants Dilute Over Time
+
+Your ESOP pool creates potential dilution with every grant. Understanding the mechanics:
+
+**Authorised vs granted vs vested options:**
+
+| Status | Meaning | Cap Table Impact |
+| :--- | :--- | :--- |
+| Authorised (pool) | Reserved but not yet granted | Included in fully diluted count |
+| Granted (unvested) | Assigned to employee, not yet vested | Included in fully diluted count |
+| Granted (vested) | Employee can exercise, buy shares | Included in fully diluted count |
+| Exercised | Employee has bought shares, now shareholder | Shares on cap table, options extinguished |
+| Lapsed | Employee left, unvested options returned to pool | Returns to pool for future grants |
+
+The key insight: **all options in your ESOP pool — whether granted or not — appear in the fully diluted share count**. This is why investors care so much about pool sizing. A 20% ESOP pool that is 80% ungranted represents 20% dilution that investors are absorbing without any corresponding benefit yet.
+
+## Understanding Dilution: The Mechanics
+
+Every time new shares are issued — whether to investors, via SAFE conversion, or through ESOP grants — existing shareholders are diluted. Their percentage ownership decreases even though their absolute number of shares does not change.
+
+**Simple dilution example:**
+
+- Pre-round: 2 founders, 10M shares each (50%/50%), 2.4M ESOP pool (12%), total 22.4M shares
+- Seed round: Investor buys 5M new shares for A$1.5M
+- Post-round: 27.4M total shares
+- Founder 1 ownership: 10M ÷ 27.4M = **36.5%** (was 44.6%)
+- Investor ownership: 5M ÷ 27.4M = **18.2%**
+
+**Cumulative dilution across rounds:**
+
+A founder who begins with 50% can expect to hold approximately 15–25% by Series B after accounting for SAFE conversions, ESOP pool creation, seed investment, and Series A investment. This is normal and healthy — a smaller percentage of a much more valuable company.
+
+## Anti-Dilution Provisions: What They Mean for Founders
+
+Anti-dilution clauses protect investors from down rounds — situations where a subsequent funding round prices shares below the previous round. They are standard in Australian preference share agreements at seed and above.
+
+**Two main types:**
+
+**Broad-based weighted average anti-dilution:** The most founder-friendly standard. The conversion price of preference shares is adjusted based on a weighted average of the new share price and the old price, considering the total number of shares. This moderates the dilutive impact on investors without catastrophically impacting founders.
+
+**Full ratchet anti-dilution:** Investor-hostile to founders. The conversion price drops to the new lower price, maximally benefiting investors at founders' expense. Rare in Australian term sheets from reputable funds — if you see it, push back hard.
+
+**The practical implication for founders:** If your Series A is a down round relative to your seed, anti-dilution provisions convert into additional shares for seed investors, further diluting founders and later investors. Avoiding down rounds is the best anti-dilution strategy — but understanding your investors' anti-dilution rights is the minimum due diligence requirement before signing any term sheet.
+
+## Three Cap Table Documents That Must Reconcile
+
+The Australian due diligence standard requires three documents to match exactly at all times:
+
+1. **Your cap table spreadsheet or software:** Every share class, every optionholder, every SAFE/convertible note
+2. **ASIC shareholder register:** The legally maintained record of all shareholders and shares
+3. **Shareholders Agreement (SHA):** The contractual terms governing shareholder rights
+
+If these three documents disagree on any figure — even by a single share — you have a due diligence problem. Australian investors will identify the discrepancy, and closing it adds weeks to the process.
+
+## Managing Your Cap Table with BlockID
+
+The [BlockID Cap Table Manager](/dashboard) provides Australian startups with:
+
+- **Fully diluted modelling:** Automatic calculation of post-conversion, post-investment cap table across multiple scenarios
+- **SAFE and convertible note conversion modelling:** See exactly how each instrument converts at your next round valuation
+- **ESOP pool tracking:** Grant tracking, vesting calendar, option register maintenance
+- **Round modelling:** Pre-money and post-money scenarios with investor dilution visualised
+- **SVI integration:** Your cap table health feeds directly into your [BlockID Startup Valuation Index](/score) — clean governance translates to a better SVI score and better investor perception
+
+<figure style="margin:2rem 0;text-align:center">
+<svg viewBox="0 0 600 140" xmlns="http://www.w3.org/2000/svg" style="max-width:600px;width:100%;margin:0 auto">
+  <rect width="600" height="140" rx="12" fill="#0B1220"/>
+  <text x="300" y="26" text-anchor="middle" fill="#FFF" font-size="13" font-weight="700" font-family="system-ui">TYPICAL FOUNDER DILUTION JOURNEY</text>
+  <text x="60" y="58" text-anchor="start" fill="#94A3B8" font-size="10" font-family="system-ui">Incorporation</text>
+  <rect x="160" y="44" width="380" height="18" rx="4" fill="#10B981"/>
+  <text x="355" y="57" text-anchor="middle" fill="#FFF" font-size="9" font-family="system-ui">~50% (equal split, 2 founders)</text>
+  <text x="60" y="84" text-anchor="start" fill="#94A3B8" font-size="10" font-family="system-ui">Post ESOP + SAFE</text>
+  <rect x="160" y="70" width="300" height="18" rx="4" fill="#FBBF24"/>
+  <text x="315" y="83" text-anchor="middle" fill="#0B1220" font-size="9" font-family="system-ui">~40–45% per founder</text>
+  <text x="60" y="110" text-anchor="start" fill="#94A3B8" font-size="10" font-family="system-ui">Post Seed</text>
+  <rect x="160" y="96" width="210" height="18" rx="4" fill="#3B7DD8"/>
+  <text x="270" y="109" text-anchor="middle" fill="#FFF" font-size="9" font-family="system-ui">~30–35% per founder</text>
+  <text x="60" y="136" text-anchor="start" fill="#94A3B8" font-size="10" font-family="system-ui">Post Series A</text>
+  <rect x="160" y="122" width="140" height="18" rx="4" fill="#F87171"/>
+  <text x="235" y="135" text-anchor="middle" fill="#FFF" font-size="9" font-family="system-ui">~18–25% each</text>
+</svg>
+</figure>
+
+A well-managed cap table is not just a financial record. It is the legal and governance foundation of every decision your company makes about talent, investment, and exit. Get it right at the start, keep it current throughout, and make sure it always reconciles with your ASIC register and SHA.
+
+> **Manage your cap table with BlockID.** [Get Started Free →](/dashboard)

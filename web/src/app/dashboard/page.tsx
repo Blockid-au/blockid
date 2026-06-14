@@ -34,6 +34,7 @@ import { ScnDirectionNavigator, type DirectionStep } from "@/components/dashboar
 import { AIConfidenceActionPlan } from "@/components/dashboard/ai-confidence-action-plan";
 import { GitHubEvidenceCard } from "@/components/dashboard/github-evidence-card";
 import { ScoreHistoryChart } from "@/components/svi/score-history-chart";
+import { DataRoomReadinessCard } from "@/components/dashboard/data-room-readiness-card";
 import { fetchRepoStats, parseRepoInput } from "@/lib/github";
 import type { SVIAnalysis, SVISubScore } from "@/lib/svi-analysis";
 import { getSVIPercentile } from "@/lib/benchmarks";
@@ -885,7 +886,10 @@ export default async function DashboardPage({
           hasEquity={shareholders.length > 1}
         />
 
-        {/* ── Row 5b: SVI Score History Chart (T0081) ──────────────────────── */}
+        {/* ── Row 5b: Data Room Readiness Card (T0110) ─────────────────────── */}
+        <DataRoomReadinessCard />
+
+        {/* ── Row 5c: SVI Score History Chart (T0081) ──────────────────────── */}
         {sviHistory.length > 0 && (
           <ScoreHistoryChart
             history={sviHistory}

@@ -5,6 +5,7 @@ import { Footer } from "@/components/site/footer";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { Founding50Spots } from "@/components/ui/founding50-spots";
 import { Founding50Waitlist } from "@/components/ui/founding50-waitlist";
+import { FoundingCountdown } from "@/components/ui/founding-countdown";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { getPlatformConfig, founding_price_aud } from "@/lib/platform-config";
 import {
@@ -16,6 +17,8 @@ import {
   TrendingUp,
   Users,
   Zap,
+  Flame,
+  Star,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -89,12 +92,20 @@ export default async function Founding50Page() {
         <div className="max-w-4xl mx-auto px-6">
         {/* Hero */}
         <div className="text-center pb-12">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-brand-600/40 bg-brand-50 px-4 py-1.5 mb-6">
-            <Clock strokeWidth={1.75} className="h-3.5 w-3.5 text-brand-600" />
-            <span className="text-xs font-medium text-brand-700 uppercase tracking-[0.15em]">
-              Limited spots remaining
-            </span>
+          {/* Urgency badge row */}
+          <div className="flex flex-wrap items-center justify-center gap-3 mb-5">
+            <div className="inline-flex items-center gap-2 rounded-full border border-red-300 bg-red-50 px-4 py-1.5">
+              <Flame strokeWidth={1.75} className="h-3.5 w-3.5 text-red-600" />
+              <span className="text-xs font-bold text-red-700 uppercase tracking-[0.12em]">
+                Only {spotsRemaining} of {cfg.founding_spots_total} spots left
+              </span>
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-brand-600/40 bg-brand-50 px-4 py-1.5">
+              <Star strokeWidth={1.75} className="h-3.5 w-3.5 text-brand-600" fill="currentColor" />
+              <span className="text-xs font-medium text-brand-700 uppercase tracking-[0.12em]">
+                {cfg.founding_spots_total - spotsRemaining} founders already joined
+              </span>
+            </div>
           </div>
 
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-ink-900 mb-4">
@@ -117,22 +128,42 @@ export default async function Founding50Page() {
               <CheckCircle2 strokeWidth={1.75} className="h-3.5 w-3.5" />
               Lifetime access
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
-              <Clock strokeWidth={1.75} className="h-3.5 w-3.5" />
-              Only {spotsRemaining} spots remaining
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+              <CheckCircle2 strokeWidth={1.75} className="h-3.5 w-3.5" />
+              No recurring fees
             </span>
           </div>
 
-          {/* Live spots counter */}
+          {/* Countdown timer */}
+          <div className="flex justify-center mb-6">
+            <FoundingCountdown deadline={cfg.early_bird_deadline} />
+          </div>
+
+          {/* Live spots counter with progress bar */}
           <div className="max-w-xs mx-auto mb-2">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <span className="inline-block h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-sm font-semibold text-ink-800">
-                <span className="text-red-600">{spotsRemaining} spots remaining</span> out of {cfg.founding_spots_total}
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="flex items-center gap-1.5 text-xs font-medium text-ink-600">
+                <Users strokeWidth={1.75} className="h-3.5 w-3.5" />
+                <span>
+                  <span className="font-bold text-ink-800">{cfg.founding_spots_total - spotsRemaining}</span> of {cfg.founding_spots_total} spots claimed
+                </span>
+              </span>
+              <span className={`text-xs font-bold ${spotsRemaining <= 10 ? "text-red-600" : "text-brand-600"}`}>
+                {spotsRemaining} left
               </span>
             </div>
+            <div className="h-2.5 w-full rounded-full bg-surface-200 overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${spotsRemaining <= 10 ? "bg-red-500" : "bg-brand-500"}`}
+                style={{ width: `${Math.round(((cfg.founding_spots_total - spotsRemaining) / cfg.founding_spots_total) * 100)}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-center gap-2 mt-2">
+              <span className="inline-block h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+              <span className="text-xs text-ink-600">Live — updates in real time</span>
+            </div>
           </div>
-          <Founding50Spots className="max-w-xs mx-auto mb-6" />
+          <Founding50Spots className="max-w-xs mx-auto mb-6 hidden" />
 
           {/* Price */}
           <div className="inline-flex items-baseline gap-3 rounded-2xl border border-surface-200 bg-white px-8 py-4 shadow-sm">
@@ -215,7 +246,7 @@ export default async function Founding50Page() {
                 "AU data residency",
                 "No credit card required",
                 "Secure checkout",
-                "100 spots only",
+                `${cfg.founding_spots_total} spots only`,
               ].map((t) => (
                 <span
                   key={t}
@@ -232,8 +263,36 @@ export default async function Founding50Page() {
           {spotsRemaining > 0 ? <Founding50Form /> : <Founding50Waitlist />}
         </div>
 
+        {/* Social proof ribbon — spots taken + deadline */}
+        <div className="mt-10 rounded-2xl border border-amber-200 bg-amber-50 px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex -space-x-1.5">
+              {["J", "S", "M", "A", "R"].map((initial) => (
+                <span
+                  key={initial}
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-amber-50 bg-brand-600 text-[10px] font-bold text-white"
+                >
+                  {initial}
+                </span>
+              ))}
+            </div>
+            <p className="text-sm font-semibold text-amber-900">
+              Join the <span className="text-brand-700">{cfg.founding_spots_total - spotsRemaining} founders</span> who already claimed their spot
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-amber-700 font-medium">
+            <Clock strokeWidth={1.75} className="h-3.5 w-3.5" />
+            Early-bird closes{" "}
+            {new Date(cfg.early_bird_deadline).toLocaleDateString("en-AU", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+          </div>
+        </div>
+
         {/* Why join now */}
-        <div className="mt-14 rounded-2xl border border-brand-600/20 bg-brand-50 px-8 py-8">
+        <div className="mt-6 rounded-2xl border border-brand-600/20 bg-brand-50 px-8 py-8">
           <h2 className="text-xs uppercase tracking-[0.2em] text-brand-600 font-medium mb-5 text-center">
             Why join now?
           </h2>

@@ -1,6 +1,6 @@
 {
-  "version": "2.2.0",
-  "updatedAt": "2026-06-14T00:51:50.000Z",
+  "version": "2.3.0",
+  "updatedAt": "2026-06-14T03:00:00.000Z",
   "architecture": {
     "summary": "BlockID.au \u2014 AI-powered startup valuation SaaS for AU founders (pre-seed \u2192 Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation\u2192Position\u2192Value\u2192Direction\u2192Capital) drives the full product flow.",
     "lastReviewedAt": "2026-06-13T12:10:00.000Z",
@@ -11,7 +11,8 @@
       "v0.5.0 \u2014 Feedback widget FAB (T0004, all workspace pages \u2192 /api/feedback, credits-on-submit) + CSV export on VC dashboard (T0007, full 36-month model) + SCN context detection verified live (src/lib/scn-detect.ts + /api/scn/detect, integrated in main dashboard).",
       "v2.0.0 \u2014 T0086\u2013T0090 Feature Batch 8: Financial Projection Norms calculator, Term Sheet AI v2 persistence + Lawyer Questions, Fundraising Readiness Report v2 (checklist + AU comparable raises), Google Analytics OAuth evidence connector, SVI Cohort Benchmark page.",
       "v2.1.0 \u2014 T0094\u2013T0101: ESOP Manager (pool + grants UI + API), 36-month financial model, data room 13-section structure, BlockID SVI 68/100 self-analysis, C-Level knowledge base (4 modules), valuation A$440K pre-money.",
-      "v2.2.0 \u2014 Batch 9 (T0102-T0110): ESOP governance scoring engine (cfo-esop-scoring.ts), knowledge base API, /api/esop/score, SVI upgrade roadmap widget, ESOP legal checklist tool, data room readiness API."
+      "v2.2.0 \u2014 Batch 9 (T0102-T0110): ESOP governance scoring engine (cfo-esop-scoring.ts), knowledge base API, /api/esop/score, SVI upgrade roadmap widget, ESOP legal checklist tool, data room readiness API.",
+      "v2.3.0 \u2014 T0109 (CLO): ESOP Legal Checklist rebuilt as interactive client component (30 items, 6 categories, localStorage persistence). T0114 (CTO): RecentAnalyses localStorage scoped by projectId (userEmail) to prevent cross-user pollution."
     ]
   },
   "plan": {
@@ -551,6 +552,36 @@
         "createdAt": "2026-06-14T01:50:00.000Z",
         "completedAt": "2026-06-14T01:50:00.000Z",
         "commit": "ab11688"
+      },
+      {
+        "id": "T0109",
+        "agent": "CLO",
+        "title": "ESOP Legal Checklist Tool (/tools/esop-checklist) \u2014 Interactive client component",
+        "rationale": "Rebuilt /tools/esop-checklist as interactive client component (EsopChecklistClient) with 30 checklist items across 6 categories: pre-implementation, plan documentation, ESS tax compliance, regulatory, employee communication, ongoing obligations. localStorage persistence, progress bar, category navigation, SEO metadata.",
+        "versionImpact": "minor",
+        "status": "done",
+        "createdAt": "2026-06-14T03:00:00.000Z",
+        "completedAt": "2026-06-14T03:00:00.000Z"
+      },
+      {
+        "id": "T0114",
+        "agent": "CTO",
+        "title": "Fix: recent-analyses.tsx localStorage project-scoped",
+        "rationale": "RecentAnalyses component now accepts optional projectId prop. localStorage key is blockid_analyses_${projectId} when projectId is provided, falling back to blockid_analyses for legacy/guest. SVIDashboard passes userEmail as projectId to scope analyses per authenticated user.",
+        "versionImpact": "patch",
+        "status": "done",
+        "createdAt": "2026-06-14T03:00:00.000Z",
+        "completedAt": "2026-06-14T03:00:00.000Z"
+      },
+      {
+        "id": "T0106",
+        "agent": "cmo",
+        "title": "5 SEO blog articles — ESOP, valuation methods, Antler tips, data room checklist, cap table 101",
+        "rationale": "CMO content batch: 5 long-form SEO articles targeting high-intent AU founder search queries. Covers ESOP setup (Division 83A), startup valuation methods (Berkus/Scorecard/VC/DCF), Antler application tips, investor data room checklist (AU-specific, 8 sections), and cap table 101 (SAFE notes, ESOP pool, dilution, anti-dilution). Each 900–1100 words, MDX format, manifest.json updated with metadata. CTA links to /score, /dashboard, /tools/data-room.",
+        "versionImpact": "minor",
+        "status": "done",
+        "createdAt": "2026-06-14T06:00:00.000Z",
+        "completedAt": "2026-06-14T06:00:00.000Z"
       }
     ]
   },

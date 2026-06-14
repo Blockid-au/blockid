@@ -1,6 +1,116 @@
 {
   "articles": [
     {
+      "slug": "esop-australian-startups-2026",
+      "title": "ESOP for Australian Startups: The Complete 2026 Guide",
+      "description": "Complete guide to setting up an ESOP for Australian startups in 2026. Covers ESS tax rules, Division 83A, pool sizing, vesting schedules, legal requirements, and common mistakes.",
+      "keywords": [
+        "ESOP australian startups 2026",
+        "employee share option plan australia",
+        "ESS Part 7A australia",
+        "Division 83A ESOP",
+        "how to set up ESOP australia",
+        "ESOP tax rules australia",
+        "startup equity australia",
+        "ESOP mistakes australian founders"
+      ],
+      "category": "esop",
+      "publishedAt": "2026-06-14",
+      "readingTime": 9,
+      "cta": {
+        "label": "Try the BlockID ESOP Manager",
+        "href": "/dashboard"
+      }
+    },
+    {
+      "slug": "startup-valuation-methods-2026",
+      "title": "How to Value Your Startup in 2026: Methods, Benchmarks & Tools",
+      "description": "The complete 2026 guide to startup valuation methods for Australian founders. Covers Berkus, Scorecard, VC Method, DCF, AU benchmarks, and the BlockID SVI framework.",
+      "keywords": [
+        "startup valuation methods 2026",
+        "how to value a startup australia",
+        "berkus method australia",
+        "scorecard method startup valuation",
+        "VC method startup valuation australia",
+        "DCF startup valuation",
+        "SVI score blockid",
+        "startup valuation benchmarks australia 2026"
+      ],
+      "category": "valuation",
+      "publishedAt": "2026-06-14",
+      "readingTime": 10,
+      "cta": {
+        "label": "Get Your Free SVI Score",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "antler-application-tips-australia",
+      "title": "How to Nail Your Antler Application: Insider Tips for AU Founders",
+      "description": "Insider guide to the Antler Australia application process. What the IC looks for, common mistakes, how your SVI score helps, team dynamics, and IC pitch structure.",
+      "keywords": [
+        "antler application tips australia",
+        "how to get into antler australia",
+        "antler australia IC criteria",
+        "antler australia 2026 cohort",
+        "antler sydney application guide",
+        "antler investment committee australia",
+        "antler cofounder matching australia",
+        "antler vs startmate australia"
+      ],
+      "category": "funding",
+      "publishedAt": "2026-06-14",
+      "readingTime": 9,
+      "cta": {
+        "label": "Prepare Your Antler Pitch with BlockID",
+        "href": "/score"
+      }
+    },
+    {
+      "slug": "startup-data-room-checklist-australia",
+      "title": "The Ultimate Data Room Checklist for Australian Startups Raising Capital",
+      "description": "The complete 2026 data room checklist for Australian startups. 8 essential sections, AU-specific requirements including R&D Tax Incentive and ESIC, stage benchmarks, and common gaps.",
+      "keywords": [
+        "startup data room checklist australia",
+        "investor data room australia 2026",
+        "what to include in data room australia",
+        "data room for australian startups",
+        "VC due diligence australia checklist",
+        "R&D tax incentive data room",
+        "ESIC data room australia",
+        "data room completion benchmark seed"
+      ],
+      "category": "funding",
+      "publishedAt": "2026-06-14",
+      "readingTime": 10,
+      "cta": {
+        "label": "Build Your Data Room with BlockID",
+        "href": "/tools/data-room"
+      }
+    },
+    {
+      "slug": "cap-table-management-australian-startups",
+      "title": "Cap Table 101: How to Set Up and Manage Equity for Australian Startups",
+      "description": "Complete guide to cap table management for Australian startups. Covers founder shares, SAFE notes, ESOP pools, dilution mechanics, anti-dilution provisions, and ASIC reconciliation.",
+      "keywords": [
+        "cap table management australian startups",
+        "how to set up cap table australia",
+        "SAFE note cap table australia",
+        "ESOP pool cap table dilution",
+        "founder dilution australia",
+        "anti-dilution provisions australia",
+        "fully diluted cap table australia",
+        "cap table ASIC register reconciliation"
+      ],
+      "category": "cap-table",
+      "publishedAt": "2026-06-14",
+      "readingTime": 10,
+      "cta": {
+        "label": "Manage Your Cap Table with BlockID",
+        "href": "/dashboard"
+      }
+    },
+    {
       "slug": "optimise-startup-cap-table-for-fundraising",
       "title": "Optimise Cap Table for Fundraising in Australia: Expert Guide",
       "description": "Learn how to optimise your cap table for fundraising in Australia. Get expert insights on startup equity management, best practices & common mistakes to av",
