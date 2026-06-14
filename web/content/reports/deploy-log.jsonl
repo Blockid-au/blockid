@@ -121,3 +121,14 @@
 {"ts":"2026-06-13T12:26:50Z","status":"success","gates":"10/10","pid":"714824","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-06-13T12:43:17Z","status":"success","gates":"10/10","pid":"761597","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-06-13T13:06:22Z","status":"success","gates":"10/10","pid":"826739","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-13T13:24:09.100Z","event":"github-push-master","detail":"Blockid-au: feat: Professional 10-section data room with valuation knowhow (16 commits)","source":"github-webhook"}
+{"ts":"2026-06-13T18:42:11Z","status":"success","gates":"10/10","pid":"1759505","note":"Auto-upgrade (Claude subscription): feat(auto): T0033 CFO financial projection norms calculator"}
+{"ts":"2026-06-13T18:42:13.774Z","event":"github-push-master","detail":"Blockid-au: feat(auto): T0033 CFO financial projection norms calculator (2 commits)","source":"github-webhook"}
+{"ts":"2026-06-14T00:34:57.580Z","event":"github-push-master","detail":"Blockid-au: feat: T0097 ESOP Manager UI + API + C-Level knowledge base upgrade (2 commits)","source":"github-webhook"}
+{"ts":"2026-06-14T00:41:21.389Z","event":"github-push-master","detail":"Blockid-au: chore: update project-state.json v2.1.0 — T0094-T0101 completed, milestone M019 (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-14T00:42:11.524Z","event":"github-push-master","detail":"Blockid-au: report: CEO daily 2026-06-14 — T0097 ESOP UI shipped, v2.1.0 (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-14T00:47:14.769Z","event":"github-push-master","detail":"Blockid-au: feat: Batch 9 — ESOP governance scoring engine + C-Level agent upgrade (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-14T00:49:33.183Z","event":"github-push-master","detail":"Blockid-au: feat: T0106-T0109 — SVI roadmap widget, ESOP checklist tool, tools nav (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-14T00:50:14.021Z","event":"github-push-master","detail":"Blockid-au: feat: T0110 — data room readiness score API (/api/dataroom/readiness) (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-14T00:51:57.532Z","event":"github-push-master","detail":"Blockid-au: chore: project-state.json v2.2.0 — Batch 9 T0102-T0110, M020 milestone (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-14T00:57:42Z","status":"success","gates":"10/10","pid":"2803530","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
