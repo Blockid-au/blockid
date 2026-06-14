@@ -4,7 +4,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { PageTracker } from "@/components/analytics/page-tracker";
-import { PLANS } from "@/lib/plans";
+import { buildPlansFromConfig } from "@/lib/plans";
+import { getPlatformConfig } from "@/lib/platform-config";
 import { BillingClient } from "./billing-client";
 
 export const metadata: Metadata = {
@@ -24,7 +25,12 @@ export default async function BillingPage() {
   let planStartedAt: string | null = null;
   let hasStripeCustomer = false;
 
-  const sb = getSupabaseAdmin();
+  const [cfg, sb] = await Promise.all([
+    getPlatformConfig(),
+    Promise.resolve(getSupabaseAdmin()),
+  ]);
+  const plans = buildPlansFromConfig(cfg);
+
   if (sb) {
     const { data: row } = await sb
       .from("app_users")
@@ -55,7 +61,7 @@ export default async function BillingPage() {
           currentPlanId={user.plan}
           planStartedAt={planStartedAt}
           hasStripeCustomer={hasStripeCustomer}
-          plans={PLANS}
+          plans={plans}
         />
       </div>
     </WorkspaceLayout>

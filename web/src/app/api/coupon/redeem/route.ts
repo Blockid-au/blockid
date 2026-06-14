@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
-import { getPlanPrice, getPlan } from "@/lib/plans";
+import { getPlanPrice, getPlan, buildPlansFromConfig } from "@/lib/plans";
+import { getPlatformConfig } from "@/lib/platform-config";
 
 // POST /api/coupon/redeem
 // Body: { code, plan }
@@ -42,7 +43,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const plan = getPlan(planId);
+  const [cfg] = await Promise.all([getPlatformConfig()]);
+  const plans = buildPlansFromConfig(cfg);
+  const plan = getPlan(planId, plans);
   if (!plan) {
     return NextResponse.json(
       { ok: false, reason: "Unknown plan" },
@@ -121,8 +124,8 @@ export async function POST(request: Request) {
     });
   }
 
-  // Calculate pricing.
-  const pricing = getPlanPrice(planId, coupon.discount_pct);
+  // Calculate pricing using config-derived prices.
+  const pricing = getPlanPrice(planId, coupon.discount_pct, plans);
   const originalCents = pricing?.original ?? 0;
   const discountedCents = pricing?.discounted ?? 0;
 
