@@ -88,7 +88,7 @@ export default function EsopChecklistPage() {
 
   return (
     <>
-      <PageTracker />
+      <PageTracker page="esop-checklist" />
       <Navbar />
       <main className="min-h-screen bg-gradient-to-b from-surface-50 to-white">
         {/* Hero */}
