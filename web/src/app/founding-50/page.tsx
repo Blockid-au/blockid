@@ -6,6 +6,7 @@ import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { Founding50Spots } from "@/components/ui/founding50-spots";
 import { Founding50Waitlist } from "@/components/ui/founding50-waitlist";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { getPlatformConfig, founding_price_aud } from "@/lib/platform-config";
 import {
   CheckCircle2,
   Clock,
@@ -17,14 +18,7 @@ import {
   Zap,
 } from "lucide-react";
 
-export const metadata: Metadata = {
-  title: "Founding 100 — Startup Value Account",
-  description:
-    "Claim one of 100 Founding accounts. Get your Startup Value Index for AUD $1 (limited time). Includes cap table, Evidence Vault, and exports.",
-  alternates: {
-    canonical: "https://blockid.au/founding-50",
-  },
-};
+export const dynamic = "force-dynamic";
 
 const INCLUDES = [
   {
@@ -59,23 +53,34 @@ const INCLUDES = [
   },
 ];
 
-async function getSpots(): Promise<number> {
-  if (!isSupabaseConfigured()) return 100;
+async function getSpotsRemaining(total: number): Promise<number> {
+  if (!isSupabaseConfigured()) return total;
   try {
     const supabase = getSupabaseAdmin();
-    if (!supabase) return 100;
+    if (!supabase) return total;
     const { count } = await supabase
       .from("users")
       .select("id", { count: "exact", head: true })
       .eq("plan_id", "founding50");
-    return Math.max(0, 100 - (count ?? 0));
+    return Math.max(0, total - (count ?? 0));
   } catch {
-    return 100;
+    return total;
   }
 }
 
+export async function generateMetadata() {
+  const cfg = await getPlatformConfig();
+  return {
+    title: `${cfg.founding_plan_name} — Startup Value Account`,
+    description: `Claim one of ${cfg.founding_spots_total} Founding accounts. Get your Startup Value Index for ${founding_price_aud(cfg)} (limited time). Includes cap table, Evidence Vault, and exports.`,
+    alternates: { canonical: "https://blockid.au/founding-50" },
+  };
+}
+
 export default async function Founding50Page() {
-  const spotsRemaining = await getSpots();
+  const cfg = await getPlatformConfig();
+  const priceAud = founding_price_aud(cfg);
+  const spotsRemaining = await getSpotsRemaining(cfg.founding_spots_total);
   return (
     <>
       <PageViewTracker event="founding50_viewed" params={{}} />
@@ -94,7 +99,7 @@ export default async function Founding50Page() {
 
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-ink-900 mb-4">
             Claim Your{" "}
-            <span className="text-brand-600">Founding 100</span>{" "}
+            <span className="text-brand-600">{cfg.founding_plan_name}</span>{" "}
             Account
           </h1>
           <p className="text-lg text-ink-600 max-w-xl mx-auto leading-relaxed mb-2">
@@ -106,7 +111,7 @@ export default async function Founding50Page() {
           <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
               <CheckCircle2 strokeWidth={1.75} className="h-3.5 w-3.5" />
-              100 credits included (worth A$50)
+              {cfg.founding_credits} credits included
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
               <CheckCircle2 strokeWidth={1.75} className="h-3.5 w-3.5" />
@@ -114,7 +119,7 @@ export default async function Founding50Page() {
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
               <Clock strokeWidth={1.75} className="h-3.5 w-3.5" />
-              Only limited spots remaining
+              Only {spotsRemaining} spots remaining
             </span>
           </div>
 
@@ -123,7 +128,7 @@ export default async function Founding50Page() {
             <div className="flex items-center justify-center gap-2 mb-2">
               <span className="inline-block h-2 w-2 rounded-full bg-red-500 animate-pulse" />
               <span className="text-sm font-semibold text-ink-800">
-                <span className="text-red-600">27 spots remaining</span> out of 100
+                <span className="text-red-600">{spotsRemaining} spots remaining</span> out of {cfg.founding_spots_total}
               </span>
             </div>
           </div>
@@ -131,9 +136,8 @@ export default async function Founding50Page() {
 
           {/* Price */}
           <div className="inline-flex items-baseline gap-3 rounded-2xl border border-surface-200 bg-white px-8 py-4 shadow-sm">
-            <span className="text-ink-700 text-xl line-through font-mono">$49</span>
-            <span className="text-5xl font-bold font-mono text-ink-800">$1</span>
-            <span className="text-ink-600 text-sm">AUD · one-off</span>
+            <span className="text-5xl font-bold font-mono text-ink-800">{priceAud}</span>
+            <span className="text-ink-600 text-sm">one-off</span>
           </div>
           <p className="mt-3 text-xs text-ink-700">
             Launch price. No recurring fees. Cancel-free.
