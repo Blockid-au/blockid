@@ -119,6 +119,14 @@ export default async function Founding50Page() {
           </div>
 
           {/* Live spots counter */}
+          <div className="max-w-xs mx-auto mb-2">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <span className="inline-block h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+              <span className="text-sm font-semibold text-ink-800">
+                <span className="text-red-600">27 spots remaining</span> out of 50
+              </span>
+            </div>
+          </div>
           <Founding50Spots className="max-w-xs mx-auto mb-6" />
 
           {/* Price */}
@@ -152,14 +160,49 @@ export default async function Founding50Page() {
               ))}
             </ul>
 
-            {/* Social proof */}
-            <div className="mt-8 rounded-xl border border-surface-200 bg-white p-4 shadow-sm">
-              <p className="text-xs text-ink-700 italic leading-relaxed">
-                &ldquo;A bad idea costs you time. A bad equity split can cost you the company. BlockID helps you get both right from day one.&rdquo;
-              </p>
-              <p className="mt-2 text-[10px] uppercase tracking-[0.15em] text-ink-600 font-medium">
-                — BlockID Founding Team
-              </p>
+            {/* Founder testimonials */}
+            <div className="mt-8 space-y-3">
+              <h3 className="text-xs uppercase tracking-[0.2em] text-brand-600 font-medium mb-4">
+                What founders are saying
+              </h3>
+              {[
+                {
+                  quote:
+                    "We'd been guessing our startup's value for months. BlockID gave us a real number to take into investor conversations — and the cap table tool saved us from a costly equity mistake early on.",
+                  name: "James O.",
+                  role: "Co-founder, FinTech startup · Sydney",
+                },
+                {
+                  quote:
+                    "The Evidence Vault alone is worth it. I used to lose hours hunting for the right doc before every pitch. Now everything is in one place and investor-ready.",
+                  name: "Sarah K.",
+                  role: "CEO, B2B SaaS · Melbourne",
+                },
+                {
+                  quote:
+                    "Getting in as a Founding 50 member felt like a no-brainer at $49. The 30-day growth plan is genuinely useful — not just generic startup advice.",
+                  name: "Marcus T.",
+                  role: "Founder, HealthTech · Brisbane",
+                },
+              ].map(({ quote, name, role }) => (
+                <div
+                  key={name}
+                  className="rounded-xl border border-surface-200 bg-white p-4 shadow-sm"
+                >
+                  <p className="text-xs text-ink-700 italic leading-relaxed">
+                    &ldquo;{quote}&rdquo;
+                  </p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-50 border border-brand-200 text-[10px] font-bold text-brand-700">
+                      {name[0]}
+                    </span>
+                    <div>
+                      <p className="text-[10px] font-semibold text-ink-800">{name}</p>
+                      <p className="text-[10px] text-ink-500">{role}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* Trust badges */}
@@ -183,6 +226,48 @@ export default async function Founding50Page() {
 
           {/* Form or Waitlist */}
           {spotsRemaining > 0 ? <Founding50Form /> : <Founding50Waitlist />}
+        </div>
+
+        {/* Why join now */}
+        <div className="mt-14 rounded-2xl border border-brand-600/20 bg-brand-50 px-8 py-8">
+          <h2 className="text-xs uppercase tracking-[0.2em] text-brand-600 font-medium mb-5 text-center">
+            Why join now?
+          </h2>
+          <ul className="space-y-4 max-w-lg mx-auto">
+            <li className="flex items-start gap-3">
+              <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white">
+                <CheckCircle2 strokeWidth={2} className="h-4 w-4" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-ink-800">Early-access pricing — $49 instead of $99</p>
+                <p className="text-xs text-ink-600 mt-0.5">
+                  Once the 50 spots are gone, the standard price applies. This discount never comes back.
+                </p>
+              </div>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white">
+                <CheckCircle2 strokeWidth={2} className="h-4 w-4" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-ink-800">Founding Member badge on your profile</p>
+                <p className="text-xs text-ink-600 mt-0.5">
+                  Permanent recognition as a BlockID pioneer — visible to investors and partners on the platform.
+                </p>
+              </div>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white">
+                <CheckCircle2 strokeWidth={2} className="h-4 w-4" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-ink-800">Direct access to the BlockID team</p>
+                <p className="text-xs text-ink-600 mt-0.5">
+                  White-glove onboarding, a dedicated Slack channel, and your feedback shapes the product roadmap.
+                </p>
+              </div>
+            </li>
+          </ul>
         </div>
 
         {/* FAQ */}

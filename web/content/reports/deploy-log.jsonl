@@ -132,3 +132,4 @@
 {"ts":"2026-06-14T00:50:14.021Z","event":"github-push-master","detail":"Blockid-au: feat: T0110 — data room readiness score API (/api/dataroom/readiness) (1 commits)","source":"github-webhook"}
 {"ts":"2026-06-14T00:51:57.532Z","event":"github-push-master","detail":"Blockid-au: chore: project-state.json v2.2.0 — Batch 9 T0102-T0110, M020 milestone (1 commits)","source":"github-webhook"}
 {"ts":"2026-06-14T00:57:42Z","status":"success","gates":"10/10","pid":"2803530","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-14T00:57:54.722Z","event":"github-push-master","detail":"Blockid-au: fix: add required page prop to PageTracker in esop-checklist (1 commits)","source":"github-webhook"}
