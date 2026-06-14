@@ -379,6 +379,7 @@ export function SVIDashboard({
   analysis,
   startupName,
   snapshotHistory,
+  userEmail,
   sviHistory = [],
   recentReports = [],
   lastAnalysisDate,
@@ -413,8 +414,8 @@ export function SVIDashboard({
 
   return (
     <div className="space-y-6">
-      {/* Recent Analyses (from localStorage) */}
-      <RecentAnalyses className="mb-6" />
+      {/* Recent Analyses (from localStorage, scoped by user email) */}
+      <RecentAnalyses className="mb-6" projectId={userEmail} />
 
       {/* Header */}
       <div className="pt-6 pb-2">

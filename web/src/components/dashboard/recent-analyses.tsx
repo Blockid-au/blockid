@@ -26,20 +26,23 @@ function relativeTime(dateStr: string): string {
   return `${days}d ago`;
 }
 
-export function RecentAnalyses({ className }: { className?: string }) {
+export function RecentAnalyses({ className, projectId }: { className?: string; projectId?: string }) {
   const [analyses, setAnalyses] = React.useState<SavedAnalysis[]>([]);
+
+  // Use project-scoped key when projectId is provided, fallback to legacy key for guest/shared views
+  const storageKey = projectId ? `blockid_analyses_${projectId}` : "blockid_analyses";
 
   React.useEffect(() => {
     try {
-      const raw = localStorage.getItem("blockid_analyses");
+      const raw = localStorage.getItem(storageKey);
       if (raw) setAnalyses(JSON.parse(raw));
     } catch {}
-  }, []);
+  }, [storageKey]);
 
   const remove = (slug: string) => {
     const updated = analyses.filter(a => a.slug !== slug);
     setAnalyses(updated);
-    try { localStorage.setItem("blockid_analyses", JSON.stringify(updated)); } catch {}
+    try { localStorage.setItem(storageKey, JSON.stringify(updated)); } catch {}
   };
 
   if (analyses.length === 0) return null;
