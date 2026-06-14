@@ -1,6 +1,6 @@
 {
-  "version": "2.1.0",
-  "updatedAt": "2026-06-14T01:00:00.000Z",
+  "version": "2.2.0",
+  "updatedAt": "2026-06-14T00:51:50.000Z",
   "architecture": {
     "summary": "BlockID.au \u2014 AI-powered startup valuation SaaS for AU founders (pre-seed \u2192 Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation\u2192Position\u2192Value\u2192Direction\u2192Capital) drives the full product flow.",
     "lastReviewedAt": "2026-06-13T12:10:00.000Z",
@@ -10,7 +10,8 @@
       "v0.4.0 \u2014 VC Valuation Dashboard (/dashboard/valuation, 6 tabs) + /api/valuation/vc endpoint + /benchmarks page (AU startup data by stage, FAQ JSON-LD). Cross-linked from navbar, footer, sitemap, 4 tool pages.",
       "v0.5.0 \u2014 Feedback widget FAB (T0004, all workspace pages \u2192 /api/feedback, credits-on-submit) + CSV export on VC dashboard (T0007, full 36-month model) + SCN context detection verified live (src/lib/scn-detect.ts + /api/scn/detect, integrated in main dashboard).",
       "v2.0.0 \u2014 T0086\u2013T0090 Feature Batch 8: Financial Projection Norms calculator, Term Sheet AI v2 persistence + Lawyer Questions, Fundraising Readiness Report v2 (checklist + AU comparable raises), Google Analytics OAuth evidence connector, SVI Cohort Benchmark page.",
-      "v2.1.0 \u2014 T0094\u2013T0101: ESOP Manager (pool + grants UI + API), 36-month financial model, data room 13-section structure, BlockID SVI 68/100 self-analysis, C-Level knowledge base (4 modules), valuation A$440K pre-money."
+      "v2.1.0 \u2014 T0094\u2013T0101: ESOP Manager (pool + grants UI + API), 36-month financial model, data room 13-section structure, BlockID SVI 68/100 self-analysis, C-Level knowledge base (4 modules), valuation A$440K pre-money.",
+      "v2.2.0 \u2014 Batch 9 (T0102-T0110): ESOP governance scoring engine (cfo-esop-scoring.ts), knowledge base API, /api/esop/score, SVI upgrade roadmap widget, ESOP legal checklist tool, data room readiness API."
     ]
   },
   "plan": {
@@ -472,6 +473,84 @@
         "createdAt": "2026-06-13T11:00:00.000Z",
         "completedAt": "2026-06-14T01:00:00.000Z",
         "commit": "dc0c8cd"
+      },
+      {
+        "id": "T0102",
+        "agent": "cfo",
+        "title": "cfo-esop-scoring.ts \u2014 ESOP governance scoring engine + valuation integration",
+        "rationale": "scoreEsop() function for CGH dimension: pool, grants, vesting, SHA, data room scoring with SVI contribution and valuation multiplier.",
+        "versionImpact": "minor",
+        "status": "done",
+        "createdAt": "2026-06-14T01:30:00.000Z",
+        "completedAt": "2026-06-14T01:30:00.000Z",
+        "commit": "45ebabf"
+      },
+      {
+        "id": "T0103",
+        "agent": "cdo",
+        "title": "/api/knowledge-base \u2014 C-Level knowledge base search API",
+        "rationale": "REST API to query .claude/knowledge-base/ modules. Powers runtime agent knowledge injection for ESOP, SVI, valuation expertise.",
+        "versionImpact": "minor",
+        "status": "done",
+        "createdAt": "2026-06-14T01:30:00.000Z",
+        "completedAt": "2026-06-14T01:30:00.000Z",
+        "commit": "45ebabf"
+      },
+      {
+        "id": "T0104",
+        "agent": "cto",
+        "/api/esop/score \u2014 ESOP + governance health score API": "route.ts",
+        "title": "/api/esop/score \u2014 ESOP governance health score API",
+        "rationale": "Fetches pool + grants, builds GovernanceHealth, returns CGH score with prioritized actions.",
+        "versionImpact": "minor",
+        "status": "done",
+        "createdAt": "2026-06-14T01:30:00.000Z",
+        "completedAt": "2026-06-14T01:30:00.000Z",
+        "commit": "45ebabf"
+      },
+      {
+        "id": "T0105",
+        "agent": "cto",
+        "title": "cfo-valuation.ts upgrade \u2014 ESOP governance inputs in risk factor model",
+        "rationale": "Added hasEsopPool, esopGrantsIssued, hasFounderVesting etc. to VcValuationInput. riskFactorSummation() now +4% to -5% based on governance.",
+        "versionImpact": "minor",
+        "status": "done",
+        "createdAt": "2026-06-14T01:30:00.000Z",
+        "completedAt": "2026-06-14T01:30:00.000Z",
+        "commit": "45ebabf"
+      },
+      {
+        "id": "T0108",
+        "agent": "cro",
+        "title": "SVI Upgrade Roadmap widget \u2014 personalized 68\u219275 action plan",
+        "rationale": "Dashboard component showing current SVI \u2192 target with checkable action items from /api/esop/score. Visual progress bar with projected score.",
+        "versionImpact": "minor",
+        "status": "done",
+        "createdAt": "2026-06-14T01:45:00.000Z",
+        "completedAt": "2026-06-14T01:45:00.000Z",
+        "commit": "96951eb"
+      },
+      {
+        "id": "T0109",
+        "agent": "cmo",
+        "title": "ESOP Legal Checklist tool (/tools/esop-checklist) \u2014 SEO page",
+        "rationale": "19-point ESOP setup checklist with priority/SVI impact. SEO: AU ESOP, ESS Part 7A, Antler requirements. Added to sitemap + tools page.",
+        "versionImpact": "minor",
+        "status": "done",
+        "createdAt": "2026-06-14T01:45:00.000Z",
+        "completedAt": "2026-06-14T01:45:00.000Z",
+        "commit": "96951eb"
+      },
+      {
+        "id": "T0110",
+        "agent": "cdo",
+        "title": "/api/dataroom/readiness \u2014 13-section weighted data room scoring API",
+        "rationale": "Weighted scoring across 13 data room sections, supplements uploads with SVI signals, tiers: not-started/early/investor-ready/due-diligence-ready.",
+        "versionImpact": "minor",
+        "status": "done",
+        "createdAt": "2026-06-14T01:50:00.000Z",
+        "completedAt": "2026-06-14T01:50:00.000Z",
+        "commit": "ab11688"
       }
     ]
   },
@@ -600,6 +679,21 @@
         "T0099",
         "T0100",
         "T0101"
+      ]
+    },
+    {
+      "id": "M020",
+      "title": "T0102-T0110 Batch 9: ESOP scoring engine, governance API, knowledge base API, SVI roadmap widget, ESOP checklist SEO tool, data room readiness API",
+      "version": "2.2.0",
+      "completedAt": "2026-06-14T02:00:00.000Z",
+      "taskIds": [
+        "T0102",
+        "T0103",
+        "T0104",
+        "T0105",
+        "T0108",
+        "T0109",
+        "T0110"
       ]
     }
   ],
