@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, ADMIN_EMAIL} from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { ShareholdersClient } from "./shareholders-client";
 
@@ -22,7 +22,7 @@ export default async function ShareholdersPage() {
       <div className="p-6 max-w-6xl mx-auto">
         <ShareholdersClient
           isAdmin={
-            user.email === "admin@blockid.au" || user.role === "admin"
+            user.email === ADMIN_EMAIL || user.role === "admin"
           }
         />
       </div>

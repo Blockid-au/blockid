@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, ADMIN_EMAIL} from "@/lib/auth";
 import { Logo } from "@/components/brand/logo";
 import Link from "next/link";
 import DocumentsUpload from "./documents-upload";
@@ -16,7 +16,7 @@ export default async function AdminDocumentsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/admin/documents");
 
-  const isAdmin = user.email === "admin@blockid.au" || user.role === "admin";
+  const isAdmin = user.email === ADMIN_EMAIL || user.role === "admin";
   if (!isAdmin) redirect("/dashboard");
 
   return (

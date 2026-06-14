@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, ADMIN_EMAIL} from "@/lib/auth";
 import { uploadToGoogleDrive } from "@/lib/google-drive";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const isAdmin = user.email === "admin@blockid.au" || user.role === "admin";
+    const isAdmin = user.email === ADMIN_EMAIL || user.role === "admin";
     if (!isAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

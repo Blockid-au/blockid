@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, ADMIN_EMAIL} from "@/lib/auth";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
 
 export const dynamic = "force-dynamic";
@@ -164,7 +164,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
   }
 
-  const isAdmin = user.email === "admin@blockid.au" || user.role === "admin";
+  const isAdmin = user.email === ADMIN_EMAIL || user.role === "admin";
   if (!isAdmin) {
     return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
   }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, ADMIN_EMAIL} from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { kbList } from "@/lib/kb-client";
 import { KnowledgeBaseClient } from "./client";
@@ -18,7 +18,7 @@ export default async function KnowledgeBasePage() {
   if (!user) redirect("/auth/login?next=/workspace/knowledge-base");
 
   const articles = await kbList(undefined, 500);
-  const isAdmin = user.email === "admin@blockid.au" || user.role === "admin";
+  const isAdmin = user.email === ADMIN_EMAIL || user.role === "admin";
 
   return (
     <WorkspaceLayout user={user}>

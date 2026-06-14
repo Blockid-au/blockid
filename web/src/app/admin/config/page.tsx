@@ -1,19 +1,18 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, ADMIN_EMAIL} from "@/lib/auth";
 import { Logo } from "@/components/brand/logo";
 import { getPlatformConfig, CONFIG_DEFAULTS } from "@/lib/platform-config";
 import { PricingConfig } from "./pricing-config";
+import { SviConfig } from "./svi-config";
 import {
   ArrowLeft,
   Shield,
   Settings,
   Clock,
-  AlertTriangle,
   BarChart3,
   Bot,
-  Layers,
   DollarSign,
 } from "lucide-react";
 
@@ -24,32 +23,12 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-const SVI_WEIGHTS = [
-  { key: "ftv", label: "Founder-Team Viability", weight: 15 },
-  { key: "mpc", label: "Market & Problem Clarity", weight: 18 },
-  { key: "ptd", label: "Product & Tech Depth", weight: 12 },
-  { key: "tre", label: "Traction & Revenue Evidence", weight: 20 },
-  { key: "cgh", label: "Capital & Growth Health", weight: 12 },
-  { key: "iri", label: "IP, Risk & Industry", weight: 10 },
-  { key: "lco", label: "Legal & Compliance", weight: 8 },
-  { key: "svm", label: "SVI Momentum", weight: 5 },
-];
-
 const RISK_PENALTIES = [
   { factor: "No revenue after 12 months", penalty: "-5 pts" },
   { factor: "Single founder, no team", penalty: "-3 pts" },
   { factor: "No IP protection filed", penalty: "-2 pts" },
   { factor: "Burn rate > 18 months runway", penalty: "-4 pts" },
   { factor: "Regulatory non-compliance", penalty: "-6 pts" },
-];
-
-const STAGE_THRESHOLDS = [
-  { range: "0 - 20", stage: "Pre-Idea", color: "bg-gray-200 text-gray-700" },
-  { range: "20 - 40", stage: "Idea", color: "bg-red-100 text-red-700" },
-  { range: "40 - 60", stage: "Validation", color: "bg-amber-100 text-amber-700" },
-  { range: "60 - 75", stage: "Early Traction", color: "bg-yellow-100 text-yellow-700" },
-  { range: "75 - 90", stage: "Growth", color: "bg-emerald-100 text-emerald-700" },
-  { range: "90 - 100", stage: "Scale", color: "bg-brand-100 text-brand-700" },
 ];
 
 const CRON_JOBS = [
@@ -64,7 +43,7 @@ export default async function ConfigPage() {
   if (!user) redirect("/auth/login?next=/admin/config");
   const platformConfig = await getPlatformConfig();
 
-  const isAdmin = user.email === "admin@blockid.au" || user.role === "admin";
+  const isAdmin = user.email === ADMIN_EMAIL || user.role === "admin";
   if (!isAdmin) {
     return (
       <div className="min-h-svh bg-surface-100 flex items-center justify-center">
@@ -102,45 +81,47 @@ export default async function ConfigPage() {
           <PricingConfig initial={platformConfig} defaults={CONFIG_DEFAULTS} />
         </section>
 
-        {/* SVI Weights */}
+        {/* SVI Engine Config — editable weights, credit costs, referrals */}
         <section>
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 className="h-5 w-5 text-brand-600" />
-            <h2 className="text-lg font-semibold">SVI Dimension Weights</h2>
+            <h2 className="text-lg font-semibold">SVI Engine & Credits</h2>
+            <span className="text-xs text-ink-400 ml-auto">Changes live within 60s · no redeploy needed</span>
           </div>
-          <div className="bg-white border border-surface-200 rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-surface-50 border-b border-surface-200">
-                  <th className="text-left px-4 py-2.5 font-medium text-ink-600">Key</th>
-                  <th className="text-left px-4 py-2.5 font-medium text-ink-600">Dimension</th>
-                  <th className="text-right px-4 py-2.5 font-medium text-ink-600">Weight</th>
-                </tr>
-              </thead>
-              <tbody>
-                {SVI_WEIGHTS.map((d) => (
-                  <tr key={d.key} className="border-b border-surface-100 last:border-0">
-                    <td className="px-4 py-2.5 font-mono text-xs text-ink-500">{d.key}</td>
-                    <td className="px-4 py-2.5">{d.label}</td>
-                    <td className="px-4 py-2.5 text-right font-medium">{d.weight}%</td>
-                  </tr>
-                ))}
-                <tr className="bg-surface-50 border-t border-surface-200">
-                  <td className="px-4 py-2.5" />
-                  <td className="px-4 py-2.5 font-medium">Total</td>
-                  <td className="px-4 py-2.5 text-right font-bold">
-                    {SVI_WEIGHTS.reduce((s, d) => s + d.weight, 0)}%
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <SviConfig initial={{
+            svi_weights: platformConfig.svi_weights,
+            credit_cost_svi_analysis: platformConfig.credit_cost_svi_analysis,
+            credit_cost_term_sheet: platformConfig.credit_cost_term_sheet,
+            credit_cost_rnd_report: platformConfig.credit_cost_rnd_report,
+            credit_cost_evidence_analyze: platformConfig.credit_cost_evidence_analyze,
+            growth_plan_credits_monthly: platformConfig.growth_plan_credits_monthly,
+            referral_credits: platformConfig.referral_credits,
+            linkedin_post_enabled: platformConfig.linkedin_post_enabled,
+          }} />
+        </section>
+
+        {/* Stage Thresholds — read-only display, driven from platformConfig */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart3 className="h-5 w-5 text-emerald-600" />
+            <h2 className="text-lg font-semibold">Stage Thresholds</h2>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {platformConfig.stage_thresholds.map((s) => (
+              <div key={s.stage} className="bg-white border border-surface-200 rounded-lg p-4 text-center">
+                <p className="text-xs text-ink-500 mb-1 font-mono">{s.min} – {s.max}</p>
+                <span className={`inline-block text-xs font-medium rounded-full px-3 py-1 ${s.color}`}>
+                  {s.stage}
+                </span>
+              </div>
+            ))}
           </div>
         </section>
 
         {/* Risk Penalties */}
         <section>
           <div className="flex items-center gap-2 mb-4">
-            <AlertTriangle className="h-5 w-5 text-amber-500" />
+            <BarChart3 className="h-5 w-5 text-amber-500" />
             <h2 className="text-lg font-semibold">Risk Penalties</h2>
           </div>
           <div className="bg-white border border-surface-200 rounded-lg overflow-hidden">
@@ -160,24 +141,6 @@ export default async function ConfigPage() {
                 ))}
               </tbody>
             </table>
-          </div>
-        </section>
-
-        {/* Stage Thresholds */}
-        <section>
-          <div className="flex items-center gap-2 mb-4">
-            <Layers className="h-5 w-5 text-emerald-600" />
-            <h2 className="text-lg font-semibold">Stage Thresholds</h2>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {STAGE_THRESHOLDS.map((s) => (
-              <div key={s.stage} className="bg-white border border-surface-200 rounded-lg p-4 text-center">
-                <p className="text-xs text-ink-500 mb-1 font-mono">{s.range}</p>
-                <span className={`inline-block text-xs font-medium rounded-full px-3 py-1 ${s.color}`}>
-                  {s.stage}
-                </span>
-              </div>
-            ))}
           </div>
         </section>
 

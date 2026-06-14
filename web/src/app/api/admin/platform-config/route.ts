@@ -2,7 +2,7 @@
 // PUT  /api/admin/platform-config  — save partial config (admin only)
 
 import { type NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, ADMIN_EMAIL} from "@/lib/auth";
 import {
   getPlatformConfig,
   savePlatformConfig,
@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 function isAdmin(user: { email?: string | null; role?: string } | null) {
   if (!user) return false;
-  return user.email === "admin@blockid.au" || user.role === "admin";
+  return user.email === ADMIN_EMAIL || user.role === "admin";
 }
 
 export async function GET() {
@@ -36,13 +36,15 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  // Validate types against defaults
+  // Validate types against defaults (primitives must match; objects/arrays pass through)
   const validated: Partial<PlatformConfig> = {};
   for (const [k, v] of Object.entries(body)) {
     const key = k as keyof PlatformConfig;
     if (!(key in CONFIG_DEFAULTS)) continue;
-    const expectedType = typeof CONFIG_DEFAULTS[key];
-    if (typeof v === expectedType) {
+    const defaultVal = CONFIG_DEFAULTS[key];
+    const expectedType = typeof defaultVal;
+    // Accept if types match, or if the default is an object/array (JSONB fields)
+    if (typeof v === expectedType || expectedType === "object") {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (validated as any)[key] = v;
     }

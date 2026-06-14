@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, ADMIN_EMAIL} from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { Logo } from "@/components/brand/logo";
 import Link from "next/link";
@@ -17,7 +17,7 @@ export default async function AdminUsersPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/admin/users");
 
-  const isAdmin = user.email === "admin@blockid.au" || user.role === "admin";
+  const isAdmin = user.email === ADMIN_EMAIL || user.role === "admin";
   if (!isAdmin) redirect("/admin");
 
   const supabase = getSupabaseAdmin();
