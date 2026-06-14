@@ -112,3 +112,45 @@ POST /coupon/validate
 Body: { code }
 Response: { ok, discount_pct, label }
 ```
+
+---
+
+## Version History
+
+### v2.1.0 — 2026-06-14 (T0097 Implementation)
+
+**New: ESOP Manager System**
+
+- `/dashboard/esop` — Full ESOP Manager page (pool status, grant management)
+- `/api/esop/pool` — GET/POST ESOP pool for account
+- `/api/esop/grants` — GET/POST ESOP grants
+- `/api/esop/grants/[id]` — GET/PATCH individual grant
+- `components/esop/` — UI component library:
+  - `EsopPoolStatus` — Pool summary card with allocation progress
+  - `EsopGrantsTable` — Grants listing with vesting progress
+  - `EsopGrantForm` — 3-step grant creation wizard
+- Database tables: `esop_pools`, `esop_grants`, `esop_vesting_events`, `esop_exercises`
+- Nav: "ESOP Manager" added to Fundraise group in WorkspaceLayout
+
+**Features Completed (T0094–T0097):**
+- ESOP Design: 12% pool, 4yr/1yr cliff, AU ESS Part 7A compliant
+- Legal Templates: ESOP Plan Deed, Offer Letter, Founder Vesting Deed
+- Technical Spec: Database schema + API endpoints + vesting engine
+- UI Implementation: Pool status, grant form, grants table, dashboard
+
+**C-Level Agent Knowledge Base (T0101):**
+- Knowledge base modules injected into all 11 C-Level agents
+- ESOP, valuation, data room, SVI scoring expertise
+- BlockID.au self-analysis: SVI 68/100, A$440K pre-money valuation
+- Location: `/blockid.au/.claude/knowledge-base/`
+
+**SVI Analysis (T0098):**
+- BlockID.au SVI: 68/100 (near investor-ready threshold 70)
+- Target: 85+ SVI by Antler pitch (July 2026)
+- Valuation: A$440K pre-money (conservative case)
+
+**Next Milestones:**
+- [ ] ESOP legal sign-off (founder + lawyer by June 30)
+- [ ] Data room 70% complete for Antler pitch
+- [ ] First paid customer (Founding 50 campaign)
+- [ ] SVI upgrade: 75+ by August 2026

@@ -86,6 +86,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/dashboard/valuation", label: "VC Valuation", icon: Target },
       { href: "/dashboard/cfo", label: "CFO Advisor", icon: LineChart },
+      { href: "/dashboard/esop", label: "ESOP Manager", icon: Users },
       { href: "/workspace/data-room", label: "Data Room", icon: FolderCheck },
       { href: "/workspace/fundraise", label: "Raise Capital", icon: Banknote },
       { href: "/workspace/documents", label: "Documents", icon: FolderOpen },
