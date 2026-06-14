@@ -14,6 +14,7 @@
 
 import { computeValuation, type ValuationInput } from "./valuation";
 import { generateMonthlyProjection, type CostStructure } from "./financial-projections";
+import { ADMIN_EMAIL } from "./auth";
 
 // ─── Stage mappings ────────────────────────────────────────────────────────
 const STAGE_BASE_AUD: Record<number, number> = {
@@ -328,7 +329,7 @@ export function computeCLevelValuation(
 // ─── Self-analysis: BlockID.au profile ───────────────────────────────────────
 export const BLOCKID_SELF_PROFILE: CLevelValuationInput = {
   name: "BlockID.au",
-  email: "admin@blockid.au",
+  email: ADMIN_EMAIL,
   sviScore: 156,
   stage: 3,
   dimensions: {
