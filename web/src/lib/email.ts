@@ -16,6 +16,7 @@ import {
   getUnsubscribeUrl,
   getPreferencesUrl,
 } from "./email-preferences";
+import { ADMIN_EMAIL } from "./auth";
 
 const FROM_DEFAULT = "BlockID.au <info@blockid.au>";
 
@@ -745,8 +746,8 @@ export async function sendPasswordReset(args: {
           <hr style="border:none;border-top:1px solid #1F2A44;margin:0 0 16px 0;">
           <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
           <p style="margin:0;color:#64748B;font-size:11px;line-height:1.5;">${isVi
-    ? "Neu ban khong yeu cau dat lai mat khau, hay lien he admin@blockid.au."
-    : "If you didn't request this password reset, please contact admin@blockid.au."
+    ? `Neu ban khong yeu cau dat lai mat khau, hay lien he ${ADMIN_EMAIL}.`
+    : `If you didn't request this password reset, please contact ${ADMIN_EMAIL}.`
   }</p>
         </td></tr>
       </table>

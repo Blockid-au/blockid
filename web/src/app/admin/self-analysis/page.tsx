@@ -121,7 +121,7 @@ export default async function SelfAnalysisPage() {
       supabase
         .from("svi_analyses")
         .select("analysis_json, total_svi, created_at")
-        .eq("email", "admin@blockid.au")
+        .eq("email", ADMIN_EMAIL)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
