@@ -10,7 +10,6 @@ import {
   STAGES,
   METRIC_LABELS,
   getPercentile,
-  type StageBenchmarks,
 } from "@/lib/benchmarks";
 import { formatAud, formatNumber, formatPercent } from "@/lib/utils";
 
@@ -37,16 +36,71 @@ interface Inputs {
   cac: number;
   ltv: number;
   monthlyChurn: number;
+  nrrPct: number;
+  grossMarginPct: number;
 }
 
 interface MetricResult {
-  key: keyof StageBenchmarks;
+  key: string;
   label: string;
   userValue: number;
   band: { p25: number; p50: number; p75: number };
   percentile: number;
-  unit: "aud" | "pct" | "months" | "number";
+  unit: "aud" | "pct" | "months" | "number" | "ratio";
   higherIsBetter: boolean;
+}
+
+// Universal SaaS bands for derived metrics where stage-specific data
+// is not yet warehoused. Sources: Bessemer Cloud Index, OpenView SaaS
+// Benchmarks, KeyBanc Capital Markets SaaS Survey — adapted for AU.
+const DERIVED_BANDS: Record<string, Record<StageKey, { p25: number; p50: number; p75: number }>> = {
+  ltv_cac_ratio: {
+    "pre-seed": { p25: 1, p50: 2, p75: 3.5 },
+    seed: { p25: 1.5, p50: 3, p75: 5 },
+    "series-a": { p25: 2, p50: 3.5, p75: 6 },
+    "series-b": { p25: 2.5, p50: 4, p75: 7 },
+  },
+  // months (lower is better — p25 > p75)
+  cac_payback_months: {
+    "pre-seed": { p25: 30, p50: 18, p75: 9 },
+    seed: { p25: 24, p50: 15, p75: 7 },
+    "series-a": { p25: 18, p50: 12, p75: 6 },
+    "series-b": { p25: 15, p50: 10, p75: 5 },
+  },
+  // % (growth + margin) — Rule of 40 from SaaS public comparables
+  rule_of_40: {
+    "pre-seed": { p25: -20, p50: 10, p75: 40 },
+    seed: { p25: -10, p50: 20, p75: 50 },
+    "series-a": { p25: 0, p50: 30, p75: 60 },
+    "series-b": { p25: 10, p50: 40, p75: 70 },
+  },
+};
+
+function percentileFromBand(
+  band: { p25: number; p50: number; p75: number },
+  value: number,
+): number {
+  let { p25, p50, p75 } = band;
+  const inverted = p25 > p75;
+  if (inverted) {
+    [p25, p75] = [p75, p25];
+    value = p25 + p75 - value;
+  }
+  if (value <= p25) {
+    if (p25 <= 0) return value <= p25 ? 25 : 0;
+    return Math.max(0, Math.round((value / p25) * 25));
+  }
+  if (value <= p50) {
+    const range = p50 - p25;
+    return range === 0 ? 37 : Math.round(25 + ((value - p25) / range) * 25);
+  }
+  if (value <= p75) {
+    const range = p75 - p50;
+    return range === 0 ? 62 : Math.round(50 + ((value - p50) / range) * 25);
+  }
+  const extra = p75 - p50;
+  if (extra === 0) return 100;
+  return Math.min(100, Math.round(75 + ((value - p75) / extra) * 25));
 }
 
 function formatMetric(value: number, unit: MetricResult["unit"]): string {
@@ -57,6 +111,8 @@ function formatMetric(value: number, unit: MetricResult["unit"]): string {
       return formatPercent(value);
     case "months":
       return `${formatNumber(value, 1)} mo`;
+    case "ratio":
+      return `${formatNumber(value, 1)}x`;
     default:
       return formatNumber(value);
   }
@@ -82,6 +138,8 @@ export function FinancialProjectionsCalculator() {
     cac: 400,
     ltv: 4_500,
     monthlyChurn: 4,
+    nrrPct: 105,
+    grossMarginPct: 72,
   });
 
   const set = <K extends keyof Inputs>(k: K, v: Inputs[K]) =>
@@ -94,6 +152,20 @@ export function FinancialProjectionsCalculator() {
 
   const runwayMonths = inputs.burnRate > 0 ? inputs.cashOnHand / inputs.burnRate : 0;
   const ltvCacRatio = inputs.cac > 0 ? inputs.ltv / inputs.cac : 0;
+
+  // CAC payback (months) = CAC / monthly gross profit per customer.
+  // Monthly ARPU is derived from LTV and monthly churn (LTV = ARPU / churn).
+  // Monthly gross profit per customer = ARPU × gross margin.
+  const monthlyArpu = inputs.monthlyChurn > 0 ? inputs.ltv * (inputs.monthlyChurn / 100) : 0;
+  const monthlyGrossProfit = monthlyArpu * (inputs.grossMarginPct / 100);
+  const cacPaybackMonths = monthlyGrossProfit > 0 ? inputs.cac / monthlyGrossProfit : 0;
+
+  // Rule of 40 = annualised revenue growth (%) + EBITDA margin (%).
+  // EBITDA margin is approximated from monthly burn vs MRR (negative when burning).
+  const annualGrowthPct = (Math.pow(1 + inputs.growthMonthPct / 100, 12) - 1) * 100;
+  const monthlyEbitda = inputs.mrr - inputs.burnRate;
+  const ebitdaMarginPct = inputs.mrr > 0 ? (monthlyEbitda / inputs.mrr) * 100 : 0;
+  const ruleOf40Score = annualGrowthPct + ebitdaMarginPct;
 
   const metrics: MetricResult[] = [
     {
@@ -167,6 +239,42 @@ export function FinancialProjectionsCalculator() {
       percentile: getPercentile(inputs.stage, "monthly_churn_pct", inputs.monthlyChurn),
       unit: "pct",
       higherIsBetter: false,
+    },
+    {
+      key: "nrr_pct",
+      label: METRIC_LABELS.nrr_pct,
+      userValue: inputs.nrrPct,
+      band: stageBench.nrr_pct,
+      percentile: getPercentile(inputs.stage, "nrr_pct", inputs.nrrPct),
+      unit: "pct",
+      higherIsBetter: true,
+    },
+    {
+      key: "ltv_cac_ratio",
+      label: "LTV / CAC Ratio",
+      userValue: ltvCacRatio,
+      band: DERIVED_BANDS.ltv_cac_ratio[inputs.stage],
+      percentile: percentileFromBand(DERIVED_BANDS.ltv_cac_ratio[inputs.stage], ltvCacRatio),
+      unit: "ratio",
+      higherIsBetter: true,
+    },
+    {
+      key: "cac_payback_months",
+      label: "CAC Payback (months)",
+      userValue: cacPaybackMonths,
+      band: DERIVED_BANDS.cac_payback_months[inputs.stage],
+      percentile: percentileFromBand(DERIVED_BANDS.cac_payback_months[inputs.stage], cacPaybackMonths),
+      unit: "months",
+      higherIsBetter: false,
+    },
+    {
+      key: "rule_of_40",
+      label: "Rule of 40 (growth + EBITDA margin)",
+      userValue: ruleOf40Score,
+      band: DERIVED_BANDS.rule_of_40[inputs.stage],
+      percentile: percentileFromBand(DERIVED_BANDS.rule_of_40[inputs.stage], ruleOf40Score),
+      unit: "pct",
+      higherIsBetter: true,
     },
   ];
 
@@ -250,9 +358,19 @@ export function FinancialProjectionsCalculator() {
               <Input id="ltv" type="number" value={inputs.ltv} onChange={setNum("ltv")} />
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor="churn">Monthly churn (%)</Label>
+              <Input id="churn" type="number" value={inputs.monthlyChurn} onChange={setNum("monthlyChurn")} />
+            </div>
+            <div>
+              <Label htmlFor="nrr">NRR (%)</Label>
+              <Input id="nrr" type="number" value={inputs.nrrPct} onChange={setNum("nrrPct")} />
+            </div>
+          </div>
           <div>
-            <Label htmlFor="churn">Monthly churn (%)</Label>
-            <Input id="churn" type="number" value={inputs.monthlyChurn} onChange={setNum("monthlyChurn")} />
+            <Label htmlFor="gm">Gross margin (%)</Label>
+            <Input id="gm" type="number" value={inputs.grossMarginPct} onChange={setNum("grossMarginPct")} />
           </div>
         </div>
       </section>
