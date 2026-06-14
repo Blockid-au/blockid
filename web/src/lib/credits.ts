@@ -46,6 +46,7 @@ async function billingFetch<T>(path: string, body: Record<string, unknown>): Pro
 
 // ---------------------------------------------------------------------------
 // Feature credit costs
+// Static defaults — key features can be overridden via platform_config in admin.
 // ---------------------------------------------------------------------------
 
 export const FEATURE_COSTS: Record<string, number> = {
@@ -163,12 +164,39 @@ export const FEATURE_COSTS: Record<string, number> = {
 };
 
 // ---------------------------------------------------------------------------
+// Configurable credit costs — reads platform_config for overrideable features.
+// Falls back to FEATURE_COSTS for everything else.
+// ---------------------------------------------------------------------------
+
+const CONFIGURABLE_FEATURE_MAP: Record<string, keyof import("@/lib/platform-config").PlatformConfig> = {
+  svi_analysis:       "credit_cost_svi_analysis",
+  svi_report:         "credit_cost_svi_analysis",
+  term_sheet:         "credit_cost_term_sheet",
+  rnd_report:         "credit_cost_rnd_report",
+  evidence_analyze:   "credit_cost_evidence_analyze",
+};
+
+export async function getConfiguredCreditCost(feature: string): Promise<number> {
+  const configKey = CONFIGURABLE_FEATURE_MAP[feature];
+  if (configKey) {
+    try {
+      const { getPlatformConfig } = await import("@/lib/platform-config");
+      const cfg = await getPlatformConfig();
+      const val = cfg[configKey];
+      if (typeof val === "number") return val;
+    } catch {
+      // fall through to static default
+    }
+  }
+  return FEATURE_COSTS[feature] ?? 0;
+}
+
+// ---------------------------------------------------------------------------
 // Plan credit grants
 // ---------------------------------------------------------------------------
 
-// ── Softlaunch promo deadline ─────────────────────────────────────────
-// Before August 1, 2026: boosted signup credits + referral rewards.
-// After: revert to standard amounts.
+// ── Softlaunch promo deadline — driven by platform_config.early_bird_deadline ─
+// Falls back to Aug 2026 if config unavailable (matches CONFIG_DEFAULTS).
 const PROMO_DEADLINE = new Date("2026-08-01T00:00:00+10:00");
 export const isPromoActive = () => new Date() < PROMO_DEADLINE;
 
@@ -177,8 +205,8 @@ export const SIGNUP_CREDITS = () => isPromoActive() ? 5 : 2;
 
 export const PLAN_CREDITS: Record<string, { amount: number; recurring: boolean }> = {
   free:           { amount: isPromoActive() ? 5 : 2, recurring: false },  // 5 during promo, 2 after
-  founding50:     { amount: 100,    recurring: false },  // 100 credits lifetime
-  growth:         { amount: 200,    recurring: true  },  // 200 credits/month
+  founding50:     { amount: 100,    recurring: false },  // 100 credits lifetime (matches founding_credits default)
+  growth:         { amount: 200,    recurring: true  },  // 200 credits/month (matches growth_plan_credits_monthly default)
   growth_annual:  { amount: 200,    recurring: true  },  // 200 credits/month (annual billing)
 };
 
@@ -353,11 +381,12 @@ export async function canAfford(
   const remote = await billingFetch<AffordResult>("/credits/check", { userId, feature });
   if (remote && remote.reason !== "unknown_feature") return remote;
 
-  // Fallback: local logic
-  const cost = FEATURE_COSTS[feature];
-  if (cost === undefined) {
+  // Fallback: local logic — use configurable cost for overrideable features
+  const staticCost = FEATURE_COSTS[feature];
+  if (staticCost === undefined) {
     return { allowed: false, balance: 0, cost: 0, reason: "unknown_feature" };
   }
+  const cost = await getConfiguredCreditCost(feature);
   if (cost === 0) {
     return { allowed: true, balance: 0, cost: 0 };
   }
@@ -389,9 +418,10 @@ export async function spendCredits(
   const remote = await billingFetch<{ ok: boolean; balance: number }>("/credits/spend", { userId, feature, metadata });
   if (remote && remote.ok) return remote;
 
-  // Fallback: local logic
-  const cost = FEATURE_COSTS[feature];
-  if (cost === undefined) return { ok: false, balance: 0 };
+  // Fallback: local logic — use configurable cost for overrideable features
+  const staticCost = FEATURE_COSTS[feature];
+  if (staticCost === undefined) return { ok: false, balance: 0 };
+  const cost = await getConfiguredCreditCost(feature);
   if (cost === 0) {
     // Free features: log usage but don't touch credits.
     const supabase = getSupabaseAdmin();
