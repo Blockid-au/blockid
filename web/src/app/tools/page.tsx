@@ -87,6 +87,13 @@ const CATEGORIES: Category[] = [
         tag: "AU Specific",
       },
       {
+        slug: "esop-checklist",
+        name: "ESOP Legal Checklist",
+        desc: "19-point ESOP setup checklist for AU founders: pool structure, ESS Part 7A compliance, legal docs, and investor requirements.",
+        icon: "✅",
+        tag: "AU Specific",
+      },
+      {
         slug: "funding-plan",
         name: "Funding Plan Generator",
         desc: "Generate a stage-appropriate fundraise plan with milestones, target raise amounts, and investor strategy.",
