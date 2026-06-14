@@ -2522,11 +2522,11 @@ export function SVIResultsPanel({
                 {/* Primary CTA */}
                 <a
                   href="/founding-50"
-                  onClick={() => { if (email) void trackAction(email, { label: "Get Founding 50", type: "guide", href: "/founding-50" }); }}
+                  onClick={() => { if (email) void trackAction(email, { label: "Get Founding 100", type: "guide", href: "/founding-50" }); }}
                   className="inline-flex h-9 items-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cta-glow"
                 >
                   <Rocket strokeWidth={1.75} className="h-4 w-4" />
-                  <span className="hidden sm:inline">Founding 50</span>
+                  <span className="hidden sm:inline">Founding 100</span>
                 </a>
 
                 {/* Dashboard */}

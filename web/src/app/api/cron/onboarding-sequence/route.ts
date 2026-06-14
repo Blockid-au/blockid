@@ -75,11 +75,11 @@ const STEPS: OnboardingStep[] = [
   {
     type: "onboarding_d7",
     daysAfter: 7,
-    subject: (name) => `${name}, only a few Founding 50 spots left at A$49`,
+    subject: (name) => `${name}, only a few Founding 100 spots left at A$1`,
     body: (name, siteUrl, unsubUrl, prefsUrl) => `
       <h1 style="font-size:20px;margin:0 0 12px;">Hi ${name},</h1>
-      <p>We launched with <strong>50 founding accounts</strong> at a one-time price of <strong>A$49</strong>. Spots are filling up.</p>
-      <p>The Founding 50 account gives you:</p>
+      <p>We launched with <strong>100 founding accounts</strong> at a one-time price of <strong>A$1</strong>. Spots are filling up.</p>
+      <p>The Founding 100 account gives you:</p>
       <ul style="line-height:2;">
         <li>✅ <strong>100 credits</strong> (50 SVI analyses)</li>
         <li>✅ <strong>Evidence Vault</strong> — connect all your data sources</li>
@@ -88,9 +88,9 @@ const STEPS: OnboardingStep[] = [
         <li>✅ <strong>Lifetime access</strong> — no recurring fees</li>
       </ul>
       <div style="text-align:center;margin:28px 0;">
-        <a href="${siteUrl}/founding-50" style="display:inline-block;background:#2563eb;color:white;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;">Claim Your Spot — A$49 →</a>
+        <a href="${siteUrl}/founding-50" style="display:inline-block;background:#2563eb;color:white;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;">Claim Your Spot — A$1 →</a>
       </div>
-      <p style="color:#64748b;font-size:13px;">After the 50 spots are gone, this plan goes back to A$99/mo. No pressure — but the clock is ticking.</p>
+      <p style="color:#64748b;font-size:13px;">After the 100 spots are gone, this plan goes back to A$99/mo. No pressure — but the clock is ticking.</p>
       <p style="color:#94a3b8;font-size:11px;margin-top:24px;">
         <a href="${unsubUrl}" style="color:#94a3b8;">Unsubscribe</a> · <a href="${prefsUrl}" style="color:#94a3b8;">Email preferences</a>
       </p>`,

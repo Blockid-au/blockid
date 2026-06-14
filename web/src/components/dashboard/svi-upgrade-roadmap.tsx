@@ -60,7 +60,7 @@ export function SviUpgradeRoadmap({ currentSvi, targetSvi = 75, userEmail }: Svi
       { priority: 1, action: "Create 12% ESOP pool in BlockID cap table", sviBenefit: 8, effort: "medium", cost: "A$2-5K legal", deadline: "Before pitch" },
       { priority: 1, action: "Sign Founder Vesting Confirmation Deed", sviBenefit: 4, effort: "low", cost: "A$500-1K legal", deadline: "Before pitch" },
       { priority: 2, action: "Complete data room to 70%", sviBenefit: 3, effort: "medium", cost: "Founder time" },
-      { priority: 2, action: "Get first paying customer (Founding 50)", sviBenefit: 5, effort: "medium", cost: "Marketing time" },
+      { priority: 2, action: "Get first paying customer (Founding 100)", sviBenefit: 5, effort: "medium", cost: "Marketing time" },
       { priority: 3, action: "Hire technical advisor or co-founder", sviBenefit: 6, effort: "high", cost: "ESOP grant" },
     ];
   }

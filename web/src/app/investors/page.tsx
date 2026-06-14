@@ -74,8 +74,8 @@ const REVENUE_TIERS = [
     detail: "Pay-per-report with credit packs",
   },
   {
-    tier: "Founding 50",
-    price: "A$49",
+    tier: "Founding 100",
+    price: "A$1",
     detail: "Lifetime access, 100 credits included",
   },
   {

@@ -309,7 +309,7 @@ export default function ContactPage() {
               >
                 admin@blockid.au
               </a>{" "}
-              with a description of your issue. If you are a Founding 50
+              with a description of your issue. If you are a Founding 100
               member, please include your account email so we can prioritise
               your request.
             </p>

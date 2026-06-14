@@ -188,7 +188,7 @@ export default function EsopChecklistPage() {
                 href="/founding-50"
                 className="inline-flex items-center justify-center gap-2 rounded-lg border border-brand-200 bg-white px-5 py-2.5 text-sm font-medium text-brand-700 hover:bg-brand-50"
               >
-                Get Founding 50 — A$49
+                Get Founding 100 — A$1
               </Link>
             </div>
           </div>

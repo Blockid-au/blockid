@@ -22,7 +22,7 @@ import { PricingPlans } from "./pricing-plans";
 export const metadata: Metadata = {
   title: "Pricing — BlockID.au",
   description:
-    "Simple, transparent pricing for Australian startups. Start free with 2 credits, upgrade to Founding 50 or Growth as you scale. Credit packs available.",
+    "Simple, transparent pricing for Australian startups. Start free with 2 credits, upgrade to Founding 100 or Growth as you scale. Credit packs available.",
 };
 
 // ---------------------------------------------------------------------------
@@ -54,7 +54,7 @@ export default function PricingPage() {
           <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200 px-4 py-2">
             <span className="text-sm text-emerald-700 font-medium">
               Early Bird: <span className="font-bold">5 free credits</span> on signup +
-              use code <span className="font-mono font-bold text-emerald-800">LAUNCH50</span> for 50% off Founding 50.
+              use code <span className="font-mono font-bold text-emerald-800">LAUNCH100</span> for instant access to Founding 100.
               Expires July 31, 2026.
             </span>
           </div>
@@ -108,7 +108,7 @@ export default function PricingPage() {
                     Free
                   </th>
                   <th className="text-center py-3 px-4 text-sm font-semibold text-brand-700 bg-brand-50/50 rounded-t-lg">
-                    Founding 50
+                    Founding 100
                   </th>
                   <th className="text-center py-3 px-4 text-sm font-semibold text-ink-700">
                     Growth

@@ -67,7 +67,7 @@ const PHASES: Phase[] = [
           { label: "Server-side analysis gate (per-email, cross-device)", done: true },
           { label: "Actionable report with CTA buttons per recommendation", done: true },
           { label: "Shareable report links + PDF export", done: true },
-          { label: "Stripe payment integration (A$1/analysis, A$49 Founder, A$499 Growth)", done: true },
+          { label: "Stripe payment integration (A$1/analysis, A$1 Founding 100, A$499 Growth)", done: true },
         ],
         acceptance: "Full AI-powered analysis pipeline from input to scored report with payment",
       },

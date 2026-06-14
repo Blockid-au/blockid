@@ -972,9 +972,9 @@ export async function sendPaymentLink(args: { to: string; name: string; checkout
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Founding 50</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Complete Your Founding 50 Payment</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Hi ${escapeHtml(args.name)}, your spot is reserved for 24 hours. Click below to complete payment and lock in your Founding 50 membership.</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Founding 100</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Complete Your Founding 100 Payment</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Hi ${escapeHtml(args.name)}, your spot is reserved for 24 hours. Click below to complete payment and lock in your Founding 100 membership.</p>
           <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
             <p style="margin:0 0 4px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Total due</p>
             <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:48px;font-weight:600;color:#3B7DD8;line-height:1;">$${args.finalPrice}</div>
@@ -993,7 +993,7 @@ export async function sendPaymentLink(args: { to: string; name: string; checkout
     </td></tr>
   </table>
   ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
-  return sendEmail({ to: args.to, subject: "Complete Your BlockID Founding 50 Payment", html, unsubscribeUrl });
+  return sendEmail({ to: args.to, subject: "Complete Your BlockID Founding 100 Payment", html, unsubscribeUrl });
 }
 
 // ---------- Payment failed -------------------------------------------------------
@@ -1315,13 +1315,13 @@ export async function sendNurtureFreeDay7(args: NurtureArgs): Promise<SendResult
   const foundingUrl = `${siteUrl()}/founding-50`;
   const greeting = args.name ? `${escapeHtml(args.name!)}, we` : "We";
   const html = shell(nurtureCard({
-    tagline: "BlockID — Founding 50",
-    headline: "100 Credits for A$49",
-    body: `${greeting} are reserving spots for our Founding 50 cohort — the first 50 Australian startups to lock in lifetime early-access pricing on BlockID.</p>
+    tagline: "BlockID — Founding 100",
+    headline: "100 Credits for A$1",
+    body: `${greeting} are reserving spots for our Founding 100 cohort — the first 100 Australian startups to lock in lifetime early-access pricing on BlockID.</p>
           <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
             <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Founder Plan includes</p>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">100 analysis credits (A$0.49 each)</td></tr>
+              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">100 analysis credits included</td></tr>
               <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Full evidence vault with AI verification</td></tr>
               <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Investor-ready share links and PDF reports</td></tr>
               <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Priority support and feature requests</td></tr>
@@ -1332,11 +1332,11 @@ export async function sendNurtureFreeDay7(args: NurtureArgs): Promise<SendResult
             <p style="margin:0 0 8px 0;color:#F8FAFC;font-size:14px;font-weight:600;">Early-stage SaaS founder, Sydney</p>
             <p style="margin:0;color:#94A3B8;font-size:13px;line-height:1.6;font-style:italic;">&ldquo;Having a verifiable SVI score made investor conversations start differently. The evidence vault saved me hours of prep for each meeting.&rdquo;</p>
           </div>
-          <p style="margin:0 0 24px 0;color:#F87171;font-size:14px;font-weight:600;">Only ${50} spots available. Once the cohort is full, pricing goes up.`,
-    ctaLabel: "Claim Your Founding 50 Spot",
+          <p style="margin:0 0 24px 0;color:#F87171;font-size:14px;font-weight:600;">Only 100 spots available. Once the cohort is full, pricing goes up.`,
+    ctaLabel: "Claim Your Founding 100 Spot",
     ctaUrl: foundingUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "free_day7"));
-  return sendEmail({ to: args.to, subject: "100 credits for A$49 \u2014 here\u2019s what Founding 50 members get", html, unsubscribeUrl });
+  return sendEmail({ to: args.to, subject: "100 credits for A$1 \u2014 here\u2019s what Founding 100 members get", html, unsubscribeUrl });
 }
 
 export async function sendNurtureFreeDay14(args: NurtureArgs): Promise<SendResult> {
