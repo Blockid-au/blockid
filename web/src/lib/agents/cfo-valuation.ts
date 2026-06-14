@@ -121,6 +121,14 @@ export interface VcValuationInput {
   /** Optional explicit market inputs; otherwise estimated top-down. */
   tamAud?: number;
   raiseAud?: number;
+  /** Governance inputs — ESOP + cap table health (T0102) */
+  hasEsopPool?: boolean;
+  esopPoolPct?: number;        // e.g. 12 = 12%
+  esopGrantsIssued?: boolean;
+  hasFounderVesting?: boolean;
+  hasShareholdersAgreement?: boolean;
+  hasDataRoom?: boolean;
+  dataRoomCompletePct?: number; // 0-100
 }
 
 // ── Research-backed benchmarks (refresh from daily CFO research) ──────────
@@ -349,17 +357,31 @@ function dcfMethod(input: VcValuationInput, projection: ProjectionRow[]): Valuat
 }
 
 function riskFactorSummation(input: VcValuationInput, base: number): ValuationMethodResult {
-  // ±25% across 12 standard VC risk factors; here driven by unit-economics health.
+  // ±25% across 12 standard VC risk factors; includes governance/ESOP health (T0102).
   const ue = unitEconomics(input);
-  const adj = ue.verdict === "strong" ? 0.2 : ue.verdict === "healthy" ? 0.05 : ue.verdict === "watch" ? -0.1 : -0.25;
+  const ueAdj = ue.verdict === "strong" ? 0.15 : ue.verdict === "healthy" ? 0.05 : ue.verdict === "watch" ? -0.08 : -0.20;
+
+  // Governance risk factors (ESOP Knowledge Base: +8 SVI = ~5% valuation impact)
+  let govAdj = 0;
+  if (input.hasEsopPool) govAdj += 0.04;
+  if (input.esopGrantsIssued) govAdj += 0.03;
+  if (input.hasFounderVesting) govAdj += 0.02;
+  if (input.hasShareholdersAgreement) govAdj += 0.02;
+  if (input.hasDataRoom) govAdj += 0.01;
+  if ((input.dataRoomCompletePct ?? 0) >= 70) govAdj += 0.02;
+  // No ESOP is an investor red flag at pre-seed
+  if (!input.hasEsopPool && (input.stage === "seed" || input.stage === "series-a")) govAdj -= 0.05;
+
+  const adj = clamp(ueAdj + govAdj, -0.30, 0.25);
   const mid = base * (1 + adj);
+  const govNote = govAdj > 0 ? ` Governance premium: +${round(govAdj * 100)}% (ESOP pool${input.esopGrantsIssued ? " + grants issued" : ""}).` : govAdj < 0 ? " Governance discount: no ESOP pool (investor risk flag)." : "";
   return {
     method: "risk_factor_summation",
     lowAud: round(mid * 0.8),
     midAud: round(mid),
     highAud: round(mid * 1.2),
     weight: 0.15,
-    rationale: `Risk-Factor Summation: ${adj >= 0 ? "+" : ""}${round(adj * 100)}% on base from unit-economics verdict (${ue.verdict}).`,
+    rationale: `Risk-Factor: ${adj >= 0 ? "+" : ""}${round(adj * 100)}% (unit-econ: ${ue.verdict}, gov: ${round(govAdj * 100)}%).${govNote}`,
   };
 }
 
