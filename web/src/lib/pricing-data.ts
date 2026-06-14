@@ -38,6 +38,58 @@ export interface PricingTier {
   ctaStyle: "primary" | "secondary";
 }
 
+// Build pricing tiers from config. Used by server components; falls back to PRICING_TIERS for client components.
+export function buildPricingTiers(cfg: {
+  founding_plan_name: string;
+  founding_spots_total: number;
+  founding_price_cents: number;
+  founding_credits: number;
+  free_credits_on_signup: number;
+  growth_price_monthly_cents: number;
+  growth_price_yearly_cents: number;
+}): PricingTier[] {
+  const priceAud = `A$${(cfg.founding_price_cents / 100).toFixed(cfg.founding_price_cents % 100 === 0 ? 0 : 2)}`;
+  const growthMonthly = `A$${(cfg.growth_price_monthly_cents / 100).toFixed(0)}`;
+  const growthYearly = `A$${(cfg.growth_price_yearly_cents / 100).toFixed(0)}`;
+
+  return PRICING_TIERS.map((tier) => {
+    if (tier.id === "founding50") {
+      return {
+        ...tier,
+        name: cfg.founding_plan_name,
+        price: priceAud,
+        numericPrice: cfg.founding_price_cents / 100,
+        credits: `${cfg.founding_credits} credits (never expires)`,
+        cta: { label: `Get ${cfg.founding_plan_name} — ${priceAud}`, href: "/founding-50" },
+        urgency: `Only ${cfg.founding_spots_total} spots at this price`,
+        features: [
+          `${cfg.founding_credits} SVI analyses (lifetime)`,
+          "PDF investor-ready report",
+          "Evidence Vault & document storage",
+          "Cap table & ESOP calculator",
+          "Term Sheet AI analysis",
+          "30-day SVI growth action plan",
+          "Referral credits (earn free analyses)",
+          "Priority support",
+        ],
+      };
+    }
+    if (tier.id === "free") {
+      return {
+        ...tier,
+        credits: `${cfg.free_credits_on_signup} credits`,
+      };
+    }
+    if (tier.id === "growth") {
+      return { ...tier, price: growthMonthly, numericPrice: cfg.growth_price_monthly_cents / 100 };
+    }
+    if (tier.id === "growth_annual") {
+      return { ...tier, price: growthYearly, numericPrice: cfg.growth_price_yearly_cents / 100 };
+    }
+    return tier;
+  });
+}
+
 export const PRICING_TIERS: PricingTier[] = [
   {
     id: "free",

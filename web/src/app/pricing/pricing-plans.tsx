@@ -7,23 +7,25 @@ import { PRICING_TIERS, type PricingTier } from "@/lib/pricing-data";
 import { trackEvent } from "@/lib/analytics";
 
 // ---------------------------------------------------------------------------
-// Separate Growth tiers by billing cadence. The pricing-data module exports
-// both "growth" (monthly) and "growth_annual" (yearly). We show only one at
-// a time based on the toggle state.
+// Separate Growth tiers by billing cadence.
 // ---------------------------------------------------------------------------
 
-function getVisibleTiers(annual: boolean): PricingTier[] {
-  return PRICING_TIERS.filter((t) => {
+function getVisibleTiers(annual: boolean, allTiers: PricingTier[]): PricingTier[] {
+  return allTiers.filter((t) => {
     if (annual && t.id === "growth") return false;
     if (!annual && t.id === "growth_annual") return false;
     return true;
   });
 }
 
-export function PricingPlans() {
+interface Props {
+  tiers?: PricingTier[]; // optional config-based override from server
+}
+
+export function PricingPlans({ tiers: tiersProp }: Props = {}) {
   const [annual, setAnnual] = React.useState(false);
 
-  const tiers = getVisibleTiers(annual);
+  const tiers = getVisibleTiers(annual, tiersProp ?? PRICING_TIERS);
 
   return (
     <>

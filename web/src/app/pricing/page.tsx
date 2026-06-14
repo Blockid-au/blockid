@@ -15,9 +15,13 @@ import {
   CREDIT_PACKS,
   COMPARISON_ROWS,
   FAQ_ITEMS,
+  buildPricingTiers,
 } from "@/lib/pricing-data";
+import { getPlatformConfig } from "@/lib/platform-config";
 import { FAQJsonLd } from "@/components/seo/json-ld";
 import { PricingPlans } from "./pricing-plans";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Pricing — BlockID.au",
@@ -29,7 +33,9 @@ export const metadata: Metadata = {
 // Page
 // ---------------------------------------------------------------------------
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const cfg = await getPlatformConfig();
+  const tiers = buildPricingTiers(cfg);
   return (
     <div className="min-h-svh bg-surface-50 text-ink-800">
       <FAQJsonLd items={FAQ_ITEMS.map(({ q, a }) => ({ question: q, answer: a }))} />
@@ -53,15 +59,15 @@ export default function PricingPage() {
           </p>
           <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200 px-4 py-2">
             <span className="text-sm text-emerald-700 font-medium">
-              Early Bird: <span className="font-bold">5 free credits</span> on signup +
-              use code <span className="font-mono font-bold text-emerald-800">LAUNCH100</span> for instant access to Founding 100.
-              Expires July 31, 2026.
+              Early Bird: <span className="font-bold">{cfg.free_credits_on_signup} free credits</span> on signup +
+              use code <span className="font-mono font-bold text-emerald-800">{cfg.promo_code}</span> for {cfg.promo_label}.
+              Expires {new Date(cfg.early_bird_deadline).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })}.
             </span>
           </div>
         </div>
 
         {/* Plan cards with Monthly / Annual toggle */}
-        <PricingPlans />
+        <PricingPlans tiers={tiers} />
 
         {/* Credit packs */}
         <div className="mb-20">
