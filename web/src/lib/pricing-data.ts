@@ -57,9 +57,9 @@ export const PRICING_TIERS: PricingTier[] = [
   },
   {
     id: "founding50",
-    name: "Founding 50",
-    price: "A$49",
-    numericPrice: 49,
+    name: "Founding 100",
+    price: "A$1",
+    numericPrice: 1,
     cadence: "one-off",
     subtitle: "one-time \u00b7 lifetime access",
     credits: "100 credits (never expires)",
@@ -74,10 +74,10 @@ export const PRICING_TIERS: PricingTier[] = [
       "Referral credits (earn free analyses)",
       "Priority support",
     ],
-    cta: { label: "Get Founding 50 \u2014 A$49", href: "/founding-50" },
+    cta: { label: "Get Founding 100 \u2014 A$1", href: "/founding-50" },
     highlight: true,
-    badge: "Best Value",
-    urgency: "Only 50 spots at this price",
+    badge: "Founders Only",
+    urgency: "Only 100 spots at this price",
     ctaStyle: "primary",
   },
   {
@@ -91,7 +91,7 @@ export const PRICING_TIERS: PricingTier[] = [
     audience: "For active fundraise \u00b7 Seed to Series A",
     features: [
       "100 SVI analyses/mo",
-      "Everything in Founding 50",
+      "Everything in Founding 100",
       "Multi-entity cap table",
       "Investor data room",
       "Term Sheet AI (unlimited)",
@@ -115,7 +115,7 @@ export const PRICING_TIERS: PricingTier[] = [
     audience: "For active fundraise \u00b7 Seed to Series A",
     features: [
       "100 SVI analyses/mo",
-      "Everything in Founding 50",
+      "Everything in Founding 100",
       "Multi-entity cap table",
       "Investor data room",
       "Term Sheet AI (unlimited)",
@@ -187,7 +187,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "Can I upgrade later?",
-    a: "Yes. You can upgrade from Free to Founding 50 or Growth at any time. Your existing credits and data carry over. Founding 50 members get priority upgrade pricing.",
+    a: "Yes. You can upgrade from Free to Founding 100 or Growth at any time. Your existing credits and data carry over. Founding 100 members get priority upgrade pricing.",
   },
   {
     q: "Is there a free trial?",
@@ -195,7 +195,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "How does billing work?",
-    a: "Founding 50 is a one-off A$49 payment. Growth is available monthly at A$99/mo or annually at A$950/year (save 20%). Credit packs are one-off purchases. All prices are in AUD and processed securely via Stripe.",
+    a: "Founding 100 is a one-off A$1 payment. Growth is available monthly at A$99/mo or annually at A$950/year (save 20%). Credit packs are one-off purchases. All prices are in AUD and processed securely via Stripe.",
   },
   {
     q: "Can I cancel anytime?",
@@ -203,7 +203,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "Do you offer refunds?",
-    a: "Growth plan includes a 30-day money-back guarantee. For Founding 50, we assess refund requests on a case-by-case basis within 14 days of purchase. Credit packs are non-refundable once used.",
+    a: "Growth plan includes a 30-day money-back guarantee. For Founding 100, we assess refund requests on a case-by-case basis within 14 days of purchase. Credit packs are non-refundable once used.",
   },
   {
     q: "Is my data secure?",

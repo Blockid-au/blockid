@@ -18,7 +18,7 @@ interface CouponResult {
   reason?: string;
 }
 
-const FULL_PRICE = 49;
+const FULL_PRICE = 1;
 
 export function Founding50Form() {
   const [name, setName] = React.useState("");
@@ -163,7 +163,7 @@ export function Founding50Form() {
           Almost there!
         </h3>
         <p className="text-sm text-ink-600 leading-relaxed mb-6">
-          Your Founding 50 spot for{" "}
+          Your Founding 100 spot for{" "}
           <span className="text-ink-800 font-medium">{email}</span> is reserved.
           Complete checkout to activate your account.
         </p>
@@ -194,7 +194,7 @@ export function Founding50Form() {
         Claim your spot
       </h2>
       <p className="text-xs text-ink-600">
-        50 spots only. Fill in your details and checkout securely via Stripe.
+        100 spots only. Fill in your details and checkout securely via Stripe.
       </p>
 
       {/* Name */}

@@ -1,11 +1,11 @@
-// GET /api/founding50/spots — returns how many Founding 50 spots remain (public)
+// GET /api/founding50/spots — returns how many Founding 100 spots remain (public)
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const TOTAL_SPOTS = 50;
+const TOTAL_SPOTS = 100;
 
 export async function GET() {
   if (!isSupabaseConfigured()) {
