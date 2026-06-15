@@ -148,11 +148,41 @@ else
   echo "  Docker not found — skipping"
 fi
 
+# ─── 8. /data drive caches (npm, go, rustup, antigravity) ────────────────────
+# These live on /data (300GB) and are safe to nuke — package managers refetch
+# on demand. Only touched if /data is the bulk-mounted disk.
+echo ""
+echo "── 8. /data cache cleanup ──"
+if [ -d "$DATA_DISK" ] && mountpoint -q "$DATA_DISK" 2>/dev/null; then
+  for d in "$DATA_DISK/npm-cache" "$DATA_DISK/npm-cache-home" "$DATA_DISK/go/pkg/mod/cache/download" "$DATA_DISK/cache/nextjs-build/cache"; do
+    [ -d "$d" ] || continue
+    SIZE=$(du -sh "$d" 2>/dev/null | cut -f1 || echo "?")
+    AGE_THRESHOLD=14
+    STALE_COUNT=$(find "$d" -type f -mtime +$AGE_THRESHOLD 2>/dev/null | wc -l)
+    if [ "$STALE_COUNT" -gt 0 ]; then
+      if [ "$DRY_RUN" = true ]; then
+        echo "  [DRY] would remove $STALE_COUNT stale (>${AGE_THRESHOLD}d) entries from $d ($SIZE)"
+      else
+        find "$d" -type f -mtime +$AGE_THRESHOLD -delete 2>/dev/null || true
+        echo "  ✅ Cleaned stale entries from $d (was $SIZE)"
+      fi
+    else
+      echo "  $d: no stale entries (size $SIZE)"
+    fi
+  done
+else
+  echo "  $DATA_DISK not mounted — skipping"
+fi
+
 # ─── Summary ──────────────────────────────────────────────────────────────────
 echo ""
 echo "════════════════════════════════════════════"
 DISK_USED=$(df -h / | awk 'NR==2{print $3 "/" $2 " (" $5 " used)"}')
-echo "  Disk: $DISK_USED"
+echo "  Root: $DISK_USED"
+if mountpoint -q "$DATA_DISK" 2>/dev/null; then
+  DATA_USED=$(df -h "$DATA_DISK" | awk 'NR==2{print $3 "/" $2 " (" $5 " used)"}')
+  echo "  Data: $DATA_USED"
+fi
 if [ "$DRY_RUN" = true ]; then
   echo "  Run with --apply to actually delete the above."
 fi

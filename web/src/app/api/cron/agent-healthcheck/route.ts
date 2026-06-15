@@ -247,15 +247,20 @@ async function runHealthChecks() {
   // ═══════════════════════════════════════════════════════════════
 
 
-  // D1: Disk space
-  const diskResult = run("df -h / | tail -1 | awk '{print $5, $4}'");
-  const diskUsage = parseInt(diskResult.output, 10) || 0;
-  items.push({
-    category: "infra", check: "Disk Space",
-    status: diskUsage < 80 ? "pass" : diskUsage < 90 ? "warn" : "fail",
-    detail: diskResult.output ? `${diskResult.output} free` : "Unknown",
-    fixable: diskUsage >= 80,
-  });
+  // D1: Disk space — / (system) AND /data (300GB drive holding node_modules,
+  // releases, build cache, knowledge-base). /data filling up silently breaks
+  // builds, so it gets its own line item with the same threshold logic.
+  for (const [mount, label] of [["/", "Disk Space (/)"], ["/data", "Disk Space (/data)"]] as const) {
+    const diskResult = run(`df -h ${mount} | tail -1 | awk '{print $5, $4}'`);
+    if (!diskResult.output) continue;
+    const diskUsage = parseInt(diskResult.output, 10) || 0;
+    items.push({
+      category: "infra", check: label,
+      status: diskUsage < 80 ? "pass" : diskUsage < 90 ? "warn" : "fail",
+      detail: `${diskResult.output} free`,
+      fixable: diskUsage >= 80,
+    });
+  }
 
   // D2: Database connectivity
   const supabase = getSupabaseAdmin();

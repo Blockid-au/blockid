@@ -71,7 +71,7 @@ export default async function CohortDetailPage({
 
   // Fetch SVI data for linked accounts
   const sviAccountIds = members
-    .map((m) => m.svi_account_id)
+    .map((m: { svi_account_id?: string | null }) => m.svi_account_id)
     .filter(Boolean) as string[];
 
   const sviMap: Record<string, { current_svi: number; current_stage: number; enrolled_at: string }> = {};

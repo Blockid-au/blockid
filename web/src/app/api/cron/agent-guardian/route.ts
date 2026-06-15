@@ -84,6 +84,17 @@ function checkDisk(): MetricResult {
   return { name: "disk", value: pct, raw: `${pct}% used (${free} free)`, level: classify(pct) };
 }
 
+// /data is the 300GB drive that holds node_modules, releases, build cache,
+// knowledge-base, npm/go/rust caches, antigravity, dev-environments. When it
+// fills up, deploys fail (build cache can't write) and new release dirs error.
+function checkDataDisk(): MetricResult {
+  const out = run("df /data | tail -1 | awk '{print $5, $4}'");
+  if (!out) return { name: "data_disk", value: 0, raw: "not mounted", level: "ok" };
+  const pct = parseInt(out, 10) || 0;
+  const free = out.split(" ")[1] || "?";
+  return { name: "data_disk", value: pct, raw: `${pct}% used (${free} free, 300GB)`, level: classify(pct) };
+}
+
 function checkMemory(): MetricResult {
   const out = run("free | awk 'NR==2{printf \"%.1f %d %d\", $3*100/$2, $3/1024, $2/1024}'");
   const pct = parseFloat(out) || 0;
@@ -189,6 +200,60 @@ function fixDisk(level: "danger" | "critical"): FixResult[] {
     if (dockerBefore) {
       run("docker system prune -f --filter 'until=48h' 2>/dev/null", 30_000);
       fixes.push({ metric: "disk", action: "Pruned old Docker images", freed: dockerBefore, success: true });
+    }
+  }
+
+  return fixes;
+}
+
+// /data drive: cleans caches that the main fixDisk doesn't touch.
+// Targets are safe to remove and regenerate (npm/go/rust caches, old releases,
+// stale next-backup, .next build cache). Triggered when /data ≥80% used.
+function fixDataDisk(level: "danger" | "critical"): FixResult[] {
+  const fixes: FixResult[] = [];
+
+  // /data/cache/nextjs-build — Next.js writes here every build, can balloon
+  const nextCacheMB = parseInt(run("du -sm /data/cache/nextjs-build/cache 2>/dev/null | awk '{print $1}'"), 10) || 0;
+  if (nextCacheMB > 500) {
+    run("rm -rf /data/cache/nextjs-build/cache/* 2>/dev/null");
+    fixes.push({ metric: "data_disk", action: "Cleared /data Next.js build cache", freed: `${nextCacheMB}MB`, success: true });
+  }
+
+  // npm caches on /data
+  for (const p of ["/data/npm-cache", "/data/npm-cache-home"]) {
+    const mb = parseInt(run(`du -sm ${p} 2>/dev/null | awk '{print $1}'`), 10) || 0;
+    if (mb > 200) {
+      run(`find ${p} -type f -mtime +14 -delete 2>/dev/null`);
+      fixes.push({ metric: "data_disk", action: `Cleaned stale entries in ${p}`, freed: `~${Math.floor(mb / 3)}MB`, success: true });
+    }
+  }
+
+  // Old releases — keep most recent 4, delete older. Never touch what
+  // .next-current / .next-previous point to.
+  const current = run("readlink -f /home/dovanlong/blockid.au/web/.next-current 2>/dev/null");
+  const prev = run("readlink -f /home/dovanlong/blockid.au/web/.next-previous 2>/dev/null");
+  const releasesOutput = run("ls -1t /data/releases 2>/dev/null");
+  const releases = releasesOutput.split("\n").filter(Boolean);
+  const obsolete = releases.slice(4).filter((r) => {
+    const full = `/data/releases/${r}`;
+    return full !== current && full !== prev;
+  });
+  if (obsolete.length > 0) {
+    let freed = 0;
+    for (const r of obsolete) {
+      const mb = parseInt(run(`du -sm /data/releases/${r} 2>/dev/null | awk '{print $1}'`), 10) || 0;
+      run(`rm -rf /data/releases/${r}`);
+      freed += mb;
+    }
+    fixes.push({ metric: "data_disk", action: `Pruned ${obsolete.length} old release(s)`, freed: `${freed}MB`, success: true });
+  }
+
+  // Old .next-backup if stale
+  if (level === "critical") {
+    const backupMB = parseInt(run("du -sm /data/nextjs-deployments/next-backup 2>/dev/null | awk '{print $1}'"), 10) || 0;
+    if (backupMB > 100) {
+      run("rm -rf /data/nextjs-deployments/next-backup 2>/dev/null");
+      fixes.push({ metric: "data_disk", action: "Removed stale next-backup", freed: `${backupMB}MB`, success: true });
     }
   }
 
@@ -351,6 +416,7 @@ export async function POST(request: Request) {
   // Collect all metrics
   const metrics: MetricResult[] = [
     checkDisk(),
+    checkDataDisk(),
     checkMemory(),
     checkCPU(),
     checkInodes(),
@@ -370,6 +436,7 @@ export async function POST(request: Request) {
     const fixLevel = m.level as "danger" | "critical";
     switch (m.name) {
       case "disk": allFixes.push(...fixDisk(fixLevel)); break;
+      case "data_disk": allFixes.push(...fixDataDisk(fixLevel)); break;
       case "memory": allFixes.push(...fixMemory(fixLevel)); break;
       case "cpu": allFixes.push(...fixCPU()); break;
       case "inodes": allFixes.push(...fixDisk(fixLevel)); break;
@@ -383,6 +450,7 @@ export async function POST(request: Request) {
   // Re-check metrics that were in danger
   const recheck: Record<string, MetricResult> = {};
   if (dangerMetrics.some(m => m.name === "disk" || m.name === "inodes")) recheck.disk = checkDisk();
+  if (dangerMetrics.some(m => m.name === "data_disk")) recheck.data_disk = checkDataDisk();
   if (dangerMetrics.some(m => m.name === "memory" || m.name === "swap")) recheck.memory = checkMemory();
   if (dangerMetrics.some(m => m.name === "tmp_size")) recheck.tmp_size = checkTmpSize();
 
