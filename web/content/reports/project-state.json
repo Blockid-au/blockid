@@ -1,6 +1,6 @@
 {
   "version": "2.3.0",
-  "updatedAt": "2026-06-15T14:30:22Z",
+  "updatedAt": "2026-06-15T14:55:56Z",
   "architecture": {
     "summary": "BlockID.au \u2014 AI-powered startup valuation SaaS for AU founders (pre-seed \u2192 Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation\u2192Position\u2192Value\u2192Direction\u2192Capital) drives the full product flow.",
     "lastReviewedAt": "2026-06-15T14:30:22Z",
@@ -619,8 +619,9 @@
         "title": "30-day CEO scoreboard page (/dashboard/30day)",
         "rationale": "Target vs actual for the 30-day North Star (10 paying customers, $1k\u2013$3k revenue, 100 profiles, 50 assessments, 30 interviews). Reads Supabase + Stripe + assessment table. Drives daily prioritisation. See .claude/goals/30day-validation-mvp.md.",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-06-15T11:55:22Z"
+        "status": "done",
+        "createdAt": "2026-06-15T11:55:22Z",
+        "completedAt": "2026-06-15T14:55:56Z"
       },
       {
         "id": "T0201",
@@ -664,8 +665,10 @@
         "title": "Milestone reporter route + orchestrator hook",
         "rationale": "/api/cron/milestone-report emits per-C-Level breakdown after every release (markdown report + Telegram + email). Hooked into stageUpdateArtifacts so it fires the moment a milestone is created, with hourly defensive sweep. See .claude/goals/30day-validation-mvp.md \u00a7Wired into the existing CEO loop. NOTE: shipped manually 2026-06-15, may already be marked done by next update_artifacts sweep.",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-06-15T11:55:22Z"
+        "status": "done",
+        "createdAt": "2026-06-15T11:55:22Z",
+        "completedAt": "2026-06-15T14:52:38Z",
+        "commit": "abcb7e1"
       },
       {
         "id": "T0110",
@@ -734,7 +737,7 @@
         "id": "T0211",
         "agent": "cmo",
         "title": "LinkedIn page launch \u2014 Startup Value Index (linkedin.com/company/startup-value-index)",
-        "rationale": "Sub-brand page targeting 'startup valuation Australia' search intent. Owner: CMO. Playbook: .claude/goals/linkedin-svi-page-launch.md. Content queue: web/content/linkedin-svi-page-content-pack.json (14 posts pre-written, 7 pillars). After page creation, founder pastes LINKEDIN_PAGE_ID + LINKEDIN_PAGE_ACCESS_TOKEN into web/.env; existing /api/cron/linkedin-page-post auto-drains queue Mon/Wed/Fri 09:00 AEST. KPI: 100 LinkedIn leads, 12 posts in 30 days.",
+        "rationale": "Sub-brand page targeting 'startup valuation Australia' search intent. Owner: CMO. Playbook: .claude/goals/linkedin-svi-page-launch.md. Content queue: web/content/linkedin-svi-page-content-pack.json (14 posts pre-written, 7 pillars). After page creation, founder pastes LINKEDIN_PAGE_ID + LINKEDIN_PAGE_ACCESS_TOKEN into web/.env; existing /api/cron/linkedin-page-post auto-drains queue Mon/Wed/Fri 09:00 AEST. KPI: 100 LinkedIn leads, 12 posts in 30 days. [DEFERRED 2026-06-15: page live (id 129624133) + content pack ready, blocked on LINKEDIN_PAGE_ACCESS_TOKEN manual OAuth \u2014 resume when token written to web/.env via scripts/linkedin-token-helper.sh]",
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-06-15T13:18:12Z"
@@ -974,6 +977,12 @@
       "action": "plan",
       "version": "2.3.0",
       "note": "SVI sub-brand domains live: startupvalueindex.com (primary) + startupindex.au (AU mirror). LinkedIn page (ID 129624133) created. Queued T0212, T0213: T0212 (CTO DNS+nginx), T0213 (CPO SVI landing page). Content pack CTAs swapped blockid.au \u2192 startupvalueindex.com."
+    },
+    {
+      "ts": "2026-06-15T14:52:38Z",
+      "action": "update",
+      "version": "2.3.0",
+      "note": "T0205 closed (milestone-report shipped abcb7e1). T0211 deferred awaiting LinkedIn OAuth token. CEO loop continues with T0200 (scoreboard) next."
     }
   ]
 }
