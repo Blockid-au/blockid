@@ -447,10 +447,15 @@ async function stageUpdateArtifacts(): Promise<StageResult> {
     `git commit -m "chore(release): v${ps.version} — ${completed.length} task(s) shipped (${impact})\n\nCEO implementing-plan loop: ${completed.map(t => t.id).join(", ")}.\n\nCo-Authored-By: BlockID CEO Agent <ceo@blockid.au>" --allow-empty 2>&1`,
   );
 
+  // Fire per-C-Level milestone breakdown report immediately (Telegram + email +
+  // markdown). Best-effort — defensive hourly sweep also covers if this misses.
+  const newMilestone = ps.milestones[ps.milestones.length - 1];
+  callInternalAgent("milestone-report", 60_000).catch(() => { /* swept hourly */ });
+
   return {
     stage: "update_artifacts",
     ok: true,
-    message: `Released v${ps.version} (${impact}) — ${completed.length} task(s), milestone ${ps.milestones[ps.milestones.length - 1].id}${pkgSynced ? ", package.json synced" : ""}`,
+    message: `Released v${ps.version} (${impact}) — ${completed.length} task(s), milestone ${newMilestone.id}${pkgSynced ? ", package.json synced" : ""} — breakdown report fired`,
     aiCalls: 0,
     durationMs: Date.now() - start,
   };
