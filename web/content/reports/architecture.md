@@ -1,11 +1,12 @@
 # Architecture — BlockID.au (living)
 
-**Version:** v2.3.0  ·  **Last reviewed:** 2026-06-13T12:10:00.000Z
+**Version:** v2.3.0  ·  **Last reviewed:** 2026-06-15T11:55:22Z
 
 ## Summary
 BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.
 
 ## Change notes
+- v2.3.0 — 30-day Validation MVP layer merged (.claude/goals/30day-validation-mvp.md). North Star: 10 paying customers + 100 company profiles + AUD $1k MRR. Queued 6 CRO/CCSO/CMO/CFO/COO/CTO P0 tasks: T0200, T0201, T0202, T0203, T0204, T0205. Milestone-report route now fires per-C-Level breakdown after every release.
 - v2.3.0 — T0109 (CLO): ESOP Legal Checklist rebuilt as interactive client component (30 items, 6 categories, localStorage persistence). T0114 (CTO): RecentAnalyses localStorage scoped by projectId (userEmail) to prevent cross-user pollution.
 - v2.2.0 — Batch 9 (T0102-T0110): ESOP governance scoring engine (cfo-esop-scoring.ts), knowledge base API, /api/esop/score, SVI upgrade roadmap widget, ESOP legal checklist tool, data room readiness API.
 - v2.1.0 — T0094–T0101: ESOP Manager (pool + grants UI + API), 36-month financial model, data room 13-section structure, BlockID SVI 68/100 self-analysis, C-Level knowledge base (4 modules), valuation A$440K pre-money.

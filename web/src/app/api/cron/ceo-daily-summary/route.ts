@@ -22,7 +22,13 @@ const CRON_SECRET = process.env.CRON_SECRET;
 const REPORTS_DIR = "/home/dovanlong/blockid.au/web/content/reports";
 const ADMIN_EMAIL = "admin@blockid.au";
 
-const AGENTS = ["coo", "cto", "cfo", "cmo", "cro", "cdo", "ciso", "chro"] as const;
+// All 14 C-Levels — kept in sync with content/reports/clevel-kpi-matrix.json
+// so every agent's daily brief lands in the CEO summary. clevel-daily-reports
+// (23:45 UTC daily) guarantees a file exists for each agent before this runs.
+const AGENTS = [
+  "coo", "cto", "cfo", "cmo", "cro", "cdo", "ciso", "chro",
+  "cpo", "ccso", "cso", "clo", "rnd", "ir",
+] as const;
 
 interface AgentReport {
   agent: string;
