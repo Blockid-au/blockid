@@ -42,9 +42,11 @@ export function getArticleBySlug(slug: string): InsightArticle | null {
 }
 
 export function getArticleContent(slug: string): string | null {
-  const mdPath = join(CONTENT_DIR, `${slug}.md`);
-  if (!existsSync(mdPath)) return null;
-  return readFileSync(mdPath, "utf-8");
+  for (const ext of ["md", "mdx"]) {
+    const path = join(CONTENT_DIR, `${slug}.${ext}`);
+    if (existsSync(path)) return readFileSync(path, "utf-8");
+  }
+  return null;
 }
 
 export function getArticlesByCategory(category: string): InsightArticle[] {
