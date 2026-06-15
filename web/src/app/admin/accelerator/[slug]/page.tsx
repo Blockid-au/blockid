@@ -67,11 +67,19 @@ export default async function CohortDetailPage({
     .eq("cohort_id", cohort.id)
     .order("joined_at", { ascending: false });
 
-  const members = rawMembers ?? [];
+  interface CohortMemberRow {
+    id: string;
+    cohort_id: string;
+    email: string;
+    startup_name: string | null;
+    svi_account_id: string | null;
+    joined_at: string;
+  }
+  const members: CohortMemberRow[] = (rawMembers ?? []) as CohortMemberRow[];
 
   // Fetch SVI data for linked accounts
   const sviAccountIds = members
-    .map((m: { svi_account_id?: string | null }) => m.svi_account_id)
+    .map((m) => m.svi_account_id)
     .filter(Boolean) as string[];
 
   const sviMap: Record<string, { current_svi: number; current_stage: number; enrolled_at: string }> = {};
