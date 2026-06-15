@@ -13,3 +13,8 @@
 {"stage":"report","ok":true,"message":"Telegram sent, 0 AI calls","aiCalls":0,"durationMs":345,"timestamp":"2026-06-13T16:00:10.083Z"}
 {"stage":"research","ok":false,"message":"Research failed: The operation was aborted due to timeout","aiCalls":0,"durationMs":240001,"timestamp":"2026-06-14T12:04:01.780Z"}
 {"stage":"plan","ok":true,"message":"CEO implementing plan updated — 3 new task(s), 12 pending","aiCalls":1,"durationMs":659,"timestamp":"2026-06-14T12:04:02.440Z"}
+{"stage":"deploy","ok":false,"message":"Deploy failed: \u001b[2m   Duration \u001b[22m 3.14s\u001b[2m (transform 1.85s, setup 0ms, import 2.82s, tests 2.34s, environment 2ms)\u001b[22m\n\n  ✅ All unit tests pass\n\n─── Gate 6: Next.js production build ───","aiCalls":0,"durationMs":52969,"timestamp":"2026-06-14T14:03:07.853Z"}
+{"stage":"update_artifacts","ok":true,"message":"12 task(s) still in flight","aiCalls":0,"durationMs":424,"timestamp":"2026-06-14T16:00:01.527Z"}
+{"stage":"git_push","ok":true,"message":"Pushed 5 commits to GitHub origin/master","aiCalls":0,"durationMs":1922,"timestamp":"2026-06-14T16:00:03.450Z"}
+{"stage":"qa","ok":true,"message":"QA: ?/19 pass, 0 fail","aiCalls":0,"durationMs":7512,"timestamp":"2026-06-14T18:00:09.468Z"}
+{"stage":"report","ok":true,"message":"Telegram sent, 0 AI calls","aiCalls":0,"durationMs":324,"timestamp":"2026-06-14T18:00:09.792Z"}
