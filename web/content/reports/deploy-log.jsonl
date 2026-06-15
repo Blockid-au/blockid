@@ -143,3 +143,7 @@
 {"ts":"2026-06-14T16:00:04.398Z","event":"github-push-master","detail":"Blockid-au: feat(orchestrator): platform auto-upgrade 2026-06-14 (5 commits)","source":"github-webhook"}
 {"ts":"2026-06-14T18:50:16Z","status":"success","gates":"10/10","pid":"1623442","note":"Auto-upgrade (Claude subscription): feat(auto): T0101 \u2014 NRR, LTV/CAC, CAC payback, Rule of 40 in financial projections calculator"}
 {"ts":"2026-06-14T18:50:18.755Z","event":"github-push-master","detail":"Blockid-au: feat(auto): T0101 — NRR, LTV/CAC, CAC payback, Rule of 40 in financial projections calculator (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-15T14:30:33.988Z","event":"github-push-master","detail":"Blockid-au: feat(linkedin): SVI page id 129624133 + token helper + domain split (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-15T14:51:23.265Z","event":"github-push-master","detail":"Blockid-au: fix(insights): serve .mdx articles (8 pages were 404) (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-15T14:55:59.048Z","event":"github-push-master","detail":"Blockid-au: feat(coo): T0200 — 30-Day Validation Scoreboard at /dashboard/admin/30day (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-15T14:58:13.087Z","event":"github-push-master","detail":"Blockid-au: feat(ciso): T0207 — daily Essential Eight-aligned security posture scan (1 commits)","source":"github-webhook"}
