@@ -1,9 +1,44 @@
 import { NextResponse } from "next/server";
+import { execSync } from "child_process";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAIBudgetStatus } from "@/lib/ai-client";
 import { sendEmail } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
+
+interface DiskRow {
+  mount: string;
+  size: string;
+  used: string;
+  free: string;
+  pct: number;
+  label: string;
+}
+
+function shell(cmd: string, timeout = 5_000): string {
+  try {
+    return execSync(cmd, { encoding: "utf8", timeout }).trim();
+  } catch {
+    return "";
+  }
+}
+
+// Two drives matter: / (root, ~276G) and /data (300G — node_modules, releases,
+// caches, knowledge-base). When /data nears 90% deploys fail; this surfaces it
+// in the daily email so the team sees it before the orchestrator does.
+function collectDiskUsage(): DiskRow[] {
+  const rows: DiskRow[] = [];
+  for (const [mount, label] of [
+    ["/", "Root (system)"],
+    ["/data", "Data (300GB drive)"],
+  ] as const) {
+    const out = shell(`df -h ${mount} | tail -1 | awk '{print $2,$3,$4,$5}'`);
+    if (!out) continue;
+    const [size, used, free, pctStr] = out.split(/\s+/);
+    rows.push({ mount, size, used, free, pct: parseInt(pctStr, 10) || 0, label });
+  }
+  return rows;
+}
 
 /**
  * Daily admin dashboard email — sends platform KPIs to admin@blockid.au.
@@ -133,6 +168,10 @@ export async function GET(request: Request) {
 
     // AI budget
     const aiBudget = getAIBudgetStatus();
+
+    // Disk usage — surface /data alongside / so the team catches a filling drive
+    // before deploys start failing.
+    const diskRows = collectDiskUsage();
 
     // ── 10. Run C-Level agent tasks and collect results ────────────────
     let agentResults: Array<{ agent: string; task: string; result: string; ok: boolean }> = [];
@@ -285,6 +324,33 @@ Write 3-5 concise recommendations. Focus on growth, conversion, and operational 
       </div>
       <div style="margin-top: 8px; font-size: 13px; color: #64748b;">${fmt(aiBudget.calls)} API calls this month</div>
     </div>
+  </div>
+
+  <!-- System Health: Disk Usage -->
+  <div style="padding: 0 24px 24px;">
+    <h2 style="margin: 0 0 12px; font-size: 16px; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">System Health — Disk</h2>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%; border-collapse: collapse;">
+      <tr style="background: #f8fafc;">
+        <th style="padding: 8px 12px; text-align: left; font-size: 12px; color: #64748b; text-transform: uppercase;">Drive</th>
+        <th style="padding: 8px 12px; text-align: right; font-size: 12px; color: #64748b; text-transform: uppercase;">Used / Size</th>
+        <th style="padding: 8px 12px; text-align: right; font-size: 12px; color: #64748b; text-transform: uppercase;">Free</th>
+        <th style="padding: 8px 12px; text-align: right; font-size: 12px; color: #64748b; text-transform: uppercase;">%</th>
+      </tr>
+      ${diskRows.map((d) => {
+        const tone = d.pct >= 90 ? "#991b1b" : d.pct >= 80 ? "#b45309" : d.pct >= 70 ? "#475569" : "#166534";
+        const bg = d.pct >= 90 ? "#fee2e2" : d.pct >= 80 ? "#fef3c7" : "transparent";
+        return `<tr style="background:${bg};">
+          <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;">
+            <strong style="color:#1e293b;">${escapeHtml(d.label)}</strong>
+            <div style="color:#94a3b8;font-size:11px;font-family:monospace;">${escapeHtml(d.mount)}</div>
+          </td>
+          <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;text-align:right;color:#475569;">${escapeHtml(d.used)} / ${escapeHtml(d.size)}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;text-align:right;color:#475569;">${escapeHtml(d.free)}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:14px;text-align:right;font-weight:700;color:${tone};">${d.pct}%</td>
+        </tr>`;
+      }).join("")}
+    </table>
+    ${diskRows.some((d) => d.pct >= 80) ? `<p style="margin:8px 0 0;font-size:12px;color:#b45309;">⚠ One drive ≥80% — guardian will auto-cleanup; review largest tenants on the over-threshold drive.</p>` : ""}
   </div>
 
   <!-- Top Analyses -->

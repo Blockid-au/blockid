@@ -29,6 +29,13 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WEB_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 STANDALONE="$WEB_DIR/.next/standalone"
+
+# node_modules lives on /data (1.7GB) as a symlink: web/node_modules -> /data/node_modules-blockid-web.
+# Node's symlink-realpath resolution breaks Next's internal require('next/dist/compiled/*')
+# because the target dir is not named "node_modules", so sibling lookups fail.
+# Export NODE_PATH so resolution always finds the flat package layout.
+NODE_MODULES_REAL="$(readlink -f "$WEB_DIR/node_modules" 2>/dev/null || echo "$WEB_DIR/node_modules")"
+export NODE_PATH="$NODE_MODULES_REAL"
 BACKUP_DIR="${DATA_DIR:-/data}/backups/next-backup"
 # Fallback: if /data not mounted, use legacy location so deploys never fail
 [ -d "/data/backups" ] || BACKUP_DIR="$WEB_DIR/.next-backup"
