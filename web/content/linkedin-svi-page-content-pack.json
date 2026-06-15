@@ -1,28 +1,51 @@
 {
   "_meta": {
     "page": "Startup Value Index",
-    "purpose": "Machine-readable content queue for /api/cron/linkedin-page-post. Posts in `queue` are FIFO — cron drains 1 per scheduled fire. Move shipped items to `published` (cron does this automatically once webhook returns 201).",
+    "purpose": "Machine-readable content queue for /api/cron/linkedin-page-post. Posts in `queue` are FIFO \u2014 cron drains 1 per scheduled fire. Move shipped items to `published` (cron does this automatically once webhook returns 201).",
     "cadence": "Mon/Wed/Fri 09:00 AEST for first 14 posts, then daily",
     "disclaimer": "General information only. Not personal financial advice. SVI is a benchmark index, not a regulated valuation under ASIC RG 111.",
-    "linkBase": "https://blockid.au",
+    "linkBase": "https://startupvalueindex.com",
     "owner": "cmo",
     "linkedTask": "T0211",
-    "createdAt": "2026-06-15T00:00:00.000Z"
+    "createdAt": "2026-06-15T00:00:00.000Z",
+    "domains": {
+      "primary": "https://startupvalueindex.com",
+      "auMirror": "https://startupindex.au",
+      "parentPlatform": "https://blockid.au"
+    }
   },
   "pageProfile": {
     "name": "Startup Value Index",
-    "tagline": "The Australian benchmark for startup & SME value — measure it, grow it, prove it.",
-    "website": "https://blockid.au",
-    "industry": ["Financial Services", "Software Development"],
+    "tagline": "The Australian benchmark for startup & SME value \u2014 measure it, grow it, prove it.",
+    "website": "https://startupvalueindex.com",
+    "industry": [
+      "Financial Services",
+      "Software Development"
+    ],
     "companySize": "2-10 employees",
     "companyType": "Privately held",
     "legalEntity": "Auschain PTY LTD (ABN 79 659 615 111, Sydney NSW)",
     "specialties": [
-      "startup valuation", "SME valuation", "business valuation", "Australian startups",
-      "valuation benchmark", "investor readiness", "business health check", "cap table",
-      "ESOP", "term sheet analysis", "financial modelling", "founder education",
-      "startup index", "equity", "fundraising", "due diligence",
-      "growth metrics", "unit economics", "market sizing", "AI valuation"
+      "startup valuation",
+      "SME valuation",
+      "business valuation",
+      "Australian startups",
+      "valuation benchmark",
+      "investor readiness",
+      "business health check",
+      "cap table",
+      "ESOP",
+      "term sheet analysis",
+      "financial modelling",
+      "founder education",
+      "startup index",
+      "equity",
+      "fundraising",
+      "due diligence",
+      "growth metrics",
+      "unit economics",
+      "market sizing",
+      "AI valuation"
     ]
   },
   "queue": [
@@ -31,10 +54,15 @@
       "pillar": "worth-question",
       "scheduledFor": "2026-06-16T23:00:00Z",
       "title": "What's your startup worth? Most founders guess.",
-      "body": "What's your startup worth?\n\nMost founders guess. The honest answer is 4 numbers wide.\n\nWe scored 100 Australian startups across 13 dimensions and the spread inside the SAME stage was 6x.\n\nTwo seed-stage SaaS companies, both pre-revenue, both Australian: one valued at A$1.2M, the other A$7.4M. Same pitch deck template. Same accelerator alumni list.\n\nThe difference wasn't traction. It was 5 things you can measure in 10 minutes.\n\nTake the free Startup Value Index → https://blockid.au\n\n#startupvaluation #AustralianStartups #founders #SVI",
-      "hashtags": ["#startupvaluation", "#AustralianStartups", "#founders", "#SVI"],
+      "body": "What's your startup worth?\n\nMost founders guess. The honest answer is 4 numbers wide.\n\nWe scored 100 Australian startups across 13 dimensions and the spread inside the SAME stage was 6x.\n\nTwo seed-stage SaaS companies, both pre-revenue, both Australian: one valued at A$1.2M, the other A$7.4M. Same pitch deck template. Same accelerator alumni list.\n\nThe difference wasn't traction. It was 5 things you can measure in 10 minutes.\n\nTake the free Startup Value Index \u2192 https://startupvalueindex.com\n\n#startupvaluation #AustralianStartups #founders #SVI",
+      "hashtags": [
+        "#startupvaluation",
+        "#AustralianStartups",
+        "#founders",
+        "#SVI"
+      ],
       "imageBrief": "Split-screen: two identical-looking pitch decks; arrow above one says A$1.2M, above the other A$7.4M",
-      "cta": "https://blockid.au",
+      "cta": "https://startupvalueindex.com",
       "complianceDisclaimer": true
     },
     {
@@ -42,10 +70,15 @@
       "pillar": "investor-ready",
       "scheduledFor": "2026-06-18T23:00:00Z",
       "title": "5 reasons your deck won't get a second meeting.",
-      "body": "5 reasons your deck won't get a second meeting (from 50+ AU investor conversations):\n\n1. Market size built top-down (\"TAM is $50B\") with no bottom-up SOM check.\n2. Revenue projection that hockey-sticks at month 13 with no triggering event.\n3. \"AI-powered\" mentioned 11 times; the actual moat mentioned zero.\n4. Cap table that's already crowded at pre-seed (you sold too cheap, too early).\n5. No comparable AU raises in the last 18 months — you're pricing off US bands.\n\nFix list, in order: (1) ground SOM in 3 customer interviews, (2) tie the hockey-stick to a specific channel unlock, (3) name the moat in 6 words, (4) model the next 2 dilution rounds before raising this one, (5) cite 3 AU comparable raises.\n\nThe SVI investor-readiness module scores all 5 in 10 minutes — free at https://blockid.au\n\n#fundraising #investorready #pitchdeck #AustralianStartups",
-      "hashtags": ["#fundraising", "#investorready", "#pitchdeck", "#AustralianStartups"],
+      "body": "5 reasons your deck won't get a second meeting (from 50+ AU investor conversations):\n\n1. Market size built top-down (\"TAM is $50B\") with no bottom-up SOM check.\n2. Revenue projection that hockey-sticks at month 13 with no triggering event.\n3. \"AI-powered\" mentioned 11 times; the actual moat mentioned zero.\n4. Cap table that's already crowded at pre-seed (you sold too cheap, too early).\n5. No comparable AU raises in the last 18 months \u2014 you're pricing off US bands.\n\nFix list, in order: (1) ground SOM in 3 customer interviews, (2) tie the hockey-stick to a specific channel unlock, (3) name the moat in 6 words, (4) model the next 2 dilution rounds before raising this one, (5) cite 3 AU comparable raises.\n\nThe SVI investor-readiness module scores all 5 in 10 minutes \u2014 free at https://startupvalueindex.com\n\n#fundraising #investorready #pitchdeck #AustralianStartups",
+      "hashtags": [
+        "#fundraising",
+        "#investorready",
+        "#pitchdeck",
+        "#AustralianStartups"
+      ],
       "imageBrief": "Numbered list 1-5 over a softly blurred pitch-deck slide",
-      "cta": "https://blockid.au",
+      "cta": "https://startupvalueindex.com",
       "complianceDisclaimer": true
     },
     {
@@ -53,10 +86,15 @@
       "pillar": "svi-launch",
       "scheduledFor": "2026-06-20T23:00:00Z",
       "title": "We launched the Australian Startup Value Index.",
-      "body": "Today we're launching the Startup Value Index — Australia's open benchmark for what private companies are actually worth.\n\nNo upper cap (it works like the Nikkei, not a 0–100 score). 13 dimensions weighted by what AU investors and acquirers actually pay for. Updated as new companies join the dataset.\n\nWhy we built it:\n• Founders are flying blind on what their company is worth\n• SME owners undersell at exit by 20–40% because there's no shared reference\n• Investors and advisors waste calls on companies that aren't ready\n\nWhat you can do today:\n→ Free: take the assessment, get your SVI score, see what moves it\n→ Paid (A$99): full AI valuation report with comparables\n→ Coming: cohort benchmarks by sector / stage / geography\n\nWe'll publish the methodology in full next week. Take the free score → https://blockid.au\n\n#SVI #valuationindex #AustralianStartups #SME",
-      "hashtags": ["#SVI", "#valuationindex", "#AustralianStartups", "#SME"],
+      "body": "Today we're launching the Startup Value Index \u2014 Australia's open benchmark for what private companies are actually worth.\n\nNo upper cap (it works like the Nikkei, not a 0\u2013100 score). 13 dimensions weighted by what AU investors and acquirers actually pay for. Updated as new companies join the dataset.\n\nWhy we built it:\n\u2022 Founders are flying blind on what their company is worth\n\u2022 SME owners undersell at exit by 20\u201340% because there's no shared reference\n\u2022 Investors and advisors waste calls on companies that aren't ready\n\nWhat you can do today:\n\u2192 Free: take the assessment, get your SVI score, see what moves it\n\u2192 Paid (A$99): full AI valuation report with comparables\n\u2192 Coming: cohort benchmarks by sector / stage / geography\n\nWe'll publish the methodology in full next week. Take the free score \u2192 https://startupvalueindex.com\n\n#SVI #valuationindex #AustralianStartups #SME",
+      "hashtags": [
+        "#SVI",
+        "#valuationindex",
+        "#AustralianStartups",
+        "#SME"
+      ],
       "imageBrief": "Line chart climbing from 0 to ~14,000 (Nikkei-style), with 'SVI' as the index name",
-      "cta": "https://blockid.au",
+      "cta": "https://startupvalueindex.com",
       "complianceDisclaimer": true
     },
     {
@@ -64,10 +102,15 @@
       "pillar": "sme-mistakes",
       "scheduledFor": "2026-06-23T23:00:00Z",
       "title": "The 30% SME owners lose at exit.",
-      "body": "AU SME owners lose 20–40% of their company's value at sale. Three reasons, in order of frequency:\n\n1. **Documentation gap.** Buyers discount aggressively when financials aren't audited and contracts aren't centralised. Median discount: 18%.\n\n2. **Customer concentration.** One customer > 25% of revenue triggers a buyer haircut. Median discount: 12%.\n\n3. **Owner-dependence.** If the owner is in 80% of customer relationships, the buyer prices in attrition. Median discount: 22%.\n\nAll three are fixable in 12–18 months — but only if you start measuring before you start selling.\n\nThe SVI Business Health Check surfaces all three. Free preview → https://blockid.au\n\n#SMEvaluation #businesssale #exitplanning #AustralianBusiness",
-      "hashtags": ["#SMEvaluation", "#businesssale", "#exitplanning", "#AustralianBusiness"],
-      "imageBrief": "Stacked bar showing 'list price' → '18% doc gap' → '12% concentration' → '22% owner' → 'final sale'",
-      "cta": "https://blockid.au",
+      "body": "AU SME owners lose 20\u201340% of their company's value at sale. Three reasons, in order of frequency:\n\n1. **Documentation gap.** Buyers discount aggressively when financials aren't audited and contracts aren't centralised. Median discount: 18%.\n\n2. **Customer concentration.** One customer > 25% of revenue triggers a buyer haircut. Median discount: 12%.\n\n3. **Owner-dependence.** If the owner is in 80% of customer relationships, the buyer prices in attrition. Median discount: 22%.\n\nAll three are fixable in 12\u201318 months \u2014 but only if you start measuring before you start selling.\n\nThe SVI Business Health Check surfaces all three. Free preview \u2192 https://startupvalueindex.com\n\n#SMEvaluation #businesssale #exitplanning #AustralianBusiness",
+      "hashtags": [
+        "#SMEvaluation",
+        "#businesssale",
+        "#exitplanning",
+        "#AustralianBusiness"
+      ],
+      "imageBrief": "Stacked bar showing 'list price' \u2192 '18% doc gap' \u2192 '12% concentration' \u2192 '22% owner' \u2192 'final sale'",
+      "cta": "https://startupvalueindex.com",
       "complianceDisclaimer": true
     },
     {
@@ -75,10 +118,15 @@
       "pillar": "investor-lens",
       "scheduledFor": "2026-06-25T23:00:00Z",
       "title": "How AU investors actually score private companies.",
-      "body": "From 30 conversations with AU pre-seed / seed investors, here's the actual scorecard they run (not the one in their thesis deck):\n\n• Founder quality: 30% weight — founder-market fit + repeat indicator\n• Market timing: 20% — why now, not 3 years ago, not 3 years from now\n• Channel evidence: 20% — one channel with unit economics that work\n• Differentiation: 15% — the 6-word moat\n• Capital efficiency: 10% — burn vs hypothesis tested per A$ raised\n• Cap table: 5% — clean, no zombie equity\n\nNotice what's missing: TAM, AI usage, team size, fancy advisors.\n\nThe SVI weighs the same things — it's literally trained on these conversations.\n\nScore yourself in 10 minutes → https://blockid.au\n\n#angelinvestor #venturecapital #fundraising #AustralianVC",
-      "hashtags": ["#angelinvestor", "#venturecapital", "#fundraising", "#AustralianVC"],
+      "body": "From 30 conversations with AU pre-seed / seed investors, here's the actual scorecard they run (not the one in their thesis deck):\n\n\u2022 Founder quality: 30% weight \u2014 founder-market fit + repeat indicator\n\u2022 Market timing: 20% \u2014 why now, not 3 years ago, not 3 years from now\n\u2022 Channel evidence: 20% \u2014 one channel with unit economics that work\n\u2022 Differentiation: 15% \u2014 the 6-word moat\n\u2022 Capital efficiency: 10% \u2014 burn vs hypothesis tested per A$ raised\n\u2022 Cap table: 5% \u2014 clean, no zombie equity\n\nNotice what's missing: TAM, AI usage, team size, fancy advisors.\n\nThe SVI weighs the same things \u2014 it's literally trained on these conversations.\n\nScore yourself in 10 minutes \u2192 https://startupvalueindex.com\n\n#angelinvestor #venturecapital #fundraising #AustralianVC",
+      "hashtags": [
+        "#angelinvestor",
+        "#venturecapital",
+        "#fundraising",
+        "#AustralianVC"
+      ],
       "imageBrief": "Donut chart of the 6 weights",
-      "cta": "https://blockid.au",
+      "cta": "https://startupvalueindex.com",
       "complianceDisclaimer": true
     },
     {
@@ -86,10 +134,15 @@
       "pillar": "cap-table",
       "scheduledFor": "2026-06-27T23:00:00Z",
       "title": "Your cap table is your story.",
-      "body": "Your cap table is your fundraising story whether you wrote it or not.\n\nThings investors read from row 1:\n• Founder % at pre-seed: < 70% = you sold too early\n• Advisor shares > 2%: someone overpaid for an intro\n• Multiple convertible notes with different caps: messy → discount\n• ESOP < 10% by Series A: you'll have to top up dilutively\n• A friend with 8%: hardest call you'll ever make\n\nFix them before the data room, not during diligence.\n\nThe SVI cap-table module flags all 5 in seconds → https://blockid.au\n\n#captable #equity #ESOP #fundraising",
-      "hashtags": ["#captable", "#equity", "#ESOP", "#fundraising"],
+      "body": "Your cap table is your fundraising story whether you wrote it or not.\n\nThings investors read from row 1:\n\u2022 Founder % at pre-seed: < 70% = you sold too early\n\u2022 Advisor shares > 2%: someone overpaid for an intro\n\u2022 Multiple convertible notes with different caps: messy \u2192 discount\n\u2022 ESOP < 10% by Series A: you'll have to top up dilutively\n\u2022 A friend with 8%: hardest call you'll ever make\n\nFix them before the data room, not during diligence.\n\nThe SVI cap-table module flags all 5 in seconds \u2192 https://startupvalueindex.com\n\n#captable #equity #ESOP #fundraising",
+      "hashtags": [
+        "#captable",
+        "#equity",
+        "#ESOP",
+        "#fundraising"
+      ],
       "imageBrief": "Stylised cap table with 5 red-flag rows highlighted",
-      "cta": "https://blockid.au",
+      "cta": "https://startupvalueindex.com",
       "complianceDisclaimer": true
     },
     {
@@ -97,10 +150,14 @@
       "pillar": "health-check",
       "scheduledFor": "2026-06-30T23:00:00Z",
       "title": "7 signals your business is investor-ready.",
-      "body": "7 signals your business is actually investor-ready (not just hopeful):\n\n1. You can describe your ICP in one sentence and 3 of your last 5 customers fit it.\n2. Your CAC payback is < 18 months and you can prove it from raw data.\n3. You have 12 months of monthly cohort retention.\n4. Your data room exists today, not 'when needed'.\n5. You've turned down at least one deal that didn't fit.\n6. Your cap table can absorb 2 more rounds without losing founder control.\n7. You know which 3 metrics your investor will index on at the next round — and you're measuring them weekly.\n\n4+ ticked = you're ready to start conversations.\n2–3 = 90 days of work first.\n0–1 = stay heads-down, don't burn intros.\n\nThe SVI investor-readiness module checks all 7 → https://blockid.au\n\n#investorready #startupgrowth #AustralianStartups",
-      "hashtags": ["#investorready", "#startupgrowth", "#AustralianStartups"],
+      "body": "7 signals your business is actually investor-ready (not just hopeful):\n\n1. You can describe your ICP in one sentence and 3 of your last 5 customers fit it.\n2. Your CAC payback is < 18 months and you can prove it from raw data.\n3. You have 12 months of monthly cohort retention.\n4. Your data room exists today, not 'when needed'.\n5. You've turned down at least one deal that didn't fit.\n6. Your cap table can absorb 2 more rounds without losing founder control.\n7. You know which 3 metrics your investor will index on at the next round \u2014 and you're measuring them weekly.\n\n4+ ticked = you're ready to start conversations.\n2\u20133 = 90 days of work first.\n0\u20131 = stay heads-down, don't burn intros.\n\nThe SVI investor-readiness module checks all 7 \u2192 https://startupvalueindex.com\n\n#investorready #startupgrowth #AustralianStartups",
+      "hashtags": [
+        "#investorready",
+        "#startupgrowth",
+        "#AustralianStartups"
+      ],
       "imageBrief": "Vertical checklist with 7 items, ticked / unticked variants",
-      "cta": "https://blockid.au",
+      "cta": "https://startupvalueindex.com",
       "complianceDisclaimer": true
     },
     {
@@ -108,10 +165,15 @@
       "pillar": "benchmark",
       "scheduledFor": "2026-07-02T23:00:00Z",
       "title": "First SVI cohort: AU pre-seed SaaS median.",
-      "body": "First cohort snapshot from the Startup Value Index: 30 AU pre-seed SaaS companies.\n\nMedian SVI score: 4,800 (base = 1,000 at index inception).\nTop quartile: > 7,200.\nBottom quartile: < 2,900.\nWhat separates top from bottom? Three things only:\n• Channel evidence (top 4× bottom)\n• Cohort retention data (top has 6+ months; bottom has 0)\n• Founder-market fit narrative coherence\n\nNotice what doesn't separate them: industry, team size, AI usage, advisor list.\n\nWe'll publish full cohort data monthly. Subscribe via the page or check https://blockid.au/benchmarks\n\n#startupbenchmark #SaaS #SVI #AustralianStartups",
-      "hashtags": ["#startupbenchmark", "#SaaS", "#SVI", "#AustralianStartups"],
+      "body": "First cohort snapshot from the Startup Value Index: 30 AU pre-seed SaaS companies.\n\nMedian SVI score: 4,800 (base = 1,000 at index inception).\nTop quartile: > 7,200.\nBottom quartile: < 2,900.\nWhat separates top from bottom? Three things only:\n\u2022 Channel evidence (top 4\u00d7 bottom)\n\u2022 Cohort retention data (top has 6+ months; bottom has 0)\n\u2022 Founder-market fit narrative coherence\n\nNotice what doesn't separate them: industry, team size, AI usage, advisor list.\n\nWe'll publish full cohort data monthly. Subscribe via the page or check https://startupvalueindex.com/benchmarks\n\n#startupbenchmark #SaaS #SVI #AustralianStartups",
+      "hashtags": [
+        "#startupbenchmark",
+        "#SaaS",
+        "#SVI",
+        "#AustralianStartups"
+      ],
       "imageBrief": "Box-and-whisker chart of 30 startups with quartile bands",
-      "cta": "https://blockid.au/benchmarks",
+      "cta": "https://startupvalueindex.com/benchmarks",
       "complianceDisclaimer": true
     },
     {
@@ -119,32 +181,44 @@
       "pillar": "founder-education",
       "scheduledFor": "2026-07-04T23:00:00Z",
       "title": "The $10k question every founder must answer at Series A.",
-      "body": "At Series A, the partner will ask you ONE question that decides the meeting:\n\n\"What's the smallest experiment you could run with $10k that would invalidate this whole thing — and have you run it?\"\n\nFounders who answer in < 30 seconds with a specific past experiment + result get a follow-up. Everyone else gets 'great pitch, let's keep in touch'.\n\nWhy this question? Because it tests 3 things at once: do you know your riskiest assumption, have you actually de-risked it, and do you have the cheapness instinct that survives the next 7 years.\n\nWrite your answer in your phone notes today. Re-read it in 30 days.\n\nThe SVI 'experiment hygiene' dimension scores this directly → https://blockid.au\n\n#SeriesA #venturecapital #foundertips",
-      "hashtags": ["#SeriesA", "#venturecapital", "#foundertips"],
+      "body": "At Series A, the partner will ask you ONE question that decides the meeting:\n\n\"What's the smallest experiment you could run with $10k that would invalidate this whole thing \u2014 and have you run it?\"\n\nFounders who answer in < 30 seconds with a specific past experiment + result get a follow-up. Everyone else gets 'great pitch, let's keep in touch'.\n\nWhy this question? Because it tests 3 things at once: do you know your riskiest assumption, have you actually de-risked it, and do you have the cheapness instinct that survives the next 7 years.\n\nWrite your answer in your phone notes today. Re-read it in 30 days.\n\nThe SVI 'experiment hygiene' dimension scores this directly \u2192 https://startupvalueindex.com\n\n#SeriesA #venturecapital #foundertips",
+      "hashtags": [
+        "#SeriesA",
+        "#venturecapital",
+        "#foundertips"
+      ],
       "imageBrief": "Sticky-note style with the question typed out",
-      "cta": "https://blockid.au",
+      "cta": "https://startupvalueindex.com",
       "complianceDisclaimer": true
     },
     {
       "id": "P010",
       "pillar": "sme-mistakes",
       "scheduledFor": "2026-07-07T23:00:00Z",
-      "title": "Multiple of EBITDA — 4 ways founders get it wrong.",
-      "body": "\"My business is worth 5× EBITDA\" — every conversation we've had with an SME owner. 4 ways that math is usually wrong:\n\n1. **Wrong multiple.** Service businesses with owner-in-loop trade 1.5–3×, not 5×. Asset-light tech with 12-month retention trades 6–10×.\n\n2. **Wrong EBITDA.** Owner add-backs are real only if the buyer can actually remove them. Personal car, family salaries, one-off contracts — buyers discount these.\n\n3. **Wrong year.** Buyers look at trailing 12 months, not the best year you ever had. If your best year was 2 years ago, you're getting last year's number.\n\n4. **No working capital adjustment.** The price you negotiate isn't the cheque you receive. WC adjustment can move it 5–15%.\n\nThe SVI valuation report does all 4 corrections automatically → https://blockid.au\n\n#SMEvaluation #businesssale #EBITDA",
-      "hashtags": ["#SMEvaluation", "#businesssale", "#EBITDA"],
+      "title": "Multiple of EBITDA \u2014 4 ways founders get it wrong.",
+      "body": "\"My business is worth 5\u00d7 EBITDA\" \u2014 every conversation we've had with an SME owner. 4 ways that math is usually wrong:\n\n1. **Wrong multiple.** Service businesses with owner-in-loop trade 1.5\u20133\u00d7, not 5\u00d7. Asset-light tech with 12-month retention trades 6\u201310\u00d7.\n\n2. **Wrong EBITDA.** Owner add-backs are real only if the buyer can actually remove them. Personal car, family salaries, one-off contracts \u2014 buyers discount these.\n\n3. **Wrong year.** Buyers look at trailing 12 months, not the best year you ever had. If your best year was 2 years ago, you're getting last year's number.\n\n4. **No working capital adjustment.** The price you negotiate isn't the cheque you receive. WC adjustment can move it 5\u201315%.\n\nThe SVI valuation report does all 4 corrections automatically \u2192 https://startupvalueindex.com\n\n#SMEvaluation #businesssale #EBITDA",
+      "hashtags": [
+        "#SMEvaluation",
+        "#businesssale",
+        "#EBITDA"
+      ],
       "imageBrief": "Calculator showing one big number being progressively reduced through 4 stages",
-      "cta": "https://blockid.au",
+      "cta": "https://startupvalueindex.com",
       "complianceDisclaimer": true
     },
     {
       "id": "P011",
       "pillar": "investor-lens",
       "scheduledFor": "2026-07-09T23:00:00Z",
-      "title": "The 13 dimensions SVI scores — and why ARR isn't one.",
-      "body": "The Startup Value Index scores 13 dimensions. Conspicuously not on the list: ARR.\n\nWhy not? ARR is an output. The 13 dimensions are inputs — the things that produce ARR (or don't).\n\nThe 13:\n1. Founder quality & founder-market fit\n2. Market structure & timing\n3. Channel evidence & CAC trajectory\n4. Retention & cohort depth\n5. Unit economics & contribution margin\n6. Capital efficiency (burn vs hypotheses tested)\n7. Differentiation & defensibility\n8. Cap-table hygiene\n9. Governance & founder agreements\n10. Customer concentration\n11. IP & data moat\n12. Operational maturity\n13. Capital plan / runway-to-milestone fit\n\nScore high on all 13 and ARR follows. Score high on ARR alone and you're one bad cohort away from a down round.\n\nFree assessment → https://blockid.au\n\n#valuationmethodology #SVI #venturecapital",
-      "hashtags": ["#valuationmethodology", "#SVI", "#venturecapital"],
+      "title": "The 13 dimensions SVI scores \u2014 and why ARR isn't one.",
+      "body": "The Startup Value Index scores 13 dimensions. Conspicuously not on the list: ARR.\n\nWhy not? ARR is an output. The 13 dimensions are inputs \u2014 the things that produce ARR (or don't).\n\nThe 13:\n1. Founder quality & founder-market fit\n2. Market structure & timing\n3. Channel evidence & CAC trajectory\n4. Retention & cohort depth\n5. Unit economics & contribution margin\n6. Capital efficiency (burn vs hypotheses tested)\n7. Differentiation & defensibility\n8. Cap-table hygiene\n9. Governance & founder agreements\n10. Customer concentration\n11. IP & data moat\n12. Operational maturity\n13. Capital plan / runway-to-milestone fit\n\nScore high on all 13 and ARR follows. Score high on ARR alone and you're one bad cohort away from a down round.\n\nFree assessment \u2192 https://startupvalueindex.com\n\n#valuationmethodology #SVI #venturecapital",
+      "hashtags": [
+        "#valuationmethodology",
+        "#SVI",
+        "#venturecapital"
+      ],
       "imageBrief": "Hex / radar chart with 13 axes",
-      "cta": "https://blockid.au",
+      "cta": "https://startupvalueindex.com",
       "complianceDisclaimer": true
     },
     {
@@ -152,10 +226,15 @@
       "pillar": "cap-table",
       "scheduledFor": "2026-07-11T23:00:00Z",
       "title": "ESOP done wrong: the Division 83A trap.",
-      "body": "ESOP done wrong: the Division 83A trap that quietly destroys A$50–200k of employee value.\n\nThe scenario: AU startup, pre-seed, founder issues options at A$0.10 strike. 2 years later, raises Series A at A$2.50 per share. Employee exercises.\n\nWithout a Division 83A qualifying scheme: employee owes income tax on the A$2.40 gain ON EXERCISE. They don't have cash. They either sell shares (if they can — usually they can't) or skip exercise.\n\nWith a Division 83A scheme (eligible startup): tax deferred until sale, not exercise. Employee actually gets the upside.\n\nMost AU founders don't set this up correctly because the lawyer who drafted the constitution didn't structure the ESOP plan rules.\n\nFix it BEFORE Series A. After the round it's much harder.\n\nESOP audit module in SVI → https://blockid.au\n\n#ESOP #Division83A #AustralianStartups #founders",
-      "hashtags": ["#ESOP", "#Division83A", "#AustralianStartups", "#founders"],
+      "body": "ESOP done wrong: the Division 83A trap that quietly destroys A$50\u2013200k of employee value.\n\nThe scenario: AU startup, pre-seed, founder issues options at A$0.10 strike. 2 years later, raises Series A at A$2.50 per share. Employee exercises.\n\nWithout a Division 83A qualifying scheme: employee owes income tax on the A$2.40 gain ON EXERCISE. They don't have cash. They either sell shares (if they can \u2014 usually they can't) or skip exercise.\n\nWith a Division 83A scheme (eligible startup): tax deferred until sale, not exercise. Employee actually gets the upside.\n\nMost AU founders don't set this up correctly because the lawyer who drafted the constitution didn't structure the ESOP plan rules.\n\nFix it BEFORE Series A. After the round it's much harder.\n\nESOP audit module in SVI \u2192 https://startupvalueindex.com\n\n#ESOP #Division83A #AustralianStartups #founders",
+      "hashtags": [
+        "#ESOP",
+        "#Division83A",
+        "#AustralianStartups",
+        "#founders"
+      ],
       "imageBrief": "Document with red 'tax trap' stamp",
-      "cta": "https://blockid.au",
+      "cta": "https://startupvalueindex.com",
       "complianceDisclaimer": true
     },
     {
@@ -163,10 +242,14 @@
       "pillar": "health-check",
       "scheduledFor": "2026-07-14T23:00:00Z",
       "title": "Quiz: how many of these 7 are true?",
-      "body": "Quiz — how many are true for your startup right now?\n\n1. You know your monthly burn to A$1k accuracy.\n2. You can name your top 3 customer acquisition channels and rank them by CAC.\n3. Your last cohort had > 80% month-1 retention.\n4. Your cap table is in a dedicated tool (not a spreadsheet).\n5. You've written down what would make you SHUT IT DOWN.\n6. You've turned down a customer in the last 90 days because they weren't a fit.\n7. Your runway calculation has 3 scenarios, not 1.\n\nScore yourself:\n6–7 → you're running this like a CEO. Investors notice.\n4–5 → solid. Tighten the rest in 60 days.\n2–3 → busy, not running. Pause and instrument.\n0–1 → you're hoping, not building. Stop and reset.\n\nFull self-assessment in 10 min → https://blockid.au\n\n#startuphealth #foundertips #startupgrowth",
-      "hashtags": ["#startuphealth", "#foundertips", "#startupgrowth"],
+      "body": "Quiz \u2014 how many are true for your startup right now?\n\n1. You know your monthly burn to A$1k accuracy.\n2. You can name your top 3 customer acquisition channels and rank them by CAC.\n3. Your last cohort had > 80% month-1 retention.\n4. Your cap table is in a dedicated tool (not a spreadsheet).\n5. You've written down what would make you SHUT IT DOWN.\n6. You've turned down a customer in the last 90 days because they weren't a fit.\n7. Your runway calculation has 3 scenarios, not 1.\n\nScore yourself:\n6\u20137 \u2192 you're running this like a CEO. Investors notice.\n4\u20135 \u2192 solid. Tighten the rest in 60 days.\n2\u20133 \u2192 busy, not running. Pause and instrument.\n0\u20131 \u2192 you're hoping, not building. Stop and reset.\n\nFull self-assessment in 10 min \u2192 https://startupvalueindex.com\n\n#startuphealth #foundertips #startupgrowth",
+      "hashtags": [
+        "#startuphealth",
+        "#foundertips",
+        "#startupgrowth"
+      ],
       "imageBrief": "7-question checklist with score band",
-      "cta": "https://blockid.au",
+      "cta": "https://startupvalueindex.com",
       "complianceDisclaimer": true
     },
     {
@@ -174,10 +257,15 @@
       "pillar": "worth-question",
       "scheduledFor": "2026-07-16T23:00:00Z",
       "title": "One year ago your valuation was X. Now what?",
-      "body": "One year ago a generalist VC told you your startup was worth A$8M. You believed it.\n\nThis year the market is different. Same revenue. Same team. Same product. New number?\n\nThe top 3 reasons valuations move in 12 months (in order of frequency):\n\n1. **Comparable raises shifted.** AU pre-seed in 2025 vs 2026 — different bands. Same company gets a different number purely because the comparables repriced.\n\n2. **Capital intensity changed.** If you can now run on 60% of last year's burn (AI tooling, better channels), your raise size shrinks — and so does your dilution. That's a value INCREASE even with the same headline number.\n\n3. **Evidence depth.** 12 more months of cohort data is worth more than any new feature. A startup with 18 months of retention data trades at a different multiple to one with 6.\n\nThe SVI tracks all 3 quarterly. Subscribe to the index → https://blockid.au\n\n#startupvaluation #fundraising #AustralianStartups #SVI",
-      "hashtags": ["#startupvaluation", "#fundraising", "#AustralianStartups", "#SVI"],
+      "body": "One year ago a generalist VC told you your startup was worth A$8M. You believed it.\n\nThis year the market is different. Same revenue. Same team. Same product. New number?\n\nThe top 3 reasons valuations move in 12 months (in order of frequency):\n\n1. **Comparable raises shifted.** AU pre-seed in 2025 vs 2026 \u2014 different bands. Same company gets a different number purely because the comparables repriced.\n\n2. **Capital intensity changed.** If you can now run on 60% of last year's burn (AI tooling, better channels), your raise size shrinks \u2014 and so does your dilution. That's a value INCREASE even with the same headline number.\n\n3. **Evidence depth.** 12 more months of cohort data is worth more than any new feature. A startup with 18 months of retention data trades at a different multiple to one with 6.\n\nThe SVI tracks all 3 quarterly. Subscribe to the index \u2192 https://startupvalueindex.com\n\n#startupvaluation #fundraising #AustralianStartups #SVI",
+      "hashtags": [
+        "#startupvaluation",
+        "#fundraising",
+        "#AustralianStartups",
+        "#SVI"
+      ],
       "imageBrief": "Two valuation numbers connected by a curving line, with 3 arrows pointing in",
-      "cta": "https://blockid.au",
+      "cta": "https://startupvalueindex.com",
       "complianceDisclaimer": true
     }
   ],
