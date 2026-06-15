@@ -1,9 +1,9 @@
 {
   "version": "2.3.0",
-  "updatedAt": "2026-06-15T13:18:12Z",
+  "updatedAt": "2026-06-15T14:30:22Z",
   "architecture": {
     "summary": "BlockID.au \u2014 AI-powered startup valuation SaaS for AU founders (pre-seed \u2192 Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation\u2192Position\u2192Value\u2192Direction\u2192Capital) drives the full product flow.",
-    "lastReviewedAt": "2026-06-15T13:04:29Z",
+    "lastReviewedAt": "2026-06-15T14:30:22Z",
     "notes": [
       "v0.2.0 \u2014 CEO implementing-plan loop (research \u2192 CEO plan \u2192 code \u2192 version/milestone/architecture), off-peak deploy gating.",
       "v0.3.0 \u2014 CFO VC-grade valuation engine (src/lib/agents/cfo-valuation.ts): market sizing (TAM/SAM/SOM), 4 valuation methods, projections, unit economics, break-even, payback, financial injection.",
@@ -14,11 +14,12 @@
       "v2.2.0 \u2014 Batch 9 (T0102-T0110): ESOP governance scoring engine (cfo-esop-scoring.ts), knowledge base API, /api/esop/score, SVI upgrade roadmap widget, ESOP legal checklist tool, data room readiness API.",
       "v2.3.0 \u2014 T0109 (CLO): ESOP Legal Checklist rebuilt as interactive client component (30 items, 6 categories, localStorage persistence). T0114 (CTO): RecentAnalyses localStorage scoped by projectId (userEmail) to prevent cross-user pollution.",
       "v2.3.0 \u2014 30-day Validation MVP layer merged (.claude/goals/30day-validation-mvp.md). North Star: 10 paying customers + 100 company profiles + AUD $1k MRR. Queued 6 CRO/CCSO/CMO/CFO/COO/CTO P0 tasks: T0200, T0201, T0202, T0203, T0204, T0205. Milestone-report route now fires per-C-Level breakdown after every release.",
-      "v2.3.0 \u2014 Daily fan-out coverage: every 14 C-Level has \u22651 active task in plan.tasks (T0206\u2013T0210 + T0202 reassignment). clevel-daily-reports route + crontab 23:45 UTC guarantees a daily file per agent."
+      "v2.3.0 \u2014 Daily fan-out coverage: every 14 C-Level has \u22651 active task in plan.tasks (T0206\u2013T0210 + T0202 reassignment). clevel-daily-reports route + crontab 23:45 UTC guarantees a daily file per agent.",
+      "v2.3.0 \u2014 SVI sub-brand split: startupvalueindex.com is the primary SVI brand site (landing + benchmarks); startupindex.au is the AU mirror; blockid.au remains the parent platform (auth, assessment engine, dashboard, payments). LinkedIn page Startup Value Index (org_id=129624133) launched 2026-06-15."
     ]
   },
   "plan": {
-    "decidedAt": "2026-06-15T13:18:12Z",
+    "decidedAt": "2026-06-15T14:30:22Z",
     "decidedBy": "ceo",
     "tasks": [
       {
@@ -737,6 +738,24 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-06-15T13:18:12Z"
+      },
+      {
+        "id": "T0212",
+        "agent": "cto",
+        "title": "DNS + nginx vhost for startupvalueindex.com + startupindex.au",
+        "rationale": "Cloudflare DNS A-record both domains to this server IP. Nginx vhost: startupvalueindex.com serves SVI landing (proxies /assessment + /benchmarks from blockid.au), startupindex.au 301 \u2192 startupvalueindex.com with utm_source=au_mirror. SSL via existing Cloudflare cert. Keeps brand separation while reusing blockid.au auth + payment infrastructure.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-06-15T14:30:22Z"
+      },
+      {
+        "id": "T0213",
+        "agent": "cpo",
+        "title": "SVI brand landing page at startupvalueindex.com",
+        "rationale": "Standalone SVI landing reusing blockid.au /svi components: hero ('What's your startup worth?'), 13-dimension explainer, free assessment CTA \u2192 /assessment (proxied to blockid.au), social proof (testimonials when ready), benchmarks teaser. Mobile-first. Slate brand palette consistent with LinkedIn page banner. KPI: free assessment conversion \u2265 8% of unique visitors.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-06-15T14:30:22Z"
       }
     ]
   },
@@ -949,6 +968,12 @@
       "action": "plan",
       "version": "2.3.0",
       "note": "T0211 (CMO) \u2014 LinkedIn page launch 'Startup Value Index'. Playbook + 14-post content pack ready. Founder action required: create page via linkedin.com/company/setup/new + paste env vars. See .claude/goals/linkedin-svi-page-launch.md."
+    },
+    {
+      "ts": "2026-06-15T14:30:22Z",
+      "action": "plan",
+      "version": "2.3.0",
+      "note": "SVI sub-brand domains live: startupvalueindex.com (primary) + startupindex.au (AU mirror). LinkedIn page (ID 129624133) created. Queued T0212, T0213: T0212 (CTO DNS+nginx), T0213 (CPO SVI landing page). Content pack CTAs swapped blockid.au \u2192 startupvalueindex.com."
     }
   ]
 }

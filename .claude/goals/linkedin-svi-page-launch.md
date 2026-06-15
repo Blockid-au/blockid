@@ -20,6 +20,23 @@ The 30-day plan revolves around the **free Startup Value Index** as the top-of-f
 3. Logo (300×300 PNG, transparent) + banner (1128×191 PNG) — see §Visual Assets.
 4. Page URL slug planned: `startup-value-index` → resulting URL `linkedin.com/company/startup-value-index`.
 
+## Domain strategy
+
+| Domain | Role | Status |
+|---|---|---|
+| `startupvalueindex.com` | **Primary brand site** — LinkedIn Website field, CTA target in all 14 posts | live (2026-06-15) |
+| `startupindex.au` | AU-localised mirror — geo redirect for `.au` cohort, brand defence | live (2026-06-15) |
+| `blockid.au` | Parent platform (Auschain PTY LTD) — runs the assessment engine, dashboard, payments | live |
+| `blockid.au/dashboard/svi` | Authenticated SVI workspace (after free assessment converts) | live |
+
+Routing convention:
+- `startupvalueindex.com/` → marketing landing + free assessment iframe (or proxy to blockid.au/svi)
+- `startupvalueindex.com/benchmarks` → public cohort benchmark page (mirrors blockid.au/benchmarks)
+- `startupindex.au/*` → 301 redirect to `startupvalueindex.com/*` with `?utm_source=au_mirror` until separate AU content lands
+- Auth + payment flows continue on blockid.au (PCI/Stripe/Supabase already wired)
+
+> **CTO action item:** add Cloudflare DNS for both domains pointing to this server; nginx vhost serving the SVI landing or proxying `/svi` from blockid.au. Tracked as T0212 below.
+
 ## Step-by-step page creation (≈ 10 min)
 
 ### 1. Open the creation form
@@ -32,7 +49,7 @@ The 30-day plan revolves around the **free Startup Value Index** as the top-of-f
 |---|---|
 | Name | `Startup Value Index` |
 | LinkedIn public URL | `linkedin.com/company/startup-value-index` |
-| Website | `https://blockid.au` |
+| Website | `https://startupvalueindex.com` (primary). AU mirror: `https://startupindex.au`. Parent platform: blockid.au. |
 | Industry | `Financial Services` (primary). Add `Software Development` as secondary if 2 industries allowed. |
 | Company size | `2-10 employees` |
 | Company type | `Privately held` |
@@ -52,7 +69,7 @@ We follow stock-index methodology (Nikkei / Dow Jones): no upper cap, base-perio
 Free for founders: take the SVI assessment, get your score, see what moves it.
 Paid for advisors / investors: benchmark cohorts, side-by-side comparisons, deep valuation reports.
 
-Try the free Startup Value Score → https://blockid.au
+Try the free Startup Value Score → https://startupvalueindex.com (AU: https://startupindex.au)
 
 We publish weekly benchmark insights from the Australian startup & SME dataset. Follow for:
 • What founders are actually willing to pay for valuation clarity
