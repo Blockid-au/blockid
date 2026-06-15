@@ -94,6 +94,12 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # ── Phase 7: Self-Healing (10:30am AEST) ──────────────────────
 30 0 * * * bash $RUN cron-health
 
+# Milestone reporter — defensive hourly sweep. The orchestrator fires
+# /api/cron/milestone-report inline after every release in stageUpdateArtifacts;
+# this catches any milestone that slipped through (e.g. orchestrator killed
+# mid-deploy). Idempotent — only reports milestones it hasn't reported yet.
+17 * * * * bash $RUN milestone-report
+
 # ═══════════════════════════════════════════════════════════════
 # ORCHESTRATOR — Leader Agent (CEO implementing-plan loop)
 # Pipeline: research → plan(CEO) → code → deploy → update_artifacts → qa → report
