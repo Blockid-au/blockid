@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build --webpack",
+    "build": "next build",
     "start": "next start",
     "cache:purge": "bash scripts/purge-cloudflare-cache.sh",
     "lint": "eslint",
