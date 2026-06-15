@@ -1,6 +1,6 @@
 {
   "version": "2.3.0",
-  "updatedAt": "2026-06-15T13:04:29Z",
+  "updatedAt": "2026-06-15T13:18:12Z",
   "architecture": {
     "summary": "BlockID.au \u2014 AI-powered startup valuation SaaS for AU founders (pre-seed \u2192 Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation\u2192Position\u2192Value\u2192Direction\u2192Capital) drives the full product flow.",
     "lastReviewedAt": "2026-06-15T13:04:29Z",
@@ -18,7 +18,7 @@
     ]
   },
   "plan": {
-    "decidedAt": "2026-06-15T13:04:29Z",
+    "decidedAt": "2026-06-15T13:18:12Z",
     "decidedBy": "ceo",
     "tasks": [
       {
@@ -728,6 +728,15 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-06-15T13:04:29Z"
+      },
+      {
+        "id": "T0211",
+        "agent": "cmo",
+        "title": "LinkedIn page launch \u2014 Startup Value Index (linkedin.com/company/startup-value-index)",
+        "rationale": "Sub-brand page targeting 'startup valuation Australia' search intent. Owner: CMO. Playbook: .claude/goals/linkedin-svi-page-launch.md. Content queue: web/content/linkedin-svi-page-content-pack.json (14 posts pre-written, 7 pillars). After page creation, founder pastes LINKEDIN_PAGE_ID + LINKEDIN_PAGE_ACCESS_TOKEN into web/.env; existing /api/cron/linkedin-page-post auto-drains queue Mon/Wed/Fri 09:00 AEST. KPI: 100 LinkedIn leads, 12 posts in 30 days.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-06-15T13:18:12Z"
       }
     ]
   },
@@ -934,6 +943,12 @@
       "action": "plan",
       "version": "2.3.0",
       "note": "Queued P0 tasks for every C-Level missing a CEO assignment: T0206 (CSO pricing A/B), T0207 (CISO posture), T0208 (CHRO salary+ESOP grants), T0209 (IR accelerator tracker), T0210 (CPO funnel heatmap). T0202 reassigned cro\u2192ccso. Now every one of 14 C-Levels has \u22651 active CEO-assigned task."
+    },
+    {
+      "ts": "2026-06-15T13:18:12Z",
+      "action": "plan",
+      "version": "2.3.0",
+      "note": "T0211 (CMO) \u2014 LinkedIn page launch 'Startup Value Index'. Playbook + 14-post content pack ready. Founder action required: create page via linkedin.com/company/setup/new + paste env vars. See .claude/goals/linkedin-svi-page-launch.md."
     }
   ]
 }
