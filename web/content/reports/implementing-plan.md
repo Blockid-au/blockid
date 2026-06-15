@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v2.3.0  ·  **Updated:** 2026-06-14T16:00:01.526Z  ·  **Decided by:** ceo (2026-06-14T12:04:02.438Z)
+**Version:** v2.4.0  ·  **Updated:** 2026-06-15T02:00:00.000Z  ·  **Decided by:** ceo (2026-06-14T12:04:02.438Z)
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -18,9 +18,10 @@
 | T0090 | CDO | SVI Cohort Benchmark page (/dashboard/benchmark) | minor | ⬜ pending |
 | T0101 | CFO | Financial projection norms calculator enhancements | minor | ⬜ pending |
 | T0102 | CMO | AU startup percentile/positioning model integration | minor | ⬜ pending |
-| T0103 | CTO | Next-Best-Action engine prototype | major | ⬜ pending |
+| T0103 | CTO | Next-Best-Action engine prototype | major | ✅ done |
 
 ## Recently shipped
+- ✅ `T0103` **CTO** — Next-Best-Action engine — `/api/next-best-action` + `cto-next-best-action.ts` (8-dimension action library, stage-aware, AU resources)
 - ✅ `T0106` **CMO** — 5 SEO blog articles — ESOP, valuation methods, Antler tips, data room checklist, cap table 101
 - ✅ `T0114` **CTO** — Fix: recent-analyses.tsx localStorage project-scoped
 - ✅ `T0109` **CLO** — ESOP Legal Checklist Tool (/tools/esop-checklist) — Interactive client component
@@ -33,6 +34,7 @@
 - ✅ `T0102` **CFO** — cfo-esop-scoring.ts — ESOP governance scoring engine + valuation integration (`45ebabf`)
 
 ## Milestones
+- **M021** v2.4.0 — T0103 CTO: Next-Best-Action engine prototype — 8-dimension action library with stage-aware prioritisation, AU resources, `/api/next-best-action` endpoint (2026-06-15, 1 task)
 - **M020** v2.2.0 — T0102-T0110 Batch 9: ESOP scoring engine, governance API, knowledge base API, SVI roadmap widget, ESOP checklist SEO tool, data room readiness API (2026-06-14, 7 tasks)
 - **M019** v2.1.0 — T0094–T0101 ESOP + SVI + Data Room + Knowledge Base — investor-ready documents, ESOP Manager UI live (2026-06-14, 8 tasks)
 - **M018** v2.0.0 — Feature Batch 8 (T0086–T0090): Financial Projection Norms calculator, Term Sheet AI v2 persistence, Fundraising Report v2, Google Analytics evidence connector, SVI Cohort Benchmark page (2026-06-13, 6 tasks)
