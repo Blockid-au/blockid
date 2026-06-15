@@ -87,6 +87,12 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Telegram daily report — C-Level agent status
 30 23 * * * bash $RUN telegram-report
 
+# Security posture (CISO) — daily Essential Eight-aligned scorecard.
+# Deterministic deep-scan: auth coverage, rate-limit, secrets, CSP headers,
+# npm audit, Supabase RLS, deploy hygiene. Writes content/reports/
+# security-posture.json + history.jsonl. Surfaces into CISO daily brief.
+30 22 * * * bash $RUN security-posture --timeout 60
+
 # C-Level Daily Brief fan-out — guarantees every one of the 14 C-Level agents
 # (cpo, cro, ccso, cdo, cmo, cso, cto, cfo, coo, clo, ciso, chro, rnd, ir) has a
 # daily report tied to the CEO 30-day KPI scoreboard. Deterministic, no AI calls.
