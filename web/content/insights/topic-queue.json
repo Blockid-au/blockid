@@ -1014,6 +1014,22 @@
         "href": "/score"
       },
       "angle": "Learn how to calculate your pre-money valuation with our calculator and expert guide, essential for Australian founders raising capital and negotiating with investors."
+    },
+    {
+      "slug": "optimising-startup-cap-table-for-acquisition-exit",
+      "title": "Cap Table Optimisation for M&A: A Founder's Guide",
+      "category": "cap-table",
+      "keywords": [
+        "startup acquisition",
+        "merger and acquisition",
+        "cap table optimisation",
+        "exit strategy"
+      ],
+      "cta": {
+        "label": "Get Your Cap Table Ready for Exit",
+        "href": "/tools/cap-table"
+      },
+      "angle": "Learn how to optimise your startup's cap table for a smooth M&A process and maximise shareholder value. This guide provides actionable tips and best practices for Australian founders."
     }
   ]
 }

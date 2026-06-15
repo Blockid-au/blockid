@@ -1,6 +1,32 @@
 {
   "articles": [
     {
+      "slug": "optimising-startup-cap-table-for-acquisition-exit",
+      "title": "Optimise Cap Table for M&A Exit: Australian Startup Guide",
+      "description": "Learn how to optimise your cap table for a successful M&A exit in Australia. Discover the best practices, tools & tax implications to maximise your startup",
+      "keywords": [
+        "cap table optimisation",
+        "startup merger and acquisition australia",
+        "optimise cap table for exit",
+        "australian startup acquisition process",
+        "pre-ipo cap table management",
+        "asic cap table requirements",
+        "ato tax implications on cap table",
+        "esic startup valuation australia",
+        "cap table management tools australia",
+        "how to value a startup for acquisition australia",
+        "australian startup exit strategy",
+        "m&a process for startups in australia"
+      ],
+      "category": "cap-table",
+      "publishedAt": "2026-06-15",
+      "readingTime": 5,
+      "cta": {
+        "label": "Get Your Cap Table Ready for Exit",
+        "href": "/tools/cap-table"
+      }
+    },
+    {
       "slug": "pre-money-valuation-calculator-for-australian-startups",
       "title": "Pre-Money Valuation Calculator Australia | BlockID.au",
       "description": "Calculate your startup's pre-money valuation with our free calculator. Learn how to value your Australian startup with our expert guide and tools.",
