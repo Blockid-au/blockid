@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v2.4.0  ·  **Updated:** 2026-06-15T02:00:00.000Z  ·  **Decided by:** ceo (2026-06-14T12:04:02.438Z)
+**Version:** v2.4.1  ·  **Updated:** 2026-06-15T02:15:00.000Z  ·  **Decided by:** ceo (2026-06-14T12:04:02.438Z)
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -12,16 +12,19 @@
 | T0034 | CFO | Market sizing methodology framework | minor | ⬜ pending |
 | T0035 | CMO | AU startup marketing benchmarks 2026 report | patch | ⬜ pending |
 | T0086 | CFO | Financial Projection Norms Calculator (/tools/financial-projections) | minor | ⬜ pending |
-| T0087 | CLO | Term Sheet AI v2 — persist analyses, Lawyer Questions, SVI link | minor | ⬜ pending |
+| T0087 | CLO | Term Sheet AI v2 — persist analyses, Lawyer Questions, SVI link | minor | ✅ done |
 | T0088 | CFO | Fundraising Readiness Report v2 — checklist + AU comparable raises | minor | ⬜ pending |
-| T0089 | CTO | Google Analytics OAuth evidence connector | minor | ⬜ pending |
-| T0090 | CDO | SVI Cohort Benchmark page (/dashboard/benchmark) | minor | ⬜ pending |
+| T0089 | CTO | Google Analytics OAuth evidence connector | minor | ✅ done |
+| T0090 | CDO | SVI Cohort Benchmark page (/dashboard/benchmark) | minor | ✅ done |
 | T0101 | CFO | Financial projection norms calculator enhancements | minor | ⬜ pending |
 | T0102 | CMO | AU startup percentile/positioning model integration | minor | ⬜ pending |
 | T0103 | CTO | Next-Best-Action engine prototype | major | ✅ done |
 
 ## Recently shipped
 - ✅ `T0103` **CTO** — Next-Best-Action engine — `/api/next-best-action` + `cto-next-best-action.ts` (8-dimension action library, stage-aware, AU resources)
+- ✅ `T0087` **CLO** — Term Sheet AI v2 — `/api/term-sheet` persistence + analysis storage in `term_sheet_analyses`
+- ✅ `T0089` **CTO** — Google Analytics OAuth evidence connector — `/api/oauth/ga4` + callback (GA4 metrics, session data, evidence creation)
+- ✅ `T0090` **CDO** — SVI Cohort Benchmark page — `/dashboard/benchmark` + `/api/benchmarks` (live percentile, static fallback, AU stage data)
 - ✅ `T0106` **CMO** — 5 SEO blog articles — ESOP, valuation methods, Antler tips, data room checklist, cap table 101
 - ✅ `T0114` **CTO** — Fix: recent-analyses.tsx localStorage project-scoped
 - ✅ `T0109` **CLO** — ESOP Legal Checklist Tool (/tools/esop-checklist) — Interactive client component
@@ -34,6 +37,7 @@
 - ✅ `T0102` **CFO** — cfo-esop-scoring.ts — ESOP governance scoring engine + valuation integration (`45ebabf`)
 
 ## Milestones
+- **M022** v2.4.1 — T0087/T0089/T0090 verification batch: Term Sheet persistence, GA4 OAuth connector, Cohort Benchmark page (2026-06-15, 3 tasks)
 - **M021** v2.4.0 — T0103 CTO: Next-Best-Action engine prototype — 8-dimension action library with stage-aware prioritisation, AU resources, `/api/next-best-action` endpoint (2026-06-15, 1 task)
 - **M020** v2.2.0 — T0102-T0110 Batch 9: ESOP scoring engine, governance API, knowledge base API, SVI roadmap widget, ESOP checklist SEO tool, data room readiness API (2026-06-14, 7 tasks)
 - **M019** v2.1.0 — T0094–T0101 ESOP + SVI + Data Room + Knowledge Base — investor-ready documents, ESOP Manager UI live (2026-06-14, 8 tasks)
