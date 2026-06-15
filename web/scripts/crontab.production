@@ -87,6 +87,12 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Telegram daily report — C-Level agent status
 30 23 * * * bash $RUN telegram-report
 
+# C-Level Daily Brief fan-out — guarantees every one of the 14 C-Level agents
+# (cpo, cro, ccso, cdo, cmo, cso, cto, cfo, coo, clo, ciso, chro, rnd, ir) has a
+# daily report tied to the CEO 30-day KPI scoreboard. Deterministic, no AI calls.
+# Runs at 23:45 UTC = 09:45 AEST, BEFORE ceo-daily-summary aggregates at 00:00 UTC.
+45 23 * * * bash $RUN clevel-daily-reports --timeout 90
+
 # CEO Daily Summary — aggregates ALL agent reports + AI recommendations
 # Runs LAST at 10:00am AEST, after all agents have reported
 0 0 * * * bash $RUN ceo-daily-summary --timeout 120

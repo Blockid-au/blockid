@@ -1,0 +1,321 @@
+{
+  "_meta": {
+    "source": ".claude/goals/30day-validation-mvp.md + project_clevel_depth memory",
+    "northStar": "Paying Customers + Verified Company Profiles + Monthly Recurring Revenue",
+    "ceoTargets30Day": {
+      "payingCustomers": 10,
+      "revenueAud": [1000, 3000],
+      "mrrAud": 1000,
+      "companyProfiles": 100,
+      "completedAssessments": 50,
+      "founderInterviews": 30,
+      "emailSubscribers": 100,
+      "linkedinLeads": 100
+    },
+    "ceoFilter": [
+      "Getting paying customers",
+      "Learning willingness to pay",
+      "Collecting company valuation data",
+      "Improving free→paid conversion",
+      "Delivering customer value",
+      "Reducing operational friction"
+    ],
+    "updatedAt": "2026-06-15T00:00:00.000Z"
+  },
+  "agents": {
+    "cpo": {
+      "title": "Chief Product Officer",
+      "domain": "Product & UX",
+      "kpis30Day": [
+        "50 completed SVI / health assessments",
+        "10 paid reports delivered",
+        "3 report templates shipped",
+        "4 funnel iterations",
+        "20 product feedback items resolved"
+      ],
+      "dailyRoutine": [
+        "Review new user feedback (FeedbackWidget)",
+        "Review assessment completion rate",
+        "Identify top drop-off point in funnel",
+        "Improve one product flow",
+        "Generate engineering tickets for CTO/Codex"
+      ],
+      "ceoAlignment": "Improving free→paid conversion + delivering customer value",
+      "filePatterns": ["src/app/dashboard/**", "src/components/**", "src/app/(public)/**", "src/app/page.tsx"],
+      "reportsTo": "ceo"
+    },
+    "cro": {
+      "title": "Chief Revenue Officer",
+      "domain": "Sales & Revenue",
+      "kpis30Day": [
+        "10 paying customers",
+        "AUD $1k–$3k revenue",
+        "50 outreach messages / week",
+        "10 discovery calls / week",
+        "1 repeatable sales process"
+      ],
+      "dailyRoutine": [
+        "Build lead list (target segments: founders, SMEs, accountants, brokers, accelerators)",
+        "Segment leads by willingness to pay",
+        "Send outreach + follow-up sequences",
+        "Book discovery calls + run demos",
+        "Record objections + close paid reports"
+      ],
+      "ceoAlignment": "Getting paying customers + learning willingness to pay",
+      "filePatterns": ["src/lib/agents/cro-*", "src/app/admin/pipeline/**", "src/app/api/stripe/**", "src/lib/agents/customer-*"],
+      "reportsTo": "ceo"
+    },
+    "ccso": {
+      "title": "Chief Customer Success Officer",
+      "domain": "Customer Success & Retention",
+      "kpis30Day": [
+        "10 customer feedback calls",
+        "3 testimonials captured",
+        "5 referral leads",
+        "NPS > 50",
+        "0 refunds"
+      ],
+      "dailyRoutine": [
+        "Review new customers + confirm report delivery",
+        "Ask for feedback on report value",
+        "Request testimonial / referral from happy customers",
+        "Identify churn / refund risk",
+        "Send product improvement notes to CPO"
+      ],
+      "ceoAlignment": "Delivering customer value + reducing operational friction",
+      "filePatterns": ["src/app/api/feedback/**", "src/app/api/nps/**", "src/components/feedback/**", "src/lib/agents/customer-care*"],
+      "reportsTo": "ceo"
+    },
+    "cdo": {
+      "title": "Chief Data Officer",
+      "domain": "Data & SVI Dataset Moat",
+      "kpis30Day": [
+        "100 structured company profiles",
+        "1,000+ structured datapoints",
+        "10 industries covered",
+        "5 benchmark categories",
+        "SVI v1 scoring model"
+      ],
+      "dailyRoutine": [
+        "Review new profiles + validate completeness",
+        "Normalise data + improve scoring model",
+        "Identify missing fields in assessment",
+        "Generate benchmark insights",
+        "Report dataset growth to CEO"
+      ],
+      "ceoAlignment": "Collecting company valuation data",
+      "filePatterns": ["src/lib/agents/cdo-*", "src/lib/svi/**", "src/lib/benchmarks.ts", "src/app/api/svi/**", "src/app/dashboard/benchmark/**"],
+      "reportsTo": "ceo"
+    },
+    "cmo": {
+      "title": "Chief Marketing Officer",
+      "domain": "Marketing & Demand Generation",
+      "kpis30Day": [
+        "100 email subscribers",
+        "100 LinkedIn / community leads",
+        "12 LinkedIn posts (3/week, 7 pillars)",
+        "4 newsletters",
+        "1 lead magnet shipped"
+      ],
+      "dailyRoutine": [
+        "Review customer objections → convert to content",
+        "Draft / publish 1 LinkedIn post (rotate 7 pillars)",
+        "Improve one landing page section",
+        "Capture leads + report content performance",
+        "Coordinate with CRO on objection content"
+      ],
+      "ceoAlignment": "Getting paying customers + learning willingness to pay",
+      "filePatterns": ["src/lib/agents/cmo-*", "src/app/(public)/blog/**", "src/app/(public)/insights/**", "src/app/(marketing)/**", "content/articles/**"],
+      "reportsTo": "ceo"
+    },
+    "cso": {
+      "title": "Chief Strategy Officer",
+      "domain": "Strategy & Positioning",
+      "kpis30Day": [
+        "10 competitor analyses",
+        "5 pricing tests",
+        "5 segment tests",
+        "5 partner conversations",
+        "4 strategic recommendation memos"
+      ],
+      "dailyRoutine": [
+        "Analyse one competitor / alternative",
+        "Review willingness-to-pay evidence",
+        "Recommend pricing / positioning change",
+        "Identify one partnership / channel opportunity",
+        "Update strategic thesis"
+      ],
+      "ceoAlignment": "Learning willingness to pay + improving free→paid conversion",
+      "filePatterns": ["src/lib/agents/cso-*", "src/app/admin/strategy/**", ".claude/goals/*pricing*", ".claude/goals/*positioning*"],
+      "reportsTo": "ceo"
+    },
+    "cto": {
+      "title": "Chief Technology Officer",
+      "domain": "Technology & Platform",
+      "kpis30Day": [
+        "5 MVP flows shipped",
+        "0 critical bugs open",
+        "10+ analytics events tracked",
+        "3 deploys / week",
+        "Payment + admin dashboard working"
+      ],
+      "dailyRoutine": [
+        "Review CPO / CRO / CDO requirements",
+        "Prioritise revenue-critical tasks",
+        "Ship small improvements (deploy-live.sh off-peak)",
+        "Fix blockers + update deployment status",
+        "Report risks to CEO"
+      ],
+      "ceoAlignment": "Reducing operational friction (all six — CTO is enabler)",
+      "filePatterns": ["src/lib/agents/cto-*", "src/app/api/**", "src/lib/**", "scripts/**", "src/middleware.ts"],
+      "reportsTo": "ceo"
+    },
+    "cfo": {
+      "title": "Chief Financial Officer",
+      "domain": "Finance & Unit Economics",
+      "kpis30Day": [
+        "AUD $1k–$3k revenue tracked",
+        "AUD $1k MRR",
+        "Weekly CAC + AOV + gross margin",
+        "Break-even model v1",
+        "Pricing recommendation weekly"
+      ],
+      "dailyRoutine": [
+        "Track revenue + expenses",
+        "Estimate CAC + AOV + gross margin",
+        "Review pricing assumptions",
+        "Update break-even model",
+        "Flag cash risks"
+      ],
+      "ceoAlignment": "Learning willingness to pay + reducing operational friction",
+      "filePatterns": ["src/lib/agents/cfo-*", "src/app/dashboard/valuation/**", "src/app/dashboard/finance/**", "src/app/api/valuation/**", "src/lib/financial-projections.ts"],
+      "reportsTo": "ceo"
+    },
+    "coo": {
+      "title": "Chief Operating Officer",
+      "domain": "Operations & Execution",
+      "kpis30Day": [
+        "90%+ daily routines completed",
+        "4 weekly reviews completed",
+        "0 critical blockers > 48h",
+        "10 SOPs created",
+        "CEO dashboard updated daily"
+      ],
+      "dailyRoutine": [
+        "Run daily agent check-in (this report fan-out)",
+        "Collect updates + identify blockers",
+        "Assign owners + update dashboard",
+        "Confirm milestone reports fired",
+        "Confirm end-of-day deliverables"
+      ],
+      "ceoAlignment": "Reducing operational friction (process owner)",
+      "filePatterns": ["src/lib/agents/coo-*", "src/app/api/cron/**", "src/app/admin/ops/**", "scripts/crontab.production"],
+      "reportsTo": "ceo"
+    },
+    "clo": {
+      "title": "Chief Legal Officer",
+      "domain": "Legal & Compliance",
+      "kpis30Day": [
+        "AU regulatory compliance checklist current",
+        "Contract template library v1",
+        "Term Sheet AI v2 shipped (T0087)",
+        "Privacy Act compliance check",
+        "ESOP legal checklist live"
+      ],
+      "dailyRoutine": [
+        "Review ASIC / ACL / Privacy Act updates",
+        "Audit one contract or disclaimer",
+        "Check AFSL disclaimer coverage on new pages",
+        "Update risk matrix",
+        "Coordinate with CHRO on ESOP / Division 83A"
+      ],
+      "ceoAlignment": "Reducing operational friction (legal risk)",
+      "filePatterns": ["src/lib/agents/clo-*", "src/app/legal/**", "src/app/(public)/terms/**", "src/app/(public)/privacy/**", "src/components/disclaimers/**"],
+      "reportsTo": "ceo"
+    },
+    "ciso": {
+      "title": "Chief Information Security Officer",
+      "domain": "Security & Privacy",
+      "kpis30Day": [
+        "Essential Eight maturity baseline",
+        "0 open critical CVEs",
+        "Security posture score weekly",
+        "Incident response runbook v1",
+        "All routes authed + rate-limited"
+      ],
+      "dailyRoutine": [
+        "Review auth + rate-limit coverage on new routes",
+        "Scan deps for CVEs",
+        "Audit one Supabase RLS policy",
+        "Verify CSP + security headers",
+        "Update security posture score"
+      ],
+      "ceoAlignment": "Reducing operational friction (security risk)",
+      "filePatterns": ["src/lib/agents/ciso-*", "src/lib/security/**", "src/lib/rate-limit.ts", "src/middleware.ts", "supabase/migrations/**"],
+      "reportsTo": "ceo"
+    },
+    "chro": {
+      "title": "Chief Human Resources Officer",
+      "domain": "People & Culture",
+      "kpis30Day": [
+        "Team composition benchmark vs stage",
+        "ESOP pool live (T0094)",
+        "Founder salary benchmark",
+        "Hiring pipeline v1",
+        "Division 83A scheme docs"
+      ],
+      "dailyRoutine": [
+        "Review ESOP pool + grants UI",
+        "Update AU salary benchmarks",
+        "Audit hiring funnel",
+        "Coordinate with CLO on Division 83A",
+        "Update org chart"
+      ],
+      "ceoAlignment": "Reducing operational friction (team scaling)",
+      "filePatterns": ["src/lib/agents/chro-*", "src/app/dashboard/esop/**", "src/app/dashboard/team/**", "src/lib/esop/**"],
+      "reportsTo": "ceo"
+    },
+    "rnd": {
+      "title": "R&D Lead",
+      "domain": "Research & Development",
+      "kpis30Day": [
+        "1 valuation model pilot / fortnight",
+        "10+ research topics in agent_knowledge_base",
+        "1 model architecture evaluation / week",
+        "TRL assessment current",
+        "Patent / IP landscape monitored"
+      ],
+      "dailyRoutine": [
+        "Run agent-research stage (writes to agent_knowledge_base)",
+        "Evaluate one model architecture / dataset",
+        "Pilot one improvement (≥10% AI budget)",
+        "Update TRL on shipped features",
+        "Hand findings to CTO / CFO for productisation"
+      ],
+      "ceoAlignment": "Learning willingness to pay + collecting valuation data",
+      "filePatterns": ["src/lib/agents/rnd-*", "src/app/api/cron/agent-research/**", "src/lib/ai-client.ts", "knowledge-base/**"],
+      "reportsTo": "ceo"
+    },
+    "ir": {
+      "title": "Investor Relations Lead",
+      "domain": "Investor Relations & Fundraise",
+      "kpis30Day": [
+        "Pitch deck v2 current",
+        "Data room 13-section structure (T0099)",
+        "Accelerator applications tracked",
+        "Investor update v1 (monthly)",
+        "Financial model exportable"
+      ],
+      "dailyRoutine": [
+        "Review pitch deck + data room",
+        "Track accelerator deadlines (Antler, Startmate, etc.)",
+        "Draft investor update bullets from milestones",
+        "Coordinate with CFO on financial model freshness",
+        "Audit pitch claims vs evidence"
+      ],
+      "ceoAlignment": "Reducing operational friction (fundraise readiness)",
+      "filePatterns": ["src/lib/agents/ir-*", "src/app/dashboard/data-room/**", "src/app/pitch/**", ".claude/goals/*pitch*", ".claude/goals/*data-room*"],
+      "reportsTo": "ceo"
+    }
+  }
+}
