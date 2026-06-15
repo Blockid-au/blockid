@@ -18,6 +18,7 @@ import {
   type SVIAnalysis,
   type StartupMetricsInput,
 } from "./types.js";
+import { getSVIConfig } from "./svi-config.js";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const clamp = (v: number, min = 0, max = Infinity) => Math.max(min, Math.min(max, v));
@@ -32,31 +33,32 @@ function calcPercentileRank(svi: number, stage: number): number {
   return 10;
 }
 
-// ─── Metrics bonus: 0-50 pts from real startup_metrics data ──────────────────
+// ─── Metrics bonus: 0-N pts from real startup_metrics data ───────────────────
 export function computeMetricsBonus(metrics: StartupMetricsInput): number {
+  const cfg = getSVIConfig().metrics;
   let bonus = 0;
 
   const mrr = metrics.mrr ?? 0;
-  if (mrr > 10000) bonus += 15;
-  else if (mrr > 1000) bonus += 10;
-  else if (mrr > 0) bonus += 5;
+  if (mrr > cfg.mrr_high) bonus += 15;
+  else if (mrr > cfg.mrr_mid) bonus += 10;
+  else if (mrr > cfg.mrr_low) bonus += 5;
 
   const users = metrics.users_total ?? 0;
-  if (users > 1000) bonus += 15;
-  else if (users > 100) bonus += 10;
-  else if (users > 10) bonus += 5;
+  if (users > cfg.users_high) bonus += 15;
+  else if (users > cfg.users_mid) bonus += 10;
+  else if (users > cfg.users_low) bonus += 5;
 
   const churn = metrics.churn_rate;
   if (churn !== undefined && churn !== null) {
-    if (churn < 3) bonus += 10;
-    else if (churn < 5) bonus += 5;
+    if (churn < cfg.churn_good) bonus += 10;
+    else if (churn < cfg.churn_ok) bonus += 5;
   }
 
   const nps = metrics.nps ?? 0;
-  if (nps > 50) bonus += 10;
-  else if (nps > 30) bonus += 5;
+  if (nps > cfg.nps_good) bonus += 10;
+  else if (nps > cfg.nps_ok) bonus += 5;
 
-  return Math.min(bonus, 50);
+  return Math.min(bonus, cfg.metrics_bonus_cap);
 }
 
 // ─── Stage detection ──────────────────────────────────────────────────────────
@@ -102,10 +104,16 @@ export function computeSVI(
   weeklyDelta?: number,
   metricsBonus?: number,
 ): SVIAnalysis {
+  const cfg = getSVIConfig();
+  const w = cfg.weights;
+  const b = cfg.bases;
+  const p = cfg.penalties;
+  const ei = cfg.evidence_impacts;
+
   const confidence = EVIDENCE_CONFIDENCE[signals.evidenceLevel] ?? 0.20;
 
-  // ── Dimension 1: FTV — Founder & Team Value (15%) ──────────────────────────
-  let ftvRaw = 50;
+  // ── Dimension 1: FTV — Founder & Team Value ────────────────────────────────
+  let ftvRaw = b.ftv_base;
   const ftvEvidence: string[] = [];
   const ftvGaps: string[] = [];
 
@@ -126,10 +134,10 @@ export function computeSVI(
   else { ftvGaps.push("Add named advisors or industry mentors to strengthen credibility"); }
 
   const ftvScore = clamp(ftvRaw, 0, 100);
-  const ftvAdj = Math.round((ftvScore - 50) * 0.15 * confidence);
+  const ftvAdj = Math.round((ftvScore - 50) * w.ftv * confidence);
 
-  // ── Dimension 2: MPC — Market & Problem Clarity (18%) ─────────────────────
-  let mpcRaw = 50;
+  // ── Dimension 2: MPC — Market & Problem Clarity ────────────────────────────
+  let mpcRaw = b.mpc_base;
   const mpcEvidence: string[] = [];
   const mpcGaps: string[] = [];
 
@@ -156,10 +164,10 @@ export function computeSVI(
   else { mpcGaps.push("Document at least 5 customer discovery interviews"); }
 
   const mpcScore = clamp(mpcRaw, 0, 100);
-  const mpcAdj = Math.round((mpcScore - 50) * 0.18 * confidence);
+  const mpcAdj = Math.round((mpcScore - 50) * w.mpc * confidence);
 
-  // ── Dimension 3: PTD — Product & Technical Depth (12%) ────────────────────
-  let ptdRaw = 50;
+  // ── Dimension 3: PTD — Product & Technical Depth ──────────────────────────
+  let ptdRaw = b.ptd_base;
   const ptdEvidence: string[] = [];
   const ptdGaps: string[] = [];
 
@@ -177,10 +185,10 @@ export function computeSVI(
   if (signals.hasProduct) { ptdRaw += 10; ptdEvidence.push("Product described or referenced"); }
 
   const ptdScore = clamp(ptdRaw, 0, 100);
-  const ptdAdj = Math.round((ptdScore - 50) * 0.12 * confidence);
+  const ptdAdj = Math.round((ptdScore - 50) * w.ptd * confidence);
 
-  // ── Dimension 4: TRE — Traction & Revenue Evidence (20%) ─────────────────
-  let treRaw = 30;
+  // ── Dimension 4: TRE — Traction & Revenue Evidence ────────────────────────
+  let treRaw = b.tre_base;
   const treEvidence: string[] = [];
   const treGaps: string[] = [];
 
@@ -202,10 +210,10 @@ export function computeSVI(
   if (signals.hasSocialProof) { treRaw = Math.min(100, treRaw + 5); treEvidence.push("Social proof / community present"); }
 
   const treScore = clamp(treRaw, 0, 100);
-  const treAdj = Math.round((treScore - 50) * 0.20 * confidence);
+  const treAdj = Math.round((treScore - 50) * w.tre * confidence);
 
-  // ── Dimension 5: CGH — Cap Table & Governance Health (12%) ───────────────
-  let cghRaw = 40;
+  // ── Dimension 5: CGH — Cap Table & Governance Health ─────────────────────
+  let cghRaw = b.cgh_base;
   const cghEvidence: string[] = [];
   const cghGaps: string[] = [];
 
@@ -227,10 +235,10 @@ export function computeSVI(
   if (signals.hasFinancialAudit) { cghRaw += 15; cghEvidence.push("Financial audit completed"); }
 
   const cghScore = clamp(cghRaw, 0, 100);
-  const cghAdj = Math.round((cghScore - 50) * 0.12 * confidence);
+  const cghAdj = Math.round((cghScore - 50) * w.cgh * confidence);
 
-  // ── Dimension 6: IRI — Investor Readiness Index (10%) ────────────────────
-  let iriRaw = 40;
+  // ── Dimension 6: IRI — Investor Readiness Index ───────────────────────────
+  let iriRaw = b.iri_base;
   const iriEvidence: string[] = [];
   const iriGaps: string[] = [];
 
@@ -247,10 +255,10 @@ export function computeSVI(
   else { iriGaps.push("State your raise amount and intended use of funds"); }
 
   const iriScore = clamp(iriRaw, 0, 100);
-  const iriAdj = Math.round((iriScore - 50) * 0.10 * confidence);
+  const iriAdj = Math.round((iriScore - 50) * w.iri * confidence);
 
-  // ── Dimension 7: LCO — Legal & Compliance (8%) ───────────────────────────
-  let lcoRaw = 40;
+  // ── Dimension 7: LCO — Legal & Compliance ────────────────────────────────
+  let lcoRaw = b.lco_base;
   const lcoEvidence: string[] = [];
   const lcoGaps: string[] = [];
 
@@ -267,10 +275,10 @@ export function computeSVI(
   else { lcoGaps.push("Engage a solicitor to draft company constitution and legal docs"); }
 
   const lcoScore = clamp(lcoRaw, 0, 100);
-  const lcoAdj = Math.round((lcoScore - 50) * 0.08 * confidence);
+  const lcoAdj = Math.round((lcoScore - 50) * w.lco * confidence);
 
-  // ── Dimension 8: SVM — Strategic Vision & Moat (5%) ──────────────────────
-  let svmRaw = 35;
+  // ── Dimension 8: SVM — Strategic Vision & Moat ───────────────────────────
+  let svmRaw = b.svm_base;
   const svmEvidence: string[] = [];
   const svmGaps: string[] = [];
 
@@ -284,7 +292,7 @@ export function computeSVI(
   if (signals.hasSwitchingCosts) { svmRaw += 15; svmEvidence.push("Switching costs or lock-in mechanism present"); }
 
   const svmScore = clamp(svmRaw, 0, 100);
-  const svmAdj = Math.round((svmScore - 50) * 0.05 * confidence);
+  const svmAdj = Math.round((svmScore - 50) * w.svm * confidence);
 
   // ── Stage detection ─────────────────────────────────────────────────────────
   const stage = detectStage(signals);
@@ -295,109 +303,64 @@ export function computeSVI(
   const riskPenalties: RiskPenalty[] = [];
 
   if (signals.isAIWrapper && !signals.hasMoat) {
-    riskPenalties.push({
-      label: "AI Wrapper Risk",
-      points: 15,
-      reason: "Idea appears to wrap an existing AI model without proprietary data, workflow or network moat. Very easy to replicate.",
-    });
+    riskPenalties.push({ label: "AI Wrapper Risk", points: p.ai_wrapper_no_moat,
+      reason: "Idea appears to wrap an existing AI model without proprietary data, workflow or network moat. Very easy to replicate." });
   }
   if (signals.founderExperience === "first-time" && !signals.hasCoFounder && !signals.hasAdvisors) {
-    riskPenalties.push({
-      label: "No Founder Background",
-      points: 8,
-      reason: "No founder experience, co-founder, or advisors identified. Solo first-time founders face significantly higher execution risk.",
-    });
+    riskPenalties.push({ label: "No Founder Background", points: p.no_founder_background,
+      reason: "No founder experience, co-founder, or advisors identified. Solo first-time founders face significantly higher execution risk." });
   }
   if (signals.marketSize === "unknown") {
-    riskPenalties.push({
-      label: "Undefined Market",
-      points: 10,
-      reason: "No TAM/SAM/SOM identified. Investors need market size to assess scale potential.",
-    });
+    riskPenalties.push({ label: "Undefined Market", points: p.undefined_market,
+      reason: "No TAM/SAM/SOM identified. Investors need market size to assess scale potential." });
   }
   if (!signals.hasCapTable && !signals.hasShareholdersAgreement) {
-    riskPenalties.push({
-      label: "No Cap Table",
-      points: 12,
-      reason: "No cap table or shareholders agreement mentioned. Bad equity splits early are the #1 cause of startup failure.",
-    });
+    riskPenalties.push({ label: "No Cap Table", points: p.no_cap_table,
+      reason: "No cap table or shareholders agreement mentioned. Bad equity splits early are the #1 cause of startup failure." });
   }
   if (signals.evidenceLevel === "self_declared") {
-    riskPenalties.push({
-      label: "Unverified Claims Only",
-      points: 8,
-      reason: "All information is self-declared with no external evidence. Confidence score significantly reduced.",
-    });
+    riskPenalties.push({ label: "Unverified Claims Only", points: p.unverified_claims,
+      reason: "All information is self-declared with no external evidence. Confidence score significantly reduced." });
   }
   if (!signals.hasCoFounder && stage >= 4) {
-    riskPenalties.push({
-      label: "Solo Founder at Growth Stage",
-      points: 5,
-      reason: "Solo founder operating at growth/revenue stage. Execution risk increases significantly without complementary co-founder.",
-    });
+    riskPenalties.push({ label: "Solo Founder at Growth Stage", points: p.solo_founder_growth_stage,
+      reason: "Solo founder operating at growth/revenue stage. Execution risk increases significantly without complementary co-founder." });
   }
   if (!signals.hasLegalDocs && !signals.hasContracts) {
-    riskPenalties.push({
-      label: "No Legal Documents",
-      points: 10,
-      reason: "No legal documentation, contracts, or ToS mentioned. Operating without legal scaffolding increases liability and investor risk.",
-    });
+    riskPenalties.push({ label: "No Legal Documents", points: p.no_legal_docs,
+      reason: "No legal documentation, contracts, or ToS mentioned. Operating without legal scaffolding increases liability and investor risk." });
   }
   if (signals.problemClarity === "vague") {
-    riskPenalties.push({
-      label: "Vague Problem Statement",
-      points: 8,
-      reason: "The problem being solved is not clearly articulated. Investors fund clear, validated problems.",
-    });
+    riskPenalties.push({ label: "Vague Problem Statement", points: p.vague_problem,
+      reason: "The problem being solved is not clearly articulated. Investors fund clear, validated problems." });
   }
   if (!signals.hasProduct && !signals.hasDemo && stage >= 1) {
-    riskPenalties.push({
-      label: "No Product at Validated Idea Stage",
-      points: 5,
-      reason: "Problem is identified but no product, demo, or prototype has been built yet.",
-    });
+    riskPenalties.push({ label: "No Product at Validated Idea Stage", points: p.no_product_at_validated,
+      reason: "Problem is identified but no product, demo, or prototype has been built yet." });
   }
   if (!signals.hasFinancialModel && !signals.hasRevenue) {
-    riskPenalties.push({
-      label: "No Revenue Model",
-      points: 7,
-      reason: "No financial model or revenue path described. Investors need to understand how the business makes money.",
-    });
+    riskPenalties.push({ label: "No Revenue Model", points: p.no_revenue_model,
+      reason: "No financial model or revenue path described. Investors need to understand how the business makes money." });
   }
   if (!signals.hasCoFounder && !signals.hasCapTable && stage >= 3) {
-    riskPenalties.push({
-      label: "Concentrated Cap Table Risk",
-      points: 8,
-      reason: "Implied 100% founder ownership at traction stage with no cap table. High concentration risk deters investors.",
-    });
+    riskPenalties.push({ label: "Concentrated Cap Table Risk", points: p.concentrated_cap_table,
+      reason: "Implied 100% founder ownership at traction stage with no cap table. High concentration risk deters investors." });
   }
   if (!signals.hasAdvisors && stage >= 6) {
-    riskPenalties.push({
-      label: "No Advisors at Scale Stage",
-      points: 5,
-      reason: "No advisors mentioned at scale stage. Strategic advisors are critical for navigating growth challenges.",
-    });
+    riskPenalties.push({ label: "No Advisors at Scale Stage", points: p.no_advisors_at_scale,
+      reason: "No advisors mentioned at scale stage. Strategic advisors are critical for navigating growth challenges." });
   }
   if (!signals.hasAnalytics && stage >= 3) {
-    riskPenalties.push({
-      label: "No Analytics at Traction Stage",
-      points: 6,
-      reason: "No analytics or measurement tools detected at early traction stage. Can't demonstrate or optimise growth without data.",
-    });
+    riskPenalties.push({ label: "No Analytics at Traction Stage", points: p.no_analytics_at_traction,
+      reason: "No analytics or measurement tools detected at early traction stage. Can't demonstrate or optimise growth without data." });
   }
   if (!signals.hasPitchDeck && stage >= 4) {
-    riskPenalties.push({
-      label: "No Pitch Deck at Investor-Ready Stage",
-      points: 8,
-      reason: "No pitch deck found at revenue/growth stage. A pitch deck is essential to communicate value proposition to investors.",
-    });
+    riskPenalties.push({ label: "No Pitch Deck at Investor-Ready Stage", points: p.no_pitch_deck_investor_ready,
+      reason: "No pitch deck found at revenue/growth stage. A pitch deck is essential to communicate value proposition to investors." });
   }
   if (!signals.hasMoat && !signals.hasNetworkEffect && !signals.hasDataAdvantage) {
-    riskPenalties.push({
-      label: "Undefined Competitive Advantage",
-      points: 6,
-      reason: "No moat, network effect, or data advantage identified. Sustainable businesses require clear defensibility.",
-    });
+    riskPenalties.push({ label: "Undefined Competitive Advantage", points: p.undefined_competitive_advantage,
+      reason: "No moat, network effect, or data advantage identified. Sustainable businesses require clear defensibility." });
   }
 
   const totalPenalty = riskPenalties.reduce((s, r) => s + r.points, 0);
@@ -488,37 +451,37 @@ export function computeSVI(
   const evidenceGaps: SVIEvidenceGap[] = [];
 
   if (!signals.hasRevenue) {
-    evidenceGaps.push({ priority: "P0", label: "Add first revenue proof", action: "Connect Stripe, upload invoice, or add customer contract", impact: 18, evidenceType: "transaction_data" });
+    evidenceGaps.push({ priority: "P0", label: "Add first revenue proof", action: "Connect Stripe, upload invoice, or add customer contract", impact: ei.first_revenue, evidenceType: "transaction_data" });
   }
   if (signals.evidenceLevel === "self_declared") {
-    evidenceGaps.push({ priority: "P0", label: "Upgrade evidence level", action: "Add public URL, upload documents, or connect source (GitHub, analytics, Stripe)", impact: 15, evidenceType: "public_url" });
+    evidenceGaps.push({ priority: "P0", label: "Upgrade evidence level", action: "Add public URL, upload documents, or connect source (GitHub, analytics, Stripe)", impact: ei.upgrade_evidence_level, evidenceType: "public_url" });
   }
   if (!signals.hasCapTable) {
-    evidenceGaps.push({ priority: "P0", label: "Create cap table", action: "Build a cap table with founder shares, vesting, and ESOP pool", impact: 12, evidenceType: "document_uploaded" });
+    evidenceGaps.push({ priority: "P0", label: "Create cap table", action: "Build a cap table with founder shares, vesting, and ESOP pool", impact: ei.create_cap_table, evidenceType: "document_uploaded" });
   }
   if (!signals.hasABN) {
-    evidenceGaps.push({ priority: "P0", label: "Register ABN/ASIC", action: "Register your company with ASIC and obtain an Australian Business Number", impact: 10, evidenceType: "document_uploaded" });
+    evidenceGaps.push({ priority: "P0", label: "Register ABN/ASIC", action: "Register your company with ASIC and obtain an Australian Business Number", impact: ei.register_abn, evidenceType: "document_uploaded" });
   }
   if (!signals.hasSourceCode) {
-    evidenceGaps.push({ priority: "P1", label: "Link source code repository", action: "Connect GitHub or GitLab to verify product progress", impact: 10, evidenceType: "connected_source" });
+    evidenceGaps.push({ priority: "P1", label: "Link source code repository", action: "Connect GitHub or GitLab to verify product progress", impact: ei.link_source_code, evidenceType: "connected_source" });
   }
   if (!signals.hasWebsite) {
-    evidenceGaps.push({ priority: "P1", label: "Create public website", action: "Build a landing page to prove market presence and collect leads", impact: 8, evidenceType: "public_url" });
+    evidenceGaps.push({ priority: "P1", label: "Create public website", action: "Build a landing page to prove market presence and collect leads", impact: ei.create_website, evidenceType: "public_url" });
   }
   if (!signals.hasPitchDeck) {
-    evidenceGaps.push({ priority: "P1", label: "Upload pitch deck", action: "Upload a pitch deck to the Evidence Vault", impact: 8, evidenceType: "document_uploaded" });
+    evidenceGaps.push({ priority: "P1", label: "Upload pitch deck", action: "Upload a pitch deck to the Evidence Vault", impact: ei.upload_pitch_deck, evidenceType: "document_uploaded" });
   }
   if (!signals.hasIPProtection) {
-    evidenceGaps.push({ priority: "P1", label: "Secure IP protection", action: "File a provisional patent or trademark to protect your core innovation", impact: 7, evidenceType: "document_uploaded" });
+    evidenceGaps.push({ priority: "P1", label: "Secure IP protection", action: "File a provisional patent or trademark to protect your core innovation", impact: ei.secure_ip, evidenceType: "document_uploaded" });
   }
   if (!signals.hasFinancialModel) {
-    evidenceGaps.push({ priority: "P2", label: "Upload financial model", action: "Add a financial model (even a basic P&L forecast) to the Evidence Vault", impact: 6, evidenceType: "document_uploaded" });
+    evidenceGaps.push({ priority: "P2", label: "Upload financial model", action: "Add a financial model (even a basic P&L forecast) to the Evidence Vault", impact: ei.upload_financial_model, evidenceType: "document_uploaded" });
   }
   if (!signals.hasAnalytics) {
-    evidenceGaps.push({ priority: "P2", label: "Connect analytics", action: "Connect Google Analytics or Search Console to verify traffic/traction", impact: 8, evidenceType: "connected_source" });
+    evidenceGaps.push({ priority: "P2", label: "Connect analytics", action: "Connect Google Analytics or Search Console to verify traffic/traction", impact: ei.connect_analytics, evidenceType: "connected_source" });
   }
   if (!signals.hasAdvisors) {
-    evidenceGaps.push({ priority: "P2", label: "Add named advisors", action: "Engage 1-2 industry advisors with relevant domain expertise and list them in your materials", impact: 5, evidenceType: "self_declared" });
+    evidenceGaps.push({ priority: "P2", label: "Add named advisors", action: "Engage 1-2 industry advisors with relevant domain expertise and list them in your materials", impact: ei.add_advisors, evidenceType: "self_declared" });
   }
 
   // ── Next actions ────────────────────────────────────────────────────────────
