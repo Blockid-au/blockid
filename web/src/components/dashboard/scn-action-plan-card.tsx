@@ -64,7 +64,11 @@ const EFFORT_BADGE = {
 
 /* ─── Your Number hero ─────────────────────────────────────────────────── */
 
-function YourNumberHero({ yn }: { yn: Plan["yourNumber"] }) {
+function YourNumberHero({ yn, maturity, cohort }: {
+  yn: Plan["yourNumber"];
+  maturity?: SVIAnalysis["maturitySignal"];
+  cohort?: SVIAnalysis["cohortPercentile"];
+}) {
   return (
     <div className="rounded-2xl border border-blue-200 dark:border-blue-800/40 bg-gradient-to-br from-blue-50 via-emerald-50 to-amber-50 dark:from-blue-950/30 dark:via-emerald-950/20 dark:to-amber-950/20 p-6 sm:p-8 shadow-sm">
       <div className="flex items-center gap-2 text-[11px] font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-[0.18em] mb-3">
@@ -72,11 +76,30 @@ function YourNumberHero({ yn }: { yn: Plan["yourNumber"] }) {
         Your Number · SCN Framework
       </div>
 
+      {maturity?.isEstablished && (
+        <div className="mb-4 rounded-lg border border-amber-300 dark:border-amber-700/50 bg-amber-50/70 dark:bg-amber-950/20 px-4 py-3">
+          <p className="text-xs font-bold uppercase text-amber-700 dark:text-amber-400 tracking-wide mb-1">
+            Established / scale-up signals detected ({maturity.confidence} confidence)
+          </p>
+          <p className="text-xs text-amber-900 dark:text-amber-300">
+            The number below is anchored to public-page signals only. For accurate
+            pricing, connect Stripe/Xero or upload current financials.
+          </p>
+        </div>
+      )}
+
       <div className="grid md:grid-cols-2 gap-6 items-end">
         <div>
           <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">SVI Score</p>
           <p className="text-5xl font-bold mt-1">{yn.sviScore}</p>
-          <p className="text-sm text-muted-foreground mt-1">{yn.sviLabel} &middot; {yn.sviPercentileLabel}</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {yn.sviLabel} &middot; {yn.sviPercentileLabel}
+            {cohort?.source === "real_cohort" && (
+              <span className="ml-1 text-[11px] text-blue-600 font-medium">
+                (real cohort, n={cohort.cohortSize})
+              </span>
+            )}
+          </p>
         </div>
         <div className="md:text-right md:border-l md:border-blue-200 dark:md:border-blue-800/40 md:pl-6">
           <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Blended Valuation</p>
@@ -266,7 +289,11 @@ export function ScnActionPlanCard({ analysis }: Props) {
   return (
     <div className="space-y-6">
       {/* "Your number" hero */}
-      <YourNumberHero yn={plan.yourNumber} />
+      <YourNumberHero
+        yn={plan.yourNumber}
+        maturity={analysis.maturitySignal}
+        cohort={analysis.cohortPercentile}
+      />
 
       {/* This week focus */}
       <ThisWeekHero action={plan.thisWeekFocus} />

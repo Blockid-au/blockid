@@ -479,9 +479,16 @@ function buildPlainEnglish(
   confidence: "low" | "medium" | "high",
   hasRevenue: boolean,
   sector: string,
+  isEstablished?: boolean,
 ): string {
   const valFmt = fmtAud(valuation);
   const conf = confidence === "high" ? "high-confidence" : confidence === "medium" ? "medium-confidence" : "directional";
+
+  // Established-company override: be honest that we cannot price a public/scale-up
+  // from scraping alone, and steer the user to connect financial data.
+  if (isEstablished) {
+    return `We've detected this is an established company. The ${valFmt} figure is anchored to scraping signals only — for an accurate market price, connect your Stripe/Xero data or upload your latest financials. Treat this number as directional, not as a target valuation.`;
+  }
 
   if (sviScore < 50) {
     return `Your number is ${valFmt} — but treat it as ${conf}. At an SVI of ${sviScore}, you're pre-validated, which means the valuation is anchored to ${sector} stage-medians rather than your own evidence. Get to A$1 of revenue + 60+ SVI and the number can double.`;
@@ -590,7 +597,7 @@ export function buildScnActionPlan(input: ScnActionPlanInput): ScnActionPlan {
     valuationHighAud: valuationHigh,
     valuationConfidence,
     headline: `Your number: ${fmtAud(valuationMid)} (${sviLabel(sviScore).split(" — ")[0].toLowerCase()})`,
-    plainEnglish: buildPlainEnglish(sviScore, valuationMid, valuationConfidence, hasRevenue, sector),
+    plainEnglish: buildPlainEnglish(sviScore, valuationMid, valuationConfidence, hasRevenue, sector, analysis.maturitySignal?.isEstablished),
   };
 
   return {
