@@ -105,21 +105,30 @@ done
 END_NS=$(date +%s%N)
 DURATION_MS=$(( (END_NS - START_NS) / 1000000 ))
 
+# Detect deploy in flight (scripts/deploy-live.sh holds /tmp/blockid-deploy.lock via flock).
+# We check BEFORE log writes so a deploy blip never becomes a persistent "fail" entry.
+DEPLOY_ACTIVE=false
+if command -v flock >/dev/null 2>&1 && ! flock -n /tmp/blockid-deploy.lock -c true 2>/dev/null; then
+  DEPLOY_ACTIVE=true
+fi
+
+# Demote fail/error → deploy_blip during active deploy. Server restart blips are
+# expected, not real failures — they used to leave "fail" rows that triggered
+# DANGER alerts for hours after the deploy.
+if [ "$DEPLOY_ACTIVE" = true ] && { [ "$STATUS" = "fail" ] || [ "$STATUS" = "error" ]; }; then
+  STATUS="deploy_blip"
+fi
+
 # Log to text file (always — useful for grep/debugging)
 NOOP_TAG=""
 [ "${NOOP:-0}" = "1" ] && NOOP_TAG=" [noop]"
 echo "$TS_SHORT $ENDPOINT: $STATUS${NOOP_TAG} (${DURATION_MS}ms)" >> "$LOG"
 
-# Log to structured health file — skip when noop:true (no transaction = no record)
-if [ "${NOOP:-0}" != "1" ]; then
+# Log to structured health file — skip when:
+#   • noop:true (no transaction = no record), OR
+#   • deploy_blip (transient server-restart artefact)
+if [ "${NOOP:-0}" != "1" ] && [ "$STATUS" != "deploy_blip" ]; then
   echo "{\"ts\":\"$TS\",\"endpoint\":\"$ENDPOINT\",\"status\":\"$STATUS\",\"duration_ms\":$DURATION_MS,\"detail\":$(echo "$DETAIL" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read().strip()))" 2>/dev/null || echo "\"\"")}" >> "$HEALTH_LOG"
-fi
-
-# Suppress alerts when a deploy is mid-flight — the server is restarting, so a
-# blip is EXPECTED, not a real cron failure (this caused the false alarms).
-DEPLOY_ACTIVE=false
-if command -v flock >/dev/null 2>&1 && ! flock -n /tmp/blockid-deploy.lock -c true 2>/dev/null; then
-  DEPLOY_ACTIVE=true
 fi
 
 # Post-hook: for publish-insight, sync newly written content back to the
@@ -144,8 +153,8 @@ if [ "$ENDPOINT" = "publish-insight" ] && [ "$STATUS" = "ok" ]; then
   fi
 fi
 
-# Alert on failure via Telegram (rate_limited is expected, not a failure).
-if [ "$STATUS" != "ok" ] && [ "$STATUS" != "rate_limited" ]; then
+# Alert on failure via Telegram (rate_limited and deploy_blip are expected, not failures).
+if [ "$STATUS" != "ok" ] && [ "$STATUS" != "rate_limited" ] && [ "$STATUS" != "deploy_blip" ]; then
   if [ "$DEPLOY_ACTIVE" = true ]; then
     log "$ENDPOINT failed during active deploy — alert suppressed (expected restart blip)"
   else
