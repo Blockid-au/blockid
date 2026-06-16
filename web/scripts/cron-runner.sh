@@ -77,6 +77,9 @@ while :; do
     DETAIL="curl exit $CURL_EXIT (timeout or connection refused)"
   elif echo "$BODY" | python3 -c "import sys,json; d=json.load(sys.stdin); exit(0 if d.get('ok') else 1)" 2>/dev/null; then
     STATUS="ok"
+    # Endpoints can return noop:true to signal "no work done — skip health-log write"
+    # (e.g. blockchain-sync with no pending transactions). Avoids ~290 noise lines/day.
+    NOOP=$(echo "$BODY" | python3 -c "import sys,json; d=json.load(sys.stdin); print('1' if d.get('noop') else '0')" 2>/dev/null || echo "0")
     DETAIL=$(echo "$BODY" | python3 -c "import sys,json; d=json.load(sys.stdin); del d['ok']; print(json.dumps(d))" 2>/dev/null | head -c 200)
   elif echo "$BODY" | python3 -c "import sys,json; d=json.load(sys.stdin); exit(0 if 'Rate limited' in d.get('error','') or 'resetIn' in d else 1)" 2>/dev/null; then
     STATUS="rate_limited"
@@ -102,11 +105,15 @@ done
 END_NS=$(date +%s%N)
 DURATION_MS=$(( (END_NS - START_NS) / 1000000 ))
 
-# Log to text file
-echo "$TS_SHORT $ENDPOINT: $STATUS (${DURATION_MS}ms)" >> "$LOG"
+# Log to text file (always — useful for grep/debugging)
+NOOP_TAG=""
+[ "${NOOP:-0}" = "1" ] && NOOP_TAG=" [noop]"
+echo "$TS_SHORT $ENDPOINT: $STATUS${NOOP_TAG} (${DURATION_MS}ms)" >> "$LOG"
 
-# Log to structured health file
-echo "{\"ts\":\"$TS\",\"endpoint\":\"$ENDPOINT\",\"status\":\"$STATUS\",\"duration_ms\":$DURATION_MS,\"detail\":$(echo "$DETAIL" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read().strip()))" 2>/dev/null || echo "\"\"")}" >> "$HEALTH_LOG"
+# Log to structured health file — skip when noop:true (no transaction = no record)
+if [ "${NOOP:-0}" != "1" ]; then
+  echo "{\"ts\":\"$TS\",\"endpoint\":\"$ENDPOINT\",\"status\":\"$STATUS\",\"duration_ms\":$DURATION_MS,\"detail\":$(echo "$DETAIL" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read().strip()))" 2>/dev/null || echo "\"\"")}" >> "$HEALTH_LOG"
+fi
 
 # Suppress alerts when a deploy is mid-flight — the server is restarting, so a
 # blip is EXPECTED, not a real cron failure (this caused the false alarms).
