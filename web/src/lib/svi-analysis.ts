@@ -239,6 +239,18 @@ export interface SVIAnalysis {
   // v2.2: CI-derived SVI boosts and market EBITDA metrics
   ciBoost?: number;         // Total SVI points added from competitive intelligence
   marketEbitdaMetrics?: MarketEbitdaMetrics; // Market-level EBITDA benchmarks for this sector
+  // v2.3: enriched input + multi-perspective valuation (T0214)
+  inputSummary?: {
+    projectName: string;
+    projectNameSource: string;
+    projectNameConfidence: "low" | "medium" | "high";
+    sourceType: "url" | "document" | "idea";
+    snippet: string;            // 280-char summary of input
+    keyFindings: string[];      // 3-5 facts pulled from scraped/text
+    scrapedTitle?: string;
+    scrapedDescription?: string;
+  };
+  deepValuation?: import("@/lib/agents/deep-valuation").DeepValuationAnalysis;
 }
 
 // ─── Startup metrics input shape ─────────────────────────────────────────────

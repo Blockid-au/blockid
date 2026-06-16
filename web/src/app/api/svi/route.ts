@@ -8,6 +8,8 @@ import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { autoCreateUserWithTempPassword } from "@/lib/auth";
 import { detectInputType, scrapeUrl, deepTechAudit } from "@/lib/rnd-input";
 import { analyzeWebsiteCI, computeHeuristicSCI } from "@/lib/competitive-intelligence";
+import { extractProjectName } from "@/lib/project-name-extractor";
+import { buildDeepValuationAnalysis } from "@/lib/agents/deep-valuation";
 
 // POST /api/svi
 // Body: { email, input: { rawText, fileName? } }
@@ -97,6 +99,8 @@ export async function POST(request: Request) {
   let competitiveIntelligence = null;
   let websiteUrl: string | null = null;
   let enrichedText = parsed.input.rawText;
+  // Persist scraped metadata so the input-summary step can reuse it (avoid a 2nd HTTP fetch).
+  let scrapedMeta: { title: string; description: string; text: string; techHints: string[] } | null = null;
 
   const inputType = detectInputType(parsed.input.rawText, parsed.input.fileName);
   if (inputType === "url") {
@@ -110,6 +114,7 @@ export async function POST(request: Request) {
         scrapeUrl(websiteUrl).catch(() => ({ title: "", description: "", text: "", techHints: [] })),
       ]);
       techAudit = auditResult;
+      scrapedMeta = scraped;
 
       // Enrich text with scraped content for better signal extraction
       if (scraped.text) {
@@ -163,6 +168,53 @@ export async function POST(request: Request) {
   if (competitiveIntelligence) {
     analysis = { ...analysis, competitiveIntelligence, websiteUrl: websiteUrl ?? undefined };
   }
+
+  // ── v2.3: Enriched input summary + multi-perspective valuation ────────
+  // Auto-extract project name so the founder doesn't have to type one, and
+  // build a 4-lens deep valuation so the report shows more than one number.
+  const scrapedTitle = scrapedMeta?.title || undefined;
+  const scrapedDescription = scrapedMeta?.description || undefined;
+
+  const nameResult = extractProjectName({
+    rawText: parsed.input.rawText,
+    fileName: parsed.input.fileName,
+    scraped: { title: scrapedTitle, description: scrapedDescription },
+    url: websiteUrl ?? undefined,
+  });
+
+  const inputSnippet = (scrapedDescription || enrichedText.replace(/\s+/g, " "))
+    .trim()
+    .slice(0, 280);
+
+  const keyFindings: string[] = [];
+  if (scrapedTitle) keyFindings.push(`Page title: "${scrapedTitle}"`);
+  if (techAudit?.techStack?.frameworks?.length) keyFindings.push(`Tech stack: ${techAudit.techStack.frameworks.slice(0, 4).join(", ")}`);
+  if (competitiveIntelligence?.industry) keyFindings.push(`Industry: ${competitiveIntelligence.industry} (${competitiveIntelligence.subSector ?? "general"})`);
+  if (competitiveIntelligence?.targetCustomer) keyFindings.push(`Target customer: ${competitiveIntelligence.targetCustomer}`);
+  if (competitiveIntelligence?.uniquePositioning) keyFindings.push(`Positioning: ${competitiveIntelligence.uniquePositioning}`);
+  if (analysis.sector && !competitiveIntelligence?.industry) keyFindings.push(`Detected sector: ${analysis.sectorLabel ?? analysis.sector}`);
+
+  const deepValuation = buildDeepValuationAnalysis({
+    sviAnalysis: analysis,
+    rawText: parsed.input.rawText,
+    scrapedText: enrichedText !== parsed.input.rawText ? enrichedText : undefined,
+    competitiveIntelligence: competitiveIntelligence ?? null,
+  });
+
+  analysis = {
+    ...analysis,
+    inputSummary: {
+      projectName: nameResult.name,
+      projectNameSource: nameResult.source,
+      projectNameConfidence: nameResult.confidence,
+      sourceType: inputType,
+      snippet: inputSnippet,
+      keyFindings: keyFindings.slice(0, 5),
+      scrapedTitle,
+      scrapedDescription,
+    },
+    deepValuation,
+  };
 
   const supabase = getSupabaseAdmin();
   let slug = newSlug();
@@ -279,12 +331,25 @@ export async function POST(request: Request) {
         projectId = await getProjectIdFromRequest();
         const accountId = await findOrCreateSVIAccount(email, projectId);
         if (accountId) {
-          // Update ONLY this project's svi_account with the new score
-          await supabase.from("svi_accounts").update({
+          // Auto-fill startup_name from the extracted project name when it's
+          // currently empty — so the founder doesn't see "Untitled" everywhere
+          // after their first analysis. High-confidence extractions only.
+          const updates: Record<string, unknown> = {
             current_svi: analysis.totalSVI,
             current_stage: analysis.stage ?? 0,
             last_active_at: new Date().toISOString(),
-          }).eq("id", accountId);
+          };
+          if (analysis.inputSummary && analysis.inputSummary.projectNameConfidence === "high") {
+            const { data: acc } = await supabase
+              .from("svi_accounts")
+              .select("startup_name")
+              .eq("id", accountId)
+              .maybeSingle();
+            if (!acc?.startup_name) {
+              updates.startup_name = analysis.inputSummary.projectName;
+            }
+          }
+          await supabase.from("svi_accounts").update(updates).eq("id", accountId);
         }
       } catch { /* non-blocking */ }
     }

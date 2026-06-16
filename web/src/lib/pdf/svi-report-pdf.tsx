@@ -714,6 +714,169 @@ function RouteMapSVG({ count, width = 500, height = 64 }: { count: number; width
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+ *  DEEP ANALYSIS PAGE (v2.3) — Input summary + 4-perspective valuation
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+function formatAud(v: number): string {
+  if (v >= 1_000_000_000) return `A$${(v / 1_000_000_000).toFixed(2)}B`;
+  if (v >= 1_000_000) return `A$${(v / 1_000_000).toFixed(2)}M`;
+  if (v >= 1_000) return `A$${(v / 1_000).toFixed(0)}K`;
+  return `A$${Math.round(v).toLocaleString("en-AU")}`;
+}
+
+function DeepAnalysisPage({ analysis }: { analysis: SVIAnalysis }) {
+  const summary = analysis.inputSummary;
+  const dv = analysis.deepValuation;
+
+  return (
+    <View>
+      <PageTitle title="Detailed Analysis & Valuation" subtitle="What we found in your input — and how 4 independent methods price your startup" />
+
+      {/* ── Input summary card ───────────────────────────────────── */}
+      {summary && (
+        <View style={{ marginBottom: 14, backgroundColor: C.surface50, borderRadius: 8, padding: 12, borderWidth: 0.5, borderColor: C.surface200 }}>
+          <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: C.brand600, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 4 }}>
+            Project · Source: {summary.sourceType.toUpperCase()} · Auto-named ({summary.projectNameConfidence})
+          </Text>
+          <Text style={{ fontSize: 16, fontFamily: "Helvetica-Bold", color: C.ink900, marginBottom: 4 }}>
+            {summary.projectName}
+          </Text>
+          {summary.scrapedDescription && (
+            <Text style={{ fontSize: 9, color: C.ink600, lineHeight: 1.5, marginBottom: 6, fontStyle: "italic" }}>
+              &ldquo;{summary.scrapedDescription.slice(0, 200)}{summary.scrapedDescription.length > 200 ? "..." : ""}&rdquo;
+            </Text>
+          )}
+          {summary.snippet && !summary.scrapedDescription && (
+            <Text style={{ fontSize: 9, color: C.ink600, lineHeight: 1.5, marginBottom: 6 }}>
+              {summary.snippet}
+            </Text>
+          )}
+          {summary.keyFindings.length > 0 && (
+            <View>
+              <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: C.ink700, letterSpacing: 1, marginBottom: 3, marginTop: 4 }}>KEY FINDINGS</Text>
+              {summary.keyFindings.map((f, i) => (
+                <Text key={i} style={{ fontSize: 9, color: C.ink700, lineHeight: 1.5, marginBottom: 2 }}>
+                  &bull; {f}
+                </Text>
+              ))}
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* ── Multi-perspective valuation table ────────────────────── */}
+      {dv && (
+        <View style={{ marginBottom: 10 }}>
+          <Text style={[s.label, { marginBottom: 6 }]}>4-Lens Valuation Triangulation</Text>
+          <View style={{ borderWidth: 0.5, borderColor: C.surface200, borderRadius: 6 }}>
+            <View style={{ flexDirection: "row", backgroundColor: C.surface100, paddingVertical: 5, paddingHorizontal: 8 }}>
+              <Text style={{ fontSize: 7.5, fontFamily: "Helvetica-Bold", color: C.ink700, width: "32%" }}>LENS</Text>
+              <Text style={{ fontSize: 7.5, fontFamily: "Helvetica-Bold", color: C.ink700, width: "16%", textAlign: "right" }}>LOW</Text>
+              <Text style={{ fontSize: 7.5, fontFamily: "Helvetica-Bold", color: C.ink700, width: "20%", textAlign: "right" }}>MID</Text>
+              <Text style={{ fontSize: 7.5, fontFamily: "Helvetica-Bold", color: C.ink700, width: "16%", textAlign: "right" }}>HIGH</Text>
+              <Text style={{ fontSize: 7.5, fontFamily: "Helvetica-Bold", color: C.ink700, width: "16%", textAlign: "right" }}>WEIGHT</Text>
+            </View>
+            {dv.perspectives.map((p, i) => (
+              <View key={p.code} style={{ flexDirection: "row", paddingVertical: 5, paddingHorizontal: 8, borderTopWidth: 0.5, borderTopColor: C.surface200, backgroundColor: i % 2 === 0 ? C.white : C.surface50 }}>
+                <View style={{ width: "32%" }}>
+                  <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: C.ink900 }}>{p.label}</Text>
+                  <Text style={{ fontSize: 7, color: C.ink500, marginTop: 1 }}>{p.confidence} confidence</Text>
+                </View>
+                <Text style={{ fontSize: 9, color: C.ink600, width: "16%", textAlign: "right" }}>{formatAud(p.lowAud)}</Text>
+                <Text style={{ fontSize: 10, fontFamily: "Helvetica-Bold", color: C.brand700, width: "20%", textAlign: "right" }}>{formatAud(p.midAud)}</Text>
+                <Text style={{ fontSize: 9, color: C.ink600, width: "16%", textAlign: "right" }}>{formatAud(p.highAud)}</Text>
+                <Text style={{ fontSize: 9, color: C.ink700, width: "16%", textAlign: "right" }}>{(p.weight * 100).toFixed(0)}%</Text>
+              </View>
+            ))}
+            {/* Blended row */}
+            <View style={{ flexDirection: "row", paddingVertical: 6, paddingHorizontal: 8, borderTopWidth: 1, borderTopColor: C.brand600, backgroundColor: C.brand50 }}>
+              <View style={{ width: "32%" }}>
+                <Text style={{ fontSize: 10, fontFamily: "Helvetica-Bold", color: C.brand700 }}>BLENDED ESTIMATE</Text>
+                <Text style={{ fontSize: 7, color: C.ink600, marginTop: 1 }}>Weighted by data quality · {dv.blendedValuation.confidence} confidence</Text>
+              </View>
+              <Text style={{ fontSize: 10, color: C.ink700, width: "16%", textAlign: "right" }}>{formatAud(dv.blendedValuation.lowAud)}</Text>
+              <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold", color: C.brand700, width: "20%", textAlign: "right" }}>{formatAud(dv.blendedValuation.midAud)}</Text>
+              <Text style={{ fontSize: 10, color: C.ink700, width: "16%", textAlign: "right" }}>{formatAud(dv.blendedValuation.highAud)}</Text>
+              <Text style={{ fontSize: 9, color: C.brand700, width: "16%", textAlign: "right" }}>100%</Text>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* ── Market sizing + peer comparables side-by-side ──────── */}
+      {dv && (
+        <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
+          {/* Market sizing */}
+          <View style={{ flex: 1, backgroundColor: C.surface50, padding: 10, borderRadius: 6, borderWidth: 0.5, borderColor: C.surface200 }}>
+            <Text style={[s.label, { marginBottom: 4 }]}>Market Sizing (AU)</Text>
+            <View style={{ marginBottom: 3 }}>
+              <Text style={{ fontSize: 8, color: C.ink500 }}>TAM</Text>
+              <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold", color: C.ink900 }}>{formatAud(dv.marketSizing.tamAud)}</Text>
+            </View>
+            <View style={{ marginBottom: 3 }}>
+              <Text style={{ fontSize: 8, color: C.ink500 }}>SAM</Text>
+              <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold", color: C.ink900 }}>{formatAud(dv.marketSizing.samAud)}</Text>
+            </View>
+            <View style={{ marginBottom: 5 }}>
+              <Text style={{ fontSize: 8, color: C.ink500 }}>SOM (Year-3)</Text>
+              <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold", color: C.brand700 }}>{formatAud(dv.marketSizing.somAud)}</Text>
+            </View>
+            <Text style={{ fontSize: 7, color: C.ink500, fontStyle: "italic", lineHeight: 1.4 }}>
+              {dv.marketSizing.methodology}
+            </Text>
+          </View>
+
+          {/* Peer comparables */}
+          <View style={{ flex: 1, backgroundColor: C.surface50, padding: 10, borderRadius: 6, borderWidth: 0.5, borderColor: C.surface200 }}>
+            <Text style={[s.label, { marginBottom: 4 }]}>AU Peer Comparables</Text>
+            {dv.peerComparables.slice(0, 3).map((peer) => (
+              <View key={peer.name} style={{ marginBottom: 5, paddingBottom: 4, borderBottomWidth: 0.5, borderBottomColor: C.surface200 }}>
+                <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: C.ink900 }}>{peer.name}</Text>
+                <Text style={{ fontSize: 7, color: C.ink500 }}>{peer.stageGuess} · sim {peer.similarityScore}%</Text>
+                <Text style={{ fontSize: 8, color: C.ink700, marginTop: 1 }}>
+                  {formatAud(peer.estValuationLowAud)} – {formatAud(peer.estValuationHighAud)}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+
+      {/* ── Revenue scenarios ──────────────────────────────────── */}
+      {dv && (
+        <View style={{ marginBottom: 8 }}>
+          <Text style={[s.label, { marginBottom: 4 }]}>3-Year Revenue Scenarios</Text>
+          <View style={{ flexDirection: "row", gap: 6 }}>
+            {dv.revenueScenarios.map((scn) => (
+              <View key={scn.scenario} style={{ flex: 1, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.surface200, borderRadius: 5, padding: 6 }}>
+                <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: C.brand600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 3 }}>
+                  {scn.scenario}
+                </Text>
+                <Text style={{ fontSize: 8, color: C.ink500 }}>Year-3 ARR</Text>
+                <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold", color: C.ink900, marginBottom: 2 }}>{formatAud(scn.year3ArrAud)}</Text>
+                <Text style={{ fontSize: 7, color: C.ink500 }}>{scn.payingCustomers.toLocaleString("en-AU")} customers</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+
+      {/* ── Risk flags ─────────────────────────────────────────── */}
+      {dv && dv.riskFlags.length > 0 && (
+        <View style={{ marginTop: 6 }}>
+          <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: "#B45309", letterSpacing: 1, marginBottom: 3 }}>VALUATION RISK FLAGS</Text>
+          {dv.riskFlags.slice(0, 3).map((f, i) => (
+            <Text key={i} style={{ fontSize: 8, color: C.ink700, lineHeight: 1.4, marginBottom: 2 }}>
+              &bull; {f}
+            </Text>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
  *  MAIN DOCUMENT
  * ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -1063,6 +1226,17 @@ export function SVIReportPDF({
 
         <Footer />
       </Page>
+
+      {/* ────────────────────────────────────────────────────────────────────
+       *  PAGE 1.5: DETAILED INPUT ANALYSIS + MULTI-PERSPECTIVE VALUATION (v2.3)
+       * ──────────────────────────────────────────────────────────────────── */}
+      {(analysis.inputSummary || analysis.deepValuation) && (
+        <Page size="A4" style={s.page}>
+          <HeaderBar />
+          <DeepAnalysisPage analysis={analysis} />
+          <Footer />
+        </Page>
+      )}
 
       {/* ────────────────────────────────────────────────────────────────────
        *  PAGE 2: EXECUTIVE SUMMARY
