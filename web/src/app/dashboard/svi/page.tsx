@@ -10,6 +10,7 @@ import { LivingSVIDashboard } from "@/components/dashboard/living-svi-dashboard"
 import { ScoreHistoryChart } from "@/components/svi/score-history-chart";
 import { NextBestActionWidget } from "@/components/dashboard/next-best-action-widget";
 import { DeepValuationCard } from "@/components/dashboard/deep-valuation-card";
+import { ScnActionPlanCard } from "@/components/dashboard/scn-action-plan-card";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 
 export const metadata: Metadata = {
@@ -326,6 +327,9 @@ export default async function SVIDashboardPage() {
             startupGoals: user.startupGoals,
           }}
         />
+
+        {/* ── v2.4: SCN action plan — Your Number → What to do ─────── */}
+        <ScnActionPlanCard analysis={analysisWithDelta} />
 
         {/* ── v2.3: Deep input analysis + 4-lens valuation ─────────────── */}
         <DeepValuationCard analysis={analysisWithDelta} />

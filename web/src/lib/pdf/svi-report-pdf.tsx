@@ -877,6 +877,142 @@ function DeepAnalysisPage({ analysis }: { analysis: SVIAnalysis }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+ *  SCN ACTION PLAN PAGE (v2.4) — Your Number + What to do next
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+const LAYER_COLOR: Record<string, string> = {
+  validation: "#9333EA",
+  position: C.brand600,
+  value: "#10B981",
+  direction: "#F59E0B",
+  capital: "#EF4444",
+};
+const STATUS_COLOR: Record<string, string> = {
+  complete: "#10B981",
+  in_progress: C.brand600,
+  gap: "#F59E0B",
+};
+
+function ScnActionPlanPage({ plan }: { plan: NonNullable<SVIAnalysis["scnActionPlan"]> }) {
+  const yn = plan.yourNumber;
+
+  return (
+    <View>
+      <PageTitle title="What is your number?" subtitle="Your SVI, your valuation — and the SCN action plan to move both" />
+
+      {/* ── Your Number hero ───────────────────────────────────────── */}
+      <View style={{ marginBottom: 12, padding: 14, borderRadius: 8, backgroundColor: C.brand50, borderLeftWidth: 4, borderLeftColor: C.brand600 }}>
+        <View style={{ flexDirection: "row", gap: 16 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: C.ink500, letterSpacing: 1, textTransform: "uppercase", marginBottom: 2 }}>SVI Score</Text>
+            <Text style={{ fontSize: 32, fontFamily: "Helvetica-Bold", color: C.ink900 }}>{yn.sviScore}</Text>
+            <Text style={{ fontSize: 8, color: C.ink600, marginTop: 2 }}>{yn.sviLabel}</Text>
+            <Text style={{ fontSize: 7, color: C.ink500, marginTop: 1 }}>{yn.sviPercentileLabel}</Text>
+          </View>
+          <View style={{ flex: 1, borderLeftWidth: 0.5, borderLeftColor: C.brand200, paddingLeft: 12 }}>
+            <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: C.ink500, letterSpacing: 1, textTransform: "uppercase", marginBottom: 2 }}>Blended Valuation</Text>
+            <Text style={{ fontSize: 24, fontFamily: "Helvetica-Bold", color: C.brand700 }}>{formatAud(yn.valuationMidAud)}</Text>
+            <Text style={{ fontSize: 8, color: C.ink600, marginTop: 2 }}>
+              {formatAud(yn.valuationLowAud)} – {formatAud(yn.valuationHighAud)}
+            </Text>
+            <Text style={{ fontSize: 7, color: C.ink500, marginTop: 1 }}>{yn.valuationConfidence} confidence</Text>
+          </View>
+        </View>
+        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 0.5, borderTopColor: C.brand200 }}>
+          <Text style={{ fontSize: 9, color: C.ink700, lineHeight: 1.5 }}>{yn.plainEnglish}</Text>
+        </View>
+      </View>
+
+      {/* ── This week focus ────────────────────────────────────────── */}
+      <View style={{ marginBottom: 10, padding: 10, backgroundColor: "#FEF3C7", borderRadius: 6, borderLeftWidth: 4, borderLeftColor: "#F59E0B" }}>
+        <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: "#B45309", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 4 }}>
+          THIS WEEK · Single most important move
+        </Text>
+        <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold", color: C.ink900, marginBottom: 3 }}>{plan.thisWeekFocus.title}</Text>
+        <Text style={{ fontSize: 8, color: C.ink700, lineHeight: 1.45, marginBottom: 4 }}>{plan.thisWeekFocus.detail}</Text>
+        <View style={{ flexDirection: "row", gap: 6, marginBottom: 4 }}>
+          <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: C.white, backgroundColor: "#DC2626", paddingHorizontal: 4, paddingVertical: 1 }}>
+            {plan.thisWeekFocus.priority}
+          </Text>
+          <Text style={{ fontSize: 7, color: "#B45309", fontFamily: "Helvetica-Bold" }}>
+            {plan.thisWeekFocus.impact} · {plan.thisWeekFocus.effort} effort
+          </Text>
+        </View>
+        <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: "#B45309", marginBottom: 2 }}>HOW TO DO IT</Text>
+        <Text style={{ fontSize: 8, color: C.ink700, lineHeight: 1.45 }}>{plan.thisWeekFocus.tactic}</Text>
+      </View>
+
+      {/* ── SCN journey strip ──────────────────────────────────────── */}
+      <View style={{ marginBottom: 10 }}>
+        <Text style={[s.label, { marginBottom: 4 }]}>SCN Journey · Validation → Position → Value → Direction → Capital</Text>
+        <View style={{ flexDirection: "row", gap: 4 }}>
+          {plan.layers.map((layer) => (
+            <View key={layer.code} style={{
+              flex: 1,
+              padding: 6,
+              borderRadius: 5,
+              borderWidth: 0.5,
+              borderColor: C.surface200,
+              backgroundColor: layer.status === "complete" ? "#F0FDF4" : layer.status === "in_progress" ? C.brand50 : C.surface50,
+            }}>
+              <Text style={{ fontSize: 6.5, fontFamily: "Helvetica-Bold", color: LAYER_COLOR[layer.code], letterSpacing: 0.8, textTransform: "uppercase" }}>
+                {layer.label}
+              </Text>
+              <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: STATUS_COLOR[layer.status], marginTop: 1 }}>
+                {layer.status === "complete" ? "✓ Complete" : layer.status === "in_progress" ? "○ In progress" : "● Gap"}
+              </Text>
+              <Text style={{ fontSize: 6.5, color: C.ink600, marginTop: 2, lineHeight: 1.3 }}>{layer.statusReason}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* ── 30/60/90 Day Plan ──────────────────────────────────────── */}
+      <View style={{ marginBottom: 10 }}>
+        <Text style={[s.label, { marginBottom: 4 }]}>30 / 60 / 90 Day Plan</Text>
+        <View style={{ flexDirection: "row", gap: 5 }}>
+          {plan.milestones.map((m) => (
+            <View key={m.day} style={{ flex: 1, padding: 8, borderWidth: 0.5, borderColor: C.surface200, borderRadius: 5, backgroundColor: C.white }}>
+              <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: C.brand600, letterSpacing: 1 }}>DAY {m.day}</Text>
+              <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: C.ink900, marginTop: 2, marginBottom: 2 }}>{m.title}</Text>
+              <Text style={{ fontSize: 7, color: C.ink600, lineHeight: 1.4, marginBottom: 3 }}>{m.measurableGoal}</Text>
+              <Text style={{ fontSize: 6.5, fontFamily: "Helvetica-Bold", color: C.ink500, letterSpacing: 0.8 }}>EVIDENCE</Text>
+              {m.evidenceRequired.slice(0, 2).map((e, i) => (
+                <Text key={i} style={{ fontSize: 7, color: C.ink700, marginTop: 1 }}>&bull; {e}</Text>
+              ))}
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* ── Valuation levers ───────────────────────────────────────── */}
+      <View>
+        <Text style={[s.label, { marginBottom: 4 }]}>How to push your number up</Text>
+        <View style={{ borderWidth: 0.5, borderColor: C.surface200, borderRadius: 5 }}>
+          {plan.valuationLevers.slice(0, 5).map((l, i) => (
+            <View key={i} style={{
+              flexDirection: "row",
+              padding: 6,
+              borderTopWidth: i === 0 ? 0 : 0.5,
+              borderTopColor: C.surface200,
+              backgroundColor: i % 2 === 0 ? C.white : C.surface50,
+            }}>
+              <View style={{ flex: 3 }}>
+                <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: C.ink900 }}>{l.lever}</Text>
+                <Text style={{ fontSize: 7, color: C.ink500, marginTop: 1 }}>{l.effort} effort · {l.timeframe}</Text>
+              </View>
+              <Text style={{ flex: 1, fontSize: 9, fontFamily: "Helvetica-Bold", color: "#10B981", textAlign: "right", alignSelf: "center" }}>
+                {l.upliftAud}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
  *  MAIN DOCUMENT
  * ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -1234,6 +1370,17 @@ export function SVIReportPDF({
         <Page size="A4" style={s.page}>
           <HeaderBar />
           <DeepAnalysisPage analysis={analysis} />
+          <Footer />
+        </Page>
+      )}
+
+      {/* ────────────────────────────────────────────────────────────────────
+       *  PAGE 1.7: SCN ACTION PLAN (v2.4) — Your Number + What to do
+       * ──────────────────────────────────────────────────────────────────── */}
+      {analysis.scnActionPlan && (
+        <Page size="A4" style={s.page}>
+          <HeaderBar />
+          <ScnActionPlanPage plan={analysis.scnActionPlan} />
           <Footer />
         </Page>
       )}
