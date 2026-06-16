@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v2.3.0  ·  **Updated:** 2026-06-15T16:00:01.957Z  ·  **Decided by:** ceo (2026-06-15T14:30:22Z)
+**Version:** v2.5.0  ·  **Updated:** 2026-06-16T12:04:02.626Z  ·  **Decided by:** ceo (2026-06-16T12:04:02.626Z)
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -8,42 +8,29 @@
 | ID | Agent | Task | Impact | Status |
 |----|-------|------|--------|--------|
 | T0016 | RND | Evidence Vault Phase 2 — OAuth connectors (GitHub, Stripe, Google Analytics) | major | ⬜ pending |
-| T0033 | CFO | Financial projection norms calculator | minor | ⬜ pending |
-| T0034 | CFO | Market sizing methodology framework | minor | ⬜ pending |
-| T0035 | CMO | AU startup marketing benchmarks 2026 report | patch | ⬜ pending |
-| T0086 | CFO | Financial Projection Norms Calculator (/tools/financial-projections) | minor | ⬜ pending |
 | T0087 | CLO | Term Sheet AI v2 — persist analyses, Lawyer Questions, SVI link | minor | ⬜ pending |
 | T0088 | CFO | Fundraising Readiness Report v2 — checklist + AU comparable raises | minor | ⬜ pending |
-| T0089 | CTO | Google Analytics OAuth evidence connector | minor | ⬜ pending |
-| T0090 | CDO | SVI Cohort Benchmark page (/dashboard/benchmark) | minor | ⬜ pending |
-| T0101 | CFO | Financial projection norms calculator enhancements | minor | ⬜ pending |
 | T0102 | CMO | AU startup percentile/positioning model integration | minor | ⬜ pending |
-| T0103 | CTO | Next-Best-Action engine prototype | major | ⬜ pending |
-| T0201 | CRO | CRO sales operating system — lead pipeline DB + admin UI | minor | ⬜ pending |
-| T0202 | CCSO | CCSO workflow — NPS + referral + testimonial capture | minor | ⬜ pending |
 | T0203 | CMO | CMO content pillar tracker — 7 pillars × weekly LinkedIn queue | minor | ⬜ pending |
-| T0204 | CFO | CFO founder finance dashboard (/dashboard/finance) | minor | ⬜ pending |
 | T0110 | CFO | R&D Tax Incentive and ESIC data integration | minor | ⬜ pending |
 | T0111 | RND | New AI tools & capabilities for startup tooling | minor | ⬜ pending |
 | T0206 | CSO | Pricing & segment A/B test infra (/admin/pricing-test) | minor | ⬜ pending |
-| T0208 | CHRO | AU salary benchmark + ESOP grant UI (Division 83A) | minor | ⬜ pending |
-| T0209 | IR | Accelerator deadline tracker + pitch evidence binder | minor | ⬜ pending |
-| T0210 | CPO | Funnel drop-off heatmap (/admin/funnel) — every assessment step instrumented | minor | ⬜ pending |
 | T0211 | CMO | LinkedIn page launch — Startup Value Index (linkedin.com/company/startup-value-index) | minor | ⬜ pending |
-| T0212 | CTO | DNS + nginx vhost for startupvalueindex.com + startupindex.au | minor | ⬜ pending |
 | T0213 | CPO | SVI brand landing page at startupvalueindex.com | minor | ⬜ pending |
+| T0120 | CFO | Financial projection norms integration | minor | ⬜ pending |
+| T0121 | RND | Conversion/CTA experiment ideas & A/B test hypotheses | minor | ⬜ pending |
 
 ## Recently shipped
+- ✅ `T0212` **CTO** — DNS + nginx vhost for startupvalueindex.com + startupindex.au
+- ✅ `T0210` **CPO** — Funnel drop-off heatmap (/admin/funnel) — every assessment step instrumented (`b18238a`)
+- ✅ `T0209` **IR** — Accelerator deadline tracker + pitch evidence binder
+- ✅ `T0208` **CHRO** — AU salary benchmark + ESOP grant UI (Division 83A)
 - ✅ `T0207` **CISO** — Security posture scoring + rate-limit/auth audit dashboard
 - ✅ `T0205` **CTO** — Milestone reporter route + orchestrator hook (`abcb7e1`)
+- ✅ `T0204` **CFO** — CFO founder finance dashboard (/dashboard/finance)
+- ✅ `T0202` **CCSO** — CCSO workflow — NPS + referral + testimonial capture (`b18238a`)
+- ✅ `T0201` **CRO** — CRO sales operating system — lead pipeline DB + admin UI (`b18238a`)
 - ✅ `T0200` **COO** — 30-day CEO scoreboard page (/dashboard/30day)
-- ✅ `T0106` **CMO** — 5 SEO blog articles — ESOP, valuation methods, Antler tips, data room checklist, cap table 101
-- ✅ `T0114` **CTO** — Fix: recent-analyses.tsx localStorage project-scoped
-- ✅ `T0109` **CLO** — ESOP Legal Checklist Tool (/tools/esop-checklist) — Interactive client component
-- ✅ `T0110` **CDO** — /api/dataroom/readiness — 13-section weighted data room scoring API (`ab11688`)
-- ✅ `T0109` **CMO** — ESOP Legal Checklist tool (/tools/esop-checklist) — SEO page (`96951eb`)
-- ✅ `T0108` **CRO** — SVI Upgrade Roadmap widget — personalized 68→75 action plan (`96951eb`)
-- ✅ `T0105` **CTO** — cfo-valuation.ts upgrade — ESOP governance inputs in risk factor model (`45ebabf`)
 
 ## Milestones
 - **M020** v2.2.0 — T0102-T0110 Batch 9: ESOP scoring engine, governance API, knowledge base API, SVI roadmap widget, ESOP checklist SEO tool, data room readiness API (2026-06-14, 7 tasks)

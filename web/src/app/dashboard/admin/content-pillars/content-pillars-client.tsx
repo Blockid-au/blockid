@@ -7,8 +7,8 @@ import {
   ChevronDown,
   ChevronRight,
   Edit3,
+  ExternalLink,
   FileText,
-  Linkedin,
   Target,
   TrendingUp,
   XCircle,
@@ -123,7 +123,7 @@ function PillarCard({ stats }: { stats: PillarStats }) {
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
             >
-              <Linkedin className="h-3 w-3" />
+              <ExternalLink className="h-3 w-3" />
               LinkedIn queue
             </a>
           </div>
