@@ -6,7 +6,13 @@ import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { TrendingUp, Info } from "lucide-react";
 
 export function SVIValuation({ analysis, className }: { analysis: SVIAnalysis; className?: string }) {
-  const est = estimateValuation(analysis.totalSVI, analysis.stage ?? 0);
+  const dims = analysis.dimensionScores ?? Object.fromEntries((analysis.subs ?? []).map(s => [s.key, s.value]));
+  const est = estimateValuation(
+    analysis.totalSVI,
+    analysis.stage ?? 0,
+    { sector: analysis.sector ?? analysis.signals?.sector },
+    dims,
+  );
 
   return (
     <div className={cn("rounded-2xl border border-surface-200 bg-white shadow-sm overflow-hidden", className)}>

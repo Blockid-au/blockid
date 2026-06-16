@@ -5,6 +5,7 @@
 
 import type { TechAuditResult } from "./rnd-input";
 import type { GitHubRepoAudit } from "./github-repo-audit";
+import type { WebsiteCompetitiveIntelligence, MarketEbitdaMetrics } from "./competitive-intelligence";
 
 export const SVI_VERSION = "2.0.0";
 
@@ -62,6 +63,63 @@ export interface SVITextInput {
   fileName?: string;
 }
 
+export const SECTOR_LABELS: Record<string, string> = {
+  saas: "SaaS / Software",
+  fintech: "FinTech",
+  healthtech: "HealthTech / MedTech",
+  edtech: "EdTech / Learning",
+  deeptech: "DeepTech / Hardware",
+  marketplace: "Marketplace / Platform",
+  ecommerce: "eCommerce / D2C",
+  legaltech: "LegalTech",
+  proptech: "PropTech / Real Estate",
+  hrtech: "HRTech / Future of Work",
+  insurtech: "InsurTech",
+  agtech: "AgTech / FoodTech",
+  cleantech: "CleanTech / ClimateTech",
+  logisticstech: "LogisticsTech / Supply Chain",
+  retailtech: "RetailTech / POS",
+  govtech: "GovTech / CivicTech",
+  sportstech: "SportsTech / FitnessTech",
+  traveltech: "TravelTech / HospitalityTech",
+  mediatech: "MediaTech / CreatorTech",
+  cybertech: "CyberSecurity",
+  biotech: "BioTech / LifeSciences",
+  spacetech: "SpaceTech",
+  constructiontech: "ConstructionTech",
+  wealthtech: "WealthTech / InvestTech",
+  gaming: "Gaming / Interactive",
+};
+
+export function detectSector(text: string): string | undefined {
+  if (/\bhealthtech\b|health\s*tech\b|medtech\b|digital\s*health\b|telehealth\b|clinical\b|tga\b|patient\b|ehr\b|emr\b|hospital\b/i.test(text)) return "healthtech";
+  if (/\bbiotech\b|bio\s*tech\b|life\s*science\b|genomic\b|crispr\b|pharmaceutical\b|drug\s*discovery\b/i.test(text)) return "biotech";
+  if (/\bfintech\b|fin\s*tech\b|financial\s*technology\b|neobank\b|payment|afsl\b|open\s*banking\b|lending\b|credit\b|crypto\b|blockchain\b/i.test(text)) return "fintech";
+  if (/\bwealthtech\b|wealth\s*tech\b|invest\s*tech\b|robo.advisor\b|portfolio\b|trading\s*platform\b|etf\b/i.test(text)) return "wealthtech";
+  if (/\binsurtech\b|insur\s*tech\b|insurance\s*tech\b|underwriting\b|claims\s*processing\b/i.test(text)) return "insurtech";
+  if (/\bedtech\b|ed\s*tech\b|education\s*tech\b|e-learning\b|lms\b|online\s*course\b|learning\s*platform\b|tutoring\b|curriculum\b/i.test(text)) return "edtech";
+  if (/\bdeeptech\b|deep\s*tech\b|r&d\s*heavy\b|hardware\b|quantum\b|semiconductor\b|robotics\b|drone\b|sensor\b/i.test(text)) return "deeptech";
+  if (/\blegaltech\b|legal\s*tech\b|lawtech\b|contract\s*automation\b|e.discovery\b|legal\s*ai\b|law\s*firm\b/i.test(text)) return "legaltech";
+  if (/\bproptech\b|prop\s*tech\b|real\s*estate\s*tech\b|property\s*management\b|rental\s*platform\b|landlord\b|tenant\b/i.test(text)) return "proptech";
+  if (/\bhrtech\b|hr\s*tech\b|human\s*resources\b|payroll\b|recruitment\b|talent\b|ats\b|workforce\b/i.test(text)) return "hrtech";
+  if (/\bagtech\b|ag\s*tech\b|foodtech\b|food\s*tech\b|agriculture\b|precision\s*farming\b|food\s*delivery\b/i.test(text)) return "agtech";
+  if (/\bcleantech\b|clean\s*tech\b|climatetech\b|climate\s*tech\b|renewabl\b|carbon\b|sustainability\b|net.zero\b|solar\b|battery\b/i.test(text)) return "cleantech";
+  if (/\bspacetech\b|space\s*tech\b|satellite\b|launch\s*vehicle\b|aerospace\b/i.test(text)) return "spacetech";
+  if (/\bconstruction\s*tech\b|contech\b|building\s*management\b|bim\b|smart\s*building\b/i.test(text)) return "constructiontech";
+  if (/\bcybersecurity\b|cyber\s*security\b|cyber\s*tech\b|infosec\b|soc\b|zero.trust\b|devsecops\b/i.test(text)) return "cybertech";
+  if (/\blogistic\b|supply\s*chain\b|freight\b|last.mile\b|fulfilment\b|warehouse\b/i.test(text)) return "logisticstech";
+  if (/\bretailtech\b|retail\s*tech\b|pos\b|point\s*of\s*sale\b|inventory\s*management\b|omnichannel\b/i.test(text)) return "retailtech";
+  if (/\bgovtech\b|gov\s*tech\b|civic\s*tech\b|government\s*software\b|public\s*sector\b/i.test(text)) return "govtech";
+  if (/\bsportstech\b|sports\s*tech\b|fitness\s*tech\b|wearable\b|athletic\b|sports\s*analytics\b/i.test(text)) return "sportstech";
+  if (/\btraveltech\b|travel\s*tech\b|hospitality\s*tech\b|booking\s*platform\b|hotel\b|flight\b|tourism\b/i.test(text)) return "traveltech";
+  if (/\bmediatech\b|media\s*tech\b|creator\b|content\s*platform\b|streaming\b|podcast\b|newsletter\b/i.test(text)) return "mediatech";
+  if (/\bgaming\b|game\s*studio\b|interactive\b|esport\b|metaverse\b|web3\s*game\b/i.test(text)) return "gaming";
+  if (/\bmarketplace\b|two.sided\b|multi.sided\b|platform\s*connecting\b|gig\s*economy\b|peer.to.peer\b/i.test(text)) return "marketplace";
+  if (/\be-?commerce\b|d2c\b|direct.to.consumer\b|online\s*store\b|shopify\b|dropship\b/i.test(text)) return "ecommerce";
+  if (/\bsaas\b|software.as.a.service\b|\bmrr\b|\barr\b|subscription\s*(model|software)\b|b2b\s*software\b/i.test(text)) return "saas";
+  return undefined;
+}
+
 export interface SVIExtractedSignals {
   // Founder signals
   hasCoFounder: boolean;
@@ -78,6 +136,7 @@ export interface SVIExtractedSignals {
   hasNetworkEffect: boolean;
   hasDataAdvantage: boolean;
   hasSwitchingCosts: boolean;
+  sector?: string; // detected industry vertical
 
   // Product signals
   hasProduct: boolean;
@@ -142,9 +201,19 @@ export interface SVIEvidenceGap {
   evidenceType: string;
 }
 
+// ─── CI Boosts: derived from competitive intelligence when website is analyzed ──
+export interface CIBoosts {
+  sciScore: number;                                                    // 0-100 composite SCI
+  blueOceanScore: number;                                             // 0-100 differentiation
+  marketMaturity: WebsiteCompetitiveIntelligence["marketMaturity"];  // emerging|growing|mature|declining
+  competitionLevel: WebsiteCompetitiveIntelligence["competitionLevel"]; // low|medium|high|extreme
+  industry: string;
+  ebitdaMetrics?: MarketEbitdaMetrics;
+}
+
 export interface SVIAnalysis {
   version: string;
-  totalSVI: number;             // 0+ open-ended index (base 100 ± adjustments)
+  totalSVI: number;             // 0+ open-ended index (base 100 ± adjustments) — unbounded per startup
   baselineSVI: number;          // Always 100
   netAdjustment: number;        // Sum of all adjustments
   confidenceMultiplier: number; // 0.20–1.00 based on evidence level
@@ -161,6 +230,15 @@ export interface SVIAnalysis {
   weeklyDelta?: number;    // Optional: difference from prior snapshot
   percentileRank?: number; // 10-90 based on benchmark for current stage
   metricsBonus?: number;   // 0-50 bonus from real startup_metrics data
+  sector?: string;         // detected industry vertical (saas, fintech, healthtech, etc.)
+  sectorLabel?: string;    // human-readable sector label
+  dimensionScores?: Record<string, number>; // quick-access map of key → score
+  // v2.1: AI-powered competitive intelligence (populated when website URL is provided)
+  competitiveIntelligence?: WebsiteCompetitiveIntelligence;
+  websiteUrl?: string;     // the website analyzed, if any
+  // v2.2: CI-derived SVI boosts and market EBITDA metrics
+  ciBoost?: number;         // Total SVI points added from competitive intelligence
+  marketEbitdaMetrics?: MarketEbitdaMetrics; // Market-level EBITDA benchmarks for this sector
 }
 
 // ─── Startup metrics input shape ─────────────────────────────────────────────
@@ -336,6 +414,8 @@ export function extractSignals(
 
   const targetRaiseMentioned = has("raising", "raise", "funding", "investment", "seed round", "series");
 
+  const sector = detectSector(text);
+
   const signals: SVIExtractedSignals = {
     hasCoFounder: has("co-founder", "cofounder", "co founder", "2 founders", "three founders", "team of"),
     founderExperience,
@@ -349,6 +429,7 @@ export function extractSignals(
     hasNetworkEffect,
     hasDataAdvantage,
     hasSwitchingCosts,
+    sector,
     hasProduct: has("product", "app", "platform", "tool", "software", "mvp", "beta", "saas"),
     hasDemo: has("demo", "prototype", "proof of concept", "poc", "live"),
     hasSourceCode: has("github", "gitlab", "bitbucket", "source code", "repository", "open source"),
@@ -573,13 +654,14 @@ function calcPercentileRank(
   return 10;
 }
 
-// ─── SVI v2 computation ───────────────────────────────────────────────────────
+// ─── SVI v2.2 computation ────────────────────────────────────────────────────
 export function computeSVI(
   signals: SVIExtractedSignals,
   weeklyDelta?: number,
   techAuditBoosts?: { ptdBoost: number; svmBoost: number; treBoost: number; lcoBoost: number },
   repoAuditBoosts?: { ptdBoost: number; svmBoost: number; ftvBoost: number; treBoost: number },
   metricsBonus?: number,
+  ciBoosts?: CIBoosts,
 ): SVIAnalysis {
   const confidence = EVIDENCE_CONFIDENCE[signals.evidenceLevel] ?? 0.20;
 
@@ -817,6 +899,132 @@ export function computeSVI(
   const svmScore = clamp(svmRaw, 0, 100);
   const svmAdj = Math.round((svmScore - 50) * 0.05 * confidence);
 
+  // ── Dimension 9: CI — Competitive Intelligence Boost (when website analyzed) ──
+  // Adds a direct SVI bonus based on: SCI score, blue ocean score, market maturity,
+  // competition level. Computed as a separate bonus (not dimension-level) to avoid
+  // retroactively modifying already-clamped dimension scores.
+  let ciTotalBoost = 0;
+  const ciEvidence: string[] = [];
+
+  if (ciBoosts) {
+    // SCI score drives overall competitive strength (+/-10 max)
+    if (ciBoosts.sciScore >= 75) {
+      ciTotalBoost += 10;
+      ciEvidence.push(`SCI ${ciBoosts.sciScore}/100 — exceptional competitive positioning (+10)`);
+    } else if (ciBoosts.sciScore >= 55) {
+      ciTotalBoost += 6;
+      ciEvidence.push(`SCI ${ciBoosts.sciScore}/100 — strong competitive positioning (+6)`);
+    } else if (ciBoosts.sciScore >= 40) {
+      ciTotalBoost += 3;
+      ciEvidence.push(`SCI ${ciBoosts.sciScore}/100 — developing competitive position (+3)`);
+    } else if (ciBoosts.sciScore < 30) {
+      ciTotalBoost -= 3;
+      ciEvidence.push(`SCI ${ciBoosts.sciScore}/100 — weak competitive position (−3)`);
+    }
+
+    // Blue ocean score: differentiated market = higher opportunity quality (+/-8 max)
+    if (ciBoosts.blueOceanScore >= 70) {
+      ciTotalBoost += 8;
+      ciEvidence.push(`Blue ocean ${ciBoosts.blueOceanScore}/100 — differentiated positioning (+8)`);
+    } else if (ciBoosts.blueOceanScore >= 50) {
+      ciTotalBoost += 4;
+      ciEvidence.push(`Blue ocean ${ciBoosts.blueOceanScore}/100 — moderate differentiation (+4)`);
+    }
+
+    // Market maturity: first-mover advantage in emerging markets (+/-6 max)
+    if (ciBoosts.marketMaturity === "emerging") {
+      ciTotalBoost += 6;
+      ciEvidence.push("Emerging market — first-mover timing advantage (+6)");
+    } else if (ciBoosts.marketMaturity === "declining") {
+      ciTotalBoost -= 5;
+      ciEvidence.push("Declining market — structural growth headwinds (−5)");
+    }
+
+    // Competition level: low = opportunity signal; extreme = risk flag (+/-5 max)
+    if (ciBoosts.competitionLevel === "low") {
+      ciTotalBoost += 5;
+      ciEvidence.push("Low competition environment (+5)");
+    } else if (ciBoosts.competitionLevel === "extreme") {
+      ciTotalBoost -= 5;
+      ciEvidence.push("Hyper-competitive market — strong differentiation required (−5)");
+    }
+
+    // Apply CI evidence to the SVM sub-score display (informational, doesn't change svmScore)
+    if (ciEvidence.length > 0) {
+      svmEvidence.push(...ciEvidence);
+    }
+  }
+
+  // ── Sector-specific adjustments ────────────────────────────────────────────
+  // Different sectors have different valuation drivers — reward sector-specific
+  // evidence so two ideas in different verticals get differentiated scores.
+  let sectorAdj = 0;
+  const sector = signals.sector;
+  if (sector === "fintech" || sector === "wealthtech" || sector === "insurtech") {
+    // FinTech cluster: compliance and regulatory clarity is high-value
+    if (signals.hasContracts || signals.hasLegalDocs) sectorAdj += 4;
+    if (signals.hasABN) sectorAdj += 3;
+    if (signals.hasMoat) sectorAdj += 2;
+  } else if (sector === "healthtech" || sector === "biotech") {
+    // HealthTech / BioTech: clinical validation and regulatory pathway
+    if (signals.hasCustomerInterviews) sectorAdj += 5;
+    if (signals.hasIPProtection) sectorAdj += 4;
+    if (signals.hasABN) sectorAdj += 2;
+  } else if (sector === "deeptech" || sector === "spacetech") {
+    // DeepTech / SpaceTech: IP and R&D are primary moat indicators
+    if (signals.hasIPProtection) sectorAdj += 6;
+    if (signals.hasSourceCode) sectorAdj += 3;
+    if (signals.hasCoFounder) sectorAdj += 3; // Team depth critical
+  } else if (sector === "marketplace") {
+    // Marketplace: network effects are the primary moat
+    if (signals.hasNetworkEffect) sectorAdj += 6;
+    if (signals.hasCustomers) sectorAdj += 4;
+  } else if (sector === "saas") {
+    // SaaS: recurring revenue and data room are key
+    if (signals.hasRevenue) sectorAdj += 4;
+    if (signals.hasFinancialModel) sectorAdj += 3;
+  } else if (sector === "ecommerce" || sector === "retailtech") {
+    // eCommerce / RetailTech: customer traction and social proof
+    if (signals.hasSocialProof) sectorAdj += 4;
+    if (signals.hasAnalytics) sectorAdj += 3;
+  } else if (sector === "edtech") {
+    // EdTech: engagement and validated curriculum/content
+    if (signals.hasCustomerInterviews) sectorAdj += 4;
+    if (signals.hasSocialProof) sectorAdj += 3;
+  } else if (sector === "legaltech") {
+    // LegalTech: automation and IP moat
+    if (signals.hasIPProtection) sectorAdj += 4;
+    if (signals.hasContracts || signals.hasLegalDocs) sectorAdj += 3;
+  } else if (sector === "proptech") {
+    // PropTech: traction and market relationships
+    if (signals.hasCustomers) sectorAdj += 4;
+    if (signals.hasMoat) sectorAdj += 3;
+  } else if (sector === "hrtech") {
+    // HRTech: enterprise integrations and data
+    if (signals.hasDataAdvantage) sectorAdj += 4;
+    if (signals.hasRevenue) sectorAdj += 3;
+  } else if (sector === "cleantech" || sector === "agtech") {
+    // CleanTech / AgTech: IP and impact metrics
+    if (signals.hasIPProtection) sectorAdj += 5;
+    if (signals.hasCustomerInterviews) sectorAdj += 3;
+  } else if (sector === "cybertech") {
+    // CyberSecurity: compliance and enterprise credibility
+    if (signals.hasContracts) sectorAdj += 4;
+    if (signals.hasMoat) sectorAdj += 4;
+  } else if (sector === "logisticstech" || sector === "constructiontech") {
+    // Ops-heavy sectors: traction and customers are key
+    if (signals.hasCustomers) sectorAdj += 4;
+    if (signals.hasAnalytics) sectorAdj += 3;
+  } else if (sector === "mediatech" || sector === "gaming") {
+    // Consumer/Media: social proof and traction
+    if (signals.hasSocialProof) sectorAdj += 5;
+    if (signals.hasAnalytics) sectorAdj += 3;
+  } else if (sector === "traveltech" || sector === "govtech" || sector === "sportstech") {
+    // Domain-specific: problem validation and partnerships
+    if (signals.hasCustomerInterviews) sectorAdj += 4;
+    if (signals.hasMoat) sectorAdj += 3;
+  }
+
   // ── Stage detection ─────────────────────────────────────────────────────────
   const stage = detectStage(signals);
   const stageLabel = SVI_STAGE_LABELS[stage] ?? "Concept";
@@ -934,10 +1142,13 @@ export function computeSVI(
   const totalPenalty = riskPenalties.reduce((s, r) => s + r.points, 0);
 
   // ── SVI total ───────────────────────────────────────────────────────────────
+  // Each startup's SVI is fully independent and unbounded (0+ open-ended index).
+  // Like Nikkei/Dow Jones, each component (startup) grows without cap; the aggregate
+  // across all startups in the platform index is also unlimited.
   const netAdj = ftvAdj + mpcAdj + ptdAdj + treAdj + cghAdj + iriAdj + lcoAdj + svmAdj;
-  // SVI is an open-ended index (0+ range) — like a stock market index, it grows without limit
   const effectiveMetricsBonus = metricsBonus ?? 0;
-  const totalSVI = Math.round(Math.max(0, 100 + netAdj + stageBonus - totalPenalty + effectiveMetricsBonus));
+  const effectiveCIBoost = ciBoosts ? ciTotalBoost : 0;
+  const totalSVI = Math.round(Math.max(0, 100 + netAdj + stageBonus - totalPenalty + effectiveMetricsBonus + sectorAdj + effectiveCIBoost));
 
   const percentileRank = calcPercentileRank(totalSVI, stage);
 
@@ -1142,11 +1353,18 @@ export function computeSVI(
       : "Evidence base is solid."
   }`;
 
+  const dimensionScores: Record<string, number> = Object.fromEntries(
+    subs.map((s) => [s.key, s.value]),
+  );
+
+  // Resolve human-readable sector label
+  const sectorLabel = sector ? (SECTOR_LABELS[sector] ?? sector) : undefined;
+
   return {
     version: SVI_VERSION,
     totalSVI,
     baselineSVI: 100,
-    netAdjustment: netAdj + stageBonus - totalPenalty + effectiveMetricsBonus,
+    netAdjustment: netAdj + stageBonus - totalPenalty + effectiveMetricsBonus + sectorAdj + effectiveCIBoost,
     confidenceMultiplier: confidence,
     subs,
     riskPenalties,
@@ -1160,5 +1378,10 @@ export function computeSVI(
     weeklyDelta,
     percentileRank,
     metricsBonus: effectiveMetricsBonus > 0 ? effectiveMetricsBonus : undefined,
+    sector,
+    sectorLabel,
+    dimensionScores,
+    ciBoost: effectiveCIBoost !== 0 ? effectiveCIBoost : undefined,
+    marketEbitdaMetrics: ciBoosts?.ebitdaMetrics,
   };
 }

@@ -406,8 +406,14 @@ export function SVIDashboard({
   const deltaValue = analysis.weeklyDelta ?? (previousSVI != null ? analysis.totalSVI - previousSVI : 0);
   const deltaPositive = deltaValue >= 0;
 
-  // Valuation estimate
-  const est = estimateValuation(analysis.totalSVI, analysis.stage ?? 0);
+  // Valuation estimate — pass dimensions and sector for idea-specific accuracy
+  const dims = analysis.dimensionScores ?? Object.fromEntries((analysis.subs ?? []).map(s => [s.key, s.value]));
+  const est = estimateValuation(
+    analysis.totalSVI,
+    analysis.stage ?? 0,
+    { sector: analysis.sector ?? analysis.signals?.sector },
+    dims,
+  );
 
   // Sort dimensions by score (lowest first) for prioritized improvement suggestions
   const sortedSubs = [...analysis.subs].sort((a, b) => a.value - b.value);

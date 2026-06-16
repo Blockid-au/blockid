@@ -1,16 +1,24 @@
 // Deep Website Technology Audit endpoint
 //
 // POST /api/website-tech-audit
-// Body: { url: string, accountId?: string }
+// Body: { url: string, accountId?: string, analyzeCI?: boolean }
 //
 // Performs a comprehensive technical analysis of a website URL and returns
-// detailed security, performance, tech stack, and product maturity data.
+// detailed security, performance, tech stack, product maturity data, and
+// AI-powered competitive intelligence (SCI score, GTM, elevation plan).
 // Optionally creates svi_evidence entries if accountId is provided.
 
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
-import { deepTechAudit, type TechAuditResult } from "@/lib/rnd-input";
+import { deepTechAudit, scrapeUrl, type TechAuditResult } from "@/lib/rnd-input";
+import { detectSector } from "@/lib/svi-analysis";
+import {
+  analyzeWebsiteCI,
+  computeHeuristicSCI,
+  getSectorEbitdaBenchmarks,
+  type WebsiteCompetitiveIntelligence,
+} from "@/lib/competitive-intelligence";
 
 export const dynamic = "force-dynamic";
 
@@ -176,14 +184,86 @@ function buildEvidenceEntries(audit: TechAuditResult, accountId: string) {
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as { url?: string };
+    const body = (await request.json()) as { url?: string; analyzeCI?: boolean };
 
     if (!body?.url || typeof body.url !== "string") {
       return NextResponse.json({ ok: false, error: "url is required" }, { status: 400 });
     }
 
-    // Run deep tech audit
-    const audit = await deepTechAudit(body.url);
+    // Run deep tech audit and content scrape in parallel
+    const [audit, scraped] = await Promise.all([
+      deepTechAudit(body.url),
+      scrapeUrl(body.url).catch(() => ({ title: "", description: "", text: "", techHints: [] })),
+    ]);
+
+    // Detect sector from combined content
+    const combinedText = [scraped.title, scraped.description, scraped.text].join(" ");
+    const detectedSector = detectSector(combinedText);
+
+    // AI Competitive Intelligence — run if requested OR by default for authenticated users
+    let competitiveIntelligence: WebsiteCompetitiveIntelligence | null = null;
+
+    const shouldRunCI = body.analyzeCI !== false; // default: true
+    if (shouldRunCI) {
+      // Try AI-powered CI analysis first, fall back to heuristic
+      const aiCI = await analyzeWebsiteCI(
+        body.url,
+        { title: scraped.title, description: scraped.description, text: scraped.text },
+        audit,
+        detectedSector,
+      );
+
+      if (aiCI) {
+        competitiveIntelligence = aiCI;
+      } else {
+        // Heuristic fallback — no AI required
+        const heuristic = computeHeuristicSCI(audit, detectedSector);
+        competitiveIntelligence = {
+          ...heuristic,
+          marketMaturity: "growing",
+          subSector: detectedSector ?? "Technology",
+          targetCustomer: "To be determined",
+          revenueModelFit: ["SaaS / Subscription", "Transactional", "Marketplace commission"],
+          competitors: [],
+          uniquePositioning: "Analysis requires more website content",
+          gtmStrategy: {
+            primaryChannel: "Direct / Inbound",
+            phase1: { title: "Discovery", tactics: ["Content marketing", "SEO", "Direct outreach"], timeline: "Month 1-3" },
+            phase2: { title: "Traction", tactics: ["Paid acquisition", "Partnerships", "Product-led growth"], timeline: "Month 4-9" },
+            phase3: { title: "Scale", tactics: ["Channel sales", "Enterprise outbound", "Community"], timeline: "Month 10-18" },
+            estimatedCAC: "Not estimated",
+            estimatedLTV: "Not estimated",
+            keyMetrics: ["MRR", "CAC", "LTV", "Churn rate"],
+          },
+          developmentDirection: {
+            shortTerm: ["Validate product-market fit", "Acquire first 10 customers", "Build core feature set"],
+            mediumTerm: ["Reach $10k MRR", "Hire key roles", "Establish repeatable GTM"],
+            longTerm: ["Raise Series A", "Expand market", "Build platform moat"],
+            keyMilestones: ["First customer", "$1k MRR", "$10k MRR", "Series A ready"],
+          },
+          elevationPlan: {
+            currentPosition: "Early-stage startup with live website",
+            targetPosition: "Revenue-generating startup with defined GTM and traction",
+            steps: [
+              { title: "Define ICP", detail: "Narrow ideal customer profile to one segment", impact: "Faster sales cycles", timeframe: "Month 1" },
+              { title: "Get 10 paying customers", detail: "Founder-led sales, direct outreach", impact: "Validate revenue model", timeframe: "Month 1-3" },
+              { title: "Build evidence base", detail: "Document traction, connect analytics and Stripe", impact: "+15 SVI points", timeframe: "Month 2-4" },
+            ],
+            fundingNeeds: "Pre-seed $200k-$500k to reach product-market fit",
+            keyHires: ["Head of Sales / BD", "CTO / Technical Lead", "Marketing Lead"],
+          },
+          swot: {
+            strengths: ["Live product", "Technical foundation in place"],
+            weaknesses: ["Limited traction data available", "Market positioning unclear"],
+            opportunities: ["Growing digital adoption", "Underserved niche potential"],
+            threats: ["Well-funded competitors", "Market commoditisation"],
+          },
+          ebitdaMetrics: getSectorEbitdaBenchmarks(detectedSector ?? "default"),
+          analysisConfidence: 30,
+          analysisNotes: "Heuristic analysis only — AI analysis unavailable. Provide more website content for deeper insights.",
+        } as WebsiteCompetitiveIntelligence;
+      }
+    }
 
     // If authenticated, auto-create evidence entries
     const auth = await authenticateRequest();
@@ -217,6 +297,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       audit,
+      detectedSector,
+      competitiveIntelligence,
       evidenceCreated,
     });
   } catch (err) {

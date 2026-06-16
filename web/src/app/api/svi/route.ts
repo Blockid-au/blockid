@@ -6,6 +6,8 @@ import { newSlug } from "@/lib/slug";
 import { sendSVIReport, sendWelcomeWithReport } from "@/lib/email";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { autoCreateUserWithTempPassword } from "@/lib/auth";
+import { detectInputType, scrapeUrl, deepTechAudit } from "@/lib/rnd-input";
+import { analyzeWebsiteCI, computeHeuristicSCI } from "@/lib/competitive-intelligence";
 
 // POST /api/svi
 // Body: { email, input: { rawText, fileName? } }
@@ -88,8 +90,79 @@ export async function POST(request: Request) {
   const localeStore = await cookies();
   const locale = localeStore.get("blockid_lang")?.value === "vi" ? "vi" as const : "en" as const;
 
-  const signals = extractSignals(parsed.input);
-  const analysis = computeSVI(signals);
+  // ── Website detection & competitive intelligence ────────────────────
+  // If the raw input is a URL, scrape the website and run deep analysis
+  // before the SVI computation so signals can be enriched by the audit.
+  let techAudit = null;
+  let competitiveIntelligence = null;
+  let websiteUrl: string | null = null;
+  let enrichedText = parsed.input.rawText;
+
+  const inputType = detectInputType(parsed.input.rawText, parsed.input.fileName);
+  if (inputType === "url") {
+    websiteUrl = parsed.input.rawText.trim();
+    if (!websiteUrl.startsWith("http")) websiteUrl = `https://${websiteUrl}`;
+
+    try {
+      // Run tech audit + content scrape in parallel
+      const [auditResult, scraped] = await Promise.all([
+        deepTechAudit(websiteUrl).catch(() => null),
+        scrapeUrl(websiteUrl).catch(() => ({ title: "", description: "", text: "", techHints: [] })),
+      ]);
+      techAudit = auditResult;
+
+      // Enrich text with scraped content for better signal extraction
+      if (scraped.text) {
+        enrichedText = [
+          websiteUrl,
+          scraped.title,
+          scraped.description,
+          scraped.text,
+        ].filter(Boolean).join(" ");
+      }
+
+      // Run AI competitive intelligence
+      const { detectSector } = await import("@/lib/svi-analysis");
+      const detectedSector = detectSector(enrichedText);
+
+      const aiCI = await analyzeWebsiteCI(
+        websiteUrl,
+        { title: scraped.title, description: scraped.description, text: scraped.text },
+        techAudit,
+        detectedSector,
+      ).catch(() => null);
+
+      if (aiCI) {
+        competitiveIntelligence = aiCI;
+      } else if (techAudit) {
+        // Heuristic only — cast to null so we don't attach incomplete CI
+        void computeHeuristicSCI(techAudit, detectedSector);
+        competitiveIntelligence = null;
+      }
+    } catch {
+      // Non-blocking: if website analysis fails, proceed with text-only SVI
+    }
+  }
+
+  const enrichedInput: SVITextInput = { ...parsed.input, rawText: enrichedText };
+  const signals = extractSignals(enrichedInput, parsed.input.fileName, undefined, techAudit ?? undefined);
+
+  // Build CI boosts from competitive intelligence when website was analyzed
+  const ciBoosts = competitiveIntelligence ? {
+    sciScore: competitiveIntelligence.sciScore,
+    blueOceanScore: competitiveIntelligence.blueOceanScore,
+    marketMaturity: competitiveIntelligence.marketMaturity,
+    competitionLevel: competitiveIntelligence.competitionLevel,
+    industry: competitiveIntelligence.industry,
+    ebitdaMetrics: competitiveIntelligence.ebitdaMetrics,
+  } : undefined;
+
+  let analysis = computeSVI(signals, undefined, undefined, undefined, undefined, ciBoosts);
+
+  // Attach competitive intelligence and website URL to the analysis result
+  if (competitiveIntelligence) {
+    analysis = { ...analysis, competitiveIntelligence, websiteUrl: websiteUrl ?? undefined };
+  }
 
   const supabase = getSupabaseAdmin();
   let slug = newSlug();

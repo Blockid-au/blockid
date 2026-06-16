@@ -45,7 +45,8 @@ export function StartupHealthHero({ analysis, lastAnalysisDate, previousSVI }: P
   const stage = analysis.stage ?? 0;
   const stageLabel = SVI_STAGE_LABELS[stage] ?? "Concept";
   const delta = previousSVI != null ? svi - previousSVI : undefined;
-  const val = estimateValuation(svi, stage);
+  const dims = analysis.dimensionScores ?? Object.fromEntries((analysis.subs ?? []).map(s => [s.key, s.value]));
+  const val = estimateValuation(svi, stage, { sector: analysis.sector ?? analysis.signals?.sector }, dims);
   const percentile = analysis.percentileRank ?? 50;
 
   // Ring progress (capped at 250 for visual)

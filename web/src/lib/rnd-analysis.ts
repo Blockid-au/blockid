@@ -1,6 +1,6 @@
 import "server-only";
 import type { SVIAnalysis } from "./svi-analysis";
-import { SVI_STAGE_LABELS } from "./svi-analysis";
+import { SVI_STAGE_LABELS, detectSector } from "./svi-analysis";
 import type { InputType, TechAuditResult } from "./rnd-input";
 import { callAI } from "./ai-client";
 import { type SectionDepth, SECTION_DEPTH_CONFIG, calculateReportCost } from "./credits";
@@ -142,18 +142,9 @@ const INDUSTRY_GUIDANCE: Record<string, string> = {
   deeptech: "Focus on: IP protection, R&D timeline, grant eligibility (R&D Tax Incentive). Reference CSIRO collaboration opportunities.",
 };
 
-/** Detect industry from raw text or scraped data — returns the INDUSTRY_GUIDANCE key or undefined. */
+/** Detect industry from raw text or scraped data — wraps shared detectSector. */
 function detectIndustry(input: string, scrapedText?: string): string | undefined {
-  const combined = `${input}\n${scrapedText ?? ""}`.toLowerCase();
-  // Ordered by specificity — check compound terms first
-  if (/\bhealthtech\b|health\s*tech\b|medtech\b|digital\s*health\b|telehealth\b|clinical\b/i.test(combined)) return "healthtech";
-  if (/\bfintech\b|fin\s*tech\b|financial\s*technology\b|neobank\b|payment/i.test(combined)) return "fintech";
-  if (/\bedtech\b|ed\s*tech\b|education\s*tech\b|e-learning\b|lms\b/i.test(combined)) return "edtech";
-  if (/\bdeeptech\b|deep\s*tech\b|r&d\s*heavy\b|hardware\b|biotech\b|quantum\b/i.test(combined)) return "deeptech";
-  if (/\bmarketplace\b|two.sided\b|multi.sided\b|platform\s*connecting/i.test(combined)) return "marketplace";
-  if (/\be-?commerce\b|d2c\b|direct.to.consumer\b|online\s*store\b|shopify\b/i.test(combined)) return "ecommerce";
-  if (/\bsaas\b|software.as.a.service\b|\bmrr\b|\barr\b|subscription\s*(model|software)/i.test(combined)) return "saas";
-  return undefined;
+  return detectSector(`${input}\n${scrapedText ?? ""}`);
 }
 
 // ── Context builder ──────────────────────────────────────────────────────────
@@ -248,12 +239,13 @@ ${gapSummary || "None"}`;
     }
   }
 
-  // Industry-specific guidance — detect from raw input or scraped content
-  const detectedIndustry = detectIndustry(input, scrapedData?.text);
+  // Industry-specific guidance — use sector from SVIAnalysis if set, else detect
+  const detectedIndustry = sviAnalysis.sector ?? detectIndustry(input, scrapedData?.text);
   if (detectedIndustry && INDUSTRY_GUIDANCE[detectedIndustry]) {
-    ctx += `\n\n## Industry-Specific Guidance (${detectedIndustry.toUpperCase()}):
+    ctx += `\n\n## Industry Vertical: ${detectedIndustry.toUpperCase()}
+## Industry-Specific Guidance:
 ${INDUSTRY_GUIDANCE[detectedIndustry]}
-Apply this industry lens across ALL report pages — tailor market sizing, competitor analysis, financial projections, and recommendations to this specific vertical.`;
+Apply this industry lens across ALL report pages — tailor market sizing, competitor analysis, financial projections, and recommendations to this specific vertical. Do NOT use generic startup advice that ignores the ${detectedIndustry} sector context.`;
   }
 
   return ctx;

@@ -772,7 +772,8 @@ export function SVIReportPDF({
   const p1Gaps = analysis.evidenceGaps.filter((g) => g.priority === "P1");
 
   // ── SCN navigation data (Position / Value / Direction) ─────────────────
-  const valuation = estimateValuation(sviScore, analysis.stage);
+  const dims = analysis.dimensionScores ?? Object.fromEntries((analysis.subs ?? []).map(s => [s.key, s.value]));
+  const valuation = estimateValuation(sviScore, analysis.stage, { sector: analysis.sector ?? analysis.signals?.sector }, dims);
   const percentile = analysis.percentileRank ?? 50;
   const topPercent = Math.max(1, 100 - percentile);
   const weakestSub = [...analysis.subs].sort((a, b) => a.value - b.value)[0];
