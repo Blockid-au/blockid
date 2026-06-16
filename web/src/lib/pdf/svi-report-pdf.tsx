@@ -893,12 +893,28 @@ const STATUS_COLOR: Record<string, string> = {
   gap: "#F59E0B",
 };
 
-function ScnActionPlanPage({ plan }: { plan: NonNullable<SVIAnalysis["scnActionPlan"]> }) {
+function ScnActionPlanPage({ plan, maturity, cohort }: {
+  plan: NonNullable<SVIAnalysis["scnActionPlan"]>;
+  maturity?: SVIAnalysis["maturitySignal"];
+  cohort?: SVIAnalysis["cohortPercentile"];
+}) {
   const yn = plan.yourNumber;
 
   return (
     <View>
       <PageTitle title="What is your number?" subtitle="Your SVI, your valuation — and the SCN action plan to move both" />
+
+      {/* ── Maturity banner (only when established / scale-up) ────── */}
+      {maturity?.isEstablished && (
+        <View style={{ marginBottom: 10, padding: 8, backgroundColor: "#FEF3C7", borderRadius: 5, borderLeftWidth: 3, borderLeftColor: "#F59E0B" }}>
+          <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: "#B45309", letterSpacing: 1, textTransform: "uppercase", marginBottom: 2 }}>
+            Established / Scale-up signals detected ({maturity.confidence})
+          </Text>
+          <Text style={{ fontSize: 8, color: C.ink700, lineHeight: 1.4 }}>
+            The number below is anchored to public-page signals only. For accurate pricing, connect Stripe/Xero or upload current financials. Evidence: {maturity.evidence.slice(0, 2).join("; ")}.
+          </Text>
+        </View>
+      )}
 
       {/* ── Your Number hero ───────────────────────────────────────── */}
       <View style={{ marginBottom: 12, padding: 14, borderRadius: 8, backgroundColor: C.brand50, borderLeftWidth: 4, borderLeftColor: C.brand600 }}>
@@ -907,7 +923,14 @@ function ScnActionPlanPage({ plan }: { plan: NonNullable<SVIAnalysis["scnActionP
             <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: C.ink500, letterSpacing: 1, textTransform: "uppercase", marginBottom: 2 }}>SVI Score</Text>
             <Text style={{ fontSize: 32, fontFamily: "Helvetica-Bold", color: C.ink900 }}>{yn.sviScore}</Text>
             <Text style={{ fontSize: 8, color: C.ink600, marginTop: 2 }}>{yn.sviLabel}</Text>
-            <Text style={{ fontSize: 7, color: C.ink500, marginTop: 1 }}>{yn.sviPercentileLabel}</Text>
+            <Text style={{ fontSize: 7, color: C.ink500, marginTop: 1 }}>
+              {yn.sviPercentileLabel}
+              {cohort?.source === "real_cohort" && (
+                <Text style={{ color: C.brand600, fontFamily: "Helvetica-Bold" }}>
+                  {" "}(real cohort, n={cohort.cohortSize})
+                </Text>
+              )}
+            </Text>
           </View>
           <View style={{ flex: 1, borderLeftWidth: 0.5, borderLeftColor: C.brand200, paddingLeft: 12 }}>
             <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: C.ink500, letterSpacing: 1, textTransform: "uppercase", marginBottom: 2 }}>Blended Valuation</Text>
@@ -1380,7 +1403,11 @@ export function SVIReportPDF({
       {analysis.scnActionPlan && (
         <Page size="A4" style={s.page}>
           <HeaderBar />
-          <ScnActionPlanPage plan={analysis.scnActionPlan} />
+          <ScnActionPlanPage
+            plan={analysis.scnActionPlan}
+            maturity={analysis.maturitySignal}
+            cohort={analysis.cohortPercentile}
+          />
           <Footer />
         </Page>
       )}

@@ -253,6 +253,9 @@ export interface SVIAnalysis {
   deepValuation?: import("@/lib/agents/deep-valuation").DeepValuationAnalysis;
   // v2.4: SCN action plan — Validation → Position → Value → Direction → Capital
   scnActionPlan?: import("@/lib/agents/scn-action-plan").ScnActionPlan;
+  // v2.5: maturity guard + real cohort percentile (T0102)
+  maturitySignal?: import("@/lib/agents/maturity-detector").MaturitySignal;
+  cohortPercentile?: import("@/lib/agents/cohort-percentile").CohortPercentileResult;
 }
 
 // ─── Startup metrics input shape ─────────────────────────────────────────────

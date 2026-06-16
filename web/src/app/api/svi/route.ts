@@ -11,6 +11,8 @@ import { analyzeWebsiteCI, computeHeuristicSCI } from "@/lib/competitive-intelli
 import { extractProjectName } from "@/lib/project-name-extractor";
 import { buildDeepValuationAnalysis } from "@/lib/agents/deep-valuation";
 import { buildScnActionPlan } from "@/lib/agents/scn-action-plan";
+import { detectMaturity, maturityValuationGuard } from "@/lib/agents/maturity-detector";
+import { computeCohortPercentile } from "@/lib/agents/cohort-percentile";
 
 // POST /api/svi
 // Body: { email, input: { rawText, fileName? } }
@@ -195,12 +197,51 @@ export async function POST(request: Request) {
   if (competitiveIntelligence?.uniquePositioning) keyFindings.push(`Positioning: ${competitiveIntelligence.uniquePositioning}`);
   if (analysis.sector && !competitiveIntelligence?.industry) keyFindings.push(`Detected sector: ${analysis.sectorLabel ?? analysis.sector}`);
 
-  const deepValuation = buildDeepValuationAnalysis({
+  // ── Maturity guard: flag established companies so we don't over-value them ──
+  const maturitySignal = detectMaturity({
+    url: websiteUrl ?? undefined,
+    scrapedTitle,
+    scrapedDescription,
+    scrapedText: scrapedMeta?.text,
+    rawText: parsed.input.rawText,
+  });
+  const maturityGuard = maturityValuationGuard(maturitySignal);
+
+  let deepValuation = buildDeepValuationAnalysis({
     sviAnalysis: analysis,
     rawText: parsed.input.rawText,
     scrapedText: enrichedText !== parsed.input.rawText ? enrichedText : undefined,
     competitiveIntelligence: competitiveIntelligence ?? null,
   });
+
+  // When the input is clearly an established company (Stripe, Atlassian, etc.)
+  // overwrite the blended-valuation confidence to "low" and prepend a risk flag
+  // so the partner reading the PDF knows our number is directional only.
+  if (maturityGuard.override && maturityGuard.confidenceOverride) {
+    deepValuation = {
+      ...deepValuation,
+      blendedValuation: {
+        ...deepValuation.blendedValuation,
+        confidence: maturityGuard.confidenceOverride,
+      },
+      riskFlags: [
+        maturityGuard.reason ?? "Established company detected — valuation directional only.",
+        ...deepValuation.riskFlags,
+      ],
+    };
+  }
+
+  // ── Real cohort percentile (T0102) ────────────────────────────────────
+  // Replaces the band-based estimate with an actual cohort calculation when
+  // we have ≥20 same-stage snapshots in the SVI Index.
+  const cohort = await computeCohortPercentile({
+    sviScore: analysis.totalSVI,
+    stage: analysis.stage ?? 0,
+    fallbackPercentile: analysis.percentileRank ?? 50,
+  });
+  if (cohort.source === "real_cohort") {
+    analysis = { ...analysis, percentileRank: cohort.percentile };
+  }
 
   analysis = {
     ...analysis,
@@ -215,6 +256,13 @@ export async function POST(request: Request) {
       scrapedDescription,
     },
     deepValuation,
+  };
+
+  // Attach maturity + cohort to analysis so PDF/dashboard can surface them.
+  analysis = {
+    ...analysis,
+    maturitySignal,
+    cohortPercentile: cohort,
   };
 
   // SCN action plan — deterministic, references the deep valuation we just built
