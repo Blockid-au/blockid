@@ -6,6 +6,7 @@
 # Dependencies / build output (rebuilt inside the image)
 node_modules
 .next
+.next-backup
 out
 dist
 build
