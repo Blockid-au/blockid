@@ -25,6 +25,7 @@ import {
   TrendingUp,
   Users,
   Wallet,
+  Funnel,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
@@ -60,6 +61,7 @@ const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/roadmap", label: "Roadmap", icon: Map },
       { href: "/admin/documents", label: "Documents", icon: FileText },
       { href: "/admin/growth", label: "Growth Intelligence", icon: TrendingUp },
+      { href: "/admin/sales", label: "Sales Pipeline", icon: Funnel },
       { href: "/admin/rnd", label: "R&D Reports", icon: FlaskConical },
       { href: "/admin/accelerator", label: "Accelerator", icon: GraduationCap },
     ],

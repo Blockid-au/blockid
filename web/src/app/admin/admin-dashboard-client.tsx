@@ -230,6 +230,12 @@ export function AdminDashboardClient({
               highlight: true,
             },
             {
+              href: "/admin/sales",
+              label: "Sales Pipeline",
+              desc: "CRO lead tracking — view, update status, and export CSV",
+              highlight: true,
+            },
+            {
               href: "/admin/rnd",
               label: "AI R&D Agent",
               desc: "AI-powered market research, feature proposals & CTA optimization",
