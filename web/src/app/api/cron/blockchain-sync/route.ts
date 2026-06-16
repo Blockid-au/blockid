@@ -26,7 +26,9 @@ export async function GET(request: Request) {
       .gt("pending_events", 0);
 
     if (!accounts?.length) {
-      return NextResponse.json({ ok: true, message: "No pending events", accounts: 0 });
+      // noop:true → cron-runner skips writing this run to cron-health.jsonl.
+      // No pending transactions = nothing worth recording (was ~290 noise lines/day).
+      return NextResponse.json({ ok: true, noop: true, message: "No pending events", accounts: 0 });
     }
 
     let totalProcessed = 0;
