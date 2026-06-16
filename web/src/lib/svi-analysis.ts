@@ -251,6 +251,8 @@ export interface SVIAnalysis {
     scrapedDescription?: string;
   };
   deepValuation?: import("@/lib/agents/deep-valuation").DeepValuationAnalysis;
+  // v2.4: SCN action plan — Validation → Position → Value → Direction → Capital
+  scnActionPlan?: import("@/lib/agents/scn-action-plan").ScnActionPlan;
 }
 
 // ─── Startup metrics input shape ─────────────────────────────────────────────

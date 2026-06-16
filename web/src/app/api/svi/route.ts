@@ -10,6 +10,7 @@ import { detectInputType, scrapeUrl, deepTechAudit } from "@/lib/rnd-input";
 import { analyzeWebsiteCI, computeHeuristicSCI } from "@/lib/competitive-intelligence";
 import { extractProjectName } from "@/lib/project-name-extractor";
 import { buildDeepValuationAnalysis } from "@/lib/agents/deep-valuation";
+import { buildScnActionPlan } from "@/lib/agents/scn-action-plan";
 
 // POST /api/svi
 // Body: { email, input: { rawText, fileName? } }
@@ -214,6 +215,12 @@ export async function POST(request: Request) {
       scrapedDescription,
     },
     deepValuation,
+  };
+
+  // SCN action plan — deterministic, references the deep valuation we just built
+  analysis = {
+    ...analysis,
+    scnActionPlan: buildScnActionPlan({ analysis, deepValuation }),
   };
 
   const supabase = getSupabaseAdmin();
