@@ -361,23 +361,38 @@ function findCriticalErrors(): string[] {
     errors.push(`OOM detected: ${oomKills.split("\n")[0]?.slice(0, 120)}`);
   }
 
-  // Check cron failures today
-  const today = new Date().toISOString().slice(0, 10);
+  // Check cron failures in the last 2 hours that haven't recovered.
+  // A failure is "resolved" if the same endpoint had a successful run AFTER the fail.
+  // Avoids false DANGER alerts from old deploy blips persisting all day.
+  const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
   try {
     const healthPath = "/home/dovanlong/blockid.au/web/content/reports/cron-health.jsonl";
     if (fs.existsSync(healthPath)) {
       const lines = fs.readFileSync(healthPath, "utf8").split("\n").filter(Boolean);
-      const recentFails = lines
-        .filter(l => l.includes(today) && l.includes('"fail"'))
-        .slice(-3);
-      for (const line of recentFails) {
+      const recent: Array<{ ts: number; endpoint: string; status: string; detail?: string }> = [];
+      for (const l of lines) {
         try {
-          const data = JSON.parse(line);
-          errors.push(`Cron fail: ${data.endpoint || "unknown"} — ${(data.error || "").slice(0, 80)}`);
-        } catch {}
+          const d = JSON.parse(l) as { ts?: string; endpoint?: string; status?: string; detail?: string };
+          const t = d.ts ? new Date(d.ts).getTime() : 0;
+          if (t >= twoHoursAgo && d.endpoint && d.status) {
+            recent.push({ ts: t, endpoint: d.endpoint, status: d.status, detail: d.detail });
+          }
+        } catch { /* skip */ }
+      }
+      // Group by endpoint, find the latest entry per endpoint, alert only if it's a fail
+      const byEndpoint = new Map<string, { ts: number; status: string; detail?: string }>();
+      for (const r of recent) {
+        const prev = byEndpoint.get(r.endpoint);
+        if (!prev || r.ts > prev.ts) byEndpoint.set(r.endpoint, { ts: r.ts, status: r.status, detail: r.detail });
+      }
+      const unresolved = Array.from(byEndpoint.entries())
+        .filter(([, v]) => v.status === "fail")
+        .slice(-3);
+      for (const [endpoint, data] of unresolved) {
+        errors.push(`Cron fail: ${endpoint} — ${(data.detail || "").slice(0, 80)}`);
       }
     }
-  } catch {}
+  } catch { /* non-blocking */ }
 
   // Check SSL expiry
   const sslDays = run("echo | openssl s_client -servername blockid.au -connect blockid.au:443 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2");
