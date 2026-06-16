@@ -1,6 +1,6 @@
 {
-  "version": "2.4.3",
-  "updatedAt": "2026-06-16T08:00:43.864859Z",
+  "version": "2.5.0",
+  "updatedAt": "2026-06-16T10:25:05Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-06-15T14:30:22Z",
@@ -205,8 +205,9 @@
         "title": "Financial projection norms calculator",
         "rationale": "Implement financial projection norms calculator with growth, churn, gross margin, Rule of 40, NRR, CAC payback, LTV/CAC by stage to help Australian founders with financial planning",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-06-13T12:03:53.170Z"
+        "status": "done",
+        "createdAt": "2026-06-13T12:03:53.170Z",
+        "completedAt": "2026-06-16T10:25:05Z"
       },
       {
         "id": "T0034",
@@ -214,8 +215,9 @@
         "title": "Market sizing methodology framework",
         "rationale": "Develop a market sizing methodology framework with top-down and bottom-up TAM/SAM/SOM approaches and credible AU/global sources to support founders in market analysis",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-06-13T12:03:53.170Z"
+        "status": "done",
+        "createdAt": "2026-06-13T12:03:53.170Z",
+        "completedAt": "2026-06-16T10:25:05Z"
       },
       {
         "id": "T0035",
@@ -223,8 +225,9 @@
         "title": "AU startup marketing benchmarks 2026 report",
         "rationale": "Create a report on AU startup marketing benchmarks for 2026 to provide valuable insights for Australian founders in marketing strategy planning",
         "versionImpact": "patch",
-        "status": "pending",
-        "createdAt": "2026-06-13T12:03:53.170Z"
+        "status": "done",
+        "createdAt": "2026-06-13T12:03:53.170Z",
+        "completedAt": "2026-06-16T10:25:05Z"
       },
       {
         "id": "T0075",
@@ -352,8 +355,9 @@
         "title": "Financial Projection Norms Calculator (/tools/financial-projections)",
         "rationale": "Free interactive calculator: founders input stage/sector/ARR/headcount, receive AU benchmark norms (burn, runway, growth, CAC, LTV) from benchmarks.ts.",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-06-13T12:10:00.000Z"
+        "status": "done",
+        "createdAt": "2026-06-13T12:10:00.000Z",
+        "completedAt": "2026-06-16T10:25:05Z"
       },
       {
         "id": "T0087",
@@ -379,8 +383,9 @@
         "title": "Google Analytics OAuth evidence connector",
         "rationale": "Add GA4 OAuth flow on /dashboard/integrations; fetch monthly sessions + bounce rate; store as svi_evidence dimension mkt. Env stubs GOOGLE_CLIENT_ID/SECRET.",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-06-13T12:10:00.000Z"
+        "status": "done",
+        "createdAt": "2026-06-13T12:10:00.000Z",
+        "completedAt": "2026-06-16T10:25:05Z"
       },
       {
         "id": "T0090",
@@ -388,8 +393,9 @@
         "title": "SVI Cohort Benchmark page (/dashboard/benchmark)",
         "rationale": "Show user SVI vs anonymised AU pre-seed/seed cohort percentile; bar chart distribution, highlight user position.",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-06-13T12:10:00.000Z"
+        "status": "done",
+        "createdAt": "2026-06-13T12:10:00.000Z",
+        "completedAt": "2026-06-16T10:25:05Z"
       },
       {
         "id": "T0094",
@@ -593,8 +599,9 @@
         "title": "Financial projection norms calculator enhancements",
         "rationale": "Integrate growth, churn, gross margin, Rule of 40, NRR, CAC payback, LTV/CAC by stage into financial projections",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-06-14T12:04:02.438Z"
+        "status": "done",
+        "createdAt": "2026-06-14T12:04:02.438Z",
+        "completedAt": "2026-06-16T10:25:05Z"
       },
       {
         "id": "T0102",
@@ -611,8 +618,9 @@
         "title": "Next-Best-Action engine prototype",
         "rationale": "Develop a basic 'You-are-here → Next → Then' engine for founder navigation",
         "versionImpact": "major",
-        "status": "pending",
-        "createdAt": "2026-06-14T12:04:02.438Z"
+        "status": "done",
+        "createdAt": "2026-06-14T12:04:02.438Z",
+        "completedAt": "2026-06-16T10:24:19Z"
       },
       {
         "id": "T0200",
@@ -719,8 +727,9 @@
         "title": "AU salary benchmark + ESOP grant UI (Division 83A)",
         "rationale": "Pulls AU tech salary data (Looking Glass / Hatch / Refly) into a benchmark JSON per role × stage; renders into /dashboard/esop grants UI alongside Division 83A safe-harbour calc (T0094 ESOP pool exists, this layers the grants UX). KPI: salary benchmarks current, ESOP grants editable in dashboard.",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-06-15T13:04:29Z"
+        "status": "done",
+        "createdAt": "2026-06-15T13:04:29Z",
+        "completedAt": "2026-06-16T10:24:19Z"
       },
       {
         "id": "T0209",
