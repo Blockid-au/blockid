@@ -74,44 +74,79 @@ export const NEXT_JS_PERFORMANCE_OPTIMIZATION: {
 } = {
   bundleSizeReduction: 0.42, // 42% reduction in bundle size
   ttfbImprovement: 0.6, // 60% improvement in TTFB
-  reRendersReduction: 0.4, // 40% reduction in re-renders
-  serverComponentsClientJSReduction: 0.4, // 40% reduction in client JS
-  mobilePerformanceImprovementAPAC: 0.6 // 60% improvement in mobile performance on high-latency APAC networks
+  reRendersReduction: 0.4, // React 19 concurrent features reduce re-renders by 40%
+  mobilePerformanceImprovementAPAC: 0.6, // Streaming SSR improves mobile performance on high-latency APAC networks by 60%
+  serverComponentsClientJSReduction: 0.4, // Server Components reduce client JS by 40%
 }
 
-/** Calculates the potential cost savings of adopting Next.js 16 performance optimizations */
-export function calculateNextJSCostSavings(
+/** Next.js tech stack items with estimated costs */
+export const NEXT_JS_TECH_STACK_ITEMS: TechItem[] = [
+  {
+    name: 'Server',
+    type: 'infra',
+    monthlyCost: 500,
+    unit: 'instance',
+    notes: 'For server-side rendering and API routes',
+  },
+  {
+    name: 'CDN',
+    type: 'service',
+    monthlyCost: 100,
+    unit: 'GB',
+    notes: 'For caching and content delivery',
+  },
+  {
+    name: 'Monitoring Tool',
+    type: 'tool',
+    monthlyCost: 50,
+    unit: 'seat',
+    notes: 'For performance monitoring and error tracking',
+  },
+]
+
+/**
+ * Calculates the estimated monthly cost of a Next.js tech stack
+ * @param teamSize - The size of the development team
+ * @param infraItems - The infrastructure items required
+ * @param serviceItems - The services required
+ * @param toolItems - The tools required
+ * @returns The estimated monthly cost
+ */
+export function estimateNextJSTechStackCost(
+  teamSize: number,
+  infraItems: TechItem[],
+  serviceItems: TechItem[],
+  toolItems: TechItem[],
+): number {
+  const devCost = teamSize * AU_DEV_RATES['full-stack'].mid * 4 // assume 4 weeks per month
+  const infraCost = infraItems.reduce((acc, item) => acc + item.monthlyCost, 0)
+  const serviceCost = serviceItems.reduce((acc, item) => acc + item.monthlyCost, 0)
+  const toolCost = toolItems.reduce((acc, item) => acc + item.monthlyCost, 0)
+  return devCost + infraCost + serviceCost + toolCost
+}
+
+/**
+ * Calculates the estimated performance improvement of using Next.js 16
+ * @param currentBundleSize - The current bundle size
+ * @param currentTTFB - The current TTFB
+ * @param currentReRenders - The current number of re-renders
+ * @returns The estimated performance improvement
+ */
+export function estimateNextJSPerformanceImprovement(
   currentBundleSize: number,
   currentTTFB: number,
   currentReRenders: number,
-  currentMobilePerformanceAPAC: number
 ): {
-  bundleSizeSavings: number
-  ttfbSavings: number
-  reRendersSavings: number
-  mobilePerformanceSavingsAPAC: number
+  bundleSizeReduction: number
+  ttfbImprovement: number
+  reRendersReduction: number
 } {
-  const bundleSizeSavings =
-    currentBundleSize * NEXT_JS_PERFORMANCE_OPTIMIZATION.bundleSizeReduction
-  const ttfbSavings =
-    currentTTFB * NEXT_JS_PERFORMANCE_OPTIMIZATION.ttfbImprovement
-  const reRendersSavings =
-    currentReRenders * NEXT_JS_PERFORMANCE_OPTIMIZATION.reRendersReduction
-  const mobilePerformanceSavingsAPAC =
-    currentMobilePerformanceAPAC *
-    NEXT_JS_PERFORMANCE_OPTIMIZATION.mobilePerformanceImprovementAPAC
-
+  const bundleSizeReduction = currentBundleSize * NEXT_JS_PERFORMANCE_OPTIMIZATION.bundleSizeReduction
+  const ttfbImprovement = currentTTFB * NEXT_JS_PERFORMANCE_OPTIMIZATION.ttfbImprovement
+  const reRendersReduction = currentReRenders * NEXT_JS_PERFORMANCE_OPTIMIZATION.reRendersReduction
   return {
-    bundleSizeSavings,
-    ttfbSavings,
-    reRendersSavings,
-    mobilePerformanceSavingsAPAC,
+    bundleSizeReduction,
+    ttfbImprovement,
+    reRendersReduction,
   }
-}
-
-/** Calculates the potential cost savings of adopting Server Components */
-export function calculateServerComponentsCostSavings(
-  currentClientJS: number
-): number {
-  return currentClientJS * NEXT_JS_PERFORMANCE_OPTIMIZATION.serverComponentsClientJSReduction
 }
