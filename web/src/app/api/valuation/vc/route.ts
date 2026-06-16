@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { buildVcValuationReport, type VcValuationInput } from "@/lib/agents/cfo-valuation";
 import { findSVIAccountWithFallback, getProjectIdFromRequest } from "@/lib/projects";
+import type { SVIAnalysis } from "@/lib/svi-analysis";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,6 @@ export async function GET() {
       );
     }
 
-    const svi = (account.current_svi as number) ?? 100;
     const numericStage = (account.current_stage as number) ?? 0;
 
     // Map numeric SVI stage to VC stage string
@@ -68,6 +68,23 @@ export async function GET() {
       .limit(1)
       .maybeSingle();
 
+    // Fetch latest SVI analysis for this specific project (startup-specific signals)
+    const analysisQuery = supabase
+      .from("svi_analyses")
+      .select("analysis_json, total_svi, raw_input")
+      .eq("email", user.email);
+    if (projectId) {
+      analysisQuery.eq("project_id", projectId);
+    } else {
+      analysisQuery.is("project_id", null);
+    }
+    const { data: latestAnalysis } = await analysisQuery
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const analysisJson = latestAnalysis?.analysis_json as SVIAnalysis | null | undefined;
+
     // Infer sector from SVI analysis text (best-effort)
     function inferSector(text?: string): string | undefined {
       if (!text) return undefined;
@@ -81,9 +98,35 @@ export async function GET() {
       return undefined;
     }
 
-    const sector = inferSector(snapshot?.input_text as string | undefined);
+    // Prefer analysis raw_input for sector inference (most startup-specific signal)
+    const analysisRawInput = (latestAnalysis?.raw_input as string | null | undefined) ?? undefined;
+    const sector =
+      inferSector(analysisRawInput) ??
+      inferSector(snapshot?.input_text as string | undefined);
 
-    // Build VcValuationInput from available data
+    // Override stage from SVI analysis signals when available (more accurate per startup)
+    if (analysisJson?.stage != null) {
+      const s = analysisJson.stage;
+      if (s <= 1) stage = "pre-seed";
+      else if (s <= 4) stage = "seed";
+      else stage = "series-a";
+    }
+
+    // Use SVI score from analysis if account has no current_svi
+    const sviScore = (account.current_svi as number | null) ?? (latestAnalysis?.total_svi as number | null) ?? 100;
+
+    // Estimate TAM from market size signal in analysis (per-startup differentiation)
+    function tamFromMarketSize(marketSize?: string): number | undefined {
+      if (!marketSize) return undefined;
+      if (marketSize === "large") return 5_000_000_000;
+      if (marketSize === "medium") return 500_000_000;
+      if (marketSize === "small") return 50_000_000;
+      return undefined;
+    }
+
+    const tamAudFromSignals = tamFromMarketSize(analysisJson?.signals?.marketSize);
+
+    // Build VcValuationInput — prefer real metrics, fall back to analysis signals
     const mrrAud = (metrics?.mrr_aud as number | null) ?? undefined;
     const input: VcValuationInput = {
       sector,
@@ -94,6 +137,7 @@ export async function GET() {
       monthlyChurnPct: (metrics?.monthly_churn_pct as number | null) ?? undefined,
       cacAud: (metrics?.cac_aud as number | null) ?? undefined,
       customers: (metrics?.mau as number | null) ?? undefined,
+      tamAud: tamAudFromSignals,
     };
 
     const report = buildVcValuationReport(input);
@@ -101,11 +145,12 @@ export async function GET() {
     return NextResponse.json({
       ok: true,
       report,
-      svi,
+      svi: sviScore,
       stage,
       numericStage,
       dataSource: {
         hasMetrics: !!metrics,
+        hasAnalysis: !!latestAnalysis,
         hasSector: !!sector,
         mrrAud: mrrAud ?? null,
       },

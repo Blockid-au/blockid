@@ -301,22 +301,8 @@ export async function findSVIAccountWithFallback(
 
   if (!legacy) return null;
 
-  // 3. Auto-migrate: attach legacy account to current project
-  await supabase
-    .from("svi_accounts")
-    .update({
-      project_id: projectId,
-      last_active_at: new Date().toISOString(),
-    })
-    .eq("id", (legacy as any).id);
-
-  // 4. Also migrate orphaned svi_analyses for the same email
-  await supabase
-    .from("svi_analyses")
-    .update({ project_id: projectId })
-    .eq("email", email)
-    .is("project_id", null);
-
+  // Return legacy data read-only — do NOT migrate. Migration would incorrectly
+  // assign old analyses to the current project when multiple projects exist.
   return legacy as any;
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
