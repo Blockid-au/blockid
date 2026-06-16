@@ -8,6 +8,7 @@ import { getBalance } from "@/lib/credits";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { LivingSVIDashboard } from "@/components/dashboard/living-svi-dashboard";
 import { ScoreHistoryChart } from "@/components/svi/score-history-chart";
+import { NextBestActionWidget } from "@/components/dashboard/next-best-action-widget";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 
 export const metadata: Metadata = {
@@ -324,6 +325,13 @@ export default async function SVIDashboardPage() {
             startupGoals: user.startupGoals,
           }}
         />
+
+        {/* ── Next-Best-Action widget (T0103) ─────────────────────────── */}
+        {latestAnalysisId && (
+          <div className="rounded-2xl border border-border bg-card p-6">
+            <NextBestActionWidget startupId={latestAnalysisId} />
+          </div>
+        )}
       </div>
     </WorkspaceLayout>
   );
