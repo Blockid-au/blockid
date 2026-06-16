@@ -440,7 +440,7 @@ export function FinanceDashboardClient({ userEmail, startupName }: Props) {
         />
         <StatCard
           label="Runway"
-          value={runway === 999 ? "∞" : runway !== null ? `${runway.toFixed(0)}mo` : "Unknown"}
+          value={runway === 999 ? "∞" : "Unknown"}
           sub={runway === 999 ? "Profitable 🎉" : "Add cash balance in metrics"}
           highlight={runway === 999 ? "green" : undefined}
           icon={Wallet}
