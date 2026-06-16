@@ -330,8 +330,14 @@ function MetricCard({
   );
 }
 
-function ValuationRangeCard({ sviScore, stage }: { sviScore: number; stage: number }) {
-  const est = estimateValuation(sviScore, stage);
+function ValuationRangeCard({ sviScore, stage, analysis }: { sviScore: number; stage: number; analysis?: import("@/lib/svi-analysis").SVIAnalysis }) {
+  const dims = analysis?.dimensionScores ?? Object.fromEntries((analysis?.subs ?? []).map(s => [s.key, s.value]));
+  const est = estimateValuation(
+    sviScore,
+    stage,
+    { sector: analysis?.sector ?? analysis?.signals?.sector },
+    Object.keys(dims).length > 0 ? dims : undefined,
+  );
   return (
     <div className="mt-6 rounded-xl bg-surface-50 border border-surface-200 p-4">
       <p className="text-xs text-ink-500 mb-2">Estimated Valuation Range</p>
@@ -1882,7 +1888,7 @@ export function SVIResultsPanel({
             )}
 
             {/* Estimated Valuation Range */}
-            <ValuationRangeCard sviScore={analysis.totalSVI} stage={analysis.stage} />
+            <ValuationRangeCard sviScore={analysis.totalSVI} stage={analysis.stage} analysis={analysis} />
 
             <PageNavigation currentPage={1} onNavigate={navigateToPageNum} />
           </PageSection>

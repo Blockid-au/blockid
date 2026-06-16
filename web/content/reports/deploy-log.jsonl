@@ -147,3 +147,13 @@
 {"ts":"2026-06-15T14:51:23.265Z","event":"github-push-master","detail":"Blockid-au: fix(insights): serve .mdx articles (8 pages were 404) (1 commits)","source":"github-webhook"}
 {"ts":"2026-06-15T14:55:59.048Z","event":"github-push-master","detail":"Blockid-au: feat(coo): T0200 — 30-Day Validation Scoreboard at /dashboard/admin/30day (1 commits)","source":"github-webhook"}
 {"ts":"2026-06-15T14:58:13.087Z","event":"github-push-master","detail":"Blockid-au: feat(ciso): T0207 — daily Essential Eight-aligned security posture scan (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-15T14:59:13.215Z","event":"github-push-master","detail":"Blockid-au: chore(reports): refresh 14 daily briefs after T0200/T0205/T0207 shipped (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-15T15:28:43.514Z","event":"github-push-master","detail":"Blockid-au: feat(infra): /data drive monitoring + auto-cleanup, build fixes (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-15T15:33:06.167Z","event":"github-push-master","detail":"Blockid-au: fix(build): ignore tsc/eslint errors in webpack build (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-15T15:35:38.079Z","event":"github-push-master","detail":"Blockid-au: fix(accelerator): type CohortMemberRow to unblock tsc build (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-15T15:41:02.732Z","event":"github-push-master","detail":"Blockid-au: revert: webpack/tsc workarounds — bind mount fixes the root cause (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-15T15:43:27Z","status":"success","gates":"8/8","pid":"974316","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-15T18:40:00Z","status":"success","gates":"10/10","pid":"1492026","note":"Auto-upgrade (Claude subscription): feat(auto): T0035 \u2014 AU startup marketing benchmarks 2026 insight article"}
+{"ts":"2026-06-15T18:40:03.208Z","event":"github-push-master","detail":"Blockid-au: feat(auto): T0035 — AU startup marketing benchmarks 2026 insight article (1 commits)","source":"github-webhook"}
+{"ts":"2026-06-16T04:03:20Z","status":"success","gates":"10/10","pid":"3094053","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-06-16T04:05:38Z","status":"success","gates":"10/10","pid":"3101686","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}

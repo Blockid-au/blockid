@@ -69,55 +69,49 @@ export const NEXT_JS_PERFORMANCE_OPTIMIZATION: {
   bundleSizeReduction: number
   ttfbImprovement: number
   reRendersReduction: number
-  mobilePerformanceImprovement: number
+  mobilePerformanceImprovementAPAC: number
+  serverComponentsClientJSReduction: number
 } = {
   bundleSizeReduction: 0.42, // 42% reduction in bundle size
   ttfbImprovement: 0.6, // 60% improvement in TTFB
   reRendersReduction: 0.4, // 40% reduction in re-renders
-  mobilePerformanceImprovement: 0.6, // 60% improvement in mobile performance on high-latency APAC networks
+  serverComponentsClientJSReduction: 0.4, // 40% reduction in client JS
+  mobilePerformanceImprovementAPAC: 0.6 // 60% improvement in mobile performance on high-latency APAC networks
 }
 
-/** Australian mobile performance benchmarks (APAC) */
-export const AU_MOBILE_PERFORMANCE: {
-  averageLatency: number
-  highLatencyThreshold: number
-} = {
-  averageLatency: 150, // average latency in ms
-  highLatencyThreshold: 300, // high latency threshold in ms
+/** Calculates the potential cost savings of adopting Next.js 16 performance optimizations */
+export function calculateNextJSCostSavings(
+  currentBundleSize: number,
+  currentTTFB: number,
+  currentReRenders: number,
+  currentMobilePerformanceAPAC: number
+): {
+  bundleSizeSavings: number
+  ttfbSavings: number
+  reRendersSavings: number
+  mobilePerformanceSavingsAPAC: number
+} {
+  const bundleSizeSavings =
+    currentBundleSize * NEXT_JS_PERFORMANCE_OPTIMIZATION.bundleSizeReduction
+  const ttfbSavings =
+    currentTTFB * NEXT_JS_PERFORMANCE_OPTIMIZATION.ttfbImprovement
+  const reRendersSavings =
+    currentReRenders * NEXT_JS_PERFORMANCE_OPTIMIZATION.reRendersReduction
+  const mobilePerformanceSavingsAPAC =
+    currentMobilePerformanceAPAC *
+    NEXT_JS_PERFORMANCE_OPTIMIZATION.mobilePerformanceImprovementAPAC
+
+  return {
+    bundleSizeSavings,
+    ttfbSavings,
+    reRendersSavings,
+    mobilePerformanceSavingsAPAC,
+  }
 }
 
-/** Recommended tech stack for Australian startups */
-export const AU_STARTUP_TECH_STACK: {
-  frontend: string
-  backend: string
-  infrastructure: string
-} = {
-  frontend: "Next.js",
-  backend: "Node.js",
-  infrastructure: "AWS",
-}
-
-/** Calculates development cost savings using Next.js performance optimization */
-export function calculateDevelopmentCostSavings(
-  developmentCost: DevelopmentCost,
-  teamMember: TeamMember,
-  optimization: { bundleSizeReduction: number; ttfbImprovement: number; reRendersReduction: number }
+/** Calculates the potential cost savings of adopting Server Components */
+export function calculateServerComponentsCostSavings(
+  currentClientJS: number
 ): number {
-  // Assuming 10% cost savings for every 10% reduction in bundle size
-  const bundleSizeSavings = developmentCost.totalCost * (optimization.bundleSizeReduction * 0.1)
-  // Assuming 5% cost savings for every 10% improvement in TTFB
-  const ttfbSavings = developmentCost.totalCost * (optimization.ttfbImprovement * 0.05)
-  // Assuming 3% cost savings for every 10% reduction in re-renders
-  const reRendersSavings = developmentCost.totalCost * (optimization.reRendersReduction * 0.03)
-
-  return bundleSizeSavings + ttfbSavings + reRendersSavings
-}
-
-/** Calculates mobile performance improvement using Next.js performance optimization */
-export function calculateMobilePerformanceImprovement(
-  mobilePerformance: { averageLatency: number; highLatencyThreshold: number },
-  optimization: { mobilePerformanceImprovement: number }
-): number {
-  // Assuming 10% improvement in mobile performance for every 10% reduction in latency
-  return mobilePerformance.averageLatency * (1 - optimization.mobilePerformanceImprovement)
+  return currentClientJS * NEXT_JS_PERFORMANCE_OPTIMIZATION.serverComponentsClientJSReduction
 }
