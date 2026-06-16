@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowLeft, TrendingDown, TrendingUp, Zap } from "lucide-react";
+import { ArrowLeft, FlaskConical, TrendingDown, TrendingUp, Zap } from "lucide-react";
+import { getTopHypothesisForStep, type ABTestHypothesis } from "@/lib/agents/cro-experiments";
 
 const STEP_LABELS: Record<string, string> = {
   landing_visit: "Landing Page Visit",
@@ -55,6 +56,7 @@ export default function FunnelPage() {
 
   // Biggest drop-off
   let biggestDropStep = "";
+  let biggestDropStepKey = "";
   let biggestDropPct = 0;
   let bestRetentionStep = "";
   let bestRetentionPct = 0;
@@ -67,12 +69,19 @@ export default function FunnelPage() {
     if (dropPct > biggestDropPct) {
       biggestDropPct = dropPct;
       biggestDropStep = STEP_LABELS[steps[i].step] ?? steps[i].step;
+      // The hypothesis library is keyed on the *previous* step (the step users
+      // are leaving from), since that is the surface the experiment changes.
+      biggestDropStepKey = steps[i - 1].step;
     }
     if (retPct > bestRetentionPct) {
       bestRetentionPct = retPct;
       bestRetentionStep = STEP_LABELS[steps[i].step] ?? steps[i].step;
     }
   }
+
+  const suggestedExperiment: ABTestHypothesis | null = biggestDropStepKey
+    ? getTopHypothesisForStep(biggestDropStepKey)
+    : null;
 
   const RANGES: { label: string; value: DayRange }[] = [
     { label: "7d", value: 7 },
@@ -140,6 +149,48 @@ export default function FunnelPage() {
                 <span className="text-xs text-ink-400">Landing → Payment</span>
               </div>
             </div>
+
+            {/* Suggested next experiment */}
+            {suggestedExperiment && (
+              <div className="rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 to-white shadow-sm p-5 flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <FlaskConical className="h-4 w-4 text-violet-600" strokeWidth={1.75} />
+                  <span className="text-xs font-semibold uppercase tracking-wide text-violet-700">Suggested next experiment</span>
+                  <span className="text-xs text-ink-400">· targets biggest drop-off</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <h3 className="text-base font-semibold text-ink-800">{suggestedExperiment.title}</h3>
+                  <p className="text-sm text-ink-600 leading-relaxed">{suggestedExperiment.hypothesis}</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                  <div className="rounded-lg bg-white border border-surface-200 p-3">
+                    <div className="text-ink-400 mb-1">Control</div>
+                    <div className="text-ink-700">{suggestedExperiment.control}</div>
+                  </div>
+                  <div className="rounded-lg bg-white border border-violet-200 p-3">
+                    <div className="text-violet-600 mb-1">Variant</div>
+                    <div className="text-ink-700">{suggestedExperiment.variant}</div>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className="rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 px-2 py-0.5 font-medium">
+                    +{suggestedExperiment.expectedLiftPct}% expected lift
+                  </span>
+                  <span className="rounded-full bg-surface-50 border border-surface-200 text-ink-600 px-2 py-0.5">
+                    Effort: {suggestedExperiment.effort}
+                  </span>
+                  <span className="rounded-full bg-surface-50 border border-surface-200 text-ink-600 px-2 py-0.5">
+                    Confidence: {suggestedExperiment.confidence}
+                  </span>
+                  <span className="rounded-full bg-surface-50 border border-surface-200 text-ink-500 px-2 py-0.5">
+                    Metric: {suggestedExperiment.metric}
+                  </span>
+                </div>
+                <p className="text-xs text-ink-500 leading-relaxed">
+                  <span className="font-medium text-ink-600">Why:</span> {suggestedExperiment.rationale}
+                </p>
+              </div>
+            )}
 
             {/* Funnel visualization */}
             <div className="rounded-2xl border border-surface-200 bg-white shadow-sm overflow-hidden">
