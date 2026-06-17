@@ -17,6 +17,18 @@ Each commit message tagging a new MINOR version must:
 
 ---
 
+## v2.7 — 2026-06-17 (PM)
+
+**Theme:** Stripe pricing sync + cross-check.
+
+- `lib/stripe-pricing-audit.ts`: deterministic audit comparing platform-config expected prices against actual Stripe Price objects (unit_amount + currency + active). Returns per-plan status: `match` / `drift` / `archived` / `missing_price_id` / `stripe_not_configured` / `stripe_lookup_failed` with human-readable remediation.
+- `createFreshStripePrice(planId)`: helper that creates a new Stripe Price (Prices are immutable — `unit_amount` cannot be edited) attached to the existing Product (or creates one) with `metadata.blockid_plan_id` so audits keep working.
+- `/api/admin/stripe-sync` (GET + POST): audit endpoint + create-price endpoint, admin-only.
+- `/dashboard/admin/stripe-sync` UI: live table of all 8 plans + credit packs with DRIFT badges, one-click "Create new Price" per drifted row, instant copy-to-clipboard of the new `STRIPE_PRICE_*=price_xxx` env var, inline workflow guide.
+- Sidebar: "Stripe Sync" added to admin nav.
+
+Use it whenever you bump a price in `platform-config.ts` so Stripe never silently undercharges or overcharges customers.
+
 ## v2.6 — 2026-06-17
 
 **Theme:** Drill-down detail + SVI explainer + pricing bump.
