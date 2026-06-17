@@ -15,6 +15,7 @@
 
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import * as fs from "fs";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -36,6 +37,8 @@ interface Metric {
   unit?: string;
   source: string;
   ownerAgent: string;
+  /** Drill-down route slug → /dashboard/admin/detail/[detailSlug]. Null for not-yet-wired metrics. */
+  detailSlug?: string;
 }
 
 const TARGETS = {
@@ -141,6 +144,7 @@ async function loadMetrics(): Promise<{
       actual: payingCustomers,
       source: "revenue_entries (last 30d, distinct emails)",
       ownerAgent: "CRO",
+      detailSlug: "paying-customers",
     },
     {
       key: "revenueAud",
@@ -150,6 +154,7 @@ async function loadMetrics(): Promise<{
       unit: "$",
       source: "revenue_entries.amount sum",
       ownerAgent: "CFO",
+      detailSlug: "revenue",
     },
     {
       key: "mrrAud",
@@ -167,6 +172,7 @@ async function loadMetrics(): Promise<{
       actual: companyProfiles,
       source: "svi_analyses (distinct emails, all-time)",
       ownerAgent: "CDO",
+      detailSlug: "company-profiles",
     },
     {
       key: "completedAssessments",
@@ -175,6 +181,7 @@ async function loadMetrics(): Promise<{
       actual: assessments30d,
       source: "svi_analyses count (last 30d)",
       ownerAgent: "CPO",
+      detailSlug: "analyses",
     },
     {
       key: "founderInterviews",
@@ -191,6 +198,7 @@ async function loadMetrics(): Promise<{
       actual: emailSubs,
       source: "founding50_waitlist count",
       ownerAgent: "CMO",
+      detailSlug: "email-subscribers",
     },
     {
       key: "linkedinLeads",
@@ -259,6 +267,22 @@ export default async function ThirtyDayScoreboardPage() {
           </div>
         </section>
 
+        {/* Extra drill-down — Users (always shown, never on the metric grid above) */}
+        <section className="mb-8">
+          <Link
+            href="/dashboard/admin/detail/users"
+            className="block rounded-2xl border border-ink-200 bg-white p-5 hover:border-brand-300 hover:shadow-sm transition-all"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-ink-500">Bonus context · Registered users</p>
+                <p className="mt-1 text-xs text-ink-500">Click to see the list of registered accounts (latest 500).</p>
+              </div>
+              <span className="text-sm font-medium text-brand-600">View users →</span>
+            </div>
+          </Link>
+        </section>
+
         <section className="mb-10">
           <h2 className="mb-4 text-lg font-semibold text-ink-800">North Star metrics</h2>
           <div className="grid gap-4 md:grid-cols-2">
@@ -267,8 +291,8 @@ export default async function ThirtyDayScoreboardPage() {
               const s = statusOf(p);
               const expected = Math.round((daysElapsed / 30) * 100);
               const paceLabel = p >= expected ? "on pace" : `${expected - p}pp behind pace`;
-              return (
-                <div key={m.key} className="rounded-2xl border border-ink-200 bg-white p-5">
+              const cardBody = (
+                <>
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-xs uppercase tracking-wide text-ink-500">{m.ownerAgent} · {m.label}</p>
@@ -283,8 +307,25 @@ export default async function ThirtyDayScoreboardPage() {
                   </div>
                   <div className="mt-2 flex items-center justify-between text-xs text-ink-500">
                     <span>{p}% of target · {paceLabel}</span>
+                    {m.detailSlug && (
+                      <span className="text-brand-600 font-medium">View {m.actual.toLocaleString()} {m.actual === 1 ? "row" : "rows"} →</span>
+                    )}
                   </div>
                   <p className="mt-3 text-xs text-ink-400">Source: {m.source}</p>
+                </>
+              );
+              const baseClasses = "rounded-2xl border border-ink-200 bg-white p-5";
+              return m.detailSlug ? (
+                <Link
+                  key={m.key}
+                  href={`/dashboard/admin/detail/${m.detailSlug}`}
+                  className={`${baseClasses} hover:border-brand-300 hover:shadow-sm transition-all block`}
+                >
+                  {cardBody}
+                </Link>
+              ) : (
+                <div key={m.key} className={baseClasses}>
+                  {cardBody}
                 </div>
               );
             })}
