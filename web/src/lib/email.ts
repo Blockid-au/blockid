@@ -1317,7 +1317,7 @@ export async function sendNurtureFreeDay7(args: NurtureArgs): Promise<SendResult
   const greeting = args.name ? `${escapeHtml(args.name!)}, we` : "We";
   const html = shell(nurtureCard({
     tagline: "BlockID — Founding 100",
-    headline: "100 Credits for A$1",
+    headline: "100 Credits for A$3 — lifetime access",
     body: `${greeting} are reserving spots for our Founding 100 cohort — the first 100 Australian startups to lock in lifetime early-access pricing on BlockID.</p>
           <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
             <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Founder Plan includes</p>
@@ -1337,7 +1337,7 @@ export async function sendNurtureFreeDay7(args: NurtureArgs): Promise<SendResult
     ctaLabel: "Claim Your Founding 100 Spot",
     ctaUrl: foundingUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "free_day7"));
-  return sendEmail({ to: args.to, subject: "100 credits for A$1 \u2014 here\u2019s what Founding 100 members get", html, unsubscribeUrl });
+  return sendEmail({ to: args.to, subject: "100 credits for A$3 \u2014 here\u2019s what Founding 100 members get", html, unsubscribeUrl });
 }
 
 export async function sendNurtureFreeDay14(args: NurtureArgs): Promise<SendResult> {

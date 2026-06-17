@@ -1,7 +1,59 @@
 # BlockID.au -- System Architecture
 
-> Version: 3.0 | Last updated: 2026-05-30
+> Version: 3.6 | Last updated: 2026-06-17 (v2.6 deployed)
 > Stack: Next.js (App Router, standalone output) + Supabase + Stripe + Claude/OpenAI/Gemini/Groq/Cerebras/SambaNova/OpenRouter + Google Drive + Gmail SMTP
+
+---
+
+## Recent Architecture Additions (v2.3 – v2.6, June 2026)
+
+The SVI analysis pipeline now layers 6 deterministic enrichment modules on top of the core `computeSVI()` engine. All run inside `POST /api/svi`, persist into `analysis_json`, and surface on dashboard + PDF + email.
+
+```
+POST /api/svi
+   │
+   ├─ scrapeUrl (lib/rnd-input)                       ← v2.0 (existing)
+   ├─ deepTechAudit (lib/rnd-input)                   ← v2.0 (existing)
+   ├─ analyzeWebsiteCI (lib/competitive-intelligence) ← v2.1 (existing)
+   ├─ computeSVI (lib/svi-analysis)                   ← v2.2 (existing)
+   │
+   ├─ extractProjectName (lib/project-name-extractor) ─ v2.3 — title → og → hostname → noun
+   ├─ buildDeepValuationAnalysis (lib/agents/deep-valuation) ─ v2.3 — 4-lens triangulation
+   ├─ detectMaturity (lib/agents/maturity-detector)   ─ v2.5 — established-company guard
+   ├─ computeCohortPercentile (lib/agents/cohort-percentile) ─ v2.5 — real svi_index_snapshots
+   ├─ buildScnActionPlan (lib/agents/scn-action-plan) ─ v2.4 — Validation→Position→Value→Direction→Capital
+   └─ return analysis { …, inputSummary, deepValuation, maturitySignal, cohortPercentile, scnActionPlan }
+```
+
+### Render surfaces
+
+| Module output | Dashboard component | PDF page |
+|---|---|---|
+| `inputSummary` | `DeepValuationCard` (project intro) | Page 1.5 hero |
+| `deepValuation` | `DeepValuationCard` (4-lens table + market sizing) | Page 1.5 body |
+| `maturitySignal` | `YourNumberHero` banner (amber) | Page 1.7 banner |
+| `cohortPercentile` | "real cohort, n=N" badge | Page 1.7 badge |
+| `scnActionPlan` | `ScnActionPlanCard` (Your Number + SCN journey + 30/60/90) | Page 1.7 |
+| `subs[]` (existing) | `SviExplainerCard` (radar + per-dim guide) | (radar already on report cover) |
+
+### Admin drill-down (v2.6)
+
+`/dashboard/admin/detail/[metric]` — generic server route that switches on a metric slug to render the source rows behind any 30-Day scoreboard aggregate. Supported slugs:
+
+- `users` → `users` table
+- `analyses` → `svi_analyses` (90d window)
+- `paying-customers` → `revenue_entries` distinct emails (30d)
+- `email-subscribers` → `founding50_waitlist`
+- `company-profiles` → `svi_analyses` distinct emails (all-time)
+- `revenue` → `revenue_entries` individual rows (30d)
+
+Every metric card on `/dashboard/admin/30day` wraps in a `<Link>` to the matching detail page so "why is this number 33?" is one click away.
+
+### Pricing (v2.6)
+
+- `platform-config.ts` is the single source of truth for `founding_price_cents` (now 300 = A$3, was 100 = A$1)
+- `pricing-data.ts`, `plans.ts`, `email.ts` (nurture day-7), `investors/page.tsx` all reflect A$3
+- Stripe price IDs unchanged — the in-app display reflects config; payment gateway product config updated separately
 
 ---
 

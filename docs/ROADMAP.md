@@ -1,7 +1,7 @@
 # BlockID.au Product Roadmap
 
 > Startup Verification Intelligence for Australian founders.
-> Last updated: 2026-05-30
+> Last updated: 2026-06-17 (v2.6 shipped)
 
 ---
 
@@ -27,6 +27,41 @@
 - [x] Admin panel (growth analytics, documents, users)
 - [x] i18n EN/VI
 - [x] 62 unit tests
+
+## Phase 2.6: SVI Quality + SCN Framework (Completed - June 17, 2026)
+
+### v2.3 — Auto-name + 4-lens deep valuation (T0214)
+- [x] Project-name extractor (URL title → og:site_name → hostname → first noun)
+- [x] 4 independent valuation lenses: Investor (VC method) · Market (TAM × penetration) · Operational (UE × multiple) · Ecosystem (AVCAL stage-median)
+- [x] Blended valuation band with data-quality-weighted lenses
+- [x] Market sizing (TAM/SAM/SOM) per sector with AVCAL/Cut Through sources
+- [x] 3 revenue scenarios (conservative/base/optimistic) + AU peer comparables
+- [x] Risk flags + method notes auditable per lens
+
+### v2.4 — SCN action plan + "Your Number" hero (T0215)
+- [x] "Your Number" hero (SVI + blended valuation + plain-English explainer)
+- [x] 5-layer SCN journey: Validation → Position → Value → Direction → Capital
+- [x] Per-layer status (complete / in_progress / gap) + unlock criteria
+- [x] Stage- and sector-aware action library (P0/P1/P2 + effort + impact)
+- [x] "This week" single most important move with HOW-TO tactic
+- [x] 30 / 60 / 90 day plan with measurable goals + required evidence
+- [x] Valuation levers — concrete A$ uplift estimates per move
+
+### v2.5 — Maturity guard + real cohort percentile (T0216 / T0102)
+- [x] Established-company detector (well-known domains, tickers, IPO, 500+ employees, 20+ years)
+- [x] Valuation confidence forced to "low" when scale-up detected + risk flag prepended
+- [x] Real percentile from svi_index_snapshots (stage ±1, last 180d, min n=20)
+- [x] Fallback to band-based estimate when cohort too small
+- [x] 8 new unit tests for maturity branches (109 total)
+
+### v2.6 — Drill-down detail + SVI explainer (T0217)
+- [x] Generic admin detail route /dashboard/admin/detail/[metric] (6 slugs: users, analyses, paying-customers, email-subscribers, company-profiles, revenue)
+- [x] Every 30-Day scoreboard metric card now links to its drill-down with row count chip
+- [x] Bonus "Registered users" card with click-through to user list
+- [x] SVI Explainer card with SVG radar chart (8 dimensions, no external lib)
+- [x] Top-3 contributors + bottom-3 drags ranked by adjustment
+- [x] Expandable per-dimension guide with WHY-it-matters + 3 quick-wins + deeplink to tool
+- [x] Pricing bump: Founding 100 from A$1 → A$3 (full-page analysis value)
 
 ## Phase 2.5: Enhanced SVI & Multi-Agent Reports (Completed - May 30, 2026)
 
