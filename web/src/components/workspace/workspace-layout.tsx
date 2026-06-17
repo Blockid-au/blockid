@@ -126,6 +126,7 @@ const ADMIN_NAV_GROUP: NavGroup = {
     { href: "/admin/goals", label: "CEO Goals", icon: Target },
     { href: "/dashboard/admin/content-pillars", label: "Content Pillars", icon: FileText },
     { href: "/dashboard/admin/stripe-sync", label: "Stripe Sync", icon: CreditCard },
+    { href: "/dashboard/admin/pricing-test", label: "Pricing A/B", icon: BarChart3 },
     { href: "/admin/listings", label: "Listings", icon: ExternalLink },
   ],
 };
