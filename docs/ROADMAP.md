@@ -54,6 +54,14 @@
 - [x] Fallback to band-based estimate when cohort too small
 - [x] 8 new unit tests for maturity branches (109 total)
 
+### v2.7 — Stripe pricing sync + cross-check (T0218)
+- [x] `lib/stripe-pricing-audit.ts` deterministic audit (platform-config vs Stripe API)
+- [x] Per-plan status: match / drift / archived / missing_price_id / lookup-failed
+- [x] `createFreshStripePrice()` helper (Prices are immutable → create new + archive old)
+- [x] `/api/admin/stripe-sync` GET (audit) + POST (create price), admin-only
+- [x] `/dashboard/admin/stripe-sync` UI: live table, one-click create, copy env var, workflow guide
+- [x] Sidebar Admin: Stripe Sync link
+
 ### v2.6 — Drill-down detail + SVI explainer (T0217)
 - [x] Generic admin detail route /dashboard/admin/detail/[metric] (6 slugs: users, analyses, paying-customers, email-subscribers, company-profiles, revenue)
 - [x] Every 30-Day scoreboard metric card now links to its drill-down with row count chip

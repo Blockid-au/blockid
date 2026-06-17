@@ -125,6 +125,7 @@ const ADMIN_NAV_GROUP: NavGroup = {
     { href: "/admin", label: "Admin Panel", icon: Shield },
     { href: "/admin/goals", label: "CEO Goals", icon: Target },
     { href: "/dashboard/admin/content-pillars", label: "Content Pillars", icon: FileText },
+    { href: "/dashboard/admin/stripe-sync", label: "Stripe Sync", icon: CreditCard },
     { href: "/admin/listings", label: "Listings", icon: ExternalLink },
   ],
 };
