@@ -62,7 +62,7 @@ export interface PlatformConfig {
 export const CONFIG_DEFAULTS: PlatformConfig = {
   founding_plan_name: "Founding 100",
   founding_spots_total: 100,
-  founding_price_cents: 100,
+  founding_price_cents: 300, // A$3 — bumped from A$1 (2026-06-17) to reflect full-page analysis value
   founding_credits: 100,
 
   free_credits_on_signup: 5,
