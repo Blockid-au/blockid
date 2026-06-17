@@ -54,6 +54,14 @@
 - [x] Fallback to band-based estimate when cohort too small
 - [x] 8 new unit tests for maturity branches (109 total)
 
+### v2.8 — Revenue activation (Stripe fix + share + A/B) (T0206/T0211/T0219)
+- [x] `scripts/sync-stripe-pricing.mjs`: Node CLI auto-fixer
+- [x] Founding 100 Stripe Price fixed (A$49 → A$3) via new `price_1TjJBqJ7OAnXQ9sVRnW931FT`
+- [x] Share-on-LinkedIn / Tweet / Email / Copy buttons on `/s/[slug]` (T0211 backlink loop)
+- [x] Pricing A/B test infra (T0206): `lib/ab-pricing.ts` + `/api/ab/pricing-expose` + `/dashboard/admin/pricing-test` UI
+- [x] 4 variants live: A$1 / A$3 (control) / A$5 / A$10 with deterministic anon_id bucketing
+- [x] Sidebar Admin: Pricing A/B link
+
 ### v2.7 — Stripe pricing sync + cross-check (T0218)
 - [x] `lib/stripe-pricing-audit.ts` deterministic audit (platform-config vs Stripe API)
 - [x] Per-plan status: match / drift / archived / missing_price_id / lookup-failed

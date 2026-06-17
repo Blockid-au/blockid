@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Footer } from "@/components/site/footer";
 import { Button } from "@/components/ui/button";
+import { ShareButtons } from "@/components/share/share-buttons";
 import { ViewTracker } from "@/components/tracking/view-tracker";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
@@ -781,6 +782,20 @@ export default async function ShareScorePage({
               </div>
             </section>
           )}
+
+          {/* ── Share row — backlink loop on every share page (T0211 acquisition) ───── */}
+          <section className="mt-6">
+            <div className="rounded-xl border border-surface-200 bg-white p-4 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-xs text-ink-500 leading-relaxed">
+                Help other founders discover their SVI score — sharing this report adds a backlink and helps grow the Australian startup index.
+              </p>
+              <ShareButtons
+                slug={slug}
+                startupName={(row?.company_name as string | null | undefined) ?? null}
+                sviScore={analysis?.totalSVI ?? row?.total_score ?? null}
+              />
+            </div>
+          </section>
 
           {/* ── CTA Section ───────────────────────────────────────────────── */}
           <section id="cta-section" data-section className="mt-8">

@@ -17,6 +17,18 @@ Each commit message tagging a new MINOR version must:
 
 ---
 
+## v2.8 — 2026-06-17 (PM)
+
+**Theme:** Revenue-first execution — Stripe fix + share-on-LinkedIn + pricing A/B test.
+
+- `scripts/sync-stripe-pricing.mjs` (Node CLI): auto-audit + auto-create new Stripe Prices for drifted plans + patch `.env` in place. Uses Stripe Search to reuse Products by `metadata.blockid_plan_id`. Run with `--fix --write-env` for full automation.
+- **Founding 100 Stripe drift fixed**: was charging A$49 (4900¢), now A$3 (300¢) via new `price_1TjJBqJ7OAnXQ9sVRnW931FT`. All 7 other plans MATCH.
+- `components/share/share-buttons.tsx`: LinkedIn / Tweet / Email / Copy-link share buttons rendered on every `/s/[slug]` report page. Uses standard share-intent URLs (no auth). Fires `share_clicked` analytics ping.
+- `lib/ab-pricing.ts`: lightweight A/B test infra — deterministic hash bucketing by anon_id, exposure logging to `ab_pricing_events` Supabase table, `buildExperimentReport()` with conversion% and revenue-per-session (RPS) per variant.
+- `/dashboard/admin/pricing-test` UI: live leaderboard of Founding 100 price variants (A$1 / A$3 / A$5 / A$10) ordered by RPS, with significance guidance.
+- `/api/ab/pricing-expose`: client-callable endpoint that pins the visitor's variant in a 1-year anon_id cookie and logs the exposure.
+- Sidebar admin nav: "Pricing A/B" link added.
+
 ## v2.7 — 2026-06-17 (PM)
 
 **Theme:** Stripe pricing sync + cross-check.
