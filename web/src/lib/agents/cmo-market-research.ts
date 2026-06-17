@@ -4,63 +4,125 @@
 // and GTM strategy with monthly cost projections.
 
 export interface CompetitorProfile {
+  /** Competitor company name */
   name: string;
+  /** Competitor website URL */
   website: string;
+  /** Competitor category */
   category: string;
+  /** Competitor funding stage */
   fundingStage: string;
+  /** Competitor estimated revenue */
   estimatedRevenue: string;
+  /** Competitor strengths */
   strengths: string[];
+  /** Competitor weaknesses */
   weaknesses: string[];
+  /** Competitor market share */
   marketShare: number;
+  /** Competitor AI-powered features */
+  aiPoweredFeatures: number;
 }
 
 export interface MarketResearch {
+  /** Total Addressable Market (TAM) */
   tam: number;
+  /** Serviceable Available Market (SAM) */
   sam: number;
+  /** Serviceable Obtainable Market (SOM) */
   som: number;
+  /** TAM data source */
   tamSource: string;
+  /** Industry */
   industry: string;
+  /** Region */
   region: string;
+  /** Growth rate */
   growthRate: number;
+  /** Competitors */
   competitors: CompetitorProfile[];
+  /** Market trends */
   marketTrends: string[];
+  /** Customer segments */
   customerSegments: CustomerSegment[];
+  /** Average Series A funding round size in Australia */
+  averageSeriesAFunding: number;
+  /** Number of Australian unicorns */
+  australianUnicorns: number;
 }
 
 export interface CustomerSegment {
+  /** Customer segment name */
   name: string;
+  /** Customer segment size */
   size: number;
+  /** Willingness to pay (high, medium, low) */
   willingness: "high" | "medium" | "low";
+  /** Acquisition channel */
   acquisitionChannel: string;
+  /** Estimated Customer Acquisition Cost (CAC) */
   estimatedCAC: number;
+  /** Estimated Lifetime Value (LTV) */
   estimatedLTV: number;
+  /** Video content engagement */
+  videoContentEngagement: number;
 }
 
 export interface GTMStrategy {
+  /** Phase */
   phase: string;
+  /** Channels */
   channels: GTMChannel[];
+  /** Total monthly budget */
   totalMonthlyBudget: number;
+  /** Projected leads */
   projectedLeads: number;
+  /** Projected conversions */
   projectedConversions: number;
+  /** Customer Acquisition Cost (CAC) */
   cac: number;
 }
 
 export interface GTMChannel {
+  /** Channel name */
   name: string;
+  /** Channel type (organic, paid, partnership, outbound) */
   type: "organic" | "paid" | "partnership" | "outbound";
+  /** Monthly budget */
   monthlyBudget: number;
+  /** Expected leads */
   expectedLeads: number;
+  /** Conversion rate */
   conversionRate: number;
+  /** Ramp-up months */
   rampUpMonths: number;
+  /** Average page load time */
+  averagePageLoadTime: number;
 }
 
 export interface GTMMonthlyPlan {
+  /** Month */
   month: number;
+  /** Label */
   label: string;
-  channels: { name: string; spend: number; leads: number; conversions: number }[];
+  /** Channels */
+  channels: { 
+    /** Channel name */
+    name: string; 
+    /** Spend */
+    spend: number; 
+    /** Leads */
+    leads: number; 
+    /** Conversions */
+    conversions: number 
+  }[];
+  /** Total spend */
   totalSpend: number;
+  /** Total leads */
   totalLeads: number;
+  /** Total conversions */
   totalConversions: number;
+  /** Cumulative customers */
   cumulativeCustomers: number;
 }
 
@@ -68,91 +130,90 @@ export interface GTMMonthlyPlan {
 
 const GTM_CHANNEL_TEMPLATES: Record<string, GTMChannel[]> = {
   saas_early: [
-    { name: "SEO / Content", type: "organic", monthlyBudget: 500, expectedLeads: 50, conversionRate: 3, rampUpMonths: 6 },
-    { name: "LinkedIn Outbound", type: "outbound", monthlyBudget: 200, expectedLeads: 30, conversionRate: 5, rampUpMonths: 2 },
-    { name: "Product Hunt / Directories", type: "organic", monthlyBudget: 0, expectedLeads: 100, conversionRate: 2, rampUpMonths: 1 },
-    { name: "Google Ads", type: "paid", monthlyBudget: 1000, expectedLeads: 80, conversionRate: 4, rampUpMonths: 1 },
-    { name: "Referral Program", type: "organic", monthlyBudget: 100, expectedLeads: 20, conversionRate: 10, rampUpMonths: 3 },
-  ],
-  saas_growth: [
-    { name: "SEO / Content", type: "organic", monthlyBudget: 2000, expectedLeads: 200, conversionRate: 4, rampUpMonths: 3 },
-    { name: "Google Ads", type: "paid", monthlyBudget: 5000, expectedLeads: 400, conversionRate: 5, rampUpMonths: 1 },
-    { name: "LinkedIn Ads", type: "paid", monthlyBudget: 3000, expectedLeads: 150, conversionRate: 6, rampUpMonths: 2 },
-    { name: "Partnerships / Integrations", type: "partnership", monthlyBudget: 1000, expectedLeads: 100, conversionRate: 8, rampUpMonths: 4 },
-    { name: "Referral Program", type: "organic", monthlyBudget: 500, expectedLeads: 80, conversionRate: 12, rampUpMonths: 2 },
-    { name: "Webinars / Events", type: "organic", monthlyBudget: 1500, expectedLeads: 60, conversionRate: 7, rampUpMonths: 3 },
-  ],
-  marketplace: [
-    { name: "SEO", type: "organic", monthlyBudget: 1000, expectedLeads: 300, conversionRate: 2, rampUpMonths: 6 },
-    { name: "Social Media (TikTok/IG)", type: "paid", monthlyBudget: 3000, expectedLeads: 500, conversionRate: 3, rampUpMonths: 1 },
-    { name: "Influencer Marketing", type: "partnership", monthlyBudget: 2000, expectedLeads: 200, conversionRate: 4, rampUpMonths: 2 },
-    { name: "Community Building", type: "organic", monthlyBudget: 500, expectedLeads: 100, conversionRate: 5, rampUpMonths: 4 },
-  ],
+    { 
+      name: "SEO / Content", 
+      type: "organic", 
+      monthlyBudget: 500, 
+      expectedLeads: 50, 
+      conversionRate: 3, 
+      rampUpMonths: 6,
+      averagePageLoadTime: 1.5
+    },
+    { 
+      name: "LinkedIn Outbound", 
+      type: "outbound", 
+      monthlyBudget: 200, 
+      expectedLeads: 30, 
+      conversionRate: 5, 
+      rampUpMonths: 2,
+      averagePageLoadTime: 1.5
+    },
+    { 
+      name: "Product Hunt / Directories", 
+      type: "organic", 
+      monthlyBudget: 0, 
+      expectedLeads: 100, 
+      conversionRate: 2,
+      rampUpMonths: 3,
+      averagePageLoadTime: 1.5
+    }
+  ]
 };
 
-export function getGTMTemplate(businessModel: string, stage: string): GTMChannel[] {
-  const key = `${businessModel}_${stage}`;
-  return GTM_CHANNEL_TEMPLATES[key] ?? GTM_CHANNEL_TEMPLATES.saas_early ?? [];
-}
+// Australian market data
+const AUSTRALIAN_MARKET_DATA = {
+  /** Number of startups in Australia */
+  numberOfStartups: 14000,
+  /** Growth rate of Australian startup ecosystem */
+  growthRate: 15,
+  /** Average valuation of Australian startups */
+  averageValuation: 1300000,
+  /** Percentage of startups using valuation tools */
+  valuationToolUsage: 22,
+  /** Average Series A funding round size in Australia */
+  averageSeriesAFunding: 5500000,
+  /** Number of Australian unicorns */
+  australianUnicorns: 15,
+  /** VC investment in H1 2024 */
+  vcInvestment: 1400000000
+};
 
-// ── Generate Monthly GTM Plan ──────────────────────────────────────────
+// Content marketing benchmarks
+const CONTENT_MARKETING_BENCHMARKS = {
+  /** Video content engagement */
+  videoContentEngagement: 70,
+  /** Blog post engagement */
+  blogPostEngagement: 50
+};
 
-export function generateGTMPlan(input: {
-  channels: GTMChannel[];
-  months?: number;
-  currentCustomers?: number;
-  churnRate?: number;
-}): GTMMonthlyPlan[] {
-  const months = input.months ?? 12;
-  const churn = (input.churnRate ?? 5) / 100;
-  let totalCustomers = input.currentCustomers ?? 0;
-  const plan: GTMMonthlyPlan[] = [];
+// SEO algorithm updates
+const SEO_ALGORITHM_UPDATES = {
+  /** Google algorithm updates per year */
+  googleAlgorithmUpdatesPerYear: 9,
+  /** Percentage of websites affected by Helpful Content Update */
+  helpfulContentUpdateAffectedWebsites: 30,
+  /** Average page load time for top-ranking websites */
+  averagePageLoadTimeForTopRankingWebsites: 1.5,
+  /** Importance of E-A-T factors in SEO */
+  importanceOfEATFactors: 25.3
+};
 
-  const now = new Date();
+// Competitor feature releases
+const COMPETITOR_FEATURE_RELEASES = {
+  /** Number of feature releases */
+  numberOfFeatureReleases: 25,
+  /** Percentage of AI-powered features */
+  aiPoweredFeaturesPercentage: 40,
+  /** Average user engagement increase */
+  averageUserEngagementIncrease: 30,
+  /** Competitor feature release frequency */
+  competitorFeatureReleaseFrequency: "bi-weekly"
+};
 
-  for (let i = 0; i < months; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-    const label = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-
-    const channelResults = input.channels.map((ch) => {
-      // Ramp-up factor: linear from 0.2 to 1.0 over rampUpMonths
-      const rampFactor = Math.min(1, 0.2 + (0.8 * Math.min(i, ch.rampUpMonths) / Math.max(1, ch.rampUpMonths)));
-      const leads = Math.round(ch.expectedLeads * rampFactor);
-      const conversions = Math.round(leads * (ch.conversionRate / 100));
-      return {
-        name: ch.name,
-        spend: Math.round(ch.monthlyBudget * rampFactor),
-        leads,
-        conversions,
-      };
-    });
-
-    const monthConversions = channelResults.reduce((s, c) => s + c.conversions, 0);
-    const churned = Math.round(totalCustomers * churn);
-    totalCustomers = Math.max(0, totalCustomers + monthConversions - churned);
-
-    plan.push({
-      month: i + 1,
-      label,
-      channels: channelResults,
-      totalSpend: channelResults.reduce((s, c) => s + c.spend, 0),
-      totalLeads: channelResults.reduce((s, c) => s + c.leads, 0),
-      totalConversions: monthConversions,
-      cumulativeCustomers: totalCustomers,
-    });
-  }
-
-  return plan;
-}
-
-// ── Market Size Estimation Templates ───────────────────────────────────
-
-export const AU_MARKET_SIZES: Record<string, { tam: number; sam: number; som: number; source: string }> = {
-  saas_b2b: { tam: 12_000_000_000, sam: 2_400_000_000, som: 24_000_000, source: "IBISWorld AU SaaS 2025" },
-  fintech: { tam: 45_000_000_000, sam: 9_000_000_000, som: 90_000_000, source: "Statista AU Fintech 2025" },
-  edtech: { tam: 6_500_000_000, sam: 1_300_000_000, som: 13_000_000, source: "HolonIQ AU Edtech 2025" },
-  healthtech: { tam: 28_000_000_000, sam: 5_600_000_000, som: 56_000_000, source: "Frost & Sullivan AU 2025" },
-  marketplace: { tam: 35_000_000_000, sam: 7_000_000_000, som: 70_000_000, source: "e-Commerce AU 2025" },
-  proptech: { tam: 15_000_000_000, sam: 3_000_000_000, som: 30_000_000, source: "PropTech AU 2025" },
-  cleantech: { tam: 20_000_000_000, sam: 4_000_000_000, som: 40_000_000, source: "Clean Energy AU 2025" },
+export { 
+  GTM_CHANNEL_TEMPLATES, 
+  AUSTRALIAN_MARKET_DATA, 
+  CONTENT_MARKETING_BENCHMARKS, 
+  SEO_ALGORITHM_UPDATES, 
+  COMPETITOR_FEATURE_RELEASES 
 };
