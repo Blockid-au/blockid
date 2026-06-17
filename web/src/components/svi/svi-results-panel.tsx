@@ -1821,9 +1821,14 @@ export function SVIResultsPanel({
                 subtext={EVIDENCE_LEVEL_LABELS[signals.evidenceLevel]?.split(" (")[0]}
               />
               <MetricCard
-                label="Percentile"
-                value={analysis.percentileRank ? `P${analysis.percentileRank}` : "P50"}
-                subtext={`For ${analysis.stageLabel} stage`}
+                label="AU Peer Rank"
+                value={`Top ${Math.max(1, 100 - (analysis.percentileRank ?? 50))}%`}
+                subtext={
+                  analysis.cohortPercentile?.source === "real_cohort"
+                    ? `P${analysis.percentileRank} of ${analysis.cohortPercentile.cohortSize} ${analysis.stageLabel} peers`
+                    : `P${analysis.percentileRank ?? 50} at ${analysis.stageLabel} stage`
+                }
+                color="text-brand-600"
               />
               <MetricCard
                 label="Risk Flags"
