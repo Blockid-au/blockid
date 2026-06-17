@@ -1030,6 +1030,23 @@
         "href": "/tools/cap-table"
       },
       "angle": "Learn how to optimise your startup's cap table for a smooth M&A process and maximise shareholder value. This guide provides actionable tips and best practices for Australian founders."
+    },
+    {
+      "slug": "optimise-startup-cap-table-for-acquisition-exit",
+      "title": "Maximize Exit Value: Optimise Cap Table for M&A",
+      "category": "valuation",
+      "keywords": [
+        "startup valuation",
+        "cap table",
+        "m&a exit",
+        "acquisition",
+        "exit strategy"
+      ],
+      "cta": {
+        "label": "Get Your Free Cap Table Template",
+        "href": "/tools/cap-table-template"
+      },
+      "angle": "Learn how to optimise your startup's cap table for a successful M&A exit in Australia. Discover practical tips and tools to maximise your exit value."
     }
   ]
 }
