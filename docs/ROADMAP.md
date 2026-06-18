@@ -54,6 +54,14 @@
 - [x] Fallback to band-based estimate when cohort too small
 - [x] 8 new unit tests for maturity branches (109 total)
 
+### v2.17 — SVI Exchange autonomous orchestration framework (T0233)
+- [x] `.claude/goals/svi-exchange-orchestration.md` — model + escalation rules + C-Level mapping
+- [x] 15-task seed queue (`svi-exchange-tasks.json`) covering v0.2-v0.9 of the brand-domain roadmap
+- [x] `/api/cron/svi-exchange-orchestrator` GET+POST (CRON_SECRET-gated) advancing 1 task per cycle
+- [x] `/dashboard/admin/svi-exchange` Beta cockpit — stats, phase progress, log, escalations, queue
+- [x] Sidebar admin: SVI Exchange link (Beta)
+- [ ] Production cron entry `0 */6 * * *` — wire via crontab once deployed
+
 ### v2.16.1 — startupvalueindex.com DNS live + monitoring + north-star goal (T0232)
 - [x] Cloudflare A records pointing apex+www to origin IP via existing DDNS token
 - [x] Brand domain serves all 6 routes live (~70ms p95)

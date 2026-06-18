@@ -1,0 +1,269 @@
+{
+  "queue_version": "1.0",
+  "generated_at": "2026-06-18T09:30:00Z",
+  "phase_status": {
+    "v0.1_listings": "done",
+    "v0.2_investor_layer": "in_progress",
+    "v0.3_sector_pages": "pending",
+    "v0.4_embeddable_widget": "pending",
+    "v0.5_secondary_offers_prep": "pending",
+    "v0.6_eoi_book": "pending",
+    "v0.7_escrow_settlement": "pending",
+    "v0.8_deal_calendar": "pending",
+    "v0.9_index_licensing": "pending"
+  },
+  "tasks": [
+    {
+      "id": "T_SVI_EXC_0001",
+      "phase": "v0.2",
+      "title": "Watchlist table + API",
+      "description": "Migration for watchlist (signed-in user × ticker). GET returns user's watchlist; POST toggles a ticker.",
+      "agent_owner": "CTO",
+      "agent_collaborators": ["CDO", "CISO"],
+      "status": "pending",
+      "priority": "P0",
+      "depends_on": [],
+      "deliverables": [
+        "web/supabase/migrations/0066_watchlist.sql",
+        "web/src/app/api/watchlist/route.ts",
+        "web/src/lib/watchlist.ts"
+      ],
+      "research_done": false,
+      "plan_done": false,
+      "code_done": false,
+      "deployed": false,
+      "estimated_hours": 3
+    },
+    {
+      "id": "T_SVI_EXC_0002",
+      "phase": "v0.2",
+      "title": "Watchlist UI button on listing detail",
+      "description": "Star toggle on /index/listings/[ticker] (in standalone app) calling blockid.au /api/watchlist. Persist via cookie for anon, prompt sign-in.",
+      "agent_owner": "CPO",
+      "agent_collaborators": ["CTO"],
+      "status": "pending",
+      "priority": "P0",
+      "depends_on": ["T_SVI_EXC_0001"],
+      "deliverables": [
+        "startupvalueindex.com/src/components/WatchlistButton.tsx",
+        "startupvalueindex.com/src/app/listings/[ticker]/page.tsx (wired)"
+      ],
+      "estimated_hours": 2
+    },
+    {
+      "id": "T_SVI_EXC_0003",
+      "phase": "v0.2",
+      "title": "Investor account type — verified VC firm flag",
+      "description": "Add `account_type` enum (founder | investor | journalist) + `verified_at` on app_users. Verification flow stub (manual admin approval for v0.2).",
+      "agent_owner": "CISO",
+      "agent_collaborators": ["CTO", "CLO"],
+      "status": "pending",
+      "priority": "P0",
+      "depends_on": [],
+      "deliverables": [
+        "web/supabase/migrations/0067_account_types.sql",
+        "web/src/app/api/admin/investor-verify/route.ts",
+        "web/src/app/dashboard/admin/investor-verifications/page.tsx"
+      ],
+      "estimated_hours": 4
+    },
+    {
+      "id": "T_SVI_EXC_0004",
+      "phase": "v0.2",
+      "title": "Email alerts on SVI movement",
+      "description": "Daily cron: for each watchlist row, check if SVI moved >5 points or stage changed since last digest. Send Resend email summarising changes.",
+      "agent_owner": "CTO",
+      "agent_collaborators": ["CMO"],
+      "status": "pending",
+      "priority": "P1",
+      "depends_on": ["T_SVI_EXC_0001"],
+      "deliverables": [
+        "web/src/app/api/cron/watchlist-digest/route.ts",
+        "web/src/lib/email-templates/watchlist-digest.tsx",
+        "crontab entry: 0 9 * * * UTC"
+      ],
+      "estimated_hours": 3
+    },
+    {
+      "id": "T_SVI_EXC_0005",
+      "phase": "v0.2",
+      "title": "Founder contact-unlock toggle",
+      "description": "Founder profile gets a 'contactable by verified investors' switch. When ON, a verified investor sees a 'Request intro' button on the ticker page; clicking sends a templated email to founder.",
+      "agent_owner": "CPO",
+      "agent_collaborators": ["CISO", "CLO"],
+      "status": "pending",
+      "priority": "P0",
+      "depends_on": ["T_SVI_EXC_0003"],
+      "deliverables": [
+        "web/supabase/migrations/0068_contact_unlocks.sql",
+        "web/src/app/api/contact-unlock/route.ts",
+        "Founder profile toggle UI"
+      ],
+      "estimated_hours": 5
+    },
+    {
+      "id": "T_SVI_EXC_0006",
+      "phase": "v0.3",
+      "title": "Sector deep-dive page — SaaS",
+      "description": "/sector/saas: cohort distribution histogram, leaderboard top-20 SaaS tickers, sector SVI trend, sector citation block.",
+      "agent_owner": "CDO",
+      "agent_collaborators": ["CPO", "CMO"],
+      "status": "pending",
+      "priority": "P0",
+      "depends_on": [],
+      "deliverables": [
+        "startupvalueindex.com/src/app/sector/[sector]/page.tsx",
+        "startupvalueindex.com/src/lib/sector-aggregator.ts"
+      ],
+      "estimated_hours": 6
+    },
+    {
+      "id": "T_SVI_EXC_0007",
+      "phase": "v0.3",
+      "title": "Sector pages — remaining 6 sectors",
+      "description": "Generic [sector] route already covers fintech, ai, healthtech, marketplace, deeptech, ecommerce. Add per-sector copy + methodology notes + JSON feed.",
+      "agent_owner": "CMO",
+      "agent_collaborators": ["CDO"],
+      "status": "pending",
+      "priority": "P1",
+      "depends_on": ["T_SVI_EXC_0006"],
+      "deliverables": [
+        "startupvalueindex.com/content/sector-copy/*.json",
+        "Methodology page extended"
+      ],
+      "estimated_hours": 4
+    },
+    {
+      "id": "T_SVI_EXC_0008",
+      "phase": "v0.4",
+      "title": "Embeddable widget — BSI-AU mini",
+      "description": "iframe-embeddable widget showing BSI-AU value + sparkline + Δ. CSP-safe, CORS-open. Promotional banner under widget driving to startupvalueindex.com.",
+      "agent_owner": "R&D",
+      "agent_collaborators": ["CTO", "CMO"],
+      "status": "pending",
+      "priority": "P0",
+      "depends_on": [],
+      "deliverables": [
+        "startupvalueindex.com/src/app/embed/bsi-au/page.tsx",
+        "startupvalueindex.com/src/app/embed/iframe.html",
+        "Docs: how to embed"
+      ],
+      "estimated_hours": 4
+    },
+    {
+      "id": "T_SVI_EXC_0009",
+      "phase": "v0.4",
+      "title": "Ticker widget per company",
+      "description": "/embed/ticker/[ticker] showing SVI + sparkline + delta + valuation. Founder can copy snippet to their own homepage.",
+      "agent_owner": "R&D",
+      "agent_collaborators": ["CPO"],
+      "status": "pending",
+      "priority": "P1",
+      "depends_on": ["T_SVI_EXC_0008"],
+      "deliverables": ["startupvalueindex.com/src/app/embed/ticker/[ticker]/page.tsx"],
+      "estimated_hours": 3
+    },
+    {
+      "id": "T_SVI_EXC_0010",
+      "phase": "v0.4",
+      "title": "Partnership: Cut Through Venture embed",
+      "description": "Outreach to Cut Through Venture to host BSI-AU widget on their weekly newsletter landing. Copy + technical handoff + tracking.",
+      "agent_owner": "IR",
+      "agent_collaborators": ["CMO", "CRO"],
+      "status": "pending",
+      "priority": "P0",
+      "depends_on": ["T_SVI_EXC_0008"],
+      "deliverables": [
+        ".claude/research/T_SVI_EXC_0010-cut-through-pitch.md",
+        "First email draft + follow-up sequence"
+      ],
+      "estimated_hours": 2
+    },
+    {
+      "id": "T_SVI_EXC_0011",
+      "phase": "v0.5",
+      "title": "Regulatory research — secondary share offers in AU",
+      "description": "Document AFSL exemptions (PIDV, SCH 4.6, sophisticated investor s708) relevant to BlockID listing secondary share offers. Identify the minimum legal structure: licensed broker partnership vs in-house AFSL.",
+      "agent_owner": "CLO",
+      "agent_collaborators": ["CFO"],
+      "status": "pending",
+      "priority": "P0",
+      "depends_on": [],
+      "deliverables": [
+        ".claude/research/T_SVI_EXC_0011-secondary-offer-regulatory.md",
+        "Decision: broker partnership vs AFSL"
+      ],
+      "estimated_hours": 8,
+      "blocker_risk": "Outcome may delay v0.5 by 2-3 months if AFSL path is chosen"
+    },
+    {
+      "id": "T_SVI_EXC_0012",
+      "phase": "v0.5",
+      "title": "Founder-side secondary offer intake form",
+      "description": "When a founder ticker meets thresholds (SVI ≥ 80, governance ≥ 60, 2+ funded rounds), surface a 'List a secondary offer' CTA. Form captures: total shares for sale, price band, eligible buyer profile, lock-up.",
+      "agent_owner": "CPO",
+      "agent_collaborators": ["CFO", "CLO"],
+      "status": "pending",
+      "priority": "P0",
+      "depends_on": ["T_SVI_EXC_0011"],
+      "deliverables": [
+        "web/src/app/workspace/secondary-offer/page.tsx",
+        "web/supabase/migrations/0069_secondary_offers.sql",
+        "Eligibility check logic"
+      ],
+      "estimated_hours": 6
+    },
+    {
+      "id": "T_SVI_EXC_0013",
+      "phase": "v0.6",
+      "title": "Investor EOI book",
+      "description": "Verified investor visits /listings/[ticker]/eoi, submits non-binding expression of interest: range of shares + price range. Aggregate on offer.",
+      "agent_owner": "CTO",
+      "agent_collaborators": ["CISO"],
+      "status": "pending",
+      "priority": "P0",
+      "depends_on": ["T_SVI_EXC_0012"],
+      "deliverables": [
+        "startupvalueindex.com/src/app/listings/[ticker]/eoi/page.tsx",
+        "web/src/app/api/eoi/route.ts",
+        "web/supabase/migrations/0070_eoi_book.sql"
+      ],
+      "estimated_hours": 6
+    },
+    {
+      "id": "T_SVI_EXC_0014",
+      "phase": "v0.9",
+      "title": "Institutional API tier — pricing + auth",
+      "description": "Per-call rate-limited API tier with token auth + monthly billing. Tiers: free (10 calls/day), team A$199/mo (1k/day), institutional A$2k/mo (unlimited + email support).",
+      "agent_owner": "CTO",
+      "agent_collaborators": ["CFO", "CMO"],
+      "status": "pending",
+      "priority": "P1",
+      "depends_on": [],
+      "deliverables": [
+        "API key management",
+        "Per-key rate limiting",
+        "Stripe billing integration",
+        "Pricing page on startupvalueindex.com"
+      ],
+      "estimated_hours": 10
+    },
+    {
+      "id": "T_SVI_EXC_0015",
+      "phase": "v0.9",
+      "title": "Quarterly Cut Through co-branded report",
+      "description": "Auto-generate a quarterly state-of-AU-startups PDF from BSI-AU + sector + cohort data. Email to CTV mailing list (pending partnership).",
+      "agent_owner": "CMO",
+      "agent_collaborators": ["IR", "CDO"],
+      "status": "pending",
+      "priority": "P1",
+      "depends_on": ["T_SVI_EXC_0010"],
+      "deliverables": [
+        "Report template (LaTeX/PDF)",
+        "Auto-generation cron",
+        "Distribution list integration"
+      ],
+      "estimated_hours": 8
+    }
+  ]
+}
