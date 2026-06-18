@@ -17,6 +17,36 @@ Each commit message tagging a new MINOR version must:
 
 ---
 
+## v2.18 — 2026-06-18 (PM, accelerated)
+
+**Theme:** SVI Exchange v0.2 + v0.3 + v0.4 shipped in one cycle — 4h sprint, not 4 weeks.
+
+The user directive was "accelerate from 4-week cron to 4-hour continuous". Instead of letting the orchestrator drip-feed stub research/plan stages 1 task per 6h, the C-Level agents (CTO/CPO/CISO/CMO/CDO/R&D/IR/CLO) executed the actual code paths in parallel. Twelve tasks shipped this cycle.
+
+### v0.2 Investor layer — shipped
+- **T_0001 · Watchlist** — `0066_watchlist.sql` migration, `lib/watchlist.ts` (list/toggle), `/api/watchlist` GET/POST/OPTIONS with CORS for startupvalueindex.com.
+- **T_0002 · Watchlist UI** — `WatchlistButton.tsx` in standalone app, wired into `/listings/[ticker]`. Star toggle persists via cookie-auth back to blockid.au.
+- **T_0003 · Investor account type** — `0067_account_types.sql` (account_type enum + verified_at + investor_firm/url), `/api/admin/investor-verify`, `/dashboard/admin/investor-verifications` admin queue.
+- **T_0004 · Watchlist digest cron** — `0068_watchlist_digest.sql` (last_digest_svi/stage/at cols), `/api/cron/watchlist-digest` daily 09:00 UTC, threshold ±5 SVI or stage shift, Resend email.
+- **T_0005 · Founder contact unlock** — `0069_contact_unlocks.sql` (contactable_by_investors flag + audit log), `/api/contact-unlock` route with verified-investor + founder-opt-in gating, founder profile toggle UI.
+
+### v0.3 Sector deep-dive — shipped
+- **T_0006 / T_0007 · Sector pages** — `startupvalueindex.com/src/app/sector/[sector]/page.tsx` generic route, `lib/sector-copy.ts` covering seven sectors (saas / fintech / ai / healthtech / marketplace / deeptech / ecommerce): thesis, benchmarks, methodology. Cohort distribution histogram, top-20 leaderboard, citation block.
+
+### v0.4 Embeddable widgets — shipped
+- **T_0008 · BSI-AU embed** — `/embed/bsi-au` 320×120 iframe, no JS, 5-min revalidate. CSP-safe.
+- **T_0009 · Ticker embed** — `/embed/ticker/[ticker]` 320×140 per-company widget. Founders can drop on homepage.
+- **/embed** docs page with copy-paste snippets + license terms.
+
+### Research drops — shipped (Path A → v0.5)
+- **T_0010** — Cut Through Venture pitch + 3-email outreach sequence.
+- **T_0011** — AFSL exemption map for secondary share offers. **Recommendation: Path A (sophisticated-investor-only matching), ship v0.5 in 2 weeks, A$3–8k T&Cs review.**
+- **T_0015** — Quarterly BSI × Cut Through report template (8-section editorial structure).
+
+### Queue state
+- `phase_status`: v0.1 / v0.2 / v0.3 / v0.4 = `done`. v0.5 = `in_progress`.
+- 12 / 15 tasks shipped; remaining 3 (T_0012 intake form, T_0013 EOI book, T_0014 institutional API) move to next cycle.
+
 ## v2.17 — 2026-06-18 (PM)
 
 **Theme:** SVI Exchange orchestration framework — autonomous C-Level execution for the 4-phase north star.

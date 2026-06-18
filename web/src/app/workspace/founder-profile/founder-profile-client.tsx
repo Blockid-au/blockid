@@ -379,6 +379,18 @@ export function FounderProfileClient({ initialProfile }: Props) {
           />
           Show founder section on public /s/[slug] share page (recommended)
         </label>
+        <label className="flex items-start gap-2 text-sm mt-3">
+          <input
+            type="checkbox"
+            checked={p.contactable_by_investors}
+            onChange={(e) => setP({ ...p, contactable_by_investors: e.target.checked })}
+            className="rounded mt-0.5"
+          />
+          <span>
+            <strong>Open inbox to verified investors</strong>
+            <span className="block text-xs text-slate-500">When on, verified investors on startupvalueindex.com can send you an intro request from your ticker page. Only emails are forwarded — your address is never shown publicly.</span>
+          </span>
+        </label>
       </Section>
 
       {/* Final save */}

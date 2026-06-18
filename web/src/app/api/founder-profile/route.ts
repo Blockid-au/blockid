@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
     advisors: Array.isArray(body.advisors) ? body.advisors.slice(0, 20) : [],
     notable_hires: Array.isArray(body.notable_hires) ? body.notable_hires.slice(0, 20) : [],
     public_visible: body.public_visible !== false,
+    contactable_by_investors: body.contactable_by_investors === true,
   };
 
   const result = await saveFounderProfile(safe);

@@ -35,6 +35,7 @@ export interface FounderProfile {
   advisors: Advisor[];
   notable_hires: Array<{ name: string; role: string; from?: string }>;
   public_visible: boolean;
+  contactable_by_investors: boolean;
 }
 
 export const EMPTY_PROFILE = (accountId: string, email: string): FounderProfile => ({
@@ -53,6 +54,7 @@ export const EMPTY_PROFILE = (accountId: string, email: string): FounderProfile 
   advisors: [],
   notable_hires: [],
   public_visible: true,
+  contactable_by_investors: false,
 });
 
 /**
