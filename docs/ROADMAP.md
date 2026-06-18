@@ -54,6 +54,15 @@
 - [x] Fallback to band-based estimate when cohort too small
 - [x] 8 new unit tests for maturity branches (109 total)
 
+### v2.12 — AU Accelerator Knowledge Base (T0226)
+- [x] Goal doc + C-Level role assignment in `.claude/goals/au-accelerator-knowledge-base.md`
+- [x] `knowledge_entries` schema (migration 0065) — applied live
+- [x] 30 seeded criteria across 8 accelerators (Antler / Startmate / YC / Techstars / SkyDeck / MVi / Cicada / Blackbird) with citations
+- [x] `lib/agents/accelerator-readiness.ts` evaluation engine — met / partial / gap + valuation lift estimate
+- [x] `/api/svi` populates `analysis.acceleratorReadiness`
+- [x] `AcceleratorReadinessCard` Beta on `/dashboard/svi` with heatmap + tactic + citations
+- [x] FIX: split client-safe types out of `lib/founder-profile.ts` (root cause of two stuck v2.10/v2.11 deploys)
+
 ### v2.11 — Founder Profile builder (T0224)
 - [x] Migration `0064_founder_profiles.sql` — ship history, advisors, insight, ambition
 - [x] `/workspace/founder-profile` UI (Beta) with live completion meter + safe coercion

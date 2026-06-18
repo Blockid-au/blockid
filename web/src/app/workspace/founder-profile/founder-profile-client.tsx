@@ -14,7 +14,7 @@ import {
   User as UserIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { profileCompletionPct, type FounderProfile } from "@/lib/founder-profile";
+import { profileCompletionPct, type FounderProfile } from "@/lib/founder-profile-types";
 
 interface Props {
   initialProfile: FounderProfile;

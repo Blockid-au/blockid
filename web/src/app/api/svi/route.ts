@@ -15,6 +15,7 @@ import { detectMaturity, maturityValuationGuard } from "@/lib/agents/maturity-de
 import { computeCohortPercentile } from "@/lib/agents/cohort-percentile";
 import { evaluateAntlerSignals } from "@/lib/agents/antler-signals";
 import { loadFounderProfileByEmail, profileToSviInputText } from "@/lib/founder-profile";
+import { evaluateAcceleratorReadiness } from "@/lib/agents/accelerator-readiness";
 
 // POST /api/svi
 // Body: { email, input: { rawText, fileName? } }
@@ -290,6 +291,14 @@ export async function POST(request: Request) {
       ci: competitiveIntelligence,
     }),
   };
+
+  // Accelerator readiness — heatmap across all 8 AU/global accelerator sources.
+  // Driven by knowledge_entries seed (30+ criteria) + the Antler signal scores
+  // we just computed + SVI dimension subs.
+  const acceleratorReadiness = await evaluateAcceleratorReadiness(analysis, antlerRawText).catch(() => null);
+  if (acceleratorReadiness) {
+    analysis = { ...analysis, acceleratorReadiness };
+  }
 
   const supabase = getSupabaseAdmin();
   let slug = newSlug();

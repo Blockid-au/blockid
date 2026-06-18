@@ -258,6 +258,8 @@ export interface SVIAnalysis {
   cohortPercentile?: import("@/lib/agents/cohort-percentile").CohortPercentileResult;
   // v2.10: Antler-style stage-progression signals (T0222)
   antlerSignals?: import("@/lib/agents/antler-signals").AntlerEvaluation;
+  // v2.12: AU accelerator readiness from knowledge_entries (T0226)
+  acceleratorReadiness?: import("@/lib/agents/accelerator-readiness").AcceleratorReadiness;
 }
 
 // ─── Startup metrics input shape ─────────────────────────────────────────────

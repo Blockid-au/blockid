@@ -13,6 +13,7 @@ import { DeepValuationCard } from "@/components/dashboard/deep-valuation-card";
 import { ScnActionPlanCard } from "@/components/dashboard/scn-action-plan-card";
 import { SviExplainerCard } from "@/components/dashboard/svi-explainer-card";
 import { AntlerSignalsCard } from "@/components/dashboard/antler-signals-card";
+import { AcceleratorReadinessCard } from "@/components/dashboard/accelerator-readiness-card";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 
 export const metadata: Metadata = {
@@ -338,6 +339,9 @@ export default async function SVIDashboardPage() {
 
         {/* ── v2.10: Antler-style stage-progression signals (Team / Progress / Invention / Vision / 10× Product) ── */}
         <AntlerSignalsCard analysis={analysisWithDelta} />
+
+        {/* ── v2.12: AU Accelerator Readiness — mapped to 30+ criteria across 8 sources ── */}
+        <AcceleratorReadinessCard analysis={analysisWithDelta} />
 
         {/* ── v2.3: Deep input analysis + 4-lens valuation ─────────────── */}
         <DeepValuationCard analysis={analysisWithDelta} />
