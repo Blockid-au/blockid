@@ -54,6 +54,12 @@
 - [x] Fallback to band-based estimate when cohort too small
 - [x] 8 new unit tests for maturity branches (109 total)
 
+### v2.9 — Feature lifecycle chips (T0220)
+- [x] Killed "Coming soon" everywhere user-visible on the dashboard
+- [x] Introduced lifecycle states: beta (amber) · live (blue) · stable (no chip)
+- [x] 6 features tagged beta, eligible to promote 2026-06-30 / 2026-07-01
+- [x] `docs/FEATURE_LIFECYCLE.md` — promotion criteria + calendar + anti-patterns
+
 ### v2.8 — Revenue activation (Stripe fix + share + A/B) (T0206/T0211/T0219)
 - [x] `scripts/sync-stripe-pricing.mjs`: Node CLI auto-fixer
 - [x] Founding 100 Stripe Price fixed (A$49 → A$3) via new `price_1TjJBqJ7OAnXQ9sVRnW931FT`

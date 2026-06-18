@@ -336,7 +336,7 @@ function ConnectedSources() {
         ))}
       </div>
       <p className="text-xs text-ink-500 mt-4">
-        Connect data sources for automatic metric tracking. Coming soon.
+        Connect data sources for automatic metric tracking. <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[10px] font-bold uppercase">Beta</span>
       </p>
     </div>
   );
