@@ -38,12 +38,22 @@ interface AgentReport {
 }
 
 function readAgentReport(agent: string, date: string): AgentReport {
-  const patterns = [
-    `${REPORTS_DIR}/${agent}-daily-${date}.md`,
-    `${REPORTS_DIR}/${agent}-weekly-${date}.md`,
-  ];
+  // Look at today first, then walk back up to 3 days. The C-Level cron runs
+  // once a day at 23:45 UTC so when this endpoint is hit before that
+  // (typical morning dashboard load) today's file won't exist yet — falling
+  // back to yesterday is far better UX than rendering "No report available"
+  // for every agent.
+  const candidates: string[] = [];
+  const base = new Date(`${date}T00:00:00Z`);
+  for (let offset = 0; offset <= 3; offset++) {
+    const d = new Date(base.getTime() - offset * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
+    candidates.push(`${REPORTS_DIR}/${agent}-daily-${d}.md`);
+    candidates.push(`${REPORTS_DIR}/${agent}-weekly-${d}.md`);
+  }
 
-  for (const path of patterns) {
+  for (const path of candidates) {
     try {
       if (fs.existsSync(path)) {
         const content = fs.readFileSync(path, "utf8");

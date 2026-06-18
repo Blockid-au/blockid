@@ -13,6 +13,7 @@ import { buildDeepValuationAnalysis } from "@/lib/agents/deep-valuation";
 import { buildScnActionPlan } from "@/lib/agents/scn-action-plan";
 import { detectMaturity, maturityValuationGuard } from "@/lib/agents/maturity-detector";
 import { computeCohortPercentile } from "@/lib/agents/cohort-percentile";
+import { evaluateAntlerSignals } from "@/lib/agents/antler-signals";
 
 // POST /api/svi
 // Body: { email, input: { rawText, fileName? } }
@@ -269,6 +270,17 @@ export async function POST(request: Request) {
   analysis = {
     ...analysis,
     scnActionPlan: buildScnActionPlan({ analysis, deepValuation }),
+  };
+
+  // Antler-style stage-progression signals (5 criteria, deterministic)
+  analysis = {
+    ...analysis,
+    antlerSignals: evaluateAntlerSignals({
+      analysis,
+      signals,
+      rawText: enrichedText,
+      ci: competitiveIntelligence,
+    }),
   };
 
   const supabase = getSupabaseAdmin();
