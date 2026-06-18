@@ -54,6 +54,12 @@
 - [x] Fallback to band-based estimate when cohort too small
 - [x] 8 new unit tests for maturity branches (109 total)
 
+### v2.11 — Founder Profile builder (T0224)
+- [x] Migration `0064_founder_profiles.sql` — ship history, advisors, insight, ambition
+- [x] `/workspace/founder-profile` UI (Beta) with live completion meter + safe coercion
+- [x] Auto-feeds Antler Team signal — fill in profile → next analysis lifts Team score without manual paste
+- [x] Sidebar: Founder Profile (Beta chip) added to Account group
+
 ### v2.10 — Antler signals + C-Level report fallback (T0222 / T0223)
 - [x] 5-signal Antler/Sequoia/a16z evaluation (Team / Progress / Invention / Vision / 10× Product)
 - [x] Deterministic scoring + standout + weakest-link + how-to-lift

@@ -17,6 +17,18 @@ Each commit message tagging a new MINOR version must:
 
 ---
 
+## v2.11 — 2026-06-18 (PM)
+
+**Theme:** Founder Profile builder — auto-lift the Antler Team signal.
+
+- Migration `0064_founder_profiles.sql`: new `founder_profiles` table (1:1 with app_users) capturing ship history, prev employers, years in domain, domain insight, ambition, co-founders, advisors, notable hires, public_visible flag.
+- `lib/founder-profile.ts`: load/save helpers, `profileCompletionPct()` for the dashboard nag, `profileToSviInputText()` that projects the profile to a single text blob the SVI engine can scan.
+- `/api/founder-profile` GET/POST (admin-only, scoped to current user) with safe coercion + 4kB cap per text field.
+- `/workspace/founder-profile` UI (Beta) with progressive sections: Basics, Track record, Insider insight + ambition, Team (co-founders/advisors/notable hires), Visibility toggle. Live completion meter.
+- Wired into `/api/svi`: when the user has a profile, profile text is concatenated into the rawText fed into `evaluateAntlerSignals()` so the Team signal automatically lifts from "ex-Stripe / 10 years / 3 advisors" keywords without anyone manually pasting them.
+- Sidebar: "Founder Profile" link added to Account group (Beta chip).
+- Schema applied live via `docker exec supabase-db psql` so the feature works on production from first deploy.
+
 ## v2.10 — 2026-06-18 (PM)
 
 **Theme:** Antler stage-progression signals + C-Level report fallback.

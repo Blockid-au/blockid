@@ -14,6 +14,7 @@ import { buildScnActionPlan } from "@/lib/agents/scn-action-plan";
 import { detectMaturity, maturityValuationGuard } from "@/lib/agents/maturity-detector";
 import { computeCohortPercentile } from "@/lib/agents/cohort-percentile";
 import { evaluateAntlerSignals } from "@/lib/agents/antler-signals";
+import { loadFounderProfileByEmail, profileToSviInputText } from "@/lib/founder-profile";
 
 // POST /api/svi
 // Body: { email, input: { rawText, fileName? } }
@@ -272,13 +273,20 @@ export async function POST(request: Request) {
     scnActionPlan: buildScnActionPlan({ analysis, deepValuation }),
   };
 
-  // Antler-style stage-progression signals (5 criteria, deterministic)
+  // Antler-style stage-progression signals (5 criteria, deterministic).
+  // Concatenate the founder profile (if filled in) into the rawText so Team
+  // signal scoring can see "ex-Stripe / 10-year domain expert / co-founder X".
+  // The profile lives in the founder_profiles table and is loaded by email.
+  const founderProfile = await loadFounderProfileByEmail(email);
+  const profileText = profileToSviInputText(founderProfile);
+  const antlerRawText = profileText ? `${enrichedText} ${profileText}` : enrichedText;
+
   analysis = {
     ...analysis,
     antlerSignals: evaluateAntlerSignals({
       analysis,
       signals,
-      rawText: enrichedText,
+      rawText: antlerRawText,
       ci: competitiveIntelligence,
     }),
   };
