@@ -54,6 +54,7 @@ export async function saveFounderProfile(p: FounderProfile): Promise<{ ok: boole
     advisors: p.advisors,
     notable_hires: p.notable_hires,
     public_visible: p.public_visible,
+    contactable_by_investors: p.contactable_by_investors,
   };
   const { error } = await supabase.from("founder_profiles").upsert(payload, { onConflict: "account_id" });
   if (error) return { ok: false, error: error.message };
