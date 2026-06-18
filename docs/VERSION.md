@@ -17,6 +17,19 @@ Each commit message tagging a new MINOR version must:
 
 ---
 
+## v2.15 — 2026-06-18 (PM)
+
+**Theme:** Startup Value Index Listings — the "Markets" view of startupvalueindex.com.
+
+- `.claude/goals/startup-value-index-listings.md`: full IA, data model, C-Level role assignment, success criteria, anti-patterns, phase-2 ideas.
+- `lib/startup-index-listings.ts`: `computeListings()` (paginated/filterable/sortable ranked rows with 7-point sparklines) + `computeListingDetail(ticker)` (full per-ticker payload). Anonymous-by-default — public name shown only when founder profile has `public_visible: true`. Ticker = `SECTOR-XXX` (last 3 of latest slug). Identity hash = SHA-256("bsi-au:" + email).slice(0,12).
+- `/api/index/listings` GET: cached 5min sw-r 10min, full query-param API (sector / stage / sort / order / public_only / revenue_only / page / pageSize).
+- `/api/index/listing/[ticker]` GET: detail JSON with SVI history series, Antler snapshot, accelerator readiness summary, 4-lens perspectives.
+- `/index/listings` page (Beta): investing.com Markets-style ranked table with filter pills + sortable columns + 7-pt sparkline col + pagination + methodology footer.
+- `/index/listings/[ticker]` page (Beta): hero with SVI + delta + valuation + sector/stage chips + opt-in name; SVG SVI-history line chart with area fill; Antler 5-signal bar strip; Accelerator readiness summary + top 3 gaps; 4-lens valuation triangulation table; CTA + JSON link.
+- `/index` hero now has "Browse all N listings →" CTA below the stat row.
+- `nginx` already routes `startupvalueindex.com → /index` via v2.4 (T0212), so both pages surface on the brand domain automatically.
+
 ## v2.14.1 — 2026-06-18 (PM)
 
 **Theme:** Uptime guard — minute-cadence external probe + graduated auto-recovery.

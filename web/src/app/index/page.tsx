@@ -149,6 +149,16 @@ export default async function IndexExchangePage() {
               <p className="text-xl font-bold text-ink-900 tabular-nums">{data.bsiAu.analysesYesterday}</p>
             </div>
           </div>
+
+          {/* View all listings CTA */}
+          <div className="mt-5 pt-5 border-t border-brand-100 text-center">
+            <Link
+              href="/index/listings"
+              className="inline-flex items-center gap-1.5 text-sm font-bold text-brand-700 hover:text-brand-800 hover:underline"
+            >
+              Browse all {data.bsiAu.totalCompanies.toLocaleString()} listings →
+            </Link>
+          </div>
         </section>
 
         {/* ── SECTOR HEATMAP ─────────────────────────────────────────── */}

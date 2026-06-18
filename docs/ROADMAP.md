@@ -54,6 +54,15 @@
 - [x] Fallback to band-based estimate when cohort too small
 - [x] 8 new unit tests for maturity branches (109 total)
 
+### v2.15 — Startup Value Index Listings (T0230)
+- [x] Goal doc + C-Level role assignment in `.claude/goals/startup-value-index-listings.md`
+- [x] `lib/startup-index-listings.ts` aggregator (paginated/filterable/sortable) + detail
+- [x] `/api/index/listings` + `/api/index/listing/[ticker]` cached 5min
+- [x] `/index/listings` ranked table (Beta) — sortable, filterable, sparkline col, pagination
+- [x] `/index/listings/[ticker]` detail page (Beta) — SVI history chart, Antler bars, accelerator gaps, 4-lens valuation
+- [x] `/index` hero cross-links to "Browse all N listings"
+- [x] Anonymous tickers by default; public names only on opt-in
+
 ### v2.14.1 — Uptime guard (T0229)
 - [x] `scripts/uptime-watcher.sh` 1-min cron with 3-fail-restart / 5-fail-rollback graduated response
 - [x] State + log + Telegram throttle layer
