@@ -54,6 +54,13 @@
 - [x] Fallback to band-based estimate when cohort too small
 - [x] 8 new unit tests for maturity branches (109 total)
 
+### v2.16 — Standalone startupvalueindex.com app + brand + trademark (T0231)
+- [x] Separate Next.js repo at `/home/dovanlong/startupvalueindex.com` — zero-DB, read-only consumer of blockid.au API
+- [x] Brand: wordmark + slogan "Live Startup Valuations" + SVI monogram logo
+- [x] 4 pages (`/`, `/listings`, `/listings/[ticker]`, `/about`) + JSON feed
+- [x] systemd service for auto-restart + nginx vhost flipped from proxy-to-blockid.au to proxy-to-127.0.0.1:4002
+- [x] `TRADEMARK.md` filing plan for IP Australia (classes 35/36/42, ~A$3.5-5K)
+
 ### v2.15 — Startup Value Index Listings (T0230)
 - [x] Goal doc + C-Level role assignment in `.claude/goals/startup-value-index-listings.md`
 - [x] `lib/startup-index-listings.ts` aggregator (paginated/filterable/sortable) + detail
