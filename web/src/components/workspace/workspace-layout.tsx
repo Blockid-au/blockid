@@ -135,6 +135,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Account",
     items: [
       { href: "/workspace/profile", label: "My Profile", icon: User },
+      { href: "/workspace/founder-profile", label: "Founder Profile", icon: User, lifecycle: "beta" },
       { href: "/workspace/billing", label: "Billing", icon: CreditCard },
       { href: "/workspace/notifications", label: "Notifications", icon: Bell },
       { href: "/workspace/referrals", label: "Referrals", icon: Gift },
