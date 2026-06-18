@@ -154,6 +154,7 @@ const ADMIN_NAV_GROUP: NavGroup = {
     { href: "/dashboard/admin/content-pillars", label: "Content Pillars", icon: FileText, lifecycle: "beta" },
     { href: "/dashboard/admin/stripe-sync", label: "Stripe Sync", icon: CreditCard, lifecycle: "beta" },
     { href: "/dashboard/admin/pricing-test", label: "Pricing A/B", icon: BarChart3, lifecycle: "beta" },
+    { href: "/dashboard/admin/svi-exchange", label: "SVI Exchange", icon: Rocket, lifecycle: "beta" },
     { href: "/admin/listings", label: "Listings", icon: ExternalLink },
   ],
 };

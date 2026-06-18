@@ -17,6 +17,16 @@ Each commit message tagging a new MINOR version must:
 
 ---
 
+## v2.17 — 2026-06-18 (PM)
+
+**Theme:** SVI Exchange orchestration framework — autonomous C-Level execution for the 4-phase north star.
+
+- `.claude/goals/svi-exchange-orchestration.md`: full orchestration model — task shape, queue, picker logic, per-stage execution contract (research → plan → code → deploy), C-Level role mapping, escalation rules, anti-patterns, phase-2 ideas (AI-generated tasks, multi-agent collaboration, telemetry-driven priority bumps).
+- `web/content/reports/svi-exchange-tasks.json`: seeded **15 tasks** covering v0.2 Investor layer (watchlist, account verification, email alerts, contact unlock), v0.3 sector pages (SaaS deep-dive + 6 more), v0.4 embeddable widgets + Cut Through partnership, v0.5 secondary-offers regulatory research + intake form, v0.6 EOI book, v0.9 institutional API tier + quarterly report. Each task includes phase, owner, collaborators, priority, dependencies, deliverables, estimated hours.
+- `web/src/app/api/cron/svi-exchange-orchestrator/route.ts`: GET (inspect) + POST (advance one cycle) endpoints. Picker logic = first in_progress → highest-priority pending with deps satisfied. Per cycle: load queue → pick task → advance one stage → write stub artifact in `.claude/research/` or `.claude/plans/` → save state → Telegram alert on done + escalations log.
+- `web/src/app/dashboard/admin/svi-exchange/page.tsx` (Beta) — orchestration cockpit: stat row (total / done / in_progress / blocked), phase progress bars, last-5-cycles log, escalations panel, full task queue with stage badges + last-action stamps + manual trigger docs.
+- Sidebar admin nav: "SVI Exchange" (Beta, Rocket icon) — admin-only.
+
 ## v2.16.1 — 2026-06-18 (PM)
 
 **Theme:** startupvalueindex.com DNS live + uptime watcher coverage + 12-month north-star goal.
