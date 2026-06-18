@@ -17,6 +17,18 @@ Each commit message tagging a new MINOR version must:
 
 ---
 
+## v2.16 — 2026-06-18 (PM)
+
+**Theme:** startupvalueindex.com extracted to standalone project + brand + systemd + nginx + trademark filing plan.
+
+- New repo at `/home/dovanlong/startupvalueindex.com` — Next.js 15 App Router, Tailwind 3, TypeScript strict, **zero database** (read-only consumer of blockid.au public APIs)
+- Brand: wordmark "Startup Value Index™", slogan "Live Startup Valuations", monogram logo (dark tile + emerald rising chart line, SVG + favicon)
+- Pages: `/` BSI-AU hero · `/listings` Markets table · `/listings/[ticker]` detail with SVI history chart · `/about` methodology + trademark · `/api/headlines.json` CORS-enabled feed
+- Build: standalone Next.js bundle running on port 4002
+- Deploy: **systemd service** `startupvalueindex.service` (enabled, Restart=always)
+- nginx vhost on `blockid-live` now points startupvalueindex.com → 127.0.0.1:4002 (was proxying to blockid.au/index in v2.4)
+- Trademark plan: `TRADEMARK.md` — IP Australia Headstart filing for classes 35 / 36 / 42, estimated A$3,500-5,000, defensive (TM) symbol used until registered, first-public-use 2026-06-18 documented
+
 ## v2.15 — 2026-06-18 (PM)
 
 **Theme:** Startup Value Index Listings — the "Markets" view of startupvalueindex.com.
