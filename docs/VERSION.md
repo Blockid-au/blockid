@@ -17,6 +17,16 @@ Each commit message tagging a new MINOR version must:
 
 ---
 
+## v2.10 — 2026-06-18 (PM)
+
+**Theme:** Antler stage-progression signals + C-Level report fallback.
+
+- `lib/agents/antler-signals.ts` — 5-signal evaluation (Team, Progress, Invention, Unique Vision, 10× Product) with deterministic scoring from existing SVIExtractedSignals + raw text + CI output. Each signal exposes question, score, strength (exceptional/strong/developing/weak), what-we-see / gaps / how-to-lift, and a weight. Aggregated progression score 0-100 + standout signal + weakest link + one-line read.
+- `/api/svi`: populates `analysis.antlerSignals` after the SCN action plan.
+- `components/dashboard/antler-signals-card.tsx`: new card on `/dashboard/svi` (tagged Beta). Hero progression score + one-line read + standout/weakest link cards + expandable per-signal rows with what-we-see / gaps / how-to-lift.
+- 6 new vitest cases for antler-signals (115 total).
+- **Fix:** `api/cron/ceo-daily-summary` and `api/admin/goals` now walk back up to 3 days for agent reports instead of only checking today — eliminates the "❓ {Agent} No report available" panel that showed before the daily 23:45 UTC cron fires.
+
 ## v2.9 — 2026-06-18
 
 **Theme:** Feature lifecycle keywords — kill "Coming soon", introduce Beta → Live → Stable promotion path.

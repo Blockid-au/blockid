@@ -256,6 +256,8 @@ export interface SVIAnalysis {
   // v2.5: maturity guard + real cohort percentile (T0102)
   maturitySignal?: import("@/lib/agents/maturity-detector").MaturitySignal;
   cohortPercentile?: import("@/lib/agents/cohort-percentile").CohortPercentileResult;
+  // v2.10: Antler-style stage-progression signals (T0222)
+  antlerSignals?: import("@/lib/agents/antler-signals").AntlerEvaluation;
 }
 
 // ─── Startup metrics input shape ─────────────────────────────────────────────

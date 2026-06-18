@@ -25,18 +25,31 @@ interface AgentStatus {
   lastResearchDate: string | null;
 }
 
-function readTodayReport(agent: string, today: string): { status: string; content: string } | null {
-  const dailyPath = path.join(REPORTS_DIR, `${agent}-daily-${today}.md`);
-  const weeklyPath = path.join(REPORTS_DIR, `${agent}-weekly-${today}.md`);
-  const filePath = fs.existsSync(dailyPath) ? dailyPath : fs.existsSync(weeklyPath) ? weeklyPath : null;
-  if (!filePath) return null;
+function readTodayReport(agent: string, today: string): { status: string; content: string; reportDate?: string } | null {
+  // Walk back up to 3 days. The C-Level cron runs once a day at 23:45 UTC;
+  // morning dashboard loads before that would otherwise show every agent as
+  // "No report available" even though yesterday's report is right there.
+  const base = new Date(`${today}T00:00:00Z`);
+  for (let offset = 0; offset <= 3; offset++) {
+    const d = new Date(base.getTime() - offset * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
+    const dailyPath = path.join(REPORTS_DIR, `${agent}-daily-${d}.md`);
+    const weeklyPath = path.join(REPORTS_DIR, `${agent}-weekly-${d}.md`);
+    const filePath = fs.existsSync(dailyPath) ? dailyPath
+      : fs.existsSync(weeklyPath) ? weeklyPath
+      : null;
+    if (!filePath) continue;
 
-  const content = fs.readFileSync(filePath, "utf8");
-  const statusMatch = content.match(/(GREEN|YELLOW|RED)/i);
-  return {
-    status: statusMatch ? statusMatch[1].toUpperCase() : "YELLOW",
-    content,
-  };
+    const content = fs.readFileSync(filePath, "utf8");
+    const statusMatch = content.match(/(GREEN|YELLOW|RED)/i);
+    return {
+      status: statusMatch ? statusMatch[1].toUpperCase() : "YELLOW",
+      content,
+      reportDate: d,
+    };
+  }
+  return null;
 }
 
 export async function GET(request: Request) {

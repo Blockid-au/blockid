@@ -54,6 +54,12 @@
 - [x] Fallback to band-based estimate when cohort too small
 - [x] 8 new unit tests for maturity branches (109 total)
 
+### v2.10 — Antler signals + C-Level report fallback (T0222 / T0223)
+- [x] 5-signal Antler/Sequoia/a16z evaluation (Team / Progress / Invention / Vision / 10× Product)
+- [x] Deterministic scoring + standout + weakest-link + how-to-lift
+- [x] Dashboard `AntlerSignalsCard` (Beta) + 6 vitest cases (115 total)
+- [x] C-Level report 3-day fallback fixes "No report available" on morning loads
+
 ### v2.9 — Feature lifecycle chips (T0220)
 - [x] Killed "Coming soon" everywhere user-visible on the dashboard
 - [x] Introduced lifecycle states: beta (amber) · live (blue) · stable (no chip)

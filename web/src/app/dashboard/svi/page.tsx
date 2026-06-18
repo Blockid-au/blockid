@@ -12,6 +12,7 @@ import { NextBestActionWidget } from "@/components/dashboard/next-best-action-wi
 import { DeepValuationCard } from "@/components/dashboard/deep-valuation-card";
 import { ScnActionPlanCard } from "@/components/dashboard/scn-action-plan-card";
 import { SviExplainerCard } from "@/components/dashboard/svi-explainer-card";
+import { AntlerSignalsCard } from "@/components/dashboard/antler-signals-card";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 
 export const metadata: Metadata = {
@@ -334,6 +335,9 @@ export default async function SVIDashboardPage() {
 
         {/* ── v2.6: Why your SVI is what it is — radar + click-through ── */}
         <SviExplainerCard analysis={analysisWithDelta} />
+
+        {/* ── v2.10: Antler-style stage-progression signals (Team / Progress / Invention / Vision / 10× Product) ── */}
+        <AntlerSignalsCard analysis={analysisWithDelta} />
 
         {/* ── v2.3: Deep input analysis + 4-lens valuation ─────────────── */}
         <DeepValuationCard analysis={analysisWithDelta} />
