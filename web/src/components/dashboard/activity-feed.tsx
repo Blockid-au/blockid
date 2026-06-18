@@ -36,7 +36,7 @@ function formatRelativeTime(iso: string): string {
 const EMPTY_ITEMS = [
   { icon: TrendingUp, text: "Get your first SVI score to start tracking", time: "Start now" },
   { icon: FileText, text: "Upload evidence to strengthen your profile", time: "Next step" },
-  { icon: PieChart, text: "Set up your cap table", time: "Coming soon" },
+  { icon: PieChart, text: "Set up your cap table", time: "Beta" },
 ];
 
 export function ActivityFeed({ rawActions }: ActivityFeedProps) {

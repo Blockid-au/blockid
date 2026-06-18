@@ -17,6 +17,15 @@ Each commit message tagging a new MINOR version must:
 
 ---
 
+## v2.9 — 2026-06-18
+
+**Theme:** Feature lifecycle keywords — kill "Coming soon", introduce Beta → Live → Stable promotion path.
+
+- `workspace-layout.tsx`: removed every "Coming soon" string from the dashboard menu, replaced with an amber **Beta** chip. New `FeatureLifecycle` type (`beta` | `live`) + `lifecycle` field on `NavItem`. Group-level chip (for future-phase groups) and per-item chip both render with consistent amber (beta) / blue (live) styling.
+- 6 features tagged `beta` (all shipped 2026-06-16 → 2026-06-17): Finance P&L, Team & Salaries, Accelerator Tracker, Content Pillars (admin), Stripe Sync (admin), Pricing A/B (admin).
+- `components/dashboard/activity-feed.tsx` + `components/workspace/metrics-dashboard.tsx`: replaced "Coming soon" → Beta chip.
+- `docs/FEATURE_LIFECYCLE.md` (new): promotion checklist (≥2 weeks + no P0 + monitored + green QA → live; +30 days + no P1 + steady usage → stable), promotion calendar with target dates (most beta features eligible 2026-06-30 / 2026-07-01).
+
 ## v2.8 — 2026-06-17 (PM)
 
 **Theme:** Revenue-first execution — Stripe fix + share-on-LinkedIn + pricing A/B test.

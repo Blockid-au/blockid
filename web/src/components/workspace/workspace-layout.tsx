@@ -33,13 +33,37 @@ interface WorkspaceLayoutProps {
   currentPhase?: number;
 }
 
+/**
+ * Feature lifecycle — controls the chip shown beside the nav label.
+ *
+ *   beta   — actively iterating, may break. Default for anything shipped <2 weeks ago.
+ *   live   — running stably for 2+ weeks, no open critical issues.
+ *   stable — battle-tested over 30+ days, no chip shown (default state).
+ *
+ * Promotion: bump from "beta" → "live" → undefined (stable) as confidence grows.
+ * Demotion is rare but legitimate (e.g. a hotfix introduced regressions).
+ */
+type FeatureLifecycle = "beta" | "live";
+
+interface NavItem {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  lifecycle?: FeatureLifecycle;
+}
+
 interface NavGroup {
   label: string;
   stage?: string;
   /** Minimum phase (0-5) for this group to be fully accessible. Lower phases show dimmed. */
   minPhase?: number;
-  items: { href: string; label: string; icon: LucideIcon }[];
+  items: NavItem[];
 }
+
+const LIFECYCLE_CHIP: Record<FeatureLifecycle, string> = {
+  beta: "bg-amber-100 text-amber-700 ring-1 ring-amber-200",
+  live: "bg-blue-100 text-blue-700 ring-1 ring-blue-200",
+};
 
 const NAV_GROUPS: NavGroup[] = [
   {
@@ -86,9 +110,10 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/dashboard/valuation", label: "VC Valuation", icon: Target },
       { href: "/dashboard/cfo", label: "CFO Advisor", icon: LineChart },
-      { href: "/dashboard/finance", label: "Finance P&L", icon: DollarSign },
+      { href: "/dashboard/finance", label: "Finance P&L", icon: DollarSign, lifecycle: "beta" },
       { href: "/dashboard/esop", label: "ESOP Manager", icon: Users },
-      { href: "/dashboard/accelerator", label: "Accelerator Tracker", icon: Rocket },
+      { href: "/dashboard/team", label: "Team & Salaries", icon: Users, lifecycle: "beta" },
+      { href: "/dashboard/accelerator", label: "Accelerator Tracker", icon: Rocket, lifecycle: "beta" },
       { href: "/dashboard/fundraise", label: "Fundraise Readiness", icon: TrendingUp },
       { href: "/workspace/data-room", label: "Data Room", icon: FolderCheck },
       { href: "/workspace/fundraise", label: "Raise Capital", icon: Banknote },
@@ -124,9 +149,9 @@ const ADMIN_NAV_GROUP: NavGroup = {
   items: [
     { href: "/admin", label: "Admin Panel", icon: Shield },
     { href: "/admin/goals", label: "CEO Goals", icon: Target },
-    { href: "/dashboard/admin/content-pillars", label: "Content Pillars", icon: FileText },
-    { href: "/dashboard/admin/stripe-sync", label: "Stripe Sync", icon: CreditCard },
-    { href: "/dashboard/admin/pricing-test", label: "Pricing A/B", icon: BarChart3 },
+    { href: "/dashboard/admin/content-pillars", label: "Content Pillars", icon: FileText, lifecycle: "beta" },
+    { href: "/dashboard/admin/stripe-sync", label: "Stripe Sync", icon: CreditCard, lifecycle: "beta" },
+    { href: "/dashboard/admin/pricing-test", label: "Pricing A/B", icon: BarChart3, lifecycle: "beta" },
     { href: "/admin/listings", label: "Listings", icon: ExternalLink },
   ],
 };
@@ -179,14 +204,19 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0 
                 <div className="px-3 pt-4 pb-1.5 flex items-center justify-between">
                   <span className={cn("text-[10px] font-semibold uppercase tracking-[0.12em]", isFuturePhase ? "text-ink-300" : "text-ink-400")}>{group.label}</span>
                   {group.stage && (
-                    <span className={cn("text-[9px]", isFuturePhase ? "text-ink-300/50" : "text-ink-400/60")}>
-                      {isFuturePhase ? "Coming soon" : group.stage}
+                    <span className={cn(
+                      "text-[9px]",
+                      isFuturePhase
+                        ? "px-1.5 py-0.5 rounded font-semibold bg-amber-100 text-amber-700 ring-1 ring-amber-200"
+                        : "text-ink-400/60",
+                    )}>
+                      {isFuturePhase ? "Beta" : group.stage}
                     </span>
                   )}
                 </div>
               )}
               {/* Group items */}
-              {group.items.map(({ href, label, icon: Icon }) => {
+              {group.items.map(({ href, label, icon: Icon, lifecycle }) => {
                 const active = pathname === href || pathname.startsWith(href + "/");
                 return (
                   <Link
@@ -203,7 +233,19 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0 
                     )}
                   >
                     <Icon strokeWidth={1.75} className={cn("h-4 w-4 shrink-0", active ? "text-brand-600" : isFuturePhase ? "text-ink-300" : "")} />
-                    {sidebarOpen && <span className="truncate">{label}</span>}
+                    {sidebarOpen && (
+                      <>
+                        <span className="truncate flex-1">{label}</span>
+                        {lifecycle && (
+                          <span className={cn(
+                            "text-[8.5px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0",
+                            LIFECYCLE_CHIP[lifecycle],
+                          )}>
+                            {lifecycle}
+                          </span>
+                        )}
+                      </>
+                    )}
                   </Link>
                 );
               })}
