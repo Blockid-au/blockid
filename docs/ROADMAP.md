@@ -54,6 +54,14 @@
 - [x] Fallback to band-based estimate when cohort too small
 - [x] 8 new unit tests for maturity branches (109 total)
 
+### v2.14 — Startup Value Index Exchange (T0228 / T0213 brand landing)
+- [x] Goal doc + C-Level role assignment + IA in `.claude/goals/startup-value-index-exchange.md`
+- [x] `lib/startup-index-aggregator.ts` computes BSI-AU, sector + stage indices, top movers
+- [x] `/api/index/headlines` public JSON endpoint (cached 5min)
+- [x] `/index` rebuilt investing.com-style: hero + sparkline + sector heatmap + top movers + stage strip + CTA + methodology + citation
+- [x] Anonymous ticker scheme — no PII exposed
+- [x] startupvalueindex.com domain already routes here via nginx (T0212)
+
 ### v2.13 — Accelerator Criteria Library + PDF Checklist page (T0227)
 - [x] `/dashboard/accelerator-criteria` searchable browser (Beta)
 - [x] PDF Page 1.8 "Accelerator-Ready Checklist" with heatmap + top 5 lift moves

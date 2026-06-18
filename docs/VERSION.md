@@ -17,6 +17,23 @@ Each commit message tagging a new MINOR version must:
 
 ---
 
+## v2.14 — 2026-06-18 (PM)
+
+**Theme:** Startup Value Index Exchange — `/index` rebuilt as the investing.com-style brand surface for startupvalueindex.com.
+
+- `.claude/goals/startup-value-index-exchange.md`: full goal doc with information architecture, data model, C-Level role assignment, success criteria, anti-patterns, phase 2 ideas.
+- `lib/startup-index-aggregator.ts`: server-side aggregator computing BSI-AU (median SVI over 90d), 7 sector indices, 8 stage indices, top winners/losers (per-identity WoW delta), 7-day sparkline, total coverage AUD, citation snippet. Anonymous tickers (SECTOR-xxx) — no PII.
+- `/api/index/headlines`: public JSON endpoint, cached 5min stale-while-revalidate 10min.
+- `/index` page completely rebuilt to copy investing.com:
+  - HERO: BSI-AU value (huge), 1-day + 7-day delta pills, sparkline SVG, 4-stat row (companies / coverage / today / yesterday)
+  - SECTOR HEATMAP: 7-sector grid coloured by 7d delta (deep green/red)
+  - TOP MOVERS: winners (left) and losers (right) as ranked tables with anonymous ticker, sector, SVI, Δ
+  - STAGE INDICES: 8-tile strip with median SVI per stage + cohort size
+  - CTA: gradient "Get my SVI score" banner
+  - METHODOLOGY + CITATION: copy-paste ready citation snippet for journalists
+  - Footer: updated-at UTC + link to JSON endpoint
+- nginx routing startupvalueindex.com → /index already shipped in v2.4 (T0212), so the rebuild surfaces on the brand domain automatically.
+
 ## v2.13 — 2026-06-18 (PM)
 
 **Theme:** Finish v2.12 deliverables — standalone Criteria Library + PDF Accelerator-Ready Checklist page.
