@@ -54,6 +54,12 @@
 - [x] Fallback to band-based estimate when cohort too small
 - [x] 8 new unit tests for maturity branches (109 total)
 
+### v2.16.1 — startupvalueindex.com DNS live + monitoring + north-star goal (T0232)
+- [x] Cloudflare A records pointing apex+www to origin IP via existing DDNS token
+- [x] Brand domain serves all 6 routes live (~70ms p95)
+- [x] Uptime watcher parametrised + crontab monitors both blockid.au + startupvalueindex.com
+- [x] `GOAL.md` in standalone repo — 4-phase north star (listings → investor → liquidity → index licensing)
+
 ### v2.16 — Standalone startupvalueindex.com app + brand + trademark (T0231)
 - [x] Separate Next.js repo at `/home/dovanlong/startupvalueindex.com` — zero-DB, read-only consumer of blockid.au API
 - [x] Brand: wordmark + slogan "Live Startup Valuations" + SVI monogram logo

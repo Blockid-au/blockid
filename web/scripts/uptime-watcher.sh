@@ -18,9 +18,11 @@
 
 set -u
 
-URL="https://blockid.au"
-STATE_FILE="/tmp/blockid-uptime-state"
-LOG="/tmp/blockid-uptime.log"
+# Primary site to probe — pass alternate URL via $1 if invoking multiple times
+URL="${1:-https://blockid.au}"
+URL_SLUG=$(echo "$URL" | sed 's|^https\?://||; s|[/.]|-|g')
+STATE_FILE="/tmp/uptime-state-${URL_SLUG}"
+LOG="/tmp/uptime-${URL_SLUG}.log"
 PID_FILE="/tmp/blockid-production.pid"
 DEPLOY_DIR="/home/dovanlong/blockid.au/web"
 

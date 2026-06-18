@@ -17,6 +17,15 @@ Each commit message tagging a new MINOR version must:
 
 ---
 
+## v2.16.1 — 2026-06-18 (PM)
+
+**Theme:** startupvalueindex.com DNS live + uptime watcher coverage + 12-month north-star goal.
+
+- Cloudflare DDNS already had a token for startupvalueindex.com (`/etc/cloudflare-ddns-startupvalueindex.conf` + zone `c049...4fc5`). Ran `cloudflare-ddns-update.sh` to force both apex + www A records to point at origin IP **34.46.34.139** with proxied=true. Verified live via `https://startupvalueindex.com/` (200, <100ms) — all 6 routes resolve through Cloudflare CDN → origin nginx (port 4002).
+- `web/scripts/uptime-watcher.sh` parametrised — now accepts a URL argument so a single script can monitor multiple domains. State + log files key off URL slug.
+- Crontab installs **two** entries: one watching `blockid.au`, one watching `startupvalueindex.com`. Same graduated-response logic (3 fails → restart, 5 fails → rollback).
+- `GOAL.md` in the separate startupvalueindex.com repo: 12-month north-star direction — site evolves from listings (v0.1, shipped) → investor layer (v0.2-4) → liquidity / secondary share offers (v0.5-8, first revenue) → index licensing (v0.9-x, recurring revenue). C-Level role mapping across all 14 agents, success metrics per phase, anti-patterns, hard scope cuts.
+
 ## v2.16 — 2026-06-18 (PM)
 
 **Theme:** startupvalueindex.com extracted to standalone project + brand + systemd + nginx + trademark filing plan.
