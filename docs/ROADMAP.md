@@ -54,6 +54,11 @@
 - [x] Fallback to band-based estimate when cohort too small
 - [x] 8 new unit tests for maturity branches (109 total)
 
+### v2.14.1 — Uptime guard (T0229)
+- [x] `scripts/uptime-watcher.sh` 1-min cron with 3-fail-restart / 5-fail-rollback graduated response
+- [x] State + log + Telegram throttle layer
+- [x] `docs/UPTIME_GUARD.md` runbook
+
 ### v2.14 — Startup Value Index Exchange (T0228 / T0213 brand landing)
 - [x] Goal doc + C-Level role assignment + IA in `.claude/goals/startup-value-index-exchange.md`
 - [x] `lib/startup-index-aggregator.ts` computes BSI-AU, sector + stage indices, top movers

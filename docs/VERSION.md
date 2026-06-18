@@ -17,6 +17,20 @@ Each commit message tagging a new MINOR version must:
 
 ---
 
+## v2.14.1 — 2026-06-18 (PM)
+
+**Theme:** Uptime guard — minute-cadence external probe + graduated auto-recovery.
+
+User reported (mistakenly, as it turned out) that blockid.au was down. Site was actually 200 OK across all routes, but the report exposed a gap: between agent-guardian runs (every 10 min) the platform had no fine-grained uptime visibility. Closed the gap.
+
+- `web/scripts/uptime-watcher.sh`: 1-minute cron that probes `https://blockid.au` with 8s timeout. Graduated response based on consecutive-fail counter:
+  - 3 fails → kill stale next-server PID + spin up fresh from `.next-current` symlink + Telegram alert
+  - 5 fails → `deploy-live.sh --rollback` (restore previous release) + Telegram alert
+  - Recovery (200 after any fail) → reset state + Telegram recovery ping
+- State persisted in `/tmp/blockid-uptime-state`, log auto-rotated at 100 KB, Telegram alerts throttled 15 min per incident
+- Installed via crontab `* * * * * bash …/uptime-watcher.sh` — already live
+- `docs/UPTIME_GUARD.md`: runbook explaining the layer stack (uptime / guardian / healthcheck / QA daily / deploy CI), graduated response table, troubleshooting steps, phase-2 hardening ideas (external monitor, multi-region, StatusPage)
+
 ## v2.14 — 2026-06-18 (PM)
 
 **Theme:** Startup Value Index Exchange — `/index` rebuilt as the investing.com-style brand surface for startupvalueindex.com.
