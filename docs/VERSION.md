@@ -17,6 +17,20 @@ Each commit message tagging a new MINOR version must:
 
 ---
 
+## v2.12 — 2026-06-18 (PM)
+
+**Theme:** AU Accelerator Knowledge Base — 30+ criteria across 8 accelerators evaluated per analysis.
+
+- `.claude/goals/au-accelerator-knowledge-base.md`: full goal doc with C-Level role assignment (CDO owns schema + seeding; CMO new sources; CTO API; CPO UX; CFO valuation calibration; CRO A/B; CLO citations).
+- Migration `0065_knowledge_entries.sql`: `knowledge_entries` table with source / topic / stage range / sector / evidence_required / tactic / valuation_lift_pct / citations.
+- `content/knowledge-base/au-accelerators-2026.json`: 30 seeded criteria from Antler, Startmate, YC, Techstars, SkyDeck, MVi, Cicada, Blackbird — each with public-source citations.
+- `scripts/seed-knowledge-base.mjs`: idempotent CLI that upserts the JSON into the table. Ran live → 30 active entries.
+- `lib/agents/accelerator-readiness.ts`: evaluation engine that scores every criterion against the user's analysis (Antler signals + SVI subs + raw input keyword scan) → status per criterion (met / partial / gap) + estimated A$ valuation lift if achieved.
+- `/api/svi` route: calls `evaluateAcceleratorReadiness` after the Antler signals step and persists into `analysis.acceleratorReadiness`.
+- `components/dashboard/accelerator-readiness-card.tsx`: dashboard card (Beta) with overall %, met/partial/gap summary, "top valuation-lift moves" banner, expandable per-source rows with criterion details + tactic + citations.
+
+Also includes the v2.11 founder-profile build fix: split `lib/founder-profile.ts` into client-safe `lib/founder-profile-types.ts` and server-only `lib/founder-profile.ts` because `server-only` was leaking into the client bundle via the form import. Two failed v2.10/v2.11 deploys traced to that root cause.
+
 ## v2.11 — 2026-06-18 (PM)
 
 **Theme:** Founder Profile builder — auto-lift the Antler Team signal.
