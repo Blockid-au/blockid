@@ -1036,6 +1036,114 @@ function ScnActionPlanPage({ plan, maturity, cohort }: {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+ *  ACCELERATOR CHECKLIST PAGE (v2.12) — heatmap + top 5 valuation-lift moves
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+function AcceleratorChecklistPage({ readiness }: { readiness: NonNullable<SVIAnalysis["acceleratorReadiness"]> }) {
+  function pctColor(pct: number): string {
+    if (pct >= 70) return "#10B981";
+    if (pct >= 40) return C.brand600;
+    if (pct >= 20) return "#F59E0B";
+    return "#EF4444";
+  }
+  function fmtAud(v?: number): string {
+    if (!v || v <= 0) return "";
+    if (v >= 1_000_000) return `A$${(v / 1_000_000).toFixed(2)}M`;
+    if (v >= 1_000) return `A$${(v / 1_000).toFixed(0)}K`;
+    return `A$${v}`;
+  }
+
+  return (
+    <View>
+      <PageTitle title="Accelerator-Ready Checklist" subtitle="Mapped against 30+ criteria from Antler, Startmate, YC, Techstars, SkyDeck, MVi, Cicada, Blackbird" />
+
+      {/* Overall hero */}
+      <View style={{ marginBottom: 12, padding: 12, backgroundColor: C.brand50, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: C.brand600 }}>
+        <View style={{ flexDirection: "row", gap: 16 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: C.ink500, letterSpacing: 1, textTransform: "uppercase" }}>Overall readiness</Text>
+            <Text style={{ fontSize: 28, fontFamily: "Helvetica-Bold", color: pctColor(readiness.overallPct), marginTop: 2 }}>{readiness.overallPct}%</Text>
+            <Text style={{ fontSize: 8, color: C.ink600, marginTop: 2 }}>
+              {readiness.totalMet} met · {readiness.totalPartial} partial · {readiness.totalCriteria - readiness.totalMet - readiness.totalPartial} gap · {readiness.totalCriteria} total
+            </Text>
+          </View>
+          <View style={{ flex: 2, borderLeftWidth: 0.5, borderLeftColor: C.brand200, paddingLeft: 12 }}>
+            <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: C.ink500, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Source readiness</Text>
+            {readiness.sources.map((src) => (
+              <View key={src.source} style={{ flexDirection: "row", alignItems: "center", marginBottom: 3 }}>
+                <Text style={{ fontSize: 8, color: C.ink700, width: 100 }}>{src.source_name}</Text>
+                <View style={{ flex: 1, height: 5, backgroundColor: C.surface100, borderRadius: 2.5, marginHorizontal: 4, flexDirection: "row", overflow: "hidden" }}>
+                  <View style={{ width: `${(src.met / src.total) * 100}%`, backgroundColor: "#10B981" }} />
+                  <View style={{ width: `${(src.partial / src.total) * 100}%`, backgroundColor: "#F59E0B" }} />
+                  <View style={{ width: `${(src.gap / src.total) * 100}%`, backgroundColor: "#EF4444" }} />
+                </View>
+                <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: pctColor(src.pct), width: 30, textAlign: "right" }}>{src.pct}%</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      </View>
+
+      {/* Legend */}
+      <View style={{ flexDirection: "row", gap: 12, marginBottom: 10 }}>
+        {[
+          { label: "Met", color: "#10B981" },
+          { label: "Partial", color: "#F59E0B" },
+          { label: "Gap", color: "#EF4444" },
+        ].map((l) => (
+          <View key={l.label} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: l.color }} />
+            <Text style={{ fontSize: 8, color: C.ink600 }}>{l.label}</Text>
+          </View>
+        ))}
+      </View>
+
+      {/* Top 5 valuation-lift moves */}
+      <View style={{ marginBottom: 8 }}>
+        <Text style={[s.label, { marginBottom: 4 }]}>Top 5 valuation-lift moves (across all sources)</Text>
+        <View style={{ borderWidth: 0.5, borderColor: C.surface200, borderRadius: 5 }}>
+          {readiness.highLeverageGaps.slice(0, 5).map((g, i) => (
+            <View key={i} style={{
+              padding: 8,
+              borderTopWidth: i === 0 ? 0 : 0.5,
+              borderTopColor: C.surface200,
+              backgroundColor: i % 2 === 0 ? C.white : C.surface50,
+            }}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <View style={{ flex: 1, paddingRight: 8 }}>
+                  <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: C.ink900 }}>{g.entry.criterion}</Text>
+                  <Text style={{ fontSize: 7, color: C.ink500, marginTop: 1 }}>
+                    {g.entry.source_name} · status: <Text style={{ color: g.status === "partial" ? "#B45309" : "#9F1239", fontFamily: "Helvetica-Bold" }}>{g.status.toUpperCase()}</Text>
+                  </Text>
+                </View>
+                {g.estLiftAud && g.estLiftAud > 0 && (
+                  <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold", color: "#10B981", textAlign: "right" }}>+{fmtAud(g.estLiftAud)}</Text>
+                )}
+              </View>
+              {g.entry.tactic.length > 0 && (
+                <View style={{ marginTop: 4 }}>
+                  <Text style={{ fontSize: 6.5, fontFamily: "Helvetica-Bold", color: C.brand600, letterSpacing: 0.8, textTransform: "uppercase" }}>How to lift</Text>
+                  {g.entry.tactic.slice(0, 3).map((t, j) => (
+                    <Text key={j} style={{ fontSize: 7.5, color: C.ink700, marginTop: 1 }}>→ {t}</Text>
+                  ))}
+                </View>
+              )}
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Methodology note */}
+      <View style={{ marginTop: 8, padding: 8, backgroundColor: C.surface50, borderRadius: 5 }}>
+        <Text style={{ fontSize: 7, color: C.ink600, lineHeight: 1.4 }}>
+          Criteria sourced from public accelerator posts (Antler blog, YC essays, Startmate posts, etc.). Each is mapped to the stage range it applies to. Estimated A$ lift = the criterion&apos;s `valuation_lift_pct` applied to the blended valuation mid. Met / partial / gap status is computed from your Antler signals + SVI dimensions + scraped input keywords — deterministic, re-runs every analysis. See <Text style={{ fontFamily: "Helvetica-Bold" }}>/dashboard/accelerator-criteria</Text> for the full searchable library.
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
  *  MAIN DOCUMENT
  * ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -1408,6 +1516,17 @@ export function SVIReportPDF({
             maturity={analysis.maturitySignal}
             cohort={analysis.cohortPercentile}
           />
+          <Footer />
+        </Page>
+      )}
+
+      {/* ────────────────────────────────────────────────────────────────────
+       *  PAGE 1.8: ACCELERATOR-READY CHECKLIST (v2.12) — 5 top criteria + readiness heatmap
+       * ──────────────────────────────────────────────────────────────────── */}
+      {analysis.acceleratorReadiness && analysis.acceleratorReadiness.sources.length > 0 && (
+        <Page size="A4" style={s.page}>
+          <HeaderBar />
+          <AcceleratorChecklistPage readiness={analysis.acceleratorReadiness} />
           <Footer />
         </Page>
       )}
