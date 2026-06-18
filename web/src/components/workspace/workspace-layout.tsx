@@ -114,6 +114,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/dashboard/esop", label: "ESOP Manager", icon: Users },
       { href: "/dashboard/team", label: "Team & Salaries", icon: Users, lifecycle: "beta" },
       { href: "/dashboard/accelerator", label: "Accelerator Tracker", icon: Rocket, lifecycle: "beta" },
+      { href: "/dashboard/accelerator-criteria", label: "Accelerator Criteria", icon: BookOpen, lifecycle: "beta" },
       { href: "/dashboard/fundraise", label: "Fundraise Readiness", icon: TrendingUp },
       { href: "/workspace/data-room", label: "Data Room", icon: FolderCheck },
       { href: "/workspace/fundraise", label: "Raise Capital", icon: Banknote },

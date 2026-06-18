@@ -54,6 +54,12 @@
 - [x] Fallback to band-based estimate when cohort too small
 - [x] 8 new unit tests for maturity branches (109 total)
 
+### v2.13 — Accelerator Criteria Library + PDF Checklist page (T0227)
+- [x] `/dashboard/accelerator-criteria` searchable browser (Beta)
+- [x] PDF Page 1.8 "Accelerator-Ready Checklist" with heatmap + top 5 lift moves
+- [x] Sidebar nav: Accelerator Criteria (Beta) added to Fundraise group
+- [x] Self-analysis refreshed with v2.12 + v2.13 outputs
+
 ### v2.12 — AU Accelerator Knowledge Base (T0226)
 - [x] Goal doc + C-Level role assignment in `.claude/goals/au-accelerator-knowledge-base.md`
 - [x] `knowledge_entries` schema (migration 0065) — applied live

@@ -17,6 +17,15 @@ Each commit message tagging a new MINOR version must:
 
 ---
 
+## v2.13 — 2026-06-18 (PM)
+
+**Theme:** Finish v2.12 deliverables — standalone Criteria Library + PDF Accelerator-Ready Checklist page.
+
+- `/dashboard/accelerator-criteria` (Beta) — searchable / filterable browser of all 30+ knowledge_entries. Filter by stage / source / topic, full-text search, sort by valuation lift / source / stage. Each row expands to show description, evidence required, "how to lift" tactic, and citation links to the source.
+- PDF Page 1.8 "Accelerator-Ready Checklist" — added between SCN action plan and executive summary. Hero with overall readiness % + per-source mini-segment-bars (met/partial/gap), top 5 valuation-lift moves with "how to lift" tactic, methodology note pointing to the standalone page.
+- Sidebar: "Accelerator Criteria" link added to Fundraise group (Beta chip).
+- Re-ran `scripts/run-self-analysis.mjs` so `blockid-self-analysis-2026-06-18.md` reflects the v2.12 accelerator readiness + lifted Team signal post-profile insert.
+
 ## v2.12 — 2026-06-18 (PM)
 
 **Theme:** AU Accelerator Knowledge Base — 30+ criteria across 8 accelerators evaluated per analysis.
