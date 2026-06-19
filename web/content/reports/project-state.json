@@ -820,10 +820,11 @@
         "id": "T0124",
         "agent": "cro",
         "title": "Implement Funding Readiness scoring (CAPITAL) for investor readiness assessment",
-        "rationale": "Develop a scoring system to evaluate startup readiness for funding, incorporating key metrics and factors",
+        "rationale": "src/lib/agents/cro-funding-readiness.ts — pure-logic scorer that grades six pillars (Traction, Team, Governance, Data Room, Investor Materials, Stage Fit) against stage-aware AU benchmarks and returns an overall 0-100 score, verdict band, top-3 gaps, and prioritised actions. 8/8 vitest cases pass. Importable from the SCN action plan (capital section) and the fundraising readiness report without UI dependency.",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-06-19T04:02:28.636Z"
+        "status": "done",
+        "createdAt": "2026-06-19T04:02:28.636Z",
+        "completedAt": "2026-06-19T18:34:00.000Z"
       }
     ]
   },
