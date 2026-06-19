@@ -1,6 +1,6 @@
 {
   "version": "2.5.0",
-  "updatedAt": "2026-06-17T12:04:03.430Z",
+  "updatedAt": "2026-06-19T04:02:28.671Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-06-15T14:30:22Z",
@@ -20,7 +20,7 @@
     ]
   },
   "plan": {
-    "decidedAt": "2026-06-17T12:04:03.430Z",
+    "decidedAt": "2026-06-19T04:02:28.636Z",
     "decidedBy": "ceo",
     "tasks": [
       {
@@ -797,6 +797,33 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-06-16T12:04:02.626Z"
+      },
+      {
+        "id": "T0122",
+        "agent": "cfo",
+        "title": "Integrate sector ARR/revenue multiples for valuation benchmarking",
+        "rationale": "Incorporate SaaS, fintech, AI, marketplace, and healthtech multiples from Bessemer, SaaS Capital, PitchBook, and Carta to enhance financial projection norms and valuation methods",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-06-19T04:02:28.636Z"
+      },
+      {
+        "id": "T0123",
+        "agent": "rnd",
+        "title": "Develop Conversion/CTA experiment ideas & A/B test hypotheses for startup tooling",
+        "rationale": "Implement new AI tools and capabilities for startup tooling, focusing on conversion and CTA optimization",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-06-19T04:02:28.636Z"
+      },
+      {
+        "id": "T0124",
+        "agent": "cro",
+        "title": "Implement Funding Readiness scoring (CAPITAL) for investor readiness assessment",
+        "rationale": "Develop a scoring system to evaluate startup readiness for funding, incorporating key metrics and factors",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-06-19T04:02:28.636Z"
       }
     ]
   },
