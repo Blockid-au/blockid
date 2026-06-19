@@ -1,13 +1,13 @@
 {
-  "queue_version": "1.1",
-  "generated_at": "2026-06-18T11:30:00Z",
+  "queue_version": "1.2",
+  "generated_at": "2026-06-19T04:02:00Z",
   "phase_status": {
     "v0.1_listings": "done",
     "v0.2_investor_layer": "done",
     "v0.3_sector_pages": "done",
     "v0.4_embeddable_widget": "done",
     "v0.5_secondary_offers_prep": "in_progress",
-    "v0.6_eoi_book": "pending",
+    "v0.6_eoi_book": "done",
     "v0.7_escrow_settlement": "pending",
     "v0.8_deal_calendar": "pending",
     "v0.9_index_licensing": "pending"
@@ -17,7 +17,7 @@
       "id": "T_SVI_EXC_0001",
       "phase": "v0.2",
       "title": "Watchlist table + API",
-      "description": "Migration for watchlist (signed-in user \u00d7 ticker). GET returns user's watchlist; POST toggles a ticker.",
+      "description": "Migration for watchlist (signed-in user × ticker). GET returns user's watchlist; POST toggles a ticker.",
       "agent_owner": "CTO",
       "agent_collaborators": [
         "CDO",
@@ -68,7 +68,7 @@
     {
       "id": "T_SVI_EXC_0003",
       "phase": "v0.2",
-      "title": "Investor account type \u2014 verified VC firm flag",
+      "title": "Investor account type — verified VC firm flag",
       "description": "Add `account_type` enum (founder | investor | journalist) + `verified_at` on app_users. Verification flow stub (manual admin approval for v0.2).",
       "agent_owner": "CISO",
       "agent_collaborators": [
@@ -149,7 +149,7 @@
     {
       "id": "T_SVI_EXC_0006",
       "phase": "v0.3",
-      "title": "Sector deep-dive page \u2014 SaaS",
+      "title": "Sector deep-dive page — SaaS",
       "description": "/sector/saas: cohort distribution histogram, leaderboard top-20 SaaS tickers, sector SVI trend, sector citation block.",
       "agent_owner": "CDO",
       "agent_collaborators": [
@@ -174,7 +174,7 @@
     {
       "id": "T_SVI_EXC_0007",
       "phase": "v0.3",
-      "title": "Sector pages \u2014 remaining 6 sectors",
+      "title": "Sector pages — remaining 6 sectors",
       "description": "Generic [sector] route already covers fintech, ai, healthtech, marketplace, deeptech, ecommerce. Add per-sector copy + methodology notes + JSON feed.",
       "agent_owner": "CMO",
       "agent_collaborators": [
@@ -200,8 +200,8 @@
     {
       "id": "T_SVI_EXC_0008",
       "phase": "v0.4",
-      "title": "Embeddable widget \u2014 BSI-AU mini",
-      "description": "iframe-embeddable widget showing BSI-AU value + sparkline + \u0394. CSP-safe, CORS-open. Promotional banner under widget driving to startupvalueindex.com.",
+      "title": "Embeddable widget — BSI-AU mini",
+      "description": "iframe-embeddable widget showing BSI-AU value + sparkline + Δ. CSP-safe, CORS-open. Promotional banner under widget driving to startupvalueindex.com.",
       "agent_owner": "R&D",
       "agent_collaborators": [
         "CTO",
@@ -278,7 +278,7 @@
     {
       "id": "T_SVI_EXC_0011",
       "phase": "v0.5",
-      "title": "Regulatory research \u2014 secondary share offers in AU",
+      "title": "Regulatory research — secondary share offers in AU",
       "description": "Document AFSL exemptions (PIDV, SCH 4.6, sophisticated investor s708) relevant to BlockID listing secondary share offers. Identify the minimum legal structure: licensed broker partnership vs in-house AFSL.",
       "agent_owner": "CLO",
       "agent_collaborators": [
@@ -304,13 +304,13 @@
       "id": "T_SVI_EXC_0012",
       "phase": "v0.5",
       "title": "Founder-side secondary offer intake form",
-      "description": "When a founder ticker meets thresholds (SVI \u2265 80, governance \u2265 60, 2+ funded rounds), surface a 'List a secondary offer' CTA. Form captures: total shares for sale, price band, eligible buyer profile, lock-up.",
+      "description": "When a founder ticker meets thresholds (SVI ≥ 80, governance ≥ 60, 2+ funded rounds), surface a 'List a secondary offer' CTA. Form captures: total shares for sale, price band, eligible buyer profile, lock-up.",
       "agent_owner": "CPO",
       "agent_collaborators": [
         "CFO",
         "CLO"
       ],
-      "status": "pending",
+      "status": "done",
       "priority": "P0",
       "depends_on": [
         "T_SVI_EXC_0011"
@@ -320,7 +320,13 @@
         "web/supabase/migrations/0069_secondary_offers.sql",
         "Eligibility check logic"
       ],
-      "estimated_hours": 6
+      "estimated_hours": 6,
+      "research_done": true,
+      "last_action": "marked_deployed",
+      "last_action_at": "2026-06-19T02:30:03.070Z",
+      "plan_done": true,
+      "code_done": true,
+      "deployed": true
     },
     {
       "id": "T_SVI_EXC_0013",
@@ -331,7 +337,7 @@
       "agent_collaborators": [
         "CISO"
       ],
-      "status": "pending",
+      "status": "done",
       "priority": "P0",
       "depends_on": [
         "T_SVI_EXC_0012"
@@ -341,19 +347,25 @@
         "web/src/app/api/eoi/route.ts",
         "web/supabase/migrations/0070_eoi_book.sql"
       ],
-      "estimated_hours": 6
+      "estimated_hours": 6,
+      "research_done": true,
+      "last_action": "shipped_v0.4.0_ujveHxHJR157",
+      "last_action_at": "2026-06-19T04:02:00Z",
+      "plan_done": true,
+      "code_done": true,
+      "deployed": true
     },
     {
       "id": "T_SVI_EXC_0014",
       "phase": "v0.9",
-      "title": "Institutional API tier \u2014 pricing + auth",
+      "title": "Institutional API tier — pricing + auth",
       "description": "Per-call rate-limited API tier with token auth + monthly billing. Tiers: free (10 calls/day), team A$199/mo (1k/day), institutional A$2k/mo (unlimited + email support).",
       "agent_owner": "CTO",
       "agent_collaborators": [
         "CFO",
         "CMO"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "priority": "P1",
       "depends_on": [],
       "deliverables": [
@@ -362,7 +374,12 @@
         "Stripe billing integration",
         "Pricing page on startupvalueindex.com"
       ],
-      "estimated_hours": 10
+      "estimated_hours": 10,
+      "research_done": true,
+      "last_action": "ready_for_implementation",
+      "last_action_at": "2026-06-19T04:01:11.703Z",
+      "plan_done": true,
+      "code_done": true
     },
     {
       "id": "T_SVI_EXC_0015",
