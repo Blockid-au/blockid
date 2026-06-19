@@ -69,46 +69,76 @@ export const NEXT_JS_PERFORMANCE_OPTIMIZATION: {
   bundleSizeReduction: number
   ttfbImprovement: number
   reRendersReduction: number
-  mobilePerformanceImprovementAPAC: number
   serverComponentsClientJSReduction: number
+  mobilePerformanceImprovementAPAC: number
 } = {
-  bundleSizeReduction: 0.42, 
-  ttfbImprovement: 0.6, 
-  reRendersReduction: 0.4, 
-  mobilePerformanceImprovementAPAC: 0.6, 
-  serverComponentsClientJSReduction: 0.4, 
+  bundleSizeReduction: 0.42,
+  ttfbImprovement: 0.6,
+  reRendersReduction: 0.4,
+  serverComponentsClientJSReduction: 0.4,
+  mobilePerformanceImprovementAPAC: 0.6,
 }
 
-/** APAC Network Latency Benchmarks (ms) */
-export const APAC_NETWORK_LATENCY: {
-  australia: number
-  asia: number
-  pacific: number
+/** Streaming SSR benefits for Australian startups */
+export const STREAMING_SSR_BENEFITS: {
+  ttfbImprovement: number
+  mobilePerformanceImprovementAPAC: number
 } = {
-  australia: 50,
-  asia: 70,
-  pacific: 80,
+  ttfbImprovement: NEXT_JS_PERFORMANCE_OPTIMIZATION.ttfbImprovement,
+  mobilePerformanceImprovementAPAC: NEXT_JS_PERFORMANCE_OPTIMIZATION.mobilePerformanceImprovementAPAC,
 }
 
-/** Streaming SSR TTFB Improvement Calculator */
-export function calculateStreamingSSRTTFBImprovement(
-  originalTTFB: number,
-  networkLatency: number
-): number {
-  return originalTTFB * (1 - NEXT_JS_PERFORMANCE_OPTIMIZATION.ttfbImprovement) 
+/** Server Components benefits */
+export const SERVER_COMPONENTS_BENEFITS: {
+  clientJSReduction: number
+} = {
+  clientJSReduction: NEXT_JS_PERFORMANCE_OPTIMIZATION.serverComponentsClientJSReduction,
 }
 
-/** Server Components Client JS Reduction Calculator */
-export function calculateServerComponentsClientJSReduction(
-  originalClientJS: number
-): number {
-  return originalClientJS * (1 - NEXT_JS_PERFORMANCE_OPTIMIZATION.serverComponentsClientJSReduction) 
+/**
+ * Calculates the potential cost savings of using Next.js 16 performance optimizations
+ * @param currentBundleSize - current bundle size
+ * @param currentTTFB - current time to first byte
+ * @param currentReRenders - current number of re-renders
+ * @param currentClientJS - current client-side JavaScript
+ * @returns potential cost savings
+ */
+export function calculatePotentialCostSavings(
+  currentBundleSize: number,
+  currentTTFB: number,
+  currentReRenders: number,
+  currentClientJS: number
+): {
+  bundleSizeSavings: number
+  ttfbSavings: number
+  reRendersSavings: number
+  clientJSSavings: number
+} {
+  const bundleSizeSavings =
+    currentBundleSize * NEXT_JS_PERFORMANCE_OPTIMIZATION.bundleSizeReduction
+  const ttfbSavings = currentTTFB * NEXT_JS_PERFORMANCE_OPTIMIZATION.ttfbImprovement
+  const reRendersSavings =
+    currentReRenders * NEXT_JS_PERFORMANCE_OPTIMIZATION.reRendersReduction
+  const clientJSSavings =
+    currentClientJS * SERVER_COMPONENTS_BENEFITS.clientJSReduction
+
+  return {
+    bundleSizeSavings,
+    ttfbSavings,
+    reRendersSavings,
+    clientJSSavings,
+  }
 }
 
-/** Mobile Performance Improvement Calculator for APAC Networks */
-export function calculateMobilePerformanceImprovementAPAC(
-  originalPerformance: number,
-  networkLatency: number
+/**
+ * Calculates the potential performance improvement of using Streaming SSR for Australian startups
+ * @param currentMobilePerformance - current mobile performance
+ * @returns potential performance improvement
+ */
+export function calculatePotentialPerformanceImprovement(
+  currentMobilePerformance: number
 ): number {
-  return originalPerformance * (1 + NEXT_JS_PERFORMANCE_OPTIMIZATION.mobilePerformanceImprovementAPAC) 
+  return (
+    currentMobilePerformance * STREAMING_SSR_BENEFITS.mobilePerformanceImprovementAPAC
+  )
 }

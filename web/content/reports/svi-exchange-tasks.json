@@ -365,7 +365,7 @@
         "CFO",
         "CMO"
       ],
-      "status": "in_progress",
+      "status": "done",
       "priority": "P1",
       "depends_on": [],
       "deliverables": [
@@ -376,10 +376,11 @@
       ],
       "estimated_hours": 10,
       "research_done": true,
-      "last_action": "ready_for_implementation",
-      "last_action_at": "2026-06-19T04:01:11.703Z",
+      "last_action": "marked_deployed",
+      "last_action_at": "2026-06-19T04:15:02.112Z",
       "plan_done": true,
-      "code_done": true
+      "code_done": true,
+      "deployed": true
     },
     {
       "id": "T_SVI_EXC_0015",

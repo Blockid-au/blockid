@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v2.5.0  ·  **Updated:** 2026-06-17T12:04:03.430Z  ·  **Decided by:** ceo (2026-06-17T12:04:03.430Z)
+**Version:** v2.5.0  ·  **Updated:** 2026-06-19T04:02:28.671Z  ·  **Decided by:** ceo (2026-06-19T04:02:28.636Z)
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -19,6 +19,9 @@
 | T0213 | CPO | SVI brand landing page at startupvalueindex.com | minor | ⬜ pending |
 | T0120 | CFO | Financial projection norms integration | minor | ⬜ pending |
 | T0121 | RND | Conversion/CTA experiment ideas & A/B test hypotheses | minor | ⬜ pending |
+| T0122 | CFO | Integrate sector ARR/revenue multiples for valuation benchmarking | minor | ⬜ pending |
+| T0123 | RND | Develop Conversion/CTA experiment ideas & A/B test hypotheses for startup tooling | minor | ⬜ pending |
+| T0124 | CRO | Implement Funding Readiness scoring (CAPITAL) for investor readiness assessment | minor | ⬜ pending |
 
 ## Recently shipped
 - ✅ `T0212` **CTO** — DNS + nginx vhost for startupvalueindex.com + startupindex.au
