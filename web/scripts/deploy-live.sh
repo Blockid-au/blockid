@@ -377,9 +377,27 @@ if [ "${1:-}" != "--skip-build" ]; then
   cp "$WEB_DIR/ai-worker.mjs" "$STANDALONE/ai-worker.mjs" 2>/dev/null || true
 fi
 
-# Copy serverExternalPackages not traced by standalone
-for pkg in pptxgenjs gaxios gcp-metadata; do
+# Copy serverExternalPackages not traced by standalone.
+# Must match next.config.ts → serverExternalPackages exactly, otherwise routes
+# importing them die at runtime with ERR_MODULE_NOT_FOUND. Past breakage:
+# bcryptjs missing in v7WPHLwrMWQmVu8_qHf9x deploy (2026-06-19).
+# `gaxios`/`gcp-metadata` are sub-deps of @google libs — keep in list.
+for pkg in \
+    ioredis \
+    bcryptjs \
+    "@anthropic-ai/sdk" \
+    pptxgenjs \
+    "@react-pdf/renderer" \
+    "@react-pdf/pdfkit" \
+    "@react-pdf/font" \
+    "@react-pdf/layout" \
+    "@react-pdf/fns" \
+    "@react-pdf/image" \
+    react-pdf \
+    gaxios \
+    gcp-metadata; do
   if [ -d "$WEB_DIR/node_modules/$pkg" ] && [ ! -d "$STANDALONE/node_modules/$pkg" ]; then
+    mkdir -p "$STANDALONE/node_modules/$(dirname "$pkg")"
     cp -r "$WEB_DIR/node_modules/$pkg" "$STANDALONE/node_modules/$pkg"
   fi
 done
