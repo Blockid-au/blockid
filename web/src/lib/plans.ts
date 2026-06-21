@@ -19,7 +19,7 @@ export interface Plan {
 }
 
 // Default prices — overridden at runtime by platform config (via buildPlansFromConfig).
-const DEFAULT_FOUNDING_PRICE_CENTS = 300;     // A$3 (bumped from A$1 on 2026-06-17)
+const DEFAULT_FOUNDING_PRICE_CENTS = 500;     // A$5 (bumped from A$3 on 2026-06-21)
 const DEFAULT_FOUNDING_CREDITS = 100;
 const DEFAULT_GROWTH_MONTHLY_CENTS = 9900;    // A$99/mo
 const DEFAULT_GROWTH_YEARLY_CENTS = 95000;    // A$950/yr

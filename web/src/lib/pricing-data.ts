@@ -110,8 +110,8 @@ export const PRICING_TIERS: PricingTier[] = [
   {
     id: "founding50",
     name: "Founding 100",
-    price: "A$3",
-    numericPrice: 3,
+    price: "A$5",
+    numericPrice: 5,
     cadence: "one-off",
     subtitle: "one-time \u00b7 lifetime access",
     credits: "100 credits (never expires)",
@@ -126,7 +126,7 @@ export const PRICING_TIERS: PricingTier[] = [
       "Referral credits (earn free analyses)",
       "Priority support",
     ],
-    cta: { label: "Get Founding 100 \u2014 A$3", href: "/founding-50" },
+    cta: { label: "Get Founding 100 \u2014 A$5", href: "/founding-50" },
     highlight: true,
     badge: "Founders Only",
     urgency: "Only 100 spots at this price",
@@ -247,7 +247,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "How does billing work?",
-    a: "Founding 100 is a one-off A$3 payment for 100 full-page analyses (lifetime access). Growth is available monthly at A$99/mo or annually at A$950/year (save 20%). Credit packs are one-off purchases. All prices are in AUD and processed securely via Stripe.",
+    a: "Founding 100 is a one-off A$5 payment for 100 full-page analyses (lifetime access). Growth is available monthly at A$99/mo or annually at A$950/year (save 20%). Credit packs are one-off purchases. All prices are in AUD and processed securely via Stripe.",
   },
   {
     q: "Can I cancel anytime?",

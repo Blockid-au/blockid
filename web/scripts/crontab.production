@@ -93,6 +93,9 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Telegram daily report — C-Level agent status
 30 23 * * * bash $RUN telegram-report
 
+# Weekly revenue + credit-spend report → admin@blockid.au (Mondays 09:00 UTC = 19:00 AEST)
+0 9 * * 1 bash $RUN weekly-revenue-report --timeout 120
+
 # Verify-models (CTO) — weekly proactive live-call test of every model in
 # ai-free-models.json. Writes ai-free-models-verified.json (ok + rate_limited
 # entries). Telegrams admin immediately if any model returns payment_required.

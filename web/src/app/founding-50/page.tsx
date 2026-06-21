@@ -215,7 +215,7 @@ export default async function Founding50Page() {
                 },
                 {
                   quote:
-                    "Getting in as a Founding 100 member felt like a no-brainer at $1. The 30-day growth plan is genuinely useful — not just generic startup advice.",
+                    "Getting in as a Founding 100 member felt like a no-brainer at A$5. The 30-day growth plan is genuinely useful — not just generic startup advice.",
                   name: "Marcus T.",
                   role: "Founder, HealthTech · Brisbane",
                 },
@@ -302,7 +302,7 @@ export default async function Founding50Page() {
                 <CheckCircle2 strokeWidth={2} className="h-4 w-4" />
               </span>
               <div>
-                <p className="text-sm font-semibold text-ink-800">Early-access pricing — $1 instead of $49</p>
+                <p className="text-sm font-semibold text-ink-800">Early-access pricing — A$5 instead of A$49</p>
                 <p className="text-xs text-ink-600 mt-0.5">
                   Once the 100 spots are gone, the standard price applies. This discount never comes back.
                 </p>

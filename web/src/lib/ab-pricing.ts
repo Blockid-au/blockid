@@ -57,10 +57,10 @@ export const FOUNDING_PRICE_EXPERIMENT: Experiment = {
   endsAt: "2026-09-17",
   primaryMetric: "paid",
   variants: [
-    { id: "a3",  label: "A$3 (control / current config)", priceCents: 300,  priceAud: "A$3",  weight: 0.40, description: "Current platform-config value." },
-    { id: "a5",  label: "A$5",                             priceCents: 500,  priceAud: "A$5",  weight: 0.30, description: "Mid-point — captures higher willingness-to-pay without scaring off price-sensitive founders." },
-    { id: "a10", label: "A$10",                            priceCents: 1000, priceAud: "A$10", weight: 0.20, description: "Premium positioning — tests whether the audience is anchor-sensitive vs value-sensitive." },
-    { id: "a1",  label: "A$1 (legacy / floor)",            priceCents: 100,  priceAud: "A$1",  weight: 0.10, description: "Legacy price — kept as floor to measure ceiling lift from the bumps above." },
+    { id: "a5",  label: "A$5 (control / current config)", priceCents: 500,  priceAud: "A$5",  weight: 0.40, description: "Current platform-config value (bumped from A$3 on 2026-06-21)." },
+    { id: "a3",  label: "A$3 (legacy / previous control)", priceCents: 300,  priceAud: "A$3",  weight: 0.10, description: "Previous control — held as comparison cohort." },
+    { id: "a10", label: "A$10",                            priceCents: 1000, priceAud: "A$10", weight: 0.30, description: "Premium positioning — tests whether the audience is anchor-sensitive vs value-sensitive." },
+    { id: "a1",  label: "A$1 (legacy / floor)",            priceCents: 100,  priceAud: "A$1",  weight: 0.20, description: "Legacy price — kept as floor to measure ceiling lift from the bumps above." },
   ],
 };
 
