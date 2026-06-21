@@ -87,6 +87,12 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Telegram daily report — C-Level agent status
 30 23 * * * bash $RUN telegram-report
 
+# Verify-models (CTO) — weekly proactive live-call test of every model in
+# ai-free-models.json. Writes ai-free-models-verified.json (ok + rate_limited
+# entries). Telegrams admin immediately if any model returns payment_required.
+# Sun 03:00 UTC. Complement to KNOWN_PAID deny-list in refresh-models.
+0 3 * * 0 bash $RUN verify-models --timeout 300
+
 # Security posture (CISO) — daily Essential Eight-aligned scorecard.
 # Deterministic deep-scan: auth coverage, rate-limit, secrets, CSP headers,
 # npm audit, Supabase RLS, deploy hygiene. Writes content/reports/

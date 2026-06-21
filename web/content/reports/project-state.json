@@ -1,6 +1,6 @@
 {
   "version": "2.5.0",
-  "updatedAt": "2026-06-21T05:31:32Z",
+  "updatedAt": "2026-06-21T06:02:12Z",
   "architecture": {
     "summary": "BlockID.au \u2014 AI-powered startup valuation SaaS for AU founders (pre-seed \u2192 Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation\u2192Position\u2192Value\u2192Direction\u2192Capital) drives the full product flow.",
     "lastReviewedAt": "2026-06-15T14:30:22Z",
@@ -842,8 +842,9 @@
         "title": "Verify-models cron \u2014 auto-detect paid models leaking into ai-free-models.json",
         "rationale": "Live audit 2026-06-21 caught MiniMax-M2.7 (SambaNova) marked as free but returns payment_required. KNOWN_PAID deny-list patched in refresh-models, but root cause: SambaNova /models endpoint doesn't expose pricing \u2192 ranker scores by capability only. NEXT: weekly verify-models cron that test-calls each model in ai-free-models.json with max_tokens=1, flags any returning 402/payment_required/auth errors, writes ai-free-models-verified.json. ai-client.ts reads verified file when present. Schedule: weekly Sun 03:00 UTC.",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-06-21T05:31:32Z"
+        "status": "done",
+        "createdAt": "2026-06-21T05:31:32Z",
+        "completedAt": "2026-06-21T06:02:12Z"
       }
     ]
   },
@@ -1080,6 +1081,12 @@
       "action": "audit",
       "version": "2.5.0",
       "note": "Audit: (a) Claude CLI auto-connect HEALTHY (8h token, daily self-upgrade alive). (b) Codex sub EXPIRED 2026-06-17 \u2192 T0214 queued. (c) refresh-models leaked PAID MiniMax-M2.7 \u2192 KNOWN_PAID patch shipped + T0215 queued (weekly verify-models). (d) T0203 CMO content tracker shipped (/dashboard/admin/content)."
+    },
+    {
+      "ts": "2026-06-21T06:02:12Z",
+      "action": "release",
+      "version": "2.5.0",
+      "note": "Shipped same session: T0215 (CTO weekly verify-models cron + Telegram paid-leak alert), T0209 (IR /dashboard/admin/accelerators \u2014 7 accelerators + 3 grants with urgency tags), T0202 (CCSO /api/ccso/capture unified NPS/testimonial/referral/interview endpoint + GET aggregate)."
     }
   ]
 }
