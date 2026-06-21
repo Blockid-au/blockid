@@ -1,0 +1,140 @@
+{
+  "_meta": {
+    "purpose": "Source of truth for accelerator + grant deadlines IR agent tracks. Drives /dashboard/admin/accelerators countdown + monthly investor-update bullets. Update via PR — IR daily brief flags any deadline within 14d.",
+    "owner": "ir",
+    "linkedTask": "T0209",
+    "updatedAt": "2026-06-21",
+    "audience": "Founders preparing pitch / data room / SVI score for AU + global accelerators"
+  },
+  "accelerators": [
+    {
+      "id": "antler-syd-q3",
+      "name": "Antler Sydney",
+      "round": "Q3 2026 cohort",
+      "deadline": "2026-08-15",
+      "decisionBy": "2026-09-30",
+      "country": "AU",
+      "stage": ["pre-seed", "idea"],
+      "checkSize": "USD $250k for ~10%",
+      "url": "https://www.antler.co/locations/sydney",
+      "fit": "Pre-team founders + small teams. Strong for AU-based first-time founders.",
+      "evidenceNeeded": ["SVI score ≥ 5000", "Founder bio + LinkedIn", "Pitch deck v2", "1-page market thesis"]
+    },
+    {
+      "id": "startmate-w27",
+      "name": "Startmate",
+      "round": "Winter 27 (AU/NZ)",
+      "deadline": "2026-09-08",
+      "decisionBy": "2026-10-30",
+      "country": "AU",
+      "stage": ["pre-seed", "seed"],
+      "checkSize": "AUD $120k for 7% + AUD $1.4M optional follow-on",
+      "url": "https://startmate.com",
+      "fit": "Best AU accelerator for technical co-founder pairs with early traction.",
+      "evidenceNeeded": ["Demo or signed LOIs", "SVI score ≥ 6000", "Pitch deck", "12-month financial model"]
+    },
+    {
+      "id": "techstars-syd-2027",
+      "name": "Techstars Sydney",
+      "round": "2027 Spring",
+      "deadline": "2026-11-30",
+      "decisionBy": "2027-01-15",
+      "country": "AU",
+      "stage": ["seed"],
+      "checkSize": "USD $120k for 6% + USD $100k convertible",
+      "url": "https://www.techstars.com/accelerators/sydney",
+      "fit": "Global mentor network. Strong for B2B SaaS with paying customers.",
+      "evidenceNeeded": ["3+ paying customers", "SVI score ≥ 7000", "12-month retention cohort", "Cap table clean"]
+    },
+    {
+      "id": "yc-w27",
+      "name": "Y Combinator",
+      "round": "Winter 2027 batch",
+      "deadline": "2026-10-13",
+      "decisionBy": "2026-11-15",
+      "country": "US",
+      "stage": ["pre-seed", "seed"],
+      "checkSize": "USD $500k SAFE ($125k for 7% + $375k MFN)",
+      "url": "https://www.ycombinator.com/apply",
+      "fit": "Highest-quality network globally. AU founders increasingly admitted. Best fit for ambitious B2B SaaS.",
+      "evidenceNeeded": ["Strong founder narrative", "Working product + ≥10 weekly active users", "Pitch in 1-min video", "SVI score ≥ 7500"]
+    },
+    {
+      "id": "skydeck-fall-2026",
+      "name": "Berkeley SkyDeck",
+      "round": "Fall 2026 (Hot Desk)",
+      "deadline": "2026-07-20",
+      "decisionBy": "2026-08-31",
+      "country": "US",
+      "stage": ["seed"],
+      "checkSize": "USD $200k for 5%",
+      "url": "https://skydeck.berkeley.edu",
+      "fit": "University-affiliated, strong AU pipeline via Pad-13 partnership.",
+      "evidenceNeeded": ["Patent/IP or research basis", "Deep-tech angle preferred", "SVI score ≥ 5500"]
+    },
+    {
+      "id": "muru-d-2027",
+      "name": "muru-D (Telstra)",
+      "round": "2027 cohort",
+      "deadline": "2026-09-30",
+      "decisionBy": "2026-10-31",
+      "country": "AU",
+      "stage": ["seed"],
+      "checkSize": "AUD $75k for 6%",
+      "url": "https://muru-d.com",
+      "fit": "Telco / B2B / enterprise SaaS. Telstra Ventures follow-on.",
+      "evidenceNeeded": ["B2B SaaS or telco-adjacent", "Pilot customer", "SVI score ≥ 5500"]
+    },
+    {
+      "id": "blackbird-giants-2027",
+      "name": "Blackbird Giants",
+      "round": "2027 application",
+      "deadline": "2026-12-01",
+      "decisionBy": "2027-01-31",
+      "country": "AU/NZ",
+      "stage": ["seed", "Series A"],
+      "checkSize": "Up to AUD $750k pre-seed / Up to AUD $5M Series A",
+      "url": "https://blackbird.vc/giants",
+      "fit": "Best AU/NZ VC. Apply when you have 12+ months MRR data and a credible $1B+ vision.",
+      "evidenceNeeded": ["MRR > AUD $50k", "Growth > 15% MoM 3 consecutive months", "Defensible moat", "SVI score ≥ 8000"]
+    }
+  ],
+  "grants": [
+    {
+      "id": "esic-program-2026",
+      "name": "ESIC (Early Stage Innovation Company)",
+      "round": "ATO self-assessment ongoing",
+      "deadline": "rolling (assess before next raise)",
+      "country": "AU",
+      "stage": ["pre-seed", "seed"],
+      "checkSize": "Tax offset for investors (20% rebate up to AUD $200k/yr)",
+      "url": "https://www.ato.gov.au/business/research-and-development-tax-incentive/early-stage-innovation-companies/",
+      "fit": "If you qualify, your raise dilution drops 10-20% because investors get tax-back. CHRO + CLO must confirm 100 / 500 / gateway tests pass.",
+      "evidenceNeeded": ["Incorporated < 3 years", "Expenses < AUD $1M last year", "100/500 tests met OR gateway tests via principles-based", "AUSind certificate optional"]
+    },
+    {
+      "id": "rnd-tax-2027",
+      "name": "R&D Tax Incentive (ATO)",
+      "round": "FY27 claim window",
+      "deadline": "2027-04-30",
+      "country": "AU",
+      "stage": ["any"],
+      "checkSize": "43.5% refundable tax offset on eligible R&D spend (revenue < AUD $20M)",
+      "url": "https://business.gov.au/grants-and-programs/research-and-development-tax-incentive",
+      "fit": "Free 43.5% rebate on AI / software R&D spend. Apply via AusIndustry + ATO. Lodge by Apr 30 each year.",
+      "evidenceNeeded": ["Eligible R&D activity log", "Time-sheets per researcher", "ATO core+supporting activity narrative"]
+    },
+    {
+      "id": "industry-growth-program",
+      "name": "Industry Growth Program",
+      "round": "2026-2027 round",
+      "deadline": "rolling",
+      "country": "AU",
+      "stage": ["seed", "Series A"],
+      "checkSize": "AUD $50k–$5M matched funding",
+      "url": "https://business.gov.au/grants-and-programs/industry-growth-program",
+      "fit": "AU SMEs in priority sectors (digital tech is one). Matched dollar-for-dollar.",
+      "evidenceNeeded": ["Eligible priority sector", "Co-funding committed", "Commercialisation plan"]
+    }
+  ]
+}
