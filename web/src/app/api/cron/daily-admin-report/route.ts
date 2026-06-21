@@ -137,6 +137,14 @@ export async function GET(request: Request) {
         .limit(5),
     ]);
 
+    // Feedback (24h) — separate so it doesn't block the main batch if table missing.
+    const feedbackRes = await supabase
+      .from("user_feedback")
+      .select("id, email, feedback, category, ai_score, ai_summary, credits_awarded")
+      .gte("created_at", yesterday)
+      .order("ai_score", { ascending: false })
+      .limit(5);
+
     // ── Parse results ──────────────────────────────────────────────────
 
     const newUsers = newUsersRes.count ?? 0;
@@ -165,6 +173,21 @@ export async function GET(request: Request) {
       created_at: string;
       email: string;
     }[];
+
+    const feedbackRows = (feedbackRes.data ?? []) as {
+      id: string;
+      email: string | null;
+      feedback: string;
+      category: string | null;
+      ai_score: number;
+      ai_summary: string | null;
+      credits_awarded: number;
+    }[];
+    const feedbackCount = feedbackRows.length;
+    const feedbackCreditsGranted = feedbackRows.reduce(
+      (s, r) => s + Number(r.credits_awarded || 0),
+      0,
+    );
 
     // AI budget
     const aiBudget = getAIBudgetStatus();
@@ -365,6 +388,28 @@ Write 3-5 concise recommendations. Focus on growth, conversion, and operational 
       ${topAnalysesRows}
     </table>
   </div>
+
+  <!-- User Feedback (24h) -->
+  ${feedbackCount > 0 ? `
+  <div style="padding: 0 24px 24px;">
+    <h2 style="margin: 0 0 12px; font-size: 16px; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">User Feedback (24h) — ${feedbackCount} item${feedbackCount === 1 ? "" : "s"}, ${feedbackCreditsGranted.toFixed(2)} credits granted</h2>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%; border-collapse: collapse;">
+      ${feedbackRows.map((r) => `
+      <tr>
+        <td style="padding: 8px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: top; width: 60px;">
+          <span style="display: inline-block; background: ${Number(r.ai_score) >= 20 ? "#dcfce7" : "#f1f5f9"}; color: ${Number(r.ai_score) >= 20 ? "#166534" : "#475569"}; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">${Number(r.ai_score) || 0}/30</span>
+        </td>
+        <td style="padding: 8px 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #475569;">
+          <strong style="color: #1e293b;">${escapeHtml((r.email ?? "anon").slice(0, 32))}</strong>
+          <span style="color: #94a3b8; font-size: 11px;"> · ${escapeHtml(r.category ?? "general")}</span>
+          ${Number(r.credits_awarded) > 0 ? `<span style="color: #15803d; font-size: 11px; margin-left: 6px;">+${Number(r.credits_awarded).toFixed(2)} cr</span>` : ""}
+          <br>
+          <span style="color: #475569;">${escapeHtml(r.feedback.slice(0, 240))}${r.feedback.length > 240 ? "…" : ""}</span>
+          ${r.ai_summary ? `<br><span style="color: #6366f1; font-style: italic; font-size: 12px;">↳ ${escapeHtml(r.ai_summary)}</span>` : ""}
+        </td>
+      </tr>`).join("")}
+    </table>
+  </div>` : ""}
 
   <!-- C-Level Agent Status -->
   ${agentResults.length > 0 ? `

@@ -18,7 +18,7 @@ interface CouponResult {
   reason?: string;
 }
 
-const FULL_PRICE = 1;
+const FULL_PRICE = 5;
 
 export function Founding50Form() {
   const [name, setName] = React.useState("");

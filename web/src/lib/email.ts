@@ -1317,7 +1317,7 @@ export async function sendNurtureFreeDay7(args: NurtureArgs): Promise<SendResult
   const greeting = args.name ? `${escapeHtml(args.name!)}, we` : "We";
   const html = shell(nurtureCard({
     tagline: "BlockID — Founding 100",
-    headline: "100 Credits for A$3 — lifetime access",
+    headline: "100 Credits for A$5 — lifetime access",
     body: `${greeting} are reserving spots for our Founding 100 cohort — the first 100 Australian startups to lock in lifetime early-access pricing on BlockID.</p>
           <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
             <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Founder Plan includes</p>
@@ -1337,7 +1337,7 @@ export async function sendNurtureFreeDay7(args: NurtureArgs): Promise<SendResult
     ctaLabel: "Claim Your Founding 100 Spot",
     ctaUrl: foundingUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "free_day7"));
-  return sendEmail({ to: args.to, subject: "100 credits for A$3 \u2014 here\u2019s what Founding 100 members get", html, unsubscribeUrl });
+  return sendEmail({ to: args.to, subject: "100 credits for A$5 \u2014 here\u2019s what Founding 100 members get", html, unsubscribeUrl });
 }
 
 export async function sendNurtureFreeDay14(args: NurtureArgs): Promise<SendResult> {
@@ -2071,6 +2071,84 @@ export async function sendActionReminder(args: {
     html,
     unsubscribeUrl,
   });
+}
+
+// ---------- Lead-nurture sequence: D1 / D4 / D9 (post-signup) ----------------
+// Three-touch sequence designed to not spam: warm intro, mid-point value reminder,
+// final Founding 100 last-call. Wired via the nurture cron (see svi-notify job).
+// Each step honours email-preferences (promotions opt-out skips silently).
+
+export async function sendD1Welcome(args: NurtureArgs): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "promotions"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
+  const dashUrl = `${siteUrl()}/dashboard`;
+  const greeting = args.name ? `Welcome, ${escapeHtml(args.name!)}` : "Welcome to BlockID";
+  const html = shell(nurtureCard({
+    tagline: "BlockID — Day 1",
+    headline: `${greeting} 👋`,
+    body: `You just joined a network of Australian founders using the BlockID Startup Value Index™ to put a real number on their startup — and to make every investor conversation start on the front foot.</p>
+          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">3 things to do this week</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">
+            <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">1.</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;"><strong>Run your first SVI analysis</strong> — uses 1 of your 5 free credits, takes ~90 seconds.</td></tr>
+            <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">2.</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;"><strong>Upload one piece of evidence</strong> (pitch deck, GitHub, or analytics screenshot) — typically +20–30 SVI points.</td></tr>
+            <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">3.</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;"><strong>Share your verified score link</strong> with one investor — see what they say.</td></tr>
+          </table>
+          <p style="margin:0 0 16px 0;color:#94A3B8;font-size:14px;line-height:1.6;">Reply to this email if anything is unclear. A real person (me, the founder) reads every reply.`,
+    ctaLabel: "Open Your Dashboard",
+    ctaUrl: dashUrl,
+  }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "d1_welcome"));
+  return sendEmail({ to: args.to, subject: "Welcome to BlockID — your first 3 steps", html, unsubscribeUrl });
+}
+
+export async function sendD4CheckIn(args: NurtureArgs): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "promotions"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
+  const evidenceUrl = `${siteUrl()}/workspace/evidence`;
+  const greeting = args.name ? `Hey ${escapeHtml(args.name!)}` : "Quick check-in";
+  const sviLine = args.svi != null
+    ? `Your current SVI is <strong style="color:#F8FAFC;">${args.svi}</strong>. Most founders see +20–40 points within their first week — the difference is almost always evidence.`
+    : `Founders who upload at least one evidence item in week 1 finish month 1 with an average SVI lift of <strong style="color:#F8FAFC;">+34 points</strong> versus founders who don't.`;
+  const html = shell(nurtureCard({
+    tagline: "BlockID — Day 4",
+    headline: "How's your score coming along?",
+    body: `${greeting} — quick mid-week nudge. ${sviLine}</p>
+          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">If you only do one thing this week</p>
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:0 0 16px 0;">
+            <p style="margin:0 0 6px 0;color:#F8FAFC;font-size:15px;font-weight:600;">Upload your latest pitch deck.</p>
+            <p style="margin:0;color:#94A3B8;font-size:13px;line-height:1.6;">It takes 30 seconds, and it's the single highest-leverage evidence item — narrative + market + team all in one document.</p>
+          </div>
+          <p style="margin:0 0 16px 0;color:#94A3B8;font-size:14px;line-height:1.6;">Stuck? Reply with what's blocking you and I'll help personally.`,
+    ctaLabel: "Upload Evidence",
+    ctaUrl: evidenceUrl,
+  }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "d4_checkin"));
+  return sendEmail({ to: args.to, subject: "Quick check-in — one upload = +20 SVI points", html, unsubscribeUrl });
+}
+
+export async function sendD9LastCall(args: NurtureArgs): Promise<SendResult> {
+  if (!(await canSendEmail(args.to, "promotions"))) return { ok: false, reason: "unsubscribed" };
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
+  const foundingUrl = `${siteUrl()}/founding-50`;
+  const greeting = args.name ? `${escapeHtml(args.name!)}, this` : "Last call —";
+  const html = shell(nurtureCard({
+    tagline: "BlockID — Day 9",
+    headline: "Founding 100 — A$5 lifetime, almost gone",
+    body: `${greeting} is the last note you'll get from me on the Founding 100 cohort.</p>
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
+            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">What A$5 (one-time) gets you</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">100 lifetime SVI analysis credits (vs 5 free)</td></tr>
+              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Full Evidence Vault + investor-ready PDF reports</td></tr>
+              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Cap table builder, ESOP calculator, term-sheet AI review</td></tr>
+              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Permanent Founding Member badge on your public profile</td></tr>
+              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Locked-in pricing — never goes back to A$5 again</td></tr>
+            </table>
+          </div>
+          <p style="margin:0 0 16px 0;color:#F87171;font-size:14px;font-weight:600;">Once the 100 spots are claimed, the standard plan is A$49/mo. I'd rather you skip the upsell than pay 10× more later.</p>
+          <p style="margin:0 0 16px 0;color:#94A3B8;font-size:14px;line-height:1.6;">If now isn't the right time, no pressure — you'll keep your free account and 5 credits. I'll stop pinging you about this.`,
+    ctaLabel: "Claim My Founding 100 Spot — A$5",
+    ctaUrl: foundingUrl,
+  }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "d9_lastcall"));
+  return sendEmail({ to: args.to, subject: "Last call: A$5 lifetime, 100 spots only", html, unsubscribeUrl });
 }
 
 function escapeHtml(s: string): string {
