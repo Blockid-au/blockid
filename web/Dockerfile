@@ -65,6 +65,11 @@ RUN mkdir -p /app/.next && chown -R node:node /app
 COPY --from=builder --chown=node:node /app/public ./public
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
+# Next 16 + --webpack standalone bug: webpack-runtime.js + server chunks are not
+# included in the standalone bundle and routes fail with MODULE_NOT_FOUND at
+# runtime. Copy them explicitly so SSR/route handlers can resolve.
+COPY --from=builder --chown=node:node /app/.next/server/webpack-runtime.js ./.next/server/webpack-runtime.js
+COPY --from=builder --chown=node:node /app/.next/server/chunks ./.next/server/chunks
 COPY --from=builder --chown=node:node /app/ai-worker.mjs ./ai-worker.mjs
 # serverExternalPackages are NOT traced by standalone — copy full node_modules
 # for packages like bcryptjs, google-auth-library, @anthropic-ai/sdk, pptxgenjs.
