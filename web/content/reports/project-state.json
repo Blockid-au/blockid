@@ -845,6 +845,15 @@
         "status": "done",
         "createdAt": "2026-06-21T05:31:32Z",
         "completedAt": "2026-06-21T06:02:12Z"
+      },
+      {
+        "id": "T0216",
+        "agent": "cto",
+        "title": "Fix orchestrator stageUpdateArtifacts \u2014 agent commit match closes pending tasks prematurely",
+        "rationale": "Bug found 2026-06-21: line 398 in agent-orchestrator/route.ts matches /src/lib/agents/<agent>-*/ in any commit, then closes ALL of that agent's pending tasks regardless of task content. Caused T0202 (CCSO NPS) + T0209 (IR accelerator tracker) to be marked done 2026-06-16 when artifacts didn't exist. FIX: match commit subject/body against task id (T0XXX) AND/OR match touched files against the task's expected paths (parse rationale or add explicit filePatterns field to PlanTask). Until fixed, daily fan-out can falsely show YELLOW agents as GREEN.",
+        "versionImpact": "patch",
+        "status": "pending",
+        "createdAt": "2026-06-21T06:02:58Z"
       }
     ]
   },
