@@ -60,6 +60,8 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 5 16 * * * bash $RUN svi-notify
 10 16 * * * bash $RUN nurture
 15 16 * * * bash $RUN vesting
+# Lead nurture D1/D4/D9 — at most 1 email/user/day, opt-out aware, dedup via svi_notifications.
+20 16 * * * bash $RUN lead-nurture
 
 # ── Phase 2: Health & Metrics (3:00am AEST / 17:00 UTC) ──────
 0 17 * * * bash $RUN agent-upgrade --timeout 120
@@ -72,6 +74,10 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # ── Phase 4: Auto-Improve + CI/CD (7:00am AEST / 21:00 UTC) ──
 0 21 * * * bash $RUN agent-auto-improve --timeout 300
 5 21 * * * bash $RUN refresh-models
+# Weekly proactive top-up — prepend 3 strong NEW free models per provider so the
+# list keeps drifting forward even without rate-limit pressure (the ai-client
+# fires this on-demand too when ≥2 models hit 429 in a 5-min window).
+0 4 * * 0 bash $RUN discover-models
 30 21 * * * bash $RUN publish-insight --timeout 120
 
 # ── Phase 5: QA + Security + Performance (8:00am AEST) ────────
