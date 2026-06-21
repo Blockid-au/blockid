@@ -390,22 +390,42 @@ async function stageUpdateArtifacts(): Promise<StageResult> {
     return { stage: "update_artifacts", ok: true, message: "No open tasks to reconcile", aiCalls: 0, durationMs: Date.now() - start };
   }
 
-  // Which agent domain modules changed in recent commits? That's how we know a task shipped.
-  const recentChanges = await runShell("git log --since='2 days ago' --name-only --pretty=format:%h 2>/dev/null | head -200");
-  const shippedAgents = new Set<string>();
+  // Only close tasks whose ID (T0XXX) is explicitly referenced in a recent
+  // commit subject or body. The previous heuristic — closing every pending
+  // task for any agent that touched src/lib/agents/<agent>-*.ts — was too
+  // loose and closed sibling tasks of the same agent prematurely (T0216).
+  // Release-artifact commits skip themselves naturally because the tasks they
+  // mention are already marked done before reaching openTasks here.
+  const recentChanges = await runShell(
+    "git log --since='2 days ago' --pretty=format:%h%x1f%B%x1e 2>/dev/null",
+  );
+  const idToCommit = new Map<string, string>();
   let lastCommit = "";
-  for (const line of recentChanges.output.split("\n")) {
-    const m = line.match(/^src\/lib\/agents\/([a-z]+)-/);
-    if (m) shippedAgents.add(m[1]);
-    if (/^[0-9a-f]{7,40}$/.test(line.trim())) lastCommit = line.trim();
+  for (const entry of recentChanges.output.split("\x1e")) {
+    const sep = entry.indexOf("\x1f");
+    if (sep < 0) continue;
+    const sha = entry.slice(0, sep).trim();
+    const body = entry.slice(sep + 1);
+    if (!/^[0-9a-f]{7,40}$/.test(sha)) continue;
+    if (!lastCommit) lastCommit = sha;
+    // Skip the orchestrator's own release commits — they list every task ID
+    // already shipped, which would mask future false-positives if anyone
+    // manually reopens a task.
+    if (/^chore\(release\):/m.test(body)) continue;
+    const idMatches = body.match(/\bT0\d{3,4}\b/g);
+    if (idMatches) {
+      for (const id of idMatches) {
+        if (!idToCommit.has(id)) idToCommit.set(id, sha);
+      }
+    }
   }
 
   const completed: PlanTask[] = [];
   for (const t of openTasks) {
-    if (shippedAgents.has(t.agent)) {
+    if (idToCommit.has(t.id)) {
       t.status = "done";
       t.completedAt = new Date().toISOString();
-      t.commit = lastCommit || undefined;
+      t.commit = idToCommit.get(t.id) ?? lastCommit ?? undefined;
       completed.push(t);
     }
   }
