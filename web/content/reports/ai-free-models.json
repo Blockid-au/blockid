@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-06-16T21:06:18.370Z",
+  "updatedAt": "2026-06-21T05:27:49.238Z",
   "openrouter": [
     "qwen/qwen3-coder:free",
     "nvidia/nemotron-3-ultra-550b-a55b:free",
@@ -22,7 +22,6 @@
     "gpt-oss-120b",
     "Meta-Llama-3.3-70B-Instruct",
     "DeepSeek-V3.1",
-    "DeepSeek-V3.2",
-    "MiniMax-M2.7"
+    "DeepSeek-V3.2"
   ]
 }

@@ -52,10 +52,18 @@ function scoreModel(id: string, name = "", ctx = 0): number {
   return fam + paramScore + ctxScore;
 }
 
+// Known PAID models that appear in some providers' /models lists without a
+// pricing field, so the heuristic ranker selects them. Confirmed via live test
+// (response: payment_required). Add new IDs here when discovered. See T0214.
+const KNOWN_PAID = new Set<string>([
+  "MiniMax-M2.7",
+  "minimax-m2.7",
+]);
+
 function rank(models: RawModel[], topN: number): string[] {
   return models
     .map((m) => ({ id: m.id, s: scoreModel(m.id, m.name, m.context_length) }))
-    .filter((m) => m.s >= 0)
+    .filter((m) => m.s >= 0 && !KNOWN_PAID.has(m.id) && !KNOWN_PAID.has(m.id.toLowerCase()))
     .sort((a, b) => b.s - a.s)
     .slice(0, topN)
     .map((m) => m.id);
