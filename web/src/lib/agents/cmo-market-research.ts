@@ -22,6 +22,8 @@ export interface CompetitorProfile {
   marketShare: number;
   /** Competitor AI-powered features */
   aiPoweredFeatures: number;
+  /** Competitor feature release frequency */
+  featureReleaseFrequency: string;
 }
 
 export interface MarketResearch {
@@ -49,6 +51,14 @@ export interface MarketResearch {
   averageSeriesAFunding: number;
   /** Number of Australian unicorns */
   australianUnicorns: number;
+  /** VC investment in H1 2024 */
+  vcInvestmentH1: number;
+  /** Number of startups in Australia */
+  numberOfStartups: number;
+  /** Percentage of startups using valuation tools */
+  percentageUsingValuationTools: number;
+  /** Average valuation of Australian startups */
+  averageValuation: number;
 }
 
 export interface CustomerSegment {
@@ -66,154 +76,57 @@ export interface CustomerSegment {
   estimatedLTV: number;
   /** Video content engagement */
   videoContentEngagement: number;
+  /** Importance of E-A-T factors in SEO */
+  eATImportance: number;
 }
 
 export interface GTMStrategy {
   /** Phase */
   phase: string;
   /** Channels */
-  channels: GTMChannel[];
-  /** Total monthly budget */
-  totalMonthlyBudget: number;
-  /** Projected leads */
-  projectedLeads: number;
-  /** Projected conversions */
-  projectedConversions: number;
-  /** Customer Acquisition Cost (CAC) */
-  cac: number;
+  channels: string[];
+  /** Average page load time target */
+  averagePageLoadTimeTarget: number;
+  /** Content marketing focus */
+  contentMarketingFocus: string;
 }
 
-export interface GTMChannel {
-  /** Channel name */
-  name: string;
-  /** Channel type (organic, paid, partnership, outbound) */
-  type: "organic" | "paid" | "partnership" | "outbound";
-  /** Monthly budget */
-  monthlyBudget: number;
-  /** Expected leads */
-  expectedLeads: number;
-  /** Conversion rate */
-  conversionRate: number;
-  /** Ramp-up months */
-  rampUpMonths: number;
-  /** Average page load time */
-  averagePageLoadTime: number;
-}
-
-export interface GTMMonthlyPlan {
-  /** Month */
-  month: number;
-  /** Label */
-  label: string;
-  /** Channels */
-  channels: { 
-    /** Channel name */
-    name: string; 
-    /** Spend */
-    spend: number; 
-    /** Leads */
-    leads: number; 
-    /** Conversions */
-    conversions: number 
-  }[];
-  /** Total spend */
-  totalSpend: number;
-  /** Total leads */
-  totalLeads: number;
-  /** Total conversions */
-  totalConversions: number;
-  /** Cumulative customers */
-  cumulativeCustomers: number;
-}
-
-// ── Default GTM Channel Templates ──────────────────────────────────────
-
-const GTM_CHANNEL_TEMPLATES: Record<string, GTMChannel[]> = {
-  saas_early: [
-    { 
-      name: "SEO / Content", 
-      type: "organic", 
-      monthlyBudget: 500, 
-      expectedLeads: 50, 
-      conversionRate: 3, 
-      rampUpMonths: 6,
-      averagePageLoadTime: 1.5
-    },
-    { 
-      name: "LinkedIn Outbound", 
-      type: "outbound", 
-      monthlyBudget: 200, 
-      expectedLeads: 30, 
-      conversionRate: 5, 
-      rampUpMonths: 2,
-      averagePageLoadTime: 1.5
-    },
-    { 
-      name: "Product Hunt / Directories", 
-      type: "organic", 
-      monthlyBudget: 0, 
-      expectedLeads: 100, 
-      conversionRate: 2,
-      rampUpMonths: 3,
-      averagePageLoadTime: 1.5
-    }
-  ]
-};
-
-// Australian market data
-const AUSTRALIAN_MARKET_DATA = {
-  /** Number of startups in Australia */
+export const AUSTRALIAN_MARKET_DATA = {
   numberOfStartups: 14000,
-  /** Growth rate of Australian startup ecosystem */
-  growthRate: 15,
-  /** Average valuation of Australian startups */
-  averageValuation: 1300000,
-  /** Percentage of startups using valuation tools */
-  valuationToolUsage: 22,
-  /** Average Series A funding round size in Australia */
+  growthRate: 0.15,
   averageSeriesAFunding: 5500000,
-  /** Number of Australian unicorns */
   australianUnicorns: 15,
-  /** VC investment in H1 2024 */
-  vcInvestment: 1400000000
+  vcInvestmentH1: 1400000000,
 };
 
-// Content marketing benchmarks
-const CONTENT_MARKETING_BENCHMARKS = {
-  /** Video content engagement */
-  videoContentEngagement: 70,
-  /** Blog post engagement */
-  blogPostEngagement: 50
+export const CONTENT_MARKETING_BENCHMARKS = {
+  videoContentEngagement: 0.7,
+  blogPostEngagement: 0.5,
 };
 
-// SEO algorithm updates
-const SEO_ALGORITHM_UPDATES = {
-  /** Google algorithm updates per year */
-  googleAlgorithmUpdatesPerYear: 9,
-  /** Percentage of websites affected by Helpful Content Update */
-  helpfulContentUpdateAffectedWebsites: 30,
-  /** Average page load time for top-ranking websites */
-  averagePageLoadTimeForTopRankingWebsites: 1.5,
-  /** Importance of E-A-T factors in SEO */
-  importanceOfEATFactors: 25.3
+export const SEO_BENCHMARKS = {
+  averagePageLoadTime: 1.5,
+  eATImportance: 0.253,
 };
 
-// Competitor feature releases
-const COMPETITOR_FEATURE_RELEASES = {
-  /** Number of feature releases */
+export const COMPETITOR_FEATURE_RELEASES = {
   numberOfFeatureReleases: 25,
-  /** Percentage of AI-powered features */
-  aiPoweredFeaturesPercentage: 40,
-  /** Average user engagement increase */
-  averageUserEngagementIncrease: 30,
-  /** Competitor feature release frequency */
-  competitorFeatureReleaseFrequency: "bi-weekly"
+  aiPoweredFeaturesPercentage: 0.4,
+  featureReleaseFrequency: "Bi-weekly",
 };
 
-export { 
-  GTM_CHANNEL_TEMPLATES, 
-  AUSTRALIAN_MARKET_DATA, 
-  CONTENT_MARKETING_BENCHMARKS, 
-  SEO_ALGORITHM_UPDATES, 
-  COMPETITOR_FEATURE_RELEASES 
-};
+export function calculateMarketShare(marketResearch: MarketResearch): number {
+  return marketResearch.competitors.reduce((acc, competitor) => acc + competitor.marketShare, 0);
+}
+
+export function calculateCustomerLifetimeValue(customerSegment: CustomerSegment): number {
+  return customerSegment.estimatedLTV / customerSegment.estimatedCAC;
+}
+
+export function getContentMarketingFocus(marketResearch: MarketResearch): string {
+  if (marketResearch.customerSegments.some((segment) => segment.videoContentEngagement > 0.5)) {
+    return "Video content";
+  } else {
+    return "Blog posts";
+  }
+}

@@ -1,45 +1,45 @@
 {
-  "date": "2026-06-16",
-  "overall": 29,
+  "date": "2026-06-20",
+  "overall": 33,
   "status": "RED",
   "dimensions": [
     {
       "key": "auth_coverage",
       "label": "Auth coverage on /api/* routes",
       "score": 8,
-      "detail": "194/238 guarded (Bearer / user-auth / public-tagged)",
+      "detail": "206/254 guarded (Bearer / user-auth / public-tagged)",
       "findings": [
+        "Ungated: api/ab/pricing-expose/route.ts",
         "Ungated: api/actions/route.ts",
         "Ungated: api/auth/github/callback/route.ts",
         "Ungated: api/auth/github/route.ts",
         "Ungated: api/auth/google/route.ts",
         "Ungated: api/auth/login-password/route.ts",
         "Ungated: api/auth/logout/route.ts",
-        "Ungated: api/auth/register/route.ts",
-        "Ungated: api/auth/request/route.ts"
+        "Ungated: api/auth/register/route.ts"
       ]
     },
     {
       "key": "rate_limit",
       "label": "Rate-limit coverage on /api/* routes",
       "score": 1,
-      "detail": "13/238 call checkRateLimit (or @rate-limit-exempt)",
+      "detail": "13/254 call checkRateLimit (or @rate-limit-exempt)",
       "findings": [
+        "No rate-limit: api/ab/pricing-expose/route.ts",
         "No rate-limit: api/account/notify-prefs/route.ts",
         "No rate-limit: api/actions/route.ts",
         "No rate-limit: api/admin/accelerator/[id]/route.ts",
         "No rate-limit: api/admin/accelerator/route.ts",
         "No rate-limit: api/admin/ai-keys/route.ts",
         "No rate-limit: api/admin/ai-status/route.ts",
-        "No rate-limit: api/admin/codex-auth/route.ts",
-        "No rate-limit: api/admin/credits/route.ts"
+        "No rate-limit: api/admin/codex-auth/route.ts"
       ]
     },
     {
       "key": "secrets_hygiene",
       "label": "Secrets hygiene (no committed credentials)",
       "score": 0,
-      "detail": "12 suspicious lines",
+      "detail": "13 suspicious lines",
       "findings": [
         "Leak: src/app/api/cron/security-posture/route.ts:126:    \"STRIPE_SECRET_KEY=sk_\",",
         "Leak: src/app/api/cron/security-posture/route.ts:127:    \"SUPABASE_SERVICE_ROLE_KEY=ey\",",
@@ -64,11 +64,11 @@
     {
       "key": "deps",
       "label": "Dependency vulnerabilities",
-      "score": 3,
-      "detail": "crit 0, high 6, mod 4",
+      "score": 6,
+      "detail": "crit 0, high 3, mod 6",
       "findings": [
-        "6 high CVE(s)",
-        "4 moderate CVE(s)"
+        "3 high CVE(s)",
+        "6 moderate CVE(s)"
       ]
     },
     {
@@ -84,7 +84,7 @@
       "key": "deploy_hygiene",
       "label": "Deploy hygiene",
       "score": 3,
-      "detail": "last deploy 999d ago, 2 unpushed commits",
+      "detail": "last deploy 999d ago, 0 unpushed commits",
       "findings": [
         "Last deploy was 999 days ago"
       ]
