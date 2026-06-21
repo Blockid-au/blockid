@@ -289,13 +289,65 @@ function readyModels(models: string[]): string[] {
 function coolDownModel(model: string, errMsg: string): void {
   const m = errMsg.toLowerCase();
   let ms = 90_000; // default 90s for transient errors
+  const isRateLimit = /rate.?limit|\b429\b|quota|temporarily|too many requests|capacity/.test(m);
   if (/not found|no endpoints|no allowed providers|invalid model|\b404\b|does not exist|unsupported model/.test(m)) {
     ms = 60 * 60_000; // model gone → 1h (next daily refresh usually drops it)
-  } else if (/rate.?limit|\b429\b|quota|temporarily|too many requests|capacity/.test(m)) {
+  } else if (isRateLimit) {
     ms = 5 * 60_000; // out of credit / rate-limited → 5 min
+    noteRateLimitEvent(model);
   }
   modelCooldownUntil.set(model, Date.now() + ms);
   recordModelOutcome(model, false);
+}
+
+// ── Rate-limit storm → auto-discover fresh free models ────────────────
+// When several models hit 429 in a short window, fire-and-forget POST to
+// /api/cron/discover-models so 3 NEW strong free models get prepended to the
+// shared list before the next request reads it. Throttled to once per 30 min
+// so a sustained outage doesn't hammer the discovery endpoint.
+const rateLimitTimestamps: number[] = [];
+const STORM_WINDOW_MS = 5 * 60_000;     // 5-minute sliding window
+const STORM_THRESHOLD = 2;              // ≥2 rate-limit events → trigger
+const DISCOVER_DEBOUNCE_MS = 30 * 60_000; // at most once per 30 min
+let lastDiscoverFiredAt = 0;
+
+function noteRateLimitEvent(model: string): void {
+  const now = Date.now();
+  rateLimitTimestamps.push(now);
+  while (rateLimitTimestamps.length > 0 && rateLimitTimestamps[0] < now - STORM_WINDOW_MS) {
+    rateLimitTimestamps.shift();
+  }
+  if (rateLimitTimestamps.length < STORM_THRESHOLD) return;
+  if (now - lastDiscoverFiredAt < DISCOVER_DEBOUNCE_MS) return;
+  lastDiscoverFiredAt = now;
+  rateLimitTimestamps.length = 0;
+  fireDiscoverModels(model).catch((err) => {
+    console.warn(`[ai-client:storm] discover-models trigger failed: ${err instanceof Error ? err.message : err}`);
+  });
+}
+
+async function fireDiscoverModels(triggerModel: string): Promise<void> {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) {
+    console.warn("[ai-client:storm] CRON_SECRET not set — cannot trigger discover-models");
+    return;
+  }
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.SITE_URL ?? "http://127.0.0.1:3000";
+  const url = `${base.replace(/\/$/, "")}/api/cron/discover-models`;
+  console.warn(`[ai-client:storm] rate-limit storm detected (trigger=${triggerModel}) → POST ${url}`);
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 60_000);
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${secret}` },
+      signal: ctrl.signal,
+    });
+    const body = await res.text();
+    console.warn(`[ai-client:storm] discover-models ${res.status}: ${body.slice(0, 300)}`);
+  } finally {
+    clearTimeout(t);
+  }
 }
 
 // ── Persistent model reliability (demote flaky models in fallback order) ──
