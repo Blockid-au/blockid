@@ -103,6 +103,19 @@ const GROWTH_PHASES = [
 
 const VERSION_HISTORY = [
   {
+    version: "2.6.0",
+    date: "2026-06-21",
+    title: "Auto-Discover Free Models + Codex Removed",
+    changes: [
+      "Removed OpenAI Codex provider — refresh tokens kept expiring (refresh_token_reused), fallback chain now Claude OAuth → Cerebras → Groq → SambaNova → Claude Proxy → OpenRouter",
+      "New /api/cron/discover-models endpoint — prepends 3 strong NEW free models per provider when the chain hits rate limits",
+      "Rate-limit storm detection — coolDownModel auto-fires discover-models when ≥2 models 429 in 5 min (throttled to once per 30 min)",
+      "Capacity-aware ranking — max_completion_tokens bonus (+12), recency bonus < 90d (+8), moderation penalty (-3); MoE giants (DeepSeek V3/Kimi K2/MiniMax) bumped above gpt-oss-120b",
+      "Daily refresh-models now picks top-8/provider (was top-5) for wider fallback breadth",
+      "Weekly proactive discover-models top-up — Sunday 04:00 UTC",
+    ],
+  },
+  {
     version: "2.5.0",
     date: "2026-06-12",
     title: "CEO Goal Tree & SVI Market Index",
