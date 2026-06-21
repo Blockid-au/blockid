@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getCodexAuthStatus, getAIBudgetStatus } from "@/lib/ai-client";
+import { getAIBudgetStatus } from "@/lib/ai-client";
 
 export const dynamic = "force-dynamic";
 
@@ -74,22 +74,7 @@ export async function GET() {
     providers.push({ id: "claude-proxy", name: "Anthropic Proxy", status: "missing", detail: "ANTHROPIC_PROXY_API_KEY / BASE_URL not set" });
   }
 
-  // 4. Codex OAuth (o3-mini / gpt-4.1-mini / gpt-4o-mini)
-  try {
-    const codexStatus = getCodexAuthStatus();
-    providers.push({
-      id: "openai-codex",
-      name: "OpenAI Codex OAuth (o3-mini)",
-      status: codexStatus.hasToken ? "active" : "missing",
-      detail: codexStatus.hasToken
-        ? `Token from ${codexStatus.tokenSource} — Models: o3-mini, gpt-4.1-mini, gpt-4o-mini`
-        : "Not configured — use Admin > AI Keys > Codex Login to authorize",
-    });
-  } catch {
-    providers.push({ id: "openai-codex", name: "OpenAI Codex OAuth", status: "missing", detail: "Cannot check" });
-  }
-
-  // 5. OpenAI API Key
+  // 4. OpenAI API Key
   const openaiKey = process.env.OPENAI_API_KEY;
   providers.push({
     id: "openai-apikey",
@@ -98,7 +83,7 @@ export async function GET() {
     detail: openaiKey ? `Key: ${openaiKey.slice(0, 8)}...${openaiKey.slice(-4)}` : "OPENAI_API_KEY not set",
   });
 
-  // 6. Google Gemini
+  // 5. Google Gemini
   const geminiKey = process.env.GOOGLE_GEMINI_API_KEY;
   providers.push({
     id: "gemini",
@@ -119,6 +104,5 @@ export async function GET() {
     providers,
     priority: providers.map((p) => p.id),
     budget,
-    codexDeviceAuthUrl: "/api/admin/codex-auth",
   });
 }
