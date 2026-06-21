@@ -498,54 +498,28 @@ function readCliOAuthToken(): string | null {
   }
 }
 
-// ── OpenAI Codex CLI OAuth ─────────────────────────────────────────────
-
-function readCodexOAuthToken(): string | null {
-  try {
-    const home = process.env.HOME ?? "/root";
-    const authPath = path.join(home, ".codex", "auth.json");
-
-    if (!fs.existsSync(authPath)) {
-      return process.env.CODEX_ACCESS_TOKEN ?? null;
-    }
-
-    const raw = fs.readFileSync(authPath, "utf-8");
-    const creds = JSON.parse(raw);
-
-    // Codex stores tokens at: { tokens: { access_token, refresh_token, id_token } }
-    const tokens = creds.tokens ?? {};
-    const token = tokens.access_token ?? creds.access_token ?? creds.OPENAI_API_KEY;
-    if (!token) return process.env.CODEX_ACCESS_TOKEN ?? null;
-
-    return token;
-  } catch {
-    return process.env.CODEX_ACCESS_TOKEN ?? null;
-  }
-}
-
 // ── Provider detection ─────────────────────────────────────────────────
 
-type Provider = "claude-oauth" | "claude-apikey" | "claude-proxy" | "openai-codex" | "openai-apikey" | "gemini" | "groq" | "openrouter" | "cerebras" | "sambanova" | "ollama" | "none";
+type Provider = "claude-oauth" | "claude-apikey" | "claude-proxy" | "openai-apikey" | "gemini" | "groq" | "openrouter" | "cerebras" | "sambanova" | "ollama" | "none";
 
 function getAvailableProviders(): Provider[] {
   const providers: Provider[] = [];
   // ──────────────────────────────────────────────────────────────────────
   // PRIORITY: Subscription (best quality) → FREE stable → OpenRouter last
-  // NO paid API keys — zero marginal cost only.
+  // NO paid API keys, NO Codex — zero marginal cost only.
   //
   // Benchmark intelligence (June 2026):
-  //   S-tier (52+): Claude Sonnet 4.6, o3-mini, DeepSeek V3, Kimi K2.6
-  //   A-tier (40-50): gpt-oss-120b, Nemotron 120B, Qwen3
+  //   S-tier (52+): Claude Sonnet 4.6, DeepSeek V3, Kimi K2.6
+  //   A-tier (40-50): gpt-oss-120b, Nemotron 120B/550B, Qwen3
   //   B-tier (35-42): Llama 3.3 70B, Gemma 4
   //   C-tier (<35):  Llama 3.1 8B, small models
   //
   // Stability ranking:
   //   claude-oauth  — subscription, 100% uptime, Sonnet 4.6
   //   claude-proxy  — shared key, Sonnet 4.6
-  //   groq          — 400 RPM free, ultra-fast (500+ t/s), very stable
   //   cerebras      — 30 RPM free, ultra-fast hardware, reliable
+  //   groq          — 400 RPM free, ultra-fast (500+ t/s), very stable
   //   sambanova     — high-throughput free, DeepSeek V3, stable
-  //   openai-codex  — subscription but token expires, low priority
   //   ollama        — local GPU, offline fallback
   //   openrouter    — LAST: 24+ free models but variable uptime + rate limits
   // ──────────────────────────────────────────────────────────────────────
@@ -555,24 +529,22 @@ function getAvailableProviders(): Provider[] {
   // 2. Proxy — Sonnet 4.6 (shared key)
   if (process.env.ANTHROPIC_PROXY_API_KEY && process.env.ANTHROPIC_PROXY_BASE_URL) providers.push("claude-proxy");
   else if (getDBKey("anthropic_proxy")) providers.push("claude-proxy");
-  // 3. Groq — fastest free inference (400 RPM, 500+ t/s, very stable)
-  if (process.env.GROQ_API_KEY) providers.push("groq");
-  else if (getDBKey("groq")) providers.push("groq");
-  // 4. Cerebras — ultra-fast hardware, 30 RPM free, consistent uptime
+  // 3. Cerebras — ultra-fast hardware, 30 RPM free, consistent uptime
   if (process.env.CEREBRAS_API_KEY) providers.push("cerebras");
   else if (getDBKey("cerebras")) providers.push("cerebras");
+  // 4. Groq — fastest free inference (400 RPM, 500+ t/s, very stable)
+  if (process.env.GROQ_API_KEY) providers.push("groq");
+  else if (getDBKey("groq")) providers.push("groq");
   // 5. SambaNova — DeepSeek V3 free, high throughput, stable
   if (process.env.SAMBANOVA_API_KEY) providers.push("sambanova");
   else if (getDBKey("sambanova")) providers.push("sambanova");
-  // 6. Codex OAuth — subscription but often expires, slow
-  if (readCodexOAuthToken()) providers.push("openai-codex");
-  // 7. Ollama — local GPU backup
+  // 6. Ollama — local GPU backup
   if (process.env.OLLAMA_HOST || process.env.OLLAMA_ENABLED === "true") providers.push("ollama");
-  // 8. OpenRouter — LAST: 24+ free models but variable uptime and rate limits
+  // 7. OpenRouter — LAST: 24+ free models but variable uptime and rate limits
   if (process.env.OPENROUTER_API_KEY) providers.push("openrouter");
   else if (getDBKey("openrouter")) providers.push("openrouter");
 
-  // ❌ Gemini / Anthropic API / OpenAI API — DISABLED (paid, not free)
+  // ❌ Gemini / Anthropic API / OpenAI API / Codex — DISABLED (paid or unreliable)
   return providers;
 }
 
@@ -678,61 +650,6 @@ async function callOpenAI(apiKey: string, opts: AICallOptions): Promise<AICallRe
 
   const text = response.choices[0]?.message?.content ?? "";
   return { text, provider: "openai", model };
-}
-
-// ── OpenAI Codex OAuth call (uses ChatGPT/Codex subscription token) ──
-// Model selection:
-//   - o3-mini: reasoning model for SVI analysis, reports, complex tasks (>1000 tokens)
-//   - gpt-4o-mini: fast model for quick tasks, summaries (<1000 tokens)
-// Falls back to gpt-4.1-mini if o3-mini is unavailable.
-
-async function callCodex(opts: AICallOptions): Promise<AICallResult> {
-  const token = readCodexOAuthToken();
-  if (!token) throw new Error("Codex OAuth token not available");
-
-  // Always try strongest model first — subscription = no extra cost per call.
-  // o3-mini (S-tier reasoning) → gpt-4.1-mini (B-tier) → gpt-4o-mini (B-tier fallback)
-  const models = ["o3-mini", "gpt-4.1-mini", "gpt-4o-mini"];
-
-  let lastError: Error | null = null;
-
-  for (const model of models) {
-    try {
-      // o3-mini uses "reasoning_effort" instead of "max_tokens"
-      const isReasoning = model === "o3-mini";
-      const body: Record<string, unknown> = {
-        model,
-        messages: [
-          { role: isReasoning ? "developer" : "system", content: opts.system },
-          { role: "user", content: opts.user },
-        ],
-      };
-
-      if (isReasoning) {
-        body.reasoning_effort = "medium";
-        body.max_completion_tokens = opts.maxTokens ?? 4096;
-      } else {
-        body.max_tokens = opts.maxTokens ?? 4096;
-      }
-
-      const raw = await workerFetch("https://api.openai.com/v1/chat/completions", {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json",
-      }, JSON.stringify(body), opts.timeoutMs);
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = JSON.parse(raw) as any;
-      if (data.error) throw new Error(data.error.message ?? `OpenAI error: ${JSON.stringify(data.error)}`);
-      const text = data.choices?.[0]?.message?.content ?? "";
-      if (!text) throw new Error("Empty Codex response");
-      return { text, provider: "openai", model };
-    } catch (err) {
-      lastError = err instanceof Error ? err : new Error(String(err));
-      console.warn(`[ai-client:codex] ${model} failed: ${lastError.message}. Trying next model...`);
-    }
-  }
-
-  throw lastError ?? new Error("All Codex models failed");
 }
 
 // ── Gemini call ────────────────────────────────────────────────────────
@@ -1068,8 +985,6 @@ async function callProvider(provider: Provider, opts: AICallOptions): Promise<AI
       return callClaude(process.env.ANTHROPIC_API_KEY ?? getDBKey("anthropic")?.api_key ?? "", opts);
     case "claude-proxy":
       return callClaudeProxy(opts);
-    case "openai-codex":
-      return callCodex(noTools);
     case "openai-apikey":
       return callOpenAI(process.env.OPENAI_API_KEY ?? getDBKey("openai")?.api_key ?? "", noTools);
     case "groq":
@@ -1245,26 +1160,25 @@ export function isAnthropicConfigured(): boolean {
 
 // ── Agent Self-Upgrade AI Call ─────────────────────────────────────────
 // Uses ONLY subscription/free models — zero additional API cost.
-// Priority: Claude CLI OAuth → Codex CLI → Gemini → Groq → OpenRouter
-// NEVER uses paid API keys (ANTHROPIC_API_KEY, OPENAI_API_KEY, proxy).
+// Priority: Cerebras → Groq → SambaNova → Claude OAuth → OpenRouter
+// NEVER uses paid API keys (ANTHROPIC_API_KEY, OPENAI_API_KEY, Codex, proxy).
 
 export async function callAIForUpgrade(opts: AICallOptions): Promise<AICallResult | null> {
   await getDBKeys(); // ensure cache is warm
 
-  // Only use FREE and subscription providers — NO paid API keys (Gemini, Anthropic, OpenAI)
+  // Only use FREE and subscription providers — NO paid API keys, NO Codex.
   const freeProviders: Provider[] = [];
-  // 100% free providers first. OpenRouter is heavily rate-limited (429 spam),
-  // so it's deprioritized to just BEFORE codex — try the more reliable free
-  // tiers (Groq/Cerebras/SambaNova) and the Claude subscription first.
-  if (process.env.GROQ_API_KEY || getDBKey("groq")) freeProviders.push("groq");
+  // 100% free providers first, ordered by reliability + speed.
+  // Cerebras (ultra-fast, 30 RPM) → Groq (400 RPM, 500+ t/s) → SambaNova (DeepSeek V3, high throughput).
   if (process.env.CEREBRAS_API_KEY || getDBKey("cerebras")) freeProviders.push("cerebras");
+  if (process.env.GROQ_API_KEY || getDBKey("groq")) freeProviders.push("groq");
   if (process.env.SAMBANOVA_API_KEY || getDBKey("sambanova")) freeProviders.push("sambanova");
   // Subscription providers (fixed cost, not per-call)
   if (readCliOAuthToken()) freeProviders.push("claude-oauth");
-  // OpenRouter moved down — right before codex in the fallback chain.
+  // OpenRouter LAST — heavily rate-limited (429 spam) but 24+ free models for breadth.
   if (process.env.OPENROUTER_API_KEY || getDBKey("openrouter")) freeProviders.push("openrouter");
-  if (readCodexOAuthToken()) freeProviders.push("openai-codex");
-  // NOTE: Gemini EXCLUDED — it costs $0.30-$2.50/1M tokens, NOT free
+  // NOTE: Gemini EXCLUDED — it costs $0.30-$2.50/1M tokens, NOT free.
+  // NOTE: Codex EXCLUDED — refresh tokens keep expiring + paid quota.
 
   if (freeProviders.length === 0) {
     console.warn("[ai-client] No free/subscription providers available for upgrade task. Skipping.");
@@ -1286,32 +1200,6 @@ export async function callAIForUpgrade(opts: AICallOptions): Promise<AICallResul
 
   console.warn("[ai-client:upgrade] All free providers failed. Upgrade task skipped.");
   return null;
-}
-
-// ── Codex device auth info (for admin UI login link) ─────────────────
-
-export const CODEX_DEVICE_AUTH = {
-  clientId: "app_EMoamEEZ73f0CkXaXp7hrann",
-  authUrl: "https://auth.openai.com/authorize",
-  tokenUrl: "https://auth.openai.com/oauth/token",
-  deviceAuthUrl: "https://auth.openai.com/oauth/device/code",
-  scopes: "openai.chat openai.models.read",
-};
-
-export function getCodexAuthStatus(): {
-  hasToken: boolean;
-  tokenSource: "file" | "env" | "none";
-  authFilePath: string;
-} {
-  const home = process.env.HOME ?? "/root";
-  const authPath = path.join(home, ".codex", "auth.json");
-  const hasFile = fs.existsSync(authPath);
-  const hasEnv = !!process.env.CODEX_ACCESS_TOKEN;
-  return {
-    hasToken: !!readCodexOAuthToken(),
-    tokenSource: hasFile ? "file" : hasEnv ? "env" : "none",
-    authFilePath: authPath,
-  };
 }
 
 // ── Check if off-peak hours (AEST = UTC+10/11) ───────────────────────

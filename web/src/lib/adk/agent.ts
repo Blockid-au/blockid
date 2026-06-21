@@ -13,7 +13,7 @@
 // `LlmAgent`s with templated instructions + an `output_key`, and a
 // `SequentialAgent` that pipes shared session state between sub-agents — while
 // running every call through our existing FREE provider chain (Groq, OpenRouter,
-// Cerebras, SambaNova, Claude/Codex OAuth) via the injected `ModelCaller`.
+// Cerebras, SambaNova, Claude OAuth) via the injected `ModelCaller`.
 //
 // This keeps the Agent Garden mental model (and lets us port adk-samples like
 // llm-auditor verbatim) at $0 and with no new dependencies. If we ever move to

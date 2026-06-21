@@ -4,7 +4,7 @@
  * Priority chain (ưu tiên free → cheap → paid):
  *   1. Gemini Flash Image (free via Google API key) — best free option
  *   2. OpenRouter Image Models (free/cheap) — Gemini, GPT-Image, Grok
- *   3. OpenAI DALL-E / GPT-Image (via Codex OAuth or API key)
+ *   3. OpenAI DALL-E / GPT-Image (via API key, if configured)
  *   4. Mermaid SVG (local, no API) — for flowcharts, org charts, timelines
  *   5. Built-in SVG renderers (local, no API) — for radar, bar, funnel charts
  *

@@ -27,27 +27,31 @@ function scoreModel(id: string, name = "", ctx = 0): number {
   if (/guard|safety|moderation|content-safety|embed|rerank|\btts\b|whisper|\bstt\b|image|audio|vision-only|moderat/.test(hay)) {
     return -1;
   }
+  // Family base scores — MoE giants (DeepSeek V3, Kimi K2, MiniMax) are bumped
+  // above gpt-oss-120b because their model IDs rarely encode param size, so the
+  // numeric paramScore below would otherwise underweight them.
   const FAM: [RegExp, number][] = [
-    [/deepseek.*(v4|r1|v3\.2|v3\.1)/, 96],
-    [/kimi.?k2/, 94],
-    [/minimax/, 90],
-    [/qwen3.*(coder|235b|480b|max|next)/, 90],
-    [/glm-?(5|4\.6|4\.5)/, 88],
-    [/nemotron.*(ultra|super|253b|340b|550b)/, 88],
-    [/llama-?4/, 86],
+    [/deepseek.*(v4|r1|v3\.2|v3\.1)/, 115],
+    [/kimi.?k2/, 113],
+    [/minimax/, 108],
+    [/qwen3.*(coder|235b|480b|max|next)/, 100],
+    [/glm-?(5|4\.7|4\.6|4\.5)/, 96],
+    [/nemotron.*(ultra|super|253b|340b|550b)/, 92],
+    [/llama-?4/, 88],
     [/qwen3/, 84],
-    [/gpt-oss-120b/, 84],
-    [/llama-3\.3-70b/, 82],
-    [/hermes-3.*405b/, 80],
-    [/gemma-?(3-27b|4)/, 76],
-    [/nemotron.*(nano|30b|12b|9b)/, 62],
-    [/(3b|1b|nano|mini|small|\bxs\b|tiny|lite)/, 42],
+    [/gpt-oss-120b/, 80],
+    [/llama-3\.3-70b/, 78],
+    [/hermes-3.*405b/, 76],
+    [/gemma-?(3-27b|4)/, 70],
+    [/nemotron.*(nano|30b|12b|9b)/, 58],
+    [/gpt-oss-20b/, 50],
+    [/(3b|1b|nano|mini|small|\bxs\b|tiny|lite)/, 38],
   ];
   let fam = 55;
   for (const [re, s] of FAM) if (re.test(hay)) { fam = s; break; }
   const pm = hay.match(/(\d{2,4})\s?b\b/);
   const paramB = pm ? parseInt(pm[1], 10) : 0;
-  const paramScore = paramB ? Math.min(30, Math.log2(paramB + 1) * 4) : 8;
+  const paramScore = paramB ? Math.min(25, Math.log2(paramB + 1) * 3.2) : 8;
   const ctxScore = ctx ? Math.min(15, Math.log10(ctx) * 2.5) : 0;
   return fam + paramScore + ctxScore;
 }
@@ -113,7 +117,7 @@ export async function POST(request: Request) {
     return p && zero(p.prompt) && zero(p.completion);
   });
   if (orFree.length > 0) {
-    config.openrouter = rank(orFree, 5); // top 5 strongest free models
+    config.openrouter = rank(orFree, 8); // top 8 strongest free models — wider fallback breadth
     summary.openrouter = config.openrouter.length;
   }
 
@@ -127,7 +131,7 @@ export async function POST(request: Request) {
     const key = (env && process.env[env]) || (await dbKey(provider));
     if (!key) continue;
     const models = await fetchJson(url, { Authorization: `Bearer ${key}` });
-    const ranked = rank(models, 5); // top 5 strongest free models
+    const ranked = rank(models, 8); // top 8 strongest free models — wider fallback breadth
     if (ranked.length > 0) {
       config[provider] = ranked;
       summary[provider] = ranked.length;

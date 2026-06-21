@@ -289,11 +289,6 @@ export function AIKeysClient() {
             <p className="mt-1 text-ink-500">Opening Claude CLI auto-refreshes the OAuth token.</p>
           </div>
           <div>
-            <p className="font-medium text-ink-800">Codex OAuth:</p>
-            <code className="block mt-1 bg-white rounded px-2 py-1 text-[11px] font-mono border border-surface-200">ssh server &amp;&amp; codex</code>
-            <p className="mt-1 text-ink-500">Opening Codex CLI auto-refreshes the OAuth token.</p>
-          </div>
-          <div>
             <p className="font-medium text-ink-800">Or add keys above:</p>
             <p className="mt-1 text-ink-500">Keys saved here are stored in the database and override .env variables. No redeploy needed.</p>
           </div>

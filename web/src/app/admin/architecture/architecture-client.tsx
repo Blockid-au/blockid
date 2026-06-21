@@ -125,18 +125,18 @@ const MICROSERVICES: MicroService[] = [
 ];
 
 const AI_PROVIDERS: AIProvider[] = [
-  // Priority: Subscription (S-tier default) → Free (unlimited) → Local. NO paid APIs.
-  { name: "Codex OAuth", tier: "1", tierLabel: "Default", models: "o3-mini (S-tier reasoning), gpt-4.1-mini (B), gpt-4o-mini (B)", modelCount: 3, costPer1k: "$0.00", status: "active" },
+  // Priority: Subscription (S-tier default) → Free (unlimited) → Local. NO paid APIs. NO Codex.
   { name: "Claude OAuth", tier: "1", tierLabel: "Default", models: "claude-sonnet-4-6 (S-tier, score 52), claude-haiku-4-5 (B)", modelCount: 2, costPer1k: "$0.00", status: "active" },
   { name: "Proxy", tier: "1", tierLabel: "Default", models: "claude-sonnet-4-6 (S), claude-haiku-4-5 (B)", modelCount: 2, costPer1k: "$0.00", status: "active" },
-  { name: "SambaNova", tier: "2", tierLabel: "Free", models: "DeepSeek-V3 (S), Qwen2.5-72B (A), Llama-3.3-70B (B), Llama-3.1-8B (C)", modelCount: 4, costPer1k: "$0.00", status: "active" },
-  { name: "OpenRouter", tier: "2", tierLabel: "Free", models: "Kimi-K2.6 (S), DeepSeek-V4 (S), MiniMax-M2.5 (S), Qwen3 (A), +20 more", modelCount: 24, costPer1k: "$0.00", status: "active" },
-  { name: "Cerebras", tier: "2", tierLabel: "Free", models: "gpt-oss-120b (A), llama-3.3-70b (B), llama-3.1-8b (C). 30 RPM", modelCount: 3, costPer1k: "$0.00", status: "active" },
-  { name: "Groq", tier: "2", tierLabel: "Free", models: "gpt-oss-120b (A), llama-3.3-70b (B), gpt-oss-20b (C), llama-3.1-8b (C)", modelCount: 4, costPer1k: "$0.00", status: "active" },
+  { name: "Cerebras", tier: "2", tierLabel: "Free", models: "gpt-oss-120b (A), llama-3.3-70b (B), zai-glm-4.7 (A)", modelCount: 3, costPer1k: "$0.00", status: "active" },
+  { name: "Groq", tier: "2", tierLabel: "Free", models: "gpt-oss-120b (A), llama-3.3-70b (B), qwen3-32b (A), llama-4-scout-17b (B)", modelCount: 5, costPer1k: "$0.00", status: "active" },
+  { name: "SambaNova", tier: "2", tierLabel: "Free", models: "DeepSeek-V3.2 (S), DeepSeek-V3.1 (S), gpt-oss-120b (A), Llama-3.3-70B (B)", modelCount: 4, costPer1k: "$0.00", status: "active" },
+  { name: "OpenRouter", tier: "2", tierLabel: "Free", models: "Kimi-K2.6 (S), DeepSeek-V4 (S), MiniMax-M2.5 (S), Qwen3-coder (A), Nemotron-550B (A), +20 more", modelCount: 24, costPer1k: "$0.00", status: "active" },
   { name: "Ollama (local)", tier: "3", tierLabel: "Local", models: "qwen2.5:3b (C-tier, offline backup)", modelCount: 1, costPer1k: "$0.00", status: "inactive" },
   { name: "Gemini", tier: "4", tierLabel: "Disabled", models: "DISABLED — costs money", modelCount: 0, costPer1k: "N/A", status: "inactive" },
   { name: "Anthropic API", tier: "4", tierLabel: "Disabled", models: "DISABLED — costs money", modelCount: 0, costPer1k: "N/A", status: "inactive" },
   { name: "OpenAI API", tier: "4", tierLabel: "Disabled", models: "DISABLED — costs money", modelCount: 0, costPer1k: "N/A", status: "inactive" },
+  { name: "Codex OAuth", tier: "4", tierLabel: "Removed", models: "REMOVED — refresh tokens kept expiring", modelCount: 0, costPer1k: "N/A", status: "inactive" },
 ];
 
 const DB_TABLE_GROUPS: DBTableGroup[] = [
