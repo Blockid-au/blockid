@@ -396,23 +396,29 @@ fi
 gate "Prepare standalone + smoke test"
 
 # Copy assets — sync ALL build output into standalone (fixes missing manifests).
-# Only after a fresh build: --skip-build means the standalone is already
-# assembled, so re-copying is needless and would briefly disturb the live
-# server's static. Idempotent: remove dst first so a re-run never nests a copy
-# inside the existing dir (cp -r src existing_dst → existing_dst/src); only copy
-# when the source exists, so a missing source never deletes a good standalone.
+# ALWAYS copy static + public even on --skip-build; without these the release
+# serves HTML but every /_next/static/*.css and /_next/static/chunks/*.js
+# returns 404 → completely unstyled site + broken client hydration.
+# Past outage (2026-07-16): --skip-build deploy without static copy caused
+# UI to render as unstyled HTML on prod for several minutes.
+# Only server/ + node_modules/ are gated on fresh build (they change with
+# code); static/public/ai-worker are always safe to copy (idempotent).
+if [ -d "$WEB_DIR/.next/static" ]; then
+  rm -rf "$STANDALONE/.next/static"
+  cp -r "$WEB_DIR/.next/static" "$STANDALONE/.next/static"
+fi
+if [ -d "$WEB_DIR/public" ]; then
+  rm -rf "$STANDALONE/public"
+  cp -r "$WEB_DIR/public" "$STANDALONE/public"
+fi
+cp "$WEB_DIR/ai-worker.mjs" "$STANDALONE/ai-worker.mjs" 2>/dev/null || true
 if [ "${1:-}" != "--skip-build" ]; then
-  for a in static server node_modules; do
+  for a in server node_modules; do
     if [ -d "$WEB_DIR/.next/$a" ]; then
       rm -rf "$STANDALONE/.next/$a"
       cp -r "$WEB_DIR/.next/$a" "$STANDALONE/.next/$a"
     fi
   done
-  if [ -d "$WEB_DIR/public" ]; then
-    rm -rf "$STANDALONE/public"
-    cp -r "$WEB_DIR/public" "$STANDALONE/public"
-  fi
-  cp "$WEB_DIR/ai-worker.mjs" "$STANDALONE/ai-worker.mjs" 2>/dev/null || true
 fi
 
 # Copy serverExternalPackages not traced by standalone.
@@ -547,6 +553,22 @@ for path in "/" "/auth/login" "/pricing" "/api/auth/me" "/score" "/tools/idea-va
     SMOKE_FAIL=$((SMOKE_FAIL + 1))
   fi
 done
+
+# CSS/JS asset probe — parse the homepage HTML for the first _next asset,
+# ensure it returns 200. This catches the 2026-07-16 outage class where
+# HTML rendered but /_next/static/*.css returned 404 (missing static/ copy).
+FIRST_CSS=$(curl -s "http://127.0.0.1:$TEMP_PORT/" 2>/dev/null | grep -oE 'href="/_next/static/[^"]+\.css"' | head -1 | sed 's/href="//;s/"//')
+if [ -n "$FIRST_CSS" ]; then
+  CSS_SC=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:$TEMP_PORT$FIRST_CSS" 2>/dev/null)
+  if [ "$CSS_SC" = "200" ]; then
+    echo "  ✅ $FIRST_CSS → $CSS_SC (static assets OK)"
+  else
+    echo "  ❌ $FIRST_CSS → $CSS_SC (STATIC BROKEN — release is missing .next/static)"
+    SMOKE_FAIL=$((SMOKE_FAIL + 1))
+  fi
+else
+  echo "  ⚠  no CSS href found in homepage — cannot verify static asset serving"
+fi
 
 # Kill temp process
 kill $NEW_PID 2>/dev/null || true
