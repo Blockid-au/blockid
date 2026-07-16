@@ -136,7 +136,7 @@ export function WholesaleGate({
             <button
               type="button"
               onClick={() => setMode("upload")}
-              className="w-full text-left rounded-lg border border-brand-500 bg-brand-50 dark:bg-brand-950/30 px-4 py-3 hover:bg-brand-100 dark:hover:bg-brand-950/50 transition-colors"
+              className="w-full text-left rounded-lg border border-brand-500 bg-brand-50 dark:bg-brand-950/30 px-4 py-3 hover:bg-brand-100 dark:hover:bg-brand-950/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
             >
               <div className="text-sm font-semibold text-brand-900 dark:text-brand-100">
                 Yes — upload certificate
@@ -149,7 +149,7 @@ export function WholesaleGate({
             <button
               type="button"
               onClick={onChooseRetail}
-              className="w-full text-left rounded-lg border border-slate-300 dark:border-slate-700 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              className="w-full text-left rounded-lg border border-slate-300 dark:border-slate-700 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
             >
               <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                 No — proceed as retail
@@ -160,7 +160,7 @@ export function WholesaleGate({
             </button>
             <Link
               href={faqHref}
-              className="block w-full text-left rounded-lg border border-slate-300 dark:border-slate-700 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              className="block w-full text-left rounded-lg border border-slate-300 dark:border-slate-700 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
             >
               <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                 Not sure — see FAQ

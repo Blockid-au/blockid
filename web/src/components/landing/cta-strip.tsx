@@ -60,7 +60,7 @@ export function CtaStrip() {
             <div className="flex flex-col gap-6">
               <Link
                 href="/score"
-                className="inline-flex h-14 items-center justify-center gap-2 rounded-xl bg-white px-8 text-base font-semibold text-brand-700 shadow-[0_18px_48px_rgba(0,0,0,0.15)] transition-colors hover:bg-brand-50 sm:self-start"
+                className="inline-flex h-14 items-center justify-center gap-2 rounded-xl bg-white px-8 text-base font-semibold text-brand-700 shadow-[0_18px_48px_rgba(0,0,0,0.15)] transition-colors hover:bg-brand-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand-700 sm:self-start"
               >
                 Get my Score &mdash; free
                 <ArrowRight strokeWidth={1.75} className="h-5 w-5" />
@@ -105,7 +105,7 @@ export function CtaStrip() {
                 Or skip the email and{" "}
                 <Link
                   href="/tools/idea-valuation"
-                  className="text-gold-300 hover:text-gold-200 underline underline-offset-4 cursor-pointer"
+                  className="rounded-sm text-gold-300 underline underline-offset-4 hover:text-gold-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 >
                   start with your idea
                 </Link>

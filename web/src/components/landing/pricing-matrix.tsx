@@ -58,10 +58,14 @@ export function PricingMatrix({ segment: overrideSegment }: PricingMatrixProps =
 
   return (
     <section
-      className="mx-auto max-w-7xl px-4 py-16 sm:py-20"
+      id="pricing-anchor"
+      className="mx-auto max-w-7xl scroll-mt-16 px-4 py-16 sm:py-20"
       aria-labelledby="pricing-matrix-heading"
     >
       <div className="mb-10 flex flex-col items-center text-center">
+        <span className="mb-3 inline-flex items-center rounded-full border border-brand-cyan/40 bg-brand-cyan/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand-cyan">
+          Beta pricing
+        </span>
         <h2
           id="pricing-matrix-heading"
           className="lux-heading text-3xl font-semibold sm:text-4xl"
@@ -81,17 +85,22 @@ export function PricingMatrix({ segment: overrideSegment }: PricingMatrixProps =
         </p>
       )}
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[repeat(auto-fit,minmax(260px,1fr))]">
         {plans.map((plan) => (
           <PlanCard key={plan.id} plan={plan} interval={interval} />
         ))}
       </div>
 
-      <p className="mt-10 text-center text-xs text-brand-ink-muted/80">
+      <p className="mt-10 text-center text-xs text-brand-ink-muted">
         Prices in Australian dollars, GST-exclusive. GST added at checkout for
         Australian customers once Auschain PTY LTD (ABN 79 659 615 111) crosses
         the A$75,000 turnover threshold. Trial ends automatically — we email
         3 days before any charge. Cancel any time from Billing.
+      </p>
+      <p className="mx-auto mt-4 max-w-2xl border-t border-white/5 pt-4 text-center text-xs text-brand-ink-muted">
+        Not financial advice. Plan information is general in nature and does
+        not account for your objectives or financial situation — seek
+        independent advice before subscribing.
       </p>
     </section>
   );
@@ -145,7 +154,7 @@ function ToggleButton({
       aria-checked={active}
       onClick={onClick}
       className={[
-        "flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out",
+        "flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy",
         active
           ? "bg-brand-gold text-brand-navy shadow-[0_0_18px_-6px_rgba(201,169,97,0.6)]"
           : "text-brand-ink-muted hover:text-brand-ink",
@@ -250,7 +259,7 @@ function PlanCard({ plan, interval }: { plan: Plan; interval: Interval }) {
       <Link
         href={ctaHref}
         className={[
-          "mt-auto inline-flex w-full items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition-all duration-200 ease-out",
+          "mt-auto inline-flex w-full items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy",
           isContact
             ? "border border-brand-cyan text-brand-cyan hover:bg-brand-cyan hover:text-brand-navy"
             : "bg-brand-gold text-brand-navy hover:brightness-110",

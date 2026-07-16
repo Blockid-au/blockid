@@ -28,16 +28,19 @@ export function HeroV2() {
         className="absolute inset-x-0 top-0 h-px bg-lux-gold-line opacity-40"
       />
 
-      <div className="mx-auto max-w-7xl px-6 py-24 lg:py-32">
+      <div className="mx-auto max-w-7xl px-6 py-14 sm:py-20 lg:py-32">
         {/* ── Headline block ─────────────────────────────────── */}
         <div className="mx-auto max-w-4xl text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-gold">
             AI-powered startup verification · Sydney AU
+            <span className="ml-2 inline-flex items-center rounded-full border border-brand-cyan/40 bg-brand-cyan/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand-cyan align-middle">
+              Beta
+            </span>
           </p>
 
           <h1
             id="hero-v2-title"
-            className="mt-6 text-5xl font-bold leading-[1.05] tracking-tight text-brand-ink md:text-6xl lg:text-7xl"
+            className="mt-6 text-4xl font-bold leading-[1.08] tracking-tight text-brand-ink sm:text-5xl md:text-6xl lg:text-7xl"
           >
             Get{" "}
             <span className="lux-heading">Fundable</span>
@@ -77,7 +80,7 @@ export function HeroV2() {
           </div>
 
           {/* Free-trial reassurance */}
-          <p className="mt-4 text-xs text-brand-ink-muted/70">
+          <p className="mt-4 text-xs text-brand-ink-muted">
             No credit card to browse pricing · Card required at checkout
           </p>
         </div>

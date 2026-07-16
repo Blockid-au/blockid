@@ -60,9 +60,9 @@ export const FAQV2: FC = () => {
           {FAQS.map((item, i) => (
             <details
               key={i}
-              className="group rounded-2xl border border-white/10 bg-white/[0.02] p-6 open:bg-white/[0.04] transition-colors"
+              className="lux-card group p-6 open:border-brand-gold/30 transition-colors"
             >
-              <summary className="cursor-pointer list-none flex items-start justify-between gap-4">
+              <summary className="flex cursor-pointer list-none items-start justify-between gap-4 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan">
                 <h3 className="text-base md:text-lg font-medium text-brand-gold pr-2">
                   {item.q}
                 </h3>
@@ -80,7 +80,7 @@ export const FAQV2: FC = () => {
           ))}
         </div>
 
-        <p className="mt-10 text-center text-xs text-brand-ink-muted/70 max-w-2xl mx-auto">
+        <p className="mt-10 text-center text-xs text-brand-ink-muted max-w-2xl mx-auto">
           Information provided on this page is general in nature and does not
           constitute financial, legal, or tax advice. Consult a licensed
           professional before making decisions about securities, equity, or tax

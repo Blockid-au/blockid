@@ -89,7 +89,7 @@ export function NotFinancialAdvice({
       <div className="mt-2">
         <Link
           href={learnMoreHref}
-          className="text-xs font-medium text-brand-700 hover:text-brand-800 dark:text-brand-300 dark:hover:text-brand-200"
+          className="rounded-sm text-xs font-medium text-brand-700 hover:text-brand-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-brand-300 dark:hover:text-brand-200"
         >
           Learn more →
         </Link>

@@ -13,6 +13,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 
 type Stage = "idea" | "pre-seed" | "seed" | "series-a+";
 
@@ -199,6 +200,7 @@ export default function EquityOfferRequestPage() {
                 Dashboard
               </Link>
             </div>
+            <NotFinancialAdvice kind="equity_offer_disclaimer" compact />
           </div>
         </div>
       </div>
@@ -437,7 +439,7 @@ export default function EquityOfferRequestPage() {
             <button
               type="submit"
               disabled={!canSubmit}
-              className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+              className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 ${
                 canSubmit
                   ? "bg-brand-600 hover:bg-brand-700 text-white"
                   : "bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-500 cursor-not-allowed"
@@ -450,6 +452,8 @@ export default function EquityOfferRequestPage() {
             </span>
           </div>
         </form>
+
+        <NotFinancialAdvice kind="equity_offer_disclaimer" compact />
       </div>
     </div>
   );

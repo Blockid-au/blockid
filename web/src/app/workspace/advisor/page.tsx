@@ -33,7 +33,12 @@ export default async function AdvisorWorkspacePage() {
       <FeatureGate feature={ADVISOR_FEATURE} label="Advisor workspace">
         <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
           <header>
-            <h1 className="text-2xl font-bold text-ink-900">Advisor Workspace</h1>
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl font-bold text-ink-900">Advisor Workspace</h1>
+              <span className="inline-flex items-center rounded-full border border-brand-300 bg-brand-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand-700 dark:border-brand-700 dark:bg-brand-950/40 dark:text-brand-300">
+                Beta
+              </span>
+            </div>
             <p className="text-sm text-ink-500 mt-1">
               Track your client roster, log engagement notes and opt into the
               weekly digest.

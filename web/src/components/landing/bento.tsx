@@ -142,7 +142,7 @@ function BentoTile({ tile }: { tile: Tile }) {
           </p>
         </div>
         <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-surface-200 bg-surface-100 text-brand-600">
-          <Icon strokeWidth={1.75} className="h-5 w-5" />
+          <Icon strokeWidth={1.75} className="h-5 w-5" aria-hidden="true" />
         </span>
       </div>
       <div className="mt-6">{tile.visual}</div>

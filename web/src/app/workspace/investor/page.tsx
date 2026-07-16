@@ -45,16 +45,21 @@ export default async function InvestorWorkspacePage() {
       <div className="p-6 max-w-7xl mx-auto space-y-6">
         <header className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
-              Investor Workspace
-            </h1>
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                Investor Workspace
+              </h1>
+              <span className="inline-flex items-center rounded-full border border-brand-300 bg-brand-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand-700 dark:border-brand-700 dark:bg-brand-950/40 dark:text-brand-300">
+                Beta
+              </span>
+            </div>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
               Curated deal flow, private watchlist, and portfolio tracking.
             </p>
           </div>
           <Link
             href="/workspace/investor/dealflow"
-            className="rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-3 py-2 text-sm font-semibold"
+            className="rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-3 py-2 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
           >
             Open Deal Flow
           </Link>
