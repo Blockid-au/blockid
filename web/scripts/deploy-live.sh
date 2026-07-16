@@ -623,8 +623,13 @@ if [ -f "$PID_FILE" ]; then
   kill "$OLD_PID" 2>/dev/null || true
   echo "  Stopped old (PID $OLD_PID)"
 fi
+# Stop legacy Docker container if present (previous deploy.sh path)
+if command -v docker >/dev/null 2>&1 && docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^deploy-blockid-production$'; then
+  docker rm -f deploy-blockid-production >/dev/null 2>&1 || true
+  echo "  Removed legacy Docker container deploy-blockid-production"
+fi
 fuser -k $PROD_PORT/tcp 2>/dev/null || true
-sleep 1
+sleep 2
 
 # Start new on production port — from the immutable release dir.
 export PORT=$PROD_PORT
