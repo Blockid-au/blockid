@@ -56,6 +56,21 @@ LAST_ACTION=${LAST_ACTION:-none}
 CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 8 "$URL")
 NOW_TS=$(date +%s)
 
+# Extended probe: verify the first CSS asset referenced in the HTML also loads.
+# Catches the 2026-07-16 outage class where HTML rendered but /_next/static/*.css
+# 404'd → unstyled site. Only run if the primary probe passes (else HTML would be empty).
+CSS_CODE=""
+if [ "$CODE" = "200" ]; then
+  FIRST_CSS=$(curl -s --max-time 5 "$URL" | grep -oE 'href="/_next/static/[^"]+\.css"' | head -1 | sed 's/href="//;s/"//')
+  if [ -n "$FIRST_CSS" ]; then
+    CSS_CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "${URL%/}$FIRST_CSS")
+    if [ "$CSS_CODE" != "200" ]; then
+      # Downgrade HTML pass to failure — site is up but visually broken
+      CODE="css_$CSS_CODE"
+    fi
+  fi
+fi
+
 # Healthy path
 if [ "$CODE" = "200" ]; then
   if [ "$FAILS" -gt 0 ]; then
