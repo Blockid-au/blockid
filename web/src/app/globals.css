@@ -473,29 +473,63 @@ body {
    ═══════════════════════════════════════════════════════════════ */
 
 @layer utilities {
-  body[data-theme="lux"] .lux-card {
+  /*
+   * NOTE: selector is `[data-theme="lux"] .lux-card`, NOT
+   * `body[data-theme="lux"] .lux-card`. The v2 homepage (src/app/page.tsx)
+   * sets `data-theme="lux"` on a wrapper <div>, not on the real <body>
+   * element (body is owned by the shared RootLayout and can't take a
+   * per-page attribute without a client-side effect). An ancestor
+   * attribute selector matches any element carrying the attribute, so
+   * this activates correctly for the div-wrapped homepage while still
+   * matching a real `<body data-theme="lux">` if one is ever used.
+   */
+  [data-theme="lux"] .lux-card {
     background: linear-gradient(180deg, #152740 0%, #0F1D33 100%);
     border: 1px solid rgba(201, 169, 97, 0.12);
     border-radius: 1rem;
   }
 
-  body[data-theme="lux"] .lux-glow-gold {
+  [data-theme="lux"] .lux-glow-gold {
     box-shadow: 0 0 40px -12px rgba(201, 169, 97, 0.3);
   }
 
-  body[data-theme="lux"] .lux-glow-cyan {
+  [data-theme="lux"] .lux-glow-cyan {
     box-shadow: 0 0 40px -12px rgba(34, 211, 238, 0.35);
   }
 
-  body[data-theme="lux"] .lux-divider {
+  [data-theme="lux"] .lux-divider {
     height: 1px;
     background-image: linear-gradient(90deg, transparent 0%, #C9A961 50%, transparent 100%);
   }
 
-  body[data-theme="lux"] .lux-heading {
+  [data-theme="lux"] .lux-heading {
     background: linear-gradient(120deg, #E8E9EA 0%, #C9A961 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
+}
+
+/* ── Lux-theme token remap for shared legacy-light components ──────────
+   Bento / CtaStrip / LogoCloud are shared with the V1 light homepage and
+   style themselves with the light `surface-*` / `ink-*` / `brand-900`
+   tokens. When nested inside the V2 dark lux homepage they would render
+   as leftover white panels sandwiched between dark navy sections. Since
+   Tailwind v4 color utilities resolve through CSS custom properties at
+   paint time, redefining the underlying variables inside the
+   `[data-theme="lux"]` subtree re-skins those shared components to the
+   luxury dark palette without forking them into lux-only copies. */
+[data-theme="lux"] {
+  --color-surface-50: #0F1D33;
+  --color-surface-100: #152740;
+  --color-surface-200: rgba(201, 169, 97, 0.16);
+  --color-ink-600: #94A3B8;
+  --color-ink-700: #B7C2D4;
+  --color-ink-800: #E8E9EA;
+  --color-brand-900: #E8E9EA;
+  --color-brand-600: #22D3EE;
+  --color-brand-700: #0891B2;
+  --color-gold-300: #E4CE97;
+  --color-gold-500: #C9A961;
+  --color-gold-600: #A78845;
 }

@@ -55,7 +55,12 @@ export default async function AcceleratorWorkspacePage() {
       <FeatureGate feature={COHORT_FEATURE} label="Accelerator cohort workspace">
         <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
           <header>
-            <h1 className="text-2xl font-bold text-ink-900">Accelerator Workspace</h1>
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl font-bold text-ink-900">Accelerator Workspace</h1>
+              <span className="inline-flex items-center rounded-full border border-brand-300 bg-brand-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand-700 dark:border-brand-700 dark:bg-brand-950/40 dark:text-brand-300">
+                Beta
+              </span>
+            </div>
             <p className="text-sm text-ink-500 mt-1">
               Run your cohort, review applicants and share LP-ready reports.
             </p>
@@ -156,7 +161,7 @@ export default async function AcceleratorWorkspacePage() {
               <FeatureGate feature={LP_REPORT_FEATURE} label="LP report">
                 <Link
                   href="/dashboard/reports/lp-quarterly"
-                  className="inline-flex items-center gap-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 text-sm font-semibold transition-colors"
+                  className="inline-flex items-center gap-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
                 >
                   Generate Quarterly LP Report
                 </Link>

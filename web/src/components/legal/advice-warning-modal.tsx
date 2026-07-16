@@ -173,7 +173,7 @@ export function AdviceWarningModal({
             type="button"
             onClick={onAccept}
             disabled={!scrolledBottom || submitting}
-            className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+            className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 ${
               scrolledBottom && !submitting
                 ? "bg-brand-600 hover:bg-brand-700 text-white"
                 : "bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-500 cursor-not-allowed"

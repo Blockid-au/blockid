@@ -69,17 +69,20 @@ export function TrialStrip() {
     <div
       role="region"
       aria-label="Free trial promotion"
-      className="fixed inset-x-0 bottom-0 z-40 bg-brand-gold text-brand-navy shadow-[0_-4px_24px_rgba(0,0,0,0.25)]"
+      className="safe-pb fixed inset-x-0 bottom-0 z-40 bg-brand-gold text-brand-navy shadow-[0_-4px_24px_rgba(0,0,0,0.25)]"
     >
-      <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 md:px-6">
-        <p className="flex-1 text-sm md:text-base font-medium leading-snug">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 sm:flex-nowrap md:px-6">
+        <p className="min-w-0 flex-1 text-sm leading-snug font-medium md:text-base">
           <span aria-hidden>🚀</span>{" "}
-          <span className="font-semibold">Get Fundable in 7 Days</span> — start
-          your free trial (no charge until Day 8).
+          <span className="font-semibold">Get Fundable in 7 Days</span>
+          <span className="hidden sm:inline">
+            {" "}
+            — start your free trial (no charge until Day 8).
+          </span>
         </p>
         <Link
           href="/signup?trial=1"
-          className="inline-flex items-center gap-1 rounded-full bg-brand-navy px-4 py-2 text-sm font-semibold text-brand-gold hover:bg-brand-navy/90 transition-colors whitespace-nowrap"
+          className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-brand-navy px-4 py-2 text-sm font-semibold text-brand-gold transition-colors hover:bg-brand-navy/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2 focus-visible:ring-offset-brand-gold"
         >
           Start Trial <span aria-hidden>→</span>
         </Link>
@@ -87,7 +90,7 @@ export function TrialStrip() {
           type="button"
           onClick={dismiss}
           aria-label="Dismiss trial promotion"
-          className="ml-1 flex h-8 w-8 items-center justify-center rounded-full text-brand-navy/70 hover:bg-brand-navy/10 hover:text-brand-navy transition-colors"
+          className="ml-1 flex h-8 w-8 items-center justify-center rounded-full text-brand-navy/70 transition-colors hover:bg-brand-navy/10 hover:text-brand-navy focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2 focus-visible:ring-offset-brand-gold"
         >
           <span aria-hidden className="text-lg leading-none">×</span>
         </button>
