@@ -8,7 +8,13 @@
 // Server callers: use getPlansCached() / getPlanCached() from '@/lib/plans'.
 // Client bundles: import LEGACY_PLANS (static, no DB round-trip).
 
-export { getPlansCached, getPlanCached, revalidatePlans, type Plan } from "./plans-db";
+// Type-only re-export (compile-time; no runtime module load).
+// Server callers wanting the value-side helpers (getPlansCached, getPlanCached,
+// revalidatePlans) must import directly from '@/lib/plans-db' to avoid
+// pulling the server-only supabase admin client into client bundles via
+// this file (billing-client.tsx is 'use client' and re-exports LegacyPlan
+// values that historically lived here).
+export type { Plan } from "./plans-db";
 
 // ── Legacy plan shape (pre-upgrade) ──────────────────────────────────────────
 // Kept for grandfathered subscribers and admin migration flows. Do NOT use for
