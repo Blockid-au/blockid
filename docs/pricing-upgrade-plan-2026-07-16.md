@@ -8,11 +8,12 @@
 
 ## Executive Summary
 
-3 upgrades chính từ nhà đầu tư:
+4 upgrades chính (3 từ nhà đầu tư + 1 mandatory ops):
 
 1. **Freemium 7 ngày → tự động charge** (Stripe `trial_period_days=7`, opt-out CC-required). Ước tính **5–6× revenue delta** vs cơ chế "free forever + 2 credits" hiện tại (opt-out 31–49% conversion vs opt-in 8–18%).
 2. **Đa dạng pricing per segment** (Founder / Investor Angel / Investor VC / Advisor / Accelerator / LP). Hiện chỉ có Founder + SVI-API SKUs; 4 segment tiers còn thiếu.
 3. **Digital shares + share management + equity-for-solution (5–10% equity in lieu of cash)** — Phase 3, compliance-gated. Scaffolding blockchain (SVToken, TokenFactory, blockchain-sync) đã có, chưa có equity-offer workflow + jurisdiction gate.
+4. **[MANDATORY] Continuous CI/CD + 24/7 Uptime Guardian + Auto-heal + Auto-cleanup** — Không có sprint 8-tuần batched. Mỗi task hoàn thành → auto-pipeline (lint → typecheck → unit test → build → staging smoke → prod swap → post-deploy smoke → auto-rollback on fail). Uptime SLO ≥ 99.9%. Performance auto-tune. Disk/mem cleanup cron. Alert Telegram + email.
 
 **Kỳ vọng Month 12 (bull):** A$594K ARR = 300 founders × A$65 + 60 investor seats × A$110 + 12 accelerator × A$1,200 + 3 institutional API × A$3,000.
 
@@ -115,6 +116,71 @@ Architect consolidates → `docs/upgrade-implementation-plan-2026-07-16.md`
 - `deploy.sh` → staging smoke → production
 - Update `web/ROADMAP.md`, `web/CHANGELOG.md`, `web/content/reports/version.json`
 - Announce v2.0 (insights + email + Telegram)
+
+### GOAL 4 — Continuous CI/CD + Uptime Guardian (parallel, MANDATORY, no batching)
+
+**Trigger:** mỗi khi 1 task hoàn thành → auto-pipeline chạy ngay, không đợi sprint end.
+
+**Pipeline per task (`web/scripts/ship-task.sh` — mới):**
+```
+1. git add + commit (single task, atomic)
+2. Lint (eslint --max-warnings=0) → fail = stop
+3. Typecheck (tsc --noEmit) → fail = stop
+4. Unit test scoped (vitest --changed) → fail = stop
+5. Build standalone (next build) → fail = stop, alert Telegram
+6. Migration dry-run (supabase db diff) → if migrations changed
+7. Push to GitHub (backup + collaboration)
+8. Deploy staging (deploy-live.sh --env=staging) → smoke → fail = stop
+9. Deploy prod (deploy-live.sh --swap) → smoke 3× → fail = auto-rollback
+10. GA4 pageview probe + Stripe webhook probe → fail = auto-rollback
+11. Announce Telegram (task ID + version + duration)
+12. Update version.json + CHANGELOG.md
+```
+
+**Uptime Guardian v2 (extend existing `web/scripts/uptime-watcher.sh`):**
+- Existing: 1-min HTTP probe, graduated response (3 fails → restart, 5 fails → rollback), Telegram alert.
+- ADD: `/api/healthz` deep probe (Supabase ping, Stripe ping, Anvil chain ping, Redis ping if enabled) every 2 min.
+- ADD: Response-time SLO alert (p95 > 800ms 3 samples → Telegram + auto-profile).
+- ADD: Memory > 85% for 5 min → auto-restart PM2/next-server + Telegram.
+- ADD: Disk > 90% → auto-run cleanup routine + Telegram.
+
+**Auto-cleanup routine (`web/scripts/server-cleanup.sh` — new, cron 4h):**
+- Docker: `docker system prune -af --volumes` (per existing `web/content/reports/cron-health.jsonl` weekly-disk-cleanup baseline).
+- npm/pnpm cache: > 30 days.
+- `.next/` cache: keep last 3 builds only.
+- Logs: rotate `/tmp/blockid-*.log` at 100KB, gzip after 24h, delete after 14d.
+- Report bloat: `web/content/reports/` — archive files older than 90d to `/data/archives/reports/YYYY-MM/`.
+
+**Performance auto-tune (`api/cron/performance-audit`, hourly):**
+- Lighthouse CI on 5 critical routes (/, /pricing, /dashboard, /score, /workspace/billing) → JSON to `content/reports/perf-YYYY-MM-DD.jsonl`.
+- Alert if score < 85 (mobile) or < 90 (desktop) for any route.
+- Auto-file GitHub issue via API if perf regression > 10% vs 7d baseline.
+
+**Rollback safety net:**
+- Every deploy stamps `web/.deploy-manifest.json` (git SHA + timestamp + `.next` hash).
+- Retention: last 5 releases in `/data/blockid-releases/YYYY-MM-DD-SHA/`.
+- Rollback: `deploy-live.sh --rollback` restores previous manifest, auto-tested with smoke suite.
+- Auto-rollback triggers: (a) post-deploy smoke fail, (b) 5 consecutive uptime fails, (c) 3 consecutive `/api/healthz` deep fails, (d) manual `POST /api/admin/rollback` from admin.
+
+**Self-fix agent (`api/cron/agent-guardian` extension, 10-min):**
+- Existing: disk/mem/cron-fail watchdog.
+- ADD: known-issue playbook lookup table (`web/content/reports/self-fix-playbook.json`) — pattern-match on error signature → auto-remediate:
+  - `EADDRINUSE :4001` → kill stale pid + restart.
+  - `PGRST refresh timeout` → `docker exec -it supabase-db psql -c "NOTIFY pgrst, 'reload schema'"`.
+  - `Stripe webhook 401` → rotate secret + redeploy.
+  - `Build cache full` → cleanup + retry.
+- Every auto-fix logs to `guardian-history.jsonl` + Telegram summary.
+
+**Version bump (`web/scripts/version-bump.mjs`):**
+- After each successful prod swap, bump patch version in `web/content/reports/version.json`.
+- Format: `v{major}.{minor}.{patch}` — major on breaking, minor on Goal 1-3 milestones, patch on incremental fixes.
+- Auto-append to `web/CHANGELOG.md` with commit list + task ID.
+
+**Alerting stack (Telegram + email + admin dashboard):**
+- Existing: `api/cron/telegram-report` daily.
+- ADD: severity levels (INFO / WARN / ALERT / CRITICAL) with different channels.
+- CRITICAL (auto-rollback fired, > 5 min downtime, security event) → SMS via Twilio + phone call via VAPI stub.
+- Admin dashboard widget `dashboard/admin/uptime-guardian` — live status + last 24h incidents + auto-fix log.
 
 ---
 
