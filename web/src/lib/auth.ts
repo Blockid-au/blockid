@@ -338,8 +338,17 @@ export async function clearSessionCookie(): Promise<void> {
 
 export async function getCurrentUser(): Promise<AppUser | null> {
   if (!isSupabaseConfigured()) return null;
-  const store = await cookies();
-  const cookie = store.get(SESSION_COOKIE);
+  // Next 16 throws "cookies() called outside a request scope" when this helper
+  // is transitively called during static prerender / build-time resolution
+  // (e.g. from a shared chunk). Treat that as "not authenticated" so pages
+  // still render for anonymous users instead of returning 500.
+  let cookie: { value?: string } | undefined;
+  try {
+    const store = await cookies();
+    cookie = store.get(SESSION_COOKIE);
+  } catch {
+    return null;
+  }
   if (!cookie?.value) return null;
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
