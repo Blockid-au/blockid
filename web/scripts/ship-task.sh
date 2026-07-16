@@ -143,7 +143,7 @@ if (( SKIP_TESTS )); then
   log_step "2/12 lint — SKIPPED (--skip-tests)"
 else
   log_step "2/12 lint"
-  if ! pnpm --dir "${WEB_DIR}" lint --max-warnings=0 2>&1 | tee -a "${LOG_FILE}"; then
+  if ! (cd "${WEB_DIR}" && npm run lint -- --max-warnings=0) 2>&1 | tee -a "${LOG_FILE}"; then
     fatal "lint failed"
   fi
 fi
@@ -155,9 +155,9 @@ if (( SKIP_TESTS )); then
   log_step "3/12 typecheck — SKIPPED (--skip-tests)"
 else
   log_step "3/12 typecheck"
-  if ! pnpm --dir "${WEB_DIR}" typecheck 2>&1 | tee -a "${LOG_FILE}"; then
+  if ! (cd "${WEB_DIR}" && npm run typecheck) 2>&1 | tee -a "${LOG_FILE}"; then
     log_warn "pnpm typecheck script missing/failed; falling back to tsc --noEmit"
-    if ! pnpm --dir "${WEB_DIR}" exec tsc --noEmit 2>&1 | tee -a "${LOG_FILE}"; then
+    if ! (cd "${WEB_DIR}" && npx tsc --noEmit) 2>&1 | tee -a "${LOG_FILE}"; then
       fatal "typecheck failed"
     fi
   fi
@@ -173,7 +173,7 @@ else
   # Detect a test framework (vitest / jest) in web/package.json
   if [[ -f "${WEB_DIR}/package.json" ]] \
      && grep -qE '"(vitest|jest)"[[:space:]]*:' "${WEB_DIR}/package.json"; then
-    if ! pnpm --dir "${WEB_DIR}" test --run --changed 2>&1 | tee -a "${LOG_FILE}"; then
+    if ! (cd "${WEB_DIR}" && npm test -- --run --changed) 2>&1 | tee -a "${LOG_FILE}"; then
       fatal "tests failed"
     fi
   else
@@ -185,7 +185,7 @@ fi
 # Step 5 — Build
 # ---------------------------------------------------------------------------
 log_step "5/12 build"
-if ! pnpm --dir "${WEB_DIR}" build 2>&1 | tee -a "${LOG_FILE}"; then
+if ! (cd "${WEB_DIR}" && npm run build) 2>&1 | tee -a "${LOG_FILE}"; then
   telegram "❌ [ship-task] ${TASK_ID} build failed"
   fatal "build failed"
 fi
