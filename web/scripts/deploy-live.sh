@@ -478,15 +478,26 @@ rm -rf "$RELEASE_DIR"
 mkdir -p "$RELEASE_DIR"
 cp -al "$STANDALONE/." "$RELEASE_DIR/" 2>/dev/null || cp -a "$STANDALONE/." "$RELEASE_DIR/"
 [ -f "$RELEASE_DIR/server.js" ] || restore_lkg_and_fail "Failed to freeze release dir $RELEASE_DIR."
-# Next 16 + --webpack standalone bug (same as Dockerfile fix in commit 6be451b):
-# webpack-runtime.js + server/chunks are NOT emitted into the standalone bundle,
-# so every SSR page throws MODULE_NOT_FOUND: '../webpack-runtime.js'. Copy them
-# in explicitly from the source .next/server so the release runs.
+# Next 16 + --webpack standalone has multiple packaging gaps that make the
+# release un-runnable out of the box:
+#   1. .next/server/webpack-runtime.js + chunks/ not copied (fixed here)
+#   2. node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js
+#      + several internal external modules missing under node_modules/next
+# Rather than piecemeal-copy each Next internal, replace the trimmed next/
+# folder with a symlink to source node_modules/next so the release has the
+# complete Next runtime. `next/` is huge (~200MB) but on the same fs (/data)
+# so the symlink is free. Bundle every OTHER package normally via standalone
+# tracing (preserves the safety win of the standalone build).
 if [ -f "$WEB_DIR/.next/server/webpack-runtime.js" ]; then
   cp "$WEB_DIR/.next/server/webpack-runtime.js" "$RELEASE_DIR/.next/server/webpack-runtime.js"
 fi
 if [ -d "$WEB_DIR/.next/server/chunks" ]; then
   cp -a "$WEB_DIR/.next/server/chunks" "$RELEASE_DIR/.next/server/chunks"
+fi
+# Replace trimmed next/ with full symlink from source. Preserves other traced deps.
+if [ -d "$WEB_DIR/node_modules/next" ] && [ -d "$RELEASE_DIR/node_modules/next" ]; then
+  rm -rf "$RELEASE_DIR/node_modules/next"
+  ln -sfn "$WEB_DIR/node_modules/next" "$RELEASE_DIR/node_modules/next"
 fi
 # Belt-and-suspenders: remove any nested dirs that standalone file-tracing may have
 # pulled in. These add no runtime value and cause exponential disk growth on redeploy.
