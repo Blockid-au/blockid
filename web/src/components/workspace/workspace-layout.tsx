@@ -4,9 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Activity, Banknote, BarChart3, Bell, BookOpen, Briefcase, Calendar, ChevronLeft, ChevronRight, CreditCard, DollarSign, DoorOpen, ExternalLink, FileText, FolderCheck, FolderOpen, Gift, Home,
-  LayoutDashboard, Link2, Map, Palette, PieChart, Rocket, Share2, Shield, Table2, Target, TrendingUp, User, Users, Wand2, Wallet, Zap, LineChart,
-  type LucideIcon,
+  ChevronLeft, ChevronRight, Home, LayoutDashboard, Lock,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { CreditBalance } from "@/components/ui/credit-balance";
@@ -17,6 +15,10 @@ import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { FeedbackWidget } from "@/components/ui/feedback-widget";
 import { UpgradePrompt } from "@/components/ui/upgrade-prompt";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { TrialBanner } from "@/components/workspace/trial-banner";
+import { NAV_GROUPS, ADMIN_NAV_GROUP, type NavGroup, type NavItem } from "@/components/workspace/nav-groups";
+import { useEntitlement } from "@/hooks/useEntitlement";
+import { meetsMinPlan, type Segment } from "@/lib/segments";
 import { cn } from "@/lib/utils";
 
 interface WorkspaceLayoutProps {
@@ -40,130 +42,57 @@ interface WorkspaceLayoutProps {
  *   live   — running stably for 2+ weeks, no open critical issues.
  *   stable — battle-tested over 30+ days, no chip shown (default state).
  *
- * Promotion: bump from "beta" → "live" → undefined (stable) as confidence grows.
- * Demotion is rare but legitimate (e.g. a hotfix introduced regressions).
+ * Nav-item + nav-group types now live in `./nav-groups.ts` so other surfaces
+ * (mobile nav, command palette) can import from a single source of truth.
  */
-type FeatureLifecycle = "beta" | "live";
-
-interface NavItem {
-  href: string;
-  label: string;
-  icon: LucideIcon;
-  lifecycle?: FeatureLifecycle;
-}
-
-interface NavGroup {
-  label: string;
-  stage?: string;
-  /** Minimum phase (0-5) for this group to be fully accessible. Lower phases show dimmed. */
-  minPhase?: number;
-  items: NavItem[];
-}
-
-const LIFECYCLE_CHIP: Record<FeatureLifecycle, string> = {
+const LIFECYCLE_CHIP: Record<"beta" | "live", string> = {
   beta: "bg-amber-100 text-amber-700 ring-1 ring-amber-200",
   live: "bg-blue-100 text-blue-700 ring-1 ring-blue-200",
 };
 
-const NAV_GROUPS: NavGroup[] = [
-  {
-    label: "Overview",
-    items: [
-      { href: "/workspace/projects", label: "My Startups", icon: Briefcase },
-      { href: "/dashboard/svi", label: "SVI Score", icon: TrendingUp },
-      { href: "/", label: "New Analysis", icon: Zap },
-      { href: "/workspace/roadmap", label: "Action Plan", icon: Map },
-    ],
-  },
-  {
-    label: "Build & Validate",
-    stage: "Idea \u2192 MVP",
-    minPhase: 0,
-    items: [
-      { href: "/workspace/evaluation", label: "Evaluation (13)", icon: FileText },
-      { href: "/workspace/evidence", label: "Evidence Vault", icon: FileText },
-      { href: "/workspace/metrics", label: "Metrics", icon: BarChart3 },
-      { href: "/workspace/reports", label: "Weekly Reports", icon: Activity },
-      { href: "/workspace/knowledge-base", label: "Knowledge Base", icon: BookOpen },
-    ],
-  },
-  {
-    label: "Ownership & Equity",
-    stage: "MVP \u2192 Launch",
-    minPhase: 2,
-    items: [
-      { href: "/workspace/equity-setup", label: "Equity Setup", icon: Wand2 },
-      { href: "/workspace/equity", label: "Equity Split", icon: PieChart },
-      { href: "/workspace/cap-table", label: "Cap Table", icon: Table2 },
-      { href: "/workspace/shareholders", label: "Shareholders", icon: Shield },
-      { href: "/workspace/esop", label: "ESOP", icon: Users },
-      { href: "/workspace/vesting", label: "Vesting", icon: Calendar },
-      { href: "/workspace/wallet", label: "Wallet", icon: Wallet },
-      { href: "/workspace/equity-esop", label: "Equity & ESOP", icon: PieChart },
-      { href: "/workspace/equity-dashboard", label: "Blockchain Sync", icon: Link2 },
-    ],
-  },
-  {
-    label: "Fundraise",
-    stage: "Pre-seed \u2192 Series A",
-    minPhase: 3,
-    items: [
-      { href: "/dashboard/valuation", label: "VC Valuation", icon: Target },
-      { href: "/dashboard/cfo", label: "CFO Advisor", icon: LineChart },
-      { href: "/dashboard/finance", label: "Finance P&L", icon: DollarSign, lifecycle: "beta" },
-      { href: "/dashboard/esop", label: "ESOP Manager", icon: Users },
-      { href: "/dashboard/team", label: "Team & Salaries", icon: Users, lifecycle: "beta" },
-      { href: "/dashboard/accelerator", label: "Accelerator Tracker", icon: Rocket, lifecycle: "beta" },
-      { href: "/dashboard/accelerator-criteria", label: "Accelerator Criteria", icon: BookOpen, lifecycle: "beta" },
-      { href: "/dashboard/fundraise", label: "Fundraise Readiness", icon: TrendingUp },
-      { href: "/workspace/data-room", label: "Data Room", icon: FolderCheck },
-      { href: "/workspace/fundraise", label: "Raise Capital", icon: Banknote },
-      { href: "/workspace/documents", label: "Documents", icon: FolderOpen },
-    ],
-  },
-  {
-    label: "Grow & Scale",
-    stage: "Revenue \u2192 Scale",
-    minPhase: 4,
-    items: [
-      { href: "/workspace/revenue", label: "Revenue", icon: DollarSign },
-      { href: "/workspace/journal", label: "Growth Journal", icon: BookOpen },
-      { href: "/workspace/dividends", label: "Dividends", icon: Gift },
-      { href: "/workspace/exit", label: "Exit Modeling", icon: DoorOpen },
-    ],
-  },
-  {
-    label: "Account",
-    items: [
-      { href: "/workspace/profile", label: "My Profile", icon: User },
-      { href: "/workspace/founder-profile", label: "Founder Profile", icon: User, lifecycle: "beta" },
-      { href: "/workspace/billing", label: "Billing", icon: CreditCard },
-      { href: "/workspace/notifications", label: "Notifications", icon: Bell },
-      { href: "/workspace/referrals", label: "Referrals", icon: Gift },
-      { href: "/workspace/branding", label: "Custom Branding", icon: Palette },
-      { href: "/dashboard/advisor", label: "Advisor Portal", icon: Share2 },
-    ],
-  },
-];
+// Result of running a NavItem through the visibility + gating pipeline.
+//   visible=false  → drop entirely (wrong audience, or feature flag missing).
+//   locked=true    → render but grayed-out with a lock icon + Upgrade tooltip.
+type ResolvedItem = { item: NavItem; locked: boolean };
 
-const ADMIN_NAV_GROUP: NavGroup = {
-  label: "Admin",
-  items: [
-    { href: "/admin", label: "Admin Panel", icon: Shield },
-    { href: "/admin/goals", label: "CEO Goals", icon: Target },
-    { href: "/dashboard/admin/content-pillars", label: "Content Pillars", icon: FileText, lifecycle: "beta" },
-    { href: "/dashboard/admin/stripe-sync", label: "Stripe Sync", icon: CreditCard, lifecycle: "beta" },
-    { href: "/dashboard/admin/pricing-test", label: "Pricing A/B", icon: BarChart3, lifecycle: "beta" },
-    { href: "/dashboard/admin/svi-exchange", label: "SVI Exchange", icon: Rocket, lifecycle: "beta" },
-    { href: "/admin/listings", label: "Listings", icon: ExternalLink },
-  ],
-};
+function resolveGroup(
+  group: NavGroup,
+  ctx: {
+    planId: string;
+    segment: Segment | null;
+    hasFeature: (name: string) => boolean;
+  },
+): ResolvedItem[] {
+  // Group-level segment filter — hide the whole group for wrong audiences.
+  if (group.segments && group.segments.length > 0) {
+    if (!ctx.segment || !group.segments.includes(ctx.segment)) return [];
+  }
+
+  const resolved: ResolvedItem[] = [];
+  for (const item of group.items) {
+    // (c) segments — wrong-audience items are FULLY hidden.
+    if (item.segments && item.segments.length > 0) {
+      if (!ctx.segment || !item.segments.includes(ctx.segment)) continue;
+    }
+    // (d) feature flag — treat as hidden when the entitlement is missing.
+    if (item.feature && !ctx.hasFeature(item.feature)) continue;
+
+    // (b) minPlan — under-plan renders locked (upgrade opportunity).
+    const meetsPlan = item.minPlan ? meetsMinPlan(ctx.planId, item.minPlan) : true;
+    resolved.push({ item, locked: !meetsPlan });
+  }
+  return resolved;
+}
 
 export function WorkspaceLayout({ children, user, startupName, currentPhase = 0 }: Omit<WorkspaceLayoutProps, "notificationCount">) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const isAdmin = user.role === "admin";
+
+  const entitlement = useEntitlement();
+  const planId = entitlement.user?.plan ?? "free";
+  const segment = (entitlement.user?.segment as Segment | undefined) ?? null;
 
   const navGroups = isAdmin ? [...NAV_GROUPS, ADMIN_NAV_GROUP] : NAV_GROUPS;
 
@@ -200,6 +129,15 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0 
         <nav className="flex-1 py-1 px-1 overflow-y-auto">
           {navGroups.map((group) => {
             const isFuturePhase = group.minPhase != null && group.minPhase > currentPhase;
+            const resolvedItems = resolveGroup(group, {
+              planId,
+              segment,
+              hasFeature: entitlement.can,
+            });
+            // Drop groups whose items were all hidden (e.g. Investor group
+            // for a founder user). Admin group is unaffected — resolver keeps
+            // items without segment filters visible.
+            if (resolvedItems.length === 0) return null;
             return (
             <div key={group.label} className="mb-1">
               {/* Group header */}
@@ -219,32 +157,41 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0 
                 </div>
               )}
               {/* Group items */}
-              {group.items.map(({ href, label, icon: Icon, lifecycle }) => {
+              {resolvedItems.map(({ item, locked }) => {
+                const { href, label, icon: Icon, lifecycle } = item;
                 const active = pathname === href || pathname.startsWith(href + "/");
+                const chipKind = lifecycle === "stable" ? undefined : lifecycle;
                 return (
                   <Link
                     key={href}
-                    href={href}
+                    href={locked ? "/workspace/billing" : href}
                     onClick={() => setMobileOpen(false)}
+                    aria-disabled={locked || undefined}
+                    title={locked ? "Upgrade required — click to view plans" : undefined}
                     className={cn(
                       "flex items-center gap-3 px-2.5 py-2 rounded-xl text-sm transition-all duration-150 mx-1",
                       active
                         ? "bg-brand-50 text-brand-700 font-semibold shadow-sm border border-brand-100"
-                        : isFuturePhase
-                          ? "text-ink-300 hover:text-ink-500 hover:bg-surface-50/50 opacity-60"
-                          : "text-ink-500 hover:text-ink-800 hover:bg-surface-50",
+                        : locked
+                          ? "text-ink-300 hover:text-ink-500 hover:bg-surface-50/50 opacity-70"
+                          : isFuturePhase
+                            ? "text-ink-300 hover:text-ink-500 hover:bg-surface-50/50 opacity-60"
+                            : "text-ink-500 hover:text-ink-800 hover:bg-surface-50",
                     )}
                   >
-                    <Icon strokeWidth={1.75} className={cn("h-4 w-4 shrink-0", active ? "text-brand-600" : isFuturePhase ? "text-ink-300" : "")} />
+                    <Icon strokeWidth={1.75} className={cn("h-4 w-4 shrink-0", active ? "text-brand-600" : (locked || isFuturePhase) ? "text-ink-300" : "")} />
                     {sidebarOpen && (
                       <>
                         <span className="truncate flex-1">{label}</span>
-                        {lifecycle && (
+                        {locked && (
+                          <Lock strokeWidth={1.75} className="h-3 w-3 shrink-0 text-ink-400" aria-label="Upgrade required" />
+                        )}
+                        {chipKind && (
                           <span className={cn(
                             "text-[8.5px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0",
-                            LIFECYCLE_CHIP[lifecycle],
+                            LIFECYCLE_CHIP[chipKind],
                           )}>
-                            {lifecycle}
+                            {chipKind}
                           </span>
                         )}
                       </>
@@ -317,6 +264,9 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0 
             </form>
           </div>
         </header>
+
+        {/* Trial-state banner — self-hiding when not in trial */}
+        <TrialBanner />
 
         {/* Founding 50 upgrade nudge — shown when user has 1 free credit left */}
         <UpgradePrompt />
