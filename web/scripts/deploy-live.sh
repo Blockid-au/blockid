@@ -478,6 +478,16 @@ rm -rf "$RELEASE_DIR"
 mkdir -p "$RELEASE_DIR"
 cp -al "$STANDALONE/." "$RELEASE_DIR/" 2>/dev/null || cp -a "$STANDALONE/." "$RELEASE_DIR/"
 [ -f "$RELEASE_DIR/server.js" ] || restore_lkg_and_fail "Failed to freeze release dir $RELEASE_DIR."
+# Next 16 + --webpack standalone bug (same as Dockerfile fix in commit 6be451b):
+# webpack-runtime.js + server/chunks are NOT emitted into the standalone bundle,
+# so every SSR page throws MODULE_NOT_FOUND: '../webpack-runtime.js'. Copy them
+# in explicitly from the source .next/server so the release runs.
+if [ -f "$WEB_DIR/.next/server/webpack-runtime.js" ]; then
+  cp "$WEB_DIR/.next/server/webpack-runtime.js" "$RELEASE_DIR/.next/server/webpack-runtime.js"
+fi
+if [ -d "$WEB_DIR/.next/server/chunks" ]; then
+  cp -a "$WEB_DIR/.next/server/chunks" "$RELEASE_DIR/.next/server/chunks"
+fi
 # Belt-and-suspenders: remove any nested dirs that standalone file-tracing may have
 # pulled in. These add no runtime value and cause exponential disk growth on redeploy.
 rm -rf "$RELEASE_DIR/releases" "$RELEASE_DIR/.git" "$RELEASE_DIR/.next-backup"
