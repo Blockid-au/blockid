@@ -163,7 +163,7 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0 
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const [mobileOpen, setMobileOpen] = React.useState(false);
-  const isAdmin = user.email === "admin@blockid.au" || user.role === "admin";
+  const isAdmin = user.role === "admin";
 
   const navGroups = isAdmin ? [...NAV_GROUPS, ADMIN_NAV_GROUP] : NAV_GROUPS;
 

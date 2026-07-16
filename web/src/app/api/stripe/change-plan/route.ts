@@ -5,11 +5,9 @@ import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { getPlan } from "@/lib/plans";
 
 // POST /api/stripe/change-plan
-// Body: { newPlanId }
-// Changes the user's subscription to a different plan. For monthly-to-monthly
-// upgrades/downgrades, the existing subscription item is swapped. For changes
-// to a one-off plan, the subscription is cancelled and a new checkout session
-// is created.
+// Body: { newPlanId, confirmCrossSegment? }
+// Changes the user's subscription to a different plan. Cross-segment moves
+// (e.g. founder → investor_angel) require an explicit confirmCrossSegment=true.
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -37,7 +35,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const { newPlanId } = (body as { newPlanId?: string }) ?? {};
+  const { newPlanId, confirmCrossSegment } =
+    (body as { newPlanId?: string; confirmCrossSegment?: boolean }) ?? {};
 
   if (!newPlanId || typeof newPlanId !== "string") {
     return NextResponse.json(
@@ -65,14 +64,16 @@ export async function POST(request: Request) {
   const supabase = getSupabaseAdmin()!;
   const stripe = getStripe()!;
 
-  // Look up the user's stripe_customer_id.
+  // Look up the user's current plan + customer id.
   const { data: row } = await supabase
     .from("app_users")
-    .select("stripe_customer_id")
+    .select("stripe_customer_id, plan")
     .eq("id", user.id)
     .maybeSingle();
 
   const customerId = row?.stripe_customer_id;
+  const fromPlanId: string | null = row?.plan ?? null;
+
   if (!customerId) {
     return NextResponse.json(
       { ok: false, reason: "No Stripe customer found. Please subscribe first." },
@@ -80,8 +81,69 @@ export async function POST(request: Request) {
     );
   }
 
+  // Segment guard — require explicit confirmation for cross-segment moves.
+  // Reads plans.segment from the v2 plans matrix when available; falls back
+  // to allowing the change on older schemas.
+  let fromSegment: string | null = null;
+  let toSegment: string | null = null;
   try {
-    // List active subscriptions for this customer.
+    const { getPlanCached } = await import("@/lib/plans-db");
+    if (fromPlanId) {
+      const fromDbPlan = await getPlanCached(fromPlanId);
+      fromSegment = fromDbPlan?.segment ?? null;
+    }
+    const toDbPlan = await getPlanCached(newPlanId);
+    toSegment = toDbPlan?.segment ?? null;
+  } catch {
+    // plans-db not available yet — skip segment guard.
+  }
+
+  if (
+    fromSegment &&
+    toSegment &&
+    fromSegment !== toSegment &&
+    !confirmCrossSegment
+  ) {
+    return NextResponse.json(
+      {
+        ok: false,
+        reason: "cross_segment_confirmation_required",
+        detail: {
+          from_segment: fromSegment,
+          to_segment: toSegment,
+          hint: "Re-submit with { confirmCrossSegment: true } to proceed.",
+        },
+      },
+      { status: 409 },
+    );
+  }
+
+  // Determine upgrade vs downgrade by comparing DB-driven monthly price.
+  // Falls back to lexical when prices unknown so we still write an event.
+  let priceDelta: "upgrade" | "downgrade" | "lateral" = "lateral";
+  try {
+    const { getPlanCached } = await import("@/lib/plans-db");
+    if (fromPlanId) {
+      const [fromDb, toDb] = await Promise.all([
+        getPlanCached(fromPlanId),
+        getPlanCached(newPlanId),
+      ]);
+      const fromPrice = Number(fromDb?.price_aud_cents ?? 0);
+      const toPrice = Number(toDb?.price_aud_cents ?? 0);
+      if (toPrice > fromPrice) priceDelta = "upgrade";
+      else if (toPrice < fromPrice) priceDelta = "downgrade";
+    }
+  } catch {
+    // No DB plans — fall back to legacy compare.
+    if (fromPlanId && fromPlanId !== newPlanId) {
+      const fromLegacy = getPlan(fromPlanId);
+      if (fromLegacy && newPlan.price > fromLegacy.price) priceDelta = "upgrade";
+      else if (fromLegacy && newPlan.price < fromLegacy.price)
+        priceDelta = "downgrade";
+    }
+  }
+
+  try {
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
       status: "active",
@@ -89,12 +151,10 @@ export async function POST(request: Request) {
     });
 
     const activeSub = subscriptions.data[0] ?? null;
-
     const isNewPlanRecurring =
       newPlan.cadence === "monthly" || newPlan.cadence === "yearly";
 
     if (activeSub && isNewPlanRecurring) {
-      // Upgrading/downgrading between recurring plans: swap the subscription item.
       const subItemId = activeSub.items.data[0]?.id;
       if (!subItemId) {
         return NextResponse.json(
@@ -112,11 +172,23 @@ export async function POST(request: Request) {
         `[blockid:stripe] changed plan to "${newPlanId}" for customer ${customerId} (subscription ${activeSub.id})`,
       );
 
+      await logConversionEvent({
+        userId: user.id,
+        fromPlan: fromPlanId,
+        toPlan: newPlanId,
+        action: priceDelta === "downgrade" ? "downgrade" : "upgrade",
+        detail: {
+          subscription_id: activeSub.id,
+          proration: "create_prorations",
+          from_segment: fromSegment,
+          to_segment: toSegment,
+        },
+      });
+
       return NextResponse.json({ ok: true });
     }
 
-    // Changing to a one-off plan: cancel the existing subscription + create a
-    // new checkout session for the one-off payment.
+    // Changing to a one-off plan.
     if (activeSub) {
       await stripe.subscriptions.cancel(activeSub.id);
       console.log(
@@ -137,6 +209,19 @@ export async function POST(request: Request) {
       },
     });
 
+    await logConversionEvent({
+      userId: user.id,
+      fromPlan: fromPlanId,
+      toPlan: newPlanId,
+      action: priceDelta === "downgrade" ? "downgrade" : "upgrade",
+      detail: {
+        session_id: session.id,
+        one_off: true,
+        from_segment: fromSegment,
+        to_segment: toSegment,
+      },
+    });
+
     return NextResponse.json({ ok: true, url: session.url });
   } catch (err) {
     console.error("[blockid:stripe] change-plan failed", err);
@@ -144,6 +229,29 @@ export async function POST(request: Request) {
       { ok: false, reason: "Failed to change plan" },
       { status: 500 },
     );
+  }
+
+  async function logConversionEvent(args: {
+    userId: string;
+    fromPlan: string | null;
+    toPlan: string;
+    action: "upgrade" | "downgrade";
+    detail: Record<string, unknown>;
+  }): Promise<void> {
+    const { error } = await supabase.from("conversion_events").insert({
+      user_id: args.userId,
+      trigger: "plan_change",
+      action: args.action,
+      plan_from: args.fromPlan,
+      plan_to: args.toPlan,
+      detail: args.detail,
+    });
+    if (error) {
+      console.error(
+        "[blockid:stripe] conversion_events insert failed",
+        error,
+      );
+    }
   }
 }
 

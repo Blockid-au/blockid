@@ -118,6 +118,10 @@ export const BADGE_DEFS: BadgeDef[] = [
   },
 
   // Plan
+  // TODO(entitlement): migrate to can() — condition is currently sync and the
+  // engine iterates in a hot loop. Once BadgeContext carries a resolved
+  // entitlements array (fetched once by checkAndAwardBadges), swap this to
+  // `ctx.entitlements.includes("svi.run")` or similar.
   {
     code: "paid_plan",
     label: "Committed Founder",

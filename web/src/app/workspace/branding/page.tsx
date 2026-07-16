@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { can } from "@/lib/entitlements";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { BrandingClient } from "./branding-client";
 
@@ -17,10 +18,11 @@ export default async function BrandingPage() {
   if (!user) redirect("/auth/login?next=/workspace/branding");
 
   const isPro =
-    user.plan === "growth" ||
-    user.plan === "scale" ||
-    user.plan === "enterprise" ||
-    user.role === "admin";
+    user.role === "admin" ||
+    (await can(
+      { id: user.id, plan: user.plan ?? "free", segment: "founder" },
+      "white_label",
+    ));
 
   return (
     <WorkspaceLayout user={user}>

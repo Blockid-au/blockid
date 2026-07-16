@@ -22,11 +22,17 @@ export async function POST(req: NextRequest) {
 
   const { data: meRow } = await supabase
     .from("app_users")
-    .select("account_type, verified_at, display_name, email")
+    .select("account_type, segment, verified_at, display_name, email")
     .eq("id", me.id)
     .maybeSingle();
-  const meTyped = meRow as { account_type: string; verified_at: string | null; display_name: string | null; email: string } | null;
-  if (!meTyped || meTyped.account_type !== "investor" || !meTyped.verified_at) {
+  const meTyped = meRow as { account_type: string; segment: string | null; verified_at: string | null; display_name: string | null; email: string } | null;
+  // Entitlement gate: accept the new segment column (investor_angel/investor_vc)
+  // added in 0073_user_segments_and_jurisdiction.sql, and keep account_type as
+  // a backwards-compat fallback until every row is backfilled.
+  const isInvestor = meTyped?.segment === "investor_angel"
+    || meTyped?.segment === "investor_vc"
+    || meTyped?.account_type === "investor";
+  if (!meTyped || !isInvestor || !meTyped.verified_at) {
     return NextResponse.json({ ok: false, error: "Verified investor account required" }, { status: 403, headers: CORS });
   }
 

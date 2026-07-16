@@ -123,7 +123,7 @@ export default async function ContentPillarsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/dashboard/admin/content-pillars");
 
-  const isAdmin = user.email === "admin@blockid.au" || user.role === "admin";
+  const isAdmin = user.role === "admin";
   if (!isAdmin) {
     return (
       <WorkspaceLayout user={user}>

@@ -24,11 +24,16 @@ export async function POST(req: NextRequest) {
 
   const { data: meRow } = await supabase
     .from("app_users")
-    .select("account_type, verified_at, investor_firm, display_name, email")
+    .select("account_type, segment, verified_at, investor_firm, display_name, email")
     .eq("id", me.id)
     .maybeSingle();
-  const meTyped = meRow as { account_type: string; verified_at: string | null; investor_firm: string | null; display_name: string | null; email: string } | null;
-  if (!meTyped || meTyped.account_type !== "investor") {
+  const meTyped = meRow as { account_type: string; segment: string | null; verified_at: string | null; investor_firm: string | null; display_name: string | null; email: string } | null;
+  // Entitlement gate: prefer the new segment column (investor_angel/investor_vc);
+  // fall back to legacy account_type='investor' for pre-0073 rows.
+  const isInvestor = meTyped?.segment === "investor_angel"
+    || meTyped?.segment === "investor_vc"
+    || meTyped?.account_type === "investor";
+  if (!meTyped || !isInvestor) {
     return NextResponse.json({ ok: false, error: "Investor accounts only" }, { status: 403, headers: CORS });
   }
   if (!meTyped.verified_at) {
