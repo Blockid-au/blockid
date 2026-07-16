@@ -8,7 +8,12 @@
 // Cache is per-process (Next.js Node runtime). revalidatePlans() clears it —
 // call from webhook handlers when plans mutate, or leave to TTL.
 
-import "server-only";
+// Note: previously had `import "server-only"` but plans.ts is re-imported by
+// client components (billing-client.tsx). Guarding runtime path instead:
+// getSupabaseAdmin() returns null on the client and we fall back to
+// GENERATED_PLANS (bundled from plans.csv at build time). Server-only
+// SERVICE_ROLE_KEY never crosses the boundary because getSupabaseAdmin
+// short-circuits without it.
 import { getSupabaseAdmin } from "./supabase";
 import { GENERATED_PLANS, GENERATED_PLANS_BY_ID, type GeneratedPlan } from "@/config/pricing/plans.generated";
 
