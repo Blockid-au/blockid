@@ -1,0 +1,7 @@
+[
+  { "pattern": "EADDRINUSE.*:4001", "action": "kill_stale_next_server", "cooldown_s": 300 },
+  { "pattern": "PGRST refresh timeout", "action": "notify_pgrst_reload", "cooldown_s": 60 },
+  { "pattern": "Stripe webhook 401", "action": "rotate_stripe_secret_and_redeploy", "cooldown_s": 3600 },
+  { "pattern": "ENOSPC.*build cache", "action": "run_server_cleanup_then_retry_build", "cooldown_s": 600 },
+  { "pattern": "Anvil chainId mismatch", "action": "restart_anvil_container", "cooldown_s": 300 }
+]
