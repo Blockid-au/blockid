@@ -2,10 +2,15 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { getPlan, isGrowthEarlyBird } from "@/lib/plans";
+import { getSupabaseAdmin } from "@/lib/supabase";
 
 // POST /api/stripe/checkout
 // Body: { plan, couponCode? }
 // Creates a Stripe Checkout Session and returns the URL.
+//
+// Upgrade v2: recurring plans with trial_days > 0 (from DB plans matrix) start
+// a 7/14/30-day CC-required trial. Payment method is always collected up-front,
+// and the subscription is cancelled if no PM is on file when the trial ends.
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -65,10 +70,51 @@ export async function POST(request: Request) {
     );
   }
 
+  // Look up the DB plan row (v2 plans matrix) to read trial_days + segment.
+  // Falls back gracefully when the plans-db helper / row is missing so legacy
+  // plans (free/founding50/growth/growth_annual) keep working.
+  let trialDays = 0;
+  let dbPlanSegment: string | null = null;
+  try {
+    const { getPlanCached } = await import("@/lib/plans-db");
+    const dbPlan = await getPlanCached(planId);
+    if (dbPlan) {
+      trialDays = Number(dbPlan.trial_days ?? 0) || 0;
+      dbPlanSegment = typeof dbPlan.segment === "string" ? dbPlan.segment : null;
+    }
+  } catch {
+    // plans-db not available yet (W1 rollout in progress) — legacy behaviour.
+  }
+
+  // Resolve the user's segment (for customer metadata + attribution).
+  let userSegment: string | null = null;
+  try {
+    const supabase = getSupabaseAdmin();
+    if (supabase) {
+      const { data } = await supabase
+        .from("app_users")
+        .select("segment")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (data && typeof data.segment === "string") {
+        userSegment = data.segment;
+      }
+    }
+  } catch {
+    // segment column may not exist on older schemas — non-fatal.
+  }
+
   const stripe = getStripe()!;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://blockid.au";
 
   const isRecurring = plan.cadence === "monthly" || plan.cadence === "yearly";
+
+  const customerMetadata: Record<string, string> = {
+    user_id: user.id,
+    plan_id: planId,
+  };
+  if (userSegment) customerMetadata.segment = userSegment;
+  else if (dbPlanSegment) customerMetadata.segment = dbPlanSegment;
 
   const sessionParams: Parameters<typeof stripe.checkout.sessions.create>[0] = {
     mode: isRecurring ? "subscription" : "payment",
@@ -79,9 +125,36 @@ export async function POST(request: Request) {
     metadata: {
       blockid_user_id: user.id,
       blockid_plan: planId,
+      ...(userSegment ? { blockid_segment: userSegment } : {}),
     },
     allow_promotion_codes: true,
   };
+
+  // v2: force PM collection so the trial has a card on file. This applies to
+  // both trial subscriptions and immediate-charge subscriptions.
+  if (isRecurring) {
+    sessionParams.payment_method_collection = "always";
+  }
+
+  // Trial configuration — only for recurring plans with trial_days > 0.
+  // Legacy plans (Founding-50 one-off, Enterprise custom, or DB plans with
+  // trial_days=0) skip this block and charge immediately.
+  if (isRecurring && trialDays > 0) {
+    sessionParams.subscription_data = {
+      trial_period_days: trialDays,
+      trial_settings: {
+        end_behavior: { missing_payment_method: "cancel" },
+      },
+      metadata: customerMetadata,
+    };
+  } else if (isRecurring) {
+    sessionParams.subscription_data = { metadata: customerMetadata };
+  }
+
+  // Stash customer metadata on the Stripe Customer itself when possible so
+  // downstream webhook handlers (which see customer, not always session) can
+  // read user_id/plan_id/segment.
+  sessionParams.customer_creation = isRecurring ? undefined : "if_required";
 
   // Apply a Stripe coupon if provided.
   if (couponCode && typeof couponCode === "string") {

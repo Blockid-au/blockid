@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getStripe, isStripeConfigured } from "@/lib/stripe";
+import type Stripe from "stripe";
+import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { getPlan } from "@/lib/plans";
 import {
@@ -10,17 +11,21 @@ import {
   sendSubscriptionCancelled,
 } from "@/lib/email";
 import { grantCredits, PLAN_CREDITS } from "@/lib/credits";
+import {
+  verifyWebhookSignature,
+  claimWebhookEvent,
+  markWebhookEventProcessed,
+} from "@/lib/stripe/verify";
 
 // POST /api/stripe/webhook
 // Stripe sends webhook events here. Verifies the signature, then processes
-// checkout.session.completed to activate user plans.
+// checkout, subscription, trial and invoice events into our DB.
 
 export async function POST(request: Request) {
   if (!isStripeConfigured() || !isSupabaseConfigured()) {
     return NextResponse.json({ error: "Not configured" }, { status: 503 });
   }
 
-  const stripe = getStripe()!;
   const supabase = getSupabaseAdmin()!;
   const sig = request.headers.get("stripe-signature");
 
@@ -31,477 +36,687 @@ export async function POST(request: Request) {
     );
   }
 
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!webhookSecret) {
-    console.error("[blockid:stripe] STRIPE_WEBHOOK_SECRET not set");
-    return NextResponse.json(
-      { error: "Webhook secret not configured" },
-      { status: 500 },
-    );
-  }
-
-  let event;
-  try {
-    const rawBody = await request.text();
-    event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
-  } catch (err) {
-    console.error("[blockid:stripe] webhook signature verification failed", err);
+  const rawBody = await request.text();
+  const event = verifyWebhookSignature(rawBody, sig);
+  if (!event) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  // Idempotency: skip events we've already processed.
-  // Uses credit_transactions metadata to detect duplicates.
-  const eventId = event.id;
-  const { data: existingEvent } = await supabase
-    .from("credit_transactions")
-    .select("id")
-    .contains("metadata", { stripe_event_id: eventId })
-    .limit(1)
-    .maybeSingle();
-
-  if (existingEvent) {
-    console.log(`[blockid:stripe] Skipping duplicate event ${eventId}`);
+  // Idempotency: insert into stripe_webhook_events. Duplicate delivery → 200.
+  const claim = await claimWebhookEvent(event);
+  if (claim.duplicate) {
+    console.log(`[blockid:stripe] Skipping duplicate event ${event.id}`);
     return NextResponse.json({ received: true, duplicate: true });
   }
 
   // Always acknowledge receipt to Stripe (200) after signature verification.
   // Process events best-effort — if the DB write fails, log and let Stripe
-  // retry via its automatic retry mechanism rather than returning 500.
+  // retry via its automatic retry mechanism.
 
-  switch (event.type) {
-    case "checkout.session.completed": {
-      const session = event.data.object;
+  let handlerError: string | undefined;
 
-      // ── Per-analysis payment (no auth required) ─────────────────────
-      if (session.metadata?.blockid_type === "svi_analysis") {
-        const email = session.metadata.blockid_email?.toLowerCase().trim();
-        if (email) {
-          // Grant one analysis credit by incrementing svi_analysis_credits.
-          const { data: existingAccount } = await supabase
-            .from("svi_accounts")
-            .select("id, svi_analysis_credits")
-            .eq("email", email)
-            .maybeSingle();
-
-          if (existingAccount) {
-            await supabase
-              .from("svi_accounts")
-              .update({
-                svi_analysis_credits: (existingAccount.svi_analysis_credits ?? 0) + 1,
-              })
-              .eq("id", existingAccount.id);
-          } else {
-            await supabase.from("svi_accounts").insert({
-              email,
-              svi_analysis_credits: 1,
-              last_active_at: new Date().toISOString(),
-            });
-          }
-
-          // Also credit svi_analysis_usage (server-side gate table)
-          const { data: existingUsage } = await supabase
-            .from("svi_analysis_usage")
-            .select("credits_remaining")
-            .eq("email", email)
-            .maybeSingle();
-
-          if (existingUsage) {
-            await supabase.from("svi_analysis_usage")
-              .update({ credits_remaining: (existingUsage.credits_remaining ?? 0) + 1 })
-              .eq("email", email);
-          } else {
-            await supabase.from("svi_analysis_usage").insert({
-              email,
-              free_used: true,
-              credits_remaining: 1,
-              total_analyses: 0,
-            });
-          }
-
-          console.log(
-            `[blockid:stripe] analysis credit added for ${email}`,
-          );
-
-          // Send analysis purchase confirmation email (best-effort).
-          const { sendAnalysisPurchaseConfirmation } = await import("@/lib/email");
-          sendAnalysisPurchaseConfirmation({ to: email }).catch((err) => {
-            console.error("[blockid:stripe] analysis purchase confirmation email failed", err);
-          });
-        }
+  try {
+    switch (event.type) {
+      case "checkout.session.completed":
+        await handleCheckoutSessionCompleted(event);
         break;
-      }
 
-      // ── Credit pack purchase (one-off credit top-up) ─────────────────
-      if (session.metadata?.type === "credit_purchase") {
-        const creditUserId = session.metadata.blockid_user_id;
-        const creditAmount = parseInt(session.metadata.blockid_credits ?? "0", 10);
-        if (creditUserId && creditAmount > 0) {
-          const grantResult = await grantCredits(creditUserId, creditAmount, "credit_pack_purchase", {
-            credits: creditAmount,
-            session_id: session.id,
-            stripe_event_id: eventId,
-          });
-          if (grantResult.ok) {
-            console.log(`[blockid:stripe] granted ${creditAmount} credits to user ${creditUserId}`);
-
-            // Send credit purchase confirmation email (best-effort).
-            const creditEmail = session.customer_email?.toLowerCase().trim();
-            if (creditEmail) {
-              sendCreditPurchaseConfirmation({ to: creditEmail, credits: creditAmount }).catch((err) => {
-                console.error("[blockid:stripe] credit purchase confirmation email failed", err);
-              });
-            }
-          } else {
-            console.error(`[blockid:stripe] failed to grant ${creditAmount} credits to user ${creditUserId}`);
-          }
-        } else {
-          console.warn("[blockid:stripe] credit_purchase missing user_id or invalid credit amount", {
-            userId: creditUserId,
-            creditAmount,
-            sessionId: session.id,
-          });
-        }
+      case "customer.subscription.deleted":
+        await handleSubscriptionDeleted(event);
         break;
-      }
 
-      let userId = session.metadata?.blockid_user_id;
-      const planId = session.metadata?.blockid_plan;
-
-      // ── Fallback: look up user by email when user_id is absent ──────
-      // This handles the lead/founding50 flow where the user may not have
-      // signed up yet at checkout time, so blockid_user_id is not set.
-      if (!userId && planId) {
-        const lookupEmail = (
-          session.customer_email ?? session.metadata?.blockid_email
-        )?.toLowerCase().trim();
-
-        if (lookupEmail) {
-          const { data: userByEmail } = await supabase
-            .from("app_users")
-            .select("id")
-            .eq("email", lookupEmail)
-            .maybeSingle();
-
-          if (userByEmail) {
-            userId = userByEmail.id;
-            console.log(
-              `[blockid:stripe] resolved user by email ${lookupEmail} → ${userId}`,
-            );
-          } else {
-            console.warn(
-              "[blockid:stripe] checkout.session.completed: no user found for email",
-              { email: lookupEmail, planId, sessionId: session.id },
-            );
-          }
-        }
-      }
-
-      if (!userId || !planId) {
-        console.warn("[blockid:stripe] checkout.session.completed missing metadata", {
-          userId,
-          planId,
-          sessionId: session.id,
-        });
+      case "customer.subscription.updated":
+        await handleSubscriptionUpdated(event);
         break;
-      }
 
-      const customerId =
-        typeof session.customer === "string" ? session.customer : null;
+      case "customer.subscription.trial_will_end":
+        await handleTrialWillEnd(event);
+        break;
 
-      // Activate the plan for the user.
-      const { error: updateErr } = await supabase
-        .from("app_users")
-        .update({
-          plan: planId,
-          plan_started_at: new Date().toISOString(),
-          stripe_customer_id: customerId,
-        })
-        .eq("id", userId);
+      case "setup_intent.succeeded":
+        await handleSetupIntentSucceeded(event);
+        break;
 
-      if (updateErr) {
-        console.error("[blockid:stripe] user plan update failed", {
-          error: updateErr,
-          userId,
-          planId,
-          sessionId: session.id,
-        });
-        // Return 500 so Stripe retries this webhook delivery.
-        return NextResponse.json(
-          { error: "Database error" },
-          { status: 500 },
-        );
-      }
+      case "invoice.payment_failed":
+        await handleInvoicePaymentFailed(event);
+        break;
 
-      console.log(
-        `[blockid:stripe] activated plan "${planId}" for user ${userId}`,
-      );
+      case "invoice.paid":
+        await handleInvoicePaid(event);
+        break;
 
-      // ── Grant credits for the plan ──────────────────────────────────
-      const planCredits = PLAN_CREDITS[planId];
-      if (planCredits && userId) {
-        const grantResult = await grantCredits(userId, planCredits.amount, "plan_grant", {
-          plan: planId,
-          stripe_event_id: eventId,
-        });
-        if (grantResult.ok) {
-          console.log(
-            `[blockid:stripe] granted ${planCredits.amount} credits to user ${userId} for plan "${planId}"`,
-          );
-        } else {
-          console.error(
-            `[blockid:stripe] failed to grant credits to user ${userId} for plan "${planId}"`,
-          );
-        }
-      }
+      default:
+        // Unhandled event type — acknowledge receipt.
+        break;
+    }
+  } catch (err) {
+    handlerError = err instanceof Error ? err.message : String(err);
+    console.error(`[blockid:stripe] handler error for ${event.type}`, err);
+  }
 
-      // Find or create svi_accounts row for this user's email.
-      const email = session.customer_email ?? session.metadata?.blockid_email;
+  await markWebhookEventProcessed(event.id, handlerError);
+
+  if (handlerError) {
+    // Ask Stripe to retry.
+    return NextResponse.json({ error: handlerError }, { status: 500 });
+  }
+
+  return NextResponse.json({ received: true });
+
+  // -------------------------------------------------------------------------
+  // Handlers
+  // -------------------------------------------------------------------------
+
+  async function handleCheckoutSessionCompleted(
+    e: Stripe.Event,
+  ): Promise<void> {
+    const session = e.data.object as Stripe.Checkout.Session;
+
+    // ── Per-analysis payment (no auth required) ─────────────────────
+    if (session.metadata?.blockid_type === "svi_analysis") {
+      const email = session.metadata.blockid_email?.toLowerCase().trim();
       if (email) {
         const { data: existingAccount } = await supabase
           .from("svi_accounts")
-          .select("id")
+          .select("id, svi_analysis_credits")
           .eq("email", email)
           .maybeSingle();
 
         if (existingAccount) {
           await supabase
             .from("svi_accounts")
-            .update({ plan: planId })
+            .update({
+              svi_analysis_credits:
+                (existingAccount.svi_analysis_credits ?? 0) + 1,
+            })
             .eq("id", existingAccount.id);
         } else {
-          const { error: sviErr } = await supabase
-            .from("svi_accounts")
-            .insert({
-              email,
-              plan: planId,
-              last_active_at: new Date().toISOString(),
-            });
-          if (sviErr) {
-            console.error("[blockid:stripe] svi_accounts upsert failed", {
-              error: sviErr,
-              email,
-              planId,
-            });
-          }
+          await supabase.from("svi_accounts").insert({
+            email,
+            svi_analysis_credits: 1,
+            last_active_at: new Date().toISOString(),
+          });
         }
 
-        // Send payment confirmation email (best-effort).
-        const planDef = getPlan(planId);
-        const planName = planDef?.name ?? planId;
-        sendPaymentConfirmation({ to: email, planName }).catch((err) => {
-          console.error("[blockid:stripe] payment confirmation email failed", err);
-        });
-      }
+        const { data: existingUsage } = await supabase
+          .from("svi_analysis_usage")
+          .select("credits_remaining")
+          .eq("email", email)
+          .maybeSingle();
 
-      break;
-    }
-
-    case "customer.subscription.deleted": {
-      // When a subscription is cancelled, downgrade to free.
-      const subscription = event.data.object;
-      const customerId =
-        typeof subscription.customer === "string"
-          ? subscription.customer
-          : null;
-
-      if (!customerId) {
-        console.warn("[blockid:stripe] subscription.deleted: no customer ID", {
-          subscriptionId: subscription.id,
-        });
-        break;
-      }
-
-      const { error } = await supabase
-        .from("app_users")
-        .update({ plan: "free", plan_started_at: null })
-        .eq("stripe_customer_id", customerId);
-
-      if (error) {
-        console.error("[blockid:stripe] subscription cancel downgrade failed", {
-          error,
-          customerId,
-          subscriptionId: subscription.id,
-        });
-        return NextResponse.json(
-          { error: "Database error" },
-          { status: 500 },
-        );
-      }
-
-      console.log(
-        `[blockid:stripe] downgraded customer ${customerId} to free`,
-      );
-
-      // Send subscription cancelled email (best-effort).
-      const { data: cancelledUser } = await supabase
-        .from("app_users")
-        .select("email")
-        .eq("stripe_customer_id", customerId)
-        .maybeSingle();
-
-      if (cancelledUser?.email) {
-        sendSubscriptionCancelled({ to: cancelledUser.email }).catch((err) => {
-          console.error("[blockid:stripe] subscription cancelled email failed", err);
-        });
-      }
-
-      break;
-    }
-
-    case "invoice.payment_failed": {
-      const invoice = event.data.object;
-      const customerId =
-        typeof invoice.customer === "string" ? invoice.customer : null;
-
-      if (!customerId) {
-        console.warn("[blockid:stripe] invoice.payment_failed: no customer ID", {
-          invoiceId: invoice.id,
-        });
-        break;
-      }
-
-      const { data: failedUser } = await supabase
-        .from("app_users")
-        .select("email")
-        .eq("stripe_customer_id", customerId)
-        .maybeSingle();
-
-      if (failedUser?.email) {
-        sendPaymentFailed({ to: failedUser.email }).catch((err) => {
-          console.error("[blockid:stripe] payment failed email send error", err);
-        });
-      } else {
-        console.warn(
-          "[blockid:stripe] invoice.payment_failed: user not found for customer",
-          { customerId },
-        );
-      }
-
-      console.log(
-        `[blockid:stripe] payment failed for customer ${customerId}`,
-      );
-      break;
-    }
-
-    case "customer.subscription.updated": {
-      const subscription = event.data.object;
-      const previousAttributes = event.data.previous_attributes as
-        | Record<string, unknown>
-        | undefined;
-      const customerId =
-        typeof subscription.customer === "string"
-          ? subscription.customer
-          : null;
-
-      if (!customerId) {
-        console.warn(
-          "[blockid:stripe] subscription.updated: no customer ID",
-          { subscriptionId: subscription.id },
-        );
-        break;
-      }
-
-      // Check if the price (plan) changed by inspecting previous_attributes.
-      const items = subscription.items?.data;
-      const currentPriceId = items?.[0]?.price?.id ?? null;
-
-      // previous_attributes.items indicates a plan change occurred.
-      const hadItemsChange = previousAttributes?.items !== undefined;
-
-      if (hadItemsChange && currentPriceId) {
-        // Reverse-map the Stripe price ID to our internal plan ID.
-        const { STRIPE_PRICE_MAP } = await import("@/lib/stripe");
-        const newPlanId = Object.entries(STRIPE_PRICE_MAP).find(
-          ([, priceId]) => priceId === currentPriceId,
-        )?.[0];
-
-        if (newPlanId) {
-          const { error: updateErr } = await supabase
-            .from("app_users")
+        if (existingUsage) {
+          await supabase
+            .from("svi_analysis_usage")
             .update({
-              plan: newPlanId,
-              plan_started_at: new Date().toISOString(),
+              credits_remaining: (existingUsage.credits_remaining ?? 0) + 1,
             })
-            .eq("stripe_customer_id", customerId);
-
-          if (updateErr) {
-            console.error(
-              "[blockid:stripe] subscription.updated plan change DB update failed",
-              { error: updateErr, customerId, newPlanId },
-            );
-            return NextResponse.json(
-              { error: "Database error" },
-              { status: 500 },
-            );
-          }
-
-          console.log(
-            `[blockid:stripe] plan changed to "${newPlanId}" for customer ${customerId}`,
-          );
+            .eq("email", email);
         } else {
-          console.warn(
-            "[blockid:stripe] subscription.updated: unknown price ID",
-            { currentPriceId, customerId },
-          );
+          await supabase.from("svi_analysis_usage").insert({
+            email,
+            free_used: true,
+            credits_remaining: 1,
+            total_analyses: 0,
+          });
         }
-      } else {
-        console.log(
-          `[blockid:stripe] subscription.updated (non-plan change) for customer ${customerId}`,
-        );
+
+        console.log(`[blockid:stripe] analysis credit added for ${email}`);
+
+        const { sendAnalysisPurchaseConfirmation } = await import("@/lib/email");
+        sendAnalysisPurchaseConfirmation({ to: email }).catch((err) => {
+          console.error(
+            "[blockid:stripe] analysis purchase confirmation email failed",
+            err,
+          );
+        });
       }
-      break;
+      return;
     }
 
-    case "invoice.paid": {
-      const paidInvoice = event.data.object;
-      const paidCustomerId =
-        typeof paidInvoice.customer === "string"
-          ? paidInvoice.customer
-          : null;
+    // ── Credit pack purchase ────────────────────────────────────────
+    if (session.metadata?.type === "credit_purchase") {
+      const creditUserId = session.metadata.blockid_user_id;
+      const creditAmount = parseInt(session.metadata.blockid_credits ?? "0", 10);
+      if (creditUserId && creditAmount > 0) {
+        const grantResult = await grantCredits(
+          creditUserId,
+          creditAmount,
+          "credit_pack_purchase",
+          {
+            credits: creditAmount,
+            session_id: session.id,
+            stripe_event_id: e.id,
+          },
+        );
+        if (grantResult.ok) {
+          console.log(
+            `[blockid:stripe] granted ${creditAmount} credits to user ${creditUserId}`,
+          );
 
-      // Only send receipt for recurring subscription invoices (not one-off checkouts).
-      // In Stripe SDK v22, `subscription` is no longer a top-level Invoice field;
-      // use `billing_reason` to detect subscription-related invoices.
-      const billingReason = paidInvoice.billing_reason;
-      const isSubscriptionInvoice =
-        billingReason === "subscription_cycle" ||
-        billingReason === "subscription_update" ||
-        billingReason === "subscription_create";
+          const creditEmail = session.customer_email?.toLowerCase().trim();
+          if (creditEmail) {
+            sendCreditPurchaseConfirmation({
+              to: creditEmail,
+              credits: creditAmount,
+            }).catch((err) => {
+              console.error(
+                "[blockid:stripe] credit purchase confirmation email failed",
+                err,
+              );
+            });
+          }
 
-      if (!paidCustomerId || !isSubscriptionInvoice) {
-        break;
+          // Log revenue for CFO reporting.
+          await recordRevenueEvent({
+            userId: creditUserId,
+            planId: null,
+            stripeEventId: e.id,
+            grossCents: session.amount_total ?? 0,
+            currency: session.currency ?? "aud",
+            kind: "credit_pack",
+            detail: { credits: creditAmount, session_id: session.id },
+          });
+        }
       }
+      return;
+    }
 
-      const { data: paidUser } = await supabase
-        .from("app_users")
-        .select("email")
-        .eq("stripe_customer_id", paidCustomerId)
+    let userId = session.metadata?.blockid_user_id;
+    const planId = session.metadata?.blockid_plan;
+
+    if (!userId && planId) {
+      const lookupEmail = (
+        session.customer_email ?? session.metadata?.blockid_email
+      )
+        ?.toLowerCase()
+        .trim();
+
+      if (lookupEmail) {
+        const { data: userByEmail } = await supabase
+          .from("app_users")
+          .select("id")
+          .eq("email", lookupEmail)
+          .maybeSingle();
+
+        if (userByEmail) {
+          userId = userByEmail.id;
+          console.log(
+            `[blockid:stripe] resolved user by email ${lookupEmail} → ${userId}`,
+          );
+        }
+      }
+    }
+
+    if (!userId || !planId) {
+      console.warn(
+        "[blockid:stripe] checkout.session.completed missing metadata",
+        { userId, planId, sessionId: session.id },
+      );
+      return;
+    }
+
+    const customerId =
+      typeof session.customer === "string" ? session.customer : null;
+    const subscriptionId =
+      typeof session.subscription === "string" ? session.subscription : null;
+
+    const { error: updateErr } = await supabase
+      .from("app_users")
+      .update({
+        plan: planId,
+        plan_started_at: new Date().toISOString(),
+        stripe_customer_id: customerId,
+      })
+      .eq("id", userId);
+
+    if (updateErr) {
+      throw new Error(`user plan update failed: ${updateErr.message}`);
+    }
+
+    console.log(
+      `[blockid:stripe] activated plan "${planId}" for user ${userId}`,
+    );
+
+    // Grant credits (legacy PLAN_CREDITS map — v2 will migrate to plans.usage_limits).
+    const planCredits = PLAN_CREDITS[planId];
+    if (planCredits && userId) {
+      const grantResult = await grantCredits(
+        userId,
+        planCredits.amount,
+        "plan_grant",
+        { plan: planId, stripe_event_id: e.id },
+      );
+      if (grantResult.ok) {
+        console.log(
+          `[blockid:stripe] granted ${planCredits.amount} credits to user ${userId} for plan "${planId}"`,
+        );
+      }
+    }
+
+    // If this checkout created a trial subscription, seed subscription_trial_state.
+    if (subscriptionId && customerId) {
+      const stripe = getStripe()!;
+      try {
+        const sub = await stripe.subscriptions.retrieve(subscriptionId);
+        await upsertTrialState(userId, planId, sub);
+      } catch (err) {
+        console.error(
+          "[blockid:stripe] failed to seed trial state from checkout",
+          err,
+        );
+      }
+    }
+
+    const email = session.customer_email ?? session.metadata?.blockid_email;
+    if (email) {
+      const { data: existingAccount } = await supabase
+        .from("svi_accounts")
+        .select("id")
+        .eq("email", email)
         .maybeSingle();
 
-      if (paidUser?.email) {
-        const amountCents = paidInvoice.amount_paid ?? 0;
-        const currency = paidInvoice.currency ?? "aud";
-        sendPaymentReceipt({
-          to: paidUser.email,
-          amountCents,
-          currency,
-        }).catch((err) => {
-          console.error("[blockid:stripe] payment receipt email send error", err);
+      if (existingAccount) {
+        await supabase
+          .from("svi_accounts")
+          .update({ plan: planId })
+          .eq("id", existingAccount.id);
+      } else {
+        await supabase.from("svi_accounts").insert({
+          email,
+          plan: planId,
+          last_active_at: new Date().toISOString(),
         });
       }
 
-      console.log(
-        `[blockid:stripe] invoice paid for customer ${paidCustomerId}, amount: ${paidInvoice.amount_paid}`,
-      );
-      break;
+      const planDef = getPlan(planId);
+      const planName = planDef?.name ?? planId;
+      sendPaymentConfirmation({ to: email, planName }).catch((err) => {
+        console.error("[blockid:stripe] payment confirmation email failed", err);
+      });
     }
-
-    default:
-      // Unhandled event type — acknowledge receipt.
-      break;
   }
 
-  return NextResponse.json({ received: true });
+  async function handleSubscriptionDeleted(e: Stripe.Event): Promise<void> {
+    const subscription = e.data.object as Stripe.Subscription;
+    const customerId =
+      typeof subscription.customer === "string" ? subscription.customer : null;
+
+    if (!customerId) return;
+
+    const { data: userRow } = await supabase
+      .from("app_users")
+      .select("id, email, plan")
+      .eq("stripe_customer_id", customerId)
+      .maybeSingle();
+
+    const { error } = await supabase
+      .from("app_users")
+      .update({ plan: "free", plan_started_at: null })
+      .eq("stripe_customer_id", customerId);
+
+    if (error) throw new Error(`downgrade to free failed: ${error.message}`);
+
+    // Snapshot final trial state.
+    if (userRow?.id) {
+      await supabase
+        .from("subscription_trial_state")
+        .upsert(
+          {
+            user_id: userRow.id,
+            stripe_customer_id: customerId,
+            stripe_subscription_id: subscription.id,
+            status: "canceled",
+            cancel_at_period_end: false,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" },
+        );
+    }
+
+    console.log(`[blockid:stripe] downgraded customer ${customerId} to free`);
+
+    if (userRow?.email) {
+      sendSubscriptionCancelled({ to: userRow.email }).catch((err) => {
+        console.error(
+          "[blockid:stripe] subscription cancelled email failed",
+          err,
+        );
+      });
+    }
+  }
+
+  async function handleSubscriptionUpdated(e: Stripe.Event): Promise<void> {
+    const subscription = e.data.object as Stripe.Subscription;
+    const previousAttributes = e.data.previous_attributes as
+      | Partial<Stripe.Subscription>
+      | undefined;
+    const customerId =
+      typeof subscription.customer === "string" ? subscription.customer : null;
+
+    if (!customerId) return;
+
+    const { data: userRow } = await supabase
+      .from("app_users")
+      .select("id")
+      .eq("stripe_customer_id", customerId)
+      .maybeSingle();
+
+    const userId = userRow?.id ?? null;
+
+    // Detect trial-status transitions using previous_attributes.status.
+    const prevStatus = previousAttributes?.status;
+    const newStatus = subscription.status;
+
+    if (userId && prevStatus === "trialing" && newStatus === "active") {
+      // Trial converted → paid.
+      await recordRevenueEvent({
+        userId,
+        planId: subscription.items?.data?.[0]?.price?.id
+          ? planIdFromPrice(subscription.items.data[0]!.price!.id)
+          : null,
+        stripeEventId: e.id,
+        grossCents: 0, // actual charge is captured in invoice.paid
+        currency: subscription.currency ?? "aud",
+        kind: "trial_convert",
+        detail: { subscription_id: subscription.id },
+      });
+    } else if (
+      userId &&
+      prevStatus === "trialing" &&
+      (newStatus === "canceled" || newStatus === "incomplete_expired")
+    ) {
+      await recordRevenueEvent({
+        userId,
+        planId: subscription.items?.data?.[0]?.price?.id
+          ? planIdFromPrice(subscription.items.data[0]!.price!.id)
+          : null,
+        stripeEventId: e.id,
+        grossCents: 0,
+        currency: subscription.currency ?? "aud",
+        kind: "trial_end_no_payment",
+        detail: { subscription_id: subscription.id },
+      });
+    }
+
+    // Detect a plan (price) change and update app_users.plan.
+    const items = subscription.items?.data;
+    const currentPriceId = items?.[0]?.price?.id ?? null;
+    const hadItemsChange = previousAttributes?.items !== undefined;
+
+    if (hadItemsChange && currentPriceId) {
+      const newPlanId = planIdFromPrice(currentPriceId);
+
+      if (newPlanId) {
+        const { error: updateErr } = await supabase
+          .from("app_users")
+          .update({
+            plan: newPlanId,
+            plan_started_at: new Date().toISOString(),
+          })
+          .eq("stripe_customer_id", customerId);
+
+        if (updateErr) {
+          throw new Error(`plan change update failed: ${updateErr.message}`);
+        }
+
+        console.log(
+          `[blockid:stripe] plan changed to "${newPlanId}" for customer ${customerId}`,
+        );
+      }
+    }
+
+    // Always refresh trial state.
+    if (userId) {
+      const planId = currentPriceId ? planIdFromPrice(currentPriceId) : null;
+      await upsertTrialState(userId, planId, subscription);
+    }
+  }
+
+  async function handleTrialWillEnd(e: Stripe.Event): Promise<void> {
+    const subscription = e.data.object as Stripe.Subscription;
+    const customerId =
+      typeof subscription.customer === "string" ? subscription.customer : null;
+    if (!customerId) return;
+
+    const { data: userRow } = await supabase
+      .from("app_users")
+      .select("id")
+      .eq("stripe_customer_id", customerId)
+      .maybeSingle();
+    if (!userRow?.id) return;
+
+    // Mark on trial state.
+    await supabase
+      .from("subscription_trial_state")
+      .upsert(
+        {
+          user_id: userRow.id,
+          stripe_customer_id: customerId,
+          stripe_subscription_id: subscription.id,
+          trial_will_end_notified_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" },
+      );
+
+    // Enqueue drip for the cron mailer: step 'trial_ending_t3', send now-ish.
+    await supabase
+      .from("lifecycle_state")
+      .upsert(
+        {
+          user_id: userRow.id,
+          current_step: "trial_ending_t3",
+          next_send_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" },
+      );
+
+    console.log(
+      `[blockid:stripe] trial_will_end queued T-3d nudge for user ${userRow.id}`,
+    );
+  }
+
+  async function handleSetupIntentSucceeded(e: Stripe.Event): Promise<void> {
+    const setupIntent = e.data.object as Stripe.SetupIntent;
+    const customerId =
+      typeof setupIntent.customer === "string" ? setupIntent.customer : null;
+    if (!customerId) return;
+
+    const { data: userRow } = await supabase
+      .from("app_users")
+      .select("id")
+      .eq("stripe_customer_id", customerId)
+      .maybeSingle();
+    if (!userRow?.id) return;
+
+    await supabase
+      .from("subscription_trial_state")
+      .upsert(
+        {
+          user_id: userRow.id,
+          stripe_customer_id: customerId,
+          payment_method_saved: true,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" },
+      );
+
+    console.log(
+      `[blockid:stripe] setup_intent.succeeded — PM saved for user ${userRow.id}`,
+    );
+  }
+
+  async function handleInvoicePaymentFailed(e: Stripe.Event): Promise<void> {
+    const invoice = e.data.object as Stripe.Invoice;
+    const customerId =
+      typeof invoice.customer === "string" ? invoice.customer : null;
+    if (!customerId) return;
+
+    const { data: failedUser } = await supabase
+      .from("app_users")
+      .select("email")
+      .eq("stripe_customer_id", customerId)
+      .maybeSingle();
+
+    if (failedUser?.email) {
+      sendPaymentFailed({ to: failedUser.email }).catch((err) => {
+        console.error(
+          "[blockid:stripe] payment failed email send error",
+          err,
+        );
+      });
+    }
+
+    console.log(`[blockid:stripe] payment failed for customer ${customerId}`);
+  }
+
+  async function handleInvoicePaid(e: Stripe.Event): Promise<void> {
+    const invoice = e.data.object as Stripe.Invoice;
+    const customerId =
+      typeof invoice.customer === "string" ? invoice.customer : null;
+    const billingReason = invoice.billing_reason;
+    const isSubscriptionInvoice =
+      billingReason === "subscription_cycle" ||
+      billingReason === "subscription_update" ||
+      billingReason === "subscription_create";
+
+    if (!customerId || !isSubscriptionInvoice) return;
+
+    const { data: paidUser } = await supabase
+      .from("app_users")
+      .select("id, email, plan")
+      .eq("stripe_customer_id", customerId)
+      .maybeSingle();
+
+    const amountCents = invoice.amount_paid ?? 0;
+    const currency = invoice.currency ?? "aud";
+
+    if (paidUser?.email) {
+      sendPaymentReceipt({
+        to: paidUser.email,
+        amountCents,
+        currency,
+      }).catch((err) => {
+        console.error("[blockid:stripe] payment receipt email send error", err);
+      });
+    }
+
+    // Record revenue with GST-net split.
+    await recordRevenueEvent({
+      userId: paidUser?.id ?? null,
+      planId: paidUser?.plan ?? null,
+      stripeEventId: e.id,
+      grossCents: amountCents,
+      currency,
+      kind: billingReason === "subscription_create" ? "subscribe" : "renewal",
+      detail: {
+        invoice_id: invoice.id,
+        billing_reason: billingReason,
+      },
+    });
+
+    console.log(
+      `[blockid:stripe] invoice paid for customer ${customerId}, amount: ${amountCents}`,
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // Helpers
+  // -------------------------------------------------------------------------
+
+  function planIdFromPrice(priceId: string): string | null {
+    return (
+      Object.entries(STRIPE_PRICE_MAP).find(
+        ([, id]) => id === priceId,
+      )?.[0] ?? null
+    );
+  }
+
+  async function upsertTrialState(
+    userId: string,
+    planId: string | null,
+    sub: Stripe.Subscription,
+  ): Promise<void> {
+    const customerId = typeof sub.customer === "string" ? sub.customer : null;
+    const toIso = (secs: number | null | undefined) =>
+      secs ? new Date(secs * 1000).toISOString() : null;
+
+    // Some Stripe SDK versions expose current_period_end at the item level.
+    const item = sub.items?.data?.[0] as
+      | (Stripe.SubscriptionItem & { current_period_end?: number })
+      | undefined;
+    type SubWithLegacyPeriod = Stripe.Subscription & {
+      current_period_end?: number;
+    };
+    const legacyPeriodEnd = (sub as SubWithLegacyPeriod).current_period_end;
+    const currentPeriodEnd = item?.current_period_end ?? legacyPeriodEnd ?? null;
+
+    await supabase.from("subscription_trial_state").upsert(
+      {
+        user_id: userId,
+        plan_id: planId,
+        stripe_customer_id: customerId,
+        stripe_subscription_id: sub.id,
+        trial_start: toIso(sub.trial_start),
+        trial_end: toIso(sub.trial_end),
+        status: sub.status,
+        current_period_end: toIso(currentPeriodEnd),
+        cancel_at_period_end: sub.cancel_at_period_end ?? false,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" },
+    );
+  }
+
+  async function recordRevenueEvent(args: {
+    userId: string | null;
+    planId: string | null;
+    stripeEventId: string;
+    grossCents: number;
+    currency: string;
+    kind: string;
+    detail: Record<string, unknown>;
+  }): Promise<void> {
+    // Compute GST via lib/gst.ts; fall back to zero split when helper absent.
+    let gross = args.grossCents;
+    let gst = 0;
+    let net = gross;
+    try {
+      const gstMod = (await import("@/lib/gst")) as {
+        splitGst?: (cents: number, currency?: string) => {
+          gross_aud_cents: number;
+          gst_aud_cents: number;
+          net_aud_cents: number;
+        };
+      };
+      if (typeof gstMod.splitGst === "function") {
+        const split = gstMod.splitGst(gross, args.currency);
+        gross = split.gross_aud_cents;
+        gst = split.gst_aud_cents;
+        net = split.net_aud_cents;
+      }
+    } catch {
+      // No GST helper yet — record gross only.
+    }
+
+    // stripe_event_id is UNIQUE on revenue_events → idempotent.
+    const { error } = await supabase.from("revenue_events").insert({
+      user_id: args.userId,
+      plan_id: args.planId,
+      stripe_event_id: args.stripeEventId,
+      gross_aud_cents: gross,
+      gst_aud_cents: gst,
+      net_aud_cents: net,
+      currency: (args.currency ?? "AUD").toUpperCase(),
+      kind: args.kind,
+      detail: args.detail,
+    });
+
+    if (error && error.code !== "23505") {
+      console.error("[blockid:stripe] revenue_events insert failed", error);
+    }
+  }
 }
 
 export const dynamic = "force-dynamic";

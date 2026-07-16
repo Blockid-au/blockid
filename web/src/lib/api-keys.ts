@@ -10,6 +10,7 @@
 import "server-only";
 import { createHash, randomBytes } from "crypto";
 import { getSupabaseAdmin } from "./supabase";
+import { can, type UserWithPlan } from "@/lib/entitlements";
 
 // ---------------------------------------------------------------------------
 // Key generation
@@ -27,31 +28,50 @@ export function hashApiKey(raw: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Plan-based limits
+// Plan-based limits — entitlement-driven.
+//
+// Access is gated via `can(user, 'api.access')` (feature flag defined on the
+// plans matrix). Rate limits are still derived from the plan id, but the
+// mapping now reads the entitlement feature list rather than a hard-coded
+// Set of legacy plan ids — this keeps grandfathered plans working while the
+// upgrade v2 rollout re-seeds the plans table.
 // ---------------------------------------------------------------------------
-
-/** Plans that are allowed to create API keys. */
-const API_KEY_PLANS = new Set(["growth", "pilot", "accelerator", "enterprise"]);
 
 /** Maximum number of active keys per user. */
 const MAX_KEYS_PER_USER = 10;
 
-/** Rate limits by plan (requests per minute). */
+/** Rate limits by plan (requests per minute). Kept as a plan-id lookup for
+ * response headers; the primary access gate is `can(user, 'api.access')`. */
 export function getRateLimitForPlan(plan: string | null): number {
   switch (plan) {
+    case "founder_enterprise":
     case "enterprise":
     case "accelerator":
     case "pilot":
       return 1000;
+    case "founder_scale":
+    case "scale":
+    case "founder_growth":
     case "growth":
+    case "growth_annual":
       return 100;
     default:
       return 60;
   }
 }
 
-export function canCreateApiKeys(plan: string | null): boolean {
-  return API_KEY_PLANS.has(plan ?? "");
+/** Async — resolves entitlement via can(). Preferred over the legacy string
+ * check because it honours plans-matrix updates without a redeploy. */
+export async function canCreateApiKeys(
+  user: UserWithPlan | { id: string; plan: string | null; segment?: string } | null,
+): Promise<boolean> {
+  if (!user) return false;
+  const uwp: UserWithPlan = {
+    id: user.id,
+    plan: user.plan ?? "free",
+    segment: (user as { segment?: string }).segment ?? "founder",
+  };
+  return can(uwp, "api.access");
 }
 
 // ---------------------------------------------------------------------------
@@ -63,7 +83,8 @@ export async function createApiKey(
   plan: string | null,
   name?: string,
 ): Promise<{ key: string; id: string } | { error: string }> {
-  if (!canCreateApiKeys(plan)) {
+  const allowed = await canCreateApiKeys({ id: userId, plan });
+  if (!allowed) {
     return { error: "API keys require a Growth plan or above." };
   }
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { getEntitlements } from "@/lib/entitlements";
 
 // GET /api/svi/check-gate?email=x
 // Returns whether this email can run a free analysis.
@@ -26,8 +27,14 @@ export async function GET(request: Request) {
     .eq("email", email)
     .maybeSingle();
 
-  if (account?.plan && account.plan !== "free") {
-    return NextResponse.json({ ok: true, canAnalyze: true, reason: "paid_plan", plan: account.plan });
+  if (account?.plan) {
+    // Entitlement gate — a plan with `svi.run` (unlimited SVI) unlocks the
+    // analysis without hitting the daily free-tier throttle. Legacy plan ids
+    // (growth/founding50) still resolve via LEGACY_PLAN_MAP in entitlements.
+    const flags = await getEntitlements(account.plan);
+    if (flags.includes("svi.run")) {
+      return NextResponse.json({ ok: true, canAnalyze: true, reason: "paid_plan", plan: account.plan });
+    }
   }
 
   // Check if a free analysis was used in the last 24 hours

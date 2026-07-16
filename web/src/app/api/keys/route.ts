@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!canCreateApiKeys(user.plan)) {
+  if (!(await canCreateApiKeys(user))) {
     return NextResponse.json(
       { ok: false, reason: "API keys require a Growth plan or above." },
       { status: 403 },

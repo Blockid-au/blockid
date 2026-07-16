@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Coins, Search, X } from "lucide-react";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { planBadgeClass } from "@/lib/plan-badges";
 
 interface UserCredits {
   balance: number;
@@ -223,13 +224,7 @@ export function CreditsClient({ user, initialUsers }: CreditsClientProps) {
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`text-[10px] font-medium rounded px-1.5 py-0.5 ${
-                            u.plan === "founding50"
-                              ? "bg-brand-100 text-brand-700"
-                              : u.plan === "growth"
-                                ? "bg-green-100 text-green-700"
-                                : "bg-surface-100 text-ink-700"
-                          }`}
+                          className={`text-[10px] font-medium rounded px-1.5 py-0.5 ${planBadgeClass(u.plan)}`}
                         >
                           {u.plan ?? "free"}
                         </span>

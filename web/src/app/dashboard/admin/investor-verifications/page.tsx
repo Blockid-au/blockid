@@ -24,11 +24,13 @@ export default async function InvestorVerificationsPage() {
   if (me.role !== "admin") redirect("/dashboard");
 
   const supabase = getSupabaseAdmin();
+  // Entitlement gate: match on segment (0073_user_segments_and_jurisdiction.sql)
+  // OR the legacy account_type column so pre-backfill rows still surface.
   const { data } = supabase
     ? await supabase
         .from("app_users")
         .select("id, email, display_name, investor_firm, investor_url, verified_at, created_at")
-        .eq("account_type", "investor")
+        .or("segment.eq.investor_angel,segment.eq.investor_vc,account_type.eq.investor")
         .order("created_at", { ascending: false })
     : { data: [] };
 

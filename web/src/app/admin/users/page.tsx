@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, ADMIN_EMAIL} from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { planBadgeClass } from "@/lib/plan-badges";
 import { Logo } from "@/components/brand/logo";
 import Link from "next/link";
 import { ArrowLeft, Users } from "lucide-react";
@@ -71,7 +72,7 @@ export default async function AdminUsersPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-[10px] font-medium rounded px-1.5 py-0.5 ${u.plan === "founding50" ? "bg-brand-100 text-brand-700" : u.plan === "pro" ? "bg-green-100 text-green-700" : "bg-surface-100 text-ink-700"}`}>
+                      <span className={`text-[10px] font-medium rounded px-1.5 py-0.5 ${planBadgeClass(u.plan)}`}>
                         {u.plan ?? "free"}
                       </span>
                     </td>

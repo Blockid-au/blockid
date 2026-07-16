@@ -9,6 +9,7 @@ import {
   Users,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { planBadgeClass } from "@/lib/plan-badges";
 
 interface SviAccount {
   email: string;
@@ -161,7 +162,7 @@ export function AdminDashboardClient({
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`text-[10px] font-medium rounded px-1.5 py-0.5 ${acc.plan === "founding50" ? "bg-brand-100 text-brand-700" : acc.plan === "pro" ? "bg-green-100 text-green-700" : "bg-surface-100 text-ink-700"}`}
+                          className={`text-[10px] font-medium rounded px-1.5 py-0.5 ${planBadgeClass(acc.plan)}`}
                         >
                           {acc.plan}
                         </span>

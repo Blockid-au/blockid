@@ -1,0 +1,126 @@
+{
+  "generated_at": "2026-07-16T12:52:29.272Z",
+  "plans": [
+    {
+      "plan_id": "founder_starter",
+      "product_name": "Starter",
+      "segment": "founder",
+      "stripe_env_var": "STRIPE_PRICE_FOUNDER_STARTER",
+      "currency": "aud",
+      "monthly_amount_cents": 2900,
+      "annual_amount_cents": 29000,
+      "interval": "monthly",
+      "trial_days": 7
+    },
+    {
+      "plan_id": "founder_growth",
+      "product_name": "Growth",
+      "segment": "founder",
+      "stripe_env_var": "STRIPE_PRICE_FOUNDER_GROWTH",
+      "currency": "aud",
+      "monthly_amount_cents": 9900,
+      "annual_amount_cents": 99000,
+      "interval": "monthly",
+      "trial_days": 7
+    },
+    {
+      "plan_id": "founder_scale",
+      "product_name": "Scale",
+      "segment": "founder",
+      "stripe_env_var": "STRIPE_PRICE_FOUNDER_SCALE",
+      "currency": "aud",
+      "monthly_amount_cents": 29900,
+      "annual_amount_cents": 299000,
+      "interval": "monthly",
+      "trial_days": 7
+    },
+    {
+      "plan_id": "founder_enterprise",
+      "product_name": "Enterprise",
+      "segment": "founder",
+      "stripe_env_var": "STRIPE_PRICE_FOUNDER_ENTERPRISE",
+      "currency": "aud",
+      "monthly_amount_cents": null,
+      "annual_amount_cents": 1800000,
+      "interval": "custom",
+      "trial_days": 0
+    },
+    {
+      "plan_id": "investor_angel",
+      "product_name": "Angel",
+      "segment": "investor_angel",
+      "stripe_env_var": "STRIPE_PRICE_INVESTOR_ANGEL",
+      "currency": "aud",
+      "monthly_amount_cents": 7900,
+      "annual_amount_cents": 79000,
+      "interval": "monthly",
+      "trial_days": 7
+    },
+    {
+      "plan_id": "investor_advisor",
+      "product_name": "Advisor",
+      "segment": "advisor",
+      "stripe_env_var": "STRIPE_PRICE_INVESTOR_ADVISOR",
+      "currency": "aud",
+      "monthly_amount_cents": 14900,
+      "annual_amount_cents": 149000,
+      "interval": "monthly",
+      "trial_days": 7
+    },
+    {
+      "plan_id": "investor_vc_small",
+      "product_name": "VC Small (5-seat min)",
+      "segment": "investor_vc",
+      "stripe_env_var": "STRIPE_PRICE_INVESTOR_VC_SMALL",
+      "currency": "aud",
+      "monthly_amount_cents": 34900,
+      "annual_amount_cents": 349000,
+      "interval": "monthly",
+      "trial_days": 7
+    },
+    {
+      "plan_id": "investor_vc_ent",
+      "product_name": "VC Enterprise",
+      "segment": "investor_vc",
+      "stripe_env_var": "STRIPE_PRICE_INVESTOR_VC_ENT",
+      "currency": "aud",
+      "monthly_amount_cents": null,
+      "annual_amount_cents": 3000000,
+      "interval": "custom",
+      "trial_days": 0
+    },
+    {
+      "plan_id": "accelerator_starter",
+      "product_name": "Cohort Starter",
+      "segment": "accelerator",
+      "stripe_env_var": "STRIPE_PRICE_ACCEL_STARTER",
+      "currency": "aud",
+      "monthly_amount_cents": 50000,
+      "annual_amount_cents": 600000,
+      "interval": "monthly",
+      "trial_days": 7
+    },
+    {
+      "plan_id": "accelerator_growth",
+      "product_name": "Cohort Growth",
+      "segment": "accelerator",
+      "stripe_env_var": "STRIPE_PRICE_ACCEL_GROWTH",
+      "currency": "aud",
+      "monthly_amount_cents": 150000,
+      "annual_amount_cents": 1800000,
+      "interval": "monthly",
+      "trial_days": 7
+    },
+    {
+      "plan_id": "accelerator_enterprise",
+      "product_name": "Cohort Enterprise",
+      "segment": "accelerator",
+      "stripe_env_var": "STRIPE_PRICE_ACCEL_ENTERPRISE",
+      "currency": "aud",
+      "monthly_amount_cents": 350000,
+      "annual_amount_cents": 4200000,
+      "interval": "monthly",
+      "trial_days": 7
+    }
+  ]
+}

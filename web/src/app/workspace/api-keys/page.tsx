@@ -18,7 +18,7 @@ export default async function ApiKeysPage() {
   if (!user) redirect("/auth/login?next=/workspace/api-keys");
 
   const keys = await listApiKeys(user.id);
-  const canCreate = canCreateApiKeys(user.plan);
+  const canCreate = await canCreateApiKeys(user);
   const rateLimit = getRateLimitForPlan(user.plan);
 
   return (
