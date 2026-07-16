@@ -13,7 +13,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Plan } from "@/lib/plans";
+import type { LegacyPlan as Plan } from "@/lib/plans";
 import { isGrowthEarlyBird, GROWTH_STANDARD_PRICE } from "@/lib/plans";
 
 // ---------------------------------------------------------------------------
