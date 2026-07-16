@@ -1,0 +1,15 @@
+{
+  "version": "v2.0.0-alpha.1",
+  "updated_at": "2026-07-16T20:35:00Z",
+  "git_sha": "2278151",
+  "task_ids": [
+    "T-0101 kickoff",
+    "T-0201..T-0222 W1 backend",
+    "T-0301..T-0320 W2 homepage v2",
+    "T-0401 W4 analytics",
+    "T-0419 W5a investor",
+    "T-0432..T-0439 W7 QA seed + playwright",
+    "G-01..G-13 Guardian foundation"
+  ],
+  "notes": "Pricing upgrade v2.0-alpha: 7-day Stripe trial + 12-SKU matrix + luxury homepage + entitlement engine + GA4 analytics + Guardian CI/CD. Flag NEXT_PUBLIC_UPGRADE_V2=false (staged). Retry-workflow in flight for W6 equity + W8 menu + W5b accel/advisor + W7b crons."
+}
