@@ -96,12 +96,12 @@ async function checkDb(): Promise<CheckResult> {
     if (!supabase) return { ok: false, error: "supabase client unavailable" };
     // Lightweight SELECT 1 via HEAD count on a tiny system table.
     // Falls back on error - we care about connectivity not row count.
-    const { error } = await withTimeout(
-      supabase.from("app_users").select("id", { head: true, count: "exact" }),
+    const result = (await withTimeout(
+      Promise.resolve(supabase.from("app_users").select("id", { head: true, count: "exact" })),
       3000,
       "db",
-    );
-    if (error) return { ok: false, latency_ms: t.since(), error: error.message };
+    )) as { error?: { message?: string } | null };
+    if (result?.error) return { ok: false, latency_ms: t.since(), error: result.error.message ?? "db error" };
     return { ok: true, latency_ms: t.since() };
   } catch (err) {
     return { ok: false, latency_ms: t.since(), error: (err as Error).message };
