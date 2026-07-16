@@ -1,15 +1,18 @@
 {
-  "version": "v2.0.0-alpha.1",
-  "updated_at": "2026-07-16T20:35:00Z",
-  "git_sha": "2278151",
+  "version": "v2.0.0-beta.1",
+  "updated_at": "2026-07-16T21:35:00Z",
+  "git_sha": "4d50247",
+  "release_id": "hlSFXaCbSYnO4Qyzuuq-U",
   "task_ids": [
-    "T-0101 kickoff",
-    "T-0201..T-0222 W1 backend",
-    "T-0301..T-0320 W2 homepage v2",
-    "T-0401 W4 analytics",
-    "T-0419 W5a investor",
-    "T-0432..T-0439 W7 QA seed + playwright",
-    "G-01..G-13 Guardian foundation"
+    "T-0201..T-0222 W1 backend + entitlement + Stripe 7-day trial",
+    "T-0301..T-0320 W2 homepage v2 luxury",
+    "T-0401 W4 GA4 analytics catalog",
+    "T-0419 W5a investor workspace",
+    "T-0430 W6 equity request-a-call scaffold",
+    "T-0432..T-0439 W7 QA seed + Playwright",
+    "W8 menu progressive disclosure + trial banner",
+    "G-01..G-13 Guardian foundation",
+    "G-05/G-09/G-10/G-16 crons + admin dashboards"
   ],
-  "notes": "Pricing upgrade v2.0-alpha: 7-day Stripe trial + 12-SKU matrix + luxury homepage + entitlement engine + GA4 analytics + Guardian CI/CD. Flag NEXT_PUBLIC_UPGRADE_V2=false (staged). Retry-workflow in flight for W6 equity + W8 menu + W5b accel/advisor + W7b crons."
+  "notes": "v2.0.0-beta.1 SHIPPED to prod 2026-07-16. Guardian deep-probe /api/healthz active. Docker legacy container removed. New standalone build serving via node PID 639639. Flag NEXT_PUBLIC_UPGRADE_V2=false (legacy homepage still default; new luxury homepage staged). Retry-plan: seed 12 SKU Stripe prices via seed-stripe.ts, then flip UPGRADE_V2=true for 10% cookie-bucket rollout, ramp to 100% over 5 days per docs/IMPLEMENTATION-PLAN-v2.md section 12."
 }
