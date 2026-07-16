@@ -167,15 +167,29 @@ echo "  $(date '+%Y-%m-%d %H:%M:%S %Z')"
 echo "════════════════════════════════════════════"
 
 # ── Rollback ──────────────────────────────────────────────────────────
-# Prefer the previous immutable release dir (instant, isolated). Fall back to
-# the legacy .next-backup restore only if no previous release exists.
+# Prefer the previous immutable release dir (instant, isolated). Fall back
+# to /data/blockid-releases/ snapshot (G-11), then legacy .next-backup.
+rollback_log() {
+  local status="$1" src="$2" http="$3" pid="$4"
+  local ts msg
+  ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  printf '{"ts":"%s","status":"%s","src":"%s","http":"%s","pid":"%s"}\n' \
+    "$ts" "$status" "$src" "$http" "$pid" >> /tmp/blockid-rollback.log 2>/dev/null || true
+  if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]; then
+    msg="🔁 BlockID rollback ${status} — src=${src} HTTP=${http} pid=${pid} @ ${ts}"
+    curl -s -m 5 -o /dev/null "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+      --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+      --data-urlencode "text=${msg}" 2>/dev/null || true
+  fi
+}
 if [ "${1:-}" = "--rollback" ]; then
   echo ""
   echo "=== ROLLBACK ==="
+  # Ensure env for potential Telegram creds is available.
+  load_env 2>/dev/null || true
   PREV_DIR="$(readlink -f "$PREV_LINK" 2>/dev/null || true)"
   if [ -n "$PREV_DIR" ] && [ -f "$PREV_DIR/server.js" ]; then
     echo "Rolling back to previous release: $PREV_DIR"
-    load_env
     export PORT=$PROD_PORT
     if [ -f "$PID_FILE" ]; then kill "$(cat "$PID_FILE")" 2>/dev/null || true; fi
     fuser -k $PROD_PORT/tcp 2>/dev/null || true
@@ -190,18 +204,41 @@ if [ "${1:-}" = "--rollback" ]; then
     sleep 3
     HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:$PROD_PORT/)
     echo "✅ Rolled back to release $(basename "$PREV_DIR"): HTTP $HTTP — PID $(cat "$PID_FILE")"
+    rollback_log "success" "prev-release:$(basename "$PREV_DIR")" "$HTTP" "$(cat "$PID_FILE")"
     exit 0
+  fi
+  # ── G-11 fallback: restore from /data/blockid-releases/ snapshot ──
+  RELEASES_ARCHIVE="/data/blockid-releases"
+  if [ -d "$RELEASES_ARCHIVE" ]; then
+    # Pick the 2nd-most-recent snapshot (most recent is the current live build).
+    SNAP_DIR="$(ls -1dt "$RELEASES_ARCHIVE"/*/ 2>/dev/null | sed -n '2p')"
+    SNAP_DIR="${SNAP_DIR%/}"
+    if [ -n "$SNAP_DIR" ] && [ -f "$SNAP_DIR/server.js" ]; then
+      echo "Rolling back to snapshot: $SNAP_DIR"
+      export PORT=$PROD_PORT
+      if [ -f "$PID_FILE" ]; then kill "$(cat "$PID_FILE")" 2>/dev/null || true; fi
+      fuser -k $PROD_PORT/tcp 2>/dev/null || true
+      sleep 1
+      cd "$SNAP_DIR"
+      nohup node server.js > "$LOG" 2>&1 9>&- &
+      echo $! > "$PID_FILE"
+      sleep 3
+      HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:$PROD_PORT/)
+      echo "✅ Rolled back to snapshot $(basename "$SNAP_DIR"): HTTP $HTTP — PID $(cat "$PID_FILE")"
+      rollback_log "success" "snapshot:$(basename "$SNAP_DIR")" "$HTTP" "$(cat "$PID_FILE")"
+      exit 0
+    fi
   fi
   # ── Legacy fallback: restore .next-backup ──
   if [ ! -d "$BACKUP_DIR" ]; then
-    echo "❌ No previous release and no backup found ($PREV_LINK / $BACKUP_DIR)"
+    echo "❌ No previous release, snapshot, or backup found ($PREV_LINK / $RELEASES_ARCHIVE / $BACKUP_DIR)"
+    rollback_log "failed" "none" "0" "0"
     exit 1
   fi
-  echo "No previous release — restoring legacy backup..."
+  echo "No previous release/snapshot — restoring legacy backup..."
   rm -rf "$WEB_DIR/.next"
   mv "$BACKUP_DIR" "$WEB_DIR/.next"
   STANDALONE="$WEB_DIR/.next/standalone"
-  load_env
   export PORT=$PROD_PORT
   if [ -f "$PID_FILE" ]; then kill "$(cat "$PID_FILE")" 2>/dev/null || true; fi
   fuser -k $PROD_PORT/tcp 2>/dev/null || true
@@ -212,6 +249,7 @@ if [ "${1:-}" = "--rollback" ]; then
   sleep 3
   HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:$PROD_PORT/)
   echo "✅ Rolled back (legacy): HTTP $HTTP — PID $(cat "$PID_FILE")"
+  rollback_log "success" "legacy-backup" "$HTTP" "$(cat "$PID_FILE")"
   exit 0
 fi
 
@@ -519,6 +557,37 @@ else
 fi
 
 # ══════════════════════════════════════════════════════════════════════
+# G-11: Stamp deploy-manifest.json (after successful build+smoke, before swap)
+# Guardian consumers read this to know which sha/build is being promoted.
+# ══════════════════════════════════════════════════════════════════════
+{
+  MANIFEST_FILE="$WEB_DIR/.deploy-manifest.json"
+  MANIFEST_SHA="$(git -C "$WEB_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
+  MANIFEST_TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  if [ -f "$STANDALONE/.next/BUILD_ID" ]; then
+    MANIFEST_NEXT_HASH="$(md5sum "$STANDALONE/.next/BUILD_ID" 2>/dev/null | awk '{print $1}')"
+    [ -z "$MANIFEST_NEXT_HASH" ] && MANIFEST_NEXT_HASH="unknown"
+  else
+    MANIFEST_NEXT_HASH="unknown"
+  fi
+  MANIFEST_MSG="$(git -C "$WEB_DIR" log -1 --format=%B 2>/dev/null || echo '')"
+  MANIFEST_TASK="$(printf '%s' "$MANIFEST_MSG" | grep -oE 'T-[0-9A-Za-z_]+' | head -1)"
+  [ -z "$MANIFEST_TASK" ] && MANIFEST_TASK="manual"
+  MANIFEST_VERSION="$(node -e "try{process.stdout.write(String(require('$WEB_DIR/content/reports/version.json').version||'unknown'))}catch(e){process.stdout.write('unknown')}" 2>/dev/null)"
+  [ -z "$MANIFEST_VERSION" ] && MANIFEST_VERSION="unknown"
+  cat > "$MANIFEST_FILE" <<EOF
+{
+  "git_sha": "$MANIFEST_SHA",
+  "deployed_at": "$MANIFEST_TS",
+  "next_hash": "$MANIFEST_NEXT_HASH",
+  "task_id": "$MANIFEST_TASK",
+  "version": "$MANIFEST_VERSION"
+}
+EOF
+  echo "  📄 Manifest stamped → .deploy-manifest.json (sha ${MANIFEST_SHA:0:8}, task $MANIFEST_TASK)"
+} || echo "  ⚠ manifest stamp failed (non-fatal)"
+
+# ══════════════════════════════════════════════════════════════════════
 # GATE 8: Swap to Production (< 1s gap)
 # ══════════════════════════════════════════════════════════════════════
 gate "Swap to production port $PROD_PORT"
@@ -576,6 +645,34 @@ fi
 # ══════════════════════════════════════════════════════════════════════
 bash "$WEB_DIR/scripts/purge-cloudflare-cache.sh" 2>/dev/null && echo "  ✅ Cloudflare cache purged" || echo "  ⚠ Cloudflare purge skipped"
 rm -rf /tmp/nginx-blockid-cache/* 2>/dev/null && echo "  ✅ Nginx cache cleared" || true
+
+# ══════════════════════════════════════════════════════════════════════
+# G-11: Snapshot the successful release to /data/blockid-releases/ and
+# prune to the 5 most-recent snapshots. Runs AFTER swap + smoke succeed so
+# only verified builds are kept. Non-fatal — failure never breaks deploy.
+# ══════════════════════════════════════════════════════════════════════
+{
+  RELEASES_ARCHIVE="/data/blockid-releases"
+  mkdir -p "$RELEASES_ARCHIVE" 2>/dev/null || true
+  if [ -d "$RELEASES_ARCHIVE" ] && [ -w "$RELEASES_ARCHIVE" ]; then
+    ARCHIVE_SHA_SHORT="$(git -C "$WEB_DIR" rev-parse --short HEAD 2>/dev/null || echo nogit)"
+    ARCHIVE_DIR="$RELEASES_ARCHIVE/$(date +%Y-%m-%d)-$ARCHIVE_SHA_SHORT"
+    if [ ! -d "$ARCHIVE_DIR" ]; then
+      mkdir -p "$ARCHIVE_DIR"
+      # Hardlink copy — near-instant + tiny disk cost (release is immutable).
+      cp -al "$RELEASE_DIR/." "$ARCHIVE_DIR/" 2>/dev/null || cp -a "$RELEASE_DIR/." "$ARCHIVE_DIR/" 2>/dev/null || true
+      cp "$WEB_DIR/.deploy-manifest.json" "$ARCHIVE_DIR/.deploy-manifest.json" 2>/dev/null || true
+      echo "  📦 Snapshot → $ARCHIVE_DIR"
+    fi
+    # Prune: keep 5 newest by mtime; rm the rest.
+    ls -1dt "$RELEASES_ARCHIVE"/*/ 2>/dev/null | tail -n +6 | while read -r old; do
+      old="${old%/}"
+      rm -rf "$old" && echo "  🗑  Pruned old snapshot $(basename "$old")"
+    done
+  else
+    echo "  ⚠ /data/blockid-releases not writable — snapshot skipped"
+  fi
+} || echo "  ⚠ snapshot step failed (non-fatal)"
 
 # ══════════════════════════════════════════════════════════════════════
 # Summary
