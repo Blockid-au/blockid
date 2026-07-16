@@ -46,6 +46,22 @@
   --color-gold-500: #f59e0b;
   --color-gold-600: #d97706;
 
+  /* ── Luxury dark palette (opt-in via body[data-theme="lux"]) ── */
+  /* Extends the `brand` colour family: bg-brand-navy, text-brand-gold, … */
+  --color-brand-navy: #0A1628;
+  --color-brand-navy-elev-1: #0F1D33;
+  --color-brand-navy-elev-2: #152740;
+  --color-brand-gold: #C9A961;
+  --color-brand-gold-muted: #8B7A44;
+  --color-brand-cyan: #22D3EE;
+  --color-brand-cyan-muted: #0891B2;
+  --color-brand-ink: #E8E9EA;
+  --color-brand-ink-muted: #94A3B8;
+
+  /* ── Luxury background images (bg-lux-radial, bg-lux-gold-line) ── */
+  --background-image-lux-radial: radial-gradient(ellipse at top, #152740 0%, #0A1628 60%);
+  --background-image-lux-gold-line: linear-gradient(90deg, transparent 0%, #C9A961 50%, transparent 100%);
+
   /* ── Fonts ────────────────────────────────────────────────── */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, monospace;
@@ -447,4 +463,39 @@ body {
 .cta-glow-light:hover {
   box-shadow: 0 8px 32px -4px rgba(255, 255, 255, 0.4);
   transform: translateY(-2px);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LUXURY DARK THEME (W2 Homepage v2)
+   Opt-in — only applied when <body data-theme="lux"> is set
+   (gated by NEXT_PUBLIC_UPGRADE_V2 === 'true').
+   Legacy styles above are untouched for rollback.
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer utilities {
+  body[data-theme="lux"] .lux-card {
+    background: linear-gradient(180deg, #152740 0%, #0F1D33 100%);
+    border: 1px solid rgba(201, 169, 97, 0.12);
+    border-radius: 1rem;
+  }
+
+  body[data-theme="lux"] .lux-glow-gold {
+    box-shadow: 0 0 40px -12px rgba(201, 169, 97, 0.3);
+  }
+
+  body[data-theme="lux"] .lux-glow-cyan {
+    box-shadow: 0 0 40px -12px rgba(34, 211, 238, 0.35);
+  }
+
+  body[data-theme="lux"] .lux-divider {
+    height: 1px;
+    background-image: linear-gradient(90deg, transparent 0%, #C9A961 50%, transparent 100%);
+  }
+
+  body[data-theme="lux"] .lux-heading {
+    background: linear-gradient(120deg, #E8E9EA 0%, #C9A961 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
 }
