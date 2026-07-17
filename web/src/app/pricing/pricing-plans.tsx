@@ -29,6 +29,14 @@ export function PricingPlans({ tiers: tiersProp }: Props = {}) {
 
   return (
     <>
+      {/* 7-day free trial banner (Goal 1: freemium activation) */}
+      <div className="mx-auto mb-8 flex max-w-3xl flex-col items-center gap-2 rounded-2xl border border-brand-cyan-muted/30 bg-gradient-to-r from-brand-cyan/10 via-brand-blue/10 to-brand-cyan/10 px-6 py-4 text-center sm:flex-row sm:justify-center sm:gap-3">
+        <span aria-hidden="true" className="text-2xl">🎁</span>
+        <p className="text-sm sm:text-base font-semibold text-ink-900">
+          <span className="text-brand-cyan-muted">7-day free trial</span> on every monthly plan — cancel anytime before Day 8, no charge.
+        </p>
+      </div>
+
       {/* Monthly / Annual toggle */}
       <div className="flex items-center justify-center gap-3 mb-10">
         <span

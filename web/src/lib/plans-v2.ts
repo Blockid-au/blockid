@@ -110,7 +110,7 @@ const FOUNDER: Plan[] = [
     name: "Enterprise",
     monthly_aud: null,
     annual_aud: null,
-    trial_days: 14,
+    trial_days: 7,
     cta_kind: "contact",
     tagline: "Multi-entity groups",
     features: [
@@ -185,7 +185,7 @@ const INVESTOR: Plan[] = [
     name: "VC Enterprise",
     monthly_aud: null,
     annual_aud: null,
-    trial_days: 14,
+    trial_days: 7,
     cta_kind: "contact",
     tagline: "Fund-grade",
     features: [
@@ -207,7 +207,7 @@ const ACCELERATOR: Plan[] = [
     name: "Cohort Starter",
     monthly_aud: 500,
     annual_aud: 5000,
-    trial_days: 14,
+    trial_days: 7,
     cta_kind: "trial",
     tagline: "Up to 10 seats",
     features: [
@@ -224,7 +224,7 @@ const ACCELERATOR: Plan[] = [
     name: "Cohort Growth",
     monthly_aud: 1500,
     annual_aud: 15000,
-    trial_days: 14,
+    trial_days: 7,
     cta_kind: "trial",
     most_popular: true,
     tagline: "Up to 30 seats",
@@ -242,7 +242,7 @@ const ACCELERATOR: Plan[] = [
     name: "Cohort Scale",
     monthly_aud: 3500,
     annual_aud: 35000,
-    trial_days: 14,
+    trial_days: 7,
     cta_kind: "contact",
     tagline: "100+ seats, white-label",
     features: [
