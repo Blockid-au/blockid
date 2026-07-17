@@ -318,6 +318,9 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # BQ export of analytics_events — nightly 02:15 UTC / 12:15 AEST (T-1010)
 15 2 * * * bash $RUN bq-export --timeout 300
 
+# Nightly C-level review scaffold (Goal 5A T-1100) — 04:30 UTC / 14:30 AEST
+30 4 * * * bash $RUN nightly-clevel-review --timeout 300
+
 # Weekly metrics snapshot (Mon 09:00 UTC / 19:00 AEST) — MRR/ARR/churn
 0 9 * * 1 bash $RUN weekly-metrics --timeout 120
 
