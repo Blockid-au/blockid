@@ -38,14 +38,13 @@ begin
     ) as t(id, version, jurisdiction, kind, body_md)
   loop
     h := encode(digest(rec.body_md, 'sha256'), 'hex');
+    -- DO NOTHING (not DO UPDATE): once a disclaimer id is seeded its
+    -- body_md + hash MUST be immutable, because consent_events rows
+    -- reference the hash for audit-chain integrity. Text changes get a
+    -- new (id, version) tuple; existing rows are never overwritten.
     insert into disclaimer_registry (id, version, jurisdiction, kind, effective_from, body_md, hash)
     values (rec.id, rec.version, rec.jurisdiction, rec.kind, now(), rec.body_md, h)
-    on conflict (id) do update
-      set version       = excluded.version,
-          jurisdiction  = excluded.jurisdiction,
-          kind          = excluded.kind,
-          body_md       = excluded.body_md,
-          hash          = excluded.hash;
+    on conflict (id) do nothing;
   end loop;
 end $$;
 
