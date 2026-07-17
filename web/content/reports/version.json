@@ -1,15 +1,29 @@
 {
-  "version": "v2.0.0-beta.3",
-  "updated_at": "2026-07-17T00:15:00Z",
-  "git_sha": "f8c1a80b",
-  "release_id": "mLEzDY8V6ktK5-9SxgS3N",
+  "version": "v2.0.0-beta.4",
+  "updated_at": "2026-07-17T11:50:00Z",
+  "git_sha": "cc23123",
+  "release_id": "phase3-4-cro-legal-workspaces",
   "task_ids": [
-    "brand palette rebuild (navy #1B2A5E + cyan #22D3EE + blue #3B82F6, dropped gold)",
-    "NavV2 logo image (logo-icon-transparent.webp) + BlockID.au wordmark",
-    "7-day trial standardized across DB + plans-v2.ts (9 SKUs)",
-    "/pricing v2 (SegmentTabs + PricingMatrix 12 SKUs, dropped Founding-100 + Early-Bird promos)",
-    "UPGRADE_V2=true baked into build → v2 luxury homepage now default",
-    "Guardian: static+public unconditional copy, CSS smoke gate, uptime CSS probe"
+    "T-0410 lib/conversion/{triggers,experiments,lifecycle} + config/experiments.json",
+    "T-0412 UpgradeModal + UpgradeBanner + useUpgradePrompt (1/session cap + 24h cooldown)",
+    "T-0413 api/conversion/track + api/experiments/expose",
+    "T-0414+T-0415 lifecycle emails (day0/3/5/6/7/14/winback) + lifecycle-mailer cron */15min",
+    "T-0416 seed-stripe-coupons.ts (COMEBACK30 + DOWNGRADE_STARTER50)",
+    "T-0417 ExitSurvey + DowngradeOffer + churn_events wiring in api/stripe/cancel",
+    "T-0418 weekly-retention cron per segment (Mon 09:15 UTC)",
+    "T-0419 investor dealflow + watchlist + digest sub-pages",
+    "T-0420 advisor roster + notes sub-pages",
+    "T-0421 accelerator cohort + quarterly-report sub-pages",
+    "T-0422 /admin/pricing-metrics (MRR/ARR/GST accrual/trial-conversion/churn/runway)",
+    "T-0424+T-0425 disclaimer_registry seed (10 disclaimers × AU/GLOBAL) + PDF/DOCX footer stamper + withDisclaimer HOC",
+    "T-0426+T-0427 AutoRenewNotice + PrivacyBanner + api/legal/current-versions",
+    "T-0428 ToS v2 + Privacy v2 MDX (ACL, NSW jurisdiction, APPs 1-13)",
+    "T-0431 scripts/verify-equity-gate.sh (blockchain-sync gate)",
+    "T-0433 scripts/stripe-mock-webhook.mjs (HMAC v1 signed synthetic events)",
+    "T-0436 regression: credits + equity-request-call Playwright specs",
+    "T-0438 k6 load: pricing (100 VU p95<400) + checkout (20 VU p95<800)",
+    "T-0439 scripts/qa-release-gate.sh orchestrator",
+    "CLO regression fix: restored 20-item AU_COMPLIANCE_CHECKLIST + kept research topics"
   ],
-  "notes": "v2.0.0-beta.3 SHIPPED to prod 2026-07-17. Luxury dark homepage ACTIVE by default (UPGRADE_V2=true baked). Real BlockID brand: navy wordmark + cyan accent, no more gold. /pricing shows 12 SKUs across Founder/Investor/Advisor/Accelerator tabs, every recurring SKU has 7-day trial badge. All old promos (Founding-100, Growth Early-Bird, pricing-plans.tsx legacy toggle) removed. Guardian mechanism prevents CSS/static 404 regression via 3-layer defense (deploy gate + smoke test + uptime probe)."
+  "notes": "v2.0.0-beta.4 — Phase 3 (CRO stack) + Phase 4 partial (Legal/QA infra) landed. Trigger-driven upgrade CTAs with 1-per-session cap + server-side ab_assignments persistence. 7-step lifecycle drip (day0→winback) with A/B subject variants on day5. Save-offer paths (COMEBACK30 30% off 3mo, DOWNGRADE_STARTER50 50% off Starter 3mo, pause_30d, book_call) wired into cancel flow with churn_events writes. 8 legal disclaimers seeded via migration 0080 with sha256 body hashes for consent-chain integrity. CFO admin dashboard live at /admin/pricing-metrics. QA release-gate orchestrator wraps grep+equity gates + tsc + vitest + Playwright regression. Ready for staged rollout gated by NEXT_PUBLIC_UPGRADE_V2."
 }
