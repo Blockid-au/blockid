@@ -16,31 +16,33 @@
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ScrollText } from "lucide-react";
-import { NavV2 } from "@/components/landing/nav-v2";
-import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
+import { MarketingShell } from "@/components/marketing/marketing-shell";
+import { MarketingHero } from "@/components/marketing/marketing-hero";
+import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
 
 const SITE_URL = "https://blockid.au";
 
 type DocSlug = "terms" | "privacy" | "disclaimers";
 
-const DOC_META: Record<DocSlug, { title: string; description: string }> = {
+const DOC_META: Record<DocSlug, { title: string; description: string; heading: string }> = {
   terms: {
     title: "Terms of Service — BlockID.au",
     description:
       "Auschain PTY LTD Terms of Service governing use of the BlockID.au platform.",
+    heading: "Terms of Service",
   },
   privacy: {
     title: "Privacy Policy — BlockID.au",
     description:
       "How Auschain PTY LTD collects, holds, uses, and discloses personal information under the Privacy Act 1988 (Cth).",
+    heading: "Privacy Policy",
   },
   disclaimers: {
     title: "Legal disclaimers — BlockID.au",
     description:
       "Canonical disclaimers surfaced across BlockID.au — advice, wholesale, equity offer, share issuance, trial, and more.",
+    heading: "Legal disclaimers",
   },
 };
 
@@ -48,8 +50,8 @@ function isDocSlug(v: string): v is DocSlug {
   return v === "terms" || v === "privacy" || v === "disclaimers";
 }
 
-// Read at request time so a hot-swap of a legal MDX file (e.g. an ACL s31
-// 14-day notice window bump) does not require a full rebuild.
+// Read at request time so a hot-swap of a legal MDX file does not require a
+// full rebuild.
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -78,8 +80,6 @@ export async function generateMetadata({
 // ---------------------------------------------------------------------------
 
 function contentRoot(): string {
-  // Match the multi-path fallback used by /changelog + /roadmap so this works
-  // whether `next start` is invoked from web/ or from repo root.
   const candidates = [
     path.join(process.cwd(), "content"),
     path.join(process.cwd(), "web", "content"),
@@ -96,9 +96,6 @@ function contentRoot(): string {
 }
 
 function stripFrontmatter(mdx: string): string {
-  // Trim a leading `--- ... ---` block. Simple state machine so we do not
-  // need a YAML parser. Also strip an optional BOM (U+FEFF) code-point if
-  // the MDX file was saved with one.
   const noBom =
     mdx.charCodeAt(0) === 0xfeff ? mdx.slice(1) : mdx;
   if (!noBom.startsWith("---")) return noBom;
@@ -122,8 +119,6 @@ function readLegalBody(doc: DocSlug): string | null {
       );
       return stripFrontmatter(raw);
     }
-    // disclaimers → concatenate every English disclaimer in filename order so
-    // the output is stable across deploys.
     const dir = path.join(root, "legal", "disclaimers");
     const entries = readdirSync(dir)
       .filter((f) => f.endsWith("-en.mdx"))
@@ -140,9 +135,7 @@ function readLegalBody(doc: DocSlug): string | null {
 }
 
 // ---------------------------------------------------------------------------
-// Minimal markdown → HTML string renderer (mirrors /changelog).
-// Supported: # / ## / ###, `- item` lists, **bold**, `code`, paragraphs, and
-// `---` horizontal rules (used as file separators when concatenating).
+// Minimal markdown → HTML string renderer.
 // ---------------------------------------------------------------------------
 
 function escapeHtml(input: string): string {
@@ -158,11 +151,11 @@ function renderInline(input: string): string {
   let s = escapeHtml(input);
   s = s.replace(
     /`([^`]+)`/g,
-    '<code class="rounded bg-brand-navy-deep/60 px-1.5 py-0.5 text-[0.85em] text-brand-cyan">$1</code>',
+    '<code class="rounded bg-[var(--fintech-surface)] px-1.5 py-0.5 text-[0.85em] text-[var(--fintech-accent)]">$1</code>',
   );
   s = s.replace(
     /\*\*([^*]+)\*\*/g,
-    '<strong class="font-semibold text-brand-ink">$1</strong>',
+    '<strong class="font-semibold text-[var(--fintech-ink)]">$1</strong>',
   );
   return s;
 }
@@ -182,7 +175,7 @@ function renderMarkdown(md: string): string {
   const flushPara = () => {
     if (paraBuf.length > 0) {
       out.push(
-        `<p class="mt-3 leading-relaxed text-brand-ink-muted">${renderInline(
+        `<p class="mt-3 leading-relaxed text-[var(--fintech-ink-muted)]">${renderInline(
           paraBuf.join(" "),
         )}</p>`,
       );
@@ -202,7 +195,7 @@ function renderMarkdown(md: string): string {
     if (trimmed === "---") {
       flushPara();
       flushList();
-      out.push('<hr class="my-10 border-brand-cyan/15" />');
+      out.push('<hr class="my-10 border-[var(--fintech-border)]" />');
       continue;
     }
 
@@ -210,7 +203,7 @@ function renderMarkdown(md: string): string {
       flushPara();
       flushList();
       out.push(
-        `<h3 class="mt-8 text-lg font-semibold tracking-tight text-brand-ink">${renderInline(
+        `<h3 class="mt-8 text-lg font-semibold tracking-tight text-[var(--fintech-ink)]">${renderInline(
           trimmed.slice(4),
         )}</h3>`,
       );
@@ -220,7 +213,7 @@ function renderMarkdown(md: string): string {
       flushPara();
       flushList();
       out.push(
-        `<h2 class="mt-12 text-2xl font-bold tracking-tight text-brand-ink sm:text-3xl">${renderInline(
+        `<h2 class="mt-12 text-2xl font-bold tracking-tight text-[var(--fintech-ink)] sm:text-3xl">${renderInline(
           trimmed.slice(3),
         )}</h2>`,
       );
@@ -230,7 +223,7 @@ function renderMarkdown(md: string): string {
       flushPara();
       flushList();
       out.push(
-        `<h1 class="mt-6 text-3xl font-bold tracking-tight text-brand-ink sm:text-4xl">${renderInline(
+        `<h1 class="mt-6 text-3xl font-bold tracking-tight text-[var(--fintech-ink)] sm:text-4xl">${renderInline(
           trimmed.slice(2),
         )}</h1>`,
       );
@@ -240,7 +233,7 @@ function renderMarkdown(md: string): string {
       flushPara();
       if (!inList) {
         out.push(
-          '<ul class="mt-4 space-y-2 list-disc pl-6 text-brand-ink-muted marker:text-brand-cyan/70">',
+          '<ul class="mt-4 space-y-2 list-disc pl-6 text-[var(--fintech-ink-muted)] marker:text-[var(--fintech-accent)]">',
         );
         inList = true;
       }
@@ -249,7 +242,6 @@ function renderMarkdown(md: string): string {
       );
       continue;
     }
-    // HTML-comment guard: pass raw through as a paragraph would be wrong; drop.
     if (trimmed.startsWith("<!--")) continue;
 
     flushList();
@@ -275,84 +267,40 @@ export default async function LegalDocPage({
   if (!isDocSlug(doc)) notFound();
   const body = readLegalBody(doc);
   const html = body ? renderMarkdown(body) : null;
-
-  const label =
-    doc === "terms"
-      ? "Terms of Service"
-      : doc === "privacy"
-        ? "Privacy Policy"
-        : "Legal disclaimers";
+  const meta = DOC_META[doc];
 
   return (
-    <div data-theme="lux" className="min-h-svh bg-brand-navy-deep text-brand-ink">
-      <NavV2 />
+    <MarketingShell>
+      <MarketingHero
+        eyebrow="Legal"
+        title={meta.heading}
+        subtitle={meta.description}
+      />
 
-      <main className="mx-auto max-w-3xl px-4 pb-24 pt-16 sm:px-6">
-        <div className="text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-brand-cyan/30 bg-brand-cyan/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-cyan">
-            <ScrollText aria-hidden="true" className="h-3.5 w-3.5" />
-            Legal
-          </span>
-          <h1 className="mt-6 text-4xl font-bold tracking-tight text-brand-ink sm:text-5xl">
-            {label}
-          </h1>
-        </div>
-
-        <article className="mt-12 rounded-2xl border border-brand-cyan/15 bg-brand-navy-elev-1 p-8 sm:p-10">
+      <section
+        aria-label={`${meta.heading} body`}
+        className="mx-auto max-w-3xl px-6 pb-12"
+      >
+        <article className="rounded-3xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-8 sm:p-10">
           {html ? (
             <div
               className="text-sm sm:text-base"
               dangerouslySetInnerHTML={{ __html: html }}
             />
           ) : (
-            <p className="text-sm text-brand-ink-muted">
+            <p className="text-sm text-[var(--fintech-ink-muted)]">
               Document not yet published for this environment. The next deploy
               will populate this page.
             </p>
           )}
         </article>
-      </main>
+      </section>
 
-      <footer className="border-t border-white/5 bg-brand-navy-deep">
-        <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <p className="text-xs text-brand-ink-muted">
-              &copy; {new Date().getFullYear()} Auschain Pty Ltd (ACN 659 615
-              111). BlockID.au.
-            </p>
-            <nav aria-label="Footer">
-              <ul className="flex flex-wrap items-center gap-4 text-xs text-brand-ink-muted">
-                <li>
-                  <Link href="/legal/terms" className="hover:text-brand-ink">
-                    Terms
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/legal/privacy" className="hover:text-brand-ink">
-                    Privacy
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/legal/disclaimers"
-                    className="hover:text-brand-ink"
-                  >
-                    Disclaimers
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/changelog" className="hover:text-brand-ink">
-                    Changelog
-                  </Link>
-                </li>
-              </ul>
-            </nav>
-          </div>
-          <div className="mt-6">
-            <NotFinancialAdvice kind="not_financial_advice" compact />
-          </div>
-        </div>
-      </footer>
-    </div>
+      <MarketingCtaStrip
+        headline="Questions about the fine print?"
+        primary={{ href: "/contact?topic=legal", label: "Contact legal" }}
+        secondary={{ href: "/legal/disclaimers", label: "All disclaimers" }}
+      />
+    </MarketingShell>
   );
 }

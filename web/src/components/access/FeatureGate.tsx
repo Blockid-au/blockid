@@ -10,6 +10,7 @@ import Link from "next/link";
 import { Lock, Sparkles } from "lucide-react";
 
 import { useEntitlement } from "@/hooks/useEntitlement";
+import { useUpgradePrompt } from "@/hooks/useUpgradePrompt";
 import type { Feature } from "@/lib/entitlements";
 
 export interface FeatureGateProps {
@@ -37,6 +38,7 @@ export function FeatureGate({
   const { can, isLoading } = useEntitlement();
   const allowed = can(feature);
   const firedRef = React.useRef(false);
+  const promptCtx = useUpgradePrompt();
 
   React.useEffect(() => {
     if (isLoading || allowed) return;
@@ -50,6 +52,20 @@ export function FeatureGate({
       onGateHit?.();
     } catch {
       // consumer callback threw — do not break render
+    }
+
+    // Ask the client-side CRO stack to render its CTA (UpgradeModal /
+    // UpgradeBanner) for this feature_gate_hit. The hook returns a
+    // per-instance state object (not a shared context) — call safely and
+    // let the hook's own cool-down + session-cap logic decide whether to
+    // fire. If the hook is unavailable we silently skip.
+    try {
+      promptCtx?.request?.("feature_gate_hit", {
+        feature,
+        requiredPlan: label ?? undefined,
+      });
+    } catch {
+      // never let a CTA request break the gated render path
     }
     if (typeof window !== "undefined") {
       window.dispatchEvent(

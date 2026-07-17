@@ -3,21 +3,19 @@
  *
  * The homepage hero-search form navigates to /svi?query=<x>. This route
  * renders a placeholder "Analysing …" card so the user has a landing surface
- * while the real search-to-scan pipeline is being wired up (tracked under
- * T-0319, ships with /svi live-lookup and streaming SVI badge). For MVP it
+ * while the real search-to-scan pipeline is being wired up. For MVP it
  * simply reflects the query back, explains what a full scan involves, and
  * routes them onward to /pricing (paid scan) or /score (self-serve form).
  *
  * Server component. `robots: noindex, nofollow` because the URL is a
- * search-result surface with no static content worth ranking; keeping it out
- * of the index avoids duplicate-thin-content signals during the MVP phase.
+ * search-result surface with no static content worth ranking.
  */
 
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ArrowRight, Search } from "lucide-react";
-import { NavV2 } from "@/components/landing/nav-v2";
-import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
+import { MarketingShell } from "@/components/marketing/marketing-shell";
+import { MarketingHero } from "@/components/marketing/marketing-hero";
+import { MarketingSection } from "@/components/marketing/marketing-section";
+import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
 
 const SITE_URL = "https://blockid.au";
 const MAX_QUERY_LEN = 120;
@@ -60,101 +58,73 @@ export default async function SVISearchPage({
   const query = sanitiseQuery(firstString(sp.query));
   const displayQuery = query.length > 0 ? query : "";
 
+  const heroTitle =
+    displayQuery.length > 0 ? `Analysing ${displayQuery}…` : "Search a startup";
+  const heroSubtitle =
+    displayQuery.length > 0
+      ? "We are matching your query against public filings, product signals, and comparable-round data. A live SVI badge and short evidence chain will appear here once the streaming lookup ships."
+      : "Type a company name in the homepage search bar to see a live investor-readiness lookup. Full scans take about 30 seconds and pull from ASIC, LinkedIn, product signals, and comparables.";
+
   return (
-    <div data-theme="lux" className="min-h-svh bg-brand-navy-deep text-brand-ink">
-      <NavV2 />
+    <MarketingShell>
+      <MarketingHero
+        eyebrow="Investor-readiness lookup"
+        title={heroTitle}
+        subtitle={heroSubtitle}
+        primaryCta={{
+          href: "/pricing?utm_source=svi_placeholder",
+          label: "Run a full scan",
+        }}
+        secondaryCta={{ href: "/score", label: "Free self-serve form" }}
+      />
 
-      <main className="mx-auto max-w-4xl px-4 pb-24 pt-12 sm:px-6">
-        <div className="rounded-2xl border border-brand-cyan/20 bg-brand-navy/60 p-8 shadow-2xl">
-          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-brand-cyan">
-            <Search aria-hidden="true" className="h-3.5 w-3.5" />
-            Investor-readiness lookup
-          </p>
-          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-brand-ink sm:text-4xl">
-            {displayQuery.length > 0
-              ? `Analysing ${displayQuery}…`
-              : "Search a startup"}
-          </h1>
-          <p className="mt-4 max-w-2xl text-base text-brand-ink-muted">
-            {displayQuery.length > 0
-              ? "We are matching your query against public filings, product signals, and comparable-round data. A live SVI badge and short evidence chain will appear here once the streaming lookup ships."
-              : "Type a company name in the homepage search bar to see a live investor-readiness lookup. Full scans take about 30 seconds and pull from ASIC, LinkedIn, product signals, and comparables."}
-          </p>
-
-          <div className="mt-8 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-white/10 bg-brand-navy p-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-cyan">
-                What a full scan returns
-              </p>
-              <ul className="mt-3 space-y-1.5 text-sm text-brand-ink-muted">
-                <li>SVI score across 13 evaluation criteria.</li>
-                <li>Valuation snapshot (DCF, Berkus, Scorecard, comps).</li>
-                <li>Cap-table + ESOP dilution modelling.</li>
-                <li>Shareable investor-pack PDF.</li>
-              </ul>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-brand-navy p-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-cyan">
-                Next step
-              </p>
-              <p className="mt-3 text-sm text-brand-ink-muted">
-                Run a paid scan for the full 8-dimension breakdown, or take the
-                free self-serve form for a top-line snapshot in under two
-                minutes.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Link
-              href="/pricing?utm_source=svi_placeholder"
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-brand-cyan px-5 text-sm font-semibold text-brand-navy transition duration-200 hover:bg-brand-blue-bright focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
-            >
-              Run a full scan
-              <ArrowRight aria-hidden="true" className="h-4 w-4" />
-            </Link>
-            <Link
-              href="/score"
-              className="inline-flex h-11 items-center justify-center rounded-lg border border-brand-ink/20 px-5 text-sm font-semibold text-brand-ink transition-colors duration-200 hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
-            >
-              Free self-serve form
-            </Link>
-          </div>
-        </div>
-      </main>
-
-      <footer className="border-t border-white/5 bg-brand-navy-deep">
-        <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <p className="text-xs text-brand-ink-muted">
-              &copy; {new Date().getFullYear()} Auschain Pty Ltd (ACN 659 615
-              111). BlockID.au.
+      <section
+        aria-label="Scan details"
+        className="mx-auto max-w-5xl px-6 py-6 sm:py-10"
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]">
+              What a full scan returns
             </p>
-            <nav aria-label="Footer">
-              <ul className="flex flex-wrap items-center gap-4 text-xs text-brand-ink-muted">
-                <li>
-                  <Link href="/pricing" className="hover:text-brand-ink">
-                    Pricing
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/changelog" className="hover:text-brand-ink">
-                    Changelog
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/privacy" className="hover:text-brand-ink">
-                    Privacy
-                  </Link>
-                </li>
-              </ul>
-            </nav>
+            <ul className="mt-3 space-y-1.5 text-sm text-[var(--fintech-ink-muted)]">
+              <li>SVI score across 13 evaluation criteria.</li>
+              <li>Valuation snapshot (DCF, Berkus, Scorecard, comps).</li>
+              <li>Cap-table + ESOP dilution modelling.</li>
+              <li>Shareable investor-pack PDF.</li>
+            </ul>
           </div>
-          <div className="mt-6">
-            <NotFinancialAdvice kind="not_financial_advice" compact />
+          <div className="rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]">
+              Next step
+            </p>
+            <p className="mt-3 text-sm text-[var(--fintech-ink-muted)]">
+              Run a paid scan for the full 8-dimension breakdown, or take the
+              free self-serve form for a top-line snapshot in under two
+              minutes.
+            </p>
           </div>
         </div>
-      </footer>
-    </div>
+      </section>
+
+      <MarketingSection
+        tone="elevated"
+        title="Why founders run a full scan"
+        kicker="Signal"
+      >
+        <p className="text-sm leading-relaxed text-[var(--fintech-ink-muted)]">
+          The free self-serve form gives you a top-line number. A full scan
+          gives you the evidence chain — every score anchored to a source
+          you can inspect, plus a shareable investor-pack PDF that dulls
+          the sharp edges of a cold intro.
+        </p>
+      </MarketingSection>
+
+      <MarketingCtaStrip
+        headline="Turn the lookup into a live investor pack."
+        primary={{ href: "/pricing?utm_source=svi_cta", label: "Choose a plan" }}
+        secondary={{ href: "/demo", label: "Book a demo" }}
+      />
+    </MarketingShell>
   );
 }
