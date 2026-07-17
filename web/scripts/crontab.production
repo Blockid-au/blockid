@@ -295,3 +295,28 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Orchestrator: research→plan→upgrade→code→test→deploy→QA→fix→report
 # CI/CD: auto-improve → tsc → lint → autofix → deploy-live → GitHub
 # Reports: Telegram (real-time) + Email (daily) + CEO summary
+
+# ═══════════════════════════════════════════════════════════════════
+# Goal 4 — Continuous CI/CD + Uptime Guardian (added v2.0.0-beta.3)
+# ═══════════════════════════════════════════════════════════════════
+
+# Uptime watcher (1-min HTTP + CSS deep probe → graduated auto-recovery)
+* * * * * bash /home/dovanlong/blockid.au/web/scripts/uptime-watcher.sh >> /tmp/blockid-uptime.log 2>&1
+
+# Trial-end reminder (T-3d nudge)  — hourly
+5 * * * * bash $RUN trial-end-reminder --timeout 60
+
+# Dunning retry (past_due Stripe subs, 4-attempt cap) — every 6h
+15 */6 * * * bash $RUN dunning-retry --timeout 90
+
+# Weekly metrics snapshot (Mon 09:00 UTC / 19:00 AEST) — MRR/ARR/churn
+0 9 * * 1 bash $RUN weekly-metrics --timeout 120
+
+# Server cleanup (docker/npm/logs/reports) — every 4h
+0 */4 * * * bash /home/dovanlong/blockid.au/web/scripts/server-cleanup.sh --disk-only >> /tmp/blockid-cleanup.log 2>&1
+
+# Performance audit (Lighthouse CI on 5 routes) — hourly
+30 * * * * bash $RUN performance-audit --timeout 300 || true
+
+# Audit-chain verification (append-only hash chain integrity) — nightly 01:00
+0 1 * * * node /home/dovanlong/blockid.au/web/scripts/verify-audit-chain.ts >> /tmp/blockid-audit-verify.log 2>&1
