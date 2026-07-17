@@ -1,22 +1,20 @@
 {
-  "version": "v2.0.0-beta.8",
-  "updated_at": "2026-07-17T14:20:00Z",
-  "git_sha": "b0e0ccf",
-  "release_id": "phase10-goal-5-plans-perf-security-cleanup",
+  "version": "v2.0.0-beta.9",
+  "updated_at": "2026-07-17T15:45:00Z",
+  "git_sha": "6cec852",
+  "release_id": "phase11-goal5a-t1100-goal5b-t1200-t1201",
   "task_ids": [
-    "T-1012 security.txt (RFC 9116) at /.well-known/security.txt",
-    "T-1013 wholesale gate wired at api/equity/request (fail-closed 403 before consent_events write)",
-    "T-1014 4 incident-response runbooks (secret-leak, rls-bypass, wholesale-gate-breach, privacy-act-72h-clock)",
-    "T-1011 DMARC re-enable command documented in scripts/dns/update-dmarc.sh (awaits dmarc-reports@ alias)",
-    "Perf: next.config.ts compress:true + experimental.optimizePackageImports(lucide-react, recharts)",
-    "Perf: /roadmap page.tsx module-scope versionCache with 30s TTL (drops fs.readFileSync per request)",
-    "Perf: scripts/perf-cleanup-report.sh (releases disk-usage audit tool)",
-    "Goal 5A execution plan (autonomous nightly C-level review, T-1100..T-1108, 4 weeks)",
-    "Goal 5B execution plan (investor-pack v2 one-click PDF, T-1200..T-1211, 5 weeks)",
-    "Goal 5C execution plan (public AU startup index /index + /listings/[ticker], T-1300..T-1314, 6 weeks)",
-    "Goal 5D execution plan (Vietnamese-Australian founder cohort, T-1400..T-1411, 6 weeks)",
-    "docs/orchestrator-goal-tracking.md — cross-goal deps + WSJF master task list",
-    "platform-roadmap.tsx workspace component — extended PLATFORM_STAGES with 4 new Goal-5 entries"
+    "T-1100 Goal 5A nightly C-level review orchestrator (stub mode; LLM wiring deferred to T-1102)",
+    "T-1100 scripts/nightly-clevel-review.mjs — 6-persona enumerator + version-scoped stub writer + history jsonl",
+    "T-1100 api/cron/nightly-clevel-review — fail-closed CRON_SECRET route + tsx spawn",
+    "T-1100 crontab.production — 30 4 * * * (14:30 AEST daily)",
+    "T-1200 Goal 5B investor-pack PDF template (lib/pdf/investor-pack.tsx)",
+    "T-1200 InvestorPackData interface + renderInvestorPack helper + InvestorPackPdf React.FC",
+    "T-1200 6 sections: cover / exec / SVI 13-criteria / cap table / traction chart / one-page teaser",
+    "T-1200 Every page: NFA footer + version stamp + Auschain PTY LTD ACN/ABN",
+    "T-1201 api/investor-pack/preview — auth-gated, application/pdf, inline or ?download=1 attachment",
+    "T-1201 workspace/investor-pack page — Preview + Generate PDF cards + share-link placeholder",
+    "T-1200 __tests__/investor-pack.test.ts vitest: minimal→non-empty + full→larger-than-minimal"
   ],
-  "notes": "v2.0.0-beta.8 — Phase 10 landing. 3 parallel agents shipped: security cleanup (security.txt + 4 runbooks + wholesale gate + DMARC prep), perf audit (3/5 wins implemented + report), orchestrator goal-builder (4 Goal-5 execution plans + cross-goal tracking + workspace platform-roadmap extended). Total: 8H tasks closed since beta.6, 4 new goals now execution-ready, 42 new T-11xx..T-14xx tasks queued. Live smoke: all 13 public pages 200, CSP nonce+strict-dynamic, healthz db+chain OK, DMARC config-driven and admin@ dropped from rua."
+  "notes": "v2.0.0-beta.9 — Phase 11 landing. First implementation touches on 2 of the 4 new Goals: Goal 5A (autonomous quality gate) has its scaffold cron running in stub mode nightly; Goal 5B (investor pack v2) has a full-fidelity PDF template + preview route + workspace surface. Deferred: T-1102 LLM wiring for real C-level reviews; T-1207 share-link creation with revocation; T-1210 PDF encryption for wholesale. Next milestone will pick up T-1102 (LLM-driven nightly review) + T-1300 (Goal 5C startup index schema)."
 }
