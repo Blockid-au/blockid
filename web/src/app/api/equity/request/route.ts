@@ -20,6 +20,7 @@ import { recordConsent, hashDisclaimerBody } from "@/lib/consent";
 import { appendAudit } from "@/lib/audit";
 import { DISCLAIMER_VERSIONS } from "@/lib/legal/versions";
 import { getSurface } from "@/lib/legal/surfaces";
+import { assertWholesaleCertified, LegalGateError } from "@/lib/legal/gates";
 import { detectJurisdiction } from "@/lib/jurisdiction";
 import { sendTelegram, mdEscape } from "@/lib/telegram";
 import { sendEmail } from "@/lib/email";
@@ -62,6 +63,32 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { ok: false, reason: "Authentication required" },
       { status: 401 },
+    );
+  }
+
+  // ---- Wholesale-investor fail-closed gate (T-1013 / CISO §5) ----
+  // Non-certified users MUST NOT reach any consent-write or equity-intake
+  // path. Corporations Act 2001 s708(8)/(11) certification is a hard
+  // precondition for the offer surface; a bypass here is a s911A breach
+  // (see docs/runbooks/wholesale-gate-breach.md).
+  try {
+    await assertWholesaleCertified(user.id);
+  } catch (err) {
+    if (err instanceof LegalGateError && err.code === "wholesale_required") {
+      return NextResponse.json(
+        {
+          ok: false,
+          reason: "wholesale_verification_required",
+          link: "/wholesale/verify",
+        },
+        { status: 403 },
+      );
+    }
+    const status = err instanceof LegalGateError ? err.status : 500;
+    const code = err instanceof LegalGateError ? err.code : "gate_failed";
+    return NextResponse.json(
+      { ok: false, reason: code },
+      { status },
     );
   }
 
