@@ -13,14 +13,23 @@ const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID;
  * - Both push to window.dataLayer so custom events from trackEvent() work
  *   regardless of which tag management strategy is used.
  */
-export function GoogleAnalytics() {
+export interface GoogleAnalyticsProps {
+  /**
+   * CSP nonce piped through from the root layout (which reads it from the
+   * `x-nonce` header set by `web/src/proxy.ts`). Threaded onto every inline
+   * `<Script>` so they satisfy the strict `script-src 'nonce-...'` directive.
+   */
+  nonce?: string;
+}
+
+export function GoogleAnalytics({ nonce }: GoogleAnalyticsProps = {}) {
   if (!GA_MEASUREMENT_ID && !GTM_ID) return null;
 
   return (
     <>
       {/* ── Google Tag Manager (if configured) ── */}
       {GTM_ID && (
-        <Script id="gtm-init" strategy="afterInteractive">
+        <Script id="gtm-init" strategy="afterInteractive" nonce={nonce}>
           {`
             (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
             new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -37,8 +46,9 @@ export function GoogleAnalytics() {
           <Script
             src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
             strategy="afterInteractive"
+            nonce={nonce}
           />
-          <Script id="google-analytics" strategy="afterInteractive">
+          <Script id="google-analytics" strategy="afterInteractive" nonce={nonce}>
             {`
               window.dataLayer = window.dataLayer || [];
               function gtag(){dataLayer.push(arguments);}
