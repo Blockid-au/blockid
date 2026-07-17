@@ -117,19 +117,47 @@ type QuarterPhase = {
 // Data loaders
 // ---------------------------------------------------------------------------
 
+// Module-scope cache. /roadmap is `force-dynamic`, so without this the file
+// was re-parsed on every request. version.json only changes on deploy —
+// mtime-check + 30s TTL keeps TTFB flat while still picking up new releases.
+type VersionCache = { data: VersionFile | null; expiresAt: number; mtimeMs: number };
+let versionCache: VersionCache | null = null;
+const VERSION_CACHE_TTL_MS = 30_000;
+
 function readVersion(): VersionFile | null {
+  const now = Date.now();
+  if (versionCache && versionCache.expiresAt > now) {
+    return versionCache.data;
+  }
   const candidates = [
     path.join(process.cwd(), "content", "reports", "version.json"),
     path.join(process.cwd(), "web", "content", "reports", "version.json"),
   ];
   for (const p of candidates) {
     try {
+      const stat = fs.statSync(p);
+      if (versionCache && versionCache.mtimeMs === stat.mtimeMs) {
+        // File unchanged — extend TTL, skip re-parse.
+        versionCache = {
+          data: versionCache.data,
+          expiresAt: now + VERSION_CACHE_TTL_MS,
+          mtimeMs: stat.mtimeMs,
+        };
+        return versionCache.data;
+      }
       const raw = fs.readFileSync(p, "utf-8");
-      return JSON.parse(raw) as VersionFile;
+      const data = JSON.parse(raw) as VersionFile;
+      versionCache = {
+        data,
+        expiresAt: now + VERSION_CACHE_TTL_MS,
+        mtimeMs: stat.mtimeMs,
+      };
+      return data;
     } catch {
       // try next candidate
     }
   }
+  versionCache = { data: null, expiresAt: now + VERSION_CACHE_TTL_MS, mtimeMs: 0 };
   return null;
 }
 
