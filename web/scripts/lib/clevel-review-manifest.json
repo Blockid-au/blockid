@@ -1,0 +1,37 @@
+{
+  "$comment": "Per-persona evidence file list for T-1102 nightly LLM review. Paths are repo-root-relative. Missing files are logged and skipped at runtime, not fatal.",
+  "cto": [
+    "web/CHANGELOG.md",
+    "web/scripts/deploy-live.sh",
+    "web/package.json",
+    "docs/IMPLEMENTATION-PLAN-v3.md"
+  ],
+  "cfo": [
+    "web/src/lib/plans-v2.ts",
+    "web/src/lib/gst.ts",
+    "web/src/app/admin/pricing-metrics/page.tsx",
+    "docs/analytics/dashboards.md"
+  ],
+  "cdo": [
+    "web/src/lib/analytics.ts",
+    "web/src/lib/analytics/events.ts",
+    "docs/analytics/dashboards.md"
+  ],
+  "ciso": [
+    "web/src/lib/legal/gates.ts",
+    "web/src/lib/audit.ts",
+    "web/src/proxy.ts",
+    "docs/AUDIT-CHAIN-RUNBOOK.md"
+  ],
+  "cro": [
+    "web/src/lib/conversion/triggers.ts",
+    "web/src/lib/conversion/experiments.ts",
+    "web/config/experiments.json",
+    "web/src/components/upsell/upgrade-modal.tsx"
+  ],
+  "cmo": [
+    "web/src/app/sitemap.ts",
+    "web/content/marketing/roadmap.md",
+    "docs/goal-5c-au-startup-public-index.md"
+  ]
+}
