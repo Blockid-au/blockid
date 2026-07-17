@@ -13,6 +13,7 @@
 // the CFO report pipeline without any UI or network dependency.
 
 import { BENCHMARKS, type StageBenchmarks } from "../benchmarks";
+import { VC_BENCHMARKS, type Sector } from "./cfo-valuation";
 
 export type Stage = "pre-seed" | "seed" | "series-a" | "series-b";
 
@@ -36,6 +37,22 @@ export interface ProjectionInput {
   arpuAud?: number;
   /** Operating margin % (positive for profitable). */
   operatingMarginPct?: number;
+  /** Sector for sector-specific ARR multiple benchmarking (T0122). */
+  sector?: string;
+}
+
+/**
+ * Sector-specific ARR multiple benchmark and the implied comparables
+ * valuation range at the founder's current ARR. Populated when the
+ * caller supplies a `sector` on ProjectionInput. Multiples sourced from
+ * Bessemer Cloud Index, SaaS Capital, PitchBook, and Carta State of
+ * Private Markets 2025 (see VC_BENCHMARKS in cfo-valuation.ts).
+ */
+export interface SectorMultipleBenchmark {
+  sector: Sector;
+  arrMultiple: { low: number; mid: number; high: number };
+  impliedValuationAud: { low: number; mid: number; high: number };
+  sources: string[];
 }
 
 export interface NormScore {
@@ -62,6 +79,8 @@ export interface ProjectionNorms {
   overallVerdict: Verdict;
   summary: string;
   sources: string[];
+  /** Sector ARR multiple benchmark (only present when `sector` is provided). */
+  sectorMultiple?: SectorMultipleBenchmark;
 }
 
 const SOURCES = [
@@ -222,6 +241,24 @@ function noteFor(metric: string, verdict: Verdict, stage: Stage): string {
   return notes[metric]?.[verdict] ?? `Track ${metric} weekly against your ${stageLabel} cohort.`;
 }
 
+function pickSectorBenchmark(sector: string | undefined, arrAud: number): SectorMultipleBenchmark | undefined {
+  if (!sector) return undefined;
+  const key = sector.toLowerCase();
+  const bm = (VC_BENCHMARKS as Record<string, (typeof VC_BENCHMARKS)[keyof typeof VC_BENCHMARKS]>)[key];
+  if (!bm) return undefined;
+  const arr = Math.max(0, arrAud);
+  return {
+    sector: bm.sector,
+    arrMultiple: bm.arrMultiple,
+    impliedValuationAud: {
+      low: Math.round(arr * bm.arrMultiple.low),
+      mid: Math.round(arr * bm.arrMultiple.mid),
+      high: Math.round(arr * bm.arrMultiple.high),
+    },
+    sources: bm.sources,
+  };
+}
+
 export function computeProjectionNorms(input: ProjectionInput): ProjectionNorms {
   const { stage, bm } = pickStage(input);
   const arrAud = Math.max(0, input.mrrAud * 12);
@@ -372,6 +409,8 @@ export function computeProjectionNorms(input: ProjectionInput): ProjectionNorms 
     ? `Overall ${overallVerdict} for ${stage.replace("-", " ")}. Strongest: ${strongest.label} (${strongest.score}/100). Focus next on ${weakest.label} (${weakest.score}/100).`
     : `Insufficient data to score — provide MRR, growth, churn, and gross margin.`;
 
+  const sectorMultiple = pickSectorBenchmark(input.sector, arrAud);
+
   return {
     stage,
     arrAud,
@@ -380,5 +419,6 @@ export function computeProjectionNorms(input: ProjectionInput): ProjectionNorms 
     overallVerdict,
     summary,
     sources: SOURCES,
+    ...(sectorMultiple ? { sectorMultiple } : {}),
   };
 }
