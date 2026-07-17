@@ -446,6 +446,22 @@ for pkg in \
     "@react-pdf/types" \
     is-url \
     react-pdf \
+    fontkit \
+    restructure \
+    tiny-inflate \
+    abs-svg-path \
+    parse-svg-path \
+    normalize-svg-path \
+    svg-arc-to-cubic-bezier \
+    color-string \
+    unicode-properties \
+    unicode-trie \
+    brotli \
+    dfa \
+    clone \
+    media-engine \
+    queue \
+    js-md5 \
     gaxios \
     gcp-metadata; do
   if [ -d "$WEB_DIR/node_modules/$pkg" ] && [ ! -d "$STANDALONE/node_modules/$pkg" ]; then
