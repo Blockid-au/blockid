@@ -97,11 +97,18 @@ export async function shouldFire(ctx: FireContext): Promise<FireDecision> {
   }
 
   if (spec.countsAgainstSessionCap && ctx.sessionId) {
+    // Only count prior 'shown' rows whose OWN trigger also counts against
+    // the cap. Otherwise a soft banner (trial_day_5, countsAgainstSessionCap=false)
+    // burns the session cap and silently blocks a hard gate CTA later.
+    const countedTriggers = (Object.values(TRIGGERS) as TriggerSpec[])
+      .filter((t) => t.countsAgainstSessionCap)
+      .map((t) => t.id);
     const { count } = await supabase
       .from("conversion_events")
       .select("id", { count: "exact", head: true })
       .eq("user_id", ctx.userId)
       .eq("action", "shown")
+      .in("trigger", countedTriggers)
       .filter("detail->>session_id", "eq", ctx.sessionId);
     if ((count ?? 0) >= SESSION_CAP) {
       return { fire: false, reason: "session_cap" };

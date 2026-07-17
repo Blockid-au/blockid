@@ -49,17 +49,27 @@ export interface LifecycleRow {
   history: Array<{ step: LifecycleStep; ts: string }>;
 }
 
-/** Initialise a user at day0 with next_send_at = now (i.e. send immediately). */
+/**
+ * Initialise a user at day0 with next_send_at = now (i.e. send immediately).
+ * Preserves existing history on re-entry (second product line, etc.) so
+ * downstream churn attribution can still see prior touchpoints.
+ */
 export async function startLifecycle(userId: string, now = new Date()): Promise<void> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return;
+  const { data: existing } = await supabase
+    .from("lifecycle_state")
+    .select("history")
+    .eq("user_id", userId)
+    .maybeSingle();
+  const history = Array.isArray(existing?.history) ? existing!.history : [];
   await supabase.from("lifecycle_state").upsert(
     {
       user_id: userId,
       current_step: "day0",
       next_send_at: now.toISOString(),
       updated_at: now.toISOString(),
-      history: [],
+      history,
     },
     { onConflict: "user_id" },
   );
@@ -110,7 +120,18 @@ export async function stopLifecycle(userId: string, now = new Date()): Promise<v
   );
 }
 
-/** Load rows due for send. Caller owns the FOR UPDATE SKIP LOCKED semantics via RPC. */
+/**
+ * Load rows due for send.
+ *
+ * TODO(security-audit H-code-1 / next milestone): the current plain SELECT
+ * lets two overlapping cron ticks pick the same row and double-send. Move
+ * to a Postgres RPC `pick_lifecycle_due(limit)` that does
+ * `UPDATE lifecycle_state SET next_send_at = null WHERE user_id IN
+ *   (SELECT user_id FROM lifecycle_state WHERE next_send_at <= now()
+ *    AND current_step <> 'done' ORDER BY next_send_at LIMIT $1
+ *    FOR UPDATE SKIP LOCKED) RETURNING *`. Until then, keep the
+ * cron cadence ≥ 15 min (job wall-time budget) so overlap is unlikely.
+ */
 export async function loadDue(limit = 100, now = new Date()): Promise<LifecycleRow[]> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return [];

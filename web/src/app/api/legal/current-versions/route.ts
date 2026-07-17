@@ -32,12 +32,30 @@ interface VersionEntry {
   effective_from: string;
 }
 
+// ISO 3166-1 alpha-2 country codes are always 2 chars; also allow "GLOBAL"
+// as a documented sentinel used by disclaimer_registry.
+const JURISDICTION_RE = /^(?:[A-Z]{2}|GLOBAL)$/;
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const rawJurisdiction = (url.searchParams.get("jurisdiction") || "AU").trim();
+  // Cap input length before .toUpperCase() to reject abuse (a long string
+  // still allocates via toUpperCase() then hits Postgres via .eq()).
+  if (rawJurisdiction.length > 16) {
+    return NextResponse.json(
+      { ok: false, reason: "jurisdiction_too_long" },
+      { status: 400 },
+    );
+  }
   const jurisdiction = rawJurisdiction.length > 0
     ? rawJurisdiction.toUpperCase()
     : "AU";
+  if (!JURISDICTION_RE.test(jurisdiction)) {
+    return NextResponse.json(
+      { ok: false, reason: "jurisdiction_invalid" },
+      { status: 400 },
+    );
+  }
 
   const admin = getSupabaseAdmin();
   if (!admin) {

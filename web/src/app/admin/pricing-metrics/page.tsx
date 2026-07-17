@@ -21,14 +21,12 @@ export const metadata: Metadata = {
 };
 
 interface Metrics {
-  mrrAud: number;
-  arrAud: number;
+  revenueLast30dAud: number;
   gstAccrualAud: number;
   activeSubs: number;
   trialing: number;
   trialConversion7d: number;
   churn30d: number;
-  runwayMonths: number | null;
 }
 
 function centsToAud(c: number): number {
@@ -39,9 +37,9 @@ async function loadMetrics(): Promise<Metrics> {
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return {
-      mrrAud: 0, arrAud: 0, gstAccrualAud: 0,
+      revenueLast30dAud: 0, gstAccrualAud: 0,
       activeSubs: 0, trialing: 0,
-      trialConversion7d: 0, churn30d: 0, runwayMonths: null,
+      trialConversion7d: 0, churn30d: 0,
     };
   }
 
@@ -74,8 +72,7 @@ async function loadMetrics(): Promise<Metrics> {
 
   const netCentsLast30 = (mrrRow ?? []).reduce((sum, r) => sum + (r.net_aud_cents ?? 0), 0);
   const gstCentsLast30 = (revLast30.data ?? []).reduce((sum, r) => sum + (r.gst_aud_cents ?? 0), 0);
-  const mrrAud = centsToAud(netCentsLast30);
-  const arrAud = mrrAud * 12;
+  const revenueLast30dAud = centsToAud(netCentsLast30);
   const gstAccrualAud = centsToAud(gstCentsLast30);
 
   const activeSubs = subs.count ?? 0;
@@ -90,17 +87,17 @@ async function loadMetrics(): Promise<Metrics> {
     ? Math.round((trialConverted / trialStarts7d.length) * 100)
     : 0;
 
-  const runwayMonths = mrrAud > 0 ? Math.round((arrAud / 12) / Math.max(1, mrrAud * 0.6)) : null;
-
+  // NOTE: True MRR needs plan × active-sub multiplication (per Stripe MRR
+  // report), not a 30-day revenue sum which conflates annual renewals /
+  // one-off upgrades with recurring monthly cash. Runway is a cash÷burn
+  // metric and lives with the CFO cash reconciliation, not this tile.
   return {
-    mrrAud,
-    arrAud,
+    revenueLast30dAud,
     gstAccrualAud,
     activeSubs,
     trialing,
     trialConversion7d,
     churn30d: churn.count ?? 0,
-    runwayMonths,
   };
 }
 
@@ -146,17 +143,11 @@ export default async function PricingMetricsPage() {
         </header>
 
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Tile label="MRR (net)" value={formatAud(m.mrrAud)} sub="Trailing 30-day, ex-GST" />
-          <Tile label="ARR" value={formatAud(m.arrAud)} sub="MRR × 12" />
+          <Tile label="Revenue (30d, net)" value={formatAud(m.revenueLast30dAud)} sub="Trailing 30-day, ex-GST" />
           <Tile label="GST accrual" value={formatAud(m.gstAccrualAud)} sub="Trailing 30-day owed to ATO" />
           <Tile label="Active subs" value={String(m.activeSubs)} sub={`${m.trialing} still on trial`} />
           <Tile label="Trial → paid" value={`${m.trialConversion7d}%`} sub="Cohorts started ≤7d ago" />
           <Tile label="Churn events" value={String(m.churn30d)} sub="Trailing 30-day cancellations" />
-          <Tile
-            label="Runway proxy"
-            value={m.runwayMonths ? `${m.runwayMonths} mo` : "—"}
-            sub="MRR ÷ (MRR × 0.6 COGS proxy)"
-          />
         </section>
 
         <section className="rounded-2xl border border-neutral-200 bg-white p-5 text-sm text-neutral-600 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">

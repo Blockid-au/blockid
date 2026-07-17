@@ -22,7 +22,9 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://blockid.au";
 
 function authorised(request: Request): boolean {
   const secret = process.env.CRON_SECRET;
-  if (!secret) return true;
+  // Fail closed: if no secret is configured, refuse the request rather than
+  // opening the endpoint to the world (env rotation / staging clone risk).
+  if (!secret) return false;
   const header = request.headers.get("x-cron-secret");
   if (header && header === secret) return true;
   const auth = request.headers.get("authorization") ?? "";
@@ -91,6 +93,11 @@ export async function GET(request: Request) {
       const next = await advance(row.user_id, step);
       results.push({ user: row.user_id, step, ok: true, reason: `→${next}` });
     } else {
+      // TODO(security-audit M-code-8): classify permanent bounces (SES
+      // "Permanent", SMTP 550, mailbox suppression) and call
+      // stopLifecycle(userId) so we don't retry a dead address every 15 min
+      // (IP reputation risk). Until then, leave next_send_at in place and
+      // let the cron retry with the same cadence.
       results.push({ user: row.user_id, step, ok: false, reason: "send_failed" });
     }
   }
