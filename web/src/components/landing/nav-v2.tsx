@@ -89,12 +89,15 @@ const MENU: MenuEntry[] = [
     key: "compare",
     label: "Compare",
     width: "w-64",
+    // T-0318: dedicated /vs/<slug> pages are not yet published; funnel the
+    // "compare" intent into pricing with a compare= query so we can still
+    // measure interest and swap in real content later without a nav churn.
     items: [
-      { label: "vs Cake", href: "/vs/cake" },
-      { label: "vs Carta", href: "/vs/carta" },
-      { label: "vs Foundersuite", href: "/vs/foundersuite" },
-      { label: "vs Visible", href: "/vs/visible" },
-      { label: "vs AngelList", href: "/vs/angellist" },
+      { label: "vs Cake", href: "/pricing?compare=cake" },
+      { label: "vs Carta", href: "/pricing?compare=carta" },
+      { label: "vs Foundersuite", href: "/pricing?compare=foundersuite" },
+      { label: "vs Visible", href: "/pricing?compare=visible" },
+      { label: "vs AngelList", href: "/pricing?compare=angellist" },
     ],
   },
   {
