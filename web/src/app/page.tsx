@@ -1,19 +1,16 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { Suspense } from "react";
 import { SVIEntrance } from "@/components/svi/svi-entrance";
 import { NavV2 } from "@/components/landing/nav-v2";
-import { HeroV2 } from "@/components/landing/hero-v2";
-import { SegmentTabs } from "@/components/landing/segment-tabs";
-import { PricingMatrix } from "@/components/landing/pricing-matrix";
-import { FAQV2 } from "@/components/landing/faq-v2";
-import { TrialStrip } from "@/components/landing/trial-strip";
-import { LogoCloud } from "@/components/landing/logo-cloud";
-import { Bento } from "@/components/landing/bento";
-import { CtaStrip } from "@/components/landing/cta-strip";
+import { HeroSearch } from "@/components/landing/hero-search";
+import { HowItWorks } from "@/components/landing/how-it-works";
 
 export const metadata = {
-  title: "BlockID.au — The Ownership & Growth Execution Platform",
+  title:
+    "BlockID.au — Search any startup. Get an investor-ready score.",
   description:
-    "Turn your AI-built idea into a valuable, investable business. BlockID.au helps AI-native founders, startups, and private companies structure ownership, manage valuation, execute growth, and become investor-ready from day one.",
+    "Type a company name and BlockID scores its investor-readiness in 30 seconds — free, no signup.",
   alternates: {
     canonical: "https://blockid.au",
   },
@@ -22,10 +19,40 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+/**
+ * Reads the current build's version string from
+ * `web/content/reports/version.json` at request time. Returns `null` when the
+ * file is missing or malformed so the caller can omit the suffix rather than
+ * render a placeholder or fake version — the trust strip must never lie.
+ */
+function readVersionString(): string | null {
+  try {
+    const p = path.join(process.cwd(), "content", "reports", "version.json");
+    const raw = readFileSync(p, "utf8");
+    const parsed = JSON.parse(raw) as { version?: unknown };
+    if (typeof parsed.version === "string" && parsed.version.length > 0) {
+      return parsed.version;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export default function HomePage() {
   const upgradeV2 = process.env.NEXT_PUBLIC_UPGRADE_V2 === "true";
 
   if (upgradeV2) {
+    const version = readVersionString();
+    const entityLine = [
+      "Auschain PTY LTD",
+      "ACN 659 615 111",
+      "ABN 79 659 615 111",
+      version,
+    ]
+      .filter((s): s is string => typeof s === "string" && s.length > 0)
+      .join(" · ");
+
     return (
       <div data-theme="lux" className="bg-brand-navy min-h-screen">
         <a
@@ -36,16 +63,33 @@ export default function HomePage() {
         </a>
         <NavV2 />
         <main id="main-content">
-          <HeroV2 />
-          <SegmentTabs>
-            <PricingMatrix />
-          </SegmentTabs>
-          <LogoCloud />
-          <Bento />
-          <FAQV2 />
-          <CtaStrip />
+          <HeroSearch />
+          <section
+            id="how"
+            aria-labelledby="how-it-works-heading"
+            className="border-t border-brand-navy/10 py-16"
+          >
+            <h2 id="how-it-works-heading" className="sr-only">
+              How BlockID.au works
+            </h2>
+            <HowItWorks />
+          </section>
+          <section
+            id="trust"
+            aria-labelledby="trust-heading"
+            className="border-t border-brand-navy/10 py-12"
+          >
+            <h2 id="trust-heading" className="sr-only">
+              About BlockID.au
+            </h2>
+            <div className="mx-auto max-w-4xl px-6 text-center">
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-ink-600">
+                Australian owned {"·"} Built in Sydney
+              </p>
+              <p className="mt-3 text-sm text-ink-700">{entityLine}</p>
+            </div>
+          </section>
         </main>
-        <TrialStrip />
       </div>
     );
   }
