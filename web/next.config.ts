@@ -9,6 +9,17 @@ const nextConfig: NextConfig = {
   },
   reactStrictMode: true,
   poweredByHeader: false, // Remove X-Powered-By: Next.js
+  // Node process gzips HTML/JSON responses. nginx in front usually also
+  // compresses, but this keeps compression when hitting :4001 directly
+  // (health probes, curl checks, edge-bypass). Cheap CPU, big win on 130KB
+  // homepages served uncompressed.
+  compress: true,
+  // Tree-shake per-icon deep imports for barrel packages. lucide-react is
+  // imported from 247 files across the app — without this, a single icon
+  // import can pull the full icon graph into the shared client chunk.
+  experimental: {
+    optimizePackageImports: ["lucide-react", "recharts"],
+  },
   // Include native/binary packages in standalone output
   serverExternalPackages: ["ioredis", "bcryptjs", "@anthropic-ai/sdk", "pptxgenjs"],
   async headers() {
