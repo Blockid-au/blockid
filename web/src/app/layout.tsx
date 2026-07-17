@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Inter, IBM_Plex_Mono } from "next/font/google";
 import { GoogleAnalytics, GTMNoScript } from "@/components/analytics/google-analytics";
 import { OrganizationJsonLd, SoftwareApplicationJsonLd } from "@/components/seo/json-ld";
@@ -81,11 +82,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Nonce is generated per-request by web/src/proxy.ts and echoed onto the
+  // `x-nonce` request header. Threaded onto every inline <script> so they
+  // satisfy the strict `script-src 'nonce-...'` CSP (no 'unsafe-inline').
+  const nonce = (await headers()).get("x-nonce") ?? "";
+
   return (
     <html
       lang="en-AU"
@@ -97,6 +103,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem("blockid_theme");if(t==="dark"){document.documentElement.classList.add("dark")}}catch(e){}})()`,
           }}
@@ -106,7 +113,7 @@ export default function RootLayout({
         <GTMNoScript />
         <Providers>
           {children}
-          <GoogleAnalytics />
+          <GoogleAnalytics nonce={nonce} />
           <OrganizationJsonLd />
           <SoftwareApplicationJsonLd />
           <FeedbackWidget />
