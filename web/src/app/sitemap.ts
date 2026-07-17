@@ -175,6 +175,49 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 0.8,
     },
+    // Public transparency + docs surfaces
+    {
+      url: `${SITE_URL}/roadmap`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.7,
+    },
+    {
+      url: `${SITE_URL}/changelog`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.6,
+    },
+    {
+      url: `${SITE_URL}/status`,
+      lastModified,
+      changeFrequency: "daily",
+      priority: 0.5,
+    },
+    {
+      url: `${SITE_URL}/security-audit`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
+      url: `${SITE_URL}/legal/terms`,
+      lastModified,
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
+    {
+      url: `${SITE_URL}/legal/privacy`,
+      lastModified,
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
+    {
+      url: `${SITE_URL}/legal/disclaimers`,
+      lastModified,
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
     // Static pages
     {
       url: `${SITE_URL}/about`,

@@ -15,6 +15,34 @@ export const metadata: Metadata = {
   title: "Pricing — BlockID.au",
   description:
     "12-SKU pricing across Founder, Investor, Advisor and Accelerator tiers. Every monthly plan includes a 7-day free trial. Cancel anytime before Day 8 — no charge.",
+  alternates: {
+    canonical: "https://blockid.au/pricing",
+  },
+  openGraph: {
+    title: "Pricing — BlockID.au",
+    description:
+      "12-SKU pricing across Founder, Investor, Advisor and Accelerator tiers. Every monthly plan includes a 7-day free trial.",
+    url: "https://blockid.au/pricing",
+    siteName: "BlockID.au",
+    type: "website",
+    locale: "en_AU",
+    images: [
+      {
+        url: "https://blockid.au/og/pricing.png",
+        width: 1200,
+        height: 630,
+        alt: "BlockID.au — 12-SKU pricing matrix with 7-day trial",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Pricing — BlockID.au",
+    description:
+      "12-SKU pricing across Founder, Investor, Advisor and Accelerator tiers. 7-day trial included.",
+    images: ["https://blockid.au/og/pricing.png"],
+  },
+  robots: { index: true, follow: true },
 };
 
 const FAQ_JSONLD = [
