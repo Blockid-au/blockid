@@ -39,9 +39,23 @@ export function NavV2() {
       >
         <Link
           href="/"
-          className="flex items-center gap-2 rounded-md text-base font-semibold text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
+          aria-label="BlockID.au — home"
+          className="flex items-center gap-2.5 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
         >
-          BlockID<span className="text-brand-gold">.au</span>
+          {/* Logo mark (octagon + star) — 32px square, keeps its own colour palette */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/logo-icon-transparent.webp"
+            alt=""
+            width={32}
+            height={32}
+            className="h-8 w-8 shrink-0 select-none"
+            loading="eager"
+            decoding="async"
+          />
+          <span className="flex items-baseline gap-1 text-base font-semibold text-brand-ink">
+            BlockID<span className="text-brand-cyan">.au</span>
+          </span>
           <span className="inline-flex items-center rounded-full border border-brand-cyan/40 bg-brand-cyan/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand-cyan">
             Beta
           </span>
@@ -71,7 +85,7 @@ export function NavV2() {
           </Link>
           <Link
             href="/signup?trial=7d"
-            className="inline-flex h-10 items-center justify-center rounded-lg bg-brand-gold px-4 text-sm font-semibold text-brand-navy transition duration-200 hover:bg-brand-gold-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-brand-cyan px-4 text-sm font-semibold text-brand-navy transition duration-200 hover:bg-brand-blue-bright focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
           >
             Start free
           </Link>
