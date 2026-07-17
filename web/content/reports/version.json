@@ -1,18 +1,15 @@
 {
-  "version": "v2.0.0-beta.1",
-  "updated_at": "2026-07-16T21:35:00Z",
-  "git_sha": "4d50247",
-  "release_id": "hlSFXaCbSYnO4Qyzuuq-U",
+  "version": "v2.0.0-beta.3",
+  "updated_at": "2026-07-17T00:15:00Z",
+  "git_sha": "f8c1a80b",
+  "release_id": "mLEzDY8V6ktK5-9SxgS3N",
   "task_ids": [
-    "T-0201..T-0222 W1 backend + entitlement + Stripe 7-day trial",
-    "T-0301..T-0320 W2 homepage v2 luxury",
-    "T-0401 W4 GA4 analytics catalog",
-    "T-0419 W5a investor workspace",
-    "T-0430 W6 equity request-a-call scaffold",
-    "T-0432..T-0439 W7 QA seed + Playwright",
-    "W8 menu progressive disclosure + trial banner",
-    "G-01..G-13 Guardian foundation",
-    "G-05/G-09/G-10/G-16 crons + admin dashboards"
+    "brand palette rebuild (navy #1B2A5E + cyan #22D3EE + blue #3B82F6, dropped gold)",
+    "NavV2 logo image (logo-icon-transparent.webp) + BlockID.au wordmark",
+    "7-day trial standardized across DB + plans-v2.ts (9 SKUs)",
+    "/pricing v2 (SegmentTabs + PricingMatrix 12 SKUs, dropped Founding-100 + Early-Bird promos)",
+    "UPGRADE_V2=true baked into build → v2 luxury homepage now default",
+    "Guardian: static+public unconditional copy, CSS smoke gate, uptime CSS probe"
   ],
-  "notes": "v2.0.0-beta.1 SHIPPED to prod 2026-07-16. Guardian deep-probe /api/healthz active. Docker legacy container removed. New standalone build serving via node PID 639639. Flag NEXT_PUBLIC_UPGRADE_V2=false (legacy homepage still default; new luxury homepage staged). Retry-plan: seed 12 SKU Stripe prices via seed-stripe.ts, then flip UPGRADE_V2=true for 10% cookie-bucket rollout, ramp to 100% over 5 days per docs/IMPLEMENTATION-PLAN-v2.md section 12."
+  "notes": "v2.0.0-beta.3 SHIPPED to prod 2026-07-17. Luxury dark homepage ACTIVE by default (UPGRADE_V2=true baked). Real BlockID brand: navy wordmark + cyan accent, no more gold. /pricing shows 12 SKUs across Founder/Investor/Advisor/Accelerator tabs, every recurring SKU has 7-day trial badge. All old promos (Founding-100, Growth Early-Bird, pricing-plans.tsx legacy toggle) removed. Guardian mechanism prevents CSS/static 404 regression via 3-layer defense (deploy gate + smoke test + uptime probe)."
 }
