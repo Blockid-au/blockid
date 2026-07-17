@@ -48,7 +48,7 @@ export default function PricingPage() {
   return (
     <div data-theme="lux" className="min-h-svh bg-brand-navy-deep text-brand-ink">
       <FAQJsonLd items={FAQ_JSONLD} />
-      <PageViewTracker event="pricing_viewed" params={{ variant: "v2" }} />
+      <PageViewTracker event="pricing_viewed" params={{}} />
       <Navbar />
 
       <main className="mx-auto max-w-7xl px-6 pt-24 pb-24">
