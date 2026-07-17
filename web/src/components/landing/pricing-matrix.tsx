@@ -13,6 +13,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useSegment } from "@/components/landing/segment-tabs";
+import { useExposeExperiment } from "@/lib/conversion/expose";
 import {
   annualSavingPct,
   formatAud,
@@ -54,7 +55,27 @@ export function PricingMatrix({ segment: overrideSegment }: PricingMatrixProps =
   const [interval, setInterval] = useState<Interval>("monthly");
 
   const intro = SEGMENT_INTRO[segment];
-  const plans = useMemo(() => plansForSegment(segment), [segment]);
+  const basePlans = useMemo(() => plansForSegment(segment), [segment]);
+
+  // A/B experiment: pricing_anchor_order.
+  //   anchor_growth → surface the *_growth SKU first (current default).
+  //   anchor_scale  → surface the *_scale SKU first.
+  // Falls back to the base order while the variant is loading or null.
+  const { variant: anchorVariant } = useExposeExperiment("pricing_anchor_order");
+  const plans = useMemo(() => {
+    if (!anchorVariant) return basePlans;
+    const anchorId =
+      anchorVariant === "anchor_scale"
+        ? (p: Plan) => p.id.endsWith("_scale")
+        : anchorVariant === "anchor_growth"
+          ? (p: Plan) => p.id.endsWith("_growth")
+          : null;
+    if (!anchorId) return basePlans;
+    const anchored = basePlans.filter(anchorId);
+    if (anchored.length === 0) return basePlans;
+    const rest = basePlans.filter((p) => !anchorId(p));
+    return [...anchored, ...rest];
+  }, [basePlans, anchorVariant]);
 
   return (
     <section

@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
-import { Building2, ArrowRight, Check, Sparkles } from "lucide-react";
+import { Building2, Check } from "lucide-react";
 import { FAQV2 } from "@/components/landing/faq-v2";
 import { SegmentTabs } from "@/components/landing/segment-tabs";
 import { PricingMatrix } from "@/components/landing/pricing-matrix";
 import { FAQJsonLd } from "@/components/seo/json-ld";
+import { MarketingShell } from "@/components/marketing/marketing-shell";
+import { MarketingHero } from "@/components/marketing/marketing-hero";
+import { MarketingSection } from "@/components/marketing/marketing-section";
+import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
 
 export const dynamic = "force-dynamic";
 
@@ -74,84 +75,84 @@ const FAQ_JSONLD = [
 
 export default function PricingPage() {
   return (
-    <div data-theme="lux" className="min-h-svh bg-brand-navy-deep text-brand-ink">
+    <MarketingShell>
       <FAQJsonLd items={FAQ_JSONLD} />
       <PageViewTracker event="pricing_viewed" params={{}} />
-      <Navbar />
 
-      <main className="mx-auto max-w-7xl px-6 pt-24 pb-24">
-        {/* Hero */}
-        <div className="mx-auto max-w-3xl text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-brand-cyan/30 bg-brand-cyan/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-cyan">
-            <Sparkles aria-hidden="true" className="h-3.5 w-3.5" />
-            Pricing v2.0
+      <MarketingHero
+        eyebrow="Pricing v2.0"
+        title="Get fundable in 7 days. Then choose your plan."
+        subtitle="Every monthly plan includes a 7-day free trial. Card required at signup, charged only on Day 8. Cancel anytime before with no charge."
+      />
+
+      <section
+        aria-label="Pricing guarantees"
+        className="mx-auto max-w-5xl px-6 pb-4"
+      >
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-[var(--fintech-ink-muted)]">
+          <span className="inline-flex items-center gap-2">
+            <Check aria-hidden="true" className="h-4 w-4 text-[var(--fintech-accent)]" />
+            7-day free trial on all monthly plans
           </span>
-          <h1 className="mt-6 text-4xl font-bold tracking-tight text-brand-ink sm:text-5xl">
-            <span className="lux-heading">Get Fundable in 7 Days.</span>{" "}
-            Then choose your plan.
-          </h1>
-          <p className="mt-4 text-lg text-brand-ink-muted">
-            Every monthly plan includes a 7-day free trial. Card required at signup, charged only on Day 8. Cancel anytime before with no charge.
-          </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm text-brand-ink-muted">
-            <span className="inline-flex items-center gap-2">
-              <Check aria-hidden="true" className="h-4 w-4 text-brand-cyan" />
-              7-day free trial on all monthly plans
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <Check aria-hidden="true" className="h-4 w-4 text-brand-cyan" />
-              No lock-in — cancel any time
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <Check aria-hidden="true" className="h-4 w-4 text-brand-cyan" />
-              AUD pricing, GST-inclusive
-            </span>
-          </div>
+          <span className="inline-flex items-center gap-2">
+            <Check aria-hidden="true" className="h-4 w-4 text-[var(--fintech-accent)]" />
+            No lock-in — cancel any time
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <Check aria-hidden="true" className="h-4 w-4 text-[var(--fintech-accent)]" />
+            AUD pricing, GST-inclusive
+          </span>
         </div>
+      </section>
 
-        {/* Segment tabs + pricing matrix */}
-        <div className="mt-16">
-          <SegmentTabs>
-            <PricingMatrix />
-          </SegmentTabs>
-        </div>
+      {/* Segment tabs + pricing matrix — client interactivity kept intact */}
+      <section
+        aria-label="Pricing matrix"
+        className="mx-auto max-w-7xl px-6 py-8 sm:py-12"
+      >
+        <SegmentTabs>
+          <PricingMatrix />
+        </SegmentTabs>
+      </section>
 
-        {/* FAQ */}
-        <div className="mt-24">
-          <FAQV2 />
-        </div>
+      {/* FAQ */}
+      <section
+        aria-label="Frequently asked questions"
+        className="mx-auto max-w-7xl px-6 pb-12 pt-4"
+      >
+        <FAQV2 />
+      </section>
 
-        {/* Enterprise CTA */}
-        <div className="mt-16 rounded-3xl border border-brand-cyan/20 bg-brand-navy-elev-1 p-10 text-center shadow-lg lux-glow-cyan">
-          <Building2 aria-hidden="true" className="mx-auto mb-4 h-10 w-10 text-brand-cyan" />
-          <h2 className="text-2xl font-bold text-brand-ink">
-            Need custom pricing or equity-in-lieu?
-          </h2>
-          <p className="mx-auto mt-3 max-w-xl text-brand-ink-muted">
-            Enterprise multi-entity plans with SSO, API access, dedicated CSM, or our compliance-gated equity-for-solution arrangement (5–10% equity in lieu of cash).
-          </p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href="/contact"
-              className="inline-flex items-center gap-2 rounded-2xl bg-brand-cyan px-6 py-3 text-sm font-semibold text-brand-navy transition-colors hover:bg-brand-blue-bright focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
-            >
-              Talk to sales
-              <ArrowRight aria-hidden="true" className="h-4 w-4" />
-            </Link>
-            <Link
-              href="/workspace/equity-offer"
-              className="inline-flex items-center gap-2 rounded-2xl border border-brand-cyan/40 px-6 py-3 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand-cyan/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
-            >
-              Explore equity-for-solution
-            </Link>
-          </div>
-          <p className="mt-6 text-xs text-brand-ink-muted">
-            Not financial advice. Equity arrangements require independent legal + tax review. Auschain PTY LTD · Sydney NSW.
+      {/* Enterprise CTA — bespoke enough to render inline rather than through
+          MarketingCtaStrip so we can keep the two-CTA layout intact. */}
+      <MarketingSection
+        tone="elevated"
+        title="Need custom pricing or equity-in-lieu?"
+        kicker="Enterprise"
+      >
+        <div className="flex flex-col items-start gap-6 text-center sm:items-center">
+          <Building2 aria-hidden="true" className="h-10 w-10 text-[var(--fintech-accent)]" />
+          <p className="max-w-xl text-[var(--fintech-ink-muted)]">
+            Enterprise multi-entity plans with SSO, API access, dedicated
+            CSM, or our compliance-gated equity-for-solution arrangement
+            (5–10% equity in lieu of cash).
           </p>
         </div>
-      </main>
+      </MarketingSection>
 
-      <Footer />
-    </div>
+      <MarketingCtaStrip
+        headline="Talk to sales for a bespoke fit."
+        primary={{ href: "/contact", label: "Talk to sales" }}
+        secondary={{
+          href: "/workspace/equity-offer",
+          label: "Explore equity-for-solution",
+        }}
+      />
+
+      <p className="mx-auto mb-16 max-w-5xl px-6 text-center text-xs text-[var(--fintech-ink-muted)]">
+        Not financial advice. Equity arrangements require independent legal
+        and tax review. Auschain PTY LTD · Sydney NSW.
+      </p>
+    </MarketingShell>
   );
 }

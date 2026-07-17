@@ -7,14 +7,14 @@
 // Rendering rules:
 //   - Missing / empty values render as an em-dash rather than crashing.
 //   - No emoji. Pragmatic Australian tone. No hype.
-//   - Full dark-mode support via `dark:` utility classes.
+//   - Reskinned to the shared fintech marketing shell.
 
 import type { Metadata } from "next";
 import Link from "next/link";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { MarketingShell } from "@/components/marketing/marketing-shell";
+import { MarketingHero } from "@/components/marketing/marketing-hero";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -67,7 +67,7 @@ type StatusResponse = {
   crons: CronRow[];
 };
 
-// ---------- SLO thresholds (from docs/IMPLEMENTATION-PLAN-v2.md §13.3) ----------
+// ---------- SLO thresholds ----------
 
 const P95_TARGET_MS = 800;
 const DISK_TARGET_PCT = 80;
@@ -116,7 +116,6 @@ async function loadDeployHistory(limit: number): Promise<DeployRow[]> {
     const raw = await fs.readFile(file, "utf8");
     const lines = raw.split(/\r?\n/).filter((l) => l.trim().length > 0);
     const out: DeployRow[] = [];
-    // Walk newest-first, skip webhook events.
     for (let i = lines.length - 1; i >= 0 && out.length < limit; i--) {
       let row: RawDeployLine | null = null;
       try {
@@ -149,7 +148,6 @@ function fmtIso(iso: string): string {
   if (!iso) return DASH;
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return DASH;
-  // Consistent, sortable, timezone-explicit — pragmatic UTC.
   return d.toISOString().replace("T", " ").replace(/\.\d{3}Z$/, "Z");
 }
 
@@ -198,11 +196,13 @@ function levelForUptime(pct: number | undefined): Level {
   return "ok";
 }
 
-// Tailwind-safe class strings for each level.
+// Tone-mapped tile styles. Cyan = ok, amber = warn, rose = bad — colour never
+// stands alone (icon + label included), meeting WCAG 2.1 AA "not by colour
+// alone" and 4.5:1 contrast against the fintech backdrop.
 const LEVEL_TILE: Record<Level, string> = {
-  ok: "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-100",
-  warn: "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-100",
-  bad: "border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-100",
+  ok: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
+  warn: "border-amber-500/30 bg-amber-500/10 text-amber-100",
+  bad: "border-rose-500/30 bg-rose-500/10 text-rose-100",
 };
 
 const SERVICE_LEVEL: Record<ServiceStatus, Level> = {
@@ -243,9 +243,9 @@ export default async function StatusPage() {
   }[overallLevel];
 
   const overallPillClass = {
-    ok: "bg-emerald-600 text-white dark:bg-emerald-500",
-    warn: "bg-amber-500 text-white dark:bg-amber-400 dark:text-amber-950",
-    bad: "bg-rose-600 text-white dark:bg-rose-500",
+    ok: "bg-emerald-500 text-emerald-950",
+    warn: "bg-amber-400 text-amber-950",
+    bad: "bg-rose-500 text-rose-50",
   }[overallLevel];
 
   const uptimeLevel = levelForUptime(status.slo.uptime_pct_24h);
@@ -262,14 +262,21 @@ export default async function StatusPage() {
         }));
 
   return (
-    <div className="min-h-screen bg-white text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
-      <Navbar />
+    <MarketingShell>
+      <MarketingHero
+        eyebrow="Status"
+        title="System status"
+        subtitle="Real-time service health, service level objectives, and the last 10 deploys. Every value is pulled from live probes and log tails — nothing here is manually maintained."
+      />
 
-      <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+      <section
+        aria-label="Status detail"
+        className="mx-auto w-full max-w-6xl px-6 pb-12"
+      >
         {/* Top strip */}
-        <section
+        <div
           aria-labelledby="status-overall"
-          className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
+          className="rounded-3xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-6"
         >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
@@ -277,42 +284,42 @@ export default async function StatusPage() {
                 aria-hidden="true"
                 className={`inline-flex h-3 w-3 rounded-full ${
                   overallLevel === "ok"
-                    ? "bg-emerald-500"
+                    ? "bg-emerald-400"
                     : overallLevel === "warn"
-                    ? "bg-amber-500"
+                    ? "bg-amber-400"
                     : "bg-rose-500"
                 }`}
               />
-              <h1 id="status-overall" className="text-xl font-semibold tracking-tight sm:text-2xl">
+              <h2 id="status-overall" className="font-display text-xl font-semibold tracking-tight text-[var(--fintech-ink)] sm:text-2xl">
                 {overallLabel}
-              </h1>
+              </h2>
               <span
                 className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${overallPillClass}`}
               >
                 {overallLabel}
               </span>
             </div>
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm text-neutral-600 dark:text-neutral-400 sm:text-right">
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm text-[var(--fintech-ink-muted)] sm:text-right">
               <div>
                 <dt className="inline">Version:&nbsp;</dt>
-                <dd className="inline font-mono">{status.version || DASH}</dd>
+                <dd className="inline font-mono text-[var(--fintech-ink)]">{status.version || DASH}</dd>
               </div>
               <div>
                 <dt className="inline">Updated:&nbsp;</dt>
-                <dd className="inline font-mono">{fmtIso(status.updated_at)}</dd>
+                <dd className="inline font-mono text-[var(--fintech-ink)]">{fmtIso(status.updated_at)}</dd>
               </div>
             </dl>
           </div>
-        </section>
+        </div>
 
         {/* Service tiles */}
-        <section aria-labelledby="status-services" className="mt-8">
-          <h2
+        <div aria-labelledby="status-services" className="mt-8">
+          <h3
             id="status-services"
-            className="text-sm font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400"
+            className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]"
           >
             Services
-          </h2>
+          </h3>
           <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {serviceRows.map((s) => {
               const level = SERVICE_LEVEL[s.status];
@@ -333,16 +340,16 @@ export default async function StatusPage() {
               );
             })}
           </div>
-        </section>
+        </div>
 
         {/* SLO tiles */}
-        <section aria-labelledby="status-slo" className="mt-10">
-          <h2
+        <div aria-labelledby="status-slo" className="mt-10">
+          <h3
             id="status-slo"
-            className="text-sm font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400"
+            className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]"
           >
             Service level objectives
-          </h2>
+          </h3>
           <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <SloTile
               label="Uptime (24h)"
@@ -351,7 +358,7 @@ export default async function StatusPage() {
               level={uptimeLevel}
             />
             <SloTile
-              label="p95 latency /"
+              label="p95 latency"
               value={
                 status.slo.p95_ms === undefined || status.slo.p95_ms === 0
                   ? DASH
@@ -373,23 +380,23 @@ export default async function StatusPage() {
               level={memLevel}
             />
           </div>
-        </section>
+        </div>
 
         {/* Deploy history */}
-        <section aria-labelledby="status-deploys" className="mt-10">
-          <h2
+        <div aria-labelledby="status-deploys" className="mt-10">
+          <h3
             id="status-deploys"
-            className="text-sm font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400"
+            className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]"
           >
             Recent deploys
-          </h2>
-          <div className="mt-3 overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800">
+          </h3>
+          <div className="mt-3 overflow-hidden rounded-2xl border border-[var(--fintech-border)]">
             {history.length === 0 ? (
-              <div className="p-6 text-sm text-neutral-500 dark:text-neutral-400">
+              <div className="bg-[var(--fintech-bg-elevated)] p-6 text-sm text-[var(--fintech-ink-muted)]">
                 No deploy history available.
               </div>
             ) : (
-              <ul className="divide-y divide-neutral-200 dark:divide-neutral-800">
+              <ul className="divide-y divide-[var(--fintech-border)]">
                 {history.map((d, idx) => {
                   const ratio =
                     d.gates_expected > 0
@@ -406,24 +413,24 @@ export default async function StatusPage() {
                   return (
                     <li
                       key={`${d.ts}-${idx}`}
-                      className="flex flex-col gap-2 bg-white p-4 dark:bg-neutral-900 sm:flex-row sm:items-center sm:justify-between"
+                      className="flex flex-col gap-2 bg-[var(--fintech-bg-elevated)] p-4 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-3">
-                        <span className="font-mono text-sm">{fmtIso(d.ts)}</span>
+                        <span className="font-mono text-sm text-[var(--fintech-ink)]">{fmtIso(d.ts)}</span>
                         {d.sha ? (
                           <Link
                             href={`https://github.com/Blockid-au/blockid/commit/${d.sha}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="font-mono text-sm text-neutral-700 underline-offset-2 hover:underline dark:text-neutral-300"
+                            className="rounded-md font-mono text-sm text-[var(--fintech-accent)] underline-offset-2 transition-colors duration-200 ease-out hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
                           >
                             {shortSha(d.sha)}
                           </Link>
                         ) : (
-                          <span className="font-mono text-sm text-neutral-500">{DASH}</span>
+                          <span className="font-mono text-sm text-[var(--fintech-ink-muted)]">{DASH}</span>
                         )}
                         {d.release_id ? (
-                          <span className="font-mono text-xs text-neutral-500 dark:text-neutral-500">
+                          <span className="font-mono text-xs text-[var(--fintech-ink-muted)]">
                             rel {d.release_id}
                           </span>
                         ) : null}
@@ -439,24 +446,24 @@ export default async function StatusPage() {
               </ul>
             )}
           </div>
-        </section>
+        </div>
 
         {/* Cron table */}
-        <section aria-labelledby="status-crons" className="mt-10">
-          <h2
+        <div aria-labelledby="status-crons" className="mt-10">
+          <h3
             id="status-crons"
-            className="text-sm font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400"
+            className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]"
           >
             Scheduled jobs (24h)
-          </h2>
-          <div className="mt-3 overflow-x-auto rounded-xl border border-neutral-200 dark:border-neutral-800">
+          </h3>
+          <div className="mt-3 overflow-x-auto rounded-2xl border border-[var(--fintech-border)]">
             {status.crons.length === 0 ? (
-              <div className="p-6 text-sm text-neutral-500 dark:text-neutral-400">
+              <div className="bg-[var(--fintech-bg-elevated)] p-6 text-sm text-[var(--fintech-ink-muted)]">
                 No cron activity in the window.
               </div>
             ) : (
-              <table className="min-w-full divide-y divide-neutral-200 text-sm dark:divide-neutral-800">
-                <thead className="bg-neutral-50 text-left text-xs uppercase tracking-wide text-neutral-500 dark:bg-neutral-900 dark:text-neutral-400">
+              <table className="min-w-full divide-y divide-[var(--fintech-border)] text-sm">
+                <thead className="bg-[var(--fintech-surface)] text-left text-xs uppercase tracking-wide text-[var(--fintech-ink-muted)]">
                   <tr>
                     <th scope="col" className="px-4 py-2 font-semibold">
                       Job
@@ -472,7 +479,7 @@ export default async function StatusPage() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-neutral-200 bg-white dark:divide-neutral-800 dark:bg-neutral-900">
+                <tbody className="divide-y divide-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)]">
                   {status.crons.map((c) => {
                     const okLevel: Level =
                       c.ok_rate_24h_pct >= 99
@@ -482,8 +489,8 @@ export default async function StatusPage() {
                         : "bad";
                     return (
                       <tr key={c.name}>
-                        <td className="px-4 py-2 font-mono">{c.name}</td>
-                        <td className="px-4 py-2 font-mono">{fmtIso(c.last_run)}</td>
+                        <td className="px-4 py-2 font-mono text-[var(--fintech-ink)]">{c.name}</td>
+                        <td className="px-4 py-2 font-mono text-[var(--fintech-ink-muted)]">{fmtIso(c.last_run)}</td>
                         <td className="px-4 py-2">
                           <span
                             className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${LEVEL_TILE[okLevel]}`}
@@ -491,7 +498,7 @@ export default async function StatusPage() {
                             {c.ok_rate_24h_pct}%
                           </span>
                         </td>
-                        <td className="px-4 py-2 font-mono">{fmtInt(c.avg_duration_ms)} ms</td>
+                        <td className="px-4 py-2 font-mono text-[var(--fintech-ink-muted)]">{fmtInt(c.avg_duration_ms)} ms</td>
                       </tr>
                     );
                   })}
@@ -499,21 +506,18 @@ export default async function StatusPage() {
               </table>
             )}
           </div>
-        </section>
+        </div>
 
-        {/* Inline footer summary */}
-        <section
-          aria-labelledby="status-links"
-          className="mt-12 rounded-2xl border border-neutral-200 bg-neutral-50 p-6 text-sm dark:border-neutral-800 dark:bg-neutral-900"
+        {/* Related links */}
+        <nav
+          aria-label="Related pages"
+          className="mt-12 rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-6 text-sm"
         >
-          <h2 id="status-links" className="sr-only">
-            Related pages
-          </h2>
           <ul className="flex flex-wrap gap-x-6 gap-y-2">
             <li>
               <Link
                 href="/changelog"
-                className="text-neutral-700 underline-offset-2 hover:underline dark:text-neutral-300"
+                className="rounded-md text-[var(--fintech-ink)] underline-offset-2 transition-colors duration-200 ease-out hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
               >
                 Changelog
               </Link>
@@ -521,7 +525,7 @@ export default async function StatusPage() {
             <li>
               <Link
                 href="/roadmap"
-                className="text-neutral-700 underline-offset-2 hover:underline dark:text-neutral-300"
+                className="rounded-md text-[var(--fintech-ink)] underline-offset-2 transition-colors duration-200 ease-out hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
               >
                 Roadmap
               </Link>
@@ -529,20 +533,15 @@ export default async function StatusPage() {
             <li>
               <Link
                 href="/security-audit"
-                className="text-neutral-700 underline-offset-2 hover:underline dark:text-neutral-300"
+                className="rounded-md text-[var(--fintech-ink)] underline-offset-2 transition-colors duration-200 ease-out hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
               >
                 Security audit summary
               </Link>
             </li>
           </ul>
-          <p className="mt-4 text-xs text-neutral-500 dark:text-neutral-500">
-            Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111 · Sydney NSW.
-          </p>
-        </section>
-      </main>
-
-      <Footer />
-    </div>
+        </nav>
+      </section>
+    </MarketingShell>
   );
 }
 

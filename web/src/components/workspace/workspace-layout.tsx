@@ -16,6 +16,9 @@ import { FeedbackWidget } from "@/components/ui/feedback-widget";
 import { UpgradePrompt } from "@/components/ui/upgrade-prompt";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { TrialBanner } from "@/components/workspace/trial-banner";
+import { TrialDayWatcher } from "@/components/upsell/trial-day-watcher";
+import { UpgradeModal } from "@/components/upsell/upgrade-modal";
+import { UpgradeBanner } from "@/components/upsell/upgrade-banner";
 import { NAV_GROUPS, ADMIN_NAV_GROUP, type NavGroup, type NavItem } from "@/components/workspace/nav-groups";
 import { useEntitlement } from "@/hooks/useEntitlement";
 import { meetsMinPlan, type Segment } from "@/lib/segments";
@@ -267,6 +270,14 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0 
 
         {/* Trial-state banner — self-hiding when not in trial */}
         <TrialBanner />
+
+        {/* CRO trigger arm — checks trial-status once on mount and fires the
+            matching day5/6/7 trigger via useUpgradePrompt. Renders nothing. */}
+        <TrialDayWatcher />
+
+        {/* Trigger-driven CRO surfaces — self-hiding until a trigger fires. */}
+        <UpgradeBanner />
+        <UpgradeModal />
 
         {/* Founding 50 upgrade nudge — shown when user has 1 free credit left */}
         <UpgradePrompt />

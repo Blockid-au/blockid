@@ -83,7 +83,7 @@ export function NpsWidget() {
           <p className="text-sm font-medium text-green-700">Thanks for your feedback!</p>
           {selected !== null && selected >= 9 && (
             <a
-              href="/dashboard/referral"
+              href="/workspace/referrals"
               className="text-xs text-brand-600 hover:text-brand-700 underline underline-offset-2"
             >
               Share BlockID with a colleague →

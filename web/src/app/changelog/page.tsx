@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import fs from "node:fs";
 import path from "node:path";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
-import { ArrowRight, ScrollText } from "lucide-react";
+import { MarketingShell } from "@/components/marketing/marketing-shell";
+import { MarketingHero } from "@/components/marketing/marketing-hero";
+import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
 
 export const dynamic = "force-dynamic";
 
@@ -18,8 +17,7 @@ export const metadata: Metadata = {
 };
 
 // ---------------------------------------------------------------------------
-// File loader — CHANGELOG.md may live at web/ root (cwd when `next start`
-// is run from web/) or at the repo root when cwd is one level up.
+// File loader
 // ---------------------------------------------------------------------------
 
 function readChangelog(): string | null {
@@ -40,16 +38,6 @@ function readChangelog(): string | null {
 
 // ---------------------------------------------------------------------------
 // Minimal markdown -> HTML string renderer.
-//
-// Supported:
-//   - `# Heading` / `## Heading` / `### Heading`
-//   - `- item` bullet lists (contiguous)
-//   - `**bold**` inline
-//   - `` `code` `` inline
-//   - blank-line-separated paragraphs
-//
-// Deliberately narrow: `web/CHANGELOG.md` follows this shape and we don't want
-// to pull `marked` (not in deps) or invent a full parser.
 // ---------------------------------------------------------------------------
 
 function escapeHtml(input: string): string {
@@ -63,14 +51,13 @@ function escapeHtml(input: string): string {
 
 function renderInline(input: string): string {
   let s = escapeHtml(input);
-  // inline code first so ** inside code isn't parsed
   s = s.replace(
     /`([^`]+)`/g,
-    '<code class="rounded bg-brand-navy-deep/60 px-1.5 py-0.5 text-[0.85em] text-brand-cyan">$1</code>',
+    '<code class="rounded bg-[var(--fintech-surface)] px-1.5 py-0.5 text-[0.85em] text-[var(--fintech-accent)]">$1</code>',
   );
   s = s.replace(
     /\*\*([^*]+)\*\*/g,
-    '<strong class="font-semibold text-brand-ink">$1</strong>',
+    '<strong class="font-semibold text-[var(--fintech-ink)]">$1</strong>',
   );
   return s;
 }
@@ -107,7 +94,7 @@ function renderMarkdown(md: string): {
   const flushPara = () => {
     if (paraBuf.length > 0) {
       out.push(
-        `<p class="mt-3 leading-relaxed text-brand-ink-muted">${renderInline(
+        `<p class="mt-3 leading-relaxed text-[var(--fintech-ink-muted)]">${renderInline(
           paraBuf.join(" "),
         )}</p>`,
       );
@@ -131,7 +118,7 @@ function renderMarkdown(md: string): {
       flushList();
       const text = trimmed.slice(4);
       out.push(
-        `<h3 class="mt-8 text-lg font-semibold tracking-tight text-brand-ink">${renderInline(
+        `<h3 class="mt-8 text-lg font-semibold tracking-tight text-[var(--fintech-ink)]">${renderInline(
           text,
         )}</h3>`,
       );
@@ -146,7 +133,7 @@ function renderMarkdown(md: string): {
       const id = slugify(text);
       releases.push({ id, label: text });
       out.push(
-        `<h2 id="${id}" class="mt-14 border-t border-brand-cyan/15 pt-10 text-2xl font-bold tracking-tight text-brand-ink sm:text-3xl">${renderInline(
+        `<h2 id="${id}" class="mt-14 border-t border-[var(--fintech-border)] pt-10 text-2xl font-bold tracking-tight text-[var(--fintech-ink)] sm:text-3xl">${renderInline(
           text,
         )}</h2>`,
       );
@@ -157,7 +144,6 @@ function renderMarkdown(md: string): {
     if (trimmed.startsWith("# ")) {
       flushPara();
       flushList();
-      // top-level heading is rendered by the page hero already; skip
       i++;
       continue;
     }
@@ -166,7 +152,7 @@ function renderMarkdown(md: string): {
       flushPara();
       if (!inList) {
         out.push(
-          '<ul class="mt-4 space-y-2 list-disc pl-6 text-brand-ink-muted marker:text-brand-cyan/70">',
+          '<ul class="mt-4 space-y-2 list-disc pl-6 text-[var(--fintech-ink-muted)] marker:text-[var(--fintech-accent)]">',
         );
         inList = true;
       }
@@ -200,35 +186,29 @@ export default function ChangelogPage() {
     : { html: "", releases: [] as ReleaseAnchor[] };
 
   return (
-    <div data-theme="lux" className="min-h-svh bg-brand-navy-deep text-brand-ink">
+    <MarketingShell>
       <PageViewTracker event="changelog_viewed" params={{}} />
-      <Navbar />
 
-      <main className="mx-auto max-w-7xl px-6 pt-24 pb-24">
-        {/* Hero */}
-        <div className="mx-auto max-w-3xl text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-brand-cyan/30 bg-brand-cyan/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-cyan">
-            <ScrollText aria-hidden="true" className="h-3.5 w-3.5" />
-            Changelog
-          </span>
-          <h1 className="mt-6 text-4xl font-bold tracking-tight text-brand-ink sm:text-5xl">
-            <span className="lux-heading">Changelog</span>
-          </h1>
-          <p className="mt-4 text-lg text-brand-ink-muted">
-            Auto-generated from git and task IDs. Newest release first.
-          </p>
-        </div>
+      <MarketingHero
+        eyebrow="Changelog"
+        title="Every release, every fix"
+        subtitle="Auto-generated from git and task IDs. Newest release first."
+      />
 
-        <div className="mt-16 grid gap-10 lg:grid-cols-[1fr_240px]">
+      <section
+        aria-label="Changelog content"
+        className="mx-auto max-w-5xl px-6 py-12 sm:py-16"
+      >
+        <div className="grid gap-10 lg:grid-cols-[1fr_240px]">
           {/* Content */}
-          <article className="min-w-0 rounded-3xl border border-brand-cyan/15 bg-brand-navy-elev-1 p-8 sm:p-10">
+          <article className="min-w-0 rounded-3xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-8 sm:p-10">
             {raw ? (
               <div
                 className="text-sm sm:text-base"
                 dangerouslySetInnerHTML={{ __html: parsed.html }}
               />
             ) : (
-              <p className="text-sm text-brand-ink-muted">
+              <p className="text-sm text-[var(--fintech-ink-muted)]">
                 Changelog not yet published for this environment. The next
                 deploy will populate this page.
               </p>
@@ -236,12 +216,9 @@ export default function ChangelogPage() {
           </article>
 
           {/* Sidebar (desktop only) */}
-          <aside
-            aria-label="Jump to release"
-            className="hidden lg:block"
-          >
-            <div className="sticky top-24 rounded-2xl border border-brand-cyan/15 bg-brand-navy-elev-1 p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-cyan">
+          <aside aria-label="Jump to release" className="hidden lg:block">
+            <div className="sticky top-24 rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]">
                 Releases
               </p>
               {parsed.releases.length > 0 ? (
@@ -250,7 +227,7 @@ export default function ChangelogPage() {
                     <li key={r.id}>
                       <a
                         href={`#${r.id}`}
-                        className="block truncate rounded-md px-2 py-1 text-xs text-brand-ink-muted transition-colors hover:bg-brand-cyan/10 hover:text-brand-cyan"
+                        className="block truncate rounded-md px-2 py-1 text-xs text-[var(--fintech-ink-muted)] transition-colors duration-200 ease-out hover:bg-[var(--fintech-surface)] hover:text-[var(--fintech-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
                       >
                         {r.label}
                       </a>
@@ -258,54 +235,20 @@ export default function ChangelogPage() {
                   ))}
                 </ul>
               ) : (
-                <p className="mt-4 text-xs text-brand-ink-muted">
+                <p className="mt-4 text-xs text-[var(--fintech-ink-muted)]">
                   No releases indexed yet.
                 </p>
               )}
             </div>
           </aside>
         </div>
+      </section>
 
-        {/* Footer CTA */}
-        <div className="mt-16 rounded-3xl border border-brand-cyan/20 bg-brand-navy-elev-1 p-10 text-center shadow-lg lux-glow-cyan">
-          <h2 className="text-2xl font-bold text-brand-ink">
-            See what&apos;s next
-          </h2>
-          <p className="mx-auto mt-3 max-w-xl text-brand-ink-muted">
-            The roadmap lays out the eight-stage journey from founder idea to
-            exit, plus this quarter&apos;s ship list. Pricing shows what each tier
-            unlocks. The security audit summary tracks disclaimer registry and
-            hash-chain integrity.
-          </p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href="/roadmap"
-              className="inline-flex items-center gap-2 rounded-2xl bg-brand-cyan px-6 py-3 text-sm font-semibold text-brand-navy transition-colors hover:bg-brand-blue-bright focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
-            >
-              Roadmap
-              <ArrowRight aria-hidden="true" className="h-4 w-4" />
-            </Link>
-            <Link
-              href="/pricing"
-              className="inline-flex items-center gap-2 rounded-2xl border border-brand-cyan/40 px-6 py-3 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand-cyan/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
-            >
-              Pricing
-            </Link>
-            <Link
-              href="/security-audit"
-              className="inline-flex items-center gap-2 rounded-2xl border border-brand-cyan/40 px-6 py-3 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand-cyan/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
-            >
-              Security audit
-            </Link>
-          </div>
-          <p className="mt-6 text-xs text-brand-ink-muted">
-            Not financial advice. Auschain PTY LTD · ACN 659 615 111 · Sydney
-            NSW.
-          </p>
-        </div>
-      </main>
-
-      <Footer />
-    </div>
+      <MarketingCtaStrip
+        headline="See what's next."
+        primary={{ href: "/roadmap", label: "Roadmap" }}
+        secondary={{ href: "/security-audit", label: "Security audit" }}
+      />
+    </MarketingShell>
   );
 }

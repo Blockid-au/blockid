@@ -9,6 +9,7 @@
 import { NextResponse } from "next/server";
 
 import { advance, loadDue } from "@/lib/conversion/lifecycle";
+import { assign } from "@/lib/conversion/experiments";
 import { renderLifecycleEmail } from "@/emails/lifecycle/render";
 import { sendEmail } from "@/lib/email";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
@@ -69,12 +70,29 @@ export async function GET(request: Request) {
       .eq("user_id", row.user_id)
       .maybeSingle();
 
+    // Resolve the day5 subject-line variant for this user. `assign` is
+    // deterministic + persisted, so re-runs of the cron never reshuffle
+    // the user's bucket. Non-day5 steps get null, which the renderer
+    // treats as "use default subject".
+    let variant: string | null = null;
+    if (step === "day5") {
+      try {
+        variant = await assign({
+          experimentId: "day5_email_subject",
+          userId: row.user_id,
+        });
+      } catch {
+        variant = null;
+      }
+    }
+
     const rendered = renderLifecycleEmail({
       step,
       firstName: user.first_name ?? user.name ?? null,
       trialEndsAt: trial?.trial_end ?? null,
       planLabel: trial?.plan_id ?? null,
       unsubscribeUrl: `${APP_URL}/account/unsubscribe?u=${encodeURIComponent(row.user_id)}`,
+      variant,
     });
 
     if (!rendered.subject) {

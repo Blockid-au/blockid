@@ -70,7 +70,7 @@ export function AutoRenewNotice({
       onManage();
       return;
     }
-    router.push("/account/billing");
+    router.push("/workspace/billing");
   }, [onManage, router]);
 
   return (
