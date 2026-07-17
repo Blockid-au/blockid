@@ -1,7 +1,8 @@
 // CLO Domain: Legal Compliance & IP Protection (AU-focused)
 //
 // Australian regulatory compliance checklist, legal document coverage,
-// risk assessment, and IP protection analysis.
+// risk assessment, IP protection analysis, and current-year research
+// datapoints sourced from ATO / ASIC / OAIC / IP Australia.
 
 export interface ComplianceItem {
   id: string;
@@ -116,4 +117,97 @@ export function calculateComplianceScore(stage: number, completedItems: string[]
     .map((item) => `${item.requirement} (${item.authority}) — ${item.description}`);
 
   return { items: relevant, completed, score, missingCritical, nextSteps };
+}
+
+// ── Research datapoints (refreshed by CLO cron) ─────────────────────────
+
+export interface DataPoint {
+  value: string;
+  metric: string;
+  source: string;
+}
+
+export interface ResearchTopic {
+  topic: string;
+  confidence: number;
+  data_points: DataPoint[];
+  key_findings: string[];
+}
+
+export const ESIC_RESEARCH: ResearchTopic = {
+  topic: "ESIC ruling updates",
+  confidence: 0.8,
+  data_points: [
+    { value: "20% non-refundable carry-forward tax offset", metric: "ESIC investor tax offset", source: "ATO ESIC tax offset guidance" },
+    { value: "AU$200,000/yr per investor", metric: "Maximum tax offset per investor per year (sophisticated)", source: "ATO Div 360" },
+    { value: "10-year CGT exemption", metric: "CGT treatment on ESIC shares held ≥12 months", source: "ATO Div 360" },
+  ],
+  key_findings: [
+    "ESIC status remains a critical fundraising signal for AU angel investors",
+    "Founders must satisfy both early-stage and innovation limbs at time of issue",
+  ],
+};
+
+export const IP_AU_RESEARCH: ResearchTopic = {
+  topic: "IP Australia policy changes",
+  confidence: 0.8,
+  data_points: [
+    { value: "9-12 months", metric: "Average time to first examination for patent applications", source: "IP Australia Annual Report 2022-2023" },
+    { value: "AU$250-AU$550", metric: "Trademark application fee range (per class)", source: "IP Australia Fee Schedule 2024" },
+  ],
+  key_findings: [
+    "Standard patent examination remains 9-12 months without expedited request",
+    "Innovation patents phased out (2021) — designs + standard patents only",
+  ],
+};
+
+export const PRIVACY_ACT_RESEARCH: ResearchTopic = {
+  topic: "Privacy Act amendments",
+  confidence: 0.9,
+  data_points: [
+    { value: "AU$50m / 30% of turnover / 3× benefit", metric: "Maximum civil penalty for serious/repeated interference", source: "Privacy Legislation Amendment Act 2022" },
+    { value: "30 days", metric: "OAIC notifiable data breach reporting window", source: "Privacy Act 1988 s26WK" },
+  ],
+  key_findings: [
+    "Penalties increased ~10× from previous AU$2.22m cap",
+    "OAIC has new infringement notice + external dispute resolution powers",
+  ],
+};
+
+export const ASIC_RESEARCH: ResearchTopic = {
+  topic: "ASIC fundraising guidance updates",
+  confidence: 0.8,
+  data_points: [
+    { value: "AU$2m raised / 20 investors / 12 months", metric: "s708 small-scale personal offer exemption cap", source: "Corporations Act 2001 s708(1)" },
+    { value: "AU$5m per issuer, AU$10k per retail investor", metric: "Crowd-sourced funding (CSF) caps under s738G", source: "ASIC Regulatory Guide 261" },
+  ],
+  key_findings: [
+    "Wholesale-investor certificates (s708(8) & (11)) remain the primary path for uncapped raises",
+    "Retail raises without a disclosure document must fit one of s708 exemptions",
+  ],
+};
+
+// ── Numeric helpers (used by CLO reports) ──────────────────────────────
+
+/** Estimate ESIC investor tax offset at the 20% statutory rate. */
+export function estimateEsicTaxOffset(eligibleInvestment: number): number {
+  return Math.round(eligibleInvestment * 0.20);
+}
+
+/** Maximum civil penalty per serious/repeated Privacy Act breach. */
+export function maxPrivacyPenalty(annualTurnover: number, benefitObtained = 0): number {
+  const capFixed = 50_000_000;
+  const capTurnover = annualTurnover * 0.30;
+  const capBenefit = benefitObtained * 3;
+  return Math.max(capFixed, capTurnover, capBenefit);
+}
+
+/** Midpoint months for standard patent examination. */
+export function averagePatentExaminationTime(): number {
+  return 10.5;
+}
+
+/** Trademark application fee range (AUD per class). */
+export function trademarkFeeRange(): [number, number] {
+  return [250, 550];
 }
