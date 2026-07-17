@@ -87,6 +87,24 @@ describe("cfo-projection-norms — financial projection norms calculator", () =>
     expect(r.sources.length).toBeGreaterThan(0);
   });
 
+  it("returns a sector multiple benchmark and implied valuation when sector is provided", () => {
+    const r = computeProjectionNorms({ ...seedInput, sector: "saas" });
+    expect(r.sectorMultiple).toBeDefined();
+    expect(r.sectorMultiple!.sector).toBe("saas");
+    // ARR = 20000 * 12 = 240000. SaaS mid multiple is 7x → implied mid = 1_680_000.
+    expect(r.sectorMultiple!.impliedValuationAud.mid).toBe(r.arrAud * r.sectorMultiple!.arrMultiple.mid);
+    expect(r.sectorMultiple!.impliedValuationAud.low).toBeLessThanOrEqual(r.sectorMultiple!.impliedValuationAud.mid);
+    expect(r.sectorMultiple!.impliedValuationAud.high).toBeGreaterThanOrEqual(r.sectorMultiple!.impliedValuationAud.mid);
+    expect(r.sectorMultiple!.sources.length).toBeGreaterThan(0);
+  });
+
+  it("omits sectorMultiple when sector is unknown or absent", () => {
+    const noSector = computeProjectionNorms(seedInput);
+    expect(noSector.sectorMultiple).toBeUndefined();
+    const badSector = computeProjectionNorms({ ...seedInput, sector: "not-a-real-sector" });
+    expect(badSector.sectorMultiple).toBeUndefined();
+  });
+
   it("falls back to a stage when the supplied stage is unknown", () => {
     const r = computeProjectionNorms({
       ...seedInput,
