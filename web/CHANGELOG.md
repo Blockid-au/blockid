@@ -1,5 +1,24 @@
 # BlockID.au Changelog
 
+## v2.0.0-beta.6 — 2026-07-17 (Phase 8 public surfaces + deferred audit fixes)
+
+**Ships /roadmap, /changelog, /status public pages and closes 3 deferred findings from the Phase 6 audit sweep. 4 agents ran in parallel on strictly disjoint file domains.**
+
+### Public surfaces
+- `/roadmap` — 8-stage platform journey (Founder Vision → Valuation → Equity → ESOP → Cap Table → Tokenization → Dividend → Exit) with "in progress" chip; current-milestone card + top-5 task IDs from `version.json`; Phase 0-4 checklist derived from the parsed `v2.0.0-beta.N` counter.
+- `/changelog` — reads `web/CHANGELOG.md` via `fs.readFileSync` with multi-path fallback; inline minimal markdown renderer (no `marked` dep); sticky right-hand release jump-list.
+- `/status` + `/api/status` — aggregator over `healthz` + `deploy-log.jsonl` (tail 30) + `cron-health.jsonl` (tail 200); overall pill, per-service tiles, SLO tiles vs plan §13.3 budgets, last 10 deploys with GitHub commit links, cron table.
+
+### Deferred audit fixes closed
+- **H1 code + M6 code** — migration `0081_lifecycle_rpc.sql` adds `pick_lifecycle_due()` (with `FOR UPDATE SKIP LOCKED` — blocks two overlapping cron ticks from picking the same row) + `advance_lifecycle()` (atomic UPDATE — closes the history-append race). `lib/conversion/lifecycle.ts` refactored to call the RPCs; public API unchanged. Migration applied to prod DB.
+- **H4 sec** — `web/src/proxy.ts` (Next 16 proxy convention — renamed from middleware) generates a fresh 128-bit nonce per request and builds CSP with `'nonce-…' 'strict-dynamic'`; dropped `'unsafe-inline'` and `'unsafe-eval'` on `script-src`. Root layout reads `x-nonce` via `headers()` and threads it onto `GoogleAnalytics` `<Script>` tags. Tailwind `style-src 'unsafe-inline'` retained.
+
+### Deploy pipeline
+- `deploy-live.sh` — added 20 `@react-pdf` transitive peer deps to the `serverExternalPackages` copy list (`fontkit`, `restructure`, `tiny-inflate`, `abs-svg-path`, `parse-svg-path`, `normalize-svg-path`, `svg-arc-to-cubic-bezier`, `color-string`, `unicode-properties`, `unicode-trie`, `brotli`, `dfa`, `clone`, `media-engine`, `queue`, `js-md5`, plus 6 `@react-pdf/*`). Prevents Next 16 standalone tracer from under-counting transitive deps.
+
+### Tests
+- `lib/conversion/__tests__/lifecycle.test.ts` — 4 vitest cases covering the RPC integration (empty result, transition composition, done-step no-op, error surfacing).
+
 ## v2.0.0-beta.5 — 2026-07-17 (Phase 6 audit sweep)
 
 **Applied all critical + easy medium findings from parallel security-audit (T-0442) + code-review (T-0443) agents against the Phase 3–4 milestone.**
