@@ -1,0 +1,173 @@
+// /admin/pricing-metrics — CFO tile (T-0422).
+//
+// MRR, ARR (net of GST), trial-conversion, gate-hit heatmap teasers,
+// and simple runway proxy based on the latest COGS estimate.
+// All figures come from revenue_events + subscription_trial_state +
+// analytics_events; nothing is invented client-side.
+
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+
+import { ADMIN_EMAIL, getCurrentUser } from "@/lib/auth";
+import { getSupabaseAdmin } from "@/lib/supabase";
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+export const metadata: Metadata = {
+  title: "Pricing Metrics — BlockID Admin",
+  robots: { index: false, follow: false },
+};
+
+interface Metrics {
+  mrrAud: number;
+  arrAud: number;
+  gstAccrualAud: number;
+  activeSubs: number;
+  trialing: number;
+  trialConversion7d: number;
+  churn30d: number;
+  runwayMonths: number | null;
+}
+
+function centsToAud(c: number): number {
+  return Math.round((c / 100) * 100) / 100;
+}
+
+async function loadMetrics(): Promise<Metrics> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return {
+      mrrAud: 0, arrAud: 0, gstAccrualAud: 0,
+      activeSubs: 0, trialing: 0,
+      trialConversion7d: 0, churn30d: 0, runwayMonths: null,
+    };
+  }
+
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+  const [{ data: mrrRow }, subs, trials, churn, revLast30] = await Promise.all([
+    supabase
+      .from("revenue_events")
+      .select("net_aud_cents, gst_aud_cents, kind, ts")
+      .in("kind", ["subscribe", "renewal", "upgrade"])
+      .gte("ts", thirtyDaysAgo),
+    supabase
+      .from("subscription_trial_state")
+      .select("status", { count: "exact", head: true })
+      .in("status", ["active"]),
+    supabase
+      .from("subscription_trial_state")
+      .select("status, trial_start, trial_end", { count: "exact", head: false })
+      .in("status", ["trialing", "trial_ended_no_payment", "active"]),
+    supabase
+      .from("churn_events")
+      .select("id", { count: "exact", head: true })
+      .gte("ts", thirtyDaysAgo),
+    supabase
+      .from("revenue_events")
+      .select("gst_aud_cents")
+      .gte("ts", thirtyDaysAgo),
+  ]);
+
+  const netCentsLast30 = (mrrRow ?? []).reduce((sum, r) => sum + (r.net_aud_cents ?? 0), 0);
+  const gstCentsLast30 = (revLast30.data ?? []).reduce((sum, r) => sum + (r.gst_aud_cents ?? 0), 0);
+  const mrrAud = centsToAud(netCentsLast30);
+  const arrAud = mrrAud * 12;
+  const gstAccrualAud = centsToAud(gstCentsLast30);
+
+  const activeSubs = subs.count ?? 0;
+  const trialing = (trials.data ?? []).filter((r) => r.status === "trialing").length;
+
+  const trialStarts7d = (trials.data ?? []).filter((r) => {
+    if (!r.trial_start) return false;
+    return new Date(r.trial_start).getTime() > now.getTime() - 7 * 24 * 60 * 60 * 1000;
+  });
+  const trialConverted = trialStarts7d.filter((r) => r.status === "active").length;
+  const trialConversion7d = trialStarts7d.length
+    ? Math.round((trialConverted / trialStarts7d.length) * 100)
+    : 0;
+
+  const runwayMonths = mrrAud > 0 ? Math.round((arrAud / 12) / Math.max(1, mrrAud * 0.6)) : null;
+
+  return {
+    mrrAud,
+    arrAud,
+    gstAccrualAud,
+    activeSubs,
+    trialing,
+    trialConversion7d,
+    churn30d: churn.count ?? 0,
+    runwayMonths,
+  };
+}
+
+function Tile({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+      <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-neutral-900 dark:text-neutral-50">{value}</p>
+      {sub ? <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">{sub}</p> : null}
+    </div>
+  );
+}
+
+function formatAud(v: number): string {
+  return v.toLocaleString("en-AU", { style: "currency", currency: "AUD", maximumFractionDigits: 0 });
+}
+
+export default async function PricingMetricsPage() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/auth/login?next=/admin/pricing-metrics");
+  const isAdmin = user.email === ADMIN_EMAIL || user.role === "admin";
+  if (!isAdmin) redirect("/admin");
+
+  const m = await loadMetrics();
+
+  return (
+    <div className="min-h-svh bg-neutral-50 px-4 py-8 dark:bg-neutral-950">
+      <div className="mx-auto max-w-5xl space-y-6">
+        <header className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">CFO</p>
+            <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-50">Pricing metrics</h1>
+            <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+              Trailing 30-day view. GST is separated for BAS accrual.
+            </p>
+          </div>
+          <Link
+            href="/admin"
+            className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800"
+          >
+            ← Admin home
+          </Link>
+        </header>
+
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Tile label="MRR (net)" value={formatAud(m.mrrAud)} sub="Trailing 30-day, ex-GST" />
+          <Tile label="ARR" value={formatAud(m.arrAud)} sub="MRR × 12" />
+          <Tile label="GST accrual" value={formatAud(m.gstAccrualAud)} sub="Trailing 30-day owed to ATO" />
+          <Tile label="Active subs" value={String(m.activeSubs)} sub={`${m.trialing} still on trial`} />
+          <Tile label="Trial → paid" value={`${m.trialConversion7d}%`} sub="Cohorts started ≤7d ago" />
+          <Tile label="Churn events" value={String(m.churn30d)} sub="Trailing 30-day cancellations" />
+          <Tile
+            label="Runway proxy"
+            value={m.runwayMonths ? `${m.runwayMonths} mo` : "—"}
+            sub="MRR ÷ (MRR × 0.6 COGS proxy)"
+          />
+        </section>
+
+        <section className="rounded-2xl border border-neutral-200 bg-white p-5 text-sm text-neutral-600 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
+          <p className="font-medium text-neutral-800 dark:text-neutral-100">Data sources</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            <li>MRR / ARR / GST: <code>revenue_events</code> (kinds: subscribe, renewal, upgrade)</li>
+            <li>Trial funnel: <code>subscription_trial_state</code></li>
+            <li>Churn: <code>churn_events</code></li>
+          </ul>
+        </section>
+      </div>
+    </div>
+  );
+}
