@@ -1,23 +1,18 @@
 {
-  "version": "v2.0.0-beta.5",
-  "updated_at": "2026-07-17T12:00:00Z",
-  "git_sha": "59adf96",
-  "release_id": "phase6-security-code-review-fixes",
+  "version": "v2.0.0-beta.6",
+  "updated_at": "2026-07-17T13:10:00Z",
+  "git_sha": "8816cef",
+  "release_id": "phase8-public-surfaces-rpc-csp",
   "task_ids": [
-    "T-0442 security-audit sweep: 4H + 4M findings applied",
-    "H1 sec: cancel-flow save_offer coupon/kind/href whitelist + zod-strict body",
-    "H2 sec: fail-closed CRON_SECRET in lifecycle-mailer + weekly-retention",
-    "H3 sec: migration 0080 ON CONFLICT DO NOTHING (was DO UPDATE — broke disclaimer hash immutability)",
-    "M1 sec: pause_30d guard rejects if pause_collection already set",
-    "M4 sec: /api/legal/current-versions jurisdiction length cap + regex",
-    "T-0443 code-review sweep: 5H + 5M findings applied",
-    "H2 code: session cap counts only countsAgainstSessionCap triggers",
-    "H3 code: churn_events accepted_coupon derived from Stripe success (was lying on throw)",
-    "H4 code: /admin/pricing-metrics — drop bogus runwayMonths + ARR tiles, rename MRR → Revenue (30d)",
-    "H5 code: upgrade-modal real Tab focus trap",
-    "M7 code: startLifecycle preserves existing history on re-entry",
-    "M10 code: cancel-flow logs churn_events insert error + audit_warn field",
-    "TODO markers for deferred H1/M6 code (need Postgres pick_lifecycle_due RPC with SKIP LOCKED) and M8 (need SES bounce classification)"
+    "Public /roadmap page — 8-stage platform journey with in-progress chip on Cap Table",
+    "Public /changelog page — reads web/CHANGELOG.md via fs + inline minimal renderer",
+    "Public /status page + /api/status aggregator — healthz + deploy-log + cron-health tail summary",
+    "Migration 0081 lifecycle_rpc — pick_lifecycle_due with FOR UPDATE SKIP LOCKED (closes H1/M6 code from audit)",
+    "advance_lifecycle RPC — atomic history-append UPDATE (M6 race closed)",
+    "web/src/proxy.ts — Next 16 nonce-based CSP (drops unsafe-inline + unsafe-eval on script-src, closes H4 sec from audit)",
+    "GoogleAnalytics + layout.tsx — accept + apply nonce prop threaded via x-nonce header",
+    "next.config.ts — static CSP removed (moved to proxy), other security headers preserved",
+    "4 agents ran in parallel on strictly disjoint file domains; all typecheck clean; migration applied to prod"
   ],
-  "notes": "v2.0.0-beta.5 — Phase 6 audit sweep. All critical (H) and easy medium (M) findings from parallel security-audit + code-review agents applied. Cancel-flow save-offer path now safely whitelisted + validated. Cron secrets fail closed. Disclaimer registry hash immutability preserved. Focus trap actually traps. Deferred fixes documented with TODO(security-audit) markers referencing finding IDs so next milestone picks them up cleanly. Type-check clean, changes narrow, no new deps."
+  "notes": "v2.0.0-beta.6 — Public status surfaces (roadmap/changelog/status) + deferred audit fixes (H1/M6 lifecycle RPC with SKIP LOCKED + H4 CSP nonce). 3 deferred findings from Phase 6 audit are now closed. Deploy pipeline also hardened with 20 @react-pdf transitive peer deps to prevent standalone tracer under-count issue. All 4 parallel agents ran on non-overlapping file domains and shipped with clean typecheck. Migration 0081 applied to prod DB and verified callable."
 }
