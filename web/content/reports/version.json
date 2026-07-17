@@ -1,18 +1,28 @@
 {
-  "version": "v2.0.0-beta.6",
-  "updated_at": "2026-07-17T13:10:00Z",
-  "git_sha": "8816cef",
-  "release_id": "phase8-public-surfaces-rpc-csp",
+  "version": "v2.0.0-beta.7",
+  "updated_at": "2026-07-17T14:12:00Z",
+  "git_sha": "1e747b4",
+  "release_id": "phase9-fintech-shell-cro-wire-plan-v3.1",
   "task_ids": [
-    "Public /roadmap page — 8-stage platform journey with in-progress chip on Cap Table",
-    "Public /changelog page — reads web/CHANGELOG.md via fs + inline minimal renderer",
-    "Public /status page + /api/status aggregator — healthz + deploy-log + cron-health tail summary",
-    "Migration 0081 lifecycle_rpc — pick_lifecycle_due with FOR UPDATE SKIP LOCKED (closes H1/M6 code from audit)",
-    "advance_lifecycle RPC — atomic history-append UPDATE (M6 race closed)",
-    "web/src/proxy.ts — Next 16 nonce-based CSP (drops unsafe-inline + unsafe-eval on script-src, closes H4 sec from audit)",
-    "GoogleAnalytics + layout.tsx — accept + apply nonce prop threaded via x-nonce header",
-    "next.config.ts — static CSP removed (moved to proxy), other security headers preserved",
-    "4 agents ran in parallel on strictly disjoint file domains; all typecheck clean; migration applied to prod"
+    "Fintech-unicorn palette + typography: globals.css tokens + Space Grotesk display font",
+    "Google-style search-first hero (hero-search.tsx) + reskinned how-it-works",
+    "Nginx CSP override removed; live CSP now nonce + strict-dynamic (H4 sec finally closed)",
+    "DMARC admin@ removed from rua (config-driven scripts/dns/update-dmarc.sh)",
+    "Honest partner strip: config-driven marketing-partners.json (empty default; never fabricates)",
+    "Nav-v2 dropdowns (Product/For/Pricing/Compare/Docs)",
+    "/for/[segment] × 4 + segment-content.ts",
+    "Public transparency pages: /roadmap /changelog /status + api/status aggregator",
+    "6 C-level reviews (senior-pm plan v3, CTO, CFO, CDO, CISO, CRO/CMO)",
+    "IMPLEMENTATION-PLAN-v3.md (base) + v3.1-amended (synthesised C-level findings + 4 new goals 5A-5D)",
+    "T-1001 wire dead CRO triggers: FeatureGate + TrialDayWatcher + expose helper + pricing-matrix + lifecycle-mailer variant threading",
+    "T-1010 BQ export pipeline (scripts/bq-export-events.ts + api/cron/bq-export + crontab entry)",
+    "T-1015 partial 404 sweep: 6 new stub pages + retargets + full-site link audit (9 broken links closed)",
+    "Unified fintech marketing shell (marketing-shell/hero/footer/section/cta-strip)",
+    "9 pages migrated to shell: roadmap/changelog/status/security-audit/demo/svi/for/legal/pricing",
+    "CTO Fix #2: full node_modules symlink in deploy-live.sh (kills @react-pdf peer-dep chase)",
+    "Migration 0081 applied to prod: pick_lifecycle_due + advance_lifecycle RPCs with SKIP LOCKED (H1/M6 closed)",
+    "Sitemap +7 URLs: roadmap/changelog/status/security-audit/legal/*/svi/demo",
+    "/pricing canonical + openGraph + twitter card metadata"
   ],
-  "notes": "v2.0.0-beta.6 — Public status surfaces (roadmap/changelog/status) + deferred audit fixes (H1/M6 lifecycle RPC with SKIP LOCKED + H4 CSP nonce). 3 deferred findings from Phase 6 audit are now closed. Deploy pipeline also hardened with 20 @react-pdf transitive peer deps to prevent standalone tracer under-count issue. All 4 parallel agents ran on non-overlapping file domains and shipped with clean typecheck. Migration 0081 applied to prod DB and verified callable."
+  "notes": "v2.0.0-beta.7 — Phase 9 landing. 5 parallel agents shipped: unified fintech marketing shell + Google-style search hero + dead-CRO-trigger wire + BQ export pipeline + full 404 sweep. CSP H4 finding CLOSED for real (nginx override removed). All 6 C-level reviews synthesised into IMPLEMENTATION-PLAN-v3.1-amended.md with 17 new WSJF-scored T-10xx tasks + 4 new goals (autonomous quality gate, investor-pack v2, AU-startup public index, Vietnamese-Australian founder cohort). DMARC admin@ removed. Fake partner logos gutted (config-driven, empty default). tsc clean; verify-equity-gate clean."
 }
