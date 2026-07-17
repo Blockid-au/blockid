@@ -13,8 +13,8 @@ declare
   rec record;
   h text;
 begin
-  for rec in (
-    values
+  for rec in
+    select * from (values
       ('nfa_au_v1',           '1.0', 'AU',     'not_financial_advice',
        'BlockID.au provides general information only. Nothing on this platform is personal financial product advice under s766B of the Corporations Act 2001. You should consider your own objectives, financial situation and needs before acting on any information provided. Where relevant, obtain a Product Disclosure Statement and independent professional advice.'),
       ('nfa_global_v1',       '1.0', 'GLOBAL', 'not_financial_advice',
@@ -35,7 +35,7 @@ begin
        'BlockID.au handles personal information in accordance with the Privacy Act 1988 (Cth) and the Australian Privacy Principles. See our Privacy Policy v2.0 for retention periods, cross-border disclosures, and how to raise a complaint with the OAIC.'),
       ('wholesale_au_v1',     '1.0', 'AU',     'wholesale_certification',
        'You warrant that you are a wholesale client under s761G(7) of the Corporations Act 2001 (net assets ≥ AU$2.5m OR gross income ≥ AU$250k in each of the last two financial years), and hold a current qualified accountant''s certificate. BlockID.au relies on this warranty for any wholesale-restricted content shown to you.')
-  ) as t(id, version, jurisdiction, kind, body_md)
+    ) as t(id, version, jurisdiction, kind, body_md)
   loop
     h := encode(digest(rec.body_md, 'sha256'), 'hex');
     insert into disclaimer_registry (id, version, jurisdiction, kind, effective_from, body_md, hash)
