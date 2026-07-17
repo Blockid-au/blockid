@@ -19,22 +19,34 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          navy: "#0A1628",
-          "navy-elev-1": "#0F1D33",
-          "navy-elev-2": "#152740",
-          gold: "#C9A961",
-          "gold-muted": "#8B7A44",
+          // Deep navy from the BlockID logo wordmark
+          navy: "#1B2A5E",
+          "navy-elev-1": "#22326B",
+          "navy-elev-2": "#2A3B7A",
+          "navy-deep": "#0F1B47",
+          // Bright accent blue/cyan from the logo star + .au dot
           cyan: "#22D3EE",
           "cyan-muted": "#0891B2",
-          ink: "#E8E9EA",
-          "ink-muted": "#94A3B8",
+          blue: "#3B82F6",
+          "blue-bright": "#38BDF8",
+          // Legacy aliases (kept so v1 pages don't break) — remapped to accent blue
+          gold: "#38BDF8",
+          "gold-muted": "#0EA5E9",
+          // Ink for text on light or dark surfaces
+          ink: "#F8FAFC",
+          "ink-muted": "#CBD5E1",
+          "ink-dark": "#1B2A5E",
         },
       },
       backgroundImage: {
         "lux-radial":
-          "radial-gradient(ellipse at top, #152740 0%, #0A1628 60%)",
+          "radial-gradient(ellipse at top, #2A3B7A 0%, #0F1B47 60%)",
+        "lux-cyan-line":
+          "linear-gradient(90deg, transparent 0%, #22D3EE 50%, transparent 100%)",
         "lux-gold-line":
-          "linear-gradient(90deg, transparent 0%, #C9A961 50%, transparent 100%)",
+          "linear-gradient(90deg, transparent 0%, #22D3EE 50%, transparent 100%)",
+        "brand-star":
+          "linear-gradient(135deg, #1B2A5E 0%, #22D3EE 100%)",
       },
     },
   },

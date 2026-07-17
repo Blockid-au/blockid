@@ -46,21 +46,28 @@
   --color-gold-500: #f59e0b;
   --color-gold-600: #d97706;
 
-  /* ── Luxury dark palette (opt-in via body[data-theme="lux"]) ── */
-  /* Extends the `brand` colour family: bg-brand-navy, text-brand-gold, … */
-  --color-brand-navy: #0A1628;
-  --color-brand-navy-elev-1: #0F1D33;
-  --color-brand-navy-elev-2: #152740;
-  --color-brand-gold: #C9A961;
-  --color-brand-gold-muted: #8B7A44;
-  --color-brand-cyan: #22D3EE;
+  /* ── Luxury palette — colours pulled straight from the BlockID logo ── */
+  /* Opt in via a [data-theme="lux"] wrapper on <body> or a section. */
+  --color-brand-navy: #1B2A5E;         /* logo wordmark */
+  --color-brand-navy-elev-1: #22326B;
+  --color-brand-navy-elev-2: #2A3B7A;
+  --color-brand-navy-deep: #0F1B47;
+  --color-brand-cyan: #22D3EE;         /* logo star + .au dot */
   --color-brand-cyan-muted: #0891B2;
-  --color-brand-ink: #E8E9EA;
-  --color-brand-ink-muted: #94A3B8;
+  --color-brand-blue: #3B82F6;
+  --color-brand-blue-bright: #38BDF8;
+  /* Legacy alias — old refs to text-brand-gold now render as accent blue */
+  --color-brand-gold: #38BDF8;
+  --color-brand-gold-muted: #0EA5E9;
+  --color-brand-ink: #F8FAFC;
+  --color-brand-ink-muted: #CBD5E1;
+  --color-brand-ink-dark: #1B2A5E;
 
-  /* ── Luxury background images (bg-lux-radial, bg-lux-gold-line) ── */
-  --background-image-lux-radial: radial-gradient(ellipse at top, #152740 0%, #0A1628 60%);
-  --background-image-lux-gold-line: linear-gradient(90deg, transparent 0%, #C9A961 50%, transparent 100%);
+  /* ── Luxury background images (bg-lux-radial, bg-lux-*-line, bg-brand-star) ── */
+  --background-image-lux-radial: radial-gradient(ellipse at top, #2A3B7A 0%, #0F1B47 60%);
+  --background-image-lux-cyan-line: linear-gradient(90deg, transparent 0%, #22D3EE 50%, transparent 100%);
+  --background-image-lux-gold-line: linear-gradient(90deg, transparent 0%, #22D3EE 50%, transparent 100%);
+  --background-image-brand-star: linear-gradient(135deg, #1B2A5E 0%, #22D3EE 100%);
 
   /* ── Fonts ────────────────────────────────────────────────── */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
@@ -484,26 +491,29 @@ body {
    * matching a real `<body data-theme="lux">` if one is ever used.
    */
   [data-theme="lux"] .lux-card {
-    background: linear-gradient(180deg, #152740 0%, #0F1D33 100%);
-    border: 1px solid rgba(201, 169, 97, 0.12);
+    background: linear-gradient(180deg, #22326B 0%, #1B2A5E 100%);
+    border: 1px solid rgba(34, 211, 238, 0.18);
     border-radius: 1rem;
   }
 
-  [data-theme="lux"] .lux-glow-gold {
-    box-shadow: 0 0 40px -12px rgba(201, 169, 97, 0.3);
+  /* Alias: brand accent glow (cyan). `.lux-glow-gold` kept as alias so
+     any existing usage compiles unchanged. */
+  [data-theme="lux"] .lux-glow-gold,
+  [data-theme="lux"] .lux-glow-cyan {
+    box-shadow: 0 0 40px -12px rgba(34, 211, 238, 0.4);
   }
 
-  [data-theme="lux"] .lux-glow-cyan {
-    box-shadow: 0 0 40px -12px rgba(34, 211, 238, 0.35);
+  [data-theme="lux"] .lux-glow-blue {
+    box-shadow: 0 0 40px -12px rgba(59, 130, 246, 0.4);
   }
 
   [data-theme="lux"] .lux-divider {
     height: 1px;
-    background-image: linear-gradient(90deg, transparent 0%, #C9A961 50%, transparent 100%);
+    background-image: linear-gradient(90deg, transparent 0%, #22D3EE 50%, transparent 100%);
   }
 
   [data-theme="lux"] .lux-heading {
-    background: linear-gradient(120deg, #E8E9EA 0%, #C9A961 100%);
+    background: linear-gradient(120deg, #F8FAFC 0%, #22D3EE 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -520,16 +530,18 @@ body {
    `[data-theme="lux"]` subtree re-skins those shared components to the
    luxury dark palette without forking them into lux-only copies. */
 [data-theme="lux"] {
-  --color-surface-50: #0F1D33;
-  --color-surface-100: #152740;
-  --color-surface-200: rgba(201, 169, 97, 0.16);
-  --color-ink-600: #94A3B8;
-  --color-ink-700: #B7C2D4;
-  --color-ink-800: #E8E9EA;
-  --color-brand-900: #E8E9EA;
+  --color-surface-50: #22326B;
+  --color-surface-100: #1B2A5E;
+  --color-surface-200: rgba(34, 211, 238, 0.18);
+  --color-ink-600: #CBD5E1;
+  --color-ink-700: #E2E8F0;
+  --color-ink-800: #F8FAFC;
+  --color-brand-900: #F8FAFC;
   --color-brand-600: #22D3EE;
   --color-brand-700: #0891B2;
-  --color-gold-300: #E4CE97;
-  --color-gold-500: #C9A961;
-  --color-gold-600: #A78845;
+  /* Old `gold-*` scale remapped to accent cyan so any leftover .text-gold-500
+     token in legacy components paints as brand cyan in lux mode. */
+  --color-gold-300: #7DD3FC;
+  --color-gold-500: #22D3EE;
+  --color-gold-600: #0891B2;
 }
