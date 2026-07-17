@@ -1,20 +1,19 @@
 {
-  "version": "v2.0.0-beta.9",
-  "updated_at": "2026-07-17T15:45:00Z",
-  "git_sha": "6cec852",
-  "release_id": "phase11-goal5a-t1100-goal5b-t1200-t1201",
+  "version": "v2.0.0-beta.10",
+  "updated_at": "2026-07-17T16:00:00Z",
+  "git_sha": "0a807ac",
+  "release_id": "phase12-real-mrr-llm-clevel-vi-i18n-startup-index",
   "task_ids": [
-    "T-1100 Goal 5A nightly C-level review orchestrator (stub mode; LLM wiring deferred to T-1102)",
-    "T-1100 scripts/nightly-clevel-review.mjs — 6-persona enumerator + version-scoped stub writer + history jsonl",
-    "T-1100 api/cron/nightly-clevel-review — fail-closed CRON_SECRET route + tsx spawn",
-    "T-1100 crontab.production — 30 4 * * * (14:30 AEST daily)",
-    "T-1200 Goal 5B investor-pack PDF template (lib/pdf/investor-pack.tsx)",
-    "T-1200 InvestorPackData interface + renderInvestorPack helper + InvestorPackPdf React.FC",
-    "T-1200 6 sections: cover / exec / SVI 13-criteria / cap table / traction chart / one-page teaser",
-    "T-1200 Every page: NFA footer + version stamp + Auschain PTY LTD ACN/ABN",
-    "T-1201 api/investor-pack/preview — auth-gated, application/pdf, inline or ?download=1 attachment",
-    "T-1201 workspace/investor-pack page — Preview + Generate PDF cards + share-link placeholder",
-    "T-1200 __tests__/investor-pack.test.ts vitest: minimal→non-empty + full→larger-than-minimal"
+    "T-1007 real MRR (migration 0083 v_mrr_active + v_mrr_by_segment + v_arr_run_rate applied to prod)",
+    "T-1007 lib/metrics/mrr.ts getRealMrrAud + admin/pricing-metrics real MRR tiles + segment breakdown",
+    "T-1102 Anthropic LLM wired into scripts/nightly-clevel-review.mjs (claude-sonnet-5 default; haiku-4-5 cheap fallback)",
+    "T-1102 6 persona prompts (cto/cfo/cdo/ciso/cro/cmo) as .md files + clevel-review-manifest.json evidence map",
+    "T-1300 Goal 5C startup index (migration 0082 startup_listings + startup_listing_events + v_startup_listing_public + generate_ticker RPC applied to prod)",
+    "T-1300 /listings directory + /listings/[ticker] detail + /workspace/listings/new + lib/listings/listings-db.ts",
+    "T-1300 sitemap /listings entry; existing /index BSI-AU brand page PRESERVED",
+    "T-1400 Goal 5D Vietnamese i18n scaffold (lib/i18n/{locales.ts, t.ts, messages/{en,vi}.json})",
+    "T-1400 /vi + /vi/pricing routes + locale-switcher client component + proxy.ts locale detection (CSP nonce preserved)",
+    "T-1400 nav-v2 mounts LocaleSwitcher; sitemap includes /vi entries with hreflang metadata"
   ],
-  "notes": "v2.0.0-beta.9 — Phase 11 landing. First implementation touches on 2 of the 4 new Goals: Goal 5A (autonomous quality gate) has its scaffold cron running in stub mode nightly; Goal 5B (investor pack v2) has a full-fidelity PDF template + preview route + workspace surface. Deferred: T-1102 LLM wiring for real C-level reviews; T-1207 share-link creation with revocation; T-1210 PDF encryption for wholesale. Next milestone will pick up T-1102 (LLM-driven nightly review) + T-1300 (Goal 5C startup index schema)."
+  "notes": "v2.0.0-beta.10 — Phase 12. First real implementation touches all 4 new Goals: 5A now has real LLM-driven nightly reviews (was stub); 5B untouched this phase; 5C has schema + directory + detail; 5D has locale routing + first VI surfaces. Plus T-1007 CFO real MRR closes the amendments plan H-task list. Migrations 0082 + 0083 applied to prod DB. tsc + verify-equity-gate clean."
 }
