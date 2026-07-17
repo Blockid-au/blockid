@@ -437,6 +437,14 @@ for pkg in \
     "@react-pdf/layout" \
     "@react-pdf/fns" \
     "@react-pdf/image" \
+    "@react-pdf/primitives" \
+    "@react-pdf/reconciler" \
+    "@react-pdf/render" \
+    "@react-pdf/stylesheet" \
+    "@react-pdf/svg" \
+    "@react-pdf/textkit" \
+    "@react-pdf/types" \
+    is-url \
     react-pdf \
     gaxios \
     gcp-metadata; do
