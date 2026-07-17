@@ -28,6 +28,40 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified,
       changeFrequency: "weekly",
       priority: 1,
+      alternates: {
+        languages: {
+          en: `${SITE_URL}/`,
+          vi: `${SITE_URL}/vi`,
+          "x-default": `${SITE_URL}/`,
+        },
+      },
+    },
+    // Vietnamese-Australian founder cohort (T-1400)
+    {
+      url: `${SITE_URL}/vi`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.9,
+      alternates: {
+        languages: {
+          en: `${SITE_URL}/`,
+          vi: `${SITE_URL}/vi`,
+          "x-default": `${SITE_URL}/`,
+        },
+      },
+    },
+    {
+      url: `${SITE_URL}/vi/pricing`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.8,
+      alternates: {
+        languages: {
+          en: `${SITE_URL}/pricing`,
+          vi: `${SITE_URL}/vi/pricing`,
+          "x-default": `${SITE_URL}/pricing`,
+        },
+      },
     },
     {
       url: `${SITE_URL}/score`,
@@ -148,6 +182,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified,
       changeFrequency: "weekly",
       priority: 0.9,
+      alternates: {
+        languages: {
+          en: `${SITE_URL}/pricing`,
+          vi: `${SITE_URL}/vi/pricing`,
+          "x-default": `${SITE_URL}/pricing`,
+        },
+      },
     },
     {
       url: `${SITE_URL}/developers`,
