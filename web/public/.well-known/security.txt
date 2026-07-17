@@ -1,0 +1,11 @@
+Contact: mailto:security@blockid.au
+Contact: https://blockid.au/security-audit
+Preferred-Languages: en, vi
+Canonical: https://blockid.au/.well-known/security.txt
+Policy: https://blockid.au/security-audit
+Expires: 2027-07-17T00:00:00Z
+Acknowledgments: https://blockid.au/security-audit#hall-of-thanks
+# TODO(CISO): once the maintainer PGP key is published under
+# /.well-known/pgp-key.txt, uncomment the Encryption line below and rotate
+# the Expires field to a new 12-month horizon.
+# Encryption: https://blockid.au/.well-known/pgp-key.txt

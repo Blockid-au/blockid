@@ -1,6 +1,20 @@
 #!/usr/bin/env bash
 # Config-driven DMARC record updater for a Cloudflare-managed zone.
 #
+# T-1011 (docs/IMPLEMENTATION-PLAN-v3.1-amended.md): once the
+# `dmarc-reports@blockid.au` distribution alias is provisioned in Google
+# Workspace (Admin -> Directory -> Groups), re-enable aggregate + forensic
+# reporting at p=none for a 30-day observation window with:
+#
+#   DMARC_RUA="mailto:dmarc-reports@blockid.au" \
+#   DMARC_RUF="mailto:dmarc-reports@blockid.au" \
+#   DMARC_FO=1 \
+#     bash web/scripts/dns/update-dmarc.sh
+#
+# Do NOT run this until the alias exists and has received a test message —
+# Cloudflare will accept the record but reports bounce silently, which is
+# how we lost the previous 30-day visibility window (see ciso-review §4).
+#
 # Reads config from web/.env (via web/scripts/cron-runner.sh convention).
 # Nothing about the record shape is hard-coded — every knob comes from an
 # env var so future policy changes (relaxed / strict / different report
