@@ -143,6 +143,31 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.7,
     },
+    // Per-segment marketing landings (T-0317)
+    {
+      url: `${SITE_URL}/for/founder`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${SITE_URL}/for/investor`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${SITE_URL}/for/advisor`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${SITE_URL}/for/accelerator`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
     // Insights / blog
     {
       url: `${SITE_URL}/insights`,
