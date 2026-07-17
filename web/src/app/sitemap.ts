@@ -228,6 +228,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 0.8,
     },
+    // AU Startup Index — public directory (T-1300 first scaffold, Goal 5C).
+    // Per-listing `/listings/[ticker]` URLs will be sourced from
+    // `getPublicListings()` in a future task (T-1305) once listings begin to
+    // populate; for now we ship the /index entry so Google discovers the
+    // top-level directory URL.
+    {
+      url: `${SITE_URL}/listings`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.85,
+    },
     // Public transparency + docs surfaces
     {
       url: `${SITE_URL}/roadmap`,
