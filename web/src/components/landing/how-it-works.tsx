@@ -37,10 +37,10 @@ export function HowItWorks() {
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6">
       <div className="mb-10 flex flex-col items-center gap-2 text-center">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-cyan">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]">
           How it works
         </p>
-        <h2 className="text-2xl font-semibold tracking-tight text-brand-ink sm:text-3xl">
+        <h2 className="font-display text-2xl font-semibold tracking-tight text-[var(--fintech-ink)] sm:text-3xl">
           Search, score, share.
         </h2>
       </div>
@@ -48,16 +48,18 @@ export function HowItWorks() {
         {STEPS.map(({ icon: Icon, title, body }) => (
           <li
             key={title}
-            className="flex h-full flex-col gap-4 rounded-2xl border border-brand-ink/10 bg-white/[0.03] p-6 transition-colors duration-200 hover:border-brand-cyan/40"
+            className="group flex h-full flex-col gap-4 rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-6 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--fintech-accent)]/40 hover:bg-[var(--fintech-surface)] hover:shadow-[0_16px_40px_-16px_rgba(34,211,238,0.25)]"
           >
             <div
               aria-hidden="true"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-brand-cyan/10 text-brand-cyan"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--fintech-accent)]/10 text-[var(--fintech-accent)] ring-1 ring-inset ring-[var(--fintech-accent)]/20"
             >
               <Icon className="h-5 w-5" />
             </div>
-            <h3 className="text-lg font-semibold text-brand-ink">{title}</h3>
-            <p className="text-sm leading-relaxed text-brand-ink-muted">
+            <h3 className="font-display text-lg font-semibold text-[var(--fintech-ink)]">
+              {title}
+            </h3>
+            <p className="text-sm leading-relaxed text-[var(--fintech-ink-muted)]">
               {body}
             </p>
           </li>
