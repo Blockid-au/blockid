@@ -573,6 +573,21 @@ fi
 # Belt-and-suspenders: remove any nested dirs that standalone file-tracing may have
 # pulled in. These add no runtime value and cause exponential disk growth on redeploy.
 rm -rf "$RELEASE_DIR/releases" "$RELEASE_DIR/.git" "$RELEASE_DIR/.next-backup"
+
+# Next 16 quirk: routes literally named `/index` build to
+# `.next/server/app/index/index/page.js` (double nesting) but the server
+# tries to load them from `.next/server/app/index/page.js`. Symlink the
+# nested build artifacts up one level to work around it. Idempotent.
+if [ -d "$RELEASE_DIR/.next/server/app/index/index" ]; then
+  for f in page.js page_client-reference-manifest.js page.js.nft.json; do
+    src="$RELEASE_DIR/.next/server/app/index/index/$f"
+    dst="$RELEASE_DIR/.next/server/app/index/$f"
+    if [ -e "$src" ] && [ ! -e "$dst" ]; then
+      ln -sf "$src" "$dst"
+    fi
+  done
+fi
+
 echo "  ✅ Release frozen: releases/$BUILD_ID"
 
 # Start on temp port (from the immutable release dir)
