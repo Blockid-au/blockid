@@ -1,80 +1,201 @@
 #!/usr/bin/env bash
-# QA release gate — orchestrates the pre-deploy checks.
+# qa-release-gate.sh
 #
-#   1. Seed QA test users (idempotent).
-#   2. Run Playwright journeys (5 canonical flows).
-#   3. Run Playwright regression suite (menu, gates, disclaimers, homepage).
-#   4. Print pass/fail summary.
+# Pre-deploy orchestrator. Runs each check in order; exits non-zero on the
+# first failure (unless the step is soft — see notes below).
 #
-# Exit non-zero on any failure. Wired into deploy-live.sh pre-flight.
+# Steps:
+#   a) web/scripts/ci-grep-gate.sh          (existing)
+#   b) web/scripts/verify-equity-gate.sh    (blockchain/tokenization guard)
+#   c) npx tsc --noEmit                     (web/)
+#   d) npm test -- --run                    (Vitest; soft: warn if missing)
+#   e) npx playwright test tests/e2e/regression/
+#         (skipped when STAGED=1 — journeys need Stripe test mode & are
+#          intentionally not run here)
+#   f) node web/scripts/verify-audit-chain.ts   (soft: skip if missing)
+#
+# Flags:
+#   --dry-run    Print each step's command without executing it.
 #
 # Env:
-#   PLAYWRIGHT_BASE_URL   default http://localhost:3000
-#   QA_SKIP_SEED=1        skip the seed step (already run)
-#   QA_ONLY=journeys|regression   run only one suite
+#   STAGED=1     Skip Playwright regression (fast pre-push mode).
 
-set -uo pipefail
+set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-WEB_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-cd "${WEB_DIR}"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+WEB_DIR="${REPO_ROOT}/web"
 
-: "${PLAYWRIGHT_BASE_URL:=http://localhost:3000}"
-export PLAYWRIGHT_BASE_URL
+DRY_RUN=0
+for arg in "$@"; do
+  case "$arg" in
+    --dry-run) DRY_RUN=1 ;;
+    -h|--help)
+      sed -n '2,25p' "$0"
+      exit 0
+      ;;
+    *)
+      printf 'unknown flag: %s\n' "$arg" >&2
+      exit 2
+      ;;
+  esac
+done
 
-FAIL=0
-SEED_STATUS="skipped"
-JOURNEYS_STATUS="skipped"
-REGRESSION_STATUS="skipped"
+BOLD='\033[1m'
+RED='\033[31m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+CYAN='\033[36m'
+RESET='\033[0m'
 
-log() { printf '[qa-gate] %s\n' "$*"; }
-step_ok() { printf '  \033[32mPASS\033[0m %s\n' "$*"; }
-step_fail() { printf '  \033[31mFAIL\033[0m %s\n' "$*"; FAIL=1; }
+step_no=0
+overall_fail=0
 
-log "base url        : ${PLAYWRIGHT_BASE_URL}"
-log "working dir     : ${WEB_DIR}"
+header() {
+  step_no=$((step_no + 1))
+  printf '\n%b[%d/6] %s%b\n' "${BOLD}${CYAN}" "$step_no" "$1" "$RESET"
+}
 
-# 1. Seed
-if [[ "${QA_SKIP_SEED:-0}" != "1" ]]; then
-  log "1/3 seeding QA test users"
-  if node scripts/seed-test-users.mjs; then
-    SEED_STATUS="pass"; step_ok "seed"
-  else
-    SEED_STATUS="fail"; step_fail "seed"
+ok() {
+  printf '  %bPASS%b %s\n' "$GREEN" "$RESET" "$1"
+}
+
+fail_mark() {
+  printf '  %bFAIL%b %s\n' "$RED" "$RESET" "$1"
+  overall_fail=1
+}
+
+warn() {
+  printf '  %bWARN%b %s\n' "$YELLOW" "$RESET" "$1"
+}
+
+# run <label> <command...>
+# Executes the command (or prints it under --dry-run). On failure, marks the
+# overall run as failed but keeps going so the caller sees every issue.
+run() {
+  local label="$1"; shift
+  printf '  %b$%b %s\n' "$BOLD" "$RESET" "$*"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    ok "${label} (dry-run)"
+    return 0
   fi
+  if "$@"; then
+    ok "$label"
+    return 0
+  else
+    fail_mark "$label"
+    return 1
+  fi
+}
+
+# run_soft <label> <command...> — same as run() but a failure only warns.
+run_soft() {
+  local label="$1"; shift
+  printf '  %b$%b %s\n' "$BOLD" "$RESET" "$*"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    ok "${label} (dry-run)"
+    return 0
+  fi
+  if "$@"; then
+    ok "$label"
+  else
+    warn "$label (soft failure — not blocking)"
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# a) ci-grep-gate
+# ---------------------------------------------------------------------------
+header "ci-grep-gate"
+if [[ -f "${WEB_DIR}/scripts/ci-grep-gate.sh" ]]; then
+  run "ci-grep-gate" bash "${WEB_DIR}/scripts/ci-grep-gate.sh" || true
 else
-  log "1/3 seed skipped (QA_SKIP_SEED=1)"
+  warn "web/scripts/ci-grep-gate.sh missing — skipping"
 fi
 
-# 2. Journeys
-if [[ "${QA_ONLY:-}" != "regression" ]]; then
-  log "2/3 running Playwright journeys"
-  if npx playwright test tests/e2e/journeys/ --reporter=line; then
-    JOURNEYS_STATUS="pass"; step_ok "journeys"
+# ---------------------------------------------------------------------------
+# b) verify-equity-gate
+# ---------------------------------------------------------------------------
+header "verify-equity-gate"
+run "verify-equity-gate" bash "${WEB_DIR}/scripts/verify-equity-gate.sh" || true
+
+# ---------------------------------------------------------------------------
+# c) tsc --noEmit
+# ---------------------------------------------------------------------------
+header "typecheck (tsc --noEmit)"
+if [[ "$DRY_RUN" -eq 1 ]]; then
+  printf '  %b$%b (cd %s && npx tsc --noEmit)\n' "$BOLD" "$RESET" "$WEB_DIR"
+  ok "tsc (dry-run)"
+else
+  if (cd "$WEB_DIR" && npx tsc --noEmit); then
+    ok "tsc --noEmit"
   else
-    JOURNEYS_STATUS="fail"; step_fail "journeys"
+    fail_mark "tsc --noEmit"
   fi
 fi
 
-# 3. Regression
-if [[ "${QA_ONLY:-}" != "journeys" ]]; then
-  log "3/3 running Playwright regression"
-  if npx playwright test tests/e2e/regression/ --reporter=line; then
-    REGRESSION_STATUS="pass"; step_ok "regression"
+# ---------------------------------------------------------------------------
+# d) vitest (soft: warn if the script/config is missing)
+# ---------------------------------------------------------------------------
+header "unit tests (vitest)"
+if [[ ! -f "${WEB_DIR}/package.json" ]]; then
+  warn "web/package.json missing — skipping"
+else
+  if grep -q '"test"' "${WEB_DIR}/package.json"; then
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      printf '  %b$%b (cd %s && npm test -- --run)\n' "$BOLD" "$RESET" "$WEB_DIR"
+      ok "vitest (dry-run)"
+    else
+      if (cd "$WEB_DIR" && npm test -- --run); then
+        ok "vitest"
+      else
+        fail_mark "vitest"
+      fi
+    fi
   else
-    REGRESSION_STATUS="fail"; step_fail "regression"
+    warn 'no "test" script in web/package.json — skipping vitest'
   fi
 fi
 
-echo
-log "release-gate summary"
-printf '  seed        : %s\n' "${SEED_STATUS}"
-printf '  journeys    : %s\n' "${JOURNEYS_STATUS}"
-printf '  regression  : %s\n' "${REGRESSION_STATUS}"
+# ---------------------------------------------------------------------------
+# e) playwright regression (skip when STAGED=1)
+# ---------------------------------------------------------------------------
+header "playwright regression"
+if [[ "${STAGED:-0}" == "1" ]]; then
+  warn "STAGED=1 — skipping playwright regression"
+else
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    printf '  %b$%b (cd %s && npx playwright test tests/e2e/regression/)\n' \
+      "$BOLD" "$RESET" "$WEB_DIR"
+    ok "playwright regression (dry-run)"
+  else
+    if (cd "$WEB_DIR" && npx playwright test tests/e2e/regression/); then
+      ok "playwright regression"
+    else
+      fail_mark "playwright regression"
+    fi
+  fi
+fi
 
-if [[ ${FAIL} -eq 0 ]]; then
-  log "GATE OPEN — deploy may proceed"
+# ---------------------------------------------------------------------------
+# f) verify-audit-chain (soft)
+# ---------------------------------------------------------------------------
+header "verify-audit-chain"
+AUDIT="${WEB_DIR}/scripts/verify-audit-chain.ts"
+if [[ -f "$AUDIT" ]]; then
+  run_soft "verify-audit-chain" node "$AUDIT"
+else
+  warn "web/scripts/verify-audit-chain.ts missing — skipping"
+fi
+
+# ---------------------------------------------------------------------------
+# Summary
+# ---------------------------------------------------------------------------
+printf '\n'
+if [[ "$overall_fail" -eq 0 ]]; then
+  printf '%b%bqa-release-gate: OK%b — release may proceed.\n' \
+    "$BOLD" "$GREEN" "$RESET"
   exit 0
 fi
-log "GATE CLOSED — fix failures before deploying"
+printf '%b%bqa-release-gate: FAIL%b — fix failing steps before deploy.\n' \
+  "$BOLD" "$RED" "$RESET"
 exit 1
