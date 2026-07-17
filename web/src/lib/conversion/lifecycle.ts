@@ -3,10 +3,11 @@
 // Drives the drip campaign: day0 welcome → day3 activation nudge → day5
 // upgrade CTA → day6 last-call → day7 trial end → day14 winback → winback
 // tail. The cron in web/cron/lifecycle-mailer.mjs picks rows off
-// lifecycle_state where next_send_at <= now() with skip-locked so
-// concurrent runners don't double-send.
+// lifecycle_state via the pick_lifecycle_due() RPC (see migration 0081)
+// which uses FOR UPDATE SKIP LOCKED so overlapping runners can't
+// double-send the same row.
 //
-// Each transition mutates only lifecycle_state (single-row upsert per
+// Each transition mutates only lifecycle_state (single-row update per
 // user) — the actual email is emitted by the caller so we can swap
 // providers without touching the state machine.
 
@@ -49,6 +50,13 @@ export interface LifecycleRow {
   history: Array<{ step: LifecycleStep; ts: string }>;
 }
 
+interface PickedRow {
+  user_id: string;
+  current_step: LifecycleStep | null;
+  history: unknown;
+  updated_at: string;
+}
+
 /**
  * Initialise a user at day0 with next_send_at = now (i.e. send immediately).
  * Preserves existing history on re-entry (second product line, etc.) so
@@ -75,34 +83,37 @@ export async function startLifecycle(userId: string, now = new Date()): Promise<
   );
 }
 
-/** Advance a user to the next step and stamp the new next_send_at. */
+/**
+ * Advance a user to the next step and stamp the new next_send_at.
+ *
+ * Delegates to the `advance_lifecycle` RPC (migration 0081) which does the
+ * history append + step transition in a single UPDATE — no more
+ * read → append → upsert race window.
+ */
 export async function advance(userId: string, from: LifecycleStep, now = new Date()): Promise<LifecycleStep> {
-  const supabase = getSupabaseAdmin();
   const transition = NEXT[from];
   const next: LifecycleStep = transition ? transition.next : "done";
   const nextSendAt = transition ? new Date(now.getTime() + transition.delayMs).toISOString() : null;
+
+  // Terminal state — nothing to write, and the RPC would just no-op.
+  if (!transition) return next;
+
+  const supabase = getSupabaseAdmin();
   if (!supabase) return next;
 
-  const { data: current } = await supabase
-    .from("lifecycle_state")
-    .select("history")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  const history = Array.isArray(current?.history) ? current!.history : [];
-  history.push({ step: from, ts: now.toISOString() });
-
-  await supabase.from("lifecycle_state").upsert(
-    {
-      user_id: userId,
-      current_step: next,
-      next_send_at: nextSendAt,
-      updated_at: now.toISOString(),
-      history,
-    },
-    { onConflict: "user_id" },
-  );
-  return next;
+  const { data, error } = await supabase.rpc("advance_lifecycle", {
+    p_user: userId,
+    p_from: from,
+    p_next: next,
+    p_next_send_at: nextSendAt,
+  });
+  if (error) {
+    // Surface transport errors; caller decides whether to retry the tick.
+    // Historically we swallowed these and the row was left stuck.
+    throw new Error(`advance_lifecycle rpc failed: ${error.message}`);
+  }
+  // RPC returns the resolved next step (or null if the row didn't exist).
+  return (typeof data === "string" ? (data as LifecycleStep) : next);
 }
 
 /** Cancel further sends (e.g. user churned, unsubscribed). */
@@ -123,24 +134,25 @@ export async function stopLifecycle(userId: string, now = new Date()): Promise<v
 /**
  * Load rows due for send.
  *
- * TODO(security-audit H-code-1 / next milestone): the current plain SELECT
- * lets two overlapping cron ticks pick the same row and double-send. Move
- * to a Postgres RPC `pick_lifecycle_due(limit)` that does
- * `UPDATE lifecycle_state SET next_send_at = null WHERE user_id IN
- *   (SELECT user_id FROM lifecycle_state WHERE next_send_at <= now()
- *    AND current_step <> 'done' ORDER BY next_send_at LIMIT $1
- *    FOR UPDATE SKIP LOCKED) RETURNING *`. Until then, keep the
- * cron cadence ≥ 15 min (job wall-time budget) so overlap is unlikely.
+ * Calls `pick_lifecycle_due(limit)` (migration 0081) which atomically
+ * selects + reserves rows using FOR UPDATE SKIP LOCKED — two overlapping
+ * cron ticks can no longer pick the same row. The returned rows already
+ * have next_send_at cleared; the caller is responsible for either
+ * advancing them (success path) or explicitly re-scheduling on failure.
  */
-export async function loadDue(limit = 100, now = new Date()): Promise<LifecycleRow[]> {
+export async function loadDue(limit = 100, _now = new Date()): Promise<LifecycleRow[]> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return [];
-  const { data } = await supabase
-    .from("lifecycle_state")
-    .select("user_id, current_step, next_send_at, updated_at, history")
-    .lte("next_send_at", now.toISOString())
-    .neq("current_step", "done")
-    .order("next_send_at", { ascending: true })
-    .limit(limit);
-  return (data ?? []) as LifecycleRow[];
+  const { data } = await supabase.rpc("pick_lifecycle_due", { p_limit: limit });
+  const rows = (data ?? []) as PickedRow[];
+  return rows.map((r): LifecycleRow => ({
+    user_id: r.user_id,
+    current_step: r.current_step,
+    // Row has been reserved — next_send_at is null until advance() re-stamps it.
+    next_send_at: null,
+    updated_at: r.updated_at,
+    history: Array.isArray(r.history)
+      ? (r.history as Array<{ step: LifecycleStep; ts: string }>)
+      : [],
+  }));
 }
