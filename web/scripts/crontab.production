@@ -312,6 +312,9 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Lifecycle mailer (day0/3/5/6/7/14/winback drip) — every 15 min
 */15 * * * * bash $RUN lifecycle-mailer --timeout 90
 
+# Weekly retention snapshots per segment (Mon 09:15 UTC / 19:15 AEST)
+15 9 * * 1 bash $RUN weekly-retention --timeout 90
+
 # Weekly metrics snapshot (Mon 09:00 UTC / 19:00 AEST) — MRR/ARR/churn
 0 9 * * 1 bash $RUN weekly-metrics --timeout 120
 
