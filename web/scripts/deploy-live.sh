@@ -476,6 +476,17 @@ done
 # dep after `npm install` (@react-pdf peer chain, @noble/*, @swc/helpers).
 # CTO Fix #2 (docs/cto-review-v2.0.0-beta.6.md).
 mkdir -p "$STANDALONE/node_modules"
+# Known-broken partial copies emitted by Next's tracer — always force-replace
+# with a full symlink to the source. Add to this list when a new partial copy
+# bites us.
+FORCE_RESYMLINK_SCOPED="@swc/helpers"
+for pkg in $FORCE_RESYMLINK_SCOPED; do
+  if [ -e "$STANDALONE/node_modules/$pkg" ] && [ -d "$WEB_DIR/node_modules/$pkg" ]; then
+    rm -rf "$STANDALONE/node_modules/$pkg"
+    ln -sfn "$WEB_DIR/node_modules/$pkg" "$STANDALONE/node_modules/$pkg"
+  fi
+done
+
 for entry in "$WEB_DIR/node_modules"/*; do
   base="$(basename "$entry")"
   # Skip cache/bin/etc.
