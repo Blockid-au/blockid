@@ -1,5 +1,29 @@
 # BlockID.au Changelog
 
+## v2.0.0-beta.5 — 2026-07-17 (Phase 6 audit sweep)
+
+**Applied all critical + easy medium findings from parallel security-audit (T-0442) + code-review (T-0443) agents against the Phase 3–4 milestone.**
+
+### Security fixes
+- **H1** `api/stripe/cancel` — whitelist `save_offer.coupon` (COMEBACK30 / DOWNGRADE_STARTER50), `.kind`, and `.href` (same-origin allowlist); zod-strict body with length caps. Blocks a user from replaying admin coupons on their own subscription.
+- **H2** `api/cron/lifecycle-mailer` + `api/cron/weekly-retention` — fail-closed when `CRON_SECRET` env var is missing (was fail-open).
+- **H3** migration `0080` — `ON CONFLICT DO NOTHING` (was `DO UPDATE`, which silently mutated `disclaimer_registry.hash` and would break consent-chain integrity on repeat runs).
+- **M1** cancel-flow `pause_30d` — reject if `pause_collection` already set; prevents billing deferral by hitting the endpoint every 29 days.
+- **M4** `api/legal/current-versions` — length cap + `[A-Z]{2}|GLOBAL` regex on `jurisdiction` query param.
+
+### Correctness fixes
+- **H2** `lib/conversion/triggers` — session cap counts only prior `shown` rows whose OWN trigger is `countsAgainstSessionCap=true`. Soft banners no longer burn hard-gate slots.
+- **H3** `api/stripe/cancel` — track `applied` boolean inside try; `churn_events` + JSON response now reflect actual Stripe outcome (was lying with `accepted_coupon=true` when Stripe threw).
+- **H4** `/admin/pricing-metrics` — drop bogus `runwayMonths` tile (was always ≈1.67 regardless of ARR); rename `MRR` → "Revenue (30d, net)"; drop derived ARR tile.
+- **H5** `upgrade-modal` — real focus trap; Tab / Shift-Tab wraps within the dialog descendants.
+- **M7** `startLifecycle` preserves existing history on re-entry.
+- **M10** cancel-flow logs `churn_events` insert error and returns `audit_warn: "churn_row_write_failed"` for CFO reconciliation.
+
+### Deferred (TODO markers added)
+- H1 code (lifecycle-mailer double-send) → Postgres `pick_lifecycle_due` RPC with `FOR UPDATE SKIP LOCKED`.
+- M6 code (`advance()` history race) → same RPC scope.
+- M8 code (permanent bounce classification) → SES / SMTP status parsing lib.
+
 ## v2.0.0-beta.4 — 2026-07-17
 
 **Phase 3 (CRO stack) + Phase 4 partial (Legal/QA infra) landed. Ready for staged rollout gated by `NEXT_PUBLIC_UPGRADE_V2`.**
