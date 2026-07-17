@@ -1150,3 +1150,22 @@
 {"ts":"2026-06-21T11:50:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":571,"detail":"{\"status\": \"DANGER\", \"metrics\": {\"disk\": {\"value\": 80, \"raw\": \"80% used (56390916 free)\", \"level\": \"danger\"}, \"data_disk\": {\"value\": 12, \"raw\": \"12% used (259412752 free, 300GB)\", \"level\": \"ok\"}, \"mem"}
 {"ts":"2026-06-21T12:00:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":3146,"detail":"{\"status\": \"DANGER\", \"metrics\": {\"disk\": {\"value\": 80, \"raw\": \"80% used (56390612 free)\", \"level\": \"danger\"}, \"data_disk\": {\"value\": 12, \"raw\": \"12% used (259412752 free, 300GB)\", \"level\": \"ok\"}, \"mem"}
 {"ts":"2026-06-21T12:00:01Z","endpoint":"ai-health","status":"ok","duration_ms":36301,"detail":"{\"provider\": \"groq\", \"model\": \"meta-llama/llama-4-scout-17b-16e-instruct\", \"response\": \"OK\"}"}
+{"ts":"2026-07-17T08:30:02Z","endpoint":"agent-auto-improve","status":"error","duration_ms":484942,"detail":"curl exit 56 (timeout or connection refused)"}
+{"ts":"2026-07-17T08:40:01Z","endpoint":"agent-guardian","status":"fail","duration_ms":16470,"detail":"Internal Server Error"}
+{"ts":"2026-07-17T08:50:01Z","endpoint":"agent-guardian","status":"fail","duration_ms":16472,"detail":"Internal Server Error"}
+{"ts":"2026-07-17T09:00:01Z","endpoint":"agent-guardian","status":"fail","duration_ms":16440,"detail":"Internal Server Error"}
+{"ts":"2026-07-17T09:00:01Z","endpoint":"ai-health","status":"fail","duration_ms":16437,"detail":"Internal Server Error"}
+{"ts":"2026-07-17T09:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16434,"detail":"Internal Server Error"}
+{"ts":"2026-07-17T09:10:01Z","endpoint":"agent-guardian","status":"fail","duration_ms":16478,"detail":"Internal Server Error"}
+{"ts":"2026-07-17T09:17:01Z","endpoint":"milestone-report","status":"fail","duration_ms":16438,"detail":"Internal Server Error"}
+{"ts":"2026-07-17T09:20:01Z","endpoint":"agent-guardian","status":"fail","duration_ms":16435,"detail":"Internal Server Error"}
+{"ts":"2026-07-17T09:30:02Z","endpoint":"performance-audit","status":"fail","duration_ms":16489,"detail":"<!DOCTYPE html><html lang=\"en-AU\" class=\"__variable_48b81b __variable_1f5b15 h-full antialiased\"><head><meta charSet=\"ut"}
+{"ts":"2026-07-17T09:30:02Z","endpoint":"agent-guardian","status":"fail","duration_ms":16505,"detail":"Internal Server Error"}
+{"ts":"2026-07-17T09:40:01Z","endpoint":"agent-guardian","status":"fail","duration_ms":16408,"detail":"Internal Server Error"}
+{"ts":"2026-07-17T09:50:01Z","endpoint":"agent-guardian","status":"fail","duration_ms":16417,"detail":"Internal Server Error"}
+{"ts":"2026-07-17T10:00:01Z","endpoint":"agent-guardian","status":"fail","duration_ms":16430,"detail":"Internal Server Error"}
+{"ts":"2026-07-17T10:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16458,"detail":"Internal Server Error"}
+{"ts":"2026-07-17T10:10:01Z","endpoint":"agent-guardian","status":"fail","duration_ms":16457,"detail":"Internal Server Error"}
+{"ts":"2026-07-17T10:17:01Z","endpoint":"milestone-report","status":"fail","duration_ms":16418,"detail":"Internal Server Error"}
+{"ts":"2026-07-17T10:20:01Z","endpoint":"agent-guardian","status":"fail","duration_ms":16402,"detail":"Internal Server Error"}
+{"ts":"2026-07-17T10:30:01Z","endpoint":"performance-audit","status":"fail","duration_ms":16464,"detail":"<!DOCTYPE html><html lang=\"en-AU\" class=\"__variable_48b81b __variable_1f5b15 h-full antialiased\"><head><meta charSet=\"ut"}
