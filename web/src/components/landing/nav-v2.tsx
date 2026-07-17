@@ -30,6 +30,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { ChevronDown, Menu, X } from "lucide-react";
+import { LocaleSwitcher } from "./locale-switcher";
 
 // ---------------------------------------------------------------------------
 // Menu model
@@ -483,6 +484,7 @@ export function NavV2() {
 
         {/* Desktop CTAs */}
         <div className="hidden items-center gap-3 md:flex">
+          <LocaleSwitcher />
           <Link
             href="/auth/login"
             className="rounded-lg px-3 py-2 text-sm font-medium text-brand-ink-muted transition-colors duration-200 hover:text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"

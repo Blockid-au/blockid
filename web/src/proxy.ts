@@ -1,5 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { randomBytes } from "node:crypto";
+import {
+  DEFAULT_LOCALE,
+  LOCALE_COOKIE,
+  LOCALE_HEADER,
+  isLocale,
+  type Locale,
+} from "@/lib/i18n/locales";
 
 /**
  * Next.js 16 proxy (formerly middleware). Runs on the Node runtime.
@@ -12,8 +19,26 @@ import { randomBytes } from "node:crypto";
  *
  * The CSP that used to live in `next.config.ts` has been removed — this file
  * is the single source of truth so the nonce can vary per request.
+ *
+ * T-1400 adds a locale-detection pre-step: read the resolved locale from
+ * (1) the `blockid_locale` cookie if present, else (2) the URL prefix
+ * (`/vi/*` → `vi`, else `en`). The result is echoed on request + response
+ * headers as `x-blockid-locale` so downstream Server Components can pick it
+ * up via `headers()`. The URL is NOT rewritten — App Router serves the
+ * `/vi/*` tree natively.
  */
 export function proxy(request: NextRequest) {
+  // --- Locale detection (T-1400) — MUST NOT rewrite the URL.
+  const pathname = request.nextUrl.pathname;
+  const cookieLocaleRaw = request.cookies.get(LOCALE_COOKIE)?.value;
+  let locale: Locale = DEFAULT_LOCALE;
+  if (typeof cookieLocaleRaw === "string" && isLocale(cookieLocaleRaw)) {
+    // User override always wins over path.
+    locale = cookieLocaleRaw;
+  } else if (pathname === "/vi" || pathname.startsWith("/vi/")) {
+    locale = "vi";
+  }
+
   const nonce = randomBytes(16).toString("base64");
 
   const cspHeader = [
@@ -34,12 +59,14 @@ export function proxy(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", cspHeader);
+  requestHeaders.set(LOCALE_HEADER, locale);
 
   const response = NextResponse.next({
     request: { headers: requestHeaders },
   });
   response.headers.set("Content-Security-Policy", cspHeader);
   response.headers.set("x-nonce", nonce);
+  response.headers.set(LOCALE_HEADER, locale);
 
   return response;
 }
