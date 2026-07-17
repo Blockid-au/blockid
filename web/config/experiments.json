@@ -1,0 +1,38 @@
+[
+  {
+    "id": "trial_cc_required",
+    "name": "Trial credit-card requirement",
+    "description": "Compare trial signup with vs without card on file. Hypothesis: card-required lifts qualified conversion despite lower top-of-funnel.",
+    "variants": ["card_required", "card_optional"],
+    "default_variant": "card_required",
+    "weights": { "card_required": 700, "card_optional": 300 },
+    "active": true
+  },
+  {
+    "id": "pricing_anchor_order",
+    "name": "Pricing tile anchor order",
+    "description": "Anchor Growth vs Scale on the pricing matrix.",
+    "variants": ["anchor_growth", "anchor_scale"],
+    "default_variant": "anchor_growth",
+    "weights": { "anchor_growth": 500, "anchor_scale": 500 },
+    "active": true
+  },
+  {
+    "id": "cap_hit_copy",
+    "name": "Feature-gate CTA copy",
+    "description": "Test soft vs benefit-led vs urgency copy on gate hit.",
+    "variants": ["soft", "benefit_led", "urgency"],
+    "default_variant": "benefit_led",
+    "weights": { "soft": 333, "benefit_led": 334, "urgency": 333 },
+    "active": true
+  },
+  {
+    "id": "day5_email_subject",
+    "name": "Day-5 lifecycle email subject",
+    "description": "Curiosity vs benefit vs personalised subject on the day-5 upgrade nudge.",
+    "variants": ["curiosity", "benefit", "personalised"],
+    "default_variant": "benefit",
+    "weights": { "curiosity": 333, "benefit": 334, "personalised": 333 },
+    "active": true
+  }
+]
