@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import { Inter, IBM_Plex_Mono } from "next/font/google";
+import { Inter, IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
 import { GoogleAnalytics, GTMNoScript } from "@/components/analytics/google-analytics";
 import { OrganizationJsonLd, SoftwareApplicationJsonLd } from "@/components/seo/json-ld";
 import { Providers } from "@/components/providers";
@@ -18,6 +18,13 @@ const plexMono = IBM_Plex_Mono({
   variable: "--font-plex-mono",
   subsets: ["latin"],
   weight: ["500", "600"],
+  display: "swap",
+});
+
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
   display: "swap",
 });
 
@@ -95,7 +102,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en-AU"
-      className={`${inter.variable} ${plexMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${plexMono.variable} ${spaceGrotesk.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>

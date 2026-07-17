@@ -72,6 +72,35 @@
   /* ── Fonts ────────────────────────────────────────────────── */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, monospace;
+  --font-display: var(--font-space-grotesk), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  /* ── Fintech / Unicorn SaaS palette ─────────────────────────
+     Vibe: Stripe / Ramp / Mercury / Brex. Deep navy-violet base
+     + electric cyan primary accent + hot violet secondary.
+     Verified contrast pairs (WCAG 2.1):
+       ink        #F1F5F9 on bg #0B0F2A  ≈ 15.6:1  (AAA)
+       ink-muted  #94A3B8 on bg #0B0F2A  ≈  6.8:1  (AA normal)
+       accent     #22D3EE on bg #0B0F2A  ≈ 10.5:1  (AAA large graphic)
+       CTA label  #0B0F2A on #22D3EE     ≈ 10.5:1  (AAA)
+       placeholder #475569 on white       ≈  7.4:1  (AAA) */
+  --fintech-bg-primary: #0B0F2A;
+  --fintech-bg-elevated: #131938;
+  --fintech-surface: #1A2247;
+  --fintech-surface-hover: #202A55;
+  --fintech-ink: #F1F5F9;
+  --fintech-ink-muted: #94A3B8;
+  --fintech-ink-strong: #FFFFFF;
+  --fintech-accent: #22D3EE;
+  --fintech-accent-hover: #67E8F9;
+  --fintech-accent-hot: #A855F7;
+  --fintech-accent-hot-hover: #C084FC;
+  --fintech-success: #10B981;
+  --fintech-warn: #F59E0B;
+  --fintech-error: #EF4444;
+  --fintech-border: rgba(148, 163, 184, 0.16);
+  --fintech-border-strong: rgba(148, 163, 184, 0.28);
+  --fintech-focus-ring: #67E8F9;
+  --fintech-focus-ring-soft: rgba(34, 211, 238, 0.4);
 }
 
 :root {
@@ -530,18 +559,53 @@ body {
    `[data-theme="lux"]` subtree re-skins those shared components to the
    luxury dark palette without forking them into lux-only copies. */
 [data-theme="lux"] {
-  --color-surface-50: #22326B;
-  --color-surface-100: #1B2A5E;
-  --color-surface-200: rgba(34, 211, 238, 0.18);
-  --color-ink-600: #CBD5E1;
-  --color-ink-700: #E2E8F0;
-  --color-ink-800: #F8FAFC;
-  --color-brand-900: #F8FAFC;
+  --color-surface-50: #131938;
+  --color-surface-100: #0B0F2A;
+  --color-surface-200: rgba(148, 163, 184, 0.16);
+  --color-ink-600: #94A3B8;
+  --color-ink-700: #CBD5E1;
+  --color-ink-800: #F1F5F9;
+  --color-brand-900: #F1F5F9;
   --color-brand-600: #22D3EE;
   --color-brand-700: #0891B2;
+  /* Legacy brand-navy tokens (used by shared legacy-light components) get
+     remapped to the deeper fintech base so v2 nav/legacy pieces don't punch
+     a lighter navy strip through the new palette. */
+  --color-brand-navy: #0B0F2A;
+  --color-brand-navy-elev-1: #131938;
+  --color-brand-navy-elev-2: #1A2247;
+  --color-brand-navy-deep: #05081C;
   /* Old `gold-*` scale remapped to accent cyan so any leftover .text-gold-500
      token in legacy components paints as brand cyan in lux mode. */
   --color-gold-300: #7DD3FC;
   --color-gold-500: #22D3EE;
   --color-gold-600: #0891B2;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FINTECH HERO — subtle glow + entrance keyframes
+   ═══════════════════════════════════════════════════════════════ */
+
+.fintech-hero-glow {
+  background-color: var(--fintech-bg-primary);
+  background-image:
+    radial-gradient(ellipse 80% 55% at 50% -10%, rgba(168, 85, 247, 0.22) 0%, transparent 60%),
+    radial-gradient(ellipse 65% 45% at 20% 15%, rgba(34, 211, 238, 0.16) 0%, transparent 65%),
+    radial-gradient(ellipse 60% 45% at 85% 20%, rgba(59, 130, 246, 0.14) 0%, transparent 65%),
+    radial-gradient(ellipse 90% 50% at 50% 110%, rgba(34, 211, 238, 0.08) 0%, transparent 60%);
+}
+
+@keyframes fintech-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fintech-enter {
+  animation: fintech-enter 200ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fintech-enter {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }

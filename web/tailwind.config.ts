@@ -17,6 +17,15 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        display: [
+          "var(--font-space-grotesk)",
+          "var(--font-inter)",
+          "ui-sans-serif",
+          "system-ui",
+          "sans-serif",
+        ],
+      },
       colors: {
         brand: {
           // Deep navy from the BlockID logo wordmark
