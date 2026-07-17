@@ -470,6 +470,36 @@ for pkg in \
   fi
 done
 
+# ── Belt-and-braces: symlink every missing package from the source
+# node_modules into standalone. Kills the whitelist-chase pattern that
+# repeatedly broke prod when a listed package pulled a new transitive
+# dep after `npm install` (@react-pdf peer chain, @noble/*, @swc/helpers).
+# CTO Fix #2 (docs/cto-review-v2.0.0-beta.6.md).
+mkdir -p "$STANDALONE/node_modules"
+for entry in "$WEB_DIR/node_modules"/*; do
+  base="$(basename "$entry")"
+  # Skip cache/bin/etc.
+  case "$base" in
+    .bin|.cache|.package-lock.json) continue;;
+  esac
+  if [[ "$base" == @* ]]; then
+    # Scoped: iterate each subpackage under the scope.
+    for sub in "$entry"/*; do
+      subname="$(basename "$sub")"
+      target="$STANDALONE/node_modules/$base/$subname"
+      if [ ! -e "$target" ]; then
+        mkdir -p "$STANDALONE/node_modules/$base"
+        ln -sfn "$sub" "$target"
+      fi
+    done
+  else
+    target="$STANDALONE/node_modules/$base"
+    if [ ! -e "$target" ]; then
+      ln -sfn "$entry" "$target"
+    fi
+  fi
+done
+
 # ── Integrity guard: standalone must be COMPLETE before we trust it. ───
 # Encodes past production breakages as a permanent check so they can't recur:
 #   - missing ai-worker.mjs  → entire AI stack died ("ai-worker.mjs not found")
