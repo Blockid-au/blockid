@@ -126,6 +126,10 @@ export interface AnalyticsEventMap {
   report_unlock_cta_shown: { section: string; tier: string };
   report_unlock_cta_clicked: { section: string; tier: string };
   report_upgraded_to_paid: { from_tier: string; to_tier: string };
+
+  // ── Marketing pages ──
+  roadmap_viewed: Record<string, never>;
+  changelog_viewed: Record<string, never>;
 }
 
 // ─── Type-safe tracker ──────────────────────────────────────────────────────
