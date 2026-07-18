@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v2.5.0  ·  **Updated:** 2026-07-18T12:04:02.374Z  ·  **Decided by:** ceo (2026-07-18T12:04:02.374Z)
+**Version:** v2.6.0  ·  **Updated:** 2026-07-18T16:00:01.626Z  ·  **Decided by:** ceo (2026-07-18T12:04:02.374Z)
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -18,7 +18,6 @@
 | T0213 | CPO | SVI brand landing page at startupvalueindex.com | minor | ⬜ pending |
 | T0120 | CFO | Financial projection norms integration | minor | ⬜ pending |
 | T0121 | RND | Conversion/CTA experiment ideas & A/B test hypotheses | minor | ⬜ pending |
-| T0122 | CFO | Integrate sector ARR/revenue multiples for valuation benchmarking | minor | ⬜ pending |
 | T0123 | RND | Develop Conversion/CTA experiment ideas & A/B test hypotheses for startup tooling | minor | ⬜ pending |
 | T0214 | CTO | AI provider chain audit — Codex subscription expired + ai-token-guardian Codex refresh broken | patch | ⬜ pending |
 | T0216 | CTO | Fix orchestrator stageUpdateArtifacts — agent commit match closes pending tasks prematurely | patch | ⬜ pending |
@@ -29,6 +28,7 @@
 ## Recently shipped
 - ✅ `T0215` **CTO** — Verify-models cron — auto-detect paid models leaking into ai-free-models.json
 - ✅ `T0124` **CRO** — Implement Funding Readiness scoring (CAPITAL) for investor readiness assessment
+- ✅ `T0122` **CFO** — Integrate sector ARR/revenue multiples for valuation benchmarking (`446902f`)
 - ✅ `T0212` **CTO** — DNS + nginx vhost for startupvalueindex.com + startupindex.au
 - ✅ `T0210` **CPO** — Funnel drop-off heatmap (/admin/funnel) — every assessment step instrumented (`b18238a`)
 - ✅ `T0209` **IR** — Accelerator deadline tracker + pitch evidence binder
@@ -36,9 +36,9 @@
 - ✅ `T0207` **CISO** — Security posture scoring + rate-limit/auth audit dashboard
 - ✅ `T0205` **CTO** — Milestone reporter route + orchestrator hook (`abcb7e1`)
 - ✅ `T0204` **CFO** — CFO founder finance dashboard (/dashboard/finance)
-- ✅ `T0203` **CMO** — CMO content pillar tracker — 7 pillars × weekly LinkedIn queue
 
 ## Milestones
+- **M013** v2.6.0 — CFO: Integrate sector ARR/revenue multiples for valuation benchmarking (2026-07-18, 1 tasks)
 - **M020** v2.2.0 — T0102-T0110 Batch 9: ESOP scoring engine, governance API, knowledge base API, SVI roadmap widget, ESOP checklist SEO tool, data room readiness API (2026-06-14, 7 tasks)
 - **M019** v2.1.0 — T0094–T0101 ESOP + SVI + Data Room + Knowledge Base — investor-ready documents, ESOP Manager UI live (2026-06-14, 8 tasks)
 - **M018** v2.0.0 — Feature Batch 8 (T0086–T0090): Financial Projection Norms calculator, Term Sheet AI v2 persistence, Fundraising Report v2, Google Analytics evidence connector, SVI Cohort Benchmark page (2026-06-13, 6 tasks)
@@ -50,4 +50,3 @@
 - **M004** v0.5.0 — Feedback widget FAB (T0004) + CSV export (T0007) + SCN verified (T0009) — deployed sha 41ea308c (10/10 gates) (2026-06-13, 3 tasks)
 - **M003** v0.4.0 — VC Valuation Dashboard (6 tabs) + /api/valuation/vc + /benchmarks page shipped (2026-06-13, 2 tasks)
 - **M002** v0.3.0 — CFO VC-grade valuation engine shipped (cfo-valuation.ts: 4 methods, projections, unit economics) (2026-06-13, 0 tasks)
-- **M001** v0.2.0 — CEO implementing-plan loop activated; reporting template, off-peak CI/CD, and QA integration shipped (2026-06-13, 3 tasks)
