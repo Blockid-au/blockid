@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v2.5.0  ·  **Updated:** 2026-06-19T04:02:28.671Z  ·  **Decided by:** ceo (2026-06-19T04:02:28.636Z)
+**Version:** v2.5.0  ·  **Updated:** 2026-07-18T12:04:02.374Z  ·  **Decided by:** ceo (2026-07-18T12:04:02.374Z)
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -11,7 +11,6 @@
 | T0087 | CLO | Term Sheet AI v2 — persist analyses, Lawyer Questions, SVI link | minor | ⬜ pending |
 | T0088 | CFO | Fundraising Readiness Report v2 — checklist + AU comparable raises | minor | ⬜ pending |
 | T0102 | CMO | AU startup percentile/positioning model integration | minor | ⬜ pending |
-| T0203 | CMO | CMO content pillar tracker — 7 pillars × weekly LinkedIn queue | minor | ⬜ pending |
 | T0110 | CFO | R&D Tax Incentive and ESIC data integration | minor | ⬜ pending |
 | T0111 | RND | New AI tools & capabilities for startup tooling | minor | ⬜ pending |
 | T0206 | CSO | Pricing & segment A/B test infra (/admin/pricing-test) | minor | ⬜ pending |
@@ -21,9 +20,15 @@
 | T0121 | RND | Conversion/CTA experiment ideas & A/B test hypotheses | minor | ⬜ pending |
 | T0122 | CFO | Integrate sector ARR/revenue multiples for valuation benchmarking | minor | ⬜ pending |
 | T0123 | RND | Develop Conversion/CTA experiment ideas & A/B test hypotheses for startup tooling | minor | ⬜ pending |
-| T0124 | CRO | Implement Funding Readiness scoring (CAPITAL) for investor readiness assessment | minor | ⬜ pending |
+| T0214 | CTO | AI provider chain audit — Codex subscription expired + ai-token-guardian Codex refresh broken | patch | ⬜ pending |
+| T0216 | CTO | Fix orchestrator stageUpdateArtifacts — agent commit match closes pending tasks prematurely | patch | ⬜ pending |
+| T0128 | CFO | Integrate VC valuation methods library (VC Method, DCF, comparables, Berkus, Scorecard, Risk‑Factor Summation) with formulae and usage guidance | minor | ⬜ pending |
+| T0129 | CTO | Add Security Benchmark Compliance module (Essential Eight, OWASP) to CI pipeline with automated scans and reporting | minor | ⬜ pending |
+| T0130 | CPO | Implement First‑Principles Question Engine to generate Socratic prompts and route founders to appropriate BlockID features | minor | ⬜ pending |
 
 ## Recently shipped
+- ✅ `T0215` **CTO** — Verify-models cron — auto-detect paid models leaking into ai-free-models.json
+- ✅ `T0124` **CRO** — Implement Funding Readiness scoring (CAPITAL) for investor readiness assessment
 - ✅ `T0212` **CTO** — DNS + nginx vhost for startupvalueindex.com + startupindex.au
 - ✅ `T0210` **CPO** — Funnel drop-off heatmap (/admin/funnel) — every assessment step instrumented (`b18238a`)
 - ✅ `T0209` **IR** — Accelerator deadline tracker + pitch evidence binder
@@ -31,9 +36,7 @@
 - ✅ `T0207` **CISO** — Security posture scoring + rate-limit/auth audit dashboard
 - ✅ `T0205` **CTO** — Milestone reporter route + orchestrator hook (`abcb7e1`)
 - ✅ `T0204` **CFO** — CFO founder finance dashboard (/dashboard/finance)
-- ✅ `T0202` **CCSO** — CCSO workflow — NPS + referral + testimonial capture (`b18238a`)
-- ✅ `T0201` **CRO** — CRO sales operating system — lead pipeline DB + admin UI (`b18238a`)
-- ✅ `T0200` **COO** — 30-day CEO scoreboard page (/dashboard/30day)
+- ✅ `T0203` **CMO** — CMO content pillar tracker — 7 pillars × weekly LinkedIn queue
 
 ## Milestones
 - **M020** v2.2.0 — T0102-T0110 Batch 9: ESOP scoring engine, governance API, knowledge base API, SVI roadmap widget, ESOP checklist SEO tool, data room readiness API (2026-06-14, 7 tasks)
