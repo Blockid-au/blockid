@@ -1,5 +1,5 @@
 {
-  "date": "2026-06-20",
+  "date": "2026-07-18",
   "overall": 33,
   "status": "RED",
   "dimensions": [
@@ -7,7 +7,7 @@
       "key": "auth_coverage",
       "label": "Auth coverage on /api/* routes",
       "score": 8,
-      "detail": "206/254 guarded (Bearer / user-auth / public-tagged)",
+      "detail": "234/283 guarded (Bearer / user-auth / public-tagged)",
       "findings": [
         "Ungated: api/ab/pricing-expose/route.ts",
         "Ungated: api/actions/route.ts",
@@ -23,23 +23,23 @@
       "key": "rate_limit",
       "label": "Rate-limit coverage on /api/* routes",
       "score": 1,
-      "detail": "13/254 call checkRateLimit (or @rate-limit-exempt)",
+      "detail": "15/283 call checkRateLimit (or @rate-limit-exempt)",
       "findings": [
         "No rate-limit: api/ab/pricing-expose/route.ts",
+        "No rate-limit: api/accelerator/cohort/route.ts",
         "No rate-limit: api/account/notify-prefs/route.ts",
         "No rate-limit: api/actions/route.ts",
         "No rate-limit: api/admin/accelerator/[id]/route.ts",
         "No rate-limit: api/admin/accelerator/route.ts",
         "No rate-limit: api/admin/ai-keys/route.ts",
-        "No rate-limit: api/admin/ai-status/route.ts",
-        "No rate-limit: api/admin/codex-auth/route.ts"
+        "No rate-limit: api/admin/ai-status/route.ts"
       ]
     },
     {
       "key": "secrets_hygiene",
       "label": "Secrets hygiene (no committed credentials)",
       "score": 0,
-      "detail": "13 suspicious lines",
+      "detail": "14 suspicious lines",
       "findings": [
         "Leak: src/app/api/cron/security-posture/route.ts:126:    \"STRIPE_SECRET_KEY=sk_\",",
         "Leak: src/app/api/cron/security-posture/route.ts:127:    \"SUPABASE_SERVICE_ROLE_KEY=ey\",",

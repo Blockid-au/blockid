@@ -1,0 +1,58 @@
+{
+  "verifiedAt": "2026-07-19T03:00:23.216Z",
+  "source": "ai-free-models.json",
+  "verified": {
+    "openrouter": [
+      "qwen/qwen3-coder:free",
+      "nvidia/nemotron-3-ultra-550b-a55b:free",
+      "nvidia/nemotron-3-super-120b-a12b:free",
+      "qwen/qwen3-next-80b-a3b-instruct:free"
+    ],
+    "groq": [
+      "openai/gpt-oss-120b",
+      "llama-3.3-70b-versatile",
+      "qwen/qwen3.6-27b"
+    ],
+    "cerebras": [
+      "gpt-oss-120b",
+      "zai-glm-4.7"
+    ],
+    "sambanova": [
+      "gpt-oss-120b",
+      "Meta-Llama-3.3-70B-Instruct",
+      "DeepSeek-V3.1",
+      "DeepSeek-V3.2"
+    ]
+  },
+  "excluded": {
+    "paidLeaks": [
+      {
+        "provider": "sambanova",
+        "model": "MiniMax-M2.7",
+        "status": "payment_required",
+        "detail": "{\"error\":{\"message\":\"A payment method is required to use `MiniMax-M2.7`. Add one at https://cloud.sambanova.ai/plans/billing to continue.\",\"type\":\"payment_required\",\"param\":\"model\",\"code\":\"PAYMENT_MET"
+      }
+    ],
+    "notFound": [
+      {
+        "provider": "openrouter",
+        "model": "openai/gpt-oss-120b:free",
+        "status": "not_found",
+        "detail": "{\"error\":{\"message\":\"This model is unavailable for free. The paid version is available now - use this slug instead: openai/gpt-oss-120b\",\"code\":404},\"user_id\":\""
+      },
+      {
+        "provider": "groq",
+        "model": "qwen/qwen3-32b",
+        "status": "not_found",
+        "detail": "{\"error\":{\"message\":\"The model `qwen/qwen3-32b` does not exist or you do not have access to it.\",\"type\":\"invalid_request_error\",\"code\":\"model_not_found\"}}\n"
+      },
+      {
+        "provider": "groq",
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "status": "not_found",
+        "detail": "{\"error\":{\"message\":\"The model `meta-llama/llama-4-scout-17b-16e-instruct` does not exist or you do not have access to it.\",\"type\":\"invalid_request_error\",\"code"
+      }
+    ],
+    "other": []
+  }
+}

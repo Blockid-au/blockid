@@ -77,150 +77,152 @@ export const MODERN_TECH_STACK_CRITERIA = {
   cybersecuritySpend: 0.12,
 }
 
-/** Cloud provider market share in Australia (Q2 2026) */
-export const AU_CLOUD_PROVIDER_SHARE: Record<string, number> = {
-  aws: 0.51,
-  azure: 0.30,
-  gcp: 0.12,
-  others: 0.07,
+/** Tech adoption data for Australian startups */
+export interface TechAdoptionData {
+  k8sProductionPct: number
+  serverlessProductionPct: number
+  frontEndFrameworkShare: Record<string, number>
+  aiAssistantUsagePct: number
 }
 
-/** Kubernetes adoption among Australian tech startups */
-export const AU_KUBERNETES_ADOPTION = 0.62 // up 3% QoQ
-
-/** Serverless (FaaS) usage in new AU startups */
-export const AU_SERVERLESS_USAGE = 0.38 // increase 7% in last 30 days
-
-/** Essential Eight compliance percentages (Australian SMEs, 2024) */
-export const ESSENTIAL_EIGHT_COMPLIANCE = {
-  level1: 0.62,
-  level3: 0.18,
+/** Australian tech adoption snapshot (2024) */
+export const AU_TECH_ADOPTION: TechAdoptionData = {
+  k8sProductionPct: 78,
+  serverlessProductionPct: 34,
+  frontEndFrameworkShare: { React: 62, Vue: 14, Angular: 11, Svelte: 9 },
+  aiAssistantUsagePct: 48,
 }
 
-/** Reduction in ransomware incidents at Level 3 vs Level 1 */
-export const RANSOMWARE_INCIDENT_REDUCTION = 0.70 // 70% fewer incidents
+/** Security compliance data for Australian SMEs */
+export interface SecurityComplianceData {
+  essentialEightCompliancePct: number
+  patchLevel3Pct: number
+  owaspTop10AdoptionPct: number
+}
 
-/** OWASP Top 10 vulnerability share in Australian startups */
-export const OWASP_VULN_SHARE = 0.22
+/** Security compliance snapshot (Q2 2026) */
+export const AU_SECURITY_COMPLIANCE: SecurityComplianceData = {
+  essentialEightCompliancePct: 38,
+  patchLevel3Pct: 71,
+  owaspTop10AdoptionPct: 45,
+}
 
-/** Static analysis tool adoption (Australian startups) */
-export const STATIC_ANALYSIS_ADOPTION = 0.78
+/** Code quality assessment metrics */
+export interface CodeQualityMetrics {
+  sastAdoptionPct: number
+  ciCdQualityGatePct: number
+  maintainabilityIndex: number
+  staticAnalysisCoveragePct: number
+}
 
-/** Average unit test coverage (funded startups) */
-export const UNIT_TEST_COVERAGE = 0.82
+/** Code quality benchmarks for Australian startups (2026) */
+export const AU_CODE_QUALITY: CodeQualityMetrics = {
+  sastAdoptionPct: 72,
+  ciCdQualityGatePct: 68,
+  maintainabilityIndex: 68,
+  staticAnalysisCoveragePct: 85,
+}
 
-/** Technical debt density (hours per 1 kLOC) */
-export const TECH_DEBT_DENSITY = 4.2
+/** Next.js 16 performance optimisation metrics */
+export interface NextJsOptimizationMetrics {
+  bundleSizeReductionPct: number
+  streamingSsRTtfbImprovementPct: number
+  reRenderReductionPct: number
+}
 
-/** Next.js 16 performance improvements */
-export const NEXTJS_PERF_IMPROVEMENTS = {
-  bundleSizeReduction: 0.42, // 42% reduction
-  streamingTtfbImprovement: 0.60, // 60% faster TTFB
+/** Next.js optimisation findings (2024‑2026) */
+export const NEXT_JS_OPTIMISATION: NextJsOptimizationMetrics = {
+  bundleSizeReductionPct: 42,
+  streamingSsRTtfbImprovementPct: 60,
+  reRenderReductionPct: 0, // placeholder; derived from concurrent features
 }
 
 /**
- * Retrieves the market share weight for a given cloud provider.
- * @param provider Cloud provider name (aws, azure, gcp, others)
- * @returns Decimal share (e.g., 0.51 for 51%)
+ * Compute a weighted evaluation score for a tech stack based on
+ * modern criteria and Australian adoption data.
+ * @param criteria Evaluation criteria
+ * @param adoption Adoption data
+ * @returns Score between 0 and 100
  */
-export function getCloudProviderWeight(provider: string): number {
-  const key = provider.toLowerCase()
-  return AU_CLOUD_PROVIDER_SHARE[key] ?? 0
+export function computeTechStackEvaluationScore(
+  criteria: typeof MODERN_TECH_STACK_CRITERIA,
+  adoption: TechAdoptionData
+): number {
+  const cloudScore = criteria.cloudAdoptionRate * adoption.k8sProductionPct
+  const serverlessScore = criteria.aiMlInvestmentGrowth * adoption.serverlessProductionPct
+  const aiAssistScore = criteria.aiMlInvestmentGrowth * adoption.aiAssistantUsagePct
+  const frontEndScore = Object.entries(adoption.frontEndFrameworkShare).reduce(
+    (acc, [_, share]) => acc + share,
+    0
+  )
+  const rawScore = cloudScore + serverlessScore + aiAssistScore + frontEndScore
+  return Math.min(100, rawScore / 4)
 }
 
 /**
- * Adjusts a tech item's monthly cost based on the chosen cloud provider's market share.
- * @param item Original tech item
- * @param provider Cloud provider name
- * @returns New tech item with cost scaled by provider share
+ * Estimate cost savings after applying Next.js 16 optimisation.
+ * @param originalCost Current monthly cost (AUD)
+ * @param optimisation Optimisation metrics
+ * @returns Adjusted monthly cost after reduction
  */
-export function adjustTechItemCostForMarketShare(
-  item: TechItem,
-  provider: string
-): TechItem {
-  const weight = getCloudProviderWeight(provider)
-  return {
+export function estimateNextJsCostSavings(
+  originalCost: number,
+  optimisation: NextJsOptimizationMetrics
+): number {
+  const reductionFactor = 1 - optimisation.bundleSizeReductionPct / 100
+  return Math.round(originalCost * reductionFactor)
+}
+
+/**
+ * Summarise security compliance status for Australian SMEs.
+ * @param data Security compliance data
+ * @returns Human‑readable summary
+ */
+export function summarizeSecurityCompliance(data: SecurityComplianceData): string {
+  const parts = [
+    `Essential Eight overall compliance: ${data.essentialEightCompliancePct}%`,
+    `Patch Level 3 compliance: ${data.patchLevel3Pct}%`,
+    `OWASP Top 10 adoption: ${data.owaspTop10AdoptionPct}%`,
+  ]
+  return parts.join("; ")
+}
+
+/**
+ * Adjust a tech stack cost model by applying a percentage reduction.
+ * @param model Original cost model
+ * @param reductionPct Percentage reduction to apply (0‑100)
+ * @returns New cost model with reduced monthlyCost
+ */
+export function applyCostReduction(
+  model: TechStackCost,
+  reductionPct: number
+): TechStackCost {
+  const factor = 1 - reductionPct / 100
+  const reducedItems = model.items.map(item => ({
     ...item,
-    monthlyCost: Math.round(item.monthlyCost * weight),
-    notes: `${item.notes} (adjusted for ${provider.toUpperCase()} share)`,
+    monthlyCost: Math.round(item.monthlyCost * factor),
+  }))
+  const reducedMonthlyCost = Math.round(model.monthlyCost * factor)
+  return { ...model, items: reducedItems, monthlyCost: reducedMonthlyCost }
+}
+
+/**
+ * Calculate an overall code‑quality score for Australian startups.
+ * @param metrics Code quality metrics
+ * @returns Score out of 100
+ */
+export function calculateCodeQualityScore(metrics: CodeQualityMetrics): number {
+  const weights = {
+    sastAdoption: 0.25,
+    ciCdQualityGate: 0.25,
+    maintainability: 0.25,
+    staticAnalysis: 0.25,
   }
-}
-
-/**
- * Estimates potential savings from ransomware incident reduction when moving from
- * Essential Eight Level 1 to Level 3 compliance.
- * @param devCost Development cost model for the period
- * @param level Desired compliance level (1 or 3)
- * @returns Estimated monetary savings (AUD) assuming each incident costs $150k
- */
-export function calculateRansomwareSavings(
-  devCost: DevelopmentCost,
-  level: 1 | 3
-): number {
-  const baseIncidents = 1 // baseline incident count for Level 1
-  const reductionFactor = level === 3 ? RANSOMWARE_INCIDENT_REDUCTION : 0
-  const avoidedIncidents = baseIncidents * reductionFactor
-  const incidentCost = 150_000 // average incident cost AUD
-  return avoidedIncidents * incidentCost
-}
-
-/**
- * Computes the monetary impact of technical debt.
- * @param totalKLOC Total thousands of lines of code
- * @param hourlyRate Hourly developer rate (AUD)
- * @returns Technical debt cost (AUD)
- */
-export function computeTechnicalDebtCost(
-  totalKLOC: number,
-  hourlyRate: number
-): number {
-  const debtHours = TECH_DEBT_DENSITY * totalKLOC
-  return Math.round(debtHours * hourlyRate)
-}
-
-/**
- * Projects Next.js performance gains for a given baseline.
- * @param baseTtfb Baseline time‑to‑first‑byte (ms)
- * @param baseBundleSizeKb Baseline bundle size (KB)
- * @returns Object with improved TTFB and bundle size
- */
-export function projectNextJsPerformance(
-  baseTtfb: number,
-  baseBundleSizeKb: number
-): { improvedTtfb: number; improvedBundleSizeKb: number } {
-  const improvedTtfb = Math.round(baseTtfb * (1 - NEXTJS_PERF_IMPROVEMENTS.streamingTtfbImprovement))
-  const improvedBundleSizeKb = Math.round(baseBundleSizeKb * (1 - NEXTJS_PERF_IMPROVEMENTS.bundleSizeReduction))
-  return { improvedTtfb, improvedBundleSizeKb }
-}
-
-/**
- * Calculates a weighted compliance score based on Essential Eight levels.
- * @param level1Pct Percentage meeting Level 1
- * @param level3Pct Percentage meeting Level 3
- * @returns Composite compliance score (0‑1)
- */
-export function computeComplianceScore(
-  level1Pct: number = ESSENTIAL_EIGHT_COMPLIANCE.level1,
-  level3Pct: number = ESSENTIAL_EIGHT_COMPLIANCE.level3
-): number {
-  // Weight Level 3 higher (2×) because of stronger security posture
-  const weighted = level1Pct * 1 + level3Pct * 2
-  const maxPossible = 1 * 1 + 1 * 2
-  return weighted / maxPossible
-}
-
-/**
- * Provides a summary of current Australian tech stack adoption metrics.
- * @returns Object aggregating key percentages
- */
-export function getAustralianAdoptionSummary() {
-  return {
-    cloudProviderShare: AU_CLOUD_PROVIDER_SHARE,
-    kubernetesAdoption: AU_KUBERNETES_ADOPTION,
-    serverlessUsage: AU_SERVERLESS_USAGE,
-    staticAnalysisAdoption: STATIC_ANALYSIS_ADOPTION,
-    unitTestCoverage: UNIT_TEST_COVERAGE,
-    technicalDebtDensity: TECH_DEBT_DENSITY,
-    owaspVulnShare: OWASP_VULN_SHARE,
-  }
+  const maintainabilityScore = (metrics.maintainabilityIndex / 100) * 100
+  const rawScore =
+    metrics.sastAdoptionPct * weights.sastAdoption +
+    metrics.ciCdQualityGatePct * weights.ciCdQualityGate +
+    maintainabilityScore * weights.maintainability +
+    metrics.staticAnalysisCoveragePct * weights.staticAnalysis
+  return Math.min(100, Math.round(rawScore))
 }

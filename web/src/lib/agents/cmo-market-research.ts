@@ -73,26 +73,26 @@ export interface MarketResearch {
 export interface StartupNavigationMetrics {
   /** CAGR from 2020 to 2025 (0‑1) */
   cagr: number;
-  /** Adoption rate of navigation tools (0‑1) */
+  /** Adoption rate in 2024 (0‑1) */
   adoptionRate: number;
-  /** Importance of valuation & equity tools (0‑1) */
-  valuationToolImportance: number;
+  /** Importance of valuation/equity tools (0‑1) */
+  valuationImportance: number;
 }
 
 /** Content marketing benchmark data */
 export interface ContentMarketingBenchmarks {
-  /** Share of total marketing budget (0‑1) */
+  /** Share of overall marketing budget (0‑1) */
   budgetShare: number;
-  /** Effectiveness ranking of channels (ordered) */
-  effectiveChannels: ('Blog' | 'Social' | 'Email')[];
-  /** ROI ratio (e.g., 12:1 => 12) */
+  /** Effectiveness scores per channel (0‑1) */
+  channelEffectiveness: Record<string, number>;
+  /** ROI ratio (e.g., 12 means 12:1) */
   roiRatio: number;
   /** Average daily time spent on content marketing (hours) */
-  dailyHoursSpent: number;
+  avgHoursPerDay: number;
 }
 
 /** Australian startup ecosystem snapshot */
-export interface AUStartupEcosystem {
+export interface AustralianEcosystemSnapshot {
   /** Total startup funding in AU$ */
   totalFunding: number;
   /** Number of startups */
@@ -100,197 +100,150 @@ export interface AUStartupEcosystem {
   /** Top investment sector */
   topSector: string;
   /** Percentage focused on domestic market (0‑1) */
-  domesticFocus: number;
+  domesticFocusPct: number;
 }
 
 /** SEO algorithm update impact */
-export interface SEOUpdate {
+export interface SEOUpdateImpact {
   /** Percentage of sites affected (0‑1) */
-  affectedSites: number;
-  /** Average ranking improvement positions */
+  affectedPct: number;
+  /** Average ranking improvement (positions) */
   avgRankingImprovement: number;
-  /** Weight of page experience signals (0‑1) */
+  /** Page experience signal weight (0‑1) */
   pageExperienceWeight: number;
 }
 
 /** Competitor feature release statistics */
 export interface CompetitorFeatureStats {
-  /** Average features released per quarter */
+  /** Average number of features released per quarter */
   avgFeaturesPerQuarter: number;
-  /** Percentage of startups prioritising AI adoption (0‑1) */
-  aiAdoptionRate: number;
+  /** Percentage of startups prioritizing AI adoption (0‑1) */
+  aiAdoptionPct: number;
   /** YoY growth rate of cybersecurity feature adoption (0‑1) */
-  cyberGrowthRate: number;
+  cybersecurityGrowthYoY: number;
 }
 
-/* ==========================
-   Data constants (research)
-   ========================== */
-
-export const startupNavigationMetrics: StartupNavigationMetrics = {
-  /** CAGR 34.6% => 0.346 */
+/** Fixed research data constants */
+export const startupNavigationData: StartupNavigationMetrics = {
   cagr: 0.346,
-  /** Adoption 56% => 0.56 */
   adoptionRate: 0.56,
-  /** Importance 71% => 0.71 */
-  valuationToolImportance: 0.71,
+  valuationImportance: 0.71,
 };
 
-export const contentMarketingBenchmarks: ContentMarketingBenchmarks = {
-  /** 26% of overall budget => 0.26 */
+export const contentMarketingData: ContentMarketingBenchmarks = {
   budgetShare: 0.26,
-  effectiveChannels: ['Blog', 'Social', 'Email'],
-  /** 12:1 ROI => 12 */
+  channelEffectiveness: {
+    blog: 0.83,
+    social: 0.81,
+    email: 0.78,
+  },
   roiRatio: 12,
-  /** 33% of marketers spend 1‑3 hours per day => average 2 hours */
-  dailyHoursSpent: 2,
+  avgHoursPerDay: 2,
 };
 
-export const auStartupEcosystem: AUStartupEcosystem = {
-  /** $1.4 billion */
+export const australianEcosystemData: AustralianEcosystemSnapshot = {
   totalFunding: 1_400_000_000,
-  /** over 2,500 startups => 2500 */
   startupCount: 2500,
   topSector: 'Artificial intelligence',
-  /** 71% => 0.71 */
-  domesticFocus: 0.71,
+  domesticFocusPct: 0.71,
 };
 
-export const seoUpdate: SEOUpdate = {
-  /** 20‑30% affected => use midpoint 0.25 */
-  affectedSites: 0.25,
-  /** 10‑15 positions improvement => midpoint 12.5 */
+export const seoUpdateData: SEOUpdateImpact = {
+  affectedPct: 0.25,
   avgRankingImprovement: 12.5,
-  /** 17% weight => 0.17 */
   pageExperienceWeight: 0.17,
 };
 
-export const competitorFeatureStats: CompetitorFeatureStats = {
-  /** 5‑7 features per quarter => midpoint 6 */
+export const competitorFeatureData: CompetitorFeatureStats = {
   avgFeaturesPerQuarter: 6,
-  /** 71% AI adoption => 0.71 */
-  aiAdoptionRate: 0.71,
-  /** 25% YoY growth => 0.25 */
-  cyberGrowthRate: 0.25,
+  aiAdoptionPct: 0.71,
+  cybersecurityGrowthYoY: 0.25,
 };
 
-/* ==========================
-   Utility functions
-   ========================== */
-
 /**
- * Calculates the compound annual growth rate (CAGR) given start and end values.
- * @param startValue - Value at the beginning of the period.
- * @param endValue - Value at the end of the period.
- * @param years - Number of years between start and end.
- * @returns CAGR expressed as a decimal (e.g., 0.10 for 10%).
+ * Projects market size using CAGR.
+ * @param currentTam Current TAM in AU$.
+ * @param years Number of years to project.
+ * @param cagr Annual growth rate (0‑1).
+ * @returns Projected TAM after the given number of years.
  */
-export function calculateCAGR(
-  startValue: number,
-  endValue: number,
-  years: number,
-): number {
-  if (startValue <= 0 || years <= 0) return 0;
-  return Math.pow(endValue / startValue, 1 / years) - 1;
+export function calculateProjectedTam(currentTam: number, years: number, cagr: number): number {
+  if (years < 0) throw new Error('Years cannot be negative');
+  if (cagr < 0) throw new Error('CAGR cannot be negative');
+  return Number((currentTam * Math.pow(1 + cagr, years)).toFixed(0));
 }
 
 /**
- * Projects market size after a given number of years using CAGR.
- * @param currentSize - Current market size (AU$).
- * @param cagr - Annual growth rate as a decimal.
- * @param years - Number of years to project.
- * @returns Projected market size (AU$).
+ * Returns a summary of the startup navigation market based on latest research.
  */
-export function projectMarketSize(
-  currentSize: number,
-  cagr: number,
-  years: number,
-): number {
-  return currentSize * Math.pow(1 + cagr, years);
+export function getStartupNavigationSummary(): StartupNavigationMetrics {
+  return { ...startupNavigationData };
 }
 
 /**
- * Computes expected ROI in monetary terms given budget share and ROI ratio.
- * @param totalMarketingBudget - Total marketing budget (AU$).
- * @param budgetShare - Portion allocated to content marketing (0‑1).
- * @param roiRatio - Return on investment multiplier.
- * @returns Expected return (AU$).
+ * Returns content marketing benchmarks for the Australian market.
  */
-export function computeContentMarketingROI(
-  totalMarketingBudget: number,
-  budgetShare: number,
-  roiRatio: number,
-): number {
-  const allocated = totalMarketingBudget * budgetShare;
-  return allocated * roiRatio;
+export function getContentMarketingSummary(): ContentMarketingBenchmarks {
+  return { ...contentMarketingData };
 }
 
 /**
- * Estimates the average ranking lift for a site after applying high E‑E‑A‑T scores.
- * @param currentRank - Current search rank (1 = top).
- * @param avgImprovement - Average improvement positions.
- * @returns New estimated rank (rounded to nearest integer, minimum 1).
+ * Returns a snapshot of the Australian startup ecosystem.
  */
-export function estimateSEOImprovement(
-  currentRank: number,
-  avgImprovement: number,
-): number {
-  const newRank = Math.max(1, Math.round(currentRank - avgImprovement));
-  return newRank;
+export function getAustralianEcosystemSummary(): AustralianEcosystemSnapshot {
+  return { ...australianEcosystemData };
 }
 
 /**
- * Projects the number of AI‑powered features a competitor will release over a future quarter.
- * @param currentFeatures - Current count of AI‑powered features.
- * @param releaseFrequency - Average features released per quarter.
- * @param quartersAhead - Number of quarters to project.
- * @returns Projected total count of AI‑powered features.
+ * Returns the impact metrics of the latest Google Helpful Content update.
  */
-export function projectAIFeatureCount(
-  currentFeatures: number,
-  releaseFrequency: number,
-  quartersAhead: number,
-): number {
-  return currentFeatures + releaseFrequency * quartersAhead;
+export function getSEOUpdateSummary(): SEOUpdateImpact {
+  return { ...seoUpdateData };
 }
 
 /**
- * Generates a benchmark summary string for quick reporting.
- * @param research - MarketResearch object.
- * @returns Formatted summary.
+ * Returns aggregated competitor feature statistics.
  */
-export function generateBenchmarkSummary(research: MarketResearch): string {
-  const { tam, sam, som, growthRate, numberOfStartups, percentageUsingValuationTools } = research;
-  return `TAM: AU$${tam.toLocaleString()}, SAM: AU$${sam.toLocaleString()}, SOM: AU$${som.toLocaleString()}. Growth: ${(growthRate * 100).toFixed(1)}%. Startups: ${numberOfStartups}. Valuation‑tool usage: ${(percentageUsingValuationTools * 100).toFixed(0)}%.`;
+export function getCompetitorFeatureSummary(): CompetitorFeatureStats {
+  return { ...competitorFeatureData };
 }
 
-/* ==========================
-   Example data (placeholder)
-   ========================== */
+/**
+ * Calculates the percentage of startups that would benefit from a valuation tool
+ * given a target adoption rate.
+ * @param targetAdoption Desired adoption rate (0‑1).
+ * @returns Estimated number of startups that would adopt the tool.
+ */
+export function estimateValuationToolAdopters(targetAdoption: number): number {
+  if (targetAdoption < 0 || targetAdoption > 1) throw new Error('Target adoption must be between 0 and 1');
+  return Math.round(australianEcosystemData.startupCount * targetAdoption);
+}
 
-export const exampleMarketResearch: MarketResearch = {
-  tam: 5_000_000_000,
-  sam: 2_000_000_000,
-  som: 500_000_000,
-  tamSource: 'Internal forecast 2026',
-  industry: 'Startup navigation & valuation',
-  region: 'Australia',
-  growthRate: startupNavigationMetrics.cagr,
-  competitors: [],
-  marketTrends: [
-    'AI‑driven navigation features',
-    'Increased demand for equity tooling',
-    'Higher SEO focus on E‑E‑A‑T',
-  ],
-  customerSegments: [
-    { name: 'Early‑stage founders', size: 1500, willingness: 'high' },
-    { name: 'Scale‑ups', size: 800, willingness: 'medium' },
-    { name: 'Enterprise incubators', size: 200, willingness: 'low' },
-  ],
-  averageSeriesAFunding: 2_500_000,
-  australianUnicorns: 12,
-  vcInvestmentH1: 850_000_000,
-  numberOfStartups: auStartupEcosystem.startupCount,
-  percentageUsingValuationTools: startupNavigationMetrics.valuationToolImportance,
-  averageValuation: 15_000_000,
-};
+/**
+ * Generates a market research object populated with the latest benchmarks.
+ * @param baseResearch Base market research data.
+ * @returns Enriched MarketResearch instance.
+ */
+export function enrichMarketResearch(baseResearch: MarketResearch): MarketResearch {
+  const enriched: MarketResearch = {
+    ...baseResearch,
+    growthRate: startupNavigationData.cagr,
+    marketTrends: [
+      'AI‑powered navigation tools',
+      'Increased valuation tool adoption',
+      'SEO focus on E‑E‑A‑T',
+    ],
+    customerSegments: baseResearch.customerSegments.map((segment) => ({
+      ...segment,
+      willingness:
+        segment.name.toLowerCase().includes('tech') ? 'high' : segment.willingness,
+    })),
+    averageSeriesAFunding: 1_200_000,
+    australianUnicorns: 12,
+    vcInvestmentH1: 850_000_000,
+    numberOfStartups: australianEcosystemData.startupCount,
+    percentageUsingValuationTools: startupNavigationData.valuationImportance,
+    averageValuation: 5_000_000,
+  };
+  return enriched;
+}

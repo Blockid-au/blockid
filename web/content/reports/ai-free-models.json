@@ -1,6 +1,9 @@
 {
-  "updatedAt": "2026-06-21T06:13:31.930Z",
+  "updatedAt": "2026-07-19T04:00:05.752Z",
   "openrouter": [
+    "google/gemma-4-31b-it:free",
+    "google/gemma-4-26b-a4b-it:free",
+    "nousresearch/hermes-3-llama-3.1-405b:free",
     "qwen/qwen3-coder:free",
     "nvidia/nemotron-3-ultra-550b-a55b:free",
     "nvidia/nemotron-3-super-120b-a12b:free",
@@ -8,6 +11,9 @@
     "openai/gpt-oss-120b:free"
   ],
   "groq": [
+    "openai/gpt-oss-20b",
+    "llama-3.1-8b-instant",
+    "groq/compound",
     "openai/gpt-oss-120b",
     "llama-3.3-70b-versatile",
     "qwen/qwen3-32b",
@@ -15,10 +21,12 @@
     "meta-llama/llama-4-scout-17b-16e-instruct"
   ],
   "cerebras": [
+    "gemma-4-31b",
     "gpt-oss-120b",
     "zai-glm-4.7"
   ],
   "sambanova": [
+    "gemma-4-31B-it",
     "gpt-oss-120b",
     "Meta-Llama-3.3-70B-Instruct",
     "DeepSeek-V3.1",
