@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v2.6.0  ·  **Updated:** 2026-07-18T16:00:01.626Z  ·  **Decided by:** ceo (2026-07-18T12:04:02.374Z)
+**Version:** v2.7.0  ·  **Updated:** 2026-07-19T14:00:02.233Z  ·  **Decided by:** ceo (2026-07-18T12:04:02.374Z)
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -11,7 +11,6 @@
 | T0087 | CLO | Term Sheet AI v2 — persist analyses, Lawyer Questions, SVI link | minor | ⬜ pending |
 | T0088 | CFO | Fundraising Readiness Report v2 — checklist + AU comparable raises | minor | ⬜ pending |
 | T0102 | CMO | AU startup percentile/positioning model integration | minor | ⬜ pending |
-| T0110 | CFO | R&D Tax Incentive and ESIC data integration | minor | ⬜ pending |
 | T0111 | RND | New AI tools & capabilities for startup tooling | minor | ⬜ pending |
 | T0206 | CSO | Pricing & segment A/B test infra (/admin/pricing-test) | minor | ⬜ pending |
 | T0211 | CMO | LinkedIn page launch — Startup Value Index (linkedin.com/company/startup-value-index) | minor | ⬜ pending |
@@ -34,10 +33,11 @@
 - ✅ `T0209` **IR** — Accelerator deadline tracker + pitch evidence binder
 - ✅ `T0208` **CHRO** — AU salary benchmark + ESOP grant UI (Division 83A)
 - ✅ `T0207` **CISO** — Security posture scoring + rate-limit/auth audit dashboard
+- ✅ `T0110` **CFO** — R&D Tax Incentive and ESIC data integration (`ebda143`)
 - ✅ `T0205` **CTO** — Milestone reporter route + orchestrator hook (`abcb7e1`)
-- ✅ `T0204` **CFO** — CFO founder finance dashboard (/dashboard/finance)
 
 ## Milestones
+- **M014** v2.7.0 — CFO: R&D Tax Incentive and ESIC data integration (2026-07-19, 1 tasks)
 - **M013** v2.6.0 — CFO: Integrate sector ARR/revenue multiples for valuation benchmarking (2026-07-18, 1 tasks)
 - **M020** v2.2.0 — T0102-T0110 Batch 9: ESOP scoring engine, governance API, knowledge base API, SVI roadmap widget, ESOP checklist SEO tool, data room readiness API (2026-06-14, 7 tasks)
 - **M019** v2.1.0 — T0094–T0101 ESOP + SVI + Data Room + Knowledge Base — investor-ready documents, ESOP Manager UI live (2026-06-14, 8 tasks)
@@ -49,4 +49,3 @@
 - **M005** v0.6.0 — Berkus method 5th valuation for pre-revenue (T0010) + onboarding verified (T0012) + plan/agent sync (2026-06-13, 2 tasks)
 - **M004** v0.5.0 — Feedback widget FAB (T0004) + CSV export (T0007) + SCN verified (T0009) — deployed sha 41ea308c (10/10 gates) (2026-06-13, 3 tasks)
 - **M003** v0.4.0 — VC Valuation Dashboard (6 tabs) + /api/valuation/vc + /benchmarks page shipped (2026-06-13, 2 tasks)
-- **M002** v0.3.0 — CFO VC-grade valuation engine shipped (cfo-valuation.ts: 4 methods, projections, unit economics) (2026-06-13, 0 tasks)
