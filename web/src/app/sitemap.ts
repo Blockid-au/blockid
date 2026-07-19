@@ -94,6 +94,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     {
+      url: `${SITE_URL}/guides/valuation-methods`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
       url: `${SITE_URL}/tools/dilution`,
       lastModified,
       changeFrequency: "monthly",
