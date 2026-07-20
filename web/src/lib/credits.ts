@@ -104,6 +104,9 @@ export const FEATURE_COSTS: Record<string, number> = {
   // ── Valuation Engine ──────────────────────────────────────────────────
   valuation_detailed: 0.50, // A$0.50 — detailed multi-method valuation (POST scenario)
 
+  // ── Financial Projections (T0120) ────────────────────────────────────
+  financial_projections: 2, // 2 credits — 3-year monthly projection + YoY + CSV
+
   // ── AI Equity Recommendations (Phase 4) ──────────────────────────────
   ai_equity_split: 1.00,      // Slicing Pie + AU benchmarks
   ai_vesting: 0.50,           // Vesting schedule recommendation
