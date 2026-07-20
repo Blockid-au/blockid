@@ -88,7 +88,7 @@ Scaling and refining is the final stage of achieving PMF. Here are some tips:
 
 Achieving PMF in the Australian B2B SaaS market requires a deep understanding of the local nuances and a tailored approach. By validating assumptions, building and iterating, measuring and optimizing, and scaling and refining, you can move from 'nice to have' to 'must have'.
 
-> **Ready to check your startup's traction?** [Measure Your Traction Score →](/tools/traction-score)
+> **Ready to check your startup's traction?** [Measure Your Traction Score →](/svi)
 
 ### Next Steps
 

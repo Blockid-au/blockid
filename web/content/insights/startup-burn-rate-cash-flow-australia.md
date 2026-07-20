@@ -91,7 +91,7 @@ To help you manage your burn rate, BlockID offers a free cash burn rate calculat
 * Determine your default alive threshold.
 * Extend your runway.
 
-> **Ready to take control of your burn rate?** [Calculate Your Runway](/tools/runway-calculator)
+> **Ready to take control of your burn rate?** [Calculate Your Runway](/tools/financial-projections)
 
 ## SVI Score: Measure Your Startup's Potential
 The SVI score is a proprietary metric developed by BlockID to measure a startup's potential. It takes into account various factors, including your team's experience, market size, and traction.

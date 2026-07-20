@@ -288,8 +288,8 @@ function gapToCTA(gap: SVIEvidenceGap): { label: string; href: string } {
   const has = (...terms: string[]) => terms.some((t) => lower.includes(t));
   if (has("evidence", "upload", "document", "testimonial")) return { label: "Upload Evidence", href: "/workspace/evidence" };
   if (has("pitch deck", "pitch")) return { label: "Upload Pitch Deck", href: "/workspace/evidence" };
-  if (has("github", "repo", "code")) return { label: "Connect GitHub", href: "/workspace/tools/github-audit" };
-  if (has("website", "url", "seo")) return { label: "Audit Website", href: "/workspace/tools/website-audit" };
+  if (has("github", "repo", "code")) return { label: "Connect GitHub", href: "/workspace/integrations" };
+  if (has("website", "url", "seo")) return { label: "Audit Website", href: "/workspace/integrations" };
   if (has("financial", "revenue", "metric")) return { label: "Update Metrics", href: "/workspace/metrics" };
   if (has("cap table", "equity", "vesting")) return { label: "Setup Cap Table", href: "/workspace/equity" };
   return { label: "Take Action", href: "/" };

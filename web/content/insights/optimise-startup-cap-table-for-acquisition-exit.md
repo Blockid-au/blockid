@@ -29,7 +29,7 @@ Optimising your cap table is crucial for maximising your startup's exit value. A
 
 * **Simplify your cap table**: Minimize the number of shareholders and share classes to reduce complexity
 * **Regularly review and update**: Ensure your cap table reflects changes in ownership and share structure
-* **Use a standardised template**: [Get Your Free Cap Table Template](/tools/cap-table-template) to streamline your cap table management
+* **Use a standardised template**: [Get Your Free Cap Table Template](/tools/cap-table) to streamline your cap table management
 
 ## The Role of SVI Score in M&A Exit Planning
 
@@ -58,6 +58,6 @@ A well-planned M&A exit strategy is essential for maximising your startup's valu
 
 ## Next Steps
 
-> **[Get Your Free Cap Table Template](/tools/cap-table-template)** and start optimising your cap table today.
+> **[Get Your Free Cap Table Template](/tools/cap-table)** and start optimising your cap table today.
 
 For more founder guides and insights, visit our [insights page](/insights).

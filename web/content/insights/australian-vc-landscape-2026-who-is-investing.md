@@ -95,9 +95,9 @@ In addition to VC investors, consider the following funding options:
 
 | VC Firm | Investment Thesis | Portfolio Companies |
 | --- | --- | --- |
-| Blackbird | Deep tech startups with scalable business models | [More information](/tools/blackbird-portfolio) |
-| Square Peg | Startups with a clear competitive advantage and large addressable market | [View portfolio](/tools/square-peg-portfolio) |
-| AirTree Ventures | Tech and deep tech startups with strong founding teams | [Explore portfolio](/tools/airtree-portfolio) |
+| Blackbird | Deep tech startups with scalable business models | [More information](https://www.blackbird.vc/portfolio/) |
+| Square Peg | Startups with a clear competitive advantage and large addressable market | [View portfolio](https://www.squarepeg.vc/portfolio) |
+| AirTree Ventures | Tech and deep tech startups with strong founding teams | [Explore portfolio](https://www.airtree.vc/portfolio) |
 
 ### Conclusion
 
