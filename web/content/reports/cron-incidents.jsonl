@@ -1,0 +1,10 @@
+{"ts":"2026-07-20T20:54:17Z","endpoint":"weekly-metrics","reason":"failing","note":"latest status=fail; "}
+{"ts":"2026-07-20T20:54:17Z","endpoint":"trial-end-reminder","reason":"failing","note":"latest status=fail; Internal Server Error"}
+{"ts":"2026-07-20T20:54:17Z","endpoint":"performance-audit","reason":"failing","note":"latest status=fail; <!DOCTYPE html><html lang=\"en-AU\" class=\"__variable_48b81b __variable_1f5b15 h-full antialiased\"><head><meta charSet=\"ut"}
+{"ts":"2026-07-20T20:54:17Z","endpoint":"milestone-report","reason":"failing","note":"latest status=fail; <!DOCTYPE html><html lang=\"en-AU\" class=\"inter_5c2bf0c6-module__MZiVdq__variable ibm_plex_mono_4ff90f5e-module__xEo_hW__"}
+{"ts":"2026-07-20T20:54:17Z","endpoint":"dunning-retry","reason":"failing","note":"latest status=fail; "}
+{"ts":"2026-07-20T20:54:17Z","endpoint":"blockchain-sync","reason":"failing","note":"latest status=error; curl exit 56 (timeout or connection refused)"}
+{"ts":"2026-07-20T20:54:17Z","endpoint":"ai-health","reason":"failing","note":"latest status=fail; "}
+{"ts":"2026-07-20T20:54:17Z","endpoint":"agent-upgrade","reason":"failing","note":"latest status=fail; {\"error\":\"Rate limited\",\"resetIn\":1154794}"}
+{"ts":"2026-07-20T20:54:17Z","endpoint":"agent-guardian","reason":"failing","note":"latest status=fail; <!DOCTYPE html><html lang=\"en-AU\" class=\"inter_5c2bf0c6-module__MZiVdq__variable ibm_plex_mono_4ff90f5e-module__xEo_hW__variable h-full antialiased\"><head><meta"}
+{"ts":"2026-07-20T20:54:17Z","endpoint":"agent-auto-improve","reason":"failing","note":"latest status=error; curl exit 52 (timeout or connection refused)"}
