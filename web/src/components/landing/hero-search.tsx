@@ -106,7 +106,7 @@ export function HeroSearch() {
           className="flex w-full flex-col items-center gap-4"
         >
           <label htmlFor="hero-search-input" className="sr-only">
-            Enter a company name, ABN, or website
+            Enter a company name, website, or your idea
           </label>
 
           <div className="group relative w-full">
@@ -123,7 +123,7 @@ export function HeroSearch() {
               autoComplete="off"
               autoCorrect="off"
               spellCheck={false}
-              placeholder="Enter a company name, ABN, or website"
+              placeholder="Enter a company name, website, or your idea"
               value={value}
               onChange={(event) => setValue(event.target.value)}
               className="h-16 w-full rounded-2xl border border-white/10 bg-white pl-12 pr-24 text-base text-slate-900 placeholder:text-slate-500 shadow-[0_10px_40px_-12px_rgba(0,0,0,0.6),0_0_0_1px_rgba(148,163,184,0.08)] transition-all duration-200 hover:shadow-[0_12px_44px_-10px_rgba(34,211,238,0.35),0_0_0_1px_rgba(34,211,238,0.25)] focus:outline-none focus:shadow-[0_0_0_3px_var(--fintech-focus-ring-soft),0_14px_50px_-10px_rgba(34,211,238,0.5)] focus-visible:outline-none"
@@ -157,6 +157,9 @@ export function HeroSearch() {
           >
             {ctaCopy}
           </button>
+          <p className="text-[11px] text-[var(--fintech-ink-muted)]/80">
+            Get the full report by email
+          </p>
         </form>
 
         {/* 2. Quick-pick chips */}
@@ -189,8 +192,8 @@ export function HeroSearch() {
             </span>
           </h1>
           <p className="max-w-lg text-balance text-base leading-relaxed text-[var(--fintech-ink-muted)]">
-            Type a company name and get an SVI grade backed by 13 real-world
-            criteria. Free. No signup.
+            Type a company name, website, or your idea and get an SVI grade
+            backed by 13 real-world criteria. Free. No signup.
           </p>
         </div>
 
