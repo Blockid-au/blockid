@@ -12,9 +12,10 @@ set -eu
 RUNNER='/home/dovanlong/blockid.au/web/scripts/cron-runner.sh'
 ALARM='/home/dovanlong/blockid.au/web/scripts/cron-alarm.sh'
 HYGIENE='/home/dovanlong/blockid.au/web/scripts/weekly-hygiene.sh'
+BACKUPVERIFY='/home/dovanlong/blockid.au/web/scripts/backup-verify.sh'
 
 # Ensure scripts are executable
-chmod +x "$RUNNER" "$ALARM" "$HYGIENE" 2>/dev/null || true
+chmod +x "$RUNNER" "$ALARM" "$HYGIENE" "$BACKUPVERIFY" 2>/dev/null || true
 
 # Each entry: <cron-line>|<marker-tag>|<comment>
 ENTRIES=(
@@ -22,6 +23,7 @@ ENTRIES=(
   "*/15 * * * * bash $RUNNER email-drip --timeout 60|email-drip|Onboarding + NPS drip sender, cap 50/run (every 15m)"
   "*/30 * * * * bash $ALARM >> /tmp/blockid-cron-alarm.log 2>&1|cron-alarm|Flag stale/failing cron jobs into cron-incidents.jsonl (every 30m)"
   "0 17 * * 6 bash $HYGIENE|weekly-hygiene|Weekly disk hygiene (Sat 17:00 UTC = Sun 03:00 AEST)"
+  "0 18 * * * bash $BACKUPVERIFY|backup-verify|Verify DB dump + release snapshot freshness (18:00 UTC = 04:00 AEST)"
 )
 
 CURRENT=$(crontab -l 2>/dev/null || echo "")
