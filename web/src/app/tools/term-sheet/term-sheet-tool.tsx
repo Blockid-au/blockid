@@ -109,6 +109,13 @@ function defaultMiniCapTable(): Holder[] {
   ];
 }
 
+type LawyerQuestionV2 = {
+  severity: "red" | "amber" | "green";
+  category: string;
+  question: string;
+  why: string;
+};
+
 interface ApiResponse {
   ok: boolean;
   mode?: "live" | "demo";
@@ -118,6 +125,9 @@ interface ApiResponse {
   analysis_id?: string | null;
   balance?: number;
   creditsUsed?: number;
+  lawyer_questions_v2?: LawyerQuestionV2[];
+  company_name?: string | null;
+  headline_valuation_aud?: number | null;
 }
 
 export function TermSheetTool() {
@@ -510,6 +520,13 @@ export function TermSheetTool() {
             activeTab={activeTab}
             onTabChange={setActiveTab}
             analysisId={result.analysis_id ?? null}
+            lawyerQuestionsV2={result.lawyer_questions_v2 ?? []}
+          />
+
+          <AfslDisclaimer />
+          <SviCompareCta
+            companyName={result.company_name ?? null}
+            headlineValuationAud={result.headline_valuation_aud ?? null}
           />
 
           {/* Email capture row */}
@@ -608,12 +625,14 @@ function ResultPanel({
   activeTab,
   onTabChange,
   analysisId,
+  lawyerQuestionsV2,
 }: {
   analysis: TermSheetAnalysis;
   dilution: CapTableDiff | null;
   activeTab: string;
   onTabChange: (v: string) => void;
   analysisId: string | null;
+  lawyerQuestionsV2: LawyerQuestionV2[];
 }) {
   const handleExportJson = () => {
     const payload = {
@@ -701,7 +720,7 @@ function ResultPanel({
           <ComparisonTab analysis={analysis} />
         </TabsContent>
         <TabsContent value="lawyer">
-          <LawyerQuestionsTab analysis={analysis} />
+          <LawyerQuestionsTab analysis={analysis} v2={lawyerQuestionsV2} />
         </TabsContent>
         <TabsContent value="actions">
           <FounderActionsTab analysis={analysis} />
@@ -933,11 +952,17 @@ function RedlineCard({
   );
 }
 
-function LawyerQuestionsTab({ analysis }: { analysis: TermSheetAnalysis }) {
+function LawyerQuestionsTab({
+  analysis,
+  v2,
+}: {
+  analysis: TermSheetAnalysis;
+  v2: LawyerQuestionV2[];
+}) {
   const [open, setOpen] = React.useState(true);
   const questions = analysis.lawyer_questions ?? [];
 
-  if (questions.length === 0) {
+  if (questions.length === 0 && v2.length === 0) {
     return (
       <p className="text-sm text-ink-400">
         No lawyer questions generated for this analysis.
@@ -947,40 +972,43 @@ function LawyerQuestionsTab({ analysis }: { analysis: TermSheetAnalysis }) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-surface-200 bg-surface-100/40 overflow-hidden">
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left hover:bg-surface-100/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 cursor-pointer"
-          aria-expanded={open}
-        >
-          <span className="flex items-center gap-2 text-sm font-medium text-ink-800">
-            <MessageCircleQuestion
-              strokeWidth={1.75}
-              className="h-4 w-4 text-brand-600 shrink-0"
-              aria-hidden
-            />
-            Questions your lawyer will ask ({questions.length})
-          </span>
-          {open ? (
-            <ChevronUp strokeWidth={1.75} className="h-4 w-4 text-ink-400 shrink-0" aria-hidden />
-          ) : (
-            <ChevronDown strokeWidth={1.75} className="h-4 w-4 text-ink-400 shrink-0" aria-hidden />
+      {v2.length > 0 && <LawyerQuestionsV2Panel questions={v2} />}
+      {questions.length > 0 && (
+        <div className="rounded-xl border border-surface-200 bg-surface-100/40 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left hover:bg-surface-100/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 cursor-pointer"
+            aria-expanded={open}
+          >
+            <span className="flex items-center gap-2 text-sm font-medium text-ink-800">
+              <MessageCircleQuestion
+                strokeWidth={1.75}
+                className="h-4 w-4 text-brand-600 shrink-0"
+                aria-hidden
+              />
+              Questions your lawyer will ask ({questions.length})
+            </span>
+            {open ? (
+              <ChevronUp strokeWidth={1.75} className="h-4 w-4 text-ink-400 shrink-0" aria-hidden />
+            ) : (
+              <ChevronDown strokeWidth={1.75} className="h-4 w-4 text-ink-400 shrink-0" aria-hidden />
+            )}
+          </button>
+          {open && (
+            <ul className="divide-y divide-surface-200/70 border-t border-surface-200">
+              {questions.map((q, i) => (
+                <li key={i} className="flex items-start gap-3 px-5 py-4">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-brand-500/30 bg-brand-500/10 text-[10px] font-semibold text-brand-600">
+                    {i + 1}
+                  </span>
+                  <p className="text-sm leading-relaxed text-ink-500">{q}</p>
+                </li>
+              ))}
+            </ul>
           )}
-        </button>
-        {open && (
-          <ul className="divide-y divide-surface-200/70 border-t border-surface-200">
-            {questions.map((q, i) => (
-              <li key={i} className="flex items-start gap-3 px-5 py-4">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-brand-500/30 bg-brand-500/10 text-[10px] font-semibold text-brand-600">
-                  {i + 1}
-                </span>
-                <p className="text-sm leading-relaxed text-ink-500">{q}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+        </div>
+      )}
       <p className="text-xs leading-relaxed text-ink-8000">
         These questions surface material ambiguities in your term sheet. Prepare answers before your first lawyer consultation to save billable time.
       </p>
@@ -1472,5 +1500,110 @@ function MiniHolderRow({
         </Label>
       </div>
     </div>
+  );
+}
+
+function LawyerQuestionsV2Panel({ questions }: { questions: LawyerQuestionV2[] }) {
+  const tone: Record<LawyerQuestionV2["severity"], { pill: string; label: string; border: string }> = {
+    red: {
+      pill: "border-red-500/40 bg-red-500/10 text-red-500",
+      label: "Ask first",
+      border: "border-red-500/30",
+    },
+    amber: {
+      pill: "border-amber-500/40 bg-amber-500/10 text-amber-500",
+      label: "Worth asking",
+      border: "border-amber-500/30",
+    },
+    green: {
+      pill: "border-emerald-500/40 bg-emerald-500/10 text-emerald-600",
+      label: "Confirm",
+      border: "border-emerald-500/30",
+    },
+  };
+  return (
+    <div className="rounded-xl border border-surface-200 bg-white overflow-hidden">
+      <div className="flex items-center gap-2 border-b border-surface-200 bg-surface-100/60 px-5 py-3">
+        <MessageCircleQuestion
+          strokeWidth={1.75}
+          className="h-4 w-4 text-brand-600 shrink-0"
+          aria-hidden
+        />
+        <p className="text-sm font-medium text-ink-800">
+          Questions to bring to your lawyer ({questions.length})
+        </p>
+      </div>
+      <ul className="divide-y divide-surface-200/70">
+        {questions.map((q, i) => {
+          const t = tone[q.severity];
+          return (
+            <li key={i} className={cn("border-l-2 px-5 py-4", t.border)}>
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={cn(
+                    "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider",
+                    t.pill,
+                  )}
+                >
+                  {t.label}
+                </span>
+                <span className="text-[11px] uppercase tracking-[0.15em] text-ink-8000">
+                  {q.category}
+                </span>
+              </div>
+              <p className="mt-2 text-sm font-medium text-ink-800 leading-relaxed">
+                {q.question}
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-ink-400">{q.why}</p>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+function SviCompareCta({
+  companyName,
+  headlineValuationAud,
+}: {
+  companyName: string | null;
+  headlineValuationAud: number | null;
+}) {
+  if (headlineValuationAud == null || headlineValuationAud <= 0) return null;
+  const query = companyName ? encodeURIComponent(companyName) : "";
+  const href = query ? `/svi?query=${query}` : "/svi";
+  return (
+    <div className="mt-6 rounded-2xl border border-brand-500/30 bg-brand-500/5 p-5 md:p-6 flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium">
+          Sanity-check the number
+        </p>
+        <h3 className="mt-2 text-lg font-semibold text-ink-800">
+          Compare {companyName ? companyName : "this valuation"} with your SVI score
+        </h3>
+        <p className="mt-1 text-sm text-ink-500 max-w-xl">
+          Term sheet says {formatAud(headlineValuationAud)}. Run the same startup
+          through the Startup Value Index to see if the valuation matches your
+          traction and market position.
+        </p>
+      </div>
+      <a
+        href={href}
+        className="inline-flex items-center gap-1.5 rounded-md bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60"
+      >
+        Compare with your SVI score
+        <ArrowRight strokeWidth={1.75} className="h-4 w-4" aria-hidden />
+      </a>
+    </div>
+  );
+}
+
+function AfslDisclaimer() {
+  return (
+    <p className="mt-6 text-xs leading-relaxed text-ink-8000">
+      General information only. Not legal or financial advice. Consult a lawyer
+      or a licensed adviser before acting on any output of this tool.
+    </p>
   );
 }
