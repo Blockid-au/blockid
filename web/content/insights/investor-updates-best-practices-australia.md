@@ -74,7 +74,7 @@ BlockID offers a range of tools to help you automate your investor updates and s
 * **Increase transparency**: Provide investors with regular updates and insights
 * **Improve relationships**: Demonstrate your ability to execute and make data-driven decisions
 
-> **Ready to streamline your investor reporting?** [Automate Your Investor Reports](/tools/investor-reports)
+> **Ready to streamline your investor reporting?** [Automate Your Investor Reports](/dashboard/reports/lp-quarterly)
 
 ## Measuring Your Startup's Potential
 

@@ -67,7 +67,7 @@ As an Australian founder, you have a unique advantage. Launching at 5 pm AEST al
 
 Before launching on Product Hunt, assess your launch readiness:
 
-> **Is your product launch-ready?** [Measure Your Launch Readiness](/tools/launch-readiness) and get a comprehensive report.
+> **Is your product launch-ready?** [Measure Your Launch Readiness](/svi) and get a comprehensive report.
 
 ### Success Stories
 

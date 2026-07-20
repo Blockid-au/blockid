@@ -32,7 +32,7 @@ Implement these best practices:
 * Use a standardised cap table template
 * Regularly review and update your cap table
 
-> **[Get Your Free Cap Table Template](/tools/cap-table-template)**
+> **[Open the Cap Table Tool](/tools/cap-table)**
 Simplify your equity management with our expert-designed template.
 
 ## Optimising Your Cap Table

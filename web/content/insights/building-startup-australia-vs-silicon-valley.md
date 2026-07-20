@@ -74,7 +74,7 @@ On the other hand, Silicon Valley's vast and competitive market makes it better 
 
 ### Track Your Startup Journey
 
-Whether you're building a B2B startup in Australia or a consumer-facing startup in Silicon Valley, it's essential to track your progress and make data-driven decisions. [Track Your Startup Journey](/tools/track-your-startup-journey) with BlockID's comprehensive tools and insights.
+Whether you're building a B2B startup in Australia or a consumer-facing startup in Silicon Valley, it's essential to track your progress and make data-driven decisions. [Track Your Startup Journey](/svi) with BlockID's comprehensive tools and insights.
 
 ### Conclusion
 

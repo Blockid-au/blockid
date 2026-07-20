@@ -912,7 +912,7 @@
       ],
       "cta": {
         "label": "Calculate Your Runway",
-        "href": "/tools/runway-calculator"
+        "href": "/tools/financial-projections"
       },
       "angle": "Practical framework for AU pre-seed founders: how to calculate gross vs net burn, default alive threshold, 18-month runway rule. AU-specific costs: super, payroll tax thresholds by state, contractor vs employee. When to cut costs vs raise. Paul Graham default alive concept applied to AU context."
     },
