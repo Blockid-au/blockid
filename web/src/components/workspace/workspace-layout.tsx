@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  ChevronLeft, ChevronRight, Home, LayoutDashboard, Lock,
+  ChevronLeft, ChevronRight, Home, LayoutDashboard, Lock, Sparkles, X,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { CreditBalance } from "@/components/ui/credit-balance";
@@ -57,6 +57,56 @@ const LIFECYCLE_CHIP: Record<"beta" | "live", string> = {
 //   visible=false  → drop entirely (wrong audience, or feature flag missing).
 //   locked=true    → render but grayed-out with a lock icon + Upgrade tooltip.
 type ResolvedItem = { item: NavItem; locked: boolean };
+
+const UNLOCK_PULSE_KEY = "blockid_unlock_pulse_dismissed";
+
+/**
+ * One-time dismissible pulse shown to free-tier workspace users the first time
+ * they land here. Persists dismissal in localStorage so it never comes back.
+ * Uses `useSyncExternalStore` so SSR and CSR agree on initial state without a
+ * useEffect+setState flip.
+ */
+function UnlockPulseCard({ planId }: { planId: string }) {
+  const dismissed = React.useSyncExternalStore(
+    () => () => {},
+    () => (typeof window !== "undefined" ? localStorage.getItem(UNLOCK_PULSE_KEY) === "true" : true),
+    () => true,
+  );
+  const [hidden, setHidden] = React.useState(false);
+  if (planId !== "free" && planId !== "founder_free") return null;
+  if (dismissed || hidden) return null;
+
+  const dismiss = () => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(UNLOCK_PULSE_KEY, "true");
+    }
+    setHidden(true);
+  };
+
+  return (
+    <div className="mx-4 mt-3 flex items-center gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm text-brand-800 dark:bg-brand-900/20 dark:text-brand-100">
+      <Sparkles strokeWidth={1.75} className="h-4 w-4 shrink-0 text-brand-600" />
+      <p className="flex-1 leading-snug">
+        You are on the Free plan. Upgrade to Founder to unlock 6 more tools —
+        Cap Table, ESOP Setup, Data Room, Fundraise Readiness, and more.
+      </p>
+      <Link
+        href="/pricing"
+        className="shrink-0 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 transition-colors"
+      >
+        See plans
+      </Link>
+      <button
+        type="button"
+        onClick={dismiss}
+        aria-label="Dismiss unlock pulse"
+        className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full text-brand-600/70 hover:bg-brand-100 hover:text-brand-800 transition-colors cursor-pointer"
+      >
+        <X strokeWidth={1.75} className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
 
 function resolveGroup(
   group: NavGroup,
@@ -281,6 +331,9 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0 
 
         {/* Founding 50 upgrade nudge — shown when user has 1 free credit left */}
         <UpgradePrompt />
+
+        {/* First-visit unlock pulse for free-tier users. Dismissible + persistent. */}
+        <UnlockPulseCard planId={planId} />
 
         {/* Page content */}
         <main className="flex-1 overflow-auto">
