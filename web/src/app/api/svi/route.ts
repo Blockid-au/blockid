@@ -4,6 +4,7 @@ import { extractSignals, computeSVI, type SVITextInput } from "@/lib/svi-analysi
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { newSlug } from "@/lib/slug";
 import { sendSVIReport, sendWelcomeWithReport } from "@/lib/email";
+import { enqueueOnboardingDrip } from "@/lib/email-drip";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { autoCreateUserWithTempPassword } from "@/lib/auth";
 import { detectInputType, scrapeUrl, deepTechAudit } from "@/lib/rnd-input";
@@ -402,6 +403,23 @@ export async function POST(request: Request) {
   } else {
     // Authenticated user — just send report
     void sendSVIReport({ to: email, slug, rawInput: parsed.input?.rawText, analysis, locale }).catch(() => {});
+  }
+
+  // ── CCSO onboarding drip + D30 NPS pulse ────────────────────────────
+  // Fire-and-forget: queue the 4-touch onboarding + D30 NPS the first
+  // time a founder sees a report. enqueueOnboardingDrip() dedupes by
+  // email so a re-analysis inside 7 days does not double-mail.
+  {
+    const weakest = analysis.subs.length
+      ? analysis.subs.reduce((min, s) => (s.value < min.value ? s : min), analysis.subs[0])
+      : null;
+    if (weakest) {
+      void enqueueOnboardingDrip(email, authenticatedUserId, {
+        weakestDim: weakest.label,
+        weakestScore: weakest.value,
+        sector: analysis.sectorLabel ?? analysis.sector ?? null,
+      }).catch(() => {});
+    }
   }
 
   // ── Ensure per-project svi_account exists (data isolation) ──────────
