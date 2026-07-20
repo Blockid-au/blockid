@@ -457,13 +457,19 @@ export async function POST(request: Request) {
     }
   }
 
-  // Write anonymised snapshot to SVI Index (fire-and-forget)
-  if (supabase && authenticatedUserId) {
+  // Write anonymised snapshot to SVI Index (fire-and-forget).
+  // Gate was previously `authenticatedUserId` — which left svi_index_snapshots
+  // empty because most analyses are guest. Verification report bc83e2b caught
+  // the resulting zeros on /api/index/svi + /dataset. Guests still resolve a
+  // real svi_account via (email, project_id=null), so no schema change needed.
+  if (supabase) {
     void (async () => {
       try {
         const { findOrCreateSVIAccount } = await import("@/lib/projects");
         const { getProjectIdFromRequest } = await import("@/lib/projects");
-        const projectId = await getProjectIdFromRequest();
+        const projectId = authenticatedUserId
+          ? await getProjectIdFromRequest()
+          : null;
         const accountId = await findOrCreateSVIAccount(email, projectId);
 
         if (accountId) {
