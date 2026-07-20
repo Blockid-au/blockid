@@ -2,26 +2,26 @@ import type { Metadata } from "next";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
-import { FinancialProjectionsCalculator } from "./financial-projections-calculator";
+import { ProjectionsTool } from "./projections-tool";
 
 const TITLE =
-  "Financial Projection Norms Calculator — AU Startup Benchmarks | BlockID.au";
+  "3-Year Financial Projections — AU Startup Tool | BlockID.au";
 const DESCRIPTION =
-  "Compare your startup's burn rate, runway, growth, CAC and LTV against Australian pre-seed, seed and Series A benchmarks. Instant percentile scoring — no login required.";
+  "Generate investor-grade 36-month financial projections for your Australian startup. Sector-tuned growth, EBITDA-first structure, R&D tax offsets, CSV export. Deterministic — same inputs, same output.";
 const CANONICAL = "https://blockid.au/tools/financial-projections";
 
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   keywords: [
-    "australian startup benchmarks 2026",
-    "startup burn rate australia",
-    "startup runway calculator",
-    "saas growth rate benchmarks",
-    "cac ltv ratio australia",
-    "pre-seed seed series a metrics",
-    "financial projection norms",
-    "startup unit economics australia",
+    "3 year financial projections australia",
+    "startup financial projection template",
+    "founder 3 year forecast",
+    "australian startup ebitda projection",
+    "rdti tax offset projection",
+    "investor grade financial model",
+    "36 month monthly projection",
+    "startup csv export forecast",
   ],
   openGraph: {
     title: TITLE,
@@ -48,34 +48,35 @@ export default function FinancialProjectionsPage() {
         <div className="mx-auto max-w-6xl px-6">
           <header className="max-w-3xl">
             <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium">
-              Free tool · No login · AU-tuned
+              Founder tool · AU-tuned · Deterministic
             </p>
             <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-ink-800">
-              Financial Projection Norms (Australia)
+              3-Year Financial Projections
             </h1>
             <p className="mt-4 text-base md:text-lg leading-relaxed text-ink-400">
-              Enter your stage, sector and current metrics. We compare against
-              anonymised Australian startup benchmarks (pre-seed, seed,
-              Series&nbsp;A, Series&nbsp;B+) and show your percentile position
-              for burn rate, runway, growth, CAC, LTV and more.
+              Turn your current MRR, burn and team into a 36-month monthly
+              projection — revenue, gross margin, opex, EBITDA, cash outflow
+              and headcount. Sector-tuned growth against AU norms, aggressive
+              / moderate / conservative scenarios, and an optional R&D tax
+              incentive line. CSV export ready for your investor pack.
             </p>
           </header>
           <div className="mt-10">
-            <FinancialProjectionsCalculator />
+            <ProjectionsTool />
           </div>
           <section className="mt-16 grid md:grid-cols-3 gap-6">
             {[
               {
-                title: "Where does the data come from?",
-                body: "Anonymised aggregates from Australian startup ecosystem reports, public disclosures and SVI submissions across pre-seed to Series B+. Percentile bands (p25 / p50 / p75) — not single-point averages.",
+                title: "Where do the sector norms come from?",
+                body: "AU-tuned benchmarks — Bessemer Cloud Index, SaaS Capital, AVCAL and Cut Through Venture — the same VC_BENCHMARKS used across BlockID's CFO tooling. Growth is company-level (not market CAGR) and decays via an S-curve toward a 2% floor.",
               },
               {
-                title: "Why benchmark at all?",
-                body: "Investors don't grade you in isolation. They compare your numbers to other AU founders in the same stage and sector. Knowing your position in the curve is the difference between a confident raise and a 'we need to think about it'.",
+                title: "How do tax incentives affect cash flow?",
+                body: "Turn on the R&D Tax Incentive toggle and we apply the 18.5% refundable premium above the corporate tax rate to your sector-typical R&D share of opex (deeptech 40%, healthtech / AI 30%, SaaS / fintech 20%, others 10-15%).",
               },
               {
-                title: "What's a healthy CAC/LTV?",
-                body: "AU SaaS at seed should target LTV/CAC ≥ 3x within 12 months and CAC payback < 18 months. Below that and you're buying revenue. This calculator shows you exactly where you sit.",
+                title: "Is the output the same every time?",
+                body: "Yes — the engine is deterministic. Same inputs always produce the same 36 rows and YoY summary. Safe to include in investor decks and cap-table workbooks. General information only, not financial advice.",
               },
             ].map((b) => (
               <article
