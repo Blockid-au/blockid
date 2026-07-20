@@ -1,6 +1,32 @@
 {
   "articles": [
     {
+      "slug": "down-round-protection-australian-startups",
+      "title": "Down Round Australia: Guide to Valuation Drops & Dilution",
+      "description": "Navigating a down round in Australia? Learn how to handle valuation drops, anti-dilution clauses, and recapitalisation to protect your founder equity.",
+      "keywords": [
+        "down round australia",
+        "anti-dilution clauses australia",
+        "startup valuation drop",
+        "how to handle a down round",
+        "full ratchet vs weighted average australia",
+        "startup recapitalisation australia",
+        "founder dilution down round",
+        "renegotiating startup valuation",
+        "ESIC compliant valuation",
+        "startup valuation tools australia",
+        "how to prevent down rounds",
+        "venture capital anti-dilution triggers"
+      ],
+      "category": "valuation",
+      "publishedAt": "2026-07-20",
+      "readingTime": 5,
+      "cta": {
+        "label": "Calculate Your Valuation",
+        "href": "/score"
+      }
+    },
+    {
       "slug": "how-to-value-an-australian-startup",
       "title": "How to Value an Australian Startup: A 2026 Founder's Guide",
       "description": "DCF, Berkus, Scorecard, VC method and comparable AU rounds — a practical framework for pricing an Australian startup in 2026, with real examples from Canva, Airwallex, Zeller and Employment Hero.",
