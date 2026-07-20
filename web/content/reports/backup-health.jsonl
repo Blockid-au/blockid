@@ -1,1 +1,2 @@
 {"ts":"2026-07-20T21:43:18Z","db":{"latest":"","ageHours":-1,"sizeBytes":0,"ok":false},"release":{"latest":"","ageHours":-1,"ok":false}}
+{"ts":"2026-07-20T21:45:09Z","job":"db-backup","status":"ok","file":"/data/backups/db-20260720T214508Z.sql.gz","sizeBytes":2870568,"duration_ms":1000}
