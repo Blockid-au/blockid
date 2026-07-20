@@ -1,6 +1,87 @@
 {
   "articles": [
     {
+      "slug": "safe-vs-convertible-note-vs-priced-round-australia",
+      "title": "SAFE vs Convertible Note vs Priced Round (Australia, 2026)",
+      "description": "When to use a SAFE, a convertible note, or a priced round for an AU startup raise — worked conversion examples, term-sheet gotchas, s708 disclosure, ESIC interaction and real examples from Canva, Airwallex, Zeller and Immutable.",
+      "keywords": [
+        "safe vs convertible note australia",
+        "priced round australia",
+        "post-money safe australia",
+        "convertible note terms australia",
+        "australian startup term sheet",
+        "s708 sophisticated investor certificate",
+        "safe conversion example australia",
+        "valuation cap discount safe",
+        "convertible note maturity australia",
+        "esic safe convertible note",
+        "startup fundraising instrument australia",
+        "term sheet clauses seed round australia"
+      ],
+      "category": "fundraising",
+      "publishedAt": "2026-07-20",
+      "updatedAt": "2026-07-20",
+      "readingTime": 14,
+      "cta": {
+        "label": "Draft Your Term Sheet",
+        "href": "/tools/term-sheet"
+      }
+    },
+    {
+      "slug": "how-to-build-your-first-cap-table-australia-2026",
+      "title": "How to Build Your First Cap Table (Australia, 2026)",
+      "description": "Step-by-step guide to building an AU startup cap table — founder shares with vesting, 10% ESOP pool, SAFE conversion, priced-round mechanics, ASIC Form 484, and the option-pool shuffle explained with worked share counts.",
+      "keywords": [
+        "how to build cap table australia",
+        "startup cap table template australia",
+        "founder shares vesting australia",
+        "esop pool size seed round",
+        "option pool shuffle australia",
+        "asic form 484 share issue",
+        "division 83a startup concession",
+        "safe dilution modelling australia",
+        "cap table for seed round australia",
+        "priced round cap table example",
+        "australian startup equity split",
+        "cap table tool australia"
+      ],
+      "category": "cap-table",
+      "publishedAt": "2026-07-20",
+      "updatedAt": "2026-07-20",
+      "readingTime": 13,
+      "cta": {
+        "label": "Build Your Cap Table Free",
+        "href": "/tools/cap-table"
+      }
+    },
+    {
+      "slug": "dcf-vs-berkus-vs-scorecard-au-valuation-method",
+      "title": "DCF vs Berkus vs Scorecard: How to Pick a Valuation Method (Australia)",
+      "description": "Practical comparison of DCF, Berkus and Scorecard for Australian startups — which method fits which stage, worked numeric examples, AU-specific levers (ESIC, R&D, s708), and how to triangulate a defensible pre-money range.",
+      "keywords": [
+        "dcf vs berkus vs scorecard",
+        "startup valuation methods comparison australia",
+        "how to pick valuation method startup",
+        "berkus method example australia",
+        "scorecard method worked example",
+        "dcf startup valuation example",
+        "australian pre-seed valuation 2026",
+        "startup valuation triangulation",
+        "esic valuation premium australia",
+        "pre-money valuation range australia",
+        "which valuation method for pre-revenue startup",
+        "au founder valuation guide"
+      ],
+      "category": "valuation",
+      "publishedAt": "2026-07-20",
+      "updatedAt": "2026-07-20",
+      "readingTime": 12,
+      "cta": {
+        "label": "Run the Free Idea Valuation Tool",
+        "href": "/tools/idea-valuation"
+      }
+    },
+    {
       "slug": "down-round-protection-australian-startups",
       "title": "Down Round Australia: Guide to Valuation Drops & Dilution",
       "description": "Navigating a down round in Australia? Learn how to handle valuation drops, anti-dilution clauses, and recapitalisation to protect your founder equity.",
