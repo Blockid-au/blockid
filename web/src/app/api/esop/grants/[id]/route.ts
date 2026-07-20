@@ -1,82 +1,90 @@
+// PATCH  /api/esop/grants/[id] — update grant status (active / exercised / lapsed).
+// DELETE /api/esop/grants/[id] — soft delete (status = 'cancelled').
+
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getSupabaseAdmin } from "@/lib/supabase";
+import { getGrant, isValidStatus, updateGrantStatus } from "@/lib/esop-grants";
+import { DIV83A_DISCLAIMER } from "@/lib/div83a-checker";
 
 export const dynamic = "force-dynamic";
 
-async function getGrantForUser(supabase: ReturnType<typeof import("@/lib/supabase").getSupabaseAdmin>, userId: string, grantId: string) {
-  const { data: pool } = await supabase!
-    .from("esop_pools")
-    .select("id")
-    .eq("account_id", userId)
-    .maybeSingle();
-
-  if (!pool) return null;
-
-  const { data: grant } = await supabase!
-    .from("esop_grants")
-    .select("*")
-    .eq("id", grantId)
-    .eq("esop_pool_id", pool.id)
-    .maybeSingle();
-
-  return grant;
-}
-
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
+    return NextResponse.json(
+      { ok: false, error: "Authentication required" },
+      { status: 401 },
+    );
   }
 
-  const supabase = getSupabaseAdmin();
-  if (!supabase) {
-    return NextResponse.json({ ok: false, error: "Database not configured" }, { status: 503 });
-  }
-
-  const grant = await getGrantForUser(supabase, user.id, params.id);
-  if (!grant) {
-    return NextResponse.json({ ok: false, error: "Grant not found" }, { status: 404 });
-  }
-
-  return NextResponse.json({ ok: true, grant });
-}
-
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
-  }
-
-  const supabase = getSupabaseAdmin();
-  if (!supabase) {
-    return NextResponse.json({ ok: false, error: "Database not configured" }, { status: 503 });
-  }
-
-  const existing = await getGrantForUser(supabase, user.id, params.id);
+  const { id } = await params;
+  const existing = await getGrant(id, user.id);
   if (!existing) {
     return NextResponse.json({ ok: false, error: "Grant not found" }, { status: 404 });
   }
 
-  const body = await request.json().catch(() => ({}));
-  const allowedFields = ["status", "notes", "termination_date", "termination_type", "vested_shares"];
-  const updates: Record<string, unknown> = { updated_by: user.id };
-  for (const field of allowedFields) {
-    if (field in body) updates[field] = body[field];
+  const body: unknown = await request.json().catch(() => ({}));
+  const b = (body ?? {}) as Record<string, unknown>;
+
+  if (!isValidStatus(b.status)) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "status must be one of: active, exercised, lapsed, cancelled",
+      },
+      { status: 400 },
+    );
   }
 
-  const { data, error } = await supabase
-    .from("esop_grants")
-    .update(updates)
-    .eq("id", params.id)
-    .select()
-    .single();
-
-  if (error) {
-    console.error("[esop/grants/id] update error", error);
-    return NextResponse.json({ ok: false, error: "Failed to update grant" }, { status: 500 });
+  const ok = await updateGrantStatus(id, user.id, b.status);
+  if (!ok) {
+    return NextResponse.json(
+      { ok: false, error: "Failed to update grant" },
+      { status: 500 },
+    );
   }
 
-  return NextResponse.json({ ok: true, grant: data });
+  const updated = await getGrant(id, user.id);
+  return NextResponse.json({
+    ok: true,
+    grant: updated,
+    disclaimer: DIV83A_DISCLAIMER,
+  });
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json(
+      { ok: false, error: "Authentication required" },
+      { status: 401 },
+    );
+  }
+
+  const { id } = await params;
+  const existing = await getGrant(id, user.id);
+  if (!existing) {
+    return NextResponse.json({ ok: false, error: "Grant not found" }, { status: 404 });
+  }
+
+  const ok = await updateGrantStatus(id, user.id, "cancelled");
+  if (!ok) {
+    return NextResponse.json(
+      { ok: false, error: "Failed to cancel grant" },
+      { status: 500 },
+    );
+  }
+
+  return NextResponse.json({
+    ok: true,
+    id,
+    status: "cancelled",
+    disclaimer: DIV83A_DISCLAIMER,
+  });
 }

@@ -1,121 +1,119 @@
+// GET  /api/esop/grants     — list grants for the active project.
+// POST /api/esop/grants     — create a new option grant.
+//
+// Scoped to (user_id, project_id) via the session cookie + `blockid_project`.
+// General information only. Not legal or tax advice.
+
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getSupabaseAdmin } from "@/lib/supabase";
+import { getProjectIdFromRequest } from "@/lib/projects";
+import { createGrant, listGrants } from "@/lib/esop-grants";
+import { DIV83A_DISCLAIMER } from "@/lib/div83a-checker";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
+    return NextResponse.json(
+      { ok: false, error: "Authentication required" },
+      { status: 401 },
+    );
   }
 
-  const supabase = getSupabaseAdmin();
-  if (!supabase) {
-    return NextResponse.json({ ok: false, error: "Database not configured" }, { status: 503 });
-  }
+  const projectId = await getProjectIdFromRequest();
+  const grants = await listGrants(user.id, projectId);
 
-  // Get pool for user, then grants
-  const { data: pool } = await supabase
-    .from("esop_pools")
-    .select("id")
-    .eq("account_id", user.id)
-    .maybeSingle();
-
-  if (!pool) {
-    return NextResponse.json({ ok: true, grants: [] });
-  }
-
-  const { data, error } = await supabase
-    .from("esop_grants")
-    .select("*")
-    .eq("esop_pool_id", pool.id)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("[esop/grants] fetch error", error);
-    return NextResponse.json({ ok: false, error: "Failed to fetch grants" }, { status: 500 });
-  }
-
-  return NextResponse.json({ ok: true, grants: data ?? [] });
+  return NextResponse.json({
+    ok: true,
+    grants,
+    disclaimer: DIV83A_DISCLAIMER,
+  });
 }
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
-  }
-
-  const supabase = getSupabaseAdmin();
-  if (!supabase) {
-    return NextResponse.json({ ok: false, error: "Database not configured" }, { status: 503 });
-  }
-
-  const body = await request.json().catch(() => ({}));
-  const { grantee_name, grantee_email, grantee_role, total_shares, strike_price_cents, grant_date, cliff_months, total_months } = body;
-
-  if (!grantee_name?.trim()) {
-    return NextResponse.json({ ok: false, error: "grantee_name is required" }, { status: 400 });
-  }
-  if (!total_shares || Number(total_shares) <= 0) {
-    return NextResponse.json({ ok: false, error: "total_shares must be > 0" }, { status: 400 });
-  }
-
-  // Get pool
-  const { data: pool, error: poolErr } = await supabase
-    .from("esop_pools")
-    .select("id, total_shares, allocated_shares")
-    .eq("account_id", user.id)
-    .maybeSingle();
-
-  if (poolErr || !pool) {
-    return NextResponse.json({ ok: false, error: "ESOP pool not found. Create a pool first." }, { status: 400 });
-  }
-
-  const unallocated = pool.total_shares - pool.allocated_shares;
-  if (Number(total_shares) > unallocated) {
     return NextResponse.json(
-      { ok: false, error: `Only ${unallocated} shares available in the pool` },
+      { ok: false, error: "Authentication required" },
+      { status: 401 },
+    );
+  }
+
+  const body: unknown = await request.json().catch(() => ({}));
+  const b = (body ?? {}) as Record<string, unknown>;
+
+  const granteeName = typeof b.granteeName === "string" ? b.granteeName.trim() : "";
+  const granteeEmail = typeof b.granteeEmail === "string" ? b.granteeEmail.trim() : "";
+  const grantDate = typeof b.grantDate === "string" ? b.grantDate : "";
+  const sharesUnderOption = Number(b.sharesUnderOption);
+  const strikePriceAud = Number(b.strikePriceAud ?? 0);
+  const vestingYears = Number(b.vestingYears ?? 4);
+  const cliffMonths = Number(b.cliffMonths ?? 12);
+  const notes = typeof b.notes === "string" ? b.notes : null;
+
+  if (!granteeName) {
+    return NextResponse.json(
+      { ok: false, error: "granteeName is required" },
+      { status: 400 },
+    );
+  }
+  if (!grantDate || !/^\d{4}-\d{2}-\d{2}$/.test(grantDate)) {
+    return NextResponse.json(
+      { ok: false, error: "grantDate must be YYYY-MM-DD" },
+      { status: 400 },
+    );
+  }
+  if (!Number.isFinite(sharesUnderOption) || sharesUnderOption <= 0) {
+    return NextResponse.json(
+      { ok: false, error: "sharesUnderOption must be > 0" },
+      { status: 400 },
+    );
+  }
+  if (!Number.isFinite(strikePriceAud) || strikePriceAud < 0) {
+    return NextResponse.json(
+      { ok: false, error: "strikePriceAud must be ≥ 0" },
+      { status: 400 },
+    );
+  }
+  if (!Number.isFinite(vestingYears) || vestingYears < 1 || vestingYears > 6) {
+    return NextResponse.json(
+      { ok: false, error: "vestingYears must be 1..6" },
+      { status: 400 },
+    );
+  }
+  if (!Number.isFinite(cliffMonths) || cliffMonths < 0 || cliffMonths > 24) {
+    return NextResponse.json(
+      { ok: false, error: "cliffMonths must be 0..24" },
       { status: 400 },
     );
   }
 
-  // Insert grant
-  const { data: grant, error: grantErr } = await supabase
-    .from("esop_grants")
-    .insert({
-      esop_pool_id: pool.id,
-      grantee_name: grantee_name.trim(),
-      grantee_email: grantee_email?.trim() || null,
-      grantee_role: grantee_role || null,
-      total_shares: Number(total_shares),
-      strike_price_cents: Number(strike_price_cents) || 10,
-      grant_date: grant_date || new Date().toISOString().split("T")[0],
-      cliff_months: Number(cliff_months) || 12,
-      total_months: Number(total_months) || 48,
-      vested_shares: 0,
-      exercised_shares: 0,
-      forfeited_shares: 0,
-      status: "active",
-      created_by: user.id,
-    })
-    .select()
-    .single();
+  const projectId = await getProjectIdFromRequest();
 
-  if (grantErr) {
-    console.error("[esop/grants] insert error", grantErr);
-    return NextResponse.json({ ok: false, error: "Failed to create grant" }, { status: 500 });
+  const grant = await createGrant({
+    userId: user.id,
+    projectId,
+    granteeName,
+    granteeEmail: granteeEmail || null,
+    grantDate,
+    sharesUnderOption,
+    strikePriceAud,
+    vestingYears,
+    cliffMonths,
+    notes,
+  });
+
+  if (!grant) {
+    return NextResponse.json(
+      { ok: false, error: "Failed to create grant" },
+      { status: 500 },
+    );
   }
 
-  // Update allocated shares
-  await supabase
-    .from("esop_pools")
-    .update({
-      allocated_shares: pool.allocated_shares + Number(total_shares),
-      updated_by: user.id,
-    })
-    .eq("id", pool.id);
-
-  return NextResponse.json({ ok: true, grant }, { status: 201 });
+  return NextResponse.json(
+    { ok: true, grant, disclaimer: DIV83A_DISCLAIMER },
+    { status: 201 },
+  );
 }
