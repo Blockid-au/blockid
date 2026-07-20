@@ -1047,6 +1047,21 @@
         "href": "/tools/cap-table-template"
       },
       "angle": "Learn how to optimise your startup's cap table for a successful M&A exit in Australia. Discover practical tips and tools to maximise your exit value."
+    },
+    {
+      "slug": "down-round-protection-australian-startups",
+      "title": "How to Handle a Down Round: A Guide for AU Founders",
+      "category": "valuation",
+      "keywords": [
+        "down round australia",
+        "anti-dilution clauses",
+        "startup valuation drop"
+      ],
+      "cta": {
+        "label": "Calculate Your Valuation",
+        "href": "/score"
+      },
+      "angle": "Explain the mechanics of down rounds and anti-dilution triggers within the Australian legal context. Provide a practical framework for founders to renegotiate with investors and maintain team morale while using valuation tools to find a fair current floor."
     }
   ]
 }
