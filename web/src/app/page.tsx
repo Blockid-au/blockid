@@ -21,22 +21,28 @@ export const revalidate = 0;
 
 /**
  * Reads the current build's version string from
- * `web/content/reports/version.json` at request time. Returns `null` when the
- * file is missing or malformed so the caller can omit the suffix rather than
- * render a placeholder or fake version — the trust strip must never lie.
+ * `web/content/reports/version.json` — cached at module scope. The homepage
+ * is `force-dynamic`, so this used to hit the disk on every request. The
+ * version.json file only changes on deploy, and each deploy spawns a fresh
+ * Node process, so a per-process cache is safe and cannot go stale. Returns
+ * `null` when the file is missing or malformed so the caller can omit the
+ * suffix rather than render a placeholder — the trust strip must never lie.
  */
+let cachedVersion: string | null | undefined;
 function readVersionString(): string | null {
+  if (cachedVersion !== undefined) return cachedVersion;
   try {
     const p = path.join(process.cwd(), "content", "reports", "version.json");
     const raw = readFileSync(p, "utf8");
     const parsed = JSON.parse(raw) as { version?: unknown };
-    if (typeof parsed.version === "string" && parsed.version.length > 0) {
-      return parsed.version;
-    }
-    return null;
+    cachedVersion =
+      typeof parsed.version === "string" && parsed.version.length > 0
+        ? parsed.version
+        : null;
   } catch {
-    return null;
+    cachedVersion = null;
   }
+  return cachedVersion;
 }
 
 export default function HomePage() {

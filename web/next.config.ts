@@ -53,6 +53,18 @@ const nextConfig: NextConfig = {
           { key: "Cache-Control", value: "no-store, no-cache, must-revalidate" },
         ],
       },
+      {
+        // Long-cache public static image/icon assets. Default Next serves these
+        // with max-age=14400 (4h) which forces daily-visitor refetches even
+        // though the files rarely change. Bump to 30d + SWR for CF + browsers.
+        source: "/:path*.(png|jpg|jpeg|webp|avif|svg|ico)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=2592000, stale-while-revalidate=86400",
+          },
+        ],
+      },
     ];
   },
   images: {
