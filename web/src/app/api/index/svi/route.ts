@@ -88,14 +88,17 @@ export async function GET(request: Request) {
     if (bucket === "sector") {
       const rows = await getSectorAggregates();
       if (format === "csv") {
-        const csv = toCsv(rows.map((r) => ({
-          sector: r.sector,
-          count: r.count,
-          median_svi: r.medianSvi,
-          p25: r.p25,
-          p75: r.p75,
-          median_stage: r.medianStage,
-        })));
+        const csv = toCsv(
+          rows.map((r) => ({
+            sector: r.sector,
+            count: r.count,
+            median_svi: r.medianSvi,
+            p25: r.p25,
+            p75: r.p75,
+            median_stage: r.medianStage,
+          })),
+          ["sector", "count", "median_svi", "p25", "p75", "median_stage"],
+        );
         return csvResponse(csv, "svi-index-by-sector.csv");
       }
       return NextResponse.json(
@@ -112,13 +115,16 @@ export async function GET(request: Request) {
     // bucket === "stage"
     const rows = await getStageAggregates();
     if (format === "csv") {
-      const csv = toCsv(rows.map((r) => ({
-        stage: r.stage,
-        count: r.count,
-        median_svi: r.medianSvi,
-        p25: r.p25,
-        p75: r.p75,
-      })));
+      const csv = toCsv(
+        rows.map((r) => ({
+          stage: r.stage,
+          count: r.count,
+          median_svi: r.medianSvi,
+          p25: r.p25,
+          p75: r.p75,
+        })),
+        ["stage", "count", "median_svi", "p25", "p75"],
+      );
       return csvResponse(csv, "svi-index-by-stage.csv");
     }
     return NextResponse.json(

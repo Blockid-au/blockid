@@ -316,12 +316,24 @@ function csvEscape(value: string | number): string {
   return s;
 }
 
-/** Quote-aware CSV. Headers come from the union of keys across rows in
- *  first-seen order. Empty input yields the empty string. */
-export function toCsv(rows: Array<Record<string, string | number>>): string {
-  if (rows.length === 0) return "";
+/** Quote-aware CSV. Headers come from `explicitHeaders` when given (so
+ *  callers can emit a valid header-only CSV even with zero rows — parsers
+ *  break on 0-byte responses), otherwise from the union of keys across
+ *  rows in first-seen order. */
+export function toCsv(
+  rows: Array<Record<string, string | number>>,
+  explicitHeaders?: string[],
+): string {
   const headers: string[] = [];
   const seen = new Set<string>();
+  if (explicitHeaders && explicitHeaders.length > 0) {
+    for (const key of explicitHeaders) {
+      if (!seen.has(key)) {
+        seen.add(key);
+        headers.push(key);
+      }
+    }
+  }
   for (const row of rows) {
     for (const key of Object.keys(row)) {
       if (!seen.has(key)) {
@@ -330,6 +342,7 @@ export function toCsv(rows: Array<Record<string, string | number>>): string {
       }
     }
   }
+  if (headers.length === 0) return "";
   const lines: string[] = [headers.map(csvEscape).join(",")];
   for (const row of rows) {
     lines.push(headers.map((h) => csvEscape(row[h] ?? "")).join(","));
