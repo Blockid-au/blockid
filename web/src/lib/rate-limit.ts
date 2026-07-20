@@ -151,7 +151,34 @@ function getStore(): RateLimitStore {
 // This map serves as a local cache that's eventually consistent with Redis.
 const syncFallback = new Map<string, { count: number; resetAt: number }>();
 
+// Overloaded API:
+//   1. checkRateLimit(bucket, keyParts) — new bucketed API (CISO 2026-07-20).
+//      Async. Returns RateLimitResult. Used by root proxy/middleware.
+//   2. checkRateLimit(key, maxAttempts, windowMs) — legacy sync API.
+//      Preserved for existing callers (cron routes, api-key auth).
 export function checkRateLimit(
+  bucket: RateLimitBucket,
+  keyParts: string[],
+): Promise<RateLimitResult>;
+export function checkRateLimit(
+  key: string,
+  maxAttempts: number,
+  windowMs: number,
+): { allowed: boolean; remaining: number; resetIn: number };
+export function checkRateLimit(
+  a: string,
+  b: number | string[],
+  c?: number,
+):
+  | Promise<RateLimitResult>
+  | { allowed: boolean; remaining: number; resetIn: number } {
+  if (Array.isArray(b)) {
+    return checkBucketInternal(a as RateLimitBucket, b);
+  }
+  return checkSyncInternal(a, b, c ?? 60_000);
+}
+
+function checkSyncInternal(
   key: string,
   maxAttempts: number,
   windowMs: number,
@@ -281,4 +308,64 @@ export async function checkRateLimitAsync(
     remaining: maxAttempts - newCount,
     resetIn: entry.resetAt - now,
   };
+}
+
+// ── Bucketed rate-limit API (CISO hardening, 2026-07-20) ─────────────
+//
+// Used by the root proxy/middleware to protect sensitive /api/* routes
+// with pre-declared per-bucket ceilings. Every call is per-minute — the
+// caller only picks a bucket name and supplies the identity parts
+// (route + user id or IP). Redis-backed when available, degrades to the
+// same MemoryStore singleton otherwise (never throws — never 500s).
+
+export type RateLimitBucket =
+  | "svi"
+  | "idea"
+  | "score"
+  | "term-sheet"
+  | "fundraise"
+  | "integrations"
+  | "default";
+
+export type RateLimitResult = {
+  allowed: boolean;
+  limit: number;
+  remaining: number;
+  resetAt: number;
+};
+
+const BUCKET_LIMITS_PER_MINUTE: Record<RateLimitBucket, number> = {
+  svi: 20,
+  idea: 30,
+  score: 30,
+  "term-sheet": 20,
+  fundraise: 60,
+  integrations: 30,
+  default: 100,
+};
+
+/**
+ * Enforce a per-bucket rate limit. Never throws; on any storage error,
+ * fails open (allowed=true) so the app degrades gracefully.
+ * Backing function for the `checkRateLimit(bucket, keyParts)` overload.
+ */
+async function checkBucketInternal(
+  bucket: RateLimitBucket,
+  keyParts: string[],
+): Promise<RateLimitResult> {
+  const limit = BUCKET_LIMITS_PER_MINUTE[bucket] ?? BUCKET_LIMITS_PER_MINUTE.default;
+  const windowMs = 60_000;
+  const key = `bkt:${bucket}:${keyParts.map((p) => p.trim() || "-").join("|")}`;
+  try {
+    const result = await checkRateLimitAsync(key, limit, windowMs);
+    return {
+      allowed: result.allowed,
+      limit,
+      remaining: Math.max(0, result.remaining),
+      resetAt: Date.now() + Math.max(0, result.resetIn),
+    };
+  } catch {
+    // Fail-open — never break the request path if the limiter is misbehaving.
+    return { allowed: true, limit, remaining: limit, resetAt: Date.now() + windowMs };
+  }
 }
