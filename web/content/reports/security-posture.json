@@ -1,5 +1,5 @@
 {
-  "date": "2026-07-18",
+  "date": "2026-07-19",
   "overall": 33,
   "status": "RED",
   "dimensions": [
@@ -39,7 +39,7 @@
       "key": "secrets_hygiene",
       "label": "Secrets hygiene (no committed credentials)",
       "score": 0,
-      "detail": "14 suspicious lines",
+      "detail": "15 suspicious lines",
       "findings": [
         "Leak: src/app/api/cron/security-posture/route.ts:126:    \"STRIPE_SECRET_KEY=sk_\",",
         "Leak: src/app/api/cron/security-posture/route.ts:127:    \"SUPABASE_SERVICE_ROLE_KEY=ey\",",

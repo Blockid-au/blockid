@@ -172,3 +172,22 @@
 {"ts":"2026-06-21T06:18:17.697Z","event":"github-push-master","detail":"Blockid-au: chore(ai): remove Codex provider, broaden free-model fallback (1 commits)","source":"github-webhook"}
 {"ts":"2026-06-21T06:27:14.002Z","event":"github-push-master","detail":"Blockid-au: feat(ai): auto-discover 3 NEW free models when chain hits rate limits (1 commits)","source":"github-webhook"}
 {"ts":"2026-06-21T07:16:15.349Z","event":"github-push-master","detail":"Blockid-au: chore(release): v0.5.1 — drop Codex + auto-discover free models on rate-limit (2 commits)","source":"github-webhook"}
+{"ts":"2026-07-20T10:05:04.378Z","event":"github-push-master","detail":"Blockid-au: feat(svi): wire hero to live analyzer + per-project SVI page (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-20T11:02:31.784Z","event":"github-push-master","detail":"Blockid-au: feat(cpo): T0130 First-Principles Question Engine (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-20T11:06:08.319Z","event":"github-push-master","detail":"Blockid-au: feat(clo): T0087 Term Sheet AI v2 — persist + Lawyer Questions + SVI link (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-20T11:13:43.732Z","event":"github-push-master","detail":"Blockid-au: feat(cfo): T0088 Fundraising Readiness Report v2 (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-20T11:15:25.179Z","event":"github-push-master","detail":"Blockid-au: feat(cso): T0206 pricing & segment A/B test infra (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-20T11:25:30.666Z","event":"github-push-master","detail":"Blockid-au: chore(ops): disk + process cleanup 2026-07-20 (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-20T11:25:59Z","status":"success","gates":"10/10","pid":"2544237","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-20T11:28:57.564Z","event":"github-push-master","detail":"Blockid-au: chore(ui): polish pass on hero, analyzer, workspace surfaces (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-20T11:32:01.307Z","event":"github-push-master","detail":"Blockid-au: feat(rnd): T0016 Evidence Vault Phase 2 — GitHub/Stripe/GA4 OAuth connectors (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-20T11:33:42.028Z","event":"github-push-master","detail":"Blockid-au: chore(ui): sweep text-ink-8000 typo across 17 files (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-20T11:39:12Z","status":"success","gates":"10/10","pid":"2585971","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-20T11:42:22.195Z","event":"github-push-master","detail":"Blockid-au: feat(ciso): security hardening — rate-limit + headers + secrets audit (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-20T11:43:45.682Z","event":"github-push-master","detail":"Blockid-au: feat(cdo): public SVI Index dataset — /api/index/svi + /dataset page (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-20T11:44:51.041Z","event":"github-push-master","detail":"Blockid-au: feat(ccso): onboarding email drip + NPS pulse (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-20T11:50:22Z","status":"success","gates":"10/10","pid":"2621770","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-20T11:54:42.962Z","event":"github-push-master","detail":"Blockid-au: feat(cmo): 3 SEO pillar articles — valuation, readiness, ESIC/R&D (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-20T11:58:34.032Z","event":"github-push-master","detail":"Blockid-au: feat(ir): investor pack PDF generator (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-20T11:59:06.673Z","event":"github-push-master","detail":"Blockid-au: feat(rnd): T0121/T0123 wire 3 pricing/CTA experiments into live surfaces (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-20T12:04:21Z","status":"success","gates":"10/10","pid":"2665045","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
