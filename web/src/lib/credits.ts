@@ -62,6 +62,7 @@ export const FEATURE_COSTS: Record<string, number> = {
   investor_score: 0,    // free
   dilution_calc: 0,     // free
   pitch_deck: 1.00,    // A$1.00 — AI pitch deck outline from SVI data
+  idea_lab: 3,         // 3 credits — sector-aware AI Idea Lab (10 angles + 5 non-obvious + 3 competitors)
 
   // ── Evidence AI analysis tiers ────────────────────────────────────────
   evidence_scan: 0.10,       // Quick validation, authenticity check
