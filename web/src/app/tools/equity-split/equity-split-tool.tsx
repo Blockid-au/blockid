@@ -165,7 +165,7 @@ export function EquitySplitTool() {
             <Plus strokeWidth={1.75} className="h-3.5 w-3.5" />
             Add founder
             {founders.length >= MAX_FOUNDERS && (
-              <span className="text-ink-8000">(max {MAX_FOUNDERS})</span>
+              <span className="text-ink-800">(max {MAX_FOUNDERS})</span>
             )}
           </button>
         </div>
@@ -198,7 +198,7 @@ export function EquitySplitTool() {
               >
                 Reserve ESOP pool ({settings.esopPct}%)
               </Label>
-              <p className="text-xs text-ink-8000 mt-0.5">
+              <p className="text-xs text-ink-800 mt-0.5">
                 Standard 10% pool for early hires. Carved out of the company,
                 not just founders.
               </p>
@@ -241,7 +241,7 @@ export function EquitySplitTool() {
               }
               className="mt-2 w-full accent-brand-500 cursor-pointer"
             />
-            <p className="text-xs text-ink-8000 mt-1">
+            <p className="text-xs text-ink-800 mt-1">
               Optional dedicated slice for an anticipated key hire (e.g. CTO
               you haven&apos;t signed yet).
             </p>
@@ -252,7 +252,7 @@ export function EquitySplitTool() {
               <Info strokeWidth={1.75} className="h-3 w-3" aria-hidden />
               Vesting: 4 years · 1-year cliff
             </Badge>
-            <span className="text-xs text-ink-8000">recommended</span>
+            <span className="text-xs text-ink-800">recommended</span>
           </div>
         </div>
       </section>
@@ -276,7 +276,7 @@ export function EquitySplitTool() {
 
         {/* Pie + legend */}
         <div className="rounded-2xl border border-surface-200 bg-white p-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-ink-8000">
+          <p className="text-xs uppercase tracking-[0.2em] text-ink-800">
             Cap table v0
           </p>
           <div className="mt-4 grid sm:grid-cols-[180px_1fr] gap-6 items-center">
@@ -341,13 +341,13 @@ export function EquitySplitTool() {
 
         {/* Allocation table */}
         <div className="rounded-2xl border border-surface-200 bg-white p-4 md:p-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-ink-8000">
+          <p className="text-xs uppercase tracking-[0.2em] text-ink-800">
             Per-founder breakdown
           </p>
           <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[680px] text-sm">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-[0.15em] text-ink-8000">
+                <tr className="text-left text-[11px] uppercase tracking-[0.15em] text-ink-800">
                   <th className="py-2 pr-3 font-medium">Founder</th>
                   <th className="py-2 px-3 font-medium text-right">%</th>
                   <th className="py-2 px-3 font-medium text-right">Points</th>
@@ -407,7 +407,7 @@ export function EquitySplitTool() {
                 ))}
               </tbody>
               <tfoot>
-                <tr className="text-[11px] uppercase tracking-[0.15em] text-ink-8000">
+                <tr className="text-[11px] uppercase tracking-[0.15em] text-ink-800">
                   <td className="pt-3 pr-3 font-medium">Total</td>
                   <td className="pt-3 px-3 text-right font-mono tabular-nums text-ink-500">
                     {formatPercent(result.reserves.foundersPct)}
@@ -424,7 +424,7 @@ export function EquitySplitTool() {
 
         {/* Vesting timeline */}
         <div className="rounded-2xl border border-surface-200 bg-white p-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-ink-8000">
+          <p className="text-xs uppercase tracking-[0.2em] text-ink-800">
             Vesting — 4 years · 1-year cliff
           </p>
           <VestingTimeline
@@ -435,7 +435,7 @@ export function EquitySplitTool() {
 
         {/* Fairness flags */}
         <div className="rounded-2xl border border-surface-200 bg-white p-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-ink-8000 flex items-center gap-2">
+          <p className="text-xs uppercase tracking-[0.2em] text-ink-800 flex items-center gap-2">
             <AlertTriangle
               strokeWidth={1.75}
               className="h-3.5 w-3.5"
@@ -497,7 +497,7 @@ export function EquitySplitTool() {
               <Lock strokeWidth={1.75} className="h-4 w-4 text-ink-400" />
               Save snapshot
             </p>
-            <p className="mt-1 text-xs text-ink-8000">
+            <p className="mt-1 text-xs text-ink-800">
               Bundle this split with your idea valuation and funding plan into
               a shareable Founder Pack. Free, no password.
             </p>
@@ -516,7 +516,7 @@ export function EquitySplitTool() {
           </Link>
         </div>
 
-        <p className="text-center text-xs text-ink-8000">
+        <p className="text-center text-xs text-ink-800">
           Powered by BlockID — when you incorporate, this becomes your Cap
           Table v0.
         </p>
@@ -883,7 +883,7 @@ function VestingTimeline({
       <div className="overflow-x-auto">
         <table className="w-full min-w-[520px] text-xs">
           <thead>
-            <tr className="text-[11px] uppercase tracking-[0.15em] text-ink-8000">
+            <tr className="text-[11px] uppercase tracking-[0.15em] text-ink-800">
               <th className="py-2 pr-3 text-left font-medium">Founder</th>
               {yearLabels.map((y) => (
                 <th
@@ -939,7 +939,7 @@ function VestingTimeline({
           </tbody>
         </table>
       </div>
-      <p className="mt-3 text-xs text-ink-8000">
+      <p className="mt-3 text-xs text-ink-800">
         Cliff: nothing vests before year 1. After the cliff, the remaining 75%
         vests monthly across years 2–4.
       </p>

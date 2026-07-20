@@ -313,7 +313,7 @@ export function IdeaValuationTool() {
         </div>
 
         <div className="mt-7">
-          <p className="text-xs uppercase tracking-[0.2em] text-ink-8000">
+          <p className="text-xs uppercase tracking-[0.2em] text-ink-800">
             Per-factor breakdown
           </p>
           <ul className="mt-3 space-y-3">
@@ -336,7 +336,7 @@ export function IdeaValuationTool() {
                     aria-label={`${f.label} ${formatPercent(f.fillRatio * 100, 0)}`}
                   />
                 </div>
-                <p className="mt-1 text-xs text-ink-8000">{f.note}</p>
+                <p className="mt-1 text-xs text-ink-800">{f.note}</p>
               </li>
             ))}
           </ul>
@@ -400,7 +400,7 @@ export function IdeaValuationTool() {
           />
         </div>
 
-        <p className="mt-6 text-xs text-ink-8000">
+        <p className="mt-6 text-xs text-ink-800">
           Idea-stage estimate. Real valuation is set by negotiation with your
           first investor — use this number as an anchor, not a quote.
         </p>
@@ -499,7 +499,7 @@ function RadioGroup({
           );
         })}
       </div>
-      <p className="mt-1.5 text-xs text-ink-8000">
+      <p className="mt-1.5 text-xs text-ink-800">
         <span className="font-mono tabular-nums text-ink-500">{value}</span> ·{" "}
         {labels[value]}
       </p>

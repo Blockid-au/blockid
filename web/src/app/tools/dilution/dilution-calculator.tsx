@@ -213,7 +213,7 @@ export function DilutionCalculator() {
           investor={out.investorPct}
           esop={out.esopPct}
         />
-        <p className="mt-4 text-xs text-ink-8000">
+        <p className="mt-4 text-xs text-ink-800">
           New shares issued: founders{" "}
           <span className="font-mono tabular-nums text-ink-500">
             {formatNumber(inp.currentShares)}
@@ -339,7 +339,7 @@ function Stat({
         : "text-ink-800";
   return (
     <div>
-      <dt className="text-xs uppercase tracking-wider text-ink-8000">
+      <dt className="text-xs uppercase tracking-wider text-ink-800">
         {label}
       </dt>
       <dd
@@ -370,7 +370,7 @@ function Stack({
   ];
   return (
     <div className="mt-8">
-      <p className="text-xs uppercase tracking-[0.2em] text-ink-8000">
+      <p className="text-xs uppercase tracking-[0.2em] text-ink-800">
         Cap table — before vs. after
       </p>
       <svg

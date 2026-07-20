@@ -251,9 +251,9 @@ export function CofounderMatchForm() {
             }
             rows={2}
             placeholder="Backend / Postgres / payments. Built and sold one B2B SaaS."
-            className="w-full rounded-[10px] border border-surface-200 bg-white px-4 py-3 text-ink-800 placeholder:text-ink-8000 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+            className="w-full rounded-[10px] border border-surface-200 bg-white px-4 py-3 text-ink-800 placeholder:text-ink-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
           />
-          <p className="mt-1 text-xs text-ink-8000 font-mono tabular-nums">
+          <p className="mt-1 text-xs text-ink-800 font-mono tabular-nums">
             {form.skills.length}/280
           </p>
         </Field>
@@ -281,9 +281,9 @@ export function CofounderMatchForm() {
                 }
                 rows={3}
                 placeholder="One sentence on the problem, one on who it's for, one on why now."
-                className="mt-2 w-full rounded-[10px] border border-surface-200 bg-white px-4 py-3 text-ink-800 placeholder:text-ink-8000 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                className="mt-2 w-full rounded-[10px] border border-surface-200 bg-white px-4 py-3 text-ink-800 placeholder:text-ink-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
               />
-              <p className="mt-1 text-xs text-ink-8000 font-mono tabular-nums">
+              <p className="mt-1 text-xs text-ink-800 font-mono tabular-nums">
                 {form.ideaPitch.length}/500
               </p>
             </div>
@@ -357,7 +357,7 @@ export function CofounderMatchForm() {
       )}
 
       <div className="mt-8 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-        <p className="text-xs text-ink-8000">
+        <p className="text-xs text-ink-800">
           By submitting you agree to be listed (anonymized) and to receive
           match notifications. We never share your email publicly.
         </p>
@@ -477,7 +477,7 @@ function VisibilityRadio({
         <span className="block text-sm font-medium text-ink-700">
           {title}
         </span>
-        <span className="block text-xs text-ink-8000">{sub}</span>
+        <span className="block text-xs text-ink-800">{sub}</span>
       </span>
     </label>
   );

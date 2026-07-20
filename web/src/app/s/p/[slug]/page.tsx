@@ -180,7 +180,7 @@ function PackHero({
           {pack.viewCount} {pack.viewCount === 1 ? "view" : "views"}
         </span>
       </div>
-      <p className="mt-5 break-all text-xs text-ink-8000">
+      <p className="mt-5 break-all text-xs text-ink-800">
         Share link: {shareUrl}
       </p>
     </div>
@@ -201,7 +201,7 @@ function ValuationCard({ pack }: { pack: HydratedFounderPack }) {
             Mid-point {formatAud(ev.valuationMidAud)}
           </p>
           {ev.confidenceText && (
-            <p className="mt-3 text-xs leading-relaxed text-ink-8000">
+            <p className="mt-3 text-xs leading-relaxed text-ink-800">
               {ev.confidenceText}
             </p>
           )}
@@ -228,7 +228,7 @@ function SplitCard({ pack }: { pack: HydratedFounderPack }) {
             Founders {formatPercent(sp.reserves.foundersPct, 0)} · ESOP{" "}
             {formatPercent(sp.reserves.esopPct, 0)}
           </p>
-          <p className="mt-3 text-xs leading-relaxed text-ink-8000">
+          <p className="mt-3 text-xs leading-relaxed text-ink-800">
             {sp.vesting.cliffMonths}-mo cliff · {sp.vesting.totalMonths}-mo
             vesting
           </p>
@@ -251,7 +251,7 @@ function FundingCard({ pack }: { pack: HydratedFounderPack }) {
             {formatAud(fp.recommendedRaise ?? 0)}
           </p>
           <p className="mt-1 text-sm text-ink-400">recommended raise</p>
-          <p className="mt-3 text-xs leading-relaxed text-ink-8000">
+          <p className="mt-3 text-xs leading-relaxed text-ink-800">
             Burn {formatAud(fp.monthlyBurnAud ?? 0)}/mo · Need{" "}
             {formatAud(fp.totalNeedAud ?? 0)}
           </p>
@@ -277,7 +277,7 @@ function SuggestionsCard({ pack }: { pack: HydratedFounderPack }) {
             <div>
               <p className="text-sm font-semibold text-ink-700">
                 {s.title}
-                <span className="ml-2 font-normal text-ink-8000">
+                <span className="ml-2 font-normal text-ink-800">
                   ~ +{formatAud(s.upliftAud)}
                 </span>
               </p>
@@ -496,7 +496,7 @@ function Stat({
 }) {
   return (
     <div className="rounded-xl border border-surface-200 bg-surface-100/60 p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-8000">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-800">
         {label}
       </p>
       <p className="mt-2 text-lg font-semibold text-ink-800">{value}</p>

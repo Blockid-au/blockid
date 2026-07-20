@@ -321,7 +321,7 @@ export function TermSheetTool() {
               onChange={(e) => setTermSheet(e.target.value)}
               placeholder={`Paste any SAFE, convertible note, or priced-round term sheet — for example:\n\n"BLOCKID INC. — SAFE — Investor amount: AUD $500,000. Valuation cap: $5M post-money. Discount: 20%. MFN: 24 month expiry. Pro-rata: yes. Board: no seat. Liquidation preference: 1x non-participating..."`}
               rows={14}
-              className="w-full rounded-[10px] border border-surface-200 bg-surface-50/40 px-4 py-3 text-sm text-ink-800 placeholder:text-ink-8000 transition-colors duration-200 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 font-mono leading-relaxed"
+              className="w-full rounded-[10px] border border-surface-200 bg-surface-50/40 px-4 py-3 text-sm text-ink-800 placeholder:text-ink-800 transition-colors duration-200 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 font-mono leading-relaxed"
               aria-invalid={overLimit || tooShort}
             />
             <div className="mt-2 flex items-center justify-between text-xs">
@@ -332,7 +332,7 @@ export function TermSheetTool() {
                     ? "text-red-400"
                     : tooShort
                       ? "text-amber-300"
-                      : "text-ink-8000",
+                      : "text-ink-800",
                 )}
               >
                 {formatNumber(charCount)} / {formatNumber(MAX_CHARS)}
@@ -491,7 +491,7 @@ export function TermSheetTool() {
                 </>
               )}
             </Button>
-            <p className="mt-3 text-xs text-ink-8000">
+            <p className="mt-3 text-xs text-ink-800">
               Powered by Claude Sonnet 4.6 · Analysis takes ~15s
             </p>
           </div>
@@ -502,7 +502,7 @@ export function TermSheetTool() {
             </div>
           )}
 
-          <div className="mt-auto pt-6 text-xs text-ink-8000 leading-relaxed">
+          <div className="mt-auto pt-6 text-xs text-ink-800 leading-relaxed">
             We don&apos;t store your pasted term sheet beyond the analysis
             call. The instrument type, redline count, and a 200-character
             redacted snippet are sent only if you opt in via the email capture
@@ -759,7 +759,7 @@ function SummaryTab({ analysis }: { analysis: TermSheetAnalysis }) {
       </div>
 
       <div className="rounded-xl border border-surface-200 bg-surface-100/40 p-5">
-        <p className="text-xs uppercase tracking-[0.2em] text-ink-8000">
+        <p className="text-xs uppercase tracking-[0.2em] text-ink-800">
           Key terms
         </p>
         <dl className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
@@ -786,7 +786,7 @@ function SummaryTab({ analysis }: { analysis: TermSheetAnalysis }) {
 
       {analysis.riskFlags.length > 0 && (
         <div className="rounded-xl border border-surface-200 bg-surface-100/40 p-5">
-          <p className="text-xs uppercase tracking-[0.2em] text-ink-8000 flex items-center gap-2">
+          <p className="text-xs uppercase tracking-[0.2em] text-ink-800 flex items-center gap-2">
             <TriangleAlert
               strokeWidth={1.75}
               className="h-3.5 w-3.5 text-amber-400"
@@ -1009,7 +1009,7 @@ function LawyerQuestionsTab({
           )}
         </div>
       )}
-      <p className="text-xs leading-relaxed text-ink-8000">
+      <p className="text-xs leading-relaxed text-ink-800">
         These questions surface material ambiguities in your term sheet. Prepare answers before your first lawyer consultation to save billable time.
       </p>
     </div>
@@ -1067,7 +1067,7 @@ function FounderActionsTab({ analysis }: { analysis: TermSheetAnalysis }) {
                   checked[i] ? "line-through text-ink-400" : "text-ink-500",
                 )}
               >
-                <span className="font-mono tabular-nums text-[11px] text-ink-8000 mr-2">
+                <span className="font-mono tabular-nums text-[11px] text-ink-800 mr-2">
                   #{i + 1}
                 </span>
                 {action}
@@ -1086,7 +1086,7 @@ function FounderActionsTab({ analysis }: { analysis: TermSheetAnalysis }) {
         </div>
       )}
 
-      <p className="text-xs leading-relaxed text-ink-8000">
+      <p className="text-xs leading-relaxed text-ink-800">
         Ordered by urgency. Tick each action as you complete it. This checklist is not saved — export the JSON if you want a record.
       </p>
     </div>
@@ -1102,7 +1102,7 @@ function ComparisonTab({ analysis }: { analysis: TermSheetAnalysis }) {
       <div className="rounded-xl border border-surface-200 bg-surface-100/40 p-4 md:p-5 overflow-x-auto">
         <table className="w-full min-w-[640px] text-sm">
           <thead>
-            <tr className="text-left text-[11px] uppercase tracking-[0.15em] text-ink-8000">
+            <tr className="text-left text-[11px] uppercase tracking-[0.15em] text-ink-800">
               <th className="py-2 pr-3 font-medium">Term</th>
               <th className="py-2 px-3 font-medium">Your term</th>
               <th className="py-2 px-3 font-medium">AU norm</th>
@@ -1181,7 +1181,7 @@ function DilutionTab({ diff }: { diff: CapTableDiff }) {
       </div>
 
       <div className="rounded-xl border border-surface-200 bg-surface-100/40 p-5">
-        <p className="text-xs uppercase tracking-[0.2em] text-ink-8000">
+        <p className="text-xs uppercase tracking-[0.2em] text-ink-800">
           Ownership — before vs. after
         </p>
         <div className="mt-4 space-y-5">
@@ -1210,7 +1210,7 @@ function DilutionTab({ diff }: { diff: CapTableDiff }) {
       <div className="rounded-xl border border-surface-200 bg-surface-100/40 p-4 md:p-5 overflow-x-auto">
         <table className="w-full min-w-[600px] text-sm">
           <thead>
-            <tr className="text-left text-[11px] uppercase tracking-[0.15em] text-ink-8000">
+            <tr className="text-left text-[11px] uppercase tracking-[0.15em] text-ink-800">
               <th className="py-2 pr-3 font-medium">Holder</th>
               <th className="py-2 px-3 font-medium text-right">% before</th>
               <th className="py-2 px-3 font-medium text-right">% after</th>
@@ -1277,7 +1277,7 @@ function SummaryTile({
         : "text-ink-800";
   return (
     <div className="rounded-xl border border-surface-200 bg-white p-4 transition-colors hover:border-brand-500/40">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-ink-8000">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-ink-800">
         {label}
       </p>
       <p
@@ -1310,7 +1310,7 @@ function StackedBar({
   const filtered = segments.filter((s) => s.pct > 0);
   return (
     <div>
-      <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.18em] text-ink-8000">
+      <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.18em] text-ink-800">
         <span>{label}</span>
         <span className="font-mono tabular-nums text-ink-400">100.0%</span>
       </div>
@@ -1374,7 +1374,7 @@ function Legend() {
     { kind: "newInvestor", label: "New investor" },
   ];
   return (
-    <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] uppercase tracking-[0.15em] text-ink-8000">
+    <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] uppercase tracking-[0.15em] text-ink-800">
       {items.map((i) => (
         <li key={i.kind} className="inline-flex items-center gap-1.5">
           <span
@@ -1547,7 +1547,7 @@ function LawyerQuestionsV2Panel({ questions }: { questions: LawyerQuestionV2[] }
                 >
                   {t.label}
                 </span>
-                <span className="text-[11px] uppercase tracking-[0.15em] text-ink-8000">
+                <span className="text-[11px] uppercase tracking-[0.15em] text-ink-800">
                   {q.category}
                 </span>
               </div>
@@ -1601,7 +1601,7 @@ function SviCompareCta({
 
 function AfslDisclaimer() {
   return (
-    <p className="mt-6 text-xs leading-relaxed text-ink-8000">
+    <p className="mt-6 text-xs leading-relaxed text-ink-800">
       General information only. Not legal or financial advice. Consult a lawyer
       or a licensed adviser before acting on any output of this tool.
     </p>

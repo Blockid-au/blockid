@@ -324,7 +324,7 @@ export function CapTableDiffTool() {
 
         {/* Stacked bars */}
         <div className="rounded-2xl border border-surface-200 bg-white p-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-ink-8000">
+          <p className="text-xs uppercase tracking-[0.2em] text-ink-800">
             Ownership — before vs. after
           </p>
           <div className="mt-4 space-y-5">
@@ -355,7 +355,7 @@ export function CapTableDiffTool() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-sm">
               <thead className="sticky top-0">
-                <tr className="text-left text-[11px] uppercase tracking-[0.15em] text-ink-8000">
+                <tr className="text-left text-[11px] uppercase tracking-[0.15em] text-ink-800">
                   <th className="py-2 pr-3 font-medium">Holder</th>
                   <th className="py-2 px-3 font-medium text-right">
                     Shares before
@@ -663,7 +663,7 @@ function SummaryTile({
         : "text-ink-800";
   return (
     <div className="rounded-xl border border-surface-200 bg-white p-4 transition-colors hover:border-brand-500/40">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-ink-8000">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-ink-800">
         {label}
       </p>
       <p
@@ -696,7 +696,7 @@ function StackedBar({
   const filtered = segments.filter((s) => s.pct > 0);
   return (
     <div>
-      <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.18em] text-ink-8000">
+      <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.18em] text-ink-800">
         <span>{label}</span>
         <span className="font-mono tabular-nums text-ink-400">
           100.0%
@@ -765,7 +765,7 @@ function Legend() {
     { kind: "newInvestor", label: "New investor" },
   ];
   return (
-    <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] uppercase tracking-[0.15em] text-ink-8000">
+    <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] uppercase tracking-[0.15em] text-ink-800">
       {items.map((i) => (
         <li key={i.kind} className="inline-flex items-center gap-1.5">
           <span

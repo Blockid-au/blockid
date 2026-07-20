@@ -531,7 +531,7 @@ export default async function ScoreActivityPage({
               </p>
               <div className="mt-5 overflow-x-auto">
                 <table className="w-full min-w-[720px] text-left text-sm">
-                  <thead className="text-xs uppercase tracking-[0.16em] text-ink-8000">
+                  <thead className="text-xs uppercase tracking-[0.16em] text-ink-800">
                     <tr>
                       <th className="border-b border-surface-200 pb-3 pr-4">Viewer</th>
                       <th className="border-b border-surface-200 pb-3 pr-4">Heat</th>
@@ -657,7 +657,7 @@ export default async function ScoreActivityPage({
               </p>
               <div className="mt-5 overflow-x-auto">
                 <table className="w-full min-w-[720px] text-left text-sm">
-                  <thead className="text-xs uppercase tracking-[0.16em] text-ink-8000">
+                  <thead className="text-xs uppercase tracking-[0.16em] text-ink-800">
                     <tr>
                       <th className="border-b border-surface-200 pb-3 pr-4">
                         Recipient
@@ -687,7 +687,7 @@ export default async function ScoreActivityPage({
                                 {investorLabel(link)}
                               </div>
                               {link.investorEmail && (
-                                <div className="text-xs text-ink-8000">
+                                <div className="text-xs text-ink-800">
                                   {link.investorEmail}
                                 </div>
                               )}
@@ -850,7 +850,7 @@ export default async function ScoreActivityPage({
                 </summary>
                 <div className="px-6 pb-6 overflow-x-auto">
                   <table className="w-full min-w-[640px] text-left text-sm">
-                    <thead className="text-xs uppercase tracking-[0.16em] text-ink-8000">
+                    <thead className="text-xs uppercase tracking-[0.16em] text-ink-800">
                       <tr>
                         <th className="border-b border-surface-200 pb-3 pr-4">
                           Viewed
@@ -890,7 +890,7 @@ export default async function ScoreActivityPage({
                           <td className="py-4 pr-4 font-mono tabular-nums text-ink-500">
                             {view.scroll_depth_pct != null ? `${view.scroll_depth_pct}%` : "--"}
                           </td>
-                          <td className="py-4 font-mono text-xs text-ink-8000">
+                          <td className="py-4 font-mono text-xs text-ink-800">
                             {view.viewer_ip_hash
                               ? `${view.viewer_ip_hash.slice(0, 12)}...`
                               : "n/a"}
@@ -913,7 +913,7 @@ export default async function ScoreActivityPage({
                 </h2>
                 <ul className="mt-5 space-y-2">
                   {topReferers.length === 0 ? (
-                    <li className="text-sm text-ink-8000">
+                    <li className="text-sm text-ink-800">
                       Sources appear once investors open the link.
                     </li>
                   ) : (
@@ -976,7 +976,7 @@ export default async function ScoreActivityPage({
                       );
                     })}
                   {Object.keys(deviceBreakdown).length === 0 && (
-                    <li className="text-sm text-ink-8000">
+                    <li className="text-sm text-ink-800">
                       Device data appears with views.
                     </li>
                   )}

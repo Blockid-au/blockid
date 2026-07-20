@@ -88,7 +88,7 @@ export default function CofounderMatchPage() {
             <div className="mt-6">
               <Suspense
                 fallback={
-                  <div className="rounded-2xl border border-surface-200 bg-white p-10 text-center text-sm text-ink-8000">
+                  <div className="rounded-2xl border border-surface-200 bg-white p-10 text-center text-sm text-ink-800">
                     Loading directory…
                   </div>
                 }

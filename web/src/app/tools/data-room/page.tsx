@@ -104,7 +104,7 @@ export default function DataRoomPage() {
             <DataRoomChecklist />
           </div>
 
-          <p className="mt-8 max-w-3xl text-xs leading-relaxed text-ink-8000">
+          <p className="mt-8 max-w-3xl text-xs leading-relaxed text-ink-800">
             This checklist is analysis support, not legal, tax or financial
             advice. Use your lawyer and accountant for binding fundraising,
             ESIC, R&D Tax Incentive and ASIC decisions.

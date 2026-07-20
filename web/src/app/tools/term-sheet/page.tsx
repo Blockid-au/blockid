@@ -82,7 +82,7 @@ export default function TermSheetPage() {
             <TermSheetTool />
           </div>
 
-          <p className="mt-8 max-w-3xl text-xs leading-relaxed text-ink-8000">
+          <p className="mt-8 max-w-3xl text-xs leading-relaxed text-ink-800">
             This is not legal advice. Use a licensed AU lawyer for binding
             agreements. BlockID stores your pasted term sheet temporarily for
             analysis only — see{" "}

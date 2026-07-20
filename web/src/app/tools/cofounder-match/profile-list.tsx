@@ -39,7 +39,7 @@ export async function ProfileList() {
               <p className="text-base font-semibold text-ink-800">
                 {p.displayName}
               </p>
-              <p className="mt-1 inline-flex items-center gap-1 text-xs text-ink-8000">
+              <p className="mt-1 inline-flex items-center gap-1 text-xs text-ink-800">
                 <MapPin
                   strokeWidth={1.75}
                   className="h-3.5 w-3.5"
@@ -53,7 +53,7 @@ export async function ProfileList() {
 
           <Section title="I am">
             {p.iAm.length === 0 ? (
-              <span className="text-xs text-ink-8000">—</span>
+              <span className="text-xs text-ink-800">—</span>
             ) : (
               p.iAm.map((t) => (
                 <Badge key={t} variant="outline">
@@ -65,7 +65,7 @@ export async function ProfileList() {
 
           <Section title="Looking for">
             {p.lookingFor.length === 0 ? (
-              <span className="text-xs text-ink-8000">—</span>
+              <span className="text-xs text-ink-800">—</span>
             ) : (
               p.lookingFor.map((t) => (
                 <Badge key={t} variant="default">
@@ -75,7 +75,7 @@ export async function ProfileList() {
             )}
           </Section>
 
-          <p className="mt-4 text-xs text-ink-8000">
+          <p className="mt-4 text-xs text-ink-800">
             <span className="uppercase tracking-wider">Availability:</span>{" "}
             <span className="font-mono tabular-nums text-ink-500">
               {p.timeCommitment}
@@ -96,7 +96,7 @@ function Section({
 }) {
   return (
     <div className="mt-4">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-ink-8000">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-ink-800">
         {title}
       </p>
       <div className="mt-2 flex flex-wrap gap-1.5">{children}</div>
