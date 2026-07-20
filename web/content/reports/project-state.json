@@ -1,9 +1,9 @@
 {
-  "version": "2.7.0",
-  "updatedAt": "2026-07-20T12:04:02.951Z",
+  "version": "3.0.0",
+  "updatedAt": "2026-07-20T14:00:02.419Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
-    "lastReviewedAt": "2026-07-19T14:00:02.233Z",
+    "lastReviewedAt": "2026-07-20T14:00:02.419Z",
     "notes": [
       "v0.2.0 — CEO implementing-plan loop (research → CEO plan → code → version/milestone/architecture), off-peak deploy gating.",
       "v0.3.0 — CFO VC-grade valuation engine (src/lib/agents/cfo-valuation.ts): market sizing (TAM/SAM/SOM), 4 valuation methods, projections, unit economics, break-even, payback, financial injection.",
@@ -18,7 +18,16 @@
       "v2.3.0 — SVI sub-brand split: startupvalueindex.com is the primary SVI brand site (landing + benchmarks); startupindex.au is the AU mirror; blockid.au remains the parent platform (auth, assessment engine, dashboard, payments). LinkedIn page Startup Value Index (org_id=129624133) launched 2026-06-15.",
       "v2.4.3 — T0201 (CRO sales pipeline /admin/sales), T0202 (CCSO NPS widget + testimonials /admin/ccso), T0210 (CPO funnel heatmap /admin/funnel). 3 P0 30-day-MVP tasks shipped.",
       "v2.6.0 — CFO: Integrate sector ARR/revenue multiples for valuation benchmarking",
-      "v2.7.0 — CFO: R&D Tax Incentive and ESIC data integration"
+      "v2.7.0 — CFO: R&D Tax Incentive and ESIC data integration",
+      "v3.0.0 — RND: Evidence Vault Phase 2 — OAuth connectors (GitHub, Stripe, Google Analytics)",
+      "v3.0.0 — CLO: Term Sheet AI v2 — persist analyses, Lawyer Questions, SVI link",
+      "v3.0.0 — CFO: Fundraising Readiness Report v2 — checklist + AU comparable raises",
+      "v3.0.0 — RND: New AI tools & capabilities for startup tooling",
+      "v3.0.0 — CSO: Pricing & segment A/B test infra (/admin/pricing-test)",
+      "v3.0.0 — RND: Conversion/CTA experiment ideas & A/B test hypotheses",
+      "v3.0.0 — RND: Develop Conversion/CTA experiment ideas & A/B test hypotheses for startup tooling",
+      "v3.0.0 — CFO: Integrate VC valuation methods library (VC Method, DCF, comparables, Berkus, Scorecard, Risk‑Factor Summation) with formulae and usage guidance",
+      "v3.0.0 — CPO: Implement First‑Principles Question Engine to generate Socratic prompts and route founders to appropriate BlockID features"
     ]
   },
   "plan": {
@@ -187,8 +196,10 @@
         "title": "Evidence Vault Phase 2 — OAuth connectors (GitHub, Stripe, Google Analytics)",
         "rationale": "Evidence Vault UI exists in workspace/evidence. Phase 2 adds real data connectors: OAuth GitHub → pull commit activity + repo stats; Stripe → pull MRR/revenue; Google Analytics → pull traffic. Each connector auto-updates SVI score on connection. KPI: ≥1 connected data source per active user.",
         "versionImpact": "major",
-        "status": "pending",
-        "createdAt": "2026-06-13T04:20:00.000Z"
+        "status": "done",
+        "createdAt": "2026-06-13T04:20:00.000Z",
+        "completedAt": "2026-07-20T14:00:02.418Z",
+        "commit": "6c339da"
       },
       {
         "id": "T0017",
@@ -367,8 +378,10 @@
         "title": "Term Sheet AI v2 — persist analyses, Lawyer Questions, SVI link",
         "rationale": "Persist authenticated analyses to term_sheet_analyses Supabase table; add Save button; expose Lawyer Questions section; link to user SVI score.",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-06-13T12:10:00.000Z"
+        "status": "done",
+        "createdAt": "2026-06-13T12:10:00.000Z",
+        "completedAt": "2026-07-20T14:00:02.418Z",
+        "commit": "3dea034"
       },
       {
         "id": "T0088",
@@ -376,8 +389,10 @@
         "title": "Fundraising Readiness Report v2 — checklist + AU comparable raises",
         "rationale": "Augment SVI report PDF with Fundraising Checklist (from data_room_checklist) and Comparable Raises (from benchmarks.ts).",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-06-13T12:10:00.000Z"
+        "status": "done",
+        "createdAt": "2026-06-13T12:10:00.000Z",
+        "completedAt": "2026-07-20T14:00:02.418Z",
+        "commit": "7022b89"
       },
       {
         "id": "T0089",
@@ -704,8 +719,10 @@
         "title": "New AI tools & capabilities for startup tooling",
         "rationale": "Research and integrate new AI tools and capabilities to enhance the BlockID.au platform and provide more value to founders",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-06-15T12:04:03.185Z"
+        "status": "done",
+        "createdAt": "2026-06-15T12:04:03.185Z",
+        "completedAt": "2026-07-20T14:00:02.418Z",
+        "commit": "d3db6e6"
       },
       {
         "id": "T0206",
@@ -713,8 +730,10 @@
         "title": "Pricing & segment A/B test infra (/admin/pricing-test)",
         "rationale": "Lightweight A/B harness for the 4 offers ($99 / $299–499 / $999 / Free). Tracks impression→checkout→purchase per variant + segment (founder / SME / accountant / broker / accelerator). KPI: 5 pricing tests + 5 segment tests in 30 days, identify highest-converting wedge. See .claude/goals/30day-validation-mvp.md §Offers.",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-06-15T13:04:29Z"
+        "status": "done",
+        "createdAt": "2026-06-15T13:04:29Z",
+        "completedAt": "2026-07-20T14:00:02.418Z",
+        "commit": "1adb7f3"
       },
       {
         "id": "T0207",
@@ -800,8 +819,10 @@
         "title": "Conversion/CTA experiment ideas & A/B test hypotheses",
         "rationale": "Develop conversion/CTA experiment ideas and A/B test hypotheses to improve user engagement and conversion rates within the startup navigation system",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-06-16T12:04:02.626Z"
+        "status": "done",
+        "createdAt": "2026-06-16T12:04:02.626Z",
+        "completedAt": "2026-07-20T14:00:02.418Z",
+        "commit": "94427ab"
       },
       {
         "id": "T0122",
@@ -820,8 +841,10 @@
         "title": "Develop Conversion/CTA experiment ideas & A/B test hypotheses for startup tooling",
         "rationale": "Implement new AI tools and capabilities for startup tooling, focusing on conversion and CTA optimization",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-06-19T04:02:28.636Z"
+        "status": "done",
+        "createdAt": "2026-06-19T04:02:28.636Z",
+        "completedAt": "2026-07-20T14:00:02.418Z",
+        "commit": "94427ab"
       },
       {
         "id": "T0124",
@@ -867,8 +890,10 @@
         "title": "Integrate VC valuation methods library (VC Method, DCF, comparables, Berkus, Scorecard, Risk‑Factor Summation) with formulae and usage guidance",
         "rationale": "Provides founders with a comprehensive, ready‑to‑use toolkit for startup valuation, directly leveraging recent CFO research and filling a gap not covered by existing ARR multiples integration.",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-07-18T12:04:02.374Z"
+        "status": "done",
+        "createdAt": "2026-07-18T12:04:02.374Z",
+        "completedAt": "2026-07-20T14:00:02.418Z",
+        "commit": "eda56ae"
       },
       {
         "id": "T0129",
@@ -885,8 +910,10 @@
         "title": "Implement First‑Principles Question Engine to generate Socratic prompts and route founders to appropriate BlockID features",
         "rationale": "Translates CPO research into an interactive product layer that surfaces founder problems, improves user engagement, and drives conversion to downstream tools.",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-07-18T12:04:02.374Z"
+        "status": "done",
+        "createdAt": "2026-07-18T12:04:02.374Z",
+        "completedAt": "2026-07-20T14:00:02.418Z",
+        "commit": "7745c4a"
       },
       {
         "id": "T0133",
@@ -1076,6 +1103,23 @@
       "taskIds": [
         "T0110"
       ]
+    },
+    {
+      "id": "M015",
+      "title": "RND: Evidence Vault Phase 2 — OAuth connectors (GitHub, Stripe, Google Analytics); CLO: Term Sheet AI v2 — persist analyses, Lawyer Questions, SVI link; CFO: Fundraising Readiness Report v2 — checklis",
+      "version": "3.0.0",
+      "completedAt": "2026-07-20T14:00:02.419Z",
+      "taskIds": [
+        "T0016",
+        "T0087",
+        "T0088",
+        "T0111",
+        "T0206",
+        "T0121",
+        "T0123",
+        "T0128",
+        "T0130"
+      ]
     }
   ],
   "history": [
@@ -1186,6 +1230,12 @@
       "action": "release",
       "version": "2.7.0",
       "note": "1 task(s), minor bump (v2.6.0→v2.7.0)"
+    },
+    {
+      "ts": "2026-07-20T14:00:02.419Z",
+      "action": "release",
+      "version": "3.0.0",
+      "note": "9 task(s), major bump (v2.7.0→v3.0.0)"
     }
   ]
 }

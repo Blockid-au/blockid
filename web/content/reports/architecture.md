@@ -1,11 +1,20 @@
 # Architecture — BlockID.au (living)
 
-**Version:** v2.7.0  ·  **Last reviewed:** 2026-07-19T14:00:02.233Z
+**Version:** v3.0.0  ·  **Last reviewed:** 2026-07-20T14:00:02.419Z
 
 ## Summary
 BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.
 
 ## Change notes
+- v3.0.0 — CPO: Implement First‑Principles Question Engine to generate Socratic prompts and route founders to appropriate BlockID features
+- v3.0.0 — CFO: Integrate VC valuation methods library (VC Method, DCF, comparables, Berkus, Scorecard, Risk‑Factor Summation) with formulae and usage guidance
+- v3.0.0 — RND: Develop Conversion/CTA experiment ideas & A/B test hypotheses for startup tooling
+- v3.0.0 — RND: Conversion/CTA experiment ideas & A/B test hypotheses
+- v3.0.0 — CSO: Pricing & segment A/B test infra (/admin/pricing-test)
+- v3.0.0 — RND: New AI tools & capabilities for startup tooling
+- v3.0.0 — CFO: Fundraising Readiness Report v2 — checklist + AU comparable raises
+- v3.0.0 — CLO: Term Sheet AI v2 — persist analyses, Lawyer Questions, SVI link
+- v3.0.0 — RND: Evidence Vault Phase 2 — OAuth connectors (GitHub, Stripe, Google Analytics)
 - v2.7.0 — CFO: R&D Tax Incentive and ESIC data integration
 - v2.6.0 — CFO: Integrate sector ARR/revenue multiples for valuation benchmarking
 - v2.4.3 — T0201 (CRO sales pipeline /admin/sales), T0202 (CCSO NPS widget + testimonials /admin/ccso), T0210 (CPO funnel heatmap /admin/funnel). 3 P0 30-day-MVP tasks shipped.
@@ -17,6 +26,3 @@ BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → S
 - v2.1.0 — T0094–T0101: ESOP Manager (pool + grants UI + API), 36-month financial model, data room 13-section structure, BlockID SVI 68/100 self-analysis, C-Level knowledge base (4 modules), valuation A$440K pre-money.
 - v2.0.0 — T0086–T0090 Feature Batch 8: Financial Projection Norms calculator, Term Sheet AI v2 persistence + Lawyer Questions, Fundraising Readiness Report v2 (checklist + AU comparable raises), Google Analytics OAuth evidence connector, SVI Cohort Benchmark page.
 - v0.5.0 — Feedback widget FAB (T0004, all workspace pages → /api/feedback, credits-on-submit) + CSV export on VC dashboard (T0007, full 36-month model) + SCN context detection verified live (src/lib/scn-detect.ts + /api/scn/detect, integrated in main dashboard).
-- v0.4.0 — VC Valuation Dashboard (/dashboard/valuation, 6 tabs) + /api/valuation/vc endpoint + /benchmarks page (AU startup data by stage, FAQ JSON-LD). Cross-linked from navbar, footer, sitemap, 4 tool pages.
-- v0.3.0 — CFO VC-grade valuation engine (src/lib/agents/cfo-valuation.ts): market sizing (TAM/SAM/SOM), 4 valuation methods, projections, unit economics, break-even, payback, financial injection.
-- v0.2.0 — CEO implementing-plan loop (research → CEO plan → code → version/milestone/architecture), off-peak deploy gating.
