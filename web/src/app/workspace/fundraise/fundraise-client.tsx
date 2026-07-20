@@ -1134,8 +1134,13 @@ export function FundraiseClient() {
       )}
 
       {step === 0 && loadingReadiness && !readiness && (
-        <div className="mt-10 flex items-center gap-2 text-sm text-ink-400">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading readiness checklist...
+        <div
+          className="mt-10 flex items-center gap-2 text-sm text-ink-600"
+          role="status"
+          aria-live="polite"
+        >
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          Scoring investor readiness against your SVI signals…
         </div>
       )}
 
@@ -1190,8 +1195,13 @@ export function FundraiseClient() {
       )}
 
       {loadingRounds && step === 0 && (
-        <div className="mt-10 flex items-center gap-2 text-sm text-ink-400">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading past rounds...
+        <div
+          className="mt-10 flex items-center gap-2 text-sm text-ink-600"
+          role="status"
+          aria-live="polite"
+        >
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          Loading past rounds…
         </div>
       )}
     </div>
