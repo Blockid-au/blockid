@@ -208,7 +208,7 @@ export function ProjectsClient({ initialProjects, limit, plan }: ProjectsClientP
           <button
             type="button"
             onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer shadow-sm"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 focus-visible:ring-offset-2"
           >
             <Plus strokeWidth={1.75} className="h-4 w-4" />
             Create New Startup
@@ -216,7 +216,7 @@ export function ProjectsClient({ initialProjects, limit, plan }: ProjectsClientP
         ) : (
           <a
             href="/workspace/billing"
-            className="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-100 transition-colors cursor-pointer"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-100 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 focus-visible:ring-offset-2"
           >
             <ArrowUpRight strokeWidth={1.75} className="h-4 w-4" />
             Upgrade for More Startups
@@ -284,14 +284,14 @@ export function ProjectsClient({ initialProjects, limit, plan }: ProjectsClientP
               {/* Primary action — always visible */}
               <Link
                 href={`/workspace/projects/${project.slug}/analyze`}
-                className="mb-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-700 transition-colors"
+                className="mb-2 inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 focus-visible:ring-offset-2"
               >
                 <Sparkles strokeWidth={1.75} className="h-3.5 w-3.5" />
                 Run SVI Analysis
               </Link>
 
-              {/* Secondary actions */}
-              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* Secondary actions — always visible on touch, hover-only on ≥sm */}
+              <div className="flex items-center gap-2 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 sm:transition-opacity">
                 <button
                   type="button"
                   onClick={() => startEdit(project)}

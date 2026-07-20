@@ -123,11 +123,14 @@ export function IdeaClarifyTool() {
               </p>
               <Link
                 href={recommendation.primaryFeatureHref}
-                className="mt-4 inline-flex h-10 items-center gap-2 rounded-xl bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+                className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 focus-visible:ring-offset-2"
               >
                 Continue there
                 <ArrowRight className="h-4 w-4" />
               </Link>
+              <p className="mt-4 text-[11px] leading-relaxed text-ink-500">
+                General information only. Not financial advice.
+              </p>
             </div>
           </div>
         </div>
@@ -223,7 +226,7 @@ export function IdeaClarifyTool() {
           <button
             type="submit"
             disabled={loading}
-            className="inline-flex h-11 items-center gap-2 rounded-xl bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60 transition-colors"
+            className="inline-flex h-11 items-center gap-2 rounded-xl bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 focus-visible:ring-offset-2"
           >
             {loading ? (
               <>

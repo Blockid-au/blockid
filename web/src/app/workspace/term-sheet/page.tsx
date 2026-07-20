@@ -86,7 +86,7 @@ export default async function TermSheetHistoryPage() {
           />
         )}
 
-        <p className="mt-8 text-xs leading-relaxed text-ink-8000">
+        <p className="mt-8 text-xs leading-relaxed text-ink-600">
           General information only. Not legal or financial advice. Consult a
           lawyer or licensed adviser before signing any binding document.
         </p>

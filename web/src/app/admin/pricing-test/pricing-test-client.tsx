@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { FlaskConical, Play, Pause, Check, Plus } from "lucide-react";
+import { FlaskConical, Play, Pause, Check, Plus, Loader2 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/admin-layout";
 
 interface Variant {
@@ -143,6 +143,8 @@ export function PricingTestClient({ user, initialExperiments, initialSummaries }
 
         {feedback ? (
           <div
+            role={feedback.type === "error" ? "alert" : "status"}
+            aria-live="polite"
             className={
               feedback.type === "success"
                 ? "rounded-xl border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-800"
@@ -204,9 +206,16 @@ export function PricingTestClient({ user, initialExperiments, initialSummaries }
           <button
             type="submit"
             disabled={creating}
-            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 focus-visible:ring-offset-2"
           >
-            {creating ? "Creating…" : "Create experiment"}
+            {creating ? (
+              <>
+                <Loader2 strokeWidth={1.75} className="h-4 w-4 animate-spin" aria-hidden="true" />
+                Creating experiment…
+              </>
+            ) : (
+              "Create experiment"
+            )}
           </button>
         </form>
 

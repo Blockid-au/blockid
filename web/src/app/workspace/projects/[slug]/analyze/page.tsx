@@ -88,6 +88,9 @@ export default async function ProjectAnalyzePage({
             the full report to <span className="font-medium text-ink-800">{user.email}</span>.
             Results attach to this project only.
           </p>
+          <p className="mt-3 text-xs text-ink-500">
+            General information only. Not financial advice.
+          </p>
         </header>
 
         <Suspense>
