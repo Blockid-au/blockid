@@ -141,6 +141,7 @@ export const FEATURE_COSTS: Record<string, number> = {
   // ── Phase 6: Investment & Fundraise ──────────────────────────────────
   data_room_generate: 3.00,    // A$3.00 — one-click data room compilation
   fundraise_wizard: 2.00,      // A$2.00 — fundraise round configuration + dilution
+  investor_pack: 5.00,         // A$5.00 — full investor pack PDF (SVI + valuation + checklist + comps + team + cap-table + ask)
 
   // ── Phase 8: Growth Journal & Exit ─────────────────────────────────
   journal_reflect: 0.50,         // A$0.50 — AI monthly reflection narrative
