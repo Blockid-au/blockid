@@ -286,11 +286,18 @@ export function synthesizeRecommendation(
     .sort((a, b) => b.score - a.score);
 
   const primary = ranked[0]!.dest;
-  const secondaries = ranked
-    .slice(1)
-    .filter((r) => r.score > 0)
-    .slice(0, 3)
-    .map((r) => ({ label: r.dest.label, href: r.dest.href }));
+  const scoredSecondaries = ranked.slice(1).filter((r) => r.score > 0);
+  // Fall back to the next two ranked destinations even at score 0 so the
+  // recommendation card always shows the founder at least one alternative
+  // path to explore — an empty secondaryFeatures array reads as "nothing
+  // else on offer" and kills onward navigation.
+  const chosenSecondaries = scoredSecondaries.length > 0
+    ? scoredSecondaries.slice(0, 3)
+    : ranked.slice(1, 3);
+  const secondaries = chosenSecondaries.map((r) => ({
+    label: r.dest.label,
+    href: r.dest.href,
+  }));
 
   return {
     primaryFeature: primary.label,
