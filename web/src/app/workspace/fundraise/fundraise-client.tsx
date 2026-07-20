@@ -62,6 +62,81 @@ interface InvestorAllocation {
   amount: number;
 }
 
+type ChecklistStatus = "done" | "partial" | "missing";
+
+interface ChecklistItemV2 {
+  id: string;
+  label: string;
+  category: "story" | "metrics" | "team" | "cap-table" | "legal" | "data-room";
+  status: ChecklistStatus;
+  evidenceHint: string;
+}
+
+interface ComparableRaiseV2 {
+  company: string;
+  sector: string;
+  stage: string;
+  roundAud: number;
+  valuationAud: number | null;
+  year: number;
+  leadInvestor: string | null;
+  sourceNote: string;
+}
+
+interface ReadinessV2Response {
+  ok: boolean;
+  currentStage?: string;
+  readinessV2?: { score: number; band: "not-ready" | "nearly-ready" | "ready" };
+  checklistV2?: ChecklistItemV2[];
+  checklistV2ByCategory?: Record<string, ChecklistItemV2[]>;
+  comparablesV2?: ComparableRaiseV2[];
+  comparablesSummary?: {
+    medianRoundAud: number | null;
+    medianValuationAud: number | null;
+    count: number;
+  };
+  disclaimer?: string;
+}
+
+const CATEGORY_LABELS: Record<ChecklistItemV2["category"], string> = {
+  story: "Story",
+  metrics: "Metrics",
+  team: "Team",
+  "cap-table": "Cap Table",
+  legal: "Legal",
+  "data-room": "Data Room",
+};
+
+const STATUS_STYLES: Record<ChecklistStatus, { dot: string; text: string; label: string }> = {
+  done: { dot: "bg-emerald-500", text: "text-emerald-700", label: "Done" },
+  partial: { dot: "bg-amber-500", text: "text-amber-700", label: "Partial" },
+  missing: { dot: "bg-red-400", text: "text-red-700", label: "Missing" },
+};
+
+const BAND_STYLES: Record<
+  "not-ready" | "nearly-ready" | "ready",
+  { bg: string; border: string; text: string; label: string }
+> = {
+  "not-ready": {
+    bg: "bg-red-50",
+    border: "border-red-200",
+    text: "text-red-700",
+    label: "Not ready",
+  },
+  "nearly-ready": {
+    bg: "bg-amber-50",
+    border: "border-amber-200",
+    text: "text-amber-700",
+    label: "Nearly ready",
+  },
+  ready: {
+    bg: "bg-emerald-50",
+    border: "border-emerald-200",
+    text: "text-emerald-700",
+    label: "Investor ready",
+  },
+};
+
 type InstrumentType = "priced" | "safe" | "convertible_note";
 
 const STEPS = [
@@ -119,6 +194,20 @@ export function FundraiseClient() {
   // Past rounds
   const [pastRounds, setPastRounds] = React.useState<SavedRound[]>([]);
   const [loadingRounds, setLoadingRounds] = React.useState(true);
+
+  // Readiness v2 (checklist + AU comparables)
+  const [readiness, setReadiness] = React.useState<ReadinessV2Response | null>(null);
+  const [loadingReadiness, setLoadingReadiness] = React.useState(true);
+
+  React.useEffect(() => {
+    fetch("/api/fundraise/readiness")
+      .then((r) => r.json())
+      .then((data: ReadinessV2Response) => {
+        if (data.ok) setReadiness(data);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingReadiness(false));
+  }, []);
 
   // Load past rounds on mount
   React.useEffect(() => {
@@ -873,6 +962,180 @@ export function FundraiseClient() {
               Model Another Round
             </button>
           </div>
+        </div>
+      )}
+
+      {/* ── Readiness v2: Checklist + AU comparables ─────────────────────── */}
+      {step === 0 && readiness?.checklistV2 && readiness.readinessV2 && (
+        <div className="mt-10 space-y-6">
+          <div
+            className={cn(
+              "rounded-2xl border p-6",
+              BAND_STYLES[readiness.readinessV2.band].bg,
+              BAND_STYLES[readiness.readinessV2.band].border,
+            )}
+          >
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <h2 className="text-lg font-semibold text-ink-800">
+                  Investor Expectations Checklist
+                </h2>
+                <p className="text-sm text-ink-600 mt-1">
+                  Stage: <span className="font-medium capitalize">{readiness.currentStage}</span>
+                  {" · "}
+                  Status inferred from your SVI signals and dimension scores.
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-ink-500 uppercase tracking-wider">
+                  Readiness (v2)
+                </div>
+                <div
+                  className={cn(
+                    "text-2xl font-bold mt-0.5",
+                    BAND_STYLES[readiness.readinessV2.band].text,
+                  )}
+                >
+                  {readiness.readinessV2.score}
+                  <span className="text-sm font-normal text-ink-500">/100</span>
+                </div>
+                <div
+                  className={cn(
+                    "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium mt-1",
+                    BAND_STYLES[readiness.readinessV2.band].border,
+                    BAND_STYLES[readiness.readinessV2.band].text,
+                    "bg-white",
+                  )}
+                >
+                  {BAND_STYLES[readiness.readinessV2.band].label}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              {(Object.keys(CATEGORY_LABELS) as ChecklistItemV2["category"][]).map((cat) => {
+                const items = (readiness.checklistV2ByCategory?.[cat] ?? []).filter(Boolean);
+                if (items.length === 0) return null;
+                const doneCount = items.filter((i) => i.status === "done").length;
+                return (
+                  <div
+                    key={cat}
+                    className="rounded-xl border border-surface-200 bg-white p-4"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold text-ink-800">
+                        {CATEGORY_LABELS[cat]}
+                      </h3>
+                      <span className="text-xs text-ink-500">
+                        {doneCount}/{items.length} done
+                      </span>
+                    </div>
+                    <ul className="space-y-2">
+                      {items.map((item) => {
+                        const style = STATUS_STYLES[item.status];
+                        return (
+                          <li key={item.id} className="flex items-start gap-2 text-sm">
+                            <span
+                              className={cn("mt-1.5 h-2 w-2 rounded-full shrink-0", style.dot)}
+                              aria-hidden
+                            />
+                            <div className="min-w-0">
+                              <div className="text-ink-800">{item.label}</div>
+                              <div className="text-xs text-ink-500">
+                                <span className={cn("font-medium", style.text)}>
+                                  {style.label}
+                                </span>
+                                {" · "}
+                                {item.evidenceHint}
+                              </div>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {readiness.comparablesV2 && readiness.comparablesV2.length > 0 && (
+            <div className="rounded-2xl border border-surface-200 bg-white p-6">
+              <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-ink-800">
+                    Recent AU raises in your bracket
+                  </h2>
+                  <p className="text-sm text-ink-600 mt-1">
+                    Deterministic sample of publicly reported deals at your stage.
+                  </p>
+                </div>
+                {readiness.comparablesSummary && (
+                  <div className="text-right text-xs text-ink-500">
+                    <div>
+                      Median round:{" "}
+                      <span className="font-medium text-ink-800">
+                        {readiness.comparablesSummary.medianRoundAud
+                          ? fmtAud(readiness.comparablesSummary.medianRoundAud)
+                          : "—"}
+                      </span>
+                    </div>
+                    <div>
+                      Median valuation:{" "}
+                      <span className="font-medium text-ink-800">
+                        {readiness.comparablesSummary.medianValuationAud
+                          ? fmtAud(readiness.comparablesSummary.medianValuationAud)
+                          : "—"}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="overflow-x-auto rounded-xl border border-surface-200">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-surface-50 text-ink-600">
+                      <th className="text-left px-4 py-2.5 font-medium">Company</th>
+                      <th className="text-left px-4 py-2.5 font-medium">Sector</th>
+                      <th className="text-right px-4 py-2.5 font-medium">Round (AUD)</th>
+                      <th className="text-right px-4 py-2.5 font-medium">Valuation</th>
+                      <th className="text-left px-4 py-2.5 font-medium">Lead</th>
+                      <th className="text-right px-4 py-2.5 font-medium">Year</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {readiness.comparablesV2.map((r) => (
+                      <tr
+                        key={`${r.company}-${r.year}`}
+                        className="border-t border-surface-100 hover:bg-surface-50/50"
+                      >
+                        <td className="px-4 py-2.5 font-medium text-ink-800">{r.company}</td>
+                        <td className="px-4 py-2.5 text-ink-500 capitalize">{r.sector}</td>
+                        <td className="px-4 py-2.5 text-right text-ink-700">
+                          {fmtAud(r.roundAud)}
+                        </td>
+                        <td className="px-4 py-2.5 text-right text-ink-700">
+                          {r.valuationAud ? fmtAud(r.valuationAud) : "—"}
+                        </td>
+                        <td className="px-4 py-2.5 text-ink-500">{r.leadInvestor ?? "—"}</td>
+                        <td className="px-4 py-2.5 text-right text-ink-500">{r.year}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="mt-4 text-xs text-ink-400">
+                {readiness.disclaimer ??
+                  "General information only. Not investment advice. Comparables from public reporting."}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {step === 0 && loadingReadiness && !readiness && (
+        <div className="mt-10 flex items-center gap-2 text-sm text-ink-400">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading readiness checklist...
         </div>
       )}
 
