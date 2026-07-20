@@ -1,96 +1,122 @@
-import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getSupabaseAdmin } from "@/lib/supabase";
-import {
-  findOrCreateSVIAccount,
-  getProjectIdFromRequest,
-} from "@/lib/projects";
-import {
-  exchangeCodeForToken,
-  fetchRepoStats,
-  fetchTopRepo,
-} from "@/lib/github";
+import { getProjectIdFromRequest } from "@/lib/projects";
+import { saveConnection, writeSignals, markSynced } from "@/lib/oauth-connectors";
+import { fetchGithubSignals } from "@/lib/oauth-github-signals";
 
 export const dynamic = "force-dynamic";
 
-function siteUrl(): string {
-  return (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
+function baseUrl(): string {
+  return (
+    process.env.OAUTH_REDIRECT_BASE_URL ??
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    "https://blockid.au"
+  ).replace(/\/$/, "");
+}
+
+interface TokenResponse {
+  access_token?: string;
+  refresh_token?: string;
+  scope?: string;
+  expires_in?: number;
+}
+
+interface GhUser {
+  login?: string;
+  id?: number;
 }
 
 export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.redirect(`${siteUrl()}/auth/login`);
+    return NextResponse.redirect(`${baseUrl()}/auth/login`);
   }
 
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
 
-  const c = await cookies();
-  const expectedState = c.get("github_oauth_state")?.value;
-  c.delete("github_oauth_state");
+  const store = await cookies();
+  const expected = store.get("blockid_gh_state")?.value;
+  store.delete("blockid_gh_state");
 
-  if (!code || !state || state !== expectedState) {
+  if (!code || !state || !expected || state !== expected) {
     return NextResponse.redirect(
-      `${siteUrl()}/dashboard/integrations?error=oauth_state_mismatch`,
+      `${baseUrl()}/workspace/integrations?error=github_state_mismatch`,
     );
   }
 
-  const redirectUri = `${siteUrl()}/api/integrations/github/callback`;
-  const token = await exchangeCodeForToken(code, redirectUri);
-  if (!token) {
+  const clientId =
+    process.env.GITHUB_OAUTH_CLIENT_ID ?? process.env.GITHUB_CLIENT_ID;
+  const clientSecret =
+    process.env.GITHUB_OAUTH_CLIENT_SECRET ?? process.env.GITHUB_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
     return NextResponse.redirect(
-      `${siteUrl()}/dashboard/integrations?error=oauth_exchange_failed`,
+      `${baseUrl()}/workspace/integrations?error=github_not_configured`,
     );
   }
 
-  const top = await fetchTopRepo(token);
-  if (!top) {
-    return NextResponse.redirect(
-      `${siteUrl()}/dashboard/integrations?error=no_public_repos`,
-    );
-  }
-
-  const stats = await fetchRepoStats(top.owner, top.repo, token);
-  if (!stats) {
-    return NextResponse.redirect(
-      `${siteUrl()}/dashboard/integrations?error=stats_failed`,
-    );
-  }
-
-  const supabase = getSupabaseAdmin();
-  if (supabase) {
-    const projectId = await getProjectIdFromRequest();
-    const accountId = await findOrCreateSVIAccount(user.email, projectId);
-    if (accountId) {
-      const impact = Math.min(
-        10,
-        4 +
-          (stats.commitsLast90 >= 30 ? 4 : stats.commitsLast90 >= 10 ? 2 : 0) +
-          (stats.stars >= 100 ? 3 : stats.stars >= 10 ? 1 : 0),
-      );
-      await supabase
-        .from("svi_evidence")
-        .delete()
-        .eq("account_id", accountId)
-        .eq("evidence_type", "github_repo");
-      await supabase.from("svi_evidence").insert({
-        account_id: accountId,
-        evidence_type: "github_repo",
-        label: `GitHub · ${stats.owner}/${stats.repo}`,
-        value_or_url: stats.url,
-        confidence_level: "verified",
-        dimension: "ptd",
-        svi_impact: impact,
-        verified_at: new Date().toISOString(),
-        project_id: projectId,
-      });
+  try {
+    const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        client_id: clientId,
+        client_secret: clientSecret,
+        code,
+        redirect_uri: `${baseUrl()}/api/integrations/github/callback`,
+      }),
+    });
+    const tokenJson = (await tokenRes.json()) as TokenResponse;
+    if (!tokenJson.access_token) {
+      throw new Error("no_access_token");
     }
-  }
 
-  return NextResponse.redirect(
-    `${siteUrl()}/dashboard/integrations?connected=github`,
-  );
+    const meRes = await fetch("https://api.github.com/user", {
+      headers: {
+        Authorization: `Bearer ${tokenJson.access_token}`,
+        Accept: "application/vnd.github+json",
+        "User-Agent": "blockid-au-evidence-connector",
+      },
+      cache: "no-store",
+    });
+    const me = (await meRes.json()) as GhUser;
+
+    const projectId = await getProjectIdFromRequest();
+
+    const conn = await saveConnection({
+      userId: user.id,
+      projectId,
+      provider: "github",
+      providerAccountId: me.login ?? String(me.id ?? ""),
+      accessToken: tokenJson.access_token,
+      refreshToken: tokenJson.refresh_token ?? null,
+      scopes: (tokenJson.scope ?? "").split(",").filter(Boolean),
+      metadata: { login: me.login },
+    });
+
+    try {
+      const signals = await fetchGithubSignals(tokenJson.access_token);
+      await writeSignals(user.id, projectId, "github", [
+        { key: "recent_commits_30d", numeric: signals.recentCommits30d },
+        { key: "public_repos", numeric: signals.publicRepos },
+        { key: "top_language", text: signals.topLanguage },
+        { key: "primary_repo_name", text: signals.primaryRepoName },
+        { key: "primary_repo_stars", numeric: signals.primaryRepoStars },
+      ]);
+      if (conn) await markSynced(conn.id);
+    } catch (err) {
+      if (conn) await markSynced(conn.id, (err as Error).message);
+    }
+
+    return NextResponse.redirect(
+      `${baseUrl()}/workspace/evidence?connected=github`,
+    );
+  } catch (err) {
+    console.error("[blockid:integrations:github:callback]", err);
+    return NextResponse.redirect(
+      `${baseUrl()}/workspace/integrations?error=github_exchange_failed`,
+    );
+  }
 }

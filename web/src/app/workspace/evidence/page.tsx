@@ -3,11 +3,23 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getProjectIdFromRequest, findOrCreateSVIAccount } from "@/lib/projects";
+import Link from "next/link";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { EvidenceVaultClient } from "@/components/svi/evidence-vault-client";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { CapTableHealthWidget } from "@/components/workspace/cap-table-health-widget";
 import type { SVIEvidenceGap } from "@/lib/svi-analysis";
+import {
+  listConnections,
+  isProviderConfigured,
+  type OAuthProvider,
+} from "@/lib/oauth-connectors";
+
+const CONNECTOR_LABEL: Record<OAuthProvider, string> = {
+  github: "GitHub",
+  stripe: "Stripe",
+  ga4: "Google Analytics",
+};
 
 export const metadata: Metadata = {
   title: "Evidence Vault",
@@ -72,12 +84,53 @@ export default async function EvidencePage() {
     }
   }
 
+  const oauthConnections = await listConnections(user.id);
+  const providers: OAuthProvider[] = ["github", "stripe", "ga4"];
+
   return (
     <WorkspaceLayout user={user}>
       <PageTracker page="evidence" />
       <div className="p-6 max-w-3xl mx-auto space-y-8">
-        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+        <div className="rounded-md border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-900 px-4 py-3 flex items-center gap-3 flex-wrap">
+          <span className="text-xs font-medium text-ink-600 dark:text-ink-400 uppercase tracking-wide">
+            Connected integrations
+          </span>
+          {providers.map((p) => {
+            const conn = oauthConnections.find(
+              (c) => c.provider === p && c.status === "active",
+            );
+            const configured = isProviderConfigured(p);
+            const label = CONNECTOR_LABEL[p];
+            if (conn) {
+              return (
+                <span
+                  key={p}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                >
+                  {label} linked
+                </span>
+              );
+            }
+            return (
+              <span
+                key={p}
+                className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-ink-100 text-ink-600 dark:bg-ink-800 dark:text-ink-400"
+              >
+                {label}
+                {!configured ? " (unavailable)" : ""}
+              </span>
+            );
+          })}
+          <Link
+            href="/workspace/integrations"
+            className="ml-auto text-xs text-brand-700 dark:text-brand-400 hover:underline"
+          >
+            Manage
+          </Link>
+        </div>
+
         <EvidenceVaultClient
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           initialEvidence={evidence as any}
           evidenceGaps={evidenceGaps}
           currentSVI={currentSVI}
