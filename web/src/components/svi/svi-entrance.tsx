@@ -41,6 +41,7 @@ import { SectionPicker, type SectionSelection } from "@/components/svi/section-p
 import { LanguageToggle } from "@/components/ui/language-toggle";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import type { RndReport, ClientTechAuditResult } from "@/lib/rnd-types";
+import { usePricingExperiment } from "@/lib/hooks/use-pricing-experiment";
 
 import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -137,6 +138,20 @@ export function SVIEntrance() {
   const clearRndStatus = () => setRndStatusEntries([]);
   const [rndReport, setRndReport] = React.useState<RndReport | null>(null);
   const [techAudit, setTechAudit] = React.useState<ClientTechAuditResult | null>(null);
+
+  // analyzer-email-nudge-2026-07 (T0121/T0123): optional reminder chip above
+  // the email field, plus a conversion event when the form is submitted.
+  const {
+    payload: emailNudgePayload,
+    recordConversion: recordEmailNudgeConversion,
+  } = usePricingExperiment<{ showChip?: boolean; chipCopy?: string }>(
+    "analyzer-email-nudge-2026-07",
+  );
+  const emailNudgeChip = emailNudgePayload?.showChip === true
+    ? (typeof emailNudgePayload?.chipCopy === "string" && emailNudgePayload.chipCopy.trim().length > 0
+        ? emailNudgePayload.chipCopy
+        : "We'll email your full report to this address")
+    : null;
 
   // Elapsed timer — re-renders every second during analysis for live countdown
   const [, setTick] = React.useState(0);
@@ -388,6 +403,7 @@ export function SVIEntrance() {
 
     setError(""); setState("submitting"); clearRndStatus(); setRndReport(null); setTechAudit(null); setPreviousAnalysis(null);
     trackEvent("svi_submitted", { method: file ? "file" : "text", has_file: !!file });
+    recordEmailNudgeConversion();
 
     // ── Auto-create project for logged-in users ────────────────────────
     if (loggedInUser && selectedProject === "__new__") {
@@ -1167,8 +1183,15 @@ export function SVIEntrance() {
                   <CheckCircle2 strokeWidth={1.75} className="h-3.5 w-3.5 text-brand-500" />
                 </div>
               ) : (
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} onBlur={(e) => checkGate(e.target.value)} placeholder="your@email.com" required
-                  className="h-10 w-full max-w-56 rounded-lg border border-surface-300 bg-white px-3 text-sm text-ink-800 placeholder:text-ink-600 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors" />
+                <div className="flex w-full max-w-56 flex-col items-center gap-1.5">
+                  {emailNudgeChip && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-brand-50 border border-brand-200 px-2.5 py-0.5 text-[11px] font-medium text-brand-700">
+                      {emailNudgeChip}
+                    </span>
+                  )}
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} onBlur={(e) => checkGate(e.target.value)} placeholder="your@email.com" required
+                    className="h-10 w-full rounded-lg border border-surface-300 bg-white px-3 text-sm text-ink-800 placeholder:text-ink-600 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors" />
+                </div>
               )}
             </div>
             {error && <p className="mt-2 text-center text-sm text-red-500">{error}</p>}

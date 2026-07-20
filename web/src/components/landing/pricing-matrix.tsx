@@ -14,6 +14,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useSegment } from "@/components/landing/segment-tabs";
 import { useExposeExperiment } from "@/lib/conversion/expose";
+import { usePricingExperiment } from "@/lib/hooks/use-pricing-experiment";
 import {
   annualSavingPct,
   formatAud,
@@ -21,6 +22,21 @@ import {
   type Plan,
   type Segment,
 } from "@/lib/plans-v2";
+
+// pricing-anchor-2026-07 (T0121/T0123). When the "with_anchor" variant is
+// active on the founder segment we synthesise a Founder+ SKU and prepend
+// it to the tier list. Copy/prices are read from the experiment payload
+// so ops can tune them via the admin surface without a redeploy.
+const PRICING_ANCHOR_EXPERIMENT = "pricing-anchor-2026-07";
+const ANCHOR_PLAN_ID = "founder_plus_anchor";
+
+interface PricingAnchorPayload {
+  showAnchor?: boolean;
+  anchorName?: string;
+  anchorMonthlyAud?: number;
+  anchorAnnualAud?: number;
+  anchorFeatures?: string[];
+}
 
 const SEGMENT_INTRO: Record<Segment, { headline: string; sub: string; note?: string }> = {
   founder: {
@@ -62,7 +78,7 @@ export function PricingMatrix({ segment: overrideSegment }: PricingMatrixProps =
   //   anchor_scale  → surface the *_scale SKU first.
   // Falls back to the base order while the variant is loading or null.
   const { variant: anchorVariant } = useExposeExperiment("pricing_anchor_order");
-  const plans = useMemo(() => {
+  const orderedPlans = useMemo(() => {
     if (!anchorVariant) return basePlans;
     const anchorId =
       anchorVariant === "anchor_scale"
@@ -76,6 +92,44 @@ export function PricingMatrix({ segment: overrideSegment }: PricingMatrixProps =
     const rest = basePlans.filter((p) => !anchorId(p));
     return [...anchored, ...rest];
   }, [basePlans, anchorVariant]);
+
+  // pricing-anchor-2026-07: on the founder segment, optionally prepend a
+  // synthetic Founder+ tier above the existing Founder plan. `recordConversion`
+  // is passed to every card so any tier click credits this experiment with
+  // the tier's monthly AUD price as the conversion value.
+  const {
+    payload: anchorPayload,
+    recordConversion: recordAnchorConversion,
+  } = usePricingExperiment<PricingAnchorPayload>(PRICING_ANCHOR_EXPERIMENT);
+  const plans = useMemo(() => {
+    if (segment !== "founder") return orderedPlans;
+    if (!anchorPayload?.showAnchor) return orderedPlans;
+    const monthly = typeof anchorPayload.anchorMonthlyAud === "number" ? anchorPayload.anchorMonthlyAud : 79;
+    const annual = typeof anchorPayload.anchorAnnualAud === "number" ? anchorPayload.anchorAnnualAud : monthly * 10;
+    const features = Array.isArray(anchorPayload.anchorFeatures) && anchorPayload.anchorFeatures.length > 0
+      ? anchorPayload.anchorFeatures
+      : [
+          "Everything in Founder",
+          "Priority support (12h SLA)",
+          "Warm investor intros (up to 3/mo)",
+        ];
+    const anchor: Plan = {
+      id: ANCHOR_PLAN_ID,
+      segment: "founder",
+      name: typeof anchorPayload.anchorName === "string" ? anchorPayload.anchorName : "Founder+",
+      monthly_aud: monthly,
+      annual_aud: annual,
+      trial_days: 14,
+      cta_kind: "trial",
+      tagline: "Anchor tier",
+      features,
+    };
+    // Slot the anchor above the paid Founder tier(s) — i.e. after `founder_free`
+    // if present, otherwise at the very front.
+    const idx = orderedPlans.findIndex((p) => p.id !== "founder_free");
+    if (idx <= 0) return [anchor, ...orderedPlans];
+    return [...orderedPlans.slice(0, idx), anchor, ...orderedPlans.slice(idx)];
+  }, [orderedPlans, segment, anchorPayload]);
 
   return (
     <section
@@ -108,7 +162,12 @@ export function PricingMatrix({ segment: overrideSegment }: PricingMatrixProps =
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[repeat(auto-fit,minmax(260px,1fr))]">
         {plans.map((plan) => (
-          <PlanCard key={plan.id} plan={plan} interval={interval} />
+          <PlanCard
+            key={plan.id}
+            plan={plan}
+            interval={interval}
+            onSelect={recordAnchorConversion}
+          />
         ))}
       </div>
 
@@ -200,7 +259,15 @@ function ToggleButton({
 
 // ─── Plan card ───────────────────────────────────────────────────────────
 
-function PlanCard({ plan, interval }: { plan: Plan; interval: Interval }) {
+function PlanCard({
+  plan,
+  interval,
+  onSelect,
+}: {
+  plan: Plan;
+  interval: Interval;
+  onSelect?: (valueAud?: number) => void;
+}) {
   const price = interval === "annual" ? plan.annual_aud : plan.monthly_aud;
   const priceLabel = formatAud(price);
   const isCustom = price === null;
@@ -211,6 +278,13 @@ function PlanCard({ plan, interval }: { plan: Plan; interval: Interval }) {
     ? `/contact?plan=${plan.id}`
     : `/onboarding?trial=1&plan=${plan.id}`;
   const ctaLabel = isContact ? "Contact sales" : plan.monthly_aud === 0 ? "Start free" : "Start trial";
+  const handleCtaClick = () => {
+    if (!onSelect) return;
+    // Report the monthly AUD price as the conversion value. `null` (contact
+    // sales) → undefined so the event still lands but valueAud is null in DB.
+    const value = typeof plan.monthly_aud === "number" ? plan.monthly_aud : undefined;
+    onSelect(value);
+  };
 
   return (
     <article
@@ -279,6 +353,7 @@ function PlanCard({ plan, interval }: { plan: Plan; interval: Interval }) {
 
       <Link
         href={ctaHref}
+        onClick={handleCtaClick}
         className={[
           "mt-auto inline-flex w-full items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy",
           isContact
