@@ -20,6 +20,23 @@ if [ -z "$ENDPOINT" ]; then
   exit 0
 fi
 
+# Per-job lockfile — prevents overlapping runs of the same endpoint (a slow
+# svi-index-populate must not stack). Silent skip on contention (exit 0 so
+# cron doesn't spam), and cap wall time at 90s regardless of anything below.
+LOCK_FILE="/tmp/blockid-cron.$ENDPOINT.lock"
+exec 9>"$LOCK_FILE" 2>/dev/null || true
+if command -v flock >/dev/null 2>&1; then
+  if ! flock -n 9; then
+    echo "$(date -u '+%m-%d %H:%M') $ENDPOINT: skip (previous run still holding lock)" >> /tmp/blockid-cron.log
+    exit 0
+  fi
+fi
+# Overall watchdog: hard-kill this process tree at 90s so a hung curl+retry
+# can never block the next cron tick.
+( sleep 90 && kill -TERM -$$ 2>/dev/null ) &
+WATCHDOG_PID=$!
+trap 'kill $WATCHDOG_PID 2>/dev/null; rm -f "$LOCK_FILE" 2>/dev/null' EXIT
+
 # Parse optional --timeout
 TIMEOUT=60
 shift
@@ -40,6 +57,18 @@ env_val() { grep -E "^$1=" "$WEB_DIR/.env" "$WEB_DIR/.env.runtime" 2>/dev/null |
 # Config
 CRON_SECRET="${CRON_SECRET:-$(env_val CRON_SECRET)}"
 BASE="http://127.0.0.1:4001/api/cron"
+
+# Fail LOUD if CRON_SECRET is missing — otherwise every cron silently 401s
+# and health-log fills with useless "Unauthorized" rows. Manual testers /
+# setup-cron.sh must see this immediately.
+if [ -z "${CRON_SECRET:-}" ]; then
+  TS_ERR=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+  mkdir -p "$(dirname "/home/dovanlong/blockid.au/web/content/reports/cron-health.jsonl")"
+  echo "{\"ts\":\"$TS_ERR\",\"endpoint\":\"$ENDPOINT\",\"status\":\"fail\",\"duration_ms\":0,\"detail\":\"CRON_SECRET missing from env — cron-runner cannot authenticate\"}" \
+    >> /home/dovanlong/blockid.au/web/content/reports/cron-health.jsonl
+  echo "[cron-runner] FATAL: CRON_SECRET not set in web/.env or web/.env.runtime" >&2
+  exit 2
+fi
 LOG="/tmp/blockid-cron.log"
 HEALTH_LOG="/home/dovanlong/blockid.au/web/content/reports/cron-health.jsonl"
 TELEGRAM_BOT="${TELEGRAM_BOT_TOKEN:-$(env_val TELEGRAM_BOT_TOKEN)}"
