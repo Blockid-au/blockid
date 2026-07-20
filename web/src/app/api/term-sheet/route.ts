@@ -21,6 +21,8 @@ import { createHash } from "crypto";
 import { analyzeTermSheet } from "@/lib/term-sheet/analyze";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getProjectIdFromRequest } from "@/lib/projects";
+import { generateLawyerQuestions } from "@/lib/term-sheet-lawyer-questions";
 
 const HolderSchema = z.object({
   id: z.string(),
@@ -102,8 +104,17 @@ export async function POST(request: Request) {
     // ── Spend credits after successful analysis ─────────────────────
     const spend = await spendCredits(user.id, "term_sheet");
 
+    const lawyerQuestionsV2 = generateLawyerQuestions(result.analysis);
+    const companyName = extractCompanyName(termSheet);
+    const headlineValuation =
+      result.analysis?.keyTerms.valuationCapAud ??
+      result.analysis?.keyTerms.postMoneyAud ??
+      result.analysis?.keyTerms.preMoneyAud ??
+      null;
+
     // ── Persist analysis to Supabase (best-effort, never blocks response) ──
     let analysisId: string | null = null;
+    const projectId = await getProjectIdFromRequest();
     const supabase = getSupabaseAdmin();
     if (supabase && result.analysis) {
       try {
@@ -126,12 +137,18 @@ export async function POST(request: Request) {
           .from("term_sheet_analyses")
           .insert({
             user_id: user.id,
+            email: user.email,
+            project_id: projectId,
             term_sheet_text_hash: textHash,
+            raw_text: termSheet,
             result_json: result.analysis,
+            analysis_json: result.analysis,
             risk_level_summary: worstRisk,
             valuation_cap: result.analysis.keyTerms.valuationCapAud,
+            valuation_aud: headlineValuation,
             discount_rate: result.analysis.keyTerms.discountPct,
             pro_rata: result.analysis.keyTerms.proRataRights,
+            company_name: companyName,
           })
           .select("id")
           .single();
@@ -156,6 +173,9 @@ export async function POST(request: Request) {
         balance: spend.balance,
         creditsUsed: FEATURE_COSTS.term_sheet,
         analysis_id: analysisId,
+        lawyer_questions_v2: lawyerQuestionsV2,
+        company_name: companyName,
+        headline_valuation_aud: headlineValuation,
       },
       {
         status: 200,
@@ -169,6 +189,54 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+}
+
+export async function DELETE(request: Request) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json(
+      { ok: false, error: "Authentication required" },
+      { status: 401 },
+    );
+  }
+  const url = new URL(request.url);
+  const id = url.searchParams.get("id");
+  if (!id) {
+    return NextResponse.json({ ok: false, error: "Missing id" }, { status: 400 });
+  }
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return NextResponse.json(
+      { ok: false, error: "Storage unavailable" },
+      { status: 503 },
+    );
+  }
+
+  // Scope the delete to the owner so a compromised session can only touch its own rows.
+  const { error } = await supabase
+    .from("term_sheet_analyses")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) {
+    console.error("[blockid:termsheet] DELETE failed", error.message);
+    return NextResponse.json({ ok: false, error: "Delete failed" }, { status: 500 });
+  }
+  return NextResponse.json({ ok: true });
+}
+
+function extractCompanyName(raw: string): string | null {
+  // Match "ACME PTY LTD", "Acme Inc", "Foo Bar Limited" at any position on the first
+  // 400 chars — good enough to seed the SVI deep-link CTA.
+  const head = raw.slice(0, 400);
+  const m = head.match(
+    /\b([A-Z][A-Za-z0-9&'.\- ]{2,80}?)\s+(PTY\s+LTD|PTY\.\s+LTD\.?|LIMITED|LTD\.?|INC\.?|CORP\.?|LLC|CO\.?)\b/,
+  );
+  if (!m) return null;
+  const name = `${m[1].trim()} ${m[2].trim()}`.replace(/\s+/g, " ");
+  return name.length > 120 ? name.slice(0, 120) : name;
 }
 
 export const dynamic = "force-dynamic";
