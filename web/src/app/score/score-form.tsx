@@ -430,7 +430,7 @@ function Stepper({ current }: { current: number }) {
                     ? "bg-brand-500 text-ink-950"
                     : active
                       ? "bg-brand-500/20 text-brand-600 ring-1 ring-brand-500/40"
-                      : "bg-surface-100 text-ink-8000"
+                      : "bg-surface-100 text-ink-800"
                 }`}
               >
                 {done ? (
@@ -831,14 +831,14 @@ function ResultPanel({
                 "Couldn't create the link right now. Try again in a moment."}
             </p>
           )}
-          <p className="mt-3 text-xs text-ink-8000">
+          <p className="mt-3 text-xs text-ink-800">
             We store the investor&apos;s details against your score. AU data
             residency. We never sell data.
           </p>
 
           {createdLinks.length > 0 && (
             <div className="mt-6 space-y-3">
-              <p className="text-xs uppercase tracking-[0.16em] text-ink-8000">
+              <p className="text-xs uppercase tracking-[0.16em] text-ink-800">
                 Per-investor links
               </p>
               <ul className="space-y-3">
@@ -907,11 +907,11 @@ function MiniStat({
 }) {
   return (
     <div className="rounded-xl border border-surface-200 bg-white px-4 py-3">
-      <p className="text-[10px] uppercase tracking-[0.16em] text-ink-8000">
+      <p className="text-[10px] uppercase tracking-[0.16em] text-ink-800">
         {label}
       </p>
       <p className="mt-1 text-sm font-medium text-ink-700">{value}</p>
-      <p className="mt-1 text-xs text-ink-8000">{detail}</p>
+      <p className="mt-1 text-xs text-ink-800">{detail}</p>
     </div>
   );
 }

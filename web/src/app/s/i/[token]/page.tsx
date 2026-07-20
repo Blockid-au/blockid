@@ -265,7 +265,7 @@ export default async function InvestorViewLinkPage({
               </div>
               {actionPlan.length > 0 && (
                 <div className="mt-6 rounded-xl border border-surface-200 bg-surface-100/40 p-4">
-                  <p className="text-xs uppercase tracking-[0.16em] text-ink-8000">
+                  <p className="text-xs uppercase tracking-[0.16em] text-ink-800">
                     Recommended actions
                   </p>
                   <ul className="mt-4 space-y-3">
@@ -285,7 +285,7 @@ export default async function InvestorViewLinkPage({
               <hr className="my-6 border-surface-200" />
               <dl className="grid grid-cols-2 gap-4 text-xs">
                 <div>
-                  <dt className="text-ink-8000 uppercase tracking-[0.15em]">
+                  <dt className="text-ink-800 uppercase tracking-[0.15em]">
                     Generated
                   </dt>
                   <dd className="mt-1 text-ink-500 font-mono tabular-nums">
@@ -293,7 +293,7 @@ export default async function InvestorViewLinkPage({
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-ink-8000 uppercase tracking-[0.15em]">
+                  <dt className="text-ink-800 uppercase tracking-[0.15em]">
                     Score version
                   </dt>
                   <dd className="mt-1 text-ink-500 font-mono tabular-nums">
@@ -301,7 +301,7 @@ export default async function InvestorViewLinkPage({
                   </dd>
                 </div>
                 <div className="col-span-2">
-                  <dt className="text-ink-8000 uppercase tracking-[0.15em]">
+                  <dt className="text-ink-800 uppercase tracking-[0.15em]">
                     Powered by
                   </dt>
                   <dd className="mt-1 text-ink-500">
@@ -330,11 +330,11 @@ function InfoStat({
 }) {
   return (
     <div className="rounded-xl border border-surface-200 bg-surface-100/40 px-4 py-3">
-      <p className="text-[10px] uppercase tracking-[0.16em] text-ink-8000">
+      <p className="text-[10px] uppercase tracking-[0.16em] text-ink-800">
         {label}
       </p>
       <p className="mt-1 text-sm font-medium text-ink-700">{value}</p>
-      <p className="mt-1 text-xs text-ink-8000">{detail}</p>
+      <p className="mt-1 text-xs text-ink-800">{detail}</p>
     </div>
   );
 }

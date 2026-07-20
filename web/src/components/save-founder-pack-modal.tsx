@@ -239,7 +239,7 @@ function SaveFounderPackModalContent({ onClose }: { onClose: () => void }) {
                 </p>
               )}
 
-              <p className="mt-4 flex items-center gap-2 text-xs text-ink-8000">
+              <p className="mt-4 flex items-center gap-2 text-xs text-ink-800">
                 <Lock strokeWidth={1.75} className="h-3.5 w-3.5" />
                 One BlockID account, free forever at idea phase. Magic link
                 expires in 15 minutes.
@@ -259,12 +259,12 @@ function PackItem({ ok, label }: { ok: boolean; label: string }) {
         className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
           ok
             ? "bg-brand-400/15 text-brand-600"
-            : "bg-surface-200 text-ink-8000"
+            : "bg-surface-200 text-ink-800"
         }`}
       >
         <CheckCircle2 strokeWidth={1.75} className="h-3.5 w-3.5" />
       </span>
-      <span className={ok ? "text-ink-700" : "text-ink-8000"}>{label}</span>
+      <span className={ok ? "text-ink-700" : "text-ink-800"}>{label}</span>
     </li>
   );
 }

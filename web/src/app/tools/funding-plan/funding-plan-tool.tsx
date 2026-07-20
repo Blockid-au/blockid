@@ -364,7 +364,7 @@ export function FundingPlanTool() {
           />
           Founder cash injection
         </h3>
-        <p className="mt-1 text-xs text-ink-8000">
+        <p className="mt-1 text-xs text-ink-800">
           What each cofounder can realistically put in. Up to 5 founders.
         </p>
         <div className="mt-4 space-y-3">
@@ -453,7 +453,7 @@ export function FundingPlanTool() {
                       />
                       <span className="font-semibold">{rt.label}</span>
                     </span>
-                    <span className="text-[11px] leading-snug text-ink-8000">
+                    <span className="text-[11px] leading-snug text-ink-800">
                       {rt.hint}
                     </span>
                   </label>
@@ -498,7 +498,7 @@ export function FundingPlanTool() {
 
         {/* Donut: founder cash vs external raise vs ESOP value */}
         <div className="rounded-2xl border border-surface-200 bg-white p-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-ink-8000">
+          <p className="text-xs uppercase tracking-[0.2em] text-ink-800">
             Capital sources
           </p>
           <CapitalDonut
@@ -532,10 +532,10 @@ export function FundingPlanTool() {
         {/* Per-founder dilution preview */}
         <div className="rounded-2xl border border-surface-200 bg-white p-4 md:p-6">
           <div className="flex items-center justify-between">
-            <p className="text-xs uppercase tracking-[0.2em] text-ink-8000">
+            <p className="text-xs uppercase tracking-[0.2em] text-ink-800">
               Per-founder dilution preview
             </p>
-            <p className="text-[11px] text-ink-8000">
+            <p className="text-[11px] text-ink-800">
               {inp.founders.some((f) => typeof f.equityPct === "number")
                 ? "From equity-split"
                 : "Equal split (default)"}
@@ -544,7 +544,7 @@ export function FundingPlanTool() {
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[520px] text-sm">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-[0.15em] text-ink-8000">
+                <tr className="text-left text-[11px] uppercase tracking-[0.15em] text-ink-800">
                   <th className="py-2 pr-3 font-medium">Founder</th>
                   <th className="py-2 px-3 font-medium text-right">
                     Cash in
@@ -621,13 +621,13 @@ export function FundingPlanTool() {
 
         {/* Sensitivity table */}
         <div className="rounded-2xl border border-surface-200 bg-white p-4 md:p-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-ink-8000">
+          <p className="text-xs uppercase tracking-[0.2em] text-ink-800">
             Sensitivity — what if you raise more or less?
           </p>
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[600px] text-sm">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-[0.15em] text-ink-8000">
+                <tr className="text-left text-[11px] uppercase tracking-[0.15em] text-ink-800">
                   <th className="py-2 pr-3 font-medium">Scenario</th>
                   <th className="py-2 px-3 font-medium text-right">
                     Raise
@@ -718,7 +718,7 @@ export function FundingPlanTool() {
 
         {/* Next steps */}
         <div className="rounded-2xl border border-surface-200 bg-white p-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-ink-8000">
+          <p className="text-xs uppercase tracking-[0.2em] text-ink-800">
             Next steps
           </p>
           <div className="mt-4 grid sm:grid-cols-2 gap-3">
@@ -728,7 +728,7 @@ export function FundingPlanTool() {
             >
               <span>
                 <span className="block font-semibold">Split founder equity</span>
-                <span className="block text-xs text-ink-8000">
+                <span className="block text-xs text-ink-800">
                   Weight by cash, time, IP and risk.
                 </span>
               </span>
@@ -744,7 +744,7 @@ export function FundingPlanTool() {
             >
               <span>
                 <span className="block font-semibold">Set a pre-money</span>
-                <span className="block text-xs text-ink-8000">
+                <span className="block text-xs text-ink-800">
                   AU idea-stage valuation benchmarker.
                 </span>
               </span>
@@ -873,7 +873,7 @@ function SummaryTile({
         : "text-ink-800";
   return (
     <div className="rounded-xl border border-surface-200 bg-white p-4 transition-colors hover:border-brand-500/40">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-ink-8000">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-ink-800">
         {label}
       </p>
       <p
@@ -975,7 +975,7 @@ function CapitalDonut({
               </span>
               <span className="font-mono tabular-nums text-ink-600">
                 {formatAud(s.value)}{" "}
-                <span className="text-ink-8000">
+                <span className="text-ink-800">
                   ({pct.toFixed(1)}%)
                 </span>
               </span>

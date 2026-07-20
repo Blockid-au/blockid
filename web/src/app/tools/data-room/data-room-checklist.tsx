@@ -252,7 +252,7 @@ export function DataRoomChecklist() {
               </p>
               <p className="mt-3 font-mono text-6xl font-semibold tabular-nums text-brand-600 leading-none">
                 {readiness}
-                <span className="text-2xl text-ink-8000">%</span>
+                <span className="text-2xl text-ink-800">%</span>
               </p>
             </div>
             <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-brand-500/30 bg-brand-500/10 text-brand-600">
@@ -382,7 +382,7 @@ export function DataRoomChecklist() {
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-surface-200 bg-surface-100/50 px-3 py-3">
-      <dt className="text-[10px] uppercase tracking-[0.16em] text-ink-8000">
+      <dt className="text-[10px] uppercase tracking-[0.16em] text-ink-800">
         {label}
       </dt>
       <dd className="mt-1 font-mono text-xl tabular-nums text-ink-700">
@@ -418,7 +418,7 @@ function ChecklistRow({
                 ? "border-green-500/40 bg-green-500/10 text-green-400"
                 : status === "in-progress"
                   ? "border-amber-500/40 bg-amber-500/10 text-amber-300"
-                  : "border-surface-200 bg-white text-ink-8000 group-hover:border-brand-500/40",
+                  : "border-surface-200 bg-white text-ink-800 group-hover:border-brand-500/40",
             )}
           >
             {status === "ready" ? (
@@ -440,7 +440,7 @@ function ChecklistRow({
             <span className="mt-2 block text-sm leading-relaxed text-ink-400">
               {item.why}
             </span>
-            <span className="mt-3 flex flex-wrap items-center gap-3 text-xs text-ink-8000">
+            <span className="mt-3 flex flex-wrap items-center gap-3 text-xs text-ink-800">
               <span className="inline-flex items-center gap-1.5">
                 <FileText strokeWidth={1.75} className="h-3.5 w-3.5" />
                 Owner: {item.owner}
@@ -469,7 +469,7 @@ function ChecklistRow({
                     : s === "in-progress"
                       ? "bg-amber-500/15 text-amber-300"
                       : "bg-slate-500/15 text-ink-500"
-                  : "text-ink-8000 hover:bg-white/5 hover:text-ink-500",
+                  : "text-ink-800 hover:bg-white/5 hover:text-ink-500",
               )}
             >
               {STATUS_LABEL[s]}
