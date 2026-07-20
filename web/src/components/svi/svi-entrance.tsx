@@ -116,7 +116,15 @@ const BOTTOM_BENEFITS = [
 
 // ═══════════════════════════════════════════════════════════════════════════════
 export function SVIEntrance() {
-  const [text, setText] = React.useState("");
+  // Hero-search hand-off: /svi?query=<x> prefills the textarea so the
+  // founder doesn't retype what they just entered on the homepage. Read
+  // synchronously into the useState initializer to avoid a render→effect
+  // →setState cascade (see react-hooks/set-state-in-effect).
+  const initialSearchParams = useSearchParams();
+  const [text, setText] = React.useState<string>(() => {
+    const q = initialSearchParams.get("query");
+    return q ? q.trim() : "";
+  });
   const [file, setFile] = React.useState<File | null>(null);
   const [email, setEmail] = React.useState("");
   const [listening, setListening] = React.useState(false);
@@ -183,7 +191,7 @@ export function SVIEntrance() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = React.useRef<any>(null);
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = initialSearchParams;
 
   // ── Capture referral code from URL ────────────────────────────────────
   React.useEffect(() => {

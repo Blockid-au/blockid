@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import {
-  Briefcase, Plus, Pencil, Archive, X, Loader2, ArrowUpRight,
+  Briefcase, Plus, Pencil, Archive, X, Loader2, ArrowUpRight, Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -280,7 +281,16 @@ export function ProjectsClient({ initialProjects, limit, plan }: ProjectsClientP
                 <span>{formatDate(project.createdAt)}</span>
               </div>
 
-              {/* Actions */}
+              {/* Primary action — always visible */}
+              <Link
+                href={`/workspace/projects/${project.slug}/analyze`}
+                className="mb-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-700 transition-colors"
+              >
+                <Sparkles strokeWidth={1.75} className="h-3.5 w-3.5" />
+                Run SVI Analysis
+              </Link>
+
+              {/* Secondary actions */}
               <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                   type="button"
