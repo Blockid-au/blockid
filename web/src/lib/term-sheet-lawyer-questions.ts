@@ -72,8 +72,13 @@ export function generateLawyerQuestions(analysisRaw: unknown): LawyerQuestion[] 
   const liqPref = str(analysis.keyTerms?.liquidationPreference).toLowerCase();
   const multiMatch = liqPref.match(/(\d+(?:\.\d+)?)\s*x/);
   const liqMultiple = multiMatch ? Number(multiMatch[1]) : null;
+  // Must not match "non-participating" (the AU-market default) — guard the
+  // left boundary with (^|\W|full-|fully-|1x |2x |3x ) so `non-participating`
+  // is excluded but `1x participating` / `full participation` / bare
+  // `participating` are still caught. QA report e0851d8 flagged this.
+  const participatingRe = /(?:^|[^-a-z])participat(?:ing|ion)/i;
   const isParticipating =
-    /participat/.test(liqPref) || /participat/.test(text);
+    participatingRe.test(liqPref) || participatingRe.test(text);
   if (liqMultiple != null && liqMultiple > 1) {
     questions.push({
       severity: "red",
