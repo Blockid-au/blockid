@@ -1,6 +1,81 @@
 {
   "articles": [
     {
+      "slug": "how-to-value-an-australian-startup",
+      "title": "How to Value an Australian Startup: A 2026 Founder's Guide",
+      "description": "DCF, Berkus, Scorecard, VC method and comparable AU rounds — a practical framework for pricing an Australian startup in 2026, with real examples from Canva, Airwallex, Zeller and Employment Hero.",
+      "keywords": [
+        "how to value an australian startup",
+        "australian startup valuation methods 2026",
+        "dcf valuation australian startup",
+        "berkus method australia",
+        "scorecard method australia",
+        "vc method valuation",
+        "comparable rounds australia",
+        "pre-money valuation australian startup",
+        "esic startup valuation",
+        "startup valuation guide australia"
+      ],
+      "category": "valuation",
+      "publishedAt": "2026-07-20",
+      "updatedAt": "2026-07-20",
+      "readingTime": 12,
+      "cta": {
+        "label": "Get Your Free SVI Valuation",
+        "href": "/svi"
+      }
+    },
+    {
+      "slug": "startup-investor-readiness-checklist-australia",
+      "title": "Startup Investor Readiness Checklist Australia (2026)",
+      "description": "The pre-seed, seed and Series A checklist Australian founders actually need — governance, cap table, financial model, data room, compliance and the 60-second test that separates a fast close from a six-month grind.",
+      "keywords": [
+        "startup investor readiness checklist australia",
+        "australian seed round checklist",
+        "series a readiness australia",
+        "startup data room australia",
+        "pre-seed checklist australia",
+        "cap table for fundraise australia",
+        "asic constitution fundraise",
+        "esop scheme australia seed round",
+        "investor due diligence australia",
+        "how to raise seed capital australia"
+      ],
+      "category": "fundraising",
+      "publishedAt": "2026-07-20",
+      "updatedAt": "2026-07-20",
+      "readingTime": 13,
+      "cta": {
+        "label": "Open the Fundraise Workspace",
+        "href": "/workspace/fundraise"
+      }
+    },
+    {
+      "slug": "esic-and-rnd-tax-incentive-guide-2026",
+      "title": "ESIC and R&D Tax Incentive for Australian Startups (2026 Guide)",
+      "description": "How the ESIC 20% investor offset and the R&D Tax Incentive 43.5% refund actually work — eligibility gates, worked examples, documentation, deadlines and how to stack both schemes for an AU startup.",
+      "keywords": [
+        "esic australia 2026",
+        "r&d tax incentive australia startup",
+        "early stage innovation company",
+        "rdti startup australia",
+        "esic 100 point innovation test",
+        "esic principles-based test",
+        "43.5% r&d tax refund",
+        "ato esic private ruling",
+        "ausindustry r&d registration",
+        "esic and r&d tax stacking"
+      ],
+      "category": "compliance",
+      "publishedAt": "2026-07-20",
+      "updatedAt": "2026-07-20",
+      "readingTime": 14,
+      "cta": {
+        "label": "Run the Free ESIC Eligibility Tool",
+        "href": "/tools/esic"
+      }
+    },
+    {
       "slug": "optimise-startup-cap-table-for-acquisition-exit",
       "title": "Optimise Cap Table for M&A Exit: Australian Startup Guide",
       "description": "Maximise your Australian startup's exit value with expert M&A exit strategies and cap table optimisation tips for a successful acquisition.",
