@@ -38,11 +38,16 @@ const CATEGORIES = [
 export default function InsightsPage() {
   const articles = getAllArticles();
 
-  // Serialise articles for client component
+  // Serialise articles for client component. Descriptions are shown in card
+  // teasers only — cap at 160 chars so the RSC payload does not carry the
+  // full body prose for all 80+ articles into every /insights response.
   const serialised = articles.map((a) => ({
     slug: a.slug,
     title: a.title,
-    description: a.description,
+    description:
+      a.description.length > 160
+        ? a.description.slice(0, 157).trimEnd() + "..."
+        : a.description,
     category: a.category,
     publishedAt: a.publishedAt,
     readingTime: a.readingTime,
