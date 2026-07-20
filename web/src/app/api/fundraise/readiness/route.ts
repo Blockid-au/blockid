@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import {
+  buildChecklist,
+  computeReadinessScore,
+  groupChecklistByCategory,
+} from "@/lib/fundraise-checklist";
+import { getComparableRaises, summariseComparables } from "@/lib/au-comparable-raises";
 
 export const dynamic = "force-dynamic";
 
@@ -184,6 +190,25 @@ export async function GET() {
     byCategory[item.category].push(item);
   }
 
+  const sviAnalysisForChecklist = {
+    score: sviScore,
+    signals: signals ?? undefined,
+    dimensions:
+      (analysis?.dimensions as Record<string, number> | undefined) ??
+      (analysis?.scores as Record<string, number> | undefined),
+  };
+  const checklistV2 = buildChecklist({
+    stage: currentStage,
+    sviAnalysis: sviAnalysisForChecklist,
+  });
+  const readinessV2 = computeReadinessScore(checklistV2, sviScore);
+  const checklistByCategory = groupChecklistByCategory(checklistV2);
+
+  const stageForComparables =
+    currentStage === "pre-seed" ? "preseed" : currentStage === "series-a" ? "seriesA" : "seed";
+  const comparablesV2 = getComparableRaises({ stage: stageForComparables, limit: 8 });
+  const comparablesSummary = summariseComparables(comparablesV2);
+
   return NextResponse.json({
     ok: true,
     readinessScore,
@@ -201,5 +226,12 @@ export async function GET() {
       seedReady: 70,
       seriesAReady: 85,
     },
+    checklistV2,
+    checklistV2ByCategory: checklistByCategory,
+    readinessV2,
+    comparablesV2,
+    comparablesSummary,
+    disclaimer:
+      "General information only. Not investment advice. Comparables from public reporting.",
   });
 }
