@@ -28,8 +28,15 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Mic, Search, X } from "lucide-react";
+import { usePricingExperiment } from "@/lib/hooks/use-pricing-experiment";
 
 const SEARCH_ROUTE = "/svi";
+const HERO_CTA_CONTROL_COPY = "Search & Score";
+const HERO_CTA_EXPERIMENT = "hero-cta-2026-07";
+
+interface HeroCtaPayload {
+  copy?: string;
+}
 
 const QUICK_PICKS: readonly string[] = [
   "Canva",
@@ -42,6 +49,16 @@ export function HeroSearch() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState("");
 
+  // hero-cta-2026-07 (T0121/T0123): variant copy on the primary CTA.
+  // Fall back to the historical "Search & Score" copy on loading / 404
+  // so a broken experiment never blanks the button.
+  const { payload: ctaPayload, recordConversion: recordHeroCtaConversion } =
+    usePricingExperiment<HeroCtaPayload>(HERO_CTA_EXPERIMENT);
+  const ctaCopy =
+    typeof ctaPayload?.copy === "string" && ctaPayload.copy.trim().length > 0
+      ? ctaPayload.copy
+      : HERO_CTA_CONTROL_COPY;
+
   const submitDestination = useCallback((raw: string) => {
     const query = raw.trim();
     if (query.length === 0) {
@@ -53,17 +70,19 @@ export function HeroSearch() {
   const onSubmit = useCallback(
     (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
+      recordHeroCtaConversion();
       router.push(submitDestination(value));
     },
-    [router, submitDestination, value],
+    [recordHeroCtaConversion, router, submitDestination, value],
   );
 
   const onChipClick = useCallback(
     (chip: string) => {
       setValue(chip);
+      recordHeroCtaConversion();
       router.push(submitDestination(chip));
     },
-    [router, submitDestination],
+    [recordHeroCtaConversion, router, submitDestination],
   );
 
   const clearInput = useCallback(() => {
@@ -136,7 +155,7 @@ export function HeroSearch() {
             type="submit"
             className="inline-flex h-12 items-center justify-center rounded-xl bg-[var(--fintech-accent)] px-8 text-sm font-semibold text-[var(--fintech-bg-primary)] shadow-[0_8px_24px_-8px_rgba(34,211,238,0.6)] transition-all duration-200 hover:bg-[var(--fintech-accent-hover)] hover:shadow-[0_12px_32px_-8px_rgba(34,211,238,0.7)] hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)] active:translate-y-0"
           >
-            Search &amp; Score
+            {ctaCopy}
           </button>
         </form>
 
