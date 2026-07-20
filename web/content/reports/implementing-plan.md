@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v2.7.0  ·  **Updated:** 2026-07-19T14:00:02.233Z  ·  **Decided by:** ceo (2026-07-18T12:04:02.374Z)
+**Version:** v2.7.0  ·  **Updated:** 2026-07-20T12:04:02.951Z  ·  **Decided by:** ceo (2026-07-20T12:04:02.950Z)
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -23,6 +23,9 @@
 | T0128 | CFO | Integrate VC valuation methods library (VC Method, DCF, comparables, Berkus, Scorecard, Risk‑Factor Summation) with formulae and usage guidance | minor | ⬜ pending |
 | T0129 | CTO | Add Security Benchmark Compliance module (Essential Eight, OWASP) to CI pipeline with automated scans and reporting | minor | ⬜ pending |
 | T0130 | CPO | Implement First‑Principles Question Engine to generate Socratic prompts and route founders to appropriate BlockID features | minor | ⬜ pending |
+| T0133 | CFO | Implement R&D Tax Incentive & ESIC Valuation Modifier | minor | ⬜ pending |
+| T0134 | CDO | Build 'Next-Best-Action' Analytics Engine | major | ⬜ pending |
+| T0135 | CFO | TAM/SAM/SOM Bottom-Up Calculator with AU Source Library | minor | ⬜ pending |
 
 ## Recently shipped
 - ✅ `T0215` **CTO** — Verify-models cron — auto-detect paid models leaking into ai-free-models.json

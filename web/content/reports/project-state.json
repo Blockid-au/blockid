@@ -1,6 +1,6 @@
 {
   "version": "2.7.0",
-  "updatedAt": "2026-07-19T14:00:02.233Z",
+  "updatedAt": "2026-07-20T12:04:02.951Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-07-19T14:00:02.233Z",
@@ -22,7 +22,7 @@
     ]
   },
   "plan": {
-    "decidedAt": "2026-07-18T12:04:02.374Z",
+    "decidedAt": "2026-07-20T12:04:02.950Z",
     "decidedBy": "ceo",
     "tasks": [
       {
@@ -887,6 +887,33 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-07-18T12:04:02.374Z"
+      },
+      {
+        "id": "T0133",
+        "agent": "cfo",
+        "title": "Implement R&D Tax Incentive & ESIC Valuation Modifier",
+        "rationale": "Convert CFO research on R&D Tax and ESIC into active valuation multipliers/cash-flow adjustments for AU founders.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-07-20T12:04:02.950Z"
+      },
+      {
+        "id": "T0134",
+        "agent": "cdo",
+        "title": "Build 'Next-Best-Action' Analytics Engine",
+        "rationale": "Translate CEO's SCN framework (Validation → Position → Value) into a data-driven routing system for founder progression.",
+        "versionImpact": "major",
+        "status": "pending",
+        "createdAt": "2026-07-20T12:04:02.950Z"
+      },
+      {
+        "id": "T0135",
+        "agent": "cfo",
+        "title": "TAM/SAM/SOM Bottom-Up Calculator with AU Source Library",
+        "rationale": "Operationalize CFO's market sizing research into a tool that provides credible AU-specific data sources for founder projections.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-07-20T12:04:02.950Z"
       }
     ]
   },
