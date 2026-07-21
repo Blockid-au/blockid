@@ -221,10 +221,12 @@ export async function POST(request: Request) {
     };
 
     // Spend credits
+    const scenarioProjectId = await getProjectIdFromRequest();
     const spend = await spendCredits(user.id, "valuation_detailed", {
       sviScore,
       stage,
       scenario: true,
+      project_id: scenarioProjectId,
     });
     if (!spend.ok) {
       return NextResponse.json(

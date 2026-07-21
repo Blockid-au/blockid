@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.13
+version: 2026-07-23.14
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -950,6 +950,53 @@ review_history:
       run lint:reseller: 8 files / 2 exemptions / 0 violations.
     commit: (this tick)
 
+  - tick: 35
+    ran_at: 2026-07-21
+    action: p6.5b_widening_top_of_funnel_extension
+    result: |
+      Reseller sandbox routing (metadata.project_id → spendCredits() →
+      trySpendSandboxCredits) is now hot for six more top-of-funnel
+      callers listed in tick 32's next_action item 4:
+        - web/src/app/api/term-sheet/route.ts (projectId hoisted out
+          of the post-analysis persist block so it's resolved BEFORE
+          spendCredits; metadata.project_id threaded)
+        - web/src/app/api/idea-lab/route.ts (getProjectIdFromRequest
+          imported; call added ahead of spendCredits inside the
+          logged-in branch; metadata.project_id threaded)
+        - web/src/app/api/valuation/route.ts (POST scenario at :224 —
+          new scenarioProjectId resolved before spendCredits; GET path
+          at :42 already had projectId and does not spend credits)
+        - web/src/app/api/journal/reflect/route.ts (projectId resolved
+          right before the month-keyed spendCredits; metadata carries
+          both month + project_id so the debit still surfaces in the
+          reflection audit trail)
+        - web/src/app/api/data-room/generate/route.ts and
+          web/src/app/api/data-room/auto-fill/route.ts (projectId
+          resolved directly before their respective spendCredits calls;
+          metadata.email retained so downstream analytics still see
+          the identity)
+        - web/src/app/api/evidence/analyze/route.ts (projectId resolved
+          right before the tiered spendCredits; kept beneath the AI
+          parse block so we don't charge a sandbox debit for a failed
+          parse — matches the existing personal credit_balances flow)
+      Non-touched spendCredits() callers left for a follow-up tick
+      (see next_action item 4 update): financial-projections,
+      investor-pack/generate, svi/pitch-deck, svi/docx, svi/report,
+      svi/enhanced-report, svi/dimension-analyze, svi/ai-score,
+      svi/research, revaluation, v1/analyze,
+      evaluation/[criterionKey]/ai-suggest. data-room/goals is a
+      misleading award path (spendCredits called with an unknown feature
+      key so cost=0; the negative-credit hack the comment describes does
+      not actually work) — deliberately left untouched.
+      Non-reseller callers unaffected — trySpendSandboxCredits() returns
+      null when projects.reseller_sandbox_id is null and spendCredits
+      falls through to the credit_balances path unchanged.
+      Verified: tsc clean; reseller vitest 225/225 (unchanged — pure
+      helpers already covered decideSandboxSpend + ceilSandboxCost);
+      npm run lint:reseller: 8 files scanned, 2 exemptions, 0
+      violations.
+    commit: (this tick)
+
   - tick: 20
     ran_at: 2026-07-21
     action: p3.1_reconciliation_cron
@@ -976,7 +1023,7 @@ next_action:
     1) Apply migrations 0091 + 0092 + 0094 + 0095 + 0096 + 0097 via docker exec psql (P1.4 + P6.1 + P9.3 + P7.2) — infra step, requires DB access. Also create the private 'reseller-reports' Supabase Storage bucket before the cron next fires: `select storage.create_bucket('reseller-reports', false);` (or via Supabase Studio; keep public=false so signed URLs are mandatory).
     2) Seed INFOVISION reseller row (P1.5_infovision_seed) once P1.4 lands.
     3) Track B B1_showcase_scaffold — parallel candidate; migration 0099 adds projects.is_showcase + reseller_sandbox_id + repo_url; seed BlockID.au workspace. TRACK A P7 IS NOW FULLY DONE-PENDING-APPLY — next tick should pick B1 per A>B track-balance clause.
-    4) Optional P6.5b widening: term-sheet/idea-lab/valuation/journal/data-room/evidence spendCredits callers still don't thread project_id — one getProjectIdFromRequest() per route.
+    4) DONE tick 35 — Optional P6.5b widening: term-sheet/idea-lab/valuation/journal/data-room/evidence spendCredits callers now thread project_id via getProjectIdFromRequest(). See tick 35 for file list. Remaining spendCredits() callers not touched: financial-projections, investor-pack/generate, svi/pitch-deck, svi/docx, svi/report, svi/enhanced-report, svi/dimension-analyze, svi/ai-score, svi/research, revaluation, v1/analyze, evaluation/[criterionKey]/ai-suggest, data-room/goals (award path — misleading call, not a real debit).
     5) P0.3_advisory_reviews still pending — schedulable on next off-peak tick.
     6) code_request approval: currently marks-only; wire Stripe coupon+promotion_code creation into either PATCH approval or the admin promo-codes editor at /admin/resellers/[code].
     7) Pre-existing: cron-runner.sh POSTs to /api/cron/<name>, but reseller-* routes only export GET. Either add POST aliases or switch runner to GET for cron endpoints — separate hygiene tick.

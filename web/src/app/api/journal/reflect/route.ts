@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { callAI } from "@/lib/ai-client";
 import { spendCredits, FEATURE_COSTS } from "@/lib/credits";
+import { getProjectIdFromRequest } from "@/lib/projects";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,11 @@ export async function POST(request: Request) {
   const monthEnd = `${targetMonth}-31`; // Safe — PostgreSQL handles month boundaries
 
   // Check and spend credits
-  const spend = await spendCredits(user.id, "journal_reflect", { month: targetMonth });
+  const projectId = await getProjectIdFromRequest();
+  const spend = await spendCredits(user.id, "journal_reflect", {
+    month: targetMonth,
+    project_id: projectId,
+  });
   if (!spend.ok) {
     const cost = FEATURE_COSTS.journal_reflect ?? 0.50;
     return NextResponse.json(
