@@ -836,3 +836,6 @@
 {"ts":"2026-07-21T23:30:01Z","endpoint":"telegram-report","status":"ok","duration_ms":8580,"detail":"{\"sent\": true, \"chatId\": \"539796782\", \"deploysToday\": 129, \"agentsReported\": 6, \"total\": 8}"}
 {"ts":"2026-07-21T23:30:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16511,"detail":""}
 {"ts":"2026-07-21T23:30:01Z","endpoint":"performance-audit","status":"fail","duration_ms":16974,"detail":"<!DOCTYPE html><html lang=\"en-AU\" class=\"__variable_48b81b __variable_1f5b15 __variable_6b9622 h-full antialiased\"><head"}
+{"ts":"2026-07-21T23:40:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":573,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 15, \"raw\": \"15% used (237225504 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (275004700 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-07-21T23:45:01Z","endpoint":"clevel-daily-reports","status":"ok","duration_ms":1933,"detail":"{\"date\": \"2026-07-21\", \"agentsReported\": 14, \"statusBreakdown\": {\"green\": 14, \"yellow\": 0, \"red\": 0}, \"reports\": [{\"agent\": \"cpo\", \"status\": \"GREEN\", \"pending\": 1, \"inProgress\": 0, \"shippedToday\": 0},"}
+{"ts":"2026-07-21T23:45:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16496,"detail":""}
