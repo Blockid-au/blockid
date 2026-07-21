@@ -52,11 +52,11 @@ const CASES: CaseStudy[] = [
     country: "🇳🇿🇦🇺 NZ/AU",
     founded: 2006,
     ipo_year: 2007,
-    market_cap_usd: "~US$18B",
-    status: "coming_soon",
+    market_cap_usd: "~AU$25B",
+    status: "live",
     tagline:
-      "SaaS accounting from Wellington, listed on NZX 6 months after founding, later dual-listed on ASX.",
-    themes: ["dual-listing", "NZX+ASX", "early-IPO", "SaaS-accounting"],
+      "Cloud-first SaaS accounting from Wellington. NZX IPO 6 months after founding, dual-listed ASX 2012, delisted NZX 2018.",
+    themes: ["dual-listing", "NZX+ASX", "early-IPO", "SaaS-accounting", "second-time-founder"],
   },
   {
     slug: "safetyculture",
