@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.16
+version: 2026-07-23.17
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -392,7 +392,21 @@ tracks:
       B2_guide_ch_1_to_4: {status: pending, deps: [B1]}
       B3_guide_ch_5_to_8: {status: pending, deps: [B2]}
       B4_guide_ch_9_to_12: {status: pending, deps: [B3]}
-      B5_report_library: {status: pending, deps: [B1]}
+      B5_report_library:
+        status: done
+        tick: 39
+        completed_at: 2026-07-21
+        deps: [B1]
+        files: [
+          "web/src/lib/showcase/gallery.ts",
+          "web/src/lib/showcase/gallery.test.ts (15/15 pass; PHASE_LABELS coverage, buildGallerySections binning + cross-cutting bucket + empty state, summariseGallery agent/date aggregates, agentLabel slug map)",
+          "web/src/app/guide/reports/page.tsx (server component; readdir on web/content/reports; buildShowcaseDataRoomRows({includeTemplates:false}) → summariseGallery; renders KPI header + phase-grouped card grid + CTA aside; SEO metadata + canonical/OG/Twitter)"
+        ]
+        exit_criteria: [
+          "/guide/reports live rendering anonymised template gallery from web/content/reports/*.md (DONE — server page bins rows by U.9 phase via new pure buildGallerySections helper; card metadata is title/agent/generated_at/version/filename only — no report body leaks)",
+          "gallery grouping matches U.9 12-phase journey (DONE — PHASE_LABELS 1..12 + CROSS_CUTTING_LABEL; empty phases omitted so a Phase-N heading only appears when at least one artefact exists)",
+          "GA download tracking on per-row click (DEFERRED — B5 initial pass surfaces metadata only; wiring an /api/guide/reports/[filename] download route + emitting the gtag event belongs to a follow-up tick that also lands the redaction rules per plan §284)"
+        ]
       B6_public_showcase: {status: pending, deps: [B1]}
       B7_product_tour: {status: pending, deps: [B2]}
       B8_reseller_linkage: {status: pending, deps: [B1, track_A_P4]}
@@ -1092,6 +1106,44 @@ review_history:
       violations.
     commit: (this tick)
 
+  - tick: 39
+    ran_at: 2026-07-21
+    action: b5_report_template_library
+    result: |
+      Track B B5 shipped. New public route /guide/reports (server component)
+      walks web/content/reports/*.md via fs.readdir with the same defensive
+      dual-cwd candidate list the /security-audit page uses (cwd is either the
+      repo root or web/ depending on how Next.js was booted), feeds the filename
+      list through buildShowcaseDataRoomRows({includeTemplates:false}) from
+      tick 36's tagging lib, and hands the rows to the new pure grouping helper
+      at web/src/lib/showcase/gallery.ts. buildGallerySections bins by
+      phase_at_generation into ordered Phase 1..12 buckets + a cross-cutting
+      tail bucket for null-phase rows (ceo daily briefs, architecture notes,
+      404-audits — the deliberately-null slugs from report-tagging.ts). Empty
+      phases are omitted so first-time visitors don't see 12 empty headings.
+      PHASE_LABELS carries both en+vi copy already so a follow-up tick can
+      toggle on getLocale() without touching the layout — mirroring the
+      email-footer.ts pattern from P5. summariseGallery folds total_rows +
+      unique agents_covered + latest_generated_at for the KPI strip at the
+      top of the page. agentLabel maps the 21-slug ShowcaseAgent enum
+      (ceo/cto/cfo/cmo/coo/cpo/cdo/chro/ciso/clo/cro/cso/ccso/ir/qa/rnd/
+      customer-care/ops/perf/security/unknown) to display names — "unknown"
+      resolves to "Platform" so the internal slug never leaks. Page renders
+      Navbar + PageTracker + SEO metadata (canonical + OpenGraph + Twitter
+      + robots index:true) + KPI grid + phase-grouped card grid + emerald
+      CTA aside (Score my startup + Read valuation guide). Report body
+      content is NOT rendered — the initial B5 pass surfaces metadata only
+      (title, agent chip, generated date, version, filename) so the plan
+      §284 redaction line ("reseller CANNOT see any DataRoom document
+      content") is preserved even though the /guide/reports gallery is
+      public rather than reseller-scoped. GA download tracking on per-row
+      click is deferred until a signed-URL / redaction-pipeline follow-up
+      tick lands. Vitest: 15 new gallery cases + reseller+showcase suite
+      509/509 pass; tsc clean; npm run lint:reseller: 8 files scanned, 2
+      exemptions, 0 violations (new files sit outside /api/reseller/ so
+      no additional exemptions needed).
+    commit: (this tick)
+
   - tick: 37
     ran_at: 2026-07-21
     action: hygiene_cron_post_alias
@@ -1123,8 +1175,9 @@ next_action:
     5) P0.3_advisory_reviews still pending — schedulable on next off-peak tick.
     6) DONE tick 38 — code_request approval now mints Stripe coupon (deterministic id + duration=forever) + promotion_code and inserts into reseller_promotion_codes inline via decideCodeMint(). linked_promotion_code_id stamped on the reseller_requests row before status flips to approved. Tier 0 (attribution-only) skips Stripe. Idempotent under re-approval: existing (reseller_id, tier_pct) row wins; Stripe coupon retrieve-or-create pattern prevents duplicate coupons if a prior attempt died between Stripe mint and DB insert.
     7) DONE tick 37 — reseller-* cron routes now export `{ GET as POST }` so cron-runner.sh's POST no longer 405s. Applies to reseller-clear-commissions, reseller-monthly-report, reseller-monthly-reconciliation, reseller-stripe-sync, credit-reset.
+    8) DONE tick 39 — Track B B5 report template library at /guide/reports (see phases.B5_report_library.files). Metadata-only surface; download route + GA event + redaction pipeline deferred to a follow-up tick that also unblocks B6's public showcase.
   authorised: true
-  on_success: pick B6_public_showcase or B5_report_library on next tick if B1.3 seed remains blocked-on-apply (both are pure lib/UI, no DB dep once B1.2 helper is in place); otherwise continue B1.3 → B2.
+  on_success: pick B6_public_showcase on next tick while B1.3 seed remains blocked-on-apply (pure server component, reuses buildShowcaseDataRoomRows + the new buildGallerySections helper, no DB dep); otherwise continue B1.3 → B2.
 
 telemetry:
   log_file: web/content/reports/reseller-goal-history.jsonl
