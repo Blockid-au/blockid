@@ -216,3 +216,8 @@
 {"tick_id":"2026-07-21T21-04-26-manual","ts":"2026-07-21T21:04:26.882Z","stage":"tick_end","action":"p1.4_docker_apply","result":"migrations_0091_0097_applied_plus_0093_backfill","migration_files_applied":["0091","0092","0093","0094","0095","0096","0097"],"gap_found_and_fixed":"reseller_audit_log had no migration; authored 0093","bug_fixed":"0092 index referenced occurred_at (should be ts) — corrected + reapplied","bucket_created":"reseller-reports (private, 10MB, text/csv)","p1_5_status":"human_blocked_pending_abn_gst_confirmation"}
 {"tick_id":"2026-07-21T21-00-01-510Z","ts":"2026-07-21T21:08:07.844Z","stage":"delegated_dispatch","status":0,"elapsed_ms":486317,"signal":null,"label":"delegated"}
 {"tick_id":"2026-07-21T21-00-01-510Z","ts":"2026-07-21T21:08:07.876Z","stage":"auto_commit_started","dirty_files":8}
+{"tick_id":"2026-07-21T21-00-01-510Z","ts":"2026-07-21T21:08:09.318Z","stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-07-21T21-00-01-510Z","ts":"2026-07-21T21:08:09.324Z","stage":"auto_deploy_triggered","head":"da4e9ab","last_deployed":"c5c0bc8"}
+{"tick_id":"2026-07-21T21-00-01-510Z","ts":"2026-07-21T21:08:16.324Z","stage":"auto_deploy_finished","status":1,"head":"da4e9ab"}
+{"tick_id":"2026-07-21T21-00-01-510Z","ts":"2026-07-21T21:08:16.325Z","stage":"tick_end"}
+{"tick_id":"2026-07-21T21-10-01-859Z","ts":"2026-07-21T21:10:01.860Z","stage":"tick_start"}

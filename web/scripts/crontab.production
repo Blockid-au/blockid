@@ -368,3 +368,13 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 #   web/content/reports/reseller-monitor.jsonl (machine)
 # Consumed by /admin/reseller-loop dashboard and the show-next-tick helper.
 * * * * * bash /home/dovanlong/blockid.au/scripts/cron/reseller-monitor.sh >> /tmp/blockid-reseller-monitor.log 2>&1
+
+# 24/7 Uptime Guardian — multi-signal health check every 2 min:
+#   - disk pressure response (60/75/85% escalation, trims old releases)
+#   - memory pressure log (top RSS at >90%)
+#   - JSONL rotation belt-and-braces (300KB tail-800)
+#   - /tmp cleanup (files >48h)
+#   - auto-rollback via deploy-live.sh --rollback if HTTP fails 3 ticks
+#   - health JSONL to web/content/reports/uptime-guardian.jsonl
+# Non-destructive. Never touches git.
+*/2 * * * * bash /home/dovanlong/blockid.au/scripts/cron/uptime-24x7-guardian.sh >> /tmp/blockid-uptime-guardian.log 2>&1
