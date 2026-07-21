@@ -68,7 +68,7 @@ tracks:
           P0.0_review_launch: {status: done, tick: 1, completed_at: 2026-07-23}
           P0.1_blocking_reviews: {status: done, tick: 1, verdicts: {cto: revise, cfo: revise, ciso: revise, clo: revise}}
           P0.2_delta_merge: {status: done, tick: 2, completed_at: 2026-07-23, applied: "U.15 + U.16 inline"}
-          P0.3_advisory_reviews: {status: pending, agents: [cmo, coo, cpo, cdo, chro, cro, customer-success, investor-relations], note: "run on next off-peak tick"}
+          P0.3_advisory_reviews: {status: done, tick: 55, completed_at: 2026-07-21, agents: [cmo, coo, cpo, cdo, chro, cro, customer-success, investor-relations], verdicts: {cmo: approved_with_notes, coo: approved_with_notes, cpo: approved_with_notes, cdo: approved_with_notes, chro: approved_with_notes, cro: approved_with_notes, "customer-success": approved_with_notes, "investor-relations": approved_with_notes}, files: ["docs/plans/reviews/plan-review-cmo.md", "docs/plans/reviews/plan-review-coo.md", "docs/plans/reviews/plan-review-cpo.md", "docs/plans/reviews/plan-review-cdo.md", "docs/plans/reviews/plan-review-chro.md", "docs/plans/reviews/plan-review-cro.md", "docs/plans/reviews/plan-review-cs.md", "docs/plans/reviews/plan-review-ir.md"], note: "All 8 advisory reviewers returned approved_with_notes (0 revise verdicts, 0 blocking findings — P0 stays sealed). Notable non-blocking findings captured as next_action items: (a) CRO — Share-Mgmt remove_item path in web/src/app/api/stripe/change-plan/route.ts:540 uses subscriptionItems.del with proration_behavior:'none' which deletes the item IMMEDIATELY, not end-of-cycle; comment claims 'cancel_at_period_end-style' but Stripe API removes item on request. Correct approach = subscriptions.update with items:[{id, deleted:true}] + proration_behavior:'none' still deletes immediately — real end-of-cycle needs subscription schedules. Fix in follow-up P8 delta tick before P8.5 unblock. (b) CMO — brand-wording drift (Referred by vs Introduced by) + /guide/reports download-route + GA event missing. (c) CDO — complementary suppression missing on phase-distribution + reviews aggregates (k=1..4 renders as <5 but the complement bucket can leak). (d) Customer-Success — H.8 wholesale magic-link + welcome email unbuilt, Grant modal EN-only, no reseller-side denial-reason surface. (e) CPO — Customer drawer EN-only, wholesale wizard lacks non-payment confirmation. (f) CHRO — human-review-minutes KPI missing, Div 83A qualifying-tests checklist missing from ch08-team. (g) IR — pitch-deck Channel Economics slide + data-room GTM one-pager not authored. (h) COO — human-blocked items should surface in weekly digest. All findings are advisory-only per U.13 stage-5 — none gate any downstream phase."}
           P0.4_ceo_final_sign_off: {status: done, tick: 43, completed_at: 2026-07-21, verdict: approved, evidence: "P1.1 migrations authored (0091 + 0092) DONE tick 3; P1.2 library scaffolding (commission/cogs/hash/scope/supabase/require-admin/attribution/feature-gates.manifest) DONE tick 4; P1.3 unit tests 31/31 pass DONE tick 5; P1.4 docker exec psql applied 0091 + 0092 + 0093 + 0094 + 0095 + 0096 + 0097 + NOTIFY pgrst reload + reseller-reports storage bucket (private, 10MB, text/csv) DONE tick 41; two P1.4 gap-fixes captured inline (0093_reseller_audit_log.sql authored to fill missing schema for audit writes from P4.1/P4.2/P6.3/P6.4/P7.2/P9.3 route code; 0092 revenue_events index column corrected from occurred_at → ts before re-apply). P0.2 delta merge applied (U.15 + U.16) DONE tick 2. P1.5 InfoVision seed remains HUMAN_BLOCKED on H.20 ABN + GST confirmation — accepted carve-out per goal file rule (TBD on required attribute); does NOT block P0 sign-off since every other P1 exit-criterion is green and downstream P2-P9 phases already shipped without the seed row (attribution/console/webhooks/console/capabilities/reports all use resellers table shape rather than the seed row's content). P0.3 advisory reviews (cmo/coo/cpo/cdo/chro/cro/customer-success/investor-relations) remain pending on next off-peak tick — advisory verdict only, does NOT gate P0 close per U.13 stage-5 (blocking reviewers = cto/cfo/ciso/clo who returned revise+applied at tick 1-2)."}
       P1_foundations:
         status: done_pending_seed
@@ -1757,6 +1757,71 @@ review_history:
       flipped pending → done with evidence field only; no
       code files touched this tick.
     commit: (this tick)
+  - tick: 55
+    ran_at: 2026-07-21
+    action: p0.3_advisory_reviews
+    result: |
+      P0.3 advisory reviews closed. All 8 advisory reviewers
+      (cmo, coo, cpo, cdo, chro, cro, customer-success,
+      investor-relations) ran in parallel per plan §U.11 +
+      §U.13 stage-1 fan-out and returned verdict =
+      approved_with_notes — 0 revise verdicts, 0 blocking
+      findings. Each wrote docs/plans/reviews/plan-review-
+      <role>.md with YAML frontmatter (name/role/verdict/
+      ran_at/scope) capped at 60 lines per U.13 stage-brief
+      efficiency rule. Notable non-blocking findings
+      captured as next_action items: (a) CRO — Share-Mgmt
+      remove_item path in web/src/app/api/stripe/change-
+      plan/route.ts:540 uses subscriptionItems.del with
+      proration_behavior='none' which deletes the item
+      IMMEDIATELY not end-of-cycle; the surrounding comment
+      claims 'cancel_at_period_end-style' but Stripe API
+      removes item on request; correct fix requires a
+      subscription schedule OR items:[{id, deleted:true}]
+      via subscriptions.update with a cancel-at-period-end
+      wrapper; must be resolved in a P8 delta tick before
+      P8.5 unblocks so GA doesn't ship a stealth churn
+      surprise. (b) CMO — brand-wording drift ("Referred
+      by" vs plan §C.3 "Introduced by"), /guide/reports
+      lacks a download route + GA event so template-library
+      ROI is unmeasurable, email footer helper not yet
+      wired into welcome/receipt emails. (c) CDO —
+      complementary suppression missing on
+      phase-distribution + reviews aggregates (single
+      k=1..4 bucket renders as <5 but its complement can
+      still leak the count via subtraction); GA4 event
+      catalogue for showcase surfaces not authored.
+      (d) Customer-Success — H.8 wholesale magic-link +
+      welcome email unbuilt, Grant modal EN-only, no
+      reseller-side denial-reason surface, P11 KPIs are
+      all trailing (no last-login / first-report leading
+      signals). (e) CPO — reseller Customer drawer EN-only,
+      wholesale wizard lacks explicit non-payment
+      confirmation. (f) CHRO — human-review-minutes KPI
+      missing from the 0-eng-week claim; Div 83A qualifying
+      -tests checklist missing from chapter-08-team.
+      (g) IR — pitch-deck Channel Economics slide + data-
+      room GTM one-pager + explicit reseller row in
+      unicorn masterplan not authored. (h) COO —
+      human-blocked items (P1.5, P8.5) should surface in
+      weekly digest. All findings are advisory-only per
+      U.13 stage-5 — none gate any downstream phase.
+      Verified: git status shows 7 new plan-review-*.md
+      files under docs/plans/reviews/ (CS agent already
+      committed + pushed plan-review-cs.md inline as
+      6ca0e38); goal file P0.3_advisory_reviews flipped
+      pending → done with verdict map + evidence note.
+      Frontier after tick 55: only human-blocked leaves
+      remain (P1.5 InfoVision seed on H.20 + P8.5 Stripe
+      env vars); P10_hardening still blocked_by [P1..P9]
+      until P8.5 clears. Autonomous loop is now
+      substantially IDLE — no unblocked non-human-blocked
+      phase remains; loop should self-exit or fall back
+      to periodic housekeeping ticks until human unblocks
+      P1.5 or P8.5. CRO-flagged remove_item defect
+      captured as top item in next_action for P8 delta
+      before P8.5 unblock.
+    commit: (this tick)
   - tick: 54
     ran_at: 2026-07-21
     action: b10_integrations_admin
@@ -1784,7 +1849,14 @@ next_action:
     2) P1.5_infovision_seed remains HUMAN-BLOCKED. Once Auschain confirms InfoVision's real ABN + GST status per H.20, run: `INSERT INTO resellers (code, display_name, billing_model, allowed_tiers, can_create_startups, can_grant_credits, monthly_credit_budget, monthly_sandbox_credits, gst_registered, abn, commission_share_pct) VALUES ('INFOVISION', 'InfoVision', 'wholesale', ARRAY[0,10,20,30,40], true, true, 20000, 500, true, '<REAL_ABN>', 40.00);`
     3) DONE tick 42 — Track B B1.3 seed + ingest shipped via web/scripts/seed-showcase-blockid.ts. Admin's default project 2bf55234 is now is_showcase=true with repo_url; data_rooms 847b1f03 upserted with 242 sections rows tagged by generated_by_agent + phase_at_generation. Track B B2 (guide chapters 1-4) and B8 (reseller linkage) are now unblocked.
     4) DONE tick 35 — Optional P6.5b widening: term-sheet/idea-lab/valuation/journal/data-room/evidence spendCredits callers now thread project_id via getProjectIdFromRequest(). See tick 35 for file list. Remaining spendCredits() callers not touched: financial-projections, investor-pack/generate, svi/pitch-deck, svi/docx, svi/report, svi/enhanced-report, svi/dimension-analyze, svi/ai-score, svi/research, revaluation, v1/analyze, evaluation/[criterionKey]/ai-suggest, data-room/goals (award path — misleading call, not a real debit).
-    5) P0.3_advisory_reviews still pending — schedulable on next off-peak tick (advisory-only per U.13 stage-5; does NOT gate any downstream phase).
+    5) DONE tick 55 — P0.3_advisory_reviews closed. All 8 advisory reviewers (cmo/coo/cpo/cdo/chro/cro/customer-success/investor-relations) ran in parallel and returned approved_with_notes (0 revise; 0 blocking findings). Review files land under docs/plans/reviews/plan-review-<role>.md. Non-blocking findings captured as items 21-27 below.
+   21) TODO (P8 delta before P8.5 unblock — flagged by CRO advisory) — Fix web/src/app/api/stripe/change-plan/route.ts:540 remove_item path. Current code: `stripe.subscriptionItems.del(target.id, {proration_behavior: "none"})` deletes the sub-item IMMEDIATELY (Stripe API contract), but the surrounding comment and revenue_events detail claim "effective: end_of_current_period". Correct pattern: (a) fetch subscription, (b) call stripe.subscriptions.update(sub.id, {items:[{id: target.id, deleted: true}], proration_behavior:'none', cancel_at_period_end: false}) BUT that still deletes now — end-of-cycle removal requires a Subscription Schedule with a next-phase items[] that omits the add-on. Prefer schedule path so the customer keeps access through the billed period as the drawer copy promises. Add a Playwright case in P10 that asserts the item is still active until current_period_end.
+   22) TODO (advisory — CMO) — /guide/reports lacks a download route + GA event so template-library ROI is unmeasurable; brand-wording pass "Referred by" → "Introduced by" per plan §C.3.
+   23) TODO (advisory — CDO) — Add complementary-suppression pass to portfolio-phase-distribution + reviews aggregate rollups so k=1..4 buckets cannot leak via subtraction of the complement bucket; author GA4 event catalogue for showcase surfaces.
+   24) TODO (advisory — Customer-Success) — Wire H.8 wholesale magic-link + welcome email for reseller-provisioned founders; add reseller-side denial-reason surface (page render, not just API); add EN+VI parity to Grant modal; add leading-signal KPIs (last-login, first-report) to P11 weekly digest.
+   25) TODO (advisory — CPO) — EN+VI parity for reseller Customer drawer; explicit non-payment confirmation step in wholesale onboarding wizard.
+   26) TODO (advisory — CHRO) — Add human-review-minutes KPI to autonomous loop telemetry so the "0 eng-weeks" claim carries a concrete counter; add Div 83A qualifying-tests checklist to docs/guides/startup-journey/chapter-08-team.md.
+   27) TODO (advisory — IR + COO) — Pitch-deck Channel Economics slide, data-room GTM one-pager, reseller row in unicorn masterplan; surface human-blocked items (P1.5, P8.5) in weekly digest.
    10) DONE tick 43 — P0.4_ceo_final_sign_off closed with verdict=approved. P0 pre-flight window is now fully sealed; only P0.3 advisory reviews remain pending (non-blocking).
    11) DONE tick 44 — P8_share_management_addon decomposed into P8.1..P8.5 and P8.1_manifest_completeness shipped. feature-gates.manifest.ts now maps 28 real mutation routes (9 phantoms removed, 20 real routes added); completeness test 6/6 pass guards against future drift.
    16) DONE tick 49 — Track B B3_guide_ch_5_to_8 shipped. Chapters 5-8 (05-pmf, 06-revenue, 07-growth, 08-team) authored EN+VI as four new entries appended to web/src/lib/guide/startup-journey.ts; ChapterSlug union extended; module doc-comment updated to reflect the B2+B3 arc. VI is complete parity, not machine translation. phaseLabel for each new chapter is a direct reference to PHASE_LABELS[5..8] from @/lib/showcase/gallery so /guide, /workspace/guide, /guide/reports and /showcase/blockid share one canonical phase-label taxonomy. Both surface routes (web/src/app/guide/[chapter]/page.tsx and web/src/app/workspace/guide/[chapter]/page.tsx) SSG the four new slugs automatically via generateStaticParams reading allChapterSlugs() — zero route-file edits required. "Chapter 5 unlocks with the B3 release" placeholder text flipped on both surfaces to "Chapter 9 unlocks with the B4 release" (EN + VI). Test suite: EXPECTED_SLUGS bumped to 8, order + phase arrays extended to [1..8], allChapterSlugs assertion updated, unknown-slug case bumped to 09-funding, first/last adjacent-chapter assertions flipped to 01-vision / 08-team, plus a new boundary assertion for the B2/B3 stitch (04-mvp ↔ 05-pmf) so future reorderings can't silently break the chain. Docs mirror at docs/guides/startup-journey/chapter-{05..08}.md ships EN copy for offline reading + contributor PRs (header comment states runtime pages read the TS module — .md files are documentation-only). Verified: 9/9 pass in startup-journey.test.ts (was 8/8); 64/64 combined guide+showcase pass (was 63/63); tsc clean; npm run lint:reseller unchanged 8 files / 3 exemptions / 0 violations. Chapters 5-8 copy references B3-scoped integrations from plan §298 by name (founder-own Stripe test-mode → live-mode flip in ch5+ch7, GA4 property connection in ch7, weekly SVI cron in ch7, Div83A checker + ESOP scheme in ch8) but the actual UI wiring for those integrations is a follow-up tick — matches the B2 precedent where chapters 1-4 referenced GitHub repo-link + GA measurement-ID capture without shipping the capture UI. Frontier after tick 49: (a) Track A HUMAN-BLOCKED on P8.5 Stripe env vars. (b) Track B B4_guide_ch_9_to_12 (chapters 9-12: Funding-Ready → Fundraise/Term Sheet → Post-Funding/Scale → Exit/Beyond) now unblocked in the same startup-journey.ts pattern — preferred next tick to close the 12-chapter content-authoring arc and unblock B9 (reviews & feedback surface, deps: B4). (c) B7 product tour (deps: B2) + B8 reseller linkage (deps: B1 + track_A_P4) remain unblocked as fallbacks. (d) P0.3 advisory reviews still pending (advisory-only). (e) P1.5 InfoVision seed still HUMAN-BLOCKED on H.20.
@@ -1802,6 +1874,9 @@ next_action:
    17) DONE tick 50 — Track B B4_guide_ch_9_to_12 shipped. Chapters 9-12 (09-funding, 10-fundraise, 11-scale, 12-exit) authored EN+VI as four new entries appended to web/src/lib/guide/startup-journey.ts; ChapterSlug union extended to 12 entries; module doc-comment updated to reflect the B2+B3+B4 arc. VI is complete parity, not machine translation. Chapter 10 honours U.15.11 wording supersession — blockchain hash described as "immutable record for later verification" and explicitly NOT as legal notarisation. phaseLabel for each new chapter is a direct reference to PHASE_LABELS[9..12] from @/lib/showcase/gallery so /guide, /workspace/guide, /guide/reports and /showcase/blockid share one canonical phase-label taxonomy. Both surface routes SSG the four new slugs automatically via generateStaticParams reading allChapterSlugs() — zero route-file edits required. "Chapter 9 unlocks with B4" placeholder text flipped on both surfaces to arc-complete wording (marketing: "You've reached the final chapter. After exit, open a new workspace at Chapter 1 or move into the reseller/accelerator role."; workspace: "Final chapter. After exit: new workspace or reseller role."; VI parity on both). Test suite: EXPECTED_SLUGS bumped to 12, order + phase arrays extended to [1..12], allChapterSlugs assertion updated, unknown-slug case bumped to "13-post-exit", last-slot adjacent assertion flipped to 12-exit ↔ 11-scale, plus a new boundary assertion for the B3/B4 stitch (08-team ↔ 09-funding) so future reorderings can't silently break the chain. Docs mirror at docs/guides/startup-journey/chapter-{09..12}.md ships EN copy for offline reading + contributor PRs (header comment states runtime pages read the TS module — .md files are documentation-only). Verified: 10/10 pass in startup-journey.test.ts (was 9/9); 65/65 combined guide+showcase (was 64/64); tsc clean; npm run lint:reseller unchanged 8 files / 3 exemptions / 0 violations. Chapters 9-12 copy references B4-scoped integrations from plan §299 by name (investor NDA workflow, term-sheet AI review UI, blockchain sync activation, LP-report bundling) but the actual UI wiring for those integrations is a follow-up tick — matches the B2/B3 precedent where chapter copy referenced integrations before the capture UI shipped. Frontier after tick 50: (a) Track A HUMAN-BLOCKED on P8.5 Stripe env vars. (b) Track B B9_reviews_surface (deps: B4 now done) unblocked — the showcase_reviews table + Phase-9 investor-review capture surface; migration 0100 slot already reserved. (c) B7 product tour + B8 reseller linkage remain unblocked from earlier ticks. (d) P0.3 advisory reviews still pending. (e) P1.5 InfoVision seed still HUMAN-BLOCKED on H.20. The 12-chapter content-authoring arc is now closed.
   authorised: true
   on_success: |
+    Frontier after tick 55: (a) P0.3 advisory reviews DONE — all 8 advisory reviewers returned approved_with_notes (0 revise, 0 blocking); 7 non-blocking follow-ups captured in next_action items 21-27. Notable: CRO surfaced a real defect in the P8.4 Share-Mgmt remove_item path (subscriptionItems.del with proration_behavior=none removes the item immediately, not end-of-cycle as the drawer copy promises) — must be fixed in a P8 delta before P8.5 unblocks. (b) Track A still HUMAN-BLOCKED on P8.5 Stripe env vars. (c) Track B COMPLETE — B1..B10 all done. (d) P1.5 InfoVision seed still HUMAN-BLOCKED on H.20. (e) P10_hardening still blocked_by [P1..P9] until P8.5 clears. With P0.3 closed, the autonomous loop's frontier is now EMPTY of non-human-blocked leaves — loop should self-idle until an unblock signal arrives (H.20 ABN confirmation OR Stripe price env vars minted). Next autonomous tick options: (i) begin P10 dry-run scaffolding (Playwright fixtures, perf-audit baseline) so it can fire the instant P8.5 clears; (ii) execute the CRO-flagged P8.4 defect fix as a self-contained delta since it does not require Stripe env vars; (iii) knock off advisory follow-ups 22-27 in a housekeeping tick.
+
+    (superseded — for tick 54 detail see the tick-20 log entry above)
     Frontier after tick 54: (a) Track A still HUMAN-BLOCKED on P8.5 Stripe env vars — P8 cannot close until STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL are minted by the Stripe account owner. (b) Track B COMPLETE — B10_integrations_admin DONE this tick; B1..B10 all done. Pure lib buildIntegrationsCatalogue (4 rows in stable order, 21/21 tests) + client IntegrationRowCard wrapper (delegates oauth rows to existing OAuthConnectorCard for unchanged POST paths; blockchain row renders as a Manage/Set-up Link to /workspace/wallet with status pill + statusDetail + last-sync) + server page composing listConnections + getSyncConfig into the catalogue with summary header + Account-section nav entry (Plug icon after Billing). No schema work needed: oauth_connections_v2 (0087) already covers the OAuth trio and blockchain_sync_config (0034) already covers the chain row. Vitest 624/624 (was 603/603, +21 catalogue); tsc clean; lint:reseller unchanged (3 exemptions / 0 violations). (c) P0.3 advisory reviews still pending (advisory-only per U.13 stage-5). (d) P1.5 InfoVision seed still HUMAN-BLOCKED on H.20. (e) P10_hardening still blocked_by [P1..P9] — waits on P8.5 completion + Playwright provisioning. With Track B closed, the only remaining autonomous work is P0.3 advisory reviews; every other leaf is HUMAN_BLOCKED.
 
     (superseded — for tick 53 detail see the tick-19 log entry above)
