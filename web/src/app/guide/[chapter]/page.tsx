@@ -1,6 +1,6 @@
 /**
- * /guide/[chapter] — Track B B2 + B3 marketing surface for the 12-chapter
- * startup journey guide (chapters 1–4 shipped in B2, 5–8 in B3; 9–12 in B4).
+ * /guide/[chapter] — Track B B2 + B3 + B4 marketing surface for the 12-chapter
+ * startup journey guide (chapters 1–4 shipped in B2, 5–8 in B3, 9–12 in B4).
  *
  * Server component. Reads the chapter body from the pure content lib at
  * web/src/lib/guide/startup-journey.ts and renders EN or VI copy based on the
@@ -193,8 +193,8 @@ function ChapterNav({
       ) : (
         <div className="rounded-lg border border-dashed border-slate-300 p-4 text-right text-sm text-slate-500 dark:border-slate-700">
           {locale === "vi"
-            ? "Chương 9 sẽ mở khi bản B4 phát hành."
-            : "Chapter 9 unlocks when the B4 release ships."}
+            ? "Bạn đã đến chương cuối. Sau thoái vốn, mở workspace mới ở Chương 1 hoặc chuyển sang vai đại lý."
+            : "You've reached the final chapter. After exit, open a new workspace at Chapter 1 or move into the reseller/accelerator role."}
         </div>
       )}
     </nav>
