@@ -309,3 +309,5 @@
 {"ts":"2026-07-21T22:03:54.023Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-21T22-00-01-233Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-21T22:06:29.873Z","event":"github-push-master","detail":"Blockid-au: feat(showcase): Track C.3 Xero case study skeleton + flip menu to live (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-21T22:20:37.859Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 47 — P8.4 purchase drawer + add-on lifecycle (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T22:20:45.307Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-21T22-05-01-788Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T22:36:07.389Z","event":"github-push-master","detail":"Blockid-au: feat(showcase): tick 48 — B2 guide chapters 1-4 (Vision → MVP) (1 commits)","source":"github-webhook"}
