@@ -296,3 +296,4 @@
 {"ts":"2026-07-21T21:13:27.984Z","event":"github-push-master","detail":"Blockid-au: feat: 24/7 uptime guardian + Track C case-study library (Atlassian first) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-21T21:20:05.809Z","event":"github-push-master","detail":"Blockid-au: feat(showcase): B1.3 seed + ingest BlockID.au workspace (tick 42) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-21T21:20:19.149Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-21T21-10-01-859Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T21:27:55.745Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): tick 43 — P0.4 CEO final sign-off (verdict=approved) (1 commits)","source":"github-webhook"}
