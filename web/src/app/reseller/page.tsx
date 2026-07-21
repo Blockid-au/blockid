@@ -16,6 +16,7 @@ import {
   buildSviBands,
   type KAnonBucket,
 } from "@/lib/reseller/portfolio-aggregates";
+import { buildPhaseDistribution } from "@/lib/reseller/portfolio-phase-distribution";
 
 export const dynamic = "force-dynamic";
 
@@ -62,8 +63,13 @@ export default async function ResellerDashboardPage() {
   const summary = buildPortfolioSummary({ customers, now: new Date() });
   const weekly = applyComplementarySuppression(buildSignupWeekly(customers));
   const bands = applyComplementarySuppression(buildSviBands(sviRaw));
+  const phaseDist = buildPhaseDistribution({
+    customers: customers.map((c) => ({ user_id: c.user_id })),
+    svi: sviRaw,
+  });
   const weeklyMax = Math.max(1, ...weekly.map((w) => w.count ?? 0));
   const bandsMax = Math.max(1, ...bands.map((b) => b.count ?? 0));
+  const phaseMax = Math.max(1, ...phaseDist.map((p) => p.count ?? 0));
 
   const kpis: Kpi[] = [
     {
@@ -156,6 +162,34 @@ export default async function ResellerDashboardPage() {
                 className={`h-2 rounded ${b.suppressed ? "bg-surface-300" : "bg-brand-500"}`}
                 style={{
                   width: `${Math.max(4, Math.round(((b.count ?? 0) / bandsMax) * 240))}px`,
+                }}
+              />
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="mb-6 rounded-lg border border-surface-200 bg-white p-4">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-lg font-semibold text-ink-900">Phase distribution</h2>
+          <p className="text-xs text-ink-500">
+            12-phase startup journey — same taxonomy as{" "}
+            <a href="/guide/01-vision" className="text-brand-700 underline">guide chapters</a>
+          </p>
+        </div>
+        <ul className="mt-3 space-y-1 text-sm text-ink-700">
+          {phaseDist.map((p) => (
+            <li key={p.phase} className="flex items-center gap-3">
+              <span className="w-8 font-mono text-xs text-ink-500">P{p.phase}</span>
+              <span className="w-40 truncate text-xs text-ink-700">{p.label.en}</span>
+              <span className="w-10 text-right tabular-nums">
+                {p.suppressed ? "<5" : p.count}
+              </span>
+              <span
+                aria-hidden="true"
+                className={`h-2 rounded ${p.suppressed ? "bg-surface-300" : "bg-brand-500"}`}
+                style={{
+                  width: `${Math.max(4, Math.round(((p.count ?? 0) / phaseMax) * 200))}px`,
                 }}
               />
             </li>

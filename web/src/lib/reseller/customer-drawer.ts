@@ -14,6 +14,8 @@
 // timeline ordering + report metadata masking in vitest without needing a
 // live database, mirroring the customer-reveal split (7/7 tests).
 
+import { annotateProgression } from "./progression-linkage";
+
 export type ProgressionEventKind =
   | "signup"
   | "onboarding_completed"
@@ -28,6 +30,12 @@ export interface ProgressionEvent {
   ts: string; // ISO timestamp
   label: string; // human-readable label (no content, no URLs)
   detail?: string | null; // optional numeric delta / plan id / grant amount
+  /** U.9 12-phase journey position, or null when the event is cross-cutting (billing / artefact). */
+  phase?: number | null;
+  /** Guide chapter slug for the phase, or null when phase is null. */
+  chapterSlug?: string | null;
+  /** Public guide deep-link URL, or null when no chapter maps. */
+  href?: string | null;
 }
 
 export interface SviCurvePoint {
@@ -183,7 +191,9 @@ export function buildProgressionTimeline(input: {
   }
 
   out.sort((a, b) => a.ts.localeCompare(b.ts));
-  return out;
+  // Track B B8 — attach guide-chapter deep-link envelope to every row so the
+  // customer drawer can render each timeline entry as "→ Chapter N".
+  return annotateProgression(out);
 }
 
 /* ------------------------------------------------------------------------- */
