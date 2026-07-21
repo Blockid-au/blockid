@@ -154,6 +154,94 @@ kpi:
 
 **Kill switch:** `RESELLER_AUTONOMOUS_LOOP=off` in env stops the cron immediately; goal file remains for manual replay.
 
+### U.6 One-startup-per-idea entity model — clarifies `projects` semantics
+
+Founder direction: **one `projects` row = one startup = one idea.** A founder with a second idea creates a second `projects` row; there is no "add idea to existing startup" flow. This locks the following semantics inside the reseller module and supersedes any ambiguity in A.2 and D.2:
+
+- **Per-workspace attribution wins** over per-user attribution. The `projects.attribution_reseller_id` column (D.2) is the canonical join for reseller ↔ startup. `app_users.attribution_reseller_id` remains as a cache of "the first workspace this founder attributed" so we can flag returning founders in the console, but it never determines console visibility on its own.
+- **Same founder, multiple ideas, different resellers is legal.** A Growth-plan founder with 10 workspace slots (`PLAN_PROJECT_LIMITS.growth=10` at [web/src/lib/projects.ts:32](web/src/lib/projects.ts)) can attribute idea 1 to InfoVision (`?via=INFOVISION20`) and idea 2 to a different reseller — each shows in its own reseller's console; neither reseller sees the other's row.
+- **Reseller code capture happens per workspace, not per user.** The `blockid_via` cookie is read at *first workspace creation for that idea*, not at first login. Consumption sites (`login-form.tsx:167`, `google/route.ts:114`, `auth.ts:517/642`) capture the cookie into a *pending attribution slot* that gets committed when `createProject()` at [projects.ts:398](web/src/lib/projects.ts) fires — not before. If the founder aborts before creating a project, no attribution is written.
+- **Wholesale-mode (U.3) charges per idea.** Each `POST /reseller/create-startup` provisions ONE `projects` row + ONE Stripe subscription line at A$99/mo. Second idea for the same founder under the same reseller = second `/reseller/create-startup` call = second subscription line ($99 × N per month).
+- **Sandbox (U.4) is one row per reseller, not per idea** — the reseller uses their sandbox for arbitrary exploration; ideas discovered inside sandbox that become real customer startups are provisioned via the normal create-startup flow after the fact.
+
+### U.7 Reseller dashboard — progression view over current-state (extends C.1.2 + C.1.6)
+
+Founder direction: reseller must see **how each startup has grown over time and what they've built**, not just today's snapshot. Extend Section C.1.2 (Customers page) as follows — no new tables required; everything drawn from data that already lives at operational level:
+
+**Startup detail drawer — three tabs (up from one):**
+
+1. **Overview** (existing spec in C.1.2) — current-state fields: plan, billing status, MRR, credits balance, last active.
+2. **Progression** (new) — a scrollable timeline of milestones this startup has hit inside BlockID:
+   - **Events** aggregated from existing tables — timestamp + label only, never content:
+     * signup (`app_users.created_at`)
+     * onboarding_completed (`app_users.onboarding_completed`)
+     * first_svi_run (min `svi_analyses.created_at` for this `project_id`)
+     * svi_score_updates (each `svi_analyses.created_at` with delta, not payload)
+     * report_generated (`svi_analyses.report_pdf_url IS NOT NULL` — count + last date, no URL)
+     * milestone_hit (`web/content/reports/milestone-report-state.json` rows scoped to project)
+     * plan_change (via `revenue_events.kind='subscribe|renewal'`)
+     * credit_grants_received (`credit_transactions` rows where `reason IN ('plan_grant','reseller_grant')`)
+     * cap_table_activity_count (only if Share Management add-on active — counts only, never rows)
+     * blockchain_sync_events (count only)
+   - **SVI curve**: monthly SVI score sparkline (uses aggregated `svi_analyses.score` — the score itself is operational, the signals inside are content and stay hidden).
+   - **Roadmap position**: which of the 8 phases from `[[platform_roadmap]]` this startup is in (Idea/Validation/Position/Value/Direction/Capital/Growth/Exit). Auto-derived from `projects.stage` + SVI thresholds.
+3. **Reports** (new) — a list of report *artifacts* the startup has generated, metadata only. Columns: title (from `svi_analyses.title` or report template name), type (SVI report / market research / financial projection / investor deck), generated_at, generated_by_agent (which C-Level agent produced it, per `[[project_ai_agent_ecosystem]]`), size. **No download link** and **no preview** — the reseller sees existence and cadence, not content. This is the R6 privacy line.
+
+**Portfolio-level aggregation on the dashboard `/reseller`** (extends C.1.1):
+- **Portfolio SVI curve**: average SVI across attributed startups, monthly. Uses same aggregation.
+- **Phase distribution**: how many portfolio startups sit in each of the 8 platform-roadmap phases (stacked bar over time).
+- **Cohort velocity**: median days-from-signup for each phase transition. Answers "how fast are InfoVision's startups actually growing?"
+- **Health flags**: startups with no SVI run in 30 days, credits unused > 30 days, no report generated. Actionable for the reseller's support team.
+
+Reuse targets:
+- `web/src/lib/analytics/*` (whichever aggregation module exists — check on impl)
+- `web/content/reports/milestone-report-state.json` (already tracked)
+- `svi_analyses.score` (operational aggregation OK; signals stay hidden per E.2)
+- Existing chart primitives from `/admin/pricing-metrics` and `/admin/growth`
+
+Everything above is achievable **without new tables** — three new indexed queries on existing schema.
+
+### U.8 Parallel Track B — End-to-end startup showcase & guideline (dogfooding demo)
+
+Founder direction, in parallel with the reseller module: build a **canonical worked example** — a real startup going through BlockID from Day 0 to funding-ready with full reports, iterated business-model, documents, and use-cases — using **BlockID.au itself** as the exemplar. Doubles as (a) onboarding guideline for new startups, (b) proof-of-value marketing content, (c) reference implementation for the reseller's dashboard progression view (U.7).
+
+**Anchors on existing infra** (do NOT rebuild): `[[project_core_mission]]` (3 questions + SVI index + valuation), `[[platform_roadmap]]` (8 phases), `[[project_growth_phases]]` (12-phase journey), `[[project_ai_agent_ecosystem]]` (C-Level agents already self-producing reports for BlockID.au), memory: *SVI 13-Criteria Enhancement*, *Report Visuals*, *Report Tone & Structure*.
+
+**Deliverables (Track B):**
+
+1. **The Showcase Startup — BlockID.au itself as `projects[0]`.**
+   - A real, live `projects` row owned by `admin@blockid.au` marked `is_showcase=true` (new boolean column, nullable everywhere else).
+   - Populated by the existing C-Level agent ecosystem — CMO produces market research reports, CFO produces projections, CTO produces architecture docs, CDO produces data quality reports, etc. This is already happening (see `web/content/reports/cmo-daily-*.md`, `cfo-daily-*.md`, `cto-daily-*.md`, etc. per git status). Track B **wires them into the workspace UI** as first-class artifacts on this project instead of leaving them as filesystem-only reports.
+   - Read-only mirror: `/showcase/blockid` — publicly viewable version of the workspace with sensitive fields redacted.
+
+2. **Guided walkthrough series — 12 chapters mapped to the growth-phase journey.**
+   - Each chapter = one `docs/guides/startup-journey/chapter-{01..12}.md`: Vision → Idea Validation → Market Research → MVP → PMF → Revenue → Growth → Team → Funding → Scale → Exit → Beyond.
+   - Each chapter: (a) what the founder does in BlockID this phase, (b) which agent(s) they invoke, (c) expected outputs and how to interpret, (d) common pitfalls, (e) a screenshot from the BlockID.au showcase workspace showing "what this looks like when done right", (f) EN + VI content in the flat i18n dictionary.
+   - Rendered inside the workspace at `/workspace/guide/[chapter]` and on the marketing site at `/guide/[chapter]`.
+
+3. **Report artifact library** — the 15+ reports that BlockID.au itself generates become downloadable **anonymised template PDFs** in `/guide/reports`. Each labelled "Example: what BlockID.au produced at Phase X" so new founders can preview the output before running the agent themselves.
+
+4. **Interactive product tour** — first-run overlay on the workspace shell that surfaces "You are on Phase X of 12" and links to the current chapter. Hides after dismissal, resurfaces on phase transition. Reuses the existing `TrialBanner` / `UpgradeBanner` slot pattern at [workspace-layout.tsx:321-329](web/src/components/workspace/workspace-layout.tsx) so it composes with those.
+
+5. **Reseller-facing linkage.** Every entry in the reseller's dashboard progression view (U.7) is annotated with a "See how BlockID.au did this phase" link into the guide — turns the reseller's dashboard into a coaching tool.
+
+**Track B roadmap** (independent phases; can run entirely in parallel with reseller Track A):
+
+| # | Phase | Deps | Feature flag | What it delivers |
+|---|---|---|---|---|
+| B1 | Showcase project scaffold | — | `SHOWCASE_TRACK_ENABLED` | `is_showcase` column on `projects`; seed BlockID.au's own workspace row; wire existing daily reports (`web/content/reports/*.md`) as `svi_analyses`-like rows so they appear in-app |
+| B2 | Guide chapters 1–4 (Vision → MVP) | B1 | — | Content + rendering at `/workspace/guide/[chapter]` and `/guide/[chapter]`, EN+VI |
+| B3 | Guide chapters 5–8 (PMF → Team) | B2 | — | Same pattern |
+| B4 | Guide chapters 9–12 (Funding → Beyond) | B3 | — | Same |
+| B5 | Report template library | B1 | — | `/guide/reports` with anonymised templates from the showcase |
+| B6 | Public showcase mirror `/showcase/blockid` | B1 | `SHOWCASE_PUBLIC_ENABLED` | Read-only public view with redaction rules; marketing SEO landing |
+| B7 | Interactive product tour | B2 | — | Overlay component + phase-tracking on workspace shell |
+| B8 | Reseller linkage | B1, U.7 P4 | — | Progression-view rows link to matching guide chapter |
+
+Estimate: ~4–6 eng-weeks for Track B, running in parallel with A. Both tracks share the P0 autonomous loop — the goal file (U.5) grows a second phase list under `tracks.B.phases`, and the same CEO tick picks the next unblocked phase from either track.
+
+**Kill switch:** `SHOWCASE_TRACK_ENABLED=off` hides the showcase workspace + guide UI; content on disk is preserved.
+
 ---
 
 ## A. AS-IS Architecture Map (+ reuse-vs-build verdicts)
