@@ -38,12 +38,12 @@ const CASES: CaseStudy[] = [
     slug: "canva",
     name: "Canva",
     country: "🇦🇺 Australia",
-    founded: 2013,
+    founded: 2012,
     ipo_year: "private",
-    market_cap_usd: "~US$40B",
-    status: "coming_soon",
+    market_cap_usd: "~US$40B peak",
+    status: "live",
     tagline:
-      "Sydney design tool from Melanie Perkins, decacorn without IPO. Uses secondary rounds + growth capital.",
+      "Sydney design tool from Melanie Perkins — decacorn without IPO, 9 private rounds, Fusion-Yearbooks-precursor validation.",
     themes: ["Melanie Perkins", "decacorn-without-IPO", "growth-capital", "product-led"],
   },
   {
