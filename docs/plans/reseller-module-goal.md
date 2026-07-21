@@ -170,15 +170,26 @@ tracks:
           "monthly reconciliation CSV export (DONE — /api/cron/reseller-monthly-reconciliation groups reseller_commissions_current cleared events by reseller_id and emails admin@blockid.au with CSV attachment; ?month=YYYY-MM allows historical rerun)"
         ]
       P4_reseller_console:
-        status: blocked_by: P3
+        status: partial
         migration_files: [0095]
+        tick_started: 21
+        sub_phases:
+          P4.1_reveal_email_audit: {status: done, tick: 21, files: [
+            "web/src/lib/reseller/customer-reveal.ts (+ test 7/7)",
+            "web/src/app/api/reseller/customers/[id]/reveal-email/route.ts",
+            "web/src/app/reseller/customers/reveal-email-cell.tsx",
+            "web/src/app/reseller/customers/page.tsx (uses RevealEmailCell)"
+          ], note: "H.10 chokepoint — decideReveal() enforces uuid + allowedCustomerIds membership; scoped route writes reseller_audit_log(subject_user_id, action='reveal_email', fields=['email'], route, ip, user_agent) before returning plaintext"}
+          P4.2_customer_drawer: {status: pending, note: "3-tab drawer Overview + Progression + Reports (U.7)"}
+          P4.3_portfolio_aggregates: {status: pending, note: "k>=5 anonymity + weekly timestamp quantisation on dashboard counters"}
+          P4.4_scope_grep_rule: {status: pending, note: "CI rule R-01 fails any /api/reseller/* that touches getSupabaseAdmin without importing scopedReseller"}
         exit_criteria: [
-          "/reseller/{dashboard,customers,codes,credits,create-startup,reports,settings} live",
-          "scopedReseller(user) typed helper enforces boundary (D3-CISO-01)",
-          "reseller_audit_log writes on every row read",
-          "3-tab customer drawer: Overview + Progression + Reports (U.7)",
-          "k>=5 anonymity + weekly timestamp quantisation on aggregate counters (D3-CISO-03)",
-          "Playwright: reseller cannot fetch /api/svi/*, /api/dataroom/*, /api/cap-table/* for attributed customer → 403"
+          "/reseller/{dashboard,customers,codes,credits,create-startup,reports,settings} live (SKELETONS DONE)",
+          "scopedReseller(user) typed helper enforces boundary (D3-CISO-01) (DONE)",
+          "reseller_audit_log writes on every row read (PARTIAL — reveal-email wired P4.1; drawer + list read wiring pending P4.2)",
+          "3-tab customer drawer: Overview + Progression + Reports (U.7) (PENDING P4.2)",
+          "k>=5 anonymity + weekly timestamp quantisation on aggregate counters (D3-CISO-03) (PENDING P4.3)",
+          "Playwright: reseller cannot fetch /api/svi/*, /api/dataroom/*, /api/cap-table/* for attributed customer → 403 (DEFERRED to P10)"
         ]
       P5_cobranding:
         status: done_pending_playwright
@@ -421,6 +432,26 @@ review_history:
       9/9 new + 69/69 combined pass (reseller + projects); tsc clean.
       Playwright pill vs no-pill deferred to P10_hardening (E2E lens owner).
     commit: (this tick)
+  - tick: 21
+    ran_at: 2026-07-21
+    action: p4.1_reveal_email_audit
+    result: |
+      P4 kickoff — customer email reveal + reseller_audit_log wiring.
+      Pure decision helper at web/src/lib/reseller/customer-reveal.ts
+      (decideReveal + maskEmail; 7/7 vitest cases: missing/invalid/out-of-scope/
+      in-scope + mask edge cases). Route
+      web/src/app/api/reseller/customers/[id]/reveal-email/route.ts runs the
+      scopedReseller(user) chokepoint first, feeds params.id through
+      decideReveal(allowedCustomerIds()), then reads the app_users email and
+      writes db.auditLog({actor_user_id, subject_user_id, action: 'reveal_email',
+      fields: ['email'], route, ip, user_agent}). Client cell at
+      web/src/app/reseller/customers/reveal-email-cell.tsx swaps mask ↔ full
+      email with loading + error states; customers/page.tsx wires it inline
+      and now imports maskEmail from the shared lib (kill duplicate). Tests:
+      7 new + 94/94 combined pass; tsc clean. Playwright + drawer + list
+      read-wiring deferred to P4.2/P10.
+    commit: (this tick)
+
   - tick: 20
     ran_at: 2026-07-21
     action: p3.1_reconciliation_cron
@@ -446,13 +477,14 @@ next_action:
   task: |
     1) Apply migrations 0091 + 0092 + 0093 + 0094 via docker exec psql (P1.4) — infra step, requires DB access.
     2) Seed INFOVISION reseller row (P1.5_infovision_seed) once P1.4 lands.
-    3) P3.1_reconciliation_cron DONE (tick 20) — weekly reseller-stripe-sync + monthly reconciliation CSV export both wired into crontab.
-    4) P4_reseller_console (blocked_by P3) — /reseller/{dashboard,customers,codes,credits,create-startup,reports,settings}.
-    5) After P4 lands, unlock P6_capabilities_sandbox and P9_admin_surface.
-    6) P2 DONE + P3 DONE (including P3.1 reconciliation) + P5_cobranding DONE (playwright deferred to P10).
-    7) Track B (B1_showcase_scaffold) unblocked by track_A_P1 done — next tick can consider it in parallel with P4.
+    3) P4.1_reveal_email_audit DONE (tick 21) — H.10 mask/reveal + audit-log chokepoint on customer list.
+    4) P4.2_customer_drawer — 3-tab Overview + Progression + Reports drawer (U.7); wire audit-log on every subject read.
+    5) P4.3_portfolio_aggregates — k>=5 anonymity + weekly timestamp quantisation on dashboard counters.
+    6) P4.4_scope_grep_rule — R-01 CI grep to fail any /api/reseller/* touching getSupabaseAdmin without scopedReseller.
+    7) After P4 lands, unlock P6_capabilities_sandbox and P9_admin_surface.
+    8) Track B (B1_showcase_scaffold) unblocked by track_A_P1 done — next tick can consider it in parallel with P4.
   authorised: true
-  on_success: continue to P4 reseller console + track B B1
+  on_success: continue to P4.2 customer drawer + track B B1
 
 telemetry:
   log_file: web/content/reports/reseller-goal-history.jsonl

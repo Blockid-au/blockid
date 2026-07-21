@@ -9,15 +9,10 @@
 import { getCurrentUser } from "@/lib/auth";
 import { scopedReseller, ResellerScopeError } from "@/lib/reseller/scope";
 import { resellerSupabase } from "@/lib/reseller/supabase";
+import { maskEmail } from "@/lib/reseller/customer-reveal";
+import { RevealEmailCell } from "./reveal-email-cell";
 
 export const dynamic = "force-dynamic";
-
-function maskEmail(email: string): string {
-  const [local, domain] = email.split("@");
-  if (!local || !domain) return email;
-  if (local.length <= 2) return `${local[0] ?? "•"}***@${domain}`;
-  return `${local.slice(0, 2)}***@${domain}`;
-}
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";
@@ -82,7 +77,12 @@ export default async function ResellerCustomersPage() {
                   <td className="p-3 font-medium text-ink-900">
                     {c.display_name ?? "—"}
                   </td>
-                  <td className="p-3 text-ink-700">{maskEmail(c.email)}</td>
+                  <td className="p-3 text-ink-700">
+                    <RevealEmailCell
+                      customerId={c.user_id}
+                      maskedEmail={maskEmail(c.email)}
+                    />
+                  </td>
                   <td className="p-3 text-ink-600">{fmtDate(c.created_at)}</td>
                   <td className="p-3 text-ink-600">{fmtDate(c.last_login_at)}</td>
                 </tr>
