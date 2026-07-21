@@ -8,3 +8,94 @@
 {"ts":"2026-07-20T20:54:17Z","endpoint":"agent-upgrade","reason":"failing","note":"latest status=fail; {\"error\":\"Rate limited\",\"resetIn\":1154794}"}
 {"ts":"2026-07-20T20:54:17Z","endpoint":"agent-guardian","reason":"failing","note":"latest status=fail; <!DOCTYPE html><html lang=\"en-AU\" class=\"inter_5c2bf0c6-module__MZiVdq__variable ibm_plex_mono_4ff90f5e-module__xEo_hW__variable h-full antialiased\"><head><meta"}
 {"ts":"2026-07-20T20:54:17Z","endpoint":"agent-auto-improve","reason":"failing","note":"latest status=error; curl exit 52 (timeout or connection refused)"}
+{"ts":"2026-07-21T09:00:01Z","endpoint":"weekly-metrics","reason":"failing","note":"latest status=fail; "}
+{"ts":"2026-07-21T09:00:01Z","endpoint":"trial-end-reminder","reason":"failing","note":"latest status=fail; Internal Server Error"}
+{"ts":"2026-07-21T09:00:01Z","endpoint":"svi-index-populate","reason":"stale","note":"no health entry for 725m (expected every 10m)"}
+{"ts":"2026-07-21T09:00:01Z","endpoint":"performance-audit","reason":"failing","note":"latest status=fail; <!DOCTYPE html><html lang=\"en-AU\" class=\"__variable_48b81b __variable_1f5b15 h-full antialiased\"><head><meta charSet=\"ut"}
+{"ts":"2026-07-21T09:00:01Z","endpoint":"milestone-report","reason":"failing","note":"latest status=fail; <!DOCTYPE html><html lang=\"en-AU\" class=\"inter_5c2bf0c6-module__MZiVdq__variable ibm_plex_mono_4ff90f5e-module__xEo_hW__"}
+{"ts":"2026-07-21T09:00:01Z","endpoint":"email-drip","reason":"stale","note":"no health entry for 705m (expected every 15m)"}
+{"ts":"2026-07-21T09:00:01Z","endpoint":"dunning-retry","reason":"failing","note":"latest status=fail; "}
+{"ts":"2026-07-21T09:00:01Z","endpoint":"blockchain-sync","reason":"failing","note":"latest status=error; curl exit 56 (timeout or connection refused)"}
+{"ts":"2026-07-21T09:00:01Z","endpoint":"backup-verify","reason":"failing","note":"latest status=fail; db=false(age=-1h) release=false(age=-1h)"}
+{"ts":"2026-07-21T09:00:01Z","endpoint":"ai-health","reason":"failing","note":"latest status=fail; "}
+{"ts":"2026-07-21T09:00:01Z","endpoint":"agent-upgrade","reason":"failing","note":"latest status=fail; {\"error\":\"Rate limited\",\"resetIn\":1154794}"}
+{"ts":"2026-07-21T09:00:01Z","endpoint":"agent-guardian","reason":"failing","note":"latest status=fail; <!DOCTYPE html><html lang=\"en-AU\" class=\"inter_5c2bf0c6-module__MZiVdq__variable ibm_plex_mono_4ff90f5e-module__xEo_hW__variable h-full antialiased\"><head><meta"}
+{"ts":"2026-07-21T09:00:01Z","endpoint":"agent-auto-improve","reason":"failing","note":"latest status=error; curl exit 52 (timeout or connection refused)"}
+{"ts":"2026-07-21T09:30:01Z","endpoint":"weekly-metrics","reason":"failing","note":"latest status=fail; "}
+{"ts":"2026-07-21T09:30:01Z","endpoint":"trial-end-reminder","reason":"failing","note":"latest status=fail; Internal Server Error"}
+{"ts":"2026-07-21T09:30:01Z","endpoint":"svi-index-populate","reason":"stale","note":"no health entry for 755m (expected every 10m)"}
+{"ts":"2026-07-21T09:30:01Z","endpoint":"performance-audit","reason":"failing","note":"latest status=fail; <!DOCTYPE html><html lang=\"en-AU\" class=\"__variable_48b81b __variable_1f5b15 h-full antialiased\"><head><meta charSet=\"ut"}
+{"ts":"2026-07-21T09:30:01Z","endpoint":"milestone-report","reason":"failing","note":"latest status=fail; <!DOCTYPE html><html lang=\"en-AU\" class=\"inter_5c2bf0c6-module__MZiVdq__variable ibm_plex_mono_4ff90f5e-module__xEo_hW__"}
+{"ts":"2026-07-21T09:30:01Z","endpoint":"email-drip","reason":"stale","note":"no health entry for 735m (expected every 15m)"}
+{"ts":"2026-07-21T09:30:01Z","endpoint":"dunning-retry","reason":"failing","note":"latest status=fail; "}
+{"ts":"2026-07-21T09:30:01Z","endpoint":"blockchain-sync","reason":"failing","note":"latest status=error; curl exit 56 (timeout or connection refused)"}
+{"ts":"2026-07-21T09:30:01Z","endpoint":"backup-verify","reason":"failing","note":"latest status=fail; db=false(age=-1h) release=false(age=-1h)"}
+{"ts":"2026-07-21T09:30:01Z","endpoint":"ai-health","reason":"failing","note":"latest status=fail; "}
+{"ts":"2026-07-21T09:30:01Z","endpoint":"agent-upgrade","reason":"failing","note":"latest status=fail; {\"error\":\"Rate limited\",\"resetIn\":1154794}"}
+{"ts":"2026-07-21T09:30:01Z","endpoint":"agent-guardian","reason":"failing","note":"latest status=fail; <!DOCTYPE html><html lang=\"en-AU\" class=\"inter_5c2bf0c6-module__MZiVdq__variable ibm_plex_mono_4ff90f5e-module__xEo_hW__variable h-full antialiased\"><head><meta"}
+{"ts":"2026-07-21T09:30:01Z","endpoint":"agent-auto-improve","reason":"failing","note":"latest status=error; curl exit 52 (timeout or connection refused)"}
+{"ts":"2026-07-21T10:00:01Z","endpoint":"weekly-metrics","reason":"failing","note":"latest status=fail; "}
+{"ts":"2026-07-21T10:00:01Z","endpoint":"trial-end-reminder","reason":"failing","note":"latest status=fail; Internal Server Error"}
+{"ts":"2026-07-21T10:00:01Z","endpoint":"svi-index-populate","reason":"stale","note":"no health entry for 785m (expected every 10m)"}
+{"ts":"2026-07-21T10:00:01Z","endpoint":"performance-audit","reason":"failing","note":"latest status=fail; <!DOCTYPE html><html lang=\"en-AU\" class=\"__variable_48b81b __variable_1f5b15 h-full antialiased\"><head><meta charSet=\"ut"}
+{"ts":"2026-07-21T10:00:01Z","endpoint":"milestone-report","reason":"failing","note":"latest status=fail; <!DOCTYPE html><html lang=\"en-AU\" class=\"inter_5c2bf0c6-module__MZiVdq__variable ibm_plex_mono_4ff90f5e-module__xEo_hW__"}
+{"ts":"2026-07-21T10:00:01Z","endpoint":"email-drip","reason":"stale","note":"no health entry for 765m (expected every 15m)"}
+{"ts":"2026-07-21T10:00:01Z","endpoint":"dunning-retry","reason":"failing","note":"latest status=fail; "}
+{"ts":"2026-07-21T10:00:01Z","endpoint":"blockchain-sync","reason":"failing","note":"latest status=error; curl exit 56 (timeout or connection refused)"}
+{"ts":"2026-07-21T10:00:01Z","endpoint":"backup-verify","reason":"failing","note":"latest status=fail; db=false(age=-1h) release=false(age=-1h)"}
+{"ts":"2026-07-21T10:00:01Z","endpoint":"ai-health","reason":"failing","note":"latest status=fail; "}
+{"ts":"2026-07-21T10:00:01Z","endpoint":"agent-upgrade","reason":"failing","note":"latest status=fail; {\"error\":\"Rate limited\",\"resetIn\":1154794}"}
+{"ts":"2026-07-21T10:00:01Z","endpoint":"agent-guardian","reason":"failing","note":"latest status=fail; <!DOCTYPE html><html lang=\"en-AU\" class=\"inter_5c2bf0c6-module__MZiVdq__variable ibm_plex_mono_4ff90f5e-module__xEo_hW__variable h-full antialiased\"><head><meta"}
+{"ts":"2026-07-21T10:00:01Z","endpoint":"agent-auto-improve","reason":"failing","note":"latest status=error; curl exit 52 (timeout or connection refused)"}
+{"ts":"2026-07-21T10:30:01Z","endpoint":"weekly-metrics","reason":"failing","note":"latest status=fail; "}
+{"ts":"2026-07-21T10:30:01Z","endpoint":"trial-end-reminder","reason":"failing","note":"latest status=fail; Internal Server Error"}
+{"ts":"2026-07-21T10:30:01Z","endpoint":"svi-index-populate","reason":"stale","note":"no health entry for 815m (expected every 10m)"}
+{"ts":"2026-07-21T10:30:01Z","endpoint":"performance-audit","reason":"failing","note":"latest status=fail; <!DOCTYPE html><html lang=\"en-AU\" class=\"__variable_48b81b __variable_1f5b15 h-full antialiased\"><head><meta charSet=\"ut"}
+{"ts":"2026-07-21T10:30:01Z","endpoint":"milestone-report","reason":"failing","note":"latest status=fail; <!DOCTYPE html><html lang=\"en-AU\" class=\"inter_5c2bf0c6-module__MZiVdq__variable ibm_plex_mono_4ff90f5e-module__xEo_hW__"}
+{"ts":"2026-07-21T10:30:01Z","endpoint":"email-drip","reason":"stale","note":"no health entry for 795m (expected every 15m)"}
+{"ts":"2026-07-21T10:30:01Z","endpoint":"dunning-retry","reason":"failing","note":"latest status=fail; "}
+{"ts":"2026-07-21T10:30:01Z","endpoint":"blockchain-sync","reason":"failing","note":"latest status=error; curl exit 56 (timeout or connection refused)"}
+{"ts":"2026-07-21T10:30:01Z","endpoint":"backup-verify","reason":"failing","note":"latest status=fail; db=false(age=-1h) release=false(age=-1h)"}
+{"ts":"2026-07-21T10:30:01Z","endpoint":"ai-health","reason":"failing","note":"latest status=fail; "}
+{"ts":"2026-07-21T10:30:01Z","endpoint":"agent-upgrade","reason":"failing","note":"latest status=fail; {\"error\":\"Rate limited\",\"resetIn\":1154794}"}
+{"ts":"2026-07-21T10:30:01Z","endpoint":"agent-guardian","reason":"failing","note":"latest status=fail; <!DOCTYPE html><html lang=\"en-AU\" class=\"inter_5c2bf0c6-module__MZiVdq__variable ibm_plex_mono_4ff90f5e-module__xEo_hW__variable h-full antialiased\"><head><meta"}
+{"ts":"2026-07-21T10:30:01Z","endpoint":"agent-auto-improve","reason":"failing","note":"latest status=error; curl exit 52 (timeout or connection refused)"}
+{"ts":"2026-07-21T11:00:01Z","endpoint":"weekly-metrics","reason":"failing","note":"latest status=fail; "}
+{"ts":"2026-07-21T11:00:01Z","endpoint":"trial-end-reminder","reason":"failing","note":"latest status=fail; Internal Server Error"}
+{"ts":"2026-07-21T11:00:01Z","endpoint":"svi-index-populate","reason":"stale","note":"no health entry for 845m (expected every 10m)"}
+{"ts":"2026-07-21T11:00:01Z","endpoint":"performance-audit","reason":"failing","note":"latest status=fail; <!DOCTYPE html><html lang=\"en-AU\" class=\"__variable_48b81b __variable_1f5b15 h-full antialiased\"><head><meta charSet=\"ut"}
+{"ts":"2026-07-21T11:00:01Z","endpoint":"milestone-report","reason":"failing","note":"latest status=fail; <!DOCTYPE html><html lang=\"en-AU\" class=\"inter_5c2bf0c6-module__MZiVdq__variable ibm_plex_mono_4ff90f5e-module__xEo_hW__"}
+{"ts":"2026-07-21T11:00:01Z","endpoint":"email-drip","reason":"stale","note":"no health entry for 825m (expected every 15m)"}
+{"ts":"2026-07-21T11:00:01Z","endpoint":"dunning-retry","reason":"failing","note":"latest status=fail; "}
+{"ts":"2026-07-21T11:00:01Z","endpoint":"blockchain-sync","reason":"failing","note":"latest status=error; curl exit 56 (timeout or connection refused)"}
+{"ts":"2026-07-21T11:00:01Z","endpoint":"backup-verify","reason":"failing","note":"latest status=fail; db=false(age=-1h) release=false(age=-1h)"}
+{"ts":"2026-07-21T11:00:01Z","endpoint":"ai-health","reason":"failing","note":"latest status=fail; "}
+{"ts":"2026-07-21T11:00:01Z","endpoint":"agent-upgrade","reason":"failing","note":"latest status=fail; {\"error\":\"Rate limited\",\"resetIn\":1154794}"}
+{"ts":"2026-07-21T11:00:01Z","endpoint":"agent-guardian","reason":"failing","note":"latest status=fail; <!DOCTYPE html><html lang=\"en-AU\" class=\"inter_5c2bf0c6-module__MZiVdq__variable ibm_plex_mono_4ff90f5e-module__xEo_hW__variable h-full antialiased\"><head><meta"}
+{"ts":"2026-07-21T11:00:01Z","endpoint":"agent-auto-improve","reason":"failing","note":"latest status=error; curl exit 52 (timeout or connection refused)"}
+{"ts":"2026-07-21T11:30:01Z","endpoint":"weekly-metrics","reason":"failing","note":"latest status=fail; "}
+{"ts":"2026-07-21T11:30:01Z","endpoint":"trial-end-reminder","reason":"failing","note":"latest status=fail; Internal Server Error"}
+{"ts":"2026-07-21T11:30:01Z","endpoint":"svi-index-populate","reason":"stale","note":"no health entry for 875m (expected every 10m)"}
+{"ts":"2026-07-21T11:30:01Z","endpoint":"performance-audit","reason":"failing","note":"latest status=fail; <!DOCTYPE html><html lang=\"en-AU\" class=\"__variable_48b81b __variable_1f5b15 h-full antialiased\"><head><meta charSet=\"ut"}
+{"ts":"2026-07-21T11:30:01Z","endpoint":"milestone-report","reason":"failing","note":"latest status=fail; <!DOCTYPE html><html lang=\"en-AU\" class=\"inter_5c2bf0c6-module__MZiVdq__variable ibm_plex_mono_4ff90f5e-module__xEo_hW__"}
+{"ts":"2026-07-21T11:30:01Z","endpoint":"email-drip","reason":"stale","note":"no health entry for 855m (expected every 15m)"}
+{"ts":"2026-07-21T11:30:01Z","endpoint":"dunning-retry","reason":"failing","note":"latest status=fail; "}
+{"ts":"2026-07-21T11:30:01Z","endpoint":"blockchain-sync","reason":"failing","note":"latest status=error; curl exit 56 (timeout or connection refused)"}
+{"ts":"2026-07-21T11:30:01Z","endpoint":"backup-verify","reason":"failing","note":"latest status=fail; db=false(age=-1h) release=false(age=-1h)"}
+{"ts":"2026-07-21T11:30:01Z","endpoint":"ai-health","reason":"failing","note":"latest status=fail; "}
+{"ts":"2026-07-21T11:30:01Z","endpoint":"agent-upgrade","reason":"failing","note":"latest status=fail; {\"error\":\"Rate limited\",\"resetIn\":1154794}"}
+{"ts":"2026-07-21T11:30:01Z","endpoint":"agent-guardian","reason":"failing","note":"latest status=fail; <!DOCTYPE html><html lang=\"en-AU\" class=\"inter_5c2bf0c6-module__MZiVdq__variable ibm_plex_mono_4ff90f5e-module__xEo_hW__variable h-full antialiased\"><head><meta"}
+{"ts":"2026-07-21T11:30:01Z","endpoint":"agent-auto-improve","reason":"failing","note":"latest status=error; curl exit 52 (timeout or connection refused)"}
+{"ts":"2026-07-21T12:00:01Z","endpoint":"weekly-metrics","reason":"failing","note":"latest status=fail; "}
+{"ts":"2026-07-21T12:00:01Z","endpoint":"trial-end-reminder","reason":"failing","note":"latest status=fail; Internal Server Error"}
+{"ts":"2026-07-21T12:00:01Z","endpoint":"svi-index-populate","reason":"stale","note":"no health entry for 905m (expected every 10m)"}
+{"ts":"2026-07-21T12:00:01Z","endpoint":"performance-audit","reason":"failing","note":"latest status=fail; <!DOCTYPE html><html lang=\"en-AU\" class=\"__variable_48b81b __variable_1f5b15 h-full antialiased\"><head><meta charSet=\"ut"}
+{"ts":"2026-07-21T12:00:01Z","endpoint":"milestone-report","reason":"failing","note":"latest status=fail; <!DOCTYPE html><html lang=\"en-AU\" class=\"inter_5c2bf0c6-module__MZiVdq__variable ibm_plex_mono_4ff90f5e-module__xEo_hW__"}
+{"ts":"2026-07-21T12:00:01Z","endpoint":"email-drip","reason":"stale","note":"no health entry for 885m (expected every 15m)"}
+{"ts":"2026-07-21T12:00:01Z","endpoint":"dunning-retry","reason":"failing","note":"latest status=fail; "}
+{"ts":"2026-07-21T12:00:01Z","endpoint":"blockchain-sync","reason":"failing","note":"latest status=error; curl exit 56 (timeout or connection refused)"}
+{"ts":"2026-07-21T12:00:01Z","endpoint":"backup-verify","reason":"failing","note":"latest status=fail; db=false(age=-1h) release=false(age=-1h)"}
+{"ts":"2026-07-21T12:00:01Z","endpoint":"ai-health","reason":"failing","note":"latest status=fail; "}
+{"ts":"2026-07-21T12:00:01Z","endpoint":"agent-upgrade","reason":"failing","note":"latest status=fail; {\"error\":\"Rate limited\",\"resetIn\":1154794}"}
+{"ts":"2026-07-21T12:00:01Z","endpoint":"agent-guardian","reason":"failing","note":"latest status=fail; <!DOCTYPE html><html lang=\"en-AU\" class=\"inter_5c2bf0c6-module__MZiVdq__variable ibm_plex_mono_4ff90f5e-module__xEo_hW__variable h-full antialiased\"><head><meta"}
+{"ts":"2026-07-21T12:00:01Z","endpoint":"agent-auto-improve","reason":"failing","note":"latest status=error; curl exit 52 (timeout or connection refused)"}

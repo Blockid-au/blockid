@@ -61,6 +61,8 @@ export interface TechHealthScore {
   overallScore: number;
   essentialEightMaturity: number;
   owaspAdoptionRate: number;
+  sastCoverage: number;
+  cicdQualityGateIntegration: boolean;
 }
 
 /** Australian developer daily rate benchmarks (AUD) */
@@ -75,93 +77,99 @@ export const AU_DEV_RATES: Record<
   devops: { junior: 1400, mid: 2000, senior: 2800, lead: 3500 },
   "data-engineer": { junior: 1300, mid: 2000, senior: 2800, lead: 3500 },
   designer: { junior: 900, mid: 1400, senior: 2000, lead: 2600 },
-  "product-manager": { junior: 1100, mid: 1700, senior: 2500, lead: 3200 },
+  "product-manager": { junior: 1100, mid: 1700, senior: 2300, lead: 3000 },
 };
 
-/** 2026 Australian Market Benchmarks based on ACSC and StartupAus research */
+/** 2026 Australian Tech Market Benchmarks */
 export const AU_TECH_BENCHMARKS_2026 = {
   security: {
     essentialEightSmeCompliance: 0.38,
-    patchingMaturityLevel3Rate: 0.71,
-    owaspTop10AdoptionRate: 0.45,
-  },
-  quality: {
+    patchingMaturityLevel3: 0.71,
+    owaspTop10Adoption: 0.45,
     sastAdoptionRate: 0.72,
-    cicdQualityGateIntegration: 0.68,
-    avgMaintainabilityIndex: 68,
-    staticAnalysisCoverage: 0.85,
   },
   infrastructure: {
     kubernetesProductionRate: 0.78,
     serverlessProductionRate: 0.34,
-    aiAssistantUsageRate: 0.48,
+    averageMaintainabilityIndex: 68,
+    staticAnalysisCoverage: 0.85,
+    cicdQualityGateIntegration: 0.68,
   },
-  frontendMarketShare: {
-    react: 0.62,
-    vue: 0.14,
-    angular: 0.11,
-    svelte: 0.09,
+  frontend: {
+    marketShare: {
+      react: 0.62,
+      vue: 0.14,
+      angular: 0.11,
+      svelte: 0.09,
+    },
+    nextJs16: {
+      bundleSizeReduction: 0.42,
+      clientJsReduction: 0.40,
+      ttfbImprovement: 0.60,
+    },
+  },
+  productivity: {
+    aiAssistantUsageRate: 0.48,
   },
 };
 
-/** Calculates a health score based on current AU market benchmarks */
+/** Calculates the health score based on Australian 2026 benchmarks */
 export function calculateTechHealthScore(
   currentMetrics: {
-    hasEssentialEight: boolean;
-    patchingLevel: number;
+    essentialEightLevel: number;
     owaspControlsImplemented: number;
     maintainabilityIndex: number;
     hasSast: boolean;
     hasCicdGates: boolean;
-    usesModernInfra: boolean;
+    infraModernityScore: number; // 0-1
   }
 ): TechHealthScore {
-  const securityScore = (
-    (currentMetrics.hasEssentialEight ? 40 : 0) +
-    (currentMetrics.patchingLevel >= 3 ? 30 : currentMetrics.patchingLevel * 10) +
-    ((currentMetrics.owaspControlsImplemented / 10) * 30)
-  );
+  const e8Score = currentMetrics.essentialEightLevel / 3;
+  const owaspScore = currentMetrics.owaspControlsImplemented / 10;
+  const maintainabilityScore = currentMetrics.maintainabilityIndex / 100;
+  
+  const securityCompliance = (e8Score + owaspScore) / 2;
+  const sastBonus = currentMetrics.hasSast ? 1 : 0;
+  const gateBonus = currentMetrics.hasCicdGates ? 1 : 0;
 
-  const qualityScore = (
-    (currentMetrics.hasSast ? 30 : 0) +
-    (currentMetrics.hasCicdGates ? 30 : 0) +
-    (Math.min(currentMetrics.maintainabilityIndex / 100, 1) * 40)
-  );
-
-  const modernScore = currentMetrics.usesModernInfra ? 100 : 50;
+  const overallScore = (
+    (securityCompliance * 0.4) + 
+    (maintainabilityScore * 0.3) + 
+    (currentMetrics.infraModernityScore * 0.3) +
+    ((sastBonus + gateBonus) * 0.05)
+  ) * 100;
 
   return {
-    securityCompliance: securityScore,
+    securityCompliance: securityCompliance * 100,
     maintainabilityIndex: currentMetrics.maintainabilityIndex,
-    infrastructureModernity: modernScore,
-    essentialEightMaturity: currentMetrics.patchingLevel,
-    owaspAdoptionRate: currentMetrics.owaspControlsImplemented / 10,
-    overallScore: (securityScore * 0.4) + (qualityScore * 0.4) + (modernScore * 0.2),
+    infrastructureModernity: currentMetrics.infraModernityScore * 100,
+    overallScore,
+    essentialEightMaturity: e8Score * 100,
+    owaspAdoptionRate: owaspScore * 100,
+    sastCoverage: currentMetrics.hasSast ? 100 : 0,
+    cicdQualityGateIntegration: currentMetrics.hasCicdGates,
   };
 }
 
-/** 
- * Estimates performance gains for APAC networks based on Next.js 16 research.
- * Focuses on high-latency mitigation via Streaming SSR and Server Components.
- */
-export function estimateNextJs16Gains(currentBundleSizeKb: number): {
-  estimatedBundleSizeKb: number;
-  ttfbImprovementPercent: number;
-  jsReductionPercent: number;
+/** Calculates projected AI productivity savings */
+export function calculateAISavings(
+  teamSize: number,
+  avgWeeklyHours: number,
+  avgHourlyRate: number,
+  aiAdoptionRate: number = AU_TECH_BENCHMARKS_2026.productivity.aiAssistantUsageRate
+): {
+  annualSavings: number;
+  hoursSavedPerYear: number;
+  efficiencyGain: number;
 } {
-  return {
-    estimatedBundleSizeKb: currentBundleSizeKb * (1 - 0.42),
-    ttfbImprovementPercent: 60,
-    jsReductionPercent: 40,
-  };
-}
+  const avgHoursSavedPerDev = avgWeeklyHours * 0.15 * aiAdoptionRate;
+  const annualHoursSaved = avgHoursSavedPerDev * teamSize * 52;
+  const annualSavings = annualHoursSaved * avgHourlyRate;
+  const efficiencyGain = (avgHoursSavedPerDev / avgWeeklyHours) * 100;
 
-/** Projects AI-driven productivity gains on development costs */
-export function applyAIProductivityOffset(devCost: DevelopmentCost, aiAdoptionRate: number = 0.48): DevelopmentCost {
-  const productivityMultiplier = 1 - (aiAdoptionRate * 0.15); 
   return {
-    ...devCost,
-    weeklyBurn: devCost.weeklyBurn * productivityMultiplier,
-    totalCost: devCost.totalCost * productivityMultiplier,
+    annualSavings,
+    hoursSavedPerYear: annualHoursSaved,
+    efficiencyGain,
   };
 }
