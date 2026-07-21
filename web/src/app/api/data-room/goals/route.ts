@@ -15,6 +15,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { spendCredits } from "@/lib/credits";
 
@@ -132,10 +133,9 @@ export async function GET(request: NextRequest) {
 // body: { dataRoomId, templateId, status, evidence? } — update single goal
 // ---------------------------------------------------------------------------
 export async function POST(request: NextRequest) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
-  }
+  const gate = await gateRequireFeature("share_management");
+  if (!gate.ok) return gate.response;
+  const user = gate.user;
 
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ ok: false, error: "Database not configured" }, { status: 503 });

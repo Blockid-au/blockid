@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
 // for posting events; auth required for fetching analytics).
 // ---------------------------------------------------------------------------
 
+// r-03-exempt: investor engagement telemetry from anonymous investor-facing view; auth handled by data_room_access_tokens.token lookup, not by user entitlement
 export async function POST(req: NextRequest) {
   const supabase = getSupabaseAdmin();
   if (!supabase) {

@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { gateRequireFeature } from "@/lib/feature-gate";
 import { callAI } from "@/lib/ai-client";
 
 // POST /api/ai/vesting-review — Comprehensive vesting audit (1.50 credit)
 export async function POST(request: Request) {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ ok: false, reason: "Authentication required" }, { status: 401 });
+  const gate = await gateRequireFeature("vesting.write");
+  if (!gate.ok) return gate.response;
 
   let body: unknown;
   try { body = await request.json(); } catch {

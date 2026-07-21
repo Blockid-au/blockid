@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { gateRequireFeature } from "@/lib/feature-gate";
 import { toggleSync, getSyncConfig } from "@/lib/blockchain-sync";
 
 export const dynamic = "force-dynamic";
 
 // POST /api/blockchain/sync-toggle — Enable/disable/pause/catch-up blockchain sync
 export async function POST(request: Request) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
-  }
+  const gate = await gateRequireFeature("blockchain.sync");
+  if (!gate.ok) return gate.response;
+  const user = gate.user;
 
   let body: Record<string, unknown>;
   try {

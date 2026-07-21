@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { gateRequireFeature } from "@/lib/feature-gate";
 
 export const dynamic = "force-dynamic";
 
@@ -20,8 +20,8 @@ interface HealthIssue {
 }
 
 export async function POST(request: Request) {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const gate = await gateRequireFeature("share_management");
+  if (!gate.ok) return gate.response;
 
   let body: CapTableInput;
   try {

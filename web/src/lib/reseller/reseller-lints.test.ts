@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { analyzeR01 } from "./reseller-lints";
+import { analyzeR01, analyzeR03 } from "./reseller-lints";
 
 const F = "web/src/app/api/reseller/example/route.ts";
 
@@ -101,5 +101,115 @@ describe("analyzeR01", () => {
     const findings = analyzeR01(F, src);
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe("exempt");
+  });
+});
+
+const G = "web/src/app/api/cap-table/route.ts";
+
+describe("analyzeR03", () => {
+  it("returns nothing when the file has no mutation handler", () => {
+    const src = `
+      export async function GET() { return null; }
+    `;
+    expect(analyzeR03(G, src, "share_management")).toEqual([]);
+  });
+
+  it("passes a handler that invokes gateRequireFeature with the manifest key", () => {
+    const src = [
+      `import { gateRequireFeature } from "@/lib/feature-gate";`,
+      `export async function POST() {`,
+      `  const gate = await gateRequireFeature("share_management");`,
+      `  if (!gate.ok) return gate.response;`,
+      `}`,
+    ].join("\n");
+    expect(analyzeR03(G, src, "share_management")).toEqual([]);
+  });
+
+  it("passes when requireFeature is called directly with the key", () => {
+    const src = [
+      `import { requireFeature } from "@/lib/entitlements";`,
+      `export async function POST() {`,
+      `  await requireFeature(user, "share_management");`,
+      `}`,
+    ].join("\n");
+    expect(analyzeR03(G, src, "share_management")).toEqual([]);
+  });
+
+  it("flags a handler that never gates", () => {
+    const src = [
+      `export async function POST() {`,
+      `  return 1;`,
+      `}`,
+    ].join("\n");
+    const findings = analyzeR03(G, src, "share_management");
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe("error");
+    expect(findings[0].method).toBe("POST");
+    expect(findings[0].message).toMatch(/share_management/);
+  });
+
+  it("flags a handler that gates the WRONG feature key", () => {
+    const src = [
+      `import { gateRequireFeature } from "@/lib/feature-gate";`,
+      `export async function POST() {`,
+      `  const gate = await gateRequireFeature("vesting.write");`,
+      `  if (!gate.ok) return gate.response;`,
+      `}`,
+    ].join("\n");
+    const findings = analyzeR03(G, src, "share_management");
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe("error");
+  });
+
+  it("checks every mutation handler independently", () => {
+    const src = [
+      `import { gateRequireFeature } from "@/lib/feature-gate";`,
+      `export async function POST() {`,
+      `  const gate = await gateRequireFeature("share_management");`,
+      `  if (!gate.ok) return gate.response;`,
+      `}`,
+      `export async function DELETE() {`,
+      `  return 1;`,
+      `}`,
+    ].join("\n");
+    const findings = analyzeR03(G, src, "share_management");
+    expect(findings).toHaveLength(1);
+    expect(findings[0].method).toBe("DELETE");
+  });
+
+  it("honours an r-03-exempt pragma with a non-empty reason", () => {
+    const src = [
+      `// r-03-exempt: investor engagement telemetry from anonymous view`,
+      `export async function POST() { return 1; }`,
+    ].join("\n");
+    const findings = analyzeR03(G, src, "share_management");
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe("exempt");
+    expect(findings[0].method).toBe("POST");
+    expect(findings[0].reason).toBe(
+      "investor engagement telemetry from anonymous view",
+    );
+  });
+
+  it("rejects an r-03-exempt pragma without a reason", () => {
+    const src = [
+      `// r-03-exempt:`,
+      `export async function POST() { return 1; }`,
+    ].join("\n");
+    const findings = analyzeR03(G, src, "share_management");
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe("error");
+    expect(findings[0].message).toMatch(/non-empty reason/);
+  });
+
+  it("supports async and non-async function signatures", () => {
+    const src = [
+      `import { gateRequireFeature } from "@/lib/feature-gate";`,
+      `export function PATCH() {`,
+      `  const gate = gateRequireFeature("share_management");`,
+      `  return gate;`,
+      `}`,
+    ].join("\n");
+    expect(analyzeR03(G, src, "share_management")).toEqual([]);
   });
 });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { queueSyncEvent, getSyncConfig } from "@/lib/blockchain-sync";
 
@@ -50,13 +51,9 @@ export async function GET(_request: NextRequest) {
 // ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json(
-      { ok: false, error: "Authentication required" },
-      { status: 401 },
-    );
-  }
+  const gate = await gateRequireFeature("vesting.write");
+  if (!gate.ok) return gate.response;
+  const user = gate.user;
 
   const supabase = getSupabaseAdmin();
   if (!supabase) {

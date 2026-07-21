@@ -17,6 +17,7 @@
 
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { gateRequireFeature } from "@/lib/feature-gate";
 import { scopedReseller, ResellerScopeError } from "@/lib/reseller/scope";
 import { resellerSupabase } from "@/lib/reseller/supabase";
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -37,10 +38,9 @@ function readClientMeta(request: Request): { ip: string; ua: string } {
 }
 
 export async function POST(request: Request) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ ok: false, reason: "unauthorised" }, { status: 401 });
-  }
+  const gate = await gateRequireFeature("reseller.console");
+  if (!gate.ok) return gate.response;
+  const user = gate.user;
 
   let scope;
   try {
