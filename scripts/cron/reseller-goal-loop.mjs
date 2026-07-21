@@ -137,8 +137,11 @@ function buildPhaseBrief(frontier_entry, goalYaml) {
 /** Dispatch to Claude Code CLI. Returns the child's exit code. */
 function dispatchToClaude(brief, label) {
   // The `claude` CLI is expected to be on PATH in the deploy environment.
-  // Non-interactive mode: -p 'brief' or via stdin (varies by version). Adjust here as needed.
-  const args = ['-p', brief, '--print']
+  // Non-interactive mode: --print streams to stdout.
+  //   --dangerously-skip-permissions grants write + bash access without an
+  //   interactive prompt so the autonomous loop can actually land edits.
+  //   User has explicitly opted into continuous autonomous execution.
+  const args = ['--print', '--dangerously-skip-permissions', '-p', brief]
   const started = Date.now()
   const res = spawnSync('claude', args, {
     cwd: REPO_ROOT,

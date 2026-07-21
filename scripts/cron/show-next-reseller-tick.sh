@@ -1,86 +1,177 @@
 #!/bin/bash
-# show-next-reseller-tick.sh — Display current time + next reseller-goal-loop
-# cron tick on the terminal. Reads the live crontab entry to derive the
-# schedule (default */5 * * * *).
+# show-next-reseller-tick.sh — Live display of the reseller-goal-loop cron.
+#
+# Shows:
+#   • current UTC + AEST time
+#   • when the next tick will fire (parsed from the live crontab entry)
+#   • what the last tick actually did (phase picked, elapsed, deploy result)
+#   • the last claude-CLI response snippet (so blockers are visible)
+#   • auto-stopped state if the goal is complete
 #
 # Usage:
-#   bash scripts/cron/show-next-reseller-tick.sh
-#   bash scripts/cron/show-next-reseller-tick.sh --json
+#   bash scripts/cron/show-next-reseller-tick.sh           # human view
+#   bash scripts/cron/show-next-reseller-tick.sh --json    # machine view
+#   bash scripts/cron/show-next-reseller-tick.sh --watch   # refresh every 5s
 #
-# Also usable as a shell alias:
+# Also usable via alias in ~/.bashrc:
 #   alias next-tick='bash /home/dovanlong/blockid.au/scripts/cron/show-next-reseller-tick.sh'
 
 set -eu
 
-NOW_UTC="$(date -u +%s)"
-NOW_UTC_HHMM="$(date -u +%H:%M:%S)"
-NOW_AEST_HHMM="$(TZ=Australia/Sydney date +%H:%M:%S)"
+MODE="${1:-human}"
 
-# Read the live crontab entry for reseller-goal-loop. Fall back to */5 if
-# the entry isn't installed (loop may have auto-stopped on completion).
-CRON_ENTRY="$(crontab -l 2>/dev/null | grep -E 'reseller-goal-loop\.mjs' | grep -v '^#' | head -1 || true)"
-if [ -z "$CRON_ENTRY" ]; then
-  echo "reseller-goal-loop is NOT in crontab (either not installed or auto-stopped on goal completion)"
-  if [ -f /tmp/blockid-reseller-goal-done ]; then
-    MARKER="$(cat /tmp/blockid-reseller-goal-done 2>/dev/null || true)"
-    echo "  Completion marker present: $MARKER"
-  fi
+# ────────────────────────────────────────────────────────────────────────────
+# Watch mode — repeat the human view every 5s. Ctrl-C exits.
+# ────────────────────────────────────────────────────────────────────────────
+if [ "$MODE" = "--watch" ]; then
+  while true; do
+    clear
+    bash "$0"
+    sleep 5
+  done
+fi
+
+REPO=/home/dovanlong/blockid.au
+LOG=/tmp/blockid-reseller-loop.log
+HISTORY="$REPO/web/content/reports/reseller-goal-history.jsonl"
+DONE_MARKER=/tmp/blockid-reseller-goal-done
+
+# ────────────────────────────────────────────────────────────────────────────
+# Auto-stop detection.
+# ────────────────────────────────────────────────────────────────────────────
+if [ -f "$DONE_MARKER" ]; then
+  MARK="$(cat "$DONE_MARKER" 2>/dev/null || echo unknown)"
+  cat <<EOF
+─── Reseller goal loop — COMPLETE ───
+  Goal reached at: $MARK
+  Cron entry has been auto-removed. Loop no longer fires.
+  See: $HISTORY
+EOF
   exit 0
 fi
 
-# Extract the minute spec (first field). For */N compute next boundary; for
-# an explicit list handle it; for a single minute compute distance to it.
+# ────────────────────────────────────────────────────────────────────────────
+# Live cron parse (default */5 * * * * — expressed in the running crontab).
+# ────────────────────────────────────────────────────────────────────────────
+CRON_ENTRY="$(crontab -l 2>/dev/null | grep -E 'reseller-goal-loop\.mjs' | grep -v '^#' | head -1 || true)"
+if [ -z "$CRON_ENTRY" ]; then
+  echo "reseller-goal-loop is NOT in crontab (not installed OR auto-stopped)."
+  exit 0
+fi
 MIN_SPEC="$(echo "$CRON_ENTRY" | awk '{print $1}')"
 
+# ────────────────────────────────────────────────────────────────────────────
+# Compute next tick from */N or explicit spec.
+# ────────────────────────────────────────────────────────────────────────────
+NOW_UTC="$(date -u +%s)"
+NOW_UTC_HHMM="$(date -u +%H:%M:%S)"
+NOW_AEST_HHMM="$(TZ=Australia/Sydney date +%H:%M:%S)"
 CURRENT_MINUTE="$(date -u +%M | sed 's/^0//')"
 CURRENT_MINUTE="${CURRENT_MINUTE:-0}"
 CURRENT_SECOND="$(date -u +%S | sed 's/^0//')"
 CURRENT_SECOND="${CURRENT_SECOND:-0}"
 
-NEXT_MINUTE=""
 case "$MIN_SPEC" in
   \*/*)
     STEP="${MIN_SPEC#*/}"
-    # Round CURRENT_MINUTE up to next multiple of STEP.
     NEXT_MINUTE=$(( ((CURRENT_MINUTE / STEP) + 1) * STEP ))
-    if [ "$NEXT_MINUTE" -ge 60 ]; then
-      NEXT_MINUTE=$(( NEXT_MINUTE - 60 ))
-    fi
+    [ "$NEXT_MINUTE" -ge 60 ] && NEXT_MINUTE=$(( NEXT_MINUTE - 60 ))
     ;;
-  \*)
-    NEXT_MINUTE=$(( CURRENT_MINUTE + 1 ))
-    if [ "$NEXT_MINUTE" -ge 60 ]; then NEXT_MINUTE=0; fi
-    ;;
-  *)
-    # Explicit minute — use verbatim (rare in our case)
-    NEXT_MINUTE="$MIN_SPEC"
-    ;;
+  \*) NEXT_MINUTE=$(( (CURRENT_MINUTE + 1) % 60 )) ;;
+  *) NEXT_MINUTE="$MIN_SPEC" ;;
 esac
 
-# Compute seconds until next tick.
 DELTA_SECS_TO_NEXT_MIN=$(( 60 - CURRENT_SECOND ))
 MIN_DELTA=$(( NEXT_MINUTE - CURRENT_MINUTE - 1 ))
-if [ "$MIN_DELTA" -lt 0 ]; then MIN_DELTA=$(( MIN_DELTA + 60 )); fi
+[ "$MIN_DELTA" -lt 0 ] && MIN_DELTA=$(( MIN_DELTA + 60 ))
 SECS_UNTIL=$(( DELTA_SECS_TO_NEXT_MIN + MIN_DELTA * 60 ))
-
-NEXT_TS_UTC="$(( NOW_UTC + SECS_UNTIL ))"
+NEXT_TS_UTC=$(( NOW_UTC + SECS_UNTIL ))
 NEXT_HHMM_UTC="$(date -u -d "@$NEXT_TS_UTC" +%H:%M)"
 NEXT_HHMM_AEST="$(TZ=Australia/Sydney date -d "@$NEXT_TS_UTC" +%H:%M)"
 
-# Also report last-known tick (from history JSONL) so the user sees loop
-# activity end-to-end.
-LAST_TICK="$(tail -n 1 /home/dovanlong/blockid.au/web/content/reports/reseller-goal-history.jsonl 2>/dev/null || echo '{}')"
+# ────────────────────────────────────────────────────────────────────────────
+# Parse recent tick history: is a tick running now? What did the last one do?
+# ────────────────────────────────────────────────────────────────────────────
+LAST_TICK_ID=""
+LAST_TICK_START=""
+LAST_TICK_END=""
+LAST_DISPATCH_ELAPSED=""
+LAST_DEPLOY_STAGE=""
+LAST_DEPLOY_STATUS=""
+LAST_BLOCKER_MSG=""
 
-if [ "${1:-}" = "--json" ]; then
-  printf '{"now_utc":"%s","now_aest":"%s","next_utc":"%s","next_aest":"%s","seconds_until":%d,"cron_entry":"%s"}\n' \
-    "$NOW_UTC_HHMM" "$NOW_AEST_HHMM" "$NEXT_HHMM_UTC" "$NEXT_HHMM_AEST" "$SECS_UNTIL" "$(echo "$CRON_ENTRY" | tr -d '"')"
-else
-  cat <<EOF
-─── Reseller goal loop — next tick ───
-  Now:       ${NOW_UTC_HHMM} UTC  (${NOW_AEST_HHMM} AEST)
-  Next tick: ${NEXT_HHMM_UTC} UTC  (${NEXT_HHMM_AEST} AEST)
-  ETA:       ${SECS_UNTIL}s
-  Cron:      ${CRON_ENTRY:0:120}...
-  Last log:  ${LAST_TICK:0:200}
-EOF
+if [ -s "$HISTORY" ]; then
+  # Last tick id (may still be running if end row absent).
+  LAST_TICK_ID="$(tac "$HISTORY" | grep -oP '"tick_id":"[^"]+"' | head -1 | cut -d'"' -f4)"
+  if [ -n "$LAST_TICK_ID" ]; then
+    LAST_TICK_START="$(grep -F "$LAST_TICK_ID" "$HISTORY" | grep '"stage":"tick_start"' | tail -1)"
+    LAST_TICK_END="$(grep -F "$LAST_TICK_ID" "$HISTORY" | grep '"stage":"tick_end"' | tail -1)"
+    LAST_DISPATCH_ELAPSED="$(grep -F "$LAST_TICK_ID" "$HISTORY" | grep '"stage":"delegated_dispatch"' | grep -oP '"elapsed_ms":\d+' | tail -1 | cut -d: -f2)"
+    LAST_DEPLOY_STAGE="$(grep -F "$LAST_TICK_ID" "$HISTORY" | grep -oP '"stage":"auto_deploy_[a-z_]+"' | tail -1 | cut -d'"' -f4)"
+    LAST_DEPLOY_STATUS="$(grep -F "$LAST_TICK_ID" "$HISTORY" | grep '"stage":"auto_deploy_finished"' | grep -oP '"status":-?\d+' | tail -1 | cut -d: -f2)"
+  fi
 fi
+
+# ────────────────────────────────────────────────────────────────────────────
+# Extract last claude-CLI response snippet from the log (non-JSON prose).
+# This shows what phase was picked + any blockers verbatim.
+# ────────────────────────────────────────────────────────────────────────────
+LAST_PROSE="$(grep -v '^{' "$LOG" 2>/dev/null | grep -v '^❌' | tail -14 | head -12 || true)"
+
+# ────────────────────────────────────────────────────────────────────────────
+# Determine tick state: running vs idle vs blocked.
+# ────────────────────────────────────────────────────────────────────────────
+TICK_STATE="idle"
+if [ -n "$LAST_TICK_START" ] && [ -z "$LAST_TICK_END" ]; then
+  TICK_STATE="RUNNING (started at ${LAST_TICK_ID})"
+elif [ "$LAST_DEPLOY_STATUS" = "1" ]; then
+  TICK_STATE="last tick deploy FAILED (build race or gate error)"
+elif [ -n "$LAST_TICK_END" ]; then
+  TICK_STATE="idle — last tick ended cleanly"
+fi
+
+# ────────────────────────────────────────────────────────────────────────────
+# JSON output for scripts.
+# ────────────────────────────────────────────────────────────────────────────
+if [ "$MODE" = "--json" ]; then
+  printf '{"now_utc":"%s","next_utc":"%s","seconds_until":%d,"tick_state":"%s","last_tick_id":"%s","last_dispatch_ms":%s,"last_deploy_stage":"%s","last_deploy_status":%s}\n' \
+    "$NOW_UTC_HHMM" "$NEXT_HHMM_UTC" "$SECS_UNTIL" "$TICK_STATE" "${LAST_TICK_ID:-}" "${LAST_DISPATCH_ELAPSED:-0}" "${LAST_DEPLOY_STAGE:-none}" "${LAST_DEPLOY_STATUS:-0}"
+  exit 0
+fi
+
+# ────────────────────────────────────────────────────────────────────────────
+# Human view.
+# ────────────────────────────────────────────────────────────────────────────
+cat <<EOF
+
+═══════════════════════════════════════════════════════════════════════
+  Reseller Goal Loop — Live Status
+═══════════════════════════════════════════════════════════════════════
+
+  🕐  Now:            ${NOW_UTC_HHMM} UTC   (${NOW_AEST_HHMM} AEST)
+  ⏭   Next tick:      ${NEXT_HHMM_UTC} UTC   (${NEXT_HHMM_AEST} AEST)     [in ${SECS_UNTIL}s]
+  📍  State:          ${TICK_STATE}
+
+  🔁  Last tick:      ${LAST_TICK_ID:-none yet}
+  ⏱   Dispatch time:  ${LAST_DISPATCH_ELAPSED:-0} ms   ($(( ${LAST_DISPATCH_ELAPSED:-0} / 1000 ))s)
+  🚀  Auto-deploy:    ${LAST_DEPLOY_STAGE:-skipped}   (status=${LAST_DEPLOY_STATUS:-n/a})
+
+─── What the loop did in the last tick (verbatim from claude CLI) ─────
+EOF
+
+if [ -n "$LAST_PROSE" ]; then
+  echo "$LAST_PROSE" | sed 's/^/  │  /'
+else
+  echo "  (no prose response — loop may have exited quickly or is running now)"
+fi
+
+cat <<EOF
+
+─── Live crons ────────────────────────────────────────────────────────
+$(crontab -l | grep -E '(reseller|goal-loop|credit-reset|clear-commissions)' | grep -v '^#' | sed 's/^/  /')
+
+  Logs:      $LOG
+             $HISTORY
+
+═══════════════════════════════════════════════════════════════════════
+EOF
