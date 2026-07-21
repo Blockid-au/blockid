@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.5
+version: 2026-07-23.6
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -170,7 +170,7 @@ tracks:
           "monthly reconciliation CSV export (DONE — /api/cron/reseller-monthly-reconciliation groups reseller_commissions_current cleared events by reseller_id and emails admin@blockid.au with CSV attachment; ?month=YYYY-MM allows historical rerun)"
         ]
       P4_reseller_console:
-        status: partial
+        status: done_pending_playwright
         migration_files: [0095]
         tick_started: 21
         sub_phases:
@@ -192,7 +192,13 @@ tracks:
             "web/src/lib/reseller/supabase.ts (AttributedCustomerRow.onboarding_completed + portfolioSviRaw total_svi→score alias)",
             "web/src/app/reseller/page.tsx (KPI cards + signup-by-ISO-week + SVI band distribution wired to k>=5 aggregates)"
           ], note: "U.15.3 chokepoint — pure buildPortfolioSummary + buildSignupWeekly + buildSviBands with k>=5 threshold + ISO-8601 week label + applyComplementarySuppression protects against single-suppressed-bucket subtraction leaks. Dashboard renders '<5' for suppressed cells; day-precision timestamps never surface."}
-          P4.4_scope_grep_rule: {status: pending, note: "CI rule R-01 fails any /api/reseller/* that touches getSupabaseAdmin without importing scopedReseller"}
+          P4.4_scope_grep_rule: {status: done, tick: 24, files: [
+            "web/src/lib/reseller/reseller-lints.ts (+ test 9/9)",
+            "web/scripts/ci/reseller-lints.mjs (CLI walker; exits 1 on violation)",
+            "web/package.json (npm run lint:reseller)",
+            "web/src/app/api/reseller/code/validate/route.ts (r-01-exempt pragma — public unauthenticated lookup)",
+            "web/src/app/api/reseller/me/route.ts (r-01-exempt pragma — per-user attribution read; scopedReseller() would reject non-admin viewers)"
+          ], note: "R-01 chokepoint — analyzer flags /api/reseller/** files that reference getSupabaseAdmin without importing scopedReseller (@/lib/reseller/scope) or resellerSupabase (@/lib/reseller/supabase); opt-out via `// r-01-exempt: <reason>` (empty reason = error). Canonical logic lives in the tested .ts lib; the .mjs CLI duplicates the ~30 regex lines on purpose to stay plain-node (matches web/scripts/audit-secrets.mjs pattern). Current tree: 4 files scanned, 2 exemptions, 0 violations."}
         exit_criteria: [
           "/reseller/{dashboard,customers,codes,credits,create-startup,reports,settings} live (SKELETONS DONE)",
           "scopedReseller(user) typed helper enforces boundary (D3-CISO-01) (DONE)",
@@ -510,6 +516,31 @@ review_history:
       never leaves the server.
     commit: (this tick)
 
+  - tick: 24
+    ran_at: 2026-07-21
+    action: p4.4_scope_grep_rule
+    result: |
+      R-01 CI enforcement shipped. Pure analyzer at
+      web/src/lib/reseller/reseller-lints.ts (analyzeR01(file, content) →
+      R01Finding[]) with 9 vitest cases: clean file, missing wrapper,
+      scope import alias, wrapper import alias, relative scope import,
+      substring false-positive guard, exempt-with-reason, exempt-empty-
+      rejected, exempt-preferred-over-missing-import. CLI at
+      web/scripts/ci/reseller-lints.mjs walks web/src/app/api/reseller/
+      recursively, reports exemptions + violations with file:line, exits
+      1 on any error-severity finding. Canonical logic is the tested .ts
+      lib; the .mjs CLI duplicates the ~30 regex lines on purpose to
+      stay plain-node (matches audit-secrets.mjs pattern; no tsx/build
+      step in CI). npm script `lint:reseller` registered in
+      web/package.json. Two current legitimately-unscoped routes tagged
+      with `// r-01-exempt:` — code/validate (public unauthenticated
+      promotion-code lookup, response redacts stripe_promotion_code_id
+      + reseller_id) and me (per-user attribution read; scopedReseller
+      would reject non-admin viewers by design). Tests: 9 new +
+      132/132 combined reseller suite; tsc clean; npm run lint:reseller
+      passes 4-file scan with 2 exemptions, 0 violations.
+    commit: (this tick)
+
   - tick: 20
     ran_at: 2026-07-21
     action: p3.1_reconciliation_cron
@@ -535,14 +566,13 @@ next_action:
   task: |
     1) Apply migrations 0091 + 0092 + 0093 + 0094 via docker exec psql (P1.4) — infra step, requires DB access.
     2) Seed INFOVISION reseller row (P1.5_infovision_seed) once P1.4 lands.
-    3) P4.1_reveal_email_audit DONE (tick 21) — H.10 mask/reveal + audit-log chokepoint on customer list.
-    4) P4.2_customer_drawer DONE (tick 22) — U.7 3-tab drawer with reseller_audit_log write on open.
-    5) P4.3_portfolio_aggregates DONE (tick 23) — U.15.3 k>=5 anonymity + ISO-week quantisation live on dashboard.
-    6) P4.4_scope_grep_rule — R-01 CI grep to fail any /api/reseller/* touching getSupabaseAdmin without scopedReseller.
-    7) After P4 lands, unlock P6_capabilities_sandbox and P9_admin_surface.
-    8) Track B (B1_showcase_scaffold) unblocked by track_A_P1 done — next tick can consider it in parallel with P4.4.
+    3) P4 track A complete (P4.1 tick 21, P4.2 tick 22, P4.3 tick 23, P4.4 tick 24 — R-01 CI grep live).
+    4) Track B B1_showcase_scaffold now unblocked (track_A_P1 done_pending_apply + P4 done_pending_playwright); safe to enter on next tick.
+    5) P9.3_requests_inbox pending — waits on a request-table migration; feasible on next tick if we author 0095 alongside.
+    6) P6_capabilities_sandbox unblocked by P4 done; feasible on next tick.
+    7) P0.3_advisory_reviews still pending — schedulable on next off-peak tick.
   authorised: true
-  on_success: continue to P4.4 CI grep rule + track B B1
+  on_success: prefer B1_showcase_scaffold OR P6_capabilities_sandbox (track A over B when both ready per loop policy → P6 first)
 
 telemetry:
   log_file: web/content/reports/reseller-goal-history.jsonl

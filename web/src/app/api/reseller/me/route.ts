@@ -14,6 +14,8 @@
 // Attribution source: app_users.attribution_reseller_id (cache column
 // populated by processAttribution() at signup). Falls back gracefully
 // when the column or resellers table is missing (pre-P1.4-apply state).
+//
+// r-01-exempt: reads only the current session user's own attribution_reseller_id + the referenced reseller's public display fields; the viewer is not a reseller admin, so scopedReseller() would reject them by design.
 
 import { NextResponse } from "next/server";
 
