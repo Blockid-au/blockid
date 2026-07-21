@@ -25,8 +25,12 @@ export default async function ResellerLayout({ children }: Props) {
     redirect("/auth/login?next=/reseller");
   }
 
+  // AppUser doesn't carry `segment` — the entitlement engine only reads
+  // plan + id. Segment is derived elsewhere (from account_type). We pass a
+  // stable placeholder "founder" since `reseller.console` is plan-gated,
+  // not segment-gated.
   const allowed = await can(
-    { id: user.id, plan: user.plan ?? "free", segment: user.segment ?? "founder" },
+    { id: user.id, plan: user.plan ?? "free", segment: "founder" },
     "reseller.console",
   );
   if (!allowed) {
