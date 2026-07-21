@@ -88,15 +88,15 @@ export async function scopedReseller(user: AppUser): Promise<ScopedResellerSessi
       return cachedAllowed;
     },
 
-    async sandboxProjectId() {
-      if (cachedSandbox !== undefined) return cachedSandbox;
+    async sandboxProjectId(): Promise<string | null> {
+      if (cachedSandbox !== undefined) return cachedSandbox as string | null;
       const { data } = await supabase
         .from("projects")
         .select("id")
         .eq("reseller_sandbox_id", membership.reseller_id)
         .maybeSingle();
-      cachedSandbox = data?.id ?? null;
-      return cachedSandbox;
+      cachedSandbox = (data?.id as string | undefined) ?? null;
+      return cachedSandbox as string | null;
     },
   };
 }
