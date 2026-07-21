@@ -239,7 +239,10 @@ tracks:
           P6.3_grant_api: {status: done, tick: 26, files: [
             "web/src/app/api/reseller/credits/grant/route.ts"
           ], note: "POST /api/reseller/credits/grant — scopedReseller chokepoint + decideReveal(target_user_id, allowedCustomerIds) + decideGrant on live reseller_credit_grants rollup for current month_key. Approved grants bump credit_balances, insert credit_transactions (granted_by_reseller_id + metadata.reseller_id/granted_by_user), then mirror into reseller_credit_grants(kind=grant, over_budget=false). Over-budget → 402 over_budget_requires_approval (deferred to P9.3 admin requests inbox). Audit log written BEFORE returning (action='grant_credits', metadata carries month_key + credit_transaction_id). npm run lint:reseller: 5 files / 2 exemptions / 0 violations; tsc clean; reseller vitest suite 151/151 unchanged (route path exercised via decideGrant + decideReveal unit tests already in tree)"}
-          P6.4_sandbox_provision: {status: pending, note: "POST /api/reseller/sandbox/setup — one-time createProject with reseller_sandbox_id stamped; bypass PLAN_PROJECT_LIMITS"}
+          P6.4_sandbox_provision: {status: done, tick: 27, files: [
+            "web/src/lib/reseller/sandbox-provision.ts (+ test 11/11)",
+            "web/src/app/api/reseller/sandbox/setup/route.ts"
+          ], note: "POST /api/reseller/sandbox/setup — scopedReseller + canProvisionSandbox(role) gate + idempotency via scope.sandboxProjectId(). buildSandboxProjectInsert emits reseller-sandbox-<code> slug (collision-free vs. toSlug() user input) with reseller_sandbox_id stamped so PLAN_PROJECT_LIMITS is bypassed at the DB level (no limit check in path). 23505 race → re-scans + returns winner. Audit log written BEFORE 200 response (action=provision_sandbox, metadata carries project_id + slug). npm run lint:reseller: 6 files / 2 exemptions / 0 violations; tsc clean; reseller vitest 162/162."}
           P6.5_spendCredits_sandbox: {status: pending, note: "web/src/lib/credits.ts:448 branch — detect metadata.project_id → sandbox → decideSandboxSpend → insert reseller_credit_grants(kind=sandbox_spend, amount<0) instead of debiting credit_balances"}
           P6.6_grant_modal: {status: pending, note: "/reseller/credits UI — grant form + over-budget approval flow + monthly usage bar"}
         exit_criteria: [
@@ -616,6 +619,35 @@ review_history:
       needed this tick).
     commit: (this tick)
 
+  - tick: 27
+    ran_at: 2026-07-21
+    action: p6.4_sandbox_provision
+    result: |
+      POST /api/reseller/sandbox/setup landed at
+      web/src/app/api/reseller/sandbox/setup/route.ts. Idempotent one-time
+      provision of the reseller org's sandbox workspace: scopedReseller
+      chokepoint → canProvisionSandbox(role) blocks viewers (owner+admin
+      only — provisioning creates billable capacity) → scope.sandboxProjectId()
+      returns the existing sandbox project_id if one is already stamped
+      (safe to retry). Cold path calls buildSandboxProjectInsert() from the
+      new pure lib at web/src/lib/reseller/sandbox-provision.ts, which emits
+      slug="reseller-sandbox-<code>" (collision-free vs. toSlug() user input
+      in web/src/lib/projects.ts — which never emits the literal
+      "reseller-sandbox-" prefix on user-typed names) with reseller_sandbox_id
+      stamped so createProject() PLAN_PROJECT_LIMITS is bypassed at the DB
+      level (the route inserts directly, no limit check in the code path).
+      is_default=false so the sandbox never displaces the reseller admin's
+      real default workspace. 23505 unique-collision on (user_id, slug) is
+      treated as a race — re-scans sandboxProjectId() and returns the winner.
+      Audit log written BEFORE the 200 response (action=provision_sandbox,
+      metadata carries project_id + slug). Vitest: 11 new cases (slug
+      collision guard, punctuation sanitisation, blank display_name
+      fallback, 40-char clamp, is_default=false, description mentions
+      monthly_credit_budget, role gate) + 162/162 combined reseller suite
+      pass. lint:reseller now scans 6 files with 2 exemptions and 0
+      violations; tsc clean.
+    commit: (this tick)
+
   - tick: 20
     ran_at: 2026-07-21
     action: p3.1_reconciliation_cron
@@ -641,13 +673,13 @@ next_action:
   task: |
     1) Apply migrations 0091 + 0092 + 0094 + 0096 via docker exec psql (P1.4 + P6.1) — infra step, requires DB access.
     2) Seed INFOVISION reseller row (P1.5_infovision_seed) once P1.4 lands.
-    3) P6.4 next: POST /api/reseller/sandbox/setup — one-time createProject with reseller_sandbox_id stamped; bypass PLAN_PROJECT_LIMITS (P6.3 grant route landed tick 26).
-    4) P6.5/P6.6 follow: spendCredits sandbox branch (web/src/lib/credits.ts:448) → reseller-side grant modal UI at /reseller/credits.
+    3) P6.5 next: spendCredits sandbox branch (web/src/lib/credits.ts:448) — detect metadata.project_id → sandbox → decideSandboxSpend → insert reseller_credit_grants(kind=sandbox_spend, amount<0) instead of debiting credit_balances.
+    4) P6.6 follow: reseller-side grant modal UI at /reseller/credits (grant form + over-budget approval + monthly usage bar).
     5) Track B B1_showcase_scaffold still unblocked; parallel candidate if a tick prefers track B ordering.
     6) P9.3_requests_inbox pending — waits on a request-table migration; feasible on next tick if we author 0095 alongside.
     7) P0.3_advisory_reviews still pending — schedulable on next off-peak tick.
   authorised: true
-  on_success: continue P6 sub-phases (P6.4 next) — track A P6 in_progress; keep momentum before switching to B1
+  on_success: continue P6 sub-phases (P6.5 next) — track A P6 in_progress; keep momentum before switching to B1
 
 telemetry:
   log_file: web/content/reports/reseller-goal-history.jsonl
