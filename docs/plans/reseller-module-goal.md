@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.19
+version: 2026-07-23.20
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -373,23 +373,27 @@ tracks:
     current_focus: B1_showcase_scaffold
     phases:
       B1_showcase_scaffold:
-        status: in_progress
+        status: done
         migration_files: [0092]  # is_showcase + reseller_sandbox_id + repo_url already landed in 0092 (not 0099 as originally planned)
+        tick_completed: 42
+        completed_at: 2026-07-21
         sub_phases:
           B1.1_schema_columns: {status: done, apply_tick: 41, note: "0092 ships is_showcase + reseller_sandbox_id + repo_url; applied tick 41 alongside P1.4. 0099 slot no longer needed for this leaf."}
           B1.2_report_tagging_lib: {status: done, tick: 36, files: [
             "web/src/lib/showcase/report-tagging.ts",
             "web/src/lib/showcase/report-tagging.test.ts (20/20 pass)"
           ], note: "Pure filename → DataRoom row mapper. parseReportFilename() handles 15 known filename shapes (C-Level daily briefs, review vX.Y.Z artefacts, milestone-M<n>-vX.Y.Z, 404/perf/security audits, regression, self-analysis, vision, architecture, plan, priorities, knowledge-base, templates). Agent detection covers ceo/cto/cfo/cmo/coo/cpo/cdo/chro/ciso/clo/cro/cso/ccso/ir/qa/rnd/customer-care + hybrid cro-cmo (leftmost-owner). Phase inference precedence: kind-specific override (milestone→11, vision→1, architecture→4, 404-audit→4, perf-audit→7, security-audit→10, regression→4, self-analysis→2, plan→1, priorities→1, operations→11) then agent→phase fallback (cmo=3, cdo=5, cto=4, cfo=6, chro=8, ciso/clo=10, cro=7, cso/ccso=2, cpo=4, coo=11, ir=9; ceo/qa/rnd/ops/perf/security/customer-care return null since they're cross-cutting). Date extraction validates the round-trip so Feb 30 → null. Version regex captures v2.0.0-beta.6 style suffixes. buildShowcaseDataRoomRows() filters templates by default, sorts newest generated_at first with alphabetical tail for undated rows, emits source_path = web/content/reports/<filename> and title = kebab→space. Ready for B1.3 to wire into a cron/seed script once the BlockID.au project row exists."}
-          B1.3_seed_and_ingest: {status: pending, unblocked_by: tick_41_apply, note: "0092 landed tick 41 so this leaf is now DB-unblocked. Next tick can: (1) INSERT INTO projects the BlockID.au workspace row owned by admin@blockid.au with is_showcase=true, (2) run one-shot seeder that walks web/content/reports/*.md through buildShowcaseDataRoomRows() and inserts data_room rows tagged with generated_by_agent + phase_at_generation (redacted per D3-CISO-04)."}
+          B1.3_seed_and_ingest: {status: done, tick: 42, completed_at: 2026-07-21, files: [
+            "web/scripts/seed-showcase-blockid.ts"
+          ], note: "One-shot idempotent seeder shipped. Flips admin@blockid.au's existing default project (2bf55234) → is_showcase=true + repo_url=https://github.com/Blockid-au/blockid.git (owner-side flag rather than a new INSERT since the default row already exists — avoids duplicate showcase workspaces). Upserts a data_rooms row (name='BlockID.au Showcase', template='showcase', is_public=true) scoped to that project with sections jsonb array holding the buildShowcaseDataRoomRows({includeTemplates:false}) output — 242 report rows extracted from 243 web/content/reports/*.md files (one _daily-report-template.md filtered as expected). data_room_documents table from migration 0062 was never applied on this host so per-report rows ride inside data_rooms.sections until that table lands; the /showcase/blockid page (B6) reads directly from disk so this ingest is not on any hot path yet. Re-run idempotent: reuses the existing is_showcase project and UPDATEs the same data_rooms row by (project_id, name) lookup so tick N+1 does not spawn a second showcase workspace. settings jsonb stamps seeded_at + seeded_by + source_dir + row_count for observability. Verified: showcase vitest 55/55 (report-tagging 20 + gallery 15 + public-view 20 all unchanged — seeder consumes the pure lib, no lib delta); tsc clean."}
         exit_criteria: [
-          "projects.is_showcase column live (DONE — landed in 0092 pending docker exec apply)",
-          "projects.reseller_sandbox_id column live (DONE — landed in 0092 pending docker exec apply)",
-          "projects.repo_url column live (DONE — landed in 0092 pending docker exec apply)",
-          "BlockID.au workspace seeded (PENDING B1.3 — needs docker exec after 0092 applies)",
-          "auto-DataRoom wiring: web/content/reports/*.md tagged with generated_by_agent, phase_at_generation (redacted per D3-CISO-04) (DONE at lib level B1.2; ingest wiring pending B1.3)"
+          "projects.is_showcase column live (DONE tick 41)",
+          "projects.reseller_sandbox_id column live (DONE tick 41)",
+          "projects.repo_url column live (DONE tick 41)",
+          "BlockID.au workspace seeded (DONE tick 42 — project 2bf55234 flipped is_showcase=true + repo_url stamped; data_rooms 847b1f03 upserted with 242 sections)",
+          "auto-DataRoom wiring: web/content/reports/*.md tagged with generated_by_agent, phase_at_generation (redacted per D3-CISO-04) (DONE tick 42 — 242 rows carrying generated_by_agent + phase_at_generation + generated_at + version + source_path only; no report body content stored)"
         ]
-      B2_guide_ch_1_to_4: {status: pending, deps: [B1]}
+      B2_guide_ch_1_to_4: {status: pending, deps: [B1], unblocked_by: tick_42}
       B3_guide_ch_5_to_8: {status: pending, deps: [B2]}
       B4_guide_ch_9_to_12: {status: pending, deps: [B3]}
       B5_report_library:
@@ -1266,12 +1270,47 @@ review_history:
       exemptions / 0 violations (new files sit outside /api/reseller/).
     commit: (this tick)
 
+  - tick: 42
+    ran_at: 2026-07-21
+    action: b1.3_seed_and_ingest
+    result: |
+      Track B B1 gate closed. New idempotent seeder at
+      web/scripts/seed-showcase-blockid.ts flips admin@blockid.au's
+      existing default project (2bf55234) → is_showcase=true +
+      repo_url=https://github.com/Blockid-au/blockid.git and upserts a
+      data_rooms row (name='BlockID.au Showcase', template='showcase',
+      is_public=true, project_id=<default>) whose sections jsonb column
+      carries the buildShowcaseDataRoomRows({includeTemplates:false})
+      output — 242 report rows extracted from 243 web/content/reports/
+      *.md files (the one _daily-report-template.md is filtered by
+      default as designed in tick 36). Rather than INSERTing a fresh
+      workspace row per the plan's literal wording, the seeder flips
+      the existing default because admin already had six projects
+      called "blockid.au*"; a seventh would just add noise. Idempotent
+      by design: reuses whichever project already carries
+      is_showcase=true, and UPDATEs the same data_rooms row keyed on
+      (project_id, name) so re-running never spawns a duplicate. The
+      data_room_documents table from migration 0062 was never applied
+      on this host, so per-report rows ride inside data_rooms.sections
+      until that table lands — the /showcase/blockid page (B6) reads
+      from disk directly so this ingest is not on any hot path yet;
+      the DB state exists to unblock B2 and any future DB-backed
+      showcase view. settings jsonb stamps seeded_at + seeded_by +
+      source_dir + row_count for observability. Verified: showcase
+      vitest 55/55 unchanged (report-tagging 20 + gallery 15 +
+      public-view 20 — seeder consumes the pure lib, no lib delta);
+      tsc clean; second-run confirmed idempotent (reuses project +
+      updates data_room). Unblocks B2 (guide chapters 1-4). B8
+      (reseller_linkage) still gated on track_A_P4 which is
+      done_pending_playwright so it also opens.
+    commit: (this tick)
+
 next_action:
   agent: applier
   task: |
     1) DONE tick 41 — Migrations 0091 + 0092 + 0093 + 0094 + 0095 + 0096 + 0097 applied via docker exec psql + NOTIFY pgrst reload. Private 'reseller-reports' Storage bucket created (public=false, 10MB, text/csv only). Gap fixes inline: authored 0093_reseller_audit_log.sql (append-only, default-deny RLS) filling the missing schema for every /api/reseller/** auditLog() call; fixed 0092 index that referenced non-existent revenue_events.occurred_at (should be ts).
     2) P1.5_infovision_seed remains HUMAN-BLOCKED. Once Auschain confirms InfoVision's real ABN + GST status per H.20, run: `INSERT INTO resellers (code, display_name, billing_model, allowed_tiers, can_create_startups, can_grant_credits, monthly_credit_budget, monthly_sandbox_credits, gst_registered, abn, commission_share_pct) VALUES ('INFOVISION', 'InfoVision', 'wholesale', ARRAY[0,10,20,30,40], true, true, 20000, 500, true, '<REAL_ABN>', 40.00);`
-    3) Track B B1.3 (seed + ingest) is now DB-unblocked (0092 applied tick 41). Next tick can INSERT the BlockID.au workspace row owned by admin@blockid.au with is_showcase=true, then run a one-shot seeder that walks web/content/reports/*.md through buildShowcaseDataRoomRows() (tick 36 lib) and inserts each row into data_room tagged with generated_by_agent + phase_at_generation. Track B B2 (guide chapters 1–4) unblocks after B1.3.
+    3) DONE tick 42 — Track B B1.3 seed + ingest shipped via web/scripts/seed-showcase-blockid.ts. Admin's default project 2bf55234 is now is_showcase=true with repo_url; data_rooms 847b1f03 upserted with 242 sections rows tagged by generated_by_agent + phase_at_generation. Track B B2 (guide chapters 1-4) and B8 (reseller linkage) are now unblocked.
     4) DONE tick 35 — Optional P6.5b widening: term-sheet/idea-lab/valuation/journal/data-room/evidence spendCredits callers now thread project_id via getProjectIdFromRequest(). See tick 35 for file list. Remaining spendCredits() callers not touched: financial-projections, investor-pack/generate, svi/pitch-deck, svi/docx, svi/report, svi/enhanced-report, svi/dimension-analyze, svi/ai-score, svi/research, revaluation, v1/analyze, evaluation/[criterionKey]/ai-suggest, data-room/goals (award path — misleading call, not a real debit).
     5) P0.3_advisory_reviews still pending — schedulable on next off-peak tick.
     6) DONE tick 38 — code_request approval now mints Stripe coupon (deterministic id + duration=forever) + promotion_code and inserts into reseller_promotion_codes inline via decideCodeMint(). linked_promotion_code_id stamped on the reseller_requests row before status flips to approved. Tier 0 (attribution-only) skips Stripe. Idempotent under re-approval: existing (reseller_id, tier_pct) row wins; Stripe coupon retrieve-or-create pattern prevents duplicate coupons if a prior attempt died between Stripe mint and DB insert.
@@ -1280,7 +1319,7 @@ next_action:
     9) DONE tick 40 — Track B B6 public showcase mirror at /showcase/blockid (see phases.B6_public_showcase.files). Metadata-only; reads on-disk artefacts + milestone-report-state.json; no DB dep. Deep-linking from /guide/reports card rows to /showcase/blockid (and vice versa) + wiring the "current phase" chip into workspace-layout topbar deferred to a follow-up tick alongside B7 product tour, since both touch the same in-app phase-transition surface.
   authorised: true
   on_success: |
-    Frontier after tick 41: (a) Track B B1.3 seed + ingest is now DB-unblocked (docker apply of 0092 landed tick 41) — natural next tick. (b) Track A P0.3_advisory_reviews still pending (cmo, coo, cpo, cdo, chro, cro, customer-success, investor-relations) — schedulable on next off-peak tick since it's subagent-only. (c) Track A P0.4_ceo_final_sign_off now unblocked (P1.4 done + tests green) and can fire after B1.3 or independently. Prefer B1.3 next tick since it also cascades to unblock B2/B7/B8. P1.5_infovision_seed remains HUMAN-BLOCKED pending ABN + GST confirmation.
+    Frontier after tick 42: (a) Track B B2_guide_ch_1_to_4 newly unblocked by B1.3 completion — natural next Track B pick. (b) Track A P0.3_advisory_reviews still pending (cmo, coo, cpo, cdo, chro, cro, customer-success, investor-relations) — schedulable on next off-peak tick since it's subagent-only. (c) Track A P0.4_ceo_final_sign_off unblocked (P1.4 done + tests green) — can fire after P0.3 or independently. (d) Track B B7_product_tour now unblocked (deps: [B2] previously — actually deps B2 still; only B8 opens directly on B1). Prefer Track A next tick per plan rule (P0.3 or P0.4), unless off-peak window unavailable in which case B2 is the concrete alternative. P1.5_infovision_seed remains HUMAN-BLOCKED pending ABN + GST confirmation.
 
 telemetry:
   log_file: web/content/reports/reseller-goal-history.jsonl
