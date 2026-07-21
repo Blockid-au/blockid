@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.4
+version: 2026-07-23.5
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -180,14 +180,20 @@ tracks:
             "web/src/app/reseller/customers/reveal-email-cell.tsx",
             "web/src/app/reseller/customers/page.tsx (uses RevealEmailCell)"
           ], note: "H.10 chokepoint — decideReveal() enforces uuid + allowedCustomerIds membership; scoped route writes reseller_audit_log(subject_user_id, action='reveal_email', fields=['email'], route, ip, user_agent) before returning plaintext"}
-          P4.2_customer_drawer: {status: pending, note: "3-tab drawer Overview + Progression + Reports (U.7)"}
+          P4.2_customer_drawer: {status: done, tick: 22, files: [
+            "web/src/lib/reseller/customer-drawer.ts (+ test 10/10)",
+            "web/src/app/api/reseller/customers/[id]/drawer/route.ts",
+            "web/src/app/reseller/customers/customer-drawer.tsx",
+            "web/src/app/reseller/customers/drawer-opener.tsx",
+            "web/src/app/reseller/customers/page.tsx (Details column wiring)"
+          ], note: "U.7 3-tab drawer — Overview (plan/MRR/credits/last-active) + Progression (timeline events + monthly SVI curve) + Reports (metadata only, no download link, no preview). Pure buildOverviewSummary/buildProgressionTimeline/buildSviCurve/buildReportsList helpers with 10 vitest cases. GET route writes reseller_audit_log(action='view_customer_drawer') BEFORE returning; scopedReseller + decideReveal(uuid + allowedCustomerIds) chokepoint reused from P4.1."}
           P4.3_portfolio_aggregates: {status: pending, note: "k>=5 anonymity + weekly timestamp quantisation on dashboard counters"}
           P4.4_scope_grep_rule: {status: pending, note: "CI rule R-01 fails any /api/reseller/* that touches getSupabaseAdmin without importing scopedReseller"}
         exit_criteria: [
           "/reseller/{dashboard,customers,codes,credits,create-startup,reports,settings} live (SKELETONS DONE)",
           "scopedReseller(user) typed helper enforces boundary (D3-CISO-01) (DONE)",
           "reseller_audit_log writes on every row read (PARTIAL — reveal-email wired P4.1; drawer + list read wiring pending P4.2)",
-          "3-tab customer drawer: Overview + Progression + Reports (U.7) (PENDING P4.2)",
+          "3-tab customer drawer: Overview + Progression + Reports (U.7) (DONE P4.2)",
           "k>=5 anonymity + weekly timestamp quantisation on aggregate counters (D3-CISO-03) (PENDING P4.3)",
           "Playwright: reseller cannot fetch /api/svi/*, /api/dataroom/*, /api/cap-table/* for attributed customer → 403 (DEFERRED to P10)"
         ]
@@ -452,6 +458,31 @@ review_history:
       read-wiring deferred to P4.2/P10.
     commit: (this tick)
 
+  - tick: 22
+    ran_at: 2026-07-21
+    action: p4.2_customer_drawer
+    result: |
+      Three-tab drawer (Overview / Progression / Reports) landed for the
+      reseller Customers page per U.7. Pure view-model builders live in
+      web/src/lib/reseller/customer-drawer.ts (buildOverviewSummary,
+      buildProgressionTimeline, buildSviCurve, buildReportsList) with 10
+      vitest cases: signup + onboarding + first_svi_run + svi_score_update
+      delta rendering + report_generated + plan_change (subscribe/renewal/
+      upgrade/downgrade, refund ignored) + credit_grant (plan_grant +
+      reseller_grant); SVI monthly bucketing + newest-first reports listing
+      + 31-day MRR window. GET /api/reseller/customers/[id]/drawer runs the
+      scopedReseller(user) chokepoint, gates on decideReveal(uuid +
+      allowedCustomerIds), writes reseller_audit_log(action=
+      'view_customer_drawer', fields=[overview,progression,reports]) BEFORE
+      returning the payload, then joins app_users + svi_analyses (by email)
+      + revenue_events + credit_transactions + credit_balances in parallel.
+      Client drawer at customer-drawer.tsx renders 3 tabs with SVI curve
+      strip + timeline (newest-first) + report metadata table (no download
+      link, no preview — R6 privacy line). drawer-opener.tsx per-row client
+      button wires into customers/page.tsx as a new Details column. Tests:
+      10 new + 104/104 combined reseller suite pass; tsc clean.
+    commit: (this tick)
+
   - tick: 20
     ran_at: 2026-07-21
     action: p3.1_reconciliation_cron
@@ -478,13 +509,13 @@ next_action:
     1) Apply migrations 0091 + 0092 + 0093 + 0094 via docker exec psql (P1.4) — infra step, requires DB access.
     2) Seed INFOVISION reseller row (P1.5_infovision_seed) once P1.4 lands.
     3) P4.1_reveal_email_audit DONE (tick 21) — H.10 mask/reveal + audit-log chokepoint on customer list.
-    4) P4.2_customer_drawer — 3-tab Overview + Progression + Reports drawer (U.7); wire audit-log on every subject read.
+    4) P4.2_customer_drawer DONE (tick 22) — U.7 3-tab drawer with reseller_audit_log write on open.
     5) P4.3_portfolio_aggregates — k>=5 anonymity + weekly timestamp quantisation on dashboard counters.
     6) P4.4_scope_grep_rule — R-01 CI grep to fail any /api/reseller/* touching getSupabaseAdmin without scopedReseller.
     7) After P4 lands, unlock P6_capabilities_sandbox and P9_admin_surface.
     8) Track B (B1_showcase_scaffold) unblocked by track_A_P1 done — next tick can consider it in parallel with P4.
   authorised: true
-  on_success: continue to P4.2 customer drawer + track B B1
+  on_success: continue to P4.3 portfolio aggregates + track B B1
 
 telemetry:
   log_file: web/content/reports/reseller-goal-history.jsonl

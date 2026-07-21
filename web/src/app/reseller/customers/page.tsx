@@ -11,6 +11,7 @@ import { scopedReseller, ResellerScopeError } from "@/lib/reseller/scope";
 import { resellerSupabase } from "@/lib/reseller/supabase";
 import { maskEmail } from "@/lib/reseller/customer-reveal";
 import { RevealEmailCell } from "./reveal-email-cell";
+import { DrawerOpener } from "./drawer-opener";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +70,7 @@ export default async function ResellerCustomersPage() {
                 <th className="p-3">Contact</th>
                 <th className="p-3">Joined</th>
                 <th className="p-3">Last active</th>
+                <th className="p-3">Details</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-100">
@@ -85,6 +87,9 @@ export default async function ResellerCustomersPage() {
                   </td>
                   <td className="p-3 text-ink-600">{fmtDate(c.created_at)}</td>
                   <td className="p-3 text-ink-600">{fmtDate(c.last_login_at)}</td>
+                  <td className="p-3">
+                    <DrawerOpener customerId={c.user_id} displayName={c.display_name} />
+                  </td>
                 </tr>
               ))}
             </tbody>
