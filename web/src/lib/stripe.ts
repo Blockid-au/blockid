@@ -46,4 +46,33 @@ export const STRIPE_PRICE_MAP: Record<string, string | undefined> = {
   credits_25: process.env.STRIPE_PRICE_CREDITS_25,   // A$20 = 25 credits
   credits_50: process.env.STRIPE_PRICE_CREDITS_50,   // A$15 = 50 credits
   credits_100: process.env.STRIPE_PRICE_CREDITS_100,  // A$25 = 100 credits
+  // Share Management add-on — per docs/plans/reseller-module-plan.md § F.5 / P8.
+  // Env vars minted by Stripe account owner (P8.5, human-blocked until then).
+  addon_share_mgmt_monthly: process.env.STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY,
+  addon_share_mgmt_annual: process.env.STRIPE_PRICE_ADDON_SHARE_MGMT_ANNUAL,
 };
+
+/**
+ * Add-on price-ids resolved at import time. Used by change-plan + billing UI
+ * to identify subscription items that represent an add-on (vs the base plan).
+ * A missing env var yields `null` so callers can detect "not-yet-provisioned"
+ * without a runtime crash.
+ */
+export const ADDON_PRICE_IDS: Record<string, string | null> = {
+  share_management_monthly: process.env.STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY ?? null,
+  share_management_annual: process.env.STRIPE_PRICE_ADDON_SHARE_MGMT_ANNUAL ?? null,
+};
+
+export function getShareMgmtAddonPrice(cadence: "monthly" | "annual"): string | null {
+  return cadence === "annual"
+    ? ADDON_PRICE_IDS.share_management_annual
+    : ADDON_PRICE_IDS.share_management_monthly;
+}
+
+export function isShareMgmtAddonPrice(priceId: string | null | undefined): boolean {
+  if (!priceId) return false;
+  return (
+    priceId === ADDON_PRICE_IDS.share_management_monthly ||
+    priceId === ADDON_PRICE_IDS.share_management_annual
+  );
+}

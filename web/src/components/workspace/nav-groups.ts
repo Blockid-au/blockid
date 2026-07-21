@@ -38,6 +38,13 @@ export interface NavItem {
   lifecycle?: FeatureLifecycle;
   /** Entitlement flag consulted via useEntitlement().can(). */
   feature?: string;
+  /**
+   * Add-on identifier. When the item is locked and this is set, the sidebar
+   * keeps the item visible with an "Add-on" pill and links to
+   * `/workspace/billing?openAddon=<key>` so the purchase drawer opens
+   * without the user leaving their current context. Per plan § F.5.
+   */
+  addOnKey?: "share_management";
 }
 
 export interface NavGroup {
@@ -77,12 +84,12 @@ export const NAV_GROUPS: NavGroup[] = [
     stage: "MVP → Launch",
     minPhase: 2,
     items: [
-      { href: "/workspace/equity-setup", label: "Equity Setup", icon: Wand2, minPlan: "starter" },
-      { href: "/workspace/equity", label: "Equity Split", icon: PieChart, minPlan: "starter" },
-      { href: "/workspace/cap-table", label: "Cap Table", icon: Table2, minPlan: "starter" },
-      { href: "/workspace/shareholders", label: "Shareholders", icon: Shield, minPlan: "starter" },
-      { href: "/workspace/esop", label: "ESOP Setup", icon: Users, minPlan: "starter" },
-      { href: "/workspace/vesting", label: "Vesting", icon: Calendar, minPlan: "starter" },
+      { href: "/workspace/equity-setup", label: "Equity Setup", icon: Wand2, minPlan: "starter", addOnKey: "share_management" },
+      { href: "/workspace/equity", label: "Equity Split", icon: PieChart, minPlan: "starter", addOnKey: "share_management" },
+      { href: "/workspace/cap-table", label: "Cap Table", icon: Table2, minPlan: "starter", addOnKey: "share_management" },
+      { href: "/workspace/shareholders", label: "Shareholders", icon: Shield, minPlan: "starter", addOnKey: "share_management" },
+      { href: "/workspace/esop", label: "ESOP Setup", icon: Users, minPlan: "starter", addOnKey: "share_management" },
+      { href: "/workspace/vesting", label: "Vesting", icon: Calendar, minPlan: "starter", addOnKey: "share_management" },
       { href: "/workspace/wallet", label: "Wallet", icon: Wallet, minPlan: "scale" },
       { href: "/workspace/equity-esop", label: "ESOP Manage", icon: PieChart, minPlan: "growth" },
       { href: "/workspace/equity-dashboard", label: "Blockchain Sync", icon: Link2, minPlan: "scale" },

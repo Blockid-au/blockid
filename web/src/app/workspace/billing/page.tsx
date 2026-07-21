@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
@@ -6,6 +7,7 @@ import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { buildPlansFromConfig } from "@/lib/plans";
 import { getPlatformConfig } from "@/lib/platform-config";
+import { ADDON_PRICE_IDS } from "@/lib/stripe";
 import { BillingClient } from "./billing-client";
 
 export const metadata: Metadata = {
@@ -57,12 +59,18 @@ export default async function BillingPage() {
           </p>
         </div>
 
-        <BillingClient
-          currentPlanId={user.plan}
-          planStartedAt={planStartedAt}
-          hasStripeCustomer={hasStripeCustomer}
-          plans={plans}
-        />
+        <Suspense fallback={null}>
+          <BillingClient
+            currentPlanId={user.plan}
+            planStartedAt={planStartedAt}
+            hasStripeCustomer={hasStripeCustomer}
+            plans={plans}
+            shareMgmtAddonPriceIds={{
+              monthly: ADDON_PRICE_IDS.share_management_monthly,
+              annual: ADDON_PRICE_IDS.share_management_annual,
+            }}
+          />
+        </Suspense>
       </div>
     </WorkspaceLayout>
   );
