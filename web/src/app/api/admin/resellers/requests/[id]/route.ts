@@ -8,21 +8,25 @@
 //     (reason='reseller_grant_over_budget') + insert reseller_credit_grants
 //     (kind=grant, over_budget=true). linked_credit_transaction_id is stamped
 //     on the request row before it flips to status=approved.
-//   - code_request → NO Stripe call here. Stripe coupon+promotion_code
-//     creation is a separate admin action (§ C.5). Approving this request
-//     just marks it ready for the admin to mint the Stripe objects via the
-//     existing /admin/resellers/[code] promotion-codes editor.
+//   - code_request → mint Stripe coupon (tier > 0) + promotion_code, then
+//     INSERT into reseller_promotion_codes and stamp
+//     linked_promotion_code_id on the request row. Tier 0 skips Stripe per
+//     ck_stripe_objects_by_tier. Coupon id is deterministic per
+//     (reseller_id, tier) so a re-approval no-ops safely.
 //   - collateral_approval → mark approved. Reseller sees a green banner in
 //     /reseller/settings once P4 collateral page ships.
 //
 // Deny + cancel are pure status flips with an optional reason.
 
 import { NextResponse } from "next/server";
+import Stripe from "stripe";
 import { getCurrentUser } from "@/lib/auth";
 import { requireAdmin, AdminGateError } from "@/lib/reseller/require-admin";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getStripe } from "@/lib/stripe";
 import { validateAdminDecision } from "@/lib/reseller/requests";
 import { monthKey } from "@/lib/reseller/credit-grants";
+import { decideCodeMint } from "@/lib/reseller/promotion-code-mint";
 
 export const dynamic = "force-dynamic";
 
@@ -84,6 +88,114 @@ export async function PATCH(
 
   const now = new Date().toISOString();
   let linkedCreditTransactionId: string | null = null;
+  let linkedPromotionCodeId: string | null = null;
+
+  if (decision.status === "approved" && current.request_type === "code_request") {
+    const payload = current.payload as {
+      tier_pct?: number;
+      suggested_suffix?: string | null;
+    };
+    const tier = Number(payload.tier_pct);
+    if (!Number.isFinite(tier)) {
+      return NextResponse.json(
+        { ok: false, reason: "payload_incomplete" },
+        { status: 422 },
+      );
+    }
+
+    const { data: resellerRow, error: resellerErr } = await supabase
+      .from("resellers")
+      .select("id, code")
+      .eq("id", current.reseller_id)
+      .maybeSingle();
+    if (resellerErr || !resellerRow) {
+      return NextResponse.json(
+        { ok: false, reason: "reseller_read_failed", error: resellerErr?.message ?? "not_found" },
+        { status: 500 },
+      );
+    }
+
+    const plan = decideCodeMint({
+      reseller: { id: resellerRow.id as string, code: resellerRow.code as string },
+      tierPct: tier,
+      suggestedSuffix: payload.suggested_suffix ?? null,
+      resellerRequestId: current.id,
+    });
+    if (!plan.ok) {
+      return NextResponse.json({ ok: false, reason: plan.reason }, { status: 422 });
+    }
+
+    // Existing (reseller_id, tier_pct) row wins — approving twice is a no-op.
+    const { data: existingRow, error: existingErr } = await supabase
+      .from("reseller_promotion_codes")
+      .select("id")
+      .eq("reseller_id", resellerRow.id)
+      .eq("tier_pct", tier)
+      .maybeSingle();
+    if (existingErr) {
+      return NextResponse.json(
+        { ok: false, reason: "existing_code_read_failed", error: existingErr.message },
+        { status: 500 },
+      );
+    }
+
+    if (existingRow) {
+      linkedPromotionCodeId = existingRow.id as string;
+    } else {
+      let stripeCouponId: string | null = null;
+      let stripePromotionCodeId: string | null = null;
+
+      if (plan.plan.kind === "stripe_mint") {
+        const stripe = getStripe();
+        if (!stripe) {
+          return NextResponse.json(
+            { ok: false, reason: "stripe_not_configured" },
+            { status: 503 },
+          );
+        }
+        try {
+          const coupon = await ensureStripeCoupon(stripe, plan.plan.coupon);
+          stripeCouponId = coupon.id;
+          const promo = await stripe.promotionCodes.create({
+            promotion: { coupon: coupon.id, type: "coupon" },
+            code: plan.plan.promotionCode.code,
+            metadata: plan.plan.promotionCode.metadata,
+          });
+          stripePromotionCodeId = promo.id;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          return NextResponse.json(
+            { ok: false, reason: "stripe_mint_failed", error: msg },
+            { status: 502 },
+          );
+        }
+      }
+
+      const { data: promoRow, error: promoErr } = await supabase
+        .from("reseller_promotion_codes")
+        .insert({
+          reseller_id: plan.plan.row.reseller_id,
+          tier_pct: plan.plan.row.tier_pct,
+          code: plan.plan.code,
+          stripe_coupon_id: stripeCouponId,
+          stripe_promotion_code_id: stripePromotionCodeId,
+          active: true,
+        })
+        .select("id")
+        .single();
+      if (promoErr || !promoRow) {
+        return NextResponse.json(
+          {
+            ok: false,
+            reason: "promotion_code_insert_failed",
+            error: promoErr?.message ?? "no_row",
+          },
+          { status: 500 },
+        );
+      }
+      linkedPromotionCodeId = promoRow.id as string;
+    }
+  }
 
   if (decision.status === "approved" && current.request_type === "over_budget_approval") {
     const payload = current.payload as {
@@ -189,10 +301,13 @@ export async function PATCH(
       decision_at: now,
       decision_reason: decision.decision_reason,
       linked_credit_transaction_id: linkedCreditTransactionId,
+      linked_promotion_code_id: linkedPromotionCodeId,
     })
     .eq("id", current.id)
     .eq("status", "pending")
-    .select("id, status, decision_at, decision_reason, linked_credit_transaction_id")
+    .select(
+      "id, status, decision_at, decision_reason, linked_credit_transaction_id, linked_promotion_code_id",
+    )
     .single();
 
   if (updateErr || !updated) {
@@ -207,4 +322,30 @@ export async function PATCH(
   }
 
   return NextResponse.json({ ok: true, request: updated });
+}
+
+/**
+ * Idempotent Stripe coupon lookup-or-create keyed on the deterministic id
+ * from buildStripeCouponSpec. A pre-existing coupon at the same id (e.g.
+ * from a previous approval attempt that failed after Stripe succeeded but
+ * before the DB insert) is reused so we never end up with two Stripe
+ * coupons for the same (reseller, tier).
+ */
+async function ensureStripeCoupon(
+  stripe: Stripe,
+  spec: { id: string; percent_off: number; duration: "forever"; metadata: Record<string, string> },
+): Promise<Stripe.Coupon> {
+  try {
+    return await stripe.coupons.retrieve(spec.id);
+  } catch (err) {
+    if (err instanceof Stripe.errors.StripeError && err.code === "resource_missing") {
+      return await stripe.coupons.create({
+        id: spec.id,
+        percent_off: spec.percent_off,
+        duration: spec.duration,
+        metadata: spec.metadata,
+      });
+    }
+    throw err;
+  }
 }

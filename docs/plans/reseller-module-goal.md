@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.15
+version: 2026-07-23.16
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -337,7 +337,12 @@ tracks:
             "web/src/app/admin/resellers/requests/page.tsx (server component; pending + approved + denied buckets)",
             "web/src/app/admin/resellers/requests/inbox-client.tsx (per-row Approve/Deny with optional decision_reason)",
             "web/src/app/reseller/credits/grant-form.tsx (402 over_budget path now offers 'Request admin approval' button that POSTs to /api/reseller/requests; mailto retained as fallback)"
-          ], note: "P9 gate closed pending migration 0095 docker-exec apply. Approving an over-budget request atomically bumps the customer credit_balances, inserts a credit_transactions row (reason='reseller_grant_over_budget', granted_by_reseller_id stamped), then mirrors into reseller_credit_grants(kind=grant, over_budget=true, month_key=UTC now). Request row links via linked_credit_transaction_id under a ck_credit_link CHECK. code_request approval intentionally does NOT call Stripe here — the admin mints the coupon+promo_code from /admin/resellers/[code] promotion-codes editor after this row flips to approved. reseller vitest 185/185 (+21); tsc clean; lint:reseller 7 files / 2 exemptions / 0 violations."}
+          ], note: "P9 gate closed pending migration 0095 docker-exec apply. Approving an over-budget request atomically bumps the customer credit_balances, inserts a credit_transactions row (reason='reseller_grant_over_budget', granted_by_reseller_id stamped), then mirrors into reseller_credit_grants(kind=grant, over_budget=true, month_key=UTC now). Request row links via linked_credit_transaction_id under a ck_credit_link CHECK. code_request approval NOW mints Stripe coupon (deterministic id res_<uuid8>_t<tier>, duration=forever) + promotion_code inline via decideCodeMint() (tick 38); tier 0 = attribution-only insert with nulls per ck_stripe_objects_by_tier; linked_promotion_code_id stamped on the row before flipping to approved. reseller vitest 242/242 (+17); tsc clean; lint:reseller 8 files / 2 exemptions / 0 violations."}
+          P9.4_code_request_stripe_mint: {status: done, tick: 38, completed_at: 2026-07-21, files: [
+            "web/src/lib/reseller/promotion-code-mint.ts",
+            "web/src/lib/reseller/promotion-code-mint.test.ts (17/17 pass)",
+            "web/src/app/api/admin/resellers/requests/[id]/route.ts (code_request branch — reseller lookup + decideCodeMint + ensureStripeCoupon lookup-or-create + promotionCodes.create + reseller_promotion_codes insert + linked_promotion_code_id stamp)"
+          ], note: "Closes next_action item #6. Pure lib exposes buildPromoCodeName (default <RESELLER><tier>, override via suggested_suffix, 40-char clamp, tier 0 bare code), buildStripeCouponSpec (deterministic id res_<uuid8>_t<tier>, percent_off=tier, duration=forever, metadata carries reseller_id/code/tier), buildStripePromotionCodeSpec (promotion.coupon+type='coupon' shape per pinned Stripe SDK), decideCodeMint (dispatches attribution_only vs stripe_mint). Route branch: reads reseller.code, calls decideCodeMint, checks existing (reseller_id, tier_pct) row (double-approval no-ops), calls ensureStripeCoupon (retrieve → resource_missing → create; idempotent so a mid-flight failure doesn't dupe the Stripe coupon), calls stripe.promotionCodes.create, inserts reseller_promotion_codes with returned Stripe IDs, then stamps linked_promotion_code_id on the reseller_requests row inside the same PATCH before status flips to approved (ck_promo_link CHECK). Tier 0 skips Stripe entirely so ck_stripe_objects_by_tier passes."}
         exit_criteria: [
           "/admin/resellers + /admin/resellers/[slug] mirror /admin/accelerator (DONE)",
           "requests inbox: code request, over-budget approval, marketing collateral approval (D4-CLO-08) — DONE P9.3",
@@ -1062,6 +1067,31 @@ review_history:
       dir through buildShowcaseDataRoomRows and inserts data_room rows).
     commit: (this tick)
 
+  - tick: 38
+    ran_at: 2026-07-21
+    action: p9.4_code_request_stripe_mint
+    result: |
+      Closed next_action item #6 — approving a reseller_requests row of
+      type='code_request' now mints the Stripe coupon + promotion_code
+      inline and INSERTs into reseller_promotion_codes atomically, then
+      stamps linked_promotion_code_id on the request row before flipping
+      to status=approved (ck_promo_link CHECK satisfied). Pure lib at
+      web/src/lib/reseller/promotion-code-mint.ts (buildPromoCodeName +
+      buildStripeCouponSpec + buildStripePromotionCodeSpec +
+      decideCodeMint) with 17/17 vitest cases. Coupon id is deterministic
+      (res_<uuid8>_t<tier>) with duration=forever (H.1); a
+      retrieve-or-create ensureStripeCoupon() wrapper reuses any coupon
+      left over from a prior half-completed approval so double-taps never
+      dupe. Existing (reseller_id, tier_pct) row wins so a re-approval is
+      a no-op that still links back. Tier 0 skips Stripe entirely
+      (ck_stripe_objects_by_tier). Naming: <RESELLER><tier> by default
+      (INFOVISION20), overridable via suggested_suffix; 40-char clamp;
+      tier 0 falls back to the bare reseller code so "INFOVISION0"
+      doesn't read as a phantom discount. reseller vitest 242/242 (+17);
+      tsc clean; npm run lint:reseller: 8 files / 2 exemptions / 0
+      violations.
+    commit: (this tick)
+
   - tick: 37
     ran_at: 2026-07-21
     action: hygiene_cron_post_alias
@@ -1091,7 +1121,7 @@ next_action:
     3) Track B B1.3 (seed + ingest) — once 0092 applies, insert the BlockID.au workspace row owned by admin@blockid.au with is_showcase=true, then run a one-shot seeder that walks web/content/reports/*.md through buildShowcaseDataRoomRows (tick 36) and inserts each row into data_room tagged with generated_by_agent + phase_at_generation. Track B B2 (guide chapters 1–4) unblocks after B1.3.
     4) DONE tick 35 — Optional P6.5b widening: term-sheet/idea-lab/valuation/journal/data-room/evidence spendCredits callers now thread project_id via getProjectIdFromRequest(). See tick 35 for file list. Remaining spendCredits() callers not touched: financial-projections, investor-pack/generate, svi/pitch-deck, svi/docx, svi/report, svi/enhanced-report, svi/dimension-analyze, svi/ai-score, svi/research, revaluation, v1/analyze, evaluation/[criterionKey]/ai-suggest, data-room/goals (award path — misleading call, not a real debit).
     5) P0.3_advisory_reviews still pending — schedulable on next off-peak tick.
-    6) code_request approval: currently marks-only; wire Stripe coupon+promotion_code creation into either PATCH approval or the admin promo-codes editor at /admin/resellers/[code].
+    6) DONE tick 38 — code_request approval now mints Stripe coupon (deterministic id + duration=forever) + promotion_code and inserts into reseller_promotion_codes inline via decideCodeMint(). linked_promotion_code_id stamped on the reseller_requests row before status flips to approved. Tier 0 (attribution-only) skips Stripe. Idempotent under re-approval: existing (reseller_id, tier_pct) row wins; Stripe coupon retrieve-or-create pattern prevents duplicate coupons if a prior attempt died between Stripe mint and DB insert.
     7) DONE tick 37 — reseller-* cron routes now export `{ GET as POST }` so cron-runner.sh's POST no longer 405s. Applies to reseller-clear-commissions, reseller-monthly-report, reseller-monthly-reconciliation, reseller-stripe-sync, credit-reset.
   authorised: true
   on_success: pick B6_public_showcase or B5_report_library on next tick if B1.3 seed remains blocked-on-apply (both are pure lib/UI, no DB dep once B1.2 helper is in place); otherwise continue B1.3 → B2.
