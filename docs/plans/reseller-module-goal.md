@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.28
+version: 2026-07-23.29
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -555,7 +555,15 @@ tracks:
           "EN + VI locale coverage (DONE — COPY table in product-tour.tsx keyed by Locale; phase label pulled from PHASE_LABELS[phase][locale] so the tour matches whatever language the founder has picked via the existing locale toggle)"
         ]
         note: "Track B B7 closed. B7 unblocks nothing since only B8-B10 remain in Track B, and B8's second dep (track_A_P4) was already satisfied — B8 was frontier before this tick too. Playwright coverage deferred to P10_hardening per the same posture used for P4/P5. B7 does NOT touch any reseller-scoped route so no R-01/R-03 exemption is needed; lint:reseller still scans 8+28 files with 3 exemptions / 0 violations."
-      B8_reseller_linkage: {status: pending, deps: [B1, track_A_P4]}
+      B8_reseller_linkage: {status: done, tick: 52, completed_at: 2026-07-21, deps: [B1, track_A_P4], files: [
+        "web/src/lib/reseller/progression-linkage.ts (pure lib — phaseForEventKind + linkageForEvent + annotateProgression; maps ProgressionEventKind → U.9 phase 1..12 → /guide/<slug> via chapterSlugForPhase from B7 tour-state; cross-cutting billing/artefact kinds return null triple)",
+        "web/src/lib/reseller/progression-linkage.test.ts (7/7 pass — kind→phase mapping, linkage envelope, annotate preserves input + non-mutation)",
+        "web/src/lib/reseller/portfolio-phase-distribution.ts (pure lib — buildPhaseDistribution derives per-customer current phase from latest SVI score band 0-20→P2 / 21-40→P3 / 41-60→P4 / 61-80→P5 / 81-100→P6, else P1; emits all 12 phases with PHASE_LABELS from @/lib/showcase/gallery; k>=5 anonymity + applyComplementarySuppression reused from portfolio-aggregates)",
+        "web/src/lib/reseller/portfolio-phase-distribution.test.ts (6/6 pass — empty portfolio zeros, band binning across 25 synthetic customers, no-SVI-defaults-P1, sub-k suppression, latest-per-project, highest-phase-across-multi-project)",
+        "web/src/lib/reseller/customer-drawer.ts (ProgressionEvent extended with phase/chapterSlug/href optional fields; buildProgressionTimeline pipes output through annotateProgression before returning)",
+        "web/src/app/reseller/customers/customer-drawer.tsx (ProgressionTab renders 'Guide chapter N →' anchor per timeline row when phase!=null, target=_blank + rel=noopener; ProgressionEvent client interface widened with matching optional fields)",
+        "web/src/app/reseller/page.tsx (new 'Phase distribution' section between SVI bands and Portfolio detail; buildPhaseDistribution called with customers.map(user_id) + sviRaw; bar chart mirrors weekly/bands rendering pattern with same k>=5 <5 placeholder)"
+      ], note: "Both B8 exit criteria closed. Progression timeline rows now deep-link to /guide/<slug> — the reseller boundary means reseller sees the public marketing guide, not the customer's private /workspace/guide/<slug>. Reused chapterSlugForPhase from B7 tour-state (same taxonomy: PHASE_LABELS from @/lib/showcase/gallery drives /guide, /workspace/guide, /guide/reports, /showcase/blockid, product tour, B8 phase distribution — single-source enforced). Phase distribution helper mirrors buildSviBands pattern with the same K_ANONYMITY_THRESHOLD + applyComplementarySuppression so any bucket with count 1..4 renders as '<5' and reseller can't triangulate individuals. Score→phase mapping is intentionally low-fidelity (SVI band, not milestone data) because milestone-report-state doesn't cross the reseller boundary yet — that finer-grained derivation is deferred to P10_hardening alongside Playwright. Verified: tsc clean; reseller+showcase+product-tour+guide+gate vitest 355/355 (was 319, +36: +7 progression-linkage + 6 phase-dist + 23 elsewhere from ticks 45-51); lint:reseller 8 R-01 + 28 R-03 with 3 documented exemptions, 0 violations. Track B fully complete except B9 (deps: B4 ✓ ready) and B10 (deps: B3 ✓ ready)."}
       B9_reviews_surface: {status: pending, deps: [B4], migration_files: [0100]}
       B10_integrations_admin: {status: pending, deps: [B3]}
 

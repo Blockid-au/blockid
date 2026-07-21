@@ -15,6 +15,10 @@ interface ProgressionEvent {
   ts: string;
   label: string;
   detail?: string | null;
+  // Track B B8 — /guide/<slug> deep-link envelope; null for cross-cutting events.
+  phase?: number | null;
+  chapterSlug?: string | null;
+  href?: string | null;
 }
 interface SviCurvePoint {
   month: string;
@@ -231,6 +235,18 @@ function ProgressionTab({
             </div>
             {e.detail ? (
               <p className="mt-1 text-xs text-ink-600">{e.detail}</p>
+            ) : null}
+            {e.href && e.phase ? (
+              <p className="mt-2 text-xs">
+                <a
+                  href={e.href}
+                  target="_blank"
+                  rel="noopener"
+                  className="text-brand-700 underline hover:text-brand-900"
+                >
+                  Guide chapter {e.phase} →
+                </a>
+              </p>
             ) : null}
           </li>
         ))}
