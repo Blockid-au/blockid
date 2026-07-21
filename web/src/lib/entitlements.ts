@@ -67,7 +67,16 @@ export type Feature =
   | "cohort.view.stats"
   | "accelerator.cohort"
   | "weekly_delta"
-  | "lp_report";
+  | "lp_report"
+  // Reseller module (docs/plans/reseller-module-plan.md § A.2, U.14, U.15.13)
+  | "reseller.console"
+  | "reseller.create_startup"
+  | "reseller.grant_credits"
+  // Share Management add-on bundle (§ F, U.15.13). Delegates all cap-table /
+  // data-room / esop / blockchain / token / vesting primitives.
+  | "share_management"
+  | "vesting.read"
+  | "vesting.write";
 
 // ---------------------------------------------------------------------------
 // Session subset — matches what `/api/entitlement/me` returns to the client
