@@ -39,6 +39,8 @@ export interface CustomerSegment {
   willingness: 'high' | 'medium' | 'low';
   /** Primary focus: 'domestic' | 'global' */
   marketFocus: 'domestic' | 'global';
+  /** Percentage of this segment prioritizing AI adoption (0-1) */
+  aiPrioritizationRate: number;
 }
 
 /** Market research overview */
@@ -67,118 +69,93 @@ export interface MarketResearch {
   averageSeriesAFunding: number;
   /** Number of Australian unicorns */
   australianUnicorns: number;
-  /** VC investment in H1 2024 (AU$) */
-  vcInvestmentH1: number;
-  /** Number of startups in Australia */
-  numberOfStartups: number;
-  /** Percentage of startups using valuation tools (0‑1) */
-  percentageUsingValuationTools: number;
-  /** Average valuation of Australian startups (AU$) */
-  averageValuation: number;
-  /** Adoption rate of navigation tools (0-1) */
-  navigationToolAdoptionRate: number;
 }
 
-/** Content Marketing Benchmarks based on 2023 Research */
+/** Content Marketing Benchmarks based on 2023 research */
 export interface ContentBenchmarks {
-  /** Average content marketing budget as % of total budget */
-  budgetPercentage: number;
-  /** ROI ratio (e.g., 12 for 12:1) */
-  roiRatio: number;
-  /** Effectiveness of channels (0-1) */
-  channelEffectiveness: {
-    blog: number;
-    socialMedia: number;
-    email: number;
-  };
-  /** Average daily time spent on content creation (hours) */
-  avgDailyTimeSpent: number;
+  /** Average % of overall marketing budget allocated to content */
+  budgetAllocation: number;
+  /** Expected ROI multiplier (e.g., 12 for 12:1) */
+  expectedRoiMultiplier: number;
+  /** Most effective channels sorted by efficacy */
+  topChannels: string[];
+  /** Average daily hours spent by marketers on content (1-3 range) */
+  dailyTimeInvestment: number;
 }
 
-/** SEO Performance Metrics based on Helpful Content Update */
-export interface SEOBenchmarks {
-  /** Weight of page experience signals (0-1) */
+/** SEO Performance Metrics based on Helpful Content Updates */
+export interface SeoMetrics {
+  /** Weightage of page experience signals in algorithm (0-1) */
   pageExperienceWeight: number;
-  /** Avg ranking boost for high E-E-A-T scores (positions) */
-  eeatRankingBoost: number;
-  /** Percentage of sites impacted by Helpful Content Update (0-1) */
+  /** Average ranking jump for high E-E-A-T scores */
+  eeatRankingImprovement: number;
+  /** Percentage of sites affected by Helpful Content Update (0-1) */
   hcuImpactRate: number;
 }
 
-/** AU Market Constant Data based on latest reports */
+/** Australian Startup Ecosystem Constants */
 export const AU_MARKET_DATA = {
-  TOTAL_FUNDING: 1400000000,
-  STARTUP_COUNT: 2500,
-  TOP_INVESTMENT_SECTOR: 'Artificial intelligence',
+  TOTAL_FUNDING_Q2_2023: 1400000000,
+  STARTUP_COUNT_2022: 2500,
+  TOP_INVESTMENT_SECTOR: 'Artificial Intelligence',
   DOMESTIC_FOCUS_RATE: 0.71,
-  NAV_MARKET_CAGR: 0.346,
-  NAV_ADOPTION_RATE: 0.56,
-  VALUATION_TOOL_IMPORTANCE: 0.71,
+  NAVIGATION_TOOL_ADOPTION_RATE: 0.56,
+  NAVIGATION_MARKET_CAGR: 0.346,
+  VALUATION_TOOL_CRITICALITY: 0.71,
 };
 
+/** Global Content Benchmarks */
 export const CONTENT_MARKETING_BENCHMARKS: ContentBenchmarks = {
-  budgetPercentage: 0.26,
-  roiRatio: 12,
-  channelEffectiveness: {
-    blog: 0.83,
-    socialMedia: 0.81,
-    email: 0.78,
-  },
-  avgDailyTimeSpent: 2,
+  budgetAllocation: 0.26,
+  expectedRoiMultiplier: 12,
+  topChannels: ['Blog posts', 'Social media', 'Email newsletters'],
+  dailyTimeInvestment: 2,
 };
 
-export const SEO_BENCHMARKS: SEOBenchmarks = {
+/** SEO Algorithm Constants */
+export const SEO_ALGORITHM_DATA: SeoMetrics = {
   pageExperienceWeight: 0.17,
-  eeatRankingBoost: 12.5,
+  eeatRankingImprovement: 12.5,
   hcuImpactRate: 0.25,
 };
 
-/**
- * Calculates the projected market size for the 'Startup Navigation' niche
- * @param currentMarket AU$
- * @param years Number of years to project
- * @returns Projected AU$
+/** 
+ * Calculates the projected market size for Startup Navigation tools 
+ * based on CAGR and current adoption rates.
+ * @param currentMarketValue Current market value in AU$
+ * @param years Projection period in years
+ * @returns Projected market value
  */
-export function calculateNavMarketProjection(currentMarket: number, years: number): number {
-  return currentMarket * Math.pow(1 + AU_MARKET_DATA.NAV_MARKET_CAGR, years);
+export function calculateNavigationMarketGrowth(currentMarketValue: number, years: number): number {
+  return currentMarketValue * Math.pow(1 + AU_MARKET_DATA.NAVIGATION_MARKET_CAGR, years);
 }
 
-/**
- * Evaluates the positioning priority between Navigation and Valuation tools
- * @param userStartupStage 'seed' | 'seriesA' | 'growth'
- * @returns Priority score where > 1 favors Valuation tools
+/** 
+ * Determines the positioning weight between "Navigation" and "Valuation" tools
+ * based on research priority (KPMG vs CB Insights data).
+ * @param userNeed 'growth' | 'funding'
+ * @returns Positioning score (0-1) where 1 is heavy focus on Valuation/Equity
  */
-export function calculatePositioningPriority(userStartupStage: string): number {
-  const navImportance = AU_MARKET_DATA.NAV_ADOPTION_RATE;
-  const valuationImportance = AU_MARKET_DATA.VALUATION_TOOL_IMPORTANCE;
-  
-  if (userStartupStage === 'seriesA' || userStartupStage === 'growth') {
-    return valuationImportance / navImportance;
+export function getPositioningWeight(userNeed: 'growth' | 'funding'): number {
+  if (userNeed === 'funding') {
+    return AU_MARKET_DATA.VALUATION_TOOL_CRITICALITY;
   }
-  return navImportance / valuationImportance;
+  return 1 - AU_MARKET_DATA.VALUATION_TOOL_CRITICALITY;
 }
 
-/**
- * Calculates estimated content budget for a given total marketing budget
- * @param totalBudget AU$
- * @returns Estimated content budget AU$
+/** 
+ * Estimates the potential AU customer base for the 'Startup Navigation System'
+ * @returns Estimated number of targetable AU startups
  */
-export function estimateContentBudget(totalBudget: number): number {
-  return totalBudget * CONTENT_MARKETING_BENCHMARKS.budgetPercentage;
+export function estimateAUAddressableStartups(): number {
+  return Math.floor(AU_MARKET_DATA.STARTUP_COUNT_2022 * AU_MARKET_DATA.NAVIGATION_TOOL_ADOPTION_RATE);
 }
 
-/**
- * Estimates the potential reach within the AU ecosystem for a specific sector
- * @param sectorSector The sector name (e.g., 'Artificial intelligence')
- * @param marketFocus 'domestic' | 'global'
- * @returns Estimated number of targetable startups
+/** 
+ * Calculates the suggested content budget based on a total marketing spend
+ * @param totalBudget Total marketing budget in AU$
+ * @returns Suggested content marketing spend
  */
-export function estimateAUSectorReach(sectorSector: string, marketFocus: 'domestic' | 'global'): number {
-  const baseCount = AU_MARKET_DATA.STARTUP_COUNT;
-  const sectorMultiplier = sectorSector === AU_MARKET_DATA.TOP_INVESTMENT_SECTOR ? 1.5 : 1.0;
-  const reach = baseCount * sectorMultiplier;
-  
-  return marketFocus === 'domestic' 
-    ? reach * AU_MARKET_DATA.DOMESTIC_FOCUS_RATE 
-    : reach * (1 - AU_MARKET_DATA.DOMESTIC_FOCUS_RATE);
+export function calculateSuggestedContentBudget(totalBudget: number): number {
+  return totalBudget * CONTENT_MARKETING_BENCHMARKS.budgetAllocation;
 }

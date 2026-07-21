@@ -40,3 +40,5 @@
 {"stage":"plan","ok":true,"message":"No recent research — need agent-research first","aiCalls":0,"durationMs":19690,"timestamp":"2026-07-19T12:04:22.107Z"}
 {"stage":"research","ok":false,"message":"Research failed: The operation was aborted due to timeout","aiCalls":0,"durationMs":240003,"timestamp":"2026-07-20T12:04:02.571Z"}
 {"stage":"plan","ok":true,"message":"CEO implementing plan updated — 3 new task(s), 19 pending","aiCalls":1,"durationMs":381,"timestamp":"2026-07-20T12:04:02.952Z"}
+{"stage":"research","ok":false,"message":"Research failed: The operation was aborted due to timeout","aiCalls":0,"durationMs":240001,"timestamp":"2026-07-21T12:04:02.002Z"}
+{"stage":"plan","ok":true,"message":"No recent research — need agent-research first","aiCalls":0,"durationMs":22104,"timestamp":"2026-07-21T12:04:24.107Z"}
