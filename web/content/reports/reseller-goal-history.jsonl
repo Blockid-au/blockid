@@ -296,3 +296,5 @@
 {"tick_id":"2026-07-21T23-10-01-749Z","ts":"2026-07-21T23:18:39.706Z","stage":"tick_end"}
 {"tick_id":"2026-07-21T23-20-01-245Z","ts":"2026-07-21T23:20:01.247Z","stage":"tick_start"}
 {"tick_id":"2026-07-21T23-20-01-245Z","ts":"2026-07-21T23:29:00Z","stage":"phase_completed","track":"B","phase":"B8_reseller_linkage","verdict":"approved","tests":"355/355","lint":"0 violations, 3 exemptions"}
+{"tick_id":"2026-07-21T23-20-01-245Z","ts":"2026-07-21T23:29:25.151Z","stage":"delegated_dispatch","status":0,"elapsed_ms":563897,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-21T23-20-01-245Z","ts":"2026-07-21T23:29:25.178Z","stage":"auto_commit_started","dirty_files":6}
