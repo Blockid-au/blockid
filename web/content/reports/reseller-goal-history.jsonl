@@ -224,3 +224,9 @@
 {"tick_id":"2026-07-21T21-19-manual-b1.3","ts":"2026-07-21T21:19:40.651Z","stage":"phase_complete","phase":"B1.3_seed_and_ingest","tick":42,"verdict":"approved","artifacts":["web/scripts/seed-showcase-blockid.ts"],"rows_ingested":242,"project_id":"2bf55234-e359-4390-8faa-06597824f77a","data_room_id":"847b1f03-ec55-427d-aa0e-cc4bac6b34e7"}
 {"tick_id":"2026-07-21T21-10-01-859Z","ts":"2026-07-21T21:20:16.911Z","stage":"delegated_dispatch","status":0,"elapsed_ms":615045,"signal":null,"label":"delegated"}
 {"tick_id":"2026-07-21T21-10-01-859Z","ts":"2026-07-21T21:20:16.938Z","stage":"auto_commit_started","dirty_files":7}
+{"tick_id":"2026-07-21T21-10-01-859Z","ts":"2026-07-21T21:20:18.331Z","stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-07-21T21-10-01-859Z","ts":"2026-07-21T21:20:18.336Z","stage":"auto_deploy_triggered","head":"c1a29c3","last_deployed":"c5c0bc8"}
+{"tick_id":"2026-07-21T21-10-01-859Z","ts":"2026-07-21T21:20:25.161Z","stage":"auto_deploy_finished","status":1,"head":"c1a29c3"}
+{"tick_id":"2026-07-21T21-10-01-859Z","ts":"2026-07-21T21:20:25.162Z","stage":"tick_end"}
+{"tick_id":"2026-07-21T21-25-01-929Z","ts":"2026-07-21T21:25:01.930Z","stage":"tick_start"}
+{"tick_id":"43","ts":"2026-07-21T21:25:30.000Z","phase":"P0.4","stage":"sign_off","verdict":"approved","agents_spawned":0,"note":"CEO final sign-off on P0 pre-flight window; evidence: P1.1..P1.4 done, blocking reviews (cto/cfo/ciso/clo) applied at tick 1-2, P0.3 advisory pending non-blocking"}

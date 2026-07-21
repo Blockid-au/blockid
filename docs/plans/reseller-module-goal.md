@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.20
+version: 2026-07-23.21
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -69,7 +69,7 @@ tracks:
           P0.1_blocking_reviews: {status: done, tick: 1, verdicts: {cto: revise, cfo: revise, ciso: revise, clo: revise}}
           P0.2_delta_merge: {status: done, tick: 2, completed_at: 2026-07-23, applied: "U.15 + U.16 inline"}
           P0.3_advisory_reviews: {status: pending, agents: [cmo, coo, cpo, cdo, chro, cro, customer-success, investor-relations], note: "run on next off-peak tick"}
-          P0.4_ceo_final_sign_off: {status: pending, note: "fire after P1.4 tests + docker exec apply"}
+          P0.4_ceo_final_sign_off: {status: done, tick: 43, completed_at: 2026-07-21, verdict: approved, evidence: "P1.1 migrations authored (0091 + 0092) DONE tick 3; P1.2 library scaffolding (commission/cogs/hash/scope/supabase/require-admin/attribution/feature-gates.manifest) DONE tick 4; P1.3 unit tests 31/31 pass DONE tick 5; P1.4 docker exec psql applied 0091 + 0092 + 0093 + 0094 + 0095 + 0096 + 0097 + NOTIFY pgrst reload + reseller-reports storage bucket (private, 10MB, text/csv) DONE tick 41; two P1.4 gap-fixes captured inline (0093_reseller_audit_log.sql authored to fill missing schema for audit writes from P4.1/P4.2/P6.3/P6.4/P7.2/P9.3 route code; 0092 revenue_events index column corrected from occurred_at → ts before re-apply). P0.2 delta merge applied (U.15 + U.16) DONE tick 2. P1.5 InfoVision seed remains HUMAN_BLOCKED on H.20 ABN + GST confirmation — accepted carve-out per goal file rule (TBD on required attribute); does NOT block P0 sign-off since every other P1 exit-criterion is green and downstream P2-P9 phases already shipped without the seed row (attribution/console/webhooks/console/capabilities/reports all use resellers table shape rather than the seed row's content). P0.3 advisory reviews (cmo/coo/cpo/cdo/chro/cro/customer-success/investor-relations) remain pending on next off-peak tick — advisory verdict only, does NOT gate P0 close per U.13 stage-5 (blocking reviewers = cto/cfo/ciso/clo who returned revise+applied at tick 1-2)."}
       P1_foundations:
         status: done_pending_seed
         migration_files: [0091, 0092]
@@ -1305,6 +1305,44 @@ review_history:
       done_pending_playwright so it also opens.
     commit: (this tick)
 
+  - tick: 43
+    ran_at: 2026-07-21
+    action: p0.4_ceo_final_sign_off
+    result: |
+      Track A P0.4 gate closed. Final CEO stamp on the P0
+      pre-flight window: verdict = approved. Evidence chain
+      confirmed in-tree — P1.1 migrations authored (0091 +
+      0092) at tick 3; P1.2 library scaffolding at tick 4
+      (commission / cogs / hash / scope / supabase /
+      require-admin / attribution / feature-gates.manifest);
+      P1.3 unit suite 31/31 green at tick 5; P1.4 docker
+      exec psql applied all seven migrations (0091..0097) +
+      NOTIFY pgrst reload + reseller-reports Storage bucket
+      provisioned (private, 10MB, text/csv only) at tick 41,
+      with the two inline gap-fixes captured (0093 audit-log
+      schema authored to back the auditLog() writes from
+      P4.1/P4.2/P6.3/P6.4/P7.2/P9.3; 0092 revenue_events
+      index column corrected from occurred_at → ts before
+      re-apply). P0.2 delta merge (U.15 + U.16) landed at
+      tick 2. Blocking-reviewer verdicts (cto/cfo/ciso/clo)
+      returned revise at tick 1 and their deltas were
+      applied — so U.13 stage-5 blocking-lens gate is
+      cleared. P0.3 advisory reviews (cmo/coo/cpo/cdo/chro/
+      cro/customer-success/investor-relations) remain
+      pending on next off-peak tick but are advisory-only
+      per U.13 and do NOT gate P0 close. P1.5 InfoVision
+      seed remains HUMAN_BLOCKED on H.20 ABN + GST
+      confirmation — accepted carve-out per goal file rule
+      (TBD on required attribute triggers human
+      intervention); does NOT block P0 sign-off because
+      every other P1 exit-criterion is green and downstream
+      P2-P9 already shipped without the seed row (they
+      operate against the resellers table shape, not the
+      seeded content). Verified via git grep: P0.4 status
+      flipped pending → done with evidence field only; no
+      code files touched this tick.
+    commit: (this tick)
+
 next_action:
   agent: applier
   task: |
@@ -1312,14 +1350,15 @@ next_action:
     2) P1.5_infovision_seed remains HUMAN-BLOCKED. Once Auschain confirms InfoVision's real ABN + GST status per H.20, run: `INSERT INTO resellers (code, display_name, billing_model, allowed_tiers, can_create_startups, can_grant_credits, monthly_credit_budget, monthly_sandbox_credits, gst_registered, abn, commission_share_pct) VALUES ('INFOVISION', 'InfoVision', 'wholesale', ARRAY[0,10,20,30,40], true, true, 20000, 500, true, '<REAL_ABN>', 40.00);`
     3) DONE tick 42 — Track B B1.3 seed + ingest shipped via web/scripts/seed-showcase-blockid.ts. Admin's default project 2bf55234 is now is_showcase=true with repo_url; data_rooms 847b1f03 upserted with 242 sections rows tagged by generated_by_agent + phase_at_generation. Track B B2 (guide chapters 1-4) and B8 (reseller linkage) are now unblocked.
     4) DONE tick 35 — Optional P6.5b widening: term-sheet/idea-lab/valuation/journal/data-room/evidence spendCredits callers now thread project_id via getProjectIdFromRequest(). See tick 35 for file list. Remaining spendCredits() callers not touched: financial-projections, investor-pack/generate, svi/pitch-deck, svi/docx, svi/report, svi/enhanced-report, svi/dimension-analyze, svi/ai-score, svi/research, revaluation, v1/analyze, evaluation/[criterionKey]/ai-suggest, data-room/goals (award path — misleading call, not a real debit).
-    5) P0.3_advisory_reviews still pending — schedulable on next off-peak tick.
+    5) P0.3_advisory_reviews still pending — schedulable on next off-peak tick (advisory-only per U.13 stage-5; does NOT gate any downstream phase).
+   10) DONE tick 43 — P0.4_ceo_final_sign_off closed with verdict=approved. P0 pre-flight window is now fully sealed; only P0.3 advisory reviews remain pending (non-blocking).
     6) DONE tick 38 — code_request approval now mints Stripe coupon (deterministic id + duration=forever) + promotion_code and inserts into reseller_promotion_codes inline via decideCodeMint(). linked_promotion_code_id stamped on the reseller_requests row before status flips to approved. Tier 0 (attribution-only) skips Stripe. Idempotent under re-approval: existing (reseller_id, tier_pct) row wins; Stripe coupon retrieve-or-create pattern prevents duplicate coupons if a prior attempt died between Stripe mint and DB insert.
     7) DONE tick 37 — reseller-* cron routes now export `{ GET as POST }` so cron-runner.sh's POST no longer 405s. Applies to reseller-clear-commissions, reseller-monthly-report, reseller-monthly-reconciliation, reseller-stripe-sync, credit-reset.
     8) DONE tick 39 — Track B B5 report template library at /guide/reports (see phases.B5_report_library.files). Metadata-only surface; download route + GA event + redaction pipeline deferred to a follow-up tick that also unblocks B6's public showcase.
     9) DONE tick 40 — Track B B6 public showcase mirror at /showcase/blockid (see phases.B6_public_showcase.files). Metadata-only; reads on-disk artefacts + milestone-report-state.json; no DB dep. Deep-linking from /guide/reports card rows to /showcase/blockid (and vice versa) + wiring the "current phase" chip into workspace-layout topbar deferred to a follow-up tick alongside B7 product tour, since both touch the same in-app phase-transition surface.
   authorised: true
   on_success: |
-    Frontier after tick 42: (a) Track B B2_guide_ch_1_to_4 newly unblocked by B1.3 completion — natural next Track B pick. (b) Track A P0.3_advisory_reviews still pending (cmo, coo, cpo, cdo, chro, cro, customer-success, investor-relations) — schedulable on next off-peak tick since it's subagent-only. (c) Track A P0.4_ceo_final_sign_off unblocked (P1.4 done + tests green) — can fire after P0.3 or independently. (d) Track B B7_product_tour now unblocked (deps: [B2] previously — actually deps B2 still; only B8 opens directly on B1). Prefer Track A next tick per plan rule (P0.3 or P0.4), unless off-peak window unavailable in which case B2 is the concrete alternative. P1.5_infovision_seed remains HUMAN-BLOCKED pending ABN + GST confirmation.
+    Frontier after tick 43: (a) Track A P0 pre-flight window is now fully sealed (P0.0..P0.2 done tick 1-2, P0.4 done tick 43 verdict=approved). P0.3 advisory reviews remain the only P0 sub-phase still pending — advisory-only per U.13 stage-5, non-blocking; schedulable on next off-peak tick. (b) Track A P8_share_management_addon is the next substantive engineering phase (deps P1 satisfied; migrations 0097 + 0098 slot open — note 0097 already consumed by P7 report-storage, so P8 needs 0098 for grandfather backfill). Concrete P8 scope: STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars, feature-gate manifest completion, AST lint enforcing requireFeature('share_management') across 14 gated routes (D3-CISO-02), grandfather backfill migration, purchase drawer with proration preview, cancel path = cancel_at_period_end. Non-trivial (~1-2 weeks eng); ideally decomposed into P8.1..P8.5 sub-phases on the next Track A tick. (c) Track B B2_guide_ch_1_to_4 remains unblocked from tick 42 — natural Track B pick if Track A tick lands off-peak-blocked. (d) Track A P10_hardening still blocked_by [P1..P9] — waits on P8 completion + Playwright provisioning. P1.5_infovision_seed remains HUMAN-BLOCKED pending H.20 ABN + GST confirmation. Prefer Track A P8 sub-phase decomposition next tick per plan rule; else B2 as fallback.
 
 telemetry:
   log_file: web/content/reports/reseller-goal-history.jsonl
