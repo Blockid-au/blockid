@@ -142,6 +142,20 @@ fi
 # ────────────────────────────────────────────────────────────────────────────
 # Human view.
 # ────────────────────────────────────────────────────────────────────────────
+STATUS_FILE=/tmp/blockid-reseller-loop.status
+LIVE_STAGE="idle"
+LIVE_SUMMARY=""
+if [ -f "$STATUS_FILE" ]; then
+  LIVE_STAGE="$(grep -oP '"current_stage":\s*"[^"]*"' "$STATUS_FILE" | head -1 | cut -d'"' -f4)"
+  # Extract a short summary if the last entry had a 'label' or 'phase' or similar
+  LIVE_LABEL="$(grep -oP '"label":\s*"[^"]*"' "$STATUS_FILE" | head -1 | cut -d'"' -f4)"
+  LIVE_HEAD="$(grep -oP '"head":\s*"[^"]*"' "$STATUS_FILE" | head -1 | cut -d'"' -f4)"
+  LIVE_REASON="$(grep -oP '"reason":\s*"[^"]*"' "$STATUS_FILE" | head -1 | cut -d'"' -f4)"
+  [ -n "$LIVE_LABEL" ] && LIVE_SUMMARY="${LIVE_SUMMARY} label=$LIVE_LABEL"
+  [ -n "$LIVE_HEAD" ] && LIVE_SUMMARY="${LIVE_SUMMARY} head=$LIVE_HEAD"
+  [ -n "$LIVE_REASON" ] && LIVE_SUMMARY="${LIVE_SUMMARY} reason=$LIVE_REASON"
+fi
+
 cat <<EOF
 
 ═══════════════════════════════════════════════════════════════════════
@@ -151,6 +165,7 @@ cat <<EOF
   🕐  Now:            ${NOW_UTC_HHMM} UTC   (${NOW_AEST_HHMM} AEST)
   ⏭   Next tick:      ${NEXT_HHMM_UTC} UTC   (${NEXT_HHMM_AEST} AEST)     [in ${SECS_UNTIL}s]
   📍  State:          ${TICK_STATE}
+  🎯  Current stage:  ${LIVE_STAGE}${LIVE_SUMMARY}
 
   🔁  Last tick:      ${LAST_TICK_ID:-none yet}
   ⏱   Dispatch time:  ${LAST_DISPATCH_ELAPSED:-0} ms   ($(( ${LAST_DISPATCH_ELAPSED:-0} / 1000 ))s)

@@ -85,6 +85,35 @@ export async function POST(request: Request) {
         await handleInvoicePaid(event);
         break;
 
+      // ── Reseller commission event integration (P3.2b) ────────────────
+      // Handlers are safe to run pre-migration: they no-op if the reseller
+      // tables don't yet exist. See docs/plans/reseller-module-plan.md § D.4.
+      case "charge.refunded": {
+        const { handleChargeRefunded } = await import("@/lib/reseller/webhook-refund-integration");
+        await handleChargeRefunded(event);
+        break;
+      }
+      case "charge.dispute.created": {
+        const { handleChargeDisputeCreated } = await import("@/lib/reseller/webhook-refund-integration");
+        await handleChargeDisputeCreated(event);
+        break;
+      }
+      case "charge.dispute.closed": {
+        const { handleChargeDisputeClosed } = await import("@/lib/reseller/webhook-refund-integration");
+        await handleChargeDisputeClosed(event);
+        break;
+      }
+      case "credit_note.created": {
+        const { handleCreditNoteCreated } = await import("@/lib/reseller/webhook-refund-integration");
+        await handleCreditNoteCreated(event);
+        break;
+      }
+      case "invoice.voided": {
+        const { handleInvoiceVoided } = await import("@/lib/reseller/webhook-refund-integration");
+        await handleInvoiceVoided(event);
+        break;
+      }
+
       default:
         // Unhandled event type — acknowledge receipt.
         break;
