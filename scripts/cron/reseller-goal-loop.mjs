@@ -265,6 +265,27 @@ async function main() {
     await log({ stage: 'delegated_dispatch', ...result })
   }
 
+  // Safety net: if the claude CLI subprocess made file edits but forgot to
+  // commit them (or the commit step failed silently), we do it here so the
+  // periodic server `git reset --hard` won't nuke autonomous work AND the
+  // subsequent deploy always builds from a real committed sha. Uses a
+  // catch-all commit message; per-phase provenance stays in the goal file
+  // history and the reseller-goal-history JSONL.
+  try {
+    const status = spawnSync('git', ['status', '--porcelain'], { cwd: REPO_ROOT, encoding: 'utf8' })
+    const dirty = (status.stdout ?? '').trim()
+    if (dirty) {
+      await log({ stage: 'auto_commit_started', dirty_files: dirty.split('\n').length })
+      spawnSync('git', ['add', '-A'], { cwd: REPO_ROOT, stdio: 'ignore' })
+      const msg = `chore(loop): autonomous tick ${TICK_ID} — commit uncommitted edits\n\nSafety-net commit: the claude CLI subprocess landed edits but did not commit them itself. See web/content/reports/reseller-goal-history.jsonl for phase provenance.\n`
+      const c = spawnSync('git', ['commit', '-m', msg], { cwd: REPO_ROOT, encoding: 'utf8' })
+      const p = spawnSync('git', ['push', 'origin', 'master'], { cwd: REPO_ROOT, encoding: 'utf8' })
+      await log({ stage: 'auto_commit_finished', commit_status: c.status ?? -1, push_status: p.status ?? -1 })
+    }
+  } catch (err) {
+    await log({ stage: 'auto_commit_failed', error: String(err) })
+  }
+
   // Post-phase auto-deploy hook. If new commits landed since the last
   // recorded deploy (content/reports/last-good-build.json), rebuild + swap
   // via deploy-live.sh --quick. This gives the loop end-to-end coverage:

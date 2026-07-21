@@ -1765,3 +1765,5 @@
 {"ts":"2026-07-21T15:00:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":662,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 15, \"raw\": \"15% used (235345284 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 6, \"raw\": \"6% used (275889148 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
 {"ts":"2026-07-21T15:00:01Z","endpoint":"ai-health","status":"ok","duration_ms":7895,"detail":"{\"provider\": \"groq\", \"model\": \"llama-3.3-70b-versatile\", \"response\": \"OK\"}"}
 {"ts":"2026-07-21T15:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":17045,"detail":""}
+{"ts":"2026-07-21T15:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2160,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 15, \"raw\": \"15% used (235346060 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 6, \"raw\": \"6% used (275466660 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-07-21T15:15:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16315,"detail":""}
