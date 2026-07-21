@@ -15,10 +15,15 @@
 
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getStripe } from "@/lib/stripe";
 import { sendEmail } from "@/lib/email";
 import {
+  computeGstDelta,
+  formatGstDriftEmail,
   formatReconciliationCsv,
   formatReconciliationEmail,
+  GST_TOLERANCE_CENTS,
+  type GstReconciliation,
   type ReconciliationRow,
 } from "@/lib/reseller/reconciliation";
 
@@ -152,8 +157,79 @@ export async function GET(req: Request) {
     };
   });
 
+  // P7.3 — GST reconciliation gate. Sum revenue_events.gst_aud_cents inside
+  // the window, then walk Stripe invoice.tax for the same window and assert
+  // |delta| <= A$1. On drift, we still send the reconciliation email but
+  // additionally page admin with a standalone alert body.
+  const { data: gstRows, error: gstErr } = await supabase
+    .from("revenue_events")
+    .select("gst_aud_cents")
+    .gte("ts", startIso)
+    .lt("ts", endIso);
+  if (gstErr) {
+    return NextResponse.json(
+      { ok: false, reason: "gst_query_failed", error: gstErr.message },
+      { status: 500 },
+    );
+  }
+  const ledgerGstCents = (gstRows ?? []).reduce(
+    (acc, r) => acc + ((r as { gst_aud_cents: number | null }).gst_aud_cents ?? 0),
+    0,
+  );
+
+  let gstReconciliation: GstReconciliation | null = null;
+  let gstDriftEmailed = false;
+  let gstSkipReason: string | null = null;
+  const stripe = getStripe();
+  if (!stripe) {
+    gstSkipReason = "stripe_not_configured";
+  } else {
+    const gte = Math.floor(new Date(startIso).getTime() / 1000);
+    const lt = Math.floor(new Date(endIso).getTime() / 1000);
+    let stripeGstCents = 0;
+    let invoiceCount = 0;
+    try {
+      // Paginate; auto_pagination.for(...) keeps the request budget bounded
+      // even in months with thousands of invoices.
+      for await (const inv of stripe.invoices.list({
+        created: { gte, lt },
+        limit: 100,
+      })) {
+        invoiceCount += 1;
+        // Compare against gross tax collected on paid invoices only —
+        // refunds/credit_notes flow through separate objects and the ledger
+        // side already excludes them from gst_aud_cents on refund events.
+        if (inv.status !== "paid") continue;
+        for (const t of inv.total_taxes ?? []) {
+          stripeGstCents += t.amount ?? 0;
+        }
+      }
+    } catch (e) {
+      gstSkipReason = e instanceof Error ? e.message : "stripe_list_failed";
+    }
+    if (!gstSkipReason) {
+      gstReconciliation = computeGstDelta(
+        monthKey,
+        ledgerGstCents,
+        stripeGstCents,
+        invoiceCount,
+      );
+      if (!gstReconciliation.within_tolerance && !skipEmail) {
+        const driftResult = await sendEmail({
+          to: ADMIN_EMAIL,
+          subject: `[BlockID] GST reconciliation drift — ${monthKey} (delta A$${(gstReconciliation.delta_cents / 100).toFixed(2)})`,
+          html: formatGstDriftEmail(gstReconciliation),
+        }).catch((e) => {
+          console.error("[reseller-monthly-reconciliation] gst drift email failed", e);
+          return { ok: false, id: "" } as const;
+        });
+        gstDriftEmailed = Boolean((driftResult as { ok?: boolean }).ok);
+      }
+    }
+  }
+
   const csv = formatReconciliationCsv(monthKey, rows);
-  const html = formatReconciliationEmail(monthKey, rows);
+  const html = formatReconciliationEmail(monthKey, rows, gstReconciliation);
 
   let emailed = false;
   if (!skipEmail) {
@@ -182,6 +258,17 @@ export async function GET(req: Request) {
     total_cleared_aud_cents: rows.reduce((a, r) => a + r.cleared_commission_aud_cents, 0),
     total_cleared_rows: rows.reduce((a, r) => a + r.cleared_count, 0),
     emailed,
+    gst: gstReconciliation
+      ? {
+          ledger_aud_cents: gstReconciliation.ledger_gst_aud_cents,
+          stripe_aud_cents: gstReconciliation.stripe_gst_aud_cents,
+          delta_cents: gstReconciliation.delta_cents,
+          within_tolerance: gstReconciliation.within_tolerance,
+          tolerance_cents: GST_TOLERANCE_CENTS,
+          stripe_invoice_count: gstReconciliation.stripe_invoice_count,
+          drift_emailed: gstDriftEmailed,
+        }
+      : { skipped_reason: gstSkipReason ?? "unknown" },
     ran_at: new Date().toISOString(),
   });
 }
