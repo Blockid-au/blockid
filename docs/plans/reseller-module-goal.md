@@ -365,17 +365,24 @@ tracks:
         ]
   B:
     name: showcase-track
-    current_focus: waiting_on_track_A_P1
+    current_focus: B1_showcase_scaffold
     phases:
       B1_showcase_scaffold:
-        status: blocked_by: track_A_P1
-        migration_files: [0099]
+        status: in_progress
+        migration_files: [0092]  # is_showcase + reseller_sandbox_id + repo_url already landed in 0092 (not 0099 as originally planned)
+        sub_phases:
+          B1.1_schema_columns: {status: done_pending_apply, note: "0092 already ships is_showcase + reseller_sandbox_id + repo_url; 0099 slot no longer needed for this leaf"}
+          B1.2_report_tagging_lib: {status: done, tick: 36, files: [
+            "web/src/lib/showcase/report-tagging.ts",
+            "web/src/lib/showcase/report-tagging.test.ts (20/20 pass)"
+          ], note: "Pure filename → DataRoom row mapper. parseReportFilename() handles 15 known filename shapes (C-Level daily briefs, review vX.Y.Z artefacts, milestone-M<n>-vX.Y.Z, 404/perf/security audits, regression, self-analysis, vision, architecture, plan, priorities, knowledge-base, templates). Agent detection covers ceo/cto/cfo/cmo/coo/cpo/cdo/chro/ciso/clo/cro/cso/ccso/ir/qa/rnd/customer-care + hybrid cro-cmo (leftmost-owner). Phase inference precedence: kind-specific override (milestone→11, vision→1, architecture→4, 404-audit→4, perf-audit→7, security-audit→10, regression→4, self-analysis→2, plan→1, priorities→1, operations→11) then agent→phase fallback (cmo=3, cdo=5, cto=4, cfo=6, chro=8, ciso/clo=10, cro=7, cso/ccso=2, cpo=4, coo=11, ir=9; ceo/qa/rnd/ops/perf/security/customer-care return null since they're cross-cutting). Date extraction validates the round-trip so Feb 30 → null. Version regex captures v2.0.0-beta.6 style suffixes. buildShowcaseDataRoomRows() filters templates by default, sorts newest generated_at first with alphabetical tail for undated rows, emits source_path = web/content/reports/<filename> and title = kebab→space. Ready for B1.3 to wire into a cron/seed script once the BlockID.au project row exists."}
+          B1.3_seed_and_ingest: {status: pending, note: "requires DB access — insert BlockID.au workspace as projects row owned by admin@blockid.au with is_showcase=true, then a one-shot seeder walks web/content/reports/*.md through buildShowcaseDataRoomRows and inserts data_room rows tagged accordingly"}
         exit_criteria: [
-          "projects.is_showcase column live",
-          "projects.reseller_sandbox_id column live",
-          "projects.repo_url column live",
-          "BlockID.au workspace seeded",
-          "auto-DataRoom wiring: web/content/reports/*.md tagged with generated_by_agent, phase_at_generation (redacted per D3-CISO-04)"
+          "projects.is_showcase column live (DONE — landed in 0092 pending docker exec apply)",
+          "projects.reseller_sandbox_id column live (DONE — landed in 0092 pending docker exec apply)",
+          "projects.repo_url column live (DONE — landed in 0092 pending docker exec apply)",
+          "BlockID.au workspace seeded (PENDING B1.3 — needs docker exec after 0092 applies)",
+          "auto-DataRoom wiring: web/content/reports/*.md tagged with generated_by_agent, phase_at_generation (redacted per D3-CISO-04) (DONE at lib level B1.2; ingest wiring pending B1.3)"
         ]
       B2_guide_ch_1_to_4: {status: pending, deps: [B1]}
       B3_guide_ch_5_to_8: {status: pending, deps: [B2]}
@@ -1017,18 +1024,56 @@ review_history:
       monthly-reconciliation (1st of month).
     commit: (this tick)
 
+  - tick: 36
+    ran_at: 2026-07-21
+    action: b1.2_report_tagging_lib
+    result: |
+      Track B B1 opened. First deliverable: pure filename → DataRoom row
+      mapper at web/src/lib/showcase/report-tagging.ts. Discovered that
+      B1's schema columns (projects.is_showcase, projects.reseller_sandbox_id,
+      projects.repo_url) already landed in migration 0092 — the goal file's
+      migration_files: [0099] slot is stale and has been rewritten to [0092]
+      with the note that 0099 is no longer needed for this leaf.
+      parseReportFilename() classifies the ~40 known filename shapes under
+      web/content/reports/ into {agent, kind, phase_at_generation,
+      generated_at, version, is_template, tags} — agent covers all 13 C-Level
+      slugs plus ir/qa/rnd/customer-care and the hybrid cro-cmo review
+      artefact (leftmost-owner rule); kind covers daily/review/milestone/
+      audit/regression/self-analysis/vision/architecture/plan/priorities/
+      operations/knowledge-base/template/misc; phase inference precedence
+      applies kind-specific overrides first (milestone→11, vision→1,
+      architecture→4, 404-audit→4, perf-audit→7, security-audit→10,
+      regression→4, self-analysis→2, plan→1, priorities→1, operations→11)
+      then falls back to an agent→phase table drawn from the U.9 journey
+      matrix (cmo=3, cdo=5, cto=4, cfo=6, chro=8, ciso/clo=10, cro=7,
+      cso/ccso=2, cpo=4, coo=11, ir=9; ceo + cross-cutting ops/perf/security
+      resolve to null so they float across all phases in the DataRoom UI).
+      Date extraction validates round-trip on ISO parse so Feb 30 → null.
+      Version regex captures v2.0.0-beta.6 style suffixes. Batch helper
+      buildShowcaseDataRoomRows() filters templates by default, sorts
+      newest-first with alphabetical tail for undated rows, and emits
+      source_path = web/content/reports/<basename> so the future B1.3
+      ingest cron doesn't need to re-derive paths. 20 vitest cases green
+      (5 agent, 5 kind, 4 phase, 3 date/version, 2 tag composition, 4
+      batch); tsc clean; npm run lint:reseller unchanged 8 files / 2
+      exemptions / 0 violations (new lib is outside the reseller scope).
+      B1.3 seed + ingest deferred — requires docker exec (create the
+      BlockID.au workspace row then run the seeder that walks the reports
+      dir through buildShowcaseDataRoomRows and inserts data_room rows).
+    commit: (this tick)
+
 next_action:
   agent: applier
   task: |
-    1) Apply migrations 0091 + 0092 + 0094 + 0095 + 0096 + 0097 via docker exec psql (P1.4 + P6.1 + P9.3 + P7.2) — infra step, requires DB access. Also create the private 'reseller-reports' Supabase Storage bucket before the cron next fires: `select storage.create_bucket('reseller-reports', false);` (or via Supabase Studio; keep public=false so signed URLs are mandatory).
+    1) Apply migrations 0091 + 0092 + 0094 + 0095 + 0096 + 0097 via docker exec psql (P1.4 + P6.1 + P9.3 + P7.2) — infra step, requires DB access. Also create the private 'reseller-reports' Supabase Storage bucket before the cron next fires: `select storage.create_bucket('reseller-reports', false);` (or via Supabase Studio; keep public=false so signed URLs are mandatory). NOTE: 0092 also carries the Track B B1 columns (is_showcase / reseller_sandbox_id / repo_url) so B1.3 seed unblocks on the same apply.
     2) Seed INFOVISION reseller row (P1.5_infovision_seed) once P1.4 lands.
-    3) Track B B1_showcase_scaffold — parallel candidate; migration 0099 adds projects.is_showcase + reseller_sandbox_id + repo_url; seed BlockID.au workspace. TRACK A P7 IS NOW FULLY DONE-PENDING-APPLY — next tick should pick B1 per A>B track-balance clause.
+    3) Track B B1.3 (seed + ingest) — once 0092 applies, insert the BlockID.au workspace row owned by admin@blockid.au with is_showcase=true, then run a one-shot seeder that walks web/content/reports/*.md through buildShowcaseDataRoomRows (tick 36) and inserts each row into data_room tagged with generated_by_agent + phase_at_generation. Track B B2 (guide chapters 1–4) unblocks after B1.3.
     4) DONE tick 35 — Optional P6.5b widening: term-sheet/idea-lab/valuation/journal/data-room/evidence spendCredits callers now thread project_id via getProjectIdFromRequest(). See tick 35 for file list. Remaining spendCredits() callers not touched: financial-projections, investor-pack/generate, svi/pitch-deck, svi/docx, svi/report, svi/enhanced-report, svi/dimension-analyze, svi/ai-score, svi/research, revaluation, v1/analyze, evaluation/[criterionKey]/ai-suggest, data-room/goals (award path — misleading call, not a real debit).
     5) P0.3_advisory_reviews still pending — schedulable on next off-peak tick.
     6) code_request approval: currently marks-only; wire Stripe coupon+promotion_code creation into either PATCH approval or the admin promo-codes editor at /admin/resellers/[code].
     7) Pre-existing: cron-runner.sh POSTs to /api/cron/<name>, but reseller-* routes only export GET. Either add POST aliases or switch runner to GET for cron endpoints — separate hygiene tick.
   authorised: true
-  on_success: pick B1_showcase_scaffold on next tick per A>B track-balance clause (track A P7 is now fully done — every leaf is done or done_pending_apply).
+  on_success: pick B6_public_showcase or B5_report_library on next tick if B1.3 seed remains blocked-on-apply (both are pure lib/UI, no DB dep once B1.2 helper is in place); otherwise continue B1.3 → B2.
 
 telemetry:
   log_file: web/content/reports/reseller-goal-history.jsonl
