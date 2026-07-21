@@ -260,3 +260,5 @@
 {"tick_id":"2026-07-21T22-00-01-233Z","ts":"2026-07-21T22:04:00.213Z","stage":"tick_end"}
 {"tick_id":"2026-07-21T22-05-01-788Z","ts":"2026-07-21T22:05:01.789Z","stage":"tick_start"}
 {"tick_id":47,"ts":"2026-07-21T22:20:00.000Z","phase":"P8.4_purchase_drawer","stage":"sign_off","verdict":"approved","agents_spawned":0,"note":"purchase drawer + Stripe subscription-item add/remove flow with proration preview + cancel_at_period_end-style end-of-cycle removal; typecheck clean; 551 vitest tests pass"}
+{"tick_id":"2026-07-21T22-05-01-788Z","ts":"2026-07-21T22:20:42.809Z","stage":"delegated_dispatch","status":0,"elapsed_ms":941014,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-21T22-05-01-788Z","ts":"2026-07-21T22:20:42.834Z","stage":"auto_commit_started","dirty_files":7}

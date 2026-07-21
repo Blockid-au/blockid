@@ -307,3 +307,5 @@
 {"ts":"2026-07-21T21:57:16.886Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-21T21-40-01-134Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-21T22:03:47.597Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 46 — P8.3 grandfather backfill (0098 applied) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-21T22:03:54.023Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-21T22-00-01-233Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T22:06:29.873Z","event":"github-push-master","detail":"Blockid-au: feat(showcase): Track C.3 Xero case study skeleton + flip menu to live (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T22:20:37.859Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 47 — P8.4 purchase drawer + add-on lifecycle (1 commits)","source":"github-webhook"}
