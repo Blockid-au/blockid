@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.23
+version: 2026-07-23.24
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -342,14 +342,16 @@ tracks:
             "web/src/app/api/reseller/credits/grant/route.ts (POST)",
             "web/src/app/api/reseller/sandbox/setup/route.ts (POST)"
           ], note: "D3-CISO-02 chokepoint — every one of the 28 manifest routes now invokes gateRequireFeature(<key>) at handler top; each key matches feature-gates.manifest.required_feature. Shared helper web/src/lib/feature-gate.ts wraps getCurrentUser + segment resolution + EntitlementError → 402 mapping so per-route wiring is a two-line insertion. R-03 AST lint added at scripts/ci/reseller-lints.mjs (extends R-01 CLI); enforces: (a) every mutation handler in the manifest calls gateRequireFeature/requireFeature with the manifest's required_feature key inside its body; (b) exemptions require `// r-03-exempt: <reason>` immediately above the handler decl. locateHandlers uses paren-then-brace matching so multi-line signatures with destructured params (e.g. `{ params }: { params: Promise<{id:string}> }`) don't fool the body scan. One R-03 exemption in tree: data-room/engage/route.ts POST (investor engagement telemetry from anonymous view; auth is via data_room_access_tokens.token, not user entitlement). Verified: tsc clean; reseller+showcase+gate vitest 319/319 (was 255, +64: +7 feature-gate + +9 R-03 analyzer + 48 pre-existing); npm run lint:reseller: R-01 scanned 8 file(s), R-03 scanned 28 manifest route(s); 3 exemptions, 0 violations."}
-          P8.3_grandfather_backfill: {status: pending, note: "migration 0098 backfills existing paying users with share_management entitlement pre-cutover"}
+          P8.3_grandfather_backfill: {status: done, tick: 46, completed_at: 2026-07-21, migration_files: [0098], files: [
+            "web/supabase/migrations/0098_share_management_grandfather_backfill.sql"
+          ], note: "Cutover-T backfill migration authored + applied via docker exec supabase-db psql (BEGIN → UPDATE 0 → INSERT 0 0 → COMMIT; idempotent re-run identical); NOTIFY pgrst schema reload issued. Two writes per matching user: (a) UPDATE app_users SET grandfathered_share_management=true, grandfathered_at=now() guarded by grandfathered_share_management=false so re-runs no-op; (b) INSERT INTO entitlements(user_id,'share_management',true,'grandfathered', now(), detail={backfill_migration:'0098', cutover_plan_id, cutover_status}) with ON CONFLICT (user_id,feature) DO NOTHING. Cohort matches plan §F.4 verbatim: subscription_trial_state.status IN ('active','trialing') AND plan_id IN ('founder_growth','founder_scale','founder_enterprise','growth','growth_annual'). Dev DB result: 0/45 users grandfathered (expected — no legacy paying subs). Plan §F.4 originally references a 'subscriptions' snapshot but this repo materialises subscription state in subscription_trial_state (0075:6-17) so the migration binds to the real table; the source='grandfathered' enum member already exists in the entitlements_source_check from 0075:63-71. Duration: forever; the 60-day lapse sunset is a P11 customer-success responsibility and is intentionally out of scope for this migration."}
           P8.4_purchase_drawer: {status: pending, note: "purchase drawer + Stripe subscription-item add with proration preview; cancel path defaults cancel_at_period_end"}
           P8.5_env_and_playwright: {status: human_blocked, blocker: "STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars must be minted in Stripe dashboard by account owner before Playwright can green"}
         exit_criteria: [
           "STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars set (HUMAN — P8.5)",
           "feature-gate manifest web/src/lib/feature-gates.manifest.ts complete (DONE P8.1 tick 44 — 28 routes mapped, completeness test 6/6)",
           "AST lint enforces requireFeature('<key>') on all gated routes (D3-CISO-02) (DONE P8.2 tick 45 — R-03 analyzer + CLI live; 28 routes gated; 1 documented exemption for anonymous investor telemetry)",
-          "grandfather backfill migrated on cutover T (P8.3 — migration 0098)",
+          "grandfather backfill migrated on cutover T (DONE P8.3 tick 46 — migration 0098 authored + applied; idempotent)",
           "purchase drawer functional with proration preview (P8.4)",
           "cancel path defaults to end-of-cycle (cancel_at_period_end on item) (P8.4)",
           "Playwright: grandfathered user unchanged; new Growth user 402 on cap-table without add-on (P8.5 — deferred until Stripe prices minted)"
@@ -1440,6 +1442,37 @@ review_history:
       P1.5_infovision_seed still HUMAN-BLOCKED on H.20.
     commit: (this tick)
 
+  - tick: 46
+    ran_at: 2026-07-21
+    action: p8.3_grandfather_backfill
+    result: |
+      Track A P8.3 gate closed. Migration 0098
+      (web/supabase/migrations/0098_share_management_grandfather_backfill.sql)
+      authored + applied via docker exec supabase-db psql. Two writes per
+      matching user, both idempotent: (a) UPDATE app_users SET
+      grandfathered_share_management=true, grandfathered_at=now() guarded by
+      the existing false flag so re-runs no-op; (b) INSERT INTO entitlements
+      (user_id,'share_management',true,'grandfathered', now(),
+      {backfill_migration:'0098',cutover_plan_id,cutover_status}) with ON
+      CONFLICT (user_id,feature) DO NOTHING. Cohort matches plan §F.4
+      verbatim: subscription_trial_state.status IN ('active','trialing') AND
+      plan_id IN ('founder_growth','founder_scale','founder_enterprise',
+      'growth','growth_annual'). Applied result on dev DB: BEGIN → UPDATE 0
+      → INSERT 0 0 → COMMIT (0/45 users grandfathered — expected, no legacy
+      paying subs in dev); re-run identical (idempotent proof). NOTIFY pgrst
+      schema reload issued. Notes: plan §F.4 references a 'subscriptions'
+      snapshot but this repo persists subscription state in
+      subscription_trial_state (0075:6-17); source='grandfathered' enum
+      member already exists in the entitlements_source_check constraint
+      from 0075:63-71 so no schema shim needed. 60-day lapse sunset is a
+      P11 customer-success responsibility and intentionally out of scope
+      for this migration. Frontier after tick 46: (a) Track A P8.4
+      purchase drawer + cancel_at_period_end is the next unblocked A
+      phase; (b) P8.5 remains HUMAN-BLOCKED on Stripe price env vars; (c)
+      Track B B2 (guide chapters 1-4) remains unblocked as fallback; (d)
+      P10_hardening still blocked_by [P1..P9] pending P8.4 close.
+    commit: (this tick)
+
   - tick: 43
     ran_at: 2026-07-21
     action: p0.4_ceo_final_sign_off
@@ -1488,6 +1521,7 @@ next_action:
     5) P0.3_advisory_reviews still pending — schedulable on next off-peak tick (advisory-only per U.13 stage-5; does NOT gate any downstream phase).
    10) DONE tick 43 — P0.4_ceo_final_sign_off closed with verdict=approved. P0 pre-flight window is now fully sealed; only P0.3 advisory reviews remain pending (non-blocking).
    11) DONE tick 44 — P8_share_management_addon decomposed into P8.1..P8.5 and P8.1_manifest_completeness shipped. feature-gates.manifest.ts now maps 28 real mutation routes (9 phantoms removed, 20 real routes added); completeness test 6/6 pass guards against future drift.
+   13) DONE tick 46 — P8.3_grandfather_backfill shipped. Migration 0098 applied via docker exec supabase-db psql (BEGIN → UPDATE 0 → INSERT 0 0 → COMMIT — 0/45 dev users grandfathered, expected); idempotent re-run identical; NOTIFY pgrst reload issued. Cohort per plan §F.4 verbatim (status IN active/trialing × plan_id IN founder_growth/founder_scale/founder_enterprise/growth/growth_annual). Two writes: app_users flag flip + entitlements(source='grandfathered') insert with ON CONFLICT DO NOTHING. Bound to subscription_trial_state instead of 'subscriptions' since that is where this repo materialises subscription state (0075:6-17). Next Track A tick = P8.4 purchase drawer + cancel_at_period_end.
    12) DONE tick 45 — P8.2_route_gating shipped. All 28 manifest routes now invoke gateRequireFeature() at handler top (30 mutation handlers total after counting the two files with POST+DELETE / PATCH+DELETE pairs). Shared helper web/src/lib/feature-gate.ts wraps auth + segment + EntitlementError → 402. R-03 AST lint added to web/src/lib/reseller/reseller-lints.ts + web/scripts/ci/reseller-lints.mjs — enforces the manifest key match inside each mutation handler; one documented exemption for data-room/engage (anonymous investor telemetry). Next Track A tick = P8.3 grandfather backfill (migration 0098) OR P8.4 purchase drawer.
     6) DONE tick 38 — code_request approval now mints Stripe coupon (deterministic id + duration=forever) + promotion_code and inserts into reseller_promotion_codes inline via decideCodeMint(). linked_promotion_code_id stamped on the reseller_requests row before status flips to approved. Tier 0 (attribution-only) skips Stripe. Idempotent under re-approval: existing (reseller_id, tier_pct) row wins; Stripe coupon retrieve-or-create pattern prevents duplicate coupons if a prior attempt died between Stripe mint and DB insert.
     7) DONE tick 37 — reseller-* cron routes now export `{ GET as POST }` so cron-runner.sh's POST no longer 405s. Applies to reseller-clear-commissions, reseller-monthly-report, reseller-monthly-reconciliation, reseller-stripe-sync, credit-reset.
