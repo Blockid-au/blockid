@@ -293,3 +293,5 @@
 {"ts":"2026-07-21T20:57:19.211Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P9.2 /admin/resellers/[slug] detail page + safety-net for loop drift (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-21T21:07:53.240Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P1.4 apply migrations 0091-0097 + fix two gaps (tick 41) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-21T21:08:10.463Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-21T21-00-01-510Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T21:13:27.984Z","event":"github-push-master","detail":"Blockid-au: feat: 24/7 uptime guardian + Track C case-study library (Atlassian first) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T21:20:05.809Z","event":"github-push-master","detail":"Blockid-au: feat(showcase): B1.3 seed + ingest BlockID.au workspace (tick 42) (1 commits)","source":"github-webhook"}
