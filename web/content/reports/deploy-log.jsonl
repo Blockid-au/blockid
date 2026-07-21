@@ -311,3 +311,5 @@
 {"ts":"2026-07-21T22:20:37.859Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 47 — P8.4 purchase drawer + add-on lifecycle (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-21T22:20:45.307Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-21T22-05-01-788Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-21T22:36:07.389Z","event":"github-push-master","detail":"Blockid-au: feat(showcase): tick 48 — B2 guide chapters 1-4 (Vision → MVP) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T22:36:15.655Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-21T22-25-01-578Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T22:50:06.169Z","event":"github-push-master","detail":"Blockid-au: feat(showcase): tick 49 — B3 guide chapters 5-8 (PMF → Team) (1 commits)","source":"github-webhook"}
