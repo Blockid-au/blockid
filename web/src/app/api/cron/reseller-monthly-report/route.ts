@@ -31,6 +31,11 @@ import {
   type ResellerMeta,
   type RevenueEventRow,
 } from "@/lib/reseller/monthly-report";
+import {
+  buildStoragePath,
+  REPORT_BUCKET,
+  selectExpiredReports,
+} from "@/lib/reseller/report-storage";
 
 export const dynamic = "force-dynamic";
 
@@ -109,6 +114,93 @@ export async function GET(req: Request) {
   const csv = formatMonthlyReportCsv(monthKey, rows);
   const html = formatMonthlyReportEmail(monthKey, rows);
 
+  // Upload per-reseller CSV artifacts to Supabase Storage and upsert metadata.
+  // Signed-URL delivery is served on-demand by /api/reseller/reports/[month]/signed-url.
+  const uploads: {
+    reseller_id: string;
+    storage_path: string;
+    size_bytes: number;
+    row_count: number;
+  }[] = [];
+  const uploadErrors: { reseller_id: string; error: string }[] = [];
+  for (const row of rows) {
+    const perResellerCsv = formatMonthlyReportCsv(
+      monthKey,
+      rows.filter((r) => r.reseller_id === row.reseller_id),
+    );
+    const buf = Buffer.from(perResellerCsv, "utf8");
+    const path = buildStoragePath(row.reseller_id, monthKey);
+    const { error: uploadErr } = await supabase.storage
+      .from(REPORT_BUCKET)
+      .upload(path, buf, {
+        contentType: "text/csv",
+        upsert: true,
+      });
+    if (uploadErr) {
+      uploadErrors.push({ reseller_id: row.reseller_id, error: uploadErr.message });
+      continue;
+    }
+    uploads.push({
+      reseller_id: row.reseller_id,
+      storage_path: path,
+      size_bytes: buf.byteLength,
+      row_count: 1,
+    });
+  }
+
+  if (uploads.length > 0) {
+    const { error: upsertErr } = await supabase
+      .from("reseller_report_files")
+      .upsert(
+        uploads.map((u) => ({
+          reseller_id: u.reseller_id,
+          month_key: monthKey,
+          storage_bucket: REPORT_BUCKET,
+          storage_path: u.storage_path,
+          size_bytes: u.size_bytes,
+          row_count: u.row_count,
+          generated_at: new Date().toISOString(),
+        })),
+        { onConflict: "reseller_id,month_key" },
+      );
+    if (upsertErr) {
+      uploadErrors.push({ reseller_id: "*", error: `metadata_upsert: ${upsertErr.message}` });
+    }
+  }
+
+  // Purge rows + Storage objects older than the 24-month hard retention.
+  let purged = 0;
+  const { data: allFiles } = await supabase
+    .from("reseller_report_files")
+    .select("id, reseller_id, month_key, storage_bucket, storage_path");
+  const expiredRows = selectExpiredReports((allFiles ?? []) as { id: string; reseller_id: string; month_key: string; storage_bucket: string; storage_path: string }[]);
+  if (expiredRows.length > 0) {
+    const byBucket = new Map<string, string[]>();
+    for (const r of expiredRows) {
+      const list = byBucket.get(r.storage_bucket) ?? [];
+      list.push(r.storage_path);
+      byBucket.set(r.storage_bucket, list);
+    }
+    for (const [bucket, paths] of byBucket) {
+      const { error } = await supabase.storage.from(bucket).remove(paths);
+      if (error) {
+        uploadErrors.push({ reseller_id: "*", error: `retention_purge: ${error.message}` });
+      }
+    }
+    const { error: delErr } = await supabase
+      .from("reseller_report_files")
+      .delete()
+      .in(
+        "id",
+        expiredRows.map((r) => r.id),
+      );
+    if (delErr) {
+      uploadErrors.push({ reseller_id: "*", error: `retention_delete: ${delErr.message}` });
+    } else {
+      purged = expiredRows.length;
+    }
+  }
+
   let emailed = false;
   if (!skipEmail) {
     const result = await sendEmail({
@@ -143,6 +235,9 @@ export async function GET(req: Request) {
     ),
     total_credits_granted: rows.reduce((acc, r) => acc + r.ai_credits_granted, 0),
     emailed,
+    uploaded: uploads.length,
+    upload_errors: uploadErrors,
+    purged,
     ran_at: new Date().toISOString(),
   });
 }

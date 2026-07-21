@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.11
+version: 2026-07-23.12
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -279,12 +279,20 @@ tracks:
             "web/src/app/api/cron/reseller-monthly-report/route.ts",
             "web/scripts/crontab.production (0 4 1 * * reseller-monthly-report)"
           ], note: "R9 § C.6 column contract wired end-to-end via buildMonthlyReport(): new_signups / active_customers_eom / attributed_mrr_aud / churned_customers / blockid_gross+net / commission_pct_effective / commission_owed_aud / ai_credits_granted / ai_credits_over_budget_count. Pure aggregation groups revenue_events (queried on `ts` — 0092 index typo notwithstanding) and reseller_credit_grants(kind=grant, month_key=window) by reseller_id, joins resellers for display_name, formats a RFC-4180 CSV attachment + HTML summary body, and emails admin@blockid.au from /api/cron/reseller-monthly-report. ?month=YYYY-MM re-runs history; ?skip_email=1 supports dry-run. Cron scheduled 0 4 1 * * (04:00 UTC 1st = 14:00 AEST 1st, one slot after the 03:45 UTC monthly-reconciliation). tsc clean; reseller vitest 200/200 (+15); lint:reseller 7 files / 2 exemptions / 0 violations."}
-          P7.2_signed_url_storage: {status: pending, note: "Supabase Storage bucket + /reseller/reports viewer + 24h TTL signed URLs (D4-CLO-07) + 12mo exposed / 24mo hard retention. Deferred — CSV is currently email-only."}
+          P7.2_signed_url_storage: {status: done_pending_apply, tick: 33, migration_files: [0097], files: [
+            "web/supabase/migrations/0097_reseller_report_files.sql (metadata table for storage artifacts; UNIQUE (reseller_id, month_key); RLS default-deny)",
+            "web/src/lib/reseller/report-storage.ts (pure helpers: buildStoragePath, buildDownloadFilename, computeRetentionWindow, filterVisibleReports, selectExpiredReports, isMonthExposed; REPORT_BUCKET='reseller-reports'; SIGNED_URL_TTL_SECONDS=86400; RETENTION_EXPOSED_MONTHS=12; RETENTION_HARD_MONTHS=24)",
+            "web/src/lib/reseller/report-storage.test.ts (14/14 pass)",
+            "web/src/app/api/cron/reseller-monthly-report/route.ts (uploads per-reseller CSV to Supabase Storage; upserts reseller_report_files; purges rows+objects older than 24 months on every run)",
+            "web/src/app/api/reseller/reports/[month]/signed-url/route.ts (scopedReseller + 12mo exposed gate + createSignedUrl 24h + reseller_audit_log(action=download_report))",
+            "web/src/app/reseller/reports/page.tsx (server-renders last 12 months from reseller_report_files metadata; suppresses per-row download link until user click)",
+            "web/src/app/reseller/reports/report-download-cell.tsx (client button that fetches the signed URL on demand and opens in a new tab; error surface for 403/404)"
+          ], note: "D4-CLO-07 chokepoint — signed URLs are minted on demand (never in server-rendered HTML), scoped to the requesting reseller_id via scopedReseller, gated on the 12-month exposed window via isMonthExposed, and every mint writes a reseller_audit_log row BEFORE the JSON response. Cron upload runs after the email is composed but before the response so upload_errors surface in the return payload for observability. Retention purge deletes both the storage object and the metadata row inside the same cron pass. Migration 0097 pending docker-exec apply. tsc clean; reseller vitest 214/214 (+14); npm run lint:reseller: 8 files / 2 exemptions / 0 violations."}
           P7.3_gst_reconciliation_delta: {status: pending, note: "Assert GST reconciliation delta <= A$1/month by joining monthly report totals to invoice-level GST rollup from Stripe; extend reseller-monthly-reconciliation cron to raise on drift."}
         exit_criteria: [
           "monthly cron /api/cron/reseller-monthly-report generates CSV per reseller (KPI set from D2-CFO-07) (DONE P7.1)",
-          "signed-URL delivery 24h TTL (D4-CLO-07) (DEFERRED P7.2)",
-          "12mo history retained; 24mo hard retention (DEFERRED P7.2)",
+          "signed-URL delivery 24h TTL (D4-CLO-07) (DONE P7.2 — SIGNED_URL_TTL_SECONDS=86400 in report-storage.ts; on-demand mint via /api/reseller/reports/[month]/signed-url with audit log)",
+          "12mo history retained; 24mo hard retention (DONE P7.2 — RETENTION_EXPOSED_MONTHS=12 gates the viewer; RETENTION_HARD_MONTHS=24 purge runs each cron pass via selectExpiredReports)",
           "GST reconciliation delta <= A$1/month (DEFERRED P7.3)"
         ]
       P8_share_management_addon:
@@ -854,6 +862,49 @@ review_history:
       exemptions, 0 violations.
     commit: (this tick)
 
+  - tick: 33
+    ran_at: 2026-07-21
+    action: p7.2_signed_url_storage
+    result: |
+      P7.2 closed pending migration 0097 docker-exec apply + private
+      'reseller-reports' bucket creation. Pure helper lib at
+      web/src/lib/reseller/report-storage.ts owns the retention constants
+      (12mo exposed, 24mo hard) + storage-path derivation
+      (buildStoragePath = <reseller_id>/<YYYY-MM>.csv keeps object keys
+      stable across code renames) + download filename slugification
+      (buildDownloadFilename clamps to 40 chars, falls back to
+      'reseller' when input strips to empty) + retention windowing
+      (filterVisibleReports/selectExpiredReports use inclusive N-1 offset
+      so the exposed window is exactly 12 whole calendar months incl
+      current). 14 new vitest cases + reseller suite 214/214 combined.
+      Cron web/src/app/api/cron/reseller-monthly-report/route.ts now
+      composes a per-reseller CSV via formatMonthlyReportCsv(month,
+      rows.filter(...)), uploads with contentType text/csv + upsert=true
+      to bucket 'reseller-reports', then upserts a reseller_report_files
+      row keyed on (reseller_id, month_key). Retention purge runs on
+      every cron pass — selectExpiredReports drives a
+      supabase.storage.remove(paths) + delete().in('id', ...) inside the
+      same tick so storage + metadata never drift. upload_errors +
+      purged counters returned in the JSON response for observability.
+      Route web/src/app/api/reseller/reports/[month]/signed-url/route.ts
+      is the D3-CISO-01 chokepoint: scopedReseller → isMonthExposed
+      (403 not_exposed if outside 12mo window) → lookup metadata row
+      scoped to scope.reseller_id → createSignedUrl(path, 86400,
+      {download: <filename>}) → resellerSupabase().auditLog(action=
+      'download_report', fields=[<month>], metadata carries month_key +
+      storage_path + size_bytes) BEFORE returning the signed URL. Signed
+      URL is never rendered in server HTML — the /reseller/reports
+      page.tsx renders 12 rows from reseller_report_files.month_key
+      (via filterVisibleReports guard), and the client cell
+      report-download-cell.tsx fetches the signed URL on click and
+      opens it in a new tab with noopener,noreferrer. Migration 0097
+      creates reseller_report_files with UNIQUE (reseller_id,
+      month_key) + ck month_key regex + RLS default-deny; no PostgREST
+      policies added so anon/authenticated roles can't read the table
+      at all. tsc clean; npm run lint:reseller: 8 files / 2
+      exemptions / 0 violations.
+    commit: (this tick)
+
   - tick: 20
     ran_at: 2026-07-21
     action: p3.1_reconciliation_cron
@@ -877,17 +928,16 @@ review_history:
 next_action:
   agent: applier
   task: |
-    1) Apply migrations 0091 + 0092 + 0094 + 0095 + 0096 via docker exec psql (P1.4 + P6.1 + P9.3) — infra step, requires DB access.
+    1) Apply migrations 0091 + 0092 + 0094 + 0095 + 0096 + 0097 via docker exec psql (P1.4 + P6.1 + P9.3 + P7.2) — infra step, requires DB access. Also create the private 'reseller-reports' Supabase Storage bucket before the cron next fires: `select storage.create_bucket('reseller-reports', false);` (or via Supabase Studio; keep public=false so signed URLs are mandatory).
     2) Seed INFOVISION reseller row (P1.5_infovision_seed) once P1.4 lands.
     3) Track B B1_showcase_scaffold — parallel candidate; migration 0099 adds projects.is_showcase + reseller_sandbox_id + repo_url; seed BlockID.au workspace.
-    4) P7.2_signed_url_storage — Supabase Storage bucket for reseller-monthly-report CSVs + /reseller/reports viewer + 24h TTL signed URLs (D4-CLO-07) + 12mo exposed / 24mo hard retention. Extend reseller-monthly-report cron to upload the CSV to storage before emailing.
-    5) P7.3_gst_reconciliation_delta — assert |monthly_report.gst - stripe.gst| <= A$1 by extending reseller-monthly-reconciliation; page admin on drift.
-    6) Optional P6.5b widening: term-sheet/idea-lab/valuation/journal/data-room/evidence spendCredits callers still don't thread project_id — one getProjectIdFromRequest() per route.
-    7) P0.3_advisory_reviews still pending — schedulable on next off-peak tick.
-    8) code_request approval: currently marks-only; wire Stripe coupon+promotion_code creation into either PATCH approval or the admin promo-codes editor at /admin/resellers/[code].
-    9) Pre-existing: cron-runner.sh POSTs to /api/cron/<name>, but reseller-* routes only export GET. Either add POST aliases or switch runner to GET for cron endpoints — separate hygiene tick.
+    4) P7.3_gst_reconciliation_delta — assert |monthly_report.gst - stripe.gst| <= A$1 by extending reseller-monthly-reconciliation; page admin on drift.
+    5) Optional P6.5b widening: term-sheet/idea-lab/valuation/journal/data-room/evidence spendCredits callers still don't thread project_id — one getProjectIdFromRequest() per route.
+    6) P0.3_advisory_reviews still pending — schedulable on next off-peak tick.
+    7) code_request approval: currently marks-only; wire Stripe coupon+promotion_code creation into either PATCH approval or the admin promo-codes editor at /admin/resellers/[code].
+    8) Pre-existing: cron-runner.sh POSTs to /api/cron/<name>, but reseller-* routes only export GET. Either add POST aliases or switch runner to GET for cron endpoints — separate hygiene tick.
   authorised: true
-  on_success: pick B1_showcase_scaffold for track balance (track A P7 now partial with follow-ups deferred to P7.2/P7.3); OR P7.2 signed-URL storage to close the P7 gate — B1 wins on A>B track-balance clause because two A-track leaves are already partial.
+  on_success: pick B1_showcase_scaffold on next tick per A>B track-balance clause (track A P7 is now down to a single deferred leaf — P7.3 GST reconciliation — everything else is done_pending_apply).
 
 telemetry:
   log_file: web/content/reports/reseller-goal-history.jsonl
