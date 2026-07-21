@@ -37,6 +37,9 @@ type SubmitState =
   | {
       status: "over_budget";
       remaining_budget: number;
+      request_id: string | null;
+      request_error: string | null;
+      requesting: boolean;
     }
   | { status: "error"; message: string };
 
@@ -92,6 +95,9 @@ export function GrantForm({ customers, remainingBudget }: Props) {
         setState({
           status: "over_budget",
           remaining_budget: body.remaining_budget ?? 0,
+          request_id: null,
+          request_error: null,
+          requesting: false,
         });
         return;
       }
@@ -220,13 +226,82 @@ export function GrantForm({ customers, remainingBudget }: Props) {
           <p className="mt-1 text-xs">
             This grant would push you past your monthly credit budget. Only{" "}
             <span className="font-semibold">{state.remaining_budget.toLocaleString()}</span>{" "}
-            credits remain this month. Contact{" "}
-            <a href="mailto:admin@blockid.au" className="underline">
-              admin@blockid.au
-            </a>{" "}
-            for out-of-band approval (per H.4 / D3-CISO-05) or reduce the amount
-            to fit the remaining budget.
+            credits remain this month. Submit an approval request for the
+            BlockID admin to review, or reduce the amount to fit the remaining
+            budget.
           </p>
+          {state.request_id ? (
+            <p className="mt-2 text-xs font-medium">
+              Request submitted (
+              <code className="font-mono">{state.request_id.slice(0, 8)}</code>
+              ). You&apos;ll be notified once an admin decides.
+            </p>
+          ) : (
+            <div className="mt-2 flex items-center gap-2">
+              <button
+                type="button"
+                disabled={state.requesting}
+                onClick={async () => {
+                  if (state.status !== "over_budget") return;
+                  setState({ ...state, requesting: true, request_error: null });
+                  try {
+                    const res = await fetch("/api/reseller/requests", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        request_type: "over_budget_approval",
+                        payload: {
+                          target_user_id: targetUserId,
+                          requested_amount: parsedAmount,
+                          reason: reason.trim() ? reason.trim().slice(0, REASON_MAX) : null,
+                          remaining_budget_snapshot: state.remaining_budget,
+                        },
+                      }),
+                    });
+                    const body = (await res.json().catch(() => ({}))) as {
+                      ok?: boolean;
+                      reason?: string;
+                      request?: { id?: string };
+                    };
+                    if (!res.ok || !body.ok || !body.request?.id) {
+                      setState({
+                        ...state,
+                        requesting: false,
+                        request_error: body.reason ?? `HTTP ${res.status}`,
+                      });
+                      return;
+                    }
+                    setState({
+                      ...state,
+                      requesting: false,
+                      request_id: body.request.id,
+                      request_error: null,
+                    });
+                  } catch (err) {
+                    setState({
+                      ...state,
+                      requesting: false,
+                      request_error: (err as Error).message,
+                    });
+                  }
+                }}
+                className="rounded-md bg-amber-700 px-3 py-1.5 text-xs font-medium text-white disabled:bg-surface-300"
+              >
+                {state.requesting ? "Submitting…" : "Request admin approval"}
+              </button>
+              <a
+                href="mailto:admin@blockid.au"
+                className="text-xs underline"
+              >
+                or email admin@blockid.au
+              </a>
+            </div>
+          )}
+          {state.request_error && (
+            <p className="mt-2 text-xs text-red-700">
+              Request failed: {state.request_error}
+            </p>
+          )}
         </div>
       )}
 
