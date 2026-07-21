@@ -218,3 +218,6 @@
 {"ts":"2026-07-21T15:15:48.092Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P1.5 gate consolidation — PLAN_PROJECT_LIMITS → plans.usage_limits.profiles (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-21T15:16:51.992Z","event":"github-push-master","detail":"Blockid-au: feat(loop): P1.5 gate consolidation done autonomously + safety-net commit (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-21T15:20:51Z","status":"success","gates":"8/8","pid":"3151396","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-21T15:25:04.596Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): cron monitor + /admin/reseller-loop live dashboard + auto-stop (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T15:30:55Z","status":"success","gates":"10/10","pid":"3184226","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-21T15:35:03.908Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P5 co-branding — topbar pill + Stripe invoice memo + email footer (1 commits)","source":"github-webhook"}
