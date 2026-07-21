@@ -1,29 +1,29 @@
 {
-  "date": "2026-07-19",
-  "overall": 33,
+  "date": "2026-07-21",
+  "overall": 31,
   "status": "RED",
   "dimensions": [
     {
       "key": "auth_coverage",
       "label": "Auth coverage on /api/* routes",
       "score": 8,
-      "detail": "234/283 guarded (Bearer / user-auth / public-tagged)",
+      "detail": "260/322 guarded (Bearer / user-auth / public-tagged)",
       "findings": [
         "Ungated: api/ab/pricing-expose/route.ts",
         "Ungated: api/actions/route.ts",
+        "Ungated: api/ai/esop/route.ts",
+        "Ungated: api/ai/vesting/route.ts",
+        "Ungated: api/ai/vesting-review/route.ts",
         "Ungated: api/auth/github/callback/route.ts",
         "Ungated: api/auth/github/route.ts",
-        "Ungated: api/auth/google/route.ts",
-        "Ungated: api/auth/login-password/route.ts",
-        "Ungated: api/auth/logout/route.ts",
-        "Ungated: api/auth/register/route.ts"
+        "Ungated: api/auth/google/route.ts"
       ]
     },
     {
       "key": "rate_limit",
       "label": "Rate-limit coverage on /api/* routes",
       "score": 1,
-      "detail": "15/283 call checkRateLimit (or @rate-limit-exempt)",
+      "detail": "17/322 call checkRateLimit (or @rate-limit-exempt)",
       "findings": [
         "No rate-limit: api/ab/pricing-expose/route.ts",
         "No rate-limit: api/accelerator/cohort/route.ts",
@@ -39,7 +39,7 @@
       "key": "secrets_hygiene",
       "label": "Secrets hygiene (no committed credentials)",
       "score": 0,
-      "detail": "15 suspicious lines",
+      "detail": "16 suspicious lines",
       "findings": [
         "Leak: src/app/api/cron/security-posture/route.ts:126:    \"STRIPE_SECRET_KEY=sk_\",",
         "Leak: src/app/api/cron/security-posture/route.ts:127:    \"SUPABASE_SERVICE_ROLE_KEY=ey\",",
@@ -64,10 +64,10 @@
     {
       "key": "deps",
       "label": "Dependency vulnerabilities",
-      "score": 6,
-      "detail": "crit 0, high 3, mod 6",
+      "score": 5,
+      "detail": "crit 0, high 4, mod 6",
       "findings": [
-        "3 high CVE(s)",
+        "4 high CVE(s)",
         "6 moderate CVE(s)"
       ]
     },
