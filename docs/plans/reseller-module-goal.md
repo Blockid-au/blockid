@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.9
+version: 2026-07-23.10
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -290,8 +290,8 @@ tracks:
           "Playwright: grandfathered user unchanged; new Growth user 402 on cap-table without add-on"
         ]
       P9_admin_surface:
-        status: partial
-        tick: 19
+        status: done_pending_apply
+        tick: 31
         started_at: 2026-07-23
         sub_phases:
           P9.1_list_and_create: {status: done, commit: f1bbe9a, files: [
@@ -304,10 +304,20 @@ tracks:
             "web/src/app/admin/resellers/[code]/page.tsx (server component detail view)",
             "web/src/app/admin/resellers/[code]/reseller-edit-client.tsx (client edit form)"
           ], note: "PATCH validator enforces U.15.1 wholesale/GST/ABN invariant + ABN format + hex color; DELETE = soft delete → status=terminated. Detail page shows overview cards, edit form, promotion codes, recent commissions (from reseller_commissions_current view)."}
-          P9.3_requests_inbox: {status: pending, note: "code request + over-budget approval + collateral approval queue (D4-CLO-08); waits on request-table migration"}
+          P9.3_requests_inbox: {status: done_pending_apply, tick: 31, migration_files: [0095], files: [
+            "web/supabase/migrations/0095_reseller_requests.sql (single table: code_request + over_budget_approval + collateral_approval; jsonb payload; partial pending-code uniq; pending-hot idx)",
+            "web/src/lib/reseller/requests.ts (validateCodeRequest / validateOverBudgetApproval / validateCollateralApproval / validateResellerRequestBody / validateAdminDecision)",
+            "web/src/lib/reseller/requests.test.ts (21/21 pass)",
+            "web/src/app/api/reseller/requests/route.ts (POST + GET reseller-side; scopedReseller + audit-log; 409 on duplicate pending code_request)",
+            "web/src/app/api/admin/resellers/requests/route.ts (GET admin list; ?status= + ?request_type= filters)",
+            "web/src/app/api/admin/resellers/requests/[id]/route.ts (PATCH approve/deny/cancel; over_budget approval bumps credit_balances + inserts credit_transactions + mirrors reseller_credit_grants(over_budget=true))",
+            "web/src/app/admin/resellers/requests/page.tsx (server component; pending + approved + denied buckets)",
+            "web/src/app/admin/resellers/requests/inbox-client.tsx (per-row Approve/Deny with optional decision_reason)",
+            "web/src/app/reseller/credits/grant-form.tsx (402 over_budget path now offers 'Request admin approval' button that POSTs to /api/reseller/requests; mailto retained as fallback)"
+          ], note: "P9 gate closed pending migration 0095 docker-exec apply. Approving an over-budget request atomically bumps the customer credit_balances, inserts a credit_transactions row (reason='reseller_grant_over_budget', granted_by_reseller_id stamped), then mirrors into reseller_credit_grants(kind=grant, over_budget=true, month_key=UTC now). Request row links via linked_credit_transaction_id under a ck_credit_link CHECK. code_request approval intentionally does NOT call Stripe here — the admin mints the coupon+promo_code from /admin/resellers/[code] promotion-codes editor after this row flips to approved. reseller vitest 185/185 (+21); tsc clean; lint:reseller 7 files / 2 exemptions / 0 violations."}
         exit_criteria: [
           "/admin/resellers + /admin/resellers/[slug] mirror /admin/accelerator (DONE)",
-          "requests inbox: code request, over-budget approval, marketing collateral approval (D4-CLO-08) — PENDING P9.3",
+          "requests inbox: code request, over-budget approval, marketing collateral approval (D4-CLO-08) — DONE P9.3",
           "seed InfoVision row when admin creates first reseller (POST endpoint ready; requires P1.4 apply first)"
         ]
       P10_hardening:
@@ -750,6 +760,53 @@ review_history:
       exemptions / 0 violations.
     commit: (this tick)
 
+  - tick: 31
+    ran_at: 2026-07-21
+    action: p9.3_requests_inbox
+    result: |
+      P9 gate closed — reseller_requests workflow queue live end-to-end
+      (docker-exec apply of migration 0095 still pending). Single table backs
+      three flows: code_request (mint new tier code), over_budget_approval
+      (grant credits past monthly_credit_budget), collateral_approval
+      (marketing collateral URL). Pure validators at
+      web/src/lib/reseller/requests.ts (validateCodeRequest gates against
+      resellers.allowed_tiers + [A-Z0-9]{1,16} suffix regex;
+      validateOverBudgetApproval requires can_grant_credits + uuid target +
+      positive integer amount; validateCollateralApproval enforces https URL
+      + non-blank purpose; validateAdminDecision maps approve/deny/cancel to
+      status + optional 200-char decision_reason with already_decided guard).
+      21 new vitest cases; combined reseller suite 185/185.
+      Reseller-side POST /api/reseller/requests routes through the
+      scopedReseller chokepoint + resellerSupabase() wrapper and writes
+      reseller_audit_log(action='file_request') BEFORE returning; 409 fires
+      when the partial `reseller_requests_pending_code_uniq` idx catches a
+      duplicate pending code_request. GET lists own reseller's last 100
+      rows. Admin GET /api/admin/resellers/requests filters via ?status= +
+      ?request_type= with requireAdmin() gate. Admin PATCH
+      /api/admin/resellers/requests/[id] side-effects over_budget approval:
+      upserts credit_balances (balance + lifetime_earned), inserts a
+      credit_transactions row (reason='reseller_grant_over_budget',
+      granted_by_reseller_id + metadata pointing at reseller_request_id +
+      approved_by_admin), and mirrors into
+      reseller_credit_grants(kind=grant, over_budget=true,
+      month_key=monthKey(UTC)); the resulting credit_transactions.id is
+      stamped onto reseller_requests.linked_credit_transaction_id under the
+      ck_credit_link CHECK. code_request approval is mark-only — Stripe
+      coupon+promotion_code minting stays on the admin promo-codes editor.
+      Admin inbox page /admin/resellers/requests (server component +
+      inbox-client) renders pending / recently approved / recently denied
+      buckets with per-row Approve+Deny buttons and an optional
+      decision_reason input; per-type payload summaries surface tier/amount/
+      URL inline so the admin doesn't need to expand JSON.
+      grant-form.tsx over_budget path now offers "Request admin approval"
+      that POSTs to /api/reseller/requests instead of the mailto-only
+      fallback; success shows a persistent banner with the request id,
+      failures surface the server reason. mailto:admin@blockid.au retained
+      as secondary escape hatch.
+      tsc clean; reseller vitest 185/185 (+21); npm run lint:reseller: 7
+      files scanned, 2 exemptions, 0 violations.
+    commit: (this tick)
+
   - tick: 20
     ran_at: 2026-07-21
     action: p3.1_reconciliation_cron
@@ -773,15 +830,15 @@ review_history:
 next_action:
   agent: applier
   task: |
-    1) Apply migrations 0091 + 0092 + 0094 + 0096 via docker exec psql (P1.4 + P6.1) — infra step, requires DB access.
+    1) Apply migrations 0091 + 0092 + 0094 + 0095 + 0096 via docker exec psql (P1.4 + P6.1 + P9.3) — infra step, requires DB access.
     2) Seed INFOVISION reseller row (P1.5_infovision_seed) once P1.4 lands.
-    3) P9.3_requests_inbox — author migration 0095 for reseller_requests table (code_request + over_budget_approval + collateral_approval), admin inbox at /admin/resellers/requests, POST endpoint for reseller-side submit. Wire the over-budget grant flow so the grant-form 402 path can push a request row instead of just pointing at mailto (currently deferred).
-    4) Track B B1_showcase_scaffold — parallel candidate now that P6 is closed; migration 0099 adds projects.is_showcase + reseller_sandbox_id + repo_url; seed BlockID.au workspace.
-    5) P7_kpi_reports — /api/cron/reseller-monthly-report per D2-CFO-07; unblocked by P3 completion.
-    6) Optional P6.5b widening: term-sheet/idea-lab/valuation/journal/data-room/evidence spendCredits callers still don't thread project_id — one getProjectIdFromRequest() per route.
-    7) P0.3_advisory_reviews still pending — schedulable on next off-peak tick.
+    3) Track B B1_showcase_scaffold — parallel candidate; migration 0099 adds projects.is_showcase + reseller_sandbox_id + repo_url; seed BlockID.au workspace.
+    4) P7_kpi_reports — /api/cron/reseller-monthly-report per D2-CFO-07; unblocked by P3 completion.
+    5) Optional P6.5b widening: term-sheet/idea-lab/valuation/journal/data-room/evidence spendCredits callers still don't thread project_id — one getProjectIdFromRequest() per route.
+    6) P0.3_advisory_reviews still pending — schedulable on next off-peak tick.
+    7) code_request approval: currently marks-only; wire Stripe coupon+promotion_code creation into either PATCH approval or the admin promo-codes editor at /admin/resellers/[code].
   authorised: true
-  on_success: pick P9.3_requests_inbox next (closes the P6.6 over-budget UX loop) OR jump to B1_showcase_scaffold for track balance; A>B preference still applies so P9.3 wins by default
+  on_success: pick P7_kpi_reports (monthly reseller-monthly-report CSV) next since P3 is done + P9 is now closed; OR B1_showcase_scaffold for track balance — A>B preference means P7 wins by default
 
 telemetry:
   log_file: web/content/reports/reseller-goal-history.jsonl
