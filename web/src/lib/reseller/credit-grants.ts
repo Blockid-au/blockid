@@ -157,6 +157,20 @@ export type SandboxDeniedReason =
 const HOUR_MS = 60 * 60 * 1000;
 
 /**
+ * Sandbox spend is denominated in whole credits (matches
+ * monthly_sandbox_credits + hourly_limit units in decideSandboxSpend and
+ * the `amount int` column on reseller_credit_grants). Feature costs in
+ * credits.ts range 0.10 .. 3.00 fractional — every priced call debits at
+ * least one whole sandbox credit. Free features (cost 0) short-circuit
+ * before this helper is reached; NaN / negative / infinite inputs return
+ * 0 so callers can treat them as "no sandbox debit required".
+ */
+export function ceilSandboxCost(cost: number): number {
+  if (!Number.isFinite(cost) || cost <= 0) return 0;
+  return Math.max(1, Math.ceil(cost));
+}
+
+/**
  * Decide whether a sandbox spend is legal per U.15.2:
  *   - monthly cap: sum of sandbox_spend rows in the current month_key must
  *     not exceed monthly_sandbox_credits.

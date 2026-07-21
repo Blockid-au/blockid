@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.7
+version: 2026-07-23.8
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -243,7 +243,11 @@ tracks:
             "web/src/lib/reseller/sandbox-provision.ts (+ test 11/11)",
             "web/src/app/api/reseller/sandbox/setup/route.ts"
           ], note: "POST /api/reseller/sandbox/setup — scopedReseller + canProvisionSandbox(role) gate + idempotency via scope.sandboxProjectId(). buildSandboxProjectInsert emits reseller-sandbox-<code> slug (collision-free vs. toSlug() user input) with reseller_sandbox_id stamped so PLAN_PROJECT_LIMITS is bypassed at the DB level (no limit check in path). 23505 race → re-scans + returns winner. Audit log written BEFORE 200 response (action=provision_sandbox, metadata carries project_id + slug). npm run lint:reseller: 6 files / 2 exemptions / 0 violations; tsc clean; reseller vitest 162/162."}
-          P6.5_spendCredits_sandbox: {status: pending, note: "web/src/lib/credits.ts:448 branch — detect metadata.project_id → sandbox → decideSandboxSpend → insert reseller_credit_grants(kind=sandbox_spend, amount<0) instead of debiting credit_balances"}
+          P6.5_spendCredits_sandbox: {status: done, tick: 28, files: [
+            "web/src/lib/credits.ts (trySpendSandboxCredits + import ceilSandboxCost/decideSandboxSpend/monthKey; sandbox routing branch runs before credit_balances path when metadata.project_id maps to projects.reseller_sandbox_id)",
+            "web/src/lib/reseller/credit-grants.ts (ceilSandboxCost pure helper: Math.max(1, Math.ceil(cost)); 0 for non-finite/non-positive so free features skip sandbox path)",
+            "web/src/lib/reseller/credit-grants.test.ts (+ 2 ceilSandboxCost cases; suite 21/21, combined reseller 164/164)"
+          ], note: "spendCredits() now short-circuits into reseller_credit_grants(kind=sandbox_spend) when metadata.project_id points at a reseller sandbox workspace. Superset OR-query (month_key.eq OR created_at.gte hour-ago) feeds decideSandboxSpend; approved calls insert amount=-ceilSandboxCost(cost) with granted_by_user_id=userId + metadata.feature/reseller_id/fractional_cost; personal credit_balances untouched. On approved path we still write usage_logs (sandbox_debit + reseller_id + sandbox_project_id merged into metadata) so downstream analytics see the call. Denied path returns {ok:false, balance:getBalance(user)} without touching either ledger. Non-sandbox projects return null from the helper so the caller falls through to the credit_balances path — non-reseller users are unaffected. Route wiring (svi/route.ts, rnd/route.ts, etc.) must add project_id to spendCredits metadata for this branch to activate at those call sites; deferred to a P6.5b hot-path pass. lint:reseller: 6 files / 2 exemptions / 0 violations; tsc clean; reseller vitest 164/164."}
           P6.6_grant_modal: {status: pending, note: "/reseller/credits UI — grant form + over-budget approval flow + monthly usage bar"}
         exit_criteria: [
           "reseller_credit_grants live (DONE — 0096 authored; docker exec apply required)",
@@ -648,6 +652,39 @@ review_history:
       violations; tsc clean.
     commit: (this tick)
 
+  - tick: 28
+    ran_at: 2026-07-21
+    action: p6.5_spendCredits_sandbox
+    result: |
+      spendCredits() now routes into reseller_credit_grants(kind=
+      sandbox_spend) whenever metadata.project_id points at a project
+      carrying projects.reseller_sandbox_id — the reseller sandbox
+      workspace provisioned in P6.4. New internal helper
+      trySpendSandboxCredits(supabase, args) at web/src/lib/credits.ts
+      fetches the reseller's monthly_sandbox_credits + a superset OR-query
+      of grants (month_key = current OR created_at ≥ 60min ago), feeds
+      them to the pure decideSandboxSpend() helper, and on approval
+      inserts a row with amount = -ceilSandboxCost(cost) (Math.max(1,
+      Math.ceil) so fractional feature costs 0.10–3.00 debit at least
+      one whole sandbox credit; matches monthly_sandbox_credits units).
+      Personal credit_balances is never touched on the sandbox path —
+      the returned balance is getBalance(userId) so UI meters stay
+      coherent for the reseller admin's own credit purse. Denied
+      decisions return {ok:false, balance:getBalance()} without inserting
+      either ledger row. Non-sandbox projects short-circuit via `return
+      null` so all existing non-reseller callers fall through to the
+      credit_balances path unchanged. usage_logs is still written on
+      the approved sandbox path with sandbox_debit + reseller_id +
+      sandbox_project_id merged into metadata for downstream analytics.
+      Pure helper ceilSandboxCost added to web/src/lib/reseller/
+      credit-grants.ts with 2 new vitest cases (fractional round-up +
+      non-finite guard). Route wiring (svi/route.ts et al.) to thread
+      project_id into spendCredits metadata deferred to P6.5b — the
+      branch is currently dormant until callers opt in. lint:reseller:
+      6 files / 2 exemptions / 0 violations; tsc clean; reseller
+      vitest 164/164 (was 162, + 2 ceilSandboxCost cases).
+    commit: (this tick)
+
   - tick: 20
     ran_at: 2026-07-21
     action: p3.1_reconciliation_cron
@@ -673,13 +710,13 @@ next_action:
   task: |
     1) Apply migrations 0091 + 0092 + 0094 + 0096 via docker exec psql (P1.4 + P6.1) — infra step, requires DB access.
     2) Seed INFOVISION reseller row (P1.5_infovision_seed) once P1.4 lands.
-    3) P6.5 next: spendCredits sandbox branch (web/src/lib/credits.ts:448) — detect metadata.project_id → sandbox → decideSandboxSpend → insert reseller_credit_grants(kind=sandbox_spend, amount<0) instead of debiting credit_balances.
+    3) P6.5b hot-path wiring: thread project_id into spendCredits metadata at the top SVI/RND/report routes (svi/route.ts, svi/full-report/route.ts, svi/report-section/route.ts, rnd/route.ts, rnd/sections/route.ts, evaluation/[criterionKey]/ai-score/route.ts) so the sandbox branch actually fires for reseller-admin traffic; each caller already has projectId in scope.
     4) P6.6 follow: reseller-side grant modal UI at /reseller/credits (grant form + over-budget approval + monthly usage bar).
     5) Track B B1_showcase_scaffold still unblocked; parallel candidate if a tick prefers track B ordering.
     6) P9.3_requests_inbox pending — waits on a request-table migration; feasible on next tick if we author 0095 alongside.
     7) P0.3_advisory_reviews still pending — schedulable on next off-peak tick.
   authorised: true
-  on_success: continue P6 sub-phases (P6.5 next) — track A P6 in_progress; keep momentum before switching to B1
+  on_success: continue P6 sub-phases (P6.5b hot-path wiring next, then P6.6 grant modal) — track A P6 in_progress; keep momentum before switching to B1
 
 telemetry:
   log_file: web/content/reports/reseller-goal-history.jsonl

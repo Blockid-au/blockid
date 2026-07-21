@@ -4,6 +4,7 @@ import {
   computeMonthlyUsage,
   decideGrant,
   decideSandboxSpend,
+  ceilSandboxCost,
   type ResellerCreditGrantRow,
 } from "./credit-grants";
 
@@ -264,5 +265,28 @@ describe("decideSandboxSpend", () => {
         }),
       ).toEqual({ ok: false, reason: "invalid_amount" });
     }
+  });
+});
+
+describe("ceilSandboxCost", () => {
+  it("rounds fractional feature costs up to the next whole credit", () => {
+    expect(ceilSandboxCost(0.10)).toBe(1);
+    expect(ceilSandboxCost(0.25)).toBe(1);
+    expect(ceilSandboxCost(0.50)).toBe(1);
+    expect(ceilSandboxCost(0.75)).toBe(1);
+    expect(ceilSandboxCost(1.00)).toBe(1);
+    expect(ceilSandboxCost(1.01)).toBe(2);
+    expect(ceilSandboxCost(1.50)).toBe(2);
+    expect(ceilSandboxCost(2.99)).toBe(3);
+    expect(ceilSandboxCost(3)).toBe(3);
+  });
+
+  it("returns 0 when the cost is zero, negative, or non-finite so free features skip sandbox routing", () => {
+    expect(ceilSandboxCost(0)).toBe(0);
+    expect(ceilSandboxCost(-0.5)).toBe(0);
+    expect(ceilSandboxCost(-1)).toBe(0);
+    expect(ceilSandboxCost(Number.NaN)).toBe(0);
+    expect(ceilSandboxCost(Number.POSITIVE_INFINITY)).toBe(0);
+    expect(ceilSandboxCost(Number.NEGATIVE_INFINITY)).toBe(0);
   });
 });
