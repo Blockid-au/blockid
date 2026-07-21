@@ -206,3 +206,6 @@
 {"ts":"2026-07-21T14:11:58.729Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P2.7 consent modal + P4.0 layout + entitlement extension (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-21T14:24:09Z","status":"success","gates":"10/10","pid":"2973145","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-21T14:24:34.001Z","event":"github-push-master","detail":"Blockid-au: fix(reseller): TS gate — remove AppUser.segment access + tighten scope.sandboxProjectId return type (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T14:33:01.481Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P2.5 auth wiring + P4.2/P4.3 pages + GA4 events + loop auto-deploy hook (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T14:38:32Z","status":"success","gates":"10/10","pid":"3017741","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-21T14:48:53.976Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P2.6 checkout stamp attribution + apply promotion_code (1 commits)","source":"github-webhook"}
