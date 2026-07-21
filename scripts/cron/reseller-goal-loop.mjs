@@ -45,6 +45,19 @@ async function log(row) {
   await mkdir(dirname(HISTORY_FILE), { recursive: true })
   await appendFile(HISTORY_FILE, line, 'utf8')
   process.stderr.write(line)
+
+  // Also mirror a compact "current activity" line to a status file so
+  // show-next-reseller-tick.sh (and any dashboard) can render live state
+  // without parsing the whole JSONL.
+  try {
+    const status = {
+      tick_id: TICK_ID,
+      ts: new Date().toISOString(),
+      current_stage: row.stage ?? 'unknown',
+      ...row,
+    }
+    await writeFile('/tmp/blockid-reseller-loop.status', JSON.stringify(status, null, 2), 'utf8')
+  } catch { /* status file is best-effort */ }
 }
 
 /** Kill-switch check. Exits 0 (not error) so cron doesn't spam alerts. */

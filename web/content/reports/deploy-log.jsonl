@@ -209,3 +209,7 @@
 {"ts":"2026-07-21T14:33:01.481Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P2.5 auth wiring + P4.2/P4.3 pages + GA4 events + loop auto-deploy hook (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-21T14:38:32Z","status":"success","gates":"10/10","pid":"3017741","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-21T14:48:53.976Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P2.6 checkout stamp attribution + apply promotion_code (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T14:52:24.880Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P4 pages complete + nav entry + tick-display helper (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T14:58:25Z","status":"success","gates":"10/10","pid":"3077574","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-21T15:02:48.097Z","event":"github-push-master","detail":"Blockid-au: feat(cron): loop dispatch adds --dangerously-skip-permissions + live status display (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T15:08:15Z","status":"success","gates":"8/8","pid":"3109020","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
