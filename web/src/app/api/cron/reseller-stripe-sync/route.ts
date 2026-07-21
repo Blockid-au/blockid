@@ -155,3 +155,5 @@ export async function GET(req: Request) {
     drift,
   });
 }
+
+export { GET as POST };

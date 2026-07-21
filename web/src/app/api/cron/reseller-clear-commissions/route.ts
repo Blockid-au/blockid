@@ -82,3 +82,5 @@ export async function GET(req: Request) {
     ran_at: nowIso,
   });
 }
+
+export { GET as POST };

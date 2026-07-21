@@ -241,3 +241,5 @@ export async function GET(req: Request) {
     ran_at: new Date().toISOString(),
   });
 }
+
+export { GET as POST };
