@@ -18,7 +18,7 @@ export default async function ProjectsPage() {
   if (!user) redirect("/auth/login?next=/workspace/projects");
 
   const projects = await getUserProjects(user.id);
-  const limit = getProjectLimit(user.plan ?? "free");
+  const limit = await getProjectLimit(user.plan ?? "free");
 
   return (
     <WorkspaceLayout user={user}>
