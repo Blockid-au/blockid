@@ -332,3 +332,15 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 
 # Audit-chain verification (append-only hash chain integrity) — nightly 01:00
 0 1 * * * node /home/dovanlong/blockid.au/web/scripts/verify-audit-chain.ts >> /tmp/blockid-audit-verify.log 2>&1
+
+# ═══════════════════════════════════════════════════════════════
+# RESELLER MODULE — Autonomous goal loop (Track A + B)
+# ═══════════════════════════════════════════════════════════════
+# Reads docs/plans/reseller-module-goal.md, picks the current frontier
+# phase, dispatches to `claude` CLI for the 5-stage workflow (Understand →
+# Design → Implement → Verify → Sign-off), records tick to
+# web/content/reports/reseller-goal-history.jsonl, commits + pushes.
+# Kill switch: env RESELLER_AUTONOMOUS_LOOP=off.
+# Off-peak once/day at 03:45 UTC (13:45 AEST) — does not collide with
+# existing entries.
+45 3 * * * cd /home/dovanlong/blockid.au && RESELLER_AUTONOMOUS_LOOP=on node scripts/cron/reseller-goal-loop.mjs >> /tmp/blockid-reseller-loop.log 2>&1
