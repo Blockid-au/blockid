@@ -360,6 +360,9 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Reseller monthly reconciliation CSV export — 1st of month at 03:45 UTC (13:45 AEST)
 45 3 1 * * bash $RUN reseller-monthly-reconciliation --timeout 300
 
+# Reseller monthly KPI report (R9 § C.6) — 1st of month at 04:00 UTC (14:00 AEST)
+0 4 1 * * bash $RUN reseller-monthly-report --timeout 300
+
 # Reseller loop monitor — every minute, snapshots loop state to
 #   /tmp/blockid-reseller-monitor.txt (human)
 #   web/content/reports/reseller-monitor.jsonl (machine)

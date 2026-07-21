@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.10
+version: 2026-07-23.11
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -270,12 +270,22 @@ tracks:
           "sandbox rate-limit 50 credits/hr enforced (D3-CISO-05) (DONE at lib level P6.2; still needs spendCredits wiring P6.5)"
         ]
       P7_kpi_reports:
-        status: blocked_by: P3
+        status: partial
+        tick_started: 32
+        sub_phases:
+          P7.1_monthly_report_cron: {status: done, tick: 32, files: [
+            "web/src/lib/reseller/monthly-report.ts",
+            "web/src/lib/reseller/monthly-report.test.ts (15/15 pass)",
+            "web/src/app/api/cron/reseller-monthly-report/route.ts",
+            "web/scripts/crontab.production (0 4 1 * * reseller-monthly-report)"
+          ], note: "R9 § C.6 column contract wired end-to-end via buildMonthlyReport(): new_signups / active_customers_eom / attributed_mrr_aud / churned_customers / blockid_gross+net / commission_pct_effective / commission_owed_aud / ai_credits_granted / ai_credits_over_budget_count. Pure aggregation groups revenue_events (queried on `ts` — 0092 index typo notwithstanding) and reseller_credit_grants(kind=grant, month_key=window) by reseller_id, joins resellers for display_name, formats a RFC-4180 CSV attachment + HTML summary body, and emails admin@blockid.au from /api/cron/reseller-monthly-report. ?month=YYYY-MM re-runs history; ?skip_email=1 supports dry-run. Cron scheduled 0 4 1 * * (04:00 UTC 1st = 14:00 AEST 1st, one slot after the 03:45 UTC monthly-reconciliation). tsc clean; reseller vitest 200/200 (+15); lint:reseller 7 files / 2 exemptions / 0 violations."}
+          P7.2_signed_url_storage: {status: pending, note: "Supabase Storage bucket + /reseller/reports viewer + 24h TTL signed URLs (D4-CLO-07) + 12mo exposed / 24mo hard retention. Deferred — CSV is currently email-only."}
+          P7.3_gst_reconciliation_delta: {status: pending, note: "Assert GST reconciliation delta <= A$1/month by joining monthly report totals to invoice-level GST rollup from Stripe; extend reseller-monthly-reconciliation cron to raise on drift."}
         exit_criteria: [
-          "monthly cron /api/cron/reseller-monthly-report generates CSV per reseller (KPI set from D2-CFO-07)",
-          "signed-URL delivery 24h TTL (D4-CLO-07)",
-          "12mo history retained; 24mo hard retention",
-          "GST reconciliation delta <= A$1/month"
+          "monthly cron /api/cron/reseller-monthly-report generates CSV per reseller (KPI set from D2-CFO-07) (DONE P7.1)",
+          "signed-URL delivery 24h TTL (D4-CLO-07) (DEFERRED P7.2)",
+          "12mo history retained; 24mo hard retention (DEFERRED P7.2)",
+          "GST reconciliation delta <= A$1/month (DEFERRED P7.3)"
         ]
       P8_share_management_addon:
         status: blocked_by: P1
@@ -807,6 +817,43 @@ review_history:
       files scanned, 2 exemptions, 0 violations.
     commit: (this tick)
 
+  - tick: 32
+    ran_at: 2026-07-21
+    action: p7.1_monthly_report_cron
+    result: |
+      R9 § C.6 monthly KPI cron shipped end-to-end (email delivery lens;
+      signed-URL viewer + Supabase Storage retention deferred to P7.2/P7.3).
+      Pure aggregation lib at web/src/lib/reseller/monthly-report.ts:
+      buildMonthlyReport(monthKey, revenue_events, credit_grants, resellers)
+      groups per reseller_id, folds SIGNUP / RECURRING / CHURN kind sets from
+      the revenue_events kind vocabulary (0075) into new_signups /
+      active_customers_eom (users whose latest kind-in-window is recurring) /
+      churned_customers (users whose latest kind is refund/chargeback/
+      trial_end_no_payment), sums gross+net+commission across the entire
+      window (refund rows carry negative cents so net-of-refunds falls out
+      naturally), computes commission_pct_effective = commission/gross×100
+      rounded to 2 decimals (0 when gross==0), and folds
+      reseller_credit_grants(kind='grant', month_key=window) into
+      ai_credits_granted + ai_credits_over_budget_count. Only resellers with
+      at least one event OR grant appear (matches reconciliation shape).
+      formatMonthlyReportCsv emits the § C.6 13-column contract with
+      RFC-4180 escapes + trailing newline + '# BlockID reseller monthly KPI
+      report — YYYY-MM' comment banner. formatMonthlyReportEmail renders a
+      9-column HTML summary body (code + name + signups + active + churned +
+      MRR + gross + commission + credits) with HTML-escaped display names.
+      Cron at web/src/app/api/cron/reseller-monthly-report/route.ts:
+      queries revenue_events on ts (not the mis-named 0092 index column),
+      filters reseller_id IS NOT NULL, joins resellers by id, emails
+      admin@blockid.au with reseller-monthly-report-YYYY-MM.csv attached.
+      ?month=YYYY-MM re-runs historical months; ?skip_email=1 supports
+      dry-run; CRON_SECRET Bearer auth. Crontab entry 0 4 1 * *
+      (04:00 UTC 1st = 14:00 AEST 1st, one slot after 03:45 UTC
+      reseller-monthly-reconciliation so both share the same window and
+      neither collides). tsc clean; reseller vitest 200/200 (+15
+      monthly-report cases); npm run lint:reseller: 7 files scanned, 2
+      exemptions, 0 violations.
+    commit: (this tick)
+
   - tick: 20
     ran_at: 2026-07-21
     action: p3.1_reconciliation_cron
@@ -833,12 +880,14 @@ next_action:
     1) Apply migrations 0091 + 0092 + 0094 + 0095 + 0096 via docker exec psql (P1.4 + P6.1 + P9.3) — infra step, requires DB access.
     2) Seed INFOVISION reseller row (P1.5_infovision_seed) once P1.4 lands.
     3) Track B B1_showcase_scaffold — parallel candidate; migration 0099 adds projects.is_showcase + reseller_sandbox_id + repo_url; seed BlockID.au workspace.
-    4) P7_kpi_reports — /api/cron/reseller-monthly-report per D2-CFO-07; unblocked by P3 completion.
-    5) Optional P6.5b widening: term-sheet/idea-lab/valuation/journal/data-room/evidence spendCredits callers still don't thread project_id — one getProjectIdFromRequest() per route.
-    6) P0.3_advisory_reviews still pending — schedulable on next off-peak tick.
-    7) code_request approval: currently marks-only; wire Stripe coupon+promotion_code creation into either PATCH approval or the admin promo-codes editor at /admin/resellers/[code].
+    4) P7.2_signed_url_storage — Supabase Storage bucket for reseller-monthly-report CSVs + /reseller/reports viewer + 24h TTL signed URLs (D4-CLO-07) + 12mo exposed / 24mo hard retention. Extend reseller-monthly-report cron to upload the CSV to storage before emailing.
+    5) P7.3_gst_reconciliation_delta — assert |monthly_report.gst - stripe.gst| <= A$1 by extending reseller-monthly-reconciliation; page admin on drift.
+    6) Optional P6.5b widening: term-sheet/idea-lab/valuation/journal/data-room/evidence spendCredits callers still don't thread project_id — one getProjectIdFromRequest() per route.
+    7) P0.3_advisory_reviews still pending — schedulable on next off-peak tick.
+    8) code_request approval: currently marks-only; wire Stripe coupon+promotion_code creation into either PATCH approval or the admin promo-codes editor at /admin/resellers/[code].
+    9) Pre-existing: cron-runner.sh POSTs to /api/cron/<name>, but reseller-* routes only export GET. Either add POST aliases or switch runner to GET for cron endpoints — separate hygiene tick.
   authorised: true
-  on_success: pick P7_kpi_reports (monthly reseller-monthly-report CSV) next since P3 is done + P9 is now closed; OR B1_showcase_scaffold for track balance — A>B preference means P7 wins by default
+  on_success: pick B1_showcase_scaffold for track balance (track A P7 now partial with follow-ups deferred to P7.2/P7.3); OR P7.2 signed-URL storage to close the P7 gate — B1 wins on A>B track-balance clause because two A-track leaves are already partial.
 
 telemetry:
   log_file: web/content/reports/reseller-goal-history.jsonl
