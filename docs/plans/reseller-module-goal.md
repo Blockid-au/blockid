@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.17
+version: 2026-07-23.18
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -407,7 +407,21 @@ tracks:
           "gallery grouping matches U.9 12-phase journey (DONE — PHASE_LABELS 1..12 + CROSS_CUTTING_LABEL; empty phases omitted so a Phase-N heading only appears when at least one artefact exists)",
           "GA download tracking on per-row click (DEFERRED — B5 initial pass surfaces metadata only; wiring an /api/guide/reports/[filename] download route + emitting the gtag event belongs to a follow-up tick that also lands the redaction rules per plan §284)"
         ]
-      B6_public_showcase: {status: pending, deps: [B1]}
+      B6_public_showcase:
+        status: done
+        tick: 40
+        completed_at: 2026-07-21
+        deps: [B1]
+        files: [
+          "web/src/lib/showcase/public-view.ts",
+          "web/src/lib/showcase/public-view.test.ts (20/20 pass; buildAgentActivity + buildPhaseArtifactCounts + buildCrossCuttingCount + deriveCurrentPhase + summarisePublicView + buildMilestoneTimeline)",
+          "web/src/app/showcase/blockid/page.tsx (server component; readdir web/content/reports + readFile milestone-report-state.json; KPI grid + 12-phase progress strip + agent activity grid + milestone timeline + CTA aside; SEO metadata + canonical/OG/Twitter)"
+        ]
+        exit_criteria: [
+          "/showcase/blockid live rendering read-only public mirror of BlockID.au workspace (DONE — server page renders current phase, phase progress, agent activity, milestone timeline; no DB dep)",
+          "redaction rules match reseller lens — metadata only, no report bodies (DONE — page renders titles/agents/dates/counts only; body content never touched)",
+          "auto-refresh on BlockID.au phase transitions (DONE — dynamic='force-dynamic' + reads on-disk artefacts every request; deriveCurrentPhase uses 30-day recency window so a new Phase-N artefact bumps the KPI on next request)"
+        ]
       B7_product_tour: {status: pending, deps: [B2]}
       B8_reseller_linkage: {status: pending, deps: [B1, track_A_P4]}
       B9_reviews_surface: {status: pending, deps: [B4], migration_files: [0100]}
@@ -1165,6 +1179,45 @@ review_history:
       lint:reseller / vitest untouched.
     commit: (this tick)
 
+  - tick: 40
+    ran_at: 2026-07-21
+    action: b6_public_showcase_mirror
+    result: |
+      Track B B6 shipped. New public route /showcase/blockid (server
+      component) reads BlockID.au's own on-disk artefacts (the same
+      web/content/reports/*.md set the /guide/reports gallery walks + the
+      milestone-report-state.json state file) and renders a metadata-only
+      mirror of the workspace: KPI grid (current phase / reports on file /
+      agents shipping / latest activity), 12-phase progress strip with the
+      current phase highlighted + zero-count phases greyed, C-Level agent
+      activity cards (per-agent count + latest date), and a milestone
+      timeline (newest-first). No DB dependency — the B1.3 seed is still
+      blocked-on-apply, so this route works from disk alone.
+      Pure builders at web/src/lib/showcase/public-view.ts: buildAgentActivity
+      (per-agent count + latest_at, sorted count desc / agent asc for ties),
+      buildPhaseArtifactCounts (always 12-wide so the marketing strip stays
+      the same shape even when a phase is empty), buildCrossCuttingCount
+      (null-phase tally surfaced as a strip footnote), deriveCurrentPhase
+      (max phase with a report inside a 30-day recency window; falls back
+      to overall max, then null — prevents the KPI regressing when a
+      cross-cutting Phase-4 audit lands during a Phase-11 sprint),
+      summarisePublicView (rollup), buildMilestoneTimeline (newest-first
+      slice of milestone-report-state.reportedMilestoneIds with a default
+      cap of 12). 20/20 vitest cases + reseller/showcase combined suite
+      still green (55/55 showcase + 242/242 reseller unchanged).
+      Redaction rule preserved (plan §284): titles + agent labels + dates +
+      version tags + aggregate counts only — no report body content, no
+      investor identities, no per-founder data. This page follows the same
+      metadata-only contract the reseller portfolio lens uses.
+      SEO metadata carries canonical https://blockid.au/showcase/blockid +
+      OpenGraph + Twitter + robots index:true so the mirror becomes the
+      "living marketing content" the plan describes. Runtime is
+      force-dynamic so every request re-reads the on-disk state; no
+      cache-invalidation dance needed when the CEO loop ships a new
+      milestone. tsc clean; npm run lint:reseller: 8 files / 2
+      exemptions / 0 violations (new files sit outside /api/reseller/).
+    commit: (this tick)
+
 next_action:
   agent: applier
   task: |
@@ -1176,8 +1229,9 @@ next_action:
     6) DONE tick 38 — code_request approval now mints Stripe coupon (deterministic id + duration=forever) + promotion_code and inserts into reseller_promotion_codes inline via decideCodeMint(). linked_promotion_code_id stamped on the reseller_requests row before status flips to approved. Tier 0 (attribution-only) skips Stripe. Idempotent under re-approval: existing (reseller_id, tier_pct) row wins; Stripe coupon retrieve-or-create pattern prevents duplicate coupons if a prior attempt died between Stripe mint and DB insert.
     7) DONE tick 37 — reseller-* cron routes now export `{ GET as POST }` so cron-runner.sh's POST no longer 405s. Applies to reseller-clear-commissions, reseller-monthly-report, reseller-monthly-reconciliation, reseller-stripe-sync, credit-reset.
     8) DONE tick 39 — Track B B5 report template library at /guide/reports (see phases.B5_report_library.files). Metadata-only surface; download route + GA event + redaction pipeline deferred to a follow-up tick that also unblocks B6's public showcase.
+    9) DONE tick 40 — Track B B6 public showcase mirror at /showcase/blockid (see phases.B6_public_showcase.files). Metadata-only; reads on-disk artefacts + milestone-report-state.json; no DB dep. Deep-linking from /guide/reports card rows to /showcase/blockid (and vice versa) + wiring the "current phase" chip into workspace-layout topbar deferred to a follow-up tick alongside B7 product tour, since both touch the same in-app phase-transition surface.
   authorised: true
-  on_success: pick B6_public_showcase on next tick while B1.3 seed remains blocked-on-apply (pure server component, reuses buildShowcaseDataRoomRows + the new buildGallerySections helper, no DB dep); otherwise continue B1.3 → B2.
+  on_success: pick B7_product_tour on next tick if B2 lands first (B7 deps: [B2]); otherwise B1.3 remains the frontier as soon as docker-exec apply of 0092 lands. If neither is unblocked, revisit P0.3 advisory reviews (P0.3_advisory_reviews still pending).
 
 telemetry:
   log_file: web/content/reports/reseller-goal-history.jsonl
