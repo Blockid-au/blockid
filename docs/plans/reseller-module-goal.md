@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.21
+version: 2026-07-23.22
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -301,16 +301,25 @@ tracks:
           "GST reconciliation delta <= A$1/month (DONE P7.3 — GST_TOLERANCE_CENTS=100 in reconciliation.ts; monthly cron sums revenue_events.gst_aud_cents vs Stripe invoice.total_taxes[].amount and emails admin@blockid.au on drift)"
         ]
       P8_share_management_addon:
-        status: blocked_by: P1
-        migration_files: [0097, 0098]
+        status: in_progress
+        migration_files: [0098]  # 0097 already consumed by P7 report-storage; P8 grandfather backfill lands as 0098
+        sub_phases:
+          P8.1_manifest_completeness: {status: done, tick: 44, completed_at: 2026-07-21, files: [
+            "web/src/lib/feature-gates.manifest.ts",
+            "web/src/lib/feature-gates.manifest.test.ts (6/6 pass)"
+          ], note: "Reconciled FEATURE_GATES with actual tree — removed 8 phantom entries (api/cap-table/entries, api/cap-table/import, api/cap-table/export, api/data-room/documents, api/dataroom/documents, api/vesting/schedules, api/vesting/events, api/esop/exercise, api/tokenization/mint) and api/reseller/create-startup (unbuilt); added 20 real mutation routes discovered by walking GATED_DIRECTORIES with POST/PATCH/PUT/DELETE detection. Manifest now maps 28 routes: cap-table (5), data-room+dataroom (8, tagged for CTO reconciliation), vesting (4→vesting.write), esop (5→esop.manage), blockchain (3→blockchain.sync), tokenization (1), reseller (2). Introduced MUTATION_METHODS constant and dropped the `| \"share_management\"` special-case union (the Feature type already includes it as a real literal). Completeness test: (a) every entry points at an existing file; (b) every mutation route in GATED_DIRECTORIES appears in the manifest; (c) no duplicates; (d) requiredFeatureFor round-trips; (e) MUTATION_METHODS matches the four write verbs. Wiring the actual requireFeature() call inside each handler is P8.2."}
+          P8.2_route_gating: {status: pending, note: "add requireFeature(user, required_feature) at handler top of each of the 28 mapped routes; enforce via AST lint (D3-CISO-02)"}
+          P8.3_grandfather_backfill: {status: pending, note: "migration 0098 backfills existing paying users with share_management entitlement pre-cutover"}
+          P8.4_purchase_drawer: {status: pending, note: "purchase drawer + Stripe subscription-item add with proration preview; cancel path defaults cancel_at_period_end"}
+          P8.5_env_and_playwright: {status: human_blocked, blocker: "STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars must be minted in Stripe dashboard by account owner before Playwright can green"}
         exit_criteria: [
-          "STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars set",
-          "feature-gate manifest web/src/lib/feature-gates.manifest.ts complete",
-          "AST lint enforces requireFeature('share_management') on all 14 gated routes (D3-CISO-02)",
-          "grandfather backfill migrated on cutover T",
-          "purchase drawer functional with proration preview",
-          "cancel path defaults to end-of-cycle (cancel_at_period_end on item)",
-          "Playwright: grandfathered user unchanged; new Growth user 402 on cap-table without add-on"
+          "STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars set (HUMAN — P8.5)",
+          "feature-gate manifest web/src/lib/feature-gates.manifest.ts complete (DONE P8.1 tick 44 — 28 routes mapped, completeness test 6/6)",
+          "AST lint enforces requireFeature('share_management') on all gated routes (D3-CISO-02) (P8.2)",
+          "grandfather backfill migrated on cutover T (P8.3 — migration 0098)",
+          "purchase drawer functional with proration preview (P8.4)",
+          "cancel path defaults to end-of-cycle (cancel_at_period_end on item) (P8.4)",
+          "Playwright: grandfathered user unchanged; new Growth user 402 on cap-table without add-on (P8.5 — deferred until Stripe prices minted)"
         ]
       P9_admin_surface:
         status: done  # migration 0095 applied tick 41
@@ -1305,6 +1314,53 @@ review_history:
       done_pending_playwright so it also opens.
     commit: (this tick)
 
+  - tick: 44
+    ran_at: 2026-07-21
+    action: p8.1_manifest_completeness
+    result: |
+      Track A P8 opened with sub-phase decomposition (P8.1..P8.5) and
+      P8.1 shipped. Reconciled web/src/lib/feature-gates.manifest.ts
+      with the actual tree: removed 9 phantom entries (api/cap-table/
+      entries|import|export, api/data-room/documents, api/dataroom/
+      documents, api/vesting/schedules|events, api/esop/exercise,
+      api/tokenization/mint, api/reseller/create-startup) and added 20
+      real mutation routes discovered by walking GATED_DIRECTORIES with
+      POST/PATCH/PUT/DELETE detection. Manifest now maps 28 routes:
+      cap-table (5), data-room+dataroom (8, tagged for CTO reconciliation
+      in P8.4), vesting (4 → vesting.write), esop (5 → esop.manage),
+      blockchain (3 → blockchain.sync), tokenization (1 → share_management),
+      reseller (2). Introduced MUTATION_METHODS constant. Dropped the
+      `| "share_management"` special-case union on required_feature since
+      the Feature type in entitlements.ts already declares it as a real
+      literal — required_feature: Feature is now clean.
+      New test suite web/src/lib/feature-gates.manifest.test.ts (6/6
+      pass) walks GATED_DIRECTORIES from disk and asserts: (a) every
+      manifest entry points at an existing route.ts, (b) every mutation
+      route in a gated dir appears in the manifest, (c) no duplicates,
+      (d) requiredFeatureFor round-trips every entry, (e) returns null
+      for ungated / non-existent routes, (f) MUTATION_METHODS matches
+      the four write verbs. Suite now guards against manifest drift
+      when new routes are added — the test fails on unlisted mutation
+      routes AND on phantom rows, so both classes of drift surface at
+      `npm test`.
+      Sub-phase decomposition captured on the P8 phase in the goal file:
+      P8.1 done, P8.2 (route gating via requireFeature + AST lint), P8.3
+      (migration 0098 grandfather backfill), P8.4 (purchase drawer +
+      cancel_at_period_end + data-room/dataroom folder reconciliation),
+      P8.5 (STRIPE_PRICE_ADDON_SHARE_MGMT_* env vars — human-blocked on
+      Stripe dashboard mint by account owner) pending. Verification:
+      tsc clean; reseller vitest 248/248 (+6 from 242); npm run
+      lint:reseller: 8 files / 2 exemptions / 0 violations.
+      Frontier after tick 44: (a) Track A P8.2 route gating is the
+      natural next tick — pure lib + per-route Edit work, 28 routes to
+      add requireFeature() to; likely splits into 3-4 batches by
+      subject area (cap-table, data-room, vesting/esop, blockchain).
+      (b) Track B B2 (guide chapters 1-4) remains unblocked from tick
+      42 as the fallback if P8.2 blocks off-peak. (c) P0.3 advisory
+      reviews still pending, advisory-only. (d) P1.5 InfoVision seed
+      still human-blocked on H.20.
+    commit: (this tick)
+
   - tick: 43
     ran_at: 2026-07-21
     action: p0.4_ceo_final_sign_off
@@ -1352,13 +1408,14 @@ next_action:
     4) DONE tick 35 — Optional P6.5b widening: term-sheet/idea-lab/valuation/journal/data-room/evidence spendCredits callers now thread project_id via getProjectIdFromRequest(). See tick 35 for file list. Remaining spendCredits() callers not touched: financial-projections, investor-pack/generate, svi/pitch-deck, svi/docx, svi/report, svi/enhanced-report, svi/dimension-analyze, svi/ai-score, svi/research, revaluation, v1/analyze, evaluation/[criterionKey]/ai-suggest, data-room/goals (award path — misleading call, not a real debit).
     5) P0.3_advisory_reviews still pending — schedulable on next off-peak tick (advisory-only per U.13 stage-5; does NOT gate any downstream phase).
    10) DONE tick 43 — P0.4_ceo_final_sign_off closed with verdict=approved. P0 pre-flight window is now fully sealed; only P0.3 advisory reviews remain pending (non-blocking).
+   11) DONE tick 44 — P8_share_management_addon decomposed into P8.1..P8.5 and P8.1_manifest_completeness shipped. feature-gates.manifest.ts now maps 28 real mutation routes (9 phantoms removed, 20 real routes added); completeness test 6/6 pass guards against future drift. Next Track A tick = P8.2 route gating (add requireFeature() at handler top of each of the 28 routes + AST lint per D3-CISO-02).
     6) DONE tick 38 — code_request approval now mints Stripe coupon (deterministic id + duration=forever) + promotion_code and inserts into reseller_promotion_codes inline via decideCodeMint(). linked_promotion_code_id stamped on the reseller_requests row before status flips to approved. Tier 0 (attribution-only) skips Stripe. Idempotent under re-approval: existing (reseller_id, tier_pct) row wins; Stripe coupon retrieve-or-create pattern prevents duplicate coupons if a prior attempt died between Stripe mint and DB insert.
     7) DONE tick 37 — reseller-* cron routes now export `{ GET as POST }` so cron-runner.sh's POST no longer 405s. Applies to reseller-clear-commissions, reseller-monthly-report, reseller-monthly-reconciliation, reseller-stripe-sync, credit-reset.
     8) DONE tick 39 — Track B B5 report template library at /guide/reports (see phases.B5_report_library.files). Metadata-only surface; download route + GA event + redaction pipeline deferred to a follow-up tick that also unblocks B6's public showcase.
     9) DONE tick 40 — Track B B6 public showcase mirror at /showcase/blockid (see phases.B6_public_showcase.files). Metadata-only; reads on-disk artefacts + milestone-report-state.json; no DB dep. Deep-linking from /guide/reports card rows to /showcase/blockid (and vice versa) + wiring the "current phase" chip into workspace-layout topbar deferred to a follow-up tick alongside B7 product tour, since both touch the same in-app phase-transition surface.
   authorised: true
   on_success: |
-    Frontier after tick 43: (a) Track A P0 pre-flight window is now fully sealed (P0.0..P0.2 done tick 1-2, P0.4 done tick 43 verdict=approved). P0.3 advisory reviews remain the only P0 sub-phase still pending — advisory-only per U.13 stage-5, non-blocking; schedulable on next off-peak tick. (b) Track A P8_share_management_addon is the next substantive engineering phase (deps P1 satisfied; migrations 0097 + 0098 slot open — note 0097 already consumed by P7 report-storage, so P8 needs 0098 for grandfather backfill). Concrete P8 scope: STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars, feature-gate manifest completion, AST lint enforcing requireFeature('share_management') across 14 gated routes (D3-CISO-02), grandfather backfill migration, purchase drawer with proration preview, cancel path = cancel_at_period_end. Non-trivial (~1-2 weeks eng); ideally decomposed into P8.1..P8.5 sub-phases on the next Track A tick. (c) Track B B2_guide_ch_1_to_4 remains unblocked from tick 42 — natural Track B pick if Track A tick lands off-peak-blocked. (d) Track A P10_hardening still blocked_by [P1..P9] — waits on P8 completion + Playwright provisioning. P1.5_infovision_seed remains HUMAN-BLOCKED pending H.20 ABN + GST confirmation. Prefer Track A P8 sub-phase decomposition next tick per plan rule; else B2 as fallback.
+    Frontier after tick 44: (a) Track A P8_share_management_addon decomposed into P8.1..P8.5 with P8.1_manifest_completeness DONE. feature-gates.manifest.ts is now the accurate single source of truth over 28 real mutation routes; new completeness test at feature-gates.manifest.test.ts fails on any future drift (phantom entries OR unlisted mutation routes). Next Track A tick = P8.2_route_gating — add requireFeature(user, required_feature) at handler top of each of the 28 mapped routes; likely splits into 3-4 batches by subject area (cap-table → data-room → vesting/esop → blockchain/tokenization/reseller). Once wired, add an AST-lint pass that fails on any manifest-listed route missing the call, satisfying D3-CISO-02. (b) Track A P8.3 (migration 0098 grandfather backfill), P8.4 (purchase drawer + cancel_at_period_end + data-room/dataroom folder reconciliation), and P8.5 (Stripe price env vars — HUMAN-BLOCKED on account-owner mint at dashboard.stripe.com) follow P8.2. (c) Track B B2_guide_ch_1_to_4 remains unblocked from tick 42 as the fallback if Track A tick lands off-peak-blocked. (d) P0.3 advisory reviews still pending (advisory-only per U.13 stage-5). P1.5_infovision_seed still HUMAN-BLOCKED on H.20 ABN + GST confirmation. P10_hardening still blocked_by [P1..P9] — waits on P8 completion + Playwright provisioning. Prefer Track A P8.2 next tick per plan rule; else B2 as fallback.
 
 telemetry:
   log_file: web/content/reports/reseller-goal-history.jsonl
