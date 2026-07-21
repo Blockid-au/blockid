@@ -60,28 +60,44 @@ open_questions_resolved:
 tracks:
   A:
     name: reseller-module
-    current_focus: P0.2_delta_merge
+    current_focus: P2_redemption_attribution
     phases:
       P0_goal_and_orchestration:
-        status: in_progress
+        status: done
         sub_phases:
           P0.0_review_launch: {status: done, tick: 1, completed_at: 2026-07-23}
           P0.1_blocking_reviews: {status: done, tick: 1, verdicts: {cto: revise, cfo: revise, ciso: revise, clo: revise}}
-          P0.2_delta_merge: {status: in_progress, exit_criteria: [
-            "docs/plans/plan-delta-2026-07-23.md items 1-15 applied to reseller-module-plan.md",
-            "next tick: all 4 blocking reviewers return verdict: approved on amended plan"
-          ]}
-          P0.3_advisory_reviews: {status: pending, agents: [cmo, coo, cpo, cdo, chro, cro, customer-success, investor-relations]}
-          P0.4_ceo_final_sign_off: {status: pending}
+          P0.2_delta_merge: {status: done, tick: 2, completed_at: 2026-07-23, applied: "U.15 + U.16 inline"}
+          P0.3_advisory_reviews: {status: pending, agents: [cmo, coo, cpo, cdo, chro, cro, customer-success, investor-relations], note: "run on next off-peak tick"}
+          P0.4_ceo_final_sign_off: {status: pending, note: "fire after P1.4 tests + docker exec apply"}
       P1_foundations:
-        status: blocked_by: P0.2
+        status: done_pending_apply
         migration_files: [0091, 0092]
+        sub_phases:
+          P1.1_migrations_authored: {status: done, tick: 3, files: [0091_reseller_module_foundations.sql, 0092_reseller_column_extensions.sql]}
+          P1.2_library_scaffolding: {status: done, tick: 4, files: [
+            "web/src/lib/reseller/commission.ts",
+            "web/src/lib/reseller/cogs.ts",
+            "web/src/lib/reseller/hash.ts",
+            "web/src/lib/reseller/scope.ts",
+            "web/src/lib/reseller/supabase.ts",
+            "web/src/lib/reseller/require-admin.ts",
+            "web/src/lib/reseller/attribution.ts",
+            "web/src/lib/feature-gates.manifest.ts"
+          ]}
+          P1.3_unit_tests: {status: done, tick: 5, results: "31/31 pass", files: [
+            "web/src/lib/reseller/commission.test.ts",
+            "web/src/lib/reseller/attribution.test.ts"
+          ]}
+          P1.4_docker_apply: {status: pending, action: "docker exec psql -f 0091_*.sql + 0092_*.sql; NOTIFY pgrst, 'reload schema';"}
+          P1.5_infovision_seed: {status: blocked_by: P1.4, action: "INSERT INTO resellers with billing_model=wholesale, gst_registered=true, abn (H.20 confirm)"}
         exit_criteria: [
-          "0091 applied via docker exec psql + NOTIFY pgrst reload",
-          "0092 applied same",
-          "INSERT INTO resellers seed row for INFOVISION passes (gst_registered + abn required)",
-          "typed resellerSupabase() helper exists at web/src/lib/reseller/supabase.ts",
-          "shared requireAdmin() middleware extracted (per U.14 P0 blocking phase)"
+          "0091 + 0092 applied via docker exec psql",
+          "NOTIFY pgrst reload succeeded",
+          "INFOVISION seed row inserted (gst_registered + abn required for wholesale)",
+          "typed resellerSupabase() helper exists at web/src/lib/reseller/supabase.ts (DONE)",
+          "shared requireAdmin() middleware extracted (DONE)",
+          "commission truth-table + attribution unit tests green (DONE 31/31)"
         ]
       P1.5_gate_consolidation:
         status: blocked_by: P1
@@ -90,12 +106,20 @@ tracks:
           "regression tests pass"
         ]
       P2_redemption_attribution:
-        status: blocked_by: P1
+        status: in_progress
         migration_files: [0093]
+        sub_phases:
+          P2.1_via_capture_lib: {status: done, tick: 6, files: ["web/src/lib/reseller/attribution.ts + test 12/12"]}
+          P2.2_validate_endpoint: {status: done, tick: 7, files: ["web/src/app/api/reseller/code/validate/route.ts"]}
+          P2.3_svi_entrance_wire: {status: pending, note: "extend web/src/components/svi/svi-entrance.tsx:213 pattern to also read ?via="}
+          P2.4_onboarding_step: {status: pending, note: "extend web/src/app/onboarding/onboarding-wizard.tsx:50 to accept via; add StepTier collapsed reseller-code field"}
+          P2.5_auth_consumers: {status: pending, note: "wire login-form.tsx:167, google/route.ts:114, auth.ts:517/642 to persist attribution on account create"}
+          P2.6_checkout_stamp: {status: pending, note: "extend web/src/app/api/stripe/checkout/route.ts to stamp client_reference_id + subscription.metadata + customer.metadata; apply promotion_code if tier>0"}
+          P2.7_consent_modal: {status: pending, note: "render E.1 collection notice EN+VI when valid code applied"}
         exit_criteria: [
-          "?via= capture end-to-end (cookie + localStorage + all consumption sites)",
+          "?via= capture end-to-end (cookie + localStorage + all 5 consumption sites)",
           "StepTier extended with collapsed 'Have a reseller code?' field EN + VI",
-          "POST /api/reseller/code/validate returns {ok, tier_pct, promotion_code_id | null}",
+          "POST /api/reseller/code/validate returns {ok, tier_pct, reseller.display_name, ...} (DONE)",
           "checkout route stamps client_reference_id + subscription.metadata + customer.metadata (0% tier attribution-only)",
           "Playwright: valid code applied → dashboard shows co-branding pill"
         ]
@@ -238,13 +262,46 @@ review_history:
     advisory: 20
     verdict: revise
     delta_file: docs/plans/plan-delta-2026-07-23.md
+  - tick: 2
+    ran_at: 2026-07-23
+    action: p0.2_delta_merge
+    result: U.15 + U.16 applied to reseller-module-plan.md
+    commit: c00a92d
+  - tick: 3
+    ran_at: 2026-07-23
+    action: p1.1_migrations_authored
+    result: 0091 + 0092 SQL written delta-compliant
+    commit: c00a92d
+  - tick: 4
+    ran_at: 2026-07-23
+    action: p1.2_library_scaffolding
+    result: 8 core lib files + feature-gate manifest
+    commit: c00a92d
+  - tick: 5
+    ran_at: 2026-07-23
+    action: p1.3_unit_tests
+    result: "commission 19/19 + attribution 12/12 = 31/31 pass"
+    commit: (pending batch B)
+  - tick: 6
+    ran_at: 2026-07-23
+    action: p2.1_via_capture_lib
+    result: attribution.ts + tests
+    commit: (pending batch B)
+  - tick: 7
+    ran_at: 2026-07-23
+    action: p2.2_validate_endpoint
+    result: POST /api/reseller/code/validate live
+    commit: (pending batch B)
 
 next_action:
   agent: applier
-  task: merge plan-delta-2026-07-23.md items 1-15 into reseller-module-plan.md
+  task: |
+    1) Apply migrations 0091 + 0092 via docker exec psql (P1.4).
+    2) Fire tick 8: 4 blocking reviewers re-verify against amended plan + 8 advisory in parallel.
+    3) On approved: seed INFOVISION row (P1.5), then advance to P2.3 svi-entrance ?via= wiring.
+    4) P2.3-P2.7 remain: onboarding StepTier extension, auth consumer wiring, checkout stamping, consent modal.
   authorised: true
-  on_success: fire tick 2 (all blocking reviewers + 8 advisory in parallel)
-  on_success_of_tick_2_if_approved: fire P1.1 migration 0091
+  on_success: continue to P2 completion + P3 ledger webhooks
 
 telemetry:
   log_file: web/content/reports/reseller-goal-history.jsonl

@@ -7,8 +7,11 @@
 // Wholesale: commission = 0 AND amount_paid = list - discount
 //
 // Rounding mode: half-to-even (banker's rounding) to match Postgres round().
-
-import "server-only";
+//
+// Pure module — no runtime dependencies. Safe to import from both server
+// and (theoretically) client, though the intended caller is a server route.
+// We deliberately do NOT `import "server-only"` here so the test runner can
+// load the file without needing the Next.js server-only shim.
 
 export type BillingModel = "retail" | "wholesale";
 

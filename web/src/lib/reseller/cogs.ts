@@ -6,8 +6,9 @@
 //
 // Read via `getCogsPerCreditAud()`; never import the raw constant in
 // business logic so a monthly env update propagates without redeploy.
-
-import "server-only";
+//
+// Pure module (env-only lookup) — no server-only marker so the test runner
+// can import without the Next.js shim.
 
 const DEFAULT_COGS_PER_CREDIT_AUD = 0.05;
 
