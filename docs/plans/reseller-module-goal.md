@@ -121,9 +121,10 @@ tracks:
         migration_files: [0094]
         sub_phases:
           P3.1_migration_authored: {status: done, tick: 11, files: ["web/supabase/migrations/0094_reseller_commissions_and_events.sql"]}
-          P3.2_webhook_handlers: {status: pending, note: "extend web/src/app/api/stripe/webhook/route.ts with charge.refunded, charge.dispute.*, credit_note.*, invoice.voided; iterate invoice.lines.data on invoice.paid"}
-          P3.3_clearance_cron: {status: pending, note: "new /api/cron/reseller-clear-commissions promoting past pending_until via 'cleared' event insert"}
-          P3.4_credit_reset_cron: {status: pending, note: "H.11 monthly credit-reset cron per user plan"}
+          P3.2_webhook_helpers: {status: done, tick: 14, files: ["web/src/lib/reseller/webhook-helpers.ts (+ test 20/20)"], note: "pure lib ready; webhook/route.ts integration deferred to keep hot billing path safe"}
+          P3.2b_webhook_integration: {status: pending, note: "extend web/src/app/api/stripe/webhook/route.ts to call planAccrualForLine, resolveAttributionCandidate, prorateClawback, refundGstReversal; add charge.refunded / charge.dispute.* / credit_note.* / invoice.voided handlers"}
+          P3.3_clearance_cron: {status: done, tick: 15, files: ["web/src/app/api/cron/reseller-clear-commissions/route.ts", "crontab entry 15 3 * * *"]}
+          P3.4_credit_reset_cron: {status: done, tick: 16, files: ["web/src/app/api/cron/credit-reset/route.ts", "crontab entry 15 2 1 * *"]}
         exit_criteria: [
           "?via= capture end-to-end (cookie + localStorage + all 5 consumption sites)",
           "StepTier extended with collapsed 'Have a reseller code?' field EN + VI",
@@ -324,7 +325,27 @@ review_history:
     ran_at: 2026-07-23
     action: loop_auto_stop_on_completion
     result: goal-loop.mjs now detects "status: done" on the goal file; writes /tmp/blockid-reseller-goal-done marker + removes its own crontab entry via `crontab -l | grep -v goal-loop | crontab -`
-    commit: (batch C)
+    commit: ff3ff54
+  - tick: 13
+    ran_at: 2026-07-23
+    action: p2.4_step_reseller_component
+    result: reseller-code-field.tsx client component EN+VI with auto-validate on mount, pill display, clear/persist cookie
+    commit: 63101a4
+  - tick: 14
+    ran_at: 2026-07-23
+    action: p3.2_webhook_helpers_pure_lib
+    result: webhook-helpers.ts (planAccrualForLine + prorateClawback + refundGstReversal + resolveAttributionCandidate) + 20 tests pass
+    commit: 63101a4
+  - tick: 15
+    ran_at: 2026-07-23
+    action: p3.3_clearance_cron
+    result: GET /api/cron/reseller-clear-commissions promotes pending_clearance rows past pending_until via 'cleared' event insert; crontab entry 15 3 * * *
+    commit: 63101a4
+  - tick: 16
+    ran_at: 2026-07-23
+    action: p3.4_monthly_credit_reset_cron
+    result: GET /api/cron/credit-reset grants plans.usage_limits.monthly_credits idempotently keyed on month_key; crontab entry 15 2 1 * *
+    commit: (batch E)
 
 next_action:
   agent: applier
