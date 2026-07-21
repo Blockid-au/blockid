@@ -1,6 +1,6 @@
 /**
- * /workspace/guide/[chapter] — Track B B2 + B3 in-app surface for the
- * 12-chapter startup journey guide (chapters 1–4 shipped B2, 5–8 shipped B3).
+ * /workspace/guide/[chapter] — Track B B2 + B3 + B4 in-app surface for the
+ * 12-chapter startup journey guide (1–4 B2, 5–8 B3, 9–12 B4).
  *
  * Server component. Auth-gated: unauthenticated visitors are redirected to
  * /auth/login?next=/workspace/guide/<slug>. Rendered inside WorkspaceLayout
@@ -166,8 +166,8 @@ export default async function WorkspaceGuideChapterPage({
           ) : (
             <div className="rounded-lg border border-dashed border-surface-300 p-3 text-right text-xs text-ink-500">
               {locale === "vi"
-                ? "Chương 9 mở khi B4 phát hành."
-                : "Chapter 9 unlocks with the B4 release."}
+                ? "Chương cuối. Sau thoái vốn: workspace mới hoặc vai đại lý."
+                : "Final chapter. After exit: new workspace or reseller role."}
             </div>
           )}
         </nav>

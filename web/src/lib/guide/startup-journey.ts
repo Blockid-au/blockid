@@ -1,9 +1,10 @@
-// Track B B2 + B3 — startup-journey guide content library, chapters 1–8.
+// Track B B2 + B3 + B4 — startup-journey guide content library, chapters 1–12.
 //
 // Structured content module holding the guided-walkthrough chapters described
 // in docs/plans/reseller-module-plan.md § U.8 and § U.9. Chapters 1–4 (B2)
 // cover Vision → Idea Validation → Market Research → MVP; chapters 5–8 (B3)
-// cover PMF → Revenue → Growth → Team. Chapters 9–12 land in B4.
+// cover PMF → Revenue → Growth → Team; chapters 9–12 (B4) cover Funding-Ready
+// → Fundraise/Term Sheet → Post-Funding/Scale → Exit/Beyond.
 //
 // Consumed by:
 //   - web/src/app/guide/[chapter]/page.tsx (marketing surface)
@@ -11,7 +12,7 @@
 //
 // Kept in TS (not on-disk markdown) so both EN and VI copy live beside each
 // other and stay type-checked. A mirror EN dump lives at
-// docs/guides/startup-journey/chapter-{01..08}.md for offline reading and
+// docs/guides/startup-journey/chapter-{01..12}.md for offline reading and
 // contributor pull-requests, but the pages read from this module — the .md
 // files are documentation, not runtime.
 
@@ -25,7 +26,11 @@ export type ChapterSlug =
   | "05-pmf"
   | "06-revenue"
   | "07-growth"
-  | "08-team";
+  | "08-team"
+  | "09-funding"
+  | "10-fundraise"
+  | "11-scale"
+  | "12-exit";
 
 export interface LocalisedText {
   en: string;
@@ -604,6 +609,300 @@ const CHAPTERS: Chapter[] = [
     cta: {
       en: "Draft the ESOP scheme this week; run the Div83A checker on any grants already made. If you have the Share Management add-on, walk the CHRO's cap-table draft with a co-founder before approving each row — three eyes catch what two miss.",
       vi: "Soạn scheme ESOP tuần này; chạy bộ kiểm tra Div83A cho các grant đã phát hành. Nếu có add-on Share Management, đi qua bản nháp cap table của CHRO với đồng sáng lập trước khi duyệt từng dòng — ba con mắt bắt lỗi mà hai bỏ sót.",
+    },
+  },
+  {
+    slug: "09-funding",
+    phase: 9,
+    order: 9,
+    phaseLabel: PHASE_LABELS[9],
+    title: {
+      en: "Chapter 9 — Funding-Ready",
+      vi: "Chương 9 — Sẵn sàng gọi vốn",
+    },
+    summary: {
+      en: "Assemble the investor pack, organise the data room into the standard sections, and let the LLM-auditor self-review the whole set before you send it out. Chapter 9 is the last dress rehearsal — the room only opens to investors once every red-flag from the audit is resolved.",
+      vi: "Tập hợp bộ tài liệu cho nhà đầu tư, sắp xếp data room theo các mục chuẩn, và để LLM-auditor tự chấm toàn bộ trước khi bạn gửi ra ngoài. Chương 9 là buổi tổng duyệt cuối — phòng chỉ mở cho nhà đầu tư khi mọi cờ đỏ từ audit đã được xử lý.",
+    },
+    founderAction: {
+      en: "Open Workspace → Data Room → Investor pack. Approve the auto-drafted investor deck (or override slides), then invite three trusted reviewers (mentor, ex-founder, angel) to leave feedback. Once every red-flag from the LLM-auditor is resolved, mark the data room 'shareable' — that flip is what unlocks Chapter 10.",
+      vi: "Mở Không gian làm việc → Data Room → Gói nhà đầu tư. Duyệt bản nháp deck (hoặc ghi đè slide), sau đó mời ba reviewer đáng tin (mentor, cựu founder, angel) để lại phản hồi. Khi mọi cờ đỏ từ LLM-auditor đã xử lý, đánh dấu data room 'sẵn sàng chia sẻ' — cái flip đó mở khoá Chương 10.",
+    },
+    agentsInvoked: {
+      en: [
+        "CEO agent — auto-drafts the investor deck DOCX from the Chapters 1–8 artefacts (vision, market, product, financials, team).",
+        "Data-room organiser — moves every DataRoom document into the standard sections (product / team / financials / legal / traction) using data-room-templates.ts.",
+        "LLM-auditor (ADK Agent Garden) — self-reviews the whole investor pack; flags inconsistencies between the deck, the projection, and the traction numbers.",
+        "IR (Investor Relations) agent — writes the outreach one-pager and the follow-up email template calibrated to your ideal-investor persona.",
+        "CLO agent (light) — spot-checks the standard investor-facing agreements (NDA, term-sheet draft, side-letter template) for AU-law defaults.",
+      ],
+      vi: [
+        "Đại lý CEO — tự soạn deck nhà đầu tư DOCX từ các sản phẩm Chương 1–8 (vision, thị trường, sản phẩm, tài chính, đội ngũ).",
+        "Bộ sắp xếp data room — chuyển mọi tài liệu DataRoom vào các mục chuẩn (product / team / financials / legal / traction) qua data-room-templates.ts.",
+        "LLM-auditor (ADK Agent Garden) — tự review toàn bộ gói nhà đầu tư; đánh dấu bất nhất giữa deck, dự phóng, và số liệu traction.",
+        "Đại lý IR (Quan hệ nhà đầu tư) — viết one-pager tiếp cận và mẫu email follow-up hiệu chỉnh theo chân dung nhà đầu tư lý tưởng.",
+        "Đại lý CLO (nhẹ) — soát lướt các thoả thuận chuẩn nhà đầu tư (NDA, bản nháp term-sheet, side-letter) theo mặc định luật AU.",
+      ],
+    },
+    expectedOutputs: {
+      en: [
+        "investor-deck.docx — auto-drafted 12–15 slide deck; every claim carries a footnote to the DataRoom artefact that backs it.",
+        "data-room-index.md — every folder + document listed in the standard section order, plus a 'What lives here' one-liner per folder.",
+        "audit-report.md — LLM-auditor findings grouped by severity (red/amber/green); resolve every red before you invite an investor.",
+        "outreach-onepager.pdf — IR agent's one-page cold-outreach summary (problem, traction, ask, contact).",
+        "milestone `investor_ready` in milestone-report-state.json — flipped only when the data room is marked shareable.",
+        "How to read the audit report: don't try to argue every amber. The three or four points that recur across mentor + auditor + ex-founder reviews are the ones investors will ask about — fix those, then send.",
+      ],
+      vi: [
+        "investor-deck.docx — deck 12–15 slide tự soạn; mọi tuyên bố có footnote dẫn về tài liệu DataRoom hậu thuẫn.",
+        "data-room-index.md — mọi thư mục + tài liệu liệt kê theo thứ tự mục chuẩn, kèm câu 'Trong đây có gì' cho mỗi thư mục.",
+        "audit-report.md — phát hiện của LLM-auditor gom nhóm theo mức độ (đỏ/vàng/xanh); xử lý mọi cờ đỏ trước khi mời nhà đầu tư.",
+        "outreach-onepager.pdf — one-page cold-outreach của IR (vấn đề, traction, mức xin, liên hệ).",
+        "milestone `investor_ready` trong milestone-report-state.json — chỉ bật khi data room đánh dấu sẵn sàng chia sẻ.",
+        "Cách đọc audit report: đừng cố phản biện mọi amber. Ba bốn điểm lặp lại qua mentor + auditor + cựu founder chính là điều nhà đầu tư sẽ hỏi — sửa những điểm đó, rồi gửi.",
+      ],
+    },
+    commonPitfalls: {
+      en: [
+        "Sending the data room before the auditor resolves reds. A reviewer who spots the inconsistency you missed passes on the deal — and the pass propagates in the AU angel network faster than any positive signal.",
+        "Inviting fifteen reviewers to hedge. Three deep readers beat fifteen shallow scrollers; the auditor + three humans is the sweet spot the plan expects.",
+        "Treating the investor deck as final. It is a rehearsal artefact — you will re-draft slide 3 (traction) and slide 8 (ask) at least twice during Chapter 10 conversations. Ship it 'good-enough', iterate on real feedback.",
+      ],
+      vi: [
+        "Gửi data room trước khi auditor xử lý các đỏ. Reviewer bắt được bất nhất mà bạn bỏ sót sẽ pass deal — và cái pass đó lan trong mạng angel AU nhanh hơn mọi tín hiệu tích cực.",
+        "Mời mười lăm reviewer để phòng hờ. Ba người đọc sâu ăn đứt mười lăm người lướt; auditor + ba người là điểm ngọt kế hoạch mong đợi.",
+        "Coi deck nhà đầu tư là bản cuối. Đó là sản phẩm tổng duyệt — bạn sẽ viết lại slide 3 (traction) và slide 8 (mức xin) ít nhất hai lần trong các cuộc trò chuyện Chương 10. Ra bản 'đủ tốt', lặp lại trên phản hồi thật.",
+      ],
+    },
+    showcaseExample: {
+      en: "BlockID.au's Chapter 9 pack is live in /guide/reports Phase 9. Notice the audit report flagged the projection's Bear-scenario CAC at $180 while the pricing memo assumed $120 — the fix (a footnote reconciling the two) is documented, and the milestone `investor_ready` only flipped after that inconsistency landed a green check. That kind of visible trail is what investors read as governance maturity.",
+      vi: "Gói Chương 9 của BlockID.au đang chạy tại /guide/reports Phase 9. Chú ý audit report đánh dấu CAC kịch bản Bear là $180 trong khi memo giá giả định $120 — cách sửa (footnote hoà giải hai con số) đã được ghi, và milestone `investor_ready` chỉ bật sau khi bất nhất đó nhận dấu xanh. Loại dấu vết nhìn thấy được đó chính là điều nhà đầu tư đọc như sự chín chắn quản trị.",
+    },
+    cta: {
+      en: "Set aside one full afternoon this week for the auditor pass. Read every red-flag out loud with a co-founder — reading aloud surfaces the awkward phrasings that will blow up in an investor Q&A.",
+      vi: "Dành nguyên một buổi chiều tuần này cho lượt auditor. Đọc to từng cờ đỏ cùng đồng sáng lập — đọc to phơi bày các cách diễn đạt vụng về sẽ nổ tung trong Q&A với nhà đầu tư.",
+    },
+  },
+  {
+    slug: "10-fundraise",
+    phase: 10,
+    order: 10,
+    phaseLabel: PHASE_LABELS[10],
+    title: {
+      en: "Chapter 10 — Fundraise & Term Sheet",
+      vi: "Chương 10 — Gọi vốn & Term Sheet",
+    },
+    summary: {
+      en: "Share the data room with real investors, receive term sheets, and get an AI + CLO legal review on each one. The plan is deliberate about wording: the optional blockchain hash of a term sheet is an immutable record for later verification — not legal notarisation, which is a reserved role under Australian law.",
+      vi: "Chia sẻ data room với nhà đầu tư thật, nhận term sheet, và có review AI + CLO cho từng bản. Kế hoạch chọn từ có chủ đích: hash blockchain tuỳ chọn cho term sheet là bản ghi bất biến để xác minh sau — không phải công chứng pháp lý, vì 'notary' là vai trò dành riêng theo luật Úc.",
+    },
+    founderAction: {
+      en: "Send data-room access via the NDA workflow (each investor gets a unique token — click-tracked, revocable). When a term sheet comes back, upload it into Workspace → Fundraise → Term sheet review. Approve the AI + CLO redline; iterate with the investor on the two or three clauses flagged. If you want tamper-evidence, opt in to the optional blockchain hash step — the hash is written to the private EVM (per project_blockchain_explorer) as an immutable record.",
+      vi: "Gửi truy cập data room qua workflow NDA (mỗi nhà đầu tư nhận token duy nhất — có theo dõi click, có thể thu hồi). Khi term sheet quay về, tải lên Không gian làm việc → Gọi vốn → Review term sheet. Duyệt bản redline AI + CLO; lặp lại với nhà đầu tư trên hai ba điều khoản bị đánh dấu. Nếu muốn chống giả mạo, chọn bước hash blockchain tuỳ chọn — hash được ghi lên EVM riêng (theo project_blockchain_explorer) làm bản ghi bất biến.",
+    },
+    agentsInvoked: {
+      en: [
+        "Term-sheet AI review — the existing term_sheet_ai entitlement kicks in; produces a clause-by-clause redline with plain-English explanations.",
+        "CLO agent (deep) — legal red-flag report via compliance-checker.ts; flags any clause that departs from AU-standard early-stage terms.",
+        "AU-comparable-raises agent — benchmarks the valuation + terms against public AU rounds in your segment, last 12 months.",
+        "IR agent (negotiation prep) — writes talking-points for the two or three clauses most likely to move; includes an anchor-and-concede script.",
+        "Blockchain-hash worker (optional) — computes SHA-256 of the term-sheet PDF and writes {hash, cid, chain, block, ts} to a blockchain_records table; the term sheet itself is NEVER uploaded to chain.",
+      ],
+      vi: [
+        "Review term sheet AI — entitlement term_sheet_ai hiện có kích hoạt; sinh redline theo từng điều khoản với giải thích tiếng thường.",
+        "Đại lý CLO (chuyên sâu) — báo cáo cờ đỏ pháp lý qua compliance-checker.ts; đánh dấu mọi điều khoản lệch chuẩn early-stage AU.",
+        "Đại lý AU-comparable-raises — benchmark định giá + điều khoản so với các vòng gọi vốn AU công khai trong phân khúc, 12 tháng gần nhất.",
+        "Đại lý IR (chuẩn bị đàm phán) — viết talking-points cho hai ba điều khoản dễ dịch chuyển nhất; gồm script anchor-and-concede.",
+        "Worker hash blockchain (tuỳ chọn) — tính SHA-256 của PDF term sheet và ghi {hash, cid, chain, block, ts} vào bảng blockchain_records; bản term sheet KHÔNG BAO GIỜ được tải lên chain.",
+      ],
+    },
+    expectedOutputs: {
+      en: [
+        "term-sheet-review.pdf — clause-by-clause redline with the AI's plain-English gloss and the CLO agent's AU-law risk rating per clause.",
+        "au-comparable-raises-benchmark.md — table of comparable AU rounds (stage, sector, valuation, key terms) with your term sheet positioned inside the range.",
+        "negotiation-talkingpoints.md — three-point script per contested clause (anchor / walk-back / minimum acceptable).",
+        "svi_analyses row updated with deal_valuation + deal_status='in_negotiation' — surfaces on the reseller's Timeline as 'Term sheet in review'.",
+        "blockchain-hash-receipt.json (optional) — {hash, chain_id: 420, block_number, timestamp}; sits alongside the term sheet in the DataRoom for future verification.",
+        "How to read the CLO risk rating: any red rating on liquidation preference, drag-along threshold, or founder-vesting clauses is negotiable — those are usually the anchor points the investor put in to test how much you know. Concede the flavours (definitions, cure periods) and hold the substance (participation, ratchets, board consent).",
+      ],
+      vi: [
+        "term-sheet-review.pdf — redline theo từng điều khoản kèm chú thích tiếng thường của AI và xếp hạng rủi ro luật AU của CLO cho từng điều khoản.",
+        "au-comparable-raises-benchmark.md — bảng các vòng AU tương đương (giai đoạn, ngành, định giá, điều khoản chính) với term sheet của bạn được đặt trong dải.",
+        "negotiation-talkingpoints.md — script ba điểm cho mỗi điều khoản tranh chấp (anchor / walk-back / mức tối thiểu chấp nhận).",
+        "Hàng svi_analyses cập nhật với deal_valuation + deal_status='in_negotiation' — hiện trên Timeline đại lý như 'Term sheet in review'.",
+        "blockchain-hash-receipt.json (tuỳ chọn) — {hash, chain_id: 420, block_number, timestamp}; nằm cạnh term sheet trong DataRoom để xác minh sau này.",
+        "Cách đọc xếp hạng rủi ro của CLO: mọi đỏ trên liquidation preference, ngưỡng drag-along, hay điều khoản founder-vesting đều có thể đàm phán — thường đó là các điểm neo nhà đầu tư đưa vào để thử xem bạn biết bao nhiêu. Nhường phần hình thức (định nghĩa, thời hạn khắc phục) và giữ phần bản chất (participation, ratchets, đồng thuận board).",
+      ],
+    },
+    commonPitfalls: {
+      en: [
+        "Confusing the optional blockchain hash with legal notarisation. It is neither — 'notary' is a reserved title under Australian law; the hash is a tamper-evidence record you can point to years later to prove the PDF hasn't been edited. Do not describe it as notarised in any external communication.",
+        "Uploading the actual term-sheet content to the chain. The chain gets the hash only; the private EVM (per project_blockchain_explorer) is not confidential storage.",
+        "Signing the first term sheet because it 'looks fine'. The AI + CLO review + the AU-comparable-raises benchmark exist so you can push back knowing which of your terms are already above-market and which are anchor bids — use them.",
+        "Ignoring the reseller Timeline surface. The reseller sees deal-in-progress metadata (valuation + status) but no term-sheet content; if you don't want that visibility, mark the deal 'private' in Workspace → Fundraise, otherwise assume the reseller will congratulate you at week two.",
+      ],
+      vi: [
+        "Nhầm hash blockchain tuỳ chọn với công chứng pháp lý. Nó không phải — 'notary' là chức danh dành riêng theo luật Úc; hash là bản ghi chống giả mạo bạn có thể chỉ vào nhiều năm sau để chứng minh PDF chưa bị chỉnh. Đừng mô tả nó là 'công chứng' trong bất kỳ trao đổi bên ngoài nào.",
+        "Tải nội dung term sheet lên chain. Chain chỉ nhận hash; EVM riêng (theo project_blockchain_explorer) không phải kho lưu trữ bảo mật.",
+        "Ký term sheet đầu tiên vì 'trông ổn'. Review AI + CLO + benchmark AU-comparable-raises tồn tại để bạn phản biện khi biết điều khoản nào đã trên thị trường và điều khoản nào chỉ là neo — hãy dùng chúng.",
+        "Bỏ qua Timeline của đại lý. Đại lý thấy metadata deal-đang-tiến-hành (định giá + trạng thái) nhưng không thấy nội dung term sheet; nếu không muốn hiện diện đó, đánh dấu deal 'riêng tư' ở Không gian làm việc → Gọi vốn, nếu không hãy cho rằng đại lý sẽ chúc mừng bạn ở tuần thứ hai.",
+      ],
+    },
+    showcaseExample: {
+      en: "BlockID.au itself is pre-revenue at Phase 10 for now, so the /showcase/blockid page renders the milestone as 'planned, not yet triggered' with a link back to the /guide/reports Phase 10 sample pack that shows the artefacts a real Phase-10 team produces. When BlockID.au closes its own first round, the milestone will flip live automatically — that is the point of dogfooding.",
+      vi: "Bản thân BlockID.au ở Phase 10 hiện chưa có doanh thu, nên trang /showcase/blockid hiển thị milestone là 'dự kiến, chưa kích hoạt' với liên kết về gói mẫu Phase 10 trong /guide/reports cho thấy các sản phẩm mà đội Phase-10 thực sự tạo ra. Khi BlockID.au đóng vòng đầu, milestone sẽ tự động bật — đó chính là điểm của việc dogfood chính mình.",
+    },
+    cta: {
+      en: "Do not accept the first term sheet in the room. Run the AI + CLO review, read the AU-comparable-raises benchmark, and come back with a counter that adjusts at least two clauses — investors expect this and respect founders who negotiate calmly with data.",
+      vi: "Đừng nhận term sheet đầu tiên trong phòng. Chạy review AI + CLO, đọc benchmark AU-comparable-raises, và quay lại với counter chỉnh ít nhất hai điều khoản — nhà đầu tư mong đợi điều này và tôn trọng founder biết đàm phán bình tĩnh với dữ liệu.",
+    },
+  },
+  {
+    slug: "11-scale",
+    phase: 11,
+    order: 11,
+    phaseLabel: PHASE_LABELS[11],
+    title: {
+      en: "Chapter 11 — Post-Funding & Scale",
+      vi: "Chương 11 — Sau gọi vốn & Mở rộng",
+    },
+    summary: {
+      en: "The round has closed. Now the cap table hashes to the private EVM (Share Management add-on required), vesting schedules stamp, and the CEO agent starts auto-drafting a monthly board pack. Chapter 11 is where operational muscle memory takes over — you spend less time deciding, more time reading the weekly + monthly rhythms.",
+      vi: "Vòng gọi vốn đã đóng. Giờ cap table hash lên EVM riêng (cần add-on Share Management), lịch vesting đóng dấu, và đại lý CEO bắt đầu tự soạn board pack hàng tháng. Chương 11 là lúc phản xạ vận hành lên tiếng — bạn dành ít thời gian quyết định hơn, nhiều thời gian đọc nhịp tuần + tháng hơn.",
+    },
+    founderAction: {
+      en: "In Workspace → Cap Table (add-on required), approve each row of the final post-round cap table one more time — the approved snapshot is what hashes on-chain. Set the board-pack recipients (investors + board observers). Open Workspace → KPIs → Monthly cadence and confirm the day/time the board pack drafts + circulates. If any early hire's vesting was paused during the raise, restart it now.",
+      vi: "Tại Không gian làm việc → Cap Table (cần add-on), duyệt lại từng dòng cap table cuối cùng sau vòng — snapshot đã duyệt chính là cái hash lên chain. Đặt người nhận board pack (nhà đầu tư + board observer). Mở Không gian làm việc → KPIs → Nhịp hàng tháng và xác nhận ngày/giờ board pack tự soạn + gửi. Nếu vesting của nhân sự sớm bị tạm dừng trong lúc gọi vốn, khởi động lại ngay.",
+    },
+    agentsInvoked: {
+      en: [
+        "Blockchain-sync worker — hashes the approved cap-table snapshot to the private EVM (chainId 420) via blockchain-sync.ts; writes {snapshot_hash, block_number, tx_hash} to blockchain_records.",
+        "CHRO agent (vesting activator) — stamps the vesting schedule per grant into vesting_schedules; kicks off the monthly cliff-and-tranche accrual job.",
+        "CEO agent (board pack) — auto-drafts a monthly board pack (SVI curve + KPI dashboard + runway update + top-3 asks) as PDF, emailed to board recipients on the configured day.",
+        "CFO agent (runway monitor) — recomputes runway every Monday; if <9 months, escalates a warning card in the workspace and pings the founder via email-drip.ts.",
+        "AU-compliance agent — checks quarterly BAS + annual company review deadlines land in the workspace calendar with 14-day lead reminders.",
+      ],
+      vi: [
+        "Worker đồng bộ blockchain — hash snapshot cap table đã duyệt lên EVM riêng (chainId 420) qua blockchain-sync.ts; ghi {snapshot_hash, block_number, tx_hash} vào blockchain_records.",
+        "Đại lý CHRO (kích hoạt vesting) — đóng dấu lịch vesting cho từng grant vào vesting_schedules; kích hoạt job tính cliff và tranche hàng tháng.",
+        "Đại lý CEO (board pack) — tự soạn board pack hàng tháng (đường SVI + dashboard KPI + cập nhật runway + top-3 mức xin) dạng PDF, email đến người nhận board theo ngày đã cấu hình.",
+        "Đại lý CFO (giám sát runway) — tính lại runway mỗi thứ Hai; nếu <9 tháng, đẩy thẻ cảnh báo trong không gian làm việc và ping founder qua email-drip.ts.",
+        "Đại lý AU-compliance — kiểm tra hạn nộp BAS quý + review công ty hàng năm rơi vào lịch không gian làm việc kèm nhắc trước 14 ngày.",
+      ],
+    },
+    expectedOutputs: {
+      en: [
+        "cap-table-onchain-receipt.json — {snapshot_hash, chain_id: 420, block_number, tx_hash, snapshot_at}; permanent record you can cite in any future dispute.",
+        "vesting-schedules.csv — one row per grantee × tranche, with vested / unvested split refreshed monthly by the accrual job.",
+        "board-pack-YYYY-MM.pdf — monthly investor + observer update, auto-emailed; 5–8 pages, structured (SVI + KPIs + wins + risks + asks).",
+        "runway-monitor.md — updated every Monday; the amber / red band triggers a workspace card so you notice before the runway does.",
+        "compliance-calendar.ics — subscribable calendar with BAS + annual review + statutory-lodgment dates, 14-day lead reminders enabled.",
+        "How to read the board pack: the 'asks' block matters more than the KPI dashboard. Investors read KPIs in the elevator; they engage when they see the ask list and can help unblock at least one item. Never send a board pack with an empty ask list.",
+      ],
+      vi: [
+        "cap-table-onchain-receipt.json — {snapshot_hash, chain_id: 420, block_number, tx_hash, snapshot_at}; bản ghi vĩnh viễn bạn có thể trích dẫn trong mọi tranh chấp tương lai.",
+        "vesting-schedules.csv — mỗi dòng một grantee × tranche, với vested / unvested cập nhật hàng tháng bởi job tích luỹ.",
+        "board-pack-YYYY-MM.pdf — cập nhật hàng tháng nhà đầu tư + observer, tự động email; 5–8 trang, có cấu trúc (SVI + KPIs + thắng lợi + rủi ro + mức xin).",
+        "runway-monitor.md — cập nhật mỗi thứ Hai; dải amber / đỏ kích hoạt thẻ trong không gian làm việc để bạn để ý trước khi runway để ý.",
+        "compliance-calendar.ics — lịch có thể đăng ký với ngày BAS + review hàng năm + nộp luật định, bật nhắc trước 14 ngày.",
+        "Cách đọc board pack: khối 'mức xin' quan trọng hơn dashboard KPI. Nhà đầu tư đọc KPI trong thang máy; họ tham gia khi thấy danh sách mức xin và giúp gỡ ít nhất một mục. Đừng bao giờ gửi board pack với danh sách mức xin trống.",
+      ],
+    },
+    commonPitfalls: {
+      en: [
+        "Skipping the on-chain cap-table hash because 'we can always do it later'. Later means never — the value of the hash is that it dates the snapshot; a hash written next quarter proves the cap table at next quarter, not at close.",
+        "Letting the board pack drift into 'we shipped X features this month' narrative. Investors want the SVI slope + runway + top asks. Feature lists belong in the product-team standup, not the monthly board pack.",
+        "Ignoring runway warnings because 'we can extend the round'. Extending a round takes 8–12 weeks in AU; if the amber card fires at 9 months, you have exactly one calm quarter to plan. Waiting until red is a panic quarter.",
+        "Forgetting the AU-compliance calendar. A missed BAS lodgment is an ATO penalty; a missed annual company review is an ASIC late fee that scales — the calendar exists so neither happens.",
+      ],
+      vi: [
+        "Bỏ qua hash cap table lên chain vì 'lúc nào cũng có thể làm sau'. Sau nghĩa là không bao giờ — giá trị của hash là nó ghi ngày snapshot; hash viết quý sau chứng minh cap table ở quý sau, không phải lúc đóng vòng.",
+        "Để board pack trôi thành narrative 'tháng này chúng tôi ship X tính năng'. Nhà đầu tư muốn độ dốc SVI + runway + top mức xin. Danh sách tính năng thuộc standup đội sản phẩm, không phải board pack hàng tháng.",
+        "Bỏ qua cảnh báo runway vì 'chúng tôi có thể gia hạn vòng'. Gia hạn một vòng ở AU tốn 8–12 tuần; nếu thẻ amber bật ở 9 tháng, bạn có đúng một quý bình tĩnh để lên kế hoạch. Đợi tới đỏ là quý hoảng loạn.",
+        "Quên lịch AU-compliance. BAS nộp trễ là phạt ATO; review công ty hàng năm trễ là phí trễ ASIC leo thang — lịch tồn tại để cả hai không xảy ra.",
+      ],
+    },
+    showcaseExample: {
+      en: "BlockID.au's Phase 11 rehearsal shows how the pipeline should feel even before the round closes — a sample cap-table snapshot, a sample board pack for month-1-post-close, and a runway-monitor doc that would fire amber at month-3 if traction slipped. Look at /showcase/blockid to see how the milestone `funded` slot renders in 'planned' state while the underlying infra is already primed to accept a real snapshot the day the round closes.",
+      vi: "Tổng duyệt Phase 11 của BlockID.au cho thấy pipeline nên có cảm giác thế nào ngay cả trước khi vòng đóng — snapshot cap table mẫu, board pack mẫu cho tháng-1-sau-close, và tài liệu giám sát runway sẽ bật amber ở tháng-3 nếu traction trượt. Xem /showcase/blockid để thấy slot milestone `funded` hiển thị trạng thái 'dự kiến' trong khi hạ tầng bên dưới đã sẵn sàng nhận snapshot thật vào ngày vòng đóng.",
+    },
+    cta: {
+      en: "This is a rhythm chapter, not a project chapter. Block a 30-minute Monday runway read and a 60-minute monthly board-pack review on your calendar this week — protect them the way you protect release deploys, and Chapter 11 runs itself.",
+      vi: "Đây là chương nhịp điệu, không phải chương dự án. Đặt 30 phút đọc runway thứ Hai và 60 phút review board pack hàng tháng lên lịch tuần này — bảo vệ chúng như bạn bảo vệ deploy release, và Chương 11 sẽ tự chạy.",
+    },
+  },
+  {
+    slug: "12-exit",
+    phase: 12,
+    order: 12,
+    phaseLabel: PHASE_LABELS[12],
+    title: {
+      en: "Chapter 12 — Exit & Beyond",
+      vi: "Chương 12 — Thoái vốn & Tương lai",
+    },
+    summary: {
+      en: "The final chapter — either you are preparing for the next round with a stronger position, exploring an acquisition, or (if your reseller is an accelerator segment) rolling up into an LP-report bundle. Chapter 12 turns the workspace into a portfolio-view artefact that anyone downstream — LPs, acquirers, next-round investors — can read without you narrating.",
+      vi: "Chương cuối cùng — hoặc bạn chuẩn bị cho vòng gọi vốn tiếp theo với vị thế mạnh hơn, hoặc đang khám phá thương vụ mua lại, hoặc (nếu đại lý của bạn là phân khúc accelerator) đóng gói vào bundle báo cáo LP. Chương 12 biến không gian làm việc thành sản phẩm dạng portfolio-view mà mọi bên downstream — LP, bên mua lại, nhà đầu tư vòng tiếp — có thể đọc mà không cần bạn kể.",
+    },
+    founderAction: {
+      en: "Open Workspace → Exit-readiness. Pick the path: (a) next-round prep (Chapter 9 loop with the new numbers), (b) acquisition exploration (uploads NDAs + LOIs into the exit-readiness DataRoom section), or (c) LP-roll-up (if your reseller is an accelerator, opt in to the lp_report bundling so the reseller can include you in their quarterly LP update — you still control what fields surface). Whichever path, run the comparable-exits benchmark once so you know the market context.",
+      vi: "Mở Không gian làm việc → Sẵn sàng thoái vốn. Chọn hướng: (a) chuẩn bị vòng tiếp (lặp lại Chương 9 với con số mới), (b) khám phá mua lại (tải NDA + LOI vào mục exit-readiness của DataRoom), hoặc (c) gom vào LP-roll-up (nếu đại lý là accelerator, đồng ý bundle lp_report để đại lý gồm bạn vào cập nhật LP hàng quý — bạn vẫn kiểm soát trường nào lộ ra). Bất kể hướng nào, chạy benchmark thoái vốn tương đương một lần để biết bối cảnh thị trường.",
+    },
+    agentsInvoked: {
+      en: [
+        "Exit-readiness agent — packages the last two years of SVI curve + KPI trend + cap-table history + on-chain hashes into a single exit-readiness PDF, ready for a data-room-of-record.",
+        "AU-comparable-exits agent — benchmarks against public AU exits in your segment (recent 24 months); flags the two or three metrics acquirers weighted most heavily.",
+        "CFO agent (valuation model) — recomputes the current valuation under acquisition scenarios (strategic vs financial buyer) with sensitivity bands.",
+        "IR agent (portfolio bundling) — if the reseller is an accelerator, prepares the anonymised metrics slot that will fold into the reseller's quarterly LP report (lp_report entitlement, per plan §U.9 phase 12).",
+        "CLO agent — flags any equity-cleanup work needed before an acquisition (unexercised options, unresolved SAFE conversions, ambiguous drag-along language).",
+      ],
+      vi: [
+        "Đại lý exit-readiness — đóng gói đường SVI + xu hướng KPI + lịch sử cap table + hash on-chain hai năm gần nhất thành PDF sẵn sàng cho data-room-of-record.",
+        "Đại lý AU-comparable-exits — benchmark theo các thương vụ AU công khai trong phân khúc (24 tháng gần nhất); đánh dấu hai ba chỉ số bên mua lại cân đo nặng nhất.",
+        "Đại lý CFO (mô hình định giá) — tính lại định giá hiện tại theo kịch bản mua lại (chiến lược vs tài chính) với dải nhạy cảm.",
+        "Đại lý IR (gom portfolio) — nếu đại lý là accelerator, chuẩn bị slot chỉ số ẩn danh sẽ gộp vào báo cáo LP hàng quý của đại lý (entitlement lp_report, theo kế hoạch §U.9 phase 12).",
+        "Đại lý CLO — đánh dấu công việc dọn dẹp equity cần thiết trước khi mua lại (option chưa thực hiện, SAFE chưa chuyển đổi, ngôn ngữ drag-along mơ hồ).",
+      ],
+    },
+    expectedOutputs: {
+      en: [
+        "exit-readiness.pdf — self-contained pack an acquirer or next-round lead can read without a live founder walkthrough; covers vision arc, traction, cap-table history (with on-chain receipts), team, unit economics, risks.",
+        "au-comparable-exits-benchmark.md — most recent 5–10 AU exits in your segment with headline multiples + structure (all-cash / stock / earn-out); your position marked inside the range.",
+        "valuation-model-exit.xlsx — two-scenario acquisition model (strategic + financial), with the CFO's sensitivity bands and a fair-value corridor.",
+        "equity-cleanup.md (CLO agent) — punchlist of tidy-ups needed before signing; each item marked P1 (blocking) / P2 (fixable during diligence) / P3 (nice-to-have).",
+        "lp-report-slot.md (if reseller is accelerator + opted in) — anonymised metrics contribution slot; you review + approve before the reseller's quarterly LP report locks.",
+        "How to read the exit-readiness pack: the 'risks' section is the first thing an acquirer's diligence lead reads. Naming your own three biggest risks + how you are managing them beats letting them find surprises during Q&A — surprises kill more deals than known risks.",
+      ],
+      vi: [
+        "exit-readiness.pdf — gói tự chứa mà bên mua lại hoặc lead vòng tiếp có thể đọc mà không cần founder walkthrough trực tiếp; gồm cung tầm nhìn, traction, lịch sử cap table (kèm receipt on-chain), đội ngũ, unit economics, rủi ro.",
+        "au-comparable-exits-benchmark.md — 5–10 thương vụ AU gần nhất trong phân khúc với bội số headline + cấu trúc (toàn tiền / cổ phiếu / earn-out); vị trí của bạn được đánh dấu trong dải.",
+        "valuation-model-exit.xlsx — mô hình mua lại hai kịch bản (chiến lược + tài chính), với dải nhạy cảm của CFO và hành lang giá trị hợp lý.",
+        "equity-cleanup.md (đại lý CLO) — danh sách dọn dẹp trước khi ký; mỗi mục đánh P1 (chặn) / P2 (sửa được khi diligence) / P3 (có cũng tốt).",
+        "lp-report-slot.md (nếu đại lý là accelerator + đã đồng ý) — slot đóng góp chỉ số ẩn danh; bạn xem + duyệt trước khi báo cáo LP hàng quý của đại lý khoá.",
+        "Cách đọc gói exit-readiness: mục 'rủi ro' là điều đầu tiên lead diligence của bên mua lại đọc. Gọi tên ba rủi ro lớn nhất của mình + cách bạn đang xử lý ăn đứt việc để họ phát hiện bất ngờ trong Q&A — bất ngờ giết nhiều thương vụ hơn rủi ro đã biết.",
+      ],
+    },
+    commonPitfalls: {
+      en: [
+        "Treating exit prep as an event, not a state. The best exits look inevitable in hindsight because the workspace has looked exit-ready since Chapter 9 — turning it on the week before signing is the tell that says 'we scrambled'.",
+        "Opting into the accelerator LP-report bundle without reviewing the anonymised slot. Even anonymised, the shape of your revenue curve is recognisable to peers — read what fields surface before you approve, every quarter.",
+        "Skipping equity cleanup because 'diligence will surface it anyway'. It will — and every P1 item that surfaces during diligence costs you a percentage point of valuation. Do the cleanup once, cite it in the exit-readiness pack, and diligence becomes verification instead of discovery.",
+        "Believing there is a 'Chapter 13'. There isn't — Chapter 12 is intentionally the final chapter of the guided journey. After exit, you either start a new workspace (Chapter 1 with the compounded advantage of everything you learned) or transition into the reseller / accelerator role and help the next cohort walk the same 12 chapters.",
+      ],
+      vi: [
+        "Coi chuẩn bị thoái vốn là sự kiện, không phải trạng thái. Các thương vụ thoái vốn tốt nhất trông có vẻ tất yếu khi nhìn lại vì không gian làm việc đã ở trạng thái sẵn sàng thoái vốn từ Chương 9 — bật nó tuần trước khi ký là dấu hiệu 'chúng tôi vội'.",
+        "Đồng ý gộp vào LP-report của accelerator mà không xem slot ẩn danh. Ngay cả khi ẩn danh, hình dạng đường doanh thu vẫn nhận diện được với đồng nghiệp — đọc trường nào lộ ra trước khi duyệt, mỗi quý.",
+        "Bỏ qua dọn dẹp equity vì 'diligence dù sao cũng sẽ phát hiện'. Sẽ phát hiện — và mỗi mục P1 lộ ra trong diligence tốn của bạn một điểm phần trăm định giá. Dọn dẹp một lần, trích dẫn trong gói exit-readiness, và diligence trở thành xác minh thay vì khám phá.",
+        "Tin rằng có 'Chương 13'. Không có — Chương 12 có chủ ý là chương cuối cùng của hành trình có hướng dẫn. Sau thoái vốn, bạn hoặc bắt đầu không gian làm việc mới (Chương 1 với lợi thế cộng hưởng từ mọi thứ đã học) hoặc chuyển sang vai đại lý / accelerator và giúp cohort tiếp theo đi qua đúng 12 chương này.",
+      ],
+    },
+    showcaseExample: {
+      en: "BlockID.au keeps Phase 12 in 'planned' state on /showcase/blockid — deliberately, because exit prep for the platform itself is a Phase-11 monthly cadence question, not a one-shot event. What you can look at today is the shape of the exit-readiness template: the same 6-section PDF that a real Phase-12 startup would generate, with placeholders where your live data would sit. The reseller-lens LP-report slot is also mocked so you can preview exactly what an accelerator partner would see in their quarterly bundle.",
+      vi: "BlockID.au giữ Phase 12 ở trạng thái 'dự kiến' trên /showcase/blockid — có chủ đích, vì chuẩn bị thoái vốn cho chính nền tảng là câu hỏi nhịp hàng tháng Phase-11, không phải sự kiện một lần. Điều bạn có thể xem hôm nay là hình dạng template exit-readiness: cùng PDF 6-mục mà startup Phase-12 thật sẽ sinh ra, với chỗ trống nơi dữ liệu sống của bạn sẽ nằm. Slot LP-report theo góc nhìn đại lý cũng được mô phỏng để bạn xem trước chính xác đối tác accelerator sẽ thấy gì trong bundle hàng quý.",
+    },
+    cta: {
+      en: "Regardless of your exit path, run the exit-readiness pack once per quarter starting today. Even if the exit is three years away, quarterly rehearsals mean you never scramble — and every rehearsal produces a snapshot you can compare against later to see how the story has strengthened.",
+      vi: "Bất kể hướng thoái vốn nào, chạy gói exit-readiness mỗi quý một lần bắt đầu từ hôm nay. Ngay cả khi thoái vốn còn ba năm nữa, tổng duyệt hàng quý nghĩa là bạn không bao giờ vội — và mỗi tổng duyệt tạo một snapshot bạn có thể so sánh sau này để thấy câu chuyện đã mạnh lên thế nào.",
     },
   },
 ];
