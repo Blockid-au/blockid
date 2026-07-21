@@ -19,7 +19,7 @@ import {
   LineChart, Link2, Map, Palette, PieChart, Rocket, Share2, Shield, Table2,
   Target, TrendingUp, User, Users, Wand2, Wallet, Zap,
   ClipboardList, Eye, Layers, Settings2, MessageSquare, Send, Building2,
-  ClipboardCheck, FileBarChart, Handshake, LayoutDashboard, Tag, Coins,
+  ClipboardCheck, FileBarChart, Handshake, LayoutDashboard, Tag, Coins, Plug,
 } from "lucide-react";
 
 import type { PlanTier, Segment } from "@/lib/segments";
@@ -197,6 +197,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/workspace/profile", label: "My Profile", icon: User },
       { href: "/workspace/founder-profile", label: "Founder Profile", icon: User, lifecycle: "beta" },
       { href: "/workspace/billing", label: "Billing", icon: CreditCard },
+      { href: "/workspace/integrations", label: "Integrations", icon: Plug },
       { href: "/workspace/notifications", label: "Notifications", icon: Bell },
       { href: "/workspace/referrals", label: "Referrals", icon: Gift },
       { href: "/workspace/branding", label: "Custom Branding", icon: Palette, minPlan: "enterprise" },
