@@ -14,6 +14,8 @@
 // The `stripe_promotion_code_id` itself is NEVER returned to the client —
 // the checkout server route looks it up when creating the Session. This
 // prevents brute-force enumeration of promotion codes from public traffic.
+//
+// r-01-exempt: public unauthenticated promotion-code lookup; no viewer identity exists to scope on and the response is redacted (no stripe_promotion_code_id, no reseller_id).
 
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";

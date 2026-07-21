@@ -8,6 +8,7 @@
     "start": "next start",
     "cache:purge": "bash scripts/purge-cloudflare-cache.sh",
     "lint": "eslint",
+    "lint:reseller": "node scripts/ci/reseller-lints.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
