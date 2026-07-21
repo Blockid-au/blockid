@@ -85,3 +85,5 @@
 {"tick_id":"2026-07-21T16-30-01-817Z","ts":"2026-07-21T16:42:19.165Z","stage":"auto_deploy_finished","status":0,"head":"84568de"}
 {"tick_id":"2026-07-21T16-30-01-817Z","ts":"2026-07-21T16:42:19.166Z","stage":"tick_end"}
 {"tick_id":"2026-07-21T16-45-01-338Z","ts":"2026-07-21T16:45:01.339Z","stage":"tick_start"}
+{"tick_id":"2026-07-21T16-45-01-338Z","ts":"2026-07-21T16:52:30.297Z","stage":"delegated_dispatch","status":0,"elapsed_ms":448950,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-21T16-45-01-338Z","ts":"2026-07-21T16:52:30.323Z","stage":"auto_commit_started","dirty_files":2}
