@@ -236,7 +236,9 @@ tracks:
             "web/src/lib/reseller/credit-grants.ts",
             "web/src/lib/reseller/credit-grants.test.ts (19/19 pass)"
           ], note: "pure monthKey(UTC) mirrors credit-reset cron; computeMonthlyUsage splits grant/sandbox/over_budget counts; decideGrant enforces capability + budget with admin_over_budget_approved override; decideSandboxSpend enforces monthly_sandbox_credits + 50/hr per-project rate-limit with hourly_limit override; all pure — no DB, no Stripe"}
-          P6.3_grant_api: {status: pending, note: "POST /api/reseller/credits/grant — scopedReseller + decideGrant + credit_transactions insert + reseller_credit_grants mirror"}
+          P6.3_grant_api: {status: done, tick: 26, files: [
+            "web/src/app/api/reseller/credits/grant/route.ts"
+          ], note: "POST /api/reseller/credits/grant — scopedReseller chokepoint + decideReveal(target_user_id, allowedCustomerIds) + decideGrant on live reseller_credit_grants rollup for current month_key. Approved grants bump credit_balances, insert credit_transactions (granted_by_reseller_id + metadata.reseller_id/granted_by_user), then mirror into reseller_credit_grants(kind=grant, over_budget=false). Over-budget → 402 over_budget_requires_approval (deferred to P9.3 admin requests inbox). Audit log written BEFORE returning (action='grant_credits', metadata carries month_key + credit_transaction_id). npm run lint:reseller: 5 files / 2 exemptions / 0 violations; tsc clean; reseller vitest suite 151/151 unchanged (route path exercised via decideGrant + decideReveal unit tests already in tree)"}
           P6.4_sandbox_provision: {status: pending, note: "POST /api/reseller/sandbox/setup — one-time createProject with reseller_sandbox_id stamped; bypass PLAN_PROJECT_LIMITS"}
           P6.5_spendCredits_sandbox: {status: pending, note: "web/src/lib/credits.ts:448 branch — detect metadata.project_id → sandbox → decideSandboxSpend → insert reseller_credit_grants(kind=sandbox_spend, amount<0) instead of debiting credit_balances"}
           P6.6_grant_modal: {status: pending, note: "/reseller/credits UI — grant form + over-budget approval flow + monthly usage bar"}
@@ -582,6 +584,38 @@ review_history:
       routes/spendCredits/UI on subsequent ticks.
     commit: (this tick)
 
+  - tick: 26
+    ran_at: 2026-07-21
+    action: p6.3_grant_api
+    result: |
+      POST /api/reseller/credits/grant landed at
+      web/src/app/api/reseller/credits/grant/route.ts. Chokepoint pattern
+      mirrors P4.1/P4.2 (scopedReseller → decideReveal on target_user_id
+      against allowedCustomerIds → resellerSupabase()). Body is
+      {target_user_id, amount, reason?, metadata?}: amount must be a
+      positive integer per decideGrant(); default reason "reseller_grant"
+      (200-char truncated); metadata object merged into both the
+      credit_transactions row and the reseller_credit_grants mirror. Route
+      reads self reseller (monthly_credit_budget + can_grant_credits), fans
+      out to reseller_credit_grants filtered by current UTC month_key,
+      computes computeMonthlyUsage, and asks decideGrant with
+      admin_over_budget_approved=false — over-budget grants intentionally
+      never self-approve here and return 402 over_budget_requires_approval
+      with remaining_budget echoed so the future P9.3 requests inbox can
+      compose the admin workflow. Approved path: upserts credit_balances
+      (balance + lifetime_earned), inserts credit_transactions (with
+      granted_by_reseller_id + metadata.reseller_id/granted_by_user) using
+      RETURNING id, then inserts reseller_credit_grants(kind=grant,
+      over_budget=false, granted_by_user_id). Audit log written BEFORE the
+      200 response (action=grant_credits, fields=[amount], metadata carries
+      month_key + over_budget + credit_transaction_id). Status codes:
+      invalid_amount→400, capability_disabled→403, not_in_scope→403,
+      over_budget_requires_approval→402. lint:reseller passes (5 files, 2
+      exemptions, 0 violations); tsc clean; reseller vitest 151/151 (route
+      logic is composed of already-tested pure helpers — no new suite
+      needed this tick).
+    commit: (this tick)
+
   - tick: 20
     ran_at: 2026-07-21
     action: p3.1_reconciliation_cron
@@ -607,13 +641,13 @@ next_action:
   task: |
     1) Apply migrations 0091 + 0092 + 0094 + 0096 via docker exec psql (P1.4 + P6.1) — infra step, requires DB access.
     2) Seed INFOVISION reseller row (P1.5_infovision_seed) once P1.4 lands.
-    3) P6.3 next: POST /api/reseller/credits/grant — scopedReseller + decideGrant + credit_transactions insert + reseller_credit_grants mirror (P6.2 lib in place).
-    4) P6.4/P6.5/P6.6 follow: sandbox provision route → spendCredits sandbox branch → reseller-side grant modal UI.
+    3) P6.4 next: POST /api/reseller/sandbox/setup — one-time createProject with reseller_sandbox_id stamped; bypass PLAN_PROJECT_LIMITS (P6.3 grant route landed tick 26).
+    4) P6.5/P6.6 follow: spendCredits sandbox branch (web/src/lib/credits.ts:448) → reseller-side grant modal UI at /reseller/credits.
     5) Track B B1_showcase_scaffold still unblocked; parallel candidate if a tick prefers track B ordering.
     6) P9.3_requests_inbox pending — waits on a request-table migration; feasible on next tick if we author 0095 alongside.
     7) P0.3_advisory_reviews still pending — schedulable on next off-peak tick.
   authorised: true
-  on_success: continue P6 sub-phases (P6.3 next) — track A P6 in_progress; keep momentum before switching to B1
+  on_success: continue P6 sub-phases (P6.4 next) — track A P6 in_progress; keep momentum before switching to B1
 
 telemetry:
   log_file: web/content/reports/reseller-goal-history.jsonl
