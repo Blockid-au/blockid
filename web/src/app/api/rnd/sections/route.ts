@@ -31,6 +31,7 @@ import { newSlug } from "@/lib/slug";
 import { detectInputType, scrapeUrl, deepTechAudit, type TechAuditResult } from "@/lib/rnd-input";
 import { generateSectionReport, type SectionRequest } from "@/lib/rnd-analysis";
 import { canAfford, spendCredits, calculateSectionCost, SECTION_DEPTH_CONFIG, type SectionDepth } from "@/lib/credits";
+import { getProjectIdFromRequest } from "@/lib/projects";
 
 export const dynamic = "force-dynamic";
 
@@ -218,12 +219,15 @@ export async function POST(request: Request) {
 
       // Step 5: Charge credits (only after successful generation)
       if (authenticatedUserId) {
+        let sectionsProjectId: string | null = null;
+        try { sectionsProjectId = await getProjectIdFromRequest(); } catch { /* guest — no project */ }
         for (const section of validatedSections) {
           const featureKey = `section_${section.depth}` as string;
           await spendCredits(authenticatedUserId, featureKey, {
             sectionId: section.sectionId,
             depth: section.depth,
             words: SECTION_DEPTH_CONFIG[section.depth].words,
+            project_id: sectionsProjectId,
           });
         }
       }

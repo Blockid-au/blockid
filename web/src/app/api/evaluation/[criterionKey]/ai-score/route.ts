@@ -173,6 +173,7 @@ Score this criterion's evidence from 0 to 100 and provide a brief summary with 3
     const spend = await spendCredits(user.id, featureKey, {
       criterionKey,
       score,
+      project_id: projectId,
     });
 
     // Recompute quality level with the new AI score
