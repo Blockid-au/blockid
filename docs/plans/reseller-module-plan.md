@@ -339,6 +339,169 @@ The plan has accumulated ten updates (U.1–U.9) on top of the original 10 secti
 11. **U.8/U.9 showcase population** — end-to-end: run the auto-DataRoom job against `web/content/reports/*.md`, assert each report file appears as one `data_room_documents` row tagged with the correct agent + phase.
 12. **U.5 autonomous loop replay** — kill the loop cron, edit the goal file's `current_focus` to a prior phase, restart, assert the loop picks up correctly (idempotency test).
 
+### U.11 C-Level pre-execution review pass (mandatory before P0 executes)
+
+Founder direction: before any code lands, every C-Level agent already active on this platform (`[[project_ai_agent_ecosystem]]`, `[[project_clevel_depth]]`) must analyse this plan against their own domain and inline it with the rest of the project so nothing drifts. Their outputs become the acceptance gate for P0.
+
+**Trigger.** The autonomous loop's first tick (P0.0 prep-of-prep) fans out all 13 reviewers **in parallel** using the existing skill infrastructure. Each writes to `docs/plans/reviews/plan-review-<role>-2026-07-23.md`. CEO agent runs last, ingests all 13, produces `docs/plans/plan-delta-2026-07-23.md` — the merged fix-list that gets applied back to this plan file before P0.1 (schema migrations) begins.
+
+**Reviewer matrix.**
+
+| Role | Skill invoked | What they check | Output artefact | Blocking? |
+|---|---|---|---|---|
+| **CEO** | `[[project_ceo_implementing_loop]]` + `deep-research` | Strategy alignment with `[[project_core_mission]]`, `[[project_unicorn_goal]]`, `[[platform_roadmap]]`; unicorn-target contribution of both tracks; investor-narrative impact | `plan-review-ceo.md` + aggregated `plan-delta.md` | ✅ (aggregates all others) |
+| **CTO** | `cto` + `nextjs-developer` + `typescript-pro` + `architecture-designer` | Tech feasibility of every table + route; consistency with `[[project_ceo_implementing_loop]]` architecture; Next.js version constraint from [web/AGENTS.md](web/AGENTS.md); tech-debt implications of extending vs building new | `plan-review-cto.md` | ✅ |
+| **CFO** | `cfo` + `postgres-pro` | Commission math truth-table (G.2); wholesale vs retail P&L impact; GST via `splitGst` post-hoc; cash-flow for InfoVision at 20k credits/month; unit economics of the Share-Management add-on price H.2 | `plan-review-cfo.md` | ✅ |
+| **CMO** | `cmo` + `seo-audit` | Reseller landing surface + `?via=` funnel; showcase `/showcase/blockid` SEO plan; VI marketing coverage; competitor landscape for the wholesale reseller offering; brand co-existence rules from C.3 | `plan-review-cmo.md` | ⚠️ (advisory) |
+| **COO** | `coo` + `senior-pm` | Roadmap dependencies (Tracks A + B); resource load; sprint sequencing given autonomous loop; blocker-detection rules | `plan-review-coo.md` | ✅ |
+| **CPO** | `cpo` + `ui-ux-pro-max` | Product-experience consistency of Onboarding, Console, Progression tabs, Purchase drawer; wholesale vs retail founder journey coherence; EN+VI copy load | `plan-review-cpo.md` | ✅ |
+| **CDO** | `cdo` + `analytics` + `database-optimizer` | Data-pipeline shape for reseller KPIs; audit-log integrity; GA4 event catalogue for showcase (U.9); analytics quality of the aggregation queries in U.7 | `plan-review-cdo.md` | ✅ |
+| **CISO** | `ciso` + `security-audit` + `secure-code-guardian` | RLS posture given no policies today; `scopedReseller` chokepoint enforceability; secret storage for reseller logos + Stripe promotion_code ids; APP allow-matrix E.2 verified against every proposed route | `plan-review-ciso.md` | ✅ |
+| **CLO** | `clo` + `au-compliance` | Australian Privacy Act 1988 / APPs 1/3/5/6 applied to reseller data flow; reseller-agreement terms alignment (H.9 refund horizon, H.7 deactivation); GST on discounted amounts; ASIC / AFSL implications of the wholesale bill-back arrangement | `plan-review-clo.md` | ✅ |
+| **CHRO** | `chro` | Team impact of running ~19 eng-weeks Track A + ~6-8 wk Track B via autonomous loop; ESOP touchpoints in Phase 8 of U.9 | `plan-review-chro.md` | ⚠️ (advisory) |
+| **CRO** | `cro` | Conversion funnel changes from `StepReseller` insertion; churn implications of the Share-Management split; win-rate for wholesale-provisioned vs self-signup startups | `plan-review-cro.md` | ⚠️ (advisory) |
+| **Customer Success** | `customer-success` | Onboarding UX for wholesale-provisioned startups (they get a magic-link, not a Stripe flow); support-request routing when a reseller admin emails on behalf of a startup | `plan-review-cs.md` | ⚠️ (advisory) |
+| **Investor Relations** | `investor-relations` | Pitch-deck impact of the reseller economics; data-room narrative for the Auschain Stripe seller-of-record decision; unicorn-goal storyline | `plan-review-ir.md` | ⚠️ (advisory) |
+
+**Blocking rule.** All 6 ✅-blocking outputs must reach `verdict: approved` in their front-matter before P0.1 fires. Any `verdict: revise` writes a diff into `plan-delta.md` and the CEO tick re-runs after the delta is merged. Loop-until-dry: keep spawning reviewers until 2 consecutive rounds produce zero new fixes.
+
+**Skill invocation pattern** — reuses the existing multi-agent workflow scaffolding. Concrete Workflow-tool schema in U.13.
+
+### U.12 Skill-to-phase mapping matrix (per-phase agent brief)
+
+Every phase in Tracks A + B has a **primary implementer skill**, **verifier skill**, **C-Level owner**, and a **secondary reviewer**. The autonomous loop passes each phase a self-contained brief listing these; the loop won't advance until the verifier writes `pass`.
+
+**Track A (reseller module).**
+
+| Phase | Primary implementer | Verifier | C-Level owner | Secondary reviewer |
+|---|---|---|---|---|
+| P0 Goal file + orchestration | `prompt-engineer` + `nextjs-developer` (for the cron route) | `qa` + `test-master` | CEO | CTO |
+| P1 Foundations (schemas 0075/0076) | `postgres-pro` + `db-migrate` | `database-optimizer` + `code-reviewer` | CTO | CISO |
+| P2 Redemption + attribution | `nextjs-developer` + `react-expert` + `typescript-pro` | `stripe-test` + `qa` | CTO | CRO (funnel impact) |
+| P3 Ledger + webhooks (+ credit reset cron per H.11) | `nextjs-developer` + `postgres-pro` + `stripe-test` | `test-master` (unit tests for commission truth-table) + `code-reviewer` + `security-reviewer` | CFO | CTO + CDO |
+| P4 Reseller console | `fullstack-guardian` + `react-expert` + `ui-ux-pro-max` | `qa` + `code-reviewer` | CPO | CDO (aggregations) |
+| P5 Co-branding | `react-expert` + `ui-ux-pro-max` | `qa` | CMO | CPO |
+| P6 Capabilities + sandbox (U.4) | `fullstack-guardian` + `nextjs-developer` | `security-audit` (over-budget approval flow) + `test-master` | CPO | CFO |
+| P7 KPI reports + cron | `nextjs-developer` + `database-optimizer` | `code-reviewer` + `qa` | CDO | CFO |
+| P8 Share Management add-on split | `fullstack-guardian` + `nextjs-developer` + `postgres-pro` (grandfathering migration) | `security-audit` (requireFeature insertions ~14 routes) + `test-master` (grandfathering scenarios) | CTO | CPO + CFO |
+| P9 Admin surface `/admin/resellers/*` | `nextjs-developer` + `react-expert` | `code-reviewer` + `qa` | COO | CTO |
+| P10 Hardening | `test-master` (Playwright E2E) + `perf-audit` + `security-audit` + `au-compliance` | `qa` + `code-reviewer` | COO | CISO + CLO |
+| P11 Ongoing loop | `senior-pm` + `analytics` | `qa` (weekly digest smoke test) | COO | CDO |
+
+**Track B (showcase).**
+
+| Phase | Primary implementer | Verifier | C-Level owner | Secondary reviewer |
+|---|---|---|---|---|
+| B1 Showcase scaffold + auto-DataRoom | `nextjs-developer` + `postgres-pro` | `test-master` + `code-reviewer` | CTO | CDO |
+| B2 Chapters 1–4 (Vision→MVP) | `code-documenter` + `nextjs-developer` (guide route) | `qa` (EN+VI copy pass) | CMO + CPO | CEO |
+| B3 Chapters 5–8 (PMF→Team) | `code-documenter` + `python-pro` (Stripe test-mode wiring for founder's own gateway) | `stripe-test` + `qa` | CFO + CPO | CTO |
+| B4 Chapters 9–12 (Funding→Beyond) | `code-documenter` + `nextjs-developer` (term-sheet AI review UI) + `blockchain-expert` (Phase 11 cap-table sync) | `au-compliance` + `qa` | CLO + CFO | CTO |
+| B5 Report template library | `code-documenter` | `code-reviewer` | CMO | CPO |
+| B6 Public showcase mirror `/showcase/blockid` | `nextjs-developer` + `seo-audit` | `qa` + `perf-audit` | CMO | CTO |
+| B7 Interactive product tour | `react-expert` + `ui-ux-pro-max` | `qa` | CPO | CMO |
+| B8 Reseller linkage (into U.7 progression view) | `fullstack-guardian` | `code-reviewer` + `qa` | CPO | CDO |
+| B9 Reviews & feedback surface | `nextjs-developer` + `postgres-pro` | `security-audit` (hashed comments per U.9 §5) + `qa` | CPO | CISO |
+| B10 Integrations catalogue admin `/workspace/integrations` | `nextjs-developer` + `react-expert` | `code-reviewer` + `qa` | CTO | COO |
+
+**Cross-phase constant guests** (invoked on every phase's PR):
+- `code-reviewer` — always the first PR reviewer.
+- `security-reviewer` — always for any route that touches auth, Stripe, or credits.
+- `au-compliance` — always for any customer-facing copy or data-collection surface.
+- `nextjs-anti-patterns` — always for any component/route in Next.js App Router.
+
+### U.13 Parallel orchestration schema — concrete Workflow scripts per phase-type
+
+Every phase runs through five stages orchestrated by the existing `Workflow` tool patterns. Below is the reusable schema; the `reseller-goal-loop.mjs` cron picks a phase, expands it into a Workflow, and awaits completion before the next tick.
+
+**Stage 1 — UNDERSTAND (parallel Explore agents).**
+For phase P<n>, spawn 2–3 `Explore` subagents in parallel, each with a specific search focus tied to the phase's scope. Example brief for P3 (webhook refactor):
+- Explore A: current `web/src/app/api/stripe/webhook/route.ts` handler — full flow, guards, `recordRevenueEvent` insertion, exact line ranges for each event branch.
+- Explore B: Stripe fixtures under `web/src/__tests__/` if present, plus existing `test-master` skill for the unit-test pattern used elsewhere.
+- Explore C: existing crons under `web/src/app/api/cron/` and their auth pattern.
+Outputs go into an `UNDERSTAND` bundle passed to Stage 2.
+
+**Stage 2 — DESIGN (judge panel).**
+Two or three `Plan` subagents propose alternative implementations, each with a distinct emphasis (minimal change vs clean architecture vs performance). A judge subagent scores against the phase exit criteria + `plan-delta.md` fixes. Winner's approach is written to `docs/plans/reviews/impl-<phase>.md`.
+
+**Stage 3 — IMPLEMENT (per-file, git-worktree isolated).**
+For each file the winning design touches, spawn one implementer subagent in `isolation: "worktree"` (per the `Agent` tool's worktree mode) so parallel implementers cannot conflict. Skill picked from U.12's Primary implementer column. Each implementer:
+- Reads the phase's `UNDERSTAND` bundle + winning DESIGN doc.
+- Edits ONLY its assigned files.
+- Runs the local Next.js doc check per [web/AGENTS.md](web/AGENTS.md) before writing App Router / Server Component code.
+- Reports back a per-file diff summary.
+The CEO tick merges the worktrees back to master when all implementers report success.
+
+**Stage 4 — VERIFY (adversarial, N=3 lenses).**
+Three independent verifier subagents run in parallel, each with a distinct lens:
+- **Correctness lens** (`test-master`) — writes unit + integration tests, must default to "refuted=true if uncertain" per the Workflow tool's adversarial verify pattern.
+- **Security lens** (`security-audit`) — checks RLS bypass, secret leakage, authz gaps.
+- **Compliance lens** (`au-compliance` for customer-facing, or `code-reviewer` for internal) — checks framework constraints + APP scope.
+Majority ≥ 2 refute → phase fails; loop re-enters Stage 2 with the failure signal.
+
+**Stage 5 — SIGN-OFF (C-Level owner stamp).**
+The phase's C-Level owner (U.12 column 4) runs one final review with their skill against the phase's exit criteria. Verdict: `approved` / `revise`. Only `approved` advances `current_focus` in the goal file.
+
+**Track parallelism.** The main cron ticks through **one phase per track at a time**, but Tracks A and B can be at different phases simultaneously — the goal file's dependency edges are the only serialisation. Example valid state: A on P4, B on B3 — no shared file, so both stages 3 (implement) can run in the same tick's worktree fleet.
+
+**Concurrency envelope.** Match the existing `Workflow` tool cap (up to 16 concurrent subagents per workflow, up to 1000 lifetime). Each phase's UNDERSTAND stage uses 2–3; IMPLEMENT stage uses N = number of files touched; VERIFY stage uses 3. Realistically 8–12 concurrent at peak per phase, well within cap.
+
+**Telemetry.** Every stage appends a JSONL row to `web/content/reports/reseller-goal-history.jsonl` with `{tick_id, phase, stage, agents_spawned, tokens_spent, elapsed_ms, verdict}` — same log format used by the existing `cron-health.jsonl` and `guardian-history.jsonl`. Weekly digest to `admin@blockid.au` (per U.5 P11).
+
+### U.14 Automated feature-consistency fix pass (P0 pre-flight — the "inline the plan with the whole project" step)
+
+This is the concrete list of drift/inconsistency items that **must be resolved before P1 fires**, produced from cross-referencing the plan against the actual codebase. P0 runs a `Consistency` agent that iterates this list, either fixing directly or opening a `plan-delta.md` entry for CEO adjudication.
+
+**Scattered-gate consolidation (mandatory in P0/P8 window):**
+
+| Location | Current pattern | Correct pattern | Owner | Blocking phase |
+|---|---|---|---|---|
+| [web/src/app/api/branding/route.ts:7](web/src/app/api/branding/route.ts) | `const PRO_PLANS = new Set(["growth","scale","enterprise"])` | `requireFeature(user, "white_label")` | CTO / P8 | P8 |
+| [web/src/lib/api-keys.ts:45](web/src/lib/api-keys.ts) | `getRateLimitForPlan(plan)` switch | `plans.feature_flags.api_rate_limit` lookup | CTO / P8 | P8 |
+| [web/src/lib/projects.ts:32](web/src/lib/projects.ts) | `PLAN_PROJECT_LIMITS` map | `plans.feature_flags.project_limit` lookup | CTO / P1 | **P1** (workspace attribution depends on it) |
+| [web/src/lib/credits.ts:211-216](web/src/lib/credits.ts) | `PLAN_CREDITS` legacy map | Route consumers to `plans.usage_limits.monthly_credits`; keep legacy map only inside `entitlements.ts:LEGACY_FEATURE_FALLBACK` | CDO / P3 | P3 |
+| Every cap-table / data-room / vesting / token / blockchain mutation route | Nav-gate only, `credit_cost: 0` | Explicit `requireFeature(user, "share_management")` at handler top | CTO / P8 | P8 |
+| Repeated `user.email === ADMIN_EMAIL \|\| user.role === "admin"` in ~20 files | Inline check | Extract to `requireAdmin()` middleware in `web/src/lib/auth.ts` (extends L436) | CTO / P0 | P0 (used by /admin/resellers in P9) |
+
+**Naming reconciliation:**
+
+| Issue | Files | Resolve |
+|---|---|---|
+| `data-room` vs `dataroom` folder split under `web/src/app/api/` | both exist | Pick `data-room` as canonical (matches feature flag `data_room.*`); alias the other or hard-migrate — CTO decides in P8 |
+| Plan-id vocab drift: `growth` / `growth_annual` (legacy) vs `founder_growth` (v2) | `entitlements.ts:90` map already exists | Enforce with a CI grep rule: any new code referencing a plan-id must go through `LEGACY_PLAN_MAP` |
+| `stripe_env_var` column in `plans.csv` vs actual `STRIPE_PRICE_*` env constants | `web/src/lib/stripe.ts:33` | Verify one-to-one at P0 seed time; alert on missing env |
+
+**Missing infra to build before its dependents:**
+
+| Missing | Depends on it | Build in |
+|---|---|---|
+| Monthly credit-reset cron (H.11) | P3 commission accrual assumes recurring grants match invoice.paid | **P3** |
+| `charge.refunded`, `charge.dispute.*`, `credit_note.*`, `invoice.voided` webhook handlers | R3 clawback | **P3** |
+| Shared `requireAdmin()` middleware | /admin/resellers pages (P9), any admin approval flow | **P0** |
+| `scopedReseller()` helper | Every `/api/reseller/*` route | **P4** |
+| `useResellerAttribution()` client hook | Co-branding badge (P5) + Progression view (P4) | **P4** |
+| `is_showcase` column + auto-DataRoom tagging | Track B chapters (B2-B4) | **B1** |
+| `reviews` / `showcase_reviews` table | Phase 9 investor review, B9 | **B9** |
+
+**Cross-plan-with-project sync items (the "inline with entire project" instruction):**
+
+| Sync item | Whose plan touches it | Reconcile action |
+|---|---|---|
+| `[[platform_roadmap]]` 8-phase model | U.9 uses 12-phase from `[[project_growth_phases]]` | CEO agent decides at U.11 review whether to align to 8 or 12; both memories exist |
+| `[[project_cloud_routines]]` cadence | U.5 autonomous loop runs off-peak | Confirm cadence doesn't collide with the 7 existing cloud routines |
+| `[[project_ceo_implementing_loop]]` gate | U.5's CEO tick uses same off-peak gate | Confirm the reseller-goal-loop cron slot doesn't overlap the existing CEO loop's slot |
+| `[[reference_gitlab_reverse_proxy]]` — GitLab removed, GitHub is origin | U.5 goal file lives in GitHub source | Verified via `git remote -v` at P0.0 |
+| `[[feedback_deploy_no_docker]]` — SINGLE SOURCE OF TRUTH: no Docker/CI | U.5 uses system crontab + Node script, NOT GitHub Actions | Reaffirmed; do NOT create `.github/workflows/` for the loop |
+| `[[feedback_autonomous_git_reset]]` — server does `git reset --hard` | Every plan edit is committed + pushed immediately | Loop's commit step is non-optional; documented in P0 exit criteria |
+| `[[reference_db_migrations]]` — apply via `docker exec psql` + NOTIFY pgrst reload | Migrations 0075–0082 apply the same way | Migration script includes the pgrst reload |
+
+**Deliverable of P0 pre-flight.** A file `docs/plans/plan-delta-2026-07-23.md` listing:
+1. Which C-Level review items became blocking.
+2. Which fix-list rows are resolved vs deferred.
+3. Any new open decisions surfaced (extends H.13+).
+4. The final goal file `docs/plans/reseller-module-goal.md` with all `phases[].exit_criteria` populated concretely (paths, tests, SQL constraints).
+
+Once `plan-delta.md` is committed and this plan is edited to reflect its outcomes, P0.1 is authorised to fire.
+
 ---
 
 ## A. AS-IS Architecture Map (+ reuse-vs-build verdicts)
