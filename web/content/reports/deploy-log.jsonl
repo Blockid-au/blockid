@@ -238,3 +238,6 @@
 {"ts":"2026-07-21T16:37:31.830Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-21T16-30-01-817Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-21T16:42:19Z","status":"success","gates":"8/8","pid":"3416068","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-21T16:52:25.116Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P4.3 portfolio aggregates — k>=5 anonymity + ISO-week quantisation (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T16:52:32.736Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-21T16-45-01-338Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T16:57:25Z","status":"success","gates":"8/8","pid":"3463880","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-21T17:06:24.149Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P4.4 R-01 CI grep — /api/reseller/* scope enforcement (1 commits)","source":"github-webhook"}
