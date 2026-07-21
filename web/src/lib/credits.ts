@@ -15,6 +15,14 @@
 import "server-only";
 import { getSupabaseAdmin } from "./supabase";
 import { sendCreditLowAlert } from "./email";
+import {
+  ceilSandboxCost,
+  decideSandboxSpend,
+  monthKey as sandboxMonthKey,
+  type ResellerCreditGrantRow,
+} from "./reseller/credit-grants";
+
+type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
 // ── Billing Service (microservice) proxy ──────────────────────────────
 // Phase 1 Strangler Fig: try the Billing service first, fallback to local.
@@ -409,6 +417,120 @@ export async function canAfford(
 }
 
 // ---------------------------------------------------------------------------
+// trySpendSandboxCredits — internal helper for spendCredits.
+//
+// Returns:
+//   { ok: true|false, balance }  — sandbox path executed (routing matched)
+//   null                          — project is NOT a reseller sandbox; caller
+//                                   falls through to the credit_balances path.
+//
+// Contract per P6.5:
+//   - Reads projects.reseller_sandbox_id to detect sandbox membership.
+//   - Reads resellers.monthly_sandbox_credits for the cap.
+//   - Reads reseller_credit_grants (current month OR last hour) for the
+//     decision window, then calls the pure decideSandboxSpend helper.
+//   - On approval: inserts reseller_credit_grants(kind='sandbox_spend',
+//     amount = -ceilSandboxCost(cost)) and a usage_logs audit row.
+//   - Returned balance is the caller's personal credit_balances balance
+//     (untouched by the sandbox debit) so UI meters stay coherent.
+// ---------------------------------------------------------------------------
+
+async function trySpendSandboxCredits(
+  supabase: SupabaseAdmin,
+  args: {
+    userId: string;
+    feature: string;
+    cost: number;
+    projectId: string;
+    metadata: Record<string, unknown>;
+  },
+): Promise<{ ok: boolean; balance: number } | null> {
+  const { data: project } = await supabase
+    .from("projects")
+    .select("reseller_sandbox_id")
+    .eq("id", args.projectId)
+    .maybeSingle();
+  const resellerId = project?.reseller_sandbox_id as string | null | undefined;
+  if (!resellerId) return null; // not a sandbox project — fall through
+
+  const { data: reseller } = await supabase
+    .from("resellers")
+    .select("monthly_sandbox_credits")
+    .eq("id", resellerId)
+    .maybeSingle();
+  const monthlyCap = (reseller?.monthly_sandbox_credits as number | null | undefined) ?? 0;
+
+  const now = new Date();
+  const key = sandboxMonthKey(now);
+  const hourAgoIso = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+
+  // Superset of grants needed by decideSandboxSpend:
+  //   - monthly cap query needs every grant/sandbox_spend in the current month
+  //   - hourly rate limit needs sandbox_spend rows on THIS project in last 60m
+  // A single OR query covers both; the pure helper filters as needed.
+  const { data: grantRows } = await supabase
+    .from("reseller_credit_grants")
+    .select("reseller_id, kind, amount, month_key, over_budget, created_at, sandbox_project_id, target_user_id")
+    .eq("reseller_id", resellerId)
+    .or(`month_key.eq.${key},created_at.gte.${hourAgoIso}`);
+
+  const requested = ceilSandboxCost(args.cost);
+  if (requested === 0) {
+    // Defensive: caller already short-circuits cost=0 above; treat as a
+    // successful no-op so we never insert a zero-amount sandbox row (would
+    // fail ck_amount_sign anyway).
+    return { ok: true, balance: await getBalance(args.userId) };
+  }
+
+  const decision = decideSandboxSpend({
+    requested_amount: requested,
+    monthly_sandbox_credits: monthlyCap,
+    grants: (grantRows ?? []) as ResellerCreditGrantRow[],
+    sandbox_project_id: args.projectId,
+    now,
+  });
+
+  if (!decision.ok) {
+    return { ok: false, balance: await getBalance(args.userId) };
+  }
+
+  const insertMetadata = {
+    feature: args.feature,
+    reseller_id: resellerId,
+    fractional_cost: args.cost,
+    ...args.metadata,
+  };
+  const { error: insErr } = await supabase.from("reseller_credit_grants").insert({
+    reseller_id: resellerId,
+    kind: "sandbox_spend",
+    amount: -requested,
+    month_key: key,
+    over_budget: false,
+    sandbox_project_id: args.projectId,
+    granted_by_user_id: args.userId,
+    metadata: insertMetadata,
+  });
+  if (insErr) {
+    console.error("[blockid:credits] sandbox spend insert failed", insErr);
+    return { ok: false, balance: await getBalance(args.userId) };
+  }
+
+  await supabase.from("usage_logs").insert({
+    user_id: args.userId,
+    feature: args.feature,
+    credits_used: args.cost,
+    metadata: {
+      sandbox_project_id: args.projectId,
+      reseller_id: resellerId,
+      sandbox_debit: requested,
+      ...args.metadata,
+    },
+  });
+
+  return { ok: true, balance: await getBalance(args.userId) };
+}
+
+// ---------------------------------------------------------------------------
 // spendCredits — atomically deduct credits and log the transaction + usage.
 // Returns { ok: false } when the user cannot afford the feature.
 // ---------------------------------------------------------------------------
@@ -443,6 +565,25 @@ export async function spendCredits(
 
   const supabase = getSupabaseAdmin();
   if (!supabase) return { ok: false, balance: 0 };
+
+  // ── Reseller sandbox routing (P6.5) ──────────────────────────────────
+  // When the caller supplies metadata.project_id and that project carries
+  // projects.reseller_sandbox_id, route the debit into
+  // reseller_credit_grants(kind='sandbox_spend') against the reseller org's
+  // monthly_sandbox_credits budget instead of touching credit_balances.
+  // See docs/plans/reseller-module-plan.md § U.4 + § U.15.2 and pure
+  // decision helpers in web/src/lib/reseller/credit-grants.ts.
+  const projectId = typeof metadata?.project_id === "string" ? metadata.project_id : null;
+  if (projectId) {
+    const sandbox = await trySpendSandboxCredits(supabase, {
+      userId,
+      feature,
+      cost,
+      projectId,
+      metadata: metadata ?? {},
+    });
+    if (sandbox) return sandbox;
+  }
 
   // Read current balance, then update with a WHERE guard to reduce race window.
   const { data: row } = await supabase
