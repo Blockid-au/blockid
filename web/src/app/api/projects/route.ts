@@ -15,7 +15,7 @@ export async function GET() {
   }
 
   const projects = await getUserProjects(user.id);
-  const limit = getProjectLimit(user.plan ?? "free");
+  const limit = await getProjectLimit(user.plan ?? "free");
 
   return NextResponse.json({
     ok: true,

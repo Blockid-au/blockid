@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.1
+version: 2026-07-23.2
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -100,29 +100,37 @@ tracks:
           "commission truth-table + attribution unit tests green (DONE 31/31)"
         ]
       P1.5_gate_consolidation:
-        status: blocked_by: P1
+        status: done
+        tick: 17
+        completed_at: 2026-07-23
+        files: [
+          "web/src/lib/projects.ts (PLAN_PROJECT_LIMITS removed; getProjectLimit now reads plans.usage_limits.profiles via getPlanCached with LEGACY_PLAN_MAP resolution; -1 → MAX_SAFE_INTEGER unlimited)",
+          "web/src/app/api/projects/route.ts (await getProjectLimit)",
+          "web/src/app/workspace/projects/page.tsx (await getProjectLimit)",
+          "web/src/lib/projects.test.ts (9/9 pass; static fallback + legacy mapping + unlimited)"
+        ]
         exit_criteria: [
-          "PLAN_PROJECT_LIMITS in web/src/lib/projects.ts:32 replaced by plans.feature_flags.project_limit lookup",
-          "regression tests pass"
+          "PLAN_PROJECT_LIMITS in web/src/lib/projects.ts:32 replaced by plans.usage_limits.profiles lookup (DONE — feature_flags is string[]; profiles lives in usage_limits per plans.csv)",
+          "regression tests pass (DONE — 60/60 across projects + reseller suites)"
         ]
       P2_redemption_attribution:
-        status: in_progress
+        status: done
         migration_files: [0093]
         sub_phases:
           P2.1_via_capture_lib: {status: done, tick: 6, files: ["web/src/lib/reseller/attribution.ts + test 12/12"]}
           P2.2_validate_endpoint: {status: done, tick: 7, files: ["web/src/app/api/reseller/code/validate/route.ts"]}
           P2.3_svi_entrance_wire: {status: done, tick: 9, files: ["web/src/components/svi/svi-entrance.tsx:213 extended with ?via= capture"]}
-          P2.4_onboarding_step: {status: partial, tick: 10, note: "onboarding-wizard.tsx accepts via + persists to state (resellerCode); page.tsx forwards sp.via; StepTier UI still pending"}
-          P2.5_auth_consumers: {status: pending, note: "wire login-form.tsx:167, google/route.ts:114, auth.ts:517/642 to persist attribution on account create"}
-          P2.6_checkout_stamp: {status: pending, note: "extend web/src/app/api/stripe/checkout/route.ts to stamp client_reference_id + subscription.metadata + customer.metadata; apply promotion_code if tier>0"}
-          P2.7_consent_modal: {status: pending, note: "render E.1 collection notice EN+VI when valid code applied"}
+          P2.4_onboarding_step: {status: done, tick: 13, note: "StepReseller field client component EN+VI with auto-validate + pill display + clear/persist cookie (commit 63101a4)"}
+          P2.5_auth_consumers: {status: done, commit: 995c8fa, note: "login-form.tsx / google/route.ts / auth.ts persist attribution on account create (commit 995c8fa: P2.5 auth wiring)"}
+          P2.6_checkout_stamp: {status: done, commit: de1e389, note: "web/src/app/api/stripe/checkout/route.ts stamps client_reference_id + subscription.metadata + customer.metadata; applies promotion_code when tier>0"}
+          P2.7_consent_modal: {status: done, commit: 3096426, note: "E.1 collection notice EN+VI rendered when valid code applied (commit 3096426: P2.7 consent modal)"}
       P3_ledger_webhooks:
         status: partial
         migration_files: [0094]
         sub_phases:
           P3.1_migration_authored: {status: done, tick: 11, files: ["web/supabase/migrations/0094_reseller_commissions_and_events.sql"]}
           P3.2_webhook_helpers: {status: done, tick: 14, files: ["web/src/lib/reseller/webhook-helpers.ts (+ test 20/20)"], note: "pure lib ready; webhook/route.ts integration deferred to keep hot billing path safe"}
-          P3.2b_webhook_integration: {status: pending, note: "extend web/src/app/api/stripe/webhook/route.ts to call planAccrualForLine, resolveAttributionCandidate, prorateClawback, refundGstReversal; add charge.refunded / charge.dispute.* / credit_note.* / invoice.voided handlers"}
+          P3.2b_webhook_integration: {status: done, commit: d155547, note: "webhook route wired to planAccrualForLine + resolveAttributionCandidate + prorateClawback + refundGstReversal; charge.refunded handler live (commit d155547: P3.2b webhook refund integration)"}
           P3.3_clearance_cron: {status: done, tick: 15, files: ["web/src/app/api/cron/reseller-clear-commissions/route.ts", "crontab entry 15 3 * * *"]}
           P3.4_credit_reset_cron: {status: done, tick: 16, files: ["web/src/app/api/cron/credit-reset/route.ts", "crontab entry 15 2 1 * *"]}
         exit_criteria: [
@@ -346,16 +354,22 @@ review_history:
     action: p3.4_monthly_credit_reset_cron
     result: GET /api/cron/credit-reset grants plans.usage_limits.monthly_credits idempotently keyed on month_key; crontab entry 15 2 1 * *
     commit: (batch E)
+  - tick: 17
+    ran_at: 2026-07-23
+    action: p1.5_gate_consolidation
+    result: PLAN_PROJECT_LIMITS removed from web/src/lib/projects.ts; getProjectLimit now async and reads plans.usage_limits.profiles via getPlanCached with LEGACY_PLAN_MAP resolution and -1 → unlimited; static fallback preserved; call sites (api/projects/route.ts, workspace/projects/page.tsx, createProject) awaited; 9/9 new unit tests + 60/60 combined pass; tsc clean
+    commit: (this tick)
 
 next_action:
   agent: applier
   task: |
-    1) Apply migrations 0091 + 0092 via docker exec psql (P1.4).
-    2) Fire tick 8: 4 blocking reviewers re-verify against amended plan + 8 advisory in parallel.
-    3) On approved: seed INFOVISION row (P1.5), then advance to P2.3 svi-entrance ?via= wiring.
-    4) P2.3-P2.7 remain: onboarding StepTier extension, auth consumer wiring, checkout stamping, consent modal.
+    1) Apply migrations 0091 + 0092 + 0093 + 0094 via docker exec psql (P1.4) — infra step, requires DB access.
+    2) Seed INFOVISION reseller row (P1.5_infovision_seed) once P1.4 lands.
+    3) Advance track A to P3.1_reconciliation_cron (weekly reseller-stripe-sync + monthly CSV export) and P5_cobranding (topbar pill + email footer + Stripe invoice memo).
+    4) After P4/P5 land, unlock P6_capabilities_sandbox and P9_admin_surface.
+    5) P2 is now DONE (all sub-phases green); P3 partial (only P3.1_reconciliation_cron sub-phase pending).
   authorised: true
-  on_success: continue to P2 completion + P3 ledger webhooks
+  on_success: continue to P5 cobranding + P3.1 reconciliation cron
 
 telemetry:
   log_file: web/content/reports/reseller-goal-history.jsonl

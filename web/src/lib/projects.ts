@@ -6,6 +6,8 @@
 
 import "server-only";
 import { getSupabaseAdmin } from "./supabase";
+import { getPlanCached } from "./plans-db";
+import { LEGACY_PLAN_MAP } from "./plans";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -27,18 +29,48 @@ export interface Project {
 
 // ---------------------------------------------------------------------------
 // Plan-based project limits
+//
+// Sourced from plans.usage_limits.profiles (plans.csv → plans table).
+// Legacy plan IDs are mapped to v2 IDs via LEGACY_PLAN_MAP before lookup so
+// grandfathered subscriptions continue to resolve.
 // ---------------------------------------------------------------------------
 
-const PLAN_PROJECT_LIMITS: Record<string, number> = {
+const UNLIMITED_PROJECTS = Number.MAX_SAFE_INTEGER;
+
+// Static fallback in case the plans row is missing (fresh dev DB / migration
+// gap). Values mirror plans.csv → usage_limits.profiles for the founder tiers,
+// keyed by both legacy and v2 IDs.
+const FALLBACK_PROJECT_LIMITS: Record<string, number> = {
+  founder_free: 1,
+  founder_starter: 1,
+  founder_growth: 3,
+  founder_scale: 10,
+  founder_enterprise: UNLIMITED_PROJECTS,
   free: 1,
-  founding50: 3,
+  founding50: 1,
   founder: 3,
-  growth: 10,
-  unlimited: 999,
+  growth: 3,
+  growth_annual: 3,
+  unlimited: UNLIMITED_PROJECTS,
 };
 
-export function getProjectLimit(plan: string): number {
-  return PLAN_PROJECT_LIMITS[plan] ?? 1;
+function resolvePlanId(planId: string | null | undefined): string {
+  if (!planId) return "founder_free";
+  return LEGACY_PLAN_MAP[planId]?.id ?? planId;
+}
+
+export async function getProjectLimit(plan: string | null | undefined): Promise<number> {
+  const resolved = resolvePlanId(plan);
+  try {
+    const row = await getPlanCached(resolved);
+    const raw = row?.usage_limits?.profiles;
+    if (typeof raw === "number") {
+      return raw < 0 ? UNLIMITED_PROJECTS : raw;
+    }
+  } catch {
+    // fall through to static fallback
+  }
+  return FALLBACK_PROJECT_LIMITS[resolved] ?? FALLBACK_PROJECT_LIMITS[plan ?? ""] ?? 1;
 }
 
 // ---------------------------------------------------------------------------
@@ -395,7 +427,7 @@ export async function createProject(
   if (!supabase) return { ok: false, error: "Service unavailable" };
 
   // Check plan limit
-  const limit = getProjectLimit(plan);
+  const limit = await getProjectLimit(plan);
   const existing = await getUserProjects(userId);
   if (existing.length >= limit) {
     return {
