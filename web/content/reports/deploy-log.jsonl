@@ -313,3 +313,5 @@
 {"ts":"2026-07-21T22:36:07.389Z","event":"github-push-master","detail":"Blockid-au: feat(showcase): tick 48 — B2 guide chapters 1-4 (Vision → MVP) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-21T22:36:15.655Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-21T22-25-01-578Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-21T22:50:06.169Z","event":"github-push-master","detail":"Blockid-au: feat(showcase): tick 49 — B3 guide chapters 5-8 (PMF → Team) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T22:50:18.932Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-21T22-40-01-637Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T23:06:53.758Z","event":"github-push-master","detail":"Blockid-au: feat(showcase): tick 50 — B4 guide chapters 9-12 (Funding → Exit) (1 commits)","source":"github-webhook"}
