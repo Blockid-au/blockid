@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.3
+version: 2026-07-23.4
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -222,11 +222,25 @@ tracks:
           "Playwright: grandfathered user unchanged; new Growth user 402 on cap-table without add-on"
         ]
       P9_admin_surface:
-        status: blocked_by: P4
+        status: partial
+        tick: 19
+        started_at: 2026-07-23
+        sub_phases:
+          P9.1_list_and_create: {status: done, commit: f1bbe9a, files: [
+            "web/src/app/admin/resellers/page.tsx",
+            "web/src/app/api/admin/resellers/route.ts"
+          ]}
+          P9.2_detail_and_edit: {status: done, tick: 19, files: [
+            "web/src/lib/reseller/admin-validator.ts (+ test 20/20)",
+            "web/src/app/api/admin/resellers/[code]/route.ts (GET + PATCH + DELETE)",
+            "web/src/app/admin/resellers/[code]/page.tsx (server component detail view)",
+            "web/src/app/admin/resellers/[code]/reseller-edit-client.tsx (client edit form)"
+          ], note: "PATCH validator enforces U.15.1 wholesale/GST/ABN invariant + ABN format + hex color; DELETE = soft delete → status=terminated. Detail page shows overview cards, edit form, promotion codes, recent commissions (from reseller_commissions_current view)."}
+          P9.3_requests_inbox: {status: pending, note: "code request + over-budget approval + collateral approval queue (D4-CLO-08); waits on request-table migration"}
         exit_criteria: [
-          "/admin/resellers + /admin/resellers/[slug] mirror /admin/accelerator",
-          "requests inbox: code request, over-budget approval, marketing collateral approval (D4-CLO-08)",
-          "seed InfoVision row when admin creates first reseller"
+          "/admin/resellers + /admin/resellers/[slug] mirror /admin/accelerator (DONE)",
+          "requests inbox: code request, over-budget approval, marketing collateral approval (D4-CLO-08) — PENDING P9.3",
+          "seed InfoVision row when admin creates first reseller (POST endpoint ready; requires P1.4 apply first)"
         ]
       P10_hardening:
         status: blocked_by: [P1..P9]
@@ -370,6 +384,21 @@ review_history:
     action: p1.5_gate_consolidation
     result: PLAN_PROJECT_LIMITS removed from web/src/lib/projects.ts; getProjectLimit now async and reads plans.usage_limits.profiles via getPlanCached with LEGACY_PLAN_MAP resolution and -1 → unlimited; static fallback preserved; call sites (api/projects/route.ts, workspace/projects/page.tsx, createProject) awaited; 9/9 new unit tests + 60/60 combined pass; tsc clean
     commit: 2b0fbca
+  - tick: 19
+    ran_at: 2026-07-23
+    action: p9.2_admin_detail_and_edit
+    result: |
+      Shipped /admin/resellers/[code] detail page (server component) + client
+      edit form + GET/PATCH/DELETE API. Pure validator at
+      web/src/lib/reseller/admin-validator.ts enforces U.15.1 wholesale/GST/ABN
+      invariant when either billing_model or gst/abn change in same request,
+      plus ABN format, hex color, tier enum, budget ≥ 0, commission ∈ [0,100].
+      DELETE is soft (status → terminated). Detail page renders three summary
+      cards (attributions / budget / commission-share), edit form, promotion
+      codes table, and last-20 commissions joined from
+      reseller_commissions_current view. Tests: 20 new + 80/80 combined pass
+      (reseller suite); tsc clean.
+    commit: (this tick)
   - tick: 18
     ran_at: 2026-07-23
     action: p5_cobranding
