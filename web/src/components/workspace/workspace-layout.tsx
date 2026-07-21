@@ -212,16 +212,23 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0 
               )}
               {/* Group items */}
               {resolvedItems.map(({ item, locked }) => {
-                const { href, label, icon: Icon, lifecycle } = item;
+                const { href, label, icon: Icon, lifecycle, addOnKey } = item;
                 const active = pathname === href || pathname.startsWith(href + "/");
                 const chipKind = lifecycle === "stable" ? undefined : lifecycle;
+                // Locked items with an addOnKey deep-link to the billing
+                // page and auto-open the purchase drawer, so the user
+                // never leaves their intent — per plan § F.5.
+                const lockedHref = addOnKey
+                  ? `/workspace/billing?openAddon=${addOnKey}`
+                  : "/workspace/billing";
+                const showAddOnPill = locked && Boolean(addOnKey) && sidebarOpen;
                 return (
                   <Link
                     key={href}
-                    href={locked ? "/workspace/billing" : href}
+                    href={locked ? lockedHref : href}
                     onClick={() => setMobileOpen(false)}
                     aria-disabled={locked || undefined}
-                    title={locked ? "Upgrade required — click to view plans" : undefined}
+                    title={locked ? (addOnKey ? "Add-on — click to purchase" : "Upgrade required — click to view plans") : undefined}
                     className={cn(
                       "flex items-center gap-3 px-2.5 py-2 rounded-xl text-sm transition-all duration-150 mx-1",
                       active
@@ -237,7 +244,12 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0 
                     {sidebarOpen && (
                       <>
                         <span className="truncate flex-1">{label}</span>
-                        {locked && (
+                        {showAddOnPill && (
+                          <span className="text-[8.5px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 bg-amber-100 text-amber-700 ring-1 ring-amber-200">
+                            Add-on
+                          </span>
+                        )}
+                        {locked && !showAddOnPill && (
                           <Lock strokeWidth={1.75} className="h-3 w-3 shrink-0 text-ink-400" aria-label="Upgrade required" />
                         )}
                         {chipKind && (

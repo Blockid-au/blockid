@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   Check,
   ChevronDown,
@@ -11,10 +12,13 @@ import {
   ExternalLink,
   Loader2,
   Sparkles,
+  Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LegacyPlan as Plan } from "@/lib/plans";
 import { isGrowthEarlyBird, GROWTH_STANDARD_PRICE } from "@/lib/plans";
+import { useEntitlement } from "@/hooks/useEntitlement";
+import { ShareMgmtDrawer } from "@/components/billing/share-mgmt-drawer";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -25,6 +29,11 @@ interface BillingClientProps {
   planStartedAt: string | null;
   hasStripeCustomer: boolean;
   plans: Plan[];
+  /** Stripe price ids for the Share Management add-on. Nulls when env not set. */
+  shareMgmtAddonPriceIds?: {
+    monthly: string | null;
+    annual: string | null;
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -73,12 +82,65 @@ export function BillingClient({
   planStartedAt,
   hasStripeCustomer,
   plans,
+  shareMgmtAddonPriceIds,
 }: BillingClientProps) {
   const [loadingAction, setLoadingAction] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [showDowngradeConfirm, setShowDowngradeConfirm] = React.useState<
     string | null
   >(null);
+  const [drawerOpen, setDrawerOpen] = React.useState(false);
+  const [removingAddon, setRemovingAddon] = React.useState(false);
+  const searchParams = useSearchParams();
+  const entitlement = useEntitlement();
+
+  const hasShareMgmt = entitlement.can("share_management");
+  const addonPriceIds = shareMgmtAddonPriceIds ?? { monthly: null, annual: null };
+  const addonAvailable = Boolean(addonPriceIds.monthly || addonPriceIds.annual);
+
+  // Deep-link support: /workspace/billing?openAddon=share_management opens the
+  // drawer once on mount. A ref guards against re-firing after the user closes.
+  const deepLinkFired = React.useRef(false);
+  React.useEffect(() => {
+    if (deepLinkFired.current) return;
+    if (!searchParams) return;
+    if (searchParams.get("openAddon") === "share_management") {
+      deepLinkFired.current = true;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- deep-link one-shot open
+      setDrawerOpen(true);
+    }
+  }, [searchParams]);
+
+  async function handleRemoveShareMgmt() {
+    if (!addonAvailable) return;
+    const priceId = addonPriceIds.monthly ?? addonPriceIds.annual;
+    if (!priceId) return;
+    if (!window.confirm("Remove Share Management add-on at end of current cycle?")) return;
+    setRemovingAddon(true);
+    setError(null);
+    try {
+      // Try both cadences — the server will 404 the one that isn't active,
+      // and succeed on the one that is.
+      for (const pid of [addonPriceIds.monthly, addonPriceIds.annual]) {
+        if (!pid) continue;
+        const res = await fetch("/api/stripe/change-plan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ remove_item: { price_id: pid } }),
+        });
+        const json = await res.json();
+        if (json.ok) {
+          await entitlement.refresh();
+          return;
+        }
+      }
+      setError("Could not find an active Share Management add-on to remove.");
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setRemovingAddon(false);
+    }
+  }
 
   const activePlan = plans.find((p) => p.id === currentPlanId) ?? null;
   const effectivePlanId = currentPlanId ?? "free";
@@ -257,6 +319,86 @@ export function BillingClient({
           </div>
         </div>
       </section>
+
+      {/* ---- Manage Add-ons ---- */}
+      <section className="rounded-2xl border border-surface-200 bg-white dark:bg-surface-100 shadow-sm overflow-hidden">
+        <div className="px-6 py-5 border-b border-surface-200 flex items-center gap-3">
+          <div className="h-9 w-9 rounded-xl bg-brand-50 flex items-center justify-center">
+            <Layers strokeWidth={1.75} className="h-4.5 w-4.5 text-brand-600" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-ink-800">Manage add-ons</h2>
+            <p className="text-xs text-ink-600">
+              Purchase and remove modular capabilities attached to your subscription.
+            </p>
+          </div>
+        </div>
+        <div className="px-6 py-5">
+          <div className="flex flex-col gap-3 rounded-xl border border-surface-200 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-ink-800">Share Management</span>
+                {hasShareMgmt ? (
+                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-700">
+                    Active
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-700">
+                    Add-on
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 text-xs text-ink-600">
+                Cap-table, ESOP, vesting, dividends and blockchain sync.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {hasShareMgmt ? (
+                <button
+                  type="button"
+                  onClick={handleRemoveShareMgmt}
+                  disabled={removingAddon || !addonAvailable}
+                  className={cn(
+                    "inline-flex h-9 items-center gap-1.5 rounded-[10px] border border-surface-200 bg-white px-4 text-sm font-medium text-ink-700 hover:bg-surface-50 transition-colors",
+                    (removingAddon || !addonAvailable) && "opacity-60 cursor-not-allowed",
+                  )}
+                >
+                  {removingAddon && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Remove at end of cycle
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setDrawerOpen(true)}
+                  disabled={!addonAvailable}
+                  className={cn(
+                    "inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 transition-colors",
+                    !addonAvailable && "opacity-60 cursor-not-allowed",
+                  )}
+                  title={
+                    addonAvailable
+                      ? undefined
+                      : "Add-on not yet provisioned in Stripe. Contact support."
+                  }
+                >
+                  <Sparkles strokeWidth={1.75} className="h-4 w-4" />
+                  Add Share Management
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Drawer — mounted at page level so ?openAddon deep-link works. */}
+      <ShareMgmtDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        priceIds={addonPriceIds}
+        onAdded={() => {
+          void entitlement.refresh();
+        }}
+      />
 
       {/* ---- Available Plans Grid ---- */}
       <section>

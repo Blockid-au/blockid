@@ -1,13 +1,28 @@
 import { NextResponse } from "next/server";
+import type Stripe from "stripe";
 import { getCurrentUser } from "@/lib/auth";
-import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
+import {
+  getStripe,
+  isStripeConfigured,
+  STRIPE_PRICE_MAP,
+  isShareMgmtAddonPrice,
+} from "@/lib/stripe";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { getPlan } from "@/lib/plans";
 
 // POST /api/stripe/change-plan
-// Body: { newPlanId, confirmCrossSegment? }
-// Changes the user's subscription to a different plan. Cross-segment moves
-// (e.g. founder → investor_angel) require an explicit confirmCrossSegment=true.
+// Body (three modes):
+//   1. { newPlanId, confirmCrossSegment? }         — change the base plan
+//   2. { add_item: { price_id, preview?: bool } }  — add an add-on to the
+//        active subscription. `preview:true` returns the upcoming-invoice
+//        proration totals WITHOUT committing. `preview:false` (or omitted)
+//        commits with `proration_behavior: 'always_invoice'` and records a
+//        `revenue_events { kind: 'addon_purchase' }` row.
+//   3. { remove_item: { price_id } }               — remove an add-on from
+//        the active subscription. Uses `proration_behavior: 'none'` so the
+//        customer keeps access through the paid period and no commission
+//        clawback fires — per plan § F.5 "cancel_at_period_end-style".
+// Cross-segment plan moves require confirmCrossSegment=true.
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -35,8 +50,37 @@ export async function POST(request: Request) {
     );
   }
 
-  const { newPlanId, confirmCrossSegment } =
-    (body as { newPlanId?: string; confirmCrossSegment?: boolean }) ?? {};
+  const parsed =
+    (body as {
+      newPlanId?: string;
+      confirmCrossSegment?: boolean;
+      add_item?: { price_id?: string; preview?: boolean };
+      remove_item?: { price_id?: string };
+    }) ?? {};
+
+  const supabase = getSupabaseAdmin()!;
+  const stripe = getStripe()!;
+
+  if (parsed.add_item?.price_id) {
+    return handleAddItem({
+      userId: user.id,
+      priceId: parsed.add_item.price_id,
+      preview: Boolean(parsed.add_item.preview),
+      supabase,
+      stripe,
+    });
+  }
+
+  if (parsed.remove_item?.price_id) {
+    return handleRemoveItem({
+      userId: user.id,
+      priceId: parsed.remove_item.price_id,
+      supabase,
+      stripe,
+    });
+  }
+
+  const { newPlanId, confirmCrossSegment } = parsed;
 
   if (!newPlanId || typeof newPlanId !== "string") {
     return NextResponse.json(
@@ -60,9 +104,6 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-
-  const supabase = getSupabaseAdmin()!;
-  const stripe = getStripe()!;
 
   // Look up the user's current plan + customer id.
   const { data: row } = await supabase
@@ -256,3 +297,281 @@ export async function POST(request: Request) {
 }
 
 export const dynamic = "force-dynamic";
+
+// ---------------------------------------------------------------------------
+// Add-on handlers (P8.4)
+// ---------------------------------------------------------------------------
+
+type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
+
+async function findActiveSubscription(
+  stripe: Stripe,
+  customerId: string,
+): Promise<Stripe.Subscription | null> {
+  const list = await stripe.subscriptions.list({
+    customer: customerId,
+    status: "active",
+    limit: 1,
+  });
+  return list.data[0] ?? null;
+}
+
+async function loadCustomerContext(
+  supabase: SupabaseAdmin,
+  userId: string,
+): Promise<{ customerId: string | null; planId: string | null }> {
+  const { data } = await supabase
+    .from("app_users")
+    .select("stripe_customer_id, plan")
+    .eq("id", userId)
+    .maybeSingle();
+  return {
+    customerId: (data as { stripe_customer_id?: string | null } | null)
+      ?.stripe_customer_id ?? null,
+    planId: (data as { plan?: string | null } | null)?.plan ?? null,
+  };
+}
+
+/**
+ * Insert a `revenue_events` row. `stripe_event_id` carries a synthetic
+ * `manual:` prefix so the UNIQUE constraint still fires on double-submits
+ * while never colliding with a real Stripe event id.
+ */
+async function insertAddonRevenueEvent(
+  supabase: SupabaseAdmin,
+  args: {
+    userId: string;
+    planId: string | null;
+    stripeRef: string;
+    grossCents: number;
+    currency: string;
+    kind: "addon_purchase" | "addon_cancel";
+    detail: Record<string, unknown>;
+  },
+): Promise<void> {
+  let gross = args.grossCents;
+  let gst = 0;
+  let net = gross;
+  try {
+    const gstMod = (await import("@/lib/gst")) as {
+      splitGst?: (cents: number, currency?: string) => {
+        gross_aud_cents: number;
+        gst_aud_cents: number;
+        net_aud_cents: number;
+      };
+    };
+    if (typeof gstMod.splitGst === "function") {
+      const split = gstMod.splitGst(gross, args.currency);
+      gross = split.gross_aud_cents;
+      gst = split.gst_aud_cents;
+      net = split.net_aud_cents;
+    }
+  } catch {
+    // GST helper unavailable — record gross only.
+  }
+  const { error } = await supabase.from("revenue_events").insert({
+    user_id: args.userId,
+    plan_id: args.planId,
+    stripe_event_id: `manual:${args.stripeRef}`,
+    gross_aud_cents: gross,
+    gst_aud_cents: gst,
+    net_aud_cents: net,
+    currency: (args.currency ?? "AUD").toUpperCase(),
+    kind: args.kind,
+    detail: args.detail,
+  });
+  if (error && error.code !== "23505") {
+    console.error("[blockid:stripe] revenue_events insert failed", error);
+  }
+}
+
+async function handleAddItem(args: {
+  userId: string;
+  priceId: string;
+  preview: boolean;
+  supabase: SupabaseAdmin;
+  stripe: Stripe;
+}): Promise<NextResponse> {
+  const { userId, priceId, preview, supabase, stripe } = args;
+
+  if (!isShareMgmtAddonPrice(priceId)) {
+    return NextResponse.json(
+      { ok: false, reason: "Unrecognised add-on price id" },
+      { status: 400 },
+    );
+  }
+
+  const { customerId, planId } = await loadCustomerContext(supabase, userId);
+  if (!customerId) {
+    return NextResponse.json(
+      { ok: false, reason: "No Stripe customer found. Please subscribe first." },
+      { status: 404 },
+    );
+  }
+
+  const activeSub = await findActiveSubscription(stripe, customerId);
+  if (!activeSub) {
+    return NextResponse.json(
+      { ok: false, reason: "No active subscription — start a base plan before adding add-ons." },
+      { status: 409 },
+    );
+  }
+
+  const already = activeSub.items.data.find((i) => i.price.id === priceId);
+  if (already) {
+    return NextResponse.json(
+      { ok: false, reason: "add_on_already_active", detail: { item_id: already.id } },
+      { status: 409 },
+    );
+  }
+
+  try {
+    if (preview) {
+      // Preview upcoming invoice as if the add-on were added right now.
+      // Stripe SDK 18+ replaced invoices.retrieveUpcoming with invoices.createPreview.
+      const upcoming = await stripe.invoices.createPreview({
+        customer: customerId,
+        subscription: activeSub.id,
+        subscription_details: {
+          items: [
+            ...activeSub.items.data.map((i) => ({ id: i.id, price: i.price.id })),
+            { price: priceId },
+          ],
+          proration_behavior: "always_invoice",
+        },
+      });
+      return NextResponse.json({
+        ok: true,
+        preview: {
+          amount_due_cents: upcoming.amount_due ?? 0,
+          currency: (upcoming.currency ?? "aud").toUpperCase(),
+          period_end: upcoming.period_end ?? null,
+          line_count: upcoming.lines?.data?.length ?? 0,
+        },
+      });
+    }
+
+    // Commit: attach the add-on item with immediate proration invoicing.
+    const updated = await stripe.subscriptions.update(activeSub.id, {
+      items: [{ price: priceId }],
+      proration_behavior: "always_invoice",
+    });
+
+    const newItem = updated.items.data.find((i) => i.price.id === priceId);
+    const unitAmount = newItem?.price.unit_amount ?? 0;
+    const currency = newItem?.price.currency ?? "aud";
+
+    await insertAddonRevenueEvent(supabase, {
+      userId,
+      planId,
+      stripeRef: `${updated.id}:${newItem?.id ?? priceId}`,
+      grossCents: unitAmount,
+      currency,
+      kind: "addon_purchase",
+      detail: {
+        subscription_id: updated.id,
+        subscription_item_id: newItem?.id ?? null,
+        price_id: priceId,
+        proration_behavior: "always_invoice",
+      },
+    });
+
+    console.log(
+      `[blockid:stripe] added share-mgmt add-on ${priceId} to sub ${updated.id} for customer ${customerId}`,
+    );
+
+    return NextResponse.json({
+      ok: true,
+      subscription_id: updated.id,
+      subscription_item_id: newItem?.id ?? null,
+    });
+  } catch (err) {
+    console.error("[blockid:stripe] add_item failed", err);
+    return NextResponse.json(
+      { ok: false, reason: "Failed to add subscription item" },
+      { status: 500 },
+    );
+  }
+}
+
+async function handleRemoveItem(args: {
+  userId: string;
+  priceId: string;
+  supabase: SupabaseAdmin;
+  stripe: Stripe;
+}): Promise<NextResponse> {
+  const { userId, priceId, supabase, stripe } = args;
+
+  if (!isShareMgmtAddonPrice(priceId)) {
+    return NextResponse.json(
+      { ok: false, reason: "Unrecognised add-on price id" },
+      { status: 400 },
+    );
+  }
+
+  const { customerId, planId } = await loadCustomerContext(supabase, userId);
+  if (!customerId) {
+    return NextResponse.json(
+      { ok: false, reason: "No Stripe customer found." },
+      { status: 404 },
+    );
+  }
+
+  const activeSub = await findActiveSubscription(stripe, customerId);
+  if (!activeSub) {
+    return NextResponse.json(
+      { ok: false, reason: "No active subscription." },
+      { status: 404 },
+    );
+  }
+
+  const target = activeSub.items.data.find((i) => i.price.id === priceId);
+  if (!target) {
+    return NextResponse.json(
+      { ok: false, reason: "add_on_not_active" },
+      { status: 404 },
+    );
+  }
+
+  // "cancel_at_period_end-style on the item": delete with proration_behavior:'none'
+  // so the customer keeps access through the paid period, no credit is issued,
+  // and no commission clawback fires (per plan § F.5).
+  try {
+    await stripe.subscriptionItems.del(target.id, {
+      proration_behavior: "none",
+    });
+
+    await insertAddonRevenueEvent(supabase, {
+      userId,
+      planId,
+      stripeRef: `${activeSub.id}:${target.id}:cancel`,
+      grossCents: 0,
+      currency: target.price.currency ?? "aud",
+      kind: "addon_cancel",
+      detail: {
+        subscription_id: activeSub.id,
+        subscription_item_id: target.id,
+        price_id: priceId,
+        proration_behavior: "none",
+        effective: "end_of_current_period",
+      },
+    });
+
+    console.log(
+      `[blockid:stripe] removed share-mgmt add-on item ${target.id} from sub ${activeSub.id} (end-of-cycle)`,
+    );
+
+    return NextResponse.json({
+      ok: true,
+      subscription_id: activeSub.id,
+      removed_item_id: target.id,
+      effective: "end_of_current_period",
+    });
+  } catch (err) {
+    console.error("[blockid:stripe] remove_item failed", err);
+    return NextResponse.json(
+      { ok: false, reason: "Failed to remove subscription item" },
+      { status: 500 },
+    );
+  }
+}
