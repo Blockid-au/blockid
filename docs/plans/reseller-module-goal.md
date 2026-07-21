@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.8
+version: 2026-07-23.9
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -227,9 +227,10 @@ tracks:
           "Playwright pill vs no-pill test — DEFERRED to P10_hardening (Playwright suite currently un-provisioned; P10 exit_criteria owns the E2E lens)"
         ]
       P6_capabilities_sandbox:
-        status: in_progress
+        status: done_pending_apply
         migration_files: [0096]
         tick_started: 25
+        completed_at: 2026-07-21
         sub_phases:
           P6.1_migration_authored: {status: done, tick: 25, files: ["web/supabase/migrations/0096_reseller_credit_grants.sql"], note: "kind CHECK (grant|sandbox_spend) + ck_amount_sign + ck_month_key_format + ck_target_shape + ck_ct_link enforce the sign/shape invariants; unique idx on (reseller_id, target_user_id, credit_transaction_id) WHERE kind=grant dedupes customer mirror; (reseller_id, month_key) hot idx for budget rollup; (sandbox_project_id, created_at DESC) idx for 50/hr rate-limit scan"}
           P6.2_credit_grant_lib: {status: done, tick: 25, files: [
@@ -256,7 +257,10 @@ tracks:
             "web/src/app/api/rnd/sections/route.ts (getProjectIdFromRequest imported + per-section spendCredits metadata carries project_id)",
             "web/src/app/api/evaluation/[criterionKey]/ai-score/route.ts (metadata.project_id threaded)"
           ], note: "Reseller sandbox routing branch in spendCredits() is now hot for all six top-of-funnel callers. Each was already resolving projectId for svi_accounts/svi_analyses/data-isolation writes — this tick only widens the existing var into the spendCredits metadata call, so no behavioural change for non-reseller users. tsc clean, reseller vitest 164/164 unchanged, lint:reseller 6 files / 2 exemptions / 0 violations."}
-          P6.6_grant_modal: {status: pending, note: "/reseller/credits UI — grant form + over-budget approval flow + monthly usage bar"}
+          P6.6_grant_modal: {status: done, tick: 30, files: [
+            "web/src/app/reseller/credits/page.tsx (server: fetch real MTD from reseller_credit_grants via computeMonthlyUsage; render remaining budget; render over-budget-approved counter when >0; wrap <GrantForm /> in a capability gate on reseller.can_grant_credits)",
+            "web/src/app/reseller/credits/grant-form.tsx (client: customer picker + integer amount + optional reason; POSTs /api/reseller/credits/grant; renders success/error/over-budget banners; on 402 over_budget_requires_approval points reseller at admin@blockid.au per H.4/D3-CISO-05; router.refresh() after success so the MTD bar redraws)"
+          ], note: "P6 gate closed. Grants that fit the monthly_credit_budget auto-approve via decideGrant() (already tested 19/19). Over-budget requests intentionally do NOT self-approve at this endpoint — the UI surfaces a persistent amber banner with mailto:admin@blockid.au while P9.3 requests inbox is still pending. Capability gate: reseller.can_grant_credits=false renders a contact-admin message instead of the form. Amount input is a positive-integer HTML5 number field; parsedAmount validity mirrors decideGrant's server-side check so bad values never reach the network. Customer picker uses maskEmail() from the reveal-email shared helper so full addresses never render in the dropdown. tsc clean; reseller vitest 164/164 (no new suite — form is thin wiring over already-tested decideGrant/computeMonthlyUsage/decideReveal); npm run lint:reseller: 6 files scanned, 2 exemptions, 0 violations."}
         exit_criteria: [
           "reseller_credit_grants live (DONE — 0096 authored; docker exec apply required)",
           "monthly_sandbox_credits column live (default 500) (DONE at 0091)",
@@ -717,6 +721,35 @@ review_history:
       P6 remaining gate is P6.6 (reseller-side grant modal UI).
     commit: (this tick)
 
+  - tick: 30
+    ran_at: 2026-07-21
+    action: p6.6_grant_modal
+    result: |
+      P6 closed — /reseller/credits now ships a real grant form. Server
+      page (page.tsx) fetches this month's reseller_credit_grants rows,
+      feeds them to computeMonthlyUsage() so both MTD bars carry live
+      numbers, exposes remainingBudget to the client, and only renders
+      <GrantForm /> when reseller.can_grant_credits is true (otherwise a
+      contact-admin fallback). New client component grant-form.tsx
+      (positive-integer amount field mirroring decideGrant's server check;
+      customer picker built from resellerSupabase().attributedCustomers()
+      with maskEmail() from the reveal helper so full addresses never
+      render in the dropdown; optional 200-char reason) POSTs
+      /api/reseller/credits/grant (P6.3), then branches on the response:
+      success → emerald banner + router.refresh() (MTD bar redraws); 402
+      over_budget_requires_approval → persistent amber banner with
+      mailto:admin@blockid.au per H.4/D3-CISO-05 (self-approval is still
+      forbidden at the endpoint — P9.3 requests inbox owns the async
+      workflow); other errors → red banner with the server reason. When
+      any over-budget grants have already cleared this month (approved
+      out-of-band), the page surfaces a summary line above the form so
+      the reseller sees the running count without having to scroll the
+      audit log. tsc clean; reseller vitest 164/164 (form is thin
+      wiring over already-tested decideGrant / computeMonthlyUsage /
+      decideReveal — no new suite this tick); lint:reseller 6 files / 2
+      exemptions / 0 violations.
+    commit: (this tick)
+
   - tick: 20
     ran_at: 2026-07-21
     action: p3.1_reconciliation_cron
@@ -742,13 +775,13 @@ next_action:
   task: |
     1) Apply migrations 0091 + 0092 + 0094 + 0096 via docker exec psql (P1.4 + P6.1) — infra step, requires DB access.
     2) Seed INFOVISION reseller row (P1.5_infovision_seed) once P1.4 lands.
-    3) P6.6 grant modal UI at /reseller/credits (grant form + over-budget approval flow + monthly usage bar) — final P6 sub-phase.
-    4) Optional P6.5b widening: term-sheet/idea-lab/valuation/journal/data-room/evidence spendCredits callers — none of them currently resolve projectId, so wiring cost is one getProjectIdFromRequest() per route. Deferred until P6.6 lands.
-    5) Track B B1_showcase_scaffold still unblocked; parallel candidate if a tick prefers track B ordering.
-    6) P9.3_requests_inbox pending — waits on a request-table migration; feasible on next tick if we author 0095 alongside.
+    3) P9.3_requests_inbox — author migration 0095 for reseller_requests table (code_request + over_budget_approval + collateral_approval), admin inbox at /admin/resellers/requests, POST endpoint for reseller-side submit. Wire the over-budget grant flow so the grant-form 402 path can push a request row instead of just pointing at mailto (currently deferred).
+    4) Track B B1_showcase_scaffold — parallel candidate now that P6 is closed; migration 0099 adds projects.is_showcase + reseller_sandbox_id + repo_url; seed BlockID.au workspace.
+    5) P7_kpi_reports — /api/cron/reseller-monthly-report per D2-CFO-07; unblocked by P3 completion.
+    6) Optional P6.5b widening: term-sheet/idea-lab/valuation/journal/data-room/evidence spendCredits callers still don't thread project_id — one getProjectIdFromRequest() per route.
     7) P0.3_advisory_reviews still pending — schedulable on next off-peak tick.
   authorised: true
-  on_success: continue P6 sub-phases (P6.6 grant modal is the last P6 gate) — track A P6 in_progress; keep momentum before switching to B1
+  on_success: pick P9.3_requests_inbox next (closes the P6.6 over-budget UX loop) OR jump to B1_showcase_scaffold for track balance; A>B preference still applies so P9.3 wins by default
 
 telemetry:
   log_file: web/content/reports/reseller-goal-history.jsonl
