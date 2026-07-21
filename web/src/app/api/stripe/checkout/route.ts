@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/auth";
 import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { getPlan, isGrowthEarlyBird } from "@/lib/plans";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { normaliseResellerCode, viaClientReferenceId } from "@/lib/reseller/attribution";
 
 // POST /api/stripe/checkout
 // Body: { plan, couponCode? }
@@ -38,8 +40,14 @@ export async function POST(request: Request) {
     );
   }
 
-  const { plan: planId, couponCode } =
-    (body as { plan?: string; couponCode?: string }) ?? {};
+  const { plan: planId, couponCode, resellerCode: bodyResellerCode } =
+    (body as { plan?: string; couponCode?: string; resellerCode?: string }) ?? {};
+
+  // Reseller attribution — priority: body param (from onboarding wizard state)
+  // → cookie blockid_via. Per docs/plans/reseller-module-plan.md § C.2 / U.6.
+  const cookieStore = await cookies();
+  const rawResellerCode = bodyResellerCode ?? cookieStore.get("blockid_via")?.value ?? null;
+  const resellerCode = normaliseResellerCode(rawResellerCode);
 
   if (!planId || typeof planId !== "string") {
     return NextResponse.json(
@@ -116,6 +124,53 @@ export async function POST(request: Request) {
   if (userSegment) customerMetadata.segment = userSegment;
   else if (dbPlanSegment) customerMetadata.segment = dbPlanSegment;
 
+  // Reseller attribution — resolve code to Stripe promotion_code + reseller_id.
+  // Priority list per § D.3: promotion_code → sub.metadata → customer.metadata
+  // → client_reference_id. We stamp ALL of them so downstream idempotency
+  // never depends on which surface a future event fires against. Per § C.2:
+  // tier > 0 also applies discounts:[{promotion_code}] and drops
+  // allow_promotion_codes so the reseller code cannot be stacked on top of a
+  // user-typed one.
+  let resellerAttribution: {
+    reseller_id: string;
+    code: string;
+    tier_pct: number;
+    stripe_promotion_code_id: string | null;
+  } | null = null;
+  if (resellerCode) {
+    try {
+      const supabase = getSupabaseAdmin();
+      if (supabase) {
+        const { data: promo } = await supabase
+          .from("reseller_promotion_codes")
+          .select("id, tier_pct, code, stripe_promotion_code_id, active, reseller_id")
+          .eq("code", resellerCode)
+          .eq("active", true)
+          .maybeSingle();
+        if (promo) {
+          const { data: reseller } = await supabase
+            .from("resellers")
+            .select("id, status")
+            .eq("id", promo.reseller_id)
+            .maybeSingle();
+          if (reseller && reseller.status === "active") {
+            resellerAttribution = {
+              reseller_id: promo.reseller_id as string,
+              code: promo.code as string,
+              tier_pct: promo.tier_pct as number,
+              stripe_promotion_code_id: (promo.stripe_promotion_code_id as string | null) ?? null,
+            };
+            customerMetadata.reseller_code = promo.code as string;
+            customerMetadata.reseller_id = promo.reseller_id as string;
+            customerMetadata.tier_at_signup = String(promo.tier_pct);
+          }
+        }
+      }
+    } catch {
+      // Attribution is opportunistic — never block checkout on a lookup miss.
+    }
+  }
+
   const sessionParams: Parameters<typeof stripe.checkout.sessions.create>[0] = {
     mode: isRecurring ? "subscription" : "payment",
     customer_email: user.email,
@@ -161,6 +216,28 @@ export async function POST(request: Request) {
     sessionParams.discounts = [{ coupon: couponCode }];
     // When discounts are applied, disable general promotion codes.
     delete sessionParams.allow_promotion_codes;
+  }
+
+  // Reseller attribution stamping — per § C.2 / D.3. Always stamp
+  // client_reference_id + subscription.metadata + customer.metadata. Apply
+  // Stripe promotion_code only when tier > 0 (Stripe forbids 0-value
+  // coupons; tier 0 is attribution-only). Reseller code beats user-typed
+  // coupon when both are present.
+  if (resellerAttribution) {
+    sessionParams.client_reference_id = viaClientReferenceId(resellerAttribution.code);
+    if (resellerAttribution.stripe_promotion_code_id && resellerAttribution.tier_pct > 0) {
+      sessionParams.discounts = [
+        { promotion_code: resellerAttribution.stripe_promotion_code_id },
+      ];
+      delete sessionParams.allow_promotion_codes;
+    }
+    // Also stamp session-level metadata so checkout.session.completed sees it.
+    sessionParams.metadata = {
+      ...(sessionParams.metadata ?? {}),
+      reseller_code: resellerAttribution.code,
+      reseller_id: resellerAttribution.reseller_id,
+      tier_at_signup: String(resellerAttribution.tier_pct),
+    };
   }
 
   try {
