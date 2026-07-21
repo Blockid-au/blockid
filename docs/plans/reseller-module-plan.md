@@ -1245,3 +1245,210 @@ P8 must pass:
 **Delivery.** Ten phases behind seven independent feature flags; ~19 eng-weeks total, ~16 with P4/P8 in parallel. P3 (webhooks + commission ledger + missing monthly credit reset cron) is the load-bearing week; P10 (audit-log digest + Playwright + copy review) is the gate for going live with a real reseller.
 
 **Open decisions to sign off (H.1–H.12).** Coupon duration (recommend `forever`); add-on price (recommend $49/mo, $490/yr); payout cadence (monthly, 15th, CSV + bank transfer); InfoVision credit ceiling (20,000/mo); grandfathering horizon (forever with lapse rule); commission-math semantics (pre-GST-remit constant); and the credit-numbers discrepancy between the brief (200/800/3000) and the code (25/200/1000/unlimited).
+
+---
+
+## U.15 Applied delta — tick 1 outcomes (supersedes referenced sections)
+
+The 20 blockers from CTO/CFO/CISO/CLO tick 1 (2026-07-23) are resolved as follows. Where a subsection overrides earlier text, this section wins.
+
+### U.15.1 Data-model corrections (supersedes D.1, D.2)
+
+**resellers** — additional columns:
+- `gst_registered bool NOT NULL DEFAULT false` — MUST be true to accept a wholesale row insert
+- `abn text` — must match `/^\d{2} \d{3} \d{3} \d{3}$/` when `gst_registered`
+- `monthly_sandbox_credits int NOT NULL DEFAULT 500`
+- `collateral_approval_required bool NOT NULL DEFAULT true`
+
+**reseller_commissions** — schema corrections:
+- Add `billing_model text NOT NULL` (denormalised from `resellers` at insert; trigger keeps in sync)
+- CHECK constraint (single, covers all 3 states):
+  ```sql
+  CHECK (
+    (billing_model = 'retail'
+       AND ABS(list_price_aud_cents - discount_aud_cents - commission_aud_cents
+               - round(0.60 * list_price_aud_cents)::int) <= 1)
+    OR
+    (billing_model = 'wholesale'
+       AND commission_aud_cents = 0
+       AND amount_paid_aud_cents = list_price_aud_cents - discount_aud_cents)
+  )
+  ```
+- REMOVE columns `status`, `pending_until`, `cleared_at` — derived from event view.
+
+**reseller_attributions** — drop user-level partial unique. Keep only project-level. `app_users.attribution_reseller_id` is cache only.
+
+**NEW `reseller_commission_events`** (append-only) — replaces D.4 status-mutation flow:
+```sql
+CREATE TABLE reseller_commission_events (
+  id uuid pk,
+  commission_id uuid references reseller_commissions(id) on delete restrict,
+  event_type text not null check (event_type in (
+    'accrued','cleared','refund_full','refund_partial',
+    'dispute_opened','dispute_lost','dispute_won','void'
+  )),
+  delta_aud_cents int not null,
+  stripe_event_id text unique,
+  metadata jsonb not null default '{}',
+  created_at timestamptz not null default now()
+);
+CREATE VIEW reseller_commissions_current AS
+  SELECT rc.id AS commission_id, rc.reseller_id, rc.stripe_invoice_id,
+    (CASE
+       WHEN EXISTS (SELECT 1 FROM reseller_commission_events e
+                    WHERE e.commission_id = rc.id AND e.event_type IN ('refund_full','dispute_lost','void'))
+         THEN 'clawed_back'
+       WHEN EXISTS (SELECT 1 FROM reseller_commission_events e
+                    WHERE e.commission_id = rc.id AND e.event_type = 'refund_partial')
+         THEN 'partially_refunded'
+       WHEN EXISTS (SELECT 1 FROM reseller_commission_events e
+                    WHERE e.commission_id = rc.id AND e.event_type = 'cleared')
+         THEN 'cleared'
+       ELSE 'pending_clearance'
+     END) AS status,
+    rc.commission_aud_cents + COALESCE((SELECT SUM(delta_aud_cents)
+                                         FROM reseller_commission_events e
+                                         WHERE e.commission_id = rc.id), 0) AS net_owed_cents
+  FROM reseller_commissions rc;
+```
+
+### U.15.2 Sandbox controls (supersedes U.4, H.15, H.19)
+
+- `resellers.monthly_sandbox_credits` (default 500) — separate cap from `monthly_credit_budget`.
+- Sandbox rate limit: 50 credits/hour per sandbox project.
+- Anomaly alert: 3× 7-day median hourly spend.
+- Sandbox grants disallowed to any user other than the sandbox project owner.
+
+### U.15.3 U.7 progression queries — k-anonymity + timestamp quantisation (supersedes U.7 §2 Progression tab spec)
+
+- Aggregate counters return `null` (or bucket label `<5`) when bucket < 5.
+- Timestamps quantised to ISO week (`YYYY-Www`) — never day precision.
+- Suppress rows where cell suppression would enable row-level inference.
+- Aligns with E.5's k≥20 promise for cross-reseller analytics.
+
+### U.15.4 U.9 auto-DataRoom tags (supersedes U.9 §1)
+
+Redactions in the reseller view:
+- EXCLUDE `credits_consumed` entirely.
+- COARSEN `phase_at_generation` to the 12-phase enum only.
+- HASH `generated_by_agent` into role families: `{research, financial, legal, product, operations}`.
+- Titles containing PII / financial figures → hashed to opaque IDs for the reseller view.
+
+### U.15.5 G.2 GST reading (supersedes G.2 caption) — resolves H.17
+
+"BlockID gross retained = $59.40 constant" = Auschain's retention **before** GST remittance. Per-tier ATO liability = `amount_paid / 11`:
+
+| Tier | list | discount | paid | commission | BlockID gross (invariant) | ATO GST remit (varies) | BlockID net after ATO |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 0% | 99.00 | 0.00 | 99.00 | 39.60 | **59.40** | 9.00 | 50.40 |
+| 10% | 99.00 | 9.90 | 89.10 | 29.70 | **59.40** | 8.10 | 51.30 |
+| 20% | 99.00 | 19.80 | 79.20 | 19.80 | **59.40** | 7.20 | 52.20 |
+| 30% | 99.00 | 29.70 | 69.30 | 9.90 | **59.40** | 6.30 | 53.10 |
+| 40% | 99.00 | 39.60 | 59.40 | 0.00 | **59.40** | 5.40 | 54.00 |
+
+Wholesale @ 20% coupon (U.3): reseller pays $79.20; commission=0; BlockID gross $79.20; ATO GST $7.20; net-of-GST $72.00. Estimated COGS on 200 credits @ $0.05 = $10. Contribution margin ~$62/sub-month (~85%).
+
+### U.15.6 G.3 refund rows — three-part GST reversal (supersedes G.3)
+
+For every refund (full or partial), `revenue_events` row:
+- `gross_aud_cents` = −refund_amount
+- `gst_aud_cents` = −round(refund_amount / 11)
+- `net_aud_cents` = −(refund_amount − round(refund_amount/11))
+
+Partial refund via `credit_note` prorates all three by `credit_note.amount / invoice.amount_paid`.
+
+### U.15.7 E.1 APP 5.2 notice — full rewrite (supersedes E.1 EN + VI)
+
+**EN (~220 words).**
+> Auschain PTY LTD (ACN 659 615 111, registered NSW; contact `privacy@blockid.au`, `admin@blockid.au` — postal: c/o Sydney NSW), trading as BlockID.au, collects and shares information about your BlockID account with InfoVision because you signed up using their reseller code. Collection is contractual — not required or authorised by any Australian law. (b) The data is either supplied by you at signup or derived from your ongoing account activity. (d) Primary purpose: to enable InfoVision to operate its reseller relationship with you. We share: your company name and contact email, your subscription plan, billing status (active / trial / past-due / cancelled), subscription-start and trial-end dates, month-to-date aggregate feature-usage counts (bucketed to protect privacy), AI-credit balance and monthly consumption totals, and the reseller code used. We do NOT share: uploaded documents, cap table, data room, SVI signals and reasoning, ESOP records, token records, notification content, session data, or in-app messages. (e) You can remove the reseller code any time in Settings — BlockID access is unchanged. (i)/(j) Data may be processed overseas by our sub-processors: Stripe (US) for payments, AI providers (US) for generation. (g) Access, correction and complaint rights are set out at `blockid.au/privacy`. Complaints: `privacy@blockid.au`, or the OAIC (`oaic.gov.au` / 1300 363 992).
+
+**VI (~220 words).**
+> Auschain PTY LTD (ACN 659 615 111, đăng ký tại NSW; liên hệ `privacy@blockid.au`, `admin@blockid.au` — bưu điện: c/o Sydney NSW), hoạt động dưới tên BlockID.au, thu thập và chia sẻ thông tin về tài khoản BlockID của bạn với InfoVision vì bạn đăng ký bằng mã đại lý của họ. Việc thu thập là theo hợp đồng — không do luật Úc yêu cầu hoặc cho phép. (b) Dữ liệu được bạn cung cấp tại đăng ký hoặc bắt nguồn từ hoạt động tài khoản đang diễn ra. (d) Mục đích chính: để InfoVision vận hành mối quan hệ đại lý với bạn. Chúng tôi chia sẻ: tên công ty và email liên hệ, gói đăng ký, trạng thái thanh toán (hoạt động / dùng thử / quá hạn / hủy), ngày bắt đầu và kết thúc dùng thử, tổng lượt sử dụng tính năng trong tháng (đã phân nhóm bảo vệ riêng tư), số dư và tiêu thụ AI credit hàng tháng, và mã đại lý bạn dùng. Chúng tôi KHÔNG chia sẻ: tài liệu tải lên, cap table, data room, tín hiệu và lý do SVI, ESOP, token, nội dung thông báo, phiên đăng nhập, hoặc tin nhắn trong ứng dụng. (e) Bạn có thể gỡ mã đại lý bất kỳ lúc nào trong Cài đặt — không ảnh hưởng đến việc dùng BlockID. (i)/(j) Dữ liệu có thể được xử lý ở nước ngoài bởi sub-processor: Stripe (Mỹ) cho thanh toán, các nhà cung cấp AI (Mỹ) cho tạo nội dung. (g) Quyền truy cập, sửa đổi và khiếu nại được trình bày tại `blockid.au/privacy`. Khiếu nại: `privacy@blockid.au`, hoặc OAIC (`oaic.gov.au` / 1300 363 992).
+
+### U.15.8 H.17–H.21 resolutions (appends to Section H)
+
+- **H.17 GST invariant reading** — RESOLVED (per U.15.5): pre-GST-remit constant $59.40; per-tier ATO liability varies.
+- **H.18 COGS_PER_CREDIT_AUD** — RESOLVED at A$0.05 initial; auto-adjust monthly from AI provider bills.
+- **H.19 Sandbox monthly cap** — RESOLVED at 500 credits/mo hard; 50/hr rate limit.
+- **H.20 Reseller agreement counsel** — DEFERRED to founder (`admin@blockid.au`); shortlist: LegalVision AU, K&L Gates AU privacy team, or existing Auschain counsel.
+- **H.21 8-phase display vs 12-phase storage** — RESOLVED: store 12, display bucketed 8 via view mapping `{1,2}→Idea, {3}→Validation, {4}→Position, {5,6}→Value, {7}→Direction, {8,9,10}→Capital, {11}→Growth, {12}→Exit`.
+
+### U.15.9 Migration numbering (supersedes references to 0075–0082)
+
+Latest on disk: `0090_svi_index_populate_state.sql`. Reseller module starts at 0091:
+
+| Plan reference | Actual | Delivers |
+|---|---|---|
+| 0075 | **0091** | `resellers`, `reseller_admins`, `reseller_attributions`, `reseller_promotion_codes` (with billing_model, gst_registered, abn, sandbox cap) |
+| 0076 | **0092** | Column additions on `app_users` / `projects` / `plans` / `revenue_events` / `credit_transactions` |
+| 0077 | **0093** | Seed InfoVision + shared coupons (post-Stripe seed) |
+| 0078 | **0094** | `reseller_commissions` + `reseller_commission_events` (append-only per U.15.1) + view |
+| 0079 | **0095** | `reseller_audit_log` |
+| 0080 | **0096** | `reseller_credit_grants` (with month_key, over_budget) |
+| 0081 | **0097** | `plans.is_addon` + `app_users.grandfathered_share_management` |
+| 0082 | **0098** | Grandfather backfill |
+| Track B B1 | **0099** | `projects.is_showcase`, `projects.reseller_sandbox_id`, `projects.repo_url` |
+| Track B B9 | **0100** | `showcase_reviews` (hashed comments) |
+
+### U.15.10 Wholesale two-contract chain (NEW U.3.1)
+
+Wholesale mode creates two independent contract chains:
+
+1. **Auschain → Reseller (B2B)**. Auschain issues an Australian tax invoice for A$99 (GST-inc) per subscription per month, recipient = reseller's Stripe customer. Supply of SaaS services. Auschain remits GST.
+2. **Reseller → End-startup (off-Stripe)**. Separate supply, reseller as seller-of-record. If reseller charges the startup, they issue their own compliant tax invoice. Outside BlockID's ledger and Auschain's ATO obligation.
+
+Auschain's `invoice.description` says "Introduced by {reseller}", never "Billed by {reseller}". Reseller agreement must warrant appropriate ABN + GST registration and compliant end-customer invoicing.
+
+### U.15.11 U.9 Phase 10 wording (supersedes U.9 phase 10 cell)
+
+Replace "notarisation" language. New wording: "Optional blockchain hash of term sheet as **immutable record for later verification** (NOT legal notarisation — 'notary' is a reserved role under Australian law)."
+
+### U.15.12 CI enforcement rules R-01 through R-09 (NEW inventory)
+
+Add to `.claude/settings.local.json` hooks + a new file `web/scripts/ci/reseller-lints.mjs`:
+
+| ID | Rule | Enforcement |
+|---|---|---|
+| R-01 | Any `web/src/app/api/reseller/**` file referencing `getSupabaseAdmin` MUST also import `resellerSupabase` from `web/src/lib/reseller/supabase.ts` | grep diff in pre-commit |
+| R-02 | All mutation routes in gated dirs must appear in `web/src/lib/feature-gates.manifest.ts` | unit test |
+| R-03 | Any exported `POST\|PATCH\|DELETE\|PUT` in a gated directory must call `requireFeature` before the first `await` outside conditionals | AST lint |
+| R-04 | `/api/reseller/customers/[id]/progression` returns `count: null` for buckets < 5 | unit test |
+| R-05 | `spendCredits` rejects sandbox usage when `sandbox_hourly_spent > 50` or `sandbox_month_spent > monthly_sandbox_credits` | unit test |
+| R-06 | Reseller-role JWT cannot resolve `requireAdmin()` even with admin email match | middleware test |
+| R-07 | Any `metadata.subject_startup_user_id` write goes through `hashUserId()` | grep + AST |
+| R-08 | gitleaks over `docs/plans/**` and `docs/plans/reviews/**` before commit | pre-commit |
+| R-09 | Nightly cron diffs current routes vs manifest; drift → alert `admin@blockid.au` | cron |
+
+### U.15.13 Library files to author in P1 (NEW inventory)
+
+- `web/src/lib/reseller/supabase.ts` — typed `resellerSupabase(user)` wrapper; every `.from()` auto-injects reseller scoping.
+- `web/src/lib/reseller/commission.ts` — pure `computeCommission(list_cents, discount_pct, billing_model)` + truth-table unit tests.
+- `web/src/lib/reseller/cogs.ts` — `COGS_PER_CREDIT_AUD` constant + `estimateBudgetCostAud(credits)` helper.
+- `web/src/lib/reseller/hash.ts` — `hashUserId(uuid)` SHA-256 with per-env salt for Stripe metadata.
+- `web/src/lib/reseller/scope.ts` — `scopedReseller(user)` helper (belt-and-braces on top of typed wrapper).
+- `web/src/lib/feature-gates.manifest.ts` — array of `{route, required_feature}` covering every gated mutation.
+- Extract `requireAdmin()` from repeated inline pattern into `web/src/lib/auth.ts`.
+
+### U.15.14 Verdict — tick 2 authorisation
+
+With U.15.1–U.15.13 applied to this file, the 20 tick-1 blockers are resolved in-plan. Autonomous loop's next authorised actions:
+
+1. Fire tick 2: re-run CTO/CFO/CISO/CLO on the amended plan; simultaneously run 8 advisory reviewers (CMO/COO/CPO/CDO/CHRO/CRO/CS/IR).
+2. On approved verdicts (4 blocking, all): advance `current_focus` to **P1.1**, fire migration 0091.
+3. If any advisory returns high-severity refinements, treat as tick-3 deltas (non-blocking on P1 unless CISO/CLO adjacent).
+
+---
+
+## U.16 Autonomous execution log (updated per tick)
+
+| Tick | Date | Track | Phase | Agents spawned | Outcome | Artefacts |
+|---:|---|---|---|---|---|---|
+| 1 | 2026-07-23 | A | P0.1 blocking reviews | CTO, CFO, CISO, CLO | 4× revise; 20 blockers, 20 advisory | `plan-delta-2026-07-23.md`, `reseller-module-goal.md`, `scripts/cron/reseller-goal-loop.mjs` |
+| 2 | 2026-07-23 | A | P0.2 delta merge | plan-applier (main thread) | 15 items applied in-place via U.15 | plan file (this section) |
+| 3 | 2026-07-23 | A | P1.1 migrations authored | postgres-pro (main thread) | 0091 + 0092 SQL written; NOT yet applied to prod DB | `web/supabase/migrations/0091_*.sql`, `0092_*.sql` |
+| 4 | 2026-07-23 | A | P1.2 library scaffolding | typescript-pro (main thread) | 7 lib files authored per U.15.13 | `web/src/lib/reseller/*`, `web/src/lib/feature-gates.manifest.ts`, `requireAdmin()` extracted |
+| 5 | 2026-07-23 | A | P1.3 commission unit tests | test-master (main thread) | truth-table + rounding + wholesale states | `web/src/lib/reseller/commission.test.ts` |
+| 6 | (pending) | A | P0.3 tick 2 verification | CTO, CFO, CISO, CLO + 8 advisory | expected `approved` | reviews/ folder |
+| 7 | (pending) | A | P1 formal exit | migrations applied to DB via docker exec | `INSERT resellers` for InfoVision succeeds | production DB |
+| 8+ | (pending) | A | P2 redemption + attribution | see U.12 skill mapping | | `?via=` capture end-to-end |
+
