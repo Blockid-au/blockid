@@ -302,3 +302,4 @@
 {"ts":"2026-07-21T21:35:58.156Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): tick 44 telemetry — P8.1 manifest completeness (verdict=approved) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-21T21:36:12.985Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-21T21-30-01-392Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-21T21:38:59.432Z","event":"github-push-master","detail":"Blockid-au: feat: /admin/uptime-guardian dashboard + Track C.2 Canva case study skeleton (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T21:54:34.499Z","event":"github-push-master","detail":"Blockid-au: feat: docs/usecases library + Atlassian executable USECASE spec (1 commits)","source":"github-webhook"}

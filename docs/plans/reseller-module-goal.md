@@ -308,14 +308,47 @@ tracks:
             "web/src/lib/feature-gates.manifest.ts",
             "web/src/lib/feature-gates.manifest.test.ts (6/6 pass)"
           ], note: "Reconciled FEATURE_GATES with actual tree — removed 8 phantom entries (api/cap-table/entries, api/cap-table/import, api/cap-table/export, api/data-room/documents, api/dataroom/documents, api/vesting/schedules, api/vesting/events, api/esop/exercise, api/tokenization/mint) and api/reseller/create-startup (unbuilt); added 20 real mutation routes discovered by walking GATED_DIRECTORIES with POST/PATCH/PUT/DELETE detection. Manifest now maps 28 routes: cap-table (5), data-room+dataroom (8, tagged for CTO reconciliation), vesting (4→vesting.write), esop (5→esop.manage), blockchain (3→blockchain.sync), tokenization (1), reseller (2). Introduced MUTATION_METHODS constant and dropped the `| \"share_management\"` special-case union (the Feature type already includes it as a real literal). Completeness test: (a) every entry points at an existing file; (b) every mutation route in GATED_DIRECTORIES appears in the manifest; (c) no duplicates; (d) requiredFeatureFor round-trips; (e) MUTATION_METHODS matches the four write verbs. Wiring the actual requireFeature() call inside each handler is P8.2."}
-          P8.2_route_gating: {status: pending, note: "add requireFeature(user, required_feature) at handler top of each of the 28 mapped routes; enforce via AST lint (D3-CISO-02)"}
+          P8.2_route_gating: {status: done, tick: 45, completed_at: 2026-07-21, files: [
+            "web/src/lib/feature-gate.ts (+ test 7/7)",
+            "web/src/lib/reseller/reseller-lints.ts (analyzeR03 added; multi-line-signature-safe locateHandlers)",
+            "web/src/lib/reseller/reseller-lints.test.ts (+ 9 R-03 cases; 18/18 pass)",
+            "web/scripts/ci/reseller-lints.mjs (R-01 + R-03 CLI passes; loads FEATURE_GATES from manifest via regex to stay plain-node)",
+            "web/src/app/api/cap-table/route.ts (POST + DELETE)",
+            "web/src/app/api/cap-table/documents/route.ts (POST)",
+            "web/src/app/api/cap-table/health/route.ts (POST)",
+            "web/src/app/api/cap-table/restrictions/route.ts (POST)",
+            "web/src/app/api/cap-table/sync/route.ts (POST)",
+            "web/src/app/api/data-room/access/route.ts (POST)",
+            "web/src/app/api/data-room/auto-fill/route.ts (POST)",
+            "web/src/app/api/data-room/engage/route.ts (POST — r-03-exempt: anonymous investor telemetry)",
+            "web/src/app/api/data-room/generate/route.ts (POST)",
+            "web/src/app/api/data-room/goals/route.ts (POST)",
+            "web/src/app/api/data-room/initialize/route.ts (POST)",
+            "web/src/app/api/dataroom/clone/route.ts (POST)",
+            "web/src/app/api/dataroom/setup/route.ts (POST)",
+            "web/src/app/api/vesting/route.ts (POST)",
+            "web/src/app/api/vesting/[id]/route.ts (PATCH + DELETE)",
+            "web/src/app/api/ai/vesting/route.ts (POST)",
+            "web/src/app/api/ai/vesting-review/route.ts (POST)",
+            "web/src/app/api/esop/grants/route.ts (POST)",
+            "web/src/app/api/esop/grants/[id]/route.ts (PATCH + DELETE)",
+            "web/src/app/api/esop/pool/route.ts (POST)",
+            "web/src/app/api/esop/div83a-check/route.ts (POST)",
+            "web/src/app/api/ai/esop/route.ts (POST)",
+            "web/src/app/api/blockchain/create-token/route.ts (POST)",
+            "web/src/app/api/blockchain/sync-toggle/route.ts (POST)",
+            "web/src/app/api/blockchain/verify/route.ts (POST)",
+            "web/src/app/api/tokenization/route.ts (POST)",
+            "web/src/app/api/reseller/credits/grant/route.ts (POST)",
+            "web/src/app/api/reseller/sandbox/setup/route.ts (POST)"
+          ], note: "D3-CISO-02 chokepoint — every one of the 28 manifest routes now invokes gateRequireFeature(<key>) at handler top; each key matches feature-gates.manifest.required_feature. Shared helper web/src/lib/feature-gate.ts wraps getCurrentUser + segment resolution + EntitlementError → 402 mapping so per-route wiring is a two-line insertion. R-03 AST lint added at scripts/ci/reseller-lints.mjs (extends R-01 CLI); enforces: (a) every mutation handler in the manifest calls gateRequireFeature/requireFeature with the manifest's required_feature key inside its body; (b) exemptions require `// r-03-exempt: <reason>` immediately above the handler decl. locateHandlers uses paren-then-brace matching so multi-line signatures with destructured params (e.g. `{ params }: { params: Promise<{id:string}> }`) don't fool the body scan. One R-03 exemption in tree: data-room/engage/route.ts POST (investor engagement telemetry from anonymous view; auth is via data_room_access_tokens.token, not user entitlement). Verified: tsc clean; reseller+showcase+gate vitest 319/319 (was 255, +64: +7 feature-gate + +9 R-03 analyzer + 48 pre-existing); npm run lint:reseller: R-01 scanned 8 file(s), R-03 scanned 28 manifest route(s); 3 exemptions, 0 violations."}
           P8.3_grandfather_backfill: {status: pending, note: "migration 0098 backfills existing paying users with share_management entitlement pre-cutover"}
           P8.4_purchase_drawer: {status: pending, note: "purchase drawer + Stripe subscription-item add with proration preview; cancel path defaults cancel_at_period_end"}
           P8.5_env_and_playwright: {status: human_blocked, blocker: "STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars must be minted in Stripe dashboard by account owner before Playwright can green"}
         exit_criteria: [
           "STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars set (HUMAN — P8.5)",
           "feature-gate manifest web/src/lib/feature-gates.manifest.ts complete (DONE P8.1 tick 44 — 28 routes mapped, completeness test 6/6)",
-          "AST lint enforces requireFeature('share_management') on all gated routes (D3-CISO-02) (P8.2)",
+          "AST lint enforces requireFeature('<key>') on all gated routes (D3-CISO-02) (DONE P8.2 tick 45 — R-03 analyzer + CLI live; 28 routes gated; 1 documented exemption for anonymous investor telemetry)",
           "grandfather backfill migrated on cutover T (P8.3 — migration 0098)",
           "purchase drawer functional with proration preview (P8.4)",
           "cancel path defaults to end-of-cycle (cancel_at_period_end on item) (P8.4)",
@@ -1361,6 +1394,52 @@ review_history:
       still human-blocked on H.20.
     commit: (this tick)
 
+  - tick: 45
+    ran_at: 2026-07-21
+    action: p8.2_route_gating
+    result: |
+      Track A P8.2 gate closed. Every mutation handler in the 28 routes
+      listed by web/src/lib/feature-gates.manifest.ts now invokes
+      gateRequireFeature(<key>) at handler top; the <key> matches each
+      manifest row's required_feature (share_management, vesting.write,
+      esop.manage, blockchain.sync, reseller.grant_credits,
+      reseller.console). Shared helper at web/src/lib/feature-gate.ts
+      wraps getCurrentUser + resolveSegment + EntitlementError → 402 so
+      route wiring is a two-line insertion (const gate = await
+      gateRequireFeature("<key>"); if (!gate.ok) return gate.response;)
+      that also carries the user + UserWithPlan projection for downstream
+      logic. 7/7 vitest cases cover the 401 / 402 / segment-fallback /
+      plan-null / non-Entitlement-error branches.
+      R-03 AST lint shipped at web/src/lib/reseller/reseller-lints.ts
+      (analyzeR03) + duplicated into web/scripts/ci/reseller-lints.mjs
+      (plain node, no tsx). The CLI loads FEATURE_GATES from the
+      manifest via regex, then for every route.ts listed asserts that
+      each exported POST/PATCH/PUT/DELETE body calls gateRequireFeature
+      or requireFeature with the manifest key inline. locateHandlers
+      uses paren-then-brace matching so multi-line signatures with
+      destructured params (e.g. `{ params }: { params: Promise<{id:
+      string}> }`) do not fool the body scan — this was the initial
+      bug the first pass hit on vesting/[id] and esop/grants/[id].
+      Per-handler exemption via `// r-03-exempt: <reason>` immediately
+      above the export decl mirrors the R-01 pragma pattern. One
+      exemption in tree: data-room/engage POST (investor engagement
+      telemetry from anonymous view — auth is via
+      data_room_access_tokens.token lookup, not user entitlement).
+      Verification: tsc clean; reseller+showcase+gate vitest 319/319
+      (was 255, +64: +7 feature-gate + +9 R-03 analyzer + 48
+      pre-existing); npm run lint:reseller: R-01 scanned 8 file(s),
+      R-03 scanned 28 manifest route(s); 3 exemptions, 0 violations.
+      Frontier after tick 45: (a) Track A P8.3 grandfather backfill
+      (migration 0098) is next — populate share_management
+      entitlement onto existing paying users pre-cutover. (b) P8.4
+      purchase drawer + cancel_at_period_end + data-room/dataroom
+      folder reconciliation. (c) P8.5 still HUMAN-BLOCKED on Stripe
+      price env var mint. (d) Track B B2 (guide chapters 1-4)
+      remains unblocked from tick 42 as the fallback. (e) P0.3
+      advisory reviews still pending (advisory-only). (f)
+      P1.5_infovision_seed still HUMAN-BLOCKED on H.20.
+    commit: (this tick)
+
   - tick: 43
     ran_at: 2026-07-21
     action: p0.4_ceo_final_sign_off
@@ -1408,14 +1487,15 @@ next_action:
     4) DONE tick 35 — Optional P6.5b widening: term-sheet/idea-lab/valuation/journal/data-room/evidence spendCredits callers now thread project_id via getProjectIdFromRequest(). See tick 35 for file list. Remaining spendCredits() callers not touched: financial-projections, investor-pack/generate, svi/pitch-deck, svi/docx, svi/report, svi/enhanced-report, svi/dimension-analyze, svi/ai-score, svi/research, revaluation, v1/analyze, evaluation/[criterionKey]/ai-suggest, data-room/goals (award path — misleading call, not a real debit).
     5) P0.3_advisory_reviews still pending — schedulable on next off-peak tick (advisory-only per U.13 stage-5; does NOT gate any downstream phase).
    10) DONE tick 43 — P0.4_ceo_final_sign_off closed with verdict=approved. P0 pre-flight window is now fully sealed; only P0.3 advisory reviews remain pending (non-blocking).
-   11) DONE tick 44 — P8_share_management_addon decomposed into P8.1..P8.5 and P8.1_manifest_completeness shipped. feature-gates.manifest.ts now maps 28 real mutation routes (9 phantoms removed, 20 real routes added); completeness test 6/6 pass guards against future drift. Next Track A tick = P8.2 route gating (add requireFeature() at handler top of each of the 28 routes + AST lint per D3-CISO-02).
+   11) DONE tick 44 — P8_share_management_addon decomposed into P8.1..P8.5 and P8.1_manifest_completeness shipped. feature-gates.manifest.ts now maps 28 real mutation routes (9 phantoms removed, 20 real routes added); completeness test 6/6 pass guards against future drift.
+   12) DONE tick 45 — P8.2_route_gating shipped. All 28 manifest routes now invoke gateRequireFeature() at handler top (30 mutation handlers total after counting the two files with POST+DELETE / PATCH+DELETE pairs). Shared helper web/src/lib/feature-gate.ts wraps auth + segment + EntitlementError → 402. R-03 AST lint added to web/src/lib/reseller/reseller-lints.ts + web/scripts/ci/reseller-lints.mjs — enforces the manifest key match inside each mutation handler; one documented exemption for data-room/engage (anonymous investor telemetry). Next Track A tick = P8.3 grandfather backfill (migration 0098) OR P8.4 purchase drawer.
     6) DONE tick 38 — code_request approval now mints Stripe coupon (deterministic id + duration=forever) + promotion_code and inserts into reseller_promotion_codes inline via decideCodeMint(). linked_promotion_code_id stamped on the reseller_requests row before status flips to approved. Tier 0 (attribution-only) skips Stripe. Idempotent under re-approval: existing (reseller_id, tier_pct) row wins; Stripe coupon retrieve-or-create pattern prevents duplicate coupons if a prior attempt died between Stripe mint and DB insert.
     7) DONE tick 37 — reseller-* cron routes now export `{ GET as POST }` so cron-runner.sh's POST no longer 405s. Applies to reseller-clear-commissions, reseller-monthly-report, reseller-monthly-reconciliation, reseller-stripe-sync, credit-reset.
     8) DONE tick 39 — Track B B5 report template library at /guide/reports (see phases.B5_report_library.files). Metadata-only surface; download route + GA event + redaction pipeline deferred to a follow-up tick that also unblocks B6's public showcase.
     9) DONE tick 40 — Track B B6 public showcase mirror at /showcase/blockid (see phases.B6_public_showcase.files). Metadata-only; reads on-disk artefacts + milestone-report-state.json; no DB dep. Deep-linking from /guide/reports card rows to /showcase/blockid (and vice versa) + wiring the "current phase" chip into workspace-layout topbar deferred to a follow-up tick alongside B7 product tour, since both touch the same in-app phase-transition surface.
   authorised: true
   on_success: |
-    Frontier after tick 44: (a) Track A P8_share_management_addon decomposed into P8.1..P8.5 with P8.1_manifest_completeness DONE. feature-gates.manifest.ts is now the accurate single source of truth over 28 real mutation routes; new completeness test at feature-gates.manifest.test.ts fails on any future drift (phantom entries OR unlisted mutation routes). Next Track A tick = P8.2_route_gating — add requireFeature(user, required_feature) at handler top of each of the 28 mapped routes; likely splits into 3-4 batches by subject area (cap-table → data-room → vesting/esop → blockchain/tokenization/reseller). Once wired, add an AST-lint pass that fails on any manifest-listed route missing the call, satisfying D3-CISO-02. (b) Track A P8.3 (migration 0098 grandfather backfill), P8.4 (purchase drawer + cancel_at_period_end + data-room/dataroom folder reconciliation), and P8.5 (Stripe price env vars — HUMAN-BLOCKED on account-owner mint at dashboard.stripe.com) follow P8.2. (c) Track B B2_guide_ch_1_to_4 remains unblocked from tick 42 as the fallback if Track A tick lands off-peak-blocked. (d) P0.3 advisory reviews still pending (advisory-only per U.13 stage-5). P1.5_infovision_seed still HUMAN-BLOCKED on H.20 ABN + GST confirmation. P10_hardening still blocked_by [P1..P9] — waits on P8 completion + Playwright provisioning. Prefer Track A P8.2 next tick per plan rule; else B2 as fallback.
+    Frontier after tick 45: (a) Track A P8.2_route_gating DONE — every one of the 28 manifest routes now invokes gateRequireFeature(<key>) at handler top; R-03 AST lint enforces the manifest key match at CI (npm run lint:reseller). Shared helper web/src/lib/feature-gate.ts owns the 401/402 shape so future gated routes need only two lines. (b) Next Track A tick = P8.3_grandfather_backfill — author web/supabase/migrations/0098 to grant share_management entitlement to every currently-paying user pre-cutover, so existing customers don't hit a 402 on their next cap-table write. Then P8.4 purchase drawer + cancel_at_period_end + data-room/dataroom folder reconciliation. P8.5 remains HUMAN-BLOCKED on Stripe price env var mint by account owner. (c) Track B B2_guide_ch_1_to_4 remains unblocked from tick 42 as the fallback if a Track A tick lands off-peak-blocked. (d) P0.3 advisory reviews still pending (advisory-only per U.13 stage-5). P1.5_infovision_seed still HUMAN-BLOCKED on H.20 ABN + GST confirmation. P10_hardening still blocked_by [P1..P9] — waits on P8 completion + Playwright provisioning. Prefer Track A P8.3 next tick per plan rule; else B2 as fallback.
 
 telemetry:
   log_file: web/content/reports/reseller-goal-history.jsonl
