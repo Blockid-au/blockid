@@ -304,3 +304,5 @@
 {"tick_id":"2026-07-21T23-20-01-245Z","ts":"2026-07-21T23:29:33.575Z","stage":"tick_end"}
 {"tick_id":"2026-07-21T23-30-01-720Z","ts":"2026-07-21T23:30:01.721Z","stage":"tick_start"}
 {"tick":53,"ran_at":"2026-07-21","action":"b9_reviews_surface","result":"Track B B9 shipped — migration 0100 applied; reviews lib + reseller aggregate + reviewer capture route","commit":"pending"}
+{"tick_id":"2026-07-21T23-30-01-720Z","ts":"2026-07-21T23:38:26.271Z","stage":"delegated_dispatch","status":0,"elapsed_ms":504541,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-21T23-30-01-720Z","ts":"2026-07-21T23:38:26.298Z","stage":"auto_commit_started","dirty_files":6}
