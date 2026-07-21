@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { gateRequireFeature } from "@/lib/feature-gate";
 import { getOrCreateUserFolder } from "@/lib/google-drive";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { DATA_ROOM_STRUCTURE } from "@/lib/data-room-templates";
@@ -15,8 +15,9 @@ export const dynamic = "force-dynamic";
  * Idempotent — if folders already exist they are reused.
  */
 export async function POST() {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const gate = await gateRequireFeature("share_management");
+  if (!gate.ok) return gate.response;
+  const user = gate.user;
 
   try {
     const { google } = await import("googleapis");

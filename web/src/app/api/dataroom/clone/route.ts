@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -57,8 +57,9 @@ const SVI_DATAROOM_STRUCTURE: Record<string, { label: string; description: strin
  * Creates the folder structure in the user's BlockID Drive folder.
  */
 export async function POST(request: Request) {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const gate = await gateRequireFeature("share_management");
+  if (!gate.ok) return gate.response;
+  const user = gate.user;
 
   const supabase = getSupabaseAdmin();
   if (!supabase) return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });

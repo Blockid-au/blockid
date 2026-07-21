@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import {
   isChainOnline,
@@ -66,8 +67,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const gate = await gateRequireFeature("share_management");
+  if (!gate.ok) return gate.response;
+  const user = gate.user;
 
   const body = await request.json() as { action: string; data?: Record<string, unknown> };
 

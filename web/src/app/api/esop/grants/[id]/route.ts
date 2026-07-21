@@ -2,7 +2,7 @@
 // DELETE /api/esop/grants/[id] — soft delete (status = 'cancelled').
 
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { gateRequireFeature } from "@/lib/feature-gate";
 import { getGrant, isValidStatus, updateGrantStatus } from "@/lib/esop-grants";
 import { DIV83A_DISCLAIMER } from "@/lib/div83a-checker";
 
@@ -12,13 +12,9 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json(
-      { ok: false, error: "Authentication required" },
-      { status: 401 },
-    );
-  }
+  const gate = await gateRequireFeature("esop.manage");
+  if (!gate.ok) return gate.response;
+  const user = gate.user;
 
   const { id } = await params;
   const existing = await getGrant(id, user.id);
@@ -59,13 +55,9 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json(
-      { ok: false, error: "Authentication required" },
-      { status: 401 },
-    );
-  }
+  const gate = await gateRequireFeature("esop.manage");
+  if (!gate.ok) return gate.response;
+  const user = gate.user;
 
   const { id } = await params;
   const existing = await getGrant(id, user.id);

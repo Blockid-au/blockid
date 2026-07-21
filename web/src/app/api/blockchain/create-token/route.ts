@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { aiSuggestTicker } from "@/lib/ai-equity";
 import { deployCompanyToken } from "@/lib/evm-deploy";
@@ -17,10 +18,9 @@ const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
 // The founder's wallet (adminAddress) receives 100% of the initial shares
 // and ADMIN_ROLE. Returns the deployed token address.
 export async function POST(request: Request) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
-  }
+  const gate = await gateRequireFeature("blockchain.sync");
+  if (!gate.ok) return gate.response;
+  const user = gate.user;
 
   let body: Record<string, unknown>;
   try {

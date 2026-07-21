@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSyncConfig } from "@/lib/blockchain-sync";
 
@@ -7,10 +7,9 @@ export const dynamic = "force-dynamic";
 
 // POST /api/blockchain/verify — Verify off-chain vs on-chain balances
 export async function POST() {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
-  }
+  const gate = await gateRequireFeature("blockchain.sync");
+  if (!gate.ok) return gate.response;
+  const user = gate.user;
 
   const config = await getSyncConfig(user.id);
   if (!config?.tokenAddress) {

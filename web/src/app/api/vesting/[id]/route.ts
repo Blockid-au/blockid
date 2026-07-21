@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { computeVestingTimeline, type VestingSchedule } from "@/lib/vesting";
 
@@ -75,10 +76,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
-  }
+  const gate = await gateRequireFeature("vesting.write");
+  if (!gate.ok) return gate.response;
+  const user = gate.user;
 
   const { id } = await params;
   const result = await loadSchedule(id, user.id);
@@ -143,10 +143,9 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
-  }
+  const gate = await gateRequireFeature("vesting.write");
+  if (!gate.ok) return gate.response;
+  const user = gate.user;
 
   const { id } = await params;
   const result = await loadSchedule(id, user.id);

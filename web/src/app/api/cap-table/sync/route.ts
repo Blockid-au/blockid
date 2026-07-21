@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -137,8 +138,10 @@ export async function GET() {
 // ---------------------------------------------------------------------------
 
 export async function POST() {
-  const user = await getCurrentUser();
-  if (!user || user.role !== "admin") {
+  const gate = await gateRequireFeature("share_management");
+  if (!gate.ok) return gate.response;
+  const user = gate.user;
+  if (user.role !== "admin") {
     return NextResponse.json(
       { ok: false, error: "Admin access required" },
       { status: 403 },

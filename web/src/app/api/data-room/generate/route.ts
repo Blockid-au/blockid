@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { spendCredits } from "@/lib/credits";
 import { getProjectIdFromRequest } from "@/lib/projects";
@@ -28,13 +28,9 @@ function mapStage(numericStage: number): string {
 // ---------------------------------------------------------------------------
 
 export async function POST() {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json(
-      { ok: false, error: "Authentication required" },
-      { status: 401 },
-    );
-  }
+  const gate = await gateRequireFeature("share_management");
+  if (!gate.ok) return gate.response;
+  const user = gate.user;
 
   const supabase = getSupabaseAdmin();
   if (!supabase) {
