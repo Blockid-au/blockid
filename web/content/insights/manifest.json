@@ -1,6 +1,30 @@
 {
   "articles": [
     {
+      "slug": "startup-valuation-cap-table-impact-calculator",
+      "title": "Startup Equity Dilution Calculator Australia | BlockID",
+      "description": "Simulate your cap table with our startup equity dilution calculator. Model valuations and protect your ownership in every funding round. Try it now.",
+      "keywords": [
+        "startup equity dilution calculator australia",
+        "how valuation affects cap table",
+        "down round impact on founders",
+        "pre-money vs post-money valuation australia",
+        "cap table simulation tool",
+        "startup dilution examples",
+        "seed round equity dilution",
+        "how to avoid dilution in startup funding",
+        "valuation impact on founder shares",
+        "cap table management for australian startups"
+      ],
+      "category": "valuation",
+      "publishedAt": "2026-07-21",
+      "readingTime": 5,
+      "cta": {
+        "label": "Calculate Your Valuation",
+        "href": "/tools/valuation-calculator"
+      }
+    },
+    {
       "slug": "safe-vs-convertible-note-vs-priced-round-australia",
       "title": "SAFE vs Convertible Note vs Priced Round (Australia, 2026)",
       "description": "When to use a SAFE, a convertible note, or a priced round for an AU startup raise — worked conversion examples, term-sheet gotchas, s708 disclosure, ESIC interaction and real examples from Canva, Airwallex, Zeller and Immutable.",
