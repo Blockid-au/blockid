@@ -237,3 +237,4 @@
 {"tick_id":"2026-07-21T21-25-01-929Z","ts":"2026-07-21T21:28:10.794Z","stage":"auto_deploy_finished","status":1,"head":"389ba22"}
 {"tick_id":"2026-07-21T21-25-01-929Z","ts":"2026-07-21T21:28:10.795Z","stage":"tick_end"}
 {"tick_id":"2026-07-21T21-30-01-392Z","ts":"2026-07-21T21:30:01.393Z","stage":"tick_start"}
+{"tick_id": 44, "ts": "2026-07-21T21:35:00Z", "phase": "P8.1_manifest_completeness", "stage": "sign_off", "agents_spawned": 1, "elapsed_ms": 0, "verdict": "approved", "commit": "2f33aa6", "note": "28 routes mapped; 9 phantoms removed; completeness test 6/6 pass; vitest 248/248; tsc clean"}
