@@ -113,6 +113,31 @@ export function resellerSupabase(scope: ScopedResellerSession) {
     },
 
     /**
+     * Reseller-lens investor-review rows scoped to attributed customers'
+     * projects. Selects ONLY the reseller-visible fields (project_id, rating,
+     * created_at) — never `comment` or `reviewer_email` — so the U.9 §5
+     * "no content" boundary is enforced at the query layer. Caller feeds
+     * the rows into buildReviewsSummary() for the k>=5 aggregate rollup.
+     */
+    async showcaseReviewsAggregate(): Promise<{ project_id: string; rating: number; created_at: string }[]> {
+      const allowedIds = await scope.allowedCustomerIds();
+      if (allowedIds.length === 0) return [];
+      const { data: projectRows, error: projectErr } = await supabase
+        .from("projects")
+        .select("id")
+        .in("user_id", allowedIds);
+      if (projectErr) throw projectErr;
+      const projectIds = (projectRows ?? []).map((r: { id: string }) => r.id);
+      if (projectIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("showcase_reviews")
+        .select("project_id, rating, created_at")
+        .in("project_id", projectIds);
+      if (error) throw error;
+      return (data ?? []) as { project_id: string; rating: number; created_at: string }[];
+    },
+
+    /**
      * Portfolio SVI aggregate — one row per (month, project). k>=5 anonymity
      * (U.15.3) enforced by the caller before rendering; this helper returns
      * raw scoped rows and the caller aggregates + suppresses.

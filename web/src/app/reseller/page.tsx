@@ -17,6 +17,7 @@ import {
   type KAnonBucket,
 } from "@/lib/reseller/portfolio-aggregates";
 import { buildPhaseDistribution } from "@/lib/reseller/portfolio-phase-distribution";
+import { buildReviewsSummary } from "@/lib/reseller/reviews";
 
 export const dynamic = "force-dynamic";
 
@@ -52,11 +53,12 @@ export default async function ResellerDashboardPage() {
   }
 
   const db = resellerSupabase(scope);
-  const [reseller, customers, promoCodes, sviRaw] = await Promise.all([
+  const [reseller, customers, promoCodes, sviRaw, reviewRows] = await Promise.all([
     db.selfReseller(),
     db.attributedCustomers(),
     db.promotionCodes(),
     db.portfolioSviRaw(),
+    db.showcaseReviewsAggregate(),
   ]);
 
   const activeCodes = promoCodes.filter((c) => c.active).length;
@@ -67,6 +69,7 @@ export default async function ResellerDashboardPage() {
     customers: customers.map((c) => ({ user_id: c.user_id })),
     svi: sviRaw,
   });
+  const reviewsSummary = buildReviewsSummary(reviewRows);
   const weeklyMax = Math.max(1, ...weekly.map((w) => w.count ?? 0));
   const bandsMax = Math.max(1, ...bands.map((b) => b.count ?? 0));
   const phaseMax = Math.max(1, ...phaseDist.map((p) => p.count ?? 0));
@@ -195,6 +198,41 @@ export default async function ResellerDashboardPage() {
             </li>
           ))}
         </ul>
+      </section>
+
+      <section className="mb-6 rounded-lg border border-surface-200 bg-white p-4">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-lg font-semibold text-ink-900">Investor reviews</h2>
+          <p className="text-xs text-ink-500">
+            Aggregate only — review content stays inside the founder&apos;s workspace (U.9 §5)
+          </p>
+        </div>
+        <dl className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div>
+            <dt className="text-xs font-medium uppercase tracking-wide text-ink-500">
+              Reviews received
+            </dt>
+            <dd className="mt-1 text-2xl font-semibold text-ink-900">
+              {formatKAnon(reviewsSummary.total_reviews)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium uppercase tracking-wide text-ink-500">
+              Projects with reviews
+            </dt>
+            <dd className="mt-1 text-2xl font-semibold text-ink-900">
+              {formatKAnon(reviewsSummary.projects_with_reviews)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium uppercase tracking-wide text-ink-500">
+              Average rating (1-5)
+            </dt>
+            <dd className="mt-1 text-2xl font-semibold text-ink-900">
+              {reviewsSummary.avg_rating == null ? "—" : reviewsSummary.avg_rating.toFixed(1)}
+            </dd>
+          </div>
+        </dl>
       </section>
 
       <section className="rounded-lg border border-surface-200 bg-white p-4">
