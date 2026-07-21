@@ -242,6 +242,103 @@ Estimate: ~4–6 eng-weeks for Track B, running in parallel with A. Both tracks 
 
 **Kill switch:** `SHOWCASE_TRACK_ENABLED=off` hides the showcase workspace + guide UI; content on disk is preserved.
 
+### U.9 Track B deep-dive — 12-phase startup showcase journey with auto-DataRoom, integrations, growth signals
+
+Founder direction: the demo case must show, phase by phase, **what happens** (action + auto-generated artifact + integration triggered + growth signal captured) so a new founder sees the full value chain, and the reseller sees the whole progression in their dashboard (U.7). Below is the canonical journey matrix — every row references code that already exists so we're wiring, not inventing.
+
+**Journey matrix.** Rows are the 12 growth phases from `[[project_growth_phases]]`, ordered start → funding-ready. Columns:
+- **Founder action**: what the user does in-app that turn.
+- **Auto-generated in BlockID**: artifacts the platform produces without asking — files land in the workspace DataRoom and `svi_analyses` automatically.
+- **Integrations activated**: external services wired at that phase (Stripe, Google Analytics, blockchain, GitHub, etc.).
+- **Growth signals captured**: which existing metrics update; feeds the reseller progression view (U.7) and portfolio KPIs.
+- **Reseller sees in progression tab**: the exact event row that appears in Section U.7's timeline.
+
+| # | Phase | Founder action | Auto-generated in BlockID | Integrations activated | Growth signals captured | Reseller sees |
+|---|---|---|---|---|---|---|
+| 1 | **Vision / Day-0 Idea** | New workspace via `?via=INFOVISION20` or `/reseller/create-startup`. Type the one-line idea + target market. | Idea-summary doc → DataRoom (`data_room` write via [web/src/lib/data-room.ts](web/src/lib/data-room.ts) + templates in [data-room-templates.ts](web/src/lib/data-room-templates.ts)). CMO agent (`[[project_ai_agent_ecosystem]]`) auto-drafts a market-context memo. First `svi_analyses` row created with 3-question SVI scaffold from `[[project_core_mission]]`. | Reseller attribution stamped (D.3 flow). Consent-notice captured (E.1). | `projects.created_at`, first `svi_analyses` row, first DataRoom doc. | `Timeline: Started idea — Chapter 1 (Vision)` |
+| 2 | **Idea Validation** | Answer 13-criteria SVI questionnaire (`[[project_svi_13_criteria]]`); upload any evidence. | 13-criteria SVI report auto-generated (existing `svi_analyses.report_pdf_url`). CMO agent runs deep market research (competitor scan, TAM/SAM/SOM). Landing-page draft written by CMO into DataRoom. | Google Analytics measurement ID prompt (uses [web/src/lib/analytics/](web/src/lib/analytics/) infra); wired at landing-page publish time in phase 4. | First SVI score written. `svi_signals` populated (workspace content — never leaves reseller boundary). | `Timeline: SVI first scored — {score}` |
+| 3 | **Market Research** | Trigger CMO agent for deeper competitor & customer-persona research. Optional: upload interview notes. | Competitor matrix PDF (uses [competitive-intelligence.ts](web/src/lib/competitive-intelligence.ts)). Customer-persona doc. AU-comparable-raises benchmark ([au-comparable-raises.ts](web/src/lib/au-comparable-raises.ts)). All land in DataRoom under `research/`. | — | SVI score delta (Vision → Validation → Market phases). Credits consumed logged (`usage_logs`). | `Timeline: Market research pack generated (+{count} docs)` |
+| 4 | **MVP / Product Discovery** | Link a GitHub / repo URL. Draft product brief. | CTO agent produces architecture note + tech stack recommendation. Product brief PDF → DataRoom `product/`. Landing-page template published (behind a `blockid.au/showcase/<slug>` subroute). | **GitHub link** captured on `projects.repo_url` (new nullable column) — used to display last-commit timestamp + languages in progression view (public API, no code contents fetched). **Google Analytics** measurement ID entered → GA event stream begins on the landing page. | Milestone `mvp_scoped` written to `web/content/reports/milestone-report-state.json`. | `Timeline: MVP scoped — repo linked, landing page live` + last-commit sparkline |
+| 5 | **PMF / Early Traction** | Log first users / revenue / retention metrics. Optionally connect Stripe test data. | CDO agent runs data-quality audit + PMF signal analysis. CFO agent updates unit economics doc. Retention/cohort chart auto-drawn. | **Stripe test-mode connection** for the *founder's* payment collection (separate from BlockID's Stripe — this is the founder's own future gateway, tested here). GA funnel goals prompted. | SVI phase transition → `Position`. `credit_transactions` for the analysis runs. | `Timeline: PMF signals captured (retention {n}%, revenue ${amt})` |
+| 6 | **Revenue / Business Model** | Approve CFO's projection assumptions. Iterate pricing. | CFO agent produces 3-year projection + burn curve + break-even. Financial model DOCX/XLSX via [web/src/lib/docx](web/src/lib/docx). Pricing memo. | Stripe live-mode readiness checklist. Australian GST checklist ([au-compliance](web/src/lib/) — check exact filename). | Milestone `financials_v1`. | `Timeline: Financial model v1 (3yr projection)` |
+| 7 | **Growth / Analytics** | Connect production GA4 or Stripe. Set weekly SVI-refresh schedule. | Weekly SVI deltas → `weekly_delta` feature (already in entitlements union L69). Growth playbook by CMO. Referral-program scaffold via existing referrals infra. | **GA4 property connection** — pulls sessions/conversions weekly into `svi_signals`. **Stripe live account** (founder's own) connected → MRR/churn events feed back. | SVI weekly deltas start recording. | `Timeline: Growth analytics wired (GA4 + Stripe live)` + weekly SVI sparkline |
+| 8 | **Team & Culture** | Add co-founders / early hires. Draft ESOP scheme. | CHRO agent produces org-chart + role definitions. ESOP scheme doc via [equity](web/src/lib/) + [esop](web/src/lib/) modules. Div83A checklist runs ([div83a-checker.ts](web/src/lib/div83a-checker.ts)). | If Share Management add-on active: cap table populated; ESOP schedule created. | Milestone `team_v1`. | `Timeline: Team formed ({n} members, ESOP {status})` |
+| 9 | **Funding-Ready** | Assemble investor pack. Reviewers give feedback. | Investor deck DOCX auto-drafted. Data room organised into standard sections (product/team/financials/legal/traction) — `data-room-templates.ts` already has this. LLM-auditor runs a self-review of the pack (`[[project_adk_agent_garden]]`). | **Reviewer invite links** (uses existing review/feedback path — search for `feedback` or `reviews` in `web/src/app/api/`). Each review captured and shown as a card. | Milestone `investor_ready`. All DataRoom docs marked "shareable". | `Timeline: Investor pack complete — data room shareable` |
+| 10 | **Fundraise / Term Sheet** | Share data room with investor. Receive term sheet. Get AI review. | Term-sheet AI review (already `term_sheet_ai` entitlement L42). Compare against comparable raises ([au-comparable-raises.ts](web/src/lib/au-comparable-raises.ts)). CLO agent produces legal red-flag report ([compliance-checker.ts](web/src/lib/compliance-checker.ts)). | Investor NDA workflow (data-room access tokens). Optional blockchain hash of term sheet for tamper-evidence. | `svi_analyses` records deal terms; reseller sees deal-in-progress flag. | `Timeline: Term sheet in review — {valuation}` |
+| 11 | **Post-Funding / Growth Scale** | Distribute equity (if using Share Management add-on). Track KPIs monthly. | Cap table finalised on-chain (`blockchain-sync.ts`). Vesting schedules stamped. Monthly board pack auto-drafted by CEO agent. | **Blockchain sync** (per `[[project_blockchain_explorer]]`) — cap-table hashed to private EVM. Board-pack PDF distributed via email. | Milestone `funded`. Recurring monthly board pack. | `Timeline: Funded — cap table on-chain, monthly board pack live` |
+| 12 | **Exit / Beyond** | Prep for next round or exit. Portfolio-level view. | Exit-readiness report. Comparable exits benchmark. Portfolio summary for LP-report if reseller is an accelerator ([lp_report](web/src/lib/entitlements.ts) already in union L70). | Reseller LP-report bundling (accelerator segment). | `svi_analyses` marks exit-ready. | `Timeline: Exit prep — LP report available` |
+
+**Cross-cutting infrastructure surfaced by the journey:**
+
+1. **Auto-DataRoom is not a page — it's a filesystem.** Every artifact above lands in the workspace's `data_room` automatically via existing writes in [web/src/lib/data-room.ts](web/src/lib/data-room.ts). Track B just adds **auto-organisation** (section folders from `data-room-templates.ts`) and **auto-tagging** (each doc stamped with `generated_by_agent`, `phase_at_generation`, `credits_consumed`). This gives the reseller's Reports tab (U.7) a clean row per artifact.
+2. **Integrations catalogue** (order of activation across the journey):
+   - **Stripe (BlockID's own, Auschain-owned)** — U.1, active from Day 1 for subscription billing.
+   - **Stripe (founder's own)** — Phase 5–7 connection to the founder's future gateway; test-mode → live-mode.
+   - **Google Analytics 4** — Phase 4 (measurement ID) → Phase 7 (property connection for GA4 API pull into `svi_signals`).
+   - **GitHub / source-code linkage** — Phase 4 `projects.repo_url` capture; public-API last-commit + language stats only; no content pull. Optional: PR count sparkline.
+   - **Blockchain (private EVM, per `[[project_blockchain_explorer]]`)** — Phase 10 (optional term-sheet hash) → Phase 11 (cap-table sync via `blockchain-sync.ts`).
+   - **Reviewer / feedback loop** — Phase 9 (investor reviewer invites) + Phase 10 (AI-audited term sheet); reuses existing feedback route pattern.
+   - **Email drip** ([email-drip.ts](web/src/lib/email-drip.ts)) — the guideline chapter emails are queued as the founder crosses phase boundaries, not on a fixed schedule.
+3. **Growth signals feed two consumers:** (a) the founder's own dashboard (SVI curve + roadmap position), (b) the reseller's portfolio view (U.7 aggregations). Same signals, two audiences — reseller sees aggregated / redacted, founder sees full.
+4. **What the reseller CANNOT see, even for the showcase:** any DataRoom document content, any specific SVI signal reasoning, any investor identity, any term-sheet terms. Only metadata (title, type, generated_at, agent, size) — enforced by the E.2 allow-matrix, unchanged.
+5. **Reviews & feedback** as a first-class surface — Phase 9 investor reviews become a `reviews` table row per invited reviewer (rating 1–5, free-text comment, timestamp); shown to the founder in-app and rolled up to the reseller as "N reviews received, avg X" (no content). If a `reviews` table doesn't exist yet, add as `showcase_reviews(project_id, reviewer_email, rating int, comment_hash text, created_at)` — hash the comment so reseller can't reconstruct.
+
+**Public-facing showcase** (`/showcase/blockid` from U.8 point 6, enriched):
+- Renders BlockID.au's actual data — SVI curve, current phase, artifact count per section, milestone timeline, integrations wired.
+- Uses the same redaction rules as the reseller view (metadata only for artifacts).
+- Serves as **living marketing content** — every phase transition BlockID.au itself hits updates the public page, so visitors always see "look what a real startup is doing right now".
+- Feeds a `/guide/reports` gallery with anonymised template PDFs.
+
+**Track B roadmap** (extends U.8 phase table with the deeper spec):
+
+| # | Phase (deeper) | Deps | What it now delivers |
+|---|---|---|---|
+| B1 | Showcase project scaffold + auto-DataRoom wiring | — | `is_showcase` column; seed BlockID.au workspace; auto-tag `web/content/reports/*.md` into DataRoom rows with `generated_by_agent, phase_at_generation` |
+| B2 | Guide chapters 1–4 (Vision → MVP) | B1 | Content + integration hooks — GitHub `repo_url` capture UI, GA measurement-ID capture UI |
+| B3 | Guide chapters 5–8 (PMF → Team) | B2 | Content + Stripe test-mode connection UI, GA4 property connection, weekly SVI cron |
+| B4 | Guide chapters 9–12 (Funding → Beyond) | B3 | Content + investor NDA workflow, term-sheet AI review UI, blockchain sync activation |
+| B5 | Report template library | B1 | `/guide/reports` with anonymised template gallery; download tracked in GA |
+| B6 | Public showcase mirror `/showcase/blockid` | B1 | Read-only public view with redaction; auto-refresh on BlockID.au's own phase transitions |
+| B7 | Interactive product tour | B2 | Overlay: "You are on Phase X of 12" + link to current chapter; hides after dismissal, resurfaces on phase transition |
+| B8 | Reseller linkage (U.7 hooks) | B1, U.7 P4 | Progression-view timeline rows deep-link to matching guide chapter; portfolio phase-distribution chart reuses same 12-phase enum |
+| B9 | Reviews & feedback surface | B4 | `showcase_reviews` (or existing table) wired to Phase 9; reseller sees aggregate only |
+| B10 | Integration catalogue admin page | B3 | `/workspace/integrations` — one row per integration (Stripe, GA4, GitHub, blockchain), status + last-sync + credentials manager |
+
+Estimate revised: ~6–8 eng-weeks Track B (up from 4–6) — the integration wiring and public showcase mirror add meaningful work. Still runs entirely in parallel with Track A.
+
+### U.10 Plan review — supersessions map & consistency check
+
+The plan has accumulated ten updates (U.1–U.9) on top of the original 10 sections (A–H + Verification + Exec Summary). This subsection is the reader's index — if U.n conflicts with an earlier section, U.n wins.
+
+| Update | Supersedes / extends | Now the truth on |
+|---|---|---|
+| U.1 | A.1 (Billing & Stripe), C.3 Surface 3, D.3, H.13 answer | Stripe seller-of-record = Auschain PTY LTD; dashboard-owner email TBD out-of-repo |
+| U.2 | A.3 "Monthly amounts" row, H.11 | 200 credits/mo = existing `founder_growth`; no new SKU; credit-reset cron still to build in P3 |
+| U.3 | R3 / R4 economics, D.1 `resellers` schema, G.2 commission truth-table CHECK constraint | Two billing_model values (retail/wholesale); wholesale rows enforce `commission=0` and `list=amount_paid`; retail rows keep the 60/40 invariant |
+| U.4 | A.3 "Manual top-up hooks", C.1.4, D.2 `projects` extension | Reseller sandbox = one hidden `projects` per reseller org; draws from `monthly_credit_budget`; instrumented separately |
+| U.5 | G.1 phase table | Adds P0 (goal file + orchestration) and P11 (ongoing loop); autonomous CEO tick with CTO+QA+CDO+CFO subagents |
+| U.6 | A.2 workspaces row, D.2 `projects.attribution_reseller_id` | One `projects` = one idea = one startup; per-workspace attribution wins; wholesale charges per idea |
+| U.7 | C.1.2 Customers page, C.1.6 KPI report, C.1.1 dashboard | Reseller startup-detail drawer has Overview + Progression + Reports tabs; portfolio-level SVI/phase/velocity/health flags |
+| U.8 | (new — parallel Track B) | BlockID.au dogfoods itself as the showcase startup |
+| U.9 | Extends U.8 with the 12-phase journey matrix and integrations catalogue | Auto-DataRoom, GA4/GitHub/Stripe-founder/blockchain wiring surfaced per phase |
+| U.10 | (this) | Supersessions index; consistency check below |
+
+**Consistency check across U.1–U.9:**
+1. **U.3 wholesale × U.6 per-idea × U.7 progression** — all three converge cleanly. Wholesale means the reseller pays one Stripe line per idea; U.6 confirms that each idea is a `projects` row; U.7's progression tab shows one timeline per project. No conflict.
+2. **U.4 sandbox × U.6 per-idea** — sandbox is org-level, deliberately NOT per idea. Documented explicitly at end of U.6.
+3. **U.7 reports metadata × U.8 report template library × U.9 auto-DataRoom** — three views of the same artifacts. Reseller sees metadata; founder sees content; public showcase sees anonymised templates. Enforced by the same `data_room` row + `phase_at_generation` tag; three different queries.
+4. **U.5 autonomous loop × U.8/U.9 Track B** — U.5's goal file grows a `tracks.B.phases` list alongside `tracks.A.phases`. CEO tick picks the next unblocked phase from either track. Any dependency across tracks (e.g. B8 depends on U.7 P4) is expressed as an inter-track edge in the goal file.
+5. **H.11 resolution × H.15 sandbox ceiling** — one budget dial per reseller (`monthly_credit_budget`), spent by both attributed-customer grants (C.1.4) and reseller sandbox (U.4). Split visible in reporting only. No new column.
+6. **Legacy plan IDs** — `LEGACY_PLAN_MAP` at [entitlements.ts:90](web/src/lib/entitlements.ts) maps `growth→founder_growth`. Any code touching credit numbers must use the v2 id or normalise via that map. Called out in P3 exit criteria.
+7. **Framework doc constraint** ([web/AGENTS.md](web/AGENTS.md)) — still applies to every route/component/Server Action in both tracks. Not superseded.
+
+**Verification checklist additions for the reviewed plan** (extend the original Verification section):
+8. **U.3 CHECK constraint per billing_model** — DB migration test: insert a `wholesale` row with commission > 0 → fails; insert a `retail` row that violates 60/40 → fails; insert a wholesale row with a promo discount and `amount_paid = list − discount` → succeeds.
+9. **U.6 attribution timing** — Playwright: user with `blockid_via` cookie logs in via Google, does NOT create a project → assert no `reseller_attributions` row. Same user then creates project → assert one row with `subject_type='project'`.
+10. **U.7 progression privacy** — Playwright as reseller: fetch `/api/reseller/customers/[id]/progression` → assert response contains event timestamps + labels but no `svi_signals.reasoning`, no `documents.*` bodies, no `dataroom` blobs.
+11. **U.8/U.9 showcase population** — end-to-end: run the auto-DataRoom job against `web/content/reports/*.md`, assert each report file appears as one `data_room_documents` row tagged with the correct agent + phase.
+12. **U.5 autonomous loop replay** — kill the loop cron, edit the goal file's `current_focus` to a prior phase, restart, assert the loop picks up correctly (idempotency test).
+
 ---
 
 ## A. AS-IS Architecture Map (+ reuse-vs-build verdicts)
