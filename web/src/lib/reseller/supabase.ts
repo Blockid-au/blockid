@@ -26,6 +26,7 @@ export interface AttributedCustomerRow {
   display_name: string | null;
   created_at: string;
   last_login_at: string | null;
+  onboarding_completed: boolean | null;
 }
 
 export interface PromotionCodeRow {
@@ -86,15 +87,16 @@ export function resellerSupabase(scope: ScopedResellerSession) {
       if (allowedIds.length === 0) return [];
       const { data, error } = await supabase
         .from("app_users")
-        .select("id, email, display_name, created_at, last_login_at")
+        .select("id, email, display_name, created_at, last_login_at, onboarding_completed")
         .in("id", allowedIds);
       if (error) throw error;
-      return (data ?? []).map((u: {id: string; email: string; display_name: string | null; created_at: string; last_login_at: string | null;}) => ({
+      return (data ?? []).map((u: {id: string; email: string; display_name: string | null; created_at: string; last_login_at: string | null; onboarding_completed: boolean | null;}) => ({
         user_id: u.id,
         email: u.email,
         display_name: u.display_name,
         created_at: u.created_at,
         last_login_at: u.last_login_at,
+        onboarding_completed: u.onboarding_completed,
       }));
     },
 
@@ -115,16 +117,21 @@ export function resellerSupabase(scope: ScopedResellerSession) {
      * (U.15.3) enforced by the caller before rendering; this helper returns
      * raw scoped rows and the caller aggregates + suppresses.
      */
-    async portfolioSviRaw() {
+    async portfolioSviRaw(): Promise<{ id: string; project_id: string; score: number | null; created_at: string }[]> {
       const allowedIds = await scope.allowedCustomerIds();
       if (allowedIds.length === 0) return [];
       const { data, error } = await supabase
         .from("svi_analyses")
-        .select("id, project_id, score, created_at")
+        .select("id, project_id, total_svi, created_at")
         .in("user_id", allowedIds)
         .order("created_at", { ascending: true });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).map((r: { id: string; project_id: string; total_svi: number | null; created_at: string }) => ({
+        id: r.id,
+        project_id: r.project_id,
+        score: r.total_svi,
+        created_at: r.created_at,
+      }));
     },
 
     /**

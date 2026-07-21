@@ -187,14 +187,18 @@ tracks:
             "web/src/app/reseller/customers/drawer-opener.tsx",
             "web/src/app/reseller/customers/page.tsx (Details column wiring)"
           ], note: "U.7 3-tab drawer — Overview (plan/MRR/credits/last-active) + Progression (timeline events + monthly SVI curve) + Reports (metadata only, no download link, no preview). Pure buildOverviewSummary/buildProgressionTimeline/buildSviCurve/buildReportsList helpers with 10 vitest cases. GET route writes reseller_audit_log(action='view_customer_drawer') BEFORE returning; scopedReseller + decideReveal(uuid + allowedCustomerIds) chokepoint reused from P4.1."}
-          P4.3_portfolio_aggregates: {status: pending, note: "k>=5 anonymity + weekly timestamp quantisation on dashboard counters"}
+          P4.3_portfolio_aggregates: {status: done, tick: 23, files: [
+            "web/src/lib/reseller/portfolio-aggregates.ts (+ test 19/19)",
+            "web/src/lib/reseller/supabase.ts (AttributedCustomerRow.onboarding_completed + portfolioSviRaw total_svi→score alias)",
+            "web/src/app/reseller/page.tsx (KPI cards + signup-by-ISO-week + SVI band distribution wired to k>=5 aggregates)"
+          ], note: "U.15.3 chokepoint — pure buildPortfolioSummary + buildSignupWeekly + buildSviBands with k>=5 threshold + ISO-8601 week label + applyComplementarySuppression protects against single-suppressed-bucket subtraction leaks. Dashboard renders '<5' for suppressed cells; day-precision timestamps never surface."}
           P4.4_scope_grep_rule: {status: pending, note: "CI rule R-01 fails any /api/reseller/* that touches getSupabaseAdmin without importing scopedReseller"}
         exit_criteria: [
           "/reseller/{dashboard,customers,codes,credits,create-startup,reports,settings} live (SKELETONS DONE)",
           "scopedReseller(user) typed helper enforces boundary (D3-CISO-01) (DONE)",
           "reseller_audit_log writes on every row read (PARTIAL — reveal-email wired P4.1; drawer + list read wiring pending P4.2)",
           "3-tab customer drawer: Overview + Progression + Reports (U.7) (DONE P4.2)",
-          "k>=5 anonymity + weekly timestamp quantisation on aggregate counters (D3-CISO-03) (PENDING P4.3)",
+          "k>=5 anonymity + weekly timestamp quantisation on aggregate counters (D3-CISO-03) (DONE P4.3)",
           "Playwright: reseller cannot fetch /api/svi/*, /api/dataroom/*, /api/cap-table/* for attributed customer → 403 (DEFERRED to P10)"
         ]
       P5_cobranding:
@@ -483,6 +487,29 @@ review_history:
       10 new + 104/104 combined reseller suite pass; tsc clean.
     commit: (this tick)
 
+  - tick: 23
+    ran_at: 2026-07-21
+    action: p4.3_portfolio_aggregates
+    result: |
+      k>=5 anonymity + ISO-week quantisation now enforced on the reseller
+      dashboard. Pure builders at web/src/lib/reseller/portfolio-aggregates.ts:
+      buildPortfolioSummary (attributed_total + active_last_week + onboarded,
+      each k-anonymised independently), buildSignupWeekly (ISO-8601 week label
+      YYYY-Www + per-bucket suppression), buildSviBands (latest total_svi per
+      project → five bands 0-20/21-40/41-60/61-80/81-100), and
+      applyComplementarySuppression (subtracting visible buckets from a known
+      total would leak a lone suppressed bucket; blank the smallest surviving
+      bucket to lift the guarantee to >=2 simultaneous holes). Vitest cases:
+      19/19 pass; 123/123 combined reseller suite; tsc clean.
+      Wrapper hardened: AttributedCustomerRow now carries onboarding_completed
+      and portfolioSviRaw aliases total_svi→score with a typed return so
+      downstream helpers get compile-time shape enforcement. Dashboard
+      (web/src/app/reseller/page.tsx) rebuilt: KPI grid (Attributed / Active
+      last 7d / Active codes / Billing model) + signup-by-ISO-week bar strip +
+      SVI band distribution — suppressed cells render '<5', day precision
+      never leaves the server.
+    commit: (this tick)
+
   - tick: 20
     ran_at: 2026-07-21
     action: p3.1_reconciliation_cron
@@ -510,12 +537,12 @@ next_action:
     2) Seed INFOVISION reseller row (P1.5_infovision_seed) once P1.4 lands.
     3) P4.1_reveal_email_audit DONE (tick 21) — H.10 mask/reveal + audit-log chokepoint on customer list.
     4) P4.2_customer_drawer DONE (tick 22) — U.7 3-tab drawer with reseller_audit_log write on open.
-    5) P4.3_portfolio_aggregates — k>=5 anonymity + weekly timestamp quantisation on dashboard counters.
+    5) P4.3_portfolio_aggregates DONE (tick 23) — U.15.3 k>=5 anonymity + ISO-week quantisation live on dashboard.
     6) P4.4_scope_grep_rule — R-01 CI grep to fail any /api/reseller/* touching getSupabaseAdmin without scopedReseller.
     7) After P4 lands, unlock P6_capabilities_sandbox and P9_admin_surface.
-    8) Track B (B1_showcase_scaffold) unblocked by track_A_P1 done — next tick can consider it in parallel with P4.
+    8) Track B (B1_showcase_scaffold) unblocked by track_A_P1 done — next tick can consider it in parallel with P4.4.
   authorised: true
-  on_success: continue to P4.3 portfolio aggregates + track B B1
+  on_success: continue to P4.4 CI grep rule + track B B1
 
 telemetry:
   log_file: web/content/reports/reseller-goal-history.jsonl
