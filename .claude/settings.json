@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /home/dovanlong/blockid.au add docs/plans/reseller-module-plan.md)",
+      "Bash(git -C /home/dovanlong/blockid.au commit -m ' *)",
+      "Bash(git -C /home/dovanlong/blockid.au push origin master)"
+    ]
+  }
+}

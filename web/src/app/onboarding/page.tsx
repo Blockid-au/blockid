@@ -62,6 +62,7 @@ export default async function OnboardingPage({
     plan: first(sp.plan),
     step: first(sp.step),
     segment: first(sp.segment),
+    via: first(sp.via), // reseller attribution code (mirrors ?ref=); see § C.2, § U.6
   };
 
   return (

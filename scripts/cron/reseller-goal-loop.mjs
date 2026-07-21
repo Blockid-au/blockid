@@ -164,6 +164,37 @@ async function main() {
     process.exit(1)
   }
 
+  // Goal completion detector — if the goal file's top-level status is 'done',
+  // (a) log a completion summary, (b) attempt to remove this cron entry so
+  // subsequent ticks stop firing, (c) exit. Per user direction: "when the
+  // entire plan is complete, stop the cron and report a summary here".
+  if (/^status:\s*done\b/mi.test(goalMd)) {
+    await log({
+      stage: 'goal_completed',
+      message: 'goal_id status: done detected — stopping loop',
+      completion_marker: '/tmp/blockid-reseller-goal-done',
+    })
+    try {
+      await writeFile('/tmp/blockid-reseller-goal-done', new Date().toISOString(), 'utf8')
+    } catch { /* ignore */ }
+    // Attempt to strip our own crontab entry. Non-fatal if it fails — the
+    // kill switch env var and the completion marker are backup mechanisms.
+    try {
+      const stop = spawnSync('bash', [
+        '-lc',
+        `crontab -l 2>/dev/null | grep -v 'reseller-goal-loop.mjs' | crontab -`,
+      ], { stdio: ['ignore', 'inherit', 'inherit'], timeout: 10_000 })
+      await log({ stage: 'cron_removal', status: stop.status ?? -1 })
+    } catch (err) {
+      await log({ stage: 'cron_removal_failed', error: String(err) })
+    }
+    // Final human-readable summary line.
+    process.stderr.write(
+      `\n[reseller-goal-loop] GOAL COMPLETE — cron removed at ${new Date().toISOString()}. See docs/plans/reseller-module-goal.md and web/content/reports/reseller-goal-history.jsonl for the full run.\n\n`,
+    )
+    process.exit(0)
+  }
+
   // Minimal YAML parse: since we don't want a yaml dependency in this skeleton,
   // we hand off the raw YAML to the Claude CLI which can parse it. The frontier
   // computation below expects a parsed object — replace with `yaml.parse()` when a

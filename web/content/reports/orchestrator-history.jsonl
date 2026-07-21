@@ -42,3 +42,6 @@
 {"stage":"plan","ok":true,"message":"CEO implementing plan updated — 3 new task(s), 19 pending","aiCalls":1,"durationMs":381,"timestamp":"2026-07-20T12:04:02.952Z"}
 {"stage":"research","ok":false,"message":"Research failed: The operation was aborted due to timeout","aiCalls":0,"durationMs":240001,"timestamp":"2026-07-21T12:04:02.002Z"}
 {"stage":"plan","ok":true,"message":"No recent research — need agent-research first","aiCalls":0,"durationMs":22104,"timestamp":"2026-07-21T12:04:24.107Z"}
+{"stage":"deploy","ok":false,"message":"Deploy failed: \u001b[2m   Duration \u001b[22m 10.80s\u001b[2m (transform 2.62s, setup 0ms, import 4.72s, tests 14.91s, environment 5ms)\u001b[22m\n\n  ✅ All unit tests pass\n\n─── Gate 6: Next.js production build ───","aiCalls":0,"durationMs":59734,"timestamp":"2026-07-21T12:06:09.765Z"}
+{"stage":"code","ok":true,"message":"Platform upgraded: 0 modules deployed, 0 failed (via agent-deploy → git commit → GitHub push → deploy-live)","aiCalls":0,"durationMs":176503,"timestamp":"2026-07-21T12:07:20.610Z"}
+{"stage":"deploy","ok":false,"message":"Production unhealthy — HTTP 503, re-deploying","aiCalls":0,"durationMs":3037,"timestamp":"2026-07-21T12:07:23.647Z"}
