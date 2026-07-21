@@ -73,4 +73,29 @@ describe("cfo-valuation — VC-grade valuation engine", () => {
       expect(bm.sources.length).toBeGreaterThan(0);
     }
   });
+
+  // T0133 — R&D Tax Incentive + ESIC valuation modifier
+  it("applies an AU tax-incentive uplift when ESIC qualifies and RDTI refund is present", () => {
+    const baseline = buildVcValuationReport(input);
+    const withAuTax = buildVcValuationReport({
+      ...input,
+      esicQualifies: true,
+      estimatedRdtiRefundAud: 120000,
+      monthlyOpexAud: 40000,
+    });
+    const baseRfs = baseline.methods.find(m => m.method === "risk_factor_summation");
+    const upliftRfs = withAuTax.methods.find(m => m.method === "risk_factor_summation");
+    expect(baseRfs).toBeDefined();
+    expect(upliftRfs).toBeDefined();
+    expect(upliftRfs!.midAud).toBeGreaterThan(baseRfs!.midAud);
+    expect(upliftRfs!.rationale).toMatch(/au-tax:/);
+    expect(upliftRfs!.rationale).toMatch(/ESIC qualified/);
+    expect(upliftRfs!.rationale).toMatch(/Refundable RDTI/);
+  });
+
+  it("leaves risk-factor unchanged when no AU tax inputs are provided", () => {
+    const baseline = buildVcValuationReport(input);
+    const upliftRfs = baseline.methods.find(m => m.method === "risk_factor_summation");
+    expect(upliftRfs!.rationale).toMatch(/au-tax: 0%/);
+  });
 });

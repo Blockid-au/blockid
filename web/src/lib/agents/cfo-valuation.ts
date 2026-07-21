@@ -129,6 +129,14 @@ export interface VcValuationInput {
   hasShareholdersAgreement?: boolean;
   hasDataRoom?: boolean;
   dataRoomCompletePct?: number; // 0-100
+  /**
+   * AU tax incentive inputs (T0133). Computed upstream via
+   * `estimateRdti()` / `evaluateEsic()` from cfo-au-tax-incentives.ts.
+   * Passing them lets the risk-factor model reflect the effective
+   * runway/dilution + investor-demand advantage they unlock.
+   */
+  estimatedRdtiRefundAud?: number; // annual refundable R&D Tax Incentive cash benefit (AUD)
+  esicQualifies?: boolean;         // company qualifies as an ESIC (investor 20% offset + CGT exemption)
 }
 
 // ── Research-backed benchmarks (refresh from daily CFO research) ──────────
@@ -357,7 +365,8 @@ function dcfMethod(input: VcValuationInput, projection: ProjectionRow[]): Valuat
 }
 
 function riskFactorSummation(input: VcValuationInput, base: number): ValuationMethodResult {
-  // ±25% across 12 standard VC risk factors; includes governance/ESOP health (T0102).
+  // ±25% across 12 standard VC risk factors; includes governance/ESOP health (T0102)
+  // and AU tax-incentive posture — RDTI + ESIC (T0133).
   const ue = unitEconomics(input);
   const ueAdj = ue.verdict === "strong" ? 0.15 : ue.verdict === "healthy" ? 0.05 : ue.verdict === "watch" ? -0.08 : -0.20;
 
@@ -372,16 +381,43 @@ function riskFactorSummation(input: VcValuationInput, base: number): ValuationMe
   // No ESOP is an investor red flag at pre-seed
   if (!input.hasEsopPool && (input.stage === "seed" || input.stage === "series-a")) govAdj -= 0.05;
 
-  const adj = clamp(ueAdj + govAdj, -0.30, 0.25);
+  // AU tax-incentive posture (T0133). Two effects:
+  //   1. ESIC status materially widens the investor pool and improves deal
+  //      terms — sophisticated investors get a 20% tax offset on up to A$1M
+  //      plus CGT exemption on shares held 1-10y (ITAA 1997 Subdiv 360-A).
+  //   2. Refundable RDTI reduces effective annual cash burn, so a founder
+  //      needs to raise less for the same runway — this shows up as lower
+  //      dilution risk. Capped so a small refund can't dominate the model.
+  let auTaxAdj = 0;
+  const auTaxNotes: string[] = [];
+  if (input.esicQualifies) {
+    auTaxAdj += 0.03;
+    auTaxNotes.push("ESIC qualified (investor 20% offset + CGT exemption)");
+  }
+  const rdtiRefund = Math.max(0, input.estimatedRdtiRefundAud ?? 0);
+  if (rdtiRefund > 0) {
+    // Refund vs 12-month burn: 25% cash cover → +1%, 50% → +2%, capped at +3%.
+    const monthlyBurn = Math.abs(Math.min(0, input.monthlyOpexAud ? -input.monthlyOpexAud : -20000));
+    const annualBurn = monthlyBurn * 12;
+    const cover = annualBurn > 0 ? rdtiRefund / annualBurn : 0;
+    const rdtiAdj = clamp(Math.round(cover * 4) * 0.01, 0, 0.03);
+    if (rdtiAdj > 0) {
+      auTaxAdj += rdtiAdj;
+      auTaxNotes.push(`Refundable RDTI ~A$${round(rdtiRefund).toLocaleString()}/yr (+${round(rdtiAdj * 100)}%)`);
+    }
+  }
+
+  const adj = clamp(ueAdj + govAdj + auTaxAdj, -0.30, 0.28);
   const mid = base * (1 + adj);
   const govNote = govAdj > 0 ? ` Governance premium: +${round(govAdj * 100)}% (ESOP pool${input.esopGrantsIssued ? " + grants issued" : ""}).` : govAdj < 0 ? " Governance discount: no ESOP pool (investor risk flag)." : "";
+  const auTaxNote = auTaxAdj > 0 ? ` AU tax uplift: +${round(auTaxAdj * 100)}% (${auTaxNotes.join(", ")}).` : "";
   return {
     method: "risk_factor_summation",
     lowAud: round(mid * 0.8),
     midAud: round(mid),
     highAud: round(mid * 1.2),
     weight: 0.15,
-    rationale: `Risk-Factor: ${adj >= 0 ? "+" : ""}${round(adj * 100)}% (unit-econ: ${ue.verdict}, gov: ${round(govAdj * 100)}%).${govNote}`,
+    rationale: `Risk-Factor: ${adj >= 0 ? "+" : ""}${round(adj * 100)}% (unit-econ: ${ue.verdict}, gov: ${round(govAdj * 100)}%, au-tax: ${round(auTaxAdj * 100)}%).${govNote}${auTaxNote}`,
   };
 }
 
