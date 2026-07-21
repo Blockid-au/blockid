@@ -16,6 +16,7 @@ import { FeedbackWidget } from "@/components/ui/feedback-widget";
 import { UpgradePrompt } from "@/components/ui/upgrade-prompt";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { TrialBanner } from "@/components/workspace/trial-banner";
+import { ResellerPill } from "@/components/workspace/reseller-pill";
 import { TrialDayWatcher } from "@/components/upsell/trial-day-watcher";
 import { UpgradeModal } from "@/components/upsell/upgrade-modal";
 import { UpgradeBanner } from "@/components/upsell/upgrade-banner";
@@ -284,6 +285,9 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0 
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2">
+            {/* Reseller co-branding pill (renders null when no attribution) */}
+            <ResellerPill />
+
             {/* Wallet connect (auto-adds/switches to the BlockID chain) */}
             <ConnectWalletButton compact />
 

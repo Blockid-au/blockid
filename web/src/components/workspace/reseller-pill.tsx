@@ -1,0 +1,47 @@
+"use client";
+
+// Topbar co-branding pill — renders "Powered by BlockID · Brought to you
+// by {reseller.display_name}" when the current user has an active
+// reseller attribution.
+//
+// Rendered null when:
+//   - useResellerAttribution() is still loading (avoids flash)
+//   - no attribution present
+//   - reseller marked inactive server-side
+//
+// Per docs/plans/reseller-module-plan.md § P5 co-branding. Sits between
+// ProjectSwitcher and ConnectWalletButton in the topbar.
+
+import * as React from "react";
+
+import { useResellerAttribution } from "@/hooks/useResellerAttribution";
+
+export function ResellerPill(): React.ReactElement | null {
+  const { reseller, isLoading } = useResellerAttribution();
+  if (isLoading || !reseller) return null;
+
+  const brandColor = reseller.primary_color ?? "#3B7DD8";
+
+  return (
+    <div
+      className="hidden md:inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[11px] font-medium text-ink-700 bg-surface-100 ring-1 ring-surface-200"
+      title={`Brought to you by ${reseller.display_name}`}
+    >
+      {reseller.logo_url ? (
+        <img
+          src={reseller.logo_url}
+          alt=""
+          className="h-4 w-4 rounded-sm object-contain"
+        />
+      ) : (
+        <span
+          className="h-2 w-2 rounded-full"
+          style={{ backgroundColor: brandColor }}
+          aria-hidden
+        />
+      )}
+      <span className="text-ink-500">via</span>
+      <span className="text-ink-800">{reseller.display_name}</span>
+    </div>
+  );
+}

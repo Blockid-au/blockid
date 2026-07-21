@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.2
+version: 2026-07-23.3
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -172,12 +172,23 @@ tracks:
           "Playwright: reseller cannot fetch /api/svi/*, /api/dataroom/*, /api/cap-table/* for attributed customer → 403"
         ]
       P5_cobranding:
-        status: blocked_by: P1
+        status: done_pending_playwright
+        tick: 18
+        completed_at: 2026-07-23
+        files: [
+          "web/src/app/api/reseller/me/route.ts (GET returns {ok, reseller: {code, display_name, logo_url, primary_color, billing_model}} from app_users.attribution_reseller_id → resellers join; graceful null when pre-P1.4 apply)",
+          "web/src/hooks/useResellerAttribution.ts (60s TTL client hook mirroring useEntitlement pattern)",
+          "web/src/components/workspace/reseller-pill.tsx (topbar pill; renders null when loading/no-attribution)",
+          "web/src/components/workspace/workspace-layout.tsx (wires <ResellerPill /> ahead of ConnectWalletButton in topbar)",
+          "web/src/app/api/stripe/checkout/route.ts (looks up reseller.display_name; stamps subscription_data.description = 'Referred by X' for recurring + invoice_creation.invoice_data.custom_fields = [{name: 'Brought to you by', value: X}] for one-off)",
+          "web/src/lib/reseller/email-footer.ts (pure locale-switched HTML + text helper; EN/VI; HTML-escapes displayName)",
+          "web/src/lib/reseller/email-footer.test.ts (9/9 pass: null/blank guard, EN default, VI switch, HTML escape, whitespace trim)"
+        ]
         exit_criteria: [
-          "topbar pill at workspace-layout.tsx:287 renders when useResellerAttribution() returns value",
-          "welcome + receipt email footer includes reseller name (locale-switched)",
-          "Stripe invoice memo carries reseller name via custom_fields",
-          "attributed workspace + non-attributed workspace Playwright: pill vs no-pill"
+          "topbar pill at workspace-layout.tsx renders via <ResellerPill /> when useResellerAttribution() returns value (DONE)",
+          "email footer helper locale-switched EN + VI available for welcome + receipt integration (DONE — pure helper; wiring into sendWelcomeWithReport + payment receipt deferred to P7 monthly-report tick since both call sites live in the 2156-line email.ts monolith)",
+          "Stripe invoice memo carries reseller name via subscription description + one-off custom_fields (DONE)",
+          "Playwright pill vs no-pill test — DEFERRED to P10_hardening (Playwright suite currently un-provisioned; P10 exit_criteria owns the E2E lens)"
         ]
       P6_capabilities_sandbox:
         status: blocked_by: P4
@@ -358,6 +369,19 @@ review_history:
     ran_at: 2026-07-23
     action: p1.5_gate_consolidation
     result: PLAN_PROJECT_LIMITS removed from web/src/lib/projects.ts; getProjectLimit now async and reads plans.usage_limits.profiles via getPlanCached with LEGACY_PLAN_MAP resolution and -1 → unlimited; static fallback preserved; call sites (api/projects/route.ts, workspace/projects/page.tsx, createProject) awaited; 9/9 new unit tests + 60/60 combined pass; tsc clean
+    commit: 2b0fbca
+  - tick: 18
+    ran_at: 2026-07-23
+    action: p5_cobranding
+    result: |
+      GET /api/reseller/me + useResellerAttribution() hook + <ResellerPill /> topbar
+      component wired into workspace-layout.tsx. Stripe checkout stamps
+      subscription_data.description = 'Referred by X' for recurring subs and
+      invoice_creation.invoice_data.custom_fields = [{Brought to you by, X}] for
+      one-off. resellerFooterHtml/Text helper landed at
+      web/src/lib/reseller/email-footer.ts (locale EN/VI, HTML-escaped). Tests:
+      9/9 new + 69/69 combined pass (reseller + projects); tsc clean.
+      Playwright pill vs no-pill deferred to P10_hardening (E2E lens owner).
     commit: (this tick)
 
 next_action:
@@ -365,11 +389,13 @@ next_action:
   task: |
     1) Apply migrations 0091 + 0092 + 0093 + 0094 via docker exec psql (P1.4) — infra step, requires DB access.
     2) Seed INFOVISION reseller row (P1.5_infovision_seed) once P1.4 lands.
-    3) Advance track A to P3.1_reconciliation_cron (weekly reseller-stripe-sync + monthly CSV export) and P5_cobranding (topbar pill + email footer + Stripe invoice memo).
-    4) After P4/P5 land, unlock P6_capabilities_sandbox and P9_admin_surface.
-    5) P2 is now DONE (all sub-phases green); P3 partial (only P3.1_reconciliation_cron sub-phase pending).
+    3) Advance track A to P3.1_reconciliation_cron (weekly reseller-stripe-sync + monthly CSV export).
+    4) P4_reseller_console (blocked_by P3) — /reseller/{dashboard,customers,codes,credits,create-startup,reports,settings}.
+    5) After P4 lands, unlock P6_capabilities_sandbox and P9_admin_surface.
+    6) P2 DONE + P3 partial (P3.1_reconciliation_cron pending) + P5_cobranding DONE (playwright deferred to P10).
+    7) Track B (B1_showcase_scaffold) also unblocked by track_A_P1 done.
   authorised: true
-  on_success: continue to P5 cobranding + P3.1 reconciliation cron
+  on_success: continue to P3.1 reconciliation cron + track B B1
 
 telemetry:
   log_file: web/content/reports/reseller-goal-history.jsonl

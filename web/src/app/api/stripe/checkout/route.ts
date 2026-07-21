@@ -134,6 +134,7 @@ export async function POST(request: Request) {
   let resellerAttribution: {
     reseller_id: string;
     code: string;
+    display_name: string;
     tier_pct: number;
     stripe_promotion_code_id: string | null;
   } | null = null;
@@ -150,18 +151,20 @@ export async function POST(request: Request) {
         if (promo) {
           const { data: reseller } = await supabase
             .from("resellers")
-            .select("id, status")
+            .select("id, status, display_name")
             .eq("id", promo.reseller_id)
             .maybeSingle();
           if (reseller && reseller.status === "active") {
             resellerAttribution = {
               reseller_id: promo.reseller_id as string,
               code: promo.code as string,
+              display_name: (reseller.display_name as string) ?? (promo.code as string),
               tier_pct: promo.tier_pct as number,
               stripe_promotion_code_id: (promo.stripe_promotion_code_id as string | null) ?? null,
             };
             customerMetadata.reseller_code = promo.code as string;
             customerMetadata.reseller_id = promo.reseller_id as string;
+            customerMetadata.reseller_display_name = resellerAttribution.display_name;
             customerMetadata.tier_at_signup = String(promo.tier_pct);
           }
         }
@@ -236,8 +239,34 @@ export async function POST(request: Request) {
       ...(sessionParams.metadata ?? {}),
       reseller_code: resellerAttribution.code,
       reseller_id: resellerAttribution.reseller_id,
+      reseller_display_name: resellerAttribution.display_name,
       tier_at_signup: String(resellerAttribution.tier_pct),
     };
+
+    // Co-branding: surface the reseller name on the Stripe invoice PDF.
+    // Stripe caps custom_fields at 4 entries; name ≤ 30 chars, value ≤ 30
+    // chars — truncate defensively.
+    //   - one-off (mode=payment): invoice_creation.invoice_data.custom_fields
+    //     applies directly to the generated invoice.
+    //   - subscription: Stripe does not accept invoice.custom_fields at
+    //     session create time. The webhook handler stamps custom_fields onto
+    //     each generated invoice via Subscription.invoice_settings when
+    //     checkout.session.completed fires (deferred to P3.x webhook wiring).
+    //     Here we stash the display_name in subscription_data.description so
+    //     it appears on the Stripe dashboard for the reseller-attributed sub.
+    const displayNameShort = resellerAttribution.display_name.slice(0, 30);
+    if (isRecurring && sessionParams.subscription_data) {
+      sessionParams.subscription_data.description = `Referred by ${displayNameShort}`;
+    } else if (!isRecurring) {
+      sessionParams.invoice_creation = {
+        enabled: true,
+        invoice_data: {
+          custom_fields: [
+            { name: "Brought to you by", value: displayNameShort },
+          ],
+        },
+      };
+    }
   }
 
   try {
