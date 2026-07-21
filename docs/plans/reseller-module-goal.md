@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.25
+version: 2026-07-23.26
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -465,7 +465,26 @@ tracks:
           "prev/next chapter navigation live (DONE — getAdjacentChapters helper; first chapter shows empty previous slot, last chapter shows 'Chapter 5 unlocks with B3' placeholder)"
         ]
         note: "Chapters 5-8 wait on B3. B7 (product tour) and B8 (reseller linkage) now unblocked since B2 has published slugs to link to."
-      B3_guide_ch_5_to_8: {status: pending, deps: [B2]}
+      B3_guide_ch_5_to_8:
+        status: done
+        tick: 49
+        completed_at: 2026-07-21
+        deps: [B2]
+        files: [
+          "web/src/lib/guide/startup-journey.ts (chapters 05-pmf, 06-revenue, 07-growth, 08-team appended; ChapterSlug union extended; module doc-comment updated)",
+          "web/src/lib/guide/startup-journey.test.ts (EXPECTED_SLUGS extended to 8; boundary assertion added for 04-mvp ↔ 05-pmf stitch; adjacent-chapter last-slot flipped to 08-team; 9/9 pass)",
+          "web/src/app/guide/[chapter]/page.tsx (route doc-comment updated; unlock placeholder flipped from Chapter 5/B3 to Chapter 9/B4)",
+          "web/src/app/workspace/guide/[chapter]/page.tsx (route doc-comment updated; unlock placeholder flipped from Chapter 5/B3 to Chapter 9/B4)",
+          "docs/guides/startup-journey/chapter-{05,06,07,08}.md (EN mirror for offline reading + contributor PRs)"
+        ]
+        exit_criteria: [
+          "Chapter content for phases 5-8 authored EN+VI (DONE — chapters 05-pmf, 06-revenue, 07-growth, 08-team published with the six-item spec covered per U.8; VI is complete parity, not machine translation stub)",
+          "/guide/[chapter] server route live for chapters 5-8 (DONE — generateStaticParams reads allChapterSlugs so the four new slugs SSG automatically alongside 1-4; unknown slug still → notFound())",
+          "/workspace/guide/[chapter] server route live for chapters 5-8 (DONE — same slug set, WorkspaceLayout shell, auth-gated redirect, robots noindex)",
+          "phase labels canonical with U.9 taxonomy (DONE — each new chapter's phaseLabel is a direct reference to PHASE_LABELS[phase] from @/lib/showcase/gallery so /guide, /workspace/guide, /guide/reports and /showcase/blockid share one phase-label source)",
+          "prev/next chapter navigation stitches 04-mvp ↔ 05-pmf and terminates at 08-team → 'Chapter 9 unlocks with B4' (DONE — getAdjacentChapters exercised via new boundary test)"
+        ]
+        note: "Chapters 5-8 content-only per B2 precedent; the Stripe test-mode / GA4 property / weekly SVI cron UI wiring referenced in the copy (plan §298) is a follow-up tick. Chapters 9-12 wait on B4. B7 and B8 remain unblocked from tick 48; B4 now blocked only on B3-done → open for the next tick."
       B4_guide_ch_9_to_12: {status: pending, deps: [B3]}
       B5_report_library:
         status: done
@@ -1501,6 +1520,55 @@ review_history:
       track_A_P4) also unblocked. Track A still HUMAN-BLOCKED on P8.5.
     commit: (this tick)
 
+  - tick: 49
+    ran_at: 2026-07-21
+    action: b3_guide_chapters_5_to_8
+    result: |
+      Track B B3 shipped. Chapters 5-8 (PMF & Early Traction, Revenue &
+      Business Model, Growth & Analytics, Team & Culture) authored EN+VI as
+      four new entries appended to web/src/lib/guide/startup-journey.ts,
+      following the same Chapter interface + six-item U.8 spec
+      (founderAction + agentsInvoked + expectedOutputs + commonPitfalls +
+      showcaseExample + cta plus title/summary). VI is complete parity, not
+      machine translation. phaseLabel for each new chapter is a direct
+      reference to PHASE_LABELS[5..8] from @/lib/showcase/gallery so /guide/
+      [chapter], /workspace/guide/[chapter], /guide/reports and
+      /showcase/blockid share one canonical phase-label taxonomy — no drift.
+      ChapterSlug union extended with "05-pmf" | "06-revenue" | "07-growth" |
+      "08-team" so allChapterSlugs() now returns eight entries and both page
+      routes' generateStaticParams pick them up automatically without any
+      route-file edit. Placeholder "next chapter unlocks" copy flipped from
+      "Chapter 5 unlocks with B3" to "Chapter 9 unlocks with B4" on both
+      marketing (guide/[chapter]/page.tsx) and workspace
+      (workspace/guide/[chapter]/page.tsx) surfaces. Content references the
+      B3-scoped integrations from plan §298 by name (founder-own Stripe
+      test-mode → live-mode flip, GA4 property connection, weekly SVI cron)
+      but the actual UI wiring for those three integrations is a follow-up
+      tick — matches the B2 precedent where chapters 1-4 referenced GitHub
+      repo-link + GA measurement-ID capture without shipping the capture UI.
+      Docs mirror at docs/guides/startup-journey/chapter-{05..08}.md
+      published for offline reading + contributor PRs (runtime reads the TS
+      module; .md files are documentation-only, header comment states so).
+      Test suite extended: EXPECTED_SLUGS now 8 entries, order + phase
+      arrays extended to [1..8], allChapterSlugs() assertion updated,
+      unknown-slug case bumped to "09-funding", adjacent-chapter first/last
+      assertions flipped to 01-vision/08-team, plus a new boundary
+      assertion that getAdjacentChapters("04-mvp").next === "05-pmf" and
+      getAdjacentChapters("05-pmf").previous === "04-mvp" so the B2/B3
+      stitch is guarded against future reorderings. Verified: 9/9 pass in
+      startup-journey.test.ts (was 8/8); 64/64 combined guide + showcase
+      suites (was 63/63); tsc clean; npm run lint:reseller unchanged (8
+      files scanned, 3 exemptions, 0 violations — new files sit outside
+      /api/reseller/ so no additional scope). Frontier after tick 49: (a)
+      Track A remains HUMAN-BLOCKED on P8.5 Stripe env vars. (b) Track B
+      B4_guide_ch_9_to_12 (chapters 9-12: Funding-Ready → Fundraise/Term
+      Sheet → Post-Funding/Scale → Exit/Beyond) now unblocked in the same
+      startup-journey.ts pattern. (c) B7 product tour + B8 reseller
+      linkage remain unblocked from earlier ticks. (d) P0.3 advisory
+      reviews still pending (advisory-only). (e) P1.5 InfoVision seed
+      still HUMAN-BLOCKED on H.20.
+    commit: (this tick)
+
   - tick: 46
     ran_at: 2026-07-21
     action: p8.3_grandfather_backfill
@@ -1580,6 +1648,7 @@ next_action:
     5) P0.3_advisory_reviews still pending — schedulable on next off-peak tick (advisory-only per U.13 stage-5; does NOT gate any downstream phase).
    10) DONE tick 43 — P0.4_ceo_final_sign_off closed with verdict=approved. P0 pre-flight window is now fully sealed; only P0.3 advisory reviews remain pending (non-blocking).
    11) DONE tick 44 — P8_share_management_addon decomposed into P8.1..P8.5 and P8.1_manifest_completeness shipped. feature-gates.manifest.ts now maps 28 real mutation routes (9 phantoms removed, 20 real routes added); completeness test 6/6 pass guards against future drift.
+   16) DONE tick 49 — Track B B3_guide_ch_5_to_8 shipped. Chapters 5-8 (05-pmf, 06-revenue, 07-growth, 08-team) authored EN+VI as four new entries appended to web/src/lib/guide/startup-journey.ts; ChapterSlug union extended; module doc-comment updated to reflect the B2+B3 arc. VI is complete parity, not machine translation. phaseLabel for each new chapter is a direct reference to PHASE_LABELS[5..8] from @/lib/showcase/gallery so /guide, /workspace/guide, /guide/reports and /showcase/blockid share one canonical phase-label taxonomy. Both surface routes (web/src/app/guide/[chapter]/page.tsx and web/src/app/workspace/guide/[chapter]/page.tsx) SSG the four new slugs automatically via generateStaticParams reading allChapterSlugs() — zero route-file edits required. "Chapter 5 unlocks with the B3 release" placeholder text flipped on both surfaces to "Chapter 9 unlocks with the B4 release" (EN + VI). Test suite: EXPECTED_SLUGS bumped to 8, order + phase arrays extended to [1..8], allChapterSlugs assertion updated, unknown-slug case bumped to 09-funding, first/last adjacent-chapter assertions flipped to 01-vision / 08-team, plus a new boundary assertion for the B2/B3 stitch (04-mvp ↔ 05-pmf) so future reorderings can't silently break the chain. Docs mirror at docs/guides/startup-journey/chapter-{05..08}.md ships EN copy for offline reading + contributor PRs (header comment states runtime pages read the TS module — .md files are documentation-only). Verified: 9/9 pass in startup-journey.test.ts (was 8/8); 64/64 combined guide+showcase pass (was 63/63); tsc clean; npm run lint:reseller unchanged 8 files / 3 exemptions / 0 violations. Chapters 5-8 copy references B3-scoped integrations from plan §298 by name (founder-own Stripe test-mode → live-mode flip in ch5+ch7, GA4 property connection in ch7, weekly SVI cron in ch7, Div83A checker + ESOP scheme in ch8) but the actual UI wiring for those integrations is a follow-up tick — matches the B2 precedent where chapters 1-4 referenced GitHub repo-link + GA measurement-ID capture without shipping the capture UI. Frontier after tick 49: (a) Track A HUMAN-BLOCKED on P8.5 Stripe env vars. (b) Track B B4_guide_ch_9_to_12 (chapters 9-12: Funding-Ready → Fundraise/Term Sheet → Post-Funding/Scale → Exit/Beyond) now unblocked in the same startup-journey.ts pattern — preferred next tick to close the 12-chapter content-authoring arc and unblock B9 (reviews & feedback surface, deps: B4). (c) B7 product tour (deps: B2) + B8 reseller linkage (deps: B1 + track_A_P4) remain unblocked as fallbacks. (d) P0.3 advisory reviews still pending (advisory-only). (e) P1.5 InfoVision seed still HUMAN-BLOCKED on H.20.
    15) DONE tick 48 — Track B B2_guide_ch_1_to_4 shipped. Chapters 1-4 (Vision, Idea Validation, Market Research, MVP) authored EN+VI in web/src/lib/guide/startup-journey.ts as a structured content module — Chapter interface covers the six-item U.8 spec (founderAction, agentsInvoked, expectedOutputs, commonPitfalls, showcaseExample, cta) plus title/summary; VI is complete parity, not machine translation. phaseLabel references PHASE_LABELS from @/lib/showcase/gallery so /guide/[chapter], /workspace/guide/[chapter], /guide/reports and /showcase/blockid share one canonical phase-label taxonomy. Marketing route web/src/app/guide/[chapter]/page.tsx SSG's via generateStaticParams, renders EN/VI via getLocale() cookie, generateMetadata emits OG/Twitter/canonical per chapter, Navbar/Footer shell + prev/next chapter footer with first/last edge cases. Workspace route web/src/app/workspace/guide/[chapter]/page.tsx auth-gates with redirect(/auth/login?next=), renders inside WorkspaceLayout, robots noindex. Docs mirror at docs/guides/startup-journey/chapter-{01..04}.md carries EN copy for offline reading + contributor PRs (runtime pages read the TS module — .md files are documentation-only, header comment states so). Verified: 8/8 new vitest + 63/63 combined guide+showcase pass; tsc clean. Frontier after tick 48: B7 product tour (deps: B2) and B8 reseller linkage (deps: B1 + track_A_P4) both now unblocked; B3 chapters 5-8 also unblocked. Track A still HUMAN-BLOCKED on P8.5 Stripe env vars.
    14) DONE tick 47 — P8.4_purchase_drawer shipped. web/src/lib/stripe.ts exposes ADDON_PRICE_IDS + getShareMgmtAddonPrice + isShareMgmtAddonPrice guards + STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL slots. /api/stripe/change-plan now accepts three modes: existing {newPlanId}, {add_item:{price_id,preview?}} (preview → invoices.createPreview with subscription_details.items + proration_behavior=always_invoice returns amount_due_cents; commit → subscriptions.update proration_behavior=always_invoice + revenue_events kind=addon_purchase), and {remove_item:{price_id}} (subscriptionItems.del proration_behavior=none for cancel_at_period_end-style end-of-cycle removal with no commission clawback per plan §F.5 + revenue_events kind=addon_cancel). New right-side drawer web/src/components/billing/share-mgmt-drawer.tsx renders monthly/annual toggle with 'Save 2 months' badge, benefit list EN+VI, reseller code auto-detect from blockid_via cookie, proration preview line, primary CTA 'Add to my subscription' — with focus trap + Escape close + body-scroll lock. Billing page mounts drawer + adds 'Manage add-ons' section; ?openAddon=share_management deep-link opens drawer once via ref-guarded effect; Suspense boundary added for useSearchParams. Sidebar (workspace-layout + nav-groups) tags Cap Table / Shareholders / ESOP / Vesting / Equity Setup / Equity Split with addOnKey='share_management' — locked items now show an amber 'Add-on' pill and link to /workspace/billing?openAddon=share_management rather than a generic Lock icon, satisfying the plan §F.5 'do NOT navigate away' requirement. Typecheck clean; all 551 vitest tests pass. Frontier after tick 47: Track A P8.5_env_and_playwright remains HUMAN-BLOCKED on Stripe account owner minting STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL. Next unblocked Track A work: none until P8.5 unblocks. Fall through to Track B B2_guide_ch_1_to_4.
    13) DONE tick 46 — P8.3_grandfather_backfill shipped. Migration 0098 applied via docker exec supabase-db psql (BEGIN → UPDATE 0 → INSERT 0 0 → COMMIT — 0/45 dev users grandfathered, expected); idempotent re-run identical; NOTIFY pgrst reload issued. Cohort per plan §F.4 verbatim (status IN active/trialing × plan_id IN founder_growth/founder_scale/founder_enterprise/growth/growth_annual). Two writes: app_users flag flip + entitlements(source='grandfathered') insert with ON CONFLICT DO NOTHING. Bound to subscription_trial_state instead of 'subscriptions' since that is where this repo materialises subscription state (0075:6-17). Next Track A tick = P8.4 purchase drawer + cancel_at_period_end.
@@ -1590,7 +1659,7 @@ next_action:
     9) DONE tick 40 — Track B B6 public showcase mirror at /showcase/blockid (see phases.B6_public_showcase.files). Metadata-only; reads on-disk artefacts + milestone-report-state.json; no DB dep. Deep-linking from /guide/reports card rows to /showcase/blockid (and vice versa) + wiring the "current phase" chip into workspace-layout topbar deferred to a follow-up tick alongside B7 product tour, since both touch the same in-app phase-transition surface.
   authorised: true
   on_success: |
-    Frontier after tick 48: (a) Track A remains HUMAN-BLOCKED on P8.5 Stripe env vars — no unblocked A phase this window. (b) Track B B2_guide_ch_1_to_4 DONE — chapters 1-4 authored EN+VI + marketing route /guide/[chapter] + workspace route /workspace/guide/[chapter] both live and SSG'd; phaseLabel canonical vs PHASE_LABELS from @/lib/showcase/gallery. (c) Track B unblocked next: B3_guide_ch_5_to_8 (chapters 5-8: PMF → Revenue → Growth → Team) — content authoring in the same startup-journey.ts pattern; B7 product tour (deps: B2) — workspace overlay component + phase-tracking; B8 reseller linkage (deps: B1 + track_A_P4) — progression-view timeline row → guide-chapter deep-links. Prefer B3 next tick since it extends the same lib and unblocks B4. (d) P0.3 advisory reviews still pending (advisory-only per U.13 stage-5). P1.5_infovision_seed still HUMAN-BLOCKED on H.20 ABN + GST confirmation. P10_hardening still blocked_by [P1..P9] — waits on P8.5 completion + Playwright provisioning.
+    Frontier after tick 49: (a) Track A remains HUMAN-BLOCKED on P8.5 Stripe env vars — no unblocked A phase this window. (b) Track B B3_guide_ch_5_to_8 DONE — chapters 5-8 (PMF, Revenue, Growth, Team) authored EN+VI in the shared startup-journey.ts module; ChapterSlug union extended; both marketing (/guide/[chapter]) and workspace (/workspace/guide/[chapter]) routes SSG the new slugs automatically via generateStaticParams reading allChapterSlugs(); "unlock next chapter" placeholder copy flipped to reference Chapter 9 / B4 on both surfaces; phaseLabel canonical vs PHASE_LABELS[5..8]. (c) Track B unblocked next: B4_guide_ch_9_to_12 (chapters 9-12: Funding-Ready → Fundraise/Term Sheet → Post-Funding/Scale → Exit/Beyond) — content authoring in the same startup-journey.ts pattern; B7 product tour (deps: B2) — workspace overlay component + phase-tracking; B8 reseller linkage (deps: B1 + track_A_P4) — progression-view timeline row → guide-chapter deep-links. Prefer B4 next tick since it closes the 12-chapter content-authoring arc and unblocks B9 (reviews & feedback surface, deps: B4). (d) P0.3 advisory reviews still pending (advisory-only per U.13 stage-5). P1.5_infovision_seed still HUMAN-BLOCKED on H.20 ABN + GST confirmation. P10_hardening still blocked_by [P1..P9] — waits on P8.5 completion + Playwright provisioning.
 
 telemetry:
   log_file: web/content/reports/reseller-goal-history.jsonl

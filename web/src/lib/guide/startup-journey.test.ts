@@ -14,14 +14,18 @@ const EXPECTED_SLUGS: ChapterSlug[] = [
   "02-idea-validation",
   "03-market-research",
   "04-mvp",
+  "05-pmf",
+  "06-revenue",
+  "07-growth",
+  "08-team",
 ];
 
 describe("startup-journey chapter registry", () => {
-  it("publishes exactly the B2 chapters 1–4 in order", () => {
+  it("publishes chapters 1–8 (B2 + B3) in order", () => {
     const chapters = listChapters();
     expect(chapters.map((c) => c.slug)).toEqual(EXPECTED_SLUGS);
-    expect(chapters.map((c) => c.order)).toEqual([1, 2, 3, 4]);
-    expect(chapters.map((c) => c.phase)).toEqual([1, 2, 3, 4]);
+    expect(chapters.map((c) => c.order)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(chapters.map((c) => c.phase)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
   });
 
   it("exposes the same slug set through allChapterSlugs()", () => {
@@ -30,8 +34,8 @@ describe("startup-journey chapter registry", () => {
 
   it("returns null for unknown slugs and never throws", () => {
     expect(getChapter("bogus")).toBeNull();
-    expect(getChapter("05-pmf")).toBeNull();
-    expect(isChapterSlug("05-pmf")).toBe(false);
+    expect(getChapter("09-funding")).toBeNull();
+    expect(isChapterSlug("09-funding")).toBe(false);
   });
 
   it("resolves known slugs and confirms isChapterSlug()", () => {
@@ -84,13 +88,18 @@ describe("getAdjacentChapters()", () => {
     expect(getAdjacentChapters("01-vision").previous).toBeNull();
     expect(getAdjacentChapters("01-vision").next?.slug).toBe("02-idea-validation");
 
-    expect(getAdjacentChapters("04-mvp").next).toBeNull();
-    expect(getAdjacentChapters("04-mvp").previous?.slug).toBe("03-market-research");
+    expect(getAdjacentChapters("08-team").next).toBeNull();
+    expect(getAdjacentChapters("08-team").previous?.slug).toBe("07-growth");
   });
 
   it("returns both neighbours for a middle chapter", () => {
     const { previous, next } = getAdjacentChapters("02-idea-validation");
     expect(previous?.slug).toBe("01-vision");
     expect(next?.slug).toBe("03-market-research");
+  });
+
+  it("stitches the B2/B3 boundary at 04-mvp ↔ 05-pmf", () => {
+    expect(getAdjacentChapters("04-mvp").next?.slug).toBe("05-pmf");
+    expect(getAdjacentChapters("05-pmf").previous?.slug).toBe("04-mvp");
   });
 });
