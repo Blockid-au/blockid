@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.6
+version: 2026-07-23.7
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -227,15 +227,26 @@ tracks:
           "Playwright pill vs no-pill test — DEFERRED to P10_hardening (Playwright suite currently un-provisioned; P10 exit_criteria owns the E2E lens)"
         ]
       P6_capabilities_sandbox:
-        status: blocked_by: P4
+        status: in_progress
         migration_files: [0096]
+        tick_started: 25
+        sub_phases:
+          P6.1_migration_authored: {status: done, tick: 25, files: ["web/supabase/migrations/0096_reseller_credit_grants.sql"], note: "kind CHECK (grant|sandbox_spend) + ck_amount_sign + ck_month_key_format + ck_target_shape + ck_ct_link enforce the sign/shape invariants; unique idx on (reseller_id, target_user_id, credit_transaction_id) WHERE kind=grant dedupes customer mirror; (reseller_id, month_key) hot idx for budget rollup; (sandbox_project_id, created_at DESC) idx for 50/hr rate-limit scan"}
+          P6.2_credit_grant_lib: {status: done, tick: 25, files: [
+            "web/src/lib/reseller/credit-grants.ts",
+            "web/src/lib/reseller/credit-grants.test.ts (19/19 pass)"
+          ], note: "pure monthKey(UTC) mirrors credit-reset cron; computeMonthlyUsage splits grant/sandbox/over_budget counts; decideGrant enforces capability + budget with admin_over_budget_approved override; decideSandboxSpend enforces monthly_sandbox_credits + 50/hr per-project rate-limit with hourly_limit override; all pure — no DB, no Stripe"}
+          P6.3_grant_api: {status: pending, note: "POST /api/reseller/credits/grant — scopedReseller + decideGrant + credit_transactions insert + reseller_credit_grants mirror"}
+          P6.4_sandbox_provision: {status: pending, note: "POST /api/reseller/sandbox/setup — one-time createProject with reseller_sandbox_id stamped; bypass PLAN_PROJECT_LIMITS"}
+          P6.5_spendCredits_sandbox: {status: pending, note: "web/src/lib/credits.ts:448 branch — detect metadata.project_id → sandbox → decideSandboxSpend → insert reseller_credit_grants(kind=sandbox_spend, amount<0) instead of debiting credit_balances"}
+          P6.6_grant_modal: {status: pending, note: "/reseller/credits UI — grant form + over-budget approval flow + monthly usage bar"}
         exit_criteria: [
-          "reseller_credit_grants live",
-          "monthly_sandbox_credits column live (default 500)",
+          "reseller_credit_grants live (DONE — 0096 authored; docker exec apply required)",
+          "monthly_sandbox_credits column live (default 500) (DONE at 0091)",
           "/reseller/create-startup atomic transaction end-to-end",
           "grant modal enforces monthly_credit_budget with over-budget → admin-approval flow",
           "sandbox project auto-created on reseller org activation, invisible in Customers",
-          "sandbox rate-limit 50 credits/hr enforced (D3-CISO-05)"
+          "sandbox rate-limit 50 credits/hr enforced (D3-CISO-05) (DONE at lib level P6.2; still needs spendCredits wiring P6.5)"
         ]
       P7_kpi_reports:
         status: blocked_by: P3
@@ -541,6 +552,36 @@ review_history:
       passes 4-file scan with 2 exemptions, 0 violations.
     commit: (this tick)
 
+  - tick: 25
+    ran_at: 2026-07-21
+    action: p6.1_and_p6.2_credit_grants_lib_and_migration
+    result: |
+      P6 kickoff — reseller_credit_grants schema + pure decision helpers.
+      Migration 0096_reseller_credit_grants.sql authored: single table
+      carries both grant (positive amount, target_user_id, non-null
+      credit_transaction_id) and sandbox_spend (negative amount, non-null
+      sandbox_project_id, null credit_transaction_id) rows discriminated by
+      a kind CHECK. Four CHECK constraints (sign, month_key regex, target
+      shape, credit_transaction link) enforce the invariants at the DB
+      level so a malformed row from any writer is rejected. Partial unique
+      index on (reseller_id, target_user_id, credit_transaction_id) WHERE
+      kind='grant' dedupes the customer credit_transactions mirror; a
+      (reseller_id, month_key) idx serves the hot budget rollup; a
+      (sandbox_project_id, created_at DESC) partial idx serves the
+      50/hr rate-limit scan. Pure lib at
+      web/src/lib/reseller/credit-grants.ts exposes monthKey (UTC — matches
+      credit-reset cron so budget rollups don't drift on AEST hosts),
+      computeMonthlyUsage (splits grant + sandbox_spend + over_budget
+      count), decideGrant (invalid_amount / capability_disabled /
+      over_budget_requires_approval; admin override unlocks over_budget:
+      true), and decideSandboxSpend (monthly_sandbox_credits + 50/hr
+      per-project window; hourly_limit override supported). Vitest cases:
+      19/19 pass + 151/151 combined reseller suite; lint:reseller still
+      passes 4-file scan / 2 exemptions / 0 violations. Migration not yet
+      applied to prod (docker exec psql step); P6.3–P6.6 wire the lib into
+      routes/spendCredits/UI on subsequent ticks.
+    commit: (this tick)
+
   - tick: 20
     ran_at: 2026-07-21
     action: p3.1_reconciliation_cron
@@ -564,15 +605,15 @@ review_history:
 next_action:
   agent: applier
   task: |
-    1) Apply migrations 0091 + 0092 + 0093 + 0094 via docker exec psql (P1.4) — infra step, requires DB access.
+    1) Apply migrations 0091 + 0092 + 0094 + 0096 via docker exec psql (P1.4 + P6.1) — infra step, requires DB access.
     2) Seed INFOVISION reseller row (P1.5_infovision_seed) once P1.4 lands.
-    3) P4 track A complete (P4.1 tick 21, P4.2 tick 22, P4.3 tick 23, P4.4 tick 24 — R-01 CI grep live).
-    4) Track B B1_showcase_scaffold now unblocked (track_A_P1 done_pending_apply + P4 done_pending_playwright); safe to enter on next tick.
-    5) P9.3_requests_inbox pending — waits on a request-table migration; feasible on next tick if we author 0095 alongside.
-    6) P6_capabilities_sandbox unblocked by P4 done; feasible on next tick.
+    3) P6.3 next: POST /api/reseller/credits/grant — scopedReseller + decideGrant + credit_transactions insert + reseller_credit_grants mirror (P6.2 lib in place).
+    4) P6.4/P6.5/P6.6 follow: sandbox provision route → spendCredits sandbox branch → reseller-side grant modal UI.
+    5) Track B B1_showcase_scaffold still unblocked; parallel candidate if a tick prefers track B ordering.
+    6) P9.3_requests_inbox pending — waits on a request-table migration; feasible on next tick if we author 0095 alongside.
     7) P0.3_advisory_reviews still pending — schedulable on next off-peak tick.
   authorised: true
-  on_success: prefer B1_showcase_scaffold OR P6_capabilities_sandbox (track A over B when both ready per loop policy → P6 first)
+  on_success: continue P6 sub-phases (P6.3 next) — track A P6 in_progress; keep momentum before switching to B1
 
 telemetry:
   log_file: web/content/reports/reseller-goal-history.jsonl
