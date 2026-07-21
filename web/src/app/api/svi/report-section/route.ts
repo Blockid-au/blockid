@@ -282,6 +282,7 @@ Formatting for visual impact:
           svi,
           stage,
           startupName: account.startup_name,
+          project_id: projectId,
         });
         balance = spend.balance;
       } else {

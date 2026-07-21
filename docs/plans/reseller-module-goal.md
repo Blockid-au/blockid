@@ -248,6 +248,14 @@ tracks:
             "web/src/lib/reseller/credit-grants.ts (ceilSandboxCost pure helper: Math.max(1, Math.ceil(cost)); 0 for non-finite/non-positive so free features skip sandbox path)",
             "web/src/lib/reseller/credit-grants.test.ts (+ 2 ceilSandboxCost cases; suite 21/21, combined reseller 164/164)"
           ], note: "spendCredits() now short-circuits into reseller_credit_grants(kind=sandbox_spend) when metadata.project_id points at a reseller sandbox workspace. Superset OR-query (month_key.eq OR created_at.gte hour-ago) feeds decideSandboxSpend; approved calls insert amount=-ceilSandboxCost(cost) with granted_by_user_id=userId + metadata.feature/reseller_id/fractional_cost; personal credit_balances untouched. On approved path we still write usage_logs (sandbox_debit + reseller_id + sandbox_project_id merged into metadata) so downstream analytics see the call. Denied path returns {ok:false, balance:getBalance(user)} without touching either ledger. Non-sandbox projects return null from the helper so the caller falls through to the credit_balances path — non-reseller users are unaffected. Route wiring (svi/route.ts, rnd/route.ts, etc.) must add project_id to spendCredits metadata for this branch to activate at those call sites; deferred to a P6.5b hot-path pass. lint:reseller: 6 files / 2 exemptions / 0 violations; tsc clean; reseller vitest 164/164."}
+          P6.5b_hot_path_wiring: {status: done, tick: 29, files: [
+            "web/src/app/api/svi/route.ts (projectId hoisted out of else-block so spendCredits sees it; metadata.project_id threaded)",
+            "web/src/app/api/svi/full-report/route.ts (metadata.project_id threaded)",
+            "web/src/app/api/svi/report-section/route.ts (metadata.project_id threaded)",
+            "web/src/app/api/rnd/route.ts (metadata.project_id = rndProjectId threaded)",
+            "web/src/app/api/rnd/sections/route.ts (getProjectIdFromRequest imported + per-section spendCredits metadata carries project_id)",
+            "web/src/app/api/evaluation/[criterionKey]/ai-score/route.ts (metadata.project_id threaded)"
+          ], note: "Reseller sandbox routing branch in spendCredits() is now hot for all six top-of-funnel callers. Each was already resolving projectId for svi_accounts/svi_analyses/data-isolation writes — this tick only widens the existing var into the spendCredits metadata call, so no behavioural change for non-reseller users. tsc clean, reseller vitest 164/164 unchanged, lint:reseller 6 files / 2 exemptions / 0 violations."}
           P6.6_grant_modal: {status: pending, note: "/reseller/credits UI — grant form + over-budget approval flow + monthly usage bar"}
         exit_criteria: [
           "reseller_credit_grants live (DONE — 0096 authored; docker exec apply required)",
@@ -685,6 +693,30 @@ review_history:
       vitest 164/164 (was 162, + 2 ceilSandboxCost cases).
     commit: (this tick)
 
+  - tick: 29
+    ran_at: 2026-07-21
+    action: p6.5b_hot_path_wiring
+    result: |
+      Reseller sandbox routing in spendCredits() is now hot for the six
+      top-of-funnel callers listed in the plan's next_action item 3.
+      Threaded metadata.project_id into: svi/route.ts (hoisted projectId
+      out of the else-branch so both the svi_analyses insert and the
+      spendCredits call see the same value — no behavioural change for the
+      insert since projectId was already resolved from
+      getProjectIdFromRequest at the top of the else-block), svi/full-
+      report/route.ts (:237), svi/report-section/route.ts (:279),
+      rnd/route.ts (:400 — uses the already-scoped rndProjectId), rnd/
+      sections/route.ts (getProjectIdFromRequest added to imports;
+      sectionsProjectId resolved once outside the per-section loop then
+      merged into every spendCredits metadata), and evaluation/
+      [criterionKey]/ai-score/route.ts (:173). Non-reseller callers
+      unaffected — trySpendSandboxCredits returns null when the project
+      row has no reseller_sandbox_id, and spendCredits falls through to
+      the credit_balances path. tsc clean; reseller vitest 164/164; npm
+      run lint:reseller: 6 files scanned, 2 exemptions, 0 violations.
+      P6 remaining gate is P6.6 (reseller-side grant modal UI).
+    commit: (this tick)
+
   - tick: 20
     ran_at: 2026-07-21
     action: p3.1_reconciliation_cron
@@ -710,13 +742,13 @@ next_action:
   task: |
     1) Apply migrations 0091 + 0092 + 0094 + 0096 via docker exec psql (P1.4 + P6.1) — infra step, requires DB access.
     2) Seed INFOVISION reseller row (P1.5_infovision_seed) once P1.4 lands.
-    3) P6.5b hot-path wiring: thread project_id into spendCredits metadata at the top SVI/RND/report routes (svi/route.ts, svi/full-report/route.ts, svi/report-section/route.ts, rnd/route.ts, rnd/sections/route.ts, evaluation/[criterionKey]/ai-score/route.ts) so the sandbox branch actually fires for reseller-admin traffic; each caller already has projectId in scope.
-    4) P6.6 follow: reseller-side grant modal UI at /reseller/credits (grant form + over-budget approval + monthly usage bar).
+    3) P6.6 grant modal UI at /reseller/credits (grant form + over-budget approval flow + monthly usage bar) — final P6 sub-phase.
+    4) Optional P6.5b widening: term-sheet/idea-lab/valuation/journal/data-room/evidence spendCredits callers — none of them currently resolve projectId, so wiring cost is one getProjectIdFromRequest() per route. Deferred until P6.6 lands.
     5) Track B B1_showcase_scaffold still unblocked; parallel candidate if a tick prefers track B ordering.
     6) P9.3_requests_inbox pending — waits on a request-table migration; feasible on next tick if we author 0095 alongside.
     7) P0.3_advisory_reviews still pending — schedulable on next off-peak tick.
   authorised: true
-  on_success: continue P6 sub-phases (P6.5b hot-path wiring next, then P6.6 grant modal) — track A P6 in_progress; keep momentum before switching to B1
+  on_success: continue P6 sub-phases (P6.6 grant modal is the last P6 gate) — track A P6 in_progress; keep momentum before switching to B1
 
 telemetry:
   log_file: web/content/reports/reseller-goal-history.jsonl

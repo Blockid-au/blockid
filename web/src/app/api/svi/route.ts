@@ -304,18 +304,18 @@ export async function POST(request: Request) {
   const supabase = getSupabaseAdmin();
   let slug = newSlug();
 
+  // Scope to active project for data isolation + reseller-sandbox routing on spendCredits.
+  let projectId: string | null = null;
+  if (authenticatedUserId) {
+    try {
+      const { getProjectIdFromRequest } = await import("@/lib/projects");
+      projectId = await getProjectIdFromRequest();
+    } catch { /* guest user — no project */ }
+  }
+
   if (!supabase) {
     slug = `svi-demo-${slug.slice(0, 6)}`;
   } else {
-    // Scope to active project for data isolation
-    let projectId: string | null = null;
-    if (authenticatedUserId) {
-      try {
-        const { getProjectIdFromRequest } = await import("@/lib/projects");
-        projectId = await getProjectIdFromRequest();
-      } catch { /* guest user — no project */ }
-    }
-
     const { error } = await supabase.from("svi_analyses").insert({
       id: slug,
       email,
@@ -342,6 +342,7 @@ export async function POST(request: Request) {
     const spend = await spendCredits(authenticatedUserId, "svi_analysis", {
       slug,
       email,
+      project_id: projectId,
     });
     creditBalance = spend.balance;
     creditsUsed = FEATURE_COSTS.svi_analysis;

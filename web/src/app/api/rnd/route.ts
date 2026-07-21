@@ -397,7 +397,7 @@ export async function POST(request: Request) {
       // Step 6: Spend credits (authenticated users only)
       if (authenticatedUserId) {
         const creditFeature = tierToFeature(tier);
-        await spendCredits(authenticatedUserId, creditFeature, { slug, email, tier });
+        await spendCredits(authenticatedUserId, creditFeature, { slug, email, tier, project_id: rndProjectId });
       }
 
       // Step 6b: Increment total_analyses for every analysis (free + paid)

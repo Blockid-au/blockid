@@ -239,6 +239,7 @@ ${sections}`;
       svi,
       stage,
       evidenceCount: (evidenceItems ?? []).length,
+      project_id: projectId,
     });
 
     const wordCount = report.split(/\s+/).length;
