@@ -2,56 +2,24 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
-import { OAuthConnectorCard } from "@/components/workspace/oauth-connector-card";
+import { IntegrationRowCard } from "@/components/workspace/integration-row-card";
+import { isProviderConfigured, listConnections } from "@/lib/oauth-connectors";
+import { getSyncConfig } from "@/lib/blockchain-sync";
 import {
-  isProviderConfigured,
-  listConnections,
-  type OAuthConnection,
-  type OAuthProvider,
-} from "@/lib/oauth-connectors";
+  buildIntegrationsCatalogue,
+  summariseCatalogue,
+  type BlockchainConfigSummary,
+  type OAuthConnectionSummary,
+} from "@/lib/integrations/catalogue";
 
 export const metadata: Metadata = {
   title: "Integrations",
   description:
-    "Connect GitHub, Stripe, and Google Analytics to auto-fill your Evidence Vault.",
+    "Connect GitHub, Stripe, Google Analytics, and the blockchain sync layer to auto-fill your Evidence Vault and mirror equity events on-chain.",
   robots: { index: false, follow: false },
 };
 
 export const dynamic = "force-dynamic";
-
-interface CardConfig {
-  provider: OAuthProvider;
-  title: string;
-  description: string;
-}
-
-const CARDS: CardConfig[] = [
-  {
-    provider: "github",
-    title: "GitHub",
-    description:
-      "Read-only access to your repos, commits, and stars. Feeds product-traction signals.",
-  },
-  {
-    provider: "stripe",
-    title: "Stripe",
-    description:
-      "Read-only OAuth (Stripe Connect). Pulls MRR, active customers, and 30-day payments (normalised to AUD).",
-  },
-  {
-    provider: "ga4",
-    title: "Google Analytics 4",
-    description:
-      "Read-only access to a GA4 property. Pulls sessions, new users, conversions, and average session duration.",
-  },
-];
-
-function findConn(
-  conns: OAuthConnection[],
-  provider: OAuthProvider,
-): OAuthConnection | undefined {
-  return conns.find((c) => c.provider === provider && c.status === "active");
-}
 
 export default async function IntegrationsPage({
   searchParams,
@@ -62,7 +30,38 @@ export default async function IntegrationsPage({
   if (!user) redirect("/auth/login?next=/workspace/integrations");
 
   const sp = await searchParams;
-  const connections = await listConnections(user.id);
+  const [connections, chainConfig] = await Promise.all([
+    listConnections(user.id),
+    getSyncConfig(user.id),
+  ]);
+
+  const oauthConnections: OAuthConnectionSummary[] = connections
+    .filter((c) => c.provider === "github" || c.provider === "stripe" || c.provider === "ga4")
+    .map((c) => ({
+      provider: c.provider as "github" | "stripe" | "ga4",
+      status: c.status,
+      providerAccountId: c.providerAccountId,
+      lastSyncAt: c.lastSyncAt,
+      lastSyncError: c.lastSyncError,
+    }));
+
+  const blockchainConfig: BlockchainConfigSummary | null = chainConfig
+    ? {
+        syncEnabled: chainConfig.syncEnabled,
+        syncState: chainConfig.syncState,
+        tokenSymbol: chainConfig.tokenSymbol,
+        tokenAddress: chainConfig.tokenAddress,
+        lastSyncAt: chainConfig.lastSyncAt,
+        pendingEvents: chainConfig.pendingEvents,
+      }
+    : null;
+
+  const rows = buildIntegrationsCatalogue({
+    oauthConnections,
+    blockchainConfig,
+    providerConfigured: isProviderConfigured,
+  });
+  const summary = summariseCatalogue(rows);
 
   return (
     <WorkspaceLayout user={user}>
@@ -72,8 +71,12 @@ export default async function IntegrationsPage({
             Integrations
           </h1>
           <p className="text-sm text-ink-600 dark:text-ink-400 mt-1">
-            Link the tools your startup already uses. BlockID pulls read-only
-            signals into your Evidence Vault and feeds them into your SVI score.
+            One row per integration. Signals connectors auto-fill your Evidence Vault; the blockchain layer optionally mirrors equity events on-chain (off-chain is still the source of truth).
+          </p>
+          <p className="text-xs text-ink-500 dark:text-ink-500 mt-2">
+            {summary.connected} of {summary.total} connected
+            {summary.errored > 0 ? ` · ${summary.errored} need attention` : ""}
+            {summary.not_configured > 0 ? ` · ${summary.not_configured} awaiting configuration` : ""}
           </p>
         </header>
 
@@ -89,22 +92,9 @@ export default async function IntegrationsPage({
         ) : null}
 
         <div className="space-y-4">
-          {CARDS.map((c) => {
-            const conn = findConn(connections, c.provider);
-            return (
-              <OAuthConnectorCard
-                key={c.provider}
-                provider={c.provider}
-                title={c.title}
-                description={c.description}
-                configured={isProviderConfigured(c.provider)}
-                initialConnected={Boolean(conn)}
-                initialAccountId={conn?.providerAccountId ?? null}
-                initialLastSyncAt={conn?.lastSyncAt ?? null}
-                initialLastSyncError={conn?.lastSyncError ?? null}
-              />
-            );
-          })}
+          {rows.map((row) => (
+            <IntegrationRowCard key={row.provider} row={row} />
+          ))}
         </div>
       </div>
     </WorkspaceLayout>
