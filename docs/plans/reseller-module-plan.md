@@ -18,6 +18,144 @@ Intended outcome: a reusable, multi-reseller attribution-and-commission surface 
 
 ---
 
+## Update — 2026-07-22 founder clarifications (supersedes downstream sections where noted)
+
+Five clarifications received after the first plan was approved. Each supersedes the earlier text in the section named. Downstream sections A–H remain valid except where explicitly overridden here.
+
+### U.1 Stripe account identity — **Auschain PTY LTD**
+
+The Stripe account is owned by **Auschain PTY LTD** (ACN 659 615 111, ABN 79 659 615 111). Single account, no Connect. All live price IDs in production share the account-namespace suffix `J7OAnXQ9sV` (evidence in [web/CFO-WEEK1-REPORT.md:31-43](web/CFO-WEEK1-REPORT.md)). Seller of record on every reseller-attributed invoice remains Auschain — this locks section C.3 Surface 3 and D.3.
+
+**Gap to resolve out-of-repo before P3 goes live:** the repo does NOT record which email is the Stripe dashboard **login owner** (`info@blockid.au` vs `admin@blockid.au`). In-repo emails today: `info@blockid.au` is only outbound SMTP (`web/src/lib/email.ts:21`); `admin@blockid.au` is app-level super-admin (`web/src/lib/auth.ts:436`, `docs/ARCHITECTURE.md:901`). Verify at `dashboard.stripe.com → Settings → Team & Account → Account details`, and confirm:
+1. Account owner email.
+2. Business ABN inside Stripe matches `79 659 615 111`.
+3. `statement_descriptor` reads `BLOCKID` or `AUSCHAIN` (not a placeholder).
+4. Bank/payout account is Auschain's, not a founder's personal.
+
+Add the answer to `docs/plans/reseller-module-goal.md` (P0 output — see U.5) as `stripe.account_owner_email`.
+
+### U.2 A$99 / 200 credits maps 1:1 to **existing `founder_growth`** — no new SKU
+
+Verified in [web/src/config/pricing/plans.csv:4](web/src/config/pricing/plans.csv):
+- `founder_growth`, `price_aud_cents=9900`, `annual_price_aud_cents=99000`, `trial_days=7`, `usage_limits.monthly_credits=200`.
+- Mirrored in `web/src/config/pricing/plans.generated.ts:65-66,80` and `web/src/config/pricing/stripe-seed.json:21-22`.
+- Legacy fallback [web/src/lib/credits.ts:214-215](web/src/lib/credits.ts): `growth` and `growth_annual` → `{amount:200, recurring:true}` — matches.
+
+**This resolves H.11 (credit-numbers discrepancy):** the earlier brief's "200/800/3000" was a mis-quote. Actual per-tier grants live in `plans.csv` `usage_limits.monthly_credits`: Starter=25, Growth=200, Scale=1000, Enterprise=unlimited. **The code wins.** No new SKU is required for reseller-attributed base subscriptions — attributed startups subscribe to `founder_growth` and receive its 200-credit grant automatically.
+
+**Still missing (unchanged from the original plan):** no cron re-grants credits on `subscription_cycle`. Build in P3 alongside the webhook refactor.
+
+### U.3 Two billing models — **`retail`** (original) + **`wholesale`** (InfoVision default)
+
+Two economic flows are now supported, selectable per reseller via a new `resellers.billing_model` column (`text not null default 'retail' check (billing_model in ('retail','wholesale'))`):
+
+| Model | Who pays Stripe | Reseller economics | Attribution mechanic |
+|---|---|---|---|
+| **`retail`** (original R1–R3) | The startup / founder | Reseller earns commission = 40% list − discount, off-Stripe monthly payout | Discount code applied at customer checkout |
+| **`wholesale`** (new; InfoVision default) | The reseller | Reseller subscribes on behalf of each attributed startup at list ($99/mo Growth SKU); startup gets full access + 200 credits/mo without paying BlockID | Reseller creates the startup via `/reseller/create-startup` (C.1.5); Stripe customer + subscription are owned by the reseller's Stripe customer object |
+
+**Data-model impact (supersedes D.1 `resellers` table row and D.2):**
+- `resellers.billing_model` column added as above.
+- In `wholesale` mode, `resellers.can_create_startups` is implicitly `true` and the create-startup form (C.1.5) becomes the primary funnel. Direct `?via=` self-signup is disabled for wholesale resellers unless explicitly enabled.
+- Stripe customer for a wholesale-attributed startup is created with `metadata.paying_reseller_id=<uuid>` AND `metadata.subject_startup_user_id=<founder_uuid>`. Attribution row (`reseller_attributions`) uses `source='provisioned'` and `subject_user_id=<founder_uuid>`.
+- `reseller_commissions` ledger still writes on `invoice.paid` for wholesale, with `commission_aud_cents=0` (the reseller keeps 100% of margin outside BlockID; ledger row exists purely for reconciliation and audit). The DB CHECK invariant `list − discount − commission = 0.60 × list` **must be relaxed for wholesale**: replace with a computed column check on `billing_model` — retail rows enforce the 60/40 split; wholesale rows enforce `commission_aud_cents = 0 AND list = amount_paid` (unless a promo code applied).
+- Reseller pricing to the end-customer in wholesale is **off-Stripe** (bill-back arrangement between InfoVision and their startup); BlockID's role is just to collect A$99/mo per subscription and grant 200 credits/mo.
+
+**Discount codes still work in wholesale.** If InfoVision uses their own `INFOVISION20` code at checkout to bring their COGS down 20%, the Stripe subscription discount applies and the ledger records the reduced `amount_paid`. Reseller commission remains 0 — the discount just reduces the reseller's payment to BlockID.
+
+**Rationale.** InfoVision's flow ("we sell and manage, you serve") is a wholesale flow; retail-with-commission was designed for referral partners who will come next. Modeling both is one column and one CHECK branch, so we do it now instead of paying migration debt later.
+
+### U.4 Reseller's own AI-credit usage — **Reseller Sandbox Workspace**
+
+Problem: a reseller admin who wants to try the AI features themselves has no credit balance — credits attach to `app_users.id`, and reseller admins aren't billed customers. Founder asked for a "convenient" solution rather than forcing double-signup.
+
+**Recommendation.** One hidden `projects` row per reseller org, owned by the reseller-admin `app_users` row, flagged with a new `projects.reseller_sandbox_id uuid → resellers(id) nullable`. Credits consumed inside a sandbox project draw from the reseller's `monthly_credit_budget` (D.1) instead of `credit_balances`.
+
+Concrete mechanics (supersedes A.3 "Manual top-up hooks" and C.1.4):
+- One-time creation on reseller org activation: `POST /reseller/setup-sandbox` provisions the workspace and stamps `reseller_sandbox_id`. Uses the same `createProject()` at [web/src/lib/projects.ts:398](web/src/lib/projects.ts); the sandbox project **does not count against `PLAN_PROJECT_LIMITS`** — bypass check when `reseller_sandbox_id IS NOT NULL`.
+- `spendCredits()` at [web/src/lib/credits.ts:448](web/src/lib/credits.ts) grows one branch: if `metadata.project_id` maps to a sandbox project, debit `reseller_credit_grants` (as a `sandbox_spend` row with negative amount) instead of `credit_balances`. Over-budget → same admin-approval flow used for grants.
+- Sandbox is **invisible** in the reseller's own "Customers" list (belongs to the org, not to an attributed customer), does not count in KPI reports (C.6), does not appear in the commission ledger.
+- Instrumented in `/reseller/settings` under "Sandbox usage MTD" and in the monthly report as a separate line.
+
+**Alternatives considered & rejected:**
+1. *Reseller signs up as normal customer* — cleanest ledger but double logins, conflates reseller ≠ customer identity. Founder explicitly wants better.
+2. *Dedicated free credit pool separate from the customer budget* — invites abuse, adds a ledger, harder to cap.
+3. *Reseller consumes attributed customer's credits* — violates R6 privacy scoping.
+
+Sandbox reuses the existing budget + audit trail, adds one column, and passes the "no cross-tenant leakage" test.
+
+### U.5 Continuous autonomous delivery model (P0 + P11)
+
+Founder direction: run the roadmap **without wall-clock time-boxing**, using the existing continuous-improvement infrastructure to spawn parallel agents that grind until each phase's exit criteria are met.
+
+Anchors this to the existing project pattern in memory: *CEO Implementing Loop* (research → CEO plan → code → version/milestone/architecture) and *Cloud Routines* (7 Anthropic cloud C-Level routines running off-peak). Reference: `[[project_ceo_implementing_loop]]`, `[[project_cloud_routines]]`.
+
+**Machine-readable goal file.** Add `docs/plans/reseller-module-goal.md` — the single source of truth the autonomous loop pulls from on each tick. Schema (YAML front-matter + body):
+
+```yaml
+goal_id: reseller-module-v1
+status: in_progress                     # in_progress | done | paused
+billing_model_default: wholesale        # per U.3
+stripe:
+  seller_of_record: "Auschain PTY LTD"
+  abn: "79 659 615 111"
+  account_owner_email: TBD              # fill after U.1 out-of-repo check
+resellers_seeded:
+  - code: INFOVISION
+    display_name: InfoVision
+    billing_model: wholesale
+    allowed_tiers: [0,10,20,30,40]
+    monthly_credit_budget: 20000
+    can_create_startups: true
+    can_grant_credits: true
+phases:
+  P0_goal_and_orchestration:  {status: pending, exit_criteria: [...]}
+  P1_foundations:             {status: pending, exit_criteria: [...]}
+  P2_redemption:              ...
+  P3_ledger_webhooks:         ...
+  P4_console:                 ...
+  P5_cobranding:              ...
+  P6_capabilities_sandbox:    ...      # sandbox from U.4 lands here
+  P7_reports:                 ...
+  P8_share_management_addon:  ...
+  P9_admin_surface:           ...
+  P10_hardening:              ...
+  P11_ongoing:                {status: pending, exit_criteria: never}
+current_focus: P0
+open_questions:
+  H.1_coupon_duration: "forever"
+  H.2_addon_price: "AUD 49 mo / 490 yr"
+  ...                                    # H.1-H.15 answers land here
+kpi:
+  eng_weeks_burned: 0
+  phases_shipped: 0
+  playwright_pass_pct: 0
+  ledger_drift_events: 0
+  attributed_startups: 0
+  sandbox_credits_consumed_mtd: 0
+```
+
+**Agent parallelism model** — the loop reuses existing Claude Code primitives (see [[reference_ai_model_autorefresh]] for the cron pattern; existing crons under [web/src/app/api/cron/](web/src/app/api/cron/)):
+
+- **CEO loop** (per off-peak tick, per `[[project_ceo_implementing_loop]]`): reads goal file, picks `current_focus`, spawns 4 subagents in parallel:
+  - **CTO subagent** — implements the phase inside a git worktree (schemas, routes, UI). Worktree isolation prevents conflicts with concurrent phases.
+  - **QA subagent** — runs Playwright + unit tests against the phase's exit criteria (the G.2/G.3 scenarios).
+  - **CDO subagent** — verifies commission math invariants (`web/src/lib/reseller/commission.ts` truth table) and audit-log completeness (E.3).
+  - **CFO subagent** — reconciles `reseller_commissions ↔ revenue_events` on `stripe_event_id`; alerts on drift.
+- Loop tick cadence: off-peak windows only (memory: `code/deploy gated off-peak for 24/7 uptime`). Between ticks the harness re-invokes on notification; no polling.
+- Exit criteria met → CEO marks phase `done`, sets `current_focus` to next phase. When all P0–P10 done, `current_focus` → `P11_ongoing`; loop keeps running for weekly KPI digest + drift auto-triage + onboarding subsequent resellers (row #2, #3…) with zero engineering time.
+
+**New phases added to G.1:**
+
+| # | Phase | Deps | Feature flag | What it delivers |
+|---|---|---|---|---|
+| **P0** | Goal file + agent orchestration (prep) | — | `RESELLER_AUTONOMOUS_LOOP` | Write `docs/plans/reseller-module-goal.md`; add cron `scripts/cron/reseller-goal-loop.mjs` that picks `current_focus`, invokes CEO agent, records tick in `web/content/reports/reseller-goal-history.jsonl`. Seeds InfoVision row in `resellers` (post-P1) or a stub row in Supabase pending schema. |
+| **P11** | Ongoing loop | P0–P10 | (existing) | Weekly KPI digest to `admin@blockid.au`; auto-triage drift alerts (stripe-sync cron findings) into loop queue; onboards new resellers (`INSERT INTO resellers` + code minting) via `/admin/resellers` UI + auto-continuation. No exit criterion — designed to run forever. |
+
+**Kill switch:** `RESELLER_AUTONOMOUS_LOOP=off` in env stops the cron immediately; goal file remains for manual replay.
+
+---
+
 ## A. AS-IS Architecture Map (+ reuse-vs-build verdicts)
 
 ### A.1 Billing & Stripe
@@ -710,11 +848,19 @@ P8 must pass:
 
 **H.10 Reseller visibility of customer email.** Recommend **masked in list view; full reveal in detail view on explicit click; every reveal logs to `reseller_audit_log`**. Rationale: legitimate support need + minimum access + logged access.
 
-**H.11 Credit reset discrepancy AND commission-math semantics.** Two coupled items:
+**H.11 — RESOLVED (see U.2).** Credit numbers per tier live in `plans.csv usage_limits.monthly_credits`: Starter=25, Growth=200, Scale=1000, Enterprise=unlimited. Earlier brief's "200/800/3000" was a mis-quote. A$99 → `founder_growth` → 200 credits/mo. **The code wins.** Still open: build the missing monthly reset cron in P3 (piggy-back on webhook refactor). Confirm reading of "BlockID nets 60% of list" is **pre-GST-remit** ($59.40 constant across tiers) — Auschain remits GST regardless. Below preserved for history:
 * Brief says 200 / 800 / 3000; code says **25 / 200 / 1000 / unlimited** with **no monthly reset cron**. Recommend: reconcile numbers with product; build the missing monthly reset cron in P3 (piggy-back on webhook refactor).
 * Confirm reading of "BlockID nets 60% of list" is **pre-GST-remit** ($59.40 constant across tiers) — Auschain remits GST to the ATO regardless. Alternative reading (post-GST net constant) would require different commission math.
 
 **H.12 Reseller user segment.** Recommend **new `reseller` segment** in `segments.ts:17`. Rationale: reusing `advisor` conflates dashboard experiences; new segment is 3 lines with no downstream cost.
+
+**H.13 Stripe dashboard login owner (U.1).** Repo doesn't record it. Recommend **`admin@blockid.au` as the account owner login, `info@blockid.au` as a secondary team member** (mirrors how the two emails are used elsewhere — `admin@` = super-admin authority, `info@` = outbound comms). Confirm at `dashboard.stripe.com → Settings → Team & Account`, and if wrong, transfer ownership to `admin@blockid.au` before P3 goes live. Add `stripe.account_owner_email` to `docs/plans/reseller-module-goal.md` as the source of truth.
+
+**H.14 Billing model default per new reseller (U.3).** Recommend **`wholesale` as the default for InfoVision-class deals** (reseller signs a partnership contract, provisions accounts, bills their own end-customer off-Stripe); **`retail` remains available** for future referral/affiliate partners who just want a link+commission model. Set `resellers.billing_model` at admin-create time; never auto-switch. Rationale: matches InfoVision's actual flow and doesn't force a UX branch on the reseller.
+
+**H.15 Reseller sandbox credit ceiling (U.4).** Recommend **the sandbox draws from the same `monthly_credit_budget` used for granting credits to attributed startups** (single ceiling per reseller org). InfoVision starts at 20,000/mo (H.4); the sandbox spend is instrumented separately in the monthly report so we can see how much of the ceiling the reseller consumed for internal use vs customer grants. Rationale: one budget dial per reseller is simpler than two; separation-of-concerns lives in the reporting layer.
+
+**H.16 Autonomous loop cadence and stop condition (U.5).** Recommend **off-peak tick, no wall-clock deadline, stop only when `current_focus === "done"` or `RESELLER_AUTONOMOUS_LOOP=off`**. P11 has no exit criterion — designed to run indefinitely for KPI digest, drift auto-triage, and onboarding new resellers. Rationale: matches founder's "continuous, no time-box" direction and reuses existing cloud-routine cadence.
 
 ---
 
