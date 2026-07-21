@@ -146,3 +146,5 @@ export async function GET(req: Request) {
     ran_at: runAt,
   });
 }
+
+export { GET as POST };

@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.14
+version: 2026-07-23.15
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -1062,6 +1062,27 @@ review_history:
       dir through buildShowcaseDataRoomRows and inserts data_room rows).
     commit: (this tick)
 
+  - tick: 37
+    ran_at: 2026-07-21
+    action: hygiene_cron_post_alias
+    result: |
+      Fixed pre-existing next_action item 7: cron-runner.sh POSTs to
+      /api/cron/<name> but all 5 reseller-* cron routes exported only GET,
+      so every scheduled tick would 405 silently (existing crons like
+      svi-snapshot mask the problem because they end with
+      `export { GET as POST };`). Appended the same one-line alias to
+      web/src/app/api/cron/reseller-clear-commissions/route.ts,
+      /reseller-monthly-report/route.ts,
+      /reseller-monthly-reconciliation/route.ts,
+      /reseller-stripe-sync/route.ts, and /credit-reset/route.ts. This
+      unblocks the schedulers already installed in
+      web/scripts/crontab.production (15 3 * * *, 0 4 1 * *, 45 3 1 * *,
+      30 3 * * 0, 15 2 1 * *) so P3.3 / P3.4 / P3.1_reconciliation / P7.1
+      actually fire on their live entries. No new logic — pure alias so
+      GET semantics are unchanged. tsc clean; no lib changes so
+      lint:reseller / vitest untouched.
+    commit: (this tick)
+
 next_action:
   agent: applier
   task: |
@@ -1071,7 +1092,7 @@ next_action:
     4) DONE tick 35 — Optional P6.5b widening: term-sheet/idea-lab/valuation/journal/data-room/evidence spendCredits callers now thread project_id via getProjectIdFromRequest(). See tick 35 for file list. Remaining spendCredits() callers not touched: financial-projections, investor-pack/generate, svi/pitch-deck, svi/docx, svi/report, svi/enhanced-report, svi/dimension-analyze, svi/ai-score, svi/research, revaluation, v1/analyze, evaluation/[criterionKey]/ai-suggest, data-room/goals (award path — misleading call, not a real debit).
     5) P0.3_advisory_reviews still pending — schedulable on next off-peak tick.
     6) code_request approval: currently marks-only; wire Stripe coupon+promotion_code creation into either PATCH approval or the admin promo-codes editor at /admin/resellers/[code].
-    7) Pre-existing: cron-runner.sh POSTs to /api/cron/<name>, but reseller-* routes only export GET. Either add POST aliases or switch runner to GET for cron endpoints — separate hygiene tick.
+    7) DONE tick 37 — reseller-* cron routes now export `{ GET as POST }` so cron-runner.sh's POST no longer 405s. Applies to reseller-clear-commissions, reseller-monthly-report, reseller-monthly-reconciliation, reseller-stripe-sync, credit-reset.
   authorised: true
   on_success: pick B6_public_showcase or B5_report_library on next tick if B1.3 seed remains blocked-on-apply (both are pure lib/UI, no DB dep once B1.2 helper is in place); otherwise continue B1.3 → B2.
 
