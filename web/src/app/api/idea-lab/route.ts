@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
+import { getProjectIdFromRequest } from "@/lib/projects";
 import { SECTOR_LABELS } from "@/lib/svi-analysis";
 import { generateIdeaLab, type Audience, type IdeaLabRequest } from "@/lib/agents/rnd-idea-lab";
 
@@ -118,10 +119,12 @@ export async function POST(request: Request) {
       );
     }
 
+    const projectId = await getProjectIdFromRequest();
     const spend = await spendCredits(user.id, "idea_lab", {
       sector: sectorInput,
       problemArea: problemInput.slice(0, 120),
       audience,
+      project_id: projectId,
     });
     if (!spend.ok) {
       const cost = FEATURE_COSTS.idea_lab ?? 3;

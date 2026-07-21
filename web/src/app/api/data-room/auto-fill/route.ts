@@ -17,6 +17,7 @@ import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { spendCredits } from "@/lib/credits";
+import { getProjectIdFromRequest } from "@/lib/projects";
 import Anthropic from "@anthropic-ai/sdk";
 
 export const dynamic = "force-dynamic";
@@ -64,8 +65,10 @@ export async function POST(request: NextRequest) {
   const supabase = getSupabaseAdmin()!;
 
   // ── Charge credits ─────────────────────────────────────────────────────
+  const projectId = await getProjectIdFromRequest();
   const spend = await spendCredits(user.id, "data_room_auto_fill", {
     email: user.email,
+    project_id: projectId,
   });
   if (!spend.ok) {
     return NextResponse.json(

@@ -94,6 +94,11 @@ export async function POST(request: Request) {
     }, { status: 402 });
   }
 
+  // Resolve active project before charging so the reseller sandbox routing
+  // in spendCredits (metadata.project_id) can activate for reseller-scoped
+  // callers. Non-reseller callers fall through to credit_balances unchanged.
+  const projectId = await getProjectIdFromRequest();
+
   try {
     const result = await analyzeTermSheet({
       termSheet,
@@ -102,7 +107,9 @@ export async function POST(request: Request) {
     });
 
     // ── Spend credits after successful analysis ─────────────────────
-    const spend = await spendCredits(user.id, "term_sheet");
+    const spend = await spendCredits(user.id, "term_sheet", {
+      project_id: projectId,
+    });
 
     const lawyerQuestionsV2 = generateLawyerQuestions(result.analysis);
     const companyName = extractCompanyName(termSheet);
@@ -114,7 +121,6 @@ export async function POST(request: Request) {
 
     // ── Persist analysis to Supabase (best-effort, never blocks response) ──
     let analysisId: string | null = null;
-    const projectId = await getProjectIdFromRequest();
     const supabase = getSupabaseAdmin();
     if (supabase && result.analysis) {
       try {

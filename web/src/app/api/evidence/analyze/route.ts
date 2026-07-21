@@ -10,6 +10,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
+import { getProjectIdFromRequest } from "@/lib/projects";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendReportDelivery } from "@/lib/email";
 
@@ -227,10 +228,12 @@ export async function POST(request: Request) {
     const dimension = String(analysisData.dimension ?? evidence.dimension ?? "general");
 
     // Spend credits
+    const projectId = await getProjectIdFromRequest();
     const spend = await spendCredits(user.id, featureKey, {
       evidenceId,
       tier,
       dimension,
+      project_id: projectId,
     });
 
     // Store analysis result

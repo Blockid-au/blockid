@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { spendCredits } from "@/lib/credits";
+import { getProjectIdFromRequest } from "@/lib/projects";
 import { generateDataRoom } from "@/lib/data-room";
 import { computeValuation, type ValuationInput } from "@/lib/valuation";
 
@@ -44,8 +45,10 @@ export async function POST() {
   }
 
   // ── Charge credits ────────────────────────────────────────────────────
+  const projectId = await getProjectIdFromRequest();
   const spend = await spendCredits(user.id, "data_room_generate", {
     email: user.email,
+    project_id: projectId,
   });
   if (!spend.ok) {
     return NextResponse.json(
