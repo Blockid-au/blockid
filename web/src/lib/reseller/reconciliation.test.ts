@@ -1,9 +1,12 @@
 import { describe, it, expect } from "vitest";
 import {
   csvEscape,
+  computeGstDelta,
   formatDriftEmail,
+  formatGstDriftEmail,
   formatReconciliationCsv,
   formatReconciliationEmail,
+  GST_TOLERANCE_CENTS,
   sumClearedCents,
   type ReconciliationRow,
   type StripeDriftRow,
@@ -84,6 +87,103 @@ describe("formatReconciliationEmail", () => {
     const html = formatReconciliationEmail("2026-07", []);
     expect(html).toContain("No cleared commissions this month");
     expect(html).toContain("A$0.00");
+  });
+});
+
+describe("computeGstDelta", () => {
+  it("classifies equal totals as within tolerance", () => {
+    const r = computeGstDelta("2026-07", 12345, 12345, 3);
+    expect(r).toMatchObject({
+      month: "2026-07",
+      ledger_gst_aud_cents: 12345,
+      stripe_gst_aud_cents: 12345,
+      delta_cents: 0,
+      abs_delta_cents: 0,
+      within_tolerance: true,
+      stripe_invoice_count: 3,
+    });
+  });
+
+  it("holds at the boundary (exactly A$1 delta = within tolerance)", () => {
+    const r = computeGstDelta("2026-07", 10100, 10000);
+    expect(r.delta_cents).toBe(GST_TOLERANCE_CENTS);
+    expect(r.within_tolerance).toBe(true);
+  });
+
+  it("flips at boundary + 1 cent", () => {
+    const r = computeGstDelta("2026-07", 10101, 10000);
+    expect(r.delta_cents).toBe(101);
+    expect(r.within_tolerance).toBe(false);
+  });
+
+  it("treats negative deltas symmetrically", () => {
+    const r = computeGstDelta("2026-07", 9899, 10000);
+    expect(r.delta_cents).toBe(-101);
+    expect(r.abs_delta_cents).toBe(101);
+    expect(r.within_tolerance).toBe(false);
+  });
+
+  it("zeroes report as within tolerance", () => {
+    const r = computeGstDelta("2026-07", 0, 0, 0);
+    expect(r.within_tolerance).toBe(true);
+    expect(r.stripe_invoice_count).toBe(0);
+  });
+
+  it("truncates fractional cent inputs", () => {
+    const r = computeGstDelta("2026-07", 12345.7, 12345.2);
+    expect(r.ledger_gst_aud_cents).toBe(12345);
+    expect(r.stripe_gst_aud_cents).toBe(12345);
+    expect(r.delta_cents).toBe(0);
+  });
+});
+
+describe("formatReconciliationEmail with GST section", () => {
+  it("appends GST reconciliation block when supplied", () => {
+    const html = formatReconciliationEmail(
+      "2026-07",
+      sampleRows,
+      computeGstDelta("2026-07", 27500, 27500, 12),
+    );
+    expect(html).toContain("GST reconciliation — 2026-07");
+    expect(html).toContain("A$275.00");
+    expect(html).toContain("within A$1.00 tolerance");
+    expect(html).toContain("12 invoices");
+  });
+
+  it("marks drift when out of tolerance", () => {
+    const html = formatReconciliationEmail(
+      "2026-07",
+      sampleRows,
+      computeGstDelta("2026-07", 30000, 27500, 1),
+    );
+    expect(html).toContain("EXCEEDS A$1.00 tolerance");
+    expect(html).toContain("1 invoice"); // singular
+  });
+
+  it("omits GST section when not supplied", () => {
+    const html = formatReconciliationEmail("2026-07", sampleRows);
+    expect(html).not.toContain("GST reconciliation");
+  });
+});
+
+describe("formatGstDriftEmail", () => {
+  it("summarises the delta with plain-text guidance", () => {
+    const html = formatGstDriftEmail(
+      computeGstDelta("2026-07", 12500, 10000, 7),
+    );
+    expect(html).toContain("GST reconciliation drift — 2026-07");
+    expect(html).toContain("A$125.00");
+    expect(html).toContain("A$100.00");
+    expect(html).toContain("A$25.00"); // delta
+    expect(html).toContain("7 invoices");
+    expect(html).toContain("BAS lodgement");
+  });
+
+  it("uses singular invoice noun when count is 1", () => {
+    const html = formatGstDriftEmail(
+      computeGstDelta("2026-07", 200, 0, 1),
+    );
+    expect(html).toContain("1 invoice)");
   });
 });
 

@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.12
+version: 2026-07-23.13
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -270,8 +270,9 @@ tracks:
           "sandbox rate-limit 50 credits/hr enforced (D3-CISO-05) (DONE at lib level P6.2; still needs spendCredits wiring P6.5)"
         ]
       P7_kpi_reports:
-        status: partial
+        status: done_pending_apply
         tick_started: 32
+        completed_at: 2026-07-21
         sub_phases:
           P7.1_monthly_report_cron: {status: done, tick: 32, files: [
             "web/src/lib/reseller/monthly-report.ts",
@@ -288,12 +289,16 @@ tracks:
             "web/src/app/reseller/reports/page.tsx (server-renders last 12 months from reseller_report_files metadata; suppresses per-row download link until user click)",
             "web/src/app/reseller/reports/report-download-cell.tsx (client button that fetches the signed URL on demand and opens in a new tab; error surface for 403/404)"
           ], note: "D4-CLO-07 chokepoint — signed URLs are minted on demand (never in server-rendered HTML), scoped to the requesting reseller_id via scopedReseller, gated on the 12-month exposed window via isMonthExposed, and every mint writes a reseller_audit_log row BEFORE the JSON response. Cron upload runs after the email is composed but before the response so upload_errors surface in the return payload for observability. Retention purge deletes both the storage object and the metadata row inside the same cron pass. Migration 0097 pending docker-exec apply. tsc clean; reseller vitest 214/214 (+14); npm run lint:reseller: 8 files / 2 exemptions / 0 violations."}
-          P7.3_gst_reconciliation_delta: {status: pending, note: "Assert GST reconciliation delta <= A$1/month by joining monthly report totals to invoice-level GST rollup from Stripe; extend reseller-monthly-reconciliation cron to raise on drift."}
+          P7.3_gst_reconciliation_delta: {status: done, tick: 34, completed_at: 2026-07-21, files: [
+            "web/src/lib/reseller/reconciliation.ts (+ GST_TOLERANCE_CENTS=100, computeGstDelta, formatGstDriftEmail, formatReconciliationEmail extended with optional GST section)",
+            "web/src/lib/reseller/reconciliation.test.ts (18/18 pass; +7 GST cases: within-tolerance, boundary at A$1, +1 cent flip, negative delta symmetry, zero, fractional truncation, drift email singular/plural)",
+            "web/src/app/api/cron/reseller-monthly-reconciliation/route.ts (sums revenue_events.gst_aud_cents over window, paginates stripe.invoices.list({created:{gte,lt}}) status=paid, folds inv.total_taxes[].amount, computes delta, sends standalone drift email + embeds section in reconciliation email; response payload carries {gst.ledger/stripe/delta/within_tolerance/tolerance_cents/invoice_count/drift_emailed})"
+          ], note: "D2-CFO-03 tolerance gate live. Uses total_taxes[].amount (Stripe 22.x removed top-level invoice.tax). Fails-open when Stripe not configured (gst.skipped_reason returned so ops sees why). Refunds excluded on both sides — ledger side already flips gst_aud_cents on refund events; Stripe side filters status=paid. skip_email=1 respected for dry-runs. reseller vitest 225/225 (was 214, +11 across GST-recon + email variants); tsc clean; lint:reseller: 8 files / 2 exemptions / 0 violations."}
         exit_criteria: [
           "monthly cron /api/cron/reseller-monthly-report generates CSV per reseller (KPI set from D2-CFO-07) (DONE P7.1)",
           "signed-URL delivery 24h TTL (D4-CLO-07) (DONE P7.2 — SIGNED_URL_TTL_SECONDS=86400 in report-storage.ts; on-demand mint via /api/reseller/reports/[month]/signed-url with audit log)",
           "12mo history retained; 24mo hard retention (DONE P7.2 — RETENTION_EXPOSED_MONTHS=12 gates the viewer; RETENTION_HARD_MONTHS=24 purge runs each cron pass via selectExpiredReports)",
-          "GST reconciliation delta <= A$1/month (DEFERRED P7.3)"
+          "GST reconciliation delta <= A$1/month (DONE P7.3 — GST_TOLERANCE_CENTS=100 in reconciliation.ts; monthly cron sums revenue_events.gst_aud_cents vs Stripe invoice.total_taxes[].amount and emails admin@blockid.au on drift)"
         ]
       P8_share_management_addon:
         status: blocked_by: P1
@@ -905,6 +910,46 @@ review_history:
       exemptions / 0 violations.
     commit: (this tick)
 
+  - tick: 34
+    ran_at: 2026-07-21
+    action: p7.3_gst_reconciliation_delta
+    result: |
+      P7 gate fully closed. Pure delta helper landed at
+      web/src/lib/reseller/reconciliation.ts: GST_TOLERANCE_CENTS=100
+      (A$1 per the D2-CFO-03 plan gate), computeGstDelta(monthKey,
+      ledgerCents, stripeCents, invoiceCount) returns a
+      GstReconciliation record with truncated inputs, signed delta,
+      abs delta, within_tolerance flag, and invoice count so the
+      response payload + email body can format from the same object.
+      formatReconciliationEmail(monthKey, rows, gstReconciliation?)
+      now appends a GST section under the commission table (green
+      "within A$1 tolerance" / red "EXCEEDS A$1 tolerance");
+      formatGstDriftEmail() is the standalone alert body so admin
+      gets paged even if the reconciliation email is filtered.
+      Cron web/src/app/api/cron/reseller-monthly-reconciliation
+      /route.ts now sums revenue_events.gst_aud_cents over the
+      window (matches existing ts filter), paginates
+      stripe.invoices.list({created:{gte,lt},limit:100}) with the
+      async iterator, folds inv.total_taxes[].amount on status=paid
+      invoices only (Stripe 22.x removed top-level invoice.tax
+      after tsc surfaced the shape drift), then computes the delta.
+      Drift emits an additional email with subject "[BlockID] GST
+      reconciliation drift — YYYY-MM (delta A$X.XX)" so the alert
+      lands even when the reconciliation attachment goes through.
+      Response payload carries {gst:{ledger_aud_cents,
+      stripe_aud_cents, delta_cents, within_tolerance,
+      tolerance_cents, stripe_invoice_count, drift_emailed}} for
+      observability; fails-open to {gst:{skipped_reason}} when
+      Stripe is not configured or the list call throws so a Stripe
+      outage does not black-hole the commission email.
+      skip_email=1 respected for dry-runs (also skips drift alert).
+      Tests: 7 new GST cases (within-tolerance, exact A$1 boundary,
+      +1 cent flip, negative delta symmetry, zero, fractional
+      truncation, singular/plural invoice noun) + 4 email-composition
+      cases; reseller vitest 225/225 (was 214, +11); tsc clean; npm
+      run lint:reseller: 8 files / 2 exemptions / 0 violations.
+    commit: (this tick)
+
   - tick: 20
     ran_at: 2026-07-21
     action: p3.1_reconciliation_cron
@@ -930,14 +975,13 @@ next_action:
   task: |
     1) Apply migrations 0091 + 0092 + 0094 + 0095 + 0096 + 0097 via docker exec psql (P1.4 + P6.1 + P9.3 + P7.2) — infra step, requires DB access. Also create the private 'reseller-reports' Supabase Storage bucket before the cron next fires: `select storage.create_bucket('reseller-reports', false);` (or via Supabase Studio; keep public=false so signed URLs are mandatory).
     2) Seed INFOVISION reseller row (P1.5_infovision_seed) once P1.4 lands.
-    3) Track B B1_showcase_scaffold — parallel candidate; migration 0099 adds projects.is_showcase + reseller_sandbox_id + repo_url; seed BlockID.au workspace.
-    4) P7.3_gst_reconciliation_delta — assert |monthly_report.gst - stripe.gst| <= A$1 by extending reseller-monthly-reconciliation; page admin on drift.
-    5) Optional P6.5b widening: term-sheet/idea-lab/valuation/journal/data-room/evidence spendCredits callers still don't thread project_id — one getProjectIdFromRequest() per route.
-    6) P0.3_advisory_reviews still pending — schedulable on next off-peak tick.
-    7) code_request approval: currently marks-only; wire Stripe coupon+promotion_code creation into either PATCH approval or the admin promo-codes editor at /admin/resellers/[code].
-    8) Pre-existing: cron-runner.sh POSTs to /api/cron/<name>, but reseller-* routes only export GET. Either add POST aliases or switch runner to GET for cron endpoints — separate hygiene tick.
+    3) Track B B1_showcase_scaffold — parallel candidate; migration 0099 adds projects.is_showcase + reseller_sandbox_id + repo_url; seed BlockID.au workspace. TRACK A P7 IS NOW FULLY DONE-PENDING-APPLY — next tick should pick B1 per A>B track-balance clause.
+    4) Optional P6.5b widening: term-sheet/idea-lab/valuation/journal/data-room/evidence spendCredits callers still don't thread project_id — one getProjectIdFromRequest() per route.
+    5) P0.3_advisory_reviews still pending — schedulable on next off-peak tick.
+    6) code_request approval: currently marks-only; wire Stripe coupon+promotion_code creation into either PATCH approval or the admin promo-codes editor at /admin/resellers/[code].
+    7) Pre-existing: cron-runner.sh POSTs to /api/cron/<name>, but reseller-* routes only export GET. Either add POST aliases or switch runner to GET for cron endpoints — separate hygiene tick.
   authorised: true
-  on_success: pick B1_showcase_scaffold on next tick per A>B track-balance clause (track A P7 is now down to a single deferred leaf — P7.3 GST reconciliation — everything else is done_pending_apply).
+  on_success: pick B1_showcase_scaffold on next tick per A>B track-balance clause (track A P7 is now fully done — every leaf is done or done_pending_apply).
 
 telemetry:
   log_file: web/content/reports/reseller-goal-history.jsonl
