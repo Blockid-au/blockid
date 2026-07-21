@@ -127,3 +127,5 @@
 {"tick_id":"2026-07-21T17-50-01-250Z","ts":"2026-07-21T18:02:46.560Z","stage":"auto_deploy_finished","status":0,"head":"5eff387"}
 {"tick_id":"2026-07-21T17-50-01-250Z","ts":"2026-07-21T18:02:46.562Z","stage":"tick_end"}
 {"tick_id":"2026-07-21T18-05-01-678Z","ts":"2026-07-21T18:05:01.679Z","stage":"tick_start"}
+{"tick_id":"2026-07-21T18-05-01-678Z","ts":"2026-07-21T18:10:00.139Z","stage":"delegated_dispatch","status":0,"elapsed_ms":298456,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-21T18-05-01-678Z","ts":"2026-07-21T18:10:00.164Z","stage":"auto_commit_started","dirty_files":2}
