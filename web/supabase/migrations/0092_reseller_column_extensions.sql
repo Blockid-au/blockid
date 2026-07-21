@@ -68,7 +68,7 @@ ALTER TABLE public.revenue_events
   ADD COLUMN IF NOT EXISTS reseller_commission_aud_cents int;
 
 CREATE INDEX IF NOT EXISTS revenue_events_reseller_month_idx
-  ON public.revenue_events (reseller_id, occurred_at DESC)
+  ON public.revenue_events (reseller_id, ts DESC)
   WHERE reseller_id IS NOT NULL;
 
 -- ---------------------------------------------------------------------------

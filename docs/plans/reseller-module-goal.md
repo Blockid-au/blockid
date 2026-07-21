@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.18
+version: 2026-07-23.19
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -71,7 +71,7 @@ tracks:
           P0.3_advisory_reviews: {status: pending, agents: [cmo, coo, cpo, cdo, chro, cro, customer-success, investor-relations], note: "run on next off-peak tick"}
           P0.4_ceo_final_sign_off: {status: pending, note: "fire after P1.4 tests + docker exec apply"}
       P1_foundations:
-        status: done_pending_apply
+        status: done_pending_seed
         migration_files: [0091, 0092]
         sub_phases:
           P1.1_migrations_authored: {status: done, tick: 3, files: [0091_reseller_module_foundations.sql, 0092_reseller_column_extensions.sql]}
@@ -89,8 +89,8 @@ tracks:
             "web/src/lib/reseller/commission.test.ts",
             "web/src/lib/reseller/attribution.test.ts"
           ]}
-          P1.4_docker_apply: {status: pending, action: "docker exec psql -f 0091_*.sql + 0092_*.sql; NOTIFY pgrst, 'reload schema';"}
-          P1.5_infovision_seed: {status: blocked_by: P1.4, action: "INSERT INTO resellers with billing_model=wholesale, gst_registered=true, abn (H.20 confirm)"}
+          P1.4_docker_apply: {status: done, tick: 41, completed_at: 2026-07-21, action: "docker exec psql applied 0091 + 0092 + 0093 + 0094 + 0095 + 0096 + 0097; NOTIFY pgrst reload succeeded; reseller-reports storage bucket created (private, 10MB cap, text/csv only). Gap discovered + fixed inline: (a) reseller_audit_log had no migration despite being written by P4.1/P4.2/P6.3/P6.4/P7.2/P9.3 route code — authored 0093_reseller_audit_log.sql (append-only via mutation triggers, default-deny RLS, mirrors audit_events convention from 0076); (b) 0092 index revenue_events_reseller_month_idx referenced non-existent column occurred_at (revenue_events uses ts) — corrected to ts DESC before re-apply. Verified: 10 reseller_* tables + 1 view + 13 extension columns landed."}
+          P1.5_infovision_seed: {status: human_blocked, action: "INSERT INTO resellers with billing_model=wholesale, gst_registered=true, abn (H.20 confirm)", blocker: "resellers_seeded_intent.gst_registered + abn are both TBD_verify_at_creation — per goal file rule, TBD on required attribute means human intervention required. Insert is otherwise a single SQL statement — unblock by confirming Auschain's InfoVision ABN + GST status per H.20 (Auschain existing counsel or LegalVision AU)."}
         exit_criteria: [
           "0091 + 0092 applied via docker exec psql",
           "NOTIFY pgrst reload succeeded",
@@ -227,12 +227,12 @@ tracks:
           "Playwright pill vs no-pill test — DEFERRED to P10_hardening (Playwright suite currently un-provisioned; P10 exit_criteria owns the E2E lens)"
         ]
       P6_capabilities_sandbox:
-        status: done_pending_apply
-        migration_files: [0096]
+        status: done
+        migration_files: [0096]  # applied tick 41
         tick_started: 25
         completed_at: 2026-07-21
         sub_phases:
-          P6.1_migration_authored: {status: done, tick: 25, files: ["web/supabase/migrations/0096_reseller_credit_grants.sql"], note: "kind CHECK (grant|sandbox_spend) + ck_amount_sign + ck_month_key_format + ck_target_shape + ck_ct_link enforce the sign/shape invariants; unique idx on (reseller_id, target_user_id, credit_transaction_id) WHERE kind=grant dedupes customer mirror; (reseller_id, month_key) hot idx for budget rollup; (sandbox_project_id, created_at DESC) idx for 50/hr rate-limit scan"}
+          P6.1_migration_authored: {status: done, tick: 25, apply_tick: 41, files: ["web/supabase/migrations/0096_reseller_credit_grants.sql"], note: "kind CHECK (grant|sandbox_spend) + ck_amount_sign + ck_month_key_format + ck_target_shape + ck_ct_link enforce the sign/shape invariants; unique idx on (reseller_id, target_user_id, credit_transaction_id) WHERE kind=grant dedupes customer mirror; (reseller_id, month_key) hot idx for budget rollup; (sandbox_project_id, created_at DESC) idx for 50/hr rate-limit scan"}
           P6.2_credit_grant_lib: {status: done, tick: 25, files: [
             "web/src/lib/reseller/credit-grants.ts",
             "web/src/lib/reseller/credit-grants.test.ts (19/19 pass)"
@@ -270,7 +270,7 @@ tracks:
           "sandbox rate-limit 50 credits/hr enforced (D3-CISO-05) (DONE at lib level P6.2; still needs spendCredits wiring P6.5)"
         ]
       P7_kpi_reports:
-        status: done_pending_apply
+        status: done  # migration 0097 + reseller-reports bucket applied tick 41
         tick_started: 32
         completed_at: 2026-07-21
         sub_phases:
@@ -280,7 +280,7 @@ tracks:
             "web/src/app/api/cron/reseller-monthly-report/route.ts",
             "web/scripts/crontab.production (0 4 1 * * reseller-monthly-report)"
           ], note: "R9 § C.6 column contract wired end-to-end via buildMonthlyReport(): new_signups / active_customers_eom / attributed_mrr_aud / churned_customers / blockid_gross+net / commission_pct_effective / commission_owed_aud / ai_credits_granted / ai_credits_over_budget_count. Pure aggregation groups revenue_events (queried on `ts` — 0092 index typo notwithstanding) and reseller_credit_grants(kind=grant, month_key=window) by reseller_id, joins resellers for display_name, formats a RFC-4180 CSV attachment + HTML summary body, and emails admin@blockid.au from /api/cron/reseller-monthly-report. ?month=YYYY-MM re-runs history; ?skip_email=1 supports dry-run. Cron scheduled 0 4 1 * * (04:00 UTC 1st = 14:00 AEST 1st, one slot after the 03:45 UTC monthly-reconciliation). tsc clean; reseller vitest 200/200 (+15); lint:reseller 7 files / 2 exemptions / 0 violations."}
-          P7.2_signed_url_storage: {status: done_pending_apply, tick: 33, migration_files: [0097], files: [
+          P7.2_signed_url_storage: {status: done, tick: 33, apply_tick: 41, migration_files: [0097], files: [
             "web/supabase/migrations/0097_reseller_report_files.sql (metadata table for storage artifacts; UNIQUE (reseller_id, month_key); RLS default-deny)",
             "web/src/lib/reseller/report-storage.ts (pure helpers: buildStoragePath, buildDownloadFilename, computeRetentionWindow, filterVisibleReports, selectExpiredReports, isMonthExposed; REPORT_BUCKET='reseller-reports'; SIGNED_URL_TTL_SECONDS=86400; RETENTION_EXPOSED_MONTHS=12; RETENTION_HARD_MONTHS=24)",
             "web/src/lib/reseller/report-storage.test.ts (14/14 pass)",
@@ -313,7 +313,7 @@ tracks:
           "Playwright: grandfathered user unchanged; new Growth user 402 on cap-table without add-on"
         ]
       P9_admin_surface:
-        status: done_pending_apply
+        status: done  # migration 0095 applied tick 41
         tick: 31
         started_at: 2026-07-23
         sub_phases:
@@ -327,7 +327,7 @@ tracks:
             "web/src/app/admin/resellers/[code]/page.tsx (server component detail view)",
             "web/src/app/admin/resellers/[code]/reseller-edit-client.tsx (client edit form)"
           ], note: "PATCH validator enforces U.15.1 wholesale/GST/ABN invariant + ABN format + hex color; DELETE = soft delete → status=terminated. Detail page shows overview cards, edit form, promotion codes, recent commissions (from reseller_commissions_current view)."}
-          P9.3_requests_inbox: {status: done_pending_apply, tick: 31, migration_files: [0095], files: [
+          P9.3_requests_inbox: {status: done, tick: 31, apply_tick: 41, migration_files: [0095], files: [
             "web/supabase/migrations/0095_reseller_requests.sql (single table: code_request + over_budget_approval + collateral_approval; jsonb payload; partial pending-code uniq; pending-hot idx)",
             "web/src/lib/reseller/requests.ts (validateCodeRequest / validateOverBudgetApproval / validateCollateralApproval / validateResellerRequestBody / validateAdminDecision)",
             "web/src/lib/reseller/requests.test.ts (21/21 pass)",
@@ -376,12 +376,12 @@ tracks:
         status: in_progress
         migration_files: [0092]  # is_showcase + reseller_sandbox_id + repo_url already landed in 0092 (not 0099 as originally planned)
         sub_phases:
-          B1.1_schema_columns: {status: done_pending_apply, note: "0092 already ships is_showcase + reseller_sandbox_id + repo_url; 0099 slot no longer needed for this leaf"}
+          B1.1_schema_columns: {status: done, apply_tick: 41, note: "0092 ships is_showcase + reseller_sandbox_id + repo_url; applied tick 41 alongside P1.4. 0099 slot no longer needed for this leaf."}
           B1.2_report_tagging_lib: {status: done, tick: 36, files: [
             "web/src/lib/showcase/report-tagging.ts",
             "web/src/lib/showcase/report-tagging.test.ts (20/20 pass)"
           ], note: "Pure filename → DataRoom row mapper. parseReportFilename() handles 15 known filename shapes (C-Level daily briefs, review vX.Y.Z artefacts, milestone-M<n>-vX.Y.Z, 404/perf/security audits, regression, self-analysis, vision, architecture, plan, priorities, knowledge-base, templates). Agent detection covers ceo/cto/cfo/cmo/coo/cpo/cdo/chro/ciso/clo/cro/cso/ccso/ir/qa/rnd/customer-care + hybrid cro-cmo (leftmost-owner). Phase inference precedence: kind-specific override (milestone→11, vision→1, architecture→4, 404-audit→4, perf-audit→7, security-audit→10, regression→4, self-analysis→2, plan→1, priorities→1, operations→11) then agent→phase fallback (cmo=3, cdo=5, cto=4, cfo=6, chro=8, ciso/clo=10, cro=7, cso/ccso=2, cpo=4, coo=11, ir=9; ceo/qa/rnd/ops/perf/security/customer-care return null since they're cross-cutting). Date extraction validates the round-trip so Feb 30 → null. Version regex captures v2.0.0-beta.6 style suffixes. buildShowcaseDataRoomRows() filters templates by default, sorts newest generated_at first with alphabetical tail for undated rows, emits source_path = web/content/reports/<filename> and title = kebab→space. Ready for B1.3 to wire into a cron/seed script once the BlockID.au project row exists."}
-          B1.3_seed_and_ingest: {status: pending, note: "requires DB access — insert BlockID.au workspace as projects row owned by admin@blockid.au with is_showcase=true, then a one-shot seeder walks web/content/reports/*.md through buildShowcaseDataRoomRows and inserts data_room rows tagged accordingly"}
+          B1.3_seed_and_ingest: {status: pending, unblocked_by: tick_41_apply, note: "0092 landed tick 41 so this leaf is now DB-unblocked. Next tick can: (1) INSERT INTO projects the BlockID.au workspace row owned by admin@blockid.au with is_showcase=true, (2) run one-shot seeder that walks web/content/reports/*.md through buildShowcaseDataRoomRows() and inserts data_room rows tagged with generated_by_agent + phase_at_generation (redacted per D3-CISO-04)."}
         exit_criteria: [
           "projects.is_showcase column live (DONE — landed in 0092 pending docker exec apply)",
           "projects.reseller_sandbox_id column live (DONE — landed in 0092 pending docker exec apply)",
@@ -1179,6 +1179,54 @@ review_history:
       lint:reseller / vitest untouched.
     commit: (this tick)
 
+  - tick: 41
+    ran_at: 2026-07-21
+    action: p1.4_docker_apply
+    result: |
+      P1.4 gate closed. Applied migrations 0091 + 0092 + 0093 + 0094 + 0095 +
+      0096 + 0097 via docker exec supabase-db psql (single tick, in order),
+      followed by NOTIFY pgrst, 'reload schema'. Then created private
+      Supabase Storage bucket 'reseller-reports' (public=false,
+      file_size_limit=10485760, allowed_mime_types=['text/csv']) so P7.2
+      signed-URL cron can upload monthly per-reseller CSVs on next fire.
+      Two gaps discovered mid-apply and fixed inline per U.13:
+      (1) reseller_audit_log had no migration despite being INSERTed by
+          web/src/lib/reseller/supabase.ts:151 and consumed by every
+          /api/reseller/** row-read chokepoint (P4.1 reveal-email, P4.2
+          drawer, P6.3 grant, P6.4 sandbox setup, P7.2 signed-url,
+          P9.3 requests). Authored web/supabase/migrations/0093_reseller_audit_log.sql
+          — bigserial PK, reseller_id + actor_user_id + subject_user_id
+          FKs, action + fields[] + route + ip + user_agent + metadata jsonb
+          matching the .insert() column contract, three time-desc indexes
+          (per-reseller, per-subject, per-action), append-only mutation
+          triggers (raise 'append-only' on UPDATE/DELETE — same pattern as
+          audit_events in 0076), default-deny RLS (service-role wrapper
+          only). Filled the previously-reserved 0093 slot originally
+          allocated to P2 but never materialised.
+      (2) 0092's revenue_events_reseller_month_idx referenced non-existent
+          column 'occurred_at' (revenue_events uses 'ts' — tick 32's P7.1
+          note already flagged the mis-name at read time). Corrected to
+          `ts DESC` and re-applied. First apply pass had rolled back the
+          entire 0092 transaction; verified post-fix that all 4 app_users
+          + 4 projects + 3 plans + 2 revenue_events + 1 credit_transactions
+          columns landed and both PARTIAL indexes on revenue_events and
+          credit_transactions.granted_by_reseller_id exist.
+      Verification: 10 reseller_* tables (resellers, reseller_admins,
+      reseller_promotion_codes, reseller_attributions, reseller_audit_log,
+      reseller_commissions, reseller_commission_events, reseller_requests,
+      reseller_credit_grants, reseller_report_files) + view
+      reseller_commissions_current + 13 extension columns confirmed via
+      information_schema query.
+      Unblocked downstream: P0.4_ceo_final_sign_off (was gated on P1.4 +
+      tests); Track B B1.3 seed + ingest (was gated on 0092 apply);
+      P6/P7/P9 status flipped from *_pending_apply to done. P1.5_infovision_seed
+      remains HUMAN-BLOCKED — resellers_seeded_intent.gst_registered + abn
+      are both TBD_verify_at_creation per the plan gate that says "TBD on
+      required attribute means human intervention required"; one SQL INSERT
+      away from live once Auschain confirms InfoVision's real ABN + GST
+      status per H.20.
+    commit: (this tick)
+
   - tick: 40
     ran_at: 2026-07-21
     action: b6_public_showcase_mirror
@@ -1221,9 +1269,9 @@ review_history:
 next_action:
   agent: applier
   task: |
-    1) Apply migrations 0091 + 0092 + 0094 + 0095 + 0096 + 0097 via docker exec psql (P1.4 + P6.1 + P9.3 + P7.2) — infra step, requires DB access. Also create the private 'reseller-reports' Supabase Storage bucket before the cron next fires: `select storage.create_bucket('reseller-reports', false);` (or via Supabase Studio; keep public=false so signed URLs are mandatory). NOTE: 0092 also carries the Track B B1 columns (is_showcase / reseller_sandbox_id / repo_url) so B1.3 seed unblocks on the same apply.
-    2) Seed INFOVISION reseller row (P1.5_infovision_seed) once P1.4 lands.
-    3) Track B B1.3 (seed + ingest) — once 0092 applies, insert the BlockID.au workspace row owned by admin@blockid.au with is_showcase=true, then run a one-shot seeder that walks web/content/reports/*.md through buildShowcaseDataRoomRows (tick 36) and inserts each row into data_room tagged with generated_by_agent + phase_at_generation. Track B B2 (guide chapters 1–4) unblocks after B1.3.
+    1) DONE tick 41 — Migrations 0091 + 0092 + 0093 + 0094 + 0095 + 0096 + 0097 applied via docker exec psql + NOTIFY pgrst reload. Private 'reseller-reports' Storage bucket created (public=false, 10MB, text/csv only). Gap fixes inline: authored 0093_reseller_audit_log.sql (append-only, default-deny RLS) filling the missing schema for every /api/reseller/** auditLog() call; fixed 0092 index that referenced non-existent revenue_events.occurred_at (should be ts).
+    2) P1.5_infovision_seed remains HUMAN-BLOCKED. Once Auschain confirms InfoVision's real ABN + GST status per H.20, run: `INSERT INTO resellers (code, display_name, billing_model, allowed_tiers, can_create_startups, can_grant_credits, monthly_credit_budget, monthly_sandbox_credits, gst_registered, abn, commission_share_pct) VALUES ('INFOVISION', 'InfoVision', 'wholesale', ARRAY[0,10,20,30,40], true, true, 20000, 500, true, '<REAL_ABN>', 40.00);`
+    3) Track B B1.3 (seed + ingest) is now DB-unblocked (0092 applied tick 41). Next tick can INSERT the BlockID.au workspace row owned by admin@blockid.au with is_showcase=true, then run a one-shot seeder that walks web/content/reports/*.md through buildShowcaseDataRoomRows() (tick 36 lib) and inserts each row into data_room tagged with generated_by_agent + phase_at_generation. Track B B2 (guide chapters 1–4) unblocks after B1.3.
     4) DONE tick 35 — Optional P6.5b widening: term-sheet/idea-lab/valuation/journal/data-room/evidence spendCredits callers now thread project_id via getProjectIdFromRequest(). See tick 35 for file list. Remaining spendCredits() callers not touched: financial-projections, investor-pack/generate, svi/pitch-deck, svi/docx, svi/report, svi/enhanced-report, svi/dimension-analyze, svi/ai-score, svi/research, revaluation, v1/analyze, evaluation/[criterionKey]/ai-suggest, data-room/goals (award path — misleading call, not a real debit).
     5) P0.3_advisory_reviews still pending — schedulable on next off-peak tick.
     6) DONE tick 38 — code_request approval now mints Stripe coupon (deterministic id + duration=forever) + promotion_code and inserts into reseller_promotion_codes inline via decideCodeMint(). linked_promotion_code_id stamped on the reseller_requests row before status flips to approved. Tier 0 (attribution-only) skips Stripe. Idempotent under re-approval: existing (reseller_id, tier_pct) row wins; Stripe coupon retrieve-or-create pattern prevents duplicate coupons if a prior attempt died between Stripe mint and DB insert.
@@ -1231,7 +1279,8 @@ next_action:
     8) DONE tick 39 — Track B B5 report template library at /guide/reports (see phases.B5_report_library.files). Metadata-only surface; download route + GA event + redaction pipeline deferred to a follow-up tick that also unblocks B6's public showcase.
     9) DONE tick 40 — Track B B6 public showcase mirror at /showcase/blockid (see phases.B6_public_showcase.files). Metadata-only; reads on-disk artefacts + milestone-report-state.json; no DB dep. Deep-linking from /guide/reports card rows to /showcase/blockid (and vice versa) + wiring the "current phase" chip into workspace-layout topbar deferred to a follow-up tick alongside B7 product tour, since both touch the same in-app phase-transition surface.
   authorised: true
-  on_success: pick B7_product_tour on next tick if B2 lands first (B7 deps: [B2]); otherwise B1.3 remains the frontier as soon as docker-exec apply of 0092 lands. If neither is unblocked, revisit P0.3 advisory reviews (P0.3_advisory_reviews still pending).
+  on_success: |
+    Frontier after tick 41: (a) Track B B1.3 seed + ingest is now DB-unblocked (docker apply of 0092 landed tick 41) — natural next tick. (b) Track A P0.3_advisory_reviews still pending (cmo, coo, cpo, cdo, chro, cro, customer-success, investor-relations) — schedulable on next off-peak tick since it's subagent-only. (c) Track A P0.4_ceo_final_sign_off now unblocked (P1.4 done + tests green) and can fire after B1.3 or independently. Prefer B1.3 next tick since it also cascades to unblock B2/B7/B8. P1.5_infovision_seed remains HUMAN-BLOCKED pending ABN + GST confirmation.
 
 telemetry:
   log_file: web/content/reports/reseller-goal-history.jsonl
