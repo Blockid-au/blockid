@@ -3,8 +3,9 @@
 // Per docs/plans/reseller-module-plan.md § U.15.12 R-07 (CISO D3-CISO-07):
 // any user_id written to Stripe metadata must be hashed so it cannot be
 // used to correlate BlockID accounts from Stripe dashboard access.
+//
+// Pure module (node:crypto only) — no server-only shim so tests can import.
 
-import "server-only";
 import { createHash } from "node:crypto";
 
 /**
