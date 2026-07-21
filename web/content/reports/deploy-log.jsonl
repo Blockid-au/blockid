@@ -200,3 +200,9 @@
 {"ts":"2026-07-21T13:39:00.226Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P0.2 delta merge + P1.1 migrations + P1.2 core libs (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-21T13:42:57.928Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P1.3 tests green (31/31) + P2.1 via capture + P2.2 validate endpoint (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-21T13:48:51.030Z","event":"github-push-master","detail":"Blockid-au: chore(cron): install reseller module autonomous goal loop @ 03:45 UTC daily (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T13:52:32.187Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): continuous 5-min cron + P2.3/P2.4 via capture + migration 0094 + auto-stop (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T13:56:49.812Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P2.4 StepReseller field + P3.2 webhook helpers + P3.3 clearance cron (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T14:03:25.609Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P3.4 monthly credit-reset cron + P3.3 clearance cron wired into crontab (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T14:11:58.729Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P2.7 consent modal + P4.0 layout + entitlement extension (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T14:24:09Z","status":"success","gates":"10/10","pid":"2973145","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-21T14:24:34.001Z","event":"github-push-master","detail":"Blockid-au: fix(reseller): TS gate — remove AppUser.segment access + tighten scope.sandboxProjectId return type (1 commits)","source":"github-webhook"}

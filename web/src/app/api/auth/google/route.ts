@@ -112,8 +112,10 @@ export async function POST(request: Request) {
   // Check for referral code from cookie (set by client when ?ref= is captured).
   const store = await cookies();
   const referralCode = store.get("blockid_ref")?.value ?? null;
+  // Reseller attribution code — mirror of blockid_ref (see § C.2 / U.6).
+  const resellerCode = store.get("blockid_via")?.value ?? null;
 
-  const result = await loginWithGoogle(profile, { ipHash, userAgent, referralCode });
+  const result = await loginWithGoogle(profile, { ipHash, userAgent, referralCode, resellerCode });
 
   if (!result.ok || !result.user || !result.sessionToken) {
     return NextResponse.json(

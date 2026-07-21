@@ -130,6 +130,32 @@ export interface AnalyticsEventMap {
   // ── Marketing pages ──
   roadmap_viewed: Record<string, never>;
   changelog_viewed: Record<string, never>;
+
+  // ── Reseller module (docs/plans/reseller-module-plan.md § U.9 + user
+  //   direction: GA4 for user behavior + BlockID.au SEO/dev-progress
+  //   telemetry). All events include reseller_code where applicable so
+  //   GA4 audiences can segment by reseller.
+  reseller_via_captured: { code: string; source: "url" | "cookie" | "onboarding" };
+  reseller_code_validate_started: { code: string };
+  reseller_code_validate_result: { code: string; ok: boolean; tier_pct: number | null; reason?: string };
+  reseller_consent_shown: { code: string; reseller_name: string };
+  reseller_consent_accepted: { code: string; reseller_name: string };
+  reseller_consent_declined: { code: string; reseller_name: string };
+  reseller_pill_shown: { code: string; tier_pct: number };
+  reseller_console_viewed: { page: "dashboard" | "customers" | "codes" | "credits" | "create-startup" | "reports" | "settings"; reseller_id: string };
+  reseller_grant_credits_started: { reseller_id: string; amount: number; over_budget: boolean };
+  reseller_grant_credits_completed: { reseller_id: string; amount: number; over_budget: boolean };
+  reseller_create_startup_started: { reseller_id: string; plan: string };
+  reseller_create_startup_completed: { reseller_id: string; plan: string; user_id_hash: string };
+  reseller_attribution_committed: { reseller_id: string; via_source: "code" | "provisioned" | "admin_manual" };
+
+  // ── Showcase (Track B) — dev-progress + SEO tracking on the BlockID.au
+  //   own workspace + guide. Feeds the "know where we are" dashboard.
+  showcase_phase_advanced: { from_phase: number; to_phase: number; sha: string };
+  showcase_guide_viewed: { chapter: number; locale: "en" | "vi"; source: "onboarding" | "marketing" };
+  showcase_report_downloaded: { template: string; phase: number };
+  showcase_public_viewed: { referrer: string };
+  showcase_integration_wired: { integration: "stripe_founder" | "ga4" | "github" | "blockchain" };
 }
 
 // ─── Type-safe tracker ──────────────────────────────────────────────────────

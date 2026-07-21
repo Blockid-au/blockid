@@ -168,7 +168,15 @@ function MagicLinkForm({ nextUrl }: { nextUrl: string | null }) {
         typeof window !== "undefined"
           ? localStorage.getItem("blockid_ref")
           : null;
+      // Reseller attribution code — mirrors ?ref= flow (§ C.2 / U.6).
+      const viaCode =
+        typeof window !== "undefined"
+          ? localStorage.getItem("blockid_via")
+          : null;
 
+      const pendingPayload: Record<string, string> = {};
+      if (refCode) pendingPayload.referralCode = refCode;
+      if (viaCode) pendingPayload.resellerCode = viaCode;
       const res = await fetch("/api/auth/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -177,10 +185,8 @@ function MagicLinkForm({ nextUrl }: { nextUrl: string | null }) {
           intent: "login",
           // Pass post-login redirect so the verify route can honour it.
           ...(nextUrl ? { next: nextUrl } : {}),
-          // Pass referral code in pendingPayload for processing on verify.
-          ...(refCode
-            ? { pendingPayload: { referralCode: refCode } }
-            : {}),
+          // Pass referral + reseller codes in pendingPayload for processing on verify.
+          ...(Object.keys(pendingPayload).length > 0 ? { pendingPayload } : {}),
         }),
       });
       if (!res.ok) throw new Error("request failed");

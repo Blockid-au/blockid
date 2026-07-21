@@ -28,6 +28,7 @@ import bcrypt from "bcryptjs";
 import { getSupabaseAdmin, isSupabaseConfigured } from "./supabase";
 import { initializeCredits } from "./credits";
 import { processReferral } from "./referrals";
+import { processAttribution } from "./reseller/process-attribution";
 
 async function seedWelcomeNotification(userId: string): Promise<void> {
   const supabase = getSupabaseAdmin();
@@ -78,6 +79,9 @@ export interface PendingPayload {
   // Referral code captured from ?ref= URL param, stored in localStorage on
   // the client and passed through pendingPayload during signup.
   referralCode?: string;
+  // Reseller attribution code captured from ?via= URL param — mirrors the
+  // referral flow. See web/src/lib/reseller/attribution.ts and § C.2.
+  resellerCode?: string;
 }
 
 // -----------------------------------------------------------------------------
@@ -254,6 +258,13 @@ export async function consumeMagicLink(
     if (pendingRef) {
       await processReferral(created.id, pendingRef).catch((err) =>
         console.error("[blockid:auth] referral processing failed", err),
+      );
+    }
+    // Same for reseller attribution — mirrors ?ref= flow with ?via=.
+    const pendingVia = (row.pending_payload as PendingPayload)?.resellerCode;
+    if (pendingVia) {
+      await processAttribution(created.id, pendingVia).catch((err) =>
+        console.error("[blockid:auth] attribution processing failed", err),
       );
     }
   }
@@ -441,7 +452,7 @@ function isAdminEmail(email: string): boolean {
 
 export async function loginWithGoogle(
   profile: GoogleProfile,
-  opts?: { ipHash?: string | null; userAgent?: string | null; referralCode?: string | null },
+  opts?: { ipHash?: string | null; userAgent?: string | null; referralCode?: string | null; resellerCode?: string | null },
 ): Promise<LoginWithGoogleResult> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return { ok: false, reason: "not_configured" };
@@ -518,6 +529,11 @@ export async function loginWithGoogle(
         console.error("[blockid:auth] google referral processing failed", err),
       );
     }
+    if (opts?.resellerCode) {
+      await processAttribution(created.id, opts.resellerCode).catch((err) =>
+        console.error("[blockid:auth] google attribution processing failed", err),
+      );
+    }
   }
 
   // Create session.
@@ -572,6 +588,7 @@ export async function registerWithPassword(args: {
   ipHash?: string | null;
   userAgent?: string | null;
   referralCode?: string | null;
+  resellerCode?: string | null;
 }): Promise<RegisterWithPasswordResult> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return { ok: false, reason: "not_configured" };
@@ -640,6 +657,9 @@ export async function registerWithPassword(args: {
   await seedWelcomeNotification(created.id);
   if (args.referralCode) {
     await processReferral(created.id, args.referralCode).catch(() => {});
+  }
+  if (args.resellerCode) {
+    await processAttribution(created.id, args.resellerCode).catch(() => {});
   }
 
   const sessionToken = await createSessionRow({

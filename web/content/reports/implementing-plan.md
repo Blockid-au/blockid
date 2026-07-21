@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v3.0.0  ·  **Updated:** 2026-07-20T14:00:02.419Z  ·  **Decided by:** ceo (2026-07-20T12:04:02.950Z)
+**Version:** v3.0.0  ·  **Updated:** 2026-07-21T14:00:01.993Z  ·  **Decided by:** ceo (2026-07-20T12:04:02.950Z)
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -10,25 +10,23 @@
 | T0102 | CMO | AU startup percentile/positioning model integration | minor | ⬜ pending |
 | T0211 | CMO | LinkedIn page launch — Startup Value Index (linkedin.com/company/startup-value-index) | minor | ⬜ pending |
 | T0213 | CPO | SVI brand landing page at startupvalueindex.com | minor | ⬜ pending |
-| T0120 | CFO | Financial projection norms integration | minor | ⬜ pending |
 | T0214 | CTO | AI provider chain audit — Codex subscription expired + ai-token-guardian Codex refresh broken | patch | ⬜ pending |
 | T0216 | CTO | Fix orchestrator stageUpdateArtifacts — agent commit match closes pending tasks prematurely | patch | ⬜ pending |
 | T0129 | CTO | Add Security Benchmark Compliance module (Essential Eight, OWASP) to CI pipeline with automated scans and reporting | minor | ⬜ pending |
 | T0133 | CFO | Implement R&D Tax Incentive & ESIC Valuation Modifier | minor | ⬜ pending |
 | T0134 | CDO | Build 'Next-Best-Action' Analytics Engine | major | ⬜ pending |
-| T0135 | CFO | TAM/SAM/SOM Bottom-Up Calculator with AU Source Library | minor | ⬜ pending |
 
 ## Recently shipped
-- ✅ `T0130` **CPO** — Implement First‑Principles Question Engine to generate Socratic prompts and route founders to appropriate BlockID features (`7745c4a`)
-- ✅ `T0128` **CFO** — Integrate VC valuation methods library (VC Method, DCF, comparables, Berkus, Scorecard, Risk‑Factor Summation) with formulae and usage guidance (`eda56ae`)
-- ✅ `T0215` **CTO** — Verify-models cron — auto-detect paid models leaking into ai-free-models.json
-- ✅ `T0124` **CRO** — Implement Funding Readiness scoring (CAPITAL) for investor readiness assessment
-- ✅ `T0123` **RND** — Develop Conversion/CTA experiment ideas & A/B test hypotheses for startup tooling (`94427ab`)
-- ✅ `T0122` **CFO** — Integrate sector ARR/revenue multiples for valuation benchmarking (`446902f`)
-- ✅ `T0121` **RND** — Conversion/CTA experiment ideas & A/B test hypotheses (`94427ab`)
-- ✅ `T0212` **CTO** — DNS + nginx vhost for startupvalueindex.com + startupindex.au
-- ✅ `T0210` **CPO** — Funnel drop-off heatmap (/admin/funnel) — every assessment step instrumented (`b18238a`)
-- ✅ `T0209` **IR** — Accelerator deadline tracker + pitch evidence binder
+- ✅ `T0236` **RND** — T0111 AI Idea Lab — sector-aware angle generator
+- ✅ `T0235` **CDO** — Fix /api/index/svi?format=csv — emit header row when snapshot empty
+- ✅ `T0234` **CPO** — Fix first-principles secondaryFeatures — always returns 2+ items
+- ✅ `T0233` **OPS** — Wire cron for svi-index-populate + email-drip + hygiene
+- ✅ `T0232` **CPO** — Wire hero to live analyzer + per-project SVI page
+- ✅ `T0231` **CTO** — Perf audit + top 3 wins — image caching, /insights payload, version.json cache
+- ✅ `T0230` **PRODUCT** — Simplify external funnel + plan-based workspace unlocks
+- ✅ `T0229` **CMO** — 3 more SEO pillar articles — DCF/Berkus, cap table, SAFE
+- ✅ `T0228` **OPS** — Fix /data/blockid-releases snapshot warning + backup verify
+- ✅ `T0227` **OPS** — Daily pg_dump cron — /data/backups was empty (critical gap)
 
 ## Milestones
 - **M015** v3.0.0 — RND: Evidence Vault Phase 2 — OAuth connectors (GitHub, Stripe, Google Analytics); CLO: Term Sheet AI v2 — persist analyses, Lawyer Questions, SVI link; CFO: Fundraising Readiness Report v2 — checklis (2026-07-20, 9 tasks)

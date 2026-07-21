@@ -21,7 +21,7 @@
 // dispatches the phase brief to `claude` (see claude-api / claude-code skills) which then runs
 // the multi-agent workflow inside a git worktree.
 
-import { readFile, writeFile, appendFile, mkdir } from 'node:fs/promises'
+import { readFile, appendFile, mkdir, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
@@ -247,6 +247,38 @@ async function main() {
     ].join('\n')
     const result = dispatchToClaude(brief, 'delegated')
     await log({ stage: 'delegated_dispatch', ...result })
+  }
+
+  // Post-phase auto-deploy hook. If new commits landed since the last
+  // recorded deploy (content/reports/last-good-build.json), rebuild + swap
+  // via deploy-live.sh --quick. This gives the loop end-to-end coverage:
+  // phase → code → commit → deploy → verify. Skipped when nothing changed
+  // (cheap check via `git rev-parse HEAD` vs last-good-build sha).
+  try {
+    const lastGoodPath = join(REPO_ROOT, 'web', 'content', 'reports', 'last-good-build.json')
+    let lastSha = ''
+    if (existsSync(lastGoodPath)) {
+      const raw = await readFile(lastGoodPath, 'utf8')
+      try {
+        const parsed = JSON.parse(raw)
+        lastSha = (parsed.git_sha || parsed.sha || '').slice(0, 7)
+      } catch { /* ignore */ }
+    }
+    const headSha = spawnSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: REPO_ROOT, encoding: 'utf8' })
+      .stdout?.trim() ?? ''
+    if (headSha && headSha !== lastSha) {
+      await log({ stage: 'auto_deploy_triggered', head: headSha, last_deployed: lastSha })
+      const deploy = spawnSync('bash', [join(REPO_ROOT, 'web', 'scripts', 'deploy-live.sh'), '--quick'], {
+        cwd: join(REPO_ROOT, 'web'),
+        stdio: ['ignore', 'inherit', 'inherit'],
+        timeout: 10 * 60 * 1000, // 10 min deploy budget
+      })
+      await log({ stage: 'auto_deploy_finished', status: deploy.status ?? -1, head: headSha })
+    } else {
+      await log({ stage: 'auto_deploy_skipped', reason: 'no new commits', head: headSha, last_deployed: lastSha })
+    }
+  } catch (err) {
+    await log({ stage: 'auto_deploy_failed', error: String(err) })
   }
 
   await log({ stage: 'tick_end' })

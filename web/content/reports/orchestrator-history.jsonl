@@ -45,3 +45,7 @@
 {"stage":"deploy","ok":false,"message":"Deploy failed: \u001b[2m   Duration \u001b[22m 10.80s\u001b[2m (transform 2.62s, setup 0ms, import 4.72s, tests 14.91s, environment 5ms)\u001b[22m\n\n  ✅ All unit tests pass\n\n─── Gate 6: Next.js production build ───","aiCalls":0,"durationMs":59734,"timestamp":"2026-07-21T12:06:09.765Z"}
 {"stage":"code","ok":true,"message":"Platform upgraded: 0 modules deployed, 0 failed (via agent-deploy → git commit → GitHub push → deploy-live)","aiCalls":0,"durationMs":176503,"timestamp":"2026-07-21T12:07:20.610Z"}
 {"stage":"deploy","ok":false,"message":"Production unhealthy — HTTP 503, re-deploying","aiCalls":0,"durationMs":3037,"timestamp":"2026-07-21T12:07:23.647Z"}
+{"stage":"update_artifacts","ok":true,"message":"8 task(s) still in flight","aiCalls":0,"durationMs":28,"timestamp":"2026-07-21T14:00:01.995Z"}
+{"stage":"git_push","ok":true,"message":"GitHub in sync — 0 unpushed commits","aiCalls":0,"durationMs":10,"timestamp":"2026-07-21T14:00:02.005Z"}
+{"stage":"qa","ok":true,"message":"QA: ?/20 pass, 0 fail","aiCalls":0,"durationMs":54937,"timestamp":"2026-07-21T14:00:56.942Z"}
+{"stage":"report","ok":true,"message":"Telegram sent, 0 AI calls","aiCalls":0,"durationMs":332,"timestamp":"2026-07-21T14:00:57.274Z"}
