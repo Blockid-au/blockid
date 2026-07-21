@@ -52,6 +52,12 @@ export interface OnboardingInitialParams {
   plan?: string;
   step?: string;
   segment?: string;
+  /**
+   * Reseller attribution code — mirrors the referral pattern. When present,
+   * persisted into wizard state and used by StepPayment to stamp the
+   * checkout session. See docs/plans/reseller-module-plan.md § C.2, § U.6.
+   */
+  via?: string;
 }
 
 /**
@@ -85,6 +91,24 @@ function loadInitialState(initialParams: OnboardingInitialParams): WizardState {
     if (Number.isFinite(n) && n >= 1 && n <= 5) {
       state.step = n as WizardState["step"];
     }
+  }
+
+  // Reseller code — accept from URL param OR from the ?via= cookie/
+  // localStorage the SVI entrance already persisted. Normalise inline
+  // (uppercase, strip non-alphanumeric) to keep this file client-safe.
+  let viaCode: string | undefined;
+  if (initialParams.via) {
+    viaCode = initialParams.via.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  } else if (typeof window !== "undefined") {
+    try {
+      const cached = window.localStorage.getItem("blockid_via");
+      if (cached) viaCode = cached.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    } catch {
+      // localStorage blocked — not fatal.
+    }
+  }
+  if (viaCode) {
+    (state as WizardState & { resellerCode?: string }).resellerCode = viaCode;
   }
 
   return state;

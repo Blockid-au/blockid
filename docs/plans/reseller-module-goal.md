@@ -111,11 +111,19 @@ tracks:
         sub_phases:
           P2.1_via_capture_lib: {status: done, tick: 6, files: ["web/src/lib/reseller/attribution.ts + test 12/12"]}
           P2.2_validate_endpoint: {status: done, tick: 7, files: ["web/src/app/api/reseller/code/validate/route.ts"]}
-          P2.3_svi_entrance_wire: {status: pending, note: "extend web/src/components/svi/svi-entrance.tsx:213 pattern to also read ?via="}
-          P2.4_onboarding_step: {status: pending, note: "extend web/src/app/onboarding/onboarding-wizard.tsx:50 to accept via; add StepTier collapsed reseller-code field"}
+          P2.3_svi_entrance_wire: {status: done, tick: 9, files: ["web/src/components/svi/svi-entrance.tsx:213 extended with ?via= capture"]}
+          P2.4_onboarding_step: {status: partial, tick: 10, note: "onboarding-wizard.tsx accepts via + persists to state (resellerCode); page.tsx forwards sp.via; StepTier UI still pending"}
           P2.5_auth_consumers: {status: pending, note: "wire login-form.tsx:167, google/route.ts:114, auth.ts:517/642 to persist attribution on account create"}
           P2.6_checkout_stamp: {status: pending, note: "extend web/src/app/api/stripe/checkout/route.ts to stamp client_reference_id + subscription.metadata + customer.metadata; apply promotion_code if tier>0"}
           P2.7_consent_modal: {status: pending, note: "render E.1 collection notice EN+VI when valid code applied"}
+      P3_ledger_webhooks:
+        status: partial
+        migration_files: [0094]
+        sub_phases:
+          P3.1_migration_authored: {status: done, tick: 11, files: ["web/supabase/migrations/0094_reseller_commissions_and_events.sql"]}
+          P3.2_webhook_handlers: {status: pending, note: "extend web/src/app/api/stripe/webhook/route.ts with charge.refunded, charge.dispute.*, credit_note.*, invoice.voided; iterate invoice.lines.data on invoice.paid"}
+          P3.3_clearance_cron: {status: pending, note: "new /api/cron/reseller-clear-commissions promoting past pending_until via 'cleared' event insert"}
+          P3.4_credit_reset_cron: {status: pending, note: "H.11 monthly credit-reset cron per user plan"}
         exit_criteria: [
           "?via= capture end-to-end (cookie + localStorage + all 5 consumption sites)",
           "StepTier extended with collapsed 'Have a reseller code?' field EN + VI",
@@ -291,7 +299,32 @@ review_history:
     ran_at: 2026-07-23
     action: p2.2_validate_endpoint
     result: POST /api/reseller/code/validate live
-    commit: (pending batch B)
+    commit: eccd683
+  - tick: 8
+    ran_at: 2026-07-23
+    action: cron_install_continuous
+    result: crontab.production updated to */5 min flock cadence; live crontab active
+    commit: c5271a0 (initial daily) + batch C (5-min switch)
+  - tick: 9
+    ran_at: 2026-07-23
+    action: p2.3_svi_entrance_via_wire
+    result: svi-entrance.tsx:213 now captures ?via= alongside ?ref= into cookie+localStorage
+    commit: (batch C)
+  - tick: 10
+    ran_at: 2026-07-23
+    action: p2.4_onboarding_via_accept
+    result: OnboardingInitialParams.via added; loadInitialState persists via to resellerCode; page.tsx forwards sp.via
+    commit: (batch C)
+  - tick: 11
+    ran_at: 2026-07-23
+    action: p3.1_migration_0094_authored
+    result: reseller_commissions + reseller_commission_events (append-only) + reseller_commissions_current view; single CHECK covers retail 60/40 ±1c + wholesale commission=0
+    commit: (batch C)
+  - tick: 12
+    ran_at: 2026-07-23
+    action: loop_auto_stop_on_completion
+    result: goal-loop.mjs now detects "status: done" on the goal file; writes /tmp/blockid-reseller-goal-done marker + removes its own crontab entry via `crontab -l | grep -v goal-loop | crontab -`
+    commit: (batch C)
 
 next_action:
   agent: applier

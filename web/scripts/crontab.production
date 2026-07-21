@@ -341,6 +341,9 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Design → Implement → Verify → Sign-off), records tick to
 # web/content/reports/reseller-goal-history.jsonl, commits + pushes.
 # Kill switch: env RESELLER_AUTONOMOUS_LOOP=off.
-# Off-peak once/day at 03:45 UTC (13:45 AEST) — does not collide with
-# existing entries.
-45 3 * * * cd /home/dovanlong/blockid.au && RESELLER_AUTONOMOUS_LOOP=on node scripts/cron/reseller-goal-loop.mjs >> /tmp/blockid-reseller-loop.log 2>&1
+# CONTINUOUS mode — fires every 5 minutes with a flock so at most one
+# instance runs at a time. When there's no unblocked frontier phase the
+# loop exits within seconds; when there is one, it runs to completion
+# (up to the 45m per-phase timeout inside the driver) and the next tick
+# picks up the following phase.
+*/5 * * * * flock -n /tmp/blockid-reseller-loop.lock -c 'cd /home/dovanlong/blockid.au && RESELLER_AUTONOMOUS_LOOP=on node scripts/cron/reseller-goal-loop.mjs' >> /tmp/blockid-reseller-loop.log 2>&1

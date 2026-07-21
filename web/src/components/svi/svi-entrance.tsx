@@ -216,6 +216,22 @@ export function SVIEntrance() {
       // Also set a cookie so the server (Google auth) can read it.
       document.cookie = `blockid_ref=${encodeURIComponent(refCode)};path=/;max-age=${60 * 60 * 24 * 30};samesite=lax`;
     }
+    // Reseller attribution code — mirrors ?ref= mechanic. Persists cookie
+    // + localStorage so the auth flow, onboarding wizard, and checkout
+    // route can all resolve the attribution without prop-drilling. See
+    // docs/plans/reseller-module-plan.md § C.2, § U.6.
+    const viaRaw = searchParams.get("via");
+    if (viaRaw && typeof window !== "undefined") {
+      // Normalise: uppercase, strip non-alphanumeric (mirrors
+      // normaliseResellerCode in web/src/lib/reseller/attribution.ts —
+      // duplicated inline here to keep this file client-safe without
+      // pulling in the reseller lib bundle).
+      const viaCode = viaRaw.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+      if (viaCode) {
+        localStorage.setItem("blockid_via", viaCode);
+        document.cookie = `blockid_via=${encodeURIComponent(viaCode)};path=/;max-age=${60 * 60 * 24 * 30};samesite=lax`;
+      }
+    }
   }, [searchParams]);
 
   // ── Server-side gate check ────────────────────────────────────────────

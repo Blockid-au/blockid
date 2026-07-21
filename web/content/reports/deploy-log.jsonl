@@ -191,3 +191,12 @@
 {"ts":"2026-07-20T11:58:34.032Z","event":"github-push-master","detail":"Blockid-au: feat(ir): investor pack PDF generator (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-20T11:59:06.673Z","event":"github-push-master","detail":"Blockid-au: feat(rnd): T0121/T0123 wire 3 pricing/CTA experiments into live surfaces (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-20T12:04:21Z","status":"success","gates":"10/10","pid":"2665045","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-21T12:34:36.593Z","event":"github-push-master","detail":"Blockid-au: docs(plans): add reseller/affiliate module plan (InfoVision first) (2 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T12:48:31.268Z","event":"github-push-master","detail":"Blockid-au: docs(plans): reseller module — founder clarifications (U.1–U.5 + H.13–H.16) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T12:58:06.654Z","event":"github-push-master","detail":"Blockid-au: docs(plans): reseller module — U.6 idea/project semantics + U.7 progression + U.8 Track B showcase (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T13:05:27.448Z","event":"github-push-master","detail":"Blockid-au: docs(plans): reseller module — U.9 12-phase showcase journey + U.10 supersessions map (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T13:11:19.253Z","event":"github-push-master","detail":"Blockid-au: docs(plans): reseller module — U.11 C-Level review, U.12 skill matrix, U.13 workflow schema, U.14 consistency fix pass (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T13:27:24.764Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P0 pre-flight artefacts — plan-delta + goal file + loop cron (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T13:39:00.226Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P0.2 delta merge + P1.1 migrations + P1.2 core libs (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T13:42:57.928Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P1.3 tests green (31/31) + P2.1 via capture + P2.2 validate endpoint (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-21T13:48:51.030Z","event":"github-push-master","detail":"Blockid-au: chore(cron): install reseller module autonomous goal loop @ 03:45 UTC daily (1 commits)","source":"github-webhook"}
