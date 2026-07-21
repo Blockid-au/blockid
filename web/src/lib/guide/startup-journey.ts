@@ -1,9 +1,9 @@
-// Track B B2 — startup-journey guide content library, chapters 1–4.
+// Track B B2 + B3 — startup-journey guide content library, chapters 1–8.
 //
 // Structured content module holding the guided-walkthrough chapters described
-// in docs/plans/reseller-module-plan.md § U.8 and § U.9. Chapters 1–4 cover
-// Vision → Idea Validation → Market Research → MVP / Product Discovery — the
-// first four rows of the U.9 journey matrix. Chapters 5–12 land in B3 and B4.
+// in docs/plans/reseller-module-plan.md § U.8 and § U.9. Chapters 1–4 (B2)
+// cover Vision → Idea Validation → Market Research → MVP; chapters 5–8 (B3)
+// cover PMF → Revenue → Growth → Team. Chapters 9–12 land in B4.
 //
 // Consumed by:
 //   - web/src/app/guide/[chapter]/page.tsx (marketing surface)
@@ -11,7 +11,7 @@
 //
 // Kept in TS (not on-disk markdown) so both EN and VI copy live beside each
 // other and stay type-checked. A mirror EN dump lives at
-// docs/guides/startup-journey/chapter-{01..04}.md for offline reading and
+// docs/guides/startup-journey/chapter-{01..08}.md for offline reading and
 // contributor pull-requests, but the pages read from this module — the .md
 // files are documentation, not runtime.
 
@@ -21,7 +21,11 @@ export type ChapterSlug =
   | "01-vision"
   | "02-idea-validation"
   | "03-market-research"
-  | "04-mvp";
+  | "04-mvp"
+  | "05-pmf"
+  | "06-revenue"
+  | "07-growth"
+  | "08-team";
 
 export interface LocalisedText {
   en: string;
@@ -322,6 +326,284 @@ const CHAPTERS: Chapter[] = [
     cta: {
       en: "Set aside one week for a landing-page + repo-link pass. Everything else in Chapter 4 layers on top — start with those two.",
       vi: "Dành một tuần cho lượt landing page + liên kết kho. Mọi thứ khác trong Chương 4 xếp lên trên — bắt đầu bằng hai việc này.",
+    },
+  },
+  {
+    slug: "05-pmf",
+    phase: 5,
+    order: 5,
+    phaseLabel: PHASE_LABELS[5],
+    title: {
+      en: "Chapter 5 — PMF & Early Traction",
+      vi: "Chương 5 — PMF & Traction ban đầu",
+    },
+    summary: {
+      en: "Move from 'people click' to 'people come back'. PMF is a retention story, not a traffic story — Chapter 5 is where you log real users, first revenue and cohort retention, then let the CDO agent audit whether the signal is real.",
+      vi: "Chuyển từ 'người ta bấm' sang 'người ta quay lại'. PMF là câu chuyện giữ chân, không phải câu chuyện traffic — Chương 5 là nơi bạn ghi nhận người dùng thật, doanh thu đầu tiên và giữ chân theo cohort, rồi để đại lý CDO kiểm tra xem tín hiệu có thật hay không.",
+    },
+    founderAction: {
+      en: "Log first users, first revenue and retention data. Connect the founder's own Stripe account in test-mode (this is separate from BlockID's own Auschain Stripe — it wires your future gateway). Feed at least two consecutive weeks of retention numbers so a cohort curve becomes possible.",
+      vi: "Ghi nhận người dùng đầu tiên, doanh thu đầu tiên và dữ liệu giữ chân. Kết nối tài khoản Stripe riêng của founder ở chế độ test (khác với Stripe Auschain của BlockID — đây là cổng thanh toán tương lai của bạn). Cung cấp ít nhất hai tuần dữ liệu giữ chân liên tiếp để có thể vẽ đường cohort.",
+    },
+    agentsInvoked: {
+      en: [
+        "CDO agent — runs a data-quality audit on the numbers you logged; flags cohorts too small to conclude anything.",
+        "CDO agent (PMF pass) — computes a PMF signal (retention slope + revenue slope + qualitative 'would-be-very-disappointed %').",
+        "CFO agent (light) — updates the unit-economics doc with the first CAC and LTV estimate, tagged as provisional.",
+        "Retention-cohort chart — auto-drawn from the weekly buckets into the DataRoom under traction/.",
+      ],
+      vi: [
+        "Đại lý CDO — kiểm tra chất lượng dữ liệu bạn nhập; đánh dấu các cohort quá nhỏ để kết luận.",
+        "Đại lý CDO (lượt PMF) — tính tín hiệu PMF (độ dốc giữ chân + độ dốc doanh thu + tỷ lệ 'sẽ rất thất vọng nếu mất sản phẩm').",
+        "Đại lý CFO (nhẹ) — cập nhật tài liệu unit-economics với ước lượng CAC và LTV đầu tiên, đánh dấu là tạm thời.",
+        "Biểu đồ giữ chân cohort — tự vẽ từ các bucket theo tuần vào DataRoom mục traction/.",
+      ],
+    },
+    expectedOutputs: {
+      en: [
+        "pmf-signal.md — retention slope + revenue slope + qualitative PMF percentage, with a colour band (red/amber/green).",
+        "cohort-retention.pdf — weekly cohort curve for the last eight weeks (or as many as you have).",
+        "unit-economics-provisional.md — CAC + LTV + gross margin, tagged 'provisional' until Chapter 6 CFO run.",
+        "stripe-founder-testmode.md — checklist confirming your own Stripe test-mode account is wired and a $1 test charge succeeded.",
+        "How to read the PMF band: amber is the honest answer for most Phase-5 startups. Green with fewer than 30 real users is almost always a small-sample illusion — the CDO agent will label it 'insufficient sample' rather than green.",
+      ],
+      vi: [
+        "pmf-signal.md — độ dốc giữ chân + độ dốc doanh thu + tỷ lệ PMF định tính, với dải màu (đỏ/vàng/xanh).",
+        "cohort-retention.pdf — đường cohort tuần trong tám tuần gần nhất (hoặc bao nhiêu bạn có).",
+        "unit-economics-provisional.md — CAC + LTV + biên gộp, đánh dấu 'tạm thời' đến khi CFO chạy chính thức ở Chương 6.",
+        "stripe-founder-testmode.md — checklist xác nhận tài khoản Stripe test của bạn đã kết nối và một giao dịch thử $1 thành công.",
+        "Cách đọc dải PMF: vàng là câu trả lời trung thực cho hầu hết startup Phase 5. Xanh với dưới 30 người dùng thật gần như luôn là ảo giác cỡ mẫu — CDO sẽ ghi 'mẫu chưa đủ' thay vì xanh.",
+      ],
+    },
+    commonPitfalls: {
+      en: [
+        "Claiming PMF from a single week of retention. The cohort curve needs at least four weekly buckets before the slope becomes readable — the CDO agent will refuse to grade sooner.",
+        "Confusing paid trials with retention. A paid trial user who never returns after trial-end is a churned user, not a retained one — the cohort chart correctly ignores them.",
+        "Skipping the founder's own Stripe test-mode connection because 'we don't sell yet'. Wiring it in Chapter 5 (even to a dummy price) gets the schema ready so Chapter 7 growth wiring is a one-click flip, not a two-week project.",
+      ],
+      vi: [
+        "Tuyên bố PMF từ một tuần giữ chân duy nhất. Đường cohort cần ít nhất bốn bucket tuần trước khi độ dốc có thể đọc — CDO sẽ từ chối chấm sớm hơn.",
+        "Nhầm trial trả phí với giữ chân. Người dùng trial trả phí không quay lại sau khi hết trial là khách rời bỏ, không phải giữ chân — biểu đồ cohort loại họ đúng.",
+        "Bỏ qua kết nối Stripe test-mode của founder vì 'chúng tôi chưa bán'. Kết nối ở Chương 5 (dù với giá giả) chuẩn bị schema để Chương 7 chỉ cần bật, không tốn hai tuần.",
+      ],
+    },
+    showcaseExample: {
+      en: "BlockID.au's own Chapter 5 was tricky — 'PMF for a startup-scoring startup' is a chicken-and-egg problem. The showcase workspace at /showcase/blockid shows how CDO agent labelled the first four weeks 'insufficient sample' before finally flipping to amber at week six on the reseller-funnel cohort. That honest amber, not a fake green, is what the plan expects.",
+      vi: "Chương 5 của chính BlockID.au khó — 'PMF cho startup chấm điểm startup' là bài toán con-gà-quả-trứng. Workspace showcase tại /showcase/blockid cho thấy CDO đánh dấu bốn tuần đầu 'mẫu chưa đủ' trước khi chuyển sang vàng ở tuần thứ sáu trên cohort funnel đại lý. Vàng trung thực đó, không phải xanh giả tạo, mới là điều kế hoạch mong đợi.",
+    },
+    cta: {
+      en: "Open the workspace Traction tab and log week-1 to week-N retention for the users you have today, however few. Two rows is enough to start — the CDO agent will tell you honestly how much more data it needs.",
+      vi: "Mở tab Traction trong không gian làm việc và ghi giữ chân tuần 1 đến tuần N cho người dùng hiện có, dù ít. Hai dòng cũng đủ để bắt đầu — CDO sẽ nói thẳng cần thêm bao nhiêu dữ liệu.",
+    },
+  },
+  {
+    slug: "06-revenue",
+    phase: 6,
+    order: 6,
+    phaseLabel: PHASE_LABELS[6],
+    title: {
+      en: "Chapter 6 — Revenue & Business Model",
+      vi: "Chương 6 — Doanh thu & Mô hình kinh doanh",
+    },
+    summary: {
+      en: "Turn provisional numbers into a defensible 3-year projection, a burn curve and a break-even chart. The CFO agent runs the model; you approve or challenge the assumptions. Australian GST and Stripe live-mode readiness are checked here.",
+      vi: "Biến các con số tạm thời thành dự phóng 3 năm có thể bảo vệ, đường burn và biểu đồ break-even. Đại lý CFO chạy mô hình; bạn duyệt hoặc phản biện các giả định. GST Úc và sẵn sàng Stripe live-mode được kiểm tra ở đây.",
+    },
+    founderAction: {
+      en: "Open Workspace → Financials → Projection. Review each assumption card (pricing tiers, gross margin, churn, CAC, sales-cycle days) and either approve or override with your own value + a note explaining why. Iterate the pricing memo until the top-line makes sense against Chapter 3's competitor pricing.",
+      vi: "Mở Không gian làm việc → Tài chính → Dự phóng. Xem từng thẻ giả định (bậc giá, biên gộp, churn, CAC, ngày chu kỳ bán hàng) và duyệt hoặc ghi đè giá trị của bạn kèm ghi chú lý do. Lặp lại memo giá cho đến khi doanh thu top-line hợp lý so với giá đối thủ ở Chương 3.",
+    },
+    agentsInvoked: {
+      en: [
+        "CFO agent — 3-year projection (P&L + cash-flow + burn) as DOCX and XLSX via web/src/lib/docx.",
+        "CFO agent (break-even) — computes months-to-break-even under three scenarios (base / bull / bear) with the assumption diff shown.",
+        "CFO agent (pricing memo) — recommends a tier structure defensible against the Chapter 3 competitor matrix.",
+        "au-compliance agent — GST-registration checklist (turnover threshold, quarterly BAS cycle, invoice format).",
+      ],
+      vi: [
+        "Đại lý CFO — dự phóng 3 năm (P&L + dòng tiền + burn) dạng DOCX và XLSX qua web/src/lib/docx.",
+        "Đại lý CFO (break-even) — tính số tháng để hoà vốn theo ba kịch bản (cơ sở / lạc quan / bi quan) kèm sai khác giả định.",
+        "Đại lý CFO (memo giá) — đề xuất cấu trúc bậc giá bảo vệ được so với ma trận đối thủ Chương 3.",
+        "Đại lý au-compliance — checklist đăng ký GST (ngưỡng doanh thu, chu kỳ BAS theo quý, định dạng hoá đơn).",
+      ],
+    },
+    expectedOutputs: {
+      en: [
+        "financial-model.xlsx — 3-year P&L + cash-flow + burn, one sheet per scenario.",
+        "financial-model.docx — narrative summary you can send to a mentor for review before Chapter 9.",
+        "pricing-memo.md — proposed tier structure with per-tier target ARPU and expected mix.",
+        "gst-readiness.md — au-compliance checklist with green/amber/red per line (ABN status, GST rego, BAS frequency, tax invoice format).",
+        "stripe-livemode-readiness.md — pre-flight checklist for switching your own Stripe from test to live (business verification, bank account, statement descriptor, currency).",
+        "How to read the projection: the base scenario is what happens if nothing surprises you. The bear scenario is what you plan for. If bear month-24 shows insolvency, you either shorten payback or raise sooner — the CFO agent will highlight that automatically.",
+      ],
+      vi: [
+        "financial-model.xlsx — P&L + dòng tiền + burn 3 năm, mỗi sheet một kịch bản.",
+        "financial-model.docx — tóm tắt lời văn có thể gửi mentor xem trước Chương 9.",
+        "pricing-memo.md — cấu trúc bậc giá đề xuất với ARPU mục tiêu và mix kỳ vọng cho từng bậc.",
+        "gst-readiness.md — checklist au-compliance với xanh/vàng/đỏ cho từng dòng (trạng thái ABN, đăng ký GST, chu kỳ BAS, định dạng hoá đơn thuế).",
+        "stripe-livemode-readiness.md — checklist trước khi bật Stripe từ test sang live (xác minh doanh nghiệp, tài khoản ngân hàng, statement descriptor, tiền tệ).",
+        "Cách đọc dự phóng: kịch bản cơ sở là điều xảy ra nếu không có bất ngờ. Kịch bản bi quan là điều bạn lên kế hoạch. Nếu tháng 24 bi quan cho thấy mất khả năng thanh toán, bạn phải rút ngắn payback hoặc gọi vốn sớm hơn — CFO sẽ tô sáng tự động.",
+      ],
+    },
+    commonPitfalls: {
+      en: [
+        "Approving every CFO assumption without pushback. The CFO agent's default is credible-but-conservative; you know your niche better on at least three cards, so override them.",
+        "Building the projection off a base scenario that assumes PMF has already been proven. If Chapter 5 says amber, the base scenario should reflect amber, not green.",
+        "Skipping the GST-readiness checklist because turnover is under the A$75k threshold. Investors still ask; a green GST line by Chapter 9 shortens diligence.",
+      ],
+      vi: [
+        "Duyệt mọi giả định CFO mà không phản biện. Mặc định của CFO là hợp lý nhưng thận trọng; bạn hiểu ngách của mình hơn ở ít nhất ba thẻ, hãy ghi đè.",
+        "Xây dự phóng trên kịch bản cơ sở giả định PMF đã được chứng minh. Nếu Chương 5 nói vàng, kịch bản cơ sở phải phản ánh vàng, không phải xanh.",
+        "Bỏ qua checklist GST vì doanh thu dưới ngưỡng A$75k. Nhà đầu tư vẫn hỏi; dòng GST xanh ở Chương 9 rút ngắn quá trình due-diligence.",
+      ],
+    },
+    showcaseExample: {
+      en: "BlockID.au's Chapter 6 pack — financial-model.xlsx, pricing-memo.md, gst-readiness.md — is in the /guide/reports gallery under Phase 6. Notice the pricing memo recommends a reseller-wholesale tier (40% margin share) that the CFO ran once for the base scenario and once assuming the accelerator partner didn't sign. Both scenarios flow into the same milestone `financials_v1`.",
+      vi: "Gói Chương 6 của BlockID.au — financial-model.xlsx, pricing-memo.md, gst-readiness.md — nằm trong thư viện /guide/reports mục Phase 6. Chú ý memo giá đề xuất một bậc wholesale cho đại lý (chia biên 40%) mà CFO chạy một lần cho kịch bản cơ sở và một lần giả định đối tác accelerator không ký. Cả hai đổ về cùng milestone `financials_v1`.",
+    },
+    cta: {
+      en: "Book two hours this week to sit with the CFO assumption cards. Override at least three; approve the rest. The projection is only as strong as your willingness to push back on the defaults.",
+      vi: "Dành hai giờ tuần này ngồi với các thẻ giả định của CFO. Ghi đè ít nhất ba; duyệt phần còn lại. Dự phóng chỉ mạnh khi bạn sẵn sàng phản biện các mặc định.",
+    },
+  },
+  {
+    slug: "07-growth",
+    phase: 7,
+    order: 7,
+    phaseLabel: PHASE_LABELS[7],
+    title: {
+      en: "Chapter 7 — Growth & Analytics",
+      vi: "Chương 7 — Tăng trưởng & Phân tích",
+    },
+    summary: {
+      en: "Turn on the real analytics stream. GA4 connects to your live property; the founder's own Stripe flips from test to live. A weekly SVI-refresh cron starts writing SVI deltas so growth becomes visible on a sparkline, not a spreadsheet.",
+      vi: "Bật luồng phân tích thật. GA4 kết nối với property live của bạn; Stripe riêng của founder chuyển từ test sang live. Một cron làm mới SVI hàng tuần bắt đầu ghi delta SVI để tăng trưởng hiện lên sparkline, không phải bảng tính.",
+    },
+    founderAction: {
+      en: "In Workspace → Integrations, connect GA4 (paste the property ID + grant the service account viewer access) and switch Stripe from test-mode to live-mode. Then open Workspace → SVI → Weekly refresh and set the day-of-week + time-of-day for the recurring pull.",
+      vi: "Tại Không gian làm việc → Tích hợp, kết nối GA4 (dán property ID + cấp quyền viewer cho service account) và chuyển Stripe từ test-mode sang live-mode. Sau đó mở Không gian làm việc → SVI → Làm mới hàng tuần và đặt ngày trong tuần + giờ cho lần kéo dữ liệu định kỳ.",
+    },
+    agentsInvoked: {
+      en: [
+        "GA4 pull worker — reads sessions + conversions + top-referrers weekly into svi_signals; no PII surfaces.",
+        "Stripe live pull worker — reads MRR + churn + refunds weekly into revenue_events for the founder's own gateway.",
+        "CMO agent (growth playbook) — produces a 12-week acquisition plan tied to the two highest-signal channels from GA4.",
+        "Referrals scaffold — enables the existing referrals infra with a founder-branded referral link + reward config.",
+      ],
+      vi: [
+        "Worker kéo GA4 — đọc sessions + conversions + referrer hàng tuần vào svi_signals; không lộ PII.",
+        "Worker kéo Stripe live — đọc MRR + churn + refund hàng tuần vào revenue_events cho cổng thanh toán riêng của founder.",
+        "Đại lý CMO (playbook tăng trưởng) — sản xuất kế hoạch acquisition 12 tuần gắn với hai kênh tín hiệu cao nhất từ GA4.",
+        "Khung referrals — bật hạ tầng referrals hiện có với link giới thiệu gắn thương hiệu founder + cấu hình phần thưởng.",
+      ],
+    },
+    expectedOutputs: {
+      en: [
+        "svi_signals rows — one weekly bucket per week, populated from GA4 + Stripe live pulls; visible as a sparkline on the workspace dashboard.",
+        "growth-playbook.md — CMO's 12-week plan with weekly hypotheses, budget guardrails and a fallback if any hypothesis dies at week two.",
+        "weekly-delta.pdf — auto-emailed weekly delta summarising SVI change + top-3 movers, sent to the founder's inbox every Monday (or your chosen day).",
+        "referrals-config.md — reward tier, terms, anti-abuse guardrails; ships disabled until you approve one final review.",
+        "How to read the weekly delta: single-week jumps mean nothing (noise). Look at three consecutive weeks in the same direction — that is a trend the CMO agent will start iterating the growth playbook on.",
+      ],
+      vi: [
+        "Hàng svi_signals — một bucket tuần cho mỗi tuần, đổ từ GA4 + Stripe live; hiện dưới dạng sparkline trên dashboard workspace.",
+        "growth-playbook.md — kế hoạch 12 tuần của CMO với giả thuyết theo tuần, khoản ngân sách hộ lan và phương án dự phòng nếu giả thuyết chết ở tuần thứ hai.",
+        "weekly-delta.pdf — tóm tắt delta hàng tuần được email tự động, gửi vào hộp thư founder mỗi thứ Hai (hoặc ngày bạn chọn).",
+        "referrals-config.md — bậc thưởng, điều khoản, chống lạm dụng; ra mắt ở trạng thái tắt cho đến khi bạn duyệt lần review cuối.",
+        "Cách đọc delta tuần: nhảy vọt một tuần không có ý nghĩa (nhiễu). Xem ba tuần liên tiếp cùng hướng — đó là xu hướng để CMO bắt đầu lặp playbook tăng trưởng.",
+      ],
+    },
+    commonPitfalls: {
+      en: [
+        "Turning on GA4 without a measurement plan. If you cannot name your primary conversion event, the GA4 stream is just noise — write the plan first, wire the property second.",
+        "Flipping Stripe live-mode without the Chapter 6 readiness checklist green. Live-mode with an unverified business account will queue the payout, not deliver it.",
+        "Setting the weekly SVI refresh to Monday 09:00 (everyone does). Pick a day/time when you actually have thirty minutes to read the delta — otherwise it becomes an unread email.",
+      ],
+      vi: [
+        "Bật GA4 mà chưa có kế hoạch đo lường. Nếu bạn chưa gọi tên được sự kiện chuyển đổi chính, luồng GA4 chỉ là nhiễu — viết kế hoạch trước, kết nối property sau.",
+        "Chuyển Stripe live-mode mà chưa xanh checklist Chương 6. Live-mode với tài khoản doanh nghiệp chưa xác minh sẽ giữ payout, không giải ngân.",
+        "Đặt làm mới SVI hàng tuần thứ Hai 09:00 (ai cũng làm). Chọn ngày/giờ bạn thực sự có ba mươi phút đọc delta — nếu không, nó thành email chưa mở.",
+      ],
+    },
+    showcaseExample: {
+      en: "BlockID.au's own weekly SVI cron fires Sunday 03:15 UTC (13:15 AEST). Look at /showcase/blockid — the growth strip shows the three-week trailing SVI slope, and the /guide/reports Phase 7 bucket carries the last four growth-playbook revisions. Notice the playbook was rewritten at week five when the accelerator channel out-performed content by 3x.",
+      vi: "Cron SVI hàng tuần của chính BlockID.au chạy Chủ Nhật 03:15 UTC (13:15 AEST). Xem /showcase/blockid — dải tăng trưởng hiển thị độ dốc SVI ba tuần trailing, và mục Phase 7 của /guide/reports mang bốn phiên bản playbook tăng trưởng gần nhất. Chú ý playbook được viết lại ở tuần thứ năm khi kênh accelerator vượt content gấp 3 lần.",
+    },
+    cta: {
+      en: "Block a 90-minute Chapter 7 session: wire GA4, flip Stripe live, set the SVI cron day. Then commit to reading the first three weekly deltas out loud with a co-founder — the first three are where the pattern shows.",
+      vi: "Đặt phiên Chương 7 kéo dài 90 phút: kết nối GA4, bật Stripe live, chọn ngày cron SVI. Sau đó cam kết đọc to ba delta tuần đầu cùng đồng sáng lập — ba tuần đầu là nơi mẫu hình lộ ra.",
+    },
+  },
+  {
+    slug: "08-team",
+    phase: 8,
+    order: 8,
+    phaseLabel: PHASE_LABELS[8],
+    title: {
+      en: "Chapter 8 — Team & Culture",
+      vi: "Chương 8 — Đội ngũ & Văn hóa",
+    },
+    summary: {
+      en: "Add co-founders, first hires and an ESOP scheme. The CHRO agent produces an org-chart and role definitions; if the Share Management add-on is active the cap table and vesting schedules populate here — Div83A tax-concession checklist runs so early ESOP grants qualify.",
+      vi: "Thêm đồng sáng lập, các nhân sự đầu tiên và một scheme ESOP. Đại lý CHRO sản xuất sơ đồ tổ chức và định nghĩa vai trò; nếu add-on Share Management đang bật, cap table và lịch vesting sẽ được đổ vào đây — checklist ưu đãi thuế Div83A chạy để các grant ESOP sớm đủ điều kiện.",
+    },
+    founderAction: {
+      en: "Add each co-founder and hire in Workspace → Team. Draft the ESOP scheme rules (pool size, vesting schedule, cliff, exercise window). If you have the Share Management add-on, review the cap table draft the CHRO produces and approve or override each row before it becomes the source of truth for Chapter 11 blockchain sync.",
+      vi: "Thêm mỗi đồng sáng lập và nhân sự trong Không gian làm việc → Đội ngũ. Soạn quy tắc scheme ESOP (kích thước pool, lịch vesting, cliff, cửa sổ thực hiện). Nếu bạn có add-on Share Management, xem bản nháp cap table do CHRO tạo và duyệt/ghi đè từng dòng trước khi nó trở thành nguồn sự thật cho đồng bộ blockchain ở Chương 11.",
+    },
+    agentsInvoked: {
+      en: [
+        "CHRO agent — org-chart with roles, seniority bands, expected 90/180-day hires.",
+        "CHRO agent (role definitions) — a JD-style doc per open role, tuned for the AU tech market.",
+        "CHRO agent (ESOP scheme) — scheme rules doc: pool size, vesting, cliff, exercise, tag-along, drag-along.",
+        "Div83A checker — runs web/src/lib/div83a-checker.ts against each early grant; flags any at risk of losing the tax concession.",
+        "Cap-table draft — populated only if Share Management add-on is active; otherwise a sample layout doc explains what would be produced.",
+      ],
+      vi: [
+        "Đại lý CHRO — sơ đồ tổ chức với vai trò, dải seniority, các vị trí dự kiến tuyển trong 90/180 ngày.",
+        "Đại lý CHRO (định nghĩa vai trò) — tài liệu kiểu JD cho mỗi vị trí mở, chỉnh cho thị trường tech AU.",
+        "Đại lý CHRO (scheme ESOP) — tài liệu quy tắc scheme: kích thước pool, vesting, cliff, thực hiện, tag-along, drag-along.",
+        "Bộ kiểm tra Div83A — chạy web/src/lib/div83a-checker.ts cho từng grant sớm; đánh dấu các grant có nguy cơ mất ưu đãi thuế.",
+        "Bản nháp cap table — chỉ đổ dữ liệu nếu add-on Share Management đang bật; nếu không, tài liệu mẫu giải thích những gì sẽ được tạo.",
+      ],
+    },
+    expectedOutputs: {
+      en: [
+        "org-chart.pdf — visual org tree with expected next-6-month hires shown as dashed nodes.",
+        "role-definitions/*.md — one JD per open role; each references the Chapter 6 unit-economics pack so salary bands are defensible.",
+        "esop-scheme.md — full scheme rules doc, ready for legal review before you issue the first grant.",
+        "div83a-check.md — per-grant checklist with green/amber/red, plus the fix suggested for any amber/red row (usually valuation timing).",
+        "cap-table-draft.csv (if add-on active) — one row per shareholder + option holder, ready for the Chapter 11 blockchain sync.",
+        "How to read the org-chart: dashed nodes are hires you plan; solid nodes are people who exist. Solid-to-dashed ratio tells you whether the plan is realistic — three dashed per solid is aggressive, five per solid needs Chapter 9 funding first.",
+      ],
+      vi: [
+        "org-chart.pdf — cây tổ chức trực quan với các vị trí tuyển 6 tháng tới thể hiện bằng nút nét đứt.",
+        "role-definitions/*.md — một JD cho mỗi vị trí mở; mỗi JD tham chiếu gói unit-economics Chương 6 để dải lương bảo vệ được.",
+        "esop-scheme.md — tài liệu quy tắc scheme đầy đủ, sẵn cho legal review trước khi phát hành grant đầu tiên.",
+        "div83a-check.md — checklist theo grant với xanh/vàng/đỏ, kèm cách sửa cho các dòng vàng/đỏ (thường là thời điểm định giá).",
+        "cap-table-draft.csv (nếu add-on đang bật) — mỗi dòng một cổ đông + người giữ option, sẵn cho đồng bộ blockchain Chương 11.",
+        "Cách đọc sơ đồ tổ chức: nút nét đứt là các vị trí bạn dự kiến; nút nét liền là người đã có. Tỷ lệ nét liền so với nét đứt cho biết kế hoạch có thực tế hay không — ba nét đứt cho mỗi nét liền là tham vọng, năm nét đứt cần Chương 9 gọi vốn trước.",
+      ],
+    },
+    commonPitfalls: {
+      en: [
+        "Issuing ESOP grants before running the Div83A checker. A late valuation or the wrong grant date can disqualify the tax concession — un-doing that requires a re-issue at the correct valuation, and rare early hires walk when they see the swap.",
+        "Building an org-chart with only present hires. The dashed-hire layer is what makes the chart useful for Chapter 9 investor conversations — leaving it blank makes the team look understaffed.",
+        "Populating the cap table without the Share Management add-on. The draft doc explains what you would get, but the actual populated table needs the add-on active — trying to keep the cap table in a side spreadsheet defeats the Chapter 11 blockchain-sync pipeline.",
+      ],
+      vi: [
+        "Phát hành grant ESOP trước khi chạy bộ kiểm tra Div83A. Định giá trễ hoặc ngày grant sai có thể loại bỏ ưu đãi thuế — sửa lại phải phát hành lại theo định giá đúng, và các nhân sự sớm hiếm có thể rời đi khi thấy cuộc trao đổi.",
+        "Xây org-chart chỉ có nhân sự hiện tại. Lớp nhân sự nét đứt mới làm biểu đồ hữu ích cho các cuộc trò chuyện với nhà đầu tư ở Chương 9 — để trống khiến đội ngũ trông thiếu người.",
+        "Điền cap table mà chưa bật add-on Share Management. Tài liệu nháp giải thích bạn sẽ nhận được gì, nhưng bảng thực sự cần add-on đang bật — cố giữ cap table trên bảng tính bên ngoài phá vỡ pipeline đồng bộ blockchain Chương 11.",
+      ],
+    },
+    showcaseExample: {
+      en: "BlockID.au's Chapter 8 milestone `team_v1` and its ESOP scheme doc live in the /guide/reports Phase 8 bucket. The Div83A check flagged one early grant amber (grant date pre-dated the first valuation by three weeks); the fix — a re-grant at the first-valuation date — is documented in the follow-up note. Investors read that trail and take it as evidence of good governance, not as a red flag.",
+      vi: "Milestone `team_v1` Chương 8 của BlockID.au và tài liệu scheme ESOP nằm trong mục Phase 8 của /guide/reports. Bộ kiểm tra Div83A đánh dấu một grant sớm màu vàng (ngày grant sớm hơn định giá đầu tiên ba tuần); cách sửa — phát hành lại vào ngày định giá đầu tiên — được ghi trong ghi chú tiếp theo. Nhà đầu tư đọc dấu vết đó như bằng chứng quản trị tốt, không phải cờ đỏ.",
+    },
+    cta: {
+      en: "Draft the ESOP scheme this week; run the Div83A checker on any grants already made. If you have the Share Management add-on, walk the CHRO's cap-table draft with a co-founder before approving each row — three eyes catch what two miss.",
+      vi: "Soạn scheme ESOP tuần này; chạy bộ kiểm tra Div83A cho các grant đã phát hành. Nếu có add-on Share Management, đi qua bản nháp cap table của CHRO với đồng sáng lập trước khi duyệt từng dòng — ba con mắt bắt lỗi mà hai bỏ sót.",
     },
   },
 ];
