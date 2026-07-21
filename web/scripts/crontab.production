@@ -354,6 +354,12 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Reseller commissions clearance — nightly 03:15 UTC (13:15 AEST)
 15 3 * * * bash $RUN reseller-clear-commissions --timeout 180
 
+# Reseller Stripe promotion-code drift check — weekly Sun 03:30 UTC (13:30 AEST)
+30 3 * * 0 bash $RUN reseller-stripe-sync --timeout 300
+
+# Reseller monthly reconciliation CSV export — 1st of month at 03:45 UTC (13:45 AEST)
+45 3 1 * * bash $RUN reseller-monthly-reconciliation --timeout 300
+
 # Reseller loop monitor — every minute, snapshots loop state to
 #   /tmp/blockid-reseller-monitor.txt (human)
 #   web/content/reports/reseller-monitor.jsonl (machine)

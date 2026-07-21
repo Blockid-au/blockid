@@ -155,10 +155,19 @@ tracks:
           "InfoVision reseller agreement executed (D4-CLO-02)"
         ]
       P3.1_reconciliation_cron:
-        status: blocked_by: P3
+        status: done
+        tick: 20
+        completed_at: 2026-07-21
+        files: [
+          "web/src/lib/reseller/reconciliation.ts",
+          "web/src/lib/reseller/reconciliation.test.ts (7/7 pass)",
+          "web/src/app/api/cron/reseller-stripe-sync/route.ts",
+          "web/src/app/api/cron/reseller-monthly-reconciliation/route.ts",
+          "web/scripts/crontab.production (30 3 * * 0 stripe-sync; 45 3 1 * * monthly-reconciliation)"
+        ]
         exit_criteria: [
-          "weekly reseller-stripe-sync cron verifies promotion_codes active",
-          "monthly reconciliation CSV export"
+          "weekly reseller-stripe-sync cron verifies promotion_codes active (DONE — retrieves each active reseller_promotion_codes.stripe_promotion_code_id + dedupes stripe_coupon_id; drift alerts admin@blockid.au via formatDriftEmail)",
+          "monthly reconciliation CSV export (DONE — /api/cron/reseller-monthly-reconciliation groups reseller_commissions_current cleared events by reseller_id and emails admin@blockid.au with CSV attachment; ?month=YYYY-MM allows historical rerun)"
         ]
       P4_reseller_console:
         status: blocked_by: P3
@@ -412,19 +421,38 @@ review_history:
       9/9 new + 69/69 combined pass (reseller + projects); tsc clean.
       Playwright pill vs no-pill deferred to P10_hardening (E2E lens owner).
     commit: (this tick)
+  - tick: 20
+    ran_at: 2026-07-21
+    action: p3.1_reconciliation_cron
+    result: |
+      Weekly reseller-stripe-sync + monthly reconciliation CSV export both
+      shipped. GET /api/cron/reseller-stripe-sync iterates active
+      reseller_promotion_codes with non-null stripe_promotion_code_id, calls
+      stripe.promotionCodes.retrieve + stripe.coupons.retrieve (deduped by
+      coupon id), and emails admin@blockid.au on drift via
+      formatDriftEmail(). GET /api/cron/reseller-monthly-reconciliation
+      groups reseller_commissions_current status=cleared events from the
+      previous calendar month by reseller_id, joins resellers for
+      display_name + billing_model, and emails admin@blockid.au with the CSV
+      attached (?month=YYYY-MM allows re-run, ?skip_email=1 for dry-runs).
+      Pure formatter lib at web/src/lib/reseller/reconciliation.ts with 7/7
+      vitest cases + 87/87 combined reseller suite green; tsc clean. Crontab
+      entries added: 30 3 * * 0 stripe-sync (weekly Sun) + 45 3 1 * *
+      monthly-reconciliation (1st of month).
+    commit: (this tick)
 
 next_action:
   agent: applier
   task: |
     1) Apply migrations 0091 + 0092 + 0093 + 0094 via docker exec psql (P1.4) — infra step, requires DB access.
     2) Seed INFOVISION reseller row (P1.5_infovision_seed) once P1.4 lands.
-    3) Advance track A to P3.1_reconciliation_cron (weekly reseller-stripe-sync + monthly CSV export).
+    3) P3.1_reconciliation_cron DONE (tick 20) — weekly reseller-stripe-sync + monthly reconciliation CSV export both wired into crontab.
     4) P4_reseller_console (blocked_by P3) — /reseller/{dashboard,customers,codes,credits,create-startup,reports,settings}.
     5) After P4 lands, unlock P6_capabilities_sandbox and P9_admin_surface.
-    6) P2 DONE + P3 partial (P3.1_reconciliation_cron pending) + P5_cobranding DONE (playwright deferred to P10).
-    7) Track B (B1_showcase_scaffold) also unblocked by track_A_P1 done.
+    6) P2 DONE + P3 DONE (including P3.1 reconciliation) + P5_cobranding DONE (playwright deferred to P10).
+    7) Track B (B1_showcase_scaffold) unblocked by track_A_P1 done — next tick can consider it in parallel with P4.
   authorised: true
-  on_success: continue to P3.1 reconciliation cron + track B B1
+  on_success: continue to P4 reseller console + track B B1
 
 telemetry:
   log_file: web/content/reports/reseller-goal-history.jsonl
