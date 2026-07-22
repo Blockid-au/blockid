@@ -16,11 +16,14 @@ import {
   decideResellerCustomerAction,
   buildResellerSetupIntentParams,
   decideSaveDefaultPaymentMethod,
+  buildResellerWholesaleSubscriptionParams,
   type ResellerBillingRow,
   type CustomerParamsError,
   type SetupIntentParamsError,
   type SaveDefaultPaymentMethodError,
   type SaveDefaultPaymentMethodInput,
+  type WholesaleSubscriptionInput,
+  type WholesaleSubscriptionParamsError,
 } from "./stripe-billing";
 
 // -------------------------------------------------------------------------
@@ -35,9 +38,13 @@ export interface StripeSetupIntentsLike {
   create: Stripe["setupIntents"]["create"];
   retrieve: Stripe["setupIntents"]["retrieve"];
 }
+export interface StripeSubscriptionsLike {
+  create: Stripe["subscriptions"]["create"];
+}
 export interface StripeLike {
   customers: StripeCustomersLike;
   setupIntents: StripeSetupIntentsLike;
+  subscriptions: StripeSubscriptionsLike;
 }
 
 // Structural subset of the Supabase `from("resellers").update(...).eq(...)`
@@ -283,5 +290,77 @@ export async function saveResellerDefaultPaymentMethod(
     stripe_customer_id: decision.stripe_customer_id,
     payment_method_id: paymentMethodId,
     setup_intent_id: decision.setup_intent_id,
+  };
+}
+
+// -------------------------------------------------------------------------
+// createResellerWholesaleSubscription
+// -------------------------------------------------------------------------
+
+export type CreateWholesaleSubscriptionError =
+  | WholesaleSubscriptionParamsError
+  | "stripe_subscription_create_failed";
+
+export type CreateWholesaleSubscriptionResult =
+  | {
+      ok: true;
+      subscription_id: string;
+      status: string;
+      latest_invoice_id: string | null;
+      stripe_customer_id: string;
+      price_id: string;
+    }
+  | { ok: false; reason: CreateWholesaleSubscriptionError; detail?: string };
+
+export interface CreateWholesaleSubscriptionDeps {
+  stripe: StripeLike;
+}
+
+function extractLatestInvoiceId(
+  invoice: string | { id: string } | null | undefined,
+): string | null {
+  if (!invoice) return null;
+  if (typeof invoice === "string") return invoice;
+  return typeof invoice.id === "string" ? invoice.id : null;
+}
+
+/**
+ * Open a wholesale subscription on the reseller's payment method for a
+ * newly-provisioned founder workspace. The reseller is the payer-of-record;
+ * the founder never sees a Stripe checkout. Metadata carries the founder's
+ * user_id + project_id + discount_tier so the invoice.paid webhook accrues
+ * commission through the same reseller_commissions ledger the retail path
+ * uses.
+ *
+ * Idempotency: the caller stamps the fresh reseller_attributions.id onto
+ * an idempotency-safe outer envelope. This adapter itself is not idempotent
+ * — a caller retry hits stripe.subscriptions.create() again unless the
+ * caller supplies a Stripe idempotency key via the request options (out of
+ * scope for the first cut; a follow-up tick can widen the adapter deps to
+ * accept a per-attribution key).
+ */
+export async function createResellerWholesaleSubscription(
+  reseller: ResellerBillingRow,
+  input: WholesaleSubscriptionInput,
+  deps: CreateWholesaleSubscriptionDeps,
+): Promise<CreateWholesaleSubscriptionResult> {
+  const params = buildResellerWholesaleSubscriptionParams(reseller, input);
+  if (!params.ok) return { ok: false, reason: params.reason };
+
+  let subscription: Stripe.Response<Stripe.Subscription>;
+  try {
+    subscription = await deps.stripe.subscriptions.create(params.params);
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    return { ok: false, reason: "stripe_subscription_create_failed", detail };
+  }
+
+  return {
+    ok: true,
+    subscription_id: subscription.id,
+    status: subscription.status,
+    latest_invoice_id: extractLatestInvoiceId(subscription.latest_invoice),
+    stripe_customer_id: params.params.customer,
+    price_id: params.params.items[0].price,
   };
 }

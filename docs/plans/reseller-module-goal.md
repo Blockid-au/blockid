@@ -2561,6 +2561,133 @@ review_history:
       tick per CDO rec #2).
     commit: (this tick)
 
+  - tick: 81
+    ran_at: 2026-07-22
+    action: reseller_create_startup_stripe_subscription_wiring
+    result: |
+      Autonomous tick composing the next unblocked leaf explicitly named at
+      the end of tick 80 — the wholesale subscription create against the
+      reseller's payment method inside /api/reseller/create-startup, closing
+      §24(c) remainder that tick 75 deferred. Tick 80 shipped the
+      /reseller/settings payment-method UI over the two already-tested
+      billing endpoints; now the create-startup endpoint composes
+      validateResellerBillingReadiness + stripe.subscriptions.create()
+      against the reseller-of-record so wholesale provisioning actually
+      opens a subscription line instead of returning stripe_wiring:'deferred'.
+
+      Pure lib extension in web/src/lib/reseller/stripe-billing.ts:
+        - buildResellerWholesaleSubscriptionParams(reseller, input) —
+          returns stripe.subscriptions.create() params: customer=
+          reseller.stripe_customer_id, default_payment_method=
+          reseller.stripe_default_payment_method_id, items=[{price:price_id}],
+          promotion_code (optional — omitted when null/blank),
+          off_session:true, payment_behavior:'error_if_incomplete',
+          collection_method:'charge_automatically', metadata carrying
+          source='reseller_wholesale_provision' + reseller_id/reseller_code/
+          billing_model + user_id/project_id/founder_email/discount_tier so
+          the invoice.paid webhook accrues commission through the same
+          reseller_commissions ledger the retail path uses. Discriminated
+          error union: billing_model_not_wholesale, reseller_not_active,
+          stripe_customer_missing, default_payment_method_missing,
+          price_id_required. Price id validated against /^price_[A-Za-z0-9]+$/
+          (trimmed) so a malformed env var fails at the decision layer.
+        - Extended RESELLER_STRIPE_BILLING_ERROR_MESSAGES with two new
+          keys: price_id_required + subscription_create_failed.
+
+      Adapter surface extended in stripe-billing-adapter.ts:
+        - StripeSubscriptionsLike interface with .create; extended StripeLike
+          to include subscriptions so the same DI'd Stripe fake shape covers
+          all four adapter functions.
+        - createResellerWholesaleSubscription(reseller, input, {stripe}) —
+          runs buildResellerWholesaleSubscriptionParams, calls
+          stripe.subscriptions.create, extracts subscription.id + status +
+          latest_invoice.id (handles both bare-string and expanded-object
+          latest_invoice shapes). Discriminated error union:
+          stripe_subscription_create_failed with error.message in detail.
+          Idempotency deliberately deferred — caller can widen the deps to
+          accept a per-attribution Stripe idempotency key in a follow-up
+          tick if double-provision races surface in production.
+
+      Route wiring in web/src/app/api/reseller/create-startup/route.ts:
+        - New StripeWiringOutcome discriminated union covering
+          not_configured / price_missing / not_ready / subscribed / failed
+          so the response envelope carries the wiring state instead of the
+          old stripe_wiring:'deferred' string.
+        - resolveStripePriceForPlan(plan_id) maps WHOLESALE_PLAN_ID
+          ('founder_growth') to STRIPE_PRICE_MAP.growth per plan §C.1.5
+          (wholesale reuses the same Stripe Price as retail Growth — the
+          reseller pays A$99/mo list and the discount tier flows through
+          the promotion_code attach on the subscription).
+        - Promotion code SELECT widened to include stripe_promotion_code_id
+          so it can be threaded into the subscription create call.
+        - Reseller SELECT extended with contact_email + stripe_customer_id
+          + stripe_default_payment_method_id (the two 0101 columns landed
+          tick 77) so validateResellerBillingReadiness() sees the current
+          billing state.
+        - Between (c) attributions insert and (d) magic-link, when Stripe
+          is configured + price env var present + reseller ready, the
+          route now calls createResellerWholesaleSubscription and stamps
+          the returned {subscription_id, status, latest_invoice_id} onto
+          reseller_attributions.metadata via UPDATE so downstream
+          reconciliation + the /reseller/customers drawer can find it
+          without a second Stripe round-trip. Failures are SOFT — the
+          workspace + attribution stay live and the reseller can retry
+          billing from /reseller/customers → drawer once the underlying
+          error (missing PM, declined card, price env drift) resolves.
+        - Audit-log metadata + response envelope now carry the full
+          stripe_wiring outcome; message string synthesised via
+          describeStripeWiring(outcome) so ops sees the actual state
+          instead of the boilerplate "will be created in a follow-up
+          tick" copy that shipped in the deferred version.
+
+      Verified: whole-tree vitest 817/817 (was 797, +20 = +12 pure-lib
+      cases in stripe-billing.test.ts covering happy path, promotion_code
+      omission with null/empty/whitespace, discount_tier=0 stringification,
+      price_id trim, retail/paused/terminated refusal, missing-customer +
+      missing-PM refusal, malformed-price-id refusal, error-copy coverage;
+      +8 adapter cases in stripe-billing-adapter.test.ts covering happy
+      path with full metadata + promotion_code, promotion_code omission,
+      latest_invoice bare-string vs expanded-object vs null shapes,
+      missing-customer + missing-PM + retail + terminated + malformed
+      price refusal, stripe.subscriptions.create rejection mapping); tsc
+      clean; npm run lint:reseller unchanged (R-01 scanned 11 file(s),
+      R-03 scanned 31 manifest route(s); 3 exemptions, 0 violations —
+      no new route or lib file crosses either boundary).
+
+      What tick 81 unblocks in production: with InfoVision seeded (P1.5
+      HUMAN-BLOCKED on H.20 ABN + GST confirmation), a wholesale reseller
+      admin can now hit POST /api/reseller/create-startup and the
+      transaction (a) provisions the founder's app_users row, (b) creates
+      the workspace projects row, (c) inserts the reseller_attributions
+      row, (c.5) OPENS THE STRIPE SUBSCRIPTION on the reseller's saved
+      payment method with the correct promotion_code discount tier
+      attached, (d) mints the magic-link, (e) dispatches the wholesale
+      welcome email, (f) writes the audit log. The invoice.paid webhook
+      will pick up the metadata.source='reseller_wholesale_provision'
+      marker and accrue commission through the same reseller_commissions
+      ledger the retail path uses (no webhook changes needed — the
+      metadata shape is identical to what /api/stripe/checkout stamps
+      for retail wholesale-attributed subs).
+
+      Frontier after tick 81: (a) Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars for the
+      Share-Management add-on (unrelated to wholesale subscription line
+      which uses STRIPE_PRICE_GROWTH). (b) Track B COMPLETE. (c) P1.5
+      InfoVision seed STILL HUMAN-BLOCKED on H.20 ABN + GST confirmation
+      — the wholesale subscription line ships wired but will remain
+      stripe_wiring.state='not_ready' until an InfoVision-like reseller
+      row lands with a stripe_customer_id + default PM on file. (d) P10
+      still blocked_by [P1..P9]. With §24(c) closed, the goal file
+      frontier now has NO non-human-blocked leaves remaining — the loop
+      should self-idle until an unblock signal arrives (H.20 ABN
+      confirmation OR P8.5 Stripe add-on price env vars minted). Next
+      autonomous tick options: (i) begin P10 dry-run scaffolding
+      (Playwright fixtures, perf-audit baseline) so it can fire the
+      instant P8.5 clears; (ii) knock off advisory follow-ups documented
+      inline in items 22-27 above (most are already DONE — remaining are
+      cosmetic).
+    commit: (this tick)
+
   - tick: 80
     ran_at: 2026-07-22
     action: reseller_stripe_billing_payment_method_ui
@@ -3203,7 +3330,7 @@ next_action:
    22) DONE tick 70 (rec #3 DONE tick 67, rec #4 DONE tick 70) — CMO advisory §22 rec #3 (JSON-LD structured data) DONE. Pure builder lib at web/src/lib/seo/structured-data.ts exposes buildWebPageJsonLd + buildItemListJsonLd returning schema.org objects (WebPage with isPartOf/publisher/breadcrumbs; ItemList with 1-indexed ListItem entries + numberOfItems). React wrappers WebPageJsonLd + ItemListJsonLd added to web/src/components/seo/json-ld.tsx (matches OrganizationJsonLd/FAQJsonLd/ArticleJsonLd emit pattern with dangerouslySetInnerHTML). /showcase/blockid page now emits WebPage JSON-LD with two-level breadcrumbs (Home → Showcase). /guide/reports page now emits ItemList JSON-LD covering all report rows (default 100-item clamp for polite crawl payload; numberOfItems still reflects full count so aggregate SEO signal is honest). OrganizationJsonLd was already in root layout so both pages now have Org + WebPage/ItemList on the same document. Test coverage: 7/7 pass in structured-data.test.ts (min WebPage shape, breadcrumbs, primaryImage+inLanguage overrides, ItemList positions, itemLimit clamp, zero-item empty state, description passthrough). Verified: tsc clean; whole-tree vitest 667/667 (was 633, +34 across seo + prior test additions from ticks 63-66); npm run lint:reseller unchanged (8 R-01 + 28 R-03, 3 exemptions, 0 violations — new files under /lib/seo and /components/seo don't touch reseller boundary). REMAINING under §22: (a) prior — CMO brand-wording DONE tick 58. (b) /guide/reports per-row download route + GA event + redaction pipeline DONE tick 70 — new pure lib web/src/lib/showcase/report-redaction.ts (23/23 tests) + public route /api/guide/reports/[filename] serving redacted markdown attachments + client CTA firing showcase_report_downloaded on click.
    22b) PARTIAL tick 58 — CMO brand-wording pass DONE: "Referred by" / "Brought to you by" swapped to "Introduced by" (EN) + "Được giới thiệu bởi" (VI) per plan §C.3 across web/src/lib/reseller/email-footer.ts + email-footer.test.ts (9/9 pass, incl. proper VI diacritics), web/src/components/workspace/reseller-pill.tsx tooltip, and web/src/app/api/stripe/checkout/route.ts (subscription_data.description = "Introduced by <name>"; invoice_creation.invoice_data.custom_fields = [{name:"Reseller", value:<name>}] per plan §C.3 line 688). REMAINING: /guide/reports download route + GA event so template-library ROI is measurable — deferred to a follow-up tick since it also requires the redaction pipeline per plan §284.
    23) DONE tick 69 — CDO advisory §23 both halves closed. (a) reviews-aggregate pair suppression DONE tick 57 (buildReviewsSummary treats (total_reviews, projects_with_reviews) as a correlated pair; complementary suppression on portfolio-phase-distribution regression-tested). (b) GA4 event catalogue for showcase surfaces DONE tick 69 — new pure resolver at web/src/lib/analytics/showcase-tracker.ts maps the four Track B page slugs (/showcase/blockid, /guide/reports, /guide/[chapter], /workspace/guide/[chapter]) to typed AnalyticsEventMap events; PageTracker gains chapter/locale/source/totalReports optional props + document.referrer plumbing; new showcase_reports_viewed event registered (the /guide/reports view had no prior event); catalogue doc at docs/analytics/showcase-events.md documents the surface→event map + GA4 audience recipes + change-control. Root cause: PAGE_EVENTS map at page-tracker.tsx had no entries for the four showcase page slugs, so every showcase view silently dropped from GA4 + GTM dataLayer despite the events existing in the type registry. Verified: tsc clean; whole-tree vitest 680/680 (+13); lint:reseller unchanged.
-   24) DONE tick 75 — POST /api/reseller/create-startup route shipped, closing §24(c) and the last non-human-blocked leaf on the goal file frontier. Route composes normaliseCreateStartupInput + decideCreateStartup + resellerSupabase + requestMagicLink + sendWholesaleWelcome per the pattern established by P6.3 (grant-api) and P6.4 (sandbox-setup). Compensation-aware sequential writes (app_users → projects → reseller_attributions → magic-link → welcome email → audit-log) with roll-back on the attribution-insert failure branch so the U.15.1 partial-unique index doesn't silently block retries. Stripe subscription line against the reseller's payment method deferred to a follow-up tick (needs resellers.stripe_customer_id migration + payment-method-setup UI + P8.5 env unblock). Form on /reseller/create-startup now live via new "use client" wrapper; submit button previously disabled is now interactive with inline success/error banner. See tick 75 log for full detail. Grant modal EN+VI parity DONE tick 62; denial-reason surface DONE tick 63; leading-signal pure lib DONE tick 65; leading-signal weekly-digest cron DONE tick 66 (new /api/cron/reseller-weekly-digest endpoint iterates active resellers, expands reseller_attributions → user_ids (project-typed rows resolved via projects.user_id mirroring scope.allowedCustomerIds), bridges svi_analyses through app_users.email since svi_analyses has no user_id column on this host per 0007/0014/0016/0020 migrations, computes buildLeadingSignalSummary per reseller, emails admin@blockid.au a CSV attachment + HTML body; Mondays 04:15 UTC crontab entry after clear-commissions; ?skip_email=1 dry-run; pure formatter lib web/src/lib/reseller/weekly-digest.ts with 8/8 vitest for isoWeekKey year-boundary, CSV suppression/escape, HTML empty state + sort). Wholesale welcome-email pure builder DONE tick 72 — web/src/lib/reseller/wholesale-welcome-email.ts exposes buildWholesaleWelcomeEmail({founderName, companyName, resellerDisplayName, magicLinkUrl, ttlHours, locale}) → {subject, html, text}; EN+VI parity (subject flips to "Xác minh không gian làm việc BlockID cho <Company>"), H.8 provisional-workspace amber banner ("read-only until you verify"), CPO §25 non-payment confirmation banner ("<Reseller> is the seller-of-record and has already paid for your plan. BlockID will not ask you for a credit card"), embedded resellerFooterHtml/Text co-branding, HTML escaping on all user-supplied strings, ttlHours defaults to 24 on invalid input, throws on missing companyName/resellerDisplayName/magicLinkUrl (retail flow lives on a different path). 14/14 vitest in wholesale-welcome-email.test.ts; tsc clean; lint:reseller unchanged (8 R-01 + 28 R-03, 3 exemptions, 0 violations). sendWholesaleWelcome() adapter DONE tick 73 — web/src/lib/email.ts imports buildWholesaleWelcomeEmail + exports sendWholesaleWelcome({to, founderName, companyName, resellerDisplayName, magicLinkUrl, ttlHours, locale}), wraps the builder's inner-HTML in a minimal light-theme HTML doc (bg #F1F5F9 + 560px white card) so the builder's inline styles render on Gmail/Outlook (dark shell() would clash with the builder's slate-700 text + coloured status callouts), appends unsubFooter for RFC 8058 List-Unsubscribe compliance, TRANSACTIONAL (no canSendEmail() gate since recipient typically has no BlockID account yet). create-startup decision lib DONE tick 74 — pure web/src/lib/reseller/create-startup.ts exposes normaliseCreateStartupInput (5 error branches) + decideCreateStartup (6-gate reseller/tier/attribution check) + CREATE_STARTUP_ERROR_MESSAGES table + WholesaleResellerRow/CreateStartupPlan types; 21/21 vitest; the eventual route handler is now a thin composition of already-tested primitives (§24 (b) magic-link reuses existing web/src/lib/auth.ts::requestMagicLink with intent='login' + pendingPayload.wholesaleProvisioning — no wholesale-specific primitive needed since the H.8 provisional-state signal is carried in the payload not the intent). REMAINING under §24: (c) POST /api/reseller/create-startup route handler itself — a Stripe subscription create against the reseller's payment method + atomic (app_users insert + projects insert + reseller_attributions insert + requestMagicLink + sendWholesaleWelcome dispatch) transaction — the create-startup UI form at web/src/app/reseller/create-startup/page.tsx already exists but its submit button is disabled pending the endpoint (larger Stripe hot-path surface; wants its own tick).
+   24) DONE tick 81 — §24(c) subscription-line wiring shipped. /api/reseller/create-startup now composes validateResellerBillingReadiness + createResellerWholesaleSubscription against the reseller's saved payment method after the (a)(b)(c) atomic writes land; failures are soft (workspace stays live), successes stamp {subscription_id,status,latest_invoice_id} onto reseller_attributions.metadata for downstream reconciliation. See tick 81 log for detail. (Route handler itself shipped tick 75.) Route composes normaliseCreateStartupInput + decideCreateStartup + resellerSupabase + requestMagicLink + sendWholesaleWelcome per the pattern established by P6.3 (grant-api) and P6.4 (sandbox-setup). Compensation-aware sequential writes (app_users → projects → reseller_attributions → magic-link → welcome email → audit-log) with roll-back on the attribution-insert failure branch so the U.15.1 partial-unique index doesn't silently block retries. Stripe subscription line against the reseller's payment method deferred to a follow-up tick (needs resellers.stripe_customer_id migration + payment-method-setup UI + P8.5 env unblock). Form on /reseller/create-startup now live via new "use client" wrapper; submit button previously disabled is now interactive with inline success/error banner. See tick 75 log for full detail. Grant modal EN+VI parity DONE tick 62; denial-reason surface DONE tick 63; leading-signal pure lib DONE tick 65; leading-signal weekly-digest cron DONE tick 66 (new /api/cron/reseller-weekly-digest endpoint iterates active resellers, expands reseller_attributions → user_ids (project-typed rows resolved via projects.user_id mirroring scope.allowedCustomerIds), bridges svi_analyses through app_users.email since svi_analyses has no user_id column on this host per 0007/0014/0016/0020 migrations, computes buildLeadingSignalSummary per reseller, emails admin@blockid.au a CSV attachment + HTML body; Mondays 04:15 UTC crontab entry after clear-commissions; ?skip_email=1 dry-run; pure formatter lib web/src/lib/reseller/weekly-digest.ts with 8/8 vitest for isoWeekKey year-boundary, CSV suppression/escape, HTML empty state + sort). Wholesale welcome-email pure builder DONE tick 72 — web/src/lib/reseller/wholesale-welcome-email.ts exposes buildWholesaleWelcomeEmail({founderName, companyName, resellerDisplayName, magicLinkUrl, ttlHours, locale}) → {subject, html, text}; EN+VI parity (subject flips to "Xác minh không gian làm việc BlockID cho <Company>"), H.8 provisional-workspace amber banner ("read-only until you verify"), CPO §25 non-payment confirmation banner ("<Reseller> is the seller-of-record and has already paid for your plan. BlockID will not ask you for a credit card"), embedded resellerFooterHtml/Text co-branding, HTML escaping on all user-supplied strings, ttlHours defaults to 24 on invalid input, throws on missing companyName/resellerDisplayName/magicLinkUrl (retail flow lives on a different path). 14/14 vitest in wholesale-welcome-email.test.ts; tsc clean; lint:reseller unchanged (8 R-01 + 28 R-03, 3 exemptions, 0 violations). sendWholesaleWelcome() adapter DONE tick 73 — web/src/lib/email.ts imports buildWholesaleWelcomeEmail + exports sendWholesaleWelcome({to, founderName, companyName, resellerDisplayName, magicLinkUrl, ttlHours, locale}), wraps the builder's inner-HTML in a minimal light-theme HTML doc (bg #F1F5F9 + 560px white card) so the builder's inline styles render on Gmail/Outlook (dark shell() would clash with the builder's slate-700 text + coloured status callouts), appends unsubFooter for RFC 8058 List-Unsubscribe compliance, TRANSACTIONAL (no canSendEmail() gate since recipient typically has no BlockID account yet). create-startup decision lib DONE tick 74 — pure web/src/lib/reseller/create-startup.ts exposes normaliseCreateStartupInput (5 error branches) + decideCreateStartup (6-gate reseller/tier/attribution check) + CREATE_STARTUP_ERROR_MESSAGES table + WholesaleResellerRow/CreateStartupPlan types; 21/21 vitest; the eventual route handler is now a thin composition of already-tested primitives (§24 (b) magic-link reuses existing web/src/lib/auth.ts::requestMagicLink with intent='login' + pendingPayload.wholesaleProvisioning — no wholesale-specific primitive needed since the H.8 provisional-state signal is carried in the payload not the intent). REMAINING under §24: (c) POST /api/reseller/create-startup route handler itself — a Stripe subscription create against the reseller's payment method + atomic (app_users insert + projects insert + reseller_attributions insert + requestMagicLink + sendWholesaleWelcome dispatch) transaction — the create-startup UI form at web/src/app/reseller/create-startup/page.tsx already exists but its submit button is disabled pending the endpoint (larger Stripe hot-path surface; wants its own tick).
    25) PARTIAL tick 72 — CPO advisory §25 customer-drawer EN+VI parity DONE tick 61. web/src/app/reseller/customers/customer-drawer.tsx + drawer-opener.tsx + reveal-email-cell.tsx now switch every user-facing string via useLocale() with a Copy: Record<Locale, Copy> table (real VI translation with diacritics — "Tổng quan"/"Tiến trình"/"Báo cáo"/"Đang tải chi tiết khách hàng…"/"Chương hướng dẫn"/etc.); currency helper fmtAud() now takes locale and flips VI decimal separator from "." to "," (A$99,00); credits use Intl.NumberFormat("vi-VN"|"en-AU") for thousands separator; tab labels are now data-driven (dropped CSS `capitalize` since it fails for VI multi-word labels). tsc clean; reseller vitest 276/276; lint:reseller unchanged 8+28 with 3 exemptions / 0 violations. Non-payment confirmation copy DONE tick 72 as the ECFDF5/green-border block inside buildWholesaleWelcomeEmail — reassures the founder in EN+VI that the reseller is seller-of-record and BlockID will not ask for a credit card. Wiring into the wholesale onboarding wizard follows once the /api/reseller/create-startup endpoint mints the email (bundled with §24 remainder).
    26) DONE tick 60 — CHRO advisory §26 both halves closed. (a) Div 83A qualifying-tests checklist (tick 59): guide chapter 08-team publishes the eight s83A tests EN + VI (esic_eligible / unlisted / turnover_cap / age_lt_10y / grantee_is_employee / market_value / ownership_cap / holding_or_forfeiture) on both /guide/08-team and /workspace/guide/08-team plus docs/guides/startup-journey/chapter-08.md; Chapter interface gained optional qualifyingTests?: LocalisedList; startup-journey.test.ts 12/12 pass. (b) human-review-minutes KPI (tick 60): counter file at web/content/reports/human-review-minutes.jsonl (append-only JSONL); helper module scripts/cron/human-review-minutes.mjs (sumHumanReviewMinutes7d + appendHumanReviewMinutes); bump CLI scripts/cron/bump-human-review-minutes.mjs (chmod +x); reseller-goal-loop.mjs samples the 7-day sum once at process start and every log() row now carries human_review_minutes_7d so the "0 eng-weeks burned" kpi.eng_weeks_burned=0 claim carries a real number visible on every telemetry line. Verified: node --check clean on all three scripts; smoke-test append+sum cycle worked (0 → 0.5 for tagged self-test row); loop kill-switch dry run exits 0 with no regressions.
    27) DONE tick 68 — COO/IR advisory §27 both halves closed. (a) COO half tick 64 — reseller-goal-loop.mjs emits `stage: human_blocked_snapshot` on every tick + tracks.B.current_focus flipped to "done" (see tick 64 log). (b) IR half tick 68 — three content edits: (i) web/content/pitch/pitch-deck-v1.md new Slide 8 "Channel Economics" inserted between Business Model + Traction with the full plan §H truth-table (tiers 0/10/20/30/40 at A$99 with A$59.40 invariant highlighted) + side-by-side wholesale vs retail comparison; slides 9-13 renumbered; Slide 9 (Traction) weaves the /showcase/blockid live-dogfood link per IR rec #2. Deck version bumped 1.0 → 1.1. (ii) web/content/pitch/reseller-channel-gtm-lever.md new data-room one-pager (seller-of-record rationale + commission truth-table + InfoVision as design partner + forward pipeline of retail-partner categories + diligence-readiness artefacts already shipped + cross-references to plan/goal/IR review/unicorn masterplan). (iii) .claude/goals/unicorn-masterplan.md Reseller Channel row added to Revenue Streams by Phase table (2027: A$150K → 2030: A$8M) with the "20 wholesale × 50 seats × A$99 = A$1.19M ARR" arithmetic paragraph per IR rec #4; Total ARR row updated in-place across all five year columns so the reseller channel is now visible in the trajectory arithmetic. Rec #5 ("preserve historical reseller_commissions as data-room artefact") already the design of the ledger (append-only via 0093 mutation triggers, 6-year retention per H.9) — GTM memo section 7 cites this shipped invariant so diligence readers can find it. No code paths touched; tsc / vitest / lint:reseller unchanged from tick 67 baseline.

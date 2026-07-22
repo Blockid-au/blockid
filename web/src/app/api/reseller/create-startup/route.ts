@@ -54,6 +54,7 @@ import {
 } from "@/lib/auth";
 import { sendWholesaleWelcome } from "@/lib/email";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import {
   scopedReseller,
   ResellerScopeError,
@@ -68,6 +69,11 @@ import {
   type WholesaleResellerRow,
   type CreateStartupPlan,
 } from "@/lib/reseller/create-startup";
+import {
+  validateResellerBillingReadiness,
+  type ResellerBillingRow,
+} from "@/lib/reseller/stripe-billing";
+import { createResellerWholesaleSubscription } from "@/lib/reseller/stripe-billing-adapter";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -126,6 +132,18 @@ function buildCompanySlug(name: string): string {
   );
 }
 
+type StripeWiringOutcome =
+  | { state: "not_configured" }
+  | { state: "price_missing"; plan_id: string }
+  | { state: "not_ready"; reason: string }
+  | {
+      state: "subscribed";
+      subscription_id: string;
+      status: string;
+      latest_invoice_id: string | null;
+    }
+  | { state: "failed"; reason: string; detail?: string };
+
 interface ExecuteResult {
   ok: true;
   user_id: string;
@@ -134,7 +152,7 @@ interface ExecuteResult {
   createNewUser: boolean;
   magic_link_sent: boolean;
   email_sent: boolean;
-  stripe_wiring: "deferred";
+  stripe_wiring: StripeWiringOutcome;
 }
 
 interface ExecuteError {
@@ -149,17 +167,48 @@ interface ExecuteError {
 }
 
 /**
+ * Wholesale Stripe plan → Stripe price id resolver. Mirrors the plan id used
+ * by create-startup (WHOLESALE_PLAN_ID = "founder_growth") to the STRIPE_PRICE
+ * env var slots wired in web/src/lib/stripe.ts. Wholesale reuses the same
+ * Stripe Price as retail Growth per plan §C.1.5 — the reseller pays the same
+ * A$99/mo list price and the discount tier flows through the promotion_code
+ * attach on the subscription.
+ */
+function resolveStripePriceForPlan(planId: string): string | null {
+  if (planId === "founder_growth") {
+    return STRIPE_PRICE_MAP.growth ?? null;
+  }
+  return null;
+}
+
+interface ExecuteBillingContext {
+  reseller: ResellerBillingRow;
+  price_id: string | null;
+  stripe_promotion_code_id: string | null;
+}
+
+/**
  * Sequential atomic-ish execution of the CreateStartupPlan. Rolls back the
  * projects row when the reseller_attributions insert fails so the partial
  * unique index does not silently block future attempts. Rolls back a
  * newly-created app_users row on downstream failure to avoid orphan accounts
  * (existing accounts are never touched).
+ *
+ * Stripe wholesale subscription is opened AFTER the attributions insert lands
+ * (so the founder + workspace + attribution row are all durable), and BEFORE
+ * the magic-link + welcome email dispatch. Subscription failure is a soft
+ * outcome — the workspace stays live and the reseller can retry billing from
+ * /reseller/customers → drawer once the underlying Stripe error is resolved
+ * (missing PM, declined card, etc.). This matches the "provisional workspace"
+ * posture set out in H.8: the founder sees the workspace as soon as the
+ * magic-link lands, and billing catches up asynchronously.
  */
 async function execute(
   plan: CreateStartupPlan,
   actorUserId: string,
   scope: ScopedResellerSession,
   clientMeta: { ip: string; ua: string },
+  billing: ExecuteBillingContext,
 ): Promise<ExecuteResult | ExecuteError> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return { ok: false, reason: "supabase_not_configured" };
@@ -268,6 +317,69 @@ async function execute(
     await supabase.from("projects").delete().eq("id", projectId);
     return { ok: false, reason: "attribution_insert_failed", detail: attrErr?.message };
   }
+  const attributionId = attrRow.id as string;
+
+  // (c.5) wholesale subscription — reseller is payer-of-record. Only fires
+  // when Stripe is configured AND the reseller row carries a stripe_customer_id
+  // + default payment method AND the tier price env var is minted. Failures
+  // are soft: the workspace + attribution stay live and the reseller can retry
+  // billing from /reseller/customers → drawer.
+  let stripeWiring: StripeWiringOutcome;
+  if (!isStripeConfigured()) {
+    stripeWiring = { state: "not_configured" };
+  } else if (!billing.price_id) {
+    stripeWiring = { state: "price_missing", plan_id: plan.plan_tier };
+  } else {
+    const readiness = validateResellerBillingReadiness(billing.reseller);
+    if (!readiness.ok) {
+      stripeWiring = { state: "not_ready", reason: readiness.reason };
+    } else {
+      const stripe = getStripe();
+      if (!stripe) {
+        stripeWiring = { state: "not_configured" };
+      } else {
+        const subResult = await createResellerWholesaleSubscription(
+          billing.reseller,
+          {
+            price_id: billing.price_id,
+            user_id: userId,
+            project_id: projectId,
+            founder_email: plan.founder_email,
+            discount_tier: plan.discount_tier,
+            stripe_promotion_code_id: billing.stripe_promotion_code_id,
+          },
+          { stripe },
+        );
+        if (subResult.ok) {
+          stripeWiring = {
+            state: "subscribed",
+            subscription_id: subResult.subscription_id,
+            status: subResult.status,
+            latest_invoice_id: subResult.latest_invoice_id,
+          };
+          // Stamp the subscription id onto the attribution row's metadata so
+          // downstream reconciliation and the /reseller/customers drawer can
+          // find it without a second Stripe round-trip.
+          const stampedMetadata = {
+            ...plan.attribution.metadata,
+            stripe_subscription_id: subResult.subscription_id,
+            stripe_subscription_status: subResult.status,
+            stripe_latest_invoice_id: subResult.latest_invoice_id,
+          };
+          await supabase
+            .from("reseller_attributions")
+            .update({ metadata: stampedMetadata })
+            .eq("id", attributionId);
+        } else {
+          stripeWiring = {
+            state: "failed",
+            reason: subResult.reason,
+            detail: subResult.detail,
+          };
+        }
+      }
+    }
+  }
 
   // (d) magic-link — 24h TTL so the founder has a realistic window.
   const magic = await requestMagicLink({
@@ -317,11 +429,12 @@ async function execute(
       metadata: {
         project_id: projectId,
         project_slug: projectRowSlug,
-        attribution_id: attrRow.id,
+        attribution_id: attributionId,
         discount_tier: plan.discount_tier,
         promotion_code: plan.promotion_code,
         magic_link_sent: magicLinkSent,
         email_sent: emailSent,
+        stripe_wiring: stripeWiring,
       },
     });
   } catch (err) {
@@ -334,11 +447,11 @@ async function execute(
     ok: true,
     user_id: userId,
     project_id: projectId,
-    attribution_id: attrRow.id as string,
+    attribution_id: attributionId,
     createNewUser: plan.createNewUser,
     magic_link_sent: magicLinkSent,
     email_sent: emailSent,
-    stripe_wiring: "deferred",
+    stripe_wiring: stripeWiring,
   };
 }
 
@@ -390,6 +503,17 @@ export async function POST(request: Request) {
       ? (selfRaw.allowed_tiers as number[])
       : null,
   };
+  const billingReseller: ResellerBillingRow = {
+    id: reseller.id,
+    code: reseller.code,
+    display_name: reseller.display_name,
+    status: reseller.status,
+    billing_model: reseller.billing_model,
+    contact_email: (selfRaw.contact_email as string | null) ?? null,
+    stripe_customer_id: (selfRaw.stripe_customer_id as string | null) ?? null,
+    stripe_default_payment_method_id:
+      (selfRaw.stripe_default_payment_method_id as string | null) ?? null,
+  };
 
   const supabase = getSupabaseAdmin();
   if (!supabase) {
@@ -435,7 +559,7 @@ export async function POST(request: Request) {
   // Promotion code lookup by (reseller_id, tier_pct).
   const { data: promoRow } = await supabase
     .from("reseller_promotion_codes")
-    .select("id, code, tier_pct")
+    .select("id, code, tier_pct, stripe_promotion_code_id")
     .eq("reseller_id", reseller.id)
     .eq("tier_pct", input.discount_tier)
     .eq("active", true)
@@ -447,6 +571,7 @@ export async function POST(request: Request) {
         tier_pct: promoRow.tier_pct as number,
       }
     : null;
+  const stripePromotionCodeId = (promoRow?.stripe_promotion_code_id as string | null) ?? null;
 
   const decision = decideCreateStartup({
     input,
@@ -469,7 +594,12 @@ export async function POST(request: Request) {
   }
 
   const meta = readClientMeta(request);
-  const result = await execute(decision.plan, user.id, scope, meta);
+  const billingContext: ExecuteBillingContext = {
+    reseller: billingReseller,
+    price_id: resolveStripePriceForPlan(decision.plan.plan_tier),
+    stripe_promotion_code_id: stripePromotionCodeId,
+  };
+  const result = await execute(decision.plan, user.id, scope, meta, billingContext);
   if (!result.ok) {
     return NextResponse.json(
       {
@@ -481,6 +611,8 @@ export async function POST(request: Request) {
     );
   }
 
+  const wiringMessage = describeStripeWiring(result.stripe_wiring);
+
   return NextResponse.json({
     ok: true,
     user_id: result.user_id,
@@ -490,7 +622,21 @@ export async function POST(request: Request) {
     magic_link_sent: result.magic_link_sent,
     email_sent: result.email_sent,
     stripe_wiring: result.stripe_wiring,
-    message:
-      "Founder workspace provisioned. Magic-link welcome email dispatched. Stripe subscription line will be created in a follow-up tick — the workspace stays provisional until the founder verifies their email (H.8).",
+    message: `Founder workspace provisioned. Magic-link welcome email dispatched. ${wiringMessage}`,
   });
+}
+
+function describeStripeWiring(outcome: StripeWiringOutcome): string {
+  switch (outcome.state) {
+    case "subscribed":
+      return `Wholesale subscription ${outcome.subscription_id} opened on the reseller's payment method (status=${outcome.status}).`;
+    case "not_ready":
+      return `Stripe subscription deferred — reseller billing not ready (${outcome.reason}). Complete /reseller/settings then retry from /reseller/customers.`;
+    case "price_missing":
+      return `Stripe subscription deferred — no price env var configured for plan ${outcome.plan_id}. Set STRIPE_PRICE_GROWTH and retry.`;
+    case "not_configured":
+      return "Stripe not configured on this host — subscription deferred.";
+    case "failed":
+      return `Stripe subscription create failed (${outcome.reason}). Workspace stays live; retry billing from /reseller/customers.`;
+  }
 }

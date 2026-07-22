@@ -248,6 +248,130 @@ export function buildResellerSetupIntentParams(
 }
 
 // -------------------------------------------------------------------------
+// Wholesale subscription create params
+// -------------------------------------------------------------------------
+
+export interface WholesaleSubscriptionInput {
+  /** Stripe Price id (e.g. STRIPE_PRICE_GROWTH). Resolved by the route from env. */
+  price_id: string;
+  /** Founder's app_users.id — stamped in metadata for downstream commission accrual. */
+  user_id: string;
+  /** New workspace id (projects.id) — stamped so webhook can attribute per-project. */
+  project_id: string;
+  /** Founder email — surfaced on Stripe dashboard for support lookups. */
+  founder_email: string;
+  /** 0/10/20/30/40 — recorded in metadata so commission truth-table matches attribution. */
+  discount_tier: number;
+  /**
+   * Stripe promotion_code id for the tier (e.g. promo_...). When null, no
+   * discount attaches — the wholesale ledger + commission accrual still uses
+   * discount_tier in metadata for their own bookkeeping.
+   */
+  stripe_promotion_code_id: string | null;
+}
+
+export interface StripeSubscriptionCreateParams {
+  customer: string;
+  default_payment_method: string;
+  items: [{ price: string }];
+  promotion_code?: string;
+  off_session: true;
+  payment_behavior: "error_if_incomplete";
+  collection_method: "charge_automatically";
+  metadata: {
+    source: "reseller_wholesale_provision";
+    reseller_id: string;
+    reseller_code: string;
+    billing_model: "wholesale";
+    user_id: string;
+    project_id: string;
+    founder_email: string;
+    discount_tier: string;
+  };
+  expand?: string[];
+}
+
+export type WholesaleSubscriptionParamsError =
+  | "billing_model_not_wholesale"
+  | "reseller_not_active"
+  | "stripe_customer_missing"
+  | "default_payment_method_missing"
+  | "price_id_required";
+
+export type WholesaleSubscriptionParamsResult =
+  | { ok: true; params: StripeSubscriptionCreateParams }
+  | { ok: false; reason: WholesaleSubscriptionParamsError };
+
+const PRICE_ID_RE = /^price_[A-Za-z0-9]+$/;
+
+/**
+ * Build stripe.subscriptions.create() params for the wholesale flow. The
+ * reseller is the payer-of-record: customer = reseller.stripe_customer_id,
+ * default_payment_method = reseller.stripe_default_payment_method_id. The
+ * founder's user_id + project_id are stamped in metadata so the webhook
+ * ledger (revenue_events + reseller_commissions) can accrue per-project
+ * commission the same way the retail flow does.
+ *
+ * payment_behavior="error_if_incomplete" so the API call rejects rather than
+ * returning an incomplete subscription that would silently show the reseller
+ * dashboard "past due" — the caller can surface the failure inline.
+ * off_session=true asserts the reseller admin is not physically present at
+ * the checkout (they configured the PM once via /reseller/settings and the
+ * subsequent create-startup calls run headless).
+ */
+export function buildResellerWholesaleSubscriptionParams(
+  reseller: ResellerBillingRow,
+  input: WholesaleSubscriptionInput,
+): WholesaleSubscriptionParamsResult {
+  if (reseller.billing_model !== "wholesale") {
+    return { ok: false, reason: "billing_model_not_wholesale" };
+  }
+  if (reseller.status !== "active") {
+    return { ok: false, reason: "reseller_not_active" };
+  }
+  if (!reseller.stripe_customer_id) {
+    return { ok: false, reason: "stripe_customer_missing" };
+  }
+  if (!reseller.stripe_default_payment_method_id) {
+    return { ok: false, reason: "default_payment_method_missing" };
+  }
+  const priceId = typeof input.price_id === "string" ? input.price_id.trim() : "";
+  if (!priceId || !PRICE_ID_RE.test(priceId)) {
+    return { ok: false, reason: "price_id_required" };
+  }
+
+  const promo =
+    typeof input.stripe_promotion_code_id === "string" &&
+    input.stripe_promotion_code_id.trim() !== ""
+      ? input.stripe_promotion_code_id.trim()
+      : null;
+
+  return {
+    ok: true,
+    params: {
+      customer: reseller.stripe_customer_id,
+      default_payment_method: reseller.stripe_default_payment_method_id,
+      items: [{ price: priceId }],
+      ...(promo ? { promotion_code: promo } : {}),
+      off_session: true,
+      payment_behavior: "error_if_incomplete",
+      collection_method: "charge_automatically",
+      metadata: {
+        source: "reseller_wholesale_provision",
+        reseller_id: reseller.id,
+        reseller_code: reseller.code,
+        billing_model: "wholesale",
+        user_id: input.user_id,
+        project_id: input.project_id,
+        founder_email: input.founder_email,
+        discount_tier: String(input.discount_tier),
+      },
+      expand: ["latest_invoice"],
+    },
+  };
+}
+
+// -------------------------------------------------------------------------
 // Save-default-payment-method decision (post-SetupIntent-confirm)
 // -------------------------------------------------------------------------
 
@@ -312,9 +436,11 @@ export const RESELLER_STRIPE_BILLING_ERROR_MESSAGES: Record<
   | BillingReadinessError
   | SetupIntentParamsError
   | SaveDefaultPaymentMethodError
+  | WholesaleSubscriptionParamsError
   | "setup_intent_customer_mismatch"
   | "setup_intent_not_succeeded"
-  | "setup_intent_no_payment_method",
+  | "setup_intent_no_payment_method"
+  | "subscription_create_failed",
   string
 > = {
   billing_model_not_wholesale:
@@ -337,4 +463,8 @@ export const RESELLER_STRIPE_BILLING_ERROR_MESSAGES: Record<
     "The SetupIntent has not been confirmed successfully yet. Complete the card setup in the browser and retry.",
   setup_intent_no_payment_method:
     "The SetupIntent did not attach a payment method. Restart the payment-method setup flow.",
+  price_id_required:
+    "A Stripe Price id (e.g. STRIPE_PRICE_GROWTH) must be configured before wholesale subscriptions can open.",
+  subscription_create_failed:
+    "Stripe rejected the wholesale subscription create call. The workspace was still provisioned; retry billing from /reseller/customers once the underlying error is fixed.",
 };
