@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.110
+version: 2026-07-23.112
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,109 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 112
+    ran_at: 2026-07-22
+    action: p10_dry_run_reseller_crons_cron_secret_authz_playwright_spec
+    result: |
+      Composed option (ii) from tick 111's frontier note — swept the
+      /api/cron/reseller-* surface (six crons) for the CRON_SECRET Bearer
+      auth chain. Five crons share the identical gate at the top of their
+      GET handler (reseller-clear-commissions:29-33,
+      reseller-monthly-reconciliation:65-69, reseller-monthly-report:45-49,
+      reseller-stripe-sync:46-50, reseller-weekly-digest:70-74) and had
+      no dry-run spec guarding the 401 branch. Sixth cron
+      reseller-audit-anomaly-scan is already covered by
+      audit-anomaly-scan.spec.ts (tick 90) on a harness happy-path so it
+      is excluded here on purpose to avoid double-counting that route.
+
+      Files:
+        - web/tests/e2e/reseller/reseller-crons-authz.spec.ts (new — one
+          parametrized spec with 10 rows: 5 routes × 2 branches. Each
+          route probes the CRON_SECRET Bearer gate:
+          (1) GET with NO Authorization header → 401
+              { ok:false, reason:"unauthorized" } BEFORE getSupabaseAdmin,
+              stripe client init, resellers/revenue_events/
+              reseller_commissions/reseller_credit_grants/reseller_
+              attributions/reseller_audit_log SELECT, or (for the
+              monthly-report/weekly-digest paths) the email dispatch fan-out,
+          (2) GET with Authorization: Bearer <wrong-token> → same 401 +
+              reason:"unauthorized" — mirrors the gate's strict-equal check
+              on the full `Bearer <secret>` string.
+          Both branches are describe-scope test.skip()'d when CRON_SECRET
+          is unset in the Playwright env because the five routes are
+          fail-open by design in that configuration; the diagnostic points
+          the operator at setting CRON_SECRET to match the running Next.js
+          server. Query strings ?skip_email=1 forwarded on the three routes
+          that dispatch email so an accidental Playwright pass without the
+          gate landing would not send real mail.
+
+      Why this shape mirrors ticks 100-111: same envelope pattern
+      { ok:false, reason:<string> } at HTTP 401, same "return before any
+      privileged SELECT" placement in the route flow. Symmetric envelope
+      means a refactor that swaps the inline `if (cronSecret && auth !==`
+      check for a shared helper, that changes the reason wire format (e.g.
+      "unauthorised" to match the reseller-scope envelope), or that flips
+      the status code to 403, lights up all ten rows on the next
+      `npx playwright test` pass. Distinct from ticks 100-111 in ONE
+      dimension only — this is the CRON authentication surface (Bearer
+      env-var-based, not session-cookie-based), so a regression that let
+      an anonymous caller reach these five surfaces would leak:
+      (a) reseller-clear-commissions — could flip pending commissions to
+          cleared status ahead of pending_until, breaking the D2-CFO-03
+          clawback window;
+      (b) reseller-monthly-reconciliation — commercially-sensitive Stripe
+          vs revenue_events GST delta + reconciliation email trigger;
+      (c) reseller-monthly-report — per-reseller KPI CSV + signed-URL
+          storage upsert + email dispatch to admin@blockid.au;
+      (d) reseller-stripe-sync — Stripe promotion_code active drift check
+          + admin@blockid.au drift email;
+      (e) reseller-weekly-digest — attributed customer + attributed
+          revenue rollup + audit anomaly summary + digest email dispatch.
+      Every one of these dispatches touches the reseller commercial
+      pipeline so an unauthenticated trigger is a real blast-radius event.
+
+      Why the 500/503 branches aren't covered: not_configured (503) needs
+      SUPABASE_URL/SERVICE_ROLE unset which would break every other
+      Playwright spec in the same worker. stripe_not_configured (503) on
+      reseller-stripe-sync needs STRIPE_SECRET_KEY unset which would
+      break the checkout specs. Happy path (200) reads real reseller_*
+      tables and (on monthly-report / weekly-digest) sends real email;
+      folded into the temp-reseller mint fixture follow-up alongside the
+      deferred rows from ticks 94..111.
+
+      Verified: tsc clean (npx tsc --noEmit -p tsconfig.json exit 0 at
+      web/); vitest 845/845 unchanged (Playwright spec is not picked up
+      by vitest — tests/e2e/** is excluded per playwright.config.ts:
+      testDir); npm run lint:reseller: R-01 scanned 11 file(s), R-03
+      scanned 31 manifest route(s); 3 exemptions, 0 violations unchanged
+      (spec lives under web/tests/e2e/reseller/, not /api/reseller/**, so
+      R-01 doesn't fire; not a mutation route in feature-gates.manifest.ts
+      so R-03 doesn't fire). Playwright not run this tick — all rows
+      test.skip() when CRON_SECRET is unset in the local env; they light
+      up as soon as CRON_SECRET is set on the CI Playwright worker.
+
+      Frontier after tick 112: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 112 unblocks: EVERY CRON_SECRET-gated reseller-* cron
+      route now has symmetric Playwright dry-run coverage
+      (reseller-clear-commissions, reseller-monthly-reconciliation,
+      reseller-monthly-report, reseller-stripe-sync,
+      reseller-weekly-digest via reseller-crons-authz.spec.ts;
+      reseller-audit-anomaly-scan via the pre-existing
+      audit-anomaly-scan.spec.ts harness happy-path). Twenty-four spec
+      files now sit in web/tests/e2e/reseller/. Next autonomous tick
+      options: (i) landing the QA-mode temp-reseller mint fixture that
+      opens up all the deferred HAPPY-PATH branches from ticks 94..111
+      at once (larger tick, wants a design pass); (ii) sweep the
+      non-reseller cron surface (/api/cron/dunning-retry, email-drip,
+      lead-nurture, nurture, onboarding-sequence, lifecycle-mailer, etc.)
+      for the same CRON_SECRET gate — out of scope for the reseller-
+      module goal file but the pattern generalises cleanly; (iii) idle
+      until human unblock arrives on P8.5 or P1.5.
     commit: (this tick)
 
   - tick: 111
