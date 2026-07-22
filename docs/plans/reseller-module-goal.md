@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.133
+version: 2026-07-23.134
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,131 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 134
+    ran_at: 2026-07-22
+    action: p10_temp_reseller_mint_playwright_fixture_wiring
+    result: |
+      Composed §3 of the P10 temp-reseller mint fixture design
+      (docs/plans/p10-temp-reseller-mint-fixture-design.md).
+      Extended web/tests/e2e/fixtures/reseller.ts with the
+      Playwright fixture wiring that resolves a QAPROBE-prefixed
+      reseller row minted by seed-qa-reseller.mjs. This closes the
+      last non-Playwright §-artefact of the design (§1 mint script
+      tick 128; §2 requests companion tick 131; §4 storage seeder
+      tick 133; §5 QA account seeder delta tick 132; §3 fixture
+      wiring HERE). With §3 landed, downstream ticks can now
+      activate the ~50 deferred HAPPY-PATH / downstream-reason
+      rows across ~13 spec files (create-startup, credits/grant,
+      sandbox/setup, reveal-email, drawer, reports/signed-url,
+      requests POST + GET, admin-resellers GET/PATCH/DELETE,
+      admin-resellers POST, admin/resellers/requests PATCH,
+      showcase-reviews, attribution-timing) without further
+      fixture discovery.
+
+      Files:
+        - web/tests/e2e/fixtures/reseller.ts (extended — appended
+          ResellerVariant union (7 variants: active_wholesale,
+          active_retail, paused, terminated, no_capability,
+          tier_only_zero, no_budget), RESELLER_VARIANT_CODES
+          const map (7 → QAPROBE% codes; mirrors mint script
+          VARIANTS so a future variant add/rename requires
+          same-commit updates on both sides), TempResellerPromotionCode
+          interface + TempResellerFixture interface (surfaces
+          resellerId + code + displayName + adminUserId +
+          attributedUserId + attributedProjectId + promotionCodes +
+          trackProjectForCleanup + cleanup), loadTempReseller(variant)
+          async resolver, and tempResellerSkipReason(variant)).
+
+      Design fidelity:
+        - Loader returns null when SUPABASE_URL /
+          SUPABASE_SERVICE_ROLE_KEY unset (delegates via
+          loadSupabaseAdmin()) OR when the QAPROBE% row is missing
+          (mint script not run), so specs test.skip() gracefully
+          in either state per plan §J.2 posture.
+        - Reads only — the mint script (§1) owns writes.
+        - Admin-userId resolution: QA_RESELLER_ADMIN_EMAIL (default
+          qa-reseller-1@blockid.au from §5) → app_users.id →
+          reseller_admins(reseller_id, user_id, status='active');
+          returns null when the QA account seeder delta (§5) has
+          not landed, so specs that need adminUserId
+          test.skip() rather than crash.
+        - active_wholesale variant additionally resolves the
+          attributed founder tuple (attributedUserId,
+          attributedProjectId) via
+          QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL (default
+          qa-founder-attributed-1@blockid.au from §5) and the
+          promotion codes for tiers 20 + 40 (per §1's
+          ACTIVE_WHOLESALE_PROMO_TIERS; tier 0 skipped by
+          ck_stripe_objects_by_tier).
+        - cleanup() is a no-op by default per plan §3 — shared
+          rows live across the whole suite. Specs that mutate
+          projects state (sandbox_setup happy path) opt-in via
+          trackProjectForCleanup(projectId) and cleanup() runs the
+          DELETE after the spec. Any Supabase error inside
+          cleanup() throws so afterEach fails loudly rather than
+          silently orphaning a projects row.
+        - RLS bypass: loadSupabaseAdmin() creates the client with
+          the service-role key, which bypasses default-deny RLS on
+          every reseller_* table (0091/0093/0094/0095/0096/0097/
+          0100). Same posture as seed-qa-reseller.mjs / accounts
+          fixtures / audit-anomaly spec supabase-admin.ts helpers.
+        - Fixture is idempotent across parallel Playwright workers
+          for reads: every function reads pre-seeded state without
+          mutation. Requests-approve style spec rows (which
+          mutate reseller_requests) must consume the §2 companion
+          seeder's per-run rows keyed by qa_run_id, not the shared
+          reseller row.
+
+      Verified:
+        - npx tsc --noEmit exit=0 (fixture file type-checks
+          against @supabase/supabase-js + Playwright types; no
+          errors introduced by the new interfaces or the loader
+          function).
+        - npx vitest run: 849/849 pass (68 files) — unchanged from
+          tick 133 baseline; the fixture file lives at
+          tests/e2e/fixtures/ which is outside the vitest include
+          glob (src/**/*.test.ts), so no fixture-scoped unit tests
+          land here. The pure code map is a literal lookup with
+          no branches to test.
+        - npm run lint:reseller: R-01 scanned 11 file(s), R-03
+          scanned 31 manifest route(s); 3 exemption(s), 0
+          violations — new fixture file is under tests/e2e/, not
+          /api/reseller/**, so R-01 does not fire; no
+          feature-gates.manifest entry so R-03 does not fire
+          either.
+        - No DB apply this tick — the fixture is a pure reader.
+          Follow-up tick invokes seed-qa-reseller.mjs against
+          staging first, then activates the first deferred spec
+          row to prove the wiring end-to-end.
+
+      REMAINING P10 §-artefacts: none. All five artefacts (§1
+      mint script tick 128; §2 requests companion tick 131; §3
+      fixture wiring HERE; §4 storage seeder tick 133; §5 QA
+      account seeder delta tick 132) have shipped. The design
+      doc's own "Next steps" §3 (human review of variant matrix)
+      is the only remaining open item before implementation
+      ticks can activate the deferred rows.
+
+      Frontier after tick 134: shape unchanged — Track A P8.5
+      STILL HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_
+      MONTHLY|ANNUAL; P1.5 InfoVision seed STILL HUMAN-BLOCKED
+      on H.20 ABN + GST; Track B COMPLETE; P10 still blocked_by
+      [P1..P9] until P8.5 clears. What tick 134 unblocks: any
+      autonomous spec-activation tick can now import
+      loadTempReseller(variant) + tempResellerSkipReason(variant)
+      from the fixture module and pick the row-set matching its
+      target branch without new fixture discovery. Next
+      autonomous tick options: (i) run seed-qa-reseller.mjs +
+      seed-test-users.mjs + seed-qa-reseller-storage.mjs against
+      staging as a dry-run to prove the row-set materialises
+      correctly (needs staging Supabase creds; deferred until
+      human review of the design lands); (ii) activate the first
+      deferred spec row (create-startup billing_model_not_wholesale
+      against the active_retail variant is the simplest — one
+      new .spec.ts row against loadTempReseller("active_retail"));
+      (iii) idle until human unblock arrives on P8.5 or P1.5.
+    commit: (this tick)
+
   - tick: 133
     ran_at: 2026-07-22
     action: p10_temp_reseller_mint_storage_bucket_seeder_delta
