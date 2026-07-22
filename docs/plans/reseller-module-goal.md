@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.185
+version: 2026-07-23.186
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,128 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 186
+    ran_at: 2026-07-22
+    action: p10_wave5_row_185_option_i_admin_patch_audit_log_write
+    result: |
+      Closes tick 185's frontier option (i): "add reseller_audit_log(
+      action='approve_request') write in web/src/app/api/admin/resellers/
+      requests/[id]/route.ts — currently the approve/deny/cancel PATCHes
+      emit NO audit rows despite being the most sensitive admin
+      transitions (moves credits, mints coupons, closes disputes)." Adds
+      an observability record on every terminal transition so the wave-5
+      row 179 ledger-fanout describe block can extend with a fourth
+      countResellerAuditLogFor() assertion, and so the /admin/resellers/
+      requests inbox path is finally covered under the same audit lens
+      the /reseller/** portal has enforced since P4.1.
+
+      Files:
+        - web/src/app/api/admin/resellers/requests/[id]/route.ts (added
+          ROUTE constant + readClientMeta() helper at module top, mirroring
+          the shape used by web/src/app/api/reseller/customers/[id]/reveal-
+          email/route.ts:19-26. Appended a non-fatal reseller_audit_log
+          insert AFTER the reseller_requests UPDATE flip succeeds — pattern
+          borrowed verbatim from web/src/app/api/admin/affiliate/
+          attributions/[attributionId]/revoke/route.ts:121-134 (try/catch
+          swallow with console.warn). Rationale for non-fatal + post-flip:
+          the credit_balances UPSERT, credit_transactions INSERT,
+          reseller_credit_grants INSERT, promotion_code mint, and
+          reseller_requests UPDATE are all already committed by this
+          point; a 500 out of a downstream audit hiccup would misleadingly
+          suggest the transition rolled back, and an admin retry would
+          double-fire the ledger fan-out on over_budget_approval since the
+          reseller_requests row is already status='approved' (the .eq(
+          "status","pending") guard on the UPDATE would 0-row). Row shape:
+          reseller_id = current.reseller_id (the reseller whose request
+          is being decided); actor_user_id = admin user.id;
+          subject_user_id = payload.target_user_id for over_budget_approval
+          (the founder whose balance moves) else null; action =
+          "approve_request" | "deny_request" | "cancel_request" (verbs
+          chosen for grep-ability against the existing reveal_email /
+          view_customer_drawer / grant_credits / provision_sandbox /
+          download_report / attribution_revoked_by_admin vocabulary);
+          fields = ["status"]; route = ROUTE constant; ip + user_agent
+          from readClientMeta(); metadata carries request_id +
+          request_type + linked_credit_transaction_id +
+          linked_promotion_code_id + decision_reason so the anomaly
+          scanner + weekly digest can distinguish approve/deny/cancel
+          without a second table lookup.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.185 → 2026-07-23.186; this review_history entry
+          prepended).
+
+      Design fidelity:
+        - Non-fatal audit write matches the admin-affiliate-revoke
+          precedent, not the reseller-portal reveal-email precedent. The
+          portal routes write audit BEFORE the sensitive return so a
+          write failure blocks the reveal — safe because the reveal is a
+          pure read, no committed state to roll back. The admin PATCH
+          route commits ledger fan-out BEFORE it commits the status flip,
+          so by the time the audit line fires there is no clean rollback
+          window; a fatal audit would open a double-fire hole on retry.
+        - action verb picked per transition (approve_request /
+          deny_request / cancel_request) rather than a single "decide_
+          request" verb so a wave-5 spec can assert exactly one row of
+          the expected action per PATCH. Distinct verbs also let the
+          audit-anomaly cron (web/src/lib/reseller/audit-anomaly.ts) key
+          on approve_request specifically for the "unusual admin approval
+          rate" heuristic without folding in denies + cancels which are
+          benign.
+        - subject_user_id only populated for over_budget_approval because
+          that is the only transition where a specific founder's ledger
+          moves. code_request approval creates a promotion code (no
+          founder subject); collateral_approval flips a status (no
+          founder subject). The optional column keeps the reseller_audit_
+          log_subject_idx (0093:28-30) sparse and useful — a query for
+          "all admin actions against founder X" only surfaces balance
+          moves, which is the correct chokepoint per D3-CISO-01.
+        - metadata carries linked_credit_transaction_id +
+          linked_promotion_code_id (both nullable in the request row
+          post-flip) so a downstream forensics query can hop from an
+          audit row directly to the specific credit_transactions.id or
+          reseller_promotion_codes.id that the transition minted, without
+          needing to re-read reseller_requests.
+        - readClientMeta() copy-pasted from reveal-email/route.ts rather
+          than extracted to a shared helper. Both usages are 5 lines
+          each; extracting to a lib for two call sites would be
+          premature per the "no premature abstraction" rule. A third
+          call site would be the trigger.
+        - No new migration — reseller_audit_log lands at 0093 already,
+          the shape matches supabase.ts:166-188 which the reseller portal
+          uses via db.auditLog(), and the direct .insert() here is the
+          same shape the affiliate-revoke route uses.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0).
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 exemptions, 0 violations —
+          unchanged (the admin PATCH route is under /api/admin/**, not
+          /api/reseller/**, so R-01 doesn't scan it; it's also not in
+          feature-gates.manifest.ts so R-03 doesn't fire).
+        - No DB apply this tick — no migration authored.
+
+      Frontier after tick 186: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision seed
+      STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE; P10 wave
+      5 has now landed the observability gap fix that tick 185 flagged
+      as the natural next pick. Follow-ups newly opened:
+        (i)  extend wave-5 row 179 audit-log-writes.spec.ts with a
+              fourth countResellerAuditLogFor(action='approve_request')
+              assertion inside the ledger fan-out describe block, plus
+              symmetric describe blocks for deny_request + cancel_request
+              (ledger tables unchanged; exactly one audit row per PATCH);
+        (ii) mirror the same audit write into the /api/admin/affiliate/
+              attributions/[id]/revoke route's approve/deny path if that
+              route grows one (currently only revoke fires an audit
+              write — approve/deny paths not yet wired);
+        (iii) unchanged from tick 185: (ii) deny+cancel ledger no-op
+              assertions still worth landing as a symmetry probe;
+              (iii) row 175 approve(code_request) branch still needs
+              stripe-test-mode key; (iv) row 182 still needs
+              stripe-test-mode key; (v) plan §337 signup-jitter branch
+              on row 178 still deferred.
+    commit: (this tick)
+
   - tick: 185
     ran_at: 2026-07-22
     action: p10_wave5_row_179_approve_fanout_ledger_assertions_activated
