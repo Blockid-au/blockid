@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.163
+version: 2026-07-23.164
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,192 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 164
+    ran_at: 2026-07-22
+    action: p10_wave5_row_175_activate_admin_requests_patch_cancel_via_row_155b_seed
+    result: |
+      Fifth wave-5 landing per docs/plans/p10-deferred-spec-activation-
+      order.md — activates row 175's CANCEL branch by pairing a new
+      row-155-b seeder in requests-authz.spec.ts (POSTs a second pending
+      over_budget_approval row per CI pass) with a companion cancel-
+      branch describe block in admin-requests-patch-authz.spec.ts.
+      Chosen as option (v) named by tick 163's next-tick recommendation;
+      cancel was the natural follow-on to tick 163's deny branch since
+      both surfaces share the same admin-only harness posture and the
+      same pure-status-flip discipline at web/src/app/api/admin/resellers/
+      requests/[id]/route.ts:296-311 (no Stripe coupon mint, no
+      credit_balances / credit_transactions / reseller_credit_grants
+      write, no revenue_events read). Row 175's approve branch remains
+      the last deferred transition on this surface — deferred until a
+      scripts/seed-qa-reseller.mjs approve-target variant lands with
+      deterministic target_user_id + reset pre/post credit_balances
+      rows before + after the Stripe/ledger fan-out.
+
+      Files:
+        - web/tests/e2e/reseller/requests-authz.spec.ts (new test.
+          describe block "Reseller requests — P10 wave-5 row 155-b
+          cancel-branch seeder" appended after the wave-3 row 155 happy
+          describe; POSTs a second pending over_budget_approval row via
+          the same loadTempReseller("active_wholesale") + loginAs(
+          fixture.adminEmail) flow with a distinct reason string
+          "p10_wave5_row_175_b_cancel_seed" so wave-5 row 179 audit-log
+          reads can disambiguate row 155 vs row 155-b writes. Same
+          skip discipline as row 155 — fixture null/incomplete →
+          test.skip with tempResellerSkipReason("active_wholesale");
+          loginAs throw → test.skip with the caller's error message.
+          Same 201 + body.ok=true + body.request.id UUID_RE + request_
+          type === "over_budget_approval" + status === "pending"
+          envelope assertions).
+        - web/tests/e2e/reseller/admin-requests-patch-authz.spec.ts
+          (new test.describe block "Admin reseller requests PATCH —
+          P10 wave-5 row 175 happy path (cancel)" appended after the
+          deny describe; loadAdminHarness + adminHarnessSkipReason
+          reused from tick 163's deny block via the same file-scope
+          import; describe-scope test.skip(!harness, adminHarness
+          SkipReason()); test-scope try/catch around loginAs so a
+          seeded-but-unroutable harness surfaces as test.skip;
+          enumeration filter to over_budget_approval + pending
+          mirrors the deny block so cancel and deny each traverse
+          the array in order and find a distinct row without an
+          explicit row-id exchange between the two describes.
+          Body shape assertions: 200 + body.ok=true + body.request.id
+          === targetId matching UUID_RE + body.request.status ===
+          "cancelled" + typeof body.request.decision_at === "string" +
+          body.request.decision_reason === "p10_wave5_row_175_cancel_
+          probe" + body.request.linked_credit_transaction_id === null
+          + body.request.linked_promotion_code_id === null. Header
+          "Deliberately out of scope" comment block updated — the
+          cancel bullet flipped from DEFERRED to ACTIVATED with
+          pointer at row 155-b seeder; approve bullet retained as
+          DEFERRED with pointer at the seeder-variant follow-up.).
+        - docs/plans/p10-deferred-spec-activation-order.md (annotation
+          added: "Wave-5 row 175 cancel branch landed (tick 164) —
+          row 155-b seeder extension" with full activation posture,
+          state-pollution posture, deferral rationale for approve,
+          skip discipline, and next-tick option list including new
+          option (v) for the approve-target seeder).
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.163 → 2026-07-23.164; this review_history
+          entry).
+
+      Design fidelity:
+        - Row-155-b vs extending row 155's happy test: authored as a
+          distinct test.describe block rather than adding a second
+          POST inside row 155's happy test so the row 155 assertion
+          set stays a single-request contract per the wave-3 preflight
+          finding (tick 152). Each row asserts one route response so
+          a regression pinpoints one HTTP transaction. Row 155-b's
+          block is a near-verbatim clone of row 155's happy test with
+          only the reason-string swap — same route path, same headers,
+          same body shape except payload.reason, same envelope
+          assertions.
+        - Distinct reason strings ("p10_wave3_row_155_happy_probe"
+          vs "p10_wave5_row_175_b_cancel_seed"): the reason string
+          rides in reseller_requests.payload.reason AND surfaces in
+          the audit_log row via subject metadata. When wave-5 row
+          179 (audit-log-writes.spec.ts) lands and reads audit_log
+          rows, it can filter by reason to disambiguate which POST
+          seeded which row — critical if row 155 and row 155-b run
+          in different orders per Playwright worker parallelism.
+        - Filter to over_budget_approval preserved: cancel + deny
+          both filter to over_budget_approval before picking so the
+          enumeration ignores any pending code_request rows that a
+          downstream approve-branch tick may need. Also preserves the
+          "row 155 was intentionally scoped to over_budget_approval
+          (not code_request)" invariant so both cancel + deny stay
+          outside the reseller_requests_pending_code_uniq partial
+          unique index — no 409 duplicate collisions.
+        - Enumeration-based row selection over row-id exchange: cancel
+          and deny each enumerate pending rows then pick the FIRST
+          matching row. Deny consumes the first pending row; cancel
+          runs after (Playwright serial-in-file order) so its
+          enumeration returns the remaining pending row and picks it.
+          This avoids a row-id exchange between the two describes
+          (which would have needed a module-scope shared state array
+          and would have broken parallel test execution within the
+          file).
+        - Coverage-vs-duplication call across deny + cancel: cancel
+          pins body.request.status === "cancelled" while deny pins
+          body.request.status === "denied". Pinning both status enums
+          catches a folded-together regression where cancel and deny
+          both round-trip to the same string (e.g. a validateAdmin
+          Decision refactor that dropped the "cancel" → "cancelled"
+          branch and folded it into the deny mapping). Cancel pins
+          decision_reason === "p10_wave5_row_175_cancel_probe"
+          verbatim while deny pins its own reason so a route
+          regression that echoed a stale reason from a different row
+          surfaces here. Both blocks pin linked_credit_transaction_id
+          + linked_promotion_code_id null to catch approve-branch
+          fan-out leakage into either transition.
+        - State-pollution posture: the cancel PATCH mutates ONE
+          reseller_requests row (status pending → cancelled +
+          decision_by + decision_at + decision_reason + linked_*
+          nulls). No credit_balances / credit_transactions /
+          reseller_credit_grants / reseller_promotion_codes /
+          revenue_events / Stripe writes. Net-of-(row-155, row-155-b)
+          the pending queue length is unchanged across CI passes.
+          Row 155-b adds one pending row + one audit-log row per
+          pass; the cancel PATCH removes it from the pending queue
+          by flipping status. Steady-state accumulation is bounded
+          by the pending-hot index scan sentinel already documented
+          in row 155's spec header (unchanged).
+        - Non-Stripe / non-GST discipline: cancel branch only writes
+          reseller_requests. No promotion_code lookup, no credit
+          ledger, no Stripe network call, no revenue_events read,
+          no InfoVision dependency. P8.5 + P1.5 remain neither a
+          dependency nor a consequence — same discipline as row 175
+          deny.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0, no output).
+          The new imports were file-scope reuses of loadAdminHarness
+          + adminHarnessSkipReason for admin-requests-patch and
+          loadTempReseller + tempResellerSkipReason for requests-
+          authz — no new type surface introduced.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 documented exemptions, 0
+          violations — unchanged from tick 163 (the specs are not
+          under /api/reseller/** for the R-01 grep and are not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - No vitest run this tick — no pure-lib .ts code touched, only
+          the two Playwright specs + two doc edits. Mirrors the tick
+          148-163 precedent verbatim.
+        - No DB apply this tick — no migration authored. Row 175
+          cancel consumes row 155-b's newly seeded pending row (or
+          test.skips when the seeder has not run yet).
+        - Goal file version bumped 2026-07-23.163 → 2026-07-23.164.
+
+      Frontier after tick 164: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision
+      seed STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE;
+      P10 still blocked_by [P1..P9] until P8.5 clears. What tick 164
+      unblocks: wave-5 admin-only cluster is now 4/? shipped with row
+      175 covering deny + cancel branches (approve remains deferred
+      pending an approve-target seeder variant). Next autonomous tick
+      options:
+        (i) activate row 163 (cobranding-pill × active_wholesale
+            attributed founder × EN + VI) — reuses the attributed-
+            founder harness scaffold (loadAttributedFounderHarness in
+            web/tests/e2e/fixtures/reseller.ts) which currently skips
+            at describe-scope until the fixture is provisioned;
+        (ii) land finding-2's seed delta (edit seed-qa-reseller.mjs
+             main loop to seed attribution on no_capability +
+             no_budget; re-run seeder against staging) — unblocks
+             rows 150 + 151;
+        (iii) mint an active promo code on the paused variant to
+              unblock row 157;
+        (iv) author the attachReportRow helper (extend fixtures/
+             reseller.ts with a reseller_report_files seeder for one
+             month bucket per variant) — unblocks rows 159 + 160;
+        (v) land the approve-target seeder variant in scripts/seed-qa-
+            reseller.mjs (deterministic target_user_id + reset pre/
+            post credit_balances rows before + after) to unblock row
+            175's approve branch — the last remaining transition on
+            the admin-requests-patch surface;
+        (vi) activate row 178 (attribution-timing × n/a — needs
+             loadAttributionTimingHarness fixture wired + a fresh
+             founder QA seed).
+
   - tick: 163
     ran_at: 2026-07-22
     action: p10_wave5_row_175_activate_admin_requests_patch_deny_happy_200

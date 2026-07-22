@@ -315,3 +315,90 @@ test.describe("Reseller requests — P10 wave-3 happy path", () => {
     expect(body.request?.status).toBe("pending");
   });
 });
+
+// P10 wave-5 row 155-b — seed a SECOND pending over_budget_approval row so
+// wave-5 row 175's cancel branch has a pending row available even after the
+// deny branch has consumed row 155's original seed. Tick 163's next-tick
+// option (v) documented this: "extend row 175 to cover the cancel branch by
+// adding a row-155-b seeder (or extending row 155's seed loop) that inserts
+// a second over_budget_approval pending row per CI pass." over_budget_approval
+// carries no partial unique index (see 0095:71-73 — only code_request does)
+// so a second pending row inserts cleanly without a 409 duplicate collision.
+//
+// This block is a distinct test.describe rather than an extra POST inside
+// row 155's happy test so the row 155 assertion set stays a single-request
+// contract per the wave-3 preflight finding (tick 152): each row asserts
+// one route response so a regression pinpoints one HTTP transaction. The
+// second row seeds a second reseller_requests row + second
+// reseller_audit_log row per CI pass — steady-state net-of-row-175 the
+// pending queue nets to zero (row 155 seed → row 175 deny consumes it;
+// row 155-b seed → row 175 cancel consumes it).
+//
+// The reason string is intentionally distinct from row 155
+// ("p10_wave5_row_175_b_cancel_seed" vs "p10_wave3_row_155_happy_probe") so
+// the audit-log write is disambiguated when wave-5 row 179 lands and reads
+// reseller_audit_log rows by decision_reason.
+test.describe("Reseller requests — P10 wave-5 row 155-b cancel-branch seeder", () => {
+  test("active_wholesale — POST a second pending over_budget_approval row so row 175 cancel has a target", async ({
+    page,
+  }) => {
+    let fixture: TempResellerFixture | null;
+    try {
+      fixture = await loadTempReseller("active_wholesale");
+    } catch (err) {
+      test.skip(
+        true,
+        `loadTempReseller('active_wholesale') threw: ${(err as Error).message}. ` +
+          tempResellerSkipReason("active_wholesale"),
+      );
+      return;
+    }
+    if (!fixture || !fixture.adminUserId || !fixture.attributedUserId) {
+      test.skip(true, tempResellerSkipReason("active_wholesale"));
+      return;
+    }
+    const targetUserId = fixture.attributedUserId;
+    try {
+      await loginAs(page, fixture.adminEmail);
+    } catch (err) {
+      test.skip(
+        true,
+        `loginAs(${fixture.adminEmail}) threw: ${(err as Error).message}. ` +
+          tempResellerSkipReason("active_wholesale"),
+      );
+      return;
+    }
+    const resp = await page.request.post(ROUTE, {
+      data: {
+        request_type: "over_budget_approval",
+        payload: {
+          target_user_id: targetUserId,
+          requested_amount: 1,
+          reason: "p10_wave5_row_175_b_cancel_seed",
+        },
+      },
+      headers: { "content-type": "application/json" },
+    });
+    expect(
+      resp.status(),
+      `active_wholesale + 155-b returned ${resp.status()} — expected 201 with request.id. Same route as row 155 so the same 400/403/409/5xx failure modes surface here first before row 175 cancel runs. Body: ${await resp.text()}`,
+    ).toBe(201);
+    const body = (await resp.json()) as {
+      ok: boolean;
+      request?: {
+        id?: string;
+        request_type?: string;
+        status?: string;
+      };
+      reason?: string;
+    };
+    expect(
+      body.ok,
+      `active_wholesale + 155-b body.ok should be true: ${JSON.stringify(body)}`,
+    ).toBe(true);
+    expect(typeof body.request?.id).toBe("string");
+    expect(body.request?.id ?? "").toMatch(UUID_RE);
+    expect(body.request?.request_type).toBe("over_budget_approval");
+    expect(body.request?.status).toBe("pending");
+  });
+});
