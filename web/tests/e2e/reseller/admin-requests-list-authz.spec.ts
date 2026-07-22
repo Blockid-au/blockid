@@ -200,6 +200,7 @@ test.describe("Admin reseller-requests list — P10 wave-5 row 174 happy path", 
         payload?: unknown;
         decision_at?: unknown;
         decision_reason?: unknown;
+        resellers?: unknown;
       };
       expect(typeof r.id).toBe("string");
       expect(r.id as string).toMatch(UUID_RE);
@@ -285,6 +286,31 @@ test.describe("Admin reseller-requests list — P10 wave-5 row 174 happy path", 
       expect(
         r.decision_reason === null || typeof r.decision_reason === "string",
       ).toBe(true);
+      // Tick 222 — resellers(code, display_name) nested-join shape pin per
+      // tick 221 next-pick option (b). Route SELECT at route.ts:44 embeds a
+      // Supabase nested select on the parent resellers row via the
+      // reseller_requests.reseller_id → resellers.id FK (0095:27). PostgREST
+      // returns this as a single embedded object (not an array) because the
+      // FK targets a unique column (resellers.id PRIMARY KEY per 0091:23).
+      // reseller_id is NOT NULL + ON DELETE RESTRICT so r.resellers is never
+      // null — a NULL would only appear if the FK were nullable AND
+      // unlinked. Both columns in the embed are NOT NULL text per 0091:24-25
+      // (code UNIQUE UPPERCASE slug, display_name plain text). Pre-tick 222
+      // posture left the entire nested join silent — a route regression that
+      // dropped `resellers(code, display_name)` from the SELECT list would
+      // surface only at the /admin/resellers/requests visual QA lens which
+      // renders the parent reseller badge next to each row. Post-tick this
+      // is the last un-pinned field in the admin request envelope; shape
+      // parity with the FK-echo discipline landed at tick 221.
+      expect(
+        r.resellers !== null &&
+          typeof r.resellers === "object" &&
+          !Array.isArray(r.resellers),
+        `resellers embed should be a plain object (PostgREST returns a single row for a to-one FK, not an array): ${JSON.stringify(r.resellers)}`,
+      ).toBe(true);
+      const embed = r.resellers as { code?: unknown; display_name?: unknown };
+      expect(typeof embed.code).toBe("string");
+      expect(typeof embed.display_name).toBe("string");
     }
   });
 });
