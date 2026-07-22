@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.169
+version: 2026-07-23.170
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,147 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 170
+    ran_at: 2026-07-22
+    action: p10_wave5_row_169_admin_reseller_patch_authz_post_requireadmin_activated
+    result: |
+      Seventh wave-5 landing per docs/plans/p10-deferred-spec-activation-
+      order.md — activated row 169 (`admin-reseller-patch-authz.spec.ts` ×
+      `active_wholesale` × code_required / invalid_body / not_found →
+      400 / 400 / 404). Three post-requireAdmin() branches that fire
+      BEFORE the resellers UPDATE runs, so all three are safely
+      exercisable against staging without seeding or mutating any
+      resellers row (plan §J.2). Consumes loadAdminHarness()
+      (qa-admin-1@blockid.au from tick 130) — no per-variant
+      loadTempReseller call needed because none of the three cases reach
+      loadReseller with a code that matches an existing row
+      (code_required bails at normaliseResellerCode; invalid_body bails
+      at JSON.parse; not_found reaches loadReseller with PROBE_CODE
+      guaranteed not to resolve).
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-patch-authz.spec.ts
+          (header block updated: the three "Deliberately out of scope"
+          bullets for code_required / invalid_body / not_found now point
+          at wave-5 row 169 and cross-link the leftover validation
+          branches to wave-5 row 170 which owns admin-reseller-patch-
+          validation. imports extended with `adminHarnessSkipReason` +
+          `loadAdminHarness` from `../fixtures/reseller`. Added module-
+          scope ALL_PUNCT_CODE + PROBE_CODE + WELL_FORMED_PATCH_BODY
+          constants mirroring the row-168 detail-validation +
+          row-172 delete-validation specs so the three admin reseller
+          [code]-URL probes stay in lockstep. Appended
+          `test.describe("Admin reseller PATCH input validation —
+          P10 wave-5 row 169 post-requireAdmin")` block after the
+          pre-existing unauth + non_admin harness-free tests. Inside
+          the block: `PatchValidationCase` interface + `PATCH_CASES`
+          array (3 rows) + per-case test that loginAs(harness.admin.
+          email) + page.request.patch(route, {data, headers}) +
+          assertions on expected status + body.ok=false + body.reason.
+          Row 2 (invalid_body) passes `data: "{"` as a raw string with
+          explicit content-type: application/json so the JSON.parse
+          catch at route.ts:137-139 fires; rows 1 + 3 pass the
+          WELL_FORMED_PATCH_BODY object which Playwright serializes to
+          valid JSON automatically.
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.169 → 2026-07-23.170; this review_history entry
+          prepended).
+
+      Design fidelity:
+        - Skip discipline mirrors row 168 + row 172 verbatim: harness-
+          level skip via test.skip(!harness, adminHarnessSkipReason())
+          at describe scope, then per-test try/catch around loginAs so
+          a fresh CI host missing /tmp/blockid-qa-accounts.txt surfaces
+          the exact seeder command rather than a hard failure.
+        - Order-preserving cases: PATCH_CASES is ordered to match the
+          route's early-exit chain — code_required at line 130-132 →
+          invalid_body at line 134-139 → not_found at line 141-153.
+          A refactor that reordered the guards would still light up
+          each case on the correct reason because the tests assert
+          reason strings by value, but keeping the CASES ordering in
+          route-order makes future auditors' lives easier.
+        - Non-Stripe / non-GST discipline preserved: no Stripe network
+          call, no InfoVision dependency, no revenue_events read. Net
+          side-effect budget per CI pass: 0 writes.
+        - Twin coverage posture: row 168 pins GET's code_required +
+          not_found from admin-reseller-detail-validation; row 172
+          pins DELETE's code_required + not_found from admin-reseller-
+          delete-validation; row 169 pins PATCH's code_required +
+          not_found from admin-reseller-patch-authz PLUS PATCH's
+          invalid_body which is unique to the PATCH verb (GET/DELETE
+          have no request body). All three specs share the same
+          route file — a refactor that swapped normaliseResellerCode
+          for a bespoke check would light up in all three on the next
+          `npx playwright test`.
+        - No fixture cleanup wiring: all three rows short-circuit
+          BEFORE the resellers UPDATE fires so
+          fixture.trackProjectForCleanup / fixture.cleanup() are
+          intentionally NOT called. The block is idempotent under CI
+          replay and safe against parallel CI workers because no
+          shared state is mutated.
+        - PROBE_CODE choice: "qa-probe-should-not-persist" mirrors
+          row 168 + row 172 verbatim so the three specs use the same
+          probe string when they need a well-formed-but-unresolving
+          code. normaliseResellerCode strips hyphens and uppercases,
+          yielding "QAPROBESHOULDNOTPERSIST" — a 22-char alnum code
+          that safely does not match any seeded reseller_code
+          (INFOVISION, ACCEL_*, QAPROBEWHOLESALEACTIVE, etc.).
+        - invalid_body byte choice: raw "{" is the smallest valid JSON
+          opener that fails a full-document parse (SyntaxError:
+          unexpected end of JSON input). Alternatives (empty body,
+          whitespace, random text) would work too but "{" makes the
+          test's intent obvious to anyone reading the fixture.
+        - Content-type header set only for the invalid_body row:
+          Playwright's request.patch defaults data:object to
+          application/json + auto-serializes, so rows 1 + 3 need no
+          explicit header. Row 2 passes data as a string which
+          Playwright sends as-is; setting content-type:
+          application/json is defensive so the Next.js request.json()
+          call reliably attempts to parse the body regardless of
+          Playwright default header behaviour.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0, no output).
+          The two new imports (adminHarnessSkipReason + loadAdminHarness)
+          resolve against the existing exports in fixtures/reseller.ts.
+          The PatchValidationCase interface + PATCH_CASES array typecheck
+          with the union `code_required | invalid_body | not_found`
+          matching the route's reason strings exactly.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 documented exemptions, 0
+          violations — unchanged from tick 169 (the spec is not under
+          /api/reseller/** for the R-01 grep and is not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - No DB apply this tick — no migration authored.
+        - Goal file version bumped 2026-07-23.169 → 2026-07-23.170.
+
+      Frontier after tick 170: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision seed
+      STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE; P10 still
+      blocked_by [P1..P9] until P8.5 clears. Wave 5 read-only + reject-
+      only rows have now landed 164 (list) + 167 (detail authz happy) +
+      168 (detail validation happy + reject) + 169 (patch authz post-
+      requireAdmin reject × 3) + 173 (loop-status happy) + 174 (admin-
+      requests-list happy) + 175 deny+cancel (admin-requests-patch two
+      reject branches). Natural next picks:
+        (i) row 170 (`admin-reseller-patch-validation.spec.ts` ×
+             active_wholesale × 4-6 validator branches folded into one
+             tick — empty_patch / unknown_field / display_name_required /
+             invalid_tier / invalid_billing_model / wholesale_requires_gst;
+             requires admin + loadTempReseller('active_wholesale') so
+             loadReseller returns a real row that
+             validateAdminResellerPatch can then reject on business rules);
+        (ii) row 172 (`admin-reseller-delete-validation.spec.ts` ×
+              active_wholesale × code_required + happy — happy branch
+              writes status=terminated so needs cleanup afterEach; can
+              target the pre-existing `terminated` variant so the happy
+              branch is idempotent);
+        (iii) row 176 (`showcase-reviews-authz.spec.ts` × active_wholesale
+               × founder-scoped GET happy 200 — requires the attributed-
+               founder session, not the reseller-admin or the platform
+               admin);
+        (iv) row 178 attribution-timing — needs new founder QA seed.
+
   - tick: 169
     ran_at: 2026-07-22
     action: p10_wave5_row_168_admin_reseller_detail_validation_happy_activated
