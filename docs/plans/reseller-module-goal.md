@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.53
+version: 2026-07-23.54
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,96 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 95
+    ran_at: 2026-07-22
+    action: p10_dry_run_credit_grant_validation_playwright_spec
+    result: |
+      Follow-on to tick 94's P10 dry-run posture. Tick 94 covered POST
+      /api/reseller/create-startup input validation; this tick covers the
+      other reseller-admin mutation endpoint that P8.2 R-03 gates —
+      POST /api/reseller/credits/grant — via a parametrised Playwright
+      spec that self-skips at describe-scope until the QA harness
+      provisions. Small, orthogonal to the P8.5 / P1.5 human-blocked
+      leaves, and adds regression coverage for the pre-DB-write gate
+      ordering so a future refactor that swaps decideReveal ↔ decideGrant
+      precedence in web/src/app/api/reseller/credits/grant/route.ts
+      surfaces in CI before it can leak reads or writes.
+
+      Files:
+        - web/tests/e2e/reseller/credit-grant-validation.spec.ts (new —
+          five test rows probing the pre-DB-write branches of the grant
+          route: invalid_body (non-JSON body → 400), missing_id
+          (target_user_id absent → 400 via decideReveal), invalid_id
+          (target_user_id not a UUID → 400 via decideReveal), not_in_scope
+          (well-formed UUID outside allowedCustomerIds → 403 via
+          decideReveal), invalid_amount (target in scope but amount=0 →
+          400 via decideGrant before credit_balances is touched). All five
+          rows either bail before any DB read fires (rows 1-4) or read
+          only the monthly reseller_credit_grants rollup without writing
+          (row 5) so the spec is safe against staging with zero credit
+          ledger pollution.
+          Describe-scope skip via loadResellerHarness() — same posture as
+          create-startup-validation / audit-log-writes / audit-anomaly-scan
+          / attribution-timing / cobranding-pill / scope-boundary specs.
+          not_in_scope uses a deterministic sentinel UUID
+          (00000000-0000-4000-8000-000000000001) that passes decideReveal's
+          v4 shape check but is astronomically unlikely to collide with a
+          real app_users row.
+
+      Why only these five branches, not the six-strong downstream set:
+      capability_disabled needs a reseller with can_grant_credits=false;
+      over_budget_requires_approval needs already_granted_this_month ≥
+      monthly_credit_budget for the harness reseller; reseller_missing
+      needs a scope that resolves to no resellers row; not_configured
+      needs SUPABASE_URL/SERVICE_ROLE unset — each would need bespoke
+      column state or QA-only overrides that plan §J.2 forbids per the
+      per-test-seeding rule. Tracked as follow-up alongside the
+      decideCreateStartup gate rows deferred by tick 94.
+
+      Deliberately out of scope for this tick:
+        - Happy-path spec (200 grant end-to-end) — would fire real
+          credit_balances + credit_transactions + reseller_credit_grants
+          writes against the harness reseller/customer pair, needs opt-in
+          guarding + cleanup semantics. Belongs to a dedicated tick that
+          also lands the temp-reseller mint fixture.
+        - Assertion of the reseller_audit_log row shape after a 200 —
+          same reason as above; also already covered indirectly by
+          audit-log-writes.spec.ts row 2 (drawer view).
+        - Extending decideGrant coverage via a QA-only reseller-swap
+          endpoint — larger surface (service-role handling, cleanup
+          semantics, audit trail) than a P10 dry-run tick.
+
+      Verified: tsc clean (npx tsc --noEmit exit 0 at web/); vitest
+      845/845 unchanged (Playwright spec is not picked up by vitest —
+      tests/e2e/** is excluded per playwright.config.ts:testDir); npm
+      run lint:reseller: R-01 scanned 11 file(s), R-03 scanned 31
+      manifest route(s); 3 exemptions, 0 violations unchanged (spec
+      lives under web/tests/e2e/reseller/, not /api/reseller/**, so
+      R-01 doesn't fire; not a mutation route in
+      feature-gates.manifest.ts so R-03 doesn't fire). Playwright not
+      run — spec self-skips at describe-scope when
+      QA_RESELLER_ATTRIBUTED_CUSTOMER_ID is unset (current CI state).
+
+      Frontier after tick 95: unchanged in shape — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 95 unblocks: the /api/reseller/credits/grant pre-DB-write
+      gate ordering is now regression-guarded at the Playwright lens —
+      a refactor that swaps decideReveal ↔ decideGrant precedence or
+      drops the reason literals from the route response envelope lights
+      up in CI the instant the reseller harness provisions. Seven spec
+      files now sit in web/tests/e2e/reseller/ (attribution-timing,
+      audit-anomaly-scan, audit-log-writes, cobranding-pill,
+      create-startup-validation, credit-grant-validation, scope-boundary)
+      — the P10 Playwright surface keeps shrinking one authored row at
+      a time. Next autonomous tick options: (i) landing a dedicated
+      QA-mode temp-reseller mint fixture that opens up the six
+      decideCreateStartup + four downstream decideGrant branches to
+      spec assertions (larger tick, wants a design pass); (ii) idle
+      until human unblock arrives.
     commit: (this tick)
 
   - tick: 94
