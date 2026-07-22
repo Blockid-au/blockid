@@ -1,8 +1,8 @@
 // Reseller co-branding email footer — locale-switched HTML snippet.
 //
-// Per docs/plans/reseller-module-plan.md § P5 co-branding: welcome emails
-// and payment receipts include a "Brought to you by {reseller}" line when
-// the recipient has an active reseller attribution.
+// Per docs/plans/reseller-module-plan.md § C.3 + § P5 co-branding: welcome
+// emails and payment receipts include an "Introduced by {reseller}" line
+// when the recipient has an active reseller attribution.
 //
 // Pure function — no I/O. Callers look up the display_name and pass it in.
 
@@ -32,8 +32,8 @@ export function resellerFooterHtml(
 
   const isVi = locale === "vi";
   const label = isVi
-    ? "Duoc mang den boi"
-    : "Brought to you by";
+    ? "Được giới thiệu bởi"
+    : "Introduced by";
 
   return [
     `<div style="margin:16px 0 0 0;padding:12px 16px;`,
@@ -55,6 +55,6 @@ export function resellerFooterText(
   const clean = (displayName ?? "").trim();
   if (!clean) return "";
   return locale === "vi"
-    ? `\n\nDuoc mang den boi ${clean}.`
-    : `\n\nBrought to you by ${clean}.`;
+    ? `\n\nĐược giới thiệu bởi ${clean}.`
+    : `\n\nIntroduced by ${clean}.`;
 }

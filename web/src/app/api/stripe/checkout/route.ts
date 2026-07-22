@@ -256,13 +256,13 @@ export async function POST(request: Request) {
     //     it appears on the Stripe dashboard for the reseller-attributed sub.
     const displayNameShort = resellerAttribution.display_name.slice(0, 30);
     if (isRecurring && sessionParams.subscription_data) {
-      sessionParams.subscription_data.description = `Referred by ${displayNameShort}`;
+      sessionParams.subscription_data.description = `Introduced by ${displayNameShort}`;
     } else if (!isRecurring) {
       sessionParams.invoice_creation = {
         enabled: true,
         invoice_data: {
           custom_fields: [
-            { name: "Brought to you by", value: displayNameShort },
+            { name: "Reseller", value: displayNameShort },
           ],
         },
       };
