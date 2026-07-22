@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.189
+version: 2026-07-23.190
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -435,7 +435,10 @@ tracks:
             "web/src/lib/segments.ts (+ ACCOUNT_TYPE_VALUES const array + AccountType type + isAccountType() type guard + accountTypeLabel())",
             "web/src/lib/segments.test.ts (5/5 pass — enum shape, type-guard positive + negative, labels per persona, unknown-slug fallback)"
           ], note: "TS-side enum extension only. Legacy 0067 trio (founder/investor/journalist) preserved so app_users rows created pre-P12 keep validating; the seven new personas (investor_angel/investor_vc/advisor/accelerator/incubator/reseller/affiliate) are appended so existing switch(...) sites still compile without exhaustiveness churn. Database CHECK constraint extension is intentionally deferred to P12.2 (migration 0101) so both landings share one apply-tick. tsc clean; segments vitest 5/5 pass; lint:reseller unchanged (11 R-01 + 31 R-03, 3 exemptions, 0 violations)."}
-          P12.2_migration_0101: {status: pending, action: "authored migration 0101_user_role_permissions.sql: add app_users.custom_role text + permissions jsonb DEFAULT '[]' + deleted_at timestamptz + anonymized_at timestamptz; also extend app_users_account_type_check to include the seven new personas from P12.1"}
+          P12.2_migration_0101: {status: done, tick: 190, completed_at: 2026-07-22, migration_files: [0102], files: [
+            "web/supabase/migrations/0102_user_role_permissions.sql",
+            "web/src/lib/segments.ts (doc-comment migration reference bumped 0101 → 0102)"
+          ], note: "Landed as migration 0102 (not 0101 as originally planned) because slot 0101 was already consumed by 0101_reseller_stripe_billing_columns.sql shipped in a prior tick. Contiguous numbering preserved. Migration adds four columns to app_users — custom_role text (nullable ad-hoc role label), permissions jsonb NOT NULL DEFAULT '[]' (fine-grained capability array for the P12.6 grant/revoke endpoint), deleted_at timestamptz (soft-delete), anonymized_at timestamptz (independent APP-11 anonymisation clock). Extends app_users_account_type_check to include the seven new personas P12.1 shipped to segments.ts (investor_angel / investor_vc / advisor / accelerator / incubator / reseller / affiliate) while preserving the legacy trio (founder / investor / journalist) from 0067 so pre-P12 rows still validate. Adds three indexes: app_users_permissions_gin_idx (GIN on jsonb so can() lookups do not full-scan), app_users_deleted_at_idx (partial on non-null), app_users_custom_role_idx (partial on non-null). Applied via docker exec supabase-db psql; NOTIFY pgrst 'reload schema' issued; idempotent re-run verified (ADD COLUMN IF NOT EXISTS + CREATE INDEX IF NOT EXISTS + DROP CONSTRAINT IF EXISTS → ADD CONSTRAINT). Verified: tsc clean; npm run lint:reseller: 11 R-01 + 31 R-03, 3 exemptions, 0 violations; segments vitest 5/5 pass."}
           P12.3_list_page_filter: {status: pending, action: "extend /admin/users list with account_type filter chip alongside existing all/admin/reseller/unverified chips; expose plan + credit balance + attribution reseller in one row (partially exists)"}
           P12.4_detail_panels: {status: pending, action: "/admin/users/[id] detail page — 4 panels: Roles & permissions (edit custom_role + jsonb permissions), Attribution history, Reseller admin membership, Advisor client list"}
           P12.5_create_endpoint: {status: pending, action: "POST /api/admin/users/create — email + segment + account_type + plan + optional credits grant; server validates account_type via isAccountType() (from P12.1); sends magic-link invite"}
@@ -446,7 +449,7 @@ tracks:
           P12.10_nav_wiring: {status: done, tick: 188, note: "shipped fe9946d — /admin/users + /admin/affiliate already surface in admin left-nav"}
         exit_criteria: [
           "AccountType enum + isAccountType() live in web/src/lib/segments.ts (DONE P12.1 tick 189)",
-          "migration 0101 extends app_users CHECK constraint + adds custom_role/permissions/deleted_at/anonymized_at columns (P12.2)",
+          "migration 0101 extends app_users CHECK constraint + adds custom_role/permissions/deleted_at/anonymized_at columns (DONE P12.2 tick 190 — landed as migration 0102 because 0101 slot already consumed by reseller_stripe_billing_columns; contiguous numbering preserved)",
           "admin list page filter chip respects new account_type values (P12.3)",
           "admin detail page carries 4 new panels (P12.4)",
           "create/permissions/plan endpoints live + audit-logged (P12.5-P12.7)",
@@ -625,6 +628,113 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 190
+    ran_at: 2026-07-22
+    action: p12_2_user_role_permissions_migration
+    result: |
+      Track A P12.2 landed. Authored + applied migration 0102_user_role_
+      permissions.sql (slot 0101 was already consumed by
+      0101_reseller_stripe_billing_columns.sql from a prior tick — using
+      0102 keeps the sequence contiguous without renumbering a shipped
+      migration). Frontier before this tick was P12.2, P8.5 (HUMAN-BLOCKED),
+      P1.5 (HUMAN-BLOCKED), P11 (never_completes). Picked P12.2 as the
+      single unblocked non-human-gated leaf per goal-loop rules.
+
+      Files:
+        - web/supabase/migrations/0102_user_role_permissions.sql (new;
+          adds custom_role text + permissions jsonb NOT NULL DEFAULT '[]'
+          + deleted_at timestamptz + anonymized_at timestamptz to
+          app_users; extends app_users_account_type_check to include the
+          seven new personas P12.1 shipped to segments.ts; adds three
+          indexes: permissions GIN, deleted_at partial-on-not-null,
+          custom_role partial-on-not-null; column comments explain the
+          intent surfaced in \d+ output).
+        - web/src/lib/segments.ts (doc-comment migration reference
+          updated 0101 → 0102 so future readers land on the actual
+          migration slot).
+        - docs/plans/reseller-module-goal.md (P12.2 status pending →
+          done with tick 190 completion note + files list; P12
+          exit_criteria for the migration line marked DONE with the
+          0101→0102 slot-shift note; version bumped
+          2026-07-23.189 → 2026-07-23.190; this review_history entry
+          prepended).
+
+      Design fidelity:
+        - custom_role is a text column, not a FK. Admins may need to
+          spin up ad-hoc roles ('cs_manager', 'gtm_pilot') without a
+          schema round-trip; if the label set stabilises later a
+          follow-up migration can lift it into a lookup with a FK.
+        - permissions is jsonb (not a link table) because the operational
+          write pattern is "grant this user this capability, right now" —
+          one row per (user, capability) would multiply row counts 5-10×
+          for negligible gain. The entitlements table (0075) remains the
+          canonical spot for purchased/billed features; permissions is
+          the operational override channel consumed by the can()
+          pipeline. GIN index keeps @> containment lookups cheap once
+          the array grows.
+        - deleted_at + anonymized_at are separate columns because APP 11
+          data-minimisation and account-closure requests run on
+          different clocks. A closed account may retain non-PII posts;
+          a compliance-anonymised account may remain otherwise live.
+        - The legacy account_type trio (founder / investor / journalist)
+          from 0067 is PRESERVED in the new CHECK constraint so app_users
+          rows created pre-P12 continue to validate without a data
+          migration. The seven new personas are appended (not
+          substituted) so existing switch(...) sites in TS also compile
+          without exhaustiveness churn per P12.1's ADR.
+        - All columns default nullable except permissions which defaults
+          '[]'::jsonb so every existing row (45 rows on dev) satisfies
+          NOT NULL immediately without a backfill statement.
+
+      Verified:
+        - docker exec supabase-db psql -f: BEGIN → 3× ALTER TABLE →
+          2× ALTER TABLE (constraint drop + add) → 3× CREATE INDEX →
+          4× COMMENT → COMMIT (all clean).
+        - NOTIFY pgrst, 'reload schema' issued so PostgREST picks up the
+          new columns without a container restart.
+        - Idempotent re-run: second `psql -f` pass returns the expected
+          NOTICE "relation ... already exists, skipping" for each index
+          and no rewrites the CHECK constraint (DROP IF EXISTS + ADD
+          shape). Zero-side-effect confirmed.
+        - Post-apply column check: 4/4 columns landed with expected
+          types + nullability (custom_role text YES, permissions jsonb
+          NO, deleted_at timestamptz YES, anonymized_at timestamptz YES).
+        - Post-apply constraint check: app_users_account_type_check now
+          accepts all 10 values (3 legacy + 7 new).
+        - Post-apply index check: 3/3 new indexes present
+          (app_users_permissions_gin_idx, app_users_deleted_at_idx,
+          app_users_custom_role_idx).
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0).
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 exemptions, 0 violations —
+          unchanged (the migration file is not under /api/reseller/**
+          and segments.ts is a pure lib not scanned by either rule).
+        - `npx vitest run src/lib/segments.test.ts` in web/: 5/5 pass
+          (unchanged — P12.1 test suite covers isAccountType +
+          accountTypeLabel; the migration itself is a schema change
+          verified via psql queries above).
+
+      Frontier after tick 190:
+        - Track A P12.3 (list page filter chip) — next unblocked leaf.
+        - Track A P12.4 (detail panels) — pending, depends on P12.3.
+        - Track A P12.5-P12.7 (create/permissions/plan endpoints) —
+          pending, will consume the new columns landed here.
+        - Track A P12.8 (impersonation trail) — pending.
+        - Track A P12.9 (Playwright E2E) — pending, depends on 12.3-12.8.
+        - Track A P8.5 STILL HUMAN-BLOCKED on
+          STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL.
+        - Track A P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20
+          ABN + GST.
+        - Track B COMPLETE.
+        - P10_hardening still gated on P1.5 + P8.5.
+
+      Natural next pick for tick 191: P12.3 (extend /admin/users list
+      page with account_type filter chip). Reads directly against the
+      columns this tick landed; no migration; single-file change on
+      web/src/app/admin/users/page.tsx alongside a helper in
+      web/src/lib/segments.ts if the chip needs a persona ordering.
+    commit: (this tick)
+
   - tick: 188
     ran_at: 2026-07-22
     action: p10_admin_reseller_crud_audit_writes
