@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.188
+version: 2026-07-23.189
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -427,6 +427,32 @@ tracks:
           commission_cleared_mtd, clawback_exposure, credit_budget_utilization,
           sandbox_share_of_budget, attributed_churn_30d, tier_mix, ledger_drift_events,
           gst_reconciliation_delta, cohort_velocity, ltv_cac_per_reseller
+        ]
+      P12_user_management:
+        status: in_progress
+        sub_phases:
+          P12.1_account_type_enum: {status: done, tick: 189, completed_at: 2026-07-22, files: [
+            "web/src/lib/segments.ts (+ ACCOUNT_TYPE_VALUES const array + AccountType type + isAccountType() type guard + accountTypeLabel())",
+            "web/src/lib/segments.test.ts (5/5 pass — enum shape, type-guard positive + negative, labels per persona, unknown-slug fallback)"
+          ], note: "TS-side enum extension only. Legacy 0067 trio (founder/investor/journalist) preserved so app_users rows created pre-P12 keep validating; the seven new personas (investor_angel/investor_vc/advisor/accelerator/incubator/reseller/affiliate) are appended so existing switch(...) sites still compile without exhaustiveness churn. Database CHECK constraint extension is intentionally deferred to P12.2 (migration 0101) so both landings share one apply-tick. tsc clean; segments vitest 5/5 pass; lint:reseller unchanged (11 R-01 + 31 R-03, 3 exemptions, 0 violations)."}
+          P12.2_migration_0101: {status: pending, action: "authored migration 0101_user_role_permissions.sql: add app_users.custom_role text + permissions jsonb DEFAULT '[]' + deleted_at timestamptz + anonymized_at timestamptz; also extend app_users_account_type_check to include the seven new personas from P12.1"}
+          P12.3_list_page_filter: {status: pending, action: "extend /admin/users list with account_type filter chip alongside existing all/admin/reseller/unverified chips; expose plan + credit balance + attribution reseller in one row (partially exists)"}
+          P12.4_detail_panels: {status: pending, action: "/admin/users/[id] detail page — 4 panels: Roles & permissions (edit custom_role + jsonb permissions), Attribution history, Reseller admin membership, Advisor client list"}
+          P12.5_create_endpoint: {status: pending, action: "POST /api/admin/users/create — email + segment + account_type + plan + optional credits grant; server validates account_type via isAccountType() (from P12.1); sends magic-link invite"}
+          P12.6_permissions_endpoint: {status: pending, action: "POST /api/admin/users/[id]/permissions — grant/revoke permission entries (reseller.console, advisor_portal, esop.manage); audit-logged"}
+          P12.7_plan_endpoint: {status: pending, action: "POST /api/admin/users/[id]/plan — plan change with audit + optional credit reconciliation (extends /api/admin/users/manage)"}
+          P12.8_impersonation_trail: {status: pending, action: "extend /admin/affiliate cross-view with Impersonation trail tab showing admin.role.changed + admin.credits.granted events per attribution (from audit_events)"}
+          P12.9_playwright_e2e: {status: pending, action: "web/tests/e2e/admin/user-management.spec.ts — create / delete / permission flows"}
+          P12.10_nav_wiring: {status: done, tick: 188, note: "shipped fe9946d — /admin/users + /admin/affiliate already surface in admin left-nav"}
+        exit_criteria: [
+          "AccountType enum + isAccountType() live in web/src/lib/segments.ts (DONE P12.1 tick 189)",
+          "migration 0101 extends app_users CHECK constraint + adds custom_role/permissions/deleted_at/anonymized_at columns (P12.2)",
+          "admin list page filter chip respects new account_type values (P12.3)",
+          "admin detail page carries 4 new panels (P12.4)",
+          "create/permissions/plan endpoints live + audit-logged (P12.5-P12.7)",
+          "impersonation trail tab live under /admin/affiliate (P12.8)",
+          "Playwright E2E green for create/delete/permission flows (P12.9)",
+          "admin left-nav carries /admin/users + /admin/affiliate (DONE P12.10)"
         ]
   B:
     name: showcase-track
