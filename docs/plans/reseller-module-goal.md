@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.54
+version: 2026-07-23.55
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,91 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 97
+    ran_at: 2026-07-22
+    action: p10_dry_run_code_validate_playwright_spec
+    result: |
+      Fourth P10 dry-run Playwright spec in the tick 94/95/96 series and
+      the first that requires no reseller harness — POST /api/reseller/code/
+      validate is intentionally UNAUTHENTICATED (r-01-exempt at route.ts:18)
+      because the code is applied pre-signup. That means every row runs
+      against staging on the next Playwright pass without waiting for
+      P1.5_infovision_seed or QA_RESELLER_ADMIN_EMAIL provisioning.
+
+      Files:
+        - web/tests/e2e/reseller/code-validate.spec.ts (new — five
+          parametrised test rows probing every pre-write branch of
+          web/src/app/api/reseller/code/validate/route.ts:
+          (1) invalid_payload_no_json (content-type: text/plain body →
+              400 at request.json() catch → reason="invalid"),
+          (2) missing_code (body {} with no `code` field → 400 at the
+              normaliseResellerCode() null gate → reason="invalid"),
+          (3) blank_code (body { code: "" } → 400 at the same null gate),
+          (4) punctuation_only (body { code: "!!!" } → normaliser strips
+              non-alphanumerics → returns null → 400 reason="invalid"),
+          (5) code_not_found (well-formed PWNONEXIST<rand6> code → passes
+              null gate, hits reseller_promotion_codes SELECT, no row
+              found → 404 reason="invalid"). Rows 1-4 fire before any DB
+          read; row 5 does one indexed SELECT with no write side effect,
+          so the spec is safe against staging with zero pollution and no
+          reseller_audit_log row (the route doesn't write audit rows —
+          public endpoint predates the audit surface).
+
+      Why no harness: unlike create-startup / credit-grant / requests
+      which need loginAs(harness.admin.email) to satisfy scopedReseller(),
+      code/validate is public. The spec uses playwright's shared `request`
+      fixture directly, so it runs the moment `npx playwright test` fires
+      without any QA_ env vars set — the first P10 spec that light up in
+      CI immediately rather than self-skipping.
+
+      Why only these five branches, not the seven-strong response set:
+        - inactive (404) — needs a promo whose reseller.status ∈
+          {terminated, paused}; requires per-test row seeding forbidden
+          by plan §J.2.
+        - not_configured (503) — needs SUPABASE_URL/SERVICE_ROLE unset
+          which would break every other Playwright spec running in the
+          same worker.
+        - Happy path (200 ok + reseller.display_name + tier_pct) —
+          needs a real active reseller_promotion_codes row; folded into
+          the temp-reseller mint fixture follow-up alongside the
+          deferred rows from ticks 94/95/96.
+
+      Verified: tsc clean (npx tsc --noEmit exit 0 in 16.4s at web/);
+      vitest 845/845 unchanged (Playwright spec is not picked up by
+      vitest — tests/e2e/** is excluded per playwright.config.ts:testDir);
+      npm run lint:reseller: R-01 scanned 11 file(s), R-03 scanned 31
+      manifest route(s); 3 exemptions, 0 violations unchanged (spec lives
+      under web/tests/e2e/reseller/, not /api/reseller/**, so R-01
+      doesn't fire; not a mutation route in feature-gates.manifest.ts so
+      R-03 doesn't fire). Playwright not run this tick — spec is
+      harness-free so it will execute on the next CI Playwright pass
+      without any provisioning.
+
+      Frontier after tick 97: unchanged in shape — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 97 unblocks: (a) the /api/reseller/code/validate
+      response envelope is now regression-guarded at the Playwright
+      lens — a refactor that swaps the `reason` literal to something
+      other than "invalid" or drops the { ok: boolean, reason: string }
+      envelope shape lights up in CI on the next `npx playwright test`
+      run without any harness wait; (b) the pre-write branch ordering
+      (JSON parse → normalise null → DB SELECT) is pinned, so a future
+      refactor that moves the DB call above the null gate would light
+      up row 5 with a different status code. Nine spec files now sit in
+      web/tests/e2e/reseller/ (attribution-timing, audit-anomaly-scan,
+      audit-log-writes, cobranding-pill, code-validate,
+      create-startup-validation, credit-grant-validation,
+      requests-validation, scope-boundary). Next autonomous tick options:
+      (i) POST /api/reseller/sandbox/setup dry-run spec (three gates:
+      insufficient_role / reseller_missing / not_configured — narrow
+      but complete-able even with harness); (ii) landing the QA-mode
+      temp-reseller mint fixture that opens up all the deferred branches
+      from ticks 94/95/96/97 at once (larger tick, wants a design pass);
+      (iii) idle until human unblock arrives.
     commit: (this tick)
 
   - tick: 96
