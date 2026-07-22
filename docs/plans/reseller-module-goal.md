@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.161
+version: 2026-07-23.162
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,178 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 162
+    ran_at: 2026-07-22
+    action: p10_wave5_row_174_activate_admin_requests_list_authz_happy_200
+    result: |
+      Third wave-5 row landed per docs/plans/p10-deferred-spec-
+      activation-order.md. One row landed — the admin-requests-list-
+      authz.spec.ts × (n/a — admin-only harness) × happy 200 branch
+      (GET /api/admin/resellers/requests as qa-admin-1 → 200 with
+      body.ok=true + Array.isArray(body.requests) + per-row envelope
+      shape assertions). Row 174 was named as option (i) by tick 161's
+      next-tick recommendation and is the natural continuation of the
+      wave-5 admin-only cluster (rows 164 + 173 + 174 all use
+      loadAdminHarness() only, no per-variant reseller cohort) before
+      rows 165-172 start consuming admin write flows against the
+      seven-cohort resellers rows and row 175 starts patching the
+      seeded reseller_requests rows. Row 174 uses loadAdminHarness()
+      (qa-admin-1@blockid.au) so the requireAdmin() gate at
+      web/src/app/api/admin/resellers/requests/route.ts:20-29 passes
+      without needing the per-variant reseller cohort — admin-only
+      harness per the schedule doc's row 174 "(n/a)" annotation.
+
+      Files:
+        - web/tests/e2e/reseller/admin-requests-list-authz.spec.ts
+          (new test.describe block "Admin reseller-requests list —
+          P10 wave-5 row 174 happy path" holds row 174;
+          loadAdminHarness + adminHarnessSkipReason imported from
+          ../fixtures/reseller; describe-scope test.skip(!harness,
+          adminHarnessSkipReason()); test-scope try/catch around
+          loginAs so a seeded-but-unroutable harness surfaces as
+          test.skip rather than a hard failure. Body shape
+          assertions: 200 status + body.ok === true +
+          Array.isArray(body.requests). Per-row shape pin: each row
+          is a plain object (not null, not array, not scalar), id
+          typeof string matching UUID_RE, reseller_id typeof string
+          matching UUID_RE, request_type typeof string ∈ REQUEST_TYPES
+          set {code_request, over_budget_approval, collateral_approval},
+          status typeof string ∈ REQUEST_STATUSES set {pending,
+          approved, denied, cancelled}, status === "pending" because
+          the route's default status filter at route.ts:37 + 46 kicks
+          in when ?status= is omitted, created_at typeof string,
+          decision_at === null or typeof string, decision_reason ===
+          null or typeof string. Module-scope UUID_RE + REQUEST_TYPES
+          + REQUEST_STATUSES hoisted so a future wave-5 row landing
+          in this file (none currently sequenced — this is the only
+          list surface under /api/admin/resellers/requests) can reuse
+          them. "Deliberately out of scope" comment block updated —
+          the Happy path (200) bullet flipped from folded/deferred
+          to ACTIVATED with a pointer at the new test and a note
+          explaining why the array length is NOT pinned).
+        - docs/plans/p10-deferred-spec-activation-order.md
+          (annotation added: "Wave-5 row 174 landed (tick 162)"
+          with full activation posture, state-pollution posture,
+          skip discipline, and next-tick option list).
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.161 → 2026-07-23.162; this review_history
+          entry).
+
+      Design fidelity:
+        - Coverage-vs-duplication call: pin 200 + body.ok=true +
+          Array.isArray(body.requests) + per-row {id: string matching
+          UUID_RE, reseller_id: string matching UUID_RE, request_type
+          ∈ REQUEST_TYPES, status ∈ REQUEST_STATUSES, status ===
+          "pending" (default filter), created_at typeof string,
+          decision_at nullable-string, decision_reason nullable-
+          string}. Do NOT pin body.requests.length — fresh CI hosts
+          hold zero pending rows; hosts where wave-3 row 155 has
+          run in prior CI passes hold ≥1 pending over_budget_
+          approval row seeded against the active_wholesale variant.
+          The envelope loop asserts per-row shape only so both
+          empty-array and populated-array states green identically —
+          the row-155-not-yet-seeded posture is not a blocker. Do
+          NOT pin decision_at / decision_reason values (both
+          nullable in schema and null for pending rows). Do NOT pin
+          payload contents (varies per request_type: code_request
+          holds {suggested_suffix?, tier_pct?}, over_budget_approval
+          holds {target_user_id, amount, month_key, reason?},
+          collateral_approval holds {asset_url, description?}). The
+          envelope pins catch (a) a route regression that dropped a
+          field from the SELECT projection at route.ts:41-45, (b) a
+          regression that flipped body.requests to an object (e.g.
+          wrapping in { rows: [] } or { data: [] }), (c) a
+          regression that dropped the `.eq("status", status)` clause
+          at route.ts:46 (which would leak approved/denied/cancelled
+          rows into the default envelope — the per-row `status ===
+          "pending"` pin catches this), (d) a regression that
+          swapped the UUID columns to sequences or auto-incrementing
+          integers.
+        - Skip discipline: loadAdminHarness() returns null →
+          describe-scope skip via adminHarnessSkipReason() (which
+          points at QA_ADMIN_EMAIL and seed-test-users.mjs); loginAs
+          throw → test-scope skip. Matches the row 173 posture and
+          the row 2 non_admin test in this same file. The admin
+          harness is required because requireAdmin() checks
+          user.role === "admin" || user.email === ADMIN_EMAIL (see
+          web/src/lib/reseller/require-admin.ts) so a founder-only
+          host cannot exercise this branch.
+        - State-pollution posture: read-only GET — no INSERT /
+          UPDATE / DELETE fires from this endpoint. Route does NOT
+          audit-log (admin listing of reseller_requests, no
+          reseller_audit_log write — only mutation routes under
+          /api/admin/resellers/requests/[id] write audit rows). No
+          projects.id created → no trackProjectForCleanup / cleanup()
+          wiring needed. Perfectly idempotent under CI replay.
+          Consumes row 155's seeded pending over_budget_approval row
+          when it exists but does not require it — the envelope loop
+          greens over an empty array too.
+        - Non-Stripe / non-GST discipline: the admin GET reads
+          reseller_requests + joins resellers(code, display_name)
+          only. No promotion_code lookup, no credit_balances /
+          credit_transactions write, no revenue_events read, no
+          Stripe network call, no InfoVision dependency. P8.5 +
+          P1.5 remain neither a dependency nor a consequence.
+        - UUID_RE + REQUEST_TYPES + REQUEST_STATUSES hoisted to
+          module scope so a future wave-5 row landing in this file
+          (none currently sequenced) can reuse the constants without
+          duplicating the regex/enum sets. Sets are stored as `Set`
+          instances (not arrays) so the `.has(value)` check is O(1)
+          and the assertion message can name the offending value
+          rather than dumping the full enum on every row.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0, no
+          output). The new imports (loadAdminHarness,
+          adminHarnessSkipReason) type-check against the fixture
+          module unchanged since tick 161.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files,
+          R-03 scanned 31 manifest routes, 3 documented
+          exemptions, 0 violations — unchanged from tick 161 (the
+          spec is not under /api/reseller/** for the R-01 grep and
+          it is not in feature-gates.manifest.ts for the R-03
+          rule).
+        - No vitest run this tick — no pure-lib .ts code touched,
+          only the Playwright spec + two doc edits. Mirrors the
+          tick 148-161 precedent verbatim.
+        - No DB apply this tick — no migration authored. Row 174
+          consumes the existing admin harness + optional row-155
+          seeded reseller_requests rows unchanged.
+        - Goal file version bumped 2026-07-23.161 → 2026-07-23.162.
+
+      Frontier after tick 162: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision
+      seed STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE;
+      P10 still blocked_by [P1..P9] until P8.5 clears. What tick 162
+      unblocks: wave 5 admin-only cluster is now 3/? shipped (rows
+      164 + 173 + 174); the remaining wave-5 rows 165-172 all sit
+      behind admin state-mutation flows (create/patch/delete
+      resellers) and rows 176-183 sit behind per-variant seeded
+      state or the reviewer flow. Next autonomous tick options:
+        (i) activate row 175 (admin-requests-patch-authz.spec.ts ×
+            (n/a) × happy 200 approve/deny/cancel transitions on
+            the request seeded in row 155) — same admin-only
+            harness; three-branch collapse per the schedule doc
+            entry; only wave-5 row that consumes row 155's seeded
+            reseller_requests row for the patch verbs (over-budget-
+            approval + code_request paths both live in the PATCH
+            handler at /api/admin/resellers/requests/[id]);
+        (ii) activate row 163 (cobranding-pill × active_wholesale
+             attributed founder × EN + VI) — reuses the attributed-
+             founder harness scaffold (loadAttributedFounderHarness
+             in web/tests/e2e/fixtures/reseller.ts) which currently
+             skips at describe-scope until the fixture is
+             provisioned;
+        (iii) land finding-2's seed delta (edit seed-qa-reseller.mjs
+              main loop to seed attribution on no_capability +
+              no_budget; re-run seeder against staging) — unblocks
+              rows 150 + 151;
+        (iv) mint an active promo code on the paused variant to
+             unblock row 157;
+        (v) author the attachReportRow helper (extend fixtures/
+            reseller.ts with a reseller_report_files seeder for one
+            month bucket per variant) — unblocks rows 159 + 160.
+
   - tick: 161
     ran_at: 2026-07-22
     action: p10_wave5_row_173_activate_admin_reseller_loop_status_happy_200
