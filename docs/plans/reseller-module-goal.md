@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.145
+version: 2026-07-23.146
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,128 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 146
+    ran_at: 2026-07-22
+    action: p10_wave1_row_144_activate_tier_not_allowed_branch
+    result: |
+      Activated wave-1 row 144 per docs/plans/p10-deferred-spec-activation-
+      order.md — create-startup-authz.spec.ts × tier_only_zero ×
+      tier_not_allowed → 400. Same file, same describe block, closes
+      wave 1 (all four downstream-reason branches landed: rows 141
+      active_retail/billing_model_not_wholesale, 142 paused/
+      reseller_not_active, 143 no_capability/capability_disabled, and
+      144 tier_only_zero/tier_not_allowed).
+
+      Design correction lodged: the schedule doc originally paired row
+      144 with active_wholesale × tier=99. That combination is
+      unreachable — normaliseCreateStartupInput (web/src/lib/reseller/
+      create-startup.ts:117) rejects tier=99 with invalid_discount_tier
+      before decideCreateStartup fires, and active_wholesale's
+      allowed_tiers=[0,10,20,30,40] means no valid tier can miss gate 4
+      either. tier_only_zero (seed-qa-reseller.mjs:132-144) sits at
+      status=active, billing_model=wholesale, can_create_startups=true,
+      allowed_tiers=[0] so gates 1-3 pass and gate 4 fires against a
+      valid non-zero tier. discount_tier=10 chosen (smallest non-zero
+      valid tier) so any future widening of allowed_tiers past [0]
+      surfaces on the smallest deviation first.
+
+      Files:
+        - web/tests/e2e/reseller/create-startup-authz.spec.ts (adds a
+          fourth test inside "P10 wave-1 downstream reason branches";
+          skeleton mirrors ticks 143-145 verbatim with variant swapped
+          no_capability → tier_only_zero, founder_email swapped to
+          p10-wave1-tier-not-allowed@blockid.au, company_name swapped
+          to "P10 Wave 1 — tier_not_allowed probe", discount_tier
+          overridden to 10 (previous wave-1 rows all used 0), expected
+          reason flipped to tier_not_allowed, and body.message oracle
+          updated to CREATE_STARTUP_ERROR_MESSAGES.tier_not_allowed
+          verbatim ("That discount tier is not enabled for your
+          reseller account."). Top-of-file "Deliberately out of scope"
+          block updated: tier_not_allowed removed from the deferred
+          list, remaining two decideCreateStartup branches
+          (existing_active_attribution / promotion_code_missing) stay
+          listed. Also captured the design correction inline so a
+          future reader sees why the schedule doc's variant selection
+          differs from the seed shape.
+        - docs/plans/p10-deferred-spec-activation-order.md (row 144
+          table entry swapped active_wholesale/tier=99 → tier_only_zero/
+          tier=10; added "Row 144 design correction (recorded tick 146)"
+          paragraph beneath the wave-1 prep-cost note explaining the
+          swap).
+
+      Design fidelity:
+        - Gate ordering verified against web/src/lib/reseller/create-
+          startup.ts:210-222 — tier_only_zero seed passes gates 1
+          (status=active), 2 (can_create_startups=true), 3
+          (billing_model=wholesale), and hits gate 4 exactly on
+          discount_tier=10 ∉ [0]. Gate 5
+          (existing_active_attribution) requires an existing app_users
+          row with an active project attribution which the fresh
+          founder_email guarantees is absent; gate 6
+          (promotion_code_missing) is pre-empted by gate 4 so no
+          reseller_promotion_codes row is needed for tier=10.
+        - Skip discipline mirrors ticks 143-145 verbatim: fixture null
+          → test.skip(tempResellerSkipReason("tier_only_zero"));
+          loginAs throw → test.skip with the seeder-gap message.
+          Single-admin hosts / hosts that skipped
+          QA_RESELLER_MULTI_ADMIN=1 land as test.skip rather than
+          403 no_membership per docs/plans/p10-deferred-spec-activation-
+          order.md § "Failure protocol".
+        - Non-Stripe / non-GST discipline: assertion does not touch
+          Stripe (gate 4 pre-empts gate 6 which is the only Stripe
+          branch), does not touch GST reconciliation, and does not
+          depend on the InfoVision seed. P8.5 + P1.5 remain neither a
+          dependency nor a consequence.
+        - Body.message assertion is the strongest oracle available for
+          the 400 branch — the pure lib's
+          CREATE_STARTUP_ERROR_MESSAGES record is a compile-time enum
+          so a future maintainer who changes the copy without updating
+          the spec fails CI on this row.
+        - Batching heuristic: row 144 sits in the same file as rows
+          141-143 but uses a DIFFERENT variant (tier_only_zero, not
+          active_retail/paused/no_capability), so the heuristic
+          ("same file with the same variant" only) does not permit
+          collapsing them into one tick. One row per tick preserved.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0, no output).
+          tests/ is excluded from the main tsconfig so the spec's TS
+          errors from @playwright/test + process references are
+          expected and identical in shape to the pre-existing tests
+          in the same file (verified indirectly via the tsc clean pass
+          since the new test reuses the same imports).
+        - `npx vitest run src/lib/reseller/ src/lib/feature-gate.test.ts
+          src/lib/entitlements.test.ts` in web/: 31 files / 462 tests
+          pass (2.07s runtime, identical to tick 145's baseline — no
+          pure-lib code touched).
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 documented exemptions, 0
+          violations — unchanged from tick 145 (the spec is not under
+          /api/reseller/** and not in feature-gates.manifest.ts).
+        - No DB apply this tick — pure test-file addition + design-doc
+          edit.
+        - Goal file version bumped 2026-07-23.145 → 2026-07-23.146.
+
+      Frontier after tick 146: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision
+      seed STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE;
+      P10 still blocked_by [P1..P9] until P8.5 clears. What tick 146
+      unblocks: row 144 lit up in CI on the next `npx playwright
+      test` run — closes wave 1 in full and clears the last
+      "Deliberately out of scope" branch of decideCreateStartup that
+      the fixture cohort can reach without Stripe. Next autonomous
+      tick options:
+        (i) advance to wave 2 row 145 (me-attribution.spec.ts ×
+            active_wholesale × happy 200 with display_name) — requires
+            authoring the attributed-customer helper
+            attachAttributedCustomer(variant) per the schedule doc's
+            wave-2 prep-cost note, then rows 145-149 each add 2-3
+            assertions; the helper is the payoff-multiplier for wave 2;
+        (ii) collapse the remaining wave-1 rows into a table-driven
+             test.each — moot now that wave 1 is closed;
+        (iii) idle until human unblock arrives on P8.5 or P1.5.
+    commit: (this tick)
+
   - tick: 145
     ran_at: 2026-07-22
     action: p10_wave1_row_143_activate_no_capability_branch

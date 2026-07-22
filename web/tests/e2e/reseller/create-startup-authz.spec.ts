@@ -51,15 +51,24 @@
 //     are provisioned together.
 //   - reseller_missing (404) — needs a reseller_admins row without a
 //     matching resellers row (edge case; per-test seeding).
-//   - tier_not_allowed (400) / existing_active_attribution (400) /
-//     promotion_code_missing (400) — three remaining decideCreateStartup()
-//     branches still sit BEHIND the auth chain; wave-1 row 144 activates
-//     tier_not_allowed via the active_wholesale variant + tier=99 body
-//     per docs/plans/p10-deferred-spec-activation-order.md. Rows 141
-//     (billing_model_not_wholesale via the active_retail variant), 142
-//     (reseller_not_active via the paused variant), and 143
-//     (capability_disabled via the no_capability variant) are ACTIVATED
-//     below.
+//   - existing_active_attribution (400) / promotion_code_missing (400) —
+//     two remaining decideCreateStartup() branches still sit BEHIND the
+//     auth chain. Rows 141 (billing_model_not_wholesale via the
+//     active_retail variant), 142 (reseller_not_active via the paused
+//     variant), 143 (capability_disabled via the no_capability variant),
+//     and 144 (tier_not_allowed via the tier_only_zero variant + tier=10
+//     body) are ACTIVATED below.
+//
+//     Row 144 design correction (tick 146): the wave-1 schedule at
+//     docs/plans/p10-deferred-spec-activation-order.md originally paired
+//     row 144 with the active_wholesale variant + tier=99 body. That pair
+//     is unreachable — tier=99 fails normaliseCreateStartupInput's
+//     [0,10,20,30,40] guard (invalid_discount_tier) before
+//     decideCreateStartup fires, and active_wholesale's
+//     allowed_tiers=[0,10,20,30,40] means no VALID tier can miss gate 4
+//     either. tier_only_zero (allowed_tiers=[0]) + a valid non-zero tier
+//     (10) is the only fixture combination that reaches gate 4 with
+//     status=active + can_create_startups=true + billing_model=wholesale.
 //   - not_configured (503) — needs SUPABASE_URL/SERVICE_ROLE unset which
 //     would break every other Playwright spec running in the same worker.
 //   - Happy path (200 with project_id/user_id/magic_link_sent/stripe_wiring)
@@ -351,6 +360,84 @@ test.describe("Reseller create-startup — P10 wave-1 downstream reason branches
     expect(body.reason).toBe("capability_disabled");
     expect(body.message).toBe(
       "Your reseller account is not enabled for wholesale provisioning.",
+    );
+  });
+
+  // P10 wave-1 row 144 — tier_only_zero variant probes the fourth
+  // decideCreateStartup gate (discount_tier ∉ allowed_tiers). Order per
+  // web/src/lib/reseller/create-startup.ts:210-222:
+  //   1. reseller.status !== "active"        → reseller_not_active   (row 142)
+  //   2. !reseller.can_create_startups        → capability_disabled   (row 143)
+  //   3. reseller.billing_model !== "wholesale" → billing_model_not_wholesale (row 141)
+  //   4. discount_tier ∉ allowed_tiers        → tier_not_allowed      ← THIS
+  //
+  // Schedule doc's original pair (active_wholesale + tier=99) is
+  // unreachable — see the top-of-file design correction. tier_only_zero
+  // seed (web/scripts/seed-qa-reseller.mjs:132-144) sits at
+  // (status=active, billing_model=wholesale, can_create_startups=true,
+  // allowed_tiers=[0]) so gates 1-3 pass and gate 4 fires against
+  // discount_tier=10 (a valid tier per normaliseCreateStartupInput but
+  // NOT in this reseller's allowed_tiers). discount_tier=10 chosen (over
+  // 20/30/40) so the assertion pins to the smallest deviation from the
+  // seed — a future edit that widens allowed_tiers past [0] surfaces on
+  // the smallest tier first.
+  //
+  // Non-Stripe / non-GST discipline: assertion does not touch Stripe (no
+  // promotion_code branch reached — gate 4 pre-empts gate 6), does not
+  // touch GST reconciliation, and does not depend on the InfoVision
+  // seed. P8.5 + P1.5 remain neither a dependency nor a consequence.
+  test("tier_only_zero — POST with tier=10 returns 400 with reason=tier_not_allowed", async ({
+    page,
+  }) => {
+    let fixture: TempResellerFixture | null;
+    try {
+      fixture = await loadTempReseller("tier_only_zero");
+    } catch (err) {
+      test.skip(
+        true,
+        `loadTempReseller('tier_only_zero') threw: ${(err as Error).message}. ` +
+          tempResellerSkipReason("tier_only_zero"),
+      );
+      return;
+    }
+    if (!fixture || !fixture.adminUserId) {
+      test.skip(true, tempResellerSkipReason("tier_only_zero"));
+      return;
+    }
+    try {
+      await loginAs(page, fixture.adminEmail);
+    } catch (err) {
+      test.skip(
+        true,
+        `loginAs(${fixture.adminEmail}) threw: ${(err as Error).message}. ` +
+          tempResellerSkipReason("tier_only_zero"),
+      );
+      return;
+    }
+    const resp = await page.request.post(ROUTE, {
+      data: {
+        founder_email: "p10-wave1-tier-not-allowed@blockid.au",
+        company_name: "P10 Wave 1 — tier_not_allowed probe",
+        plan_tier: "founder_growth",
+        discount_tier: 10,
+      },
+    });
+    expect(
+      resp.status(),
+      `tier_only_zero returned ${resp.status()} — expected 400 (decideCreateStartup gate 4). Body: ${await resp.text()}`,
+    ).toBe(400);
+    const body = (await resp.json()) as {
+      ok: boolean;
+      reason?: string;
+      message?: string;
+    };
+    expect(
+      body.ok,
+      `tier_only_zero body.ok should be false: ${JSON.stringify(body)}`,
+    ).toBe(false);
+    expect(body.reason).toBe("tier_not_allowed");
+    expect(body.message).toBe(
+      "That discount tier is not enabled for your reseller account.",
     );
   });
 });
