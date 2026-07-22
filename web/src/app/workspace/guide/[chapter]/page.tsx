@@ -17,6 +17,7 @@ import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { PageTracker } from "@/components/analytics/page-tracker";
+import { ChapterProgressRibbon } from "@/components/guide/chapter-progress-ribbon";
 import {
   allChapterSlugs,
   getAdjacentChapters,
@@ -145,6 +146,7 @@ export default async function WorkspaceGuideChapterPage({
         source="onboarding"
       />
       <div className="mx-auto max-w-3xl p-6">
+        <ChapterProgressRibbon phase={c.phase} locale={locale} variant="workspace" />
         <header className="mb-6">
           <p className="text-xs font-medium uppercase tracking-wide text-emerald-600">
             {locale === "vi"

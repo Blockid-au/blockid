@@ -14,6 +14,7 @@ import { notFound } from "next/navigation";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
+import { ChapterProgressRibbon } from "@/components/guide/chapter-progress-ribbon";
 import {
   allChapterSlugs,
   getAdjacentChapters,
@@ -232,6 +233,7 @@ export default async function GuideChapterPage({
       <PageTracker page="guide-chapter" chapter={c.phase} locale={locale} />
       <Navbar />
       <main className="mx-auto max-w-3xl px-4 py-12 md:py-16">
+        <ChapterProgressRibbon phase={c.phase} locale={locale} variant="marketing" />
         <header className="mb-10">
           <p className="text-sm font-medium uppercase tracking-wide text-emerald-600">
             {locale === "vi"

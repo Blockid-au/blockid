@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.128
+version: 2026-07-23.129
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,75 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 129
+    ran_at: 2026-07-22
+    action: cpo_advisory_25_chapter_progress_ribbon
+    result: |
+      Closed CPO advisory §25 recommendation #4 — added the
+      "Chapter X of 12" progress ribbon to both guide chapter
+      surfaces so a founder arriving at a chapter from a deep
+      link (search, share, drawer link) still perceives the
+      linear 12-phase arc. Mirrors the product-tour banner
+      idiom per plan-review-cpo.md rec #4.
+
+      Files:
+        - web/src/components/guide/chapter-progress-ribbon.tsx
+          (new — server component; two visual variants:
+          "workspace" (emerald light-mode inside WorkspaceLayout)
+          and "marketing" (slate + dark-mode tokens on public
+          /guide). Renders a 12-segment horizontal ol with the
+          current segment ring-highlighted; caption shows
+          "Chapter X of 12" / "Chương X trên 12" plus the
+          percent-of-journey. role=progressbar with aria-valuenow
+          + aria-valuemin=1 + aria-valuemax=12 for screen readers;
+          the ol itself is aria-hidden so the segment count is not
+          announced twice. Pure presentation — no client hooks,
+          no fetch, no state.)
+        - web/src/app/workspace/guide/[chapter]/page.tsx
+          (+ChapterProgressRibbon import; renders variant=
+          "workspace" above the eyebrow row so it sits inside
+          the max-w-3xl content column and stays consistent
+          with the WorkspaceLayout sidebar/header treatment)
+        - web/src/app/guide/[chapter]/page.tsx
+          (+ChapterProgressRibbon import; renders variant=
+          "marketing" above the eyebrow row so the slate palette
+          + dark-mode tokens match the rest of the route)
+
+      Verified:
+        - `npx tsc --noEmit -p tsconfig.json` clean.
+        - `npm run lint:reseller` unchanged: 3 exemptions, 0
+          violations (11 R-01 files + 31 R-03 manifest routes;
+          new component is not under /api/reseller/** and not
+          in feature-gates.manifest.ts so neither rule fires).
+
+      Explicitly deferred:
+        - Playwright coverage for the ribbon — deferred to
+          P10_hardening per the same posture used for every
+          Track B UI leaf; ribbon is pure presentation so the
+          existing render pipeline covers the correctness path.
+        - CPO §25 rec #2 (wholesale-founder confirmation step
+          in onboarding wizard reading `wholesaleProvisioning`
+          from the magic-link pending payload) — larger surface
+          touching onboarding-wizard.tsx + step-payment.tsx +
+          the verify route; kept separate to preserve blast-
+          radius scope.
+        - CPO §25 rec #3 (translate previewError reason codes
+          in the Share Mgmt drawer) — belongs to a P8 delta
+          tick alongside the drawer's other polish items.
+
+      Frontier after tick 129: shape unchanged — Track A P8.5
+      STILL HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_
+      MONTHLY|ANNUAL; P1.5 InfoVision seed STILL HUMAN-BLOCKED
+      on H.20 ABN + GST; Track B COMPLETE; P10 still blocked_by
+      [P1..P9] until P8.5 clears. Advisory follow-up status:
+      §25 rec #4 closed this tick; §25 rec #2 + rec #3 still
+      open; §24 H.8 wholesale magic-link + welcome email still
+      partial (welcome email + magic-link dispatch DONE
+      ticks 73/75; confirmation step in onboarding wizard
+      still open under §25 rec #2 above); §27 IR GTM one-pager
+      DONE tick 68.
     commit: (this tick)
 
   - tick: 128
