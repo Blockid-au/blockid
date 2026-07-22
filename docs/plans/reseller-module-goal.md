@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.187
+version: 2026-07-23.188
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,127 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 188
+    ran_at: 2026-07-22
+    action: p10_admin_reseller_crud_audit_writes
+    result: |
+      Closes the observability gap that ticks 185–187 flagged in
+      /api/admin/resellers (POST) and /api/admin/resellers/[code]
+      (PATCH + DELETE) — none of these admin CRUD transitions emitted
+      a reseller_audit_log row despite being the surface where an
+      admin can create a reseller org, edit billing_model / GST /
+      ABN / capabilities, or soft-terminate a reseller. Mirrors the
+      non-fatal post-commit pattern tick 186 introduced on the
+      requests/[id] PATCH route.
+
+      Files:
+        - web/src/app/api/admin/resellers/route.ts (added ROUTE +
+          readClientMeta helper at module top; appended non-fatal
+          reseller_audit_log insert AFTER the resellers INSERT
+          succeeds in POST). Row shape: reseller_id = data.id (the
+          new org); actor_user_id = admin user.id; subject_user_id =
+          null; action = "create_reseller"; fields = [] (whole row
+          new — action verb communicates the semantics); route =
+          ROUTE; ip + user_agent via readClientMeta; metadata
+          carries code / billing_model / gst_registered / abn so the
+          weekly digest and anomaly scanner can distinguish
+          wholesale-onboarding from retail-onboarding without a
+          second table lookup.
+        - web/src/app/api/admin/resellers/[code]/route.ts (added
+          ROUTE + readClientMeta at module top; appended non-fatal
+          reseller_audit_log insert AFTER the PATCH update succeeds
+          and after the DELETE soft-terminate succeeds; DELETE
+          handler param renamed _request → request so
+          readClientMeta can read the forwarded IP + UA). PATCH row
+          shape: action = "update_reseller"; fields =
+          Object.keys(validation.patch) so a query for "which
+          fields did admin X flip on reseller Y" reads directly
+          from the row without JSONB parsing; metadata carries the
+          full patch payload for forensics. DELETE row shape:
+          action = "terminate_reseller"; fields = ["status"];
+          metadata carries previous_status so a re-terminate of an
+          already-terminated row surfaces as previous_status =
+          "terminated" without clobbering the original transition
+          history.
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.187 → 2026-07-23.188; this review_history
+          entry prepended).
+
+      Design fidelity:
+        - Non-fatal + post-commit matches the tick 186 precedent.
+          The resellers INSERT/UPDATE is already committed by the
+          time the audit line fires; a fatal audit would open a
+          double-write hole on retry (POST would 409 code_taken;
+          PATCH would return the already-mutated row on second
+          call).
+        - subject_user_id = null on all three transitions because
+          none of these routes move a specific founder's ledger
+          state. That keeps the sparse
+          reseller_audit_log_subject_idx (0093:35-37) meaningful —
+          "all admin actions against founder X" continues to
+          surface only balance-moving transitions per D3-CISO-01.
+        - fields = Object.keys(validation.patch) on PATCH surfaces
+          exactly what changed (billing_model, gst_registered, abn,
+          monthly_credit_budget, etc.) without duplicating the
+          patch payload into the fields array. metadata.patch
+          carries the full before/after data for forensics.
+        - fields = [] on create is semantically correct — the row
+          was net-new so there is no delta. Reads cleanly against
+          reseller_audit_log_action_idx (0093:39-40) filtering on
+          action = 'create_reseller'.
+        - readClientMeta() copy-pasted from
+          requests/[id]/route.ts:35-40 (three call sites now:
+          reveal-email, requests PATCH, admin resellers CRUD). Per
+          the "no premature abstraction" rule, a fourth site would
+          be the trigger to lift into a shared helper — three is
+          still within the pragmatic threshold.
+        - DELETE handler renamed _request → request. TypeScript
+          allows the rename freely; the callers hit the exported
+          handler by convention (App Router routes it via method
+          name, not identifier). No lint impact since /admin/**
+          is not scanned by R-01, and DELETE is not a manifest
+          route so R-03 does not fire either.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0).
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files,
+          R-03 scanned 31 manifest routes, 3 exemptions, 0
+          violations — unchanged.
+        - `npx vitest run src/lib/reseller/admin-validator.test.ts
+          src/lib/reseller/requests.test.ts` in web/: 41/41 pass.
+          No new unit suite — the route-level change is thin
+          pass-through around an already-tested validator + the
+          shared reseller_audit_log table.
+        - No DB apply this tick — no migration authored.
+
+      Frontier after tick 188: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision
+      seed STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE.
+      Admin-transition audit coverage is now symmetric across both
+      admin PATCH surfaces (requests/[id] PATCH from tick 186, plus
+      the reseller org CRUD landed here). Natural next picks:
+        (i)   extend web/tests/e2e/reseller/audit-log-writes.spec.ts
+              with three new describe blocks asserting the
+              create_reseller / update_reseller / terminate_reseller
+              rows land on POST /api/admin/resellers,
+              PATCH/DELETE /api/admin/resellers/[code] — same
+              countResellerAuditLogFor() harness used for the row
+              179 approve/deny/cancel triple, filtering on the new
+              action verbs.
+        (ii)  unchanged from tick 187: row 175 approve(code_request)
+              branch + row 182 both need stripe-test-mode key; plan
+              §337 signup-jitter branch on row 178 still deferred
+              pending a QA-mode signup flow.
+        (iii) audit-anomaly cron
+              (web/src/lib/reseller/audit-anomaly.ts) could grow a
+              new heuristic keyed on the new "create_reseller" +
+              "terminate_reseller" verbs — e.g. an admin cluster
+              creating > N resellers in a rolling window, or a
+              terminate followed by an immediate create of the same
+              code (potential reseller re-activation via new
+              record).
+    commit: (this tick)
+
   - tick: 187
     ran_at: 2026-07-22
     action: p10_wave5_row_179_audit_symmetry_approve_deny_cancel
