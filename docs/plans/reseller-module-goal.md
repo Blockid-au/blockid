@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.138
+version: 2026-07-23.139
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,138 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 139
+    ran_at: 2026-07-22
+    action: p10_option_a_step4_mint_fixture_design_doc_cohort_update
+    result: |
+      Landed Option A step 4 of the docs/plans/p10-temp-reseller-
+      admin-scope-collision-finding.md resolution plan — the last
+      leaf. Updated docs/plans/p10-temp-reseller-mint-fixture-
+      design.md so the design doc's shipped-state description matches
+      the seven-account cohort now live across seed-test-users.mjs
+      (tick 136), seed-qa-reseller.mjs (tick 137) and
+      web/tests/e2e/fixtures/reseller.ts (tick 138).
+
+      Files:
+        - docs/plans/p10-temp-reseller-mint-fixture-design.md
+          (three inline updates + a top-of-file status revision):
+            (a) Header **Status.** block rewritten from "Design-only,
+                no code lands with this document" to a four-line
+                shipped-state summary flagging Option A steps 1-4 with
+                their tick numbers. Notes that remaining spec-
+                activation ticks are still gated on P8.5 Stripe env
+                and P1.5 H.20 ABN/GST for the Stripe-mint / GST-
+                reconciliation happy paths, but non-Stripe /
+                non-GST rows can begin activating any time both
+                seeders run with QA_RESELLER_MULTI_ADMIN=1.
+            (b) §1 "Downstream inserts per variant" — the
+                single-source `reseller_admins(user_id=
+                <QA_RESELLER_ADMIN_EMAIL user id>, role='admin')`
+                line replaced with a two-mode description keyed off
+                `resolveVariantAdmin(variantName)`: gate ON reads
+                `QA_RESELLER_ADMIN_EMAIL_<VARIANT>` (upper-snake)
+                first, then falls back to the hard-coded slot in a
+                new inline table listing all seven variants with
+                their default emails + env override slot names; gate
+                OFF collapses to `QA_ADMIN_EMAIL` (single-cohort
+                back-compat). Explicit callout that the multi-admin
+                cohort mirrors production semantics so
+                `scopedReseller()`'s `.maybeSingle()` invariant does
+                not trip PGRST116, cross-referencing the collision
+                finding doc.
+            (c) §5 "QA account seeder delta" — rewritten from the
+                original single-`qa-reseller-1@blockid.au` narrative
+                to a two-mode narrative: single-admin cohort
+                (default, tick 132 back-compat contract) plus
+                multi-admin cohort (`--reseller-multi-admin` /
+                `QA_RESELLER_MULTI_ADMIN=1`) which mints all seven
+                `app_users` rows. Includes the fixture-side note
+                that TempResellerFixture.adminEmail resolves via
+                `resolveVariantAdminEmail(variant)` mirroring
+                `resolveVariantAdmin()` dispatch order verbatim so
+                specs `loginAs(page, fixture.adminEmail)` hit
+                distinct rows per variant.
+            (d) Env-var contract (§347+) — table restructured into
+                four sections: gate flags (adds `QA_RESELLER_MULTI_
+                ADMIN`), attribution + display, single-admin cohort
+                fallback (retains `QA_ADMIN_EMAIL` + `QA_RESELLER_
+                ADMIN_EMAIL` for back-compat), and multi-admin
+                cohort per-variant overrides (seven `QA_RESELLER_
+                ADMIN_EMAIL_<VARIANT>` slots). Trailing paragraph
+                confirms each override slot is optional so hosts
+                that enable the gate without any override still get
+                a correctly wired seven-account cohort.
+
+      Design fidelity:
+        - Contract mirroring: §1 admin resolution flow, §5 cohort
+          gate name, and the env-var contract all match the shipped
+          seeder + fixture behaviour byte-for-byte (verified against
+          web/scripts/seed-qa-reseller.mjs:170-220 MULTI_ADMIN gate +
+          MULTI_ADMIN_EMAILS table, web/scripts/seed-test-users.mjs:
+          104-140 RESELLER_MULTI_ADMIN gate + MULTI_ADMIN_EMAILS
+          copy, and web/tests/e2e/fixtures/reseller.ts:296-360
+          DEFAULT_MULTI_ADMIN_EMAILS + VARIANT_ENV_SLOT +
+          resolveVariantAdminEmail).
+        - Back-compat callout: both narrative sections + the env-var
+          table preserve the QA_RESELLER_ADMIN_EMAIL / QA_ADMIN_EMAIL
+          single-cohort semantics so a host that ran the tick 132
+          seeder without the multi-admin gate keeps working exactly
+          as before this tick. This matches the seeders' actual
+          code paths (gate-OFF branch returns QA_ADMIN_EMAIL).
+        - Cross-references: §1 links to the collision-finding doc,
+          §5 links to fixtures/reseller.ts, and the header status
+          block calls out ticks 136/137/138 so a reader lands on the
+          exact commit / review_history entry for each of the four
+          Option A steps.
+        - Documentation only: no .mjs / .ts / .sql / .spec.ts files
+          land with this tick per the collision finding's Option A
+          step 4 scope. The design doc's "What this document is
+          NOT" clause (§406-417) still holds — no plan-delta, no
+          schema change, no implementation.
+
+      Verified:
+        - No tsc / vitest run this tick: the delta is pure docs (no
+          web/src/**, no web/tests/**, no web/supabase/migrations/**).
+          Both design docs live under docs/plans/ which is outside
+          the tsconfig include + vitest include globs.
+        - No DB apply this tick — documentation only.
+        - Design doc renders cleanly in the markdown preview surface;
+          all seven env override slot names in the §1 table match
+          the code exactly (grep VARIANT_ENV_SLOT +
+          MULTI_ADMIN_EMAILS across the three shipped files
+          confirmed no drift).
+        - Goal file version bumped 2026-07-23.138 → 2026-07-23.139.
+
+      Option A COMPLETE:
+        - Step 1 (seed-test-users.mjs) — tick 136 ✓
+        - Step 2 (seed-qa-reseller.mjs) — tick 137 ✓
+        - Step 3 (fixtures/reseller.ts) — tick 138 ✓
+        - Step 4 (design doc update)     — tick 139 ✓ (this tick)
+
+      The collision-finding resolution is now fully landed end-to-end.
+      Deferred spec-activation ticks (~50 rows across ~13 spec files)
+      can boot against a multi-admin-seeded host by exporting
+      QA_RESELLER_MULTI_ADMIN=1 before running both seeders and then
+      Playwright.
+
+      Frontier after tick 139: shape unchanged in terms of goal-file
+      phase status — Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision
+      seed STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE;
+      P10 still blocked_by [P1..P9] until P8.5 clears. What tick 139
+      unblocks: the Option A resolution plan is fully landed — no
+      remaining scaffold work between the fixture and the first
+      deferred spec activation on a multi-admin-seeded host. Next
+      autonomous tick options: (i) pick the first non-Stripe /
+      non-GST deferred spec row (e.g. create-startup
+      billing_model_not_wholesale against active_retail variant)
+      and activate it against the seeded cohort — requires the
+      seeders to have run with --reseller-multi-admin; (ii) author
+      a follow-up doc capturing the recommended order for the ~50
+      deferred rows so future ticks can burn through them
+      predictably; (iii) idle until human unblock on P8.5 or P1.5.
+    commit: (this tick)
+
   - tick: 138
     ran_at: 2026-07-22
     action: p10_option_a_step3_reseller_fixture_per_variant_admin_email
