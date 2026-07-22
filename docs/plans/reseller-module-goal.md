@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.104
+version: 2026-07-23.105
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,115 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 105
+    ran_at: 2026-07-22
+    action: p10_dry_run_admin_requests_patch_authz_playwright_spec
+    result: |
+      Composed option (i) from tick 104's frontier note — mirror-spec for PATCH
+      /api/admin/resellers/requests/[id] which shares the same requireAdmin()
+      chain as tick 103's admin-reseller-patch-authz.spec.ts but with a
+      different body shape (approve/deny/cancel enum) and a different
+      downstream fan-out (Stripe coupon mint for code_request approvals,
+      credit_balances + credit_transactions + reseller_credit_grants triple-
+      write for over_budget_approval approvals, status flip for
+      collateral_approval). Picked because it is the last admin PATCH surface
+      whose requireAdmin() gate is not yet regression-guarded at the Playwright
+      lens; symmetric to tick 103's shape so the two 401 branches share the
+      same { ok:false, reason:"no_user"|"not_admin" } envelope contract.
+
+      Files:
+        - web/tests/e2e/reseller/admin-requests-patch-authz.spec.ts (new — two
+          rows probing the auth chain before any params await, getSupabaseAdmin,
+          JSON parse, reseller_requests SELECT, validateAdminDecision, Stripe
+          coupon mint, or reseller_requests / credit_balances /
+          credit_transactions / reseller_credit_grants / reseller_promotion_codes
+          write:
+          (1) unauthenticated (PATCH with no session → getCurrentUser null →
+              requireAdmin throws AdminGateError("no_user") → 401
+              { ok:false, reason:"no_user" } at route.ts:50-51 BEFORE params
+              await, getSupabaseAdmin, JSON parse, reseller_requests SELECT,
+              validateAdminDecision, Stripe mint, or the approve/deny/cancel
+              UPDATE),
+          (2) non_admin (loginAs(qa-founder-1@blockid.au) → PATCH →
+              requireAdmin throws AdminGateError("not_admin") because
+              user.role !== "admin" and user.email !== ADMIN_EMAIL → 401
+              { ok:false, reason:"not_admin" } — same 401 status as row 1,
+              different reason, so a refactor that collapses the two branches
+              to a single "unauthorised" reason lights up on the next CI pass).
+          Row 1 runs unconditionally (no harness dep — just page.request without
+          loginAs). Row 2 test.skip()s with a diagnostic message if
+          /tmp/blockid-qa-accounts.txt is missing so operators without the seed
+          file get an actionable pointer rather than a hard fail. Placeholder id
+          "00000000-0000-0000-0000-000000000000" sits in the [id] segment for
+          URL well-formedness; both rows return BEFORE the params await runs
+          so the placeholder value never reaches
+          supabase.from("reseller_requests").eq("id", id).)
+
+      Why this shape mirrors tick 103: both routes use requireAdmin() from
+      web/src/lib/reseller/require-admin.ts and both emit
+      { ok:false, reason: AdminGateError.code } at HTTP 401 for BOTH the
+      no_user and not_admin branches. Symmetric envelope means a refactor that
+      swaps requireAdmin() for a bespoke inline check, or that collapses the
+      two 401 reasons into a single "unauthorised", or that flips the status
+      code to 403 lights up in both specs on the next `npx playwright test`
+      run. Distinct from tick 103 in ONE dimension only — the downstream
+      fan-out is much larger (Stripe coupon mint + promotion_code insert +
+      credit ledger triple-write) so the pre-write contract carries more
+      weight per assertion.
+
+      Why the 400/404/409/422/500/503 branches aren't covered: not_configured
+      (503) needs SUPABASE_URL/SERVICE_ROLE unset which would break every
+      other Playwright spec in the same worker. not_found (404) sits BEHIND
+      requireAdmin, needs an admin session PLUS an [id] that does not resolve.
+      validateAdminDecision (400 <reason> / 409 already_decided) needs an
+      admin session PLUS a real pending row PLUS an ill-formed body.
+      payload_incomplete (422) is on the approve branch for code_request rows
+      with non-finite tier_pct. All the 500 branches (reseller_read_failed,
+      existing_code_read_failed, promotion_code_insert_failed, credit ledger
+      insert failures, update_failed) need per-test tampering plan §J.2
+      forbids. Happy path (200) fires the real Stripe mint or credit ledger
+      triple-write; folded into the temp-reseller mint fixture follow-up
+      alongside the deferred rows from ticks 94..104.
+
+      Verified: tsc clean (npx tsc --noEmit -p tsconfig.json exit 0 at web/);
+      vitest unchanged (Playwright spec is not picked up by vitest —
+      tests/e2e/** is excluded per playwright.config.ts:testDir); npm run
+      lint:reseller: R-01 scanned 11 file(s), R-03 scanned 31 manifest
+      route(s); 3 exemptions, 0 violations unchanged (spec lives under
+      web/tests/e2e/reseller/, not /api/reseller/**, so R-01 doesn't fire;
+      not a mutation route in feature-gates.manifest.ts so R-03 doesn't
+      fire). Playwright not run this tick — row 1 is harness-free and will
+      execute on the next CI Playwright pass; row 2 lights up as soon as
+      the qa accounts file is present.
+
+      Frontier after tick 105: unchanged in shape — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20
+      ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears. What
+      tick 105 unblocks: the /api/admin/resellers/requests/[id] auth-chain
+      ordering (getCurrentUser → requireAdmin → 401 no_user | not_admin
+      BEFORE params await / getSupabaseAdmin / JSON parse /
+      reseller_requests SELECT / validateAdminDecision / Stripe mint /
+      credit ledger writes / reseller_requests UPDATE) is now regression-
+      guarded at the Playwright lens. Seventeen spec files now sit in
+      web/tests/e2e/reseller/ (admin-requests-patch-authz,
+      admin-reseller-patch-authz, attribution-timing, audit-anomaly-scan,
+      audit-log-writes, billing-authz, cobranding-pill, code-validate,
+      create-startup-validation, credit-grant-validation, drawer-authz,
+      me-attribution, reports-signed-url-authz, requests-validation,
+      reveal-email-authz, sandbox-setup-authz, scope-boundary). Both
+      admin-PATCH surfaces (resellers/[code] + resellers/requests/[id])
+      that share the requireAdmin() middleware now have symmetric dry-run
+      coverage. Next autonomous tick options: (i) mirror-spec for DELETE
+      /api/admin/resellers/[code] soft-delete which extends this spec's
+      auth pair to the terminate path; (ii) GET
+      /api/admin/resellers/requests list-side auth-chain (also
+      requireAdmin); (iii) landing the QA-mode temp-reseller mint fixture
+      that opens up all the deferred branches from ticks 94..105 at once
+      (larger tick, wants a design pass); (iv) idle until human unblock
+      arrives.
     commit: (this tick)
 
   - tick: 104
