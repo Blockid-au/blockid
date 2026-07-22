@@ -275,6 +275,17 @@ export interface TempResellerFixture {
   /** Only populated on `active_wholesale` — the attributed founder resolved
    *  via QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL. */
   attributedUserId: string | null;
+  /** True only when the seed script also planted a `reseller_attributions`
+   *  row (subject_user_id = attributedUserId, reseller_id = resellerId,
+   *  status='active'). False when the founder's `app_users` row exists but
+   *  the attribution row is missing (partial-seed hosts) — the fixture still
+   *  populates `attributedUserId` from the founder row so wave-2 row 145's
+   *  `attachAttributedCustomer()` can stamp the cache column, but wave-2
+   *  row 146+ specs that hit reseller-admin scope-boundary routes
+   *  (`/api/reseller/customers/[id]/drawer`, reveal-email, etc.) MUST skip
+   *  when this flag is false because `scopedReseller().allowedCustomerIds()`
+   *  reads from `reseller_attributions` and would return 403 not_in_scope. */
+  attributionExists: boolean;
   /** Only populated on `active_wholesale` — the attributed founder's email
    *  (env-resolved via QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL, fallback
    *  qa-founder-attributed-1@blockid.au). Wave-2 rows 145-149 use this to
@@ -447,6 +458,7 @@ export async function loadTempReseller(
   let attributedUserId: string | null = null;
   let attributedFounderEmail: string | null = null;
   let attributedProjectId: string | null = null;
+  let attributionExists = false;
   let promotionCodes: ReadonlyArray<TempResellerPromotionCode> = [];
 
   if (variant === "active_wholesale") {
@@ -474,6 +486,7 @@ export async function loadTempReseller(
         if (attr) {
           attributedUserId = (attr.subject_user_id as string | null) ?? null;
           attributedProjectId = (attr.subject_project_id as string | null) ?? null;
+          attributionExists = attributedUserId !== null;
         } else {
           // Row missing but user seeded — still surface the user_id so
           // attachAttributedCustomer() can toggle the cache column against
@@ -508,6 +521,7 @@ export async function loadTempReseller(
     attributedUserId,
     attributedFounderEmail,
     attributedProjectId,
+    attributionExists,
     promotionCodes,
     trackProjectForCleanup(projectId: string) {
       if (projectId && !projectsToClean.includes(projectId)) {

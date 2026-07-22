@@ -129,6 +129,21 @@ Prep cost: one tick to author the attributed-customer helper
 `app_users` upsert path in the fixture — then rows 145–149 each add
 2–3 assertions.
 
+**Wave-2 row 146 landed (tick 148).** Extended
+`TempResellerFixture` with `attributionExists: boolean` — true only when
+`loadTempReseller("active_wholesale")` confirmed the seeder also planted a
+`reseller_attributions` row (not just the founder's `app_users` row). Row
+146 (`drawer-authz.spec.ts`) skips when this flag is false because the
+drawer route calls `scopedReseller().allowedCustomerIds()` which reads
+from `reseller_attributions` — without the row, `decideReveal` returns
+403 `not_in_scope`, which would false-fail as a code regression rather
+than surface the seeder gap. Row 146 assertions cover the four-key
+envelope (`overview`, `progression`, `svi_curve`, `reports`) plus the
+signup event that the drawer always synthesises from `app_users.created_at`.
+Rows 147–149 sit in different files (drawer-validation, reveal-email-authz,
+reveal-email-validation) so cannot be collapsed per the batching heuristic
+but reuse the same `attributionExists` guard.
+
 **Wave-2 helper landed (tick 147).** Row 145 was activated in the same
 tick that added the helper to `web/tests/e2e/fixtures/reseller.ts`:
 `TempResellerFixture.attachAttributedCustomer()` stamps the cache column

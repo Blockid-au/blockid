@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.147
+version: 2026-07-23.148
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,140 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 148
+    ran_at: 2026-07-22
+    action: p10_wave2_row_146_activate_drawer_authz_happy_and_extend_fixture_attribution_flag
+    result: |
+      Opened wave 2 row 146 per
+      docs/plans/p10-deferred-spec-activation-order.md. Two things landed in
+      the same tick — a small fixture extension the row required
+      (attributionExists boolean) and row 146 itself (drawer-authz.spec.ts
+      × active_wholesale × happy → 200 with overview + progression +
+      svi_curve + reports).
+
+      Design correction lodged inline in the schedule doc: TempResellerFixture
+      surfaced attributedUserId whether reseller_attributions was seeded or
+      not (fallback populates from the founder's app_users row so wave-2 row
+      145's attachAttributedCustomer can stamp the cache column). That is
+      fine for row 145 (/me reads app_users.attribution_reseller_id) but
+      breaks row 146: the drawer route uses scopedReseller().allowedCustomerIds
+      which SELECTs reseller_attributions — without the row, decideReveal
+      returns 403 not_in_scope and the spec would false-fail as a code
+      regression rather than skip cleanly as "seeders were not re-run".
+      Rather than burn one tick on the flag alone and a second tick on the
+      row, both landed together with a "Wave-2 row 146 landed (tick 148)"
+      callout appended to the schedule doc explaining the join.
+
+      Files:
+        - web/tests/e2e/fixtures/reseller.ts (+ attributionExists: boolean on
+          TempResellerFixture — true only when loadTempReseller confirmed
+          the seed script planted a reseller_attributions row for the
+          active_wholesale variant; false when the fallback branch populated
+          attributedUserId from the founder's app_users row alone; interface
+          docstring pins the drawer/reveal-email contract so wave-2 rows
+          147-149 also consume the same guard).
+        - web/tests/e2e/reseller/drawer-authz.spec.ts (adds new describe
+          block "P10 wave-2 happy path" holding row 146; skeleton mirrors
+          wave-1 verbatim — try/catch around loadTempReseller, guard on
+          fixture + adminUserId + attributedUserId + attributionExists,
+          try/catch around loginAs; oracle asserts body.ok true + body.overview
+          shape (masked_email contains @ and *, signup_at string,
+          credits_balance numeric) + body.progression is a non-empty array
+          whose first entry.kind === "signup" (the drawer synthesises this
+          from app_users.created_at even for founders with zero SVI runs, so
+          an empty array would signal a route regression) + svi_curve and
+          reports are arrays (may be empty for a zero-analysis founder but
+          MUST be arrays); "Deliberately out of scope" comment updated —
+          happy-path branch flipped from folded/deferred to ACTIVATED with
+          pointer at the new test).
+        - docs/plans/p10-deferred-spec-activation-order.md ("Wave-2 row 146
+          landed (tick 148)" paragraph appended above the tick 147 note
+          explaining the attributionExists flag rationale and confirming
+          rows 147-149 reuse the same guard).
+
+      Design fidelity:
+        - Flag vs seed-script edit: chose the fixture flag over widening
+          the seed script's contract or adding a fixture assertion helper.
+          Alternative — a "loadTempResellerStrict()" variant that hard-fails
+          when the attribution row is missing — would have created a second
+          fixture surface for the same variant and violated the "seed script
+          owns writes / fixture reads only" contract inherited from ticks
+          128-140. The boolean flag stays inside the read layer.
+        - Skip discipline mirrors wave-1: fixture null → skip; adminUserId
+          null → skip (scopedReseller would 403 no_membership before the
+          drawer body assembles); attributedUserId null → skip;
+          attributionExists false → skip (would 403 not_in_scope from
+          allowedCustomerIds); loginAs throw → skip. Single-admin hosts /
+          hosts that skipped QA_RESELLER_MULTI_ADMIN=1 land as test.skip
+          rather than 403 no_membership per the schedule doc's "Failure
+          protocol" § — same posture as ticks 141-147.
+        - Route contract pinned: assert body.overview.{masked_email,
+          signup_at, credits_balance} + body.progression[0].kind === "signup"
+          + Array.isArray on svi_curve + reports. Did NOT pin plan_label /
+          mrr_aud_cents because the seeded founder has no revenue_events row
+          so those default to null / 0 — a future change that starts
+          populating them for QA founders would surface on a shape-only
+          assertion; the drawer synthesis contract is captured by the
+          synthesis rules in customer-drawer.ts. Did NOT pin the full
+          progression payload for the same reason: the "signup" event is
+          guaranteed by the code path (route.ts:144 → buildProgressionTimeline
+          → out.push({kind:"signup"...}) at line 122-126) but subsequent
+          entries depend on SVI/revenue/credit state that the seed script
+          does not stamp for the attributed founder.
+        - Non-Stripe / non-GST discipline: the drawer route reads app_users
+          + svi_analyses + revenue_events + credit_transactions +
+          credit_balances and writes one reseller_audit_log row. No
+          promotion_code lookup, no Stripe network call, no InfoVision
+          dependency. P8.5 + P1.5 remain neither a dependency nor a
+          consequence. The audit-log write side-effect is captured by wave-5
+          row 179 (audit-log-writes.spec.ts) so this row focuses on the
+          read envelope.
+        - Batching heuristic: row 146 is the only wave-2 row in
+          drawer-authz.spec.ts (rows 147-149 sit in drawer-validation.spec.
+          ts / reveal-email-authz.spec.ts / reveal-email-validation.spec.ts),
+          so the "same file with the same variant" clause does not permit
+          further collapse. The attributionExists flag WAS collapsed into
+          the same tick as row 146 rather than shipping alone in tick 148
+          — see the design-correction note above; the schedule doc's
+          "Wave-2 row 146 landed" callout preserves the accounting so a
+          reader sees the join.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0, no output).
+          The attributionExists field type-checks against every existing
+          TempResellerFixture consumer (row 145 spec unchanged — its guard
+          on !fixture.attributedUserId still covers the "founder not
+          seeded" case; the new field is additive).
+        - `npx vitest run src/lib/reseller/ src/lib/feature-gate.test.ts
+          src/lib/entitlements.test.ts` in web/: 31 files / 462 tests pass
+          (2.13s, identical to tick 147 — no pure-lib code touched, only
+          the Playwright fixture + spec).
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 documented exemptions, 0
+          violations — unchanged from tick 147 (the spec is not under
+          /api/reseller/** for the R-01 grep and the fixture is not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - No DB apply this tick — pure fixture code + test-file addition
+          + design-doc edit.
+        - Goal file version bumped 2026-07-23.147 → 2026-07-23.148.
+
+      Frontier after tick 148: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision seed
+      STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE; P10 still
+      blocked_by [P1..P9] until P8.5 clears. What tick 148 unblocks: row
+      146 lit up in CI on the next `npx playwright test` run — closes the
+      first half of the drawer surface. Row 147 (drawer-validation.spec.ts
+      × active_wholesale × uuid_in_scope + happy) sits next in the wave-2
+      queue and reuses the same attributionExists guard so it will land as
+      a lightweight paste. Next autonomous tick options:
+        (i) advance to wave 2 row 147 (drawer-validation.spec.ts ×
+            active_wholesale × uuid_in_scope + happy 200) — reuses
+            attributionExists + adminEmail + adds one assertion for the
+            uuid_in_scope decideReveal branch;
+        (ii) advance to wave 2 row 148 (reveal-email-authz.spec.ts ×
+             active_wholesale × happy 200 with plaintext email + audit-log
+             side effect) — same guards, different route surface;
+        (iii) idle until human unblock arrives on P8.5 or P1.5.
   - tick: 147
     ran_at: 2026-07-22
     action: p10_wave2_row_145_activate_me_attribution_happy_and_ship_helper
