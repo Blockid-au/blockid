@@ -1,8 +1,23 @@
 # P10 temp-reseller mint fixture — design pass
 
-**Status.** Design-only. No code lands with this document. Consumed by a
-follow-up implementation tick once the design is approved (or once P8.5
-Stripe env + P1.5 H.20 ABN/GST unblock, whichever comes first).
+**Status.** Design updated to reflect the seven-account cohort landed by
+the Option A resolution of the `scopedReseller()` `.maybeSingle()`
+collision finding (see
+`docs/plans/p10-temp-reseller-admin-scope-collision-finding.md`).
+
+- Option A step 1 (`seed-test-users.mjs` seven `app_users` rows behind
+  `--reseller-multi-admin` / `QA_RESELLER_MULTI_ADMIN=1`) shipped tick 136.
+- Option A step 2 (`seed-qa-reseller.mjs` per-variant `resolveVariantAdmin()`
+  behind the same gate) shipped tick 137.
+- Option A step 3 (`fixtures/reseller.ts` `TempResellerFixture.adminEmail`
+  + `resolveVariantAdminEmail()` mirror) shipped tick 138.
+- Option A step 4 (THIS design-doc update) shipped this tick.
+
+The remaining follow-up ticks (Playwright spec activation against the
+seeded cohort) are still gated on P8.5 Stripe env + P1.5 H.20 ABN/GST for
+the Stripe-mint / GST-reconciliation happy paths, but the non-Stripe /
+non-GST rows can begin activation any time a host runs both seeders with
+the multi-admin gate ON.
 
 **Scope owner.** Track A P10_hardening — Playwright E2E surface.
 
@@ -208,8 +223,35 @@ so a route that hits the fixture cannot collide with `INFOVISION`,
 
 **Downstream inserts per variant.**
 
-- `reseller_admins(user_id=<QA_RESELLER_ADMIN_EMAIL user id>, role='admin')`
-  on every variant so `scopedReseller()` resolves.
+- `reseller_admins(user_id=<per-variant admin user id>, role='admin')` on
+  every variant so `scopedReseller()` resolves. The user id is resolved by
+  `resolveVariantAdmin(variantName)` in `seed-qa-reseller.mjs`, which:
+    1. When the multi-admin gate is ON
+       (`--reseller-multi-admin` or `QA_RESELLER_MULTI_ADMIN=1`), looks up
+       the per-variant email from an override env var
+       (`QA_RESELLER_ADMIN_EMAIL_<VARIANT>`, upper-snake), falling back to
+       the hard-coded `MULTI_ADMIN_EMAILS` slot in the table below.
+    2. When the multi-admin gate is OFF, falls back to `QA_ADMIN_EMAIL` so
+       every variant collapses to a single admin — matching the tick 132
+       single-account cohort semantics.
+
+  Multi-admin cohort (default under `--reseller-multi-admin`):
+
+  | variant | admin email (default) | env override slot |
+  | --- | --- | --- |
+  | `active_wholesale` | `qa-reseller-wholesale-active@blockid.au` | `QA_RESELLER_ADMIN_EMAIL_ACTIVE_WHOLESALE` |
+  | `active_retail` | `qa-reseller-retail-active@blockid.au` | `QA_RESELLER_ADMIN_EMAIL_ACTIVE_RETAIL` |
+  | `paused` | `qa-reseller-paused@blockid.au` | `QA_RESELLER_ADMIN_EMAIL_PAUSED` |
+  | `terminated` | `qa-reseller-terminated@blockid.au` | `QA_RESELLER_ADMIN_EMAIL_TERMINATED` |
+  | `no_capability` | `qa-reseller-no-cap@blockid.au` | `QA_RESELLER_ADMIN_EMAIL_NO_CAPABILITY` |
+  | `tier_only_zero` | `qa-reseller-tier-zero@blockid.au` | `QA_RESELLER_ADMIN_EMAIL_TIER_ONLY_ZERO` |
+  | `no_budget` | `qa-reseller-no-budget@blockid.au` | `QA_RESELLER_ADMIN_EMAIL_NO_BUDGET` |
+
+  The multi-admin cohort mirrors production semantics: any given
+  `app_users` row is a member of at most ONE reseller, so
+  `scopedReseller()`'s `.maybeSingle()` invariant on the
+  `reseller_admins` lookup does not collide (see
+  `docs/plans/p10-temp-reseller-admin-scope-collision-finding.md`).
 - `reseller_promotion_codes(reseller_id, tier_pct, code=<code>_T<tier>,
   active=true)` on `active_wholesale` for tiers 20 + 40 so the happy path
   can drive a real coupon.
@@ -334,15 +376,38 @@ await supabase.storage.from("reseller-reports").upload(
 ### 5. QA account seeder delta
 
 **File.** `web/scripts/seed-test-users.mjs` — appended with a
-`reseller_admin` segment so `qa-reseller-1@blockid.au` gets an
-`app_users.role='founder'` (regular user) AND a
-`reseller_admins(reseller_id=<QA-PROBE-WHOLESALE-ACTIVE>, role='admin')`
-mirror. This is the row that `scopedReseller()` consumes.
+`reseller_admin` segment. Two cohort modes gated by the same flag as
+`seed-qa-reseller.mjs`:
+
+- **Single-admin cohort (default).** `qa-reseller-1@blockid.au` gets an
+  `app_users.role='founder'` (regular user) AND is available to be mirrored
+  onto every variant's `reseller_admins` row via `QA_ADMIN_EMAIL`. Preserved
+  for backwards compatibility with the tick 132 seeder contract; usable
+  only when the fixture consumer is a spec that logs into a single variant
+  per test-run (specs that switch variants across a run trip the
+  `scopedReseller()` `.maybeSingle()` collision).
+
+- **Multi-admin cohort (`--reseller-multi-admin` or
+  `QA_RESELLER_MULTI_ADMIN=1`).** Mints SEVEN `app_users` rows — one per
+  variant email in the table above — each with `role='founder'`.
+  `seed-qa-reseller.mjs` then mirrors each variant's admin row onto that
+  variant's app_user id via `resolveVariantAdmin(variantName)`. This is
+  the cohort required to activate the ~50 deferred HAPPY-PATH /
+  downstream-reason rows because it aligns with production semantics
+  (any `app_users` row is a member of at most ONE reseller) so
+  `scopedReseller()` never trips PGRST116.
 
 Additionally, one attributed founder (`qa-founder-attributed-1@blockid.au`)
 gains an `app_users.attribution_reseller_id=<QA-PROBE-WHOLESALE-ACTIVE>`
 stamp so the co-branding pill spec keeps working with the fixture instead
 of a hand-seeded reseller.
+
+The Playwright fixture at `web/tests/e2e/fixtures/reseller.ts` exposes the
+resolved per-variant admin email as `TempResellerFixture.adminEmail` via
+`resolveVariantAdminEmail(variant)`, which mirrors
+`resolveVariantAdmin()` dispatch order verbatim. Specs
+`loginAs(page, fixture.adminEmail)` per variant so each variant hits a
+DISTINCT `app_users` row.
 
 ## Env-var contract
 
@@ -350,15 +415,38 @@ The follow-up tick documents these in `web/tests/e2e/README.md` and in
 `web/tests/e2e/fixtures/reseller.ts` skip messages:
 
 ```
+# Gate flags
 QA_TEMP_RESELLER_ENABLED           = "1"  # gates all fixture-driven specs
-QA_RESELLER_ADMIN_EMAIL            = qa-reseller-1@blockid.au
+QA_RESELLER_MULTI_ADMIN            = "1"  # gates the per-variant admin cohort in
+                                          #   seed-test-users.mjs + seed-qa-reseller.mjs
+                                          #   + fixtures/reseller.ts (required to
+                                          #   activate deferred HAPPY-PATH rows).
+
+# Attribution + display
 QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL = qa-founder-attributed-1@blockid.au
 QA_RESELLER_ATTRIBUTED_CUSTOMER_ID = <resolved after seed>
 QA_RESELLER_ATTRIBUTED_PROJECT_ID  = <resolved after seed>
 QA_RESELLER_DISPLAY_NAME           = "QA Probe Wholesale (Active)"
 QA_RESELLER_CODE                   = QAPROBEWHOLESALEACTIVE20
+
+# Single-admin cohort fallback (multi-admin gate OFF)
 QA_ADMIN_EMAIL                     = qa-admin-1@blockid.au
+QA_RESELLER_ADMIN_EMAIL            = qa-reseller-1@blockid.au
+
+# Multi-admin cohort per-variant overrides (multi-admin gate ON)
+QA_RESELLER_ADMIN_EMAIL_ACTIVE_WHOLESALE = qa-reseller-wholesale-active@blockid.au
+QA_RESELLER_ADMIN_EMAIL_ACTIVE_RETAIL    = qa-reseller-retail-active@blockid.au
+QA_RESELLER_ADMIN_EMAIL_PAUSED           = qa-reseller-paused@blockid.au
+QA_RESELLER_ADMIN_EMAIL_TERMINATED       = qa-reseller-terminated@blockid.au
+QA_RESELLER_ADMIN_EMAIL_NO_CAPABILITY    = qa-reseller-no-cap@blockid.au
+QA_RESELLER_ADMIN_EMAIL_TIER_ONLY_ZERO   = qa-reseller-tier-zero@blockid.au
+QA_RESELLER_ADMIN_EMAIL_NO_BUDGET        = qa-reseller-no-budget@blockid.au
 ```
+
+Each per-variant override slot is optional; when unset the seeders and
+fixture fall back to the hard-coded default in the §1 table so a host that
+enables the multi-admin gate without setting any override still gets a
+correctly wired seven-account cohort.
 
 The follow-up tick's `seed-qa-reseller.mjs` prints the resolved
 `QA_RESELLER_ATTRIBUTED_CUSTOMER_ID` + `QA_RESELLER_ATTRIBUTED_PROJECT_ID`
