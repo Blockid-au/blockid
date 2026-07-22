@@ -2561,6 +2561,117 @@ review_history:
       tick per CDO rec #2).
     commit: (this tick)
 
+  - tick: 96
+    ran_at: 2026-07-22
+    action: p10_dry_run_requests_validation_playwright_spec
+    result: |
+      Third P10 dry-run Playwright spec in the tick 94/95 series. Tick 94
+      covered POST /api/reseller/create-startup input validation and tick 95
+      covered POST /api/reseller/credits/grant. This tick covers the third
+      reseller-admin mutation endpoint P9.3 shipped — POST
+      /api/reseller/requests (admin-approval queue: code_request /
+      over_budget_approval / collateral_approval) — via a parametrised
+      spec that self-skips at describe-scope until QA harness provisions.
+      Small, orthogonal to the P8.5 / P1.5 human-blocked leaves, and adds
+      regression coverage for the pre-DB-write validator branches so a
+      refactor that reorders validateResellerRequestBody's gates or drops
+      the reason literals from the route response envelope lights up in
+      CI before it can leak a reseller_requests INSERT or a
+      reseller_audit_log(file_request) row.
+
+      Files:
+        - web/tests/e2e/reseller/requests-validation.spec.ts (new — six
+          parametrised test rows probing the reseller_state-independent
+          branches of validateResellerRequestBody / route.ts:
+          (1) invalid_payload (non-JSON body → 400 at request.json() catch
+          → null),
+          (2) invalid_request_type (request_type outside the three-value
+          enum → 400 at the dispatcher),
+          (3) code_request invalid_tier_pct (tier=99 → 400 at
+          validateCodeRequest's ALLOWED_TIER_VALUES.has check),
+          (4) code_request suffix_bad_format ("bad suffix!" → 400 at
+          SUFFIX_RE.test),
+          (5) collateral_approval collateral_url_required (http:// URL
+          → 400 at HTTPS_URL_RE.test),
+          (6) collateral_approval purpose_required (https URL ok but blank
+          purpose → 400 at the purpose check).
+          Every row returns before the reseller_requests INSERT fires,
+          so the spec is safe against staging with zero queue pollution
+          and no reseller_audit_log row. Describe-scope skip via
+          loadResellerHarness() — same posture as create-startup-validation
+          / credit-grant-validation / audit-log-writes / audit-anomaly-scan
+          / attribution-timing / cobranding-pill / scope-boundary specs.
+
+      Why only these six branches, not the eleven-strong validator set:
+      tier_not_allowed needs a reseller with allowed_tiers that excludes
+      the probe tier — the default InfoVision seed carries [0,10,20,30,40]
+      so no tier value can trip it without a bespoke reseller mint.
+      capability_disabled (over_budget_approval half) needs
+      can_grant_credits=false on the reseller row; the QA harness
+      assumes wholesale admin with can_grant_credits=true.
+      target_user_id_required and invalid_amount both sit BEHIND
+      capability_disabled in the over_budget_approval gate order — even
+      with a can_grant_credits=true reseller, the assertion is only
+      deterministic when we can confirm the reseller's actual column
+      state, which is a per-test seeding requirement plan §J.2 forbids.
+      duplicate_pending_code_request (409 branch) needs a pre-existing
+      pending code_request row for the same reseller — same per-test
+      seeding constraint. Tracked as follow-up alongside the
+      decideCreateStartup + decideGrant downstream rows deferred by
+      ticks 94/95, all of which unblock when the temp-reseller mint
+      fixture lands.
+
+      Deliberately out of scope for this tick:
+        - Happy-path spec (201 reseller_requests INSERT end-to-end) —
+          would fire a real INSERT + reseller_audit_log(file_request)
+          write against the harness reseller, needs opt-in guarding +
+          cleanup semantics (DELETE the row + audit entry after each
+          test). Belongs to a dedicated tick that also lands the
+          temp-reseller mint fixture.
+        - Assertion of the reseller_audit_log row shape after a 201 —
+          same reason as above; also already covered indirectly by
+          audit-log-writes.spec.ts (drawer view + reveal-email rows).
+        - GET /api/reseller/requests coverage — read-only endpoint that
+          scopes by reseller_id, no input validation to probe; belongs
+          to a scope-boundary follow-up tick that also picks up the
+          admin-side /api/admin/resellers/requests list + PATCH pair.
+
+      Verified: file authored per identical shape to
+      credit-grant-validation.spec.ts + create-startup-validation.spec.ts
+      (parametrised ValidationCase array driven through a shared for-loop
+      body). Playwright not run — spec self-skips at describe-scope when
+      QA_RESELLER_ATTRIBUTED_CUSTOMER_ID is unset (current CI state).
+      Spec lives under web/tests/e2e/reseller/, not /api/reseller/**, so
+      R-01 doesn't fire; not a mutation route in
+      feature-gates.manifest.ts so R-03 doesn't fire — lint:reseller
+      unchanged from tick 95 (R-01 11 files + R-03 31 manifest routes,
+      3 exemptions, 0 violations).
+
+      Frontier after tick 96: unchanged in shape — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 96 unblocks: the /api/reseller/requests pre-INSERT
+      validator ordering is now regression-guarded at the Playwright
+      lens — a refactor that swaps the code_request / over_budget_approval
+      / collateral_approval dispatch order or drops the reason literals
+      from the route response envelope lights up in CI the instant the
+      reseller harness provisions. Eight spec files now sit in
+      web/tests/e2e/reseller/ (attribution-timing, audit-anomaly-scan,
+      audit-log-writes, cobranding-pill, create-startup-validation,
+      credit-grant-validation, requests-validation, scope-boundary) —
+      the P10 Playwright surface keeps shrinking one authored row at a
+      time. Next autonomous tick options: (i) POST
+      /api/reseller/sandbox/setup dry-run spec (only three gates:
+      insufficient_role / reseller_missing / not_configured — narrow but
+      complete-able); (ii) POST /api/reseller/code/validate dry-run spec
+      (unauthenticated public lookup, easy to cover the missing_code /
+      code_not_found / code_inactive branches without a harness at all);
+      (iii) landing the QA-mode temp-reseller mint fixture that opens up
+      all the deferred branches from ticks 94/95/96 at once (larger tick,
+      wants a design pass); (iv) idle until human unblock arrives.
+    commit: (this tick)
+
   - tick: 95
     ran_at: 2026-07-22
     action: p10_dry_run_credit_grant_validation_playwright_spec
