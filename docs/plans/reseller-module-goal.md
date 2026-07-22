@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.141
+version: 2026-07-23.142
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,113 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 142
+    ran_at: 2026-07-22
+    action: p10_wave1_option_a_reseller_admin_bundle
+    result: |
+      Landed Option A from tick 141's finding #2 — the three-file edit
+      that unblocks Playwright wave 1..3 rows (docs/plans/p10-deferred-
+      spec-activation-order.md 141..156) without waiting on plans.csv
+      restoration or a 0074 delta migration.
+
+      Files:
+        - web/src/lib/entitlements.ts (LEGACY_FEATURE_FALLBACK gained a
+          reseller_admin entry carrying [reseller.console,
+          reseller.create_startup, reseller.grant_credits]; comment
+          cross-references docs/plans/p10-wave1-preflight-finding.md so
+          the next reader lands on the rationale. resolvePlanId +
+          getEntitlements untouched — reseller_admin is not in
+          LEGACY_PLAN_MAP so it passes through resolvePlanId unmodified,
+          matching what the seeder stamps.)
+        - web/scripts/seed-test-users.mjs (upsertResellerFixtureUser now
+          accepts an optional `plan` param defaulting to "free"; existing-
+          row branch also stamps plan when it drifts, so a host with the
+          old fixture rows picks up plan="reseller_admin" on the next
+          seeder run without a manual DB edit. Three call sites updated:
+          RESELLER_ADMIN_EMAIL + every MULTI_ADMIN_EMAILS variant get
+          plan="reseller_admin"; RESELLER_ATTRIBUTED_EMAIL stays on
+          plan="free". Log messages carry the plan token so the seeder
+          output is auditable at run-time.)
+        - web/src/lib/entitlements.test.ts (new — 6 vitest cases: DB-miss
+          returns the bundle, DB-hit overrides, DB-throw falls back,
+          can() green-lights reseller.create_startup, can() denies
+          cap_table.write to reseller_admin, can() denies reseller.*
+          to founder_free. Mock pattern mirrors projects.test.ts —
+          server-only + supabase + plans-db all stubbed so the pure
+          decision layer runs without I/O.)
+
+      Design fidelity:
+        - Bundle contents match the reseller.* Feature literals already
+          declared at web/src/lib/entitlements.ts:71-74 (reseller.console,
+          reseller.create_startup, reseller.grant_credits) so no new
+          Feature literal is introduced by this tick. Every Feature name
+          on the bundle is grep-verified against the manifest
+          web/src/lib/feature-gates.manifest.ts and matches one of the
+          three reseller mutation routes there (grant + sandbox setup +
+          — via a future P6.6b — create-startup).
+        - The plan token "reseller_admin" is intentionally NOT added to
+          LEGACY_PLAN_MAP. LEGACY_PLAN_MAP rewrites incoming legacy plan
+          IDs into their v2 canonical form; reseller_admin has no legacy
+          predecessor and is itself the canonical name, so a pass-through
+          resolve is correct. This mirrors how founder_* plans behave
+          when they are already canonical.
+        - Isolation: the reseller_admin bundle does NOT include any
+          founder-track features (no cap_table.*, no data_room.*, no
+          esop.manage, no share_management). A reseller admin cannot
+          accidentally gain founder capabilities via the bundle — they
+          would still need a separate paid subscription. Test #5 in the
+          new suite pins this invariant so a future maintainer who
+          copy-pastes founder-track lines into the bundle immediately
+          fails CI.
+        - Seed script now updates rows in-place when the plan drifts so
+          the P10 fixture cohort re-hydrates on any host that ran the
+          older seeder. The `plan` column already exists on app_users
+          (present since 0007), so no migration accompanies this change.
+        - Non-Stripe / non-GST discipline: the change touches no Stripe
+          SDK call, no GST reconciliation lib, no invoice.total_taxes
+          consumer. P8.5 (STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL)
+          and P1.5 (H.20 InfoVision ABN/GST) remain human-blocked and
+          are neither dependencies nor consequences of this tick.
+
+      Verified:
+        - tsc -p . --noEmit: clean (exit 0, no output).
+        - npx vitest run src/lib/entitlements.test.ts: 6/6 pass, 286ms.
+        - Broader guard-rail run: npx vitest run src/lib/entitlements.
+          test.ts src/lib/feature-gate.test.ts src/lib/reseller/ :
+          31 files / 462 tests all pass (was 355 last recorded in B8/B9
+          notes; the delta = 62 test cases added across ticks 45..54 +
+          the new 6 here + a handful of gate/reseller-lint expansions
+          during ticks 55..141 that landed alongside route changes).
+        - npm run lint:reseller: R-01 scanned 11 files, R-03 scanned 31
+          manifest routes, 3 documented exemptions, 0 violations —
+          identical shape to tick 141's baseline.
+        - No DB apply this tick — entitlements.ts is a pure lookup lib
+          and the seeder edit runs at seed-time, not at deploy-time.
+          Hosts must re-run `node web/scripts/seed-test-users.mjs` (with
+          QA_RESELLER_MULTI_ADMIN=1 for the wave-1 cohort) to pick up
+          the plan="reseller_admin" stamp on the seven qa-reseller-<
+          variant>@blockid.au rows; the run itself is human-triggered
+          per the same seeder ergonomics as tick 141.
+        - Goal file version bumped 2026-07-23.141 → 2026-07-23.142.
+
+      Frontier after tick 142: shape unchanged in terms of goal-file
+      phase status — Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision
+      seed STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE;
+      P10 still blocked_by [P1..P9] until P8.5 clears. What tick 142
+      unblocks: the LEGACY_FEATURE_FALLBACK reseller_admin bundle
+      means every reseller mutation route now green-lights on the
+      wave-1..3 QA rows once the seeder has been re-run; the design-
+      time sentinel that would have failed rows 141..156 with a 402 at
+      gateRequireFeature is gone. Next autonomous tick options:
+        (i) activate row 141 (create-startup-authz.spec.ts × active_
+            retail × billing_model_not_wholesale) — Option A + the
+            active_retail seed flip from tick 141 are both landed, so
+            the row's assertion can flip from test.skip to a real
+            expect(400) check;
+        (ii) idle until human unblock arrives on P8.5 or P1.5.
+    commit: (this tick)
+
   - tick: 141
     ran_at: 2026-07-22
     action: p10_wave1_preflight_finding_and_seed_flip
