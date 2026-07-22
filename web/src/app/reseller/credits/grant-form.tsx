@@ -9,9 +9,16 @@
 // reason=over_budget_requires_approval — we surface a persistent notice
 // telling the reseller the request has to be approved out-of-band by a
 // BlockID admin (P9.3 requests inbox is still pending).
+//
+// EN+VI parity per Customer-Success advisory §24. VI copy is real
+// translation, not a machine-translation stub; uses the shared useLocale()
+// cookie so it stays in sync with the rest of the workspace surface
+// (customer-drawer, product-tour banner, share-mgmt drawer, guide chapters).
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+
+import { useLocale, type Locale } from "@/lib/use-locale";
 
 interface CustomerOption {
   user_id: string;
@@ -45,14 +52,112 @@ type SubmitState =
 
 const REASON_MAX = 200;
 
+interface Copy {
+  no_customers_prefix: string;
+  no_customers_link_label: string;
+  no_customers_suffix: string;
+  label_customer: string;
+  select_placeholder: string;
+  label_amount: string;
+  remaining_budget: (n: string) => string;
+  label_reason: string;
+  reason_placeholder: string;
+  submit_idle: string;
+  submit_busy: string;
+  amount_invalid: string;
+  success_prefix: string;
+  success_middle: string;
+  success_suffix_credits: string;
+  success_remaining: (n: string) => string;
+  success_over_budget_note: string;
+  over_budget_title: string;
+  over_budget_body: (n: string) => string;
+  over_budget_request_submitted: (short: string) => string;
+  over_budget_request_admin: string;
+  over_budget_requesting: string;
+  over_budget_or_email: string;
+  request_failed: (m: string) => string;
+  grant_failed: (m: string) => string;
+}
+
+const COPY: Record<Locale, Copy> = {
+  en: {
+    no_customers_prefix:
+      "No attributed customers yet — share your reseller code first (see ",
+    no_customers_link_label: "/reseller/codes",
+    no_customers_suffix: ") then return here to grant credits.",
+    label_customer: "Customer",
+    select_placeholder: "Select an attributed customer…",
+    label_amount: "Credits (positive integer)",
+    remaining_budget: (n) => `Remaining budget this month: ${n}`,
+    label_reason: "Reason (optional)",
+    reason_placeholder: "e.g. onboarding bonus, incident makegood",
+    submit_idle: "Grant credits",
+    submit_busy: "Granting…",
+    amount_invalid: "Amount must be a positive whole number.",
+    success_prefix: "Granted successfully. Customer balance is now ",
+    success_middle: " ",
+    success_suffix_credits: "credits.",
+    success_remaining: (n) => `Remaining monthly budget: ${n}.`,
+    success_over_budget_note: " (This grant was approved as over-budget.)",
+    over_budget_title: "Over-budget approval required.",
+    over_budget_body: (n) =>
+      `This grant would push you past your monthly credit budget. Only ${n} credits remain this month. Submit an approval request for the BlockID admin to review, or reduce the amount to fit the remaining budget.`,
+    over_budget_request_submitted: (short) =>
+      `Request submitted (${short}). You'll be notified once an admin decides.`,
+    over_budget_request_admin: "Request admin approval",
+    over_budget_requesting: "Submitting…",
+    over_budget_or_email: "or email admin@blockid.au",
+    request_failed: (m) => `Request failed: ${m}`,
+    grant_failed: (m) => `Grant failed: ${m}`,
+  },
+  vi: {
+    no_customers_prefix:
+      "Chưa có khách hàng nào được ghi nhận — hãy chia sẻ mã đại lý trước (xem ",
+    no_customers_link_label: "/reseller/codes",
+    no_customers_suffix: ") rồi quay lại đây để cấp tín dụng.",
+    label_customer: "Khách hàng",
+    select_placeholder: "Chọn một khách hàng đã ghi nhận…",
+    label_amount: "Tín dụng (số nguyên dương)",
+    remaining_budget: (n) => `Ngân sách còn lại tháng này: ${n}`,
+    label_reason: "Lý do (tuỳ chọn)",
+    reason_placeholder: "ví dụ: thưởng khởi tạo, đền bù sự cố",
+    submit_idle: "Cấp tín dụng",
+    submit_busy: "Đang cấp…",
+    amount_invalid: "Số lượng phải là số nguyên dương.",
+    success_prefix: "Cấp thành công. Số dư khách hàng hiện là ",
+    success_middle: " ",
+    success_suffix_credits: "tín dụng.",
+    success_remaining: (n) => `Ngân sách tháng còn lại: ${n}.`,
+    success_over_budget_note:
+      " (Khoản cấp này được duyệt vượt ngân sách.)",
+    over_budget_title: "Cần phê duyệt vượt ngân sách.",
+    over_budget_body: (n) =>
+      `Khoản cấp này sẽ vượt ngân sách tín dụng tháng của bạn. Chỉ còn ${n} tín dụng trong tháng. Hãy gửi yêu cầu phê duyệt cho quản trị viên BlockID, hoặc giảm số lượng cho vừa ngân sách còn lại.`,
+    over_budget_request_submitted: (short) =>
+      `Đã gửi yêu cầu (${short}). Bạn sẽ được thông báo khi quản trị viên quyết định.`,
+    over_budget_request_admin: "Yêu cầu quản trị viên phê duyệt",
+    over_budget_requesting: "Đang gửi…",
+    over_budget_or_email: "hoặc gửi email tới admin@blockid.au",
+    request_failed: (m) => `Yêu cầu thất bại: ${m}`,
+    grant_failed: (m) => `Cấp tín dụng thất bại: ${m}`,
+  },
+};
+
 function labelFor(c: CustomerOption): string {
   const name = c.display_name?.trim();
   if (name) return `${name} (${c.masked_email})`;
   return c.masked_email;
 }
 
+function fmtNum(n: number, locale: Locale): string {
+  return new Intl.NumberFormat(locale === "vi" ? "vi-VN" : "en-AU").format(n);
+}
+
 export function GrantForm({ customers, remainingBudget }: Props) {
   const router = useRouter();
+  const [locale] = useLocale();
+  const copy = COPY[locale];
   const [targetUserId, setTargetUserId] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
   const [reason, setReason] = useState<string>("");
@@ -126,11 +231,11 @@ export function GrantForm({ customers, remainingBudget }: Props) {
   if (customers.length === 0) {
     return (
       <p className="text-sm text-ink-600">
-        No attributed customers yet — share your reseller code first (see{" "}
+        {copy.no_customers_prefix}
         <a href="/reseller/codes" className="text-brand-700 underline">
-          /reseller/codes
+          {copy.no_customers_link_label}
         </a>
-        ) then return here to grant credits.
+        {copy.no_customers_suffix}
       </p>
     );
   }
@@ -139,7 +244,7 @@ export function GrantForm({ customers, remainingBudget }: Props) {
     <form onSubmit={onSubmit} className="space-y-4">
       <div>
         <label htmlFor="grant-customer" className="block text-xs font-medium text-ink-700">
-          Customer
+          {copy.label_customer}
         </label>
         <select
           id="grant-customer"
@@ -148,7 +253,7 @@ export function GrantForm({ customers, remainingBudget }: Props) {
           className="mt-1 block w-full rounded-md border border-surface-300 bg-white p-2 text-sm text-ink-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           required
         >
-          <option value="">Select an attributed customer…</option>
+          <option value="">{copy.select_placeholder}</option>
           {customers.map((c) => (
             <option key={c.user_id} value={c.user_id}>
               {labelFor(c)}
@@ -159,7 +264,7 @@ export function GrantForm({ customers, remainingBudget }: Props) {
 
       <div>
         <label htmlFor="grant-amount" className="block text-xs font-medium text-ink-700">
-          Credits (positive integer)
+          {copy.label_amount}
         </label>
         <input
           id="grant-amount"
@@ -173,13 +278,13 @@ export function GrantForm({ customers, remainingBudget }: Props) {
           required
         />
         <p className="mt-1 text-xs text-ink-500">
-          Remaining budget this month: {remainingBudget.toLocaleString()}
+          {copy.remaining_budget(fmtNum(remainingBudget, locale))}
         </p>
       </div>
 
       <div>
         <label htmlFor="grant-reason" className="block text-xs font-medium text-ink-700">
-          Reason (optional)
+          {copy.label_reason}
         </label>
         <input
           id="grant-reason"
@@ -187,7 +292,7 @@ export function GrantForm({ customers, remainingBudget }: Props) {
           maxLength={REASON_MAX}
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          placeholder="e.g. onboarding bonus, incident makegood"
+          placeholder={copy.reason_placeholder}
           className="mt-1 block w-full rounded-md border border-surface-300 bg-white p-2 text-sm text-ink-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
         />
       </div>
@@ -198,11 +303,11 @@ export function GrantForm({ customers, remainingBudget }: Props) {
           disabled={!canSubmit}
           className="rounded-md bg-brand-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-700 disabled:bg-surface-300 disabled:text-ink-500"
         >
-          {state.status === "submitting" ? "Granting…" : "Grant credits"}
+          {state.status === "submitting" ? copy.submit_busy : copy.submit_idle}
         </button>
         {amount.trim().length > 0 && !amountValid && (
           <span className="text-xs text-red-600">
-            Amount must be a positive whole number.
+            {copy.amount_invalid}
           </span>
         )}
       </div>
@@ -210,31 +315,27 @@ export function GrantForm({ customers, remainingBudget }: Props) {
       {state.status === "success" && (
         <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
           <p>
-            Granted successfully. Customer balance is now{" "}
-            <span className="font-semibold">{state.balance.toLocaleString()}</span> credits.
+            {copy.success_prefix}
+            <span className="font-semibold">{fmtNum(state.balance, locale)}</span>
+            {copy.success_middle}
+            {copy.success_suffix_credits}
           </p>
           <p className="mt-1 text-xs text-emerald-700">
-            Remaining monthly budget: {state.remaining_budget.toLocaleString()}.
-            {state.over_budget && " (This grant was approved as over-budget.)"}
+            {copy.success_remaining(fmtNum(state.remaining_budget, locale))}
+            {state.over_budget && copy.success_over_budget_note}
           </p>
         </div>
       )}
 
       {state.status === "over_budget" && (
         <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          <p className="font-medium">Over-budget approval required.</p>
+          <p className="font-medium">{copy.over_budget_title}</p>
           <p className="mt-1 text-xs">
-            This grant would push you past your monthly credit budget. Only{" "}
-            <span className="font-semibold">{state.remaining_budget.toLocaleString()}</span>{" "}
-            credits remain this month. Submit an approval request for the
-            BlockID admin to review, or reduce the amount to fit the remaining
-            budget.
+            {copy.over_budget_body(fmtNum(state.remaining_budget, locale))}
           </p>
           {state.request_id ? (
             <p className="mt-2 text-xs font-medium">
-              Request submitted (
-              <code className="font-mono">{state.request_id.slice(0, 8)}</code>
-              ). You&apos;ll be notified once an admin decides.
+              {copy.over_budget_request_submitted(state.request_id.slice(0, 8))}
             </p>
           ) : (
             <div className="mt-2 flex items-center gap-2">
@@ -287,19 +388,21 @@ export function GrantForm({ customers, remainingBudget }: Props) {
                 }}
                 className="rounded-md bg-amber-700 px-3 py-1.5 text-xs font-medium text-white disabled:bg-surface-300"
               >
-                {state.requesting ? "Submitting…" : "Request admin approval"}
+                {state.requesting
+                  ? copy.over_budget_requesting
+                  : copy.over_budget_request_admin}
               </button>
               <a
                 href="mailto:admin@blockid.au"
                 className="text-xs underline"
               >
-                or email admin@blockid.au
+                {copy.over_budget_or_email}
               </a>
             </div>
           )}
           {state.request_error && (
             <p className="mt-2 text-xs text-red-700">
-              Request failed: {state.request_error}
+              {copy.request_failed(state.request_error)}
             </p>
           )}
         </div>
@@ -307,7 +410,7 @@ export function GrantForm({ customers, remainingBudget }: Props) {
 
       {state.status === "error" && (
         <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          Grant failed: {state.message}
+          {copy.grant_failed(state.message)}
         </div>
       )}
     </form>
