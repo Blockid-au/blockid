@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.158
+version: 2026-07-23.159
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,166 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 159
+    ran_at: 2026-07-22
+    action: p10_wave4_row_162_activate_reseller_crons_http_method_contract
+    result: |
+      Third wave-4 row landed per docs/plans/p10-deferred-spec-activation-
+      order.md. One row landed — the reseller-crons-authz.spec.ts × (n/a —
+      admin only) × HTTP method contract with harness admin branch (row
+      162's table entry "HTTP method contract with harness admin |
+      200/405"). Row 162 was named as option (i) by tick 158's next-tick
+      recommendation and is the natural continuation of wave 4 after row
+      161 (reseller-requests-list-authz happy) landed. Row 162 is
+      admin-only per the schedule doc — no per-variant reseller fixture
+      applies because the reseller-* cron routes never call
+      scopedReseller(); CRON_SECRET IS the "admin" for those routes.
+
+      Files:
+        - web/tests/e2e/reseller/reseller-crons-authz.spec.ts (new
+          test.describe block "Reseller cron HTTP method contract with
+          harness admin — P10 wave-4 row 162" holds row 162; two
+          per-route halves in the same describe: (1) GET with correct
+          Bearer → status ∈ {200, 503} + body.ok typeof boolean + on
+          503 body.reason ∈ {not_configured, stripe_not_configured}, on
+          200 body.ok=true; (2) POST with same correct Bearer → 405
+          Method Not Allowed. Iterates the same ROUTES array as the
+          existing pre-execution 401 describe block so the auth-passed
+          sentinel is proven across the same five reseller-cron surface
+          endpoints. "Deliberately out of scope" comment block updated
+          — the "Happy path (200)" bullet flipped from folded/deferred
+          to ACTIVATED with a pointer at the new test and a note
+          explaining why the per-route body pins stay in the route-
+          specific specs).
+        - docs/plans/p10-deferred-spec-activation-order.md (annotation
+          added at the top of the "Recommended order" section: "Wave-4
+          row 162 landed (tick 159)" with full activation posture,
+          state-pollution posture, skip discipline, and next-tick
+          option list).
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.158 → 2026-07-23.159; this review_history entry).
+
+      Design fidelity:
+        - Coverage-vs-duplication call: pin GET status ∈ {200, 503}
+          (both prove the CRON_SECRET Bearer gate let the request
+          through — 200 = happy path fired, 503 = pre-check sentinel
+          `not_configured` when SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
+          unset, or the `stripe_not_configured` variant on reseller-
+          stripe-sync when STRIPE_SECRET_KEY unset). Anything ELSE
+          (401 / 500 / 403 / 4xx) is a regression: 401 means the
+          shared auth block drifted; 5xx (other than 503) means the
+          route leaked a query error past the graceful reason branch;
+          4xx means a downstream handler added a validator that the
+          docs did not. Body assertions: body.ok typeof boolean
+          (200 → true, 503 → false); on 503 pin body.reason ∈
+          {not_configured, stripe_not_configured}; on 200 pin
+          body.ok=true only. Do NOT pin per-route response envelope
+          (cleared / per_reseller / drift[] / etc.) — those pins live
+          in the route-specific specs (reports-signed-url-authz for
+          reseller-monthly-report's signed-URL wire envelope; audit-
+          anomaly-scan for the audit surface at tick 90). Row 162 is
+          the HTTP DISPATCH contract, not the wire envelope contract.
+        - POST 405 rationale: all five reseller-* cron routes export
+          ONLY `GET` (verified at authoring time via `grep -H "export
+          async function"` across the five route.ts files — output
+          pinned in the tick 159 shell log). Next.js App Router
+          auto-rejects other HTTP verbs with 405 + `Allow: GET`
+          header BEFORE the handler body would fire, so this row
+          nails the dispatch contract so a well-meaning refactor
+          that adds a POST handler (e.g. "manual trigger from admin
+          UI") surfaces here BEFORE it can bypass the CRON_SECRET
+          Bearer gate. Only POST is exercised — PUT/DELETE/PATCH
+          share the same App Router dispatch machinery, so pinning
+          one non-GET verb covers the dispatch contract without
+          burning four assertions on the same code path.
+        - Bundle-both-halves-in-one-describe rationale: they share
+          the same describe-scope `test.skip(!cronSecret, …)` guard
+          and iterate the same ROUTES array. A separate describe
+          block would double the skip check without adding coverage.
+          Skip discipline preserved: CRON_SECRET unset →
+          describe-scope skip (the routes are fail-open in that
+          configuration so a Bearer-authed assertion would false-fail
+          on a legitimately-open host). No fixture null guard
+          because this row is admin-only per the schedule doc — no
+          per-variant reseller cohort applies, and no
+          `loadTempReseller` call fires.
+        - State-pollution posture: reseller-clear-commissions writes
+          reseller_commission_events rows ONLY when the view surfaces
+          pending_clearance rows past pending_until (fresh CI host →
+          cleared:0, no write); reseller-monthly-reconciliation
+          `?skip_email=1` suppresses the email + the query itself is
+          read-only; reseller-monthly-report `?skip_email=1`
+          suppresses the email + the signed-URL upload branch does
+          NOT fire when Supabase storage is unconfigured (returns
+          `{upload_errors:[]}` inline); reseller-stripe-sync
+          short-circuits at 503 stripe_not_configured BEFORE the
+          Stripe network call in unconfigured envs; reseller-weekly-
+          digest `?skip_email=1` suppresses email + digest
+          aggregation is read-only. POST rejection is stateless —
+          Next.js dispatches 405 before any handler import fires,
+          so no side effects can leak. Perfectly idempotent under
+          CI replay.
+        - Non-Stripe / non-GST discipline: none of the covered
+          routes hit Stripe in the GET-with-Bearer branch under an
+          unconfigured-Stripe env (the sync route short-circuits at
+          503 before the retrieve loop). Row 162 remains neither a
+          dependency nor a consequence of P8.5 (Stripe env vars) or
+          P1.5 (InfoVision seed).
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0, no output).
+          The new describe block reuses the existing ROUTES array +
+          CronRoute interface + expect from @playwright/test — no new
+          imports; the JSON.parse(bodyText) cast + `body.ok` /
+          `body.reason` narrow correctly against the inline type.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 documented exemptions, 0
+          violations — unchanged from tick 158 (the spec is not under
+          /api/reseller/** for the R-01 grep and it is not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - No vitest run this tick — no pure-lib .ts code touched, only
+          the Playwright spec + two doc edits. Mirrors the tick
+          148-158 precedent verbatim.
+        - No DB apply this tick — no migration authored. Row 162
+          consumes only the CRON_SECRET env var + the five existing
+          reseller-cron GET handlers unchanged.
+        - Goal file version bumped 2026-07-23.158 → 2026-07-23.159.
+
+      Frontier after tick 159: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision seed
+      STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE; P10 still
+      blocked_by [P1..P9] until P8.5 clears. What tick 159 unblocks:
+      wave 4 is now three rows in (158 + 161 + 162). Rows 159 + 160
+      remain the seed-delta-dependent pair (attachReportRow helper for
+      reseller_report_files); row 163 (cobranding-pill) needs the
+      attributed-founder harness. Next autonomous tick options:
+        (i) activate row 163 (cobranding-pill × active_wholesale
+            attributed founder × EN + VI) — reuses the attributed-
+            founder harness scaffold (loadAttributedFounderHarness in
+            web/tests/e2e/fixtures/reseller.ts) which currently skips
+            at describe-scope until the fixture is provisioned; the
+            spec is fully authored so activation is a fixture wiring
+            tick rather than a code-authoring tick;
+        (ii) open wave 5 with row 164 (admin-resellers-list-authz ×
+             happy 200) — uses the pre-existing qa-admin-1@blockid.au
+             harness so does not need the per-variant reseller cohort
+             at all; matches the wave 5 scheduling doc which flags
+             wave 5 as "sequenced last because each row writes real
+             resellers state and test.afterAll cleanup must undo it
+             before the next row runs" — row 164 is the read-only
+             opener of wave 5 so it does not require the cleanup
+             machinery yet;
+        (iii) land finding-2's seed delta (edit seed-qa-reseller.mjs
+              main loop to seed attribution on no_capability + no_budget;
+              re-run seeder against staging) — unblocks rows 150 + 151;
+        (iv) mint an active promo code on the paused variant (add
+             PAUSED_PROMO_TIERS array to seed-qa-reseller.mjs; extend
+             the main loop's paused branch to call seedPromotionCodes)
+             — unblocks row 157;
+        (v) author the attachReportRow helper (extend fixtures/reseller.ts
+             with a reseller_report_files seeder for one month bucket
+             per variant) — unblocks rows 159 + 160.
+
   - tick: 158
     ran_at: 2026-07-22
     action: p10_wave4_row_161_activate_reseller_requests_list_authz_happy_get
