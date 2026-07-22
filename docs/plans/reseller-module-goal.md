@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.180
+version: 2026-07-23.181
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,138 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 181
+    ran_at: 2026-07-22
+    action: p10_wave5_row_178_attribution_timing_me_flip_activated
+    result: |
+      Eighteenth wave-5 landing per docs/plans/p10-deferred-spec-activation-
+      order.md — activated row 178 (`attribution-timing.spec.ts` × (n/a) ×
+      /api/reseller/me cache-column contract → 200 with populated reseller).
+      Closes tick 180's frontier option (i). Twin coverage on the temp-
+      reseller mint fixture route without needing the env-based
+      loadAttributionTimingHarness (QA_RESELLER_CODE +
+      QA_RESELLER_DISPLAY_NAME) that the pre-existing describe consumes; a
+      QAPROBE-cohort host now gets identical /me coverage via
+      loadTempReseller('active_wholesale') + attachAttributedCustomer().
+
+      Files:
+        - web/tests/e2e/reseller/attribution-timing.spec.ts (header
+          docblock: appended a paragraph naming the wave-5 activation and
+          the deliberate out-of-scope carve-out for the plan §337 "signup
+          → attribution stamp within jitter window" branch; imports
+          extended with loadTempReseller + tempResellerSkipReason +
+          TempResellerFixture from fixtures/reseller; appended a new
+          `test.describe("Reseller attribution timing — P10 wave-5 row
+          178 me-flip")` block after the pre-existing dry-run describe.
+          Inside the block: beforeAll loads the active_wholesale fixture,
+          afterAll runs fixture.cleanup() so the attribution_reseller_id
+          cache-column restore fires even if the test asserts fail; the
+          single test attaches the cache column via
+          attachAttributedCustomer(), sets a belt-and-braces blockid_via
+          cookie against the browser context BEFORE loginAs so any future
+          /me refactor that consulted the cookie as a fallback still
+          returned the right reseller, logs in as the attributed founder,
+          GETs /api/reseller/me, and asserts 200 + body.ok=true +
+          body.reseller.display_name === fixture.displayName +
+          body.reseller.code === fixture.code +
+          body.reseller.billing_model === "wholesale". Skip discipline
+          mirrors wave-2 row 145 + wave-5 row 179 verbatim: five skip
+          points (fixtureError catch, fixture null, attributedUserId or
+          attributedFounderEmail null, attachAttributedCustomer null,
+          loginAs throw) each carrying tempResellerSkipReason
+          ("active_wholesale").
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.180 → 2026-07-23.181; this review_history entry
+          prepended).
+
+      Design fidelity:
+        - Variant pin matches plan §969 ((n/a)) — the spec's row 178
+          variant column is (n/a) but the wave-5 twin uses
+          active_wholesale because /me returns reseller:null on any
+          variant whose row is not status='active' (route.ts:60-63 short-
+          circuits the resellers SELECT when status !== "active"), so
+          active_wholesale is the only variant that surfaces the happy
+          200 shape. Twin coverage against paused / terminated / no_cap
+          would trip the reseller:null branch and duplicate the row 2
+          coverage in me-attribution.spec.ts — not worth another row.
+        - attachAttributedCustomer() reused verbatim from wave-2 row 145
+          + wave-5 row 179 rather than adding a new fresh-unattributed
+          helper. Rationale: the plan §337 "signup → attribution stamp"
+          branch is the one that would need a fresh-unattributed founder
+          (to observe the login flow stamp the cache column) but that
+          branch is DELIBERATELY out of scope this tick because
+          Playwright cannot drive the Google OAuth signup redirect that
+          runs processAttribution() in web/src/app/api/auth/google/route
+          .ts:116; loginAs's /api/qa/login strategy bypasses the cookie-
+          consumption sites at login-form.tsx:167 / google/route.ts:114
+          / auth.ts:517/642. The wave-5 twin here activates the /me
+          cache-column contract that downstream P10 exit-criteria
+          consumers depend on; the signup-jitter branch remains a P10
+          follow-up once a QA-mode signup flow lands that Playwright
+          can drive without user interaction.
+        - Belt-and-braces blockid_via cookie set BEFORE loginAs so any
+          future auth path that consumes the cookie during session
+          hydration (google OAuth callback, magic-link callback) still
+          sees it. The primary oracle is the cache-column stamp — the
+          cookie is redundant against the current /me handler which
+          never reads it — but pinning the cookie shape here means a
+          future /me refactor that fell back to the cookie when the
+          cache was null would still return the right reseller, keeping
+          this assertion stable across that refactor.
+        - Response-shape assertions match wave-2 row 145 (code +
+          display_name + billing_model) so a partial-shape regression
+          in the /me → resellers SELECT column list surfaces here as
+          well. A follow-up refactor that stripped, say, billing_model
+          from the response would light up both row 145 and row 178.
+        - No side-effect assertions (no reseller_audit_log count, no
+          revenue_events read) because /me is a pure read path — the
+          audit-log write coverage lives in wave-5 row 179 (audit-log-
+          writes.spec.ts) against drawer + reveal-email, and the
+          revenue-events read coverage lives in the retail-attribution
+          + wholesale-provisioning integration tests, both already
+          green as of ticks 149-152.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0). Three new
+          imports (loadTempReseller + tempResellerSkipReason +
+          TempResellerFixture) all resolve against existing exports in
+          fixtures/reseller.ts; attach + fixture typed inference-
+          friendly (AttachAttributedCustomerResult | null /
+          TempResellerFixture | null).
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 documented exemptions, 0
+          violations — unchanged from tick 180 (the spec is not under
+          /api/reseller/** for the R-01 grep and is not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - No DB apply this tick — no migration authored.
+        - Goal file version bumped 2026-07-23.180 → 2026-07-23.181.
+
+      Frontier after tick 181: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision
+      seed STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE;
+      P10 still blocked_by [P1..P9] until P8.5 clears. Wave 5 has now
+      landed 164 + 165 + 166 + 167 + 168 + 169 + 170 + 171 + 172 +
+      173 + 174 + 175 (deny+cancel) + 176 + 178 + 179 + 180 + 181 +
+      183 — the attribution-timing spec file now has QAPROBE-cohort
+      coverage. Remaining deferred wave-5 rows: 177 (showcase-reviews-
+      validation), 182 (billing-authz active_wholesale happy 200), and
+      175 approve branch. Natural next picks:
+        (i) row 177 (`showcase-reviews-validation.spec.ts` ×
+             active_wholesale × reviewer-flow POST — still deferred
+             on the seeded data_room_access_tokens dependency per
+             plan §J.2);
+        (ii) row 182 (`billing-authz.spec.ts` × active_wholesale ×
+              happy 200 with SetupIntent client_secret — still
+              deferred on the Stripe SetupIntent mint side effect +
+              reseller_audit_log(mint_setup_intent) write, which
+              need a stripe-test-mode key or a QA-only mock harness);
+        (iii) row 175 approve branch — still deferred on the same
+               ledger-side-effect concern as tick 175;
+        (iv) plan §337 signup-jitter branch on row 178 — still
+              deferred pending a QA-mode signup flow Playwright can
+              drive.
+    commit: (this tick)
+
   - tick: 180
     ran_at: 2026-07-22
     action: p10_wave5_row_165_admin_resellers_create_authz_happy_activated

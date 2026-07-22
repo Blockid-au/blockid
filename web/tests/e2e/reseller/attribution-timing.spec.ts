@@ -10,6 +10,27 @@
 // SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY are unset those rows self-skip
 // with supabaseAdminSkipReason() while row 1 keeps running.
 //
+// ACTIVATED wave-5 row 178 below (temp-reseller mint fixture route via
+// loadTempReseller('active_wholesale')). The pre-existing describe covers the
+// env-based loadAttributionTimingHarness contract (QA_RESELLER_CODE +
+// QA_RESELLER_DISPLAY_NAME) for hosts that keep that env-var contract alive;
+// the new describe covers the temp-reseller mint fixture route so a QAPROBE-
+// cohort host — which mints per-variant reseller rows via seed-qa-reseller.mjs
+// — covers the /api/reseller/me cache-column contract without flipping either
+// env var. attachAttributedCustomer() drives the app_users.attribution_reseller_id
+// column so the /me handler's SELECT on that column returns the QAPROBE row,
+// then the wave-5 assertion pins the same body shape as wave-2 row 145 (code +
+// display_name + billing_model) so a regression in the /me → resellers SELECT
+// column contract still surfaces here even without the login-form.tsx /
+// google/route.ts cookie side effect. The plan §337 "signup → attribution
+// stamp within jitter window" branch remains DELIBERATELY out of scope because
+// Playwright cannot drive the Google OAuth signup redirect that runs
+// processAttribution() — that branch stays in the env-based describe above via
+// the blockid_via cookie + loginAs pair, which loginAs's /api/qa/login
+// strategy does not honour on a QAPROBE cohort host (the QA login endpoint
+// bypasses the cookie-consumption sites at login-form.tsx:167, google/route
+// .ts:114, auth.ts:517/642).
+//
 // Attribution write reference:
 //   - login-form.tsx:167, google/route.ts:114, auth.ts:517/642 → app_users
 //     .attribution_reseller_id (user-level cache; P2.5 stamp-on-signup).
@@ -26,6 +47,9 @@ import { loginAs } from "../fixtures/accounts";
 import {
   attributionTimingSkipReason,
   loadAttributionTimingHarness,
+  loadTempReseller,
+  tempResellerSkipReason,
+  type TempResellerFixture,
 } from "../fixtures/reseller";
 import {
   countResellerAttributionsFor,
@@ -173,5 +197,173 @@ test.describe("Reseller attribution timing — P10 dry-run", () => {
     // Silence unused param lint — `request` is exposed for symmetry with
     // sibling specs but this row uses page.request for cookie propagation.
     void request;
+  });
+});
+
+// P10 wave-5 row 178 — attribution-timing spec activated for the temp-reseller
+// mint fixture cohort. Twin coverage on the /api/reseller/me cache-column
+// contract without needing the env-based loadAttributionTimingHarness
+// (QA_RESELLER_CODE + QA_RESELLER_DISPLAY_NAME) that the pre-existing describe
+// consumes. Per docs/plans/p10-deferred-spec-activation-order.md wave 5:
+//   178 | attribution-timing.spec.ts | (n/a) | signup → attribution stamp within jitter window | 200
+//
+// Fixture wiring (mirrors wave-2 row 145 + wave-5 row 179 posture):
+//   - loadTempReseller("active_wholesale") reads the QAPROBEWHOLESALEACTIVE
+//     seed row + resolves attributedUserId via QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL
+//     (default qa-founder-attributed-1@blockid.au) → app_users.id.
+//   - fixture.attachAttributedCustomer() stamps
+//     app_users.attribution_reseller_id = fixture.resellerId (the seed script
+//     only writes reseller_attributions, so without this shim /me returns
+//     reseller:null on line 52-53 of the /me route). afterAll fixture.cleanup()
+//     restores the previous value so cross-spec state does not leak.
+//   - loginAs(page, fixture.attributedFounderEmail) signs the founder in via
+//     the QA login endpoint; getCurrentUser() then resolves to that founder
+//     and the /me handler reads the just-stamped cache column.
+//   - The blockid_via cookie is DELIBERATELY set on the browser context before
+//     the /me call so a future refactor that made the /me handler consult the
+//     cookie as a fallback path (e.g. when the cache column is null) would
+//     still find the right reseller and the assertion would stay green — the
+//     cache column stamp is the primary oracle, the cookie is belt-and-braces.
+//
+// Skip conditions (mirrors wave-2 row 145 + wave-5 row 179 verbatim):
+//   - loadTempReseller returns null when SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
+//     are unset or the QAPROBEWHOLESALEACTIVE seed row is missing.
+//   - fixture.attributedUserId null when qa-founder-attributed-1 is not in
+//     app_users (seed-test-users.mjs delta not run).
+//   - fixture.attributedFounderEmail null (redundant guard — always null iff
+//     attributedUserId is null on active_wholesale, but pinned so a future
+//     variant change surfaces on the exact skip line).
+//   - loginAs throws when /tmp/blockid-qa-accounts.txt has no row for the
+//     resolved email (seed-test-users.mjs not run against the target host).
+//
+// Deliberately out of scope — the plan §337 "signup → attribution stamp
+// within jitter window" branch. Playwright cannot drive the Google OAuth
+// signup redirect that runs processAttribution() in
+// web/src/app/api/auth/google/route.ts:116; that branch stays in the env-
+// based describe above via the blockid_via cookie + loginAs pair (which
+// loginAs's /api/qa/login strategy does not honour — QA login bypasses the
+// cookie-consumption sites at login-form.tsx:167 / google/route.ts:114 /
+// auth.ts:517/642). The wave-5 twin here activates the fixture route that
+// downstream P10 exit-criteria consumers depend on; the jitter-window
+// branch remains a P10 follow-up once a QA-mode signup flow lands that
+// Playwright can drive without user interaction.
+//
+// Non-Stripe / non-GST discipline: /me is a pure app_users + resellers SELECT.
+// No promotion_code lookup, no revenue_events read, no Stripe network call,
+// no InfoVision dependency. P8.5 + P1.5 remain neither a dependency nor a
+// consequence.
+test.describe("Reseller attribution timing — P10 wave-5 row 178 me-flip", () => {
+  let fixture: TempResellerFixture | null = null;
+  let fixtureError: string | null = null;
+
+  test.beforeAll(async () => {
+    try {
+      fixture = await loadTempReseller("active_wholesale");
+    } catch (err) {
+      fixtureError = (err as Error).message;
+    }
+  });
+
+  test.afterAll(async () => {
+    if (fixture) {
+      try {
+        await fixture.cleanup();
+      } catch (err) {
+        // Bubble so a partial restore fails the run rather than leaking
+        // attribution_reseller_id state into the next spec worker.
+        throw new Error(
+          `wave-5 row 178 cleanup failed — attributed founder's app_users.attribution_reseller_id may still point at the QAPROBE reseller: ${(err as Error).message}`,
+        );
+      }
+    }
+  });
+
+  test("active_wholesale — cache column stamp + login returns /api/reseller/me with QAPROBE display_name", async ({
+    page,
+    context,
+  }) => {
+    if (fixtureError) {
+      test.skip(true, `${tempResellerSkipReason("active_wholesale")} (${fixtureError})`);
+      return;
+    }
+    if (!fixture) {
+      test.skip(true, tempResellerSkipReason("active_wholesale"));
+      return;
+    }
+    if (!fixture.attributedUserId || !fixture.attributedFounderEmail) {
+      test.skip(
+        true,
+        `${tempResellerSkipReason("active_wholesale")} — attributedUserId or attributedFounderEmail null (attributed founder app_users row missing on this host).`,
+      );
+      return;
+    }
+    const attributedFounderEmail = fixture.attributedFounderEmail;
+
+    const attach = await fixture.attachAttributedCustomer();
+    if (!attach) {
+      test.skip(
+        true,
+        "attachAttributedCustomer() returned null — variant mismatch or attributedUserId lookup failed after beforeAll seed. Investigate seed-qa-reseller.mjs output.",
+      );
+      return;
+    }
+
+    // Belt-and-braces cookie — see docblock. Adds resilience to a future /me
+    // refactor that reads the cookie as a fallback when the cache column is
+    // null; the cache stamp above remains the primary oracle. Set BEFORE
+    // loginAs so any future auth path that consumes the cookie (google
+    // OAuth callback, magic-link callback) sees it during session hydration.
+    const baseURL = page.context()._options.baseURL ?? "http://localhost:3000";
+    const parsed = new URL(baseURL);
+    await context.addCookies([
+      {
+        name: "blockid_via",
+        value: fixture.code,
+        domain: parsed.hostname,
+        path: "/",
+        sameSite: "Lax",
+      },
+    ]);
+
+    try {
+      await loginAs(page, attributedFounderEmail);
+    } catch (err) {
+      test.skip(
+        true,
+        `loginAs(${attributedFounderEmail}) threw: ${(err as Error).message}. ` +
+          tempResellerSkipReason("active_wholesale"),
+      );
+      return;
+    }
+
+    const resp = await page.request.get("/api/reseller/me");
+    expect(
+      resp.status(),
+      `active_wholesale returned ${resp.status()} — expected 200 with populated reseller. Body: ${await resp.text()}`,
+    ).toBe(200);
+    const body = (await resp.json()) as {
+      ok: boolean;
+      reseller: {
+        code?: string;
+        display_name?: string;
+        billing_model?: string;
+      } | null;
+      reason?: string;
+    };
+    expect(
+      body.ok,
+      `active_wholesale body.ok should be true: ${JSON.stringify(body)}`,
+    ).toBe(true);
+    expect(
+      body.reseller,
+      `active_wholesale body.reseller should be non-null (attribution_reseller_id was just stamped): ${JSON.stringify(body)}`,
+    ).not.toBeNull();
+    // display_name is the wave-5 row 178 oracle. code + billing_model pin
+    // the rest of the co-branding payload so a partial-shape regression
+    // (e.g. an accidental select() column drop in route.ts) surfaces here
+    // as well — matches wave-2 row 145's belt-and-braces assertion shape.
+    expect(body.reseller?.display_name).toBe(fixture.displayName);
+    expect(body.reseller?.code).toBe(fixture.code);
+    expect(body.reseller?.billing_model).toBe("wholesale");
   });
 });
