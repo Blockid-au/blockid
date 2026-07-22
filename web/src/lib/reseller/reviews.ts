@@ -72,16 +72,25 @@ export function buildReviewsSummary(
     sum += r.rating;
     count += 1;
   }
+  const totalSuppressed = count > 0 && count < k;
+  const projectsSuppressed = projects.size > 0 && projects.size < k;
+  // Complementary suppression (CDO advisory §23): the (total_reviews,
+  // projects_with_reviews) pair is correlated (projects <= total), so
+  // exposing one while suppressing the other narrows the hidden bucket
+  // into {1..min(exposed,k-1)}. Suppress both whenever either falls under
+  // k, mirroring the applyComplementarySuppression rule used on the
+  // phase-distribution and weekly-signup arrays.
+  const anySuppressed = totalSuppressed || projectsSuppressed;
   const totalBucket: KAnonBucket =
-    count > 0 && count < k
+    anySuppressed && count > 0
       ? { count: null, suppressed: true }
       : { count, suppressed: false };
   const projectBucket: KAnonBucket =
-    projects.size > 0 && projects.size < k
+    anySuppressed && projects.size > 0
       ? { count: null, suppressed: true }
       : { count: projects.size, suppressed: false };
   const avg =
-    totalBucket.suppressed || count === 0
+    anySuppressed || count === 0
       ? null
       : Math.round((sum / count) * 10) / 10;
   return {

@@ -86,6 +86,33 @@ describe("buildPhaseDistribution", () => {
     expect(out.find((b) => b.phase === 2)?.count).toBe(0);
   });
 
+  it("applies complementary suppression when only one bucket is under k", () => {
+    // Build 5 customers in Phase 4 (exposed at k=5) + 2 customers in Phase 5
+    // (suppressed, count 1..4). Without complementary suppression the
+    // observer subtracts visible buckets from the exposed attributed_total
+    // (7) and recovers Phase 5 = 2. The wrapper MUST hide a second bucket
+    // so at least two holes remain and the subtraction has multiple
+    // solutions.
+    const customers = nCustomers(7);
+    const projectsByUser: Record<string, string[]> = {};
+    const svi = customers.map((c, i) => {
+      const pid = `p${i}`;
+      projectsByUser[c.user_id] = [pid];
+      return {
+        project_id: pid,
+        score: i < 5 ? 50 : 70, // 5×Phase 4, 2×Phase 5
+        created_at: "2026-01-01T00:00:00Z",
+      };
+    });
+    const out = buildPhaseDistribution({ customers, svi, projectsByUser });
+    // At least two buckets go dark — the Phase 5 k-suppression plus one
+    // additional bucket picked by applyComplementarySuppression.
+    const suppressedCount = out.filter((b) => b.suppressed).length;
+    expect(suppressedCount).toBeGreaterThanOrEqual(2);
+    // Phase 5 (the k-triggered suppression) is one of them.
+    expect(out.find((b) => b.phase === 5)?.suppressed).toBe(true);
+  });
+
   it("picks the highest-phase project when a customer owns multiple", () => {
     const customers = [{ user_id: "u1" }];
     const svi = [
