@@ -23,6 +23,49 @@ export type Segment =
   | "lp"
   | "admin";
 
+// AccountType — the app_users.account_type text column enum. Originally
+// (founder / investor / journalist) via migration 0067; P12.1 extends the
+// TypeScript-side surface with the seven persona buckets the admin
+// user-management dashboard needs to create + filter over. The database
+// CHECK constraint gets extended in P12.2 (migration 0101) so an insert
+// against a value not in this list still fails at the DB layer if the
+// migration has not yet been applied on that host.
+export const ACCOUNT_TYPE_VALUES = [
+  "founder",
+  "investor",
+  "journalist",
+  "investor_angel",
+  "investor_vc",
+  "advisor",
+  "accelerator",
+  "incubator",
+  "reseller",
+  "affiliate",
+] as const;
+
+export type AccountType = (typeof ACCOUNT_TYPE_VALUES)[number];
+
+export function isAccountType(v: unknown): v is AccountType {
+  return typeof v === "string" && (ACCOUNT_TYPE_VALUES as readonly string[]).includes(v);
+}
+
+const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
+  founder: "Founder",
+  investor: "Investor",
+  journalist: "Journalist",
+  investor_angel: "Angel investor",
+  investor_vc: "VC investor",
+  advisor: "Advisor",
+  accelerator: "Accelerator",
+  incubator: "Incubator",
+  reseller: "Reseller",
+  affiliate: "Affiliate",
+};
+
+export function accountTypeLabel(t: AccountType): string {
+  return ACCOUNT_TYPE_LABELS[t] ?? t;
+}
+
 export type PlanTier =
   | "free"
   | "starter"
