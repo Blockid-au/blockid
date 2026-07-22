@@ -643,3 +643,5 @@
 {"ts":"2026-07-22T21:28:47.645Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-22T21-25-01-086Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-22T21:42:07.309Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 211 — P10 wave-3 row 155 mirror-row shape+helper alignment via per-field SELECT (2 commits)","source":"github-webhook"}
 {"ts":"2026-07-22T21:42:14.004Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-22T21-30-01-143Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-22T21:44:14.826Z","event":"github-push-master","detail":"Blockid-au: fix(admin): remove /admin/resellers/[slug] route (conflicts with [code]) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-22T21:51:49.724Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 212 — P10 wave-3 two/three-chain DB companion shape+helper twin-lens alignment (1 commits)","source":"github-webhook"}
