@@ -48,11 +48,11 @@
 //     that never occur in production because reseller_admins.status='active'
 //     is provisioned alongside the resellers row.
 //   - Happy path (200 with overview + progression + svi_curve + reports) —
-//     fires the app_users SELECT + Promise.all fan-out across svi_analyses,
-//     revenue_events, credit_transactions, credit_balances + the
-//     reseller_audit_log(view_customer_drawer) write against the harness
-//     reseller; folded into the temp-reseller mint fixture follow-up
-//     alongside the deferred rows from ticks 94/95/96/97/98/99/100.
+//     ACTIVATED as P10 wave-2 row 146 below via loadTempReseller(
+//     "active_wholesale") + fixture.adminEmail loginAs + fixture.attributedUserId
+//     in the URL path; skips when the fixture is null, adminUserId is null
+//     (reseller_admins mirror missing), or attributionExists is false
+//     (reseller_attributions row missing — allowedCustomerIds() would 403).
 //
 // Placeholder UUID used in the URL path: 00000000-0000-0000-0000-000000000000.
 // Both harness-free rows return BEFORE the id path param is inspected
@@ -64,12 +64,19 @@
 
 import { test, expect } from "@playwright/test";
 import { loginAs } from "../fixtures/accounts";
+import {
+  loadTempReseller,
+  tempResellerSkipReason,
+  type TempResellerFixture,
+} from "../fixtures/reseller";
 
 const NON_RESELLER_FOUNDER_EMAIL =
   process.env.QA_UNATTRIBUTED_FOUNDER_EMAIL ?? "qa-founder-1@blockid.au";
 
 const PLACEHOLDER_CUSTOMER_ID = "00000000-0000-0000-0000-000000000000";
 const ROUTE = `/api/reseller/customers/${PLACEHOLDER_CUSTOMER_ID}/drawer`;
+const DRAWER_ROUTE = (customerId: string) =>
+  `/api/reseller/customers/${customerId}/drawer`;
 
 test.describe("Reseller customer-drawer pre-read authorization — P10 dry-run", () => {
   test("unauthenticated — GET with no session returns 401 unauthorised", async ({
@@ -112,5 +119,128 @@ test.describe("Reseller customer-drawer pre-read authorization — P10 dry-run",
       `non_reseller_admin body.ok should be false: ${JSON.stringify(body)}`,
     ).toBe(false);
     expect(body.reason).toBe("no_membership");
+  });
+});
+
+// P10 wave-2 row 146 — active_wholesale variant probes the drawer happy
+// path (reseller-admin session → 200 with overview + progression + svi_curve
+// + reports). Per docs/plans/p10-deferred-spec-activation-order.md wave 2:
+//   146 | drawer-authz.spec.ts | active_wholesale | happy 200 with
+//         overview/progression/svi_curve/reports | 200
+//
+// Route order per web/src/app/api/reseller/customers/[id]/drawer/route.ts:
+//   Line 47-50: getCurrentUser null                        → 401 (row 1)
+//   Line 52-60: scopedReseller throws                      → 403 (row 2 / no_membership)
+//   Line 62-68: decideReveal(id, allowedCustomerIds)       → 400 invalid_uuid / 403 not_in_scope
+//   Line 70-73: getSupabaseAdmin() null                    → 503 not_configured
+//   Line 77-87: app_users lookup                           → 500 lookup_failed / 404 not_found
+//   Line 90-135: parallel fan-out + auditLog               → 500 audit_failed
+//   Line 148:   200 { overview, progression, svi_curve, reports } ← THIS
+//
+// Fixture wiring (wave-2 helper landed tick 147; this tick reuses it):
+//   - loadTempReseller("active_wholesale") reads the QAPROBEWHOLESALEACTIVE
+//     seed row + resolves adminEmail via the P10 Option A per-variant slot
+//     (qa-reseller-wholesale-active@blockid.au) + mirrors reseller_admins.
+//   - fixture.attributionExists asserts the seeder also planted a
+//     reseller_attributions row so scopedReseller().allowedCustomerIds()
+//     surfaces fixture.attributedUserId. Without the row the drawer route
+//     returns 403 not_in_scope (see route.ts:64-68); the fixture flag lets
+//     the spec skip cleanly rather than false-fail as a code regression.
+//   - loginAs(page, fixture.adminEmail) opens the reseller-admin session
+//     against the DISTINCT per-variant app_users row so scopedReseller()
+//     .maybeSingle() does not PGRST116-collide with other variants.
+//
+// Skip conditions (mirrors wave-1 posture verbatim):
+//   - loadTempReseller returns null when SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
+//     are unset or the QAPROBEWHOLESALEACTIVE seed row is missing.
+//   - fixture.adminUserId null (variant admin row missing or reseller_admins
+//     mirror not seeded — scopedReseller would 403 no_membership).
+//   - fixture.attributedUserId null (attributed founder not in app_users).
+//   - fixture.attributionExists false (reseller_attributions row missing —
+//     drawer would 403 not_in_scope).
+//   - loginAs throws when /tmp/blockid-qa-accounts.txt has no row for the
+//     resolved admin email.
+//
+// Non-Stripe / non-GST discipline: the drawer route reads app_users +
+// svi_analyses + revenue_events + credit_transactions + credit_balances
+// and writes one reseller_audit_log row. No promotion_code lookup, no
+// Stripe network call, no InfoVision dependency. P8.5 + P1.5 remain
+// neither a dependency nor a consequence.
+test.describe("Reseller customer-drawer — P10 wave-2 happy path", () => {
+  test("active_wholesale — GET as reseller-admin returns 200 with overview + progression + svi_curve + reports", async ({
+    page,
+  }) => {
+    let fixture: TempResellerFixture | null;
+    try {
+      fixture = await loadTempReseller("active_wholesale");
+    } catch (err) {
+      test.skip(
+        true,
+        `loadTempReseller('active_wholesale') threw: ${(err as Error).message}. ` +
+          tempResellerSkipReason("active_wholesale"),
+      );
+      return;
+    }
+    if (
+      !fixture ||
+      !fixture.adminUserId ||
+      !fixture.attributedUserId ||
+      !fixture.attributionExists
+    ) {
+      test.skip(true, tempResellerSkipReason("active_wholesale"));
+      return;
+    }
+    const attributedUserId = fixture.attributedUserId;
+    try {
+      await loginAs(page, fixture.adminEmail);
+    } catch (err) {
+      test.skip(
+        true,
+        `loginAs(${fixture.adminEmail}) threw: ${(err as Error).message}. ` +
+          tempResellerSkipReason("active_wholesale"),
+      );
+      return;
+    }
+    const resp = await page.request.get(DRAWER_ROUTE(attributedUserId));
+    expect(
+      resp.status(),
+      `active_wholesale returned ${resp.status()} — expected 200 with drawer envelope. Body: ${await resp.text()}`,
+    ).toBe(200);
+    const body = (await resp.json()) as {
+      ok: boolean;
+      overview?: {
+        display_name: string | null;
+        masked_email: string;
+        signup_at: string;
+        credits_balance: number;
+      };
+      progression?: Array<{ kind: string; ts: string; label: string }>;
+      svi_curve?: Array<{ month: string; score: number }>;
+      reports?: Array<{ id: string; title: string; type: string }>;
+      reason?: string;
+    };
+    expect(
+      body.ok,
+      `active_wholesale body.ok should be true: ${JSON.stringify(body)}`,
+    ).toBe(true);
+    // Shape assertions per U.7 three-tab drawer contract (customer-drawer.ts).
+    // Overview must exist with a masked_email (never plaintext) + a signup_at
+    // ISO string + a numeric credits_balance (0 default, never undefined).
+    expect(body.overview, "overview missing").toBeDefined();
+    expect(typeof body.overview?.masked_email).toBe("string");
+    expect(body.overview?.masked_email ?? "").toContain("@");
+    expect(body.overview?.masked_email ?? "").toMatch(/\*/);
+    expect(typeof body.overview?.signup_at).toBe("string");
+    expect(typeof body.overview?.credits_balance).toBe("number");
+    // Progression must be an array; the drawer synthesises at least a signup
+    // event from app_users.created_at even when the founder has zero SVI runs,
+    // so an empty array would signal a route regression.
+    expect(Array.isArray(body.progression)).toBe(true);
+    expect((body.progression ?? []).length).toBeGreaterThan(0);
+    expect(body.progression?.[0]?.kind).toBe("signup");
+    // svi_curve + reports may be empty arrays for a founder with no analyses
+    // but MUST be arrays — a null here would flag the client renderer.
+    expect(Array.isArray(body.svi_curve)).toBe(true);
+    expect(Array.isArray(body.reports)).toBe(true);
   });
 });
