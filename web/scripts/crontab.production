@@ -363,6 +363,11 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Reseller monthly KPI report (R9 § C.6) — 1st of month at 04:00 UTC (14:00 AEST)
 0 4 1 * * bash $RUN reseller-monthly-report --timeout 300
 
+# Reseller weekly leading-signal digest (U.5 P11 + CS advisory §24 rec #3)
+# Mondays 04:15 UTC (14:15 AEST) — one row per reseller with last-login /
+# time-to-first-report leading indicators so CS can act before churn fires.
+15 4 * * 1 bash $RUN reseller-weekly-digest --timeout 300
+
 # Reseller loop monitor — every minute, snapshots loop state to
 #   /tmp/blockid-reseller-monitor.txt (human)
 #   web/content/reports/reseller-monitor.jsonl (machine)
