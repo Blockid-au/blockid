@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.220
+version: 2026-07-23.221
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,196 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 221
+    ran_at: 2026-07-22
+    action: p10_admin_requests_list_authz_row_174_fk_echo_shape_pins
+    result: |
+      Landed tick 220 "natural next pick" option (a) verbatim: audited
+      reseller-requests-list-authz.spec.ts + admin-requests-list-authz.spec.ts
+      happy paths for parallel FK-echo shape pins on any UUID FK fields the
+      request envelope carries. Audit split into two distinct actions per
+      spec:
+
+      admin-requests-list-authz.spec.ts row 174 happy path — ADDED four FK
+      echo shape pins. Route SELECT at web/src/app/api/admin/resellers/
+      requests/route.ts:44 echoes id + reseller_id + requested_by +
+      request_type + status + payload + decision_by + decision_at +
+      decision_reason + linked_credit_transaction_id +
+      linked_promotion_code_id + created_at + resellers(code, display_name).
+      Pre-tick posture pinned only id + reseller_id (both typeof + UUID_RE)
+      leaving four UUID FK fields silent: requested_by (NOT NULL per 0095:28
+      — always populated), decision_by (nullable per 0095:35 — NULL on
+      pending rows per ck_decision_shape at 0095:41-45),
+      linked_credit_transaction_id (nullable per 0095:38 — NULL on pending
+      rows per ck_credit_link at 0095:47-49 which forbids non-null except
+      on approved over_budget_approval), linked_promotion_code_id (nullable
+      per 0095:39 — NULL on pending rows per ck_promo_link at 0095:50-52
+      which forbids non-null except on approved code_request). A route
+      regression that dropped any of the four from the SELECT list would
+      surface only at the admin inbox visual QA lens or at the P9.3
+      approve-flow PATCH which reads the row back via a separate GET. This
+      tick pins all four to the credit-grant-authz row 152 discipline:
+      typeof=string + UUID_RE for the NOT NULL field, and (null OR (typeof
+      =string AND UUID_RE)) for the three nullable fields. Purely additive
+      — no test removed, no assertion weakened, no production code touched.
+
+      reseller-requests-list-authz.spec.ts row 161 happy path — AUDIT-ONLY,
+      NO CHANGE. Route SELECT at web/src/app/api/reseller/requests/route.ts
+      :171-173 emits id + request_type + status + payload + decision_at +
+      decision_reason + created_at — deliberately omits reseller_id (the
+      implicit scope filter at route.ts:174 never echoes it back to the
+      caller) and omits requested_by / decision_by / linked_credit_
+      transaction_id / linked_promotion_code_id (reseller-side lens does
+      not surface the FK graph — those fields are for the admin inbox at
+      /api/admin/resellers/requests only). Therefore option (a)'s "FK-echo
+      shape pins" audit conclusion for this sibling is "no UUID FK fields
+      in envelope → no action required". Existing pre-tick pins (id typeof
+      + UUID_RE, request_type + status + created_at typeof + enum) already
+      cover every field the route emits with the exception of decision_at
+      + decision_reason nullable pins; those are shape-adjacent to option
+      (a)'s FK-echo scope but the tick 220 next-pick text is specifically
+      "FK UUIDs" — extending to nullable string timestamps and free-text
+      reason would widen scope beyond option (a) as written. Leaving them
+      for a subsequent tick to preserve the tight scope discipline
+      established at ticks 218-220.
+
+      Frontier before this tick: tick 220 shipped the sandbox-setup-authz
+      .spec.ts row 154 shape pins (typeof already_existed discriminator +
+      slug prefix regex + name suffix regex) achieving parity with the
+      credit-grant-authz sibling. Options (a), (b), (c) from the tick 220
+      next-pick list were audited this tick: (a) chosen and shipped as the
+      admin-requests-list FK echo pins above; (b) row 175 approve/deny/
+      cancel code_request branches remain P8.5-blocked on STRIPE_PRICE_
+      ADDON env vars per prior tick blocker; (c) drawer-authz + drawer-
+      validation happy-path envelope-shape pins remain open for a future
+      tick — the drawer route response shape is richer than the requests
+      envelope (per P4.2 note: {customer_id, plan, MRR, credits, last-
+      active timestamp, timeline events, monthly SVI curve}) so a full
+      audit warrants its own tick.
+
+      Diagnostic delta of the pass:
+        - Pre-tick admin-requests-list-authz.spec.ts row 174 loop body
+          asserted 8 expects per row: id typeof + UUID_RE, reseller_id
+          typeof + UUID_RE, request_type typeof + enum, status typeof +
+          enum + === "pending", created_at typeof, decision_at nullable,
+          decision_reason nullable. Post-tick adds 5 expects per row:
+          requested_by typeof + UUID_RE (2 expects), decision_by null-or-
+          UUID (1 combined expect), linked_credit_transaction_id null-or-
+          UUID (1 combined expect), linked_promotion_code_id null-or-UUID
+          (1 combined expect). Total = 13 expects per row on happy path
+          when body.requests is non-empty; still within the "per-row shape
+          loop" budget since each expect targets a distinct schema field.
+        - Nullable-UUID pattern (`null || (typeof === "string" && UUID_RE
+          .test(x))`) chosen over the strict-null pattern (`=== null`) so
+          the assertion is robust to a future ?status= query param change
+          that surfaces non-pending rows via this spec — a non-pending row
+          would carry populated decision_by / linked_* values, and the
+          strict-null pattern would false-positive there. The null-or-UUID
+          pattern greens either way.
+        - Diagnostic message convention on each nullable pin includes the
+          field name + JSON.stringify(value) so a shape failure surfaces
+          the actual echoed value (or undefined for the schema-drift class)
+          rather than a bare boolean failure. Mirrors the credit-grant-
+          authz row 152 line 471-482 message convention.
+        - No production code touched. Spec + goal file only. Route
+          web/src/app/api/admin/resellers/requests/route.ts unchanged;
+          web/src/app/api/reseller/requests/route.ts unchanged; migration
+          0095 unchanged.
+
+      Files:
+        - web/tests/e2e/reseller/admin-requests-list-authz.spec.ts (row 174
+          happy path body destructure extended with 4 optional FK fields
+          + 5 new shape assertions inserted between the existing
+          reseller_id UUID_RE assertion and the existing request_type
+          typeof assertion. Header comment above the new block references
+          tick 220 next-pick option (a) rationale, the credit-grant-authz
+          row 152 line 471-482 parity target, and the specific migration
+          0095 CHECK constraint lines each nullable pin relies on for its
+          "should be null on pending rows" invariant.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.220 → 2026-07-23.221; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Shape pins only — no VALUE assertion on the FK fields (a
+          requested_by UUID would drift across staging seed rewrites; a
+          non-null decision_by / linked_* would only appear on approved
+          rows which are out of scope for the default status=pending
+          filter). Matches ticks 218-220 discipline of shape-pinning
+          without arithmetic-pinning on out-of-scope-state fields.
+        - Order of assertions preserves the "identity-first, FK-second,
+          enum-third" convention across sibling authz specs: id + reseller
+          _id (identity) → FK block (requested_by + decision_by + linked
+          _*) → request_type + status enum + created_at → nullable
+          decision_at + decision_reason. Diff-friendly for future audits.
+        - No new UUID_RE constant declared — reuses the existing spec-
+          local UUID_RE at line 81-82 established by the tick 216 hoist,
+          keeping the constant single-source per file.
+
+      Verification:
+        - `npx tsc --noEmit` in web/: clean, no diagnostics.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 file(s), R-03
+          scanned 31 manifest route(s); 3 exemption(s), 0 violations —
+          unchanged from tick 220.
+        - `npx vitest run` in web/: 75 files / 954 tests passed
+          (Playwright specs are excluded from vitest by design so the
+          count is unchanged from tick 220).
+        - No DB apply this tick — no migration authored. Playwright run
+          against staging still gated on the tick 198 seed re-run per
+          P10 hardening exit criteria, not this tick.
+
+      Frontier after tick 221:
+        - Track A P8.5 STILL HUMAN-BLOCKED on
+          STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL.
+        - Track A P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20
+          ABN + GST.
+        - Track B COMPLETE.
+        - All 43 rows in the P10 activation matrix (waves 1-5) are
+          activated; only human-blocked rows (175 approve code_request /
+          178 signup-jitter / 182 SetupIntent) remain on the plan doc's
+          canonical list.
+        - admin-requests-list-authz.spec.ts row 174 happy path now
+          carries the full FK-echo shape-pin discipline (typeof + UUID_RE
+          for NOT NULL requested_by; null-or-UUID for nullable
+          decision_by + linked_credit_transaction_id +
+          linked_promotion_code_id) matching the credit-grant-authz row
+          152 five-pin envelope discipline.
+        - reseller-requests-list-authz.spec.ts row 161 happy path
+          audited — no FK UUIDs in envelope, no action required. Sibling
+          parity closed by audit rather than by pin (route emits a
+          narrower field set than the admin sibling by design; the
+          reseller-side SELECT omits reseller_id / requested_by /
+          decision_by / linked_* because the reseller-lens does not
+          need the FK graph).
+
+      Natural next pick for tick 222:
+        (a) audit drawer-authz.spec.ts + drawer-validation.spec.ts happy
+            paths for parallel envelope-shape pins on the typed body
+            fields the P4.2 customer-drawer route echoes (customer_id
+            UUID, plan slug, MRR number, credits number, last-active
+            timestamp, timeline event array shape, monthly SVI curve
+            array shape). Named as option (c) at tick 220 and remains
+            open. Drawer envelope is richer than requests envelope so a
+            full audit would run 5-10 new shape pins per happy path —
+            still tightly scoped as a single tick.
+        (b) audit admin-requests-list-authz.spec.ts row 174 for the
+            resellers(code, display_name) join object shape pin — the
+            route SELECT at route.ts:44 embeds a Supabase nested select
+            for the parent reseller's code + display_name (a JOIN echoed
+            as a nested object on each row). Pre-tick posture leaves the
+            join silent. Adding `expect(r.resellers).toEqual(expect
+            .objectContaining({ code: expect.any(String), display_name:
+            expect.any(String) }))` would close the last un-pinned field
+            in the admin request envelope. Smaller scope than option (a)
+            — a single-line pin — could ship alongside option (a) as a
+            twin tick if the drawer audit takes longer.
+        (c) mirror the row 179 shape+helper alignment onto the row 175
+            approve+deny+cancel code_request branches once P8.5
+            unblocks; today only the over_budget_approval branch of the
+            terminal handler carries the shape+helper twin coverage.
+            Still open, P8.5-blocked.
+    commit: (this tick)
+
   - tick: 220
     ran_at: 2026-07-22
     action: p10_sandbox_setup_authz_envelope_shape_pin_parity_with_row_152
