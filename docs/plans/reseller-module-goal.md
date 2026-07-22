@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.171
+version: 2026-07-23.172
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,153 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 172
+    ran_at: 2026-07-22
+    action: p10_wave5_row_172_admin_reseller_delete_validation_happy_activated
+    result: |
+      Ninth wave-5 landing per docs/plans/p10-deferred-spec-activation-
+      order.md — activated row 172 (`admin-reseller-delete-validation.spec.ts`
+      × happy 200 idempotent soft-delete). Deviates from the plan §963
+      variant='active_wholesale' pin because DELETE writes
+      resellers.status='terminated' + bumps updated_at, and the shared
+      active_wholesale seed row already anchors rows 167 / 168 / 169 / 170
+      (detail authz/validation + patch authz/validation) that read its
+      status='active' state. Using the pre-existing `terminated` variant
+      (QAPROBETERMINATED — seed-qa-reseller.mjs:107-113 mints it with
+      status='terminated' from the start) makes the write idempotent under
+      CI replay: the row was already terminated pre-write, stays terminated
+      post-write, and only updated_at drifts by one row-write per CI pass.
+      Tick 171 recap "natural next picks (i)" documents the design intent.
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-delete-validation.spec.ts
+          (header block updated: the "Deliberately out of scope" bullet
+          for the happy path was expanded from "deferred to temp-reseller
+          mint fixture follow-up" wording to "ACTIVATED wave-5 row 172
+          below via loadAdminHarness() + loadTempReseller('terminated')"
+          plus a paragraph explaining the variant deviation vs plan.
+          Imports extended with `loadTempReseller` +
+          `tempResellerSkipReason` + `TempResellerFixture` from
+          `../fixtures/reseller`; the pre-existing
+          `adminHarnessSkipReason` + `loadAdminHarness` imports folded
+          into the same named-import block for readability. Appended
+          `test.describe("Admin reseller DELETE input validation —
+          P10 wave-5 row 172 happy path")` block after the pre-existing
+          CASES-driven pre-write validators describe. Inside the new
+          block: loadTempReseller('terminated') + loginAs(harness.admin.
+          email) + page.request.delete(deleteRoute) + assertions on
+          200 + body.ok=true. envelope-only per route.ts:227 which
+          returns exactly {ok: true}).
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.171 → 2026-07-23.172; this review_history entry
+          prepended).
+
+      Design fidelity:
+        - Skip discipline mirrors row 168 (admin-reseller-detail-
+          validation happy) verbatim: harness-level skip via test.skip(
+          !harness, adminHarnessSkipReason()) at describe scope, then
+          two test-scope skips around loadTempReseller null vs throw
+          and loginAs throw. Each skip carries a tempResellerSkipReason(
+          "terminated") pointer so a fresh CI host sees the exact
+          seeder command (--variant=terminated).
+        - Variant deviation from plan §963: documented inline at the
+          top of the new describe block (paragraph "Variant deviation
+          vs plan"). The plan's active_wholesale pin would corrupt the
+          shared seed row used by rows 167 / 168 / 169 / 170, so we
+          use the terminated variant instead. Because DELETE returns
+          {ok:true} regardless of prior status (route.ts:215-227 does
+          not gate on status), the endpoint contract is fully
+          exercised by the idempotent variant.
+        - URL lowercasing: fixture.code is stored uppercase
+          (QAPROBETERMINATED) because normaliseResellerCode
+          (attribution.ts:25-29) uppercases + alnum-strips before
+          insertion. The [code] URL segment convention uses lowercase
+          for aesthetics; the server re-uppercases via the same
+          normaliseResellerCode inside the DELETE handler
+          (route.ts:196) before the resellers SELECT. Mirrors row 167 +
+          row 168 + row 169 + row 170 patterns.
+        - Reseller-admin scope NOT loaded: we log in as the ADMIN
+          (qa-admin-1@blockid.au from loadAdminHarness), NOT as the
+          per-variant reseller-admin. The requireAdmin() gate is an
+          independent auth dimension from scopedReseller(), so
+          fixture.adminUserId being null does NOT gate this test.
+          Same posture as row 164 / row 167 / row 168 / row 169 / row 170.
+        - Twin coverage posture: row 168 pins GET's code_required +
+          not_found + happy from admin-reseller-detail-validation; row
+          169 pins PATCH's code_required + invalid_body + not_found
+          from admin-reseller-patch-authz; row 170 pins PATCH's six
+          validator reject branches from admin-reseller-patch-
+          validation; row 172 pins DELETE's code_required + not_found
+          (pre-existing) + happy 200 (this tick) from admin-reseller-
+          delete-validation. All four specs share the same route file
+          — a refactor that swapped the gate order, changed
+          normaliseResellerCode, or altered the loadReseller
+          contract would light up in all four on the next `npx
+          playwright test` pass.
+        - No fixture cleanup wiring: the DELETE write is idempotent
+          against the terminated variant (row started terminated,
+          stays terminated). No INSERT, no DELETE, no non-idempotent
+          UPDATE fires so fixture.trackProjectForCleanup /
+          fixture.cleanup() are intentionally NOT called. The row's
+          updated_at drifts by one bump per CI pass but no other
+          spec asserts on that column (grep confirmed only three
+          hits across web/tests/e2e/reseller/, all in comments, per
+          the tick's pre-flight grep).
+        - Envelope-only assertion: pins 200 + body.ok=true only.
+          route.ts:227 returns exactly {ok: true} on the happy path
+          with no additional envelope keys (no id, no code, no
+          status). Do NOT assert on reseller state changes at the DB
+          level because that would require a follow-up SELECT plan
+          §J.2 forbids in-spec.
+        - Non-Stripe / non-GST discipline preserved: writes only to
+          resellers.status + resellers.updated_at. No Stripe network
+          call, no InfoVision dependency, no revenue_events read. Net
+          side-effect budget per CI pass: 1 UPDATE row (idempotent
+          against the terminated variant).
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0, no output).
+          The three new imports (loadTempReseller +
+          tempResellerSkipReason + TempResellerFixture) resolve
+          against the existing exports in fixtures/reseller.ts.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files,
+          R-03 scanned 31 manifest routes, 3 documented exemptions,
+          0 violations — unchanged from tick 171 (the spec is not
+          under /api/reseller/** for the R-01 grep and is not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - No DB apply this tick — no migration authored.
+        - Goal file version bumped 2026-07-23.171 → 2026-07-23.172.
+
+      Frontier after tick 172: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision seed
+      STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE; P10 still
+      blocked_by [P1..P9] until P8.5 clears. Wave 5 read-only + reject-
+      only rows have now landed 164 (list) + 167 (detail authz happy) +
+      168 (detail validation happy + reject) + 169 (patch authz post-
+      requireAdmin reject × 3) + 170 (patch validator reject × 6) + 172
+      (delete validation reject × 2 pre-existing + happy 200 this tick)
+      + 173 (loop-status happy) + 174 (admin-requests-list happy) + 175
+      deny+cancel (admin-requests-patch two reject branches). Natural
+      next picks:
+        (i) row 165 (`admin-resellers-create-authz.spec.ts` × happy 201
+             — writes a new reseller row so needs afterAll cleanup that
+             DELETEs the mint OR reuses an existing variant's code and
+             asserts on the ON CONFLICT DO NOTHING branch which returns
+             the existing row's id; needs design decision on the
+             non-poisoning happy shape);
+        (ii) row 171 (`admin-reseller-delete-authz.spec.ts` × terminated
+              × happy 200 — same target as row 172 happy but from the
+              authz spec file; twin pattern to row 167/168 already in
+              tree, low prep cost);
+        (iii) row 176 (`showcase-reviews-authz.spec.ts` × active_wholesale
+               × founder-scoped GET happy 200 — requires the attributed-
+               founder session, not the reseller-admin or the platform
+               admin);
+        (iv) row 181 scope-boundary — requires attributed customer state
+              planted so the reseller-admin gets 403 not_in_scope on
+              /api/svi/*, /api/dataroom/*, /api/cap-table/*.
+    commit: (this tick)
+
   - tick: 171
     ran_at: 2026-07-22
     action: p10_wave5_row_170_admin_reseller_patch_validator_reject_cluster_activated
