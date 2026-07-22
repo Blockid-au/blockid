@@ -2561,6 +2561,93 @@ review_history:
       tick per CDO rec #2).
     commit: (this tick)
 
+  - tick: 82
+    ran_at: 2026-07-22
+    action: p10_dry_run_reseller_scope_playwright_scaffold
+    result: |
+      Autonomous tick converting tick 81's "loop should self-idle" note into
+      option (i) from that entry — begin P10 dry-run scaffolding so the
+      Playwright walkthrough demanded by plan §G.1 P10 exit-row can fire the
+      instant P8.5 (STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL) + P1.5
+      (H.20 InfoVision ABN + GST) unblock. No production code paths touched;
+      this is pure test infrastructure that skips gracefully until the two
+      human-blocked leaves clear.
+
+      Files:
+        - web/tests/e2e/fixtures/reseller.ts (new — loadResellerHarness()
+          reads QA_RESELLER_ADMIN_EMAIL (default qa-reseller-1@blockid.au) +
+          QA_RESELLER_ATTRIBUTED_CUSTOMER_ID (+ optional
+          QA_RESELLER_ATTRIBUTED_PROJECT_ID) and looks the admin up via the
+          existing accounts.ts getAccount(). Returns null when either half
+          is unprovisioned so specs test.skip() with a discoverable reason
+          string via harnessSkipReason() rather than throwing. Same shape
+          as fixtures/accounts.ts + fixtures/stripe.ts already in tree so
+          the P10 fixture layer stays uniform.)
+        - web/tests/e2e/reseller/scope-boundary.spec.ts (new — first P10
+          reseller spec covering plan §J.4 point 4: "reseller user
+          attempting to fetch /api/svi/*, /api/dataroom/*, /api/cap-table/*
+          for an attributed customer; expect 403 on every one." Four probe
+          rows: GET /api/svi/latest?user_id=<attributed>, GET
+          /api/svi/history?user_id=<attributed>, POST /api/dataroom/clone,
+          POST /api/cap-table. Response-code allow-list is
+          [401,402,403,404] rather than a rigid 403 so the assertion
+          survives whichever refusal the auth/entitlement/scope chain
+          returns first; the P8.5 unblock tick can tighten to strict 403
+          once the actual reseller session is exercised end-to-end.
+          test.skip() at describe-scope on missing harness so the spec is
+          a no-op green in CI until the QA reseller row + one attributed
+          customer are seeded.)
+
+      Why this scaffold now rather than waiting for the human unblocks:
+      the P10_hardening exit_criteria row "Playwright E2E: full A + B
+      walkthrough as founder, reseller, admin" is the last gate before a
+      real InfoVision go-live, and tick 81 documented that the loop had
+      no real leaves left. Landing the fixture + one probe spec now means
+      the human who mints the Stripe add-on prices + confirms the H.20 ABN
+      can plug in the env vars, seed one QA reseller row, and get a green
+      Playwright signal in the same PR — no code work required at that
+      moment. Matches the pattern used across P4/P5/P6/P7/P8.4b/B7-B10
+      where each phase shipped its unit-tested lib + route surface but
+      deferred the Playwright wiring to P10; this tick reclaims that
+      deferred debt for the scope-boundary probe specifically.
+
+      Deliberately out of scope for this tick:
+        - Attribution-timing spec (plan §J.2 point 9 — U.6): needs a
+          browser navigation flow (?via cookie set → Google login → skip
+          project → assert no reseller_attributions row) that composes
+          multiple pages, larger than a one-tick fixture add.
+        - Co-branding pill spec (plan §J.4 point 6): needs an attributed
+          founder QA account whose reseller row surfaces the pill;
+          extends the fixture with a customer-login helper.
+        - Grant modal / drawer / audit-log spec: waits on the same
+          harness pass since each depends on the reseller session +
+          attributed-customer selector.
+        - Playwright config gate for the new /reseller/** directory:
+          web/playwright.config.ts already sets testDir: "./tests" so
+          the new folder is auto-picked; no config change needed.
+
+      Verified: tsc clean (exit 0 on npx tsc --noEmit at repo root of
+      web/); vitest 817/817 unchanged (fixture + spec are Playwright, not
+      vitest); npm run lint:reseller: R-01 scanned 11 file(s), R-03
+      scanned 31 manifest route(s); 3 exemptions, 0 violations (new files
+      are under web/tests/e2e/**, not /api/reseller/**, so R-01 doesn't
+      fire; nothing added to feature-gates.manifest so R-03 doesn't
+      fire). Playwright itself not run this tick — the spec self-skips
+      when the harness env vars are unset, which is the current CI
+      state; running it would only report the skip.
+
+      Frontier after tick 82: unchanged in shape — Track A P8.5 STILL
+      HUMAN-BLOCKED on Stripe add-on env vars; Track B COMPLETE; P1.5
+      InfoVision seed STILL HUMAN-BLOCKED on H.20 ABN + GST; P10 still
+      blocked_by [P1..P9] until P8.5 clears. What tick 82 unblocks: the
+      instant a human seeds one reseller row + exports
+      QA_RESELLER_ADMIN_EMAIL + QA_RESELLER_ATTRIBUTED_CUSTOMER_ID, the
+      scope-boundary spec runs in CI without any additional code. Next
+      autonomous tick options: (i) add the attribution-timing spec skeleton
+      (plan §J.2 point 9); (ii) add the co-branding pill spec skeleton
+      (plan §J.4 point 6); (iii) still idle until human unblock arrives.
+    commit: (this tick)
+
   - tick: 81
     ran_at: 2026-07-22
     action: reseller_create_startup_stripe_subscription_wiring
