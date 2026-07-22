@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.190
+version: 2026-07-23.191
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -439,7 +439,9 @@ tracks:
             "web/supabase/migrations/0102_user_role_permissions.sql",
             "web/src/lib/segments.ts (doc-comment migration reference bumped 0101 → 0102)"
           ], note: "Landed as migration 0102 (not 0101 as originally planned) because slot 0101 was already consumed by 0101_reseller_stripe_billing_columns.sql shipped in a prior tick. Contiguous numbering preserved. Migration adds four columns to app_users — custom_role text (nullable ad-hoc role label), permissions jsonb NOT NULL DEFAULT '[]' (fine-grained capability array for the P12.6 grant/revoke endpoint), deleted_at timestamptz (soft-delete), anonymized_at timestamptz (independent APP-11 anonymisation clock). Extends app_users_account_type_check to include the seven new personas P12.1 shipped to segments.ts (investor_angel / investor_vc / advisor / accelerator / incubator / reseller / affiliate) while preserving the legacy trio (founder / investor / journalist) from 0067 so pre-P12 rows still validate. Adds three indexes: app_users_permissions_gin_idx (GIN on jsonb so can() lookups do not full-scan), app_users_deleted_at_idx (partial on non-null), app_users_custom_role_idx (partial on non-null). Applied via docker exec supabase-db psql; NOTIFY pgrst 'reload schema' issued; idempotent re-run verified (ADD COLUMN IF NOT EXISTS + CREATE INDEX IF NOT EXISTS + DROP CONSTRAINT IF EXISTS → ADD CONSTRAINT). Verified: tsc clean; npm run lint:reseller: 11 R-01 + 31 R-03, 3 exemptions, 0 violations; segments vitest 5/5 pass."}
-          P12.3_list_page_filter: {status: pending, action: "extend /admin/users list with account_type filter chip alongside existing all/admin/reseller/unverified chips; expose plan + credit balance + attribution reseller in one row (partially exists)"}
+          P12.3_list_page_filter: {status: done, tick: 191, completed_at: 2026-07-22, files: [
+            "web/src/app/admin/users/page.tsx (account_type <select> dropdown alongside existing chips; resellers table lookup joins attribution_reseller_id → display_name; new 'Reseller' column between Account and Credits; parseAccountType() gate via isAccountType() from P12.1; buildHref() consolidates URL state preservation across chips + dropdown + pagination + clear links)"
+          ], note: "P12.3 chokepoint — instead of ten more chips, the P12.1 ACCOUNT_TYPE_VALUES surface renders as a <select> so the ten personas + 'any' fit in a compact GET form that preserves q + filter via hidden inputs and resets page to 1 on submit. Attribution reseller name resolution done in a single second-pass select on resellers where id ∈ deduped rows.map(attribution_reseller_id); n+1 avoided. buildHref() helper folds the four prior URL builders (chipHref + search-form clear + pagination prev/next + account-type clear) into one so filter/account_type/page mutations always preserve the other axes correctly. Verified: tsc clean; npm run lint:reseller: 11 R-01 + 31 R-03, 3 exemptions, 0 violations (page is not under /api/reseller/** so scope-boundary lint doesn't fire); segments vitest 5/5 pass unchanged. Playwright deferred to P12.9."}
           P12.4_detail_panels: {status: pending, action: "/admin/users/[id] detail page — 4 panels: Roles & permissions (edit custom_role + jsonb permissions), Attribution history, Reseller admin membership, Advisor client list"}
           P12.5_create_endpoint: {status: pending, action: "POST /api/admin/users/create — email + segment + account_type + plan + optional credits grant; server validates account_type via isAccountType() (from P12.1); sends magic-link invite"}
           P12.6_permissions_endpoint: {status: pending, action: "POST /api/admin/users/[id]/permissions — grant/revoke permission entries (reseller.console, advisor_portal, esop.manage); audit-logged"}
@@ -450,7 +452,7 @@ tracks:
         exit_criteria: [
           "AccountType enum + isAccountType() live in web/src/lib/segments.ts (DONE P12.1 tick 189)",
           "migration 0101 extends app_users CHECK constraint + adds custom_role/permissions/deleted_at/anonymized_at columns (DONE P12.2 tick 190 — landed as migration 0102 because 0101 slot already consumed by reseller_stripe_billing_columns; contiguous numbering preserved)",
-          "admin list page filter chip respects new account_type values (P12.3)",
+          "admin list page filter chip respects new account_type values (DONE P12.3 tick 191 — account_type dropdown + reseller display_name column)",
           "admin detail page carries 4 new panels (P12.4)",
           "create/permissions/plan endpoints live + audit-logged (P12.5-P12.7)",
           "impersonation trail tab live under /admin/affiliate (P12.8)",
