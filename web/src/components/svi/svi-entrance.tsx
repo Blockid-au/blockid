@@ -1262,7 +1262,7 @@ export function SVIEntrance() {
                 5 free credits on signup &middot; No credit card required
               </p>
               <p className="text-xs text-ink-400">
-                Early Bird: A$0.50/analysis (normally A$25) &middot; Expires July 31, 2026
+                Early Bird: A$0.50/analysis &middot; Expires July 31, 2026
               </p>
             </div>
             {/* Typing indicator hint — visible when textarea is empty */}
@@ -1602,7 +1602,7 @@ export function SVIEntrance() {
               <div className="absolute top-3 right-3 sm:top-4 sm:right-4 rounded-full bg-emerald-600 px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-wider">Launch Price</div>
               <p className="text-xs uppercase tracking-[0.15em] text-ink-500 font-medium mb-2">Per-Analysis</p>
               <h3 className="text-xl font-bold text-ink-800 mb-1">SVI Analysis Report</h3>
-              <p className="text-2xl sm:text-3xl font-extrabold text-brand-600 mb-1">A$0.50 <span className="text-base text-ink-400 line-through font-normal ml-1">$25</span></p>
+              <p className="text-2xl sm:text-3xl font-extrabold text-brand-600 mb-1">A$0.50</p>
               <p className="text-xs text-emerald-600 font-semibold mb-4">Fractional credits — pay only for what you use</p>
               <ul className="text-left text-sm text-ink-700 space-y-2 mb-6 mx-auto max-w-xs">
                 <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> 1st analysis free &mdash; no signup needed</li>
@@ -1622,7 +1622,7 @@ export function SVIEntrance() {
               <div className="absolute top-3 right-3 sm:top-4 sm:right-4 rounded-full bg-brand-600 px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-wider">Best Value</div>
               <p className="text-xs uppercase tracking-[0.15em] text-brand-600 font-medium mb-2">Founder Plan</p>
               <h3 className="text-xl font-bold text-ink-800 mb-1">Founding 100 Account</h3>
-              <p className="text-2xl sm:text-3xl font-extrabold text-brand-600 mb-1">A$1 <span className="text-base text-ink-400 line-through font-normal ml-1">$99</span></p>
+              <p className="text-2xl sm:text-3xl font-extrabold text-brand-600 mb-1">A$1</p>
               <p className="text-xs text-ink-500 mb-4">Lifetime access &middot; Only 100 spots</p>
               <ul className="text-left text-sm text-ink-700 space-y-2 mb-6 mx-auto max-w-xs">
                 <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> 100 credits included</li>
