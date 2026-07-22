@@ -129,6 +129,52 @@ Prep cost: one tick to author the attributed-customer helper
 `app_users` upsert path in the fixture — then rows 145–149 each add
 2–3 assertions.
 
+**Wave-5 row 174 landed (tick 162).** Third wave-5 row. Added a companion
+`test.describe("Admin reseller-requests list — P10 wave-5 row 174 happy path")`
+block to `web/tests/e2e/reseller/admin-requests-list-authz.spec.ts` that
+pins `GET /api/admin/resellers/requests` as the seeded admin → 200 with
+envelope shape assertions: body.ok=true, Array.isArray(body.requests),
+and per-row {id matches UUID_RE, reseller_id matches UUID_RE, request_type
+∈ {code_request, over_budget_approval, collateral_approval}, status ∈
+{pending, approved, denied, cancelled}, status === "pending" because the
+default filter is pending when ?status= omitted, created_at typeof string,
+decision_at is null or string, decision_reason is null or string}. Do NOT
+pin body.requests.length — fresh CI hosts hold zero pending rows; hosts
+where wave-3 row 155 has run in prior CI passes hold ≥1 pending
+over_budget_approval row seeded against the active_wholesale variant. The
+envelope loop asserts per-row shape only so both empty-array and populated-
+array states green identically — the row-155-not-yet-seeded posture is not
+a blocker. Per-row shape pin (each row is a plain object, not array, not
+scalar) catches a regression that swapped the SELECT projection to return
+scalars or wrapped rows in an intermediate envelope. Status === "pending"
+pin specifically catches a regression that dropped the `.eq("status",
+status)` at route.ts:46 (which would leak approved/denied rows into the
+default envelope). Skip discipline: `loadAdminHarness()` returns null →
+describe-scope skip via `adminHarnessSkipReason()`; `loginAs` throw →
+test-scope skip (matches row 173 posture). State-pollution posture:
+read-only GET — no INSERT / UPDATE / DELETE fires; the route does NOT
+audit-log (admin listing of reseller_requests). Non-Stripe / non-GST
+discipline: the admin GET reads reseller_requests + joins resellers only —
+no promotion_code lookup, no credit ledger write, no revenue_events read,
+no Stripe network call, no InfoVision dependency. P8.5 + P1.5 remain
+neither a dependency nor a consequence. UUID_RE + REQUEST_TYPES + REQUEST_STATUSES
+hoisted to module scope so a future wave-5 row landing in this file
+reuses the constants without duplicating the regex/enum sets. Row 174 was
+named as next-tick option (i) by tick 161's review_history entry — same
+admin-only harness posture as rows 164 + 173, natural continuation of the
+wave-5 admin-only cluster before rows 165–172 + 175 start consuming per-
+variant seeded state and admin write flows. Next natural picks: (i)
+activate row 175 (admin-requests-patch-authz × happy 200 approve/deny/
+cancel transitions consuming wave-3 row 155's seeded rows) — same admin-
+only harness, three-branch collapse per the schedule doc entry; (ii)
+activate row 163 (cobranding-pill × active_wholesale attributed founder ×
+EN + VI) — reuses the attributed-founder harness scaffold from wave 2;
+(iii) land finding-2's seed delta (edit `seed-qa-reseller.mjs` main loop
+to seed attribution on `no_capability` + `no_budget`; re-run seeder
+against staging) — unblocks rows 150 + 151; (iv) mint an active promo
+code on the paused variant to unblock row 157; (v) author the
+`attachReportRow` helper to unblock rows 159 + 160.
+
 **Wave-5 row 173 landed (tick 161).** Second wave-5 row. Added a companion
 `test.describe("Admin reseller-loop status — P10 wave-5 row 173 happy path")`
 block to `web/tests/e2e/reseller/admin-reseller-loop-status-authz.spec.ts`
