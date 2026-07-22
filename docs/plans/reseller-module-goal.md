@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.205
+version: 2026-07-23.206
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,176 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 206
+    ran_at: 2026-07-22
+    action: p10_wave3_row_156b_db_companion_three_chain_mirror_fanout_activation
+    result: |
+      Activated the DB-side companion to P10 wave-3 row 156b in
+      web/tests/e2e/reseller/audit-log-writes.spec.ts. Where tick 204
+      (row 156b) pinned the HTTP response arithmetic across three
+      sequential POST /api/reseller/credits/grant calls (5 + 3 + 2
+      landing on balance=10), this tick closes the corresponding
+      mirror-INSERT gap: after the three chained POSTs land 200s, the
+      reseller_credit_grants table must carry EXACTLY 3 kind='grant'
+      rows for the (reseller_id, target_user_id) pair since a single
+      pre-first-POST cursor. Row 156b's balance-readback pins would
+      stay green under a regression where the on-conflict UPSERT on
+      POST 2 or POST 3 silently dropped the reseller_credit_grants
+      insert while re-firing credit_transactions + credit_balances
+      writes correctly — the response envelope's balance/newBalance
+      is computed off credit_balances, not the mirror table. This
+      block closes that gap.
+
+      Frontier before this tick: tick 205 activated row 157 (code-
+      validate paused-inactive branch). All 43 rows in the plan doc
+      P10 activation matrix (waves 1-5, rows 141-183) are now
+      activated except three human-blocked rows: 175 approve
+      (code_request) branch (P8.5-blocked on Stripe test-mode), 178
+      signup-jitter (QA-mode-blocked), 182 SetupIntent (P8.5-blocked).
+      Tick 205's "natural next pick" line named row 161 + row 163 but
+      both had already landed at ticks 158 + 182 respectively — those
+      suggestions were stale. This tick fills a genuine gap left by
+      the tick 202/203/204 wave-3 chained-grant work.
+
+      Files:
+        - web/tests/e2e/reseller/audit-log-writes.spec.ts (new
+          test.describe("Reseller credit-grant mirror rows — P10
+          wave-3 row 156b DB companion (three-chain fanout)") block
+          appended after the existing wave-3 row 155 mirror-row block
+          at end of file. Uses same TempResellerFixture +
+          attachAttributedCustomer + attachGrantSelfApprove(×3)
+          pattern that row 156b in credit-grant-authz.spec.ts already
+          runs against. Single `chainSince` cursor captured BEFORE
+          POST 1 so a single countResellerCreditGrantsFor call spans
+          all three POSTs — see the header comment block for why the
+          single-cursor design is stronger than three per-POST
+          cursors would be. Cleanup via try/finally around
+          fixture.cleanup() so the three attach snapshots pop LIFO
+          C→B→A (matching row 156b posture at
+          credit-grant-authz.spec.ts:907-909). Skip-guard topology
+          mirrors row 155 verbatim: fixtureError / fixture null /
+          missing admin/attributed/attributionExists / loginAs throw
+          / loadSupabaseAdmin null / attachAttributedCustomer null /
+          three attachGrantSelfApprove null branches all short-
+          circuit cleanly with the shared tempResellerSkipReason
+          hint.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.205 → 2026-07-23.206; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Row lives in audit-log-writes.spec.ts (not credit-grant-
+          authz.spec.ts) per the topology decision the tick 202 note
+          on row 155 established: authz specs own the HTTP contract
+          (status codes + envelope shape + response-side arithmetic);
+          audit-log-writes.spec.ts owns the DB-level side effects on
+          the append-only ledger and the mirror table. Row 156b in
+          credit-grant-authz.spec.ts owns the HTTP arithmetic pins
+          across the three-chained POST sequence; this block owns
+          the corresponding mirror-row DB fanout pin against the same
+          three-chained POST sequence. Splitting HTTP vs DB across
+          the two files means a route change that broke ONE lens
+          without the other (e.g. a refactor that returned the
+          correct balance from a memoised in-memory total but
+          silently dropped the DB mirror insert) surfaces in
+          audit-log-writes without also breaking credit-grant-authz
+          — the diagnostic signal is stronger when the two specs
+          fail independently.
+        - Route write reference: web/src/app/api/reseller/credits/
+          grant/route.ts:206-218 fires supabase.from('reseller_
+          credit_grants').insert({reseller_id, target_user_id,
+          kind:'grant', amount, credit_transaction_id, month_key,
+          over_budget:false, granted_by_user_id, metadata: {reason,
+          ...clientMetadata}}) AFTER the credit_transactions insert
+          at route.ts:184-204 and BEFORE the response envelope
+          composition at route.ts:250-260. A regression that (a)
+          moved the mirror insert behind an early-return after the
+          third POST, (b) added a duplicate on-conflict handler that
+          silently swallowed the ON CONFLICT DO NOTHING case on
+          repeat writes, or (c) an RLS drift on the mirror table's
+          scope that let the first insert through but rejected the
+          second and third would all surface here as mirrorCount !==
+          3 while row 156b's HTTP arithmetic pins stayed green.
+        - Single-cursor vs three-cursor design: three per-POST
+          cursors would give three separate "expected 1, got 1"
+          assertions but would MASK a regression where POST 3
+          duplicated a POST 1 row (each cursor sees its expected 1
+          because the duplicate lands under a different cursor
+          window). A single cursor spanning all three POSTs gives
+          one unambiguous "expected 3, got 3" assertion that catches
+          drop, duplicate, AND cross-POST misattribution
+          simultaneously. This is the same discipline row 155 uses
+          for its single-POST cursor: capture once, count once.
+        - Cleanup topology: three attachGrantSelfApprove calls push
+          restore closures A, B, C in order. fixture.cleanup() pops
+          C→B→A per the LIFO contract at fixture.ts:1250-1356 that
+          row 156b already depends on. Each closure sweeps the
+          reseller_credit_grants rows keyed at its snapshot cursor
+          BEFORE the FK-parent credit_transactions rows (to avoid
+          the credit_transaction_id → credit_transactions.id FK
+          dangling), then upserts credit_balances back to the pre-
+          attach snapshot. reseller_audit_log rows stay in place
+          (append-only per 0093 mutation triggers) — row 154's since
+          cursor still catches drift on the next audit-log run.
+        - Amounts 5 + 3 + 2: identical to row 156b's HTTP arithmetic
+          pin so the two blocks share the same test-side fixture
+          state under CI replay. Running total (10) stays well under
+          active_wholesale's monthly_credit_budget=20000 so gate 3
+          fires on all three POSTs without ever tripping
+          over_budget_requires_approval (402). Same CI-replay
+          posture as rows 152/155/156/156b.
+        - No production code touched. Spec + goal file only. Neither
+          the R-01 scope-boundary rule (only /api/reseller/**) nor
+          the R-03 manifest rule (only feature-gates.manifest.ts
+          routes) scan web/tests/e2e/** so lint counts are unchanged.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: exit 0. New describe block
+          resolves against the existing loadTempReseller,
+          tempResellerSkipReason, TempResellerFixture, loginAs,
+          loadSupabaseAdmin, supabaseAdminSkipReason, and
+          countResellerCreditGrantsFor imports already at the top of
+          audit-log-writes.spec.ts — no new import lines required.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files,
+          R-03 scanned 31 manifest routes, 3 exemptions, 0
+          violations — unchanged.
+        - `npx vitest run src/lib/reseller` in web/: 29 files 449/449
+          pass — unchanged (Playwright specs are excluded from
+          vitest by design).
+        - No DB apply this tick — no migration authored. Playwright
+          run against staging still gated on the tick 198 seed
+          re-run per P10 hardening exit criteria, not this tick.
+
+      Frontier after tick 206:
+        - Track A P8.5 STILL HUMAN-BLOCKED on
+          STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL.
+        - Track A P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20
+          ABN + GST.
+        - Track B COMPLETE.
+        - All 43 rows in the P10 activation matrix (waves 1-5) are
+          activated; only human-blocked rows (175 approve
+          code_request / 178 signup-jitter / 182 SetupIntent) remain
+          on the plan doc's canonical list.
+        - Row 156b now has both the HTTP arithmetic lens (tick 204
+          in credit-grant-authz.spec.ts) AND the DB fanout lens
+          (this tick in audit-log-writes.spec.ts) — a full
+          regression-catching pair matching the row 152/155 posture
+          for single-POST self-approve.
+
+      Natural next pick for tick 207: activate a corresponding
+      DB-companion block for row 156 (two-chain fanout) in
+      audit-log-writes.spec.ts asserting exactly 2 kind='grant'
+      mirror rows land after two chained POSTs — mirrors this tick's
+      three-chain block but pins the on-conflict UPSERT branch that
+      row 155's single-POST cursor cannot reach. Alternative:
+      author a similar mirror-count assertion for the admin
+      approve-branch (wave-5 row 179) that currently uses a raw
+      supabase select instead of the countResellerCreditGrantsFor
+      helper — a small refactor tick that would symmetrise the two
+      DB-side mirror-row assertions across the self-approve (row
+      155) and admin-approve (row 179) paths.
+    commit: (this tick)
+
   - tick: 205
     ran_at: 2026-07-22
     action: p10_wave4_row_157_code_validate_paused_inactive_activation
