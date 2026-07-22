@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   buildResellerSetupIntentParams,
   buildResellerStripeCustomerParams,
+  buildResellerWholesaleSubscriptionParams,
   decideResellerCustomerAction,
   decideSaveDefaultPaymentMethod,
   RESELLER_STRIPE_BILLING_ERROR_MESSAGES,
   validateResellerBillingReadiness,
   type ResellerBillingRow,
+  type WholesaleSubscriptionInput,
 } from "./stripe-billing";
 
 function row(overrides: Partial<ResellerBillingRow> = {}): ResellerBillingRow {
@@ -324,5 +326,134 @@ describe("decideSaveDefaultPaymentMethod", () => {
         decideSaveDefaultPaymentMethod(chargeable(), { setup_intent_id: bad }),
       ).toEqual({ ok: false, reason: "setup_intent_id_required" });
     }
+  });
+});
+
+describe("buildResellerWholesaleSubscriptionParams", () => {
+  function chargeable(overrides: Partial<ResellerBillingRow> = {}): ResellerBillingRow {
+    return row({
+      stripe_customer_id: "cus_reseller",
+      stripe_default_payment_method_id: "pm_reseller",
+      ...overrides,
+    });
+  }
+
+  function input(overrides: Partial<WholesaleSubscriptionInput> = {}): WholesaleSubscriptionInput {
+    return {
+      price_id: "price_1Growth",
+      user_id: "user-1",
+      project_id: "project-1",
+      founder_email: "founder@example.com",
+      discount_tier: 10,
+      stripe_promotion_code_id: "promo_10",
+      ...overrides,
+    };
+  }
+
+  it("emits subscription create params with default_payment_method, promotion_code and stringified discount_tier", () => {
+    const result = buildResellerWholesaleSubscriptionParams(chargeable(), input());
+    expect(result).toEqual({
+      ok: true,
+      params: {
+        customer: "cus_reseller",
+        default_payment_method: "pm_reseller",
+        items: [{ price: "price_1Growth" }],
+        promotion_code: "promo_10",
+        off_session: true,
+        payment_behavior: "error_if_incomplete",
+        collection_method: "charge_automatically",
+        metadata: {
+          source: "reseller_wholesale_provision",
+          reseller_id: "11111111-1111-1111-1111-111111111111",
+          reseller_code: "INFOVISION",
+          billing_model: "wholesale",
+          user_id: "user-1",
+          project_id: "project-1",
+          founder_email: "founder@example.com",
+          discount_tier: "10",
+        },
+        expand: ["latest_invoice"],
+      },
+    });
+  });
+
+  it("omits promotion_code when the id is null or whitespace-only", () => {
+    for (const promo of [null, "", "   "]) {
+      const result = buildResellerWholesaleSubscriptionParams(
+        chargeable(),
+        input({ stripe_promotion_code_id: promo as string | null }),
+      );
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.params.promotion_code).toBeUndefined();
+    }
+  });
+
+  it("stamps discount_tier=0 as the string '0' (attribution-only tier)", () => {
+    const result = buildResellerWholesaleSubscriptionParams(
+      chargeable(),
+      input({ discount_tier: 0, stripe_promotion_code_id: null }),
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.params.metadata.discount_tier).toBe("0");
+  });
+
+  it("trims whitespace around price_id", () => {
+    const result = buildResellerWholesaleSubscriptionParams(
+      chargeable(),
+      input({ price_id: "   price_1Growth   " }),
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.params.items[0].price).toBe("price_1Growth");
+  });
+
+  it("refuses retail resellers", () => {
+    expect(
+      buildResellerWholesaleSubscriptionParams(
+        chargeable({ billing_model: "retail" }),
+        input(),
+      ),
+    ).toEqual({ ok: false, reason: "billing_model_not_wholesale" });
+  });
+
+  it("refuses paused / terminated resellers", () => {
+    for (const status of ["paused", "terminated"] as const) {
+      expect(
+        buildResellerWholesaleSubscriptionParams(chargeable({ status }), input()),
+      ).toEqual({ ok: false, reason: "reseller_not_active" });
+    }
+  });
+
+  it("refuses when stripe_customer_id is missing", () => {
+    expect(
+      buildResellerWholesaleSubscriptionParams(
+        chargeable({ stripe_customer_id: null }),
+        input(),
+      ),
+    ).toEqual({ ok: false, reason: "stripe_customer_missing" });
+  });
+
+  it("refuses when default_payment_method is missing", () => {
+    expect(
+      buildResellerWholesaleSubscriptionParams(
+        chargeable({ stripe_default_payment_method_id: null }),
+        input(),
+      ),
+    ).toEqual({ ok: false, reason: "default_payment_method_missing" });
+  });
+
+  it("refuses malformed price_id", () => {
+    for (const bad of ["", "  ", "prod_notaprice", "PRICE_upper", "price_"]) {
+      expect(
+        buildResellerWholesaleSubscriptionParams(
+          chargeable(),
+          input({ price_id: bad }),
+        ),
+      ).toEqual({ ok: false, reason: "price_id_required" });
+    }
+  });
+
+  it("has EN copy for every wholesale subscription error branch + subscription_create_failed", () => {
+    expect(RESELLER_STRIPE_BILLING_ERROR_MESSAGES.price_id_required).toBeTruthy();
+    expect(RESELLER_STRIPE_BILLING_ERROR_MESSAGES.subscription_create_failed).toBeTruthy();
   });
 });
