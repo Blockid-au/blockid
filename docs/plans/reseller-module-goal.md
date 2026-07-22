@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.178
+version: 2026-07-23.179
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,133 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 179
+    ran_at: 2026-07-22
+    action: p10_wave5_row_166_admin_resellers_create_validation_activated
+    result: |
+      Sixteenth wave-5 landing per docs/plans/p10-deferred-spec-activation-
+      order.md — activated row 166 (`admin-resellers-create-validation
+      .spec.ts` × (n/a) × POST /api/admin/resellers input validators
+      cluster → 400 × 6). The spec already ran behind
+      loadAdminHarness() (qa-admin-1@blockid.au) so wave-5 activation
+      only needed to (a) mark the describe title / header docblock as
+      ACTIVATED, and (b) close the plan §row 166 wording gap by adding
+      an explicit `invalid_abn_format` case that exercises the
+      /^\d{2} \d{3} \d{3} \d{3}$/ regex-fail branch of the wholesale
+      ABN guard (route.ts:94-99) rather than the sibling missing-ABN
+      branch already covered by row 5. Both branches fold into the
+      same reason=wholesale_requires_abn envelope today, but a future
+      refactor that split them (e.g. into reason=invalid_abn_format)
+      would flip the new row red while row 5 stayed green.
+
+      Files:
+        - web/tests/e2e/reseller/admin-resellers-create-validation.spec
+          .ts (header docblock: "P10 dry-run" → "ACTIVATED wave-5
+          row 166", added the invalid_abn_format case description
+          (row 6) documenting that both malformed and missing ABN
+          share the reason=wholesale_requires_abn envelope so the
+          twin case pins the regex-vs-!body.abn dispatch. Rewrote the
+          row 5 comment to point at the !body.abn branch specifically
+          so the two rows exercise disjoint sides of the || guard.
+          CASES array appended with a sixth entry POSTing
+          {billing_model:"wholesale", gst_registered:true, abn:"123"}
+          — three-char ABN fails the regex; expectedReason kept at
+          "wholesale_requires_abn" per current route contract; the
+          same hint="format: NN NNN NNN NNN" assertion at the tail of
+          the for-of loop still fires unchanged so a hint drop shows
+          up on rows 5 AND 6. Describe title flipped from
+          "— P10 dry-run" to "— P10 wave-5 row 166".
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.178 → 2026-07-23.179; this review_history entry
+          prepended).
+
+      Design fidelity:
+        - Variant pin matches plan §957 ((n/a)) — the spec is admin-
+          surface, not variant-scoped. loadAdminHarness() resolves
+          qa-admin-1@blockid.au directly without touching
+          loadTempReseller(), matching the wave-5 admin-surface
+          convention set by row 164 (list-authz), row 167 (detail-
+          authz), row 168 (detail-validation), row 174 (requests-
+          list-authz), row 175 (requests-patch-authz), and the other
+          admin-surface landings.
+        - Duplicate_code (409) DELIBERATELY still deferred. Testing
+          it would require either (a) POSTing an existing seed code
+          like QAPROBEWHOLESALEACTIVE, which conflates row 166 with
+          row 165's INSERT-poisoning design question, or (b) minting
+          + cleaning up a probe row inside afterAll. Kept out per
+          plan §65-77 "Deliberately out of scope — code_taken (409)
+          needs a seeded resellers row whose code matches the POSTed
+          value. Would need the temp-reseller mint fixture to
+          allocate a collision-free probe code per test run." The
+          natural next tick can pick row 165 (create-authz happy) at
+          the same time — both rely on the same afterAll DELETE
+          cleanup story.
+        - Invalid_hex_color DELIBERATELY out of scope. The POST route
+          does NOT validate primary_color — only the PATCH route
+          does (validateAdminResellerPatch at admin-validator.ts
+          catches it and route.ts:157-169 returns 400). Row 170
+          (admin-reseller-patch-validation) already exercises the
+          PATCH-side invalid_hex_color branch (validators cluster of
+          6 folded per plan §961). Adding a placeholder row here
+          would false-positive against a route that never checks the
+          field.
+        - Six-case shape matches row 170's six-case validator cluster
+          (empty_patch / unknown_field / display_name_required /
+          invalid_tier / invalid_billing_model / wholesale_requires_
+          gst) so the two admin-surface validator specs jointly
+          establish the wave-5 "validator clusters return 400 through
+          admin harness" contract.
+        - `PROBE_CODE_BASE-6` suffix mirrors the existing rows 3-5
+          convention so a shape drift that lets the wholesale gate
+          silently fall open still short-circuits on code_taken /
+          insert_failed rather than persisting a real reseller row
+          named after a probe.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0). No new
+          imports; the added ValidationCase entry reuses the existing
+          ValidationCase interface and the "wholesale_requires_abn"
+          expectedReason literal already declared in the union type.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files,
+          R-03 scanned 31 manifest routes, 3 documented exemptions,
+          0 violations — unchanged from tick 178 (the spec is not
+          under /api/reseller/** for the R-01 grep and is not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - No DB apply this tick — no migration authored.
+        - Goal file version bumped 2026-07-23.178 → 2026-07-23.179.
+
+      Frontier after tick 179: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision
+      seed STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE;
+      P10 still blocked_by [P1..P9] until P8.5 clears. Wave 5 has now
+      landed 164 + 166 + 167 + 168 + 169 + 170 + 171 + 172 + 173 +
+      174 + 175 (deny+cancel) + 176 + 179 + 180 + 181 + 183. Natural
+      next picks:
+        (i) row 165 (`admin-resellers-create-authz.spec.ts` × happy
+             201 — the "reseller INSERT poisoning" design question
+             is now the last wave-5 admin-surface row; solvable via
+             afterAll DELETE cleanup keyed on a probe code prefix,
+             plus optional cleanup of any orphaned reseller_
+             promotion_codes rows if the P9.4 code-mint fired
+             during the same test);
+        (ii) row 182 (`billing-authz.spec.ts` × active_wholesale ×
+              happy 200 with SetupIntent client_secret — still
+              deferred on the Stripe SetupIntent mint side effect +
+              reseller_audit_log(mint_setup_intent) write, which
+              need a stripe-test-mode key or a QA-only mock harness);
+        (iii) row 178 attribution-timing wave-5 activation — needs a
+               fresh unattributed founder QA seed row (the fixture
+               would need a snapshot/restore of app_users
+               .attribution_reseller_id similar to
+               attachAttributedCustomer());
+        (iv) row 177 (`showcase-reviews-validation.spec.ts` ×
+              active_wholesale × reviewer-flow POST — still deferred
+              on the seeded data_room_access_tokens dependency per
+              plan §J.2);
+        (v) row 175 approve branch — still deferred on the same
+             ledger-side-effect concern as tick 175.
+    commit: (this tick)
+
   - tick: 178
     ran_at: 2026-07-22
     action: p10_wave5_row_183_billing_validation_active_wholesale_invalid_json_activated
