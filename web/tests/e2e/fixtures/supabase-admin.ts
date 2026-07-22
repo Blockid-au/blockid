@@ -126,6 +126,36 @@ export async function findUserIdByEmail(
 }
 
 /**
+ * Look up the first (oldest) projects.id owned by a user. Used by the
+ * showcase-reviews-authz spec (P10 wave-5 row 176) to resolve a projectId
+ * the attributed founder actually owns so GET /api/showcase-reviews?projectId=
+ * clears the projects.user_id === user.id gate and returns 200 with the
+ * showcase_reviews list.
+ *
+ * Returns null when the founder has no project row yet — specs test.skip()
+ * so a fresh CI host that never planted a workspace stays green rather than
+ * turning red on the projects.user_id mismatch that would surface as 404.
+ * Read-only helper — no per-test seeding, matches the audit-log-writes /
+ * attribution-timing posture.
+ */
+export async function findFirstProjectIdForUser(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("projects")
+    .select("id")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    throw new Error(`findFirstProjectIdForUser failed: ${error.message}`);
+  }
+  return (data?.id as string | undefined) ?? null;
+}
+
+/**
  * Look up the reseller_id an admin QA account is a member of. Playwright-only
  * helper used by the audit-anomaly spec (Verification #5 second half) to pin
  * ?reseller_id= on the scan endpoint so a stray audit row on another tenant
