@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.52
+version: 2026-07-23.53
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,102 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 93
+    ran_at: 2026-07-22
+    action: p11_ongoing_backfill_retail_reseller_attributions_script
+    result: |
+      Composed option (ii) from tick 92's frontier note — "opportunistic
+      backfill script for pre-tick-92 retail founders (P11_ongoing
+      maintenance category rather than a core phase)." Small,
+      self-contained, orthogonal to the P8.5 / P1.5 human-blocked
+      leaves so it fits the truly-empty autonomous frontier this tick.
+
+      Gap before: retail founders whose workspaces existed BEFORE the
+      tick-92 createProject() → attributeProjectFromUserCache() wiring
+      landed carry app_users.attribution_reseller_id (the user-level
+      cache stamped by processAttribution() at signup) but have no
+      matching reseller_attributions ledger row for their projects.
+      Runtime is now correct for every new workspace; only the pre-tick-92
+      backlog was missing per-project provenance. Tick 92 explicitly
+      called this out as deferred to a one-shot script rather than a
+      migration since the row shape isn't schema-changing.
+
+      Files:
+        - web/scripts/backfill-retail-reseller-attributions.mjs (new —
+          idempotent one-shot backfill matching the pattern already
+          established by web/scripts/backfill-svi-index-snapshots.mjs.
+          Reads web/.env for SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY,
+          walks app_users where attribution_reseller_id IS NOT NULL,
+          filters to those whose cached reseller is currently
+          status='active' (matches decideRetailAttribution's
+          'reseller_inactive' deny gate so runtime + backfill agree
+          on eligibility), joins to projects (archived_at IS NULL
+          skipped so a founder's deleted workspace doesn't
+          retroactively appear in the reseller's Customers list),
+          left-joins reseller_attributions to skip projects that
+          already carry an active project-scoped row, and inserts the
+          missing rows with metadata={origin:'retail_project_create',
+          backfill:'tick_93'} so downstream analytics can distinguish
+          runtime-created vs backfilled provenance. Dry-run by default;
+          --apply flag flips to writes. 23505 partial-unique races
+          treated as benign (concurrent createProject() attempt or
+          re-run) and counted as "raced" separately from "inserted"
+          for observability. Stamps projects.attribution_reseller_id
+          after each successful insert to keep the canonical
+          per-project column in sync (soft-fail: a stamp error logs
+          but doesn't roll back the ledger row since webhook helpers
+          + portfolio aggregates can still join through
+          reseller_attributions).)
+
+      Deliberately out of scope for this tick:
+        - Scheduling the backfill on a recurring cron. This is a
+          one-shot maintenance script — the runtime path is now
+          correct, so there's no ongoing drift for it to catch.
+          Re-running is harmless (idempotent via the partial unique
+          + the alreadyAttributed pre-scan) but not needed.
+        - Adding a Verification #6 Playwright row asserting the
+          backfilled row shape. The runtime path already has full
+          coverage from tick-92's attribution-timing.spec.ts row 3;
+          the backfill produces the same row shape via the same
+          insert body so extending Playwright coverage would be
+          duplicative.
+
+      Verified: node --check clean on the new script; dry-run against
+      the local Supabase reports "found 0 attributed app_users" as
+      expected on this dev host (no seeded reseller_attributions,
+      matches the 0/45 grandfathered result from tick-46 P8.3
+      backfill on the same host); syntax and env-loading pattern
+      match backfill-svi-index-snapshots.mjs verbatim so a future
+      operator running on production will see the same
+      dry-run → --apply flow they already use for other backfills.
+      No lib/route/test surface touched — tsc / vitest / lint:reseller
+      all identical to tick 92 baseline (script is a plain .mjs
+      outside the tsc + reseller-lint scope).
+
+      Frontier after tick 93: STILL truly empty of non-human-blocked
+      leaves. Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; Track B COMPLETE;
+      P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20 ABN + GST;
+      P10 still blocked_by [P1..P9] until P8.5 clears. What tick 93
+      unblocks: (a) production ops can now execute
+      `node scripts/backfill-retail-reseller-attributions.mjs --apply`
+      on the first reseller-active day post-deploy to seed historical
+      workspaces; (b) the reseller Customers drawer's Progression tab
+      gains a real "attributed_at" event for founders whose workspaces
+      pre-date tick 92 the moment the backfill runs; (c) any future
+      migration that adds a reseller_attributions FK to
+      projects.attribution_reseller_id can now assume every pre-tick-92
+      retail workspace has both columns in sync. Next autonomous tick
+      options: (i) idle until human unblock arrives (P8.5 Stripe env
+      vars or P1.5 InfoVision ABN); (ii) minor housekeeping only —
+      the P11_ongoing maintenance category has one remaining candidate
+      (extending processAttribution() to persist the redeemed
+      promotion_code_id so retail rows get non-null promotion_code_id
+      without a P3 refactor) but that touches the runtime signup path
+      and warrants its own CTO review loop rather than a single
+      autonomous tick.
     commit: (this tick)
 
   - tick: 92
