@@ -129,6 +129,48 @@ Prep cost: one tick to author the attributed-customer helper
 `app_users` upsert path in the fixture — then rows 145–149 each add
 2–3 assertions.
 
+**Wave-5 row 173 landed (tick 161).** Second wave-5 row. Added a companion
+`test.describe("Admin reseller-loop status — P10 wave-5 row 173 happy path")`
+block to `web/tests/e2e/reseller/admin-reseller-loop-status-authz.spec.ts`
+that pins `GET /api/admin/reseller-loop/status` as the seeded admin → 200
+with envelope shape assertions: body.ok=true, typeof body.complete ===
+"boolean", body.completed_at (string when complete=true, null otherwise),
+typeof body.snapshot === "string", Array.isArray(body.monitor_history),
+Array.isArray(body.tick_history), and body.generated_at matches ISO_RE.
+Do NOT pin monitor_history.length or tick_history.length — the on-disk
+JSONL logs mutate every tick (reseller-monitor.jsonl every minute from the
+cron; reseller-goal-history.jsonl every autonomous tick); fresh CI hosts
+hold 0 rows; production hosts hold up to 30/40 (tailLines caps at 30 and
+40 respectively). Per-row shape pin (each parsed row is a plain object,
+never an array or scalar) catches a regression that swapped the tailLines
+→ JSON.parse fan-out to return raw strings or wrapped rows in an
+intermediate envelope. Skip discipline: `loadAdminHarness()` returns null
+→ describe-scope skip via `adminHarnessSkipReason()`; `loginAs` throw →
+test-scope skip. State-pollution posture: read-only GET — no INSERT /
+UPDATE / DELETE fires; the route does NOT audit-log (admin console read
+of on-disk loop state). Non-Stripe / non-GST discipline: the GET route
+reads /tmp/blockid-reseller-monitor.txt + reseller-monitor.jsonl +
+reseller-goal-history.jsonl + /tmp/blockid-reseller-goal-done via
+safeRead only — no promotion_code lookup, no credit ledger write, no
+revenue_events read, no Stripe network call, no InfoVision dependency.
+P8.5 + P1.5 remain neither a dependency nor a consequence. ISO_RE
+hoisted to module scope for the generated_at pin. Row 173 was named as
+next-tick option (i) by tick 160's review_history entry — same admin-
+only harness posture as row 164, natural continuation of the wave-5
+admin-only cluster before rows 174+ start consuming per-variant seeded
+state. Next natural picks: (i) activate row 174 (admin-requests-list ×
+happy 200 consuming wave-3 row 155's seeded reseller_requests rows) —
+same admin-only harness, and row 155 seeded a pending
+over_budget_approval row at tick 155 that gives row 174 a non-empty
+array to enumerate against; (ii) activate row 163 (cobranding-pill ×
+active_wholesale attributed founder × EN + VI) — reuses the attributed-
+founder harness scaffold from wave 2; (iii) land finding-2's seed delta
+(edit `seed-qa-reseller.mjs` main loop to seed attribution on
+`no_capability` + `no_budget`; re-run seeder against staging) —
+unblocks rows 150 + 151; (iv) mint an active promo code on the paused
+variant to unblock row 157; (v) author the `attachReportRow` helper to
+unblock rows 159 + 160.
+
 **Wave-5 row 164 landed (tick 160).** Opens wave 5 via `loadAdminHarness()`
 (qa-admin-1@blockid.au) so the requireAdmin() gate at
 `web/src/app/api/admin/resellers/route.ts:15-24` passes without needing the

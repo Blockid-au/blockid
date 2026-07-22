@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.160
+version: 2026-07-23.161
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,158 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 161
+    ran_at: 2026-07-22
+    action: p10_wave5_row_173_activate_admin_reseller_loop_status_happy_200
+    result: |
+      Second wave-5 row landed per docs/plans/p10-deferred-spec-
+      activation-order.md. One row landed — the admin-reseller-loop-
+      status-authz.spec.ts × (n/a — admin-only harness) × happy 200
+      branch (GET /api/admin/reseller-loop/status as qa-admin-1 → 200
+      with envelope shape assertions). Row 173 was named as option (i)
+      by tick 160's next-tick recommendation and is the natural
+      continuation of the wave-5 admin-only cluster before rows 174+
+      start consuming per-variant seeded state. Row 173 uses
+      loadAdminHarness() (qa-admin-1@blockid.au) so the requireAdmin()
+      gate at web/src/app/api/admin/reseller-loop/status/route.ts:41-49
+      passes without needing the per-variant reseller cohort at all —
+      admin-only harness per the schedule doc's row 173 "(n/a)"
+      annotation.
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-loop-status-authz.spec.ts
+          (new test.describe block "Admin reseller-loop status — P10
+          wave-5 row 173 happy path" holds row 173; loadAdminHarness +
+          adminHarnessSkipReason imported from ../fixtures/reseller;
+          describe-scope test.skip(!harness, adminHarnessSkipReason());
+          test-scope try/catch around loginAs so a seeded-but-unroutable
+          harness surfaces as test.skip rather than a hard failure. Body
+          shape assertions: 200 status + body.ok === true + typeof
+          body.complete === "boolean" + body.completed_at (string when
+          complete=true, null otherwise) + typeof body.snapshot ===
+          "string" + Array.isArray(body.monitor_history) +
+          Array.isArray(body.tick_history) + body.generated_at matches
+          ISO_RE. Per-row shape pin (each parsed row is a plain object,
+          never an array or scalar) catches a regression that swapped
+          the tailLines → JSON.parse fan-out to return raw strings.
+          Module-scope ISO_RE hoisted so a future wave-5 row landing in
+          this file (none currently sequenced) can reuse the regex.
+          "Deliberately out of scope" comment block updated — the Happy
+          path (200 with monitor_history + tick_history) bullet flipped
+          from folded/deferred to ACTIVATED with a pointer at the new
+          test and a note explaining why the array lengths are NOT
+          pinned).
+        - docs/plans/p10-deferred-spec-activation-order.md (annotation
+          added: "Wave-5 row 173 landed (tick 161)" with full activation
+          posture, state-pollution posture, skip discipline, and next-
+          tick option list).
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.160 → 2026-07-23.161; this review_history entry).
+
+      Design fidelity:
+        - Coverage-vs-duplication call: pin body.ok=true + typeof
+          body.complete === "boolean" + body.completed_at (string when
+          complete=true, null otherwise, with a pair-consistency check
+          so a false/string or true/null combo fails) + typeof
+          body.snapshot === "string" + Array.isArray on both tail arrays
+          + generated_at matches ISO_RE + per-row shape (plain object,
+          not array, not scalar). Do NOT pin monitor_history.length or
+          tick_history.length — the on-disk JSONL logs mutate every
+          tick (reseller-monitor.jsonl every minute from the
+          scripts/cron/reseller-monitor.sh cron; reseller-goal-
+          history.jsonl every autonomous tick from this loop); fresh CI
+          hosts hold 0 rows; production hosts hold up to 30/40
+          (tailLines caps at 30 for monitor and 40 for tick). Do NOT
+          pin per-row content of the tail arrays — the fields vary
+          between minute-cron rows and tick rows and would surface a
+          false regression on any legitimate log-schema change. The
+          envelope pins catch (a) a route regression that dropped a
+          field from the NextResponse.json literal at route.ts:80-88,
+          (b) a regression that flipped an array to an object (e.g.
+          wrapping in { monitor_history: { rows: [] } }), (c) a
+          regression that stopped invoking .filter(Boolean) after
+          JSON.parse (raw null / string rows would leak through), (d)
+          a regression that swapped generated_at from ISO to unix
+          seconds.
+        - Skip discipline: loadAdminHarness() returns null → describe-
+          scope skip via adminHarnessSkipReason() (which points at
+          QA_ADMIN_EMAIL and seed-test-users.mjs); loginAs throw →
+          test-scope skip (matches the pattern in the existing row 2
+          non_admin test).  The admin harness is required because
+          requireAdmin() checks user.role === "admin" || user.email ===
+          ADMIN_EMAIL (see web/src/lib/reseller/require-admin.ts) so a
+          founder-only host cannot exercise this branch.
+        - State-pollution posture: read-only GET — no INSERT / UPDATE /
+          DELETE fires from this endpoint. Route does NOT audit-log
+          (admin console read of on-disk loop state, no
+          reseller_audit_log write). No projects.id created → no
+          trackProjectForCleanup / cleanup() wiring needed. Perfectly
+          idempotent under CI replay. safeRead swallows ENOENT so the
+          route also survives on hosts where the JSONL logs have not
+          been created yet — the test asserts array shape, not row
+          count, so a fresh host still greens.
+        - Non-Stripe / non-GST discipline: the GET route reads /tmp/
+          blockid-reseller-monitor.txt + reseller-monitor.jsonl +
+          reseller-goal-history.jsonl + /tmp/blockid-reseller-goal-done
+          via safeRead only. No promotion_code lookup, no
+          credit_balances / credit_transactions write, no
+          revenue_events read, no Stripe network call, no InfoVision
+          dependency. P8.5 + P1.5 remain neither a dependency nor a
+          consequence.
+        - ISO_RE hoisted to module scope so a future wave-5 row landing
+          in this file (none currently sequenced — this is the only
+          admin-only route under /admin/reseller-loop/**) can reuse the
+          regex without duplication. Pattern accepts optional
+          milliseconds and timezone offset because Date.toISOString()
+          emits with milliseconds+Z but downstream log rows may carry
+          timezone offsets.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0, no output).
+          The new imports (loadAdminHarness, adminHarnessSkipReason)
+          type-check against the fixture module unchanged since tick
+          160.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 documented exemptions, 0
+          violations — unchanged from tick 160 (the spec is not under
+          /api/reseller/** for the R-01 grep and it is not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - No vitest run this tick — no pure-lib .ts code touched, only
+          the Playwright spec + two doc edits. Mirrors the tick 148-160
+          precedent verbatim.
+        - No DB apply this tick — no migration authored. Row 173
+          consumes the existing admin harness + on-disk loop state
+          unchanged.
+        - Goal file version bumped 2026-07-23.160 → 2026-07-23.161.
+
+      Frontier after tick 161: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision seed
+      STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE; P10 still
+      blocked_by [P1..P9] until P8.5 clears. What tick 161 unblocks:
+      wave 5 admin-only cluster is now 2/2 shipped (rows 164 + 173); the
+      remaining wave-5 rows 165-172 + 174-183 all sit behind admin
+      state-mutation flows (create/patch/delete resellers) or per-
+      variant seeded state. Next autonomous tick options:
+        (i) activate row 174 (admin-requests-list-authz × happy 200
+            consuming wave-3 row 155's seeded reseller_requests rows)
+            — same admin-only harness; row 155 seeded a pending
+            over_budget_approval row at tick 155 giving row 174 a
+            non-empty array to enumerate against;
+        (ii) activate row 163 (cobranding-pill × active_wholesale
+             attributed founder × EN + VI) — reuses the attributed-
+             founder harness scaffold (loadAttributedFounderHarness in
+             web/tests/e2e/fixtures/reseller.ts) which currently skips
+             at describe-scope until the fixture is provisioned;
+        (iii) land finding-2's seed delta (edit seed-qa-reseller.mjs
+              main loop to seed attribution on no_capability +
+              no_budget; re-run seeder against staging) — unblocks
+              rows 150 + 151;
+        (iv) mint an active promo code on the paused variant to
+             unblock row 157;
+        (v) author the attachReportRow helper (extend fixtures/
+             reseller.ts with a reseller_report_files seeder for one
+             month bucket per variant) — unblocks rows 159 + 160.
+
   - tick: 160
     ran_at: 2026-07-22
     action: p10_wave5_row_164_activate_admin_resellers_list_happy_200
