@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.50
+version: 2026-07-23.51
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,112 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 91
+    ran_at: 2026-07-22
+    action: p10_dry_run_audit_anomaly_scan_playwright_spec_verification_5_spec_half
+    result: |
+      Composed option (i) from tick 90's frontier note — "author the Playwright
+      spec now that /api/cron/reseller-audit-anomaly-scan exists (accepts
+      .skip() posture until harness env vars provision)." Closes the last
+      non-human-blocked leaf tick 90 identified; both halves of Verification
+      #5 (audit-log-writes.spec.ts from tick 87 + this spec) are now authored
+      assertion pairs that light up the instant the reseller admin harness +
+      service-role env vars provision. Small, self-contained, orthogonal to
+      P8.5 / P1.5 human-blocked leaves.
+
+      Files:
+        - web/tests/e2e/fixtures/supabase-admin.ts (+ findResellerIdForAdmin
+          helper — SELECT reseller_id FROM reseller_admins WHERE user_id=$1
+          AND status='active'. Playwright-only, read-only, single-table.
+          Returns null when the admin has no active membership so specs can
+          test.skip() with a specific "seed a membership" reason instead of
+          throwing. Mirrors the findUserIdByEmail contract already used by
+          audit-log-writes.spec.ts.)
+        - web/tests/e2e/reseller/audit-anomaly-scan.spec.ts (new — fires
+          READ_BURST=5 GET /api/reseller/customers/[id]/drawer requests
+          against harness.attributedCustomerId (each writes a
+          reseller_audit_log row per P4.2 audit-before-response wiring),
+          then hits /api/cron/reseller-audit-anomaly-scan?threshold=5
+          &reseller_id=<harness>&actions=view_customer_drawer&now=<+60s>
+          and asserts (a) resellers_scanned=1 (reseller_id scoping worked),
+          (b) actor_hotspots contains (actor_user_id=admin, reseller_id=
+          harness) with count ≥ 5, (c) subject_hotspots contains
+          (subject_user_id=attributedCustomerId, reseller_id=harness) with
+          count ≥ 5. CRON_SECRET forwarded as Authorization: Bearer when
+          set in the spec env; endpoint accepts unauthenticated requests
+          when unset per sibling reseller-* cron posture. Describe-scope
+          skip on loadResellerHarness(); per-test skip on loadSupabaseAdmin();
+          per-test skip on findResellerIdForAdmin() returning null.)
+
+      Why threshold=5 not 200: the plan's ">200 subject-reads/week"
+      production threshold is infeasible under Playwright's per-test wall
+      clock (200 sequential drawer GETs would blow past the 30s default even
+      on a warm dev server). The scan endpoint's ?threshold= param exists
+      exactly for this — pin a low integer at spec time to fire the same
+      buildAnomalySummary primitive against a small burst. The weekly digest
+      cron (tick 89) exercises the DEFAULT_ANOMALY_THRESHOLD=200 path in
+      production, so this spec's role is regression-guard on the endpoint
+      contract (query-param parsing, reseller_id scoping, hotspot shape),
+      not the production threshold value.
+
+      Why the now anchor is +60s in the future: guards against clock skew
+      between the browser process firing the burst and the server that
+      inserts the reseller_audit_log rows. The scan endpoint's window is
+      [now - window_days*day, now]; a wall-clock now that lands before the
+      last audit row's created_at would silently drop that row from the
+      count. Sixty seconds is generous margin without pulling irrelevant
+      historical rows into the window.
+
+      Deliberately out of scope for this tick:
+        - Extending the spec to also cover the reveal-email action arm.
+          The scan endpoint's ?actions= param already exercises the same
+          buildAnomalySummary path regardless of which action is passed;
+          adding a second test row would double the wall-clock budget for
+          zero additional path coverage. If the audit-log write path
+          diverges between drawer and reveal-email in the future, then a
+          second row becomes worthwhile.
+        - Wiring the endpoint into crontab.production. Tick 90 explicitly
+          argued against this (the weekly digest is the authoritative
+          alert cadence; a scheduled scan would create two email-adjacent
+          paths telling ops the same story). Spec authoring does not
+          change that calculus.
+        - Provisioning the harness env vars themselves — QA_RESELLER_*
+          are still human-blocked on P1.5 (H.20 ABN) + P8.5 (STRIPE
+          env). Once provisioned, this spec + audit-log-writes.spec.ts +
+          attribution-timing row 2 + cobranding-pill all light up at
+          once against staging.
+
+      Verified: tsc clean (npx tsc --noEmit exit 0 at web/); vitest
+      834/834 unchanged (both changes are Playwright infrastructure — no
+      vitest coverage exists for tests/e2e/reseller/ or tests/e2e/fixtures/
+      by design); npm run lint:reseller: R-01 scanned 11 file(s), R-03
+      scanned 31 manifest route(s); 3 exemptions, 0 violations unchanged
+      (spec file lives under web/tests/e2e/reseller/, not /api/reseller/**,
+      so R-01 doesn't fire; not a mutation route in feature-gates.manifest.ts
+      so R-03 doesn't fire either). Playwright not run — spec self-skips at
+      describe-scope when QA_RESELLER_ATTRIBUTED_CUSTOMER_ID is unset
+      (current CI state); each per-test row further gates on SUPABASE_URL +
+      SUPABASE_SERVICE_ROLE_KEY + findResellerIdForAdmin() returning
+      non-null so the assertion runs only when all three provisioning
+      halves are in place.
+
+      Frontier after tick 91: unchanged in shape — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20
+      ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears. What
+      tick 91 unblocks: (1) both halves of Verification #5 (drawer/
+      reveal-email audit-write from tick 87 + anomaly-scan endpoint from
+      tick 91) are authored assertion pairs — the instant harness env
+      vars provision, plan §J.2 Verification #5 flips from "deferred" to
+      "green"; (2) any future reseller spec that needs to pin an admin's
+      reseller_id has the findResellerIdForAdmin helper ready. Next
+      autonomous tick options: (i) close the retail createProject →
+      reseller_attributions gap (needs CTO advisory review for ledger
+      semantics; would drop attribution-timing row 3's .skip()); (ii)
+      idle until human unblock arrives — the frontier is now truly
+      empty of non-human-blocked, non-review-gated leaves.
     commit: (this tick)
 
   - tick: 90

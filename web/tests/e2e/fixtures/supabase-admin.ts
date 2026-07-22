@@ -103,6 +103,31 @@ export async function findUserIdByEmail(
 }
 
 /**
+ * Look up the reseller_id an admin QA account is a member of. Playwright-only
+ * helper used by the audit-anomaly spec (Verification #5 second half) to pin
+ * ?reseller_id= on the scan endpoint so a stray audit row on another tenant
+ * cannot inflate the harness hotspot count. Resolves via reseller_admins
+ * (user_id → reseller_id) filtered to status='active'; returns null when the
+ * QA admin has no active membership so specs can distinguish "harness
+ * misconfigured" from "wrong role".
+ */
+export async function findResellerIdForAdmin(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("reseller_admins")
+    .select("reseller_id")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .maybeSingle();
+  if (error) {
+    throw new Error(`findResellerIdForAdmin failed: ${error.message}`);
+  }
+  return (data?.reseller_id as string | undefined) ?? null;
+}
+
+/**
  * Count reseller_audit_log rows matching an (action, actor, subject) triple,
  * optionally filtered to rows created at or after a captured timestamp.
  * Used by the audit-log-writes spec (plan Verification #5) to assert that a
