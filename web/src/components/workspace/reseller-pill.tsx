@@ -15,17 +15,25 @@
 import * as React from "react";
 
 import { useResellerAttribution } from "@/hooks/useResellerAttribution";
+import { useLocale, type Locale } from "@/lib/use-locale";
+
+const COPY: Record<Locale, { title: string; via: string }> = {
+  en: { title: "Introduced by", via: "via" },
+  vi: { title: "Được giới thiệu bởi", via: "qua" },
+};
 
 export function ResellerPill(): React.ReactElement | null {
+  const [locale] = useLocale();
   const { reseller, isLoading } = useResellerAttribution();
   if (isLoading || !reseller) return null;
 
   const brandColor = reseller.primary_color ?? "#3B7DD8";
+  const copy = COPY[locale];
 
   return (
     <div
       className="hidden md:inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[11px] font-medium text-ink-700 bg-surface-100 ring-1 ring-surface-200"
-      title={`Introduced by ${reseller.display_name}`}
+      title={`${copy.title} ${reseller.display_name}`}
     >
       {reseller.logo_url ? (
         <img
@@ -40,7 +48,7 @@ export function ResellerPill(): React.ReactElement | null {
           aria-hidden
         />
       )}
-      <span className="text-ink-500">via</span>
+      <span className="text-ink-500">{copy.via}</span>
       <span className="text-ink-800">{reseller.display_name}</span>
     </div>
   );

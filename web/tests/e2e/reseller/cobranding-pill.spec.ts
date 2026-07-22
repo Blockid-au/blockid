@@ -50,14 +50,29 @@ test.describe("Reseller co-branding pill — P10 dry-run", () => {
     await expect(anyPill).toHaveCount(0);
   });
 
-  test.skip(
-    "VI locale renders localised pill wording",
-    // ResellerPill currently ships EN-only ("via" + title="Introduced by X").
-    // The plan verification row calls for a "Được giới thiệu bởi" VI variant
-    // — that translation exists in web/src/lib/reseller/email-footer.ts for
-    // welcome-email footers but has not been wired into the topbar pill yet.
-    // Leaving this test.skip() as the tracking marker so the tick that ships
-    // pill i18n unblocks it in the same diff.
-    () => {},
-  );
+  test("VI locale renders localised pill wording", async ({ page, context }) => {
+    // The pill title flips to the VI "Được giới thiệu bởi" variant when the
+    // blockid_lang=vi cookie is set (see web/src/lib/use-locale.ts). Seed the
+    // cookie before navigation so the initial render already picks VI —
+    // otherwise useSyncExternalStore hydrates from getServerSnapshot()='en'
+    // and the assertion races the cookie read on client-side revalidation.
+    // Derive the cookie host from playwright.config.ts baseURL so the same
+    // spec works against blockid.au staging and localhost dev servers.
+    const baseUrl =
+      process.env.PLAYWRIGHT_BASE_URL ??
+      process.env.BASE_URL ??
+      process.env.DEMO_URL ??
+      "https://blockid.au";
+    await context.addCookies([
+      { name: "blockid_lang", value: "vi", url: baseUrl },
+    ]);
+    await loginAs(page, harness!.founder.email);
+    await page.goto("/workspace");
+    const pill = page.locator(
+      `[title="Được giới thiệu bởi ${harness!.resellerDisplayName}"]`,
+    );
+    await expect(pill).toBeVisible({ timeout: 15_000 });
+    await expect(pill).toContainText(harness!.resellerDisplayName);
+    await expect(pill).toContainText(/qua/i);
+  });
 });
