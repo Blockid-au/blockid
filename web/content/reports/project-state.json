@@ -1,9 +1,9 @@
 {
-  "version": "3.0.0",
-  "updatedAt": "2026-07-22T12:04:02.983Z",
+  "version": "3.1.0",
+  "updatedAt": "2026-07-22T14:00:02.174Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
-    "lastReviewedAt": "2026-07-20T14:00:02.419Z",
+    "lastReviewedAt": "2026-07-22T14:00:02.174Z",
     "notes": [
       "v0.2.0 — CEO implementing-plan loop (research → CEO plan → code → version/milestone/architecture), off-peak deploy gating.",
       "v0.3.0 — CFO VC-grade valuation engine (src/lib/agents/cfo-valuation.ts): market sizing (TAM/SAM/SOM), 4 valuation methods, projections, unit economics, break-even, payback, financial injection.",
@@ -27,7 +27,8 @@
       "v3.0.0 — RND: Conversion/CTA experiment ideas & A/B test hypotheses",
       "v3.0.0 — RND: Develop Conversion/CTA experiment ideas & A/B test hypotheses for startup tooling",
       "v3.0.0 — CFO: Integrate VC valuation methods library (VC Method, DCF, comparables, Berkus, Scorecard, Risk‑Factor Summation) with formulae and usage guidance",
-      "v3.0.0 — CPO: Implement First‑Principles Question Engine to generate Socratic prompts and route founders to appropriate BlockID features"
+      "v3.0.0 — CPO: Implement First‑Principles Question Engine to generate Socratic prompts and route founders to appropriate BlockID features",
+      "v3.1.0 — CFO: Implement R&D Tax Incentive & ESIC Valuation Modifier"
     ]
   },
   "plan": {
@@ -923,8 +924,10 @@
         "title": "Implement R&D Tax Incentive & ESIC Valuation Modifier",
         "rationale": "Convert CFO research on R&D Tax and ESIC into active valuation multipliers/cash-flow adjustments for AU founders.",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-07-20T12:04:02.950Z"
+        "status": "done",
+        "createdAt": "2026-07-20T12:04:02.950Z",
+        "completedAt": "2026-07-22T14:00:02.173Z",
+        "commit": "669db67"
       },
       {
         "id": "T0134",
@@ -1371,6 +1374,15 @@
         "T0128",
         "T0130"
       ]
+    },
+    {
+      "id": "M016",
+      "title": "CFO: Implement R&D Tax Incentive & ESIC Valuation Modifier",
+      "version": "3.1.0",
+      "completedAt": "2026-07-22T14:00:02.174Z",
+      "taskIds": [
+        "T0133"
+      ]
     }
   ],
   "history": [
@@ -1487,6 +1499,12 @@
       "action": "release",
       "version": "3.0.0",
       "note": "9 task(s), major bump (v2.7.0→v3.0.0)"
+    },
+    {
+      "ts": "2026-07-22T14:00:02.174Z",
+      "action": "release",
+      "version": "3.1.0",
+      "note": "1 task(s), minor bump (v3.0.0→v3.1.0)"
     }
   ],
   "shipped_this_session": {
