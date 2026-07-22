@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.134
+version: 2026-07-23.135
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,83 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 135
+    ran_at: 2026-07-22
+    action: p10_temp_reseller_admin_scope_collision_finding
+    result: |
+      U.13 Understand-stage finding surfaced while scoping the first
+      deferred spec activation (tick 134 options list, item (ii) —
+      create-startup billing_model_not_wholesale against active_retail
+      variant).
+
+      Discovered a real design conflict between the fixture design
+      (docs/plans/p10-temp-reseller-mint-fixture-design.md §§1, 5) and
+      the production scopedReseller() helper
+      (web/src/lib/reseller/scope.ts:37-52). Design says
+      "reseller_admins(user_id=<QA_RESELLER_ADMIN_EMAIL user id>,
+      role='admin') on every variant so scopedReseller() resolves"
+      but scopedReseller() calls .maybeSingle() on the reseller_admins
+      lookup which throws PGRST116 (JSON object requested, multiple
+      rows returned) as soon as the SAME user_id is a member of
+      MORE THAN ONE variant. In practice the first spec that logs in
+      as qa-reseller-1@blockid.au and hits any /api/reseller/* route
+      would return 403 {ok:false, reason:'no_membership'} rather than
+      the intended downstream reason — every deferred HAPPY-PATH /
+      downstream-reason row across ~13 spec files would fail at the
+      scope gate before exercising its target branch.
+
+      Landed docs/plans/p10-temp-reseller-admin-scope-collision-
+      finding.md documenting: (a) the exact PGRST116 semantics of
+      .maybeSingle() vs multi-row; (b) blast-radius quantified as
+      the ~50 deferred rows; (c) three resolution options —
+      A: seven per-variant admin app_users (recommended, mirrors
+      production semantics that one user is scoped to at most one
+      reseller); B: scopedReseller() env override for QA scoping
+      (rejected — puts test scaffolding in production); C: drop
+      non-happy-path variants (rejected — worst coverage); (d) a
+      four-step implementation plan for Option A that fits the
+      existing §-artefact tick cadence.
+
+      Files: docs/plans/p10-temp-reseller-admin-scope-collision-
+      finding.md (new — design-only, no code lands with this tick).
+
+      Design fidelity: The finding follows the same "single §-
+      artefact per tick" cadence used by ticks 128 (§1) / 131 (§2) /
+      132 (§5) / 133 (§4) / 134 (§3). The four Option A
+      implementation ticks (seed-test-users delta, seed-qa-reseller
+      delta, fixture delta, design doc update) would ship as
+      separate future ticks so each stays reviewable in isolation.
+
+      Verified:
+        - No code delta this tick — pure design finding.
+        - tsc unchanged (no .ts touched).
+        - vitest unchanged (no .test.ts touched).
+        - npm run lint:reseller unchanged (no /api/reseller/** or
+          feature-gates.manifest.ts touched).
+        - Goal file version bumped 2026-07-23.134 → 2026-07-23.135.
+
+      REMAINING P10 §-artefacts: none per tick 134. The Option A
+      fix path adds four new implementation-ticks in front of the
+      first deferred spec activation. Alternative: human ok to
+      Option B or C shortens the path.
+
+      Frontier after tick 135: shape unchanged in terms of goal-
+      file phase status — Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5
+      InfoVision seed STILL HUMAN-BLOCKED on H.20 ABN + GST;
+      Track B COMPLETE; P10 still blocked_by [P1..P9] until P8.5
+      clears. But now the P10 preflight path itself has a new
+      Option A four-tick fix queue in front of the first deferred
+      spec activation — the loop should NOT pick up "activate the
+      first deferred spec row" until either Option A ships or a
+      human signs off on Option B/C. Next autonomous tick options:
+      (i) ship Option A step 1 (seed-test-users.mjs mint the six
+      new per-variant admin accounts + preserve backwards-compat
+      env gate) — safe additive delta; (ii) ship Option A step 4
+      (design doc update) as pure documentation catchup; (iii)
+      idle until human unblock on P8.5 or P1.5.
+    commit: (this tick)
+
   - tick: 134
     ran_at: 2026-07-22
     action: p10_temp_reseller_mint_playwright_fixture_wiring
