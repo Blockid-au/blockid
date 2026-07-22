@@ -3,6 +3,7 @@ import {
   buildResellerSetupIntentParams,
   buildResellerStripeCustomerParams,
   decideResellerCustomerAction,
+  decideSaveDefaultPaymentMethod,
   RESELLER_STRIPE_BILLING_ERROR_MESSAGES,
   validateResellerBillingReadiness,
   type ResellerBillingRow,
@@ -244,9 +245,84 @@ describe("RESELLER_STRIPE_BILLING_ERROR_MESSAGES", () => {
       "invalid_contact_email",
       "stripe_customer_missing",
       "default_payment_method_missing",
+      "setup_intent_id_required",
+      "setup_intent_customer_mismatch",
+      "setup_intent_not_succeeded",
+      "setup_intent_no_payment_method",
     ] as const;
     for (const k of keys) {
       expect(RESELLER_STRIPE_BILLING_ERROR_MESSAGES[k]).toBeTruthy();
+    }
+  });
+});
+
+describe("decideSaveDefaultPaymentMethod", () => {
+  const CUSTOMER = "cus_existing";
+  const chargeable = (): ResellerBillingRow => row({ stripe_customer_id: CUSTOMER });
+
+  it("accepts a well-formed setup_intent_id on an active wholesale customer", () => {
+    const result = decideSaveDefaultPaymentMethod(chargeable(), {
+      setup_intent_id: "seti_1abc",
+    });
+    expect(result).toEqual({
+      ok: true,
+      stripe_customer_id: CUSTOMER,
+      setup_intent_id: "seti_1abc",
+    });
+  });
+
+  it("trims surrounding whitespace before validating", () => {
+    const result = decideSaveDefaultPaymentMethod(chargeable(), {
+      setup_intent_id: "  seti_trimmed  ",
+    });
+    expect(result).toEqual({
+      ok: true,
+      stripe_customer_id: CUSTOMER,
+      setup_intent_id: "seti_trimmed",
+    });
+  });
+
+  it("refuses retail resellers", () => {
+    expect(
+      decideSaveDefaultPaymentMethod(
+        chargeable(),
+        { setup_intent_id: "seti_1abc" },
+      ),
+    ).toBeTruthy();
+    expect(
+      decideSaveDefaultPaymentMethod(
+        row({ stripe_customer_id: CUSTOMER, billing_model: "retail" }),
+        { setup_intent_id: "seti_1abc" },
+      ),
+    ).toEqual({ ok: false, reason: "billing_model_not_wholesale" });
+  });
+
+  it("refuses paused / terminated resellers", () => {
+    expect(
+      decideSaveDefaultPaymentMethod(
+        row({ stripe_customer_id: CUSTOMER, status: "paused" }),
+        { setup_intent_id: "seti_1abc" },
+      ),
+    ).toEqual({ ok: false, reason: "reseller_not_active" });
+    expect(
+      decideSaveDefaultPaymentMethod(
+        row({ stripe_customer_id: CUSTOMER, status: "terminated" }),
+        { setup_intent_id: "seti_1abc" },
+      ),
+    ).toEqual({ ok: false, reason: "reseller_not_active" });
+  });
+
+  it("refuses when the reseller has no stripe_customer_id yet", () => {
+    expect(
+      decideSaveDefaultPaymentMethod(row(), { setup_intent_id: "seti_1abc" }),
+    ).toEqual({ ok: false, reason: "stripe_customer_missing" });
+  });
+
+  it("refuses malformed / missing setup_intent_id", () => {
+    for (const bad of ["", "   ", "pi_wrong_prefix", "seti_", "seti_bad!"]) {
+      expect(
+        decideSaveDefaultPaymentMethod(chargeable(), { setup_intent_id: bad }),
+      ).toEqual({ ok: false, reason: "setup_intent_id_required" });
     }
   });
 });
