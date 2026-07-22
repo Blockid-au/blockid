@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.172
+version: 2026-07-23.173
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,147 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 173
+    ran_at: 2026-07-22
+    action: p10_wave5_row_171_admin_reseller_delete_authz_happy_activated
+    result: |
+      Tenth wave-5 landing per docs/plans/p10-deferred-spec-activation-
+      order.md — activated row 171 (`admin-reseller-delete-authz.spec.ts`
+      × `terminated` × happy 200 idempotent soft-delete). Twin coverage
+      to row 172 which landed the same happy 200 assertion into the
+      admin-reseller-delete-validation.spec.ts sibling the previous tick.
+      Keeping the row live in the authz spec too means a regression that
+      swaps requireAdmin() ordering, drops the terminate UPDATE branch,
+      or a stale bundle mismatch between workers lights up on the
+      delete-authz side as well as delete-validation — not just one of
+      the two.
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-delete-authz.spec.ts
+          (header block updated: the "Deliberately out of scope" bullet
+          for the happy path was expanded from "folded into the admin
+          QA harness follow-up alongside the deferred rows from ticks
+          94..105" wording to "ACTIVATED wave-5 row 171 below via
+          loadAdminHarness() + loadTempReseller('terminated'). Twin of
+          wave-5 row 172 (admin-reseller-delete-validation.spec.ts
+          happy 200 tick 172)". Imports extended with `loadAdminHarness`
+          + `adminHarnessSkipReason` + `loadTempReseller` +
+          `tempResellerSkipReason` + `TempResellerFixture` from
+          `../fixtures/reseller`. Appended
+          `test.describe("Admin reseller DELETE pre-write authorization
+          — P10 wave-5 row 171 happy path")` block after the pre-
+          existing unauth + non_admin harness-free describe. Inside the
+          new block: loadTempReseller('terminated') +
+          loginAs(harness.admin.email) + page.request.delete(deleteRoute)
+          + assertions on 200 + body.ok=true (envelope-only per
+          route.ts:227).
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.172 → 2026-07-23.173; this review_history entry
+          prepended).
+
+      Design fidelity:
+        - Skip discipline mirrors row 172 (admin-reseller-delete-
+          validation happy) verbatim: harness-level skip via test.skip(
+          !harness, adminHarnessSkipReason()) at describe scope, then
+          two test-scope skips around loadTempReseller null vs throw
+          and loginAs throw. Each skip carries a tempResellerSkipReason(
+          "terminated") pointer so a fresh CI host sees the exact
+          seeder command (--variant=terminated).
+        - Variant choice matches plan §962 verbatim ("terminated"). No
+          deviation this tick — row 172 needed the deviation from plan
+          §963's active_wholesale because the shared active_wholesale
+          row anchors rows 167-170, but row 171 already had the
+          idempotent-friendly variant pinned in the plan table so we
+          simply reuse it.
+        - URL lowercasing: fixture.code is stored uppercase
+          (QAPROBETERMINATED) because normaliseResellerCode
+          (attribution.ts:25-29) uppercases + alnum-strips before
+          insertion. The [code] URL segment convention uses lowercase
+          for aesthetics; the server re-uppercases via the same
+          normaliseResellerCode inside the DELETE handler
+          (route.ts:196) before the resellers SELECT. Mirrors row 167
+          + row 168 + row 169 + row 170 + row 172 patterns.
+        - Reseller-admin scope NOT loaded: we log in as the ADMIN
+          (qa-admin-1@blockid.au from loadAdminHarness), NOT as the
+          per-variant reseller-admin. The requireAdmin() gate is an
+          independent auth dimension from scopedReseller(), so
+          fixture.adminUserId being null does NOT gate this test.
+          Same posture as row 164 / row 167 / row 168 / row 169 /
+          row 170 / row 172.
+        - Twin coverage posture: row 172 pins DELETE's code_required +
+          not_found (pre-existing) + happy 200 from admin-reseller-
+          delete-validation.spec.ts; row 171 pins DELETE's no_user +
+          not_admin (pre-existing) + happy 200 from admin-reseller-
+          delete-authz.spec.ts. Together the two specs cover every
+          non-tampering DELETE branch in web/src/app/api/admin/
+          resellers/[code]/route.ts::DELETE. A refactor that reordered
+          the gate → normalise → loadReseller → update chain, or
+          collapsed the two 401 reasons into a single "unauthorised",
+          would light up in both specs on the next `npx playwright
+          test` pass.
+        - No fixture cleanup wiring: the DELETE write is idempotent
+          against the terminated variant (row started terminated,
+          stays terminated). No INSERT, no DELETE, no non-idempotent
+          UPDATE fires so fixture.trackProjectForCleanup /
+          fixture.cleanup() are intentionally NOT called. The row's
+          updated_at drifts by two bumps per CI pass now (one from
+          row 171 + one from row 172, both targeting the same
+          QAPROBETERMINATED row) but no other spec asserts on that
+          column (grep confirmed on tick 172, still valid).
+        - Envelope-only assertion: pins 200 + body.ok=true only.
+          route.ts:227 returns exactly {ok: true} on the happy path
+          with no additional envelope keys (no id, no code, no
+          status). Do NOT assert on reseller state changes at the DB
+          level because that would require a follow-up SELECT plan
+          §J.2 forbids in-spec.
+        - Non-Stripe / non-GST discipline preserved: writes only to
+          resellers.status + resellers.updated_at. No Stripe network
+          call, no InfoVision dependency, no revenue_events read. Net
+          side-effect budget per CI pass on the terminated variant
+          across rows 171 + 172: 2 UPDATE rows (both idempotent on
+          status, drift only updated_at).
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0, no output).
+          The five new imports (loadAdminHarness +
+          adminHarnessSkipReason + loadTempReseller +
+          tempResellerSkipReason + TempResellerFixture) resolve
+          against the existing exports in fixtures/reseller.ts.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files,
+          R-03 scanned 31 manifest routes, 3 documented exemptions,
+          0 violations — unchanged from tick 172 (the spec is not
+          under /api/reseller/** for the R-01 grep and is not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - No DB apply this tick — no migration authored.
+        - Goal file version bumped 2026-07-23.172 → 2026-07-23.173.
+
+      Frontier after tick 173: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision seed
+      STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE; P10 still
+      blocked_by [P1..P9] until P8.5 clears. Wave 5 read-only + reject-
+      only rows have now landed 164 (list) + 167 (detail authz happy) +
+      168 (detail validation happy + reject) + 169 (patch authz post-
+      requireAdmin reject × 3) + 170 (patch validator reject × 6) + 171
+      (delete authz happy 200 this tick) + 172 (delete validation reject
+      × 2 pre-existing + happy 200) + 173 (loop-status happy) + 174
+      (admin-requests-list happy) + 175 deny+cancel (admin-requests-
+      patch two reject branches). Natural next picks:
+        (i) row 165 (`admin-resellers-create-authz.spec.ts` × happy 201
+             — writes a new reseller row so needs afterAll cleanup that
+             DELETEs the mint OR reuses an existing variant's code and
+             asserts on the ON CONFLICT DO NOTHING branch which returns
+             the existing row's id; needs design decision on the
+             non-poisoning happy shape);
+        (ii) row 176 (`showcase-reviews-authz.spec.ts` × active_wholesale
+              × founder-scoped GET happy 200 — requires the attributed-
+              founder session, not the reseller-admin or the platform
+              admin);
+        (iii) row 178 attribution-timing — needs new founder QA seed;
+        (iv) row 181 scope-boundary — requires attributed customer state
+              planted so the reseller-admin gets 403 not_in_scope on
+              /api/svi/*, /api/dataroom/*, /api/cap-table/*.
+    commit: (this tick)
+
   - tick: 172
     ran_at: 2026-07-22
     action: p10_wave5_row_172_admin_reseller_delete_validation_happy_activated
