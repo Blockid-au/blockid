@@ -84,7 +84,26 @@
 
 import { test, expect } from "@playwright/test";
 import { loginAs } from "../fixtures/accounts";
-import { harnessSkipReason, loadResellerHarness } from "../fixtures/reseller";
+import {
+  harnessSkipReason,
+  loadResellerHarness,
+  loadTempReseller,
+  tempResellerSkipReason,
+  type TempResellerFixture,
+} from "../fixtures/reseller";
+
+// Mirrors web/src/lib/reseller/report-storage.ts::monthKeyOffset(now, 0)
+// without importing the .ts across the Playwright/browser bundle boundary.
+// Current UTC month is always inside the 12-month RETENTION_EXPOSED_MONTHS
+// window so the isMonthExposed gate at route.ts:59-61 always passes for it.
+// Duplicated from reports-signed-url-authz.spec.ts (row 159 landing) — the
+// helper is intentionally re-inlined per file so a spec never reaches across
+// the Playwright/browser boundary to import from a sibling spec.
+function currentUtcMonthKey(now: Date = new Date()): string {
+  const y = now.getUTCFullYear();
+  const m = now.getUTCMonth() + 1;
+  return `${y}-${String(m).padStart(2, "0")}`;
+}
 
 // "2026-13" passes the four-digit-dash-two-digit shape at Next.js dynamic
 // segment level so it reaches the handler, then fails MONTH_RE's month
@@ -145,5 +164,166 @@ test.describe("Reseller reports signed-url input validation — P10 dry-run", ()
       `not_exposed body.ok should be false: ${JSON.stringify(body)}`,
     ).toBe(false);
     expect(body.reason).toBe("not_exposed");
+  });
+});
+
+// Wave-4 row 160 landed (tick 167) — paired in-window vs expired assertion
+// for the retention-window gate. The two tests above use loadResellerHarness's
+// single-admin fallback to exercise the harness-only invalid_month + not_
+// exposed branches BEFORE any real reseller_report_files SELECT can fire (both
+// bail at route.ts:55-61 in the same request). This block pairs the two sides
+// of isMonthExposed against loadTempReseller("active_wholesale") +
+// fixture.attachReportRow(currentMonth) so a route refactor that flipped the
+// isMonthExposed comparator or dropped the retention gate surfaces as either
+// (a) the current-month happy row 200 → some other code (a regression that
+// tightened the exposed window past the current month) or (b) the expired
+// row 403 not_exposed → 200 (a regression that widened the exposed window
+// past 12 months). The in-window row also proves that attachReportRow's
+// (reseller_id, month_key) tuple actually resolves the route's SELECT +
+// storage.createSignedUrl chain end-to-end when isMonthExposed passes — a
+// stricter round-trip than row 159's authz spec which only asserts the
+// happy 200 shape without a paired negative anchor.
+//
+// Fixture wiring (wave-4 prep, tick 165):
+//   - loadTempReseller("active_wholesale") reads the QAPROBEWHOLESALEACTIVE
+//     seed row + resolves adminEmail via QA_RESELLER_ADMIN_EMAIL_ACTIVE_
+//     WHOLESALE (default qa-reseller-wholesale-active@blockid.au).
+//   - fixture.attachReportRow(monthKey) inserts a reseller_report_files row
+//     + uploads a fixture CSV to reseller-reports/<resellerId>/<monthKey>.csv
+//     when the row does not exist; returns {created:false} when a pre-existing
+//     seed row is reused.
+//   - loginAs(page, fixture.adminEmail) signs the reseller admin in via the
+//     QA login endpoint; scopedReseller resolves and the current-month GET
+//     reads the just-inserted metadata row.
+//   - fixture.cleanup() in the try/finally removes the fixture-minted
+//     metadata row + storage object when attachReportRow returned
+//     {created:true}; no-op when the row was reused.
+//
+// Skip discipline mirrors reveal-email-authz row 148 + reports-signed-url-authz
+// row 159: three skip points around loadTempReseller null vs throw,
+// attachReportRow null (variant guard or REPORT_MONTH_RE reject — neither
+// should fire on active_wholesale + a computed UTC monthKey), and loginAs
+// throw. Each skip carries tempResellerSkipReason("active_wholesale") so a
+// fresh CI host sees the exact seeder command to run.
+//
+// Paired-assertion posture: BOTH GETs fire inside the SAME test.beforeAll +
+// single test block so the (current-month 200) and (expired 403) side effects
+// see the SAME reseller session + the SAME attachReportRow row. This catches
+// a regression where a route refactor accidentally coupled the retention
+// window check to a per-request cache or a session-level flag (either state
+// would drift between the two requests when they run in separate tests but
+// stays consistent when they share one session).
+//
+// The current-month GET writes ONE reseller_audit_log(action='download_report')
+// row per request (route.ts:105-125) — append-only per migration 0093 so no
+// cleanup needed. The expired-month GET short-circuits at route.ts:59-61 so
+// it writes nothing at all — no metadata SELECT, no storage sign, no audit
+// row. Net side-effect budget for the block: 0 or 1 reseller_report_files
+// insert + 1 reseller_audit_log row, mirroring row 159.
+test.describe("Reseller reports signed-url paired retention — P10 wave-4 row 160", () => {
+  test("active_wholesale — in-window month → 200 + expired month → 403 not_exposed", async ({
+    page,
+  }) => {
+    let fixture: TempResellerFixture | null;
+    try {
+      fixture = await loadTempReseller("active_wholesale");
+    } catch (err) {
+      test.skip(
+        true,
+        `loadTempReseller('active_wholesale') threw: ${(err as Error).message}. ` +
+          tempResellerSkipReason("active_wholesale"),
+      );
+      return;
+    }
+    if (!fixture) {
+      test.skip(true, tempResellerSkipReason("active_wholesale"));
+      return;
+    }
+
+    const monthKey = currentUtcMonthKey();
+    let attached = false;
+    try {
+      const attach = await fixture.attachReportRow(monthKey);
+      if (!attach) {
+        test.skip(
+          true,
+          `attachReportRow('${monthKey}') returned null — variant guard or ` +
+            "REPORT_MONTH_RE reject. Neither should fire on active_wholesale + " +
+            "a computed UTC monthKey; investigate the fixture. " +
+            tempResellerSkipReason("active_wholesale"),
+        );
+        return;
+      }
+      attached = attach.created;
+
+      try {
+        await loginAs(page, fixture.adminEmail);
+      } catch (err) {
+        test.skip(
+          true,
+          `loginAs(${fixture.adminEmail}) threw: ${(err as Error).message}. ` +
+            tempResellerSkipReason("active_wholesale"),
+        );
+        return;
+      }
+
+      // Paired assertion — first the in-window month proves the retention
+      // gate accepts a current UTC month AND the metadata row resolves the
+      // route's SELECT + storage.createSignedUrl chain (a 404 not_found or
+      // 500 lookup_failed here would indicate attachReportRow did not
+      // persist the row against the resolved reseller_id / month_key tuple).
+      const inWindowResp = await page.request.get(
+        `/api/reseller/reports/${monthKey}/signed-url`,
+      );
+      expect(
+        inWindowResp.status(),
+        `in-window returned ${inWindowResp.status()} — expected 200 after ` +
+          `scopedReseller passes, isMonthExposed accepts the current UTC month, ` +
+          `the reseller_report_files row resolves via attachReportRow, ` +
+          `storage.createSignedUrl mints a URL, and reseller_audit_log ` +
+          `(download_report) writes. Body: ${await inWindowResp.text()}`,
+      ).toBe(200);
+      const inWindowBody = (await inWindowResp.json()) as {
+        ok?: unknown;
+        month?: unknown;
+        reason?: unknown;
+      };
+      expect(
+        inWindowBody.ok,
+        `in-window body.ok should be true: ${JSON.stringify(inWindowBody).slice(0, 200)}`,
+      ).toBe(true);
+      expect(inWindowBody.month).toBe(monthKey);
+
+      // Then the expired month proves the retention gate rejects a month
+      // outside the 12-month exposed window BEFORE the reseller_report_files
+      // SELECT runs (route.ts:59-61 short-circuits before route.ts:68-83).
+      // Uses the SAME reseller session as the in-window request so a
+      // regression that coupled isMonthExposed to a per-session cache or a
+      // per-request memoisation surfaces here (either state would drift
+      // between two separate tests but stays consistent when they share one
+      // session/request/page fixture).
+      const expiredResp = await page.request.get(
+        `/api/reseller/reports/${NOT_EXPOSED_MONTH_SEGMENT}/signed-url`,
+      );
+      expect(
+        expiredResp.status(),
+        `expired returned ${expiredResp.status()} — expected 403 not_exposed ` +
+          `before getSupabaseAdmin, reseller_report_files SELECT, storage sign, ` +
+          `or reseller_audit_log write. Body: ${await expiredResp.text()}`,
+      ).toBe(403);
+      const expiredBody = (await expiredResp.json()) as {
+        ok?: unknown;
+        reason?: unknown;
+      };
+      expect(
+        expiredBody.ok,
+        `expired body.ok should be false: ${JSON.stringify(expiredBody).slice(0, 200)}`,
+      ).toBe(false);
+      expect(expiredBody.reason).toBe("not_exposed");
+    } finally {
+      if (attached) {
+        await fixture.cleanup();
+      }
+    }
   });
 });

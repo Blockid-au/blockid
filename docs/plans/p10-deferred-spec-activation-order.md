@@ -129,6 +129,48 @@ Prep cost: one tick to author the attributed-customer helper
 `app_users` upsert path in the fixture — then rows 145–149 each add
 2–3 assertions.
 
+**Wave-4 row 160 landed (tick 167) — paired in-window vs expired retention.**
+Seventh wave-4 landing. Extended `web/tests/e2e/reseller/reports-signed-url-
+validation.spec.ts` with imports for `loadTempReseller` +
+`tempResellerSkipReason` + `TempResellerFixture` from `../fixtures/reseller`;
+added module-scope `currentUtcMonthKey(now?)` helper (duplicated from row
+159's spec because Playwright specs never import across sibling files);
+appended `test.describe("Reseller reports signed-url paired retention — P10
+wave-4 row 160")` block after the pre-existing invalid_month + not_exposed
+harness-only tests. The block uses loadTempReseller('active_wholesale') +
+attachReportRow(currentUtcMonthKey()) + loginAs(fixture.adminEmail), then
+fires TWO GETs from the same page/session/attach — GET
+/api/reseller/reports/<currentMonth>/signed-url asserts 200 + body.ok=true +
+body.month === monthKey (proves isMonthExposed accepts the current UTC month
+AND the fixture-minted metadata row resolves the SELECT + storage sign +
+audit-log write chain end-to-end), then GET
+/api/reseller/reports/2024-01/signed-url asserts 403 + body.ok=false +
+body.reason === "not_exposed" (proves isMonthExposed rejects a month outside
+the 12-month window BEFORE reseller_report_files SELECT can fire). Sharing
+ONE reseller session across the paired assertions catches a regression where
+isMonthExposed accidentally coupled to a per-session cache or per-request
+memoisation — either state would drift between two separate tests but stays
+consistent when they share one page/session/attach. Row 159's spec already
+pins the full 7-key envelope shape on the happy 200 (signed_url + filename +
+expires_at + ttl_seconds + bucket) so duplicating those assertions here
+would be redundant; this block's contribution is the RETENTION-GATE pair,
+not another envelope-shape probe. Skip discipline mirrors row 159 verbatim
+(loadTempReseller null vs throw, attachReportRow null variant/regex guard,
+loginAs throw). try/finally invokes fixture.cleanup() when attach.created
+=== true. Verified: `npx tsc -p . --noEmit` clean; `npm run lint:reseller`
+R-01 scanned 11 files + R-03 scanned 31 manifest routes, 3 exemptions, 0
+violations — unchanged from tick 166 (spec is not under /api/reseller/**
+for R-01 and is not in feature-gates.manifest.ts for R-03). No DB apply —
+no migration. Both reports-signed-url specs (authz + validation) are now
+end-to-end GREEN on wave-4 (row 148 reveal-email + row 159 signed-url authz
++ row 160 signed-url validation). Next natural picks after tick 167: (i)
+activate row 161 (`reseller-requests-list-authz.spec.ts` happy 200 — no
+attachReportRow needed); (ii) activate row 163 (cobranding-pill × attributed
+founder); (iii) land finding-2's seed delta for rows 150 + 151; (iv) mint
+an active promo code on the paused variant to unblock row 157; (v) land the
+approve-target seeder variant to unblock row 175's approve branch; (vi) row
+178 attribution-timing — requires new founder QA seed.
+
 **Wave-4 row 159 landed (tick 166) — happy 200 signed-URL mint.** Sixth wave-4
 landing. Consumes the `attachReportRow(monthKey)` helper that tick 165
 authored. Extended `web/tests/e2e/reseller/reports-signed-url-authz.spec.ts`

@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.166
+version: 2026-07-23.167
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,166 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 167
+    ran_at: 2026-07-22
+    action: p10_wave4_row_160_reports_signed_url_validation_paired_activated
+    result: |
+      Seventh wave-4 landing per docs/plans/p10-deferred-spec-activation-
+      order.md — activated row 160 (`reports-signed-url-validation.spec.ts`
+      × `active_wholesale` × paired in-window vs expired assertion). Uses
+      the `attachReportRow(monthKey)` fixture helper that tick 165 authored
+      and tick 166 proved end-to-end on row 159, so the retention-window
+      gate at route.ts:59-61 now has both sides (current UTC month → 200
+      via a real fixture-minted row, 2024-01 sentinel → 403 not_exposed)
+      pinned inside ONE test-scope block sharing the same reseller session.
+      Track B COMPLETE; P8.5 + P1.5 remain human-blocked so P10 spec
+      activation stays the frontier picker's only unblocked path on
+      Track A.
+
+      Files:
+        - web/tests/e2e/reseller/reports-signed-url-validation.spec.ts
+          (imports extended with `loadTempReseller` +
+          `tempResellerSkipReason` + `TempResellerFixture` from
+          `../fixtures/reseller`; added pure module-scope
+          `currentUtcMonthKey(now?)` helper mirroring
+          web/src/lib/reseller/report-storage.ts::monthKeyOffset(now, 0)
+          without importing the .ts across the Playwright/browser bundle
+          boundary — duplicated from row 159's spec because Playwright
+          specs never reach across sibling files; appended
+          `test.describe("Reseller reports signed-url paired retention —
+          P10 wave-4 row 160")` block after the pre-existing
+          invalid_month + not_exposed harness-only tests. Inside the
+          block: loadTempReseller('active_wholesale') +
+          attachReportRow(currentUtcMonthKey()) + loginAs(fixture.
+          adminEmail) + paired GETs — GET /api/reseller/reports/
+          <currentMonth>/signed-url asserts 200 + body.ok=true +
+          body.month === monthKey, then GET /api/reseller/reports/
+          2024-01/signed-url asserts 403 + body.ok=false +
+          body.reason === "not_exposed". try/finally invokes
+          fixture.cleanup() when attach.created === true so the fixture-
+          minted row + storage object are removed after the assertion —
+          reused seed rows stay intact for parallel workers per the
+          tick-165 helper contract).
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.166 → 2026-07-23.167; this review_history entry
+          prepended).
+
+      Design fidelity:
+        - Skip discipline mirrors tick 166's row 159 verbatim: three skip
+          points around loadTempReseller null vs throw, attachReportRow
+          null (variant guard or REPORT_MONTH_RE reject — neither should
+          fire on active_wholesale + a computed UTC monthKey, but the
+          guard costs nothing and documents the invariant), and loginAs
+          throw (accounts.txt row missing). Each skip carries a
+          tempResellerSkipReason("active_wholesale") pointer so a fresh
+          CI host sees the exact seeder command to run.
+        - Paired-assertion inside ONE test-scope block: rather than two
+          separate tests each with their own beforeAll session + attach
+          call, both GETs fire from the same page + share the same
+          fixture.attachReportRow return value. This catches a
+          regression where a route refactor accidentally coupled
+          isMonthExposed to a per-request cache or a session-level flag
+          (either state would drift between the two requests when they
+          ran in separate tests but stays consistent when they share
+          one session). Also halves the fixture set-up cost from 2 to 1
+          per CI pass.
+        - loginAs(fixture.adminEmail) NOT the single-admin harness
+          fallback: the two pre-existing tests use loadResellerHarness's
+          single-admin fallback because they never reach the metadata
+          SELECT (both bail at route.ts:55-61 before scope-boundary
+          state matters); the new block DOES reach the SELECT + storage
+          sign + audit-log write on the in-window request, so it needs
+          the per-variant admin_email that resolves to the active
+          reseller_admins row for the (attachReportRow-minted) metadata
+          row's reseller_id.
+        - Current UTC month key vs a hard-coded month: computed via
+          currentUtcMonthKey() to guarantee isMonthExposed(month) passes
+          against the 12-month exposed window regardless of when CI
+          runs. A hard-coded "2026-07" would flip to `not_exposed` in
+          ~2027-08 when the 12-month window rolls past it; the computed
+          helper stays green forever without a re-anchor comment.
+        - 2024-01 sentinel preserved: the expired-side URL reuses the
+          existing NOT_EXPOSED_MONTH_SEGMENT constant so both the
+          harness-only test (line 131) and the paired-assertion block
+          hit the same anchor. Any future re-anchor (e.g. if 2024-01
+          rejoins the 12-month window in 2034) requires exactly one
+          edit to the module constant, not two per-block edits.
+        - `cleanup()` gated on `attach.created === true`: matches the
+          attachReportRow contract from tick 165 — reused seed rows have
+          no restore closure registered, so calling cleanup() would still
+          only fire the trackProjectForCleanup queue (empty here).
+          Gating on `attached` (assigned from `attach.created`) makes the
+          intent explicit and mirrors the wave-2 me-attribution +
+          row-159 signed-url authz `attached` guards.
+        - Envelope key coverage on the in-window side: body.ok=true +
+          body.month === monthKey. Row 159 already pins the full 7-key
+          envelope shape on the same happy path (signed_url + filename
+          + expires_at + ttl_seconds + bucket) so duplicating those
+          assertions in this file would be redundant. This block's
+          contribution is the RETENTION-GATE pair, not another envelope-
+          shape probe. A refactor that dropped or renamed month → month_
+          key surfaces here on the in-window side; a refactor that
+          dropped or renamed reason → reason_code surfaces here on the
+          expired side.
+        - Duplicated helper vs shared import: currentUtcMonthKey is
+          copied from row 159's spec rather than imported. Playwright
+          specs stay import-free of app/lib code so they can run against
+          the browser bundle; importing from a sibling spec would cross
+          the same boundary. The alternative (extracting to a shared
+          test helper under web/tests/e2e/helpers/) is a larger refactor
+          deferred to a future consolidation tick. Comment above the
+          helper points at row 159 as the sibling.
+        - Non-Stripe / non-GST discipline preserved: attachReportRow
+          uploads a fixture CSV to reseller-reports storage bucket +
+          inserts a reseller_report_files metadata row; no Stripe API
+          call, no revenue_events read, no InfoVision dependency. The
+          in-window request writes ONE reseller_audit_log(action=
+          'download_report') row per fixture-minted attach; the
+          expired request writes nothing (short-circuits at :59-61).
+          Net side-effect budget per CI pass: 0 or 1 reseller_report_
+          files insert + 1 reseller_audit_log row.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0, no output). The
+          three new imports resolve against the existing TempResellerFixture
+          + tempResellerSkipReason exports from fixtures/reseller.ts.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 documented exemptions, 0
+          violations — unchanged from tick 166 (the spec is not under
+          /api/reseller/** for the R-01 grep and is not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - No DB apply this tick — no migration authored. The fixture
+          helper handles the reseller_report_files insert + storage
+          upload inline at test-time.
+        - Goal file version bumped 2026-07-23.166 → 2026-07-23.167.
+
+      Frontier after tick 167: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision seed
+      STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE; P10 still
+      blocked_by [P1..P9] until P8.5 clears. What tick 167 unblocks: the
+      two reports-signed-url specs are now END-TO-END GREEN on wave-4
+      (row 148 revealed-email + row 159 signed-url authz + row 160
+      signed-url validation), so the next natural picks are:
+        (i) activate row 161 (`reseller-requests-list-authz.spec.ts`
+            happy 200 with request rows — needs the reseller-admin
+            session on active_wholesale + does NOT need
+            attachReportRow);
+        (ii) activate row 163 (cobranding-pill × active_wholesale
+             attributed founder × EN + VI) — still requires the
+             attributed-founder harness seed;
+        (iii) land finding-2's seed delta (edit seed-qa-reseller.mjs
+              main loop to seed attribution on no_capability +
+              no_budget variants) — unblocks rows 150 + 151 on the
+              credit-grant capability probe;
+        (iv) mint an active promo code on the paused variant to
+             unblock row 157 (`code-validate.spec.ts` paused →
+             inactive 404);
+        (v) land the approve-target seeder variant to unblock row
+            175's approve branch (last remaining transition on the
+            admin requests PATCH lifecycle);
+        (vi) row 178 attribution-timing — requires new founder QA
+             seed.
+
   - tick: 166
     ran_at: 2026-07-22
     action: p10_wave4_row_159_reports_signed_url_authz_happy_activated
