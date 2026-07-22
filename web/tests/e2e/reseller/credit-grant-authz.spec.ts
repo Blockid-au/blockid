@@ -317,3 +317,162 @@ test.describe("Credit-grant × no_budget × over_budget_requires_approval — P1
     ).toBe(100);
   });
 });
+
+// P10 wave-3 row 152 — active_wholesale variant probes decideGrant() gate 3
+// (`projected <= monthly_credit_budget && can_grant_credits` → within-budget
+// self-approve → ok, over_budget=false) via the credit-grant-authz.spec
+// surface. Same decideGrant order as rows 150 + 151; here can_grant_credits=
+// true clears gate 2, and monthly_credit_budget=20000 (per seed-qa-reseller
+// active_wholesale defaults) plus already_granted_this_month=0 on a fresh
+// reseller keeps `amount=5` well under budget so gate 3 fires the full
+// 4-write chain:
+//   credit_balances UPSERT           (route.ts:169-179)
+//   credit_transactions INSERT       (route.ts:187-198, stamps
+//                                     granted_by_reseller_id + metadata)
+//   reseller_credit_grants mirror    (route.ts:206-218, kind='grant',
+//                                     over_budget=false, month_key=UTC now,
+//                                     granted_by_user_id=adminUserId)
+//   reseller_audit_log grant_credits (route.ts:227-242, append-only per 0093)
+//
+// Route mapping (credits/grant/route.ts:250-260):
+//   ok:true, balance, credit_transaction_id, over_budget:false, month_key,
+//   remaining_budget — this is the only 200 branch, so shape assertions
+//   here also pin the response envelope contract.
+//
+// amount=5 chosen deliberately: small enough that a prior spec run's
+// leftover reseller_credit_grants row for the current month (from a failed
+// cleanup on an older tick) still leaves ~19995 headroom before gate 5
+// fires, so the row remains stable under CI replay against the same
+// (reseller, month) pair. The 4-write chain is scoped by
+// `attachGrantSelfApprove()`'s since cursor so cross-run accumulation on
+// credit_transactions + reseller_credit_grants is cleaned by
+// `fixture.cleanup()` — only the append-only reseller_audit_log rows
+// accumulate (matches the audit-log-writes.spec.ts posture where append-
+// only accumulation is expected).
+//
+// Prerequisite: same finding-2 coupled seed + fixture delta as rows 150 +
+// 151 — the seed script plants a reseller_attributions row against the
+// active_wholesale variant so `allowedCustomerIds()` (scope.ts:61-89)
+// returns the attributed founder and decideReveal() clears `not_in_scope`
+// (403) BEFORE decideGrant fires. The active_wholesale variant is the ONE
+// variant the seed script mints promotion codes for (per
+// ck_stripe_objects_by_tier), but this test only probes the grant path so
+// promotion codes are irrelevant here.
+test.describe("Credit-grant × active_wholesale × happy 200 — P10 wave-3 row 152", () => {
+  test("active_wholesale — POST as reseller-admin returns 200 with ok=true + credit_transaction_id", async ({
+    page,
+  }) => {
+    let fixture: TempResellerFixture | null;
+    try {
+      fixture = await loadTempReseller("active_wholesale");
+    } catch (err) {
+      test.skip(
+        true,
+        `loadTempReseller('active_wholesale') threw: ${(err as Error).message}. ` +
+          tempResellerSkipReason("active_wholesale"),
+      );
+      return;
+    }
+    if (
+      !fixture ||
+      !fixture.adminUserId ||
+      !fixture.attributedUserId ||
+      !fixture.attributionExists
+    ) {
+      test.skip(true, tempResellerSkipReason("active_wholesale"));
+      return;
+    }
+    const targetUserId = fixture.attributedUserId;
+    const AMOUNT = 5;
+    try {
+      // Stamp the attribution_reseller_id cache column so downstream reads
+      // (co-branding pill, /api/reseller/me, etc.) see the attributed
+      // reseller — matches the wave-2 row 145 attach recipe used by
+      // drawer-authz.spec.ts and reveal-email-authz.spec.ts. Not strictly
+      // required for /api/reseller/credits/grant (scope.ts:61 reads from
+      // reseller_attributions, not the cache column) but keeps the fixture
+      // state consistent with the wave-2 posture.
+      const attributed = await fixture.attachAttributedCustomer();
+      if (!attributed) {
+        test.skip(true, tempResellerSkipReason("active_wholesale"));
+        return;
+      }
+      // Snapshot credit_balances + register the restore closure BEFORE the
+      // POST so a mid-request failure still gets swept by fixture.cleanup()
+      // in the finally block. attachGrantSelfApprove captures a since
+      // cursor + snapshots (balance, lifetime_earned) so cleanup() can
+      // reverse the 4-write fan-out — see the helper's doc-comment for
+      // the reseller_audit_log append-only carve-out.
+      const grant = await fixture.attachGrantSelfApprove({ amount: AMOUNT });
+      if (!grant) {
+        test.skip(true, tempResellerSkipReason("active_wholesale"));
+        return;
+      }
+      const balanceBefore = grant.balanceBefore ?? 0;
+      try {
+        await loginAs(page, fixture.adminEmail);
+      } catch (err) {
+        test.skip(
+          true,
+          `loginAs(${fixture.adminEmail}) threw: ${(err as Error).message}. ` +
+            tempResellerSkipReason("active_wholesale"),
+        );
+        return;
+      }
+      const resp = await page.request.post(ROUTE, {
+        data: { target_user_id: targetUserId, amount: AMOUNT },
+      });
+      expect(
+        resp.status(),
+        `active_wholesale returned ${resp.status()} — expected 200 with the full self-approve envelope. Body: ${await resp.text()}`,
+      ).toBe(200);
+      const body = (await resp.json()) as {
+        ok: boolean;
+        balance?: number;
+        credit_transaction_id?: string;
+        over_budget?: boolean;
+        month_key?: string;
+        remaining_budget?: number;
+        reason?: string;
+      };
+      expect(
+        body.ok,
+        `active_wholesale body.ok should be true: ${JSON.stringify(body)}`,
+      ).toBe(true);
+      // credit_transaction_id is the newly-inserted credit_transactions.id
+      // stamped at route.ts:197-198; a string UUID is the only valid shape
+      // here — a null would flag a mirror-insert regression that returned
+      // 200 without cleaning up the transaction row.
+      expect(typeof body.credit_transaction_id).toBe("string");
+      expect(body.credit_transaction_id ?? "").toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+      );
+      // over_budget=false pins gate 3 (within-budget path) vs gate 4
+      // (admin_over_budget_approved=true → over_budget=true) so a route
+      // regression that accidentally set over_budget=true on the happy
+      // path would surface here even though both branches return 200.
+      expect(body.over_budget).toBe(false);
+      // balance echoes the post-UPSERT credit_balances.balance value; must
+      // equal (snapshot ?? 0) + AMOUNT so an off-by-one at route.ts:166
+      // (`newBalance = currentBalance + amount`) surfaces. Note: parallel
+      // grants from another spec sharing this founder could inflate the
+      // snapshot mid-run; the fixture is single-instance-per-worker so
+      // this stays deterministic under Playwright's default parallelism.
+      expect(body.balance).toBe(balanceBefore + AMOUNT);
+      // month_key must be a YYYY-MM slug (route.ts:214 stamps monthKey(new
+      // Date()) from credit-grants.ts). A shape drift here would flag a
+      // month_key helper regression that the credit-reset cron also
+      // depends on.
+      expect(typeof body.month_key).toBe("string");
+      expect(body.month_key ?? "").toMatch(/^\d{4}-\d{2}$/);
+      // remaining_budget must be a non-negative integer (route.ts:256-259
+      // clamps at 0 via Math.max) — a negative would signal an overflow
+      // in the budget arithmetic under a large seeded already_granted_
+      // this_month value.
+      expect(typeof body.remaining_budget).toBe("number");
+      expect(body.remaining_budget ?? -1).toBeGreaterThanOrEqual(0);
+    } finally {
+      await fixture.cleanup();
+    }
+  });
+});
