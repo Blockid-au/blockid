@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.198
+version: 2026-07-23.199
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,169 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 199
+    ran_at: 2026-07-22
+    action: p10_wave3_rows_150_151_credit_grant_authz_activation
+    result: |
+      Activated P10 wave-3 rows 150 + 151 in
+      web/tests/e2e/reseller/credit-grant-authz.spec.ts, consuming the
+      finding-2 seed + fixture delta shipped tick 198. Frontier before
+      this tick: P12 sequence closed at tick 197; P10 wave-5 audit-
+      symmetry closed at tick 187; tick 198 unblocked exactly these two
+      rows by extending ATTRIBUTION_VARIANTS to include no_capability +
+      no_budget on both the seeder and the fixture, so decideReveal()
+      now clears not_in_scope on those variants and lets decideGrant
+      fire the intended capability_disabled (403) / over_budget_
+      requires_approval (402) branch. Both rows were the top carried-
+      forward option in the tick 198 review_history "Natural next pick
+      for tick 199" line ("activate row 150 by adding a test.describe
+      block ... using loadTempReseller('no_capability') +
+      fixture.attributedUserId ... POST /api/reseller/credits/grant →
+      403 with body.reason === 'capability_disabled'"). Rows 152 / 154
+      / 155 / 156 (all active_wholesale, no attribution delta needed)
+      remain independent frontier picks for future ticks; rows 175
+      approve(code_request) + 182 SetupIntent stay P8.5-blocked; row
+      178 signup-jitter stays QA-mode-blocked; row 157 paused-inactive
+      still needs a distinct promo mint edit path.
+
+      Files:
+        - web/tests/e2e/reseller/credit-grant-authz.spec.ts
+          (+ loadTempReseller / tempResellerSkipReason /
+          TempResellerFixture import block above the existing single-
+          ROUTE constant; + two new test.describe blocks appended after
+          the pre-existing "Reseller credit-grant pre-write
+          authorization — P10 dry-run" describe: (a) row 150 —
+          no_capability variant × amount=10 (positive integer so gate 1
+          clears) × POST /api/reseller/credits/grant → 403 with
+          body.reason === "capability_disabled"; (b) row 151 — no_budget
+          variant × amount=200 (>100 seeded budget so gate 5 fires) ×
+          POST /api/reseller/credits/grant → 402 with body.reason ===
+          "over_budget_requires_approval" AND body.monthly_credit_budget
+          === 100 pinning the seeded cap so a seed drift surfaces
+          rather than a bare status-code assertion. Both blocks reuse
+          the wave-2 drawer-authz.spec.ts skip-guard pattern —
+          fixture.attributedUserId + fixture.attributionExists +
+          fixture.adminUserId all present, else test.skip() with
+          tempResellerSkipReason(variant). loginAs uses
+          fixture.adminEmail per Option A per-variant admin slot so
+          scopedReseller() .maybeSingle() does not PGRST116 on a shared
+          admin.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.198 → 2026-07-23.199; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Row 150 amount=10 chosen deliberately: positive integer so
+          decideGrant() gate 1 (invalid_amount) clears cleanly and
+          gate 2 (!can_grant_credits) is the FIRST failing gate. Body
+          shape verbatim mirrors the pre-existing unauthenticated +
+          non_reseller_admin probes above so the only variance is
+          identity + expected status.
+        - Row 151 amount=200 chosen with a 2x margin over the seeded
+          100 budget so the over-budget condition holds even under
+          accumulated grants (the endpoint returns 402 BEFORE
+          reseller_credit_grants mirror insert per route.ts:128-148,
+          so failed calls do NOT accumulate against monthly usage —
+          but a healthy margin still avoids a false negative under an
+          admin-approved fan-out from a future row 175 tick that could
+          leave a small over_budget=true row for the current month_key).
+          The 402 body carries monthly_credit_budget + already_granted_
+          this_month + remaining_budget per route.ts:135-148, so the
+          spec pins monthly_credit_budget === 100 to surface a seed
+          drift immediately.
+        - Skip guard mirrors drawer-authz.spec.ts:184-192 (wave-2 row
+          145 happy path) verbatim on all three fields —
+          fixture.adminUserId + fixture.attributedUserId +
+          fixture.attributionExists must all be present. attributionExists
+          is the critical gate: without the seed-side reseller_
+          attributions row on the no_capability / no_budget variants,
+          scopedReseller().allowedCustomerIds() returns [] and
+          decideReveal() short-circuits with not_in_scope (403) BEFORE
+          decideGrant fires, per finding-2 §Symptom. Hosts that
+          predate the tick-198 seed re-run skip cleanly rather than
+          false-fail with the wrong-oracle 403.
+        - No production code touched. Both changes live under
+          web/tests/e2e/reseller/**/*.spec.ts — Playwright specs are
+          not scanned by R-01 (only /api/reseller/** files) or R-03
+          (only feature-gates.manifest.ts routes).
+        - No new fixture helper needed. Wave-3 rows 150 + 151 consume
+          the exact same TempResellerFixture envelope the pre-existing
+          wave-1 create-startup-authz.spec.ts row 143 already exercises
+          against the no_capability variant, plus the wave-1 discipline
+          of asserting the pre-route feature-gate response shape
+          verbatim (body.ok=false + body.reason=<oracle>).
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: exit 0. New imports resolve
+          against the existing `../fixtures/reseller` exports (all
+          three: loadTempReseller, tempResellerSkipReason,
+          TempResellerFixture) with no shape drift. New body-shape
+          type aliases inside each describe scope match
+          route.ts:135-148 (monthly_credit_budget /
+          already_granted_this_month / remaining_budget optional
+          fields) so a route-side rename would surface as a TS error
+          in this spec.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 exemptions, 0 violations —
+          unchanged (the edited spec lives under web/tests/** and
+          neither lint scans that directory).
+        - `npx vitest run src/lib/reseller` in web/: 29 files
+          449/449 pass (unchanged from tick 198 — reseller unit-test
+          surface never touches the Playwright spec directory).
+        - No DB apply this tick — no migration authored. Playwright
+          run against staging remains under the P10 provisioning
+          gate (needs the seed re-run against staging
+          per finding-2 §Recommended fix step 1 — captured under P10
+          hardening exit criteria, not this tick).
+
+      Frontier after tick 199:
+        - Track A P8.5 STILL HUMAN-BLOCKED on
+          STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL.
+        - Track A P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20
+          ABN + GST.
+        - Track B COMPLETE.
+        - Rows 150 + 151 now activated — will land as fully-green
+          Playwright rows on the next staging seed re-run under
+          QA_RESELLER_MULTI_ADMIN=1 + QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL
+          set, per finding-2 §Recommended fix step 1. Skip on
+          under-provisioned hosts (fixture.attributionExists=false).
+        - Row 152 (credit-grant × active_wholesale × happy 200) —
+          still active_wholesale-only; consumes fixture.
+          attachAttributedCustomer() to stamp cache column, POSTs a
+          within-budget amount, asserts body.ok=true +
+          body.credit_transaction_id + body.balance. No seed delta
+          needed; direct spec addition.
+        - Row 154 / 155 / 156 — same active_wholesale posture as
+          row 152; each probes a distinct decideGrant branch or a
+          downstream side effect (audit-log write, mirror insert,
+          balance upsert).
+        - Row 157 (code-validate × paused × inactive 404) — still
+          needs an active promo mint on the paused variant so
+          code-validate hits status='inactive' rather than
+          promo_missing.
+        - Row 175 approve(code_request) branch — still P8.5-blocked
+          (Stripe test-mode key required).
+        - Row 178 signup-jitter branch — still QA-mode-blocked.
+        - Row 182 SetupIntent happy — still P8.5-blocked.
+
+      Natural next pick for tick 200: activate row 152 by adding a
+      test.describe("Credit-grant × active_wholesale × happy 200 —
+      P10 wave-3 row 152") block to credit-grant-authz.spec.ts. Use
+      loadTempReseller("active_wholesale") + fixture.
+      attachAttributedCustomer() in beforeAll (with fixture.cleanup()
+      in afterAll) to stamp the attribution_reseller_id cache column
+      + fixture.attributedUserId as target_user_id + a within-budget
+      amount (e.g. amount=5) + POST /api/reseller/credits/grant → 200
+      with body.ok=true, body.credit_transaction_id string, body.
+      over_budget=false, body.balance number, and body.remaining_
+      budget number. Verifies decideGrant() gate 3 (within-budget
+      approval path) fires the full 4-write chain (credit_balances
+      UPSERT + credit_transactions INSERT + reseller_credit_grants
+      mirror + reseller_audit_log(grant_credits)); attachApproveTarget
+      is not needed since this is the reseller-side self-approve
+      path, not the admin-approve fan-out.
+    commit: (this tick)
+
   - tick: 198
     ran_at: 2026-07-22
     action: p10_wave3_finding_2_seed_and_fixture_delta
