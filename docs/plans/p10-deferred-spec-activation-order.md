@@ -129,6 +129,36 @@ Prep cost: one tick to author the attributed-customer helper
 `app_users` upsert path in the fixture — then rows 145–149 each add
 2–3 assertions.
 
+**Wave-3 row 155 landed (tick 155).** Third wave-3 row landed. Added a
+companion `test.describe("Reseller requests — P10 wave-3 happy path")` block
+to `web/tests/e2e/reseller/requests-authz.spec.ts` that mirrors the wave-3
+row 152 / 154 posture verbatim: POST as `active_wholesale` reseller-admin
+against `/api/reseller/requests` with `{ request_type:
+"over_budget_approval", payload: { target_user_id: fixture.attributedUserId,
+requested_amount: 1, reason: "p10_wave3_row_155_happy_probe" } }` and assert
+201 (the schedule doc's "200" is a slip — see `requests/route.ts:144`) with
+`body.ok=true` + `typeof body.request.id === "string"` matching UUID shape +
+`body.request.request_type === "over_budget_approval"` + `body.request.status
+=== "pending"`. Payload choice — `over_budget_approval` (not `code_request`):
+the `reseller_requests_pending_code_uniq` partial unique index on `(reseller_
+id, ((payload->>'tier_pct')::int))` where `request_type='code_request' AND
+status='pending'` (`0095:71-73`) forbids more than one pending `code_request`
+per (reseller, tier). A rerun of this spec on the same host would 409
+`duplicate_pending_code_request` until an admin approved / denied the prior
+row. `over_budget_approval` has no such constraint so this row stays
+idempotent under CI replay without wave-5 row 175 having to fire first. Row
+156 (`requests-validation.spec.ts` happy GET) will enumerate the pending row
+this spec inserts; wave-5 row 175 (`admin-requests-patch-authz.spec.ts`)
+will exercise the approve/deny/cancel transitions on the same row. Skip
+guards match row 152 verbatim except `attributionExists` is intentionally
+NOT required — `validateOverBudgetApproval` only enforces `isUuid(target_
+user_id)` (see `web/src/lib/reseller/requests.ts:125-172`) so the route does
+NOT hit `scopedReseller().allowedCustomerIds()` and a partial-seed host with
+`attributedUserId` populated but `attributionExists=false` still exercises
+the happy path correctly. Rows 150 + 151 remain runtime-blocked on
+finding-2's seed + fixture delta per tick 152's preflight; row 156 sits
+next in the wave-3-`active_wholesale` subwave.
+
 **Wave-3 row 152 landed (tick 154).** Second wave-3 row landed. Added a
 companion `test.describe("Reseller credit-grant — P10 wave-3 happy path")`
 block to `web/tests/e2e/reseller/credit-grant-validation.spec.ts` that
