@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.157
+version: 2026-07-23.158
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,146 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 158
+    ran_at: 2026-07-22
+    action: p10_wave4_row_161_activate_reseller_requests_list_authz_happy_get
+    result: |
+      Second wave-4 row landed per docs/plans/p10-deferred-spec-activation-
+      order.md. One row landed — the reseller-requests-list-authz.spec.ts ×
+      active_wholesale × happy GET branch (GET /api/reseller/requests as
+      active_wholesale reseller-admin → 200 with body.ok=true +
+      Array.isArray(body.requests) + per-row envelope shape assertions).
+      Row 161 was named as option (i) by tick 157's next-tick
+      recommendation and is the natural continuation of wave 4 after row
+      158 (code-validate happy) landed. Row 161 twins with row 156 —
+      row 156 pins the GET happy envelope from requests-validation.spec.ts;
+      row 161 pins the SAME wire envelope from
+      reseller-requests-list-authz.spec.ts. The twin posture is intentional
+      so a regression to the auth chain in either spec file surfaces
+      before the SELECT wire envelope pin fires downstream, and the
+      authz-focused file now owns its own happy 200 case (401 unauth +
+      403 no_membership + 200 happy) instead of leaving the happy branch
+      to a sibling spec.
+
+      Files:
+        - web/tests/e2e/reseller/reseller-requests-list-authz.spec.ts
+          (imports extended: added loadTempReseller +
+          tempResellerSkipReason + TempResellerFixture type-only import
+          alongside the existing loginAs import; UUID_RE hoisted to
+          module scope — same pattern as requests-authz.spec.ts +
+          requests-validation.spec.ts after ticks 155/156; new
+          test.describe block "Reseller requests list — P10 wave-4 happy
+          path" holds row 161; "Deliberately out of scope" comment block
+          updated — the happy branch flipped from folded/deferred to
+          ACTIVATED with pointer at the new test and a note explaining
+          the twin-row posture vs row 156).
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.157 → 2026-07-23.158; this review_history entry).
+
+      Design fidelity:
+        - Coverage-vs-duplication call: pin 200 + body.ok=true +
+          Array.isArray(body.requests) + for every row {id: string
+          matching UUID_RE, request_type: string ∈ {code_request,
+          over_budget_approval, collateral_approval}, status: string ∈
+          {pending, approved, denied, cancelled}, created_at: string}.
+          Do NOT pin the array length (fresh hosts may have zero rows;
+          hosts where row 155 has run in prior CI passes will have ≥1
+          pending rows). Do NOT pin decision_at / decision_reason (both
+          nullable in the schema and null for pending rows). Same
+          per-row shape pins as row 156 — the twin posture is
+          intentional so a route regression that dropped a field from
+          the SELECT list surfaces across both spec files
+          simultaneously.
+        - Twin-row accounting vs row 156 (requests-validation.spec.ts ×
+          active_wholesale × happy GET): row 156 pins the SELECT wire
+          envelope inside the validation-focused spec; row 161 pins the
+          SAME wire envelope inside the authz-focused spec. The two rows
+          also share `ROUTE = "/api/reseller/requests"` +
+          `UUID_RE` module-scope constants (each hoisted per-file so
+          neither file cross-imports the other). A regression to the
+          auth chain in reseller-requests-list-authz.spec.ts would
+          surface in row 161 before hitting row 156's SELECT envelope;
+          a regression to the SELECT list at route.ts:170-173 would
+          surface across BOTH rows simultaneously.
+        - Skip discipline: fixture null → skip (SUPABASE_URL /
+          SERVICE_ROLE unset OR QAPROBEWHOLESALEACTIVE resellers row
+          missing); fixture.adminUserId null → skip (variant admin row
+          missing or reseller_admins mirror not seeded — scopedReseller
+          would 403 no_membership); loginAs throw → skip.
+          attributionExists is intentionally NOT required — the GET
+          route scopes by reseller_id (route.ts:174), not by
+          subject_user_id, so a partial-seed host with attributedUserId
+          populated but attributionExists=false still exercises the
+          happy GET correctly. Same posture as row 156.
+        - State-pollution posture: read-only GET — no INSERT / UPDATE /
+          DELETE fires from this endpoint. Route.ts GET handler
+          (148-186) does NOT audit-log (unlike the POST handler at
+          113-126 which writes reseller_audit_log(action='file_request')).
+          No projects.id created → no fixture.trackProjectForCleanup /
+          cleanup() wiring needed. Perfectly idempotent under CI replay.
+        - Non-Stripe / non-GST discipline: the GET requests route reads
+          reseller_requests only. No promotion_code lookup, no
+          credit_balances / credit_transactions write, no revenue_events
+          read, no Stripe network call, no InfoVision dependency. P8.5 +
+          P1.5 remain neither a dependency nor a consequence.
+        - UUID_RE hoisted to module scope (mirroring the pattern used
+          by requests-authz.spec.ts + requests-validation.spec.ts +
+          credit-grant-validation.spec.ts + sandbox-setup-authz.spec.ts
+          after ticks 152-156) so future wave-4/wave-5 rows landing in
+          this file reuse the constant without duplicating the regex.
+          Case-insensitive because supabase renders UUIDs lowercase but
+          Playwright body parsing does not force a case.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0, no output).
+          The new imports (loadTempReseller, tempResellerSkipReason,
+          TempResellerFixture type-only) type-check against the fixture
+          module unchanged since tick 157.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 documented exemptions, 0
+          violations — unchanged from tick 157 (the spec is not under
+          /api/reseller/** for the R-01 grep and it is not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - No vitest run this tick — no pure-lib .ts code touched, only
+          the Playwright spec + one goal-file edit. Mirrors the tick
+          148-157 precedent verbatim.
+        - No DB apply this tick — no migration authored. Row 161
+          consumes the active_wholesale fixture posture verbatim.
+        - Goal file version bumped 2026-07-23.157 → 2026-07-23.158.
+
+      Frontier after tick 158: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision seed
+      STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE; P10 still
+      blocked_by [P1..P9] until P8.5 clears. What tick 158 unblocks:
+      wave 4 is now two rows in (158 + 161). Rows 159 + 160 remain the
+      seed-delta-dependent pair (attachReportRow helper for
+      reseller_report_files); row 162 (reseller-crons-authz) is admin-
+      only harness with no reseller fixture dependency; row 163
+      (cobranding-pill) needs the attributed-founder harness. Next
+      autonomous tick options:
+        (i) activate row 162 (reseller-crons-authz × HTTP method contract)
+            — admin-only harness with no per-variant reseller fixture
+            dependency, so it can consume the qa-admin-1@blockid.au
+            account directly; matches the Wave 4 schedule doc row 162
+            "(n/a — admin only)" annotation;
+        (ii) activate row 163 (cobranding-pill × active_wholesale
+             attributed founder × EN + VI) — reuses the attributed-
+             founder harness scaffold (loadAttributedFounderHarness in
+             web/tests/e2e/fixtures/reseller.ts) which currently skips
+             at describe-scope until the fixture is provisioned; the
+             spec is fully authored so activation is a fixture wiring
+             tick rather than a code-authoring tick;
+        (iii) land finding-2's seed delta (edit seed-qa-reseller.mjs
+              main loop to seed attribution on no_capability + no_budget;
+              re-run seeder against staging) — unblocks rows 150 + 151;
+        (iv) mint an active promo code on the paused variant (add
+             PAUSED_PROMO_TIERS array to seed-qa-reseller.mjs; extend
+             the main loop's paused branch to call seedPromotionCodes)
+             — unblocks row 157;
+        (v) author the attachReportRow helper (extend fixtures/reseller.ts
+             with a reseller_report_files seeder for one month bucket
+             per variant) — unblocks rows 159 + 160.
+
   - tick: 157
     ran_at: 2026-07-22
     action: p10_wave4_row_158_activate_code_validate_active_wholesale_happy
