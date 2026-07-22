@@ -9,13 +9,30 @@
  *
  * Naming: qa-<segment>-<index>@blockid.au
  *
+ * Reseller fixture block (P10 §5): after the segment sweep, seeds two
+ * public.app_users rows so seed-qa-reseller.mjs can resolve
+ * QA_RESELLER_ADMIN_EMAIL + QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL:
+ *   - qa-reseller-1@blockid.au           → target of reseller_admins mirror
+ *   - qa-founder-attributed-1@blockid.au → target of reseller_attributions
+ *     mirror; opportunistically stamps app_users.attribution_reseller_id
+ *     to the QAPROBEWHOLESALEACTIVE reseller when that row exists.
+ * Overridable via --reseller-admin-email / --reseller-attributed-email or
+ * QA_RESELLER_ADMIN_EMAIL / QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL env vars.
+ * Skip the block with --skip-reseller-fixture.
+ *
  * Env:
  *   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+ *   QA_RESELLER_ADMIN_EMAIL              (optional, default qa-reseller-1@blockid.au)
+ *   QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL (optional, default qa-founder-attributed-1@blockid.au)
  *
  * Flags:
- *   --dry-run          Print what would happen, do not touch DB.
- *   --reset            Delete every user whose email starts with `qa-` first.
- *   --segment <name>   Only create accounts for the given segment.
+ *   --dry-run                       Print what would happen, do not touch DB.
+ *   --reset                         Delete every user whose email starts with `qa-` first.
+ *   --segment <name>                Only create accounts for the given segment.
+ *   --skip-reseller-fixture         Do not run the P10 §5 reseller-fixture block.
+ *   --reseller-admin-email <email>  Override QA_RESELLER_ADMIN_EMAIL.
+ *   --reseller-attributed-email <email>
+ *                                   Override QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL.
  *
  * Passwords are randomly generated and appended to /tmp/blockid-qa-accounts.txt
  * with mode 0600.
@@ -57,6 +74,20 @@ const DRY = args.has("--dry-run");
 const RESET = args.has("--reset");
 const segFlagIdx = argv.indexOf("--segment");
 const ONLY_SEGMENT = segFlagIdx > -1 ? argv[segFlagIdx + 1] : null;
+const SKIP_RESELLER_FIXTURE = args.has("--skip-reseller-fixture");
+const rAdminFlagIdx = argv.indexOf("--reseller-admin-email");
+const rAttrFlagIdx = argv.indexOf("--reseller-attributed-email");
+const RESELLER_ADMIN_EMAIL =
+  rAdminFlagIdx > -1
+    ? argv[rAdminFlagIdx + 1]
+    : env.QA_RESELLER_ADMIN_EMAIL || "qa-reseller-1@blockid.au";
+const RESELLER_ATTRIBUTED_EMAIL =
+  rAttrFlagIdx > -1
+    ? argv[rAttrFlagIdx + 1]
+    : env.QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL || "qa-founder-attributed-1@blockid.au";
+// Parent reseller for the attributed founder's app_users.attribution_reseller_id
+// stamp. Must match the active_wholesale variant code in seed-qa-reseller.mjs.
+const QA_PROBE_RESELLER_CODE = "QAPROBEWHOLESALEACTIVE";
 const PW_FILE = "/tmp/blockid-qa-accounts.txt";
 
 function need(name) {
@@ -216,6 +247,117 @@ async function seedOne(segment, idx, daysAgo, status) {
   return { email, action: "created", plan, status };
 }
 
+// -- P10 §5 reseller fixture --------------------------------------------------
+// Mints two public.app_users rows so seed-qa-reseller.mjs can wire its
+// reseller_admins + reseller_attributions mirrors on the next run. Runs
+// independent of the Supabase Auth segment sweep above — app_users is a
+// bespoke magic-link table (migration 0005), disjoint from auth.users.
+async function findResellerIdByCode(code) {
+  const { data, error } = await supabase
+    .from("resellers")
+    .select("id")
+    .eq("code", code)
+    .maybeSingle();
+  if (error) {
+    console.warn(`  ! resellers lookup ${code}: ${error.message}`);
+    return null;
+  }
+  return data?.id ?? null;
+}
+
+async function upsertResellerFixtureUser({ email, stampAttributionResellerId }) {
+  const lookup = await supabase
+    .from("app_users")
+    .select("id, attribution_reseller_id")
+    .eq("email", email)
+    .maybeSingle();
+  if (lookup.error) {
+    console.warn(`  ! app_users lookup ${email}: ${lookup.error.message}`);
+    return { email, action: "error" };
+  }
+
+  if (lookup.data) {
+    const currentStamp = lookup.data.attribution_reseller_id ?? null;
+    const wantStamp = stampAttributionResellerId ?? null;
+    if (wantStamp && wantStamp !== currentStamp) {
+      if (DRY) {
+        console.log(`  [dry] stamp app_users.attribution_reseller_id on ${email}`);
+        return { email, action: "would-stamp" };
+      }
+      const upd = await supabase
+        .from("app_users")
+        .update({ attribution_reseller_id: wantStamp })
+        .eq("id", lookup.data.id);
+      if (upd.error) {
+        console.warn(`  ! stamp attribution ${email}: ${upd.error.message}`);
+        return { email, action: "error" };
+      }
+      console.log(`  * stamped attribution_reseller_id on ${email}`);
+      return { email, action: "stamped" };
+    }
+    console.log(`  = kept app_users ${email} (id ${lookup.data.id.slice(0, 8)})`);
+    return { email, action: "kept" };
+  }
+
+  if (DRY) {
+    console.log(
+      `  [dry] insert app_users ${email}${
+        stampAttributionResellerId ? " (with attribution stamp)" : ""
+      }`,
+    );
+    return { email, action: "would-create" };
+  }
+
+  const row = {
+    id: randomUUID(),
+    email,
+    role: "user",
+    plan: "free",
+  };
+  if (stampAttributionResellerId) {
+    row.attribution_reseller_id = stampAttributionResellerId;
+  }
+  const ins = await supabase.from("app_users").insert(row);
+  if (ins.error) {
+    console.warn(`  ! app_users insert ${email}: ${ins.error.message}`);
+    return { email, action: "error" };
+  }
+  console.log(
+    `  + inserted app_users ${email}${
+      stampAttributionResellerId ? " + attribution stamp" : ""
+    }`,
+  );
+  return { email, action: "created" };
+}
+
+async function seedResellerFixtureUsers() {
+  console.log(
+    `[seed] reseller-fixture block: admin=${RESELLER_ADMIN_EMAIL} attributed=${RESELLER_ATTRIBUTED_EMAIL}`,
+  );
+
+  const parentResellerId = await findResellerIdByCode(QA_PROBE_RESELLER_CODE);
+  if (!parentResellerId) {
+    console.log(
+      `  [note] resellers.code='${QA_PROBE_RESELLER_CODE}' not found — attribution stamp will be skipped. Run seed-qa-reseller.mjs first, then re-run this seeder to pick up the stamp.`,
+    );
+  }
+
+  const results = [];
+  results.push(
+    await upsertResellerFixtureUser({
+      email: RESELLER_ADMIN_EMAIL,
+      stampAttributionResellerId: null,
+    }),
+  );
+  results.push(
+    await upsertResellerFixtureUser({
+      email: RESELLER_ATTRIBUTED_EMAIL,
+      stampAttributionResellerId: parentResellerId,
+    }),
+  );
+  return results;
+}
+
 async function main() {
   console.log(
     `[seed] mode=${DRY ? "dry-run" : "live"} reset=${RESET} onlySegment=${ONLY_SEGMENT ?? "*"}`,
@@ -260,7 +402,21 @@ async function main() {
   const kept = results.filter((r) => r.action === "kept").length;
   const errored = results.filter((r) => r.action === "error").length;
   console.log(`\ncreated=${created} kept=${kept} errored=${errored} total=${results.length}`);
-  if (errored > 0) exit(1);
+
+  let fixtureErrored = 0;
+  if (!SKIP_RESELLER_FIXTURE) {
+    const fixtureResults = await seedResellerFixtureUsers();
+    console.log("\n[seed] reseller-fixture summary");
+    console.log("email".padEnd(42), "action");
+    for (const r of fixtureResults) {
+      console.log(r.email.padEnd(42), r.action);
+    }
+    fixtureErrored = fixtureResults.filter((r) => r.action === "error").length;
+  } else {
+    console.log("\n[seed] reseller-fixture skipped via --skip-reseller-fixture");
+  }
+
+  if (errored > 0 || fixtureErrored > 0) exit(1);
 }
 
 main().catch((e) => {

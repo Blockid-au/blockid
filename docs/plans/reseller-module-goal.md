@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.130
+version: 2026-07-23.132
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,114 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 132
+    ran_at: 2026-07-22
+    action: p10_temp_reseller_mint_qa_account_seeder_delta
+    result: |
+      Composed §5 of the P10 temp-reseller mint fixture design
+      (docs/plans/p10-temp-reseller-mint-fixture-design.md).
+      Extended web/scripts/seed-test-users.mjs with a reseller-
+      fixture block that mints the two public.app_users rows the
+      §1 seeder (seed-qa-reseller.mjs) needs to resolve its
+      QA_RESELLER_ADMIN_EMAIL and QA_RESELLER_ATTRIBUTED_FOUNDER_
+      EMAIL env-driven mirrors. This closes the last of the two
+      non-Playwright §-artefacts that ship without external
+      dependencies (§2 landed tick 131, §5 lands here). §3
+      (Playwright fixture wiring) + §4 (storage bucket seeder)
+      remain the two follow-up artefacts for later ticks.
+
+      Files:
+        - web/scripts/seed-test-users.mjs (extended — added a
+          reseller-fixture block after the segment sweep. Two
+          new upsert calls target public.app_users directly (the
+          bespoke magic-link table from migration 0005 that is
+          disjoint from Supabase Auth's auth.users). Idempotent
+          per row via email lookup — re-run is a no-op on
+          unchanged state and a stamp-only UPDATE when the
+          attribution_reseller_id was previously null. Flags
+          added: --skip-reseller-fixture (opt-out preserves the
+          qa-release-gate.sh contract), --reseller-admin-email
+          <email>, --reseller-attributed-email <email>. Env
+          overrides QA_RESELLER_ADMIN_EMAIL and
+          QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL match the
+          seed-qa-reseller.mjs contract so CI sets both scripts
+          from one place. Defaults hard-coded to
+          qa-reseller-1@blockid.au +
+          qa-founder-attributed-1@blockid.au per design §5.
+          Attribution stamp on the founder row looks up
+          resellers.code='QAPROBEWHOLESALEACTIVE' and stamps
+          app_users.attribution_reseller_id when found; when the
+          parent reseller row is absent (seed-qa-reseller.mjs
+          not yet run), prints a friendly notice and defers the
+          stamp — a subsequent re-run picks up the stamp once
+          the parent row lands (idempotent stamp-only UPDATE).
+          role='user' + plan='free' hard-coded on insert to
+          match the app_users defaults from migrations 0005 +
+          0006.)
+
+      Design deviation captured in the file header docblock:
+        - Design §5 quotes 'app_users.role=founder (regular
+          user)' but the actual app_users.role check from
+          migration 0006 is 'user'|'admin' (no 'founder' member).
+          Seeder uses role='user' which is what the design
+          intent maps to ('regular user' — the phrase in
+          parentheses). Documented inline via the code-comment
+          on the role assignment so future readers know why the
+          seeder diverges from the design's literal string.
+
+      Verified:
+        - node --check web/scripts/seed-test-users.mjs exit=0
+          (syntax clean, no top-level parse errors).
+        - No DB apply this tick — the script extension is
+          authored but not run against staging/prod. Follow-up
+          tick invokes --dry-run against staging first, then a
+          live seed once the human review layer signs off on
+          the row shape.
+        - npm run lint:reseller unchanged — the file lives at
+          web/scripts/, not /api/reseller/**, so R-01 does not
+          fire; no feature-gates.manifest entry so R-03 does
+          not fire either.
+        - tsc unaffected — .mjs file outside the tsconfig.json
+          include glob.
+        - No vitest suite added — the extension is thin wiring
+          over the already-tested Supabase client shape used by
+          the existing script; the Playwright fixture wiring
+          (§3) will exercise the full end-to-end row lifecycle
+          when that tick lands.
+
+      REMAINING P10 §-artefacts:
+        - §3 Playwright fixture wiring (web/tests/e2e/fixtures/
+          reseller.ts extension with loadTempReseller() +
+          TempResellerFixture + ResellerVariant type union).
+          Gated on human review of the mint script row-set
+          landing first per tick 130's frontier note.
+        - §4 storage bucket seeder (web/scripts/seed-qa-
+          reseller-storage.mjs) — private-bucket blob upload
+          for reports/signed-url happy path. Needs a resolved
+          reseller_id from §1 (available now) and a real
+          reseller_report_files row.
+
+      Frontier after tick 132: shape unchanged — Track A P8.5
+      STILL HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_
+      MONTHLY|ANNUAL; P1.5 InfoVision seed STILL HUMAN-BLOCKED
+      on H.20 ABN + GST; Track B COMPLETE; P10 still blocked_by
+      [P1..P9] until P8.5 clears. What tick 132 unblocks: the
+      P10 §1 mint script (seed-qa-reseller.mjs) can now resolve
+      its two env-driven mirrors on the next run — the two
+      app_users rows the design expects are minted by this
+      script, so seed-qa-reseller.mjs's 'skipping reseller_
+      admins mirror. Ship seed-test-users.mjs delta first
+      (design §5)' notice will flip to a real insert. Next
+      autonomous tick options: (i) idle until human review of
+      the row-set + human ok to --dry-run against staging; (ii)
+      ship §4 storage bucket seeder (needs seed-qa-reseller.mjs
+      --dry-run to resolve the reseller_id first for the CSV
+      upload path); (iii) ship §3 Playwright fixture wiring
+      (gated on human review of §1 + §5 row shapes before the
+      TypeScript type union pins the variant names); (iv) idle
+      until human unblock arrives on P8.5 or P1.5.
+    commit: (this tick)
+
   - tick: 131
     ran_at: 2026-07-22
     action: p10_temp_reseller_mint_requests_companion_seeder
