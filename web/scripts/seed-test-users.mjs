@@ -310,10 +310,14 @@ async function findResellerIdByCode(code) {
   return data?.id ?? null;
 }
 
-async function upsertResellerFixtureUser({ email, stampAttributionResellerId }) {
+// Why: reseller-admin QA rows need plan="reseller_admin" so
+// gateRequireFeature("reseller.*") passes (see LEGACY_FEATURE_FALLBACK in
+// web/src/lib/entitlements.ts and docs/plans/p10-wave1-preflight-finding.md
+// finding #2). Attributed-customer rows stay on plan="free".
+async function upsertResellerFixtureUser({ email, stampAttributionResellerId, plan = "free" }) {
   const lookup = await supabase
     .from("app_users")
-    .select("id, attribution_reseller_id")
+    .select("id, attribution_reseller_id, plan")
     .eq("email", email)
     .maybeSingle();
   if (lookup.error) {
@@ -324,21 +328,32 @@ async function upsertResellerFixtureUser({ email, stampAttributionResellerId }) 
   if (lookup.data) {
     const currentStamp = lookup.data.attribution_reseller_id ?? null;
     const wantStamp = stampAttributionResellerId ?? null;
-    if (wantStamp && wantStamp !== currentStamp) {
+    const currentPlan = lookup.data.plan ?? null;
+    const stampNeeded = wantStamp && wantStamp !== currentStamp;
+    const planNeeded = plan && plan !== currentPlan;
+    if (stampNeeded || planNeeded) {
       if (DRY) {
-        console.log(`  [dry] stamp app_users.attribution_reseller_id on ${email}`);
-        return { email, action: "would-stamp" };
+        console.log(
+          `  [dry] update app_users on ${email}${stampNeeded ? " (attribution)" : ""}${
+            planNeeded ? ` (plan→${plan})` : ""
+          }`,
+        );
+        return { email, action: "would-update" };
       }
-      const upd = await supabase
-        .from("app_users")
-        .update({ attribution_reseller_id: wantStamp })
-        .eq("id", lookup.data.id);
+      const patch = {};
+      if (stampNeeded) patch.attribution_reseller_id = wantStamp;
+      if (planNeeded) patch.plan = plan;
+      const upd = await supabase.from("app_users").update(patch).eq("id", lookup.data.id);
       if (upd.error) {
-        console.warn(`  ! stamp attribution ${email}: ${upd.error.message}`);
+        console.warn(`  ! update ${email}: ${upd.error.message}`);
         return { email, action: "error" };
       }
-      console.log(`  * stamped attribution_reseller_id on ${email}`);
-      return { email, action: "stamped" };
+      console.log(
+        `  * updated ${email}${stampNeeded ? " attribution" : ""}${
+          planNeeded ? ` plan→${plan}` : ""
+        }`,
+      );
+      return { email, action: "updated" };
     }
     console.log(`  = kept app_users ${email} (id ${lookup.data.id.slice(0, 8)})`);
     return { email, action: "kept" };
@@ -348,7 +363,7 @@ async function upsertResellerFixtureUser({ email, stampAttributionResellerId }) 
     console.log(
       `  [dry] insert app_users ${email}${
         stampAttributionResellerId ? " (with attribution stamp)" : ""
-      }`,
+      } plan=${plan}`,
     );
     return { email, action: "would-create" };
   }
@@ -357,7 +372,7 @@ async function upsertResellerFixtureUser({ email, stampAttributionResellerId }) 
     id: randomUUID(),
     email,
     role: "user",
-    plan: "free",
+    plan,
   };
   if (stampAttributionResellerId) {
     row.attribution_reseller_id = stampAttributionResellerId;
@@ -370,7 +385,7 @@ async function upsertResellerFixtureUser({ email, stampAttributionResellerId }) 
   console.log(
     `  + inserted app_users ${email}${
       stampAttributionResellerId ? " + attribution stamp" : ""
-    }`,
+    } plan=${plan}`,
   );
   return { email, action: "created" };
 }
@@ -394,12 +409,14 @@ async function seedResellerFixtureUsers() {
     await upsertResellerFixtureUser({
       email: RESELLER_ADMIN_EMAIL,
       stampAttributionResellerId: null,
+      plan: "reseller_admin",
     }),
   );
   results.push(
     await upsertResellerFixtureUser({
       email: RESELLER_ATTRIBUTED_EMAIL,
       stampAttributionResellerId: parentResellerId,
+      plan: "free",
     }),
   );
 
@@ -419,6 +436,7 @@ async function seedResellerFixtureUsers() {
       const r = await upsertResellerFixtureUser({
         email,
         stampAttributionResellerId: null,
+        plan: "reseller_admin",
       });
       results.push({ ...r, variant });
     }

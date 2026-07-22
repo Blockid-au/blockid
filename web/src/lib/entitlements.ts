@@ -176,6 +176,16 @@ const LEGACY_FEATURE_FALLBACK: Record<string, Feature[]> = {
     "sla",
     "equity_offer.request",
   ],
+  // Why: reseller-admin plan is not in the plans table (0074 or plans.csv);
+  // without this bundle, gateRequireFeature("reseller.*") 402s every reseller
+  // console + mutation route so the Playwright wave-1..3 rows in
+  // docs/plans/p10-deferred-spec-activation-order.md can never green.
+  // See docs/plans/p10-wave1-preflight-finding.md finding #2 (Option A).
+  reseller_admin: [
+    "reseller.console",
+    "reseller.create_startup",
+    "reseller.grant_credits",
+  ],
 };
 
 // ---------------------------------------------------------------------------
