@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   ensureResellerStripeCustomer,
   createResellerSetupIntent,
+  saveResellerDefaultPaymentMethod,
   type StripeLike,
   type SupabaseLike,
 } from "./stripe-billing-adapter";
@@ -23,9 +24,24 @@ function row(overrides: Partial<ResellerBillingRow> = {}): ResellerBillingRow {
 
 function fakeStripe(overrides: {
   customerCreate?: (params: unknown) => unknown;
+  customerUpdate?: (id: string, params: unknown) => unknown;
   setupIntentCreate?: (params: unknown) => unknown;
-} = {}): { stripe: StripeLike; calls: { customers: unknown[]; setupIntents: unknown[] } } {
-  const calls = { customers: [] as unknown[], setupIntents: [] as unknown[] };
+  setupIntentRetrieve?: (id: string) => unknown;
+} = {}): {
+  stripe: StripeLike;
+  calls: {
+    customers: unknown[];
+    customerUpdates: { id: string; params: unknown }[];
+    setupIntents: unknown[];
+    setupIntentRetrieves: string[];
+  };
+} {
+  const calls = {
+    customers: [] as unknown[],
+    customerUpdates: [] as { id: string; params: unknown }[],
+    setupIntents: [] as unknown[],
+    setupIntentRetrieves: [] as string[],
+  };
   const stripe = {
     customers: {
       create: vi.fn(async (params: unknown) => {
@@ -33,6 +49,12 @@ function fakeStripe(overrides: {
         const impl = overrides.customerCreate;
         if (impl) return impl(params);
         return { id: "cus_test123", object: "customer" };
+      }),
+      update: vi.fn(async (id: string, params: unknown) => {
+        calls.customerUpdates.push({ id, params });
+        const impl = overrides.customerUpdate;
+        if (impl) return impl(id, params);
+        return { id, object: "customer" };
       }),
     },
     setupIntents: {
@@ -44,6 +66,18 @@ function fakeStripe(overrides: {
           id: "seti_test123",
           client_secret: "seti_test123_secret_abc",
           object: "setup_intent",
+        };
+      }),
+      retrieve: vi.fn(async (id: string) => {
+        calls.setupIntentRetrieves.push(id);
+        const impl = overrides.setupIntentRetrieve;
+        if (impl) return impl(id);
+        return {
+          id,
+          object: "setup_intent",
+          status: "succeeded",
+          customer: "cus_existing",
+          payment_method: "pm_test123",
         };
       }),
     },
@@ -246,5 +280,233 @@ describe("createResellerSetupIntent", () => {
       { stripe },
     );
     expect(result).toEqual({ ok: false, reason: "no_client_secret" });
+  });
+});
+
+describe("saveResellerDefaultPaymentMethod", () => {
+  const SETUP_INTENT_ID = "seti_test123";
+
+  function chargeableRow(overrides: Partial<ResellerBillingRow> = {}): ResellerBillingRow {
+    return row({ stripe_customer_id: "cus_existing", ...overrides });
+  }
+
+  it("persists the payment method as default and writes it back to the reseller row", async () => {
+    const { stripe, calls: stripeCalls } = fakeStripe();
+    const { supabase, calls: dbCalls } = fakeSupabase();
+
+    const result = await saveResellerDefaultPaymentMethod(
+      chargeableRow(),
+      { setup_intent_id: SETUP_INTENT_ID },
+      { stripe, supabase },
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      stripe_customer_id: "cus_existing",
+      payment_method_id: "pm_test123",
+      setup_intent_id: SETUP_INTENT_ID,
+    });
+    expect(stripeCalls.setupIntentRetrieves).toEqual([SETUP_INTENT_ID]);
+    expect(stripeCalls.customerUpdates).toEqual([
+      {
+        id: "cus_existing",
+        params: { invoice_settings: { default_payment_method: "pm_test123" } },
+      },
+    ]);
+    expect(dbCalls).toEqual([
+      {
+        table: "resellers",
+        patch: { stripe_default_payment_method_id: "pm_test123" },
+        eqColumn: "id",
+        eqValue: "11111111-1111-1111-1111-111111111111",
+      },
+    ]);
+  });
+
+  it("accepts a SetupIntent whose customer is returned as an object", async () => {
+    const { stripe } = fakeStripe({
+      setupIntentRetrieve: () => ({
+        id: SETUP_INTENT_ID,
+        status: "succeeded",
+        customer: { id: "cus_existing" },
+        payment_method: { id: "pm_expanded" },
+      }),
+    });
+    const { supabase } = fakeSupabase();
+    const result = await saveResellerDefaultPaymentMethod(
+      chargeableRow(),
+      { setup_intent_id: SETUP_INTENT_ID },
+      { stripe, supabase },
+    );
+    expect(result).toEqual({
+      ok: true,
+      stripe_customer_id: "cus_existing",
+      payment_method_id: "pm_expanded",
+      setup_intent_id: SETUP_INTENT_ID,
+    });
+  });
+
+  it("refuses when the reseller is retail", async () => {
+    const { stripe, calls } = fakeStripe();
+    const { supabase } = fakeSupabase();
+    const result = await saveResellerDefaultPaymentMethod(
+      chargeableRow({ billing_model: "retail" }),
+      { setup_intent_id: SETUP_INTENT_ID },
+      { stripe, supabase },
+    );
+    expect(result).toEqual({ ok: false, reason: "billing_model_not_wholesale" });
+    expect(calls.setupIntentRetrieves).toHaveLength(0);
+  });
+
+  it("refuses when the reseller is paused", async () => {
+    const { stripe, calls } = fakeStripe();
+    const { supabase } = fakeSupabase();
+    const result = await saveResellerDefaultPaymentMethod(
+      chargeableRow({ status: "paused" }),
+      { setup_intent_id: SETUP_INTENT_ID },
+      { stripe, supabase },
+    );
+    expect(result).toEqual({ ok: false, reason: "reseller_not_active" });
+    expect(calls.setupIntentRetrieves).toHaveLength(0);
+  });
+
+  it("refuses when the reseller has no stripe_customer_id", async () => {
+    const { stripe, calls } = fakeStripe();
+    const { supabase } = fakeSupabase();
+    const result = await saveResellerDefaultPaymentMethod(
+      chargeableRow({ stripe_customer_id: null }),
+      { setup_intent_id: SETUP_INTENT_ID },
+      { stripe, supabase },
+    );
+    expect(result).toEqual({ ok: false, reason: "stripe_customer_missing" });
+    expect(calls.setupIntentRetrieves).toHaveLength(0);
+  });
+
+  it("refuses when setup_intent_id is missing or malformed", async () => {
+    const { stripe } = fakeStripe();
+    const { supabase } = fakeSupabase();
+    for (const bad of ["", "   ", "pi_wrong_prefix", "seti_"]) {
+      const result = await saveResellerDefaultPaymentMethod(
+        chargeableRow(),
+        { setup_intent_id: bad },
+        { stripe, supabase },
+      );
+      expect(result).toEqual({ ok: false, reason: "setup_intent_id_required" });
+    }
+  });
+
+  it("maps setupIntents.retrieve rejection to setup_intent_retrieve_failed", async () => {
+    const { stripe } = fakeStripe({
+      setupIntentRetrieve: () => {
+        throw new Error("stripe down");
+      },
+    });
+    const { supabase, calls: dbCalls } = fakeSupabase();
+    const result = await saveResellerDefaultPaymentMethod(
+      chargeableRow(),
+      { setup_intent_id: SETUP_INTENT_ID },
+      { stripe, supabase },
+    );
+    expect(result).toEqual({
+      ok: false,
+      reason: "setup_intent_retrieve_failed",
+      detail: "stripe down",
+    });
+    expect(dbCalls).toHaveLength(0);
+  });
+
+  it("refuses when the SetupIntent belongs to a different Customer", async () => {
+    const { stripe, calls: stripeCalls } = fakeStripe({
+      setupIntentRetrieve: () => ({
+        id: SETUP_INTENT_ID,
+        status: "succeeded",
+        customer: "cus_someone_else",
+        payment_method: "pm_test123",
+      }),
+    });
+    const { supabase, calls: dbCalls } = fakeSupabase();
+    const result = await saveResellerDefaultPaymentMethod(
+      chargeableRow(),
+      { setup_intent_id: SETUP_INTENT_ID },
+      { stripe, supabase },
+    );
+    expect(result).toEqual({ ok: false, reason: "setup_intent_customer_mismatch" });
+    expect(stripeCalls.customerUpdates).toHaveLength(0);
+    expect(dbCalls).toHaveLength(0);
+  });
+
+  it("refuses when the SetupIntent status is not succeeded", async () => {
+    const { stripe } = fakeStripe({
+      setupIntentRetrieve: () => ({
+        id: SETUP_INTENT_ID,
+        status: "requires_payment_method",
+        customer: "cus_existing",
+        payment_method: null,
+      }),
+    });
+    const { supabase } = fakeSupabase();
+    const result = await saveResellerDefaultPaymentMethod(
+      chargeableRow(),
+      { setup_intent_id: SETUP_INTENT_ID },
+      { stripe, supabase },
+    );
+    expect(result).toEqual({
+      ok: false,
+      reason: "setup_intent_not_succeeded",
+      detail: "requires_payment_method",
+    });
+  });
+
+  it("refuses when the SetupIntent has no payment method attached", async () => {
+    const { stripe } = fakeStripe({
+      setupIntentRetrieve: () => ({
+        id: SETUP_INTENT_ID,
+        status: "succeeded",
+        customer: "cus_existing",
+        payment_method: null,
+      }),
+    });
+    const { supabase } = fakeSupabase();
+    const result = await saveResellerDefaultPaymentMethod(
+      chargeableRow(),
+      { setup_intent_id: SETUP_INTENT_ID },
+      { stripe, supabase },
+    );
+    expect(result).toEqual({ ok: false, reason: "setup_intent_no_payment_method" });
+  });
+
+  it("maps customers.update rejection to stripe_customer_update_failed and skips the DB write", async () => {
+    const { stripe } = fakeStripe({
+      customerUpdate: () => {
+        throw new Error("update refused");
+      },
+    });
+    const { supabase, calls: dbCalls } = fakeSupabase();
+    const result = await saveResellerDefaultPaymentMethod(
+      chargeableRow(),
+      { setup_intent_id: SETUP_INTENT_ID },
+      { stripe, supabase },
+    );
+    expect(result).toEqual({
+      ok: false,
+      reason: "stripe_customer_update_failed",
+      detail: "update refused",
+    });
+    expect(dbCalls).toHaveLength(0);
+  });
+
+  it("maps supabase update failure to db_persist_failed", async () => {
+    const { stripe } = fakeStripe();
+    const { supabase } = fakeSupabase({ updateError: "connection reset" });
+    const result = await saveResellerDefaultPaymentMethod(
+      chargeableRow(),
+      { setup_intent_id: SETUP_INTENT_ID },
+      { stripe, supabase },
+    );
+    expect(result).toEqual({
+      ok: false,
+      reason: "db_persist_failed",
+      detail: "connection reset",
+    });
   });
 });

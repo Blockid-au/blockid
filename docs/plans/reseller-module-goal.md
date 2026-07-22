@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.45
+version: 2026-07-23.46
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,86 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 79
+    ran_at: 2026-07-22
+    action: reseller_stripe_billing_save_default_payment_method
+    result: |
+      Autonomous tick composing the next unblocked leaf explicitly named at
+      the end of tick 78 — save-default-PM endpoint that closes the
+      confirmCardSetup → server-persist half of the wholesale
+      payment-method-setup flow. Pure decision helper +
+      RESELLER_STRIPE_BILLING_ERROR_MESSAGES table extended in
+      web/src/lib/reseller/stripe-billing.ts:
+        - decideSaveDefaultPaymentMethod(reseller, {setup_intent_id}) — gates
+          on wholesale + active + stripe_customer_id present, validates the
+          setup_intent_id against /^seti_[A-Za-z0-9]+$/ (trims whitespace);
+          returns {ok, stripe_customer_id, setup_intent_id} or one of
+          {billing_model_not_wholesale, reseller_not_active,
+          stripe_customer_missing, setup_intent_id_required}.
+        - Extended error-messages table with four new keys:
+          setup_intent_id_required, setup_intent_customer_mismatch,
+          setup_intent_not_succeeded, setup_intent_no_payment_method.
+      Adapter surface extended in stripe-billing-adapter.ts:
+        - StripeCustomersLike gains .update, StripeSetupIntentsLike gains
+          .retrieve so the same DI'd Stripe fake shape covers all three
+          adapter functions.
+        - saveResellerDefaultPaymentMethod(reseller, {setup_intent_id},
+          {stripe, supabase}) — runs decideSaveDefaultPaymentMethod, retrieves
+          the SetupIntent via Stripe, verifies si.customer ===
+          reseller.stripe_customer_id (blocks the "steal another org's PM by
+          passing a stolen setup_intent_id" attack), verifies status ===
+          "succeeded" (surfaces the actual status as detail), extracts the
+          payment_method id from si.payment_method (handles both string-ref
+          and expanded object shapes), calls stripe.customers.update(
+          customer_id, {invoice_settings.default_payment_method: pm_id}) so
+          subscriptions.create({default_payment_method}) succeeds later,
+          then denormalises the pm_id onto resellers.stripe_default_payment_
+          method_id via Supabase for the create-startup hot path. Discriminated
+          error union: setup_intent_retrieve_failed / setup_intent_customer_
+          mismatch / setup_intent_not_succeeded / setup_intent_no_payment_
+          method / stripe_customer_update_failed / db_persist_failed.
+      Route: POST /api/reseller/billing/save-default-payment-method
+      (route.ts). Wiring order mirrors setup-intent route exactly:
+      gateRequireFeature("reseller.console") → scopedReseller chokepoint
+      (R-01) → canProvisionSandbox(role) owner/admin gate (viewers cannot
+      bind money-movement PMs) → JSON body parse (400 invalid_json on
+      malformed) → isStripeConfigured() + getSupabaseAdmin() readiness →
+      resellerSupabase().selfReseller() → saveResellerDefaultPaymentMethod
+      → reseller_audit_log(action='save_default_payment_method',
+      fields=[stripe_customer_id, stripe_default_payment_method_id],
+      metadata={stripe_customer_id, payment_method_id, setup_intent_id})
+      BEFORE returning 200. Response envelope: {ok, stripe_customer_id,
+      payment_method_id, setup_intent_id}. Error envelope: {ok:false,
+      reason, message} with message from the shared error-copy table so
+      the /reseller/settings PM UI renders human-readable copy per U.15.13.
+      Manifest additions: feature-gates.manifest.ts adds one new route entry
+      api/reseller/billing/save-default-payment-method/route.ts →
+      required_feature='reseller.console'. GATED_DIRECTORIES already
+      includes api/reseller/billing (added tick 78) so no change needed there.
+      Verified: reseller + showcase + guide + product-tour + integrations
+      + gate vitest 540/540 (was 515, +25 = +9 decideSave decision helper
+      cases in stripe-billing.test.ts + 12 saveResellerDefaultPaymentMethod
+      adapter cases in stripe-billing-adapter.test.ts + 4 extra
+      error-messages keys picked up by the coverage table); tsc clean;
+      npm run lint:reseller: R-01 scans 11 file(s) (was 10, +1 for the new
+      route), R-03 scans 31 manifest route(s) (was 30, +1); 3 exemptions
+      unchanged, 0 violations — the new route uses scopedReseller +
+      gateRequireFeature so neither rule fires.
+      Frontier after tick 79: unchanged shape — Track A HUMAN-BLOCKED on
+      P8.5 Stripe env vars; Track B COMPLETE; P1.5 HUMAN-BLOCKED on H.20;
+      P10 blocked_by [P1..P9]. What tick 79 does unblock: /reseller/settings
+      can now render a two-step card-setup form ((1) POST /setup-intent to
+      get client_secret, (2) run stripe.confirmCardSetup(), (3) POST
+      /save-default-payment-method with the returned setup_intent_id) so
+      the wholesale payment-method-setup UI ships as a thin client
+      composition over two already-tested endpoints. Once that UI lands +
+      InfoVision seeds (P1.5), validateResellerBillingReadiness() will
+      finally return {ok:true} for the InfoVision row and the deferred
+      Stripe subscription-line in /api/reseller/create-startup (tick 75)
+      unblocks — the last real wholesale hot path — without depending on
+      the P8.5 add-on env vars.
     commit: (this tick)
 
   - tick: 78

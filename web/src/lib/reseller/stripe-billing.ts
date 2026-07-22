@@ -248,11 +248,73 @@ export function buildResellerSetupIntentParams(
 }
 
 // -------------------------------------------------------------------------
+// Save-default-payment-method decision (post-SetupIntent-confirm)
+// -------------------------------------------------------------------------
+
+export type SaveDefaultPaymentMethodError =
+  | "billing_model_not_wholesale"
+  | "reseller_not_active"
+  | "stripe_customer_missing"
+  | "setup_intent_id_required";
+
+export interface SaveDefaultPaymentMethodInput {
+  setup_intent_id: string;
+}
+
+export type SaveDefaultPaymentMethodDecision =
+  | {
+      ok: true;
+      stripe_customer_id: string;
+      setup_intent_id: string;
+    }
+  | { ok: false; reason: SaveDefaultPaymentMethodError };
+
+const SETUP_INTENT_ID_RE = /^seti_[A-Za-z0-9]+$/;
+
+/**
+ * Gate the persistence of a reseller's default payment method after the
+ * client has run stripe.confirmCardSetup() on the SetupIntent minted by
+ * /api/reseller/billing/setup-intent. Refuses when the reseller row is not
+ * in a chargeable state or when the payload shape is wrong; the adapter
+ * layer verifies the SetupIntent's customer against the reseller's stored
+ * stripe_customer_id before persisting.
+ */
+export function decideSaveDefaultPaymentMethod(
+  reseller: ResellerBillingRow,
+  input: SaveDefaultPaymentMethodInput,
+): SaveDefaultPaymentMethodDecision {
+  if (reseller.billing_model !== "wholesale") {
+    return { ok: false, reason: "billing_model_not_wholesale" };
+  }
+  if (reseller.status !== "active") {
+    return { ok: false, reason: "reseller_not_active" };
+  }
+  if (!reseller.stripe_customer_id) {
+    return { ok: false, reason: "stripe_customer_missing" };
+  }
+  const raw = typeof input.setup_intent_id === "string" ? input.setup_intent_id.trim() : "";
+  if (!raw || !SETUP_INTENT_ID_RE.test(raw)) {
+    return { ok: false, reason: "setup_intent_id_required" };
+  }
+  return {
+    ok: true,
+    stripe_customer_id: reseller.stripe_customer_id,
+    setup_intent_id: raw,
+  };
+}
+
+// -------------------------------------------------------------------------
 // Human-readable error copy (EN — admin surface per U.15.13)
 // -------------------------------------------------------------------------
 
 export const RESELLER_STRIPE_BILLING_ERROR_MESSAGES: Record<
-  CustomerParamsError | BillingReadinessError | SetupIntentParamsError,
+  | CustomerParamsError
+  | BillingReadinessError
+  | SetupIntentParamsError
+  | SaveDefaultPaymentMethodError
+  | "setup_intent_customer_mismatch"
+  | "setup_intent_not_succeeded"
+  | "setup_intent_no_payment_method",
   string
 > = {
   billing_model_not_wholesale:
@@ -267,4 +329,12 @@ export const RESELLER_STRIPE_BILLING_ERROR_MESSAGES: Record<
     "This reseller has no Stripe Customer on file yet. Complete the payment-method setup flow first.",
   default_payment_method_missing:
     "This reseller has no default payment method on file. Complete the payment-method setup flow first.",
+  setup_intent_id_required:
+    "A SetupIntent id from the client-side confirmCardSetup() call is required.",
+  setup_intent_customer_mismatch:
+    "The SetupIntent belongs to a different Stripe Customer than this reseller. Restart the payment-method setup flow.",
+  setup_intent_not_succeeded:
+    "The SetupIntent has not been confirmed successfully yet. Complete the card setup in the browser and retry.",
+  setup_intent_no_payment_method:
+    "The SetupIntent did not attach a payment method. Restart the payment-method setup flow.",
 };

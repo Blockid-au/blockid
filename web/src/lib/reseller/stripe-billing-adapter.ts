@@ -15,9 +15,12 @@ import type Stripe from "stripe";
 import {
   decideResellerCustomerAction,
   buildResellerSetupIntentParams,
+  decideSaveDefaultPaymentMethod,
   type ResellerBillingRow,
   type CustomerParamsError,
   type SetupIntentParamsError,
+  type SaveDefaultPaymentMethodError,
+  type SaveDefaultPaymentMethodInput,
 } from "./stripe-billing";
 
 // -------------------------------------------------------------------------
@@ -26,9 +29,11 @@ import {
 
 export interface StripeCustomersLike {
   create: Stripe["customers"]["create"];
+  update: Stripe["customers"]["update"];
 }
 export interface StripeSetupIntentsLike {
   create: Stripe["setupIntents"]["create"];
+  retrieve: Stripe["setupIntents"]["retrieve"];
 }
 export interface StripeLike {
   customers: StripeCustomersLike;
@@ -165,5 +170,118 @@ export async function createResellerSetupIntent(
     stripe_customer_id: params.params.customer,
     setup_intent_id: intent.id,
     client_secret: intent.client_secret,
+  };
+}
+
+// -------------------------------------------------------------------------
+// saveResellerDefaultPaymentMethod
+// -------------------------------------------------------------------------
+
+export type SaveDefaultPaymentMethodAdapterError =
+  | SaveDefaultPaymentMethodError
+  | "setup_intent_retrieve_failed"
+  | "setup_intent_customer_mismatch"
+  | "setup_intent_not_succeeded"
+  | "setup_intent_no_payment_method"
+  | "stripe_customer_update_failed"
+  | "db_persist_failed";
+
+export type SaveDefaultPaymentMethodResult =
+  | {
+      ok: true;
+      stripe_customer_id: string;
+      payment_method_id: string;
+      setup_intent_id: string;
+    }
+  | { ok: false; reason: SaveDefaultPaymentMethodAdapterError; detail?: string };
+
+export interface SaveDefaultPaymentMethodDeps {
+  stripe: StripeLike;
+  supabase: SupabaseLike;
+}
+
+function extractCustomerId(
+  customer: string | { id: string } | null | undefined,
+): string | null {
+  if (!customer) return null;
+  if (typeof customer === "string") return customer;
+  return typeof customer.id === "string" ? customer.id : null;
+}
+
+function extractPaymentMethodId(
+  pm: string | { id: string } | null | undefined,
+): string | null {
+  if (!pm) return null;
+  if (typeof pm === "string") return pm;
+  return typeof pm.id === "string" ? pm.id : null;
+}
+
+/**
+ * Persist a reseller's default payment method after the browser has confirmed
+ * the SetupIntent minted by /api/reseller/billing/setup-intent. Verifies the
+ * SetupIntent belongs to this reseller's Customer (a malicious reseller
+ * cannot poison another org's default PM by passing a stolen setup_intent_id),
+ * pushes the PM as the Customer's invoice_settings.default_payment_method so
+ * subscription.create({default_payment_method}) succeeds later, then
+ * denormalises the id onto the resellers row for the create-startup hot path.
+ */
+export async function saveResellerDefaultPaymentMethod(
+  reseller: ResellerBillingRow,
+  input: SaveDefaultPaymentMethodInput,
+  deps: SaveDefaultPaymentMethodDeps,
+): Promise<SaveDefaultPaymentMethodResult> {
+  const decision = decideSaveDefaultPaymentMethod(reseller, input);
+  if (!decision.ok) {
+    return { ok: false, reason: decision.reason };
+  }
+
+  let intent: Stripe.Response<Stripe.SetupIntent>;
+  try {
+    intent = await deps.stripe.setupIntents.retrieve(decision.setup_intent_id);
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    return { ok: false, reason: "setup_intent_retrieve_failed", detail };
+  }
+
+  const intentCustomerId = extractCustomerId(intent.customer);
+  if (intentCustomerId !== decision.stripe_customer_id) {
+    return { ok: false, reason: "setup_intent_customer_mismatch" };
+  }
+
+  if (intent.status !== "succeeded") {
+    return { ok: false, reason: "setup_intent_not_succeeded", detail: intent.status };
+  }
+
+  const paymentMethodId = extractPaymentMethodId(intent.payment_method);
+  if (!paymentMethodId) {
+    return { ok: false, reason: "setup_intent_no_payment_method" };
+  }
+
+  try {
+    await deps.stripe.customers.update(decision.stripe_customer_id, {
+      invoice_settings: { default_payment_method: paymentMethodId },
+    });
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    return { ok: false, reason: "stripe_customer_update_failed", detail };
+  }
+
+  const patchResult = await deps.supabase
+    .from("resellers")
+    .update({ stripe_default_payment_method_id: paymentMethodId })
+    .eq("id", reseller.id);
+  if (patchResult.error) {
+    return {
+      ok: false,
+      reason: "db_persist_failed",
+      detail: patchResult.error.message,
+    };
+  }
+
+  return {
+    ok: true,
+    stripe_customer_id: decision.stripe_customer_id,
+    payment_method_id: paymentMethodId,
+    setup_intent_id: decision.setup_intent_id,
   };
 }
