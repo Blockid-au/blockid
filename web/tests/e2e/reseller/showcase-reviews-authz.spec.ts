@@ -65,11 +65,17 @@
 //     fixture follow-up.
 //   - not_found (404 on GET) — needs a well-formed project_id that is not
 //     owned by the caller; needs the QA harness.
-//   - Happy path (200) — reviewer flow fires the full data_room_access_tokens
-//     → data_rooms → showcase_reviews upsert chain against seeded test data;
-//     founder flow fires the projects owner check + showcase_reviews SELECT.
-//     Both folded into the temp-reseller mint fixture follow-up alongside
-//     the deferred rows from ticks 94..113.
+//   - Reviewer POST happy path (200) — reviewer flow fires the full
+//     data_room_access_tokens → data_rooms → showcase_reviews upsert chain
+//     against seeded test data; folded into the temp-reseller mint fixture
+//     follow-up alongside the deferred rows from ticks 94..113.
+//
+// ACTIVATED wave-5 row 176 below: founder-scoped GET happy 200 via
+// loadTempReseller('active_wholesale') + loadSupabaseAdmin() +
+// findUserIdByEmail(fixture.attributedFounderEmail) +
+// findFirstProjectIdForUser(). The GET path is read-only (no
+// showcase_reviews row is written) so it is safe against staging even
+// though the sibling reviewer POST happy path stays deferred.
 //
 // Placeholder token: a well-formed uuid-shaped string that will not match
 // any seeded data_room_access_tokens.token because the retail invite flow
@@ -78,6 +84,18 @@
 // probe expects the SELECT to return no row, not a real token collision.
 
 import { test, expect } from "@playwright/test";
+import { loginAs } from "../fixtures/accounts";
+import {
+  loadTempReseller,
+  tempResellerSkipReason,
+  type TempResellerFixture,
+} from "../fixtures/reseller";
+import {
+  findFirstProjectIdForUser,
+  findUserIdByEmail,
+  loadSupabaseAdmin,
+  supabaseAdminSkipReason,
+} from "../fixtures/supabase-admin";
 
 const ROUTE = "/api/showcase-reviews";
 const PLACEHOLDER_TOKEN = "00000000-0000-0000-0000-000000000000";
@@ -171,5 +189,102 @@ test.describe("Showcase-reviews pre-write / pre-read authorization — P10 dry-r
       `unauthenticated body.ok should be false: ${JSON.stringify(body)}`,
     ).toBe(false);
     expect(body.error).toBe("Auth required");
+  });
+});
+
+// Wave-5 row 176 — founder-scoped GET happy 200. Uses the active_wholesale
+// variant per the plan §J.2 activation-order pin because the attributed
+// founder (qa-founder-attributed-1@blockid.au by default) is the caller
+// whose session must clear the projects.user_id === user.id gate on the
+// GET path. Read-only against showcase_reviews so no per-test seeding
+// fires; the projectId is resolved via findFirstProjectIdForUser() so a
+// fresh CI host that never planted a workspace for that founder simply
+// skips instead of tripping the 404 not_found branch.
+test.describe("Showcase-reviews founder-scoped GET — P10 wave-5 row 176 happy path", () => {
+  let fixture: TempResellerFixture | null = null;
+  let fixtureError: string | null = null;
+
+  test.beforeAll(async () => {
+    try {
+      fixture = await loadTempReseller("active_wholesale");
+    } catch (err) {
+      fixtureError = (err as Error).message;
+    }
+  });
+
+  test("happy — attributed founder GET returns 200 with reviews array", async ({
+    page,
+  }) => {
+    if (fixtureError) {
+      test.skip(true, `${tempResellerSkipReason("active_wholesale")} (${fixtureError})`);
+      return;
+    }
+    if (!fixture) {
+      test.skip(true, tempResellerSkipReason("active_wholesale"));
+      return;
+    }
+    if (!fixture.attributedFounderEmail) {
+      test.skip(
+        true,
+        `${tempResellerSkipReason("active_wholesale")} — attributedFounderEmail null (attributed founder app_users row missing on this host).`,
+      );
+      return;
+    }
+
+    const supabase = loadSupabaseAdmin();
+    if (!supabase) {
+      test.skip(true, supabaseAdminSkipReason());
+      return;
+    }
+
+    const founderUserId = await findUserIdByEmail(
+      supabase,
+      fixture.attributedFounderEmail,
+    );
+    if (!founderUserId) {
+      test.skip(
+        true,
+        `attributed founder app_users row not found for ${fixture.attributedFounderEmail} — reseed via scripts/seed-test-users.mjs`,
+      );
+      return;
+    }
+
+    const projectId = await findFirstProjectIdForUser(supabase, founderUserId);
+    if (!projectId) {
+      test.skip(
+        true,
+        `attributed founder ${fixture.attributedFounderEmail} owns no projects.id yet — seed via /workspace UI or backfill so the GET happy path can clear the projects.user_id gate.`,
+      );
+      return;
+    }
+
+    try {
+      await loginAs(page, fixture.attributedFounderEmail);
+    } catch (err) {
+      test.skip(
+        true,
+        `Founder QA account not seeded: ${(err as Error).message}. Run scripts/seed-test-users.mjs to populate /tmp/blockid-qa-accounts.txt.`,
+      );
+      return;
+    }
+
+    const resp = await page.request.get(`${ROUTE}?projectId=${projectId}`);
+    expect(
+      resp.status(),
+      `happy GET returned ${resp.status()} — expected 200 after projects.user_id === user.id gate clears. Body: ${await resp.text()}`,
+    ).toBe(200);
+    const body = (await resp.json()) as {
+      ok: boolean;
+      reviews?: unknown;
+      error?: string;
+    };
+    expect(
+      body.ok,
+      `happy body.ok should be true: ${JSON.stringify(body)}`,
+    ).toBe(true);
+    expect(
+      Array.isArray(body.reviews),
+      `happy body.reviews should be an array (possibly empty): ${JSON.stringify(body)}`,
+    ).toBe(true);
   });
 });

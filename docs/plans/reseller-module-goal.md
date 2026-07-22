@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.173
+version: 2026-07-23.174
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,145 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 174
+    ran_at: 2026-07-22
+    action: p10_wave5_row_176_showcase_reviews_authz_founder_get_happy_activated
+    result: |
+      Eleventh wave-5 landing per docs/plans/p10-deferred-spec-activation-
+      order.md — activated row 176 (`showcase-reviews-authz.spec.ts` ×
+      `active_wholesale` × founder-scoped GET happy 200). Twin coverage
+      alongside the four pre-existing pre-write / pre-read authz probes
+      (invalid_json / missing_token / invalid_rating / invalid_token +
+      GET unauthenticated). Together the two describe blocks pin every
+      non-mutating GET/POST authorization gate on /api/showcase-reviews
+      that the temp-reseller mint fixture can reach without seeding a
+      per-test data_room_access_tokens row (POST happy remains deferred).
+
+      Files:
+        - web/tests/e2e/fixtures/supabase-admin.ts (added
+          `findFirstProjectIdForUser(supabase, userId)` — read-only
+          projects SELECT filtered by user_id, order by created_at
+          ascending, limit 1, maybeSingle. Returns null when the user
+          owns no projects.id yet so the spec skips instead of tripping
+          the founder-facing route's 404 not_found branch. Matches the
+          audit-log-writes / attribution-timing posture where read-only
+          DB helpers live in fixtures/supabase-admin.ts, not
+          web/src/lib/**; plan §J.2's "no per-test seeding" clause
+          allows read-only inspection).
+        - web/tests/e2e/reseller/showcase-reviews-authz.spec.ts
+          (header block updated: the "Happy path (200)" bullet was
+          split into "Reviewer POST happy path" (still deferred) +
+          "ACTIVATED wave-5 row 176 below" (founder-scoped GET). Imports
+          extended with `loginAs` from fixtures/accounts,
+          `loadTempReseller` + `tempResellerSkipReason` +
+          `TempResellerFixture` from fixtures/reseller, and
+          `findFirstProjectIdForUser` + `findUserIdByEmail` +
+          `loadSupabaseAdmin` + `supabaseAdminSkipReason` from
+          fixtures/supabase-admin. Appended
+          `test.describe("Showcase-reviews founder-scoped GET — P10
+          wave-5 row 176 happy path")` block after the pre-existing
+          harness-free describe. Inside the new block: `test.beforeAll`
+          loads the active_wholesale fixture into module scope, then
+          the happy test resolves supabase-admin, looks up the founder
+          user_id + first projects.id owned by that founder, loginAs
+          the attributed founder, and asserts 200 + body.ok=true +
+          body.reviews is an array).
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.173 → 2026-07-23.174; this review_history entry
+          prepended).
+
+      Design fidelity:
+        - Variant pin matches plan §967 verbatim (`active_wholesale`).
+          The attributed founder in the active_wholesale variant is
+          `qa-founder-attributed-1@blockid.au` (via
+          fixture.attributedFounderEmail), which matches the row 176
+          spec table pin of "founder-scoped GET happy 200 — requires
+          the attributed-founder session, not the reseller-admin or
+          the platform admin".
+        - Skip discipline mirrors the audit-log-writes pattern: three
+          separate test.skip() calls at test scope (fixture null →
+          skip; attributedFounderEmail null → skip; supabase null →
+          skip) plus two content-driven skips (founder user_id lookup
+          returned null → skip; findFirstProjectIdForUser returned
+          null → skip) so a fresh CI host without a seeded workspace
+          for the attributed founder stays green rather than tripping
+          the founder-facing route's 404 not_found branch.
+        - loginAs is wrapped in try/catch so a missing password entry
+          in /tmp/blockid-qa-accounts.txt reports the exact reseed
+          command rather than the raw fixture throw — matches the
+          admin-resellers-create-authz row 2 posture.
+        - Read-only: no showcase_reviews row is written, no
+          data_room_access_tokens row is touched, no projects row is
+          mutated. The GET path reads projects (user_id gate) +
+          showcase_reviews (empty on a fresh host) so the spec is safe
+          against staging even if the founder had never seen the
+          Track B B9 reviews surface before.
+        - findFirstProjectIdForUser uses order by created_at ASC +
+          limit 1 so a founder with multiple projects hits their
+          oldest (most stable) row; a manually-created workspace by
+          the QA admin at any prior date wins over a freshly-planted
+          one so parallel spec workers don't race to pick the same
+          fresh project.
+        - Reviewer POST happy path stays deferred because it requires
+          a seeded data_room_access_tokens row (token + investor_email
+          + is_active + data_room_id → data_rooms → project_id). That
+          chain sits behind three DB SELECT gates and would require
+          three per-test INSERTs (access_token + data_room + project)
+          plus afterAll cleanup — plan §J.2 forbids per-test seeding
+          so it is folded into the temp-reseller mint fixture
+          follow-up.
+        - Envelope assertion pins 200 + body.ok=true + body.reviews
+          is Array. Does NOT assert on reviews.length because a real
+          reviewer might have upserted a row before this spec ran (the
+          reviewer POST is the only writer; showcase_reviews has no
+          admin/founder INSERT path). A refactor that returned {ok:
+          true} without a reviews field would still light up here.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0). The five
+          new imports (loginAs + loadTempReseller +
+          tempResellerSkipReason + TempResellerFixture +
+          findFirstProjectIdForUser) resolve against the existing
+          exports in fixtures/accounts.ts, fixtures/reseller.ts, and
+          fixtures/supabase-admin.ts.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files,
+          R-03 scanned 31 manifest routes, 3 documented exemptions,
+          0 violations — unchanged from tick 173 (the spec is not
+          under /api/reseller/** for the R-01 grep and is not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - No DB apply this tick — no migration authored.
+        - Goal file version bumped 2026-07-23.173 → 2026-07-23.174.
+
+      Frontier after tick 174: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision seed
+      STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE; P10 still
+      blocked_by [P1..P9] until P8.5 clears. Wave 5 read-only + reject-
+      only rows have now landed 164 (list) + 167 (detail authz happy) +
+      168 (detail validation happy + reject) + 169 (patch authz post-
+      requireAdmin reject × 3) + 170 (patch validator reject × 6) + 171
+      (delete authz happy 200) + 172 (delete validation reject × 2
+      pre-existing + happy 200) + 173 (loop-status happy) + 174
+      (admin-requests-list happy) + 175 deny+cancel (admin-requests-
+      patch two reject branches) + 176 (showcase-reviews founder GET
+      happy 200 this tick). Natural next picks:
+        (i) row 165 (`admin-resellers-create-authz.spec.ts` × happy 201
+             — still deferred on the "reseller INSERT poisoning" design
+             question; needs afterAll DELETE cleanup for the mint OR a
+             pre-provisioned code-slot the harness can idempotently
+             UPSERT into);
+        (ii) row 177 (`showcase-reviews-validation.spec.ts` × active_
+              wholesale × reviewer-flow POST with valid access token
+              → 200 — requires the seeded data_room_access_tokens row
+              still deferred per plan §J.2);
+        (iii) row 178 attribution-timing — needs new founder QA seed
+              per row 176 pattern (uses fresh unattributed founder,
+              seeds ?via cookie, signs in, asserts app_users cache
+              flips);
+        (iv) row 181 scope-boundary — requires attributed customer
+              state planted so the reseller-admin gets 403 not_in_scope
+              on /api/svi/*, /api/dataroom/*, /api/cap-table/*.
+    commit: (this tick)
+
   - tick: 173
     ran_at: 2026-07-22
     action: p10_wave5_row_171_admin_reseller_delete_authz_happy_activated
