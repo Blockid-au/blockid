@@ -57,7 +57,7 @@ export function isoWeek(d: Date): string {
   return `${date.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
 }
 
-function applyK(count: number, k = K_ANONYMITY_THRESHOLD): KAnonBucket {
+export function applyK(count: number, k = K_ANONYMITY_THRESHOLD): KAnonBucket {
   return count < k ? { count: null, suppressed: true } : { count, suppressed: false };
 }
 
