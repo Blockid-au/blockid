@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.30
+version: 2026-07-23.31
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -1909,6 +1909,25 @@ review_history:
       vitest 624/624 (was 603/603, +21); lint:reseller unchanged.
       Track B is now COMPLETE (B1..B10 all done).
     commit: (this tick)
+  - tick: 57
+    ran_at: 2026-07-22
+    action: cdo_advisory_23_pair_suppression
+    result: |
+      Closed the reviews half of CDO advisory §23. buildReviewsSummary
+      now applies pair-suppression across (total_reviews,
+      projects_with_reviews) — if either is under k, both go dark and
+      avg_rating drops to null. Complementary suppression on
+      buildPhaseDistribution was already applied at line 128 but had no
+      regression test; added an 11-visible/1-suppressed case asserting
+      ≥2 buckets go dark so the "subtract from attributed_total"
+      attack has multiple solutions. Verified: reviews vitest 12/12
+      (was 10, +1 updated + 1 new); phase-distribution vitest 7/7 (was
+      6, +1 new); combined reseller+showcase+guide+product-tour+gate
+      +integrations 388/388; tsc clean; lint:reseller unchanged (3
+      exemptions / 0 violations). Remaining under §23: GA4 event
+      catalogue for showcase surfaces (deferred to CMO/CPO joint
+      tick per CDO rec #2).
+    commit: (this tick)
 
 next_action:
   agent: applier
@@ -1920,7 +1939,7 @@ next_action:
     5) DONE tick 55 — P0.3_advisory_reviews closed. All 8 advisory reviewers (cmo/coo/cpo/cdo/chro/cro/customer-success/investor-relations) ran in parallel and returned approved_with_notes (0 revise; 0 blocking findings). Review files land under docs/plans/reviews/plan-review-<role>.md. Non-blocking findings captured as items 21-27 below.
    21) DONE tick 56 — P8.4b_end_of_cycle_removal fixed the CRO-flagged defect. handleRemoveItem now creates a Subscription Schedule from the active subscription (Stripe fills phase 0 with the current item set through current_period_end) and updates it with a phase 1 that drops the add-on for one iteration + end_behavior:'release' so the subscription reverts to normal renewal. Existing schedules on the sub are reused via activeSub.schedule → subscriptionSchedules.retrieve instead of erroring on a second create. Pure buildAddonRemovalSchedulePhases lib + 5/5 vitest covers happy path, string-vs-object price shape, quantity omit, sole-item guard, and quantity preservation. Response envelope + revenue_events.detail now carry schedule_id + effective_at Unix timestamp so downstream reconciliation / Playwright can assert the item is still active until current_period_end. Playwright E2E assertion still deferred to P10_hardening per the P4/P5/P7/P8/B7/B8/B9/B10 posture.
    22) TODO (advisory — CMO) — /guide/reports lacks a download route + GA event so template-library ROI is unmeasurable; brand-wording pass "Referred by" → "Introduced by" per plan §C.3.
-   23) TODO (advisory — CDO) — Add complementary-suppression pass to portfolio-phase-distribution + reviews aggregate rollups so k=1..4 buckets cannot leak via subtraction of the complement bucket; author GA4 event catalogue for showcase surfaces.
+   23) PARTIAL tick 57 — CDO advisory §23 reviews-aggregate pair suppression closed. buildReviewsSummary now treats (total_reviews, projects_with_reviews) as a correlated pair: if either falls under k the other is also suppressed and avg_rating drops to null so the observer cannot bound the hidden bucket into {1..min(exposed,k-1)}. Verified via updated + new vitest cases (reviews.test.ts: pair-suppression when projects<k with total exposed; pair-suppression when total<k under custom threshold). Complementary suppression on portfolio-phase-distribution was already applied at line 128 (via applyComplementarySuppression from portfolio-aggregates.ts) but had no regression test — added an 11-visible/1-suppressed case that asserts ≥2 buckets go dark so the "subtract from attributed_total" attack has multiple solutions. REMAINING under §23: GA4 event catalogue for showcase surfaces (deferred to a CMO/CPO joint tick per CDO rec #2 dependency order).
    24) TODO (advisory — Customer-Success) — Wire H.8 wholesale magic-link + welcome email for reseller-provisioned founders; add reseller-side denial-reason surface (page render, not just API); add EN+VI parity to Grant modal; add leading-signal KPIs (last-login, first-report) to P11 weekly digest.
    25) TODO (advisory — CPO) — EN+VI parity for reseller Customer drawer; explicit non-payment confirmation step in wholesale onboarding wizard.
    26) TODO (advisory — CHRO) — Add human-review-minutes KPI to autonomous loop telemetry so the "0 eng-weeks" claim carries a concrete counter; add Div 83A qualifying-tests checklist to docs/guides/startup-journey/chapter-08-team.md.

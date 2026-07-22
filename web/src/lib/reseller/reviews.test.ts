@@ -54,11 +54,25 @@ describe("buildReviewsSummary", () => {
     expect(s.avg_rating).toBe(4.3);
   });
 
-  it("counts distinct projects, not rows", () => {
+  it("counts distinct projects, not rows — and pair-suppresses when projects < k", () => {
+    // 8 rows across 4 distinct projects: "shared" (5 rows) + p5/p6/p7 (1 each).
+    // Complementary suppression forces total_reviews to null as well so an
+    // observer cannot bound projects into {1..min(8,4)} by subtraction.
     const rows = mkRows(8, [5], (i) => (i < 5 ? "shared" : `p${i}`));
     const s = buildReviewsSummary(rows);
-    expect(s.total_reviews).toEqual({ count: 8, suppressed: false });
+    expect(s.total_reviews).toEqual({ count: null, suppressed: true });
     expect(s.projects_with_reviews).toEqual({ count: null, suppressed: true });
+    expect(s.avg_rating).toBeNull();
+  });
+
+  it("pair-suppresses projects when total is under k (custom threshold)", () => {
+    // 4 rows across 4 distinct projects, k=6 — projects=4 would normally
+    // stay exposed but the correlated total=4 is suppressed, so both go dark.
+    const rows = mkRows(4, [4], (i) => `p${i}`);
+    const s = buildReviewsSummary(rows, 6);
+    expect(s.total_reviews).toEqual({ count: null, suppressed: true });
+    expect(s.projects_with_reviews).toEqual({ count: null, suppressed: true });
+    expect(s.avg_rating).toBeNull();
   });
 
   it("skips out-of-range and non-numeric ratings", () => {
