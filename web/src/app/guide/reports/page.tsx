@@ -28,6 +28,8 @@ import {
   summariseGallery,
   type GallerySection,
 } from "@/lib/showcase/gallery";
+import { ReportDownloadCta } from "./report-download-cta";
+import { isDownloadableReportFilename } from "@/lib/showcase/report-redaction";
 
 const SITE_URL = "https://blockid.au";
 const CANONICAL = `${SITE_URL}/guide/reports`;
@@ -132,6 +134,9 @@ function ReportCard({ row }: { row: DataRoomShowcaseRow }) {
       <p className="mt-2 truncate font-mono text-[11px] text-slate-500 dark:text-slate-500">
         {row.filename}
       </p>
+      {isDownloadableReportFilename(row.filename) ? (
+        <ReportDownloadCta filename={row.filename} phase={row.phase_at_generation} />
+      ) : null}
     </li>
   );
 }
