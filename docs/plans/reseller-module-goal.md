@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.215
+version: 2026-07-23.216
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,136 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 216
+    ran_at: 2026-07-22
+    action: p10_wave3_row_156_156b_156c_credit_transaction_id_fk_echo_shape_lens
+    result: |
+      Landed the tick 215 "natural next pick" option (a) verbatim:
+      audited credit-grant-authz.spec.ts for the FK-echo lens the DB
+      companion in audit-log-writes.spec.ts already carries via ticks
+      211-213, and extended EVERY chain-body credit_transaction_id
+      assertion in rows 156 (2-POST), 156b (3-POST), and 156c (4-POST)
+      to include a full UUID_RE shape pin — parity with row 152's
+      single-POST posture. HTTP surface now enforces "every 200 payload
+      echoes a well-formed credit_transactions.id UUID" at each POST in
+      the chain, not just the final POST + distinctness pairs.
+
+      Before this tick the chain rows carried only:
+        - body1: no shape check on credit_transaction_id (only balance
+          arithmetic).
+        - body{N} (final): typeof === "string" + distinctness against
+          all prior body{1..N-1}.credit_transaction_id.
+        - body{2..N-1} (intermediate, in 156b + 156c): no shape check.
+      A route regression that stripped credit_transaction_id off the
+      intermediate 200 payloads (e.g. a hoist that read `newTxId` from
+      a stale closure returning null on writes 2 through N-1 while the
+      final write's response still stamped a valid UUID) would leave
+      the distinctness pin at final body false-passing on `null !==
+      "<uuid>"`, and would leave the intermediate bodies' arithmetic
+      pins green because the route ignores the ID for balance echo.
+      The extended pins catch this class before the balance arithmetic
+      surfaces the regression indirectly.
+
+      Diagnostic delta of the tightened lens:
+        - typeof === "string" alone catches null/undefined/number but
+          silently accepts any string (e.g. "" or "not-a-uuid").
+        - UUID_RE ADDITIONALLY catches shape drift where the route
+          returned a string that is not a UUID — e.g. a stringified
+          bigint from a mistyped INSERT ... RETURNING clause, or the
+          reseller_id echoed back by accident.
+
+      Files:
+        - web/tests/e2e/reseller/credit-grant-authz.spec.ts (module-
+          scope UUID_RE hoisted after PLACEHOLDER_AMOUNT with a
+          cross-reference to the sibling UUID_RE constants in
+          credit-grant-validation.spec.ts:250 + reseller-requests-
+          list-authz.spec.ts:73 + admin-requests-list-authz.spec.ts:81
+          so the shape check reads the same across the cluster; row
+          152 single-POST assertion swapped from inline regex to
+          UUID_RE for consistency; row 156 body1 + body2 extended to
+          include UUID_RE.toMatch pins (body2 already had typeof, now
+          extended); row 156b body1 + body2 + body3 extended (body3
+          already had typeof, now extended); row 156c body1 + body2 +
+          body3 + body4 extended (body4 already had typeof, now
+          extended). Each new/extended pin carries a 1-line comment
+          naming the tick + the FK-echo lens rationale + the ordering
+          discipline that the shape pin fires BEFORE the distinctness
+          pin so a "route returned null on every write" regression
+          surfaces at shape rather than false-passing at distinctness.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.215 → 2026-07-23.216; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Regex constant reused via module-scope hoist rather than
+          inlined — matches the pattern used across 12+ sibling
+          reseller spec files (admin-requests-list-authz.spec.ts,
+          reseller-requests-list-authz.spec.ts, credit-grant-
+          validation.spec.ts etc). Case-insensitive `/i` flag preserves
+          the row 152 posture and matches sibling constants.
+        - Assertion form uses `body{N}.credit_transaction_id ?? ""`
+          matching row 152's null-coalesced form so a null value flags
+          on the .toMatch(UUID_RE) with a clear error message ("empty
+          string does not match /^[0-9a-f]{8}.../") rather than
+          throwing on "toMatch called on non-string".
+        - Distinctness pins deliberately kept AFTER the new shape
+          pins — the shape check fires first per the ordering
+          discipline that would make a "route returned null on every
+          write" regression surface at shape rather than false-pass
+          at distinctness (`null !== null` is false, so distinctness
+          would silently accept two nulls).
+        - No production code touched. Spec + goal file only. R-01
+          (only scans /api/reseller/**) and R-03 (only scans feature-
+          gates.manifest.ts routes) do not scan web/tests/e2e/** so
+          lint counts stay at 11 R-01 + 31 R-03 + 3 exemptions + 0
+          violations.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: exit 0.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files,
+          R-03 scanned 31 manifest routes, 3 exemptions, 0 violations
+          — unchanged from tick 215.
+        - `npx vitest run` in web/: 75 files / 954 tests passed
+          (Playwright specs are excluded from vitest by design so the
+          count is unchanged from tick 215).
+        - No DB apply this tick — no migration authored. Playwright
+          run against staging still gated on the tick 198 seed re-run
+          per P10 hardening exit criteria, not this tick.
+
+      Frontier after tick 216:
+        - Track A P8.5 STILL HUMAN-BLOCKED on
+          STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL.
+        - Track A P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20
+          ABN + GST.
+        - Track B COMPLETE.
+        - All 43 rows in the P10 activation matrix (waves 1-5) are
+          activated; only human-blocked rows (175 approve
+          code_request / 178 signup-jitter / 182 SetupIntent) remain
+          on the plan doc's canonical list.
+        - credit-grant-authz.spec.ts now carries FK-echo UUID_RE
+          shape pins on every chain body across rows 152 / 156 /
+          156b / 156c. HTTP surface now has parity with the DB
+          companion's mirror-count + FK-shape lens on audit-log-
+          writes.spec.ts landed via ticks 211-213.
+
+      Natural next pick for tick 217: (a) mirror the row 179
+      shape+helper alignment onto the row 175 approve+deny+cancel
+      code_request branches once P8.5 unblocks; today only the
+      over_budget_approval branch of the terminal handler carries
+      the shape+helper twin coverage. (Still open, P8.5-blocked.)
+      (b) audit admin-requests-patch-authz.spec.ts happy paths for
+      the same FK-echo lens on any credit_transaction_id echoes —
+      the over_budget approval branch mints one credit_transaction
+      per approval, so the response payload's linked_credit_
+      transaction_id already lives under a UUID_RE pin at spec.ts:663,
+      but any adjacent branches emitting fresh FK ids may lack the
+      shape lens. (c) sweep the OTHER response fields that echo DB
+      identifiers (credit_grants.id, promotion_code_id, request_id)
+      for module-scope UUID_RE reuse where each spec currently inlines
+      the regex — the audit surfaces the pattern as a duplication
+      opportunity that could land as a small cleanup tick.
+    commit: (this tick)
+
   - tick: 215
     ran_at: 2026-07-22
     action: p10_wave5_row_176_env_harness_drawer_and_reveal_email_audit_log_strict_equality_tightening
