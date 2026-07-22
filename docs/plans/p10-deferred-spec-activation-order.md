@@ -129,6 +129,37 @@ Prep cost: one tick to author the attributed-customer helper
 `app_users` upsert path in the fixture — then rows 145–149 each add
 2–3 assertions.
 
+**Wave-3 row 154 landed (tick 153).** Opens wave 3. Added a companion
+`test.describe("Reseller sandbox-setup — P10 wave-3 happy path")` block to
+`web/tests/e2e/reseller/sandbox-setup-authz.spec.ts` that mirrors the
+wave-2 row 146/148 posture verbatim: POST as `active_wholesale`
+reseller-admin against `/api/reseller/sandbox/setup` and assert 200 with
+`body.ok=true` + `typeof body.project_id === "string"` matching UUID shape.
+Fresh-insert branch (`already_existed:false`) additionally pins the full
+slug + name envelope per plan §U.4; idempotent-replay branch
+(`already_existed:true`) drops slug/name per `route.ts:67-74` so the
+row stays idempotent under replay without false-failing on a dirty host.
+`fixture.trackProjectForCleanup(body.project_id)` registers the freshly
+provisioned sandbox for afterEach cleanup so the next run always re-enters
+the fresh-insert branch. Attribution is intentionally NOT required
+(`sandbox-setup` does not consult `reseller_attributions` — the sandbox is
+per-reseller, not per-customer) which is why this row sat inside the
+wave-3-`active_wholesale` subwave (152 / 154 / 155 / 156) that tick 152's
+preflight flagged as activation-ready without any seed/fixture delta.
+Assertion budget: five expects (200 + body.ok + typeof + UUID + branch on
+already_existed with conditional slug/name) — sits at the "2-3 assertions
+per row + one branch guard" ceiling the wave-3 prep-cost note calls for.
+The audit-log write side-effect is captured by wave-5 row 179
+(audit-log-writes.spec.ts) so row 154 keeps its focus on the wire envelope
+— a broken audit-log write would surface here via body.ok=false through
+the 500 audit_failed branch rather than as a missing audit row that only
+row 179 could detect. Rows 155 (requests-authz happy POST) and 156
+(requests-validation happy GET) sit next in the wave-3-`active_wholesale`
+subwave; row 152 (credit-grant-validation happy 200) also sits inside the
+subwave and reuses the same fixture posture. Rows 150 + 151 remain
+runtime-blocked on finding-2's seed + fixture delta per tick 152's
+preflight.
+
 **Wave-3 preflight landed (tick 152).** Three design-time findings recorded
 in `docs/plans/p10-wave3-preflight-finding.md` before wave-3 activation
 starts. (1) Row 150 status code inline-fixed: `capability_disabled` returns
