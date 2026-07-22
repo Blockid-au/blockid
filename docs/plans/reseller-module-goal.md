@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.125
+version: 2026-07-23.126
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,107 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 126
+    ran_at: 2026-07-22
+    action: p10_dry_run_admin_reseller_detail_validation_playwright_spec
+    result: |
+      Composed option (i) from tick 125's frontier — landed the GET
+      counterpart to admin-reseller-delete-validation.spec.ts (tick 125)
+      and admin-reseller-patch-validation.spec.ts (tick 123). GET
+      /api/admin/resellers/[code] has two pre-read validators that fire
+      BEFORE the four related-rows Promise.all fan-out (promotion_codes +
+      admins + attributions + commissions): code_required (route.ts:55-56)
+      and not_found (route.ts:58-62). Both branches are safely exercisable
+      against staging without a seeded resellers row — row 1 short-circuits
+      at normaliseResellerCode(null) before loadReseller runs; row 2 short-
+      circuits at loadReseller.error='not_found' before the four related-
+      rows Promise.all fires. Symmetric-shape regression coverage across
+      GET/PATCH/DELETE means a refactor that swaps the pre-load order,
+      collapses code_required into invalid_body, or promotes not_found from
+      404 to 400 lights up in all three specs (GET this tick, PATCH tick
+      123, DELETE tick 125) on the next `npx playwright test` pass.
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-detail-validation.spec.ts
+          (new — two rows probing the pre-read validators BEFORE the four
+          related-rows Promise.all runs, all exercised behind the
+          QA_ADMIN_EMAIL harness from tick 122 so the getCurrentUser +
+          requireAdmin chain resolves to a real admin session:
+          (1) code_required — GET /api/admin/resellers/--- (three
+              hyphens) → 400 { ok:false, reason:"code_required" } at
+              route.ts:55-56. normaliseResellerCode('---') strips to null
+              via the trim/uppercase/[^A-Z0-9] replace so the guard fires
+              BEFORE loadReseller, BEFORE the four related-rows Promise.all.
+          (2) not_found — GET /api/admin/resellers/qa-probe-should-not-
+              persist → 404 { ok:false, reason:"not_found" } at route.ts
+              :58-62 in the loadReseller guard. The probe code normalises
+              to "QAPROBESHOULDNOTPERSIST" (22 char) which safely does not
+              collide with any seeded reseller_code (INFOVISION, ACCEL_*,
+              etc.) — P1.5 InfoVision seed remains HUMAN-BLOCKED on H.20
+              anyway so the collision surface is nil.
+          Both rows skip at describe-scope if the QA admin harness is not
+          provisioned via loadAdminHarness() (tick 122 fixture).)
+        - docs/plans/reseller-module-goal.md (+ tick 126 entry)
+
+      Why this shape matches ticks 123 + 125: exact structural twin —
+      same route file, same pre-load normaliseResellerCode source (URL
+      path segment via params.code, not request body), same loadReseller
+      guard, same { ok:false, reason: <string> } envelope. Differs in one
+      dimension only — GET is a read (loadReseller + Promise.all fan-out)
+      rather than a write (resellers UPDATE), but the pre-load validator
+      surface is IDENTICAL: code_required + not_found return in the same
+      order, with the same envelope, before any DB read fires. Full row
+      set stays at two (code_required + not_found), matching DELETE.
+      Same PROBE_CODE constant.
+
+      Why the happy path (200) isn't covered: same reasoning as ticks
+      94..125 — the 200 branch reads a real resellers row + fans out into
+      the four related-rows Promise.all which returns promotion_codes /
+      admins / attributions_summary / commissions payloads. Needs a real
+      seeded reseller row + related rows which the tree doesn't yet carry
+      — folded into the temp-reseller mint fixture follow-up alongside the
+      deferred rows from ticks 94..125.
+
+      Deliberately out of scope for this tick:
+        - admin-resellers/requests PATCH validation twin — needs a
+          seeded reseller_requests row (plan §J.2 forbids per-test
+          seeding); deferred to temp-reseller mint fixture.
+        - Any change to /api/admin/resellers/[code] — the GET handler
+          fires correctly; this tick adds Playwright coverage of the
+          pre-read validators.
+        - Extending scripts/seed-test-users.mjs with a qa-admin-1 row —
+          human-adjacent change deferred alongside P8.5
+          (STRIPE_PRICE_ADDON_*) and P1.5 (H.20 ABN + GST) per the
+          tick 122 posture.
+
+      Verified: tsc clean (npx tsc --noEmit exit=0). npm run lint:reseller:
+      R-01 scanned 11 file(s), R-03 scanned 31 manifest route(s); 3
+      exemptions, 0 violations unchanged (spec lives under web/tests/e2e/
+      reseller/, not /api/reseller/**, so R-01 doesn't fire; not a
+      mutation route in feature-gates.manifest.ts so R-03 doesn't fire).
+      Playwright not run this tick — rows will execute on the next CI
+      Playwright pass alongside the thirty-seven other reseller-lens
+      dry-run specs (now thirty-eight including this one).
+
+      Frontier after tick 126: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 126 unblocks: the GET /api/admin/resellers/[code]
+      pre-read validators now have Playwright regression coverage
+      matching the PATCH validation spec (tick 123) and DELETE
+      validation spec (tick 125). All three verbs on /api/admin/
+      resellers/[code] now have symmetric pre-write/pre-read validator
+      coverage. Thirty-eight spec files now sit in web/tests/e2e/
+      reseller/. Next autonomous tick options: (i) admin-resellers/
+      requests PATCH validation twin (needs seeded reseller_requests
+      row — deferred to temp-reseller mint fixture); (ii) landing the
+      QA-mode temp-reseller mint fixture that opens up all the deferred
+      HAPPY-PATH branches from ticks 94..126 at once (larger tick,
+      wants a design pass); (iii) idle until human unblock arrives on
+      P8.5 or P1.5.
     commit: (this tick)
 
   - tick: 125
