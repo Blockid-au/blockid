@@ -94,10 +94,19 @@ test.describe("Reseller audit-log writes — P10 dry-run", () => {
       subjectUserId: harness!.attributedCustomerId,
       since,
     });
+    // Strict === 1: /api/reseller/customers/[id]/drawer/route.ts:120-129
+    // performs exactly one db.auditLog() call per successful call, wrapped in
+    // try/catch that returns 500 audit_failed on throw. The since cursor was
+    // captured immediately before the GET so cross-run rows against the same
+    // (action, actor, subject) triple cannot inflate the count. A regression
+    // that hoisted the audit call into a retry loop or duplicated it (e.g. a
+    // defensive double-emit around a route refactor) would slip past the
+    // prior ≥ 1 assertion but flag here. Matches the wave-5 row 179 sibling
+    // block at line 283 tightened in tick 214.
     expect(
       count,
-      `expected ≥1 view_customer_drawer audit row for (actor=${actorId}, subject=${harness!.attributedCustomerId}) since ${since}; got ${count}`,
-    ).toBeGreaterThanOrEqual(1);
+      `expected exactly 1 view_customer_drawer audit row for (actor=${actorId}, subject=${harness!.attributedCustomerId}) since ${since}; got ${count}`,
+    ).toBe(1);
   });
 
   test("POST /api/reseller/customers/[id]/reveal-email writes action='reveal_email'", async ({
@@ -128,10 +137,17 @@ test.describe("Reseller audit-log writes — P10 dry-run", () => {
       subjectUserId: harness!.attributedCustomerId,
       since,
     });
+    // Strict === 1: /api/reseller/customers/[id]/reveal-email/route.ts:78-93
+    // performs exactly one db.auditLog() call per successful call, wrapped in
+    // try/catch that returns 500 audit_failed on throw. Since cursor captured
+    // immediately before the POST so count > 1 flags a duplicate-emit
+    // regression (retry loop, middleware hoist adding a second audit call
+    // before return). Matches the wave-5 row 179 sibling block at line 308
+    // tightened in tick 214.
     expect(
       count,
-      `expected ≥1 reveal_email audit row for (actor=${actorId}, subject=${harness!.attributedCustomerId}) since ${since}; got ${count}`,
-    ).toBeGreaterThanOrEqual(1);
+      `expected exactly 1 reveal_email audit row for (actor=${actorId}, subject=${harness!.attributedCustomerId}) since ${since}; got ${count}`,
+    ).toBe(1);
   });
 });
 

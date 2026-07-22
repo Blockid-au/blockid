@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.214
+version: 2026-07-23.215
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,154 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 215
+    ran_at: 2026-07-22
+    action: p10_wave5_row_176_env_harness_drawer_and_reveal_email_audit_log_strict_equality_tightening
+    result: |
+      Tightened the two remaining permissive `.toBeGreaterThanOrEqual(1)`
+      audit-log-count assertions in
+      web/tests/e2e/reseller/audit-log-writes.spec.ts to strict `.toBe(1)`,
+      landing option (c) from tick 214's "natural next pick" list verbatim.
+      The two sites are the top-of-file env-based describe's drawer happy-
+      path assertion (line 100 → now line 108 after +8-line comment
+      insertion) and reveal-email happy-path assertion (line 134 → now
+      line 149 after the second +8-line comment insertion). Both sit inside
+      tests that capture `const since = new Date().toISOString()`
+      IMMEDIATELY before the API call, so cross-run rows against the same
+      (action, actor, subject) triple cannot inflate the count — the `≥ 1`
+      posture was strictly weaker than the invariant the drawer and
+      reveal-email routes actually uphold.
+
+      Frontier before this tick: tick 214 tightened the wave-5 row 179
+      (temp-reseller mint fixture) drawer + reveal-email happy paths at
+      lines 273/293 plus the wave-3 row 154 grant_credits assertion at
+      line 1214 from ≥ 1 to === 1. The env-based describe at the top of
+      the same file — which asserts the same invariant via the pre-
+      existing loadResellerHarness() env-var contract instead of the temp-
+      reseller mint fixture — still carried the older ≥ 1 posture on its
+      two twin assertions. Both blocks exercise the same route handlers
+      (/api/reseller/customers/[id]/drawer and reveal-email) with the
+      same since-cursor discipline, so the tightening applies verbatim.
+
+      Diagnostic delta of the tightened lens (identical to tick 214):
+        - `≥ 1` catches "audit row missing" (count=0) — a
+          resellerSupabase.auditLog() regression or an RLS-scope drift on
+          the append-only 0093 ledger. Kept.
+        - `=== 1` ADDITIONALLY catches "audit row duplicated" (count>1) —
+          the class of regression where a route refactor lands a defensive
+          double-emit (e.g. wrapping the auditLog() call in a retry loop
+          with retry-on-any-throw semantics that swallows the "already
+          inserted" branch), or a middleware hoist that adds a second
+          auditLog() call before returning. The prior ≥ 1 posture silently
+          accepted this class.
+
+      Route contracts confirmed to emit exactly one audit row per success
+      (re-verified this tick against the current on-disk handlers, not
+      just the tick 214 review_history claim):
+        - /api/reseller/customers/[id]/drawer/route.ts:120-129 — single
+          db.auditLog() call wrapped in try/catch returning 500
+          audit_failed on throw. The response payload downstream at
+          route.ts:137+ builds the overview/progression/reports sections
+          from already-fetched data; no second auditLog() call in the
+          success path.
+        - /api/reseller/customers/[id]/reveal-email/route.ts:78-93 —
+          single db.auditLog() call wrapped in try/catch. Return payload
+          is `{ok:true, email}` with no further audit emission.
+
+      Files:
+        - web/tests/e2e/reseller/audit-log-writes.spec.ts (2 assertions
+          tightened: (1) prior line 100 view_customer_drawer
+          `.toBeGreaterThanOrEqual(1)` → `.toBe(1)` with 8-line comment
+          naming drawer route.ts:120-129 + since-cursor rationale +
+          cross-reference to the wave-5 row 179 sibling at line 283
+          tightened in tick 214; (2) prior line 134 reveal_email
+          `.toBeGreaterThanOrEqual(1)` → `.toBe(1)` with 7-line comment
+          naming reveal-email/route.ts:78-93 + shared rationale +
+          cross-reference to the wave-5 row 179 sibling at line 308
+          tightened in tick 214. Each assertion's diagnostic-message
+          string re-worded from "expected ≥1 X audit row..." to
+          "expected exactly 1 X audit row..." so a failing count>1
+          surfaces with a message that reads as intended rather than as a
+          "≥1" false-negative.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.214 → 2026-07-23.215; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Assertion mode chosen as `.toBe(1)` not `.toStrictEqual(1)` to
+          match the pre-existing style in the same file (rows 155/156
+          count-lens `mirrorCount === 2`, row 179 wave-5 assertions all
+          use `.toBe`). Same discipline as tick 214.
+        - Diagnostic-message text now reads "expected exactly 1 …; got N"
+          for both sites — the "got N" tail is preserved from the prior
+          posture so a CI failure log still surfaces the observed count
+          without a second scan.
+        - Cross-reference comments name the wave-5 row 179 sibling
+          assertions at spec.ts:283 (drawer) and spec.ts:308 (reveal-
+          email) so a future maintainer can trace the tightening
+          precedent that tick 214 established without walking the full
+          review_history. Precedent lines are stable relative to the
+          spec's describe-block topology; a future refactor that reorders
+          the describes would shift both together.
+        - Route.ts line pointers (drawer 120-129, reveal-email 78-93)
+          reference the CURRENT production paths — a future maintainer
+          running `git blame` on the spec finds the intended handler
+          emit-site without walking the file. If the route refactors
+          shift those line numbers, the test still passes because the
+          assertion is scoped by (action, actor, subject, since) not by
+          line number.
+        - No production code touched. Spec + goal file only. Neither the
+          R-01 scope-boundary rule (only /api/reseller/**) nor the R-03
+          manifest rule (only feature-gates.manifest.ts routes) scan
+          web/tests/e2e/** so lint counts are unchanged.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: exit 0.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 exemptions, 0 violations —
+          unchanged from tick 214.
+        - `npx vitest run` in web/: 75 files / 954 tests passed
+          (unit + integration; Playwright specs are excluded from
+          vitest by design so the count is unchanged from tick 214).
+        - No DB apply this tick — no migration authored. Playwright
+          run against staging still gated on the tick 198 seed re-run
+          per P10 hardening exit criteria, not this tick.
+
+      Frontier after tick 215:
+        - Track A P8.5 STILL HUMAN-BLOCKED on
+          STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL.
+        - Track A P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20
+          ABN + GST.
+        - Track B COMPLETE.
+        - All 43 rows in the P10 activation matrix (waves 1-5) are
+          activated; only human-blocked rows (175 approve
+          code_request / 178 signup-jitter / 182 SetupIntent) remain
+          on the plan doc's canonical list.
+        - audit-log-writes.spec.ts now carries strict-equality audit-log
+          count assertions on ALL happy-path privileged-read blocks —
+          zero `.toBeGreaterThanOrEqual(1)` remaining in the file. This
+          closes tick 214's "next pick" option (c) fully.
+
+      Natural next pick for tick 216: (a) audit credit-grant-authz.spec.ts
+      (the HTTP sibling spec) for parallel shape+helper opportunities —
+      the response-envelope arithmetic assertions already carry the
+      amount lens; adding a per-response credit_transaction_id shape
+      assertion would give the HTTP surface the same FK-echo lens the
+      DB companion just landed via ticks 211-213. (Still open — tick
+      215 was purely additive on the audit-log posture, no HTTP-lens
+      landed.) (b) mirror the row 179 shape+helper alignment onto the
+      row 175 approve+deny+cancel code_request branches once P8.5
+      unblocks; today only the over_budget_approval branch of the
+      terminal handler carries the shape+helper twin coverage. (Still
+      open, P8.5-blocked.) (c) sweep the OTHER spec files under
+      web/tests/e2e/reseller/ for `.toBeGreaterThanOrEqual(1)` audit-
+      count posture — attribution-timing.spec.ts, credit-grant-
+      authz.spec.ts, admin-requests-patch-authz.spec.ts,
+      cobranding-pill.spec.ts — for the same strict-equality tightening
+      where each writes exactly one audit row per success per its
+      respective route handler.
+    commit: (this tick)
+
   - tick: 214
     ran_at: 2026-07-22
     action: p10_wave5_row_179_happy_path_and_wave3_row_154_audit_log_helper_strict_equality_tightening
