@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.144
+version: 2026-07-23.145
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,107 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 145
+    ran_at: 2026-07-22
+    action: p10_wave1_row_143_activate_no_capability_branch
+    result: |
+      Activated wave-1 row 143 per docs/plans/p10-deferred-spec-activation-
+      order.md — create-startup-authz.spec.ts × no_capability ×
+      capability_disabled → 400. Same file, same describe block, next
+      variant slot after tick 144's row-142 landing.
+
+      Files:
+        - web/tests/e2e/reseller/create-startup-authz.spec.ts (adds a
+          third test inside "P10 wave-1 downstream reason branches";
+          skeleton is a paste of tick 144's row-142 test with the variant
+          swapped paused → no_capability, the founder_email swapped to
+          p10-wave1-no-capability@blockid.au, the company_name string
+          swapped to "P10 Wave 1 — no_capability probe", the expected
+          reason flipped from reseller_not_active → capability_disabled,
+          and the body.message oracle updated to
+          CREATE_STARTUP_ERROR_MESSAGES.capability_disabled verbatim
+          ("Your reseller account is not enabled for wholesale
+          provisioning."). Top-of-file "Deliberately out of scope"
+          block updated to remove capability_disabled from the deferred
+          list; the remaining three decideCreateStartup branches
+          (tier_not_allowed / existing_active_attribution /
+          promotion_code_missing) stay listed with row 144 pointing at
+          active_wholesale + tier=99 for tier_not_allowed.
+
+      Design fidelity:
+        - Gate ordering verified against
+          web/src/lib/reseller/create-startup.ts:210-222 — no_capability
+          seed sits at (status=active, billing_model=wholesale,
+          can_create_startups=false, allowed_tiers=[0,10,20,30,40]) so
+          gate 1 passes and gate 2 fires BEFORE any downstream gate can
+          short-circuit the row's assertion. discount_tier=0 chosen so
+          the row is independent of allowed_tiers ordering and does not
+          need the reseller_promotion_codes tier-0 row (which is
+          intentionally skipped for every variant since
+          ck_stripe_objects_by_tier forbids Stripe IDs at tier 0 — gate 2
+          pre-empts gate 6 anyway).
+        - Skip discipline mirrors ticks 143 + 144 verbatim: fixture null →
+          test.skip(tempResellerSkipReason("no_capability")); loginAs
+          throw → test.skip with the seeder-gap message. Single-admin
+          hosts / hosts that skipped QA_RESELLER_MULTI_ADMIN=1 land as
+          test.skip rather than 403 no_membership per docs/plans/p10-
+          deferred-spec-activation-order.md § "Failure protocol".
+        - Non-Stripe / non-GST discipline: assertion does not touch
+          Stripe (no promotion_code branch reached), does not touch GST
+          reconciliation, and does not depend on the InfoVision seed.
+          P8.5 + P1.5 remain neither a dependency nor a consequence.
+        - Body.message assertion is the strongest oracle available for
+          the 400 branch — the pure lib's CREATE_STARTUP_ERROR_MESSAGES
+          record is a compile-time enum so a future maintainer who
+          changes the copy without updating the spec fails CI on this
+          row.
+        - Batching heuristic: rows 141-144 are same file but each uses a
+          DIFFERENT variant, so the heuristic in the schedule doc
+          ("same file with the same variant" only) does not permit
+          collapsing them into one tick. One row per tick preserved.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0, no output).
+          tests/ is excluded from the main tsconfig so the spec's TS
+          errors from @playwright/test + process references are expected
+          and identical in shape to the pre-existing tests in the same
+          file (verified indirectly via the tsc clean pass since the new
+          test reuses the same imports).
+        - `npx vitest run src/lib/reseller/ src/lib/feature-gate.test.ts
+          src/lib/entitlements.test.ts` in web/: 31 files / 462 tests
+          pass (2.10s runtime, identical to tick 144's baseline).
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 documented exemptions, 0
+          violations — unchanged from tick 144 (the spec is not under
+          /api/reseller/** and not in feature-gates.manifest.ts).
+        - No DB apply this tick — pure test-file addition.
+        - Goal file version bumped 2026-07-23.144 → 2026-07-23.145.
+
+      Frontier after tick 145: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision
+      seed STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE;
+      P10 still blocked_by [P1..P9] until P8.5 clears. What tick 145
+      unblocks: row 143 lit up in CI on the next `npx playwright test`
+      run — the row lands as either a green expect(400) assertion (both
+      seeders re-run with QA_RESELLER_MULTI_ADMIN=1) or as test.skip
+      with tempResellerSkipReason (seeders not refreshed). Next
+      autonomous tick options:
+        (i) activate row 144 (create-startup-authz.spec.ts ×
+            active_wholesale × tier=99 body → tier_not_allowed) — same
+            file, needs a tier=99 body override to trigger gate 4
+            against the active_wholesale variant whose allowed_tiers
+            covers [0,10,20,30,40]; qualifies for the schedule doc's
+            one-row-per-tick contract;
+        (ii) collapse the remaining wave-1 rows into a table-driven
+             test.each — deferred to a future tick that owns the
+             refactor, since the schedule doc's ordering assumes one
+             row per tick;
+        (iii) advance to wave 2 (rows 145-149 in
+              me-attribution.spec.ts / drawer-authz.spec.ts / etc.)
+              once row 144 lands, closing wave 1 in full;
+        (iv) idle until human unblock arrives on P8.5 or P1.5.
+    commit: (this tick)
+
   - tick: 144
     ran_at: 2026-07-22
     action: p10_wave1_row_142_activate_paused_branch
