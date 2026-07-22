@@ -82,6 +82,29 @@ export async function countResellerAttributionsFor(
 }
 
 /**
+ * Count reseller_attributions rows scoped to a projects.id. Used by the
+ * attribution-timing spec row 3 to assert that createProject() writes exactly
+ * one subject_type='project' row for a founder carrying the ?via= cookie
+ * (closes the tick 91 frontier gap; retail-attribution.ts adapter).
+ */
+export async function countResellerAttributionsForProject(
+  supabase: SupabaseClient,
+  projectId: string,
+): Promise<number> {
+  const { count, error } = await supabase
+    .from("reseller_attributions")
+    .select("id", { count: "exact", head: true })
+    .eq("subject_type", "project")
+    .eq("subject_project_id", projectId)
+    .eq("status", "active")
+    .eq("opted_out", false);
+  if (error) {
+    throw new Error(`countResellerAttributionsForProject failed: ${error.message}`);
+  }
+  return count ?? 0;
+}
+
+/**
  * Look up an app_user id by email (case-insensitive). Playwright-only helper
  * used to translate the QA account email → user_id for downstream row-count
  * queries. Returns null when the row is not found so specs can distinguish

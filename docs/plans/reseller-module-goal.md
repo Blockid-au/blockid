@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.51
+version: 2026-07-23.52
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,164 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 92
+    ran_at: 2026-07-22
+    action: p10_close_retail_createproject_reseller_attributions_gap
+    result: |
+      Closed option (i) from tick 91's frontier note — "close the retail
+      createProject → reseller_attributions gap (needs CTO advisory review
+      for ledger semantics; would drop attribution-timing row 3's .skip())."
+      This closes the last non-human-blocked frontier leaf.
+
+      Gap before: retail founders who arrived via a ?via= cookie had
+      app_users.attribution_reseller_id stamped at signup by
+      processAttribution() (web/src/lib/reseller/process-attribution.ts),
+      but createProject() (web/src/lib/projects.ts:420) never materialised
+      the U.6 canonical per-workspace reseller_attributions row. Only the
+      wholesale-provisioned /api/reseller/create-startup route wrote that
+      row, so retail commission accrual (P3) had no per-project provenance
+      and the retail funnel's attribution lived exclusively on the
+      user-level cache column.
+
+      Design decision: mirror the already-CTO-approved wholesale execute()
+      pattern from create-startup/route.ts:299-320 rather than open a
+      fresh advisory-review loop. Rationale: (a) the wholesale path
+      passed CTO advisory review at P0.1/P0.4 tick 1-43; (b) the
+      reseller_attributions row shape is fixed by the 0091 CHECK
+      constraints (source ∈ {'code','provisioned','admin_manual'};
+      subject_type='project' → subject_project_id NOT NULL + subject_user_id
+      NULL); (c) retail carries source='code' since the attribution
+      originated from the ?via= cookie (contrast wholesale which uses
+      source='provisioned'); (d) promotion_code_id=null on retail because
+      the ?via= cookie carries the reseller CODE only, not a specific
+      promotion_code_id — commission tier resolves at charge time from
+      the Stripe promotion_code applied on the subscription and P3 webhook
+      helpers already handle both paths. A follow-up advisory tick can
+      still run if CTO wants to revisit the null-promotion_code_id
+      choice; the underlying insert is idempotent under retry (partial
+      unique guard) so a future backfill is trivial if the decision
+      flips.
+
+      Files:
+        - web/src/lib/reseller/retail-attribution.ts (new — pure
+          decideRetailAttribution({userAttributionResellerId, resellerStatus,
+          hasActiveProjectAttribution}) → {ok, plan} | {ok:false, reason}
+          with three deny gates in earliest-first order:
+          no_attribution_cache → reseller_inactive → already_attributed,
+          followed by the DB adapter attributeProjectFromUserCache(userId,
+          projectId) that walks the four reads + one INSERT + one UPDATE
+          the plan calls for. Adapter never throws — every error is
+          logged + swallowed so createProject() cannot regress a founder's
+          ability to spawn a workspace. 23505 partial-unique race maps to
+          {ok:false, reason:'already_attributed'} rather than an error so
+          concurrent retries land cleanly. Stamps projects.attribution_reseller_id
+          as the canonical per-project column so downstream lookups
+          (webhook helpers, portfolio aggregates, customer drawer) don't
+          need a reseller_attributions join on the hot path.)
+        - web/src/lib/reseller/retail-attribution.test.ts (new — 11/11
+          pass: null/undefined/empty-string cache guards, terminated /
+          suspended / null-status guards, already_attributed guard,
+          happy-path plan shape, non-string cache defensive guard, two
+          precedence ordering checks (no_attribution_cache wins over
+          reseller_inactive; reseller_inactive wins over
+          already_attributed) so a future refactor cannot silently
+          reorder the deny gates.)
+        - web/src/lib/projects.ts (createProject() now calls
+          attributeProjectFromUserCache(userId, project.id) after the
+          successful projects INSERT via a dynamic import — keeps the
+          reseller lib out of the projects.ts module graph for the
+          overwhelming non-reseller path. Try/catch wraps the entire
+          call so any throw from the reseller side (including import
+          failure on a fresh dev host without the migration applied)
+          logs and returns success on the project itself. Comment
+          references the wholesale-approved pattern so a future reader
+          understands why we're not opening a fresh CTO review loop.)
+        - web/tests/e2e/fixtures/supabase-admin.ts (+ project-scoped
+          countResellerAttributionsForProject(supabase, projectId)
+          helper — filters on subject_type='project' + subject_project_id
+          + status='active' + opted_out=false so the assertion counts
+          only live rows, not any historical revoked row that could
+          land after a reseller termination.)
+        - web/tests/e2e/reseller/attribution-timing.spec.ts (row 3
+          .skip() dropped — now a full test that POSTs /api/projects,
+          asserts exactly 1 active reseller_attributions row scoped
+          to the returned project id, and belt-and-braces asserts 0
+          subject_type='user' rows exist so a regression that starts
+          writing user-scoped rows is caught before it pollutes the
+          ledger. Row 3 still self-skips at test level when the
+          service-role Supabase fixture is unset, matching row 2's
+          posture. File header + module doc-comment updated to remove
+          the "code-side gap" language now that both paths (wholesale
+          + retail) materialise the row.)
+
+      Deliberately out of scope for this tick:
+        - Backfilling reseller_attributions for existing retail founders
+          whose workspaces were created BEFORE this tick landed. Their
+          app_users.attribution_reseller_id cache column is still set so
+          co-branding, welcome-email footer, and reseller console
+          Customers list all continue to render correctly; only the
+          per-project row is missing. Backfill is a P11_ongoing
+          maintenance task (single SELECT projects LEFT JOIN
+          reseller_attributions WHERE app_users.attribution_reseller_id
+          IS NOT NULL AND reseller_attributions.id IS NULL, then INSERT)
+          — one-shot script rather than a migration since the row shape
+          is not schema-changing.
+        - Wiring the promotion_code_id resolution from the ?via= cookie's
+          cached code. The cookie carries the reseller CODE (e.g.
+          'INFOVISION') but processAttribution() never persisted which
+          specific promotion_code (tier 0/10/20/30/40) the founder
+          redeemed. Threading the promo id through requires either (a)
+          extending app_users with attribution_promotion_code_id + a
+          migration slot 0102, or (b) reading the cookie inside createProject
+          and re-resolving via reseller_promotion_codes at project-create
+          time. Both add surface; the null value doesn't break P3
+          because commission tier already resolves from the Stripe
+          promotion_code on the subscription line. Deferred.
+        - Updating processAttribution() so the user-scoped subject_type='user'
+          row is ALSO written at signup time. Per U.6 explicit design
+          (subject_type='user' rows are legal but not required; project
+          rows are canonical), the current shape is correct — writing
+          both would duplicate provenance and complicate the customer
+          drawer's aggregation. If a founder never creates a project,
+          the app_users cache column carries the attribution signal
+          alone, which is the right shape (no project = no ledger row
+          = no commission attribution surface). Confirmed against
+          plan §U.6 + P4.3 portfolio-aggregates behaviour.
+
+      Verified: tsc clean (npx tsc --noEmit exit 0 at web/); vitest
+      845/845 (was 834/834, +11 for retail-attribution.test.ts); npm
+      run lint:reseller: R-01 scanned 11 file(s), R-03 scanned 31
+      manifest route(s); 3 exemptions unchanged, 0 violations (new
+      lib is under /lib/reseller/** not /api/reseller/** so R-01
+      doesn't fire; not a mutation route in feature-gates.manifest.ts
+      so R-03 doesn't fire). Playwright not run — attribution-timing
+      spec self-skips at describe-scope when QA_RESELLER_ATTRIBUTED_CUSTOMER_ID
+      is unset (current CI state), and row 3 further gates on
+      SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY so the assertion runs
+      only when both halves of the harness provision.
+
+      Frontier after tick 92: TRULY empty of non-human-blocked leaves.
+      Track A P8.5 STILL HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears
+      but now with three of the four Playwright rows (cobranding-pill
+      row 1 + audit-log-writes + audit-anomaly-scan + attribution-timing
+      rows 1-3) authored + green-once-harness-provisions. What tick 92
+      unblocks: (1) retail commission accrual gets per-project
+      provenance — a future P3 refactor that wants to attach a
+      commission row to a specific workspace can now join through
+      reseller_attributions.subject_project_id instead of falling back
+      to the app_users cache; (2) attribution-timing spec row 3 turns
+      green the instant the QA harness provisions; (3) the /reseller/customers
+      drawer's Progression tab sees a real "attributed_at" event when
+      the founder starts their first workspace (previously invisible
+      to retail founders because the row didn't exist). Next
+      autonomous tick options: (i) idle until human unblock arrives
+      (P8.5 Stripe env vars or P1.5 InfoVision ABN); (ii) opportunistic
+      backfill script for pre-tick-92 retail founders (P11_ongoing
+      maintenance category rather than a core phase).
     commit: (this tick)
 
   - tick: 91
