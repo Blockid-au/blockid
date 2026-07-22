@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.135
+version: 2026-07-23.136
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,112 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 136
+    ran_at: 2026-07-22
+    action: p10_option_a_step1_seed_test_users_multi_admin_delta
+    result: |
+      Landed Option A step 1 of the docs/plans/p10-temp-reseller-
+      admin-scope-collision-finding.md resolution plan. Extended
+      web/scripts/seed-test-users.mjs with a multi-admin cohort so
+      the seven ResellerVariant members can each mirror a DISTINCT
+      app_users.id onto their reseller_admins row — avoiding the
+      scopedReseller() .maybeSingle() PGRST116 collision that fires
+      when a single user is a member of MORE THAN ONE variant.
+
+      Files:
+        - web/scripts/seed-test-users.mjs (extended — new
+          MULTI_ADMIN_EMAILS constant mapping the seven variant
+          names to hard-coded qa-reseller-<variant>@blockid.au
+          defaults; per-slot override via
+          QA_RESELLER_ADMIN_EMAIL_<VARIANT> env vars (uppercase
+          snake); new RESELLER_MULTI_ADMIN gate driven by
+          --reseller-multi-admin flag OR QA_RESELLER_MULTI_ADMIN=1;
+          seedResellerFixtureUsers() now iterates the map when the
+          gate is on and upserts each per-variant admin row via the
+          existing upsertResellerFixtureUser() helper — no
+          attribution stamp on these rows since they are admin
+          scaffolding, not attributed founders. Header docblock +
+          env/flags reference table updated to describe the new
+          slots and the collision-finding link.)
+
+      Design fidelity (per collision finding §Resolution options → A step 1):
+        - Backwards-compat: the seven MULTI_ADMIN_EMAILS defaults
+          match §Resolution options → A verbatim
+          (qa-reseller-wholesale-active, qa-reseller-retail-active,
+          qa-reseller-paused, qa-reseller-terminated,
+          qa-reseller-no-cap, qa-reseller-tier-zero,
+          qa-reseller-no-budget @blockid.au).
+        - Backwards-compat: RESELLER_MULTI_ADMIN gate defaults to
+          OFF so qa-release-gate.sh keeps landing exactly the two
+          rows tick 132 shipped — no environment surprise.
+        - Idempotent per row via the existing upsertResellerFixtureUser()
+          email lookup — re-runs are no-ops on unchanged state, and
+          the log summary now includes a `variant` column for
+          multi-admin rows so `[seed] reseller-fixture summary`
+          keeps its shape-preserving observability.
+        - De-duplication guard: if a variant's email coincides with
+          the base RESELLER_ADMIN_EMAIL (someone points
+          QA_RESELLER_ADMIN_EMAIL_ACTIVE_WHOLESALE at
+          qa-reseller-1@blockid.au), the loop skips the second
+          insert to avoid a benign lookup-then-upsert cycle that
+          would surface a confusing "kept" row for a variant slot.
+
+      Verified:
+        - node --check web/scripts/seed-test-users.mjs exit=0
+          (syntax clean, no top-level parse errors).
+        - No DB apply this tick — the extension is authored but
+          not run against staging/prod. The next Option A step
+          (step 2, seed-qa-reseller.mjs delta) is the one that
+          consumes the new per-variant emails; running this
+          seeder standalone against staging is safe (only mints
+          app_users rows).
+        - npm run lint:reseller unchanged — the file lives at
+          web/scripts/, not /api/reseller/**, so R-01 does not
+          fire; no feature-gates.manifest entry so R-03 does not
+          fire either.
+        - tsc unaffected — .mjs file outside the tsconfig.json
+          include glob.
+        - No vitest suite added — the extension is a lookup-table
+          + iteration over the already-tested upsertResellerFixtureUser
+          helper; the fixture wiring (Option A step 3) is where
+          the end-to-end behaviour is exercised.
+        - Goal file version bumped 2026-07-23.135 → 2026-07-23.136.
+
+      REMAINING P10 Option A steps:
+        - Step 2: web/scripts/seed-qa-reseller.mjs delta — replace
+          the single QA_RESELLER_ADMIN_EMAIL mirror with a
+          per-variant lookup keyed off the variant name. Each
+          variant's reseller_admins insert reads its email from
+          MULTI_ADMIN_EMAILS (or the same env-var slots) and
+          resolves that email to app_users.id. Preserve the
+          single-email fallback for hosts that have not yet run
+          this seeder with --reseller-multi-admin.
+        - Step 3: web/tests/e2e/fixtures/reseller.ts delta —
+          extend TempResellerFixture with adminEmail:string,
+          read the per-variant email in loadTempReseller(variant),
+          and expose it so specs loginAs(page, fixture.adminEmail)
+          instead of hard-coding harness.admin.email.
+        - Step 4: docs/plans/p10-temp-reseller-mint-fixture-design.md
+          update — reflect the seven-account cohort in §§1, 5 and
+          the env-var contract table.
+
+      Frontier after tick 136: shape unchanged in terms of
+      goal-file phase status — Track A P8.5 STILL HUMAN-BLOCKED
+      on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5
+      InfoVision seed STILL HUMAN-BLOCKED on H.20 ABN + GST;
+      Track B COMPLETE; P10 still blocked_by [P1..P9] until
+      P8.5 clears. What tick 136 unblocks: Option A step 2
+      (seed-qa-reseller.mjs delta) can now bind to the
+      MULTI_ADMIN_EMAILS contract without waiting for further
+      coordination; steps 3 and 4 remain gated on step 2 landing.
+      Next autonomous tick options: (i) ship Option A step 2 —
+      seed-qa-reseller.mjs per-variant admin mirror (deps step 1
+      = shipped THIS tick); (ii) ship Option A step 4 first as
+      pure documentation catchup so the design doc reflects the
+      cohort before the fixture flips (deps: none); (iii) idle
+      until human unblock on P8.5 or P1.5.
+    commit: (this tick)
+
   - tick: 135
     ran_at: 2026-07-22
     action: p10_temp_reseller_admin_scope_collision_finding
