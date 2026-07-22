@@ -441,3 +441,5 @@
 {"ts":"2026-07-22T07:44:05.930Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 112 — P10 dry-run reseller-* crons CRON_SECRET auth-chain Playwright spec (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-22T07:44:16.717Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-22T07-40-01-645Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-22T07:49:25.320Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 113 — P10 dry-run reseller create-startup auth-chain Playwright spec (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-22T07:49:30.563Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-22T07-45-01-588Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-22T07:55:31.214Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 114 — P10 dry-run /api/showcase-reviews validation+authz Playwright spec (1 commits)","source":"github-webhook"}
