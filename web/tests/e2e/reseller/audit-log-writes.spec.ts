@@ -542,6 +542,39 @@ test.describe("Reseller audit-log writes — P10 wave-5 row 179 approve fan-out 
       `reseller_credit_grants.credit_transaction_id mismatch: expected ${txRow.id} (the row 2 credit_transactions id), got ${grantRow.credit_transaction_id}`,
     ).toBe(txRow.id);
 
+    // 3b. Second-lens mirror-row count via countResellerCreditGrantsFor —
+    //     aligns the admin-approve fan-out mirror lens with the self-approve
+    //     lenses used by rows 155 / 156 DB companion / 156b DB companion in
+    //     this same file, so both branches of the credit-grant surface
+    //     (POST /api/reseller/credits/grant self-approve + PATCH
+    //     /api/admin/resellers/requests/[id] over_budget approve) share a
+    //     single shared counting helper for their mirror-row assertions.
+    //     Diagnostic delta vs the shape read above: the shape read scopes
+    //     only by (target_user_id, metadata->>reseller_request_id), so a
+    //     regression that landed the mirror insert but keyed it to a
+    //     different reseller_id (e.g. actor_user_id inadvertently threaded
+    //     as reseller_id, or a schema drift where reseller_id defaulted to
+    //     the admin's user_id under a broken CTE) would still return the
+    //     matching row and leave the shape read green. Filtering by
+    //     (reseller_id=fixture.resellerId, target_user_id, kind='grant',
+    //     since=patchSince) additionally guards that dimension. The
+    //     `patchSince` cursor is already captured at line 441 before the
+    //     PATCH so cross-run mirror rows against the same pair (which
+    //     accumulate across the whole month_key window per route.ts:214)
+    //     cannot poison the count. Same shape/count split posture used by
+    //     rows 155 / 156 DB companion / 156b DB companion for the self-
+    //     approve path.
+    const mirrorCount = await countResellerCreditGrantsFor(supabase, {
+      resellerId: fixture.resellerId,
+      targetUserId: attach.targetUserId,
+      kind: "grant",
+      since: patchSince,
+    });
+    expect(
+      mirrorCount,
+      `expected exactly 1 reseller_credit_grants(kind='grant') mirror row for (reseller=${fixture.resellerId}, target=${attach.targetUserId}) since ${patchSince}; got ${mirrorCount}. Route write lives at web/src/app/api/admin/resellers/requests/[id]/route.ts:271-287. 0 → mirror insert dropped OR keyed to a different reseller_id (shape read above would stay green under the reseller_id-drift regression); >1 → duplicated write (fan-out ran twice).`,
+    ).toBe(1);
+
     // 4. reseller_audit_log — the tick 186 non-fatal write from route.ts:338-366
     //    emits exactly one action='approve_request' row per PATCH, keyed on
     //    (reseller_id, actor_user_id, subject_user_id=target_user_id for
