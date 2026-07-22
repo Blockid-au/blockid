@@ -18,6 +18,7 @@ export interface AttributionSummaryBySource {
   code: KAnonBucket;
   admin_manual: KAnonBucket;
   total: KAnonBucket;
+  impersonation?: number;
 }
 
 export interface ResellerListEntry extends ResellerRow {

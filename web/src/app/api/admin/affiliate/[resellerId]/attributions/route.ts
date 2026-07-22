@@ -23,6 +23,12 @@ import {
   buildPortfolioSummary,
   K_ANONYMITY_THRESHOLD,
 } from "@/lib/reseller/portfolio-aggregates";
+import {
+  buildImpersonationTrail,
+  IMPERSONATION_ACTIONS,
+  type AuditEventRow,
+  type UserLookupRow,
+} from "@/lib/admin/impersonation-trail";
 
 export const dynamic = "force-dynamic";
 
@@ -125,7 +131,7 @@ export async function GET(
     new Set(attrs.map((a) => a.promotion_code_id).filter((v): v is string => !!v)),
   );
 
-  const [usersRes, promoRes, revenueRes] = await Promise.all([
+  const [usersRes, promoRes, revenueRes, auditRes] = await Promise.all([
     userIdList.length > 0
       ? supabase
           .from("app_users")
@@ -143,6 +149,17 @@ export async function GET(
           .from("revenue_events")
           .select("user_id, ts, kind, plan_id, net_aud_cents")
           .in("user_id", userIdList)
+      : Promise.resolve({ data: [] }),
+    userIdList.length > 0
+      ? supabase
+          .from("audit_events")
+          .select("id, ts, actor, action, resource_id, detail, user_id")
+          .eq("actor", "admin")
+          .eq("resource_type", "app_users")
+          .in("action", IMPERSONATION_ACTIONS as unknown as string[])
+          .in("resource_id", userIdList)
+          .order("ts", { ascending: false })
+          .limit(500)
       : Promise.resolve({ data: [] }),
   ]);
 
@@ -276,6 +293,28 @@ export async function GET(
     now: new Date(now),
   });
 
+  // 7) Impersonation trail — admin.* audit events targeted at any user in
+  //    this reseller's attribution set (P12.8). Not k-suppressed for the
+  //    same reason row-level attribution details aren't: the admin can
+  //    already open /admin/users/[id] and read the same audit history.
+  const userLookup: Map<string, UserLookupRow> = new Map();
+  for (const u of usersById.values()) {
+    userLookup.set(u.id, {
+      id: u.id,
+      email: u.email,
+      display_name: u.display_name,
+    });
+  }
+  const impersonation = buildImpersonationTrail({
+    events: (auditRes.data ?? []) as AuditEventRow[],
+    allowedUserIds: new Set(userIdList),
+    users: userLookup,
+  });
+  const impersonationEventCount = impersonation.reduce(
+    (n, g) => n + g.events.length,
+    0,
+  );
+
   return NextResponse.json({
     ok: true,
     reseller: {
@@ -289,7 +328,9 @@ export async function GET(
       code: suppressed[1],
       admin_manual: suppressed[2],
       total: applyK(totalRaw, K_ANONYMITY_THRESHOLD),
+      impersonation: impersonationEventCount,
     },
     rows,
+    impersonation,
   });
 }
