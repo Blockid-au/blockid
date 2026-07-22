@@ -64,11 +64,11 @@ const CASES: CaseStudy[] = [
     country: "🇦🇺 Australia",
     founded: 2004,
     ipo_year: "private",
-    market_cap_usd: "~US$2B",
-    status: "coming_soon",
+    market_cap_usd: "~US$2.7B peak",
+    status: "live",
     tagline:
-      "Townsville-founded workplace-safety unicorn. Softbank-funded, private, values-driven culture.",
-    themes: ["regional-Aussie-founder", "Softbank", "private-unicorn", "hardware-adjacent"],
+      "Townsville-founded workplace-safety unicorn — 12yr bootstrap → Series A/B/C → Softbank round. Freemium mobile app for industrial worksites.",
+    themes: ["regional-Aussie-founder", "12yr-bootstrap", "Softbank", "private-unicorn", "PLG-industrial"],
   },
   {
     slug: "wisetech",
