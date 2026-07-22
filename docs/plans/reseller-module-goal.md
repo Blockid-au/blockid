@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.219
+version: 2026-07-23.220
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,173 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 220
+    ran_at: 2026-07-22
+    action: p10_sandbox_setup_authz_envelope_shape_pin_parity_with_row_152
+    result: |
+      Landed tick 219 "natural next pick" option (a) verbatim: swept the
+      sandbox-setup-authz.spec.ts row 154 active_wholesale happy path
+      (line 199-265) for parallel envelope-shape pins on the response
+      fields that lacked typeof + shape assertions today. Pre-tick
+      coverage pinned resp.status()===200, body.ok===true, typeof
+      body.project_id==='string' + UUID_RE (hoisted tick 218), and on the
+      already_existed:false branch typeof body.slug==='string' + not-empty
+      + typeof body.name==='string' + not-empty. Three fields were still
+      silent under the pre-tick posture: (a) already_existed itself — used
+      as a branch discriminator via `if (body.already_existed === false)`
+      but never typeof-pinned, so a route regression that stringified the
+      flag ("false") or dropped it (undefined) would fall through the
+      else branch and silently pass every remaining assertion; (b) slug
+      shape — sandbox-provision.ts:47 hard-codes the slug as
+      `reseller-sandbox-<codeSlug>` with the `reseller-sandbox-` prefix
+      being a documented security invariant (sandbox-provision.ts:29-31)
+      that prevents collision with customer-facing slugs from toSlug() in
+      web/src/lib/projects.ts, and a regression that dropped or corrupted
+      the prefix would surface only at production traffic mix under the
+      pre-tick posture; (c) name shape — sandbox-provision.ts:46
+      hard-codes name as `${displayName} Sandbox`, and a regression that
+      dropped the ` Sandbox` suffix (which the workspace sidebar surface
+      uses to disambiguate reseller sandbox from customer projects) would
+      surface only at visual QA. This tick adds all three shape pins:
+      typeof body.already_existed==='boolean' outside the branch guard,
+      body.slug matches /^reseller-sandbox-[a-z0-9-]+$/ inside the
+      already_existed:false branch, body.name matches / Sandbox$/ inside
+      the same branch. Purely additive — no test removed, no assertion
+      weakened, no production code touched.
+
+      Frontier before this tick: tick 219 closed the credit-grant-
+      validation.spec.ts happy path five-pin envelope parity with the
+      sibling credit-grant-authz.spec.ts row 152 and named sandbox-setup-
+      authz.spec.ts as the natural next pick under option (a): "if the
+      sandbox-setup route response envelope carries additional
+      string/number fields, a parallel parity pass onto this file would
+      mirror the tick 219 discipline applied to credit-grant-validation."
+      Route inspection at web/src/app/api/reseller/sandbox/setup/route.ts
+      lines 69-73 + 139-145 confirmed the envelope is exactly {ok,
+      project_id, slug?, name?, already_existed} on happy paths (no
+      organization slug / subdomain / credits_seeded counter the tick 219
+      speculative-hint listed — those fields do not exist on this route).
+      Three real fields lacked pins; this tick pins all three.
+
+      All 43 rows in the P10 activation matrix (waves 1-5, rows 141-183)
+      remain activated except the three human-blocked rows: 175 approve
+      code_request (P8.5-blocked on Stripe test-mode), 178 signup-jitter
+      (QA-mode-blocked), 182 SetupIntent (P8.5-blocked). This tick did
+      not activate a new row — it tightened the assertion envelope on
+      the already-activated row 154 to reach shape-pin parity with the
+      sibling row 152 discipline.
+
+      Files:
+        - web/tests/e2e/reseller/sandbox-setup-authz.spec.ts (three new
+          shape-pin assertions inserted into the row 154 active_wholesale
+          test body. `expect(typeof body.already_existed).toBe('boolean')`
+          added between the project_id UUID_RE assertion and the
+          existing `if (body.already_existed === false)` branch guard so
+          it fires on both branches, not just fresh-insert. Inside the
+          fresh-insert branch, `expect(body.slug ?? '').toMatch(
+          /^reseller-sandbox-[a-z0-9-]+$/)` added after the existing not-
+          empty check, and `expect(body.name ?? '').toMatch(/ Sandbox$/)`
+          added after the parallel name not-empty check. Header comments
+          above each new assertion document the route reference span
+          (route.ts:69-73 + 139-145 for already_existed; sandbox-provision
+          .ts:47 for slug prefix invariant; sandbox-provision.ts:46 for
+          name suffix invariant) plus the specific regression class each
+          pin catches — a stringified flag / dropped prefix / dropped
+          suffix would each surface at this row 154 lens BEFORE reaching
+          the production or visual-QA lens where the pre-tick posture
+          alone would silently pass.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.219 → 2026-07-23.220; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Shape pins only — no VALUE assertion on the fields (the codeSlug
+          suffix under the slug prefix depends on which fixture reseller
+          minted the sandbox and would drift across staging seed rewrites;
+          the displayName prefix under the name suffix depends on the
+          `resellers.display_name` column value which is admin-editable
+          via /admin/resellers/[code] PATCH per P9.2; both would produce
+          a brittle test if pinned by value). This matches the tick 219
+          discipline of shape-pinning without arithmetic-pinning on
+          fields whose values depend on out-of-scope state.
+        - `expect(typeof body.already_existed).toBe('boolean')` placed
+          outside the branch guard on purpose: a route regression that
+          stringified the flag would land as `"false"` (truthy) and pass
+          the `body.already_existed === false` guard as `false === "false"
+          → false` (skipping the slug/name assertions), then silently
+          pass the whole test. Placing the pin BEFORE the guard means the
+          shape drift surfaces even on runs that would have taken the
+          replay branch under a correct route.
+        - Slug regex `/^reseller-sandbox-[a-z0-9-]+$/` mirrors the
+          sandbox-provision.ts:36-40 codeSlug normaliser output shape
+          (lowercase + digits + single-hyphen replacement of non-
+          alphanumerics + trim of leading/trailing hyphens). Does NOT pin
+          the max-40-char clamp because the regex is a boundary shape
+          check, not a length check, and a codeSlug longer than 40 chars
+          would still match the regex and would only surface as a
+          projects.slug uniqueness collision at the INSERT layer — a
+          different regression class from the prefix-security invariant
+          this pin is targeting.
+        - Name regex `/ Sandbox$/` (with leading space) not
+          `/Sandbox$/` (no space) to catch a regression that dropped the
+          ` ` separator before the literal — e.g. `displayNameSandbox`
+          would match `/Sandbox$/` but fail `/ Sandbox$/`.
+        - Assertion budget: five expects existed pre-tick (200 + body.ok
+          + typeof project_id + UUID_RE + branch on already_existed),
+          three added this tick (typeof already_existed + slug regex +
+          name regex). Total on happy path = 8 expects — still within
+          the "2-3 assertions per row + one branch guard" ceiling once
+          the branch guard is factored out (5 outside guard + 3 inside
+          matches the plan §J.2 discipline).
+
+      Verification:
+        - `npx tsc --noEmit` in web/: clean, no diagnostics.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 file(s), R-03
+          scanned 31 manifest route(s); 3 exemption(s), 0 violations —
+          unchanged from tick 219.
+        - `npx vitest run` in web/: 75 files / 954 tests passed
+          (Playwright specs are excluded from vitest by design so the
+          count is unchanged from tick 219).
+        - No DB apply this tick — no migration authored. Playwright run
+          against staging still gated on the tick 198 seed re-run per
+          P10 hardening exit criteria, not this tick.
+
+      Frontier after tick 220:
+        - Track A P8.5 STILL HUMAN-BLOCKED on
+          STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL.
+        - Track A P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20
+          ABN + GST.
+        - Track B COMPLETE.
+        - All 43 rows in the P10 activation matrix (waves 1-5) are
+          activated; only human-blocked rows (175 approve code_request /
+          178 signup-jitter / 182 SetupIntent) remain on the plan doc's
+          canonical list.
+        - sandbox-setup-authz.spec.ts row 154 happy path now carries the
+          same shape-pin discipline (typeof discriminator + prefix-shape
+          on slug + suffix-shape on name) as the sibling credit-grant-
+          authz.spec.ts row 152 five-pin envelope — parity closed.
+
+      Natural next pick for tick 221: (a) audit reseller-requests-list-
+        authz.spec.ts + admin-requests-list-authz.spec.ts happy paths for
+        parallel FK-echo shape pins on any UUID FK fields the request
+        envelope carries (reseller_id / linked_promotion_code_id /
+        linked_credit_transaction_id) — the tick 216 UUID_RE hoist landed
+        the constant but may not have covered every FK echo the routes
+        emit; a similar parity pass would tighten those specs to the
+        credit-grant-authz row 152 discipline. This was named as option
+        (c) at tick 219 and remains open. (b) mirror the row 179
+        shape+helper alignment onto the row 175 approve+deny+cancel
+        code_request branches once P8.5 unblocks; today only the
+        over_budget_approval branch of the terminal handler carries the
+        shape+helper twin coverage. (Still open, P8.5-blocked.) (c) audit
+        drawer-authz.spec.ts + drawer-validation.spec.ts happy paths for
+        parallel envelope-shape pins on any typed body fields the P4.2
+        customer-drawer route echoes (customer_id / plan / MRR / credits
+        / last-active timestamp) — the drawer route lives under a
+        different manifest slot than the credit-grant route so its FK-
+        echo lens may lag the row 152 five-pin discipline.
+    commit: (this tick)
+
   - tick: 219
     ran_at: 2026-07-22
     action: p10_credit_grant_validation_happy_shape_pin_parity_with_authz_row_152

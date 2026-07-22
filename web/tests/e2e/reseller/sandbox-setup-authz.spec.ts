@@ -248,6 +248,19 @@ test.describe("Reseller sandbox-setup — P10 wave-3 happy path", () => {
       if (body.project_id) {
         fixture.trackProjectForCleanup(body.project_id);
       }
+      // Parallel envelope-shape pin landed tick 220 per tick 219 "natural
+      // next pick" option (a) — the tick 218 hoist added UUID_RE for the
+      // project_id echo but did NOT pin the branch-guard field itself.
+      // route.ts:69-73 (already_existed:true) and route.ts:139-145
+      // (already_existed:false) both stamp a native boolean so a route
+      // regression that stringified the flag ("false" from a NextResponse
+      // .json path that folded through JSON.stringify twice) or dropped it
+      // entirely (undefined) would silently fall through the else branch
+      // below and pass every remaining assertion without touching the
+      // slug/name lens. Pinning typeof outside the branch guard means a
+      // shape drift on this discriminator surfaces at row 154 rather than
+      // only at the sibling wave-5 row 179 audit-log lens.
+      expect(typeof body.already_existed).toBe("boolean");
       // Fresh-insert branch pins the full slug + name envelope per plan
       // §U.4. Idempotent-replay branch (already_existed:true) drops slug/name
       // per route.ts:67-74 so we intentionally do NOT assert those fields
@@ -256,8 +269,29 @@ test.describe("Reseller sandbox-setup — P10 wave-3 happy path", () => {
       if (body.already_existed === false) {
         expect(typeof body.slug).toBe("string");
         expect(body.slug ?? "").not.toBe("");
+        // Parallel slug-shape pin landed tick 220. sandbox-provision.ts:47
+        // hard-codes the slug as `reseller-sandbox-<codeSlug>` where codeSlug
+        // is `reseller_code.toLowerCase().replace(/[^a-z0-9]+/g,"-")` clamped
+        // to 40 chars per sandbox-provision.ts:36-40. The prefix is a
+        // security invariant — the module doc-comment at sandbox-provision
+        // .ts:29-31 notes it cannot collide with a real customer-facing
+        // project slug from toSlug() in web/src/lib/projects.ts because that
+        // helper never emits the literal `reseller-sandbox-` prefix on user
+        // input. A regression that dropped the prefix or leaked uppercase /
+        // underscore chars through the codeSlug normaliser would surface at
+        // this pin BEFORE it reached the collision-with-customer-slug branch
+        // that only a production traffic mix would trigger.
+        expect(body.slug ?? "").toMatch(/^reseller-sandbox-[a-z0-9-]+$/);
         expect(typeof body.name).toBe("string");
         expect(body.name ?? "").not.toBe("");
+        // Parallel name-shape pin landed tick 220. sandbox-provision.ts:46
+        // hard-codes the name as `${displayName} Sandbox` where displayName
+        // is `reseller_display_name.trim() || reseller_code` per line 42. A
+        // regression that dropped the ` Sandbox` suffix (which the workspace
+        // sidebar surface leans on to disambiguate the reseller sandbox from
+        // customer projects when a reseller-admin toggles between the two)
+        // would surface at this pin rather than only at the visual QA lens.
+        expect(body.name ?? "").toMatch(/ Sandbox$/);
       }
     } finally {
       await fixture.cleanup();
