@@ -20,10 +20,22 @@
  * QA_RESELLER_ADMIN_EMAIL / QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL env vars.
  * Skip the block with --skip-reseller-fixture.
  *
+ * Multi-admin cohort (P10 Option A step 1 — collision finding docs/plans/
+ * p10-temp-reseller-admin-scope-collision-finding.md): when
+ * QA_RESELLER_MULTI_ADMIN=1 or --reseller-multi-admin is passed, additionally
+ * seeds SEVEN per-variant admin app_users rows so seed-qa-reseller.mjs can
+ * mirror one distinct app_users.id onto each variant's reseller_admins row.
+ * This prevents the scopedReseller() .maybeSingle() PGRST116 collision that
+ * fires whenever the SAME user is a member of MORE THAN ONE reseller. The
+ * default (multi-admin off) preserves the tick 132 single-account contract
+ * so qa-release-gate.sh keeps its existing shape until the fixture flips.
+ *
  * Env:
  *   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
  *   QA_RESELLER_ADMIN_EMAIL              (optional, default qa-reseller-1@blockid.au)
  *   QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL (optional, default qa-founder-attributed-1@blockid.au)
+ *   QA_RESELLER_MULTI_ADMIN              (optional, "1" enables multi-admin cohort)
+ *   QA_RESELLER_ADMIN_EMAIL_<VARIANT>    (optional per-variant override — see MULTI_ADMIN_EMAILS)
  *
  * Flags:
  *   --dry-run                       Print what would happen, do not touch DB.
@@ -33,6 +45,7 @@
  *   --reseller-admin-email <email>  Override QA_RESELLER_ADMIN_EMAIL.
  *   --reseller-attributed-email <email>
  *                                   Override QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL.
+ *   --reseller-multi-admin          Enable P10 Option A multi-admin cohort (7 rows).
  *
  * Passwords are randomly generated and appended to /tmp/blockid-qa-accounts.txt
  * with mode 0600.
@@ -85,6 +98,38 @@ const RESELLER_ATTRIBUTED_EMAIL =
   rAttrFlagIdx > -1
     ? argv[rAttrFlagIdx + 1]
     : env.QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL || "qa-founder-attributed-1@blockid.au";
+// P10 Option A multi-admin cohort — see docs/plans/
+// p10-temp-reseller-admin-scope-collision-finding.md §Resolution options → A.
+// Off by default so tick 132's contract stays intact until the fixture flips.
+const RESELLER_MULTI_ADMIN =
+  args.has("--reseller-multi-admin") || env.QA_RESELLER_MULTI_ADMIN === "1";
+// Variant name → default admin email. Mirrors the seven ResellerVariant members
+// declared in web/tests/e2e/fixtures/reseller.ts and the seven VARIANTS in
+// web/scripts/seed-qa-reseller.mjs. Per-slot override via
+// QA_RESELLER_ADMIN_EMAIL_<VARIANT> (upper-snake) so CI can point at bespoke
+// mailbox addresses without editing the seeder.
+const MULTI_ADMIN_EMAILS = {
+  active_wholesale:
+    env.QA_RESELLER_ADMIN_EMAIL_ACTIVE_WHOLESALE ||
+    "qa-reseller-wholesale-active@blockid.au",
+  active_retail:
+    env.QA_RESELLER_ADMIN_EMAIL_ACTIVE_RETAIL ||
+    "qa-reseller-retail-active@blockid.au",
+  paused:
+    env.QA_RESELLER_ADMIN_EMAIL_PAUSED || "qa-reseller-paused@blockid.au",
+  terminated:
+    env.QA_RESELLER_ADMIN_EMAIL_TERMINATED ||
+    "qa-reseller-terminated@blockid.au",
+  no_capability:
+    env.QA_RESELLER_ADMIN_EMAIL_NO_CAPABILITY ||
+    "qa-reseller-no-cap@blockid.au",
+  tier_only_zero:
+    env.QA_RESELLER_ADMIN_EMAIL_TIER_ONLY_ZERO ||
+    "qa-reseller-tier-zero@blockid.au",
+  no_budget:
+    env.QA_RESELLER_ADMIN_EMAIL_NO_BUDGET ||
+    "qa-reseller-no-budget@blockid.au",
+};
 // Parent reseller for the attributed founder's app_users.attribution_reseller_id
 // stamp. Must match the active_wholesale variant code in seed-qa-reseller.mjs.
 const QA_PROBE_RESELLER_CODE = "QAPROBEWHOLESALEACTIVE";
@@ -332,7 +377,9 @@ async function upsertResellerFixtureUser({ email, stampAttributionResellerId }) 
 
 async function seedResellerFixtureUsers() {
   console.log(
-    `[seed] reseller-fixture block: admin=${RESELLER_ADMIN_EMAIL} attributed=${RESELLER_ATTRIBUTED_EMAIL}`,
+    `[seed] reseller-fixture block: admin=${RESELLER_ADMIN_EMAIL} attributed=${RESELLER_ATTRIBUTED_EMAIL} multi_admin=${
+      RESELLER_MULTI_ADMIN ? "on" : "off"
+    }`,
   );
 
   const parentResellerId = await findResellerIdByCode(QA_PROBE_RESELLER_CODE);
@@ -355,6 +402,28 @@ async function seedResellerFixtureUsers() {
       stampAttributionResellerId: parentResellerId,
     }),
   );
+
+  if (RESELLER_MULTI_ADMIN) {
+    console.log(
+      `  [multi-admin] seeding ${
+        Object.keys(MULTI_ADMIN_EMAILS).length
+      } per-variant admin app_users rows (Option A step 1 — collision finding)`,
+    );
+    for (const [variant, email] of Object.entries(MULTI_ADMIN_EMAILS)) {
+      if (email === RESELLER_ADMIN_EMAIL) {
+        console.log(
+          `  = variant=${variant} shares email ${email} with base admin — skipping duplicate insert`,
+        );
+        continue;
+      }
+      const r = await upsertResellerFixtureUser({
+        email,
+        stampAttributionResellerId: null,
+      });
+      results.push({ ...r, variant });
+    }
+  }
+
   return results;
 }
 
