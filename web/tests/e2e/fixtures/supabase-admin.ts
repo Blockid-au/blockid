@@ -217,3 +217,45 @@ export async function countResellerAuditLogFor(
   }
   return count ?? 0;
 }
+
+/**
+ * Count reseller_credit_grants mirror rows for a (reseller_id, target_user_id)
+ * pair, optionally filtered on `kind` and a `since` cursor. Used by the
+ * credit-grant-mirror spec (P10 wave-3 row 155) to assert that a self-approve
+ * POST /api/reseller/credits/grant fans out exactly one kind='grant' mirror
+ * row into reseller_credit_grants alongside the credit_transactions +
+ * credit_balances writes the wave-3 row 152 wire envelope already covers.
+ *
+ * The `since` cursor is required in practice because reseller_credit_grants
+ * accumulates across a whole month key window (route.ts:214 stamps
+ * month_key=YYYY-MM); without it a prior-run leak on the same
+ * (reseller_id, target_user_id) pair would inflate the assertion. Callers
+ * should capture `new Date().toISOString()` immediately before firing the
+ * request and pass it here.
+ */
+export async function countResellerCreditGrantsFor(
+  supabase: SupabaseClient,
+  opts: {
+    resellerId: string;
+    targetUserId: string;
+    kind?: "grant" | "sandbox_spend";
+    since?: string;
+  },
+): Promise<number> {
+  let query = supabase
+    .from("reseller_credit_grants")
+    .select("id", { count: "exact", head: true })
+    .eq("reseller_id", opts.resellerId)
+    .eq("target_user_id", opts.targetUserId);
+  if (opts.kind) {
+    query = query.eq("kind", opts.kind);
+  }
+  if (opts.since) {
+    query = query.gte("created_at", opts.since);
+  }
+  const { count, error } = await query;
+  if (error) {
+    throw new Error(`countResellerCreditGrantsFor failed: ${error.message}`);
+  }
+  return count ?? 0;
+}
