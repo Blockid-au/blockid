@@ -270,10 +270,17 @@ test.describe("Reseller audit-log writes — P10 wave-5 row 179 happy path", () 
       subjectUserId: attach.attributedUserId,
       since: drawerSince,
     });
+    // Strict === 1: /api/reseller/customers/[id]/drawer/route.ts:120-129
+    // performs exactly one db.auditLog() call per successful call, wrapped in
+    // try/catch that returns 500 audit_failed on throw. The since cursor was
+    // captured immediately before the GET so cross-run rows cannot inflate the
+    // count. A regression that hoisted the audit call into a retry loop or
+    // duplicated it (e.g. a defensive double-emit around a route refactor)
+    // would slip past the prior ≥ 1 assertion but flag here.
     expect(
       drawerCount,
-      `expected ≥1 view_customer_drawer audit row for (actor=${actorId}, subject=${attach.attributedUserId}) since ${drawerSince}; got ${drawerCount}`,
-    ).toBeGreaterThanOrEqual(1);
+      `expected exactly 1 view_customer_drawer audit row for (actor=${actorId}, subject=${attach.attributedUserId}) since ${drawerSince}; got ${drawerCount}`,
+    ).toBe(1);
 
     const revealSince = new Date().toISOString();
     const revealResp = await page.request.post(
@@ -290,10 +297,15 @@ test.describe("Reseller audit-log writes — P10 wave-5 row 179 happy path", () 
       subjectUserId: attach.attributedUserId,
       since: revealSince,
     });
+    // Strict === 1: /api/reseller/customers/[id]/reveal-email/route.ts:78-93
+    // performs exactly one db.auditLog() call per successful call. Same
+    // rationale as the drawer companion assertion above — since cursor
+    // captured immediately before POST, so count > 1 flags a duplicate-emit
+    // regression.
     expect(
       revealCount,
-      `expected ≥1 reveal_email audit row for (actor=${actorId}, subject=${attach.attributedUserId}) since ${revealSince}; got ${revealCount}`,
-    ).toBeGreaterThanOrEqual(1);
+      `expected exactly 1 reveal_email audit row for (actor=${actorId}, subject=${attach.attributedUserId}) since ${revealSince}; got ${revealCount}`,
+    ).toBe(1);
   });
 });
 
@@ -1217,10 +1229,17 @@ test.describe("Reseller audit-log writes — P10 wave-3 row 154 credit-grant fan
       subjectUserId: fixture.attributedUserId,
       since: grantSince,
     });
+    // Strict === 1: /api/reseller/credits/grant/route.ts:226-248 performs
+    // exactly one db.auditLog() call per successful POST, wrapped in try/catch
+    // that returns 500 audit_failed on throw. The since cursor was captured
+    // immediately before the POST so cross-run rows against the same
+    // (actor, subject) pair cannot inflate the count. Prior ≥ 1 posture
+    // silently accepted a duplicate-emit regression (e.g. a retry loop or a
+    // second auditLog() call landed by a route refactor); === 1 flags it.
     expect(
       auditCount,
-      `expected ≥1 grant_credits audit row for (actor=${fixture.adminUserId}, subject=${fixture.attributedUserId}) since ${grantSince}; got ${auditCount}. Route write lives at route.ts:227-242 — a 200 without a matching audit row would flag either a resellerSupabase.auditLog() regression or an RLS-scope drift on the append-only 0093 ledger.`,
-    ).toBeGreaterThanOrEqual(1);
+      `expected exactly 1 grant_credits audit row for (actor=${fixture.adminUserId}, subject=${fixture.attributedUserId}) since ${grantSince}; got ${auditCount}. Route write lives at route.ts:227-242 — a 200 with 0 rows flags a resellerSupabase.auditLog() regression or an RLS-scope drift on the append-only 0093 ledger; > 1 flags a duplicate-emit regression that the prior ≥ 1 posture silently accepted.`,
+    ).toBe(1);
   });
 });
 

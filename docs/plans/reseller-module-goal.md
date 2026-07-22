@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.213
+version: 2026-07-23.214
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,155 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 214
+    ran_at: 2026-07-22
+    action: p10_wave5_row_179_happy_path_and_wave3_row_154_audit_log_helper_strict_equality_tightening
+    result: |
+      Tightened three permissive `>= 1` audit-log-count assertions in
+      web/tests/e2e/reseller/audit-log-writes.spec.ts to strict `=== 1`,
+      landing option (a) from tick 213's "natural next pick" list verbatim.
+      The three sites are the two wave-5 row 179 happy-path assertions
+      (view_customer_drawer at line 273; reveal_email at line 293) plus the
+      wave-3 row 154 grant_credits assertion (line 1214). All three sit
+      inside blocks that capture a `since = new Date().toISOString()` cursor
+      IMMEDIATELY before the API call, so cross-run rows against the same
+      (action, actor, subject) triple cannot inflate the count — the `>= 1`
+      posture was strictly weaker than the invariant the routes actually
+      uphold.
+
+      Diagnostic delta of the tightened lens:
+        - `>= 1` catches "audit row missing" (count=0) — a resellerSupabase.
+          auditLog() regression or an RLS-scope drift on the append-only
+          0093 ledger. Kept.
+        - `=== 1` ADDITIONALLY catches "audit row duplicated" (count>1) —
+          the class of regression where a route refactor lands a
+          defensive double-emit (e.g. wrapping the auditLog() call in a
+          retry loop with retry-on-any-throw semantics that swallows the
+          "already inserted" branch), or a middleware hoist that adds a
+          second auditLog() call before returning. The prior `>= 1` posture
+          silently accepted this class.
+
+      Route contracts confirmed to emit exactly one audit row per success:
+        - /api/reseller/customers/[id]/drawer/route.ts:120-129 — single
+          db.auditLog() call wrapped in try/catch returning 500
+          audit_failed on throw. The response payload downstream at
+          route.ts:137+ builds the overview/progression/reports sections
+          from already-fetched data; no second auditLog() call in the
+          success path.
+        - /api/reseller/customers/[id]/reveal-email/route.ts:78-93 —
+          single db.auditLog() call wrapped in try/catch. Return payload
+          is `{ok:true, email}` with no further audit emission.
+        - /api/reseller/credits/grant/route.ts:226-248 — single
+          db.auditLog() call wrapped in try/catch after the four-write
+          fan-out (credit_balances UPSERT + credit_transactions INSERT +
+          reseller_credit_grants INSERT + auditLog INSERT). Only the
+          auditLog fan-out step writes to reseller_audit_log; the three
+          preceding writes touch orthogonal tables.
+
+      Frontier before this tick: tick 213 closed the wave-3 self-approve
+      DB-companion family by landing the shape+helper twin-lens on row
+      156c four-chain. All 43 rows in the P10 activation matrix (waves
+      1-5, rows 141-183) remained activated except the three human-
+      blocked rows: 175 approve (code_request) branch (P8.5-blocked on
+      Stripe test-mode), 178 signup-jitter (QA-mode-blocked), 182
+      SetupIntent (P8.5-blocked). This tick is purely additive: no test
+      removed, no assertion weakened, no production code touched — three
+      permissive lower-bound checks converted to strict-equality checks,
+      each with an updated diagnostic message that names the new upper-
+      bound regression class the tightened assertion catches.
+
+      Files:
+        - web/tests/e2e/reseller/audit-log-writes.spec.ts (3 assertions
+          tightened: line 273 view_customer_drawer `>= 1` → `=== 1`
+          with 6-line comment naming the drawer route's single
+          auditLog() call at route.ts:120-129 + since-cursor rationale;
+          line 293 reveal_email `>= 1` → `=== 1` with 5-line comment
+          naming reveal-email/route.ts:78-93 + shared rationale; line
+          1214 grant_credits `>= 1` → `=== 1` with 8-line comment
+          naming credits/grant/route.ts:226-248 fan-out topology + prior
+          posture's silent-acceptance of duplicate-emit regressions.
+          Each assertion's diagnostic-message string re-worded from
+          "expected ≥1 X audit row..." to "expected exactly 1 X audit
+          row..." so a failing count>1 surfaces with a message that
+          reads as intended rather than as a "≥1" false-negative.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.213 → 2026-07-23.214; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Assertion mode chosen as `.toBe(1)` not `.toStrictEqual(1)` to
+          match the pre-existing style in the same file (e.g. row 155
+          maybeSingle() shape asserts, row 156 count-lens
+          `mirrorCount === 2`, all use `.toBe`). No `.toStrictEqual` in
+          the spec today so introducing it would be gratuitous churn.
+        - Diagnostic-message text now reads "expected exactly 1 …; got N"
+          for all three sites — the "got N" tail is preserved from the
+          prior posture so a CI failure log still surfaces the observed
+          count without a second scan.
+        - Route.ts line pointers in the comments reference the CURRENT
+          production paths (drawer 120-129, reveal-email 78-93, grant
+          226-248) so a future maintainer running `git blame` on the
+          spec finds the intended handler emit-site without walking the
+          file. If the route refactors shift those line numbers, the
+          test still passes because the assertion is scoped by (action,
+          actor, subject, since) not by line number; the comment lags
+          the code but the assertion stays green.
+        - Row 154 comment names the specific route.ts:227-242 span
+          (the auditLog() call itself) rather than the broader 226-248
+          try/catch because the tick 213 grant_credits assertion
+          message already pointed at 227-242 and the tighter span
+          matches that convention verbatim.
+        - No production code touched. Spec + goal file only. Neither
+          the R-01 scope-boundary rule (only /api/reseller/**) nor the
+          R-03 manifest rule (only feature-gates.manifest.ts routes)
+          scan web/tests/e2e/** so lint counts are unchanged.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: exit 0.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files,
+          R-03 scanned 31 manifest routes, 3 exemptions, 0
+          violations — unchanged from tick 213.
+        - `npx vitest run` in web/: 75 files / 954 tests passed
+          (unit + integration; Playwright specs are excluded from
+          vitest by design so the count is unchanged from tick 213).
+        - No DB apply this tick — no migration authored. Playwright
+          run against staging still gated on the tick 198 seed re-run
+          per P10 hardening exit criteria, not this tick.
+
+      Frontier after tick 214:
+        - Track A P8.5 STILL HUMAN-BLOCKED on
+          STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL.
+        - Track A P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20
+          ABN + GST.
+        - Track B COMPLETE.
+        - All 43 rows in the P10 activation matrix (waves 1-5) are
+          activated; only human-blocked rows (175 approve
+          code_request / 178 signup-jitter / 182 SetupIntent) remain
+          on the plan doc's canonical list.
+        - Wave-3 self-approve DB-companion family (rows 155/156/156b/
+          156c) still carries BOTH lenses on all four rungs per tick
+          213. Wave-5 row 179 happy path (drawer + reveal-email) and
+          wave-3 row 154 (grant_credits) now carry strict-equality
+          audit-log lenses instead of the prior >= 1 posture.
+
+      Natural next pick for tick 215: (a) audit credit-grant-authz.spec.ts
+      (the HTTP sibling spec) for parallel shape+helper opportunities —
+      the response-envelope arithmetic assertions already carry the
+      amount lens; adding a per-response credit_transaction_id shape
+      assertion would give the HTTP surface the same FK-echo lens the
+      DB companion just landed via ticks 211-213. (b) mirror the row 179
+      shape+helper alignment onto the row 175 approve+deny+cancel
+      code_request branches once P8.5 unblocks; today only the
+      over_budget_approval branch of the terminal handler carries the
+      shape+helper twin coverage. (c) walk the OTHER audit-log-writes.
+      spec.ts blocks with the same >= 1 posture (line 91 wave-5 row 176
+      drawer, line 125 wave-5 row 176 reveal-email, line 587 row 179
+      approve fan-out, line 840 row 179 deny fan-out, line 1039 row 179
+      cancel fan-out) for the same strict-equality tightening — each
+      writes exactly one audit row per success per its respective route
+      handler and could be tightened with the same posture landed here.
+    commit: (this tick)
+
   - tick: 213
     ran_at: 2026-07-22
     action: p10_wave3_row_156c_four_chain_db_companion_shape_helper_alignment
