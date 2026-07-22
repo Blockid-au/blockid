@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   buildVcValuationReport,
   estimateMarketSizing,
+  growthTierAdjustment,
   unitEconomics,
   vcBenchmark,
   VC_BENCHMARKS,
@@ -97,5 +98,27 @@ describe("cfo-valuation — VC-grade valuation engine", () => {
     const baseline = buildVcValuationReport(input);
     const upliftRfs = baseline.methods.find(m => m.method === "risk_factor_summation");
     expect(upliftRfs!.rationale).toMatch(/au-tax: 0%/);
+  });
+
+  // T0167 — growth-tier multiplier in comparables method
+  it("classifies annualised growth into Bessemer tiers", () => {
+    expect(growthTierAdjustment(150).tier).toBe("hyper");
+    expect(growthTierAdjustment(80).tier).toBe("high");
+    expect(growthTierAdjustment(40).tier).toBe("standard");
+    expect(growthTierAdjustment(20).tier).toBe("slow");
+    expect(growthTierAdjustment(5).tier).toBe("decel");
+    expect(growthTierAdjustment(0).tier).toBe("decel");
+    expect(growthTierAdjustment(150).factor).toBeGreaterThan(growthTierAdjustment(40).factor);
+    expect(growthTierAdjustment(40).factor).toBeGreaterThan(growthTierAdjustment(5).factor);
+  });
+
+  it("high-growth SaaS gets a higher comparables multiple than slow-growth", () => {
+    const fast = buildVcValuationReport({ ...input, monthlyGrowthRatePct: 10 });
+    const slow = buildVcValuationReport({ ...input, monthlyGrowthRatePct: 1 });
+    const fastComp = fast.methods.find(m => m.method === "comparables")!;
+    const slowComp = slow.methods.find(m => m.method === "comparables")!;
+    expect(fastComp.midAud).toBeGreaterThan(slowComp.midAud);
+    expect(fastComp.rationale).toMatch(/growth tier/);
+    expect(fastComp.rationale).toMatch(/Bessemer Cloud Index/);
   });
 });

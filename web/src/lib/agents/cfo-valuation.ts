@@ -176,6 +176,29 @@ const AU_STAGE_MULTIPLE_DISCOUNT: Record<string, number> = {
   "default":  0.75,
 };
 
+// ── Growth-tier multiplier (T0167) ────────────────────────────────────────
+// Bessemer Cloud Index 2025 and PitchBook publish sector multiples segmented
+// by growth tier. Investors pay a materially higher forward-ARR multiple for
+// top-quartile growth than for standard or decelerating growth. Applied on top
+// of the sector base multiple in comparablesMethod so SaaS/Fintech/AI
+// valuations reflect the trajectory, not just the label.
+// Tiers keyed by annualised growth (12 × monthlyGrowthRatePct):
+//   hyper (>100%):   1.30x — Bessemer top-decile / a16z AI premium
+//   high  (60-100%): 1.15x — top-quartile SaaS
+//   standard (30-60%): 1.00x — median
+//   slow  (10-30%):  0.80x — below median, cooling
+//   decel (<10%):    0.55x — deep discount, cash-flow focused
+export type GrowthTier = "hyper" | "high" | "standard" | "slow" | "decel";
+
+export function growthTierAdjustment(annualGrowthPct: number): { tier: GrowthTier; factor: number } {
+  if (!Number.isFinite(annualGrowthPct) || annualGrowthPct <= 0) return { tier: "decel", factor: 0.55 };
+  if (annualGrowthPct > 100) return { tier: "hyper", factor: 1.30 };
+  if (annualGrowthPct >= 60) return { tier: "high", factor: 1.15 };
+  if (annualGrowthPct >= 30) return { tier: "standard", factor: 1.00 };
+  if (annualGrowthPct >= 10) return { tier: "slow", factor: 0.80 };
+  return { tier: "decel", factor: 0.55 };
+}
+
 // Reference AU private SaaS comparables (sector → company examples for rationale)
 const AU_COMPARABLES: Partial<Record<string, string>> = {
   saas:        "Culture Amp, Canva, SafetyCulture, Employment Hero",
@@ -310,9 +333,18 @@ function comparablesMethod(input: VcValuationInput, projection: ProjectionRow[])
   // Apply AU-market stage discount to global sector multiples (AVCAL/Cut Through Venture 2025).
   const stage = normStage(input.stage);
   const auDiscount = AU_STAGE_MULTIPLE_DISCOUNT[stage] ?? AU_STAGE_MULTIPLE_DISCOUNT.default;
-  const auLow  = round10(bm.arrMultiple.low  * auDiscount);
-  const auMid  = round10(bm.arrMultiple.mid  * auDiscount);
-  const auHigh = round10(bm.arrMultiple.high * auDiscount);
+
+  // Apply growth-tier multiplier (Bessemer 2025) so high-growth SaaS/Fintech/AI
+  // get the premium multiple the market actually pays, and slow-growth get the
+  // discount. Annualised from monthlyGrowthRatePct (defaults 8%/mo like projection).
+  const monthlyG = input.monthlyGrowthRatePct ?? 8;
+  const annualG = (Math.pow(1 + monthlyG / 100, 12) - 1) * 100;
+  const growth = growthTierAdjustment(annualG);
+
+  const adj = auDiscount * growth.factor;
+  const auLow  = round10(bm.arrMultiple.low  * adj);
+  const auMid  = round10(bm.arrMultiple.mid  * adj);
+  const auHigh = round10(bm.arrMultiple.high * adj);
   const auComps = AU_COMPARABLES[bm.sector] ?? AU_COMPARABLES.default!;
 
   return {
@@ -321,7 +353,7 @@ function comparablesMethod(input: VcValuationInput, projection: ProjectionRow[])
     midAud: round(fwdArr * auMid),
     highAud: round(fwdArr * auHigh),
     weight: 0.35,
-    rationale: `AU Comparables: forward ARR A$${round(fwdArr).toLocaleString()} × AU-adjusted ${bm.sector} multiple ${auLow}–${auHigh}x (global ${bm.arrMultiple.low}–${bm.arrMultiple.high}x × ${round10(auDiscount * 100)}% AU ${stage} discount). Comparable AU cos: ${auComps}. Source: AVCAL Q1 2025, Cut Through Venture 2025.`,
+    rationale: `AU Comparables: forward ARR A$${round(fwdArr).toLocaleString()} × AU-adjusted ${bm.sector} multiple ${auLow}–${auHigh}x (global ${bm.arrMultiple.low}–${bm.arrMultiple.high}x × ${round10(auDiscount * 100)}% AU ${stage} discount × ${growth.factor.toFixed(2)}x ${growth.tier}-growth tier at ${round(annualG)}% p.a.). Comparable AU cos: ${auComps}. Source: AVCAL Q1 2025, Cut Through Venture 2025, Bessemer Cloud Index 2025.`,
   };
 }
 
