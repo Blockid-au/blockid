@@ -92,12 +92,23 @@ per-variant reseller row shape work end-to-end. Uses only the four
 | 141 | `create-startup-authz.spec.ts` | `active_retail` | `billing_model_not_wholesale` | 400 |
 | 142 | `create-startup-authz.spec.ts` | `paused` | `reseller_not_active` | 400 |
 | 143 | `create-startup-authz.spec.ts` | `no_capability` | `capability_disabled` | 400 |
-| 144 | `create-startup-authz.spec.ts` | `active_wholesale` | `tier_not_allowed` (tier=99 in body) | 400 |
+| 144 | `create-startup-authz.spec.ts` | `tier_only_zero` | `tier_not_allowed` (tier=10 in body) | 400 |
 
 Prep cost: one shared "activate deferred row" mini-playbook per spec
 (bring in the `loadTempReseller` import + one `test.beforeAll` +
 `test.skip` when fixture null). Each subsequent wave-1 row is a ~15-line
 paste of the same skeleton with the variant/branch swap.
+
+**Row 144 design correction (recorded tick 146).** The row originally
+paired `active_wholesale` × `tier=99` in body, which is unreachable:
+`normaliseCreateStartupInput` rejects `tier=99` with
+`invalid_discount_tier` (must be one of `[0,10,20,30,40]`) before
+`decideCreateStartup` fires, and `active_wholesale`'s
+`allowed_tiers=[0,10,20,30,40]` covers every valid tier so no valid
+`discount_tier` can miss gate 4 either. The `tier_only_zero` variant
+(`allowed_tiers=[0]`) with a valid non-zero body tier (`10`) is the
+only fixture combination that lands on gate 4 with gates 1-3 all green.
+Table row 144 above updated accordingly.
 
 ### Wave 2 — scope-boundary readbacks (attribution + drawer)
 
