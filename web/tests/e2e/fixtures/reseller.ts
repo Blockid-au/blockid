@@ -17,6 +17,8 @@
 // gate: `QA_RESELLER_MULTI_ADMIN=1` (matches the seeders in
 // web/scripts/seed-test-users.mjs + web/scripts/seed-qa-reseller.mjs).
 
+import { randomUUID } from "node:crypto";
+
 import { getAccount, type QaAccount } from "./accounts";
 import { loadSupabaseAdmin } from "./supabase-admin";
 
@@ -347,9 +349,44 @@ export interface TempResellerFixture {
    *  so a caller with a bad `YYYY-MM` string bails cleanly instead of
    *  inserting a CHECK-violating row. */
   attachReportRow(monthKey: string): Promise<AttachReportRowResult | null>;
+  /** Wave-5 helper (schedule doc row 177 prep note). Ensures a full
+   *  reviewer-invite chain exists for THIS variant's attributed founder so
+   *  POST /api/showcase-reviews with the returned `token` can clear the
+   *  data_room_access_tokens SELECT + data_rooms SELECT + showcase_reviews
+   *  upsert path end-to-end (row 177 reviewer-flow POST happy path).
+   *
+   *  Snapshot-then-restore semantics: the helper looks up the founder's
+   *  first `projects.id`, finds (or opportunistically inserts) a
+   *  `data_rooms` row scoped to that project, and inserts a fresh
+   *  `data_room_access_tokens` row with a unique QAPROBE-prefixed token +
+   *  the caller-supplied (or default) investor email. cleanup() removes
+   *  the access-token row, any `showcase_reviews` rows the spec upserted
+   *  against that (project_id, reviewer_email) pair, and — only when this
+   *  call was the one that inserted the data_rooms row — the data_rooms
+   *  row itself. Pre-existing data_rooms rows are left alone so other
+   *  specs sharing the same founder are not disturbed.
+   *
+   *  Returns null when variant !== "active_wholesale" (matches the
+   *  attachAttributedCustomer + attachReportRow discipline — the seed
+   *  script only mints the active_wholesale reseller's attributed founder,
+   *  and the reseller-lens reviews rollup only reads from the
+   *  active_wholesale portfolio anyway), when `attributedUserId` is null
+   *  (attributed founder not seeded), or when the attributed founder owns
+   *  no `projects.id` yet (fresh CI host that never planted a workspace).
+   *
+   *  Throws on any SQL error so a caller-supplied beforeAll catch can
+   *  distinguish "table missing" (migration 0062 not applied → data_room_
+   *  access_tokens SELECT fails) from "prerequisite missing" (no project
+   *  row, no attributed founder) — the former surfaces as a Playwright
+   *  test.skip() with the error message, the latter surfaces as a null
+   *  return + a targeted skip reason. */
+  attachReviewerAccessToken(opts?: {
+    investorEmail?: string;
+  }): Promise<AttachReviewerAccessTokenResult | null>;
   /** No-op by default. Deletes any projects.id registered via
    *  trackProjectForCleanup() during the spec AND runs any restore
-   *  closure registered by attachAttributedCustomer() or attachReportRow(). */
+   *  closure registered by attachAttributedCustomer(), attachReportRow(),
+   *  or attachReviewerAccessToken(). */
   cleanup(): Promise<void>;
 }
 
@@ -372,6 +409,31 @@ export interface AttachReportRowResult {
    *  remove the row + storage object; false = no restore closure registered
    *  so parallel specs sharing the seed do not race a delete. */
   created: boolean;
+}
+
+export interface AttachReviewerAccessTokenResult {
+  /** Unique QAPROBE-prefixed token that /api/showcase-reviews POST resolves
+   *  via `data_room_access_tokens.token` → `data_rooms.project_id` →
+   *  `showcase_reviews.upsert`. Never collides with a real invited-investor
+   *  token because production `randomUUID()` values have no QAPROBE prefix. */
+  token: string;
+  /** The `investor_email` column stored on the access-token row and copied
+   *  into `showcase_reviews.reviewer_email` at upsert time. Callers can
+   *  reuse this string to sanity-check the row landed against the intended
+   *  reviewer identity (the route ignores the POST body's reviewer_email
+   *  field and always uses the access-token column). */
+  investorEmail: string;
+  /** `data_rooms.id` the access token points at. */
+  dataRoomId: string;
+  /** `projects.id` the data room is scoped to (same value stored on
+   *  `data_rooms.project_id`). Handy for assertions that read the
+   *  showcase_reviews row via the founder-scoped GET path in the same spec. */
+  projectId: string;
+  /** True when this call inserted a fresh `data_rooms` row for the
+   *  founder's project. False when a pre-existing row was reused. Only when
+   *  true does cleanup() delete the `data_rooms` row so other specs sharing
+   *  the same founder do not lose their data-room state. */
+  dataRoomCreated: boolean;
 }
 
 // Mirrors seed-qa-reseller-storage.mjs CSV_HEADER so the fixture-minted CSV
@@ -430,6 +492,7 @@ function buildReportCsvFixture(
 
 const DEFAULT_TEMP_RESELLER_ADMIN_EMAIL = "qa-reseller-1@blockid.au";
 const DEFAULT_TEMP_RESELLER_ATTRIBUTED_EMAIL = "qa-founder-attributed-1@blockid.au";
+const DEFAULT_QA_REVIEWER_EMAIL = "qa-reviewer-1@blockid.au";
 
 // P10 Option A step 3 — per-variant admin email map. Mirrors MULTI_ADMIN_EMAILS
 // in web/scripts/seed-test-users.mjs and web/scripts/seed-qa-reseller.mjs so
@@ -764,6 +827,130 @@ export async function loadTempReseller(
         storagePath,
         sizeBytes,
         created: true,
+      };
+    },
+    async attachReviewerAccessToken(opts?: { investorEmail?: string }) {
+      if (variant !== "active_wholesale") return null;
+      if (!attributedUserId) return null;
+      const attributedUserIdSnapshot = attributedUserId;
+
+      const { data: existingProject, error: projectReadErr } = await supabase
+        .from("projects")
+        .select("id")
+        .eq("user_id", attributedUserIdSnapshot)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (projectReadErr) {
+        throw new Error(
+          `attachReviewerAccessToken: read projects failed: ${projectReadErr.message}`,
+        );
+      }
+      const projectId = (existingProject?.id as string | undefined) ?? null;
+      if (!projectId) return null;
+
+      const { data: existingRoom, error: roomReadErr } = await supabase
+        .from("data_rooms")
+        .select("id")
+        .eq("project_id", projectId)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (roomReadErr) {
+        throw new Error(
+          `attachReviewerAccessToken: read data_rooms failed: ${roomReadErr.message}`,
+        );
+      }
+
+      let dataRoomId: string;
+      let dataRoomCreated = false;
+      if (existingRoom?.id) {
+        dataRoomId = existingRoom.id as string;
+      } else {
+        const { data: insertedRoom, error: insertRoomErr } = await supabase
+          .from("data_rooms")
+          .insert({
+            user_id: attributedUserIdSnapshot,
+            project_id: projectId,
+            name: "QA reviewer fixture data room",
+            template: "qa-fixture",
+            is_public: false,
+          })
+          .select("id")
+          .maybeSingle();
+        if (insertRoomErr || !insertedRoom?.id) {
+          throw new Error(
+            `attachReviewerAccessToken: insert data_rooms failed: ${insertRoomErr?.message ?? "no row returned"}`,
+          );
+        }
+        dataRoomId = insertedRoom.id as string;
+        dataRoomCreated = true;
+      }
+
+      const investorEmail = opts?.investorEmail ?? DEFAULT_QA_REVIEWER_EMAIL;
+      const token = `qaprobe-reviewer-${randomUUID()}`;
+      const { data: insertedToken, error: insertTokenErr } = await supabase
+        .from("data_room_access_tokens")
+        .insert({
+          data_room_id: dataRoomId,
+          account_id: attributedUserIdSnapshot,
+          token,
+          investor_email: investorEmail,
+          is_active: true,
+        })
+        .select("id")
+        .maybeSingle();
+      if (insertTokenErr || !insertedToken?.id) {
+        if (dataRoomCreated) {
+          await supabase.from("data_rooms").delete().eq("id", dataRoomId);
+        }
+        throw new Error(
+          `attachReviewerAccessToken: insert data_room_access_tokens failed: ${insertTokenErr?.message ?? "no row returned"}`,
+        );
+      }
+      const tokenId = insertedToken.id as string;
+
+      restoreClosures.push(async () => {
+        const errors: string[] = [];
+        const { error: delReviewErr } = await supabase
+          .from("showcase_reviews")
+          .delete()
+          .eq("project_id", projectId)
+          .eq("reviewer_email", investorEmail);
+        if (delReviewErr) {
+          errors.push(
+            `delete showcase_reviews (${projectId}, ${investorEmail}): ${delReviewErr.message}`,
+          );
+        }
+        const { error: delTokenErr } = await supabase
+          .from("data_room_access_tokens")
+          .delete()
+          .eq("id", tokenId);
+        if (delTokenErr) {
+          errors.push(
+            `delete data_room_access_tokens ${tokenId}: ${delTokenErr.message}`,
+          );
+        }
+        if (dataRoomCreated) {
+          const { error: delRoomErr } = await supabase
+            .from("data_rooms")
+            .delete()
+            .eq("id", dataRoomId);
+          if (delRoomErr) {
+            errors.push(`delete data_rooms ${dataRoomId}: ${delRoomErr.message}`);
+          }
+        }
+        if (errors.length > 0) {
+          throw new Error(`attachReviewerAccessToken.restore: ${errors.join("; ")}`);
+        }
+      });
+
+      return {
+        token,
+        investorEmail,
+        dataRoomId,
+        projectId,
+        dataRoomCreated,
       };
     },
     async cleanup() {

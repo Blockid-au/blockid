@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.182
+version: 2026-07-23.183
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,146 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 183
+    ran_at: 2026-07-22
+    action: p10_wave5_row_177_showcase_reviews_reviewer_post_happy_activated
+    result: |
+      Twentieth wave-5 landing per docs/plans/p10-deferred-spec-activation-
+      order.md — activated row 177 (`showcase-reviews-validation.spec.ts` ×
+      active_wholesale × reviewer-flow POST with valid access token → 200).
+      Closes tick 182's frontier option (i): "row 177 reviewer-flow POST —
+      needs an attachReviewerAccessToken fixture helper (mirrors
+      attachAttributedCustomer + attachReportRow pattern; seeds
+      data_room_access_tokens + data_rooms + projects rows against the
+      active_wholesale variant, tears down on cleanup)".
+
+      Files:
+        - web/tests/e2e/fixtures/reseller.ts (added AttachReviewerAccessTokenResult
+          interface + attachReviewerAccessToken() on TempResellerFixture; the
+          helper snapshot-restores across three tables — finds the founder's
+          first projects.id, opportunistically inserts a data_rooms row when
+          none exists for that project, inserts a fresh QAPROBE-prefixed
+          data_room_access_tokens row keyed on data_room_id + account_id +
+          investor_email; cleanup() removes the access-token row + any
+          showcase_reviews upserted by the POST spec + the data_rooms row iff
+          the fixture was the one that created it. Import extended with
+          randomUUID from node:crypto; DEFAULT_QA_REVIEWER_EMAIL constant
+          (qa-reviewer-1@blockid.au) added alongside the existing
+          DEFAULT_TEMP_RESELLER_ATTRIBUTED_EMAIL slot. Cleanup docstring on
+          TempResellerFixture updated to mention the third attach helper.)
+        - web/tests/e2e/reseller/showcase-reviews-validation.spec.ts (header
+          docblock appended a paragraph naming the wave-5 activation + the
+          deliberate deferral of the paired GET assertion — row 176 already
+          covers the GET happy path against organic reviews, so pairing them
+          here would risk cross-spec ordering flake. Imports extended with
+          loadTempReseller + tempResellerSkipReason + AttachReviewerAccessTokenResult
+          + TempResellerFixture from ../fixtures/reseller. Appended a new
+          test.describe("Showcase-reviews reviewer POST — P10 wave-5 row 177
+          happy path") block after the pre-existing dry-run describe. Inside
+          the block: beforeAll loads the active_wholesale fixture, afterAll
+          runs fixture.cleanup() with a try/catch so a teardown regression
+          does not mask the test verdict; the single test attaches the
+          fixture's reviewer chain via attachReviewerAccessToken(), POSTs
+          {token, rating:5, comment}, and asserts 200 + body.ok=true. Skip
+          discipline mirrors wave-5 row 176 verbatim: five skip points
+          (fixtureError catch, fixture null, attributedUserId or
+          attributedFounderEmail null, attachment throw, attachment null)
+          each carrying tempResellerSkipReason("active_wholesale") or a
+          targeted per-condition message.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.182 → 2026-07-23.183; this review_history entry
+          prepended).
+
+      Design fidelity:
+        - Variant pin matches plan-doc wave-5 row 177 (active_wholesale) —
+          the reviewer-flow POST is not variant-sensitive on the route side
+          (it authenticates via data_room_access_tokens.token, never touches
+          the resellers table) but the fixture helper needs the
+          active_wholesale variant's attributed founder to have a
+          projects.id owned by them so the data_rooms → data_room_access_tokens
+          chain has a valid FK anchor. Paused / terminated / no_capability
+          variants have no attributed founder and would surface fixture:null
+          before the POST fires — not worth another test row.
+        - attachReviewerAccessToken() snapshot-restore semantics mirror
+          attachReportRow verbatim: read the existing state, insert only the
+          rows that don't already exist, register a restore closure that
+          reverses ONLY the inserts this call performed. The data_rooms row
+          created flag lives in the returned AttachReviewerAccessTokenResult
+          so a follow-up test that wants to assert the row shape (or the
+          absence of a duplicate) can inspect it. Repeat calls against a
+          founder whose data_rooms row was created by an earlier tick reuse
+          that row instead of duplicating — one shared data_rooms per
+          founder, one fresh access-token per attach, one showcase_reviews
+          row per (project_id, reviewer_email) upsert per test run.
+        - No new schema — the fixture writes into pre-existing tables from
+          migrations 0030 (data_rooms base shape) + 0062 (data_room_access_tokens)
+          + 0100 (showcase_reviews). Hosts that have not applied 0062 —
+          dev DB on this loop's box included — surface the missing table as
+          an insert error inside attachReviewerAccessToken(); the spec
+          catches the throw and calls test.skip() with a message that names
+          the specific migration to apply, matching the failure-protocol
+          discipline in docs/plans/p10-deferred-spec-activation-order.md §998.
+        - Cleanup deletes showcase_reviews BEFORE data_room_access_tokens
+          BEFORE data_rooms so the FK cascades never fire mid-cleanup. Any
+          error path is aggregated into one throw so a single stray row does
+          not leave the fixture in a half-cleaned state on the next run.
+        - No side-effect assertions on reseller_audit_log / revenue_events /
+          reseller_credit_grants because /api/showcase-reviews POST is
+          Track-B (public review capture) and never writes into the
+          reseller-lens tables. Audit-log coverage for reseller-scoped
+          routes remains under wave-5 row 179 (audit-log-writes.spec.ts).
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0). The three new
+          imports (loadTempReseller + tempResellerSkipReason +
+          AttachReviewerAccessTokenResult + TempResellerFixture) all resolve
+          against existing exports in fixtures/reseller.ts; the new interface
+          and helper are exported from the same module.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 documented exemptions, 0 violations
+          — unchanged from tick 182 (the fixture + spec are not under
+          /api/reseller/** for the R-01 grep and are not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - `npx vitest run --reporter=default` in web/: 855/855 pass across
+          69 test files (unchanged from tick 182 — no new unit suite; the
+          fixture wiring is exercised only by Playwright, not vitest).
+        - No DB apply this tick — no migration authored. data_room_access_tokens
+          is NOT on this dev-DB host (migration 0062 never applied) so the
+          new test row will test.skip() locally until 0062 lands; production
+          hosts that ran 0062 (per the 0100 migration's opportunistic FK
+          guard) will fire the assertion end-to-end.
+        - Goal file version bumped 2026-07-23.182 → 2026-07-23.183.
+
+      Frontier after tick 183: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision seed
+      STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE; P10 still
+      blocked_by [P1..P9] until P8.5 clears. Wave 5 has now landed 163 +
+      164 + 165 + 166 + 167 + 168 + 169 + 170 + 171 + 172 + 173 + 174 + 175
+      (deny+cancel) + 176 + 177 + 178 + 179 + 180 + 181 + 183 — reviewer
+      POST now has QAPROBE-cohort coverage alongside the four already-
+      probed pre-write validators. Remaining deferred wave-5 rows:
+      175 approve branch (deferred on credit-ledger triple-write side
+      effect; needs approve-target seeder variant in
+      scripts/seed-qa-reseller.mjs OR an attachApproveTarget fixture
+      helper that plants a deterministic target_user_id +
+      pre-seeded credit_balances row so approve's triple-write is
+      idempotent under CI replay), 182 (billing-authz active_wholesale
+      happy 200 — deferred on Stripe SetupIntent side effect +
+      reseller_audit_log(mint_setup_intent) write, needs stripe-test-mode
+      key or QA-only mock harness), and plan §337 signup-jitter branch on
+      row 178 (still deferred pending a QA-mode signup flow Playwright can
+      drive without user interaction). Natural next picks:
+        (i) row 175 approve branch — needs an attachApproveTarget fixture
+             helper OR seed-qa-reseller.mjs variant that plants a
+             deterministic target_user_id + pre-seeded credit_balances row
+             so approve's triple-write is idempotent under CI replay;
+        (ii) row 182 — still requires stripe-test-mode key or QA-only
+              SetupIntent mock harness (out of scope for the autonomous
+              loop until P8.5 clears);
+        (iii) plan §337 signup-jitter branch on row 178 — still deferred
+               pending a QA-mode signup flow Playwright can drive.
+    commit: (this tick)
+
   - tick: 182
     ran_at: 2026-07-22
     action: p10_wave5_row_163_cobranding_pill_attributed_founder_en_vi_activated
