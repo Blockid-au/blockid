@@ -665,3 +665,4 @@
 {"ts":"2026-07-22T22:58:25.129Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 218 — P10 sandbox-setup-authz.spec.ts UUID_RE module-scope hoist (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-22T22:58:31.629Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-22T22-55-01-604Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-22T23:02:56Z","status":"success","gates":"8/8","pid":"795685","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-22T23:09:58.103Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 219 — P10 credit-grant-validation.spec.ts happy path shape-pin parity with authz row 152 (1 commits)","source":"github-webhook"}
