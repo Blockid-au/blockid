@@ -1909,6 +1909,67 @@ review_history:
       vitest 624/624 (was 603/603, +21); lint:reseller unchanged.
       Track B is now COMPLETE (B1..B10 all done).
     commit: (this tick)
+  - tick: 65
+    ran_at: 2026-07-22
+    action: cs_advisory_24_leading_signals_lib
+    result: |
+      Closed the leading-signals half of Customer-Success advisory §24 rec #3
+      ("Expand P11 digest KPIs with two leading indicators per attributed
+      customer: days_since_last_login and first_report_generated_at. These
+      are the signals CS actions in a weekly review; churn_30d alone is
+      post-mortem.") Ships as pure lib now so the follow-up P11 weekly-digest
+      cron tick can compose it into the CSV/email surface without any more
+      shape design.
+      Files:
+        - web/src/lib/reseller/leading-signals.ts (pure — no DB, no IO).
+          computeCustomerSignals() derives {days_since_last_login,
+          first_report_generated_at, days_to_first_report, seven_day_inactive,
+          thirty_day_inactive} per attributed customer; null last_login is
+          treated as inactive so a stranded account still enters the CS
+          worklist rather than being silently dropped as "unknown". Unparseable
+          timestamps on report rows are silently skipped so a single malformed
+          row cannot poison the rollup. First-report timestamp is the earliest
+          generated_at across all report rows for that user_id — indexed in one
+          linear scan.
+          buildLeadingSignalSummary() folds the per-customer signals into a
+          k-anonymised portfolio rollup: attributed_total, inactive_7d,
+          inactive_30d, never_generated_report, activated_first_report (raw
+          counts through applyK from portfolio-aggregates), plus two derived
+          numerics — median_days_to_first_report (suppressed when fewer than K
+          customers have any report so a low-N median cannot point at
+          individuals) and activated_first_report_pct (suppressed when the
+          attributed_total denominator is k-suppressed, since the numerator
+          alone would leak the denominator). K_ANONYMITY_THRESHOLD defaults to
+          5 matching portfolio-aggregates + reviews + phase-distribution; test
+          suite uses k=1 for the one-off small-portfolio case.
+        - web/src/lib/reseller/leading-signals.test.ts (11/11 pass): floor of
+          full days, null last_login → both windows inactive, first-report
+          across multiple reports picks earliest, no-report → null pair,
+          unparseable timestamp skip, 7-day boundary at exactly 7 days,
+          suppress-everything-under-k, mixed portfolio with visible +
+          suppressed counters + median, median suppression when reports<k,
+          even-length median = mean-of-middle-two, custom k threshold.
+        - web/src/lib/reseller/portfolio-aggregates.ts (applyK helper exported
+          so the new lib can reuse the identical suppression rule instead of
+          duplicating it; no callsite change since it was already the
+          single-source rule).
+      No new API surface — the pure lib is consumed by the future
+      /api/cron/reseller-weekly-digest cron (deferred to next tick, matches
+      the P7.1 monthly-report precedent where the lib landed first + the cron
+      wired one tick later). No new R-01/R-03 lint entries since the file is
+      under /lib/reseller/**, not /api/reseller/**, and it doesn't appear in
+      feature-gates.manifest.
+      Verified: tsc clean; leading-signals vitest 11/11 pass; combined
+      reseller vitest 295/295 (was 284, +11 leading-signals); npm run
+      lint:reseller: 8 R-01 files + 28 R-03 routes, 3 exemptions, 0
+      violations. Frontier unchanged: every real leaf still DONE or
+      HUMAN-BLOCKED (P8.5 Stripe env vars, P1.5 InfoVision seed on H.20 ABN).
+      REMAINING under §24: (a) H.8 wholesale magic-link + welcome email infra
+      (needs email template + magic-link plumbing — larger surface); (b) the
+      actual P11 weekly-digest cron endpoint that composes this new lib with
+      the existing monthly-report + reconciliation KPIs into one email/CSV.
+    commit: (this tick)
+
   - tick: 64
     ran_at: 2026-07-22
     action: coo_advisory_27_human_blocked_snapshot
@@ -2246,7 +2307,7 @@ next_action:
    21) DONE tick 56 — P8.4b_end_of_cycle_removal fixed the CRO-flagged defect. handleRemoveItem now creates a Subscription Schedule from the active subscription (Stripe fills phase 0 with the current item set through current_period_end) and updates it with a phase 1 that drops the add-on for one iteration + end_behavior:'release' so the subscription reverts to normal renewal. Existing schedules on the sub are reused via activeSub.schedule → subscriptionSchedules.retrieve instead of erroring on a second create. Pure buildAddonRemovalSchedulePhases lib + 5/5 vitest covers happy path, string-vs-object price shape, quantity omit, sole-item guard, and quantity preservation. Response envelope + revenue_events.detail now carry schedule_id + effective_at Unix timestamp so downstream reconciliation / Playwright can assert the item is still active until current_period_end. Playwright E2E assertion still deferred to P10_hardening per the P4/P5/P7/P8/B7/B8/B9/B10 posture.
    22) PARTIAL tick 58 — CMO brand-wording pass DONE: "Referred by" / "Brought to you by" swapped to "Introduced by" (EN) + "Được giới thiệu bởi" (VI) per plan §C.3 across web/src/lib/reseller/email-footer.ts + email-footer.test.ts (9/9 pass, incl. proper VI diacritics), web/src/components/workspace/reseller-pill.tsx tooltip, and web/src/app/api/stripe/checkout/route.ts (subscription_data.description = "Introduced by <name>"; invoice_creation.invoice_data.custom_fields = [{name:"Reseller", value:<name>}] per plan §C.3 line 688). REMAINING: /guide/reports download route + GA event so template-library ROI is measurable — deferred to a follow-up tick since it also requires the redaction pipeline per plan §284.
    23) PARTIAL tick 57 — CDO advisory §23 reviews-aggregate pair suppression closed. buildReviewsSummary now treats (total_reviews, projects_with_reviews) as a correlated pair: if either falls under k the other is also suppressed and avg_rating drops to null so the observer cannot bound the hidden bucket into {1..min(exposed,k-1)}. Verified via updated + new vitest cases (reviews.test.ts: pair-suppression when projects<k with total exposed; pair-suppression when total<k under custom threshold). Complementary suppression on portfolio-phase-distribution was already applied at line 128 (via applyComplementarySuppression from portfolio-aggregates.ts) but had no regression test — added an 11-visible/1-suppressed case that asserts ≥2 buckets go dark so the "subtract from attributed_total" attack has multiple solutions. REMAINING under §23: GA4 event catalogue for showcase surfaces (deferred to a CMO/CPO joint tick per CDO rec #2 dependency order).
-   24) PARTIAL tick 63 — Grant modal EN+VI parity DONE tick 62; denial-reason surface DONE tick 63 (new /reseller/requests page renders reseller's own filed requests bucketed pending/denied/approved/cancelled with denied cards prominently displaying admin decision_reason in an amber card + mailto:admin@blockid.au fallback; EN+VI parity via useLocale() Copy: Record<Locale, Copy> table + Intl.NumberFormat + Intl.DateTimeFormat; pure summariser lib web/src/lib/reseller/request-summary.ts with 8/8 vitest; nav entry added between Credits and Reports). REMAINING under §24: (a) H.8 wholesale magic-link + welcome email for reseller-provisioned founders (needs email template + magic-link infra); (c) leading-signal KPIs (last-login, first-report) into P11 weekly digest.
+   24) PARTIAL tick 65 — Grant modal EN+VI parity DONE tick 62; denial-reason surface DONE tick 63; leading-signal KPI pure lib DONE tick 65 (web/src/lib/reseller/leading-signals.ts + test 11/11 pass — computeCustomerSignals per-customer {days_since_last_login, first_report_generated_at, days_to_first_report, seven_day_inactive, thirty_day_inactive} + buildLeadingSignalSummary k-anonymised portfolio rollup with median_days_to_first_report and activated_first_report_pct, both suppression-safe; applyK helper exported from portfolio-aggregates so the two libs share one suppression rule). REMAINING under §24: (a) H.8 wholesale magic-link + welcome email for reseller-provisioned founders (needs email template + magic-link infra); (b) /api/cron/reseller-weekly-digest endpoint that composes this new lib with monthly-report + reconciliation KPIs into one email/CSV (matches P7.1 lib-first-then-cron precedent).
    25) PARTIAL tick 61 — CPO advisory §25 customer-drawer EN+VI parity DONE. web/src/app/reseller/customers/customer-drawer.tsx + drawer-opener.tsx + reveal-email-cell.tsx now switch every user-facing string via useLocale() with a Copy: Record<Locale, Copy> table (real VI translation with diacritics — "Tổng quan"/"Tiến trình"/"Báo cáo"/"Đang tải chi tiết khách hàng…"/"Chương hướng dẫn"/etc.); currency helper fmtAud() now takes locale and flips VI decimal separator from "." to "," (A$99,00); credits use Intl.NumberFormat("vi-VN"|"en-AU") for thousands separator; tab labels are now data-driven (dropped CSS `capitalize` since it fails for VI multi-word labels). tsc clean; reseller vitest 276/276; lint:reseller unchanged 8+28 with 3 exemptions / 0 violations. REMAINING under §25: explicit non-payment confirmation step in wholesale onboarding wizard (bundled with the H.8 magic-link work in §24).
    26) DONE tick 60 — CHRO advisory §26 both halves closed. (a) Div 83A qualifying-tests checklist (tick 59): guide chapter 08-team publishes the eight s83A tests EN + VI (esic_eligible / unlisted / turnover_cap / age_lt_10y / grantee_is_employee / market_value / ownership_cap / holding_or_forfeiture) on both /guide/08-team and /workspace/guide/08-team plus docs/guides/startup-journey/chapter-08.md; Chapter interface gained optional qualifyingTests?: LocalisedList; startup-journey.test.ts 12/12 pass. (b) human-review-minutes KPI (tick 60): counter file at web/content/reports/human-review-minutes.jsonl (append-only JSONL); helper module scripts/cron/human-review-minutes.mjs (sumHumanReviewMinutes7d + appendHumanReviewMinutes); bump CLI scripts/cron/bump-human-review-minutes.mjs (chmod +x); reseller-goal-loop.mjs samples the 7-day sum once at process start and every log() row now carries human_review_minutes_7d so the "0 eng-weeks burned" kpi.eng_weeks_burned=0 claim carries a real number visible on every telemetry line. Verified: node --check clean on all three scripts; smoke-test append+sum cycle worked (0 → 0.5 for tagged self-test row); loop kill-switch dry run exits 0 with no regressions.
    27) PARTIAL tick 64 — COO advisory §27 half closed. (a) scripts/cron/reseller-goal-loop.mjs now emits `stage: human_blocked_snapshot` on every tick with [{id, blocker}] extracted via dependency-free regex — currently surfaces P1.5_infovision_seed (H.20) + P8.5_env_and_playwright (Stripe env vars) so the weekly-digest reader of reseller-goal-history.jsonl gets both escalations without grepping the goal file (COO Findings item 4 + Recommendations item 1 + Next-tick asks item 1). Failure path emits `human_blocked_snapshot_failed` so a malformed goal cannot block a tick. (b) tracks.B.current_focus flipped from stale "B1_showcase_scaffold" to "done" so the frontier picker's Track B rescan is a no-op (COO Next-tick asks item 2). REMAINING under §27: IR half — pitch-deck Channel Economics slide, data-room GTM one-pager, reseller row in unicorn masterplan — content work outside the reseller-module tree; deferred to a CMO/IR joint tick.
