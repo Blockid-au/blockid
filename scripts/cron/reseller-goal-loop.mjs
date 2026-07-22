@@ -91,6 +91,31 @@ async function readGoal() {
   return readFile(GOAL_FILE, 'utf8')
 }
 
+/**
+ * Extract every `<phase_id>: {status: human_blocked, ...}` inline-YAML row from
+ * the goal markdown. COO advisory §27 next-tick ask #1 — surfaces the open
+ * human-blocked escalations on every tick so future weekly-digest readers can
+ * spot who owes what (currently: P1.5 InfoVision seed on H.20 + P8.5 Stripe
+ * price env vars) without having to parse the whole goal file. Kept as a plain
+ * regex scan so the loop stays dependency-free — the same pattern used by
+ * checkKillSwitch above.
+ */
+function extractHumanBlockedSnapshot(md) {
+  const entries = []
+  const lines = md.split('\n')
+  for (const raw of lines) {
+    const m = raw.match(/^\s*([A-Za-z0-9_.]+)\s*:\s*\{\s*status:\s*human_blocked\b([^}]*)\}\s*$/)
+    if (!m) continue
+    const [, id, rest] = m
+    const blockerMatch = rest.match(/blocker:\s*"((?:[^"\\]|\\.)*)"/)
+    entries.push({
+      id,
+      blocker: blockerMatch ? blockerMatch[1] : null,
+    })
+  }
+  return entries
+}
+
 /** Extract the fenced ```yaml block from the goal markdown. Minimal parser — string search + YAML.parse. */
 function extractYaml(md) {
   const start = md.indexOf('```yaml')
@@ -192,6 +217,21 @@ async function main() {
   } catch (err) {
     await log({ stage: 'error', where: 'readGoal', error: String(err) })
     process.exit(1)
+  }
+
+  // COO advisory §27 next-tick ask #1 — emit an escalation snapshot on every
+  // tick so the two current human_blocked leaves (P1.5 InfoVision seed, P8.5
+  // Stripe env vars) are machine-visible to future weekly-digest readers
+  // without them having to grep the goal file.
+  try {
+    const humanBlocked = extractHumanBlockedSnapshot(goalMd)
+    await log({
+      stage: 'human_blocked_snapshot',
+      count: humanBlocked.length,
+      entries: humanBlocked,
+    })
+  } catch (err) {
+    await log({ stage: 'human_blocked_snapshot_failed', error: String(err) })
   }
 
   // Goal completion detector — if the goal file's top-level status is 'done',
