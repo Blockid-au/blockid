@@ -51,6 +51,7 @@ import {
 } from "../fixtures/reseller";
 import {
   countResellerAuditLogFor,
+  countResellerCreditGrantsFor,
   findUserIdByEmail,
   loadSupabaseAdmin,
   supabaseAdminSkipReason,
@@ -1140,5 +1141,159 @@ test.describe("Reseller audit-log writes — P10 wave-3 row 154 credit-grant fan
       auditCount,
       `expected ≥1 grant_credits audit row for (actor=${fixture.adminUserId}, subject=${fixture.attributedUserId}) since ${grantSince}; got ${auditCount}. Route write lives at route.ts:227-242 — a 200 without a matching audit row would flag either a resellerSupabase.auditLog() regression or an RLS-scope drift on the append-only 0093 ledger.`,
     ).toBeGreaterThanOrEqual(1);
+  });
+});
+
+// P10 wave-3 row 155 — credit-grant self-approve mirror-row DB assertion.
+// Companion block to row 152 (HTTP wire envelope in credit-grant-authz.spec.ts)
+// and row 154 (grant_credits audit-log row above). This block owns the
+// DB-level mirror-row check on the fourth write in the fan-out:
+//
+//   web/src/app/api/reseller/credits/grant/route.ts:206-218 —
+//     supabase.from('reseller_credit_grants').insert({
+//       reseller_id, target_user_id, kind:'grant', amount,
+//       credit_transaction_id, month_key, over_budget:false,
+//       granted_by_user_id, metadata: { reason, ...clientMetadata },
+//     })
+//
+// Row 152's response envelope + row 154's audit trail would both stay green
+// under a regression that dropped the mirror insert (e.g. a silent RLS deny
+// on the reseller_credit_grants scope, or a route refactor that moved the
+// insert behind an early return), because the endpoint returns 200 the
+// moment the credit_transactions row lands and the auditLog() call at
+// route.ts:227-242 runs against the append-only 0093 ledger which the mirror
+// table does not share. Only a mirror-scoped count assertion catches that
+// drift — which is exactly what this row does.
+//
+// Assertion: after a 200 self-approve POST, exactly ONE new
+// reseller_credit_grants row exists for the (reseller_id, target_user_id)
+// pair since the pre-request cursor. `since` is captured immediately before
+// the POST because reseller_credit_grants accumulates across the whole
+// month_key window (route.ts:214 stamps YYYY-MM) — a prior-run row against
+// the same customer would otherwise inflate the count.
+//
+// Cleanup posture matches row 154: attachGrantSelfApprove() closure sweeps
+// reseller_credit_grants first (before credit_transactions so the FK
+// credit_transaction_id → credit_transactions.id doesn't dangle), then
+// credit_transactions, then credit_balances (upsert-back or delete branch).
+// reseller_audit_log rows stay in place (append-only per 0093 mutation
+// triggers) — row 154's since cursor still catches drift on the next run.
+//
+// Skip-guard replicates row 154 verbatim so an under-provisioned host
+// (missing seed-qa-reseller.mjs, no QA_RESELLER_MULTI_ADMIN=1) skips cleanly
+// rather than false-failing on a partial-fixture 500.
+test.describe("Reseller credit-grant mirror row — P10 wave-3 row 155", () => {
+  let fixture: TempResellerFixture | null = null;
+  let fixtureError: string | null = null;
+
+  test.beforeAll(async () => {
+    try {
+      fixture = await loadTempReseller("active_wholesale");
+    } catch (err) {
+      fixtureError = (err as Error).message;
+    }
+  });
+
+  test.afterAll(async () => {
+    if (fixture) {
+      try {
+        await fixture.cleanup();
+      } catch (err) {
+        throw new Error(
+          `wave-3 row 155 cleanup failed — attributed founder's credit_balances / credit_transactions / reseller_credit_grants rows may still leak: ${(err as Error).message}`,
+        );
+      }
+    }
+  });
+
+  test("POST /api/reseller/credits/grant inserts exactly one reseller_credit_grants(kind='grant') mirror row", async ({
+    page,
+  }) => {
+    if (fixtureError) {
+      test.skip(true, `${tempResellerSkipReason("active_wholesale")} (${fixtureError})`);
+      return;
+    }
+    if (!fixture) {
+      test.skip(true, tempResellerSkipReason("active_wholesale"));
+      return;
+    }
+    if (!fixture.attributedUserId) {
+      test.skip(
+        true,
+        `${tempResellerSkipReason("active_wholesale")} — attributedUserId null (attributed founder app_users row missing on this host).`,
+      );
+      return;
+    }
+    if (!fixture.attributionExists) {
+      test.skip(
+        true,
+        `${tempResellerSkipReason("active_wholesale")} — reseller_attributions row missing on this host so scopedReseller().allowedCustomerIds() would return 403 not_in_scope before decideGrant fires. Re-run seed-qa-reseller.mjs with QA_RESELLER_MULTI_ADMIN=1.`,
+      );
+      return;
+    }
+    if (!fixture.adminUserId) {
+      test.skip(
+        true,
+        `${tempResellerSkipReason("active_wholesale")} — adminUserId null (reseller_admins mirror missing on this host) so the mirror row's granted_by_user_id column cannot resolve. Re-run seed-qa-reseller.mjs with QA_RESELLER_MULTI_ADMIN=1.`,
+      );
+      return;
+    }
+
+    const supabase = loadSupabaseAdmin();
+    if (!supabase) {
+      test.skip(true, supabaseAdminSkipReason());
+      return;
+    }
+
+    const attributed = await fixture.attachAttributedCustomer();
+    if (!attributed) {
+      test.skip(
+        true,
+        "attachAttributedCustomer() returned null — variant mismatch or attributedUserId lookup failed after beforeAll seed. Investigate seed-qa-reseller.mjs output.",
+      );
+      return;
+    }
+    const AMOUNT = 5;
+    const grant = await fixture.attachGrantSelfApprove({ amount: AMOUNT });
+    if (!grant) {
+      test.skip(
+        true,
+        "attachGrantSelfApprove() returned null — credit_balances snapshot failed or adminUserId missing after beforeAll seed.",
+      );
+      return;
+    }
+
+    try {
+      await loginAs(page, fixture.adminEmail);
+    } catch (err) {
+      test.skip(
+        true,
+        `Reseller-admin QA account not seeded for variant='active_wholesale' (${fixture.adminEmail}): ${(err as Error).message}. Run scripts/seed-test-users.mjs with QA_RESELLER_MULTI_ADMIN=1.`,
+      );
+      return;
+    }
+
+    // Capture cursor BEFORE the POST so prior-run mirror rows against the
+    // same (reseller_id, target_user_id) pair (which accumulate across the
+    // whole month_key window per route.ts:214) cannot poison the count.
+    const grantSince = new Date().toISOString();
+    const resp = await page.request.post("/api/reseller/credits/grant", {
+      data: { target_user_id: fixture.attributedUserId, amount: AMOUNT },
+    });
+    expect(
+      resp.status(),
+      `credit-grant route returned ${resp.status()} — expected 200 with the fixture-attributed customer. Body: ${await resp.text()}`,
+    ).toBe(200);
+
+    const mirrorCount = await countResellerCreditGrantsFor(supabase, {
+      resellerId: fixture.resellerId,
+      targetUserId: fixture.attributedUserId,
+      kind: "grant",
+      since: grantSince,
+    });
+    expect(
+      mirrorCount,
+      `expected exactly 1 reseller_credit_grants(kind='grant') mirror row for (reseller=${fixture.resellerId}, target=${fixture.attributedUserId}) since ${grantSince}; got ${mirrorCount}. Route write lives at route.ts:206-218 — 0 flags a silent mirror-insert regression (route drops the insert or RLS scope drift); >1 flags a duplicated write (fan-out ran twice).`,
+    ).toBe(1);
   });
 });

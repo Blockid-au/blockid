@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.201
+version: 2026-07-23.202
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,170 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 202
+    ran_at: 2026-07-22
+    action: p10_wave3_row_155_credit_grant_mirror_row_activation
+    result: |
+      Activated P10 wave-3 row 155 in
+      web/tests/e2e/reseller/audit-log-writes.spec.ts (credit-grant
+      mirror-row DB assertion, companion to row 152 wire-envelope and
+      row 154 audit-log assertions). Frontier before this tick: tick
+      201 activated row 154 (audit-log fan-out check). Rows 155 / 156
+      remained the top carried-forward active_wholesale picks per
+      tick 201's "Natural next pick for tick 202" line — this tick
+      closes row 155. Row 156 (balance-readback chain 5→5 then 3→8)
+      remains independent frontier pick. Row 157 (paused-inactive)
+      still needs a distinct promo mint edit path. Rows 175 (approve
+      code_request) + 182 (SetupIntent) stay P8.5-blocked. Row 178
+      (signup-jitter) stays QA-mode-blocked.
+
+      Files:
+        - web/tests/e2e/fixtures/supabase-admin.ts (new
+          countResellerCreditGrantsFor helper — mirrors
+          countResellerAuditLogFor topology: (resellerId,
+          targetUserId, kind?, since?) opts with the same
+          count:'exact', head:true head-only count query so a large
+          reseller_credit_grants table stays cheap; kind filter typed
+          as "grant" | "sandbox_spend" per the migration 0096 CHECK
+          constraint; since cursor required in practice because
+          route.ts:214 stamps month_key=YYYY-MM so mirror rows
+          accumulate across the whole window and prior-run leaks on
+          the same (reseller, target) pair would otherwise inflate
+          the assertion.)
+        - web/tests/e2e/reseller/audit-log-writes.spec.ts (import
+          block extended with countResellerCreditGrantsFor; new
+          test.describe("Reseller credit-grant mirror row — P10
+          wave-3 row 155") block appended after the wave-3 row 154
+          audit-log block at end of file. Uses same TempResellerFixture
+          + attachAttributedCustomer + attachGrantSelfApprove({amount:5})
+          + loginAs(adminEmail) + captureSince cursor + POST /api/
+          reseller/credits/grant → assert 200 → countResellerCreditGrantsFor(
+          supabase, {resellerId: fixture.resellerId, targetUserId:
+          fixture.attributedUserId, kind:'grant', since: grantSince})
+          === 1 pinning the mirror insert in the route.ts:206-218
+          fan-out. AMOUNT=5 chosen for the same CI-replay stability
+          rationale as rows 152/154 — leaves ~19995 headroom before
+          decideGrant's monthly_credit_budget cap on any (reseller,
+          month) pair carrying leftover accumulation.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.201 → 2026-07-23.202; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Row 155 lives in audit-log-writes.spec.ts (not credit-grant-
+          authz.spec.ts) matching the row 154 topology decision: authz
+          specs own the HTTP contract (status codes + envelopes +
+          cache-column reads); audit-log-writes.spec.ts owns the
+          DB-level side-effect assertions on the append-only ledger AND
+          the mirror table. Both are "reads happened at the DB layer"
+          rather than "the response was well-formed" — grouping them
+          together keeps the two ledger-adjacent side effects the fan-
+          out fires alongside credit_balances/credit_transactions in a
+          single file so a reviewer inspecting the append-only surfaces
+          only opens one spec.
+        - Route write reference: web/src/app/api/reseller/credits/
+          grant/route.ts:206-218 — supabase.from('reseller_credit_
+          grants').insert({reseller_id, target_user_id, kind:'grant',
+          amount, credit_transaction_id, month_key, over_budget:false,
+          granted_by_user_id, metadata:{reason,...clientMetadata}}).
+          The mirror insert is the FOURTH write in the endpoint's fan-
+          out (after credit_balances upsert + credit_transactions
+          insert + the pre-write balance read); a regression that
+          silently dropped this write (RLS scope drift on the mirror
+          table, or a route refactor moving the insert behind an early
+          return) would still let row 152's envelope pass green and
+          row 154's audit-log pass green — only a mirror-scoped count
+          assertion catches that drift, which is exactly what this row
+          adds.
+        - kind filter set to 'grant' rather than nullable: the sandbox-
+          spend branch also writes into reseller_credit_grants (P6.5
+          spendCredits sandbox routing) but under kind='sandbox_spend'
+          with amount<0 per the ck_amount_sign CHECK. A concurrent
+          sandbox call from the same fixture user during the row 155
+          window would inflate a kind-agnostic count; pinning kind
+          isolates the assertion to the self-approve grant path this
+          row targets.
+        - attachAttributedCustomer + attachGrantSelfApprove closures
+          push onto the fixture's restore stack — cleanup() in
+          afterAll reverses the four-write chain (reseller_credit_
+          grants first because its credit_transaction_id FK points
+          at credit_transactions.id, then credit_transactions, then
+          credit_balances UPSERT-back-or-DELETE branch matching the
+          pre-attach existence flag). reseller_audit_log rows are
+          NOT swept (migration 0093 mutation triggers block DELETE/
+          UPDATE per H.9's 6-year retention) — matches row 154's
+          cleanup posture; since cursors already handle append-only
+          accumulation.
+        - Skip-guard replicates rows 152/154 verbatim on fixtureError
+          / fixture null / attributedUserId null / !attributionExists
+          / adminUserId null / supabase null / attach null / grant
+          null branches so an under-provisioned host (missing seed-
+          qa-reseller.mjs, no QA_RESELLER_MULTI_ADMIN=1) skips cleanly
+          with an actionable seed-command hint rather than false-
+          failing on a partial-fixture 500.
+        - No production code touched. Spec + fixture helper + goal
+          file only. Neither the R-01 scope-boundary rule (only /api/
+          reseller/**) nor the R-03 manifest rule (only feature-gates.
+          manifest.ts routes) scan web/tests/e2e/** so lint counts
+          are unchanged.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: exit 0. New describe block
+          resolves against the existing TempResellerFixture,
+          attachAttributedCustomer, attachGrantSelfApprove,
+          loadTempReseller, tempResellerSkipReason,
+          loadSupabaseAdmin, supabaseAdminSkipReason imports already
+          at the top of audit-log-writes.spec.ts; only new import
+          symbol is countResellerCreditGrantsFor from ../fixtures/
+          supabase-admin.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 exemptions, 0 violations —
+          unchanged.
+        - `npx vitest run src/lib/reseller` in web/: 29 files 449/449
+          pass — unchanged (Playwright specs are excluded from vitest
+          by design; audit-log-writes.spec.ts + supabase-admin.ts
+          live under web/tests/e2e).
+        - No DB apply this tick — no migration authored. Playwright
+          run against staging still gated on the tick 198 seed re-run
+          per P10 hardening exit criteria, not this tick.
+
+      Frontier after tick 202:
+        - Track A P8.5 STILL HUMAN-BLOCKED on
+          STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL.
+        - Track A P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20
+          ABN + GST.
+        - Track B COMPLETE.
+        - Row 155 now activated — will land as a fully-green Playwright
+          row on the next staging seed re-run under
+          QA_RESELLER_MULTI_ADMIN=1 + QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL
+          set. Skips cleanly under-provisioned.
+        - Row 156 (balance-readback chain) — same active_wholesale
+          posture as rows 152/154/155; probes credit_balances arithmetic
+          through the UPSERT vs cache boundary by chaining two grants
+          (5 then 3) and asserting balance readback === 8. Can reuse
+          attachGrantSelfApprove twice or extend the helper to accept
+          multiple invocations against the same target.
+        - Row 157 (code-validate × paused × inactive 404) — still needs
+          an active promo mint on the paused variant so code-validate
+          hits status='inactive' rather than promo_missing.
+        - Row 175 approve(code_request) branch — still P8.5-blocked
+          (Stripe test-mode key required).
+        - Row 178 signup-jitter branch — still QA-mode-blocked.
+        - Row 182 SetupIntent happy — still P8.5-blocked.
+
+      Natural next pick for tick 203: activate row 156 by adding a
+      test.describe("Reseller credit-grant balance-readback chain —
+      P10 wave-3 row 156") block to credit-grant-authz.spec.ts (HTTP-
+      side arithmetic contract) using two chained POSTs {amount:5}
+      then {amount:3} against the same TempResellerFixture, asserting
+      response envelope's `balance` field returns 5 then 8. Uses
+      attachGrantSelfApprove twice against the same target so cleanup
+      restores the pre-attach snapshot atomically. Alternative: extend
+      the helper to record a running-total pre-snapshot once so a
+      three-write chain in a future row (e.g. row 156b amount:2 → 10)
+      can share the same closure.
+    commit: (this tick)
+
   - tick: 201
     ran_at: 2026-07-22
     action: p10_wave3_row_154_credit_grant_audit_log_activation
