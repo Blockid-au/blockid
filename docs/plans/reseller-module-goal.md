@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.174
+version: 2026-07-23.175
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,133 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 175
+    ran_at: 2026-07-22
+    action: p10_wave5_row_179_audit_log_writes_active_wholesale_happy_activated
+    result: |
+      Twelfth wave-5 landing per docs/plans/p10-deferred-spec-activation-
+      order.md — activated row 179 (`audit-log-writes.spec.ts` ×
+      `active_wholesale` × audit row emitted after drawer + reveal-email
+      calls → ≥1 row apiece). Twin coverage alongside the pre-existing
+      env-based describe (loadResellerHarness contract via
+      QA_RESELLER_ADMIN_EMAIL + QA_RESELLER_ATTRIBUTED_CUSTOMER_ID); the
+      new describe uses loadTempReseller('active_wholesale') +
+      attachAttributedCustomer() so a QAPROBE-cohort host (per
+      seed-qa-reseller.mjs) covers the plan §1223 Verification #5
+      invariant without a second env-var flip.
+
+      Files:
+        - web/tests/e2e/reseller/audit-log-writes.spec.ts (header block
+          updated: added "ACTIVATED wave-5 row 179 below (temp-reseller
+          mint fixture route via loadTempReseller('active_wholesale'))"
+          paragraph explaining that the pre-existing describe keeps the
+          env-based contract alive while the new describe covers the
+          QAPROBE cohort. Imports extended with `loadTempReseller` +
+          `tempResellerSkipReason` + `TempResellerFixture` from
+          fixtures/reseller. Appended
+          `test.describe("Reseller audit-log writes — P10 wave-5 row 179
+          happy path")` block after the pre-existing harness-based
+          describe. Inside the new block: `test.beforeAll` loads the
+          active_wholesale fixture; `test.afterAll` runs fixture.cleanup()
+          so the attributed founder's app_users.attribution_reseller_id
+          cache column is restored if attachAttributedCustomer() flipped
+          it. Single test fires drawer THEN reveal-email against
+          `attach.attributedUserId`, captures a fresh `since` cursor
+          before each request, and asserts ≥1 reseller_audit_log row for
+          each of {view_customer_drawer, reveal_email}. Five-step skip
+          discipline: fixture null / attributedUserId null /
+          !attributionExists / supabase null / findUserIdByEmail null —
+          each carries a specific reseed hint pointing at either
+          seed-qa-reseller.mjs (with QA_RESELLER_MULTI_ADMIN=1) or
+          seed-test-users.mjs).
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.174 → 2026-07-23.175; this review_history entry
+          prepended).
+
+      Design fidelity:
+        - Variant pin matches plan §970 verbatim (`active_wholesale`).
+          Only the active_wholesale variant populates
+          fixture.attributedUserId + fixture.attributionExists, so the
+          reseller_audit_log writes fire against a subject the
+          scopedReseller().allowedCustomerIds() gate accepts.
+        - Skip discipline mirrors the wave-5 row 176 posture (added tick
+          174): each skip carries the specific seeder command that would
+          unblock it. Notably, !attributionExists points at
+          seed-qa-reseller.mjs with QA_RESELLER_MULTI_ADMIN=1 because
+          the fixture explicitly documents that partial-seed hosts
+          expose attributedUserId even when the reseller_attributions
+          row is missing — but the drawer + reveal-email routes would
+          403 not_in_scope in that state, so the spec must skip rather
+          than fail on the 403.
+        - attachAttributedCustomer() called in the test body (not in
+          beforeAll) because it registers a restore closure with
+          fixture.cleanup() that must fire in afterAll to revert the
+          cache column. Registering in beforeAll would race the
+          per-test-worker teardown; the fixture's cleanup semantics
+          expect the attach/restore pair to bracket the same async
+          scope. Matches the wave-2 helper contract (fixtures/reseller.ts
+          §attachAttributedCustomer JSDoc).
+        - Fires drawer + reveal-email in the same test rather than
+          split across two tests so the shared beforeAll fixture +
+          attachAttributedCustomer() side-effect + afterAll cleanup are
+          not duplicated. The pre-existing describe uses two separate
+          tests (matching its env-based simplicity) — the new describe
+          collapses because attachAttributedCustomer() is expensive
+          (writes app_users) and needs matching cleanup, so paying that
+          cost once per describe is cheaper than twice.
+        - `since` cursor captured immediately before EACH request
+          (drawerSince vs revealSince) so the drawer's audit row cannot
+          bleed into the reveal-email count and vice-versa. Matches the
+          countResellerAuditLogFor JSDoc that names the cursor as a
+          required poisoning mitigation for the append-only
+          reseller_audit_log table.
+        - loginAs wrapped in try/catch so a missing password entry in
+          /tmp/blockid-qa-accounts.txt reports the exact reseed command
+          rather than the raw fixture throw — matches the row 176
+          posture from tick 174.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0). The three
+          new imports (loadTempReseller + tempResellerSkipReason +
+          TempResellerFixture) resolve against the existing exports in
+          fixtures/reseller.ts.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files,
+          R-03 scanned 31 manifest routes, 3 documented exemptions,
+          0 violations — unchanged from tick 174 (the spec is not
+          under /api/reseller/** for the R-01 grep and is not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - No DB apply this tick — no migration authored.
+        - Goal file version bumped 2026-07-23.174 → 2026-07-23.175.
+
+      Frontier after tick 175: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision
+      seed STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE;
+      P10 still blocked_by [P1..P9] until P8.5 clears. Wave 5 has now
+      landed 164 (list) + 167 (detail authz happy) + 168 (detail
+      validation happy + reject) + 169 (patch authz post-requireAdmin
+      reject × 3) + 170 (patch validator reject × 6) + 171 (delete
+      authz happy 200) + 172 (delete validation reject × 2 + happy
+      200) + 173 (loop-status happy) + 174 (admin-requests-list
+      happy) + 175 deny+cancel (admin-requests-patch two reject
+      branches) + 176 (showcase-reviews founder GET happy 200) + 179
+      (audit-log-writes twin describe via temp-reseller mint fixture
+      this tick). Natural next picks:
+        (i) row 180 (`audit-anomaly-scan.spec.ts` × (n/a) × happy 200
+             with anomaly summary — mirror-shape of the tick-175
+             temp-reseller migration; still needs the QAPROBE cohort
+             seeded to fire the 5-burst drawer reads);
+        (ii) row 177 (`showcase-reviews-validation.spec.ts` ×
+              active_wholesale × reviewer-flow POST — still deferred
+              on the seeded data_room_access_tokens dependency);
+        (iii) row 178 attribution-timing wave-5 activation — needs a
+              fresh unattributed founder QA seed row (the fixture would
+              need a snapshot/restore of app_users.attribution_reseller_id
+              similar to attachAttributedCustomer());
+        (iv) row 181 scope-boundary — requires attributed customer
+             state to plant + reseller-admin session probing /api/svi/*,
+             /api/dataroom/*, /api/cap-table/*.
+    commit: (this tick)
+
   - tick: 174
     ran_at: 2026-07-22
     action: p10_wave5_row_176_showcase_reviews_authz_founder_get_happy_activated
