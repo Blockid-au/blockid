@@ -129,6 +129,68 @@ Prep cost: one tick to author the attributed-customer helper
 `app_users` upsert path in the fixture — then rows 145–149 each add
 2–3 assertions.
 
+**Wave-4 row 162 landed (tick 159).** Third wave-4 row. Added a companion
+`test.describe("Reseller cron HTTP method contract with harness admin —
+P10 wave-4 row 162")` block to `web/tests/e2e/reseller/reseller-crons-authz
+.spec.ts` that pins the two HTTP method contract halves per the schedule
+doc row 162 table entry ("HTTP method contract with harness admin |
+200/405"):
+  (1) GET with `Authorization: Bearer ${CRON_SECRET}` → status ∈ {200, 503}
+      + body.ok typeof boolean + on 503 body.reason ∈ {not_configured,
+      stripe_not_configured}, on 200 body.ok=true. Iterates the same five
+      routes as the existing 401 describe block so the auth-passed sentinel
+      is proven across the full reseller-cron surface (reseller-clear-
+      commissions, reseller-monthly-reconciliation, reseller-monthly-report,
+      reseller-stripe-sync, reseller-weekly-digest). `?skip_email=1` is
+      already baked into the three routes that support it so the digest /
+      report / reconciliation emails stay suppressed under CI replay.
+  (2) POST with the same correct Bearer → 405 Method Not Allowed. All five
+      routes export ONLY `GET` (verified via
+      `grep -H "export async function"` at authoring time in tick 159) so
+      Next.js App Router dispatches 405 + `Allow: GET` header BEFORE any
+      handler body fires. This nails the dispatch contract so a
+      "manual-trigger POST" refactor that adds a POST handler surfaces
+      here BEFORE it can bypass the CRON_SECRET Bearer gate.
+
+Why bundle both halves in one describe: they share the same describe-scope
+`test.skip(!cronSecret, …)` guard and iterate the same ROUTES array — a
+separate describe block would double the skip check without adding
+coverage. Skip discipline preserved: CRON_SECRET unset → describe-scope
+skip (the routes are fail-open in that configuration so a Bearer-authed
+assertion would false-fail on a legitimately-open host). No fixture null
+guard because this row is admin-only per the schedule doc — no per-variant
+reseller cohort applies, and no `loadTempReseller` call fires.
+
+State-pollution posture: reseller-clear-commissions writes commission
+events ONLY when the view surfaces pending rows past pending_until (fresh
+CI host → cleared:0, no write); reseller-monthly-reconciliation skip_email
++ read-only query; reseller-monthly-report skip_email + read-only when the
+`reseller-reports` storage bucket is unconfigured (upload branch no-ops);
+reseller-stripe-sync short-circuits at 503 stripe_not_configured before
+the Stripe network call in unconfigured envs; reseller-weekly-digest
+skip_email + read-only aggregation. POST rejection is stateless — Next.js
+dispatches 405 before any handler import. Perfectly idempotent under CI
+replay.
+
+Non-Stripe / non-GST discipline: none of the covered routes hit Stripe in
+the GET-with-Bearer branch under an unconfigured-Stripe env (the sync
+route short-circuits at 503 before the retrieve loop). Row 162 remains
+neither a dependency nor a consequence of P8.5 (Stripe env vars) or P1.5
+(InfoVision seed). "Deliberately out of scope" comment block in the spec
+updated to reflect the activated row + document why the per-route body
+pins stay in the route-specific specs (e.g. reports-signed-url-authz
+owns reseller-monthly-report's signed-URL wire envelope; audit-anomaly-
+scan owns its own happy-path harness at tick 90).
+
+Next natural picks: (i) activate row 163 (cobranding-pill × active_
+wholesale attributed founder × EN + VI) — reuses the attributed-founder
+harness scaffold; (ii) land finding-2's seed delta to unblock rows 150 +
+151; (iii) mint an active promo code on the paused variant to unblock
+row 157; (iv) author the attachReportRow helper to unblock rows 159 +
+160; (v) open wave 5 with row 164 (admin-resellers-list-authz × happy
+200) — uses the pre-existing qa-admin-1@blockid.au harness so does not
+need the per-variant reseller cohort at all.
+
 **Wave-4 row 161 landed (tick 158).** Second wave-4 row. Added a companion
 `test.describe("Reseller requests list — P10 wave-4 happy path")` block to
 `web/tests/e2e/reseller/reseller-requests-list-authz.spec.ts` that mirrors
