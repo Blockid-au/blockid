@@ -64,6 +64,8 @@ export interface TechHealthScore {
   sastCoverage: number;
   cicdQualityGateIntegration: boolean;
   nextJsOptimizationScore: number;
+  streamingSsrEnabled: boolean;
+  bundleSizeReductionPercentage: number;
 }
 
 /** Market share and adoption benchmarks based on 2024-2026 research */
@@ -83,7 +85,7 @@ export const TECH_ADOPTION_BENCHMARKS = {
   },
 } as const;
 
-/** Australian Security Compliance Benchmarks (2026) */
+/** Australian Security and Quality Compliance Benchmarks (2026) */
 export const AU_SECURITY_BENCHMARKS = {
   essentialEightSmeCompliance: 0.38,
   essentialEightPatchLevel3: 0.71,
@@ -91,100 +93,71 @@ export const AU_SECURITY_BENCHMARKS = {
   sastAdoptionRate: 0.72,
   cicdQualityGateIntegration: 0.68,
   averageMaintainabilityIndex: 68,
-  staticAnalysisCoverageSaaS: 0.85,
+  staticAnalysisCoverage: 0.85,
 } as const;
 
-/** Next.js 16 & React 19 Performance Targets */
-export const NEXTJS_PERFORMANCE_TARGETS = {
+/** Next.js 16 Performance Targets */
+export const NEXTJS_PERF_TARGETS = {
   bundleSizeReductionTarget: 0.42,
-  clientJsReductionTarget: 0.40,
-  ttfbImprovementTarget: 0.60,
-  recommendedStrategy: "Streaming SSR for APAC high-latency networks",
+  serverComponentJsReduction: 0.40,
+  streamingSsrTtfbImprovement: 0.60,
 } as const;
 
 /**
- * Calculates the security compliance gap for an Australian SME
- * @param currentCompliance - The current compliance percentage (0-1)
- * @param metric - The specific benchmark key from AU_SECURITY_BENCHMARKS
+ * Calculates the overall health score of a tech stack based on AU 2026 benchmarks.
+ * @param current Current metrics of the platform
+ * @returns A normalized score between 0 and 100
  */
-export function calculateSecurityGap(
-  currentCompliance: number,
-  metric: keyof typeof AU_SECURITY_BENCHMARKS
-): number {
-  const benchmark = AU_SECURITY_BENCHMARKS[metric];
-  return Math.max(0, benchmark - currentCompliance);
-}
-
-/**
- * Evaluates the maintainability of a codebase against AU startup benchmarks
- * @param currentIndex - The measured maintainability index (0-100)
- */
-export function evaluateMaintainability(currentIndex: number): "Below Average" | "Average" | "Above Average" {
-  const benchmark = AU_SECURITY_BENCHMARKS.averageMaintainabilityIndex;
-  if (currentIndex < benchmark * 0.8) return "Below Average";
-  if (currentIndex > benchmark * 1.2) return "Above Average";
-  return "Average";
-}
-
-/**
- * Projects performance gains based on Next.js 16 migration research
- * @param currentBundleSize - Current bundle size in KB
- * @param currentTTFB - Current Time to First Byte in ms
- */
-export function projectNextJsOptimization(currentBundleSize: number, currentTTFB: number) {
-  return {
-    projectedBundleSize: currentBundleSize * (1 - NEXTJS_PERFORMANCE_TARGETS.bundleSizeReductionTarget),
-    projectedTTFB: currentTTFB * (1 - NEXTJS_PERFORMANCE_TARGETS.ttfbImprovementTarget),
-    clientJsReduction: currentBundleSize * NEXTJS_PERFORMANCE_TARGETS.clientJsReductionTarget,
-  };
-}
-
-/**
- * Computes an overall Tech Health Score based on weighted research metrics
- * @param metrics - The current health metrics of the platform
- */
-export function calculateOverallHealthScore(metrics: Partial<TechHealthScore>): number {
+export function calculatePlatformHealthScore(current: Partial<TechHealthScore>): number {
   const weights = {
-    securityCompliance: 0.4,
-    maintainabilityIndex: 0.3,
-    infrastructureModernity: 0.2,
-    nextJsOptimizationScore: 0.1,
+    security: 0.4,
+    maintainability: 0.3,
+    modernity: 0.3,
   };
 
-  let totalScore = 0;
-  let weightSum = 0;
+  const securityScore = (
+    (current.essentialEightMaturity || 0) * 0.4 +
+    (current.owaspAdoptionRate || 0) * 0.3 +
+    (current.sastCoverage || 0) * 0.3
+  ) * 100;
 
-  for (const [key, weight] of Object.entries(weights)) {
-    const value = metrics[key as keyof TechHealthScore];
-    if (typeof value === "number") {
-      totalScore += value * weight;
-      weightSum += weight;
-    }
-  }
+  const maintainabilityScore = (
+    ((current.maintainabilityIndex || 0) / 100) * 0.6 +
+    (current.cicdQualityGateIntegration ? 0.4 : 0)
+  ) * 100;
 
-  return weightSum === 0 ? 0 : totalScore / weightSum;
+  const modernityScore = (
+    (current.nextJsOptimizationScore || 0) * 0.5 +
+    (current.streamingSsrEnabled ? 0.5 : 0)
+  ) * 100;
+
+  return (
+    securityScore * weights.security +
+    maintainabilityScore * weights.maintainability +
+    modernityScore * weights.modernity
+  );
 }
 
 /**
- * Validates if the tech stack aligns with modern production trends (2026)
- * @param stack - The current technology stack configuration
+ * Evaluates the gap between current AU SME performance and 2026 benchmarks.
+ * @param current Current platform metrics
+ * @returns Gap analysis object
  */
-export function validateStackModernity(stack: {
-  usesK8s: boolean;
-  usesServerless: boolean;
-  frontendFramework: string;
-  usesAICompanion: boolean;
-}) {
-  const scores: Record<string, number> = {
-    infra: stack.usesK8s ? 1 : 0,
-    serverless: stack.usesServerless ? 1 : 0,
-    frontend: stack.frontendFramework === "React" ? 1 : 0.5,
-    dx: stack.usesAICompanion ? 1 : 0,
-  };
-
-  const averageModernity = Object.values(scores).reduce((a, b) => a + b, 0) / 4;
+export function evaluateComplianceGap(current: Partial<TechHealthScore>) {
   return {
-    modernityScore: averageModernity,
-    isCompetitive: averageModernity >= 0.75,
+    essentialEightGap: AU_SECURITY_BENCHMARKS.essentialEightSmeCompliance - (current.essentialEightMaturity || 0),
+    patchingGap: AU_SECURITY_BENCHMARKS.essentialEightPatchLevel3 - (current.essentialEightMaturity || 0),
+    owaspGap: AU_SECURITY_BENCHMARKS.owaspTop10Adoption - (current.owaspAdoptionRate || 0),
+    sastGap: AU_SECURITY_BENCHMARKS.sastAdoptionRate - (current.sastCoverage || 0),
+    maintainabilityGap: AU_SECURITY_BENCHMARKS.averageMaintainabilityIndex - (current.maintainabilityIndex || 0),
   };
+}
+
+/**
+ * Estimates the performance gain from adopting Next.js 16 streaming SSR for APAC networks.
+ * @param currentTtfb Current Time to First Byte in ms
+ * @returns Estimated improved TTFB
+ */
+export function estimateStreamingSsrGain(currentTtfb: number): number {
+  return currentTtfb * (1 - NEXTJS_PERF_TARGETS.streamingSsrTtfbImprovement);
 }

@@ -1,26 +1,24 @@
 {
-  "updatedAt": "2026-07-22T16:30:07.668Z",
+  "updatedAt": "2026-07-22T21:05:02.736Z",
   "openrouter": [
-    "google/lyria-3-clip-preview",
-    "poolside/laguna-s-2.1:free",
-    "poolside/laguna-m.1:free",
+    "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "nvidia/nemotron-3-super-120b-a12b:free",
+    "google/gemma-4-31b-it:free",
     "google/gemma-4-26b-a4b-it:free",
     "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
     "google/lyria-3-pro-preview",
-    "nvidia/nemotron-3-ultra-550b-a55b:free",
-    "nvidia/nemotron-3-super-120b-a12b:free",
-    "google/gemma-4-31b-it:free"
+    "google/lyria-3-clip-preview",
+    "poolside/laguna-s-2.1:free"
   ],
   "groq": [
-    "allam-2-7b",
-    "canopylabs/orpheus-arabic-saudi",
-    "canopylabs/orpheus-v1-english",
-    "openai/gpt-oss-20b",
-    "llama-3.1-8b-instant",
-    "groq/compound",
     "qwen/qwen3.6-27b",
     "openai/gpt-oss-120b",
-    "llama-3.3-70b-versatile"
+    "llama-3.3-70b-versatile",
+    "openai/gpt-oss-20b",
+    "groq/compound",
+    "llama-3.1-8b-instant",
+    "allam-2-7b",
+    "canopylabs/orpheus-arabic-saudi"
   ],
   "cerebras": [
     "zai-glm-4.7",
