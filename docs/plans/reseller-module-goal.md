@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.170
+version: 2026-07-23.171
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,172 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 171
+    ran_at: 2026-07-22
+    action: p10_wave5_row_170_admin_reseller_patch_validator_reject_cluster_activated
+    result: |
+      Eighth wave-5 landing per docs/plans/p10-deferred-spec-activation-
+      order.md — activated row 170 (`admin-reseller-patch-validation.spec.ts`
+      × `active_wholesale` × validateAdminResellerPatch reject-branch
+      cluster). Six branches (empty_patch / display_name_blank /
+      invalid_billing_model / tiers_bad_value / abn_bad_format /
+      wholesale_requires_gst) folded into one tick per the wave-5 batching
+      heuristic — each patch is crafted to trip a distinct rule inside
+      web/src/lib/reseller/admin-validator.ts and each returns 400 at
+      route.ts:166-169 BEFORE the resellers UPDATE at route.ts:171-183
+      fires, so the block writes zero rows against the shared
+      QAPROBEWHOLESALEACTIVE seed row (plan §J.2 compliance).
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-patch-validation.spec.ts
+          (header block updated: the "Deliberately out of scope" bullet
+          for validateAdminResellerPatch now points at wave-5 row 170 and
+          enumerates the six activated reasons vs the plan's example
+          wording — display_name_blank (plan called it
+          "display_name_required"), tiers_bad_value (plan called it
+          "invalid_tier"), and adds a note that the validator never emits
+          "unknown_field" so a patch of only-unknown keys collapses into
+          empty_patch which the same row already covers. Imports extended
+          with `loadTempReseller` + `tempResellerSkipReason` +
+          `TempResellerFixture` from `../fixtures/reseller`; the pre-
+          existing `adminHarnessSkipReason` + `loadAdminHarness` imports
+          folded into the same named-import block for readability.
+          Appended `test.describe("Admin reseller PATCH validator reject
+          cluster — P10 wave-5 row 170")` block after the pre-existing
+          CASES-driven pre-load validators describe. Inside the new
+          block: `PatchRejectCase` interface + `PATCH_REJECT_CASES` array
+          (6 rows) + per-case test that loadTempReseller('active_wholesale')
+          + loginAs(harness.admin.email) + page.request.patch(route,
+          {data, headers}) + assertions on 400 + body.ok=false +
+          body.reason ∈ union type. loadReseller succeeds on every row
+          because the fixture code resolves to a real reseller_id, so
+          validateAdminResellerPatch runs; each patch then fails one
+          specific rule (empty_patch = {} → line 160; display_name_blank
+          = {display_name:"   "} → line 68; invalid_billing_model =
+          {billing_model:"premium"} → line 81; tiers_bad_value =
+          {allowed_tiers:[15]} → line 130 because 15 ∉ ALLOWED_TIER_VALUES;
+          abn_bad_format = {abn:"not-a-real-abn"} → line 94 because
+          ABN_RE rejects; wholesale_requires_gst =
+          {gst_registered:false} merges with current.billing_model=
+          "wholesale" so merged.billing_model="wholesale" +
+          merged.gst_registered=false → line 170).
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.170 → 2026-07-23.171; this review_history entry
+          prepended).
+
+      Design fidelity:
+        - Skip discipline mirrors row 168 (admin-reseller-detail-validation
+          happy) verbatim: harness-level skip via test.skip(!harness,
+          adminHarnessSkipReason()) at describe scope, then two test-
+          scope skips around loadTempReseller null vs throw and loginAs
+          throw. Each skip carries a tempResellerSkipReason(
+          "active_wholesale") pointer so a fresh CI host sees the exact
+          seeder command.
+        - Reason-code alignment: the plan enumerates six "example"
+          reasons (empty_patch / unknown_field / display_name_required /
+          invalid_tier / invalid_billing_model / wholesale_requires_gst)
+          but the actual validator emits a different but overlapping
+          set (empty_patch / display_name_blank / tiers_bad_value /
+          invalid_billing_model / wholesale_requires_gst plus other
+          non-plan reasons). The spec pins the ACTUAL emitted reasons
+          (per admin-validator.ts:33-45 AdminResellerValidationError
+          union) and adds abn_bad_format so the cluster still folds
+          six branches. Plan's "unknown_field" is dropped and
+          documented in the "Deliberately out of scope" block —
+          admin-validator.ts:66-158 iterates ONLY known keys, so an
+          unknown-only patch produces empty_patch which the cluster
+          already exercises.
+        - URL lowercasing: fixture.code is stored uppercase
+          (QAPROBEWHOLESALEACTIVE) because normaliseResellerCode
+          (attribution.ts:25-29) uppercases + alnum-strips before
+          insertion. The [code] URL segment convention uses lowercase
+          for aesthetics; the server re-uppercases via the same
+          normaliseResellerCode inside the PATCH handler
+          (route.ts:131) before the resellers SELECT. Mirrors row 167 +
+          row 168 patterns.
+        - Reseller-admin scope NOT loaded: we log in as the ADMIN
+          (qa-admin-1@blockid.au from loadAdminHarness), NOT as the
+          per-variant reseller-admin. The requireAdmin() gate is an
+          independent auth dimension from scopedReseller(), so
+          fixture.adminUserId being null does NOT gate this test.
+          Same posture as row 164 / row 167 / row 168 / row 169.
+        - Twin coverage posture: row 169 pins the three pre-load
+          validators (code_required / invalid_body / not_found) that
+          fire BEFORE validateAdminResellerPatch runs; row 170 pins
+          the validator's own reject branches AFTER loadReseller
+          succeeds. Together the two rows guard every PATCH branch
+          that returns non-200 without needing a real UPDATE round
+          trip. A route refactor that reordered the guards or dropped
+          the merged.billing_model === "wholesale" check would light
+          up here on the next `npx playwright test` pass.
+        - wholesale_requires_gst branch design: relies on the seed
+          row having billing_model === "wholesale" (which the
+          active_wholesale variant guarantees by definition — see
+          fixtures/reseller.ts:241 RESELLER_VARIANT_CODES
+          active_wholesale → QAPROBEWHOLESALEACTIVE). Because the
+          validator merges patch with current before evaluating the
+          wholesale/GST/ABN invariant (admin-validator.ts:162-174),
+          overriding gst_registered=false against a wholesale row is
+          enough to trip line 170 without touching billing_model or
+          abn. If a future seed reshuffle flipped QAPROBEWHOLESALEACTIVE
+          to retail, this row would return 200 (empty patch payload)
+          instead — the assertion would then fail loudly with the
+          expected reason mismatch, surfacing the seed-drift as a
+          regression, not silently passing.
+        - Non-Stripe / non-GST discipline preserved: no Stripe network
+          call, no InfoVision dependency, no revenue_events read. Net
+          side-effect budget per CI pass: 0 writes. Every branch
+          returns before the resellers UPDATE at route.ts:171-183.
+        - No fixture cleanup wiring: because every branch rejects at
+          route.ts:166-169 (return NextResponse.json({ok:false,
+          reason}, {status:400})), no INSERT / UPDATE / DELETE fires
+          anywhere in the PATCH handler for any row. loadTempReseller
+          only READS the shared active_wholesale seed row so no
+          restore closure is registered — fixture.
+          trackProjectForCleanup / fixture.cleanup() are intentionally
+          NOT called. Idempotent under CI replay and safe against
+          parallel workers.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0, no output).
+          The three new imports (loadTempReseller +
+          tempResellerSkipReason + TempResellerFixture) resolve against
+          the existing exports in fixtures/reseller.ts. The
+          PatchRejectCase interface + PATCH_REJECT_CASES array
+          typecheck with the union of six expectedReason literals
+          matching the validator's emitted reason strings exactly.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files,
+          R-03 scanned 31 manifest routes, 3 documented exemptions,
+          0 violations — unchanged from tick 170 (the spec is not
+          under /api/reseller/** for the R-01 grep and is not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - No DB apply this tick — no migration authored.
+        - Goal file version bumped 2026-07-23.170 → 2026-07-23.171.
+
+      Frontier after tick 171: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision seed
+      STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE; P10 still
+      blocked_by [P1..P9] until P8.5 clears. Wave 5 read-only + reject-
+      only rows have now landed 164 (list) + 167 (detail authz happy) +
+      168 (detail validation happy + reject) + 169 (patch authz post-
+      requireAdmin reject × 3) + 170 (patch validator reject × 6) + 173
+      (loop-status happy) + 174 (admin-requests-list happy) + 175
+      deny+cancel (admin-requests-patch two reject branches). Natural
+      next picks:
+        (i) row 172 (`admin-reseller-delete-validation.spec.ts` ×
+             active_wholesale × code_required + happy — happy branch
+             writes status=terminated so needs cleanup afterEach; can
+             target the pre-existing `terminated` variant so the happy
+             branch is idempotent);
+        (ii) row 176 (`showcase-reviews-authz.spec.ts` × active_wholesale
+              × founder-scoped GET happy 200 — requires the attributed-
+              founder session, not the reseller-admin or the platform
+              admin);
+        (iii) row 178 attribution-timing — needs new founder QA seed;
+        (iv) row 181 scope-boundary — requires attributed customer state
+             planted so the reseller-admin gets 403 not_in_scope on
+             /api/svi/*, /api/dataroom/*, /api/cap-table/*.
+
   - tick: 170
     ran_at: 2026-07-22
     action: p10_wave5_row_169_admin_reseller_patch_authz_post_requireadmin_activated
