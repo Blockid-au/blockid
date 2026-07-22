@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.48
+version: 2026-07-23.49
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,105 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 86
+    ran_at: 2026-07-22
+    action: p10_dry_run_service_role_supabase_fixture_and_attribution_timing_row2_unblock
+    result: |
+      Autonomous tick composing option (i) from tick 85's frontier note —
+      "service-role Supabase fixture that flips the two attribution-timing
+      test.skip() rows." Landed the fixture + row 2 of the attribution-timing
+      spec; row 3 remains skipped because verifying it needs a *code-side* fix
+      (retail createProject() does not write reseller_attributions today),
+      not just a helper. Row 2 unblocks unilaterally.
+
+      Files:
+        - web/tests/e2e/fixtures/supabase-admin.ts (new — loadSupabaseAdmin()
+          reads SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY, returns null when
+          either is unset so specs test.skip() rather than throw; matches
+          web/src/lib/supabase.ts::getSupabaseAdmin env contract and its
+          persistSession=false / autoRefreshToken=false / schema=public
+          options. countResellerAttributionsFor(supabase, userId, {subjectType?})
+          runs a count-only head:true SELECT on reseller_attributions filtered
+          by subject_user_id + optional subject_type. findUserIdByEmail resolves
+          a QA account email → app_users.id via ilike so the spec doesn't need
+          to hard-code UUIDs. Deliberately kept out of web/src/lib/** so no
+          production code path can accidentally import a service-role client —
+          this file exists solely for out-of-band E2E inspection; write paths
+          are absent because seeding lives in scripts/seed-test-users.mjs.
+          Reasoned skip surface surface is supabaseAdminSkipReason() so ops
+          sees exactly which two env vars to set.)
+        - web/tests/e2e/reseller/attribution-timing.spec.ts (row 2 flipped
+          from test.skip() to a live assertion: after login, resolves
+          founder.email → app_users.id, calls countResellerAttributionsFor
+          and expects 0. Per-test test.skip() gates on loadSupabaseAdmin() so
+          row 1 keeps running when the service-role env vars are absent;
+          harness env vars still gate the describe scope. Row 3 tracking
+          comment rewritten to reflect the actual open code-side gap: the
+          only insertion path for reseller_attributions is the wholesale
+          /api/reseller/create-startup/route.ts:302; retail createProject
+          at web/src/lib/projects.ts:420 does not — un-skipping row 3
+          requires either closing that gap in createProject or reshaping
+          the spec to exercise the wholesale route with a reseller-admin
+          harness. Either is larger than the P10 dry-run cadence supports,
+          so the row stays as the tracking marker.)
+
+      Why the row 3 gap is not closed in this tick: the retail-path
+      createProject() gap is a plan §J.2 point 9 correctness issue not
+      captured elsewhere in the goal file. Fixing it means either
+      (a) inserting reseller_attributions(subject_type='project') inside
+      createProject() when app_users.attribution_reseller_id is non-null —
+      which changes the ledger semantics and needs a CTO/CFO advisory review
+      per U.13 stage-1 — or (b) reshaping the spec so it exercises the
+      already-implemented wholesale write path via a reseller-admin harness.
+      Both are follow-up ticks with their own review window; row 3 stays
+      tracked as a test.skip() with the assertion sketch preserved.
+
+      Deliberately out of scope for this tick:
+        - Row 3 assertion (needs the createProject gap closed or a
+          wholesale-flow reshaping — larger surface).
+        - Audit-log write assertion spec for plan Verification #5 — now
+          unblocked by loadSupabaseAdmin() but wants its own tick since it
+          needs a new spec file plus the same reseller-admin harness from
+          tick 82.
+        - Widening the fixture with write helpers (seeding via the fixture
+          would let specs orchestrate whole flows atomically; today seeding
+          lives in scripts/seed-test-users.mjs so the fixture stays
+          read-only per plan §J.2's "specs must not mutate DB state").
+
+      Verified: tsc clean (npx tsc --noEmit exit 0 at web/); vitest 817/817
+      unchanged (both changes are Playwright infrastructure — no vitest
+      coverage exists for tests/e2e/fixtures/ by design); npm run
+      lint:reseller: R-01 scanned 11 file(s), R-03 scanned 31 manifest
+      route(s); 3 exemptions, 0 violations unchanged (new fixture lives
+      under web/tests/e2e/fixtures/, not /api/reseller/**, so R-01
+      doesn't fire; nothing added to feature-gates.manifest.ts so R-03
+      doesn't fire). Playwright not run — attribution-timing.spec.ts
+      still self-skips at describe-scope when QA_RESELLER_CODE +
+      QA_RESELLER_DISPLAY_NAME are unset (current CI state); row 2's
+      inner per-test test.skip() further gates on SUPABASE_URL +
+      SUPABASE_SERVICE_ROLE_KEY so the row runs only when both harness
+      halves are provisioned.
+
+      Frontier after tick 86: unchanged in shape — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5
+      clears. What tick 86 unblocks: (1) attribution-timing spec row
+      2 is a live assertion the instant the timing harness + service-
+      role env vars are provisioned; (2) the audit-log write spec
+      (Verification #5) can now be authored in its own tick since the
+      DB-inspection helper it needs is live; (3) any future reseller
+      spec that needs "does DB row X exist yet" has a home. Next
+      autonomous tick options: (i) audit-log write assertion spec
+      (Verification #5: viewing customer detail writes a
+      reseller_audit_log row — needs the same reseller admin harness
+      from tick 82 plus countResellerAuditLogFor helper added to
+      fixtures/supabase-admin.ts); (ii) close the retail createProject
+      → reseller_attributions gap (needs CTO advisory review for
+      ledger semantics); (iii) still idle until human unblock
+      arrives.
     commit: (this tick)
 
   - tick: 85

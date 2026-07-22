@@ -1,0 +1,101 @@
+// Service-role Supabase client for Playwright fixtures.
+//
+// Used by reseller P10 dry-run specs (attribution-timing, audit-log) that need
+// to peek at DB rows the founder-facing / reseller-facing routes deliberately
+// do not expose. Reads SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (same env
+// contract as web/src/lib/supabase.ts::getSupabaseAdmin), returns null when
+// either is unset so specs test.skip() rather than throw. This mirrors the
+// harnessSkipReason() pattern already used across the reseller fixture module.
+//
+// Kept out of web/src/lib/** to preserve the plan's stated boundary — no
+// non-Route-Handler code path holds a service-role client. Only Playwright,
+// running out-of-band during E2E, uses this file. If a downstream author is
+// tempted to import from src/, don't: use resellerSupabase() + scopedReseller()
+// from lib/reseller/supabase.ts instead.
+//
+// The two helpers below cover the read paths the attribution-timing spec needs.
+// Add more helpers as future spec ticks land (audit-log lookup, credit-grant
+// mirror row lookup, etc.) — keep them single-table and read-only.
+//
+// Write paths are deliberately absent: seeding QA rows lives in
+// scripts/seed-test-users.mjs; specs must not mutate DB state.
+
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+
+let cached: SupabaseClient | null | undefined;
+
+export function loadSupabaseAdmin(): SupabaseClient | null {
+  if (cached !== undefined) return cached;
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    cached = null;
+    return null;
+  }
+  cached = createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    db: { schema: "public" },
+  });
+  return cached;
+}
+
+export function supabaseAdminSkipReason(): string {
+  return (
+    "Service-role Supabase fixture not provisioned — set SUPABASE_URL + " +
+    "SUPABASE_SERVICE_ROLE_KEY in the Playwright env to activate DB " +
+    "inspection specs (attribution-timing row 2, audit-log Verification #5). " +
+    "Match values from the same Supabase project that hosts the QA harness."
+  );
+}
+
+/**
+ * Count reseller_attributions rows for a user. Filters on subject_user_id and
+ * (optionally) subject_type. Used by the attribution-timing spec to assert
+ * that no attribution row exists until the founder creates their first
+ * workspace (U.6 per-workspace attribution invariant).
+ *
+ * The reseller_attributions table's subject can be either a user_id or a
+ * project_id (per D.1). This helper looks at subject_user_id only; row 3 of
+ * the attribution-timing spec (post-createProject) will need a project-scoped
+ * lookup instead, but that path is still blocked on the retail-side createProject
+ * gap (see spec comment).
+ */
+export async function countResellerAttributionsFor(
+  supabase: SupabaseClient,
+  userId: string,
+  opts?: { subjectType?: "user" | "project" },
+): Promise<number> {
+  let query = supabase
+    .from("reseller_attributions")
+    .select("id", { count: "exact", head: true })
+    .eq("subject_user_id", userId);
+  if (opts?.subjectType) {
+    query = query.eq("subject_type", opts.subjectType);
+  }
+  const { count, error } = await query;
+  if (error) {
+    throw new Error(`countResellerAttributionsFor failed: ${error.message}`);
+  }
+  return count ?? 0;
+}
+
+/**
+ * Look up an app_user id by email (case-insensitive). Playwright-only helper
+ * used to translate the QA account email → user_id for downstream row-count
+ * queries. Returns null when the row is not found so specs can distinguish
+ * "harness misconfigured" from "user missing".
+ */
+export async function findUserIdByEmail(
+  supabase: SupabaseClient,
+  email: string,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("app_users")
+    .select("id")
+    .ilike("email", email)
+    .maybeSingle();
+  if (error) {
+    throw new Error(`findUserIdByEmail failed: ${error.message}`);
+  }
+  return (data?.id as string | undefined) ?? null;
+}
