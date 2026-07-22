@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.200
+version: 2026-07-23.201
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,152 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 201
+    ran_at: 2026-07-22
+    action: p10_wave3_row_154_credit_grant_audit_log_activation
+    result: |
+      Activated P10 wave-3 row 154 in
+      web/tests/e2e/reseller/audit-log-writes.spec.ts (credit-grant
+      audit-log companion assertion to row 152's HTTP wire-envelope
+      block in credit-grant-authz.spec.ts). Frontier before this tick:
+      tick 200 activated row 152 (happy 200 self-approve) + shipped
+      attachGrantSelfApprove() helper. Rows 154 / 155 / 156 were named
+      as the top carried-forward active_wholesale picks per tick 200's
+      "Natural next pick for tick 201" line — this tick closes row
+      154. Rows 155 / 156 remain independent frontier picks (mirror
+      insert row-count assertion + balance-readback-after-chain
+      assertion). Row 157 (paused-inactive) still needs a distinct
+      promo mint edit path. Rows 175 (approve code_request) + 182
+      (SetupIntent) stay P8.5-blocked. Row 178 (signup-jitter) stays
+      QA-mode-blocked.
+
+      Files:
+        - web/tests/e2e/reseller/audit-log-writes.spec.ts (new
+          test.describe("Reseller audit-log writes — P10 wave-3 row
+          154 credit-grant fan-out") block appended after the wave-5
+          row 179 cancel-symmetric block at end of file. Uses
+          test.beforeAll to load the temp-reseller fixture once,
+          test.afterAll to sweep cleanup so credit_balances +
+          credit_transactions + reseller_credit_grants row deltas from
+          the 4-write chain are reversed. Single test does the wave-5
+          row 179 skip-discipline chain — fixtureError, fixture null,
+          attributedUserId null, !attributionExists, adminUserId null,
+          supabase null, attach null, grant null — then calls
+          attachAttributedCustomer + attachGrantSelfApprove({amount:5})
+          inside the outer try, loginAs adminEmail, captures grantSince
+          cursor, POSTs {target_user_id:fixture.attributedUserId,
+          amount:5} → asserts 200, then countResellerAuditLogFor(
+          supabase, {action:"grant_credits", actorUserId:
+          fixture.adminUserId, subjectUserId: fixture.attributedUserId,
+          since: grantSince}) ≥ 1 pinning the last write in the
+          route.ts:227-242 fan-out. AMOUNT=5 chosen for the same CI-
+          replay stability rationale as row 152 — leaves ~19995
+          headroom before gate 5 on any (reseller, month) pair carrying
+          leftover accumulation from an older tick.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.200 → 2026-07-23.201; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Row 154 lives in audit-log-writes.spec.ts (not credit-grant-
+          authz.spec.ts) to match the wave-5 row 179 topology: authz
+          specs own the HTTP contract (status codes + envelopes +
+          cache-column reads); audit-log-writes.spec.ts owns the
+          append-only ledger side effect. A route refactor that
+          hoisted the auditLog() call above the credit_transactions
+          INSERT would still leave row 152's envelope assertions green
+          but the audit-log metadata.credit_transaction_id would drift
+          — countResellerAuditLogFor's (action, actorUserId,
+          subjectUserId, since) triple still catches the actor/subject
+          drift, and a missing row (RLS deny or silent auditLog no-op)
+          surfaces the count=0 assertion.
+        - Route write reference: web/src/app/api/reseller/credits/
+          grant/route.ts:227-242 — db.auditLog({actor_user_id: user.id,
+          subject_user_id: targetUserId, action:"grant_credits", ...})
+          wrapped in try/catch that returns 500 audit_failed on throw
+          (route.ts:243-248). fixture.adminUserId == user.id under
+          loginAs(adminEmail) since app_users.id is the session
+          principal.
+        - attachAttributedCustomer + attachGrantSelfApprove closures
+          push onto the fixture's restore stack — cleanup() in
+          afterAll reverses the four-write chain (reseller_credit_
+          grants first because its credit_transaction_id FK points at
+          credit_transactions.id, then credit_transactions, then
+          credit_balances UPSERT-back-or-DELETE branch matching the
+          pre-attach existence flag). reseller_audit_log rows are
+          NOT swept — migration 0093 mutation triggers block
+          DELETE/UPDATE (append-only per H.9's 6-year retention).
+          Matches the audit-log-writes.spec.ts posture where the
+          since cursor is the append-only-safe way to scope counts.
+        - Skip-guard replicates row 152 verbatim on adminUserId +
+          attributedUserId + attributionExists + attachAttributedCustomer
+          + attachGrantSelfApprove null branches so an under-provisioned
+          host (missing seed-qa-reseller.mjs, no QA_RESELLER_MULTI_ADMIN=1)
+          skips cleanly with an actionable seed-command hint rather than
+          false-failing on a partial-fixture 500.
+        - No production code touched. Spec + goal file only. Neither
+          the R-01 scope-boundary rule (only /api/reseller/**) nor the
+          R-03 manifest rule (only feature-gates.manifest.ts routes)
+          scan web/tests/e2e/** so lint counts are unchanged.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: exit 0. New describe block
+          resolves against the existing TempResellerFixture,
+          attachAttributedCustomer, attachGrantSelfApprove,
+          loadTempReseller, tempResellerSkipReason,
+          loadSupabaseAdmin, supabaseAdminSkipReason,
+          countResellerAuditLogFor imports already at the top of
+          audit-log-writes.spec.ts — no new import lines required.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 exemptions, 0 violations —
+          unchanged.
+        - `npx vitest run src/lib/reseller` in web/: 29 files 449/449
+          pass — unchanged (Playwright specs are excluded from vitest
+          by design; audit-log-writes.spec.ts lives under web/tests/e2e).
+        - No DB apply this tick — no migration authored. Playwright
+          run against staging still gated on the tick 198 seed re-run
+          per P10 hardening exit criteria, not this tick.
+
+      Frontier after tick 201:
+        - Track A P8.5 STILL HUMAN-BLOCKED on
+          STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL.
+        - Track A P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20
+          ABN + GST.
+        - Track B COMPLETE.
+        - Row 154 now activated — will land as a fully-green Playwright
+          row on the next staging seed re-run under
+          QA_RESELLER_MULTI_ADMIN=1 + QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL
+          set. Skips cleanly under-provisioned.
+        - Rows 155 / 156 — same active_wholesale posture as rows 152 +
+          154; row 155 probes reseller_credit_grants mirror-row count
+          via loadSupabaseAdmin post-POST (reseller_id + target_user_id +
+          created_at >= grantSince → exactly 1 row); row 156 probes
+          balance readback after two chained grants (5 → 5, then 3 → 8
+          asserts arithmetic through credit_balances upsert vs cache).
+          Both can reuse attachGrantSelfApprove for cleanup.
+        - Row 157 (code-validate × paused × inactive 404) — still needs
+          an active promo mint on the paused variant so code-validate
+          hits status='inactive' rather than promo_missing.
+        - Row 175 approve(code_request) branch — still P8.5-blocked
+          (Stripe test-mode key required).
+        - Row 178 signup-jitter branch — still QA-mode-blocked.
+        - Row 182 SetupIntent happy — still P8.5-blocked.
+
+      Natural next pick for tick 202: activate row 155 by adding a
+      test.describe("Reseller credit-grant mirror row — P10 wave-3
+      row 155") block to audit-log-writes.spec.ts (mirror-row DB
+      assertion) using the same TempResellerFixture + attach* helpers
+      as row 154. Use captureSince cursor + POST /api/reseller/
+      credits/grant → 200, then SELECT count from
+      reseller_credit_grants WHERE reseller_id = fixture.resellerId
+      AND target_user_id = fixture.attributedUserId AND created_at >=
+      grantSince asserting exactly 1 mirror row (route.ts:206-218).
+      Alternative: row 156 balance-readback chain (5 → 5, then 3 → 8)
+      is also unblocked but wants the wave-3 row 155 mirror assertion
+      to land first so the chain assertion has a stable single-grant
+      baseline.
+    commit: (this tick)
+
   - tick: 200
     ran_at: 2026-07-22
     action: p10_wave3_row_152_credit_grant_happy_activation

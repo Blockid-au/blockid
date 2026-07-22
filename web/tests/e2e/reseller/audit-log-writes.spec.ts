@@ -967,3 +967,178 @@ test.describe("Reseller audit-log writes — P10 wave-5 row 179 cancel symmetric
     ).toBe(1);
   });
 });
+
+// P10 wave-3 row 154 — credit-grant self-approve fan-out audit-log assertion.
+// Companion block to the row 152 wire-envelope test in
+// credit-grant-authz.spec.ts (line 361). That block owns the response
+// envelope (200 + ok=true + credit_transaction_id UUID + over_budget=false +
+// month_key YYYY-MM + non-negative remaining_budget); this block owns the
+// DB-level audit-row check on the last write the happy path fans out via
+// web/src/app/api/reseller/credits/grant/route.ts:227-242:
+//
+//   db.auditLog({
+//     actor_user_id: user.id,          // == fixture.adminUserId
+//     subject_user_id: targetUserId,   // == fixture.attributedUserId
+//     action: "grant_credits",
+//     metadata: { amount, month_key, over_budget:false, credit_transaction_id },
+//   })
+//
+// The route wraps the auditLog() call in try/catch and returns 500
+// audit_failed on throw (route.ts:243-248), so a swallowed exception in the
+// wrapper would still surface as a non-200 on the credit-grant response —
+// but a resellerSupabase.auditLog() regression that returned success without
+// inserting the row (e.g., silent RLS deny under an incorrect scope) would
+// pass row 152's wire assertions AND leave the reseller_audit_log ledger
+// silent on the privileged mutation. That gap is exactly what this block
+// closes: the count check runs against the same append-only 0093 ledger the
+// wave-5 rows 179 read from, using an ISO cursor captured immediately
+// before the POST so prior-run rows against the same (reseller, month) pair
+// cannot inflate the assertion.
+//
+// Folding the audit assertion into audit-log-writes.spec.ts (rather than
+// extending credit-grant-authz.spec.ts's row 152 block) mirrors the wave-5
+// row 179 topology: authz specs assert on the HTTP contract (status codes,
+// response envelopes, cache-column reads) while audit-log-writes.spec.ts
+// asserts on the append-only ledger side effect. Downstream a route
+// refactor that hoisted the auditLog() call above the credit_transactions
+// INSERT would still leave row 152 green (envelope unchanged) but light
+// this block up (subject_user_id would remain correct but the actor/subject
+// pairing would sit on the pre-mutation branch instead of the post-mutation
+// branch — the reseller_audit_log row's metadata.credit_transaction_id
+// would drift null which the countResellerAuditLogFor helper already
+// filters via the (action, actorUserId, subjectUserId, since) triple).
+//
+// Skip discipline matches wave-5 row 179 verbatim (five-step: fixtureError
+// / fixture null / attributedUserId null / !attributionExists / supabase
+// null / adminUserId null / attach null / grant null) so an
+// under-provisioned host (no seed-qa-reseller.mjs run, no
+// QA_RESELLER_MULTI_ADMIN=1) skips cleanly rather than throwing a
+// partial-fixture 500 under Playwright's default parallelism.
+test.describe("Reseller audit-log writes — P10 wave-3 row 154 credit-grant fan-out", () => {
+  let fixture: TempResellerFixture | null = null;
+  let fixtureError: string | null = null;
+
+  test.beforeAll(async () => {
+    try {
+      fixture = await loadTempReseller("active_wholesale");
+    } catch (err) {
+      fixtureError = (err as Error).message;
+    }
+  });
+
+  test.afterAll(async () => {
+    if (fixture) {
+      try {
+        await fixture.cleanup();
+      } catch (err) {
+        // Bubble so a partial restore fails the run rather than leaking
+        // credit_balances / credit_transactions / reseller_credit_grants
+        // rows into the next spec worker. reseller_audit_log rows are
+        // append-only per migration 0093 and are intentionally NOT swept by
+        // fixture.cleanup() — see attachGrantSelfApprove doc-comment.
+        throw new Error(
+          `wave-3 row 154 cleanup failed — attributed founder's credit_balances / credit_transactions / reseller_credit_grants rows may still leak: ${(err as Error).message}`,
+        );
+      }
+    }
+  });
+
+  test("POST /api/reseller/credits/grant emits a reseller_audit_log(grant_credits) row", async ({
+    page,
+  }) => {
+    if (fixtureError) {
+      test.skip(true, `${tempResellerSkipReason("active_wholesale")} (${fixtureError})`);
+      return;
+    }
+    if (!fixture) {
+      test.skip(true, tempResellerSkipReason("active_wholesale"));
+      return;
+    }
+    if (!fixture.attributedUserId) {
+      test.skip(
+        true,
+        `${tempResellerSkipReason("active_wholesale")} — attributedUserId null (attributed founder app_users row missing on this host).`,
+      );
+      return;
+    }
+    if (!fixture.attributionExists) {
+      test.skip(
+        true,
+        `${tempResellerSkipReason("active_wholesale")} — reseller_attributions row missing on this host so scopedReseller().allowedCustomerIds() would return 403 not_in_scope before decideGrant fires. Re-run seed-qa-reseller.mjs with QA_RESELLER_MULTI_ADMIN=1.`,
+      );
+      return;
+    }
+    if (!fixture.adminUserId) {
+      test.skip(
+        true,
+        `${tempResellerSkipReason("active_wholesale")} — adminUserId null (reseller_admins mirror missing on this host) so the auditLog actor_user_id assertion cannot resolve. Re-run seed-qa-reseller.mjs with QA_RESELLER_MULTI_ADMIN=1.`,
+      );
+      return;
+    }
+
+    const supabase = loadSupabaseAdmin();
+    if (!supabase) {
+      test.skip(true, supabaseAdminSkipReason());
+      return;
+    }
+
+    // Mirrors credit-grant-authz.spec.ts row 152 setup: attach the
+    // attribution_reseller_id cache column before the POST (not strictly
+    // required for the grant route but keeps fixture state consistent with
+    // the wave-2 posture) then snapshot credit_balances + register the
+    // restore closure so cleanup() reverses the four-write fan-out. Both
+    // attaches route through fixture.cleanup() so a mid-request failure
+    // still gets swept in afterAll.
+    const attributed = await fixture.attachAttributedCustomer();
+    if (!attributed) {
+      test.skip(
+        true,
+        "attachAttributedCustomer() returned null — variant mismatch or attributedUserId lookup failed after beforeAll seed. Investigate seed-qa-reseller.mjs output.",
+      );
+      return;
+    }
+    const AMOUNT = 5;
+    const grant = await fixture.attachGrantSelfApprove({ amount: AMOUNT });
+    if (!grant) {
+      test.skip(
+        true,
+        "attachGrantSelfApprove() returned null — credit_balances snapshot failed or adminUserId missing after beforeAll seed.",
+      );
+      return;
+    }
+
+    try {
+      await loginAs(page, fixture.adminEmail);
+    } catch (err) {
+      test.skip(
+        true,
+        `Reseller-admin QA account not seeded for variant='active_wholesale' (${fixture.adminEmail}): ${(err as Error).message}. Run scripts/seed-test-users.mjs with QA_RESELLER_MULTI_ADMIN=1.`,
+      );
+      return;
+    }
+
+    // Capture cursor BEFORE the POST so prior-run rows against the same
+    // (actor, subject) pair cannot poison the count. reseller_audit_log is
+    // append-only per migration 0093 (mutation triggers block UPDATE/DELETE)
+    // so the `since` filter is the only sweep-free way to scope this.
+    const grantSince = new Date().toISOString();
+    const resp = await page.request.post("/api/reseller/credits/grant", {
+      data: { target_user_id: fixture.attributedUserId, amount: AMOUNT },
+    });
+    expect(
+      resp.status(),
+      `credit-grant route returned ${resp.status()} — expected 200 with the fixture-attributed customer. Body: ${await resp.text()}`,
+    ).toBe(200);
+
+    const auditCount = await countResellerAuditLogFor(supabase, {
+      action: "grant_credits",
+      actorUserId: fixture.adminUserId,
+      subjectUserId: fixture.attributedUserId,
+      since: grantSince,
+    });
+    expect(
+      auditCount,
+      `expected ≥1 grant_credits audit row for (actor=${fixture.adminUserId}, subject=${fixture.attributedUserId}) since ${grantSince}; got ${auditCount}. Route write lives at route.ts:227-242 — a 200 without a matching audit row would flag either a resellerSupabase.auditLog() regression or an RLS-scope drift on the append-only 0093 ledger.`,
+    ).toBeGreaterThanOrEqual(1);
+  });
+});
