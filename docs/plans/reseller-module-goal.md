@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.179
+version: 2026-07-23.180
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,158 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 180
+    ran_at: 2026-07-22
+    action: p10_wave5_row_165_admin_resellers_create_authz_happy_activated
+    result: |
+      Seventeenth wave-5 landing per docs/plans/p10-deferred-spec-activation-
+      order.md — activated row 165 (`admin-resellers-create-authz.spec.ts`
+      × (n/a) × POST /api/admin/resellers happy path → 201 with new
+      resellers row). Closes the last wave-5 admin-surface leaf; every
+      sibling admin-authz spec (list/detail/patch/delete/loop-status/
+      requests-list/requests-patch) already carried a happy branch. The
+      P10 exit criterion §420 "admin-facing endpoints regression-guarded
+      at the Playwright lens" now holds symmetrically across GET/POST/
+      PATCH/DELETE for /api/admin/resellers[/:code] and /api/admin/
+      reseller-requests[/:id].
+
+      Files:
+        - web/tests/e2e/reseller/admin-resellers-create-authz.spec.ts
+          (header docblock: "Happy path (201)" bullet flipped from
+          "folded into the admin QA harness follow-up" to "ACTIVATED
+          wave-5 row 165 (tick 180)" and documented the per-run unique
+          probe code + retail billing_model + soft-DELETE cleanup
+          rationale; imports extended with adminHarnessSkipReason +
+          loadAdminHarness from fixtures/reseller; added a
+          `mintProbeCode()` helper returning `PROBETICK180<6-char-
+          base36-upper>` so successive CI worker runs never collide on
+          the resellers_code_key UNIQUE index — a rerun after a failed
+          afterAll cleanup just mints a fresh code and the stale row
+          keeps its status='terminated' bucket without ever blocking
+          a subsequent tick; appended `test.describe("Admin resellers
+          POST — P10 wave-5 row 165 happy path")` block after the two
+          harness-free rows. Inside the new block: `test.afterAll`
+          soft-deletes via DELETE /api/admin/resellers/[code] wrapped
+          in try/catch so a cleanup 5xx never masks the primary 201
+          assertion; the single test POSTs {code, display_name,
+          billing_model:"retail"} so the wholesale GST/ABN gate at
+          route.ts:87-100 skips, asserts 201 + body.ok=true + body
+          .reseller.code=probeCode + body.reseller.billing_model=
+          "retail" + body.reseller.status="active". Pre-existing
+          "P10 dry-run" describe title flipped to "P10 wave-5 row 165
+          pre-write branches" so a single spec-level ripgrep against
+          "P10 wave-5 row 165" surfaces both the pre-write authz rows
+          AND the new happy row jointly.
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.179 → 2026-07-23.180; this review_history entry
+          prepended).
+
+      Design fidelity:
+        - Variant pin matches plan §956 ((n/a)) — the spec is admin-
+          surface, not variant-scoped. loadAdminHarness() resolves
+          qa-admin-1@blockid.au directly without touching
+          loadTempReseller(), matching the wave-5 admin-surface
+          convention set by rows 164 / 167 / 168 / 169 / 170 / 171 /
+          172 / 173 / 174 / 175 / 179 / 180 / 166 (tick 179).
+        - Retail billing_model DELIBERATELY chosen so the wholesale
+          GST/ABN gate at route.ts:87-100 never fires — the happy
+          assertion pins the INSERT branch, not the wholesale
+          invariants (those are row 166's territory, already covered
+          by tick 179 with an explicit wholesale_requires_abn +
+          invalid_abn_format twin). A future refactor that promoted
+          the wholesale gate to always-on (e.g. all resellers must be
+          registered for GST) would flip this row red and row 166's
+          missing/invalid ABN rows would stay green, exposing the
+          drift in the exact spec that pins the retail branch.
+        - Per-run unique probe code (`PROBETICK180<6-char-random>`)
+          via mintProbeCode() rather than a single fixed
+          `QAPROBECREATED` seed. Rationale: the resellers.code column
+          holds a UNIQUE constraint (route.ts:127 catches
+          resellers_code_key), so a fixed seed would trip 409
+          code_taken on the second run if the afterAll cleanup ever
+          failed. Random suffix means a live-CI rerun after a cleanup
+          flake still mints a fresh row and the stale one stays
+          inert (status='active' or 'terminated') without blocking
+          the next run.
+        - Soft-DELETE cleanup via the sibling DELETE
+          /api/admin/resellers/[code] endpoint (route.ts:220-224
+          flips status → 'terminated' + bumps updated_at) rather than
+          a hard DELETE against getSupabaseAdmin from the test
+          context. Rationale: (a) the test process runs against the
+          deployed Next.js server so it has no direct Supabase
+          admin client; (b) the DELETE endpoint's soft-delete keeps
+          the row in the terminated bucket which every downstream
+          aggregate discards (portfolio, phase-distribution,
+          integrations catalogue, commission accrual all filter
+          status='active'); (c) cleanup lives in afterAll wrapped
+          in try/catch so a session drop or network flake between
+          the primary assertion and cleanup never masks the 201
+          assertion — the stale 'active' row would then persist
+          under its unique probe code but be inert per the (a)/(b)
+          logic.
+        - reseller_promotion_codes cleanup DELIBERATELY skipped.
+          The POST /api/admin/resellers route does NOT invoke
+          decideCodeMint (route.ts:107-142 is a bare resellers
+          INSERT with no downstream table writes); reseller
+          promotion codes are minted only by the P9.4 approve-side
+          of /api/reseller/requests. A future refactor that
+          auto-minted a code slot on resellers INSERT would leak
+          orphaned reseller_promotion_codes rows here — the followup
+          would be to extend the afterAll to DELETE FROM
+          reseller_promotion_codes WHERE reseller_id = createdRow.id
+          before the resellers DELETE.
+        - Skip discipline: three layers — (1) loadAdminHarness()
+          returns null when qa-admin-1@blockid.au is missing from
+          /tmp/blockid-qa-accounts.txt → test.skip via
+          adminHarnessSkipReason(); (2) loginAs throws when the QA
+          password file entry is missing → test.skip inline with
+          the exact reseed command; (3) createdCode captured only
+          when body.reseller.code is a string so an unexpected null
+          shape does not throw in afterAll and still leaves
+          createdCode=null for the afterAll no-op branch.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0). The two
+          new imports (adminHarnessSkipReason + loadAdminHarness)
+          both resolve against existing exports in fixtures/reseller
+          .ts; mintProbeCode + probeCode + createdCode are all
+          typed inference-friendly (string / string | null).
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files,
+          R-03 scanned 31 manifest routes, 3 documented exemptions,
+          0 violations — unchanged from tick 179 (the spec is not
+          under /api/reseller/** for the R-01 grep and is not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - No DB apply this tick — no migration authored.
+        - Goal file version bumped 2026-07-23.179 → 2026-07-23.180.
+
+      Frontier after tick 180: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision
+      seed STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE;
+      P10 still blocked_by [P1..P9] until P8.5 clears. Wave 5 has now
+      landed 164 + 165 + 166 + 167 + 168 + 169 + 170 + 171 + 172 +
+      173 + 174 + 175 (deny+cancel) + 176 + 179 + 180 + 181 + 183 —
+      every wave-5 admin-surface row (rows 164-175) is now green,
+      leaving only row 177 (showcase-reviews-validation), row 178
+      (attribution-timing), and row 182 (billing-authz) as the last
+      three deferred wave-5 rows. Natural next picks:
+        (i) row 178 attribution-timing wave-5 activation — needs a
+             fresh unattributed founder QA seed row (the fixture
+             would need a snapshot/restore of app_users
+             .attribution_reseller_id similar to
+             attachAttributedCustomer());
+        (ii) row 177 (`showcase-reviews-validation.spec.ts` ×
+              active_wholesale × reviewer-flow POST — still deferred
+              on the seeded data_room_access_tokens dependency per
+              plan §J.2);
+        (iii) row 182 (`billing-authz.spec.ts` × active_wholesale ×
+               happy 200 with SetupIntent client_secret — still
+               deferred on the Stripe SetupIntent mint side effect +
+               reseller_audit_log(mint_setup_intent) write, which
+               need a stripe-test-mode key or a QA-only mock harness);
+        (iv) row 175 approve branch — still deferred on the same
+              ledger-side-effect concern as tick 175.
+    commit: (this tick)
+
   - tick: 179
     ran_at: 2026-07-22
     action: p10_wave5_row_166_admin_resellers_create_validation_activated
