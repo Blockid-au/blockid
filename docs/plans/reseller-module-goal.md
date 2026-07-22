@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.149
+version: 2026-07-23.150
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,142 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 150
+    ran_at: 2026-07-22
+    action: p10_wave2_row_148_activate_reveal_email_authz_happy_plaintext_email
+    result: |
+      Opened wave 2 row 148 per
+      docs/plans/p10-deferred-spec-activation-order.md. One row landed —
+      the reveal-email-authz.spec.ts × active_wholesale × happy branch
+      (200 with body.ok true + body.email plaintext containing '@' and NOT
+      containing '*'). Row 146 (tick 148) pinned the same auth chain
+      (getCurrentUser → scopedReseller → decideReveal → app_users →
+      auditLog) on the drawer route; row 148 pins the sibling POST
+      surface which differs in HTTP verb, response field (email vs
+      overview), and mask-vs-plaintext contract (drawer.overview.masked_
+      email vs reveal-email.body.email raw).
+
+      Batching heuristic per schedule doc: row 148 is the ONLY wave-2 row
+      in reveal-email-authz.spec.ts (row 149 lives in
+      reveal-email-validation.spec.ts), so the "same file with the same
+      variant" clause does not permit further collapse. The
+      attributionExists guard (added tick 148) transfers cleanly into
+      this spec — no fixture changes needed this tick.
+
+      Files:
+        - web/tests/e2e/reseller/reveal-email-authz.spec.ts (imports
+          extended: added loadTempReseller + tempResellerSkipReason +
+          TempResellerFixture type-only import alongside the existing
+          loginAs import; added REVEAL_ROUTE helper mirroring
+          drawer-authz.spec.ts DRAWER_ROUTE so URL construction stays
+          canonical across the twin routes; new test.describe block
+          "Reseller reveal-email — P10 wave-2 happy path" holds row
+          148; "Deliberately out of scope" comment updated — the
+          happy-path branch flipped from folded/deferred to ACTIVATED
+          with pointer at the new test and a note that row 179
+          audit-log-writes.spec.ts owns the audit-row assertion while
+          row 148 focuses on the 200 wire envelope with plaintext
+          email).
+        - docs/plans/p10-deferred-spec-activation-order.md ("Wave-2 row
+          148 landed (tick 150)" paragraph inserted above the tick 149
+          note explaining the partnership with row 146 and the
+          three-assertion budget rationale).
+
+      Design fidelity:
+        - Coverage-vs-duplication call: chose to pin body.email is a
+          plaintext string containing '@' and NOT containing '*' rather
+          than pinning the exact email string. The seeded attributed
+          founder email is DEFAULT_ATTRIBUTED_FOUNDER_EMAIL (qa-founder-
+          attributed-1@blockid.au) per fixtures/reseller.ts, but a host
+          that overrides QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL would
+          surface an unrelated spec failure that tracks env drift rather
+          than a code regression. The shape assertions (typeof string +
+          contains '@' + does NOT contain '*') are enough to pin the
+          plaintext contract per plan §H.10 — a regression that piped
+          the value through maskEmail() surfaces via the '*' assertion.
+        - Twin-row accounting vs row 146: row 146 exercises the same
+          route-order chain (getCurrentUser → scopedReseller → decideReveal
+          → app_users lookup → auditLog) with the same
+          fixture.attributedUserId. The two rows differ ONLY in HTTP
+          verb (POST vs GET) and mask-vs-plaintext contract (drawer
+          masks the email inside overview; reveal-email returns raw
+          email). That is intentional per plan §H.10 — the list view
+          masks (drawer piggybacks on the list-shape via
+          buildOverviewSummary), and the click-to-reveal writes an
+          audit-row and returns raw. Both wire envelopes must be pinned
+          because a regression could accidentally mask the reveal-email
+          path (privacy-safe but breaks the "Show" click) or
+          accidentally leak plaintext through the drawer's overview
+          (privacy leak). Row 146 pins the mask; row 148 pins the
+          plaintext.
+        - Skip discipline mirrors row 146: fixture null → skip;
+          adminUserId null → skip (scopedReseller would 403
+          no_membership before the email lookup runs);
+          attributedUserId null → skip; attributionExists false → skip
+          (would 403 not_in_scope from allowedCustomerIds, which is the
+          exact failure mode row 148 is designed to catch — a partial-
+          seed host cannot distinguish "seeder not run" from "code
+          regression" so it must skip rather than false-fail);
+          loginAs throw → skip.
+        - Non-Stripe / non-GST discipline: unchanged from row 146. The
+          reveal-email route reads app_users(id, email) only and writes
+          one reseller_audit_log row via db.auditLog(). No
+          promotion_code lookup, no Stripe network call, no InfoVision
+          dependency. P8.5 + P1.5 remain neither a dependency nor a
+          consequence. The audit-log write side-effect is captured by
+          wave-5 row 179 (audit-log-writes.spec.ts) so this row focuses
+          on the 200 wire envelope with plaintext email — a broken
+          audit-log write would surface as body.ok=false here (the 500
+          audit_failed branch fires BEFORE the 200 return) rather than
+          as a missing audit row that only row 179 could detect.
+        - Route-order coverage: row 148 exercises the same route.ts:95
+          return with the same variant and the same attributedUserId
+          as row 146 (drawer route.ts:148) but on a DIFFERENT route
+          file. A future refactor that consolidates decideReveal +
+          audit-log ordering into a shared helper (deferred idea)
+          would need both rows to green before landing.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0, no output).
+          The new imports (loadTempReseller, tempResellerSkipReason,
+          TempResellerFixture type-only) type-check against the fixture
+          module unchanged since tick 149.
+        - `npx vitest run src/lib/reseller/ src/lib/feature-gate.test.ts
+          src/lib/entitlements.test.ts` in web/: 31 files / 462 tests
+          pass (2.19s, identical to tick 149 — no pure-lib code touched,
+          only the Playwright spec).
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 documented exemptions, 0
+          violations — unchanged from tick 149 (the spec is not under
+          /api/reseller/** for the R-01 grep and it is not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - No DB apply this tick — pure test-file addition + schedule-doc
+          callout.
+        - Goal file version bumped 2026-07-23.149 → 2026-07-23.150.
+
+      Frontier after tick 150: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision seed
+      STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE; P10 still
+      blocked_by [P1..P9] until P8.5 clears. What tick 150 unblocks:
+      row 148 lit up in CI on the next `npx playwright test` run —
+      closes the wave-2 reveal-email authz surface (rows 146/147/148
+      pin decideReveal's POSITIVE branch across drawer-authz +
+      drawer-validation + reveal-email-authz). Row 149
+      (reveal-email-validation.spec.ts × active_wholesale × happy path
+      with attributed customer id) is the last wave-2 row remaining
+      and reuses the same attributionExists guard so it will land as a
+      lightweight paste that mirrors this tick's structure across the
+      POST reveal-email validation-branch surface. Next autonomous
+      tick options:
+        (i) advance to wave 2 row 149 (reveal-email-validation.spec.ts ×
+            active_wholesale × happy 200 with attributed customer id) —
+            closes wave 2 entirely, twins row 147 across the POST
+            surface;
+        (ii) jump ahead to wave 3 row 150 (credit-grant-authz.spec.ts ×
+             no_capability × capability_disabled 402) — starts the
+             capability + budget gate wave using the `no_capability`
+             variant fixture already provisioned;
+        (iii) idle until human unblock arrives on P8.5 or P1.5.
   - tick: 149
     ran_at: 2026-07-22
     action: p10_wave2_row_147_activate_drawer_validation_uuid_in_scope_happy
