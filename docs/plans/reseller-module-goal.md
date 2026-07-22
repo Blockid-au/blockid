@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.103
+version: 2026-07-23.104
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,121 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 104
+    ran_at: 2026-07-22
+    action: p10_dry_run_reports_signed_url_authz_playwright_spec
+    result: |
+      Composed option (i) fallback from tick 103's frontier note — Track A
+      P8.5 still HUMAN-BLOCKED, Track B COMPLETE, admin PATCH surface
+      already covered by tick 103, and the remaining /api/reseller/**
+      GET surface with an untested auth chain is the signed-url mint
+      endpoint at /api/reseller/reports/[month]/signed-url. Picked this
+      route because it exercises the SAME getCurrentUser + scopedReseller
+      chain as reveal-email + drawer (ticks 100/101) but on a NEW code
+      path — the P7.2 signed-URL storage lens (see plan §C.6 retention
+      window + §U.15.13 D3-CISO-01 chokepoint) — so a regression that
+      mints a signed URL before the auth/scope gates fire would surface
+      here rather than being caught upstream. It is also the only
+      remaining GET path on the reseller side that writes to
+      reseller_audit_log (action='download_report') and mints a
+      Storage.createSignedUrl in the happy path; making the pre-write
+      contract explicit protects both writes.
+
+      Files:
+        - web/tests/e2e/reseller/reports-signed-url-authz.spec.ts (new
+          — two rows probing the auth chain before any DB read, storage
+          sign, or audit-log write:
+          (1) unauthenticated (GET with no session → getCurrentUser
+              null → route returns 401 { ok:false, reason:"unauthorised" }
+              at route.ts:41-43 BEFORE scopedReseller, MONTH_RE.test,
+              isMonthExposed, reseller_report_files SELECT, storage
+              sign, or reseller_audit_log(download_report) write),
+          (2) non_reseller_admin (loginAs(qa-founder-1@blockid.au) →
+              GET → scopedReseller finds no active reseller_admins row
+              for the founder's user_id → throws
+              ResellerScopeError("no_membership") → route returns 403
+              { ok:false, reason:"no_membership" } at route.ts:48-52
+              BEFORE MONTH_RE.test, isMonthExposed, reseller_report_files
+              SELECT, storage sign, or reseller_audit_log write).
+          Row 1 runs unconditionally (no harness dep — just
+          page.request without loginAs). Row 2 test.skip()s with a
+          diagnostic message if /tmp/blockid-qa-accounts.txt is missing
+          so operators without the seed file get an actionable pointer
+          rather than a hard fail. Placeholder month "2026-07" sits in
+          the [month] segment for URL well-formedness against MONTH_RE
+          shape (YYYY-MM); both rows return before the month regex runs
+          so the placeholder value never reaches MONTH_RE.test or
+          isMonthExposed.
+
+      Why this shape mirrors ticks 100/101: reveal-email + drawer both
+      hit getCurrentUser + scopedReseller and return the same
+      { ok:false, reason:"unauthorised" | "no_membership" } envelope
+      pair, and this signed-url path uses the same middleware pair —
+      so the assertion shape is symmetric. A refactor that swaps
+      scopedReseller() for a bespoke inline check, or that flips the
+      403 to a 402 (misclassifying scope failure as a feature gate),
+      or that reorders the checks so the month regex runs before scope
+      (leaking valid-vs-invalid-month information to unauthenticated
+      callers), would light up here.
+
+      Why the 400/403 not_exposed/404/500/503 branches aren't covered:
+      invalid_month (400) sits BEHIND scopedReseller (route.ts:56 vs :47)
+      — surfacing it needs a real reseller session PLUS a malformed
+      `[month]` segment. not_exposed (403) sits BEHIND scopedReseller
+      too, needs a reseller session PLUS a month outside the 12-month
+      RETENTION_EXPOSED_MONTHS window. not_found (404) needs a reseller
+      session PLUS a valid month with no reseller_report_files row.
+      not_configured (503) needs SUPABASE_URL/SERVICE_ROLE unset which
+      would break every other Playwright spec in the same worker.
+      sign_failed / audit_failed / lookup_failed (500) need per-test
+      tampering plan §J.2 forbids. Happy path (200 signed_url +
+      filename + expires_at) mints a real signed URL against the
+      reseller-reports bucket + writes a
+      reseller_audit_log(download_report) row against the harness
+      reseller; folded into the temp-reseller mint fixture follow-up
+      alongside the deferred rows from ticks 94/95/96/97/98/99/100/101/
+      102/103.
+
+      Verified: tsc clean (npx tsc --noEmit -p tsconfig.json exit 0 at
+      web/); vitest unchanged (Playwright spec is not picked up by
+      vitest — tests/e2e/** is excluded per playwright.config.ts:
+      testDir); npm run lint:reseller: R-01 scanned 11 file(s), R-03
+      scanned 31 manifest route(s); 3 exemptions, 0 violations
+      unchanged (spec lives under web/tests/e2e/reseller/, not
+      /api/reseller/**, so R-01 doesn't fire; not a mutation route in
+      feature-gates.manifest.ts so R-03 doesn't fire). Playwright not
+      run this tick — row 1 is harness-free and will execute on the
+      next CI Playwright pass; row 2 lights up as soon as the qa
+      accounts file is present.
+
+      Frontier after tick 104: unchanged in shape — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 104 unblocks: the /api/reseller/reports/[month]/signed-url
+      auth-chain ordering (getCurrentUser → scopedReseller → 401
+      unauthorised | 403 no_membership BEFORE month regex / storage
+      lookup / storage sign / reseller_audit_log write) is now
+      regression-guarded at the Playwright lens. Sixteen spec files
+      now sit in web/tests/e2e/reseller/ (admin-reseller-patch-authz,
+      attribution-timing, audit-anomaly-scan, audit-log-writes,
+      billing-authz, cobranding-pill, code-validate,
+      create-startup-validation, credit-grant-validation,
+      drawer-authz, me-attribution, reports-signed-url-authz,
+      requests-validation, reveal-email-authz, sandbox-setup-authz,
+      scope-boundary). Next autonomous tick options: (i) mirror-spec
+      for PATCH /api/admin/resellers/requests/[id] which shares the
+      same requireAdmin() chain as tick 103's admin-reseller-patch
+      but with a different body shape (approve/deny/cancel enum);
+      (ii) mirror-spec for DELETE /api/admin/resellers/[code]
+      soft-delete which extends tick 103's auth pair to the terminate
+      path; (iii) GET /api/admin/resellers/requests list-side
+      auth-chain (also requireAdmin); (iv) landing the QA-mode
+      temp-reseller mint fixture that opens up all the deferred
+      branches from ticks 94..104 at once (larger tick, wants a
+      design pass); (v) idle until human unblock arrives.
     commit: (this tick)
 
   - tick: 103
