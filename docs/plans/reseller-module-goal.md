@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.208
+version: 2026-07-23.209
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,163 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 209
+    ran_at: 2026-07-22
+    action: p10_wave5_row_179_deny_cancel_mirror_lens_alignment_via_shared_helper
+    result: |
+      Extended the P10 wave-5 row 179 shape+helper alignment from tick 208
+      (approve branch) onto the deny + cancel symmetric branches in
+      web/tests/e2e/reseller/audit-log-writes.spec.ts. Where tick 208 pinned
+      the approve-branch mirror-INSERT fan-out at exactly 1 via
+      countResellerCreditGrantsFor(reseller_id, target, kind='grant',
+      since=patchSince), this tick pins the deny + cancel branches at
+      exactly 0 through the same helper — the negative-assertion twin of
+      tick 208's positive assertion. Both branches already carried a
+      raw-supabase shape read expecting 0 rows scoped by
+      (target_user_id, metadata->>reseller_request_id); this tick adds a
+      second-lens helper call scoped by (reseller_id=fixture.resellerId,
+      target_user_id, kind='grant', since=patchSince) so a regression that
+      landed a mirror insert on either terminal branch AND keyed it to a
+      different reseller_id (e.g. actor_user_id inadvertently threaded as
+      reseller_id under a broken CTE, or a schema drift where reseller_id
+      defaulted to the admin's user_id) lights up here where the metadata-
+      scoped shape read would stay green. Purely additive on both blocks:
+      no test was removed, no assertion weakened, no production code
+      touched.
+
+      Frontier before this tick: tick 208 activated the shape+helper
+      alignment on the approve block (audit-log-writes.spec.ts:545-576)
+      and named the deny/cancel symmetric blocks (audit-log-writes.spec.
+      ts:602-792 + 794-999) as the natural next pick. All 43 rows in the
+      P10 activation matrix (waves 1-5, rows 141-183) remain activated
+      except the three human-blocked rows: 175 approve (code_request)
+      branch (P8.5-blocked on Stripe test-mode), 178 signup-jitter
+      (QA-mode-blocked), 182 SetupIntent (P8.5-blocked). This tick closes
+      the natural next pick.
+
+      Files:
+        - web/tests/e2e/reseller/audit-log-writes.spec.ts (two new
+          "Ledger table 3b (second-lens negative)" blocks appended after
+          the existing reseller_credit_grants shape reads inside the deny
+          and cancel test bodies. Each block runs countResellerCredit
+          GrantsFor with the same patchSince cursor the shape read + the
+          audit-count assertion already use so cross-run mirror rows
+          against the same (reseller_id, target_user_id) pair — which
+          accumulate across the whole month_key window per requests
+          route.ts:214 whenever an approve DOES fire in a sibling test —
+          cannot poison the count. Long header comment above each call
+          documents (a) the alignment intent — matches tick 208's approve
+          block posture, (b) the shape-vs-helper diagnostic split — shape
+          read confirms metadata scoping stays clean, helper confirms
+          reseller_id + kind scoping stays clean, (c) the specific
+          regression class the helper catches: a mirror insert escaping
+          the approve+over_budget_approval guard with reseller_id keyed
+          to actor_user_id would leak past the metadata-scoped read. The
+          countResellerCreditGrantsFor + loadSupabaseAdmin +
+          supabaseAdminSkipReason imports at lines 52-58 are already in
+          scope from the earlier row 179 approve block so no new import
+          line is required.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.208 → 2026-07-23.209; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Both new blocks live in audit-log-writes.spec.ts (not admin-
+          requests-patch-authz.spec.ts) per the topology decision
+          established at tick 186 for the wave-5 row 179 family: authz
+          specs own the HTTP contract (status codes + envelope shape +
+          response-side arithmetic); audit-log-writes.spec.ts owns the
+          DB-level side effects on the append-only ledger and the mirror
+          table. Deny + cancel already had shape reads here; the helper
+          calls sit directly alongside them.
+        - Why the assertion is additive and not a replacement of the
+          shape reads: dropping the shape reads to lean only on the
+          helper would lose the metadata->>reseller_request_id scoping
+          the shape reads provide. That scoping is a genuinely
+          orthogonal lens — a regression that emitted a mirror insert on
+          the deny/cancel branch under the correct reseller_id but with
+          missing metadata.reseller_request_id would light up the shape
+          read (metadata predicate would miss it, but the same shape
+          read against (target_user_id) alone would surface a stray
+          row) while staying green under the helper. Keeping both lenses
+          in parallel gives the widest regression-catching envelope.
+        - Why patchSince is the correct cursor: `patchSince` is
+          captured immediately before the deny PATCH (line 727) and the
+          cancel PATCH (line 919) in each test body. Both the audit-
+          count assertion (existing) and the mirror-count assertion
+          (new) reuse it so a single ISO cursor spans the whole PATCH's
+          side-effect window. The helper counts mirror rows created at
+          or after patchSince — this excludes prior-run rows that a
+          partial cleanup may have leaked (reseller_credit_grants is
+          not append-only so cleanup normally removes them, but a
+          cleanup failure between runs could leave a leaked row keyed
+          to the same (reseller_id, target_user_id) under a different
+          month_key window).
+        - Route write reference: web/src/app/api/admin/resellers/
+          requests/[id]/route.ts:271-287 fires supabase.from(
+          'reseller_credit_grants').insert(...) INSIDE the
+          `if (decision.status === "approved" && current.request_type
+          === "over_budget_approval")` guard. A regression that hoisted
+          the insert above the guard so it fired on every terminal
+          (approve + deny + cancel) surfaces on both new blocks; a
+          regression that keyed reseller_id off actor_user_id under a
+          broken CTE surfaces on both new blocks even when the guard is
+          preserved.
+        - Cleanup topology unchanged: attachApproveTarget's restore
+          closure in fixture.ts already sweeps the reseller_requests
+          row LIFO on fixture.cleanup(). fixture.cleanup() runs in
+          afterAll on each describe (line 664-670 deny; line 856-862
+          cancel) so the additive assertions do not change cleanup
+          fidelity.
+        - No production code touched. Spec + goal file only. Neither
+          the R-01 scope-boundary rule (only /api/reseller/**) nor the
+          R-03 manifest rule (only feature-gates.manifest.ts routes)
+          scan web/tests/e2e/** so lint counts are unchanged.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: exit 0. `fixture` and `attach`
+          are narrowed non-null in scope by the earlier five-step skip
+          guard so fixture.resellerId + attach.targetUserId type-check.
+          The countResellerCreditGrantsFor import at line 54 is already
+          in scope from the earlier row 179 approve activation — no new
+          import line required.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 exemptions, 0 violations —
+          unchanged from tick 208.
+        - No DB apply this tick — no migration authored. Playwright run
+          against staging still gated on the tick 198 seed re-run per
+          P10 hardening exit criteria, not this tick.
+
+      Frontier after tick 209:
+        - Track A P8.5 STILL HUMAN-BLOCKED on
+          STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL.
+        - Track A P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20
+          ABN + GST.
+        - Track B COMPLETE.
+        - All 43 rows in the P10 activation matrix (waves 1-5) are
+          activated; only human-blocked rows (175 approve
+          code_request / 178 signup-jitter / 182 SetupIntent) remain
+          on the plan doc's canonical list.
+        - Row 179 approve-fanout (tick 208) + deny-fanout + cancel-
+          fanout (this tick) now each carry BOTH the shape-read
+          content lens AND the shared-helper cardinality+reseller_id
+          lens. Full regression-catching lens coverage on the admin-
+          approve/deny/cancel credit-grant surface, symmetric with the
+          self-approve rows 152/155/156 coverage on the /api/reseller/
+          credits/grant surface.
+
+      Natural next pick for tick 210: (a) author a four-chain
+      (5+3+2+1 → balance=11) variant row 156c in credit-grant-authz.
+      spec.ts + its DB companion in audit-log-writes.spec.ts,
+      extending the accumulation identity chain by one more UPSERT
+      re-entry — that is the only remaining topology extension on
+      the wave-3 self-approve surface not yet exercised. (b)
+      alternative: mirror the row 179 shape+helper alignment onto
+      the row 175 approve+deny+cancel code_request branches once
+      P8.5 unblocks; today only the over_budget_approval branch of
+      the terminal handler carries the shape+helper twin coverage.
+    commit: (this tick)
+
   - tick: 208
     ran_at: 2026-07-22
     action: p10_wave5_row_179_approve_fanout_mirror_lens_alignment_via_shared_helper
