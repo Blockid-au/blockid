@@ -9,6 +9,7 @@ import {
 } from "@/lib/stripe";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { getPlan } from "@/lib/plans";
+import { buildAddonRemovalSchedulePhases } from "@/lib/stripe/addon-schedule";
 
 // POST /api/stripe/change-plan
 // Body (three modes):
@@ -18,10 +19,13 @@ import { getPlan } from "@/lib/plans";
 //        proration totals WITHOUT committing. `preview:false` (or omitted)
 //        commits with `proration_behavior: 'always_invoice'` and records a
 //        `revenue_events { kind: 'addon_purchase' }` row.
-//   3. { remove_item: { price_id } }               — remove an add-on from
-//        the active subscription. Uses `proration_behavior: 'none'` so the
-//        customer keeps access through the paid period and no commission
-//        clawback fires — per plan § F.5 "cancel_at_period_end-style".
+//   3. { remove_item: { price_id } }               — schedule an add-on to end
+//        at `current_period_end`. Creates a Subscription Schedule from the
+//        active subscription with two phases: phase 0 retains the current
+//        items until period end; phase 1 drops the add-on for one cycle;
+//        `end_behavior: 'release'` then returns the subscription to normal
+//        renewal. Customer keeps access through the paid period; no
+//        commission clawback fires (per plan § F.5).
 // Cross-segment plan moves require confirmCrossSegment=true.
 
 export async function POST(request: Request) {
@@ -533,13 +537,53 @@ async function handleRemoveItem(args: {
     );
   }
 
-  // "cancel_at_period_end-style on the item": delete with proration_behavior:'none'
-  // so the customer keeps access through the paid period, no credit is issued,
-  // and no commission clawback fires (per plan § F.5).
   try {
-    await stripe.subscriptionItems.del(target.id, {
-      proration_behavior: "none",
+    // Either reuse the subscription's existing schedule or create one from
+    // the current subscription (Stripe fills phase 0 with the current state).
+    const existingScheduleId =
+      typeof activeSub.schedule === "string"
+        ? activeSub.schedule
+        : activeSub.schedule?.id ?? null;
+
+    const schedule = existingScheduleId
+      ? await stripe.subscriptionSchedules.retrieve(existingScheduleId)
+      : await stripe.subscriptionSchedules.create({
+          from_subscription: activeSub.id,
+        });
+
+    const currentPhase = schedule.phases[0];
+    if (!currentPhase) {
+      throw new Error("subscription_schedule_missing_current_phase");
+    }
+
+    const built = buildAddonRemovalSchedulePhases({
+      currentPhase: {
+        start_date: currentPhase.start_date,
+        end_date: currentPhase.end_date,
+        items: currentPhase.items.map((i) => ({
+          price:
+            typeof i.price === "string"
+              ? i.price
+              : (i.price as { id: string }).id,
+          quantity: i.quantity ?? null,
+        })),
+      },
+      removePriceId: priceId,
     });
+
+    if (!built.ok) {
+      return NextResponse.json(
+        { ok: false, reason: built.reason },
+        { status: 400 },
+      );
+    }
+
+    const updated = await stripe.subscriptionSchedules.update(schedule.id, {
+      end_behavior: "release",
+      phases: built.phases,
+    });
+
+    const effectiveAt = currentPhase.end_date;
 
     await insertAddonRevenueEvent(supabase, {
       userId,
@@ -552,20 +596,23 @@ async function handleRemoveItem(args: {
         subscription_id: activeSub.id,
         subscription_item_id: target.id,
         price_id: priceId,
-        proration_behavior: "none",
+        schedule_id: updated.id,
         effective: "end_of_current_period",
+        effective_at: effectiveAt,
       },
     });
 
     console.log(
-      `[blockid:stripe] removed share-mgmt add-on item ${target.id} from sub ${activeSub.id} (end-of-cycle)`,
+      `[blockid:stripe] scheduled share-mgmt add-on removal on sub ${activeSub.id} at period_end via schedule ${updated.id}`,
     );
 
     return NextResponse.json({
       ok: true,
       subscription_id: activeSub.id,
+      schedule_id: updated.id,
       removed_item_id: target.id,
       effective: "end_of_current_period",
+      effective_at: effectiveAt,
     });
   } catch (err) {
     console.error("[blockid:stripe] remove_item failed", err);
