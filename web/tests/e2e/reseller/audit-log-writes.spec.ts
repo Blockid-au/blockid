@@ -1579,6 +1579,16 @@ test.describe("Reseller credit-grant mirror rows — P10 wave-3 row 156b DB comp
         resp1.status(),
         `POST 1 returned ${resp1.status()} — expected 200. Body: ${await resp1.text()}`,
       ).toBe(200);
+      const body1 = (await resp1.json()) as {
+        ok: boolean;
+        credit_transaction_id?: string;
+        month_key?: string;
+      };
+      expect(body1.ok, `POST 1 body.ok should be true: ${JSON.stringify(body1)}`).toBe(true);
+      expect(typeof body1.credit_transaction_id).toBe("string");
+      expect(body1.credit_transaction_id ?? "").toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+      );
 
       const grant2 = await fixture.attachGrantSelfApprove({ amount: AMOUNT_TWO });
       if (!grant2) {
@@ -1592,6 +1602,16 @@ test.describe("Reseller credit-grant mirror rows — P10 wave-3 row 156b DB comp
         resp2.status(),
         `POST 2 returned ${resp2.status()} — expected 200. Body: ${await resp2.text()}`,
       ).toBe(200);
+      const body2 = (await resp2.json()) as {
+        ok: boolean;
+        credit_transaction_id?: string;
+        month_key?: string;
+      };
+      expect(body2.ok, `POST 2 body.ok should be true: ${JSON.stringify(body2)}`).toBe(true);
+      expect(typeof body2.credit_transaction_id).toBe("string");
+      expect(body2.credit_transaction_id ?? "").toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+      );
 
       const grant3 = await fixture.attachGrantSelfApprove({ amount: AMOUNT_THREE });
       if (!grant3) {
@@ -1605,6 +1625,16 @@ test.describe("Reseller credit-grant mirror rows — P10 wave-3 row 156b DB comp
         resp3.status(),
         `POST 3 returned ${resp3.status()} — expected 200. Body: ${await resp3.text()}`,
       ).toBe(200);
+      const body3 = (await resp3.json()) as {
+        ok: boolean;
+        credit_transaction_id?: string;
+        month_key?: string;
+      };
+      expect(body3.ok, `POST 3 body.ok should be true: ${JSON.stringify(body3)}`).toBe(true);
+      expect(typeof body3.credit_transaction_id).toBe("string");
+      expect(body3.credit_transaction_id ?? "").toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+      );
 
       const mirrorCount = await countResellerCreditGrantsFor(supabase, {
         resellerId: fixture.resellerId,
@@ -1619,6 +1649,100 @@ test.describe("Reseller credit-grant mirror rows — P10 wave-3 row 156b DB comp
           `1 → POST 2 and POST 3 silently skipped the mirror insert despite 200; ` +
           `2 → one of the three chained mirror inserts silently dropped (on-conflict UPSERT path re-fired credit_transactions but not reseller_credit_grants); ` +
           `>3 → duplicated write on one of the three POSTs (fan-out ran twice on a single request).`,
+      ).toBe(3);
+
+      // Second-lens shape read — pins per-field values the count-only helper
+      // above cannot catch on any of the three chained mirror rows. Companion
+      // assertion to tick 211's row 155 single-POST shape+helper alignment
+      // and tick 212's row 156 two-chain shape+helper alignment. The count
+      // helper catches "mirror insert dropped" (count<3) and "mirror insert
+      // duplicated" (count>3) but stays green under: (a) POST 2 or POST 3's
+      // mirror insert reusing a prior POST's credit_transaction_id (FK
+      // collision that preserves count but breaks the per-grant ledger
+      // link); (b) any row's amount stamped from a stale variable across
+      // re-entries (off-by-one on the second or third UPSERT re-entry that
+      // still writes the correct credit_balances math); (c) any row's
+      // granted_by_user_id NULL'd or threaded as targetUserId (self-service
+      // credit theft class); (d) any row's over_budget flipped true when
+      // none of the three self-approve POSTs trip gate 3 (5+3+2=10, budget
+      // 20000); (e) any row's month_key drifting AEST vs UTC on the first-
+      // of-month rollover; (f) any row's metadata.reason dropped or
+      // replaced. Rows fetched ordered by created_at ASC so per-row amount
+      // matches the sequenced 5/3/2 pin from AMOUNT_ONE/TWO/THREE without
+      // a second lookup.
+      const { data: mirrorRows, error: mirrorReadErr } = await supabase
+        .from("reseller_credit_grants")
+        .select(
+          "kind, amount, over_budget, granted_by_user_id, credit_transaction_id, month_key, metadata, created_at",
+        )
+        .eq("reseller_id", fixture.resellerId)
+        .eq("target_user_id", targetUserId)
+        .eq("kind", "grant")
+        .gte("created_at", chainSince)
+        .order("created_at", { ascending: true });
+      expect(
+        mirrorReadErr,
+        `reseller_credit_grants shape read failed for (reseller=${fixture.resellerId}, target=${targetUserId}) since ${chainSince}: ${mirrorReadErr?.message}`,
+      ).toBeNull();
+      expect(
+        mirrorRows,
+        `expected the reseller_credit_grants rows for (reseller=${fixture.resellerId}, target=${targetUserId}) since ${chainSince} to resolve after mirrorCount===3 landed — a null result here would flag an RLS scope drift between countResellerCreditGrantsFor's count(*) call path and the shape SELECT (both go through loadSupabaseAdmin's service-role client so this should never race).`,
+      ).not.toBeNull();
+      expect(mirrorRows!.length).toBe(3);
+      // Compute expected UTC month_key inline (no import from app libs per
+      // this spec's fixture-only import discipline) — mirrors route.ts:101's
+      // monthKey(new Date()) YYYY-MM UTC discipline.
+      const nowThreeChain = new Date();
+      const expectedMonthKeyThreeChain = `${nowThreeChain.getUTCFullYear()}-${String(nowThreeChain.getUTCMonth() + 1).padStart(2, "0")}`;
+      const expectedAmounts = [AMOUNT_ONE, AMOUNT_TWO, AMOUNT_THREE];
+      const expectedTxIds = [
+        body1.credit_transaction_id,
+        body2.credit_transaction_id,
+        body3.credit_transaction_id,
+      ];
+      const expectedBodyMonthKeys = [body1.month_key, body2.month_key, body3.month_key];
+      for (let idx = 0; idx < mirrorRows!.length; idx++) {
+        const row = mirrorRows![idx]!;
+        const metadata = row.metadata as Record<string, unknown> | null;
+        expect(row.kind, `mirror row ${idx} kind mismatch: got ${row.kind}`).toBe("grant");
+        expect(
+          Number(row.amount),
+          `mirror row ${idx} amount mismatch: expected ${expectedAmounts[idx]} (POST ${idx + 1} of the 5+3+2 chain), got ${row.amount}. A regression that stamped the amount from a stale variable across UPSERT re-entries surfaces here.`,
+        ).toBe(expectedAmounts[idx]);
+        expect(
+          row.over_budget,
+          `mirror row ${idx} over_budget mismatch: expected false (self-approve POST never trips gate 3 at active_wholesale monthly_credit_budget=20000 with a 5+3+2=10 running total), got ${row.over_budget}. A regression that inverted the boolean would break the P11 monthly budget rollup dashboards.`,
+        ).toBe(false);
+        expect(
+          row.granted_by_user_id,
+          `mirror row ${idx} granted_by_user_id mismatch: expected fixture.adminUserId=${fixture.adminUserId}, got ${row.granted_by_user_id}. A regression that threaded targetUserId here on any re-entry (a self-service credit theft class where the audit-trail attribution defames the customer as their own grantor) or NULL'd the column surfaces here.`,
+        ).toBe(fixture.adminUserId);
+        expect(
+          row.credit_transaction_id,
+          `mirror row ${idx} credit_transaction_id mismatch: expected ${expectedTxIds[idx]} (POST ${idx + 1}'s response body echo of route.ts:187-198's credit_transactions.id INSERT), got ${row.credit_transaction_id}. A dangling FK here means route.ts:213 read from the wrong txRow variable across the UPSERT re-entry, or the mirror INSERT stamped a prior POST's UUID on a later POST (FK collision that preserves count but breaks the per-grant ledger link).`,
+        ).toBe(expectedTxIds[idx]);
+        expect(
+          row.month_key,
+          `mirror row ${idx} month_key mismatch: expected ${expectedMonthKeyThreeChain} (UTC YYYY-MM at test time), got ${row.month_key}. A drift to AEST here would surface on the first of each UTC month between 00:00 and 10:00 UTC.`,
+        ).toBe(expectedMonthKeyThreeChain);
+        expect(
+          row.month_key,
+          `mirror row ${idx} month_key ${row.month_key} does not match response echo body.month_key ${expectedBodyMonthKeys[idx]} — a split here means the mirror INSERT stamped a different key from the one route.ts:255 echoes back to the caller.`,
+        ).toBe(expectedBodyMonthKeys[idx]);
+        expect(
+          (metadata ?? {})["reason"],
+          `mirror row ${idx} metadata.reason mismatch: expected 'reseller_grant' (route.ts:74-76 default when body.reason omitted), got ${JSON.stringify(metadata)}. This POST omits body.reason so the route falls through to the default.`,
+        ).toBe("reseller_grant");
+      }
+      // Distinctness across all three credit_transaction_ids — catches a
+      // regression where any later POST's mirror insert stamped an earlier
+      // POST's UUID (would preserve mirrorCount===3 AND per-row amount if
+      // the wrong txRow variable was read at route.ts:213 but the amount
+      // came from the fresh request body). All three pairs — (1,2), (1,3),
+      // (2,3) — are covered by the Set-size assertion.
+      expect(
+        new Set(mirrorRows!.map((r) => r.credit_transaction_id)).size,
+        `expected 3 distinct credit_transaction_id values across the three mirror rows; got ${new Set(mirrorRows!.map((r) => r.credit_transaction_id)).size} distinct. A collision here means at least one later UPSERT re-entry linked its mirror row back to an earlier POST's tx (FK integrity survives but the per-grant ledger loses at least one entry).`,
       ).toBe(3);
     } finally {
       await fixture.cleanup();
@@ -1757,6 +1881,16 @@ test.describe("Reseller credit-grant mirror rows — P10 wave-3 row 156 DB compa
         resp1.status(),
         `POST 1 returned ${resp1.status()} — expected 200. Body: ${await resp1.text()}`,
       ).toBe(200);
+      const body1 = (await resp1.json()) as {
+        ok: boolean;
+        credit_transaction_id?: string;
+        month_key?: string;
+      };
+      expect(body1.ok, `POST 1 body.ok should be true: ${JSON.stringify(body1)}`).toBe(true);
+      expect(typeof body1.credit_transaction_id).toBe("string");
+      expect(body1.credit_transaction_id ?? "").toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+      );
 
       const grant2 = await fixture.attachGrantSelfApprove({ amount: AMOUNT_TWO });
       if (!grant2) {
@@ -1770,6 +1904,16 @@ test.describe("Reseller credit-grant mirror rows — P10 wave-3 row 156 DB compa
         resp2.status(),
         `POST 2 returned ${resp2.status()} — expected 200. Body: ${await resp2.text()}`,
       ).toBe(200);
+      const body2 = (await resp2.json()) as {
+        ok: boolean;
+        credit_transaction_id?: string;
+        month_key?: string;
+      };
+      expect(body2.ok, `POST 2 body.ok should be true: ${JSON.stringify(body2)}`).toBe(true);
+      expect(typeof body2.credit_transaction_id).toBe("string");
+      expect(body2.credit_transaction_id ?? "").toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+      );
 
       const mirrorCount = await countResellerCreditGrantsFor(supabase, {
         resellerId: fixture.resellerId,
@@ -1783,6 +1927,93 @@ test.describe("Reseller credit-grant mirror rows — P10 wave-3 row 156 DB compa
           `0 → both inserts dropped (would also break row 155); ` +
           `1 → POST 2 silently skipped the mirror insert despite 200 (on-conflict UPSERT re-fired credit_transactions but not reseller_credit_grants — the specific drift this row pins independently of the row 156b three-chain block); ` +
           `>2 → duplicated write on one of the two POSTs (fan-out ran twice on a single request).`,
+      ).toBe(2);
+
+      // Second-lens shape read — pins per-field values the count-only helper
+      // above cannot catch on either of the two chained mirror rows. Companion
+      // assertion to tick 211's row 155 single-POST shape+helper alignment and
+      // tick 212's row 156b three-chain shape+helper alignment. The count
+      // helper catches "mirror insert dropped" (count<2) and "mirror insert
+      // duplicated" (count>2) but stays green under: (a) POST 2's mirror
+      // insert reusing POST 1's credit_transaction_id (FK collision that
+      // preserves count but breaks the per-grant ledger link); (b) POST 2's
+      // amount stamped as POST 1's amount (off-by-one on the second UPSERT
+      // re-entry that still writes the correct credit_balances math); (c)
+      // either row's granted_by_user_id NULL'd or threaded as targetUserId
+      // (self-service credit theft class); (d) either row's over_budget
+      // flipped true when neither self-approve POST trips gate 3; (e) either
+      // row's month_key drifting AEST vs UTC on the first-of-month rollover;
+      // (f) either row's metadata.reason dropped or replaced. Rows fetched
+      // ordered by created_at ASC so per-row amount matches the sequenced
+      // 5/3 pin from AMOUNT_ONE/AMOUNT_TWO without a second lookup.
+      const { data: mirrorRows, error: mirrorReadErr } = await supabase
+        .from("reseller_credit_grants")
+        .select(
+          "kind, amount, over_budget, granted_by_user_id, credit_transaction_id, month_key, metadata, created_at",
+        )
+        .eq("reseller_id", fixture.resellerId)
+        .eq("target_user_id", targetUserId)
+        .eq("kind", "grant")
+        .gte("created_at", chainSince)
+        .order("created_at", { ascending: true });
+      expect(
+        mirrorReadErr,
+        `reseller_credit_grants shape read failed for (reseller=${fixture.resellerId}, target=${targetUserId}) since ${chainSince}: ${mirrorReadErr?.message}`,
+      ).toBeNull();
+      expect(
+        mirrorRows,
+        `expected the reseller_credit_grants rows for (reseller=${fixture.resellerId}, target=${targetUserId}) since ${chainSince} to resolve after mirrorCount===2 landed — a null result here would flag an RLS scope drift between countResellerCreditGrantsFor's count(*) call path and the shape SELECT (both go through loadSupabaseAdmin's service-role client so this should never race).`,
+      ).not.toBeNull();
+      expect(mirrorRows!.length).toBe(2);
+      // Compute expected UTC month_key inline (no import from app libs per
+      // this spec's fixture-only import discipline) — mirrors route.ts:101's
+      // monthKey(new Date()) YYYY-MM UTC discipline.
+      const nowTwoChain = new Date();
+      const expectedMonthKeyTwoChain = `${nowTwoChain.getUTCFullYear()}-${String(nowTwoChain.getUTCMonth() + 1).padStart(2, "0")}`;
+      const expectedAmounts = [AMOUNT_ONE, AMOUNT_TWO];
+      const expectedTxIds = [body1.credit_transaction_id, body2.credit_transaction_id];
+      const expectedBodyMonthKeys = [body1.month_key, body2.month_key];
+      for (let idx = 0; idx < mirrorRows!.length; idx++) {
+        const row = mirrorRows![idx]!;
+        const metadata = row.metadata as Record<string, unknown> | null;
+        expect(row.kind, `mirror row ${idx} kind mismatch: got ${row.kind}`).toBe("grant");
+        expect(
+          Number(row.amount),
+          `mirror row ${idx} amount mismatch: expected ${expectedAmounts[idx]} (POST ${idx + 1} of the 5+3 chain), got ${row.amount}. A regression that stamped the amount from a stale variable across the two UPSERT re-entries surfaces here.`,
+        ).toBe(expectedAmounts[idx]);
+        expect(
+          row.over_budget,
+          `mirror row ${idx} over_budget mismatch: expected false (self-approve POST never trips gate 3 at active_wholesale monthly_credit_budget=20000 with a 5+3=8 running total), got ${row.over_budget}. A regression that inverted the boolean would break the P11 monthly budget rollup dashboards.`,
+        ).toBe(false);
+        expect(
+          row.granted_by_user_id,
+          `mirror row ${idx} granted_by_user_id mismatch: expected fixture.adminUserId=${fixture.adminUserId}, got ${row.granted_by_user_id}. A regression that threaded targetUserId here on either re-entry (a self-service credit theft class where the audit-trail attribution defames the customer as their own grantor) or NULL'd the column surfaces here.`,
+        ).toBe(fixture.adminUserId);
+        expect(
+          row.credit_transaction_id,
+          `mirror row ${idx} credit_transaction_id mismatch: expected ${expectedTxIds[idx]} (POST ${idx + 1}'s response body echo of route.ts:187-198's credit_transactions.id INSERT), got ${row.credit_transaction_id}. A dangling FK here means route.ts:213 read from the wrong txRow variable across the UPSERT re-entry, or the mirror INSERT stamped POST 1's UUID on POST 2 (FK collision that preserves count but breaks the per-grant ledger link).`,
+        ).toBe(expectedTxIds[idx]);
+        expect(
+          row.month_key,
+          `mirror row ${idx} month_key mismatch: expected ${expectedMonthKeyTwoChain} (UTC YYYY-MM at test time), got ${row.month_key}. A drift to AEST here would surface on the first of each UTC month between 00:00 and 10:00 UTC.`,
+        ).toBe(expectedMonthKeyTwoChain);
+        expect(
+          row.month_key,
+          `mirror row ${idx} month_key ${row.month_key} does not match response echo body.month_key ${expectedBodyMonthKeys[idx]} — a split here means the mirror INSERT stamped a different key from the one route.ts:255 echoes back to the caller.`,
+        ).toBe(expectedBodyMonthKeys[idx]);
+        expect(
+          (metadata ?? {})["reason"],
+          `mirror row ${idx} metadata.reason mismatch: expected 'reseller_grant' (route.ts:74-76 default when body.reason omitted), got ${JSON.stringify(metadata)}. This POST omits body.reason so the route falls through to the default.`,
+        ).toBe("reseller_grant");
+      }
+      // Distinctness across the two credit_transaction_ids catches a
+      // regression where POST 2's mirror insert stamped POST 1's UUID
+      // (would preserve mirrorCount===2 AND per-row amount if the wrong
+      // txRow variable was read at route.ts:213 but the amount came from
+      // the fresh POST 2 request body).
+      expect(
+        new Set(mirrorRows!.map((r) => r.credit_transaction_id)).size,
+        `expected 2 distinct credit_transaction_id values across the two mirror rows; got ${mirrorRows!.length - (mirrorRows!.length - new Set(mirrorRows!.map((r) => r.credit_transaction_id)).size)} distinct. A collision here means the second UPSERT re-entry linked its mirror row back to the first POST's tx (FK integrity survives but the per-grant ledger loses one entry).`,
       ).toBe(2);
     } finally {
       await fixture.cleanup();
