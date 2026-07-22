@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.218
+version: 2026-07-23.219
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,152 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 219
+    ran_at: 2026-07-22
+    action: p10_credit_grant_validation_happy_shape_pin_parity_with_authz_row_152
+    result: |
+      Landed tick 218 "natural next pick" option (a) verbatim: swept the
+      credit-grant-validation.spec.ts happy path (P10 wave-3 row 152 within
+      this file) for parallel FK-echo shape pins on the response envelope
+      fields that credit-grant-authz.spec.ts row 152 (line 471-482) already
+      pins but the validation sibling was silent on. Pre-tick coverage in
+      credit-grant-validation.spec.ts:300-315 pinned only credit_transaction
+      _id (typeof + toMatch UUID_RE) and over_budget=false; the authz
+      sibling also pins month_key (typeof + toMatch YYYY-MM slug),
+      remaining_budget (typeof + >=0 clamp), and balance (typeof number).
+      This tick adds those three parallel pins to the validation sibling.
+
+      Frontier before this tick: tick 218 hoisted UUID_RE in the last
+      remaining reseller e2e spec (sandbox-setup-authz.spec.ts) and called
+      out in its "natural next pick" option (a) that credit-grant-
+      validation.spec.ts happy paths should be audited for parallel FK-echo
+      shape pins on the credit_transaction_id echoes — meaning the sibling
+      credit-grant-authz.spec.ts row 152 pin discipline (five pins covering
+      the full response envelope) should be mirrored onto this file's row
+      152 clone (which currently pinned only two of the five fields).
+      Options (b) and (c) from the tick 218 next-pick list were verified
+      not-actionable this tick: (b) row 175 approve/deny/cancel code_request
+      branches remain P8.5-blocked on STRIPE_PRICE_ADDON env vars; (c)
+      audit-log-writes.spec.ts wave-3 DB companion rows 154/156/156b/156c
+      already carry the immediate-typeof-then-immediate-toMatch pattern at
+      lines 1430/1637/1658/1679/1933/1954 etc. — the "parent typeof →
+      nested toMatch" gap named in the tick 218 option (c) text turned out
+      to have been closed prior to tick 218 writing the option.
+
+      Diagnostic delta of the parity pass:
+        - Response envelope from route.ts:250-260 has six fields: ok,
+          balance, credit_transaction_id, over_budget, month_key,
+          remaining_budget. Pre-tick this spec pinned two (credit_
+          transaction_id + over_budget); this tick adds three (month_key +
+          remaining_budget + balance). ok is pinned at line 309 via body.ok
+          === true. Post-tick every response field carries at least a shape
+          assertion in the validation spec.
+        - Shape pins only for the newly added fields — the balance /
+          remaining_budget VALUES depend on the founder's snapshot balance
+          and the reseller's monthly rollup, which drift across CI runs
+          and across parallel workers. The authz sibling can pin balance
+          === balanceBefore + AMOUNT because it does a pre-POST credit_
+          balances read (credit-grant-authz.spec.ts:cursor around line 435)
+          to capture balanceBefore; the validation spec deliberately does
+          not perform that read per plan §J.2's "no per-test row seeding"
+          discipline — asserting balance's shape (`typeof === "number"`)
+          without the arithmetic pin catches a null/undefined regression
+          without introducing the state-capture pattern that violates the
+          input-validation focus of this spec.
+        - month_key regex `/^\d{4}-\d{2}$/` chosen verbatim from the authz
+          sibling at line 476 — matches route.ts:214's monthKey(new Date())
+          YYYY-MM UTC discipline. A drift where monthKey() started
+          returning YYYY-MM-DD or a Unix millis stamp would surface here.
+        - remaining_budget `?? -1` fallback preserves the sibling's null-
+          coalesced posture so a null response value fails at "-1 is not
+          >= 0" rather than throwing "toBeGreaterThanOrEqual called on
+          null" — matches the sibling's diagnostic posture at line 482.
+        - No production code touched. Spec + goal file only. Route
+          web/src/app/api/reseller/credits/grant/route.ts unchanged.
+
+      Files:
+        - web/tests/e2e/reseller/credit-grant-validation.spec.ts
+          (extended the happy-path body destructure to declare month_key /
+          remaining_budget / balance as optional response fields, added
+          three parallel shape pins after the existing over_budget
+          assertion, wrapped in an explanatory comment naming the tick 218
+          option (a) rationale + the sibling credit-grant-authz.spec.ts row
+          152 line 471-482 that this parity closes. No pin weakened, no
+          test skipped, no fixture wiring changed.)
+        - docs/plans/reseller-module-goal.md (version bumped 2026-07-23.218
+          → 2026-07-23.219; this review_history entry prepended)
+
+      Design fidelity:
+        - Field-order in the body destructure preserved to match route
+          envelope order (ok, credit_transaction_id, over_budget,
+          month_key, remaining_budget, balance) so a maintainer diffing the
+          destructure against route.ts:250-260 sees a monotonic field walk.
+        - Assertion order after body destructure preserved: existing
+          credit_transaction_id + over_budget pins first (unchanged),
+          then the three new pins in envelope order (month_key,
+          remaining_budget, balance). Matches the sibling's assertion
+          order at credit-grant-authz.spec.ts:457-482 so a diff between
+          the two files reads as "same discipline, different fixture
+          shape" rather than "one spec pins in body order, other pins in
+          insertion order".
+        - No new imports, no new fixture helpers — the assertions reuse
+          the existing `expect` + `?? ""` / `?? -1` fallback patterns
+          already established in the file (line 311 already uses the
+          `?? ""` idiom for the credit_transaction_id toMatch).
+        - R-01 (only scans /api/reseller/**) and R-03 (only scans
+          feature-gates.manifest.ts routes) do not scan web/tests/e2e/**
+          so lint counts stay at 11 R-01 files + 31 R-03 manifest routes
+          + 3 exemptions + 0 violations.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: exit 0.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 exemptions, 0 violations —
+          unchanged from tick 218.
+        - `npx vitest run` in web/: 75 files / 954 tests passed
+          (Playwright specs are excluded from vitest by design so the
+          count is unchanged from tick 218).
+        - No DB apply this tick — no migration authored. Playwright run
+          against staging still gated on the tick 198 seed re-run per
+          P10 hardening exit criteria, not this tick.
+
+      Frontier after tick 219:
+        - Track A P8.5 STILL HUMAN-BLOCKED on
+          STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL.
+        - Track A P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20
+          ABN + GST.
+        - Track B COMPLETE.
+        - All 43 rows in the P10 activation matrix (waves 1-5) are
+          activated; only human-blocked rows (175 approve code_request /
+          178 signup-jitter / 182 SetupIntent) remain on the plan doc's
+          canonical list.
+        - credit-grant-validation.spec.ts row 152 happy path now carries
+          the same five-pin envelope discipline (ok / credit_transaction
+          _id / over_budget / month_key / remaining_budget / balance) as
+          the sibling credit-grant-authz.spec.ts row 152 — parity closed.
+
+      Natural next pick for tick 220: (a) audit sandbox-setup-authz.spec.ts
+        happy path row 154 for parallel field-shape pin parity with any
+        sibling — the tick 218 hoist added UUID_RE for the project_id echo
+        but did not sweep for other response fields (organization slug,
+        subdomain, credits_seeded counter) that may lack typeof + shape
+        pins today; if the sandbox-setup route response envelope carries
+        additional string/number fields, a parallel parity pass onto this
+        file would mirror the tick 219 discipline applied to credit-grant-
+        validation. (b) mirror the row 179 shape+helper alignment onto
+        the row 175 approve+deny+cancel code_request branches once P8.5
+        unblocks; today only the over_budget_approval branch of the
+        terminal handler carries the shape+helper twin coverage. (Still
+        open, P8.5-blocked.) (c) audit reseller-requests-list-authz.spec.ts
+        + admin-requests-list-authz.spec.ts happy paths for parallel FK-
+        echo shape pins on any UUID FK fields the request envelope carries
+        (reseller_id / linked_promotion_code_id / linked_credit_transaction
+        _id) — the tick 216 UUID_RE hoist landed the constant but may not
+        have covered every FK echo the routes emit; a similar parity pass
+        would tighten those specs to the credit-grant-authz row 152
+        discipline.
+    commit: (this tick)
+
   - tick: 218
     ran_at: 2026-07-22
     action: p10_sandbox_setup_uuid_re_module_scope_hoist
