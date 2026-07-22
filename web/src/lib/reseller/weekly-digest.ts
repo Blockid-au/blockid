@@ -10,6 +10,7 @@
 // Kept dependency-free so the CSV column contract can be regression-tested
 // without touching Supabase or nodemailer.
 
+import type { AnomalySummary } from "./audit-anomaly";
 import type { LeadingSignalSummary } from "./leading-signals";
 import type { KAnonBucket } from "./portfolio-aggregates";
 
@@ -145,4 +146,99 @@ function escapeHtml(s: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+/**
+ * Renders the audit-log anomaly section for the weekly digest.
+ *
+ * Returns an empty string when both hotspot lists are empty so the caller can
+ * unconditionally append the result: zero hits → zero live-ops noise. When
+ * hits exist, the caller composes it after {@link formatWeeklyDigestEmail} so
+ * the CS-owned leading-signal table stays the primary content and the anomaly
+ * block reads as a supplementary alert.
+ *
+ * The optional `resellerDisplayNames` map lets callers surface the human
+ * reseller code beside each `reseller_id` UUID; unknown ids render as the
+ * bare UUID (short suffix) so ops can still pivot on them.
+ */
+export function formatWeeklyDigestAnomaliesSection(
+  summary: AnomalySummary,
+  resellerDisplayNames: Record<string, string> = {},
+): string {
+  const { actor_hotspots, subject_hotspots } = summary;
+  if (actor_hotspots.length === 0 && subject_hotspots.length === 0) return "";
+
+  const resellerLabel = (id: string): string => {
+    const name = resellerDisplayNames[id];
+    if (name) return escapeHtml(name);
+    return escapeHtml(id.length > 8 ? `${id.slice(0, 8)}…` : id);
+  };
+  const uuidShort = (id: string): string =>
+    escapeHtml(id.length > 8 ? `${id.slice(0, 8)}…` : id);
+
+  const actorRows = actor_hotspots
+    .map(
+      (h) => `
+      <tr>
+        <td>${resellerLabel(h.reseller_id)}</td>
+        <td>${uuidShort(h.actor_user_id)}</td>
+        <td style="text-align:right">${h.count}</td>
+        <td style="text-align:right">${h.distinct_subjects}</td>
+        <td>${escapeHtml(h.actions.join(", "))}</td>
+      </tr>`,
+    )
+    .join("");
+  const subjectRows = subject_hotspots
+    .map(
+      (h) => `
+      <tr>
+        <td>${resellerLabel(h.reseller_id)}</td>
+        <td>${uuidShort(h.subject_user_id)}</td>
+        <td style="text-align:right">${h.count}</td>
+        <td style="text-align:right">${h.distinct_actors}</td>
+        <td>${escapeHtml(h.actions.join(", "))}</td>
+      </tr>`,
+    )
+    .join("");
+
+  const windowLabel = `${escapeHtml(summary.window_start)} → ${escapeHtml(summary.window_end)}`;
+  const parts: string[] = [
+    `<h3 style="margin-top:24px;font-family:Arial,sans-serif;font-size:14px">Audit-log anomalies (${windowLabel}, threshold ${summary.threshold})</h3>`,
+    `<p style="font-family:Arial,sans-serif;font-size:13px">${summary.total_rows_in_window} privileged-read row${summary.total_rows_in_window === 1 ? "" : "s"} in window.</p>`,
+  ];
+  if (actorRows) {
+    parts.push(`
+    <p style="font-family:Arial,sans-serif;font-size:13px;margin-bottom:4px"><strong>Actor hotspots</strong> — one reseller admin reading many subjects.</p>
+    <table cellpadding="6" cellspacing="0" border="1" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:13px">
+      <thead>
+        <tr>
+          <th>Reseller</th>
+          <th>Actor</th>
+          <th>Count</th>
+          <th>Distinct subjects</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>${actorRows}
+      </tbody>
+    </table>`);
+  }
+  if (subjectRows) {
+    parts.push(`
+    <p style="font-family:Arial,sans-serif;font-size:13px;margin-top:16px;margin-bottom:4px"><strong>Subject hotspots</strong> — one customer being probed repeatedly.</p>
+    <table cellpadding="6" cellspacing="0" border="1" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:13px">
+      <thead>
+        <tr>
+          <th>Reseller</th>
+          <th>Subject</th>
+          <th>Count</th>
+          <th>Distinct actors</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>${subjectRows}
+      </tbody>
+    </table>`);
+  }
+  return parts.join("");
 }

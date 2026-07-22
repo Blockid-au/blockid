@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import type { AnomalySummary } from "./audit-anomaly";
 import type { LeadingSignalSummary } from "./leading-signals";
 import {
+  formatWeeklyDigestAnomaliesSection,
   formatWeeklyDigestCsv,
   formatWeeklyDigestEmail,
   isoWeekKey,
@@ -120,5 +122,101 @@ describe("formatWeeklyDigestEmail", () => {
       row("ALPHA", "Alpha", summary()),
     ]);
     expect(html.indexOf("ALPHA")).toBeLessThan(html.indexOf("ZULU"));
+  });
+});
+
+function anomaly(overrides: Partial<AnomalySummary> = {}): AnomalySummary {
+  return {
+    actor_hotspots: [],
+    subject_hotspots: [],
+    window_start: "2026-07-15T00:00:00.000Z",
+    window_end: "2026-07-22T00:00:00.000Z",
+    threshold: 200,
+    total_rows_in_window: 0,
+    ...overrides,
+  };
+}
+
+describe("formatWeeklyDigestAnomaliesSection", () => {
+  it("returns an empty string when no hotspots fire", () => {
+    expect(formatWeeklyDigestAnomaliesSection(anomaly())).toBe("");
+  });
+
+  it("renders the actor-hotspot table when actors trigger", () => {
+    const html = formatWeeklyDigestAnomaliesSection(
+      anomaly({
+        actor_hotspots: [
+          {
+            reseller_id: "rid-abcdefgh-1111-2222-3333-444455556666",
+            actor_user_id: "uid-11112222-3333-4444-5555-666677778888",
+            count: 250,
+            distinct_subjects: 40,
+            actions: ["reveal_email", "view_customer_drawer"],
+            window_start: "2026-07-15T00:00:00.000Z",
+            window_end: "2026-07-22T00:00:00.000Z",
+            threshold: 200,
+          },
+        ],
+        total_rows_in_window: 1234,
+      }),
+      { "rid-abcdefgh-1111-2222-3333-444455556666": "InfoVision" },
+    );
+    expect(html).toContain("Audit-log anomalies");
+    expect(html).toContain("threshold 200");
+    expect(html).toContain("1234 privileged-read rows");
+    expect(html).toContain("Actor hotspots");
+    expect(html).toContain("InfoVision"); // display name resolved
+    expect(html).toContain("uid-1111"); // actor UUID truncated
+    expect(html).toContain(">250<"); // count cell
+    expect(html).toContain("reveal_email, view_customer_drawer"); // actions joined
+    expect(html).not.toContain("Subject hotspots"); // empty subject list omitted
+  });
+
+  it("renders the subject-hotspot table and falls back to UUID when name unknown", () => {
+    const html = formatWeeklyDigestAnomaliesSection(
+      anomaly({
+        subject_hotspots: [
+          {
+            reseller_id: "rid-unknown-9999-8888-7777-666655554444",
+            subject_user_id: "uid-victim01-2222-3333-4444-555566667777",
+            count: 300,
+            distinct_actors: 3,
+            actions: ["view_customer_drawer"],
+            window_start: "2026-07-15T00:00:00.000Z",
+            window_end: "2026-07-22T00:00:00.000Z",
+            threshold: 200,
+          },
+        ],
+        total_rows_in_window: 1,
+      }),
+    );
+    expect(html).toContain("Subject hotspots");
+    expect(html).toContain("1 privileged-read row in window"); // singular
+    expect(html).toContain("rid-unkn"); // reseller UUID short form (no display name)
+    expect(html).toContain("uid-vict"); // subject UUID short form
+    expect(html).not.toContain("Actor hotspots"); // empty actor list omitted
+  });
+
+  it("HTML-escapes display names so a hostile reseller name cannot inject markup", () => {
+    const html = formatWeeklyDigestAnomaliesSection(
+      anomaly({
+        actor_hotspots: [
+          {
+            reseller_id: "rid-xss",
+            actor_user_id: "uid-xss",
+            count: 201,
+            distinct_subjects: 1,
+            actions: ["reveal_email"],
+            window_start: "2026-07-15T00:00:00.000Z",
+            window_end: "2026-07-22T00:00:00.000Z",
+            threshold: 200,
+          },
+        ],
+        total_rows_in_window: 201,
+      }),
+      { "rid-xss": "<script>alert(1)</script>" },
+    );
+    expect(html).toContain("&lt;script&gt;");
+    expect(html).not.toContain("<script>");
   });
 });

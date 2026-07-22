@@ -2561,6 +2561,95 @@ review_history:
       tick per CDO rec #2).
     commit: (this tick)
 
+  - tick: 89
+    ran_at: 2026-07-22
+    action: p10_dry_run_wire_audit_anomaly_into_reseller_weekly_digest
+    result: |
+      Composed option (i) from tick 88's frontier note — "wire
+      buildAnomalySummary into the reseller-weekly-digest cron." Zero new
+      cadence decision (rides the existing Monday 04:15 UTC cron), zero
+      new email destination (admin@blockid.au already receives the leading-
+      signal digest), and the section renders as empty string when both
+      hotspot lists are empty so silent weeks stay silent — no CS §24
+      layout alignment needed because the anomaly block is additive after
+      the CS-owned leading-signal table, not a replacement.
+
+      Files:
+        - web/src/lib/reseller/weekly-digest.ts (+ formatWeeklyDigestAnomaliesSection(summary, resellerDisplayNames?)
+          pure HTML formatter — returns "" when actor_hotspots.length===0 &&
+          subject_hotspots.length===0; otherwise emits an <h3> + total-rows-
+          in-window paragraph + one <table> per non-empty hotspot list.
+          Reseller display name is resolved from the caller-supplied map
+          (so the cron can pass the same {id → display_name ?? code} rollup
+          it built for the leading-signal table); unknown ids fall back to
+          the UUID first-8-char short form so ops can still pivot on them.
+          All caller-supplied strings HTML-escaped — a hostile reseller
+          display name cannot inject <script> into the digest email.)
+        - web/src/lib/reseller/weekly-digest.test.ts (+ 4 vitest cases —
+          empty summary → "", actor-only rendering + display-name lookup +
+          singular/plural row wording, subject-only rendering + UUID
+          fallback when display name unknown, XSS-safe escaping of a
+          "<script>alert(1)</script>" display name.)
+        - web/src/app/api/cron/reseller-weekly-digest/route.ts — after
+          formatWeeklyDigestEmail(week, digestRows), query reseller_audit_log
+          scoped to the active reseller set for the last DEFAULT_ANOMALY_WINDOW_DAYS
+          (=7) days, call buildAnomalySummary({now}) with the harness-pinnable
+          now anchor already resolved at request top, and append the
+          formatter output to the email HTML. Audit-log query failure is
+          logged + skipped (leading-signal digest is primary content and
+          must ship); response envelope adds an `anomalies` object with
+          actor/subject hotspot counts + total_rows_in_window + threshold
+          + window bounds (or {skipped_reason:'audit_log_query_failed'}
+          on the fail-open path) so operators can eyeball the anomaly-
+          detector cadence without opening the email.
+
+      Deliberately out of scope for this tick:
+        - The standalone /api/cron/reseller-audit-anomaly-scan endpoint
+          — bundling into the existing weekly digest sidesteps the CS §24
+          cadence decision entirely, so the standalone endpoint is only
+          worth writing if ops later asks for a finer-grained cadence
+          (daily/hourly) that the weekly digest cannot provide.
+        - Playwright spec for the fold-in — the >200/week volume assertion
+          still fights the 30s per-test wall clock (same reason tick 88
+          left it out). The wired detector is now unit-covered by both
+          audit-anomaly.test.ts (13) + weekly-digest.test.ts (4 new); a
+          dev-only ?dry_run=1 endpoint that lets a spec pass a low
+          threshold would be the next unblock but needs a separate design
+          pass because it touches the cron auth boundary.
+        - Extending the CSV attachment with anomaly rows. CSV column
+          contract is regression-guarded by the existing 3 formatWeeklyDigestCsv
+          tests and adding an anomalies sheet would either widen those
+          columns (breaks the contract) or need a second CSV attachment
+          (needs a schema decision). HTML-only surface fits the "alert
+          when it fires, silent otherwise" posture.
+
+      Verified: vitest 834/834 (was 830/830, +4 anomalies formatter);
+      tsc clean; npm run lint:reseller: R-01 scanned 11 file(s), R-03
+      scanned 31 manifest route(s); 3 exemptions, 0 violations unchanged
+      (weekly-digest.ts is under /lib/reseller/** not /api/reseller/**
+      so R-01 doesn't fire; the cron route is under /api/cron/** not
+      /api/reseller/** so R-01 doesn't fire there either; not in
+      feature-gates.manifest.ts so R-03 doesn't fire).
+
+      Frontier after tick 89: unchanged in shape — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5
+      clears. What tick 89 unblocks: (1) Verification #5 second half
+      is now not just detectable (tick 88) but delivered to
+      admin@blockid.au every Monday — ops sees the alert the instant
+      a real audit-log hotspot fires without any additional cron
+      wiring; (2) response envelope now carries the anomaly rollup so
+      a follow-up cron-health probe or Grafana scrape can trend
+      hotspot counts weekly. Next autonomous tick options: (i) author
+      a dev-only /api/cron/reseller-audit-anomaly-scan?dry_run=1
+      endpoint so Playwright can assert the alert path against a
+      pinned low threshold (unblocks the spec half of Verification
+      #5); (ii) close the retail createProject → reseller_attributions
+      gap (still needs CTO advisory review); (iii) idle until human
+      unblock arrives.
+    commit: (this tick)
+
   - tick: 88
     ran_at: 2026-07-22
     action: p10_dry_run_audit_anomaly_detector_verification_5_second_half
