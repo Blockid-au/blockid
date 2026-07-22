@@ -20,31 +20,11 @@ import {
   applyComplementarySuppression,
   applyK,
   K_ANONYMITY_THRESHOLD,
-  type KAnonBucket,
 } from "@/lib/reseller/portfolio-aggregates";
 import { AffiliateViewClient } from "./affiliate-view-client";
+import type { ResellerListEntry, ResellerRow } from "./types";
 
 export const dynamic = "force-dynamic";
-
-export interface ResellerRow {
-  id: string;
-  code: string;
-  display_name: string;
-  billing_model: string;
-  status: string;
-  created_at: string;
-}
-
-export interface AttributionSummaryBySource {
-  provisioned: KAnonBucket;
-  code: KAnonBucket;
-  admin_manual: KAnonBucket;
-  total: KAnonBucket;
-}
-
-export interface ResellerListEntry extends ResellerRow {
-  summary: AttributionSummaryBySource;
-}
 
 async function loadResellers(): Promise<ResellerListEntry[]> {
   const supabase = getSupabaseAdmin();

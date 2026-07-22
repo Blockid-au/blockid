@@ -12,7 +12,7 @@ import * as React from "react";
 import type {
   AttributionSummaryBySource,
   ResellerListEntry,
-} from "./page";
+} from "./types";
 
 type SourceKey = "provisioned" | "code" | "admin_manual";
 
