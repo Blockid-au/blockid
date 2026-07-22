@@ -1127,3 +1127,4 @@
 {"ts":"2026-07-22T19:50:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":520,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 15, \"raw\": \"15% used (236221832 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (275004268 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
 {"ts":"2026-07-22T20:00:02Z","endpoint":"agent-guardian","status":"ok","duration_ms":2351,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 15, \"raw\": \"15% used (236219248 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (275004268 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
 {"ts":"2026-07-22T20:00:02Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16969,"detail":""}
+{"ts":"2026-07-22T20:05:02Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16498,"detail":""}
