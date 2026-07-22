@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.217
+version: 2026-07-23.218
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,143 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 218
+    ran_at: 2026-07-22
+    action: p10_sandbox_setup_uuid_re_module_scope_hoist
+    result: |
+      Landed tick 217 "natural next pick" option (a) verbatim: swept the
+      OTHER spec files under web/tests/e2e/reseller/ that still inlined the
+      /^[0-9a-f]{8}-.../i UUID regex instead of referencing a module-scope
+      UUID_RE constant. Grep audit found 12 spec files carry the regex
+      literal; 11 already hoisted a module-scope UUID_RE constant in ticks
+      211..217 (audit-log-writes at tick 217, plus the 10 sibling specs
+      called out in tick 217 review_history — admin-requests-list-authz,
+      reseller-requests-list-authz, credit-grant-authz, credit-grant-
+      validation, requests-authz, admin-requests-patch-authz, admin-
+      reseller-detail-authz, admin-reseller-detail-validation, admin-
+      resellers-list-authz, requests-validation). Only remaining outlier
+      was sandbox-setup-authz.spec.ts — one call site at row 154
+      active_wholesale happy path (line 232 pre-hoist).
+
+      Frontier before this tick: tick 217 hoisted UUID_RE in audit-log-
+      writes.spec.ts (10 sites) and called out in its "natural next pick"
+      option (a) that the other reseller e2e specs should be swept for
+      the same duplication opportunity. This tick executes that sweep and
+      finds sandbox-setup-authz.spec.ts is the sole remaining file
+      without the module-scope constant. Files enumerated in the tick 217
+      list (attribution-timing / drawer-*/ reports-signed-url-* /
+      cobranding-pill) turned out NOT to carry the FK-echo UUID regex at
+      all — verified via grep for `[0-9a-f]{8}-[0-9a-f]{4}` returning 12
+      files and cross-referenced with `UUID_RE =` returning 11 files.
+
+      Diagnostic delta of the hoist:
+        - Same regex, same case-insensitive posture, same `?? ""`
+          null-coalesced input as the sibling constants.
+        - Multi-line `.toMatch(/^.../,)` collapsed to single-line
+          `.toMatch(UUID_RE)` — matches the pattern established in
+          credit-grant-authz.spec.ts:1015/1023/1030/1041 and every
+          post-tick-217 audit-log-writes.spec.ts site.
+        - Failure message on a shape drift: prior "expected value to
+          match /^[0-9a-f]{8}-.../" now reads "expected value to match
+          UUID_RE" — the constant name is more informative in a CI log
+          because a maintainer reading the failure knows to grep for
+          UUID_RE rather than count the exact {8}-{4}-{4}-{4}-{12}
+          segments to figure out what shape was intended.
+        - A regression that renamed project_id in the response envelope
+          would still surface at the `typeof body.project_id === "string"`
+          check that precedes the `.toMatch(UUID_RE)` — the shape pin
+          fires second per the tick 216/217 discipline that keeps the
+          shape check downstream of the typeof pin so `null !== "not-a-
+          uuid"` cannot false-pass at the string check.
+
+      Files:
+        - web/tests/e2e/reseller/sandbox-setup-authz.spec.ts
+          (added module-scope UUID_RE constant immediately after
+          SANDBOX_SETUP_ROUTE with a 14-line comment naming the seven
+          sibling constants and the tick 217 "natural next pick" option
+          (a) rationale; replaced one inline regex site at row 154
+          active_wholesale happy path with the hoisted constant. Multi-
+          line `.toMatch(regex,)` form collapsed to single-line
+          `.toMatch(UUID_RE)`.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.217 → 2026-07-23.218; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Module-scope constant name `UUID_RE` matches all seven sibling
+          spec files verbatim so a future audit sweep that greps
+          `UUID_RE =` across web/tests/e2e/reseller/ finds every constant
+          with one query — now 12 hits (from 11 pre-tick).
+        - Placement immediately after the top-of-file route/env constant
+          block matches the sibling convention — UUID_RE lives outside
+          every describe so both the harness-free authz rows and the
+          temp-reseller-fixture happy-path row see it without a per-
+          describe hoist.
+        - Regex verbatim from the sibling constants: same
+          `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`
+          body and case-insensitive `/i` flag. No RFC-4122 version nibble
+          pin so a mocked fixture that returns a zero-version UUID for
+          determinism still matches — matches the sibling posture where
+          the shape check exists to catch stringified bigints and
+          project_id leaks, not to validate RFC-4122 conformance.
+        - No production code touched. Spec + goal file only. R-01 (only
+          scans /api/reseller/**) and R-03 (only scans feature-gates
+          .manifest.ts routes) do not scan web/tests/e2e/** so lint
+          counts stay at 11 R-01 + 31 R-03 + 3 exemptions + 0 violations.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: exit 0.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 exemptions, 0 violations —
+          unchanged from tick 217.
+        - `npx vitest run` in web/: 75 files / 954 tests passed
+          (Playwright specs are excluded from vitest by design so the
+          count is unchanged from tick 217).
+        - No DB apply this tick — no migration authored. Playwright run
+          against staging still gated on the tick 198 seed re-run per
+          P10 hardening exit criteria, not this tick.
+        - Grep audit re-run after hoist: `UUID_RE =` now returns 12
+          files across web/tests/e2e/reseller/ (was 11 pre-tick); the
+          set of files containing the inline regex literal
+          `[0-9a-f]{8}-[0-9a-f]{4}` is unchanged at 12 because every
+          hoisted file still carries the definition line — the
+          difference is that every USE of the pattern now references the
+          named constant instead of an inline literal.
+
+      Frontier after tick 218:
+        - Track A P8.5 STILL HUMAN-BLOCKED on
+          STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL.
+        - Track A P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20
+          ABN + GST.
+        - Track B COMPLETE.
+        - All 43 rows in the P10 activation matrix (waves 1-5) are
+          activated; only human-blocked rows (175 approve code_request /
+          178 signup-jitter / 182 SetupIntent) remain on the plan doc's
+          canonical list.
+        - Every reseller e2e spec file that references the UUID FK-echo
+          shape now uses a module-scope UUID_RE constant. Zero inline
+          `/^[0-9a-f]{8}.../` regex literals used at `.toMatch()` call
+          sites across the reseller e2e tree.
+
+      Natural next pick for tick 219: (a) audit credit-grant-validation
+        .spec.ts happy paths for parallel FK-echo shape pins on the
+        credit_transaction_id echoes — the tick 216 pass targeted the
+        authz sibling but not the validation sibling (still open per
+        tick 217 option c). (b) mirror the row 179 shape+helper
+        alignment onto the row 175 approve+deny+cancel code_request
+        branches once P8.5 unblocks; today only the over_budget_approval
+        branch of the terminal handler carries the shape+helper twin
+        coverage. (Still open, P8.5-blocked.) (c) sweep the audit-log-
+        writes.spec.ts wave-3 DB companion rows 154/156/156b/156c for a
+        parallel `typeof body{N}.credit_transaction_id === "string"`
+        pin immediately before each `.toMatch(UUID_RE)` — today the
+        typeof check lives at the parent-scope body pin (line 1614 etc.)
+        so the assertion ordering is "parent typeof → nested toMatch"
+        rather than "immediate typeof → immediate toMatch" for the
+        nested-body cases; tightening it puts the failure message on the
+        same line for a shape drift.
+    commit: (this tick)
+
   - tick: 217
     ran_at: 2026-07-22
     action: p10_audit_log_writes_uuid_re_module_scope_hoist

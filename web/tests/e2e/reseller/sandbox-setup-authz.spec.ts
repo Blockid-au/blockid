@@ -69,6 +69,22 @@ const NON_RESELLER_FOUNDER_EMAIL =
 
 const SANDBOX_SETUP_ROUTE = "/api/reseller/sandbox/setup";
 
+// Module-scope UUID_RE mirrors the sibling constants in admin-requests-list-
+// authz.spec.ts:81, reseller-requests-list-authz.spec.ts:73, credit-grant-
+// authz.spec.ts:101, credit-grant-validation.spec.ts:250, requests-authz.spec
+// .ts:250, admin-requests-patch-authz.spec.ts:139, and audit-log-writes.spec
+// .ts:75. Extracted in tick 218 to close the review_history tick 217 "natural
+// next pick" option (a) — sweep the OTHER spec files under
+// web/tests/e2e/reseller/ that still inlined the UUID regex. Only one call
+// site in this file (row 154 active_wholesale happy path), but the hoist
+// keeps the FK-echo shape lens name-consistent with the sibling files so a
+// future audit sweep that greps `UUID_RE =` across the reseller e2e tree
+// finds every constant with one query. Case-insensitive `/i` flag preserves
+// the sibling constants' posture so upper-case UUIDs (which PostgreSQL uuid
+// columns can return via ::text depending on the client library) still match.
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 test.describe("Reseller sandbox-setup pre-write authorization — P10 dry-run", () => {
   test("unauthenticated — POST with no session returns 401", async ({ request }) => {
     const resp = await request.post(`/api/reseller/sandbox/setup`);
@@ -228,9 +244,7 @@ test.describe("Reseller sandbox-setup — P10 wave-3 happy path", () => {
         `active_wholesale body.ok should be true: ${JSON.stringify(body)}`,
       ).toBe(true);
       expect(typeof body.project_id).toBe("string");
-      expect(body.project_id ?? "").toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-      );
+      expect(body.project_id ?? "").toMatch(UUID_RE);
       if (body.project_id) {
         fixture.trackProjectForCleanup(body.project_id);
       }
