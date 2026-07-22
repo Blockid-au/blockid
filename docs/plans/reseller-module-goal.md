@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.136
+version: 2026-07-23.137
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,117 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 137
+    ran_at: 2026-07-22
+    action: p10_option_a_step2_seed_qa_reseller_per_variant_admin_mirror
+    result: |
+      Landed Option A step 2 of the docs/plans/p10-temp-reseller-
+      admin-scope-collision-finding.md resolution plan. Extended
+      web/scripts/seed-qa-reseller.mjs so each variant's
+      reseller_admins mirror can bind to a DISTINCT app_users.id
+      resolved from the per-variant MULTI_ADMIN_EMAILS map when the
+      P10 Option A gate is on — no more single-user-mirrored-onto-
+      seven-variants collision. Fixture consumers (§3) can now
+      loginAs(fixture.adminEmail) and hit /api/reseller/* without
+      the scopedReseller() .maybeSingle() PGRST116 short-circuit.
+
+      Files:
+        - web/scripts/seed-qa-reseller.mjs (extended — new
+          MULTI_ADMIN_EMAILS constant mirroring seed-test-users.mjs's
+          seven-slot map; new MULTI_ADMIN gate driven by
+          --reseller-multi-admin flag OR QA_RESELLER_MULTI_ADMIN=1;
+          new resolveAdminUser() cache so the multi-admin loop makes
+          at most one DB round-trip per distinct email; new
+          resolveVariantAdmin(variantName) helper that dispatches
+          multi_admin | multi_admin_missing | single_admin_fallback |
+          single_admin_missing | unset sources; main() rewired to
+          call resolveVariantAdmin(variant.name) per iteration and
+          log the admin+source before mirroring. Header docblock +
+          Env/Flags reference tables updated to describe the new
+          per-variant slots and the collision-finding link. summary
+          table gained an `admin` column so `[seed] summary` records
+          exactly which email landed on each variant.)
+
+      Design fidelity (per collision finding §Resolution options → A step 2):
+        - Backwards-compat: MULTI_ADMIN gate defaults to OFF. When
+          off, resolveVariantAdmin() collapses to the single
+          QA_RESELLER_ADMIN_EMAIL fallback the tick 132 contract
+          expects — every variant mirrors the same admin, exactly
+          as before. Hosts that have not yet run seed-test-users.mjs
+          with --reseller-multi-admin fall through unchanged.
+        - Multi-admin path: reads MULTI_ADMIN_EMAILS[variant.name]
+          per variant, looks up its app_users row via
+          resolveAdminUser (cached per email so shared addresses
+          don't double-hit the DB), then hands off to the existing
+          mirrorAdmin() helper — no delta to the insert path.
+        - Explicit visibility: when the multi-admin gate is ON, the
+          header prints the seven variant→email pairs and notes
+          whether QA_RESELLER_ADMIN_EMAIL is available as a fallback
+          for missing per-variant lookups. When a variant's admin
+          row is missing from app_users the loop logs
+          "user not in app_users, mirror skipped" instead of the
+          silent no-op that the previous code would have emitted.
+        - Idempotent: no changes to mirrorAdmin() itself — the
+          existing (reseller_id, user_id) lookup still short-circuits
+          on the second run, so re-invoking with --reseller-multi-
+          admin against a previously-seeded database is a no-op.
+        - Cache correctness: adminUserCache stores null on miss too,
+          so a per-variant email that is not in app_users is only
+          looked up once per script run.
+
+      Verified:
+        - node --check web/scripts/seed-qa-reseller.mjs exit=0
+          (syntax clean, no top-level parse errors).
+        - Gate boolean sanity check: with
+          `QA_RESELLER_MULTI_ADMIN=1 argv=['--dry-run']` the same
+          gate expression that landed in the file evaluates to true;
+          with the env var unset and --reseller-multi-admin flag
+          passed it also evaluates true; with both absent it
+          evaluates false. Confirms tick 132 hosts are unaffected.
+        - No DB apply this tick — the extension is authored but
+          not run against staging/prod. Requires seed-test-users.mjs
+          --reseller-multi-admin to have run first so the seven
+          per-variant app_users rows exist; without them the
+          multi-admin path logs "user not in app_users, mirror
+          skipped" per variant and no rows land.
+        - npm run lint:reseller unchanged — the file lives at
+          web/scripts/, not /api/reseller/**, so R-01 does not fire;
+          no feature-gates.manifest entry so R-03 does not fire
+          either.
+        - tsc unaffected — .mjs file outside the tsconfig.json
+          include glob.
+        - No vitest suite added — the extension is a lookup-table
+          + per-variant dispatch over the already-tested mirrorAdmin
+          helper; step 3 (fixture wiring) is where the end-to-end
+          behaviour is exercised.
+        - Goal file version bumped 2026-07-23.136 → 2026-07-23.137.
+
+      REMAINING P10 Option A steps:
+        - Step 3: web/tests/e2e/fixtures/reseller.ts delta — extend
+          TempResellerFixture with adminEmail:string, read the
+          per-variant email in loadTempReseller(variant), and expose
+          it so specs loginAs(page, fixture.adminEmail) instead of
+          hard-coding harness.admin.email.
+        - Step 4: docs/plans/p10-temp-reseller-mint-fixture-design.md
+          update — reflect the seven-account cohort in §§1, 5 and
+          the env-var contract table.
+
+      Frontier after tick 137: shape unchanged in terms of
+      goal-file phase status — Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision
+      seed STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE;
+      P10 still blocked_by [P1..P9] until P8.5 clears. What tick 137
+      unblocks: Option A step 3 (fixture delta) can now bind to a
+      seed-qa-reseller.mjs run that has landed the per-variant
+      admin mirrors; step 4 (design-doc update) remains
+      dependency-free and can land in any order. Next autonomous
+      tick options: (i) ship Option A step 3 — reseller.ts fixture
+      per-variant loginAs (deps: steps 1 + 2 = shipped); (ii) ship
+      Option A step 4 as pure documentation catchup so the design
+      doc reflects the cohort (deps: none); (iii) idle until human
+      unblock on P8.5 or P1.5.
+    commit: (this tick)
+
   - tick: 136
     ran_at: 2026-07-22
     action: p10_option_a_step1_seed_test_users_multi_admin_delta
