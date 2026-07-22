@@ -129,6 +129,57 @@ Prep cost: one tick to author the attributed-customer helper
 `app_users` upsert path in the fixture — then rows 145–149 each add
 2–3 assertions.
 
+**Wave-5 row 164 landed (tick 160).** Opens wave 5 via `loadAdminHarness()`
+(qa-admin-1@blockid.au) so the requireAdmin() gate at
+`web/src/app/api/admin/resellers/route.ts:15-24` passes without needing the
+per-variant reseller cohort. Added a companion `test.describe("Admin
+resellers list — P10 wave-5 row 164 happy path")` block to
+`web/tests/e2e/reseller/admin-resellers-list-authz.spec.ts` that pins
+`GET /api/admin/resellers` as the seeded admin → 200 with `body.ok=true` +
+`Array.isArray(body.resellers)` + per-row envelope shape assertions (id
+matches UUID_RE, code typeof string, display_name typeof string,
+billing_model ∈ {retail, wholesale}, status ∈ {active, paused, terminated}).
+Do NOT pin the array length — fresh CI hosts hold zero rows; seeded hosts
+hold ≥7 cohort rows from `seed-qa-reseller.mjs` (QAPROBE variants); the
+InfoVision seed adds one more when P1.5 clears H.20; production hosts may
+hold additional real resellers. The per-row shape pins catch a route
+regression that dropped a column from the `select("*")` at route.ts:32-35
+or returned a stale envelope shape (e.g. wrapping in `{ resellers: { rows:
+[] } }`). Skip discipline: `loadAdminHarness()` returns null → describe-
+scope skip via `adminHarnessSkipReason()`; `loginAs` throw → test-scope
+skip. State-pollution posture: read-only GET — no INSERT / UPDATE / DELETE
+fires from this endpoint; perfectly idempotent under CI replay; the route
+does NOT audit-log (admin console read). Non-Stripe / non-GST discipline:
+the GET route reads `resellers` only. No promotion_code lookup, no credit
+ledger write, no revenue_events read, no Stripe network call, no
+InfoVision dependency. P8.5 + P1.5 remain neither a dependency nor a
+consequence — the InfoVision seed is a downstream row this endpoint would
+enumerate but its absence does NOT block the happy path from returning 200
+against a fresh cohort. UUID_RE + BILLING_MODELS + STATUSES hoisted to
+module scope so a future wave-5 row landing in this file reuses the
+constants without duplicating the regex/enum. Wave 5 is now open — the
+schedule doc's rows 165 (create-authz happy 201), 166 (create-validation
+five 400 rows folded into one tick), 167 (detail-authz happy 200), 168
+(detail-validation code_required / not_found / happy), 169 (patch-authz
+code_required / invalid_body / not_found), 170 (patch-validation 4-6
+validator branches), 171 (delete-authz idempotent happy on terminated),
+172 (delete-validation code_required + happy), 173 (loop-status happy),
+174 (admin-requests-list happy consuming wave-3 row 155's seeded rows),
+175 (admin-requests-patch approve/deny/cancel on wave-3 row 155's rows),
+176-183 are all sequenced behind row 164 per the wave-5 posture. Next
+natural picks: (i) activate row 173 (admin-reseller-loop-status-authz ×
+happy 200) — admin-only harness with no per-variant fixture dependency,
+same posture as row 164 — or row 174 (admin-requests-list happy 200
+consuming wave-3 row 155's seeded reseller_requests rows) since row 155
+seeded a pending `over_budget_approval` row at tick 155; (ii) activate
+row 163 (cobranding-pill × active_wholesale attributed founder × EN + VI)
+— reuses the attributed-founder harness from wave 2; (iii) land finding-
+2's seed delta (edit `seed-qa-reseller.mjs` main loop to seed attribution
+on `no_capability` + `no_budget`; re-run seeder against staging) —
+unblocks rows 150 + 151; (iv) mint an active promo code on the paused
+variant to unblock row 157; (v) author the `attachReportRow` helper to
+unblock rows 159 + 160.
+
 **Wave-4 row 162 landed (tick 159).** Third wave-4 row. Added a companion
 `test.describe("Reseller cron HTTP method contract with harness admin —
 P10 wave-4 row 162")` block to `web/tests/e2e/reseller/reseller-crons-authz

@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.159
+version: 2026-07-23.160
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,143 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 160
+    ran_at: 2026-07-22
+    action: p10_wave5_row_164_activate_admin_resellers_list_happy_200
+    result: |
+      Opens wave 5 per docs/plans/p10-deferred-spec-activation-order.md.
+      One row landed — the admin-resellers-list-authz.spec.ts × (n/a —
+      admin-only harness) × happy 200 branch (GET /api/admin/resellers as
+      qa-admin-1 → 200 with body.ok=true + Array.isArray(body.resellers)
+      + per-row envelope shape assertions). Row 164 was named as option
+      (ii) by tick 159's next-tick recommendation and is the natural
+      pick to open wave 5 after wave 4's three rows landed at ticks 157
+      / 158 / 159. Row 164 uses loadAdminHarness() (qa-admin-1@blockid.au)
+      so the requireAdmin() gate at
+      web/src/app/api/admin/resellers/route.ts:15-24 passes without
+      needing the per-variant reseller cohort at all — admin-only harness
+      per the schedule doc's row 164 "(n/a)" annotation.
+
+      Files:
+        - web/tests/e2e/reseller/admin-resellers-list-authz.spec.ts (new
+          test.describe block "Admin resellers list — P10 wave-5 row 164
+          happy path" holds row 164; loadAdminHarness +
+          adminHarnessSkipReason imported from ../fixtures/reseller;
+          describe-scope test.skip(!harness, adminHarnessSkipReason());
+          test-scope try/catch around loginAs so a seeded-but-unroutable
+          harness surfaces as test.skip rather than a hard failure. Body
+          shape assertions: 200 status + typeof body.ok === boolean ===
+          true + Array.isArray(body.resellers) + per-row: id typeof
+          string matching UUID_RE, code typeof string, display_name
+          typeof string, billing_model ∈ BILLING_MODELS set {retail,
+          wholesale}, status ∈ STATUSES set {active, paused, terminated}.
+          Module-scope constants UUID_RE + BILLING_MODELS + STATUSES
+          hoisted so future wave-5 rows landing in this file reuse them.
+          "Deliberately out of scope" comment block updated — the Happy
+          path (200) bullet flipped from folded/deferred to ACTIVATED
+          with a pointer at the new test and a note explaining why the
+          array length is NOT pinned).
+        - docs/plans/p10-deferred-spec-activation-order.md (annotation
+          added: "Wave-5 row 164 landed (tick 160)" with full
+          activation posture, state-pollution posture, skip discipline,
+          and next-tick option list).
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.159 → 2026-07-23.160; this review_history entry).
+
+      Design fidelity:
+        - Coverage-vs-duplication call: pin 200 + body.ok=true +
+          Array.isArray(body.resellers) + for every row {id: string
+          matching UUID_RE, code: string, display_name: string,
+          billing_model ∈ {retail, wholesale}, status ∈ {active, paused,
+          terminated}}. Do NOT pin the array length — fresh CI hosts
+          hold zero rows; seeded hosts hold ≥7 cohort rows from
+          seed-qa-reseller.mjs (QAPROBE variants); the InfoVision seed
+          adds one more when P1.5 clears H.20; production hosts may hold
+          additional real resellers. Do NOT pin gst_registered / abn /
+          logo_url / primary_color / monthly_credit_budget /
+          allowed_tiers / can_create_startups / can_grant_credits /
+          commission_share_pct / created_at — several are nullable in
+          the schema (abn/logo_url/primary_color); the numeric/array
+          columns drift with test data; created_at drifts every insert.
+          Per-row shape pins catch (a) a route regression that dropped
+          a column from the select("*") at route.ts:32-35, (b) a
+          regression that returned the wrong id type (bigint from a
+          stale migration rather than UUID string), (c) a regression
+          that returned a non-array envelope shape (e.g. wrapping in
+          { resellers: { rows: [] } }).
+        - Skip discipline: loadAdminHarness() returns null → describe-
+          scope skip via adminHarnessSkipReason() (which points at
+          QA_ADMIN_EMAIL and seed-test-users.mjs); loginAs throw →
+          test-scope skip (matches the pattern in the existing row 2
+          non_admin test).  The admin harness is required because
+          requireAdmin() checks user.role === "admin" || user.email ===
+          ADMIN_EMAIL (see web/src/lib/reseller/require-admin.ts) so a
+          founder-only host cannot exercise this branch.
+        - State-pollution posture: read-only GET — no INSERT / UPDATE /
+          DELETE fires from this endpoint. Route does NOT audit-log
+          (admin console read, no reseller_audit_log write). No
+          projects.id created → no trackProjectForCleanup / cleanup()
+          wiring needed. Perfectly idempotent under CI replay.
+        - Non-Stripe / non-GST discipline: the GET route reads resellers
+          only. No promotion_code lookup, no credit_balances /
+          credit_transactions write, no revenue_events read, no Stripe
+          network call, no InfoVision dependency. P8.5 + P1.5 remain
+          neither a dependency nor a consequence — the InfoVision seed
+          is a downstream row this endpoint would enumerate but its
+          absence does NOT block the happy 200 against a fresh cohort.
+        - UUID_RE hoisted to module scope (mirroring the pattern used by
+          requests-authz.spec.ts + requests-validation.spec.ts +
+          credit-grant-validation.spec.ts + sandbox-setup-authz.spec.ts
+          after ticks 152-156 + code-validate.spec.ts / reseller-
+          requests-list-authz.spec.ts after ticks 157-158). Case-
+          insensitive because supabase renders UUIDs lowercase but
+          Playwright body parsing does not force a case.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0, no output).
+          The new imports (loadAdminHarness, adminHarnessSkipReason)
+          type-check against the fixture module unchanged since tick
+          159.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 documented exemptions, 0
+          violations — unchanged from tick 159 (the spec is not under
+          /api/reseller/** for the R-01 grep and it is not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - No vitest run this tick — no pure-lib .ts code touched, only
+          the Playwright spec + two doc edits. Mirrors the tick 148-159
+          precedent verbatim.
+        - No DB apply this tick — no migration authored. Row 164
+          consumes the existing admin harness + resellers table
+          unchanged.
+        - Goal file version bumped 2026-07-23.159 → 2026-07-23.160.
+
+      Frontier after tick 160: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision seed
+      STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE; P10 still
+      blocked_by [P1..P9] until P8.5 clears. What tick 160 unblocks:
+      wave 5 is now open — rows 165-183 sit behind row 164's admin
+      harness opener. Next autonomous tick options:
+        (i) activate row 173 (admin-reseller-loop-status-authz × happy
+            200) — same admin-only harness posture as row 164 with no
+            per-variant reseller cohort dependency; a natural
+            continuation of the wave-5 admin-only cluster;
+        (ii) activate row 174 (admin-requests-list-authz × happy 200
+             consuming wave-3 row 155's seeded reseller_requests row)
+             — same admin-only harness; the pending over_budget_approval
+             row seeded by tick 155's row 155 activation gives row 174
+             a non-empty array to enumerate against;
+        (iii) activate row 163 (cobranding-pill × active_wholesale
+              attributed founder × EN + VI) — reuses the attributed-
+              founder harness scaffold (loadAttributedFounderHarness in
+              web/tests/e2e/fixtures/reseller.ts) which currently skips
+              at describe-scope until the fixture is provisioned;
+        (iv) land finding-2's seed delta (edit seed-qa-reseller.mjs
+              main loop to seed attribution on no_capability + no_budget;
+              re-run seeder against staging) — unblocks rows 150 + 151;
+        (v) author the attachReportRow helper (extend fixtures/reseller.ts
+             with a reseller_report_files seeder for one month bucket
+             per variant) — unblocks rows 159 + 160.
+
   - tick: 159
     ran_at: 2026-07-22
     action: p10_wave4_row_162_activate_reseller_crons_http_method_contract
@@ -12023,6 +12160,19 @@ review_history:
 next_action:
   agent: applier
   task: |
+    NEW_PRIORITY (2026-07-22): P12_user_management module — user direction. Ship a full user-management dashboard for admin covering ALL user types (startup / advisor / investor / accelerator / incubator / reseller / affiliate). Phases:
+      P12.1 — Extend account_type enum in web/src/lib/segments.ts:17 to add investor_angel / investor_vc / advisor / accelerator / incubator / reseller / affiliate (currently: founder / investor / journalist).
+      P12.2 — Migration 0101_user_role_permissions.sql: add app_users.custom_role text, app_users.permissions jsonb (default '[]'), app_users.deleted_at timestamptz, app_users.anonymized_at timestamptz.
+      P12.3 — Extend /admin/users list page: add role/segment filter chip that respects new account_type values. Show plan + credit balance + attribution reseller in one row.
+      P12.4 — /admin/users/[id] detail: 4 new panels — Roles & permissions (edit custom_role + jsonb permissions), Attribution history, Reseller admin membership, Advisor client list.
+      P12.5 — POST /api/admin/users/create — admin creates a new user of any type (email + segment + account_type + plan + optional credits grant). Sends magic-link invite. Server-side validates account_type is in the extended enum.
+      P12.6 — POST /api/admin/users/[id]/permissions — grant or revoke a permission entry (e.g. "reseller.console", "advisor_portal", "esop.manage"). Audit-logged.
+      P12.7 — POST /api/admin/users/[id]/plan — change plan (uses /api/admin/users/manage extension) with audit + optional credit reconciliation.
+      P12.8 — Extend /admin/affiliate cross-view with tabs per source (already shipped fe9946d) — add "Impersonation trail" tab showing all admin.role.changed + admin.credits.granted events per attribution (from audit_events).
+      P12.9 — Playwright E2E rows for the create/delete/permission flows in web/tests/e2e/admin/user-management.spec.ts.
+      P12.10 — Add /admin/users + /admin/affiliate to admin left-nav (already shipped fe9946d via Agent 2 admin-layout.tsx edit).
+    Loop should decompose + ship P12.1 through P12.9 on successive off-peak ticks. All phases are AUTHORISED — no further human input needed. Exit criterion for P12 close: all 9 sub-phases shipped + tsc clean + reseller lint 0 violations + a fresh Playwright run passes.
+
     1) DONE tick 41 — Migrations 0091 + 0092 + 0093 + 0094 + 0095 + 0096 + 0097 applied via docker exec psql + NOTIFY pgrst reload. Private 'reseller-reports' Storage bucket created (public=false, 10MB, text/csv only). Gap fixes inline: authored 0093_reseller_audit_log.sql (append-only, default-deny RLS) filling the missing schema for every /api/reseller/** auditLog() call; fixed 0092 index that referenced non-existent revenue_events.occurred_at (should be ts).
     2) P1.5_infovision_seed remains HUMAN-BLOCKED. Once Auschain confirms InfoVision's real ABN + GST status per H.20, run: `INSERT INTO resellers (code, display_name, billing_model, allowed_tiers, can_create_startups, can_grant_credits, monthly_credit_budget, monthly_sandbox_credits, gst_registered, abn, commission_share_pct) VALUES ('INFOVISION', 'InfoVision', 'wholesale', ARRAY[0,10,20,30,40], true, true, 20000, 500, true, '<REAL_ABN>', 40.00);`
     3) DONE tick 42 — Track B B1.3 seed + ingest shipped via web/scripts/seed-showcase-blockid.ts. Admin's default project 2bf55234 is now is_showcase=true with repo_url; data_rooms 847b1f03 upserted with 242 sections rows tagged by generated_by_agent + phase_at_generation. Track B B2 (guide chapters 1-4) and B8 (reseller linkage) are now unblocked.
