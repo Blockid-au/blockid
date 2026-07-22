@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.175
+version: 2026-07-23.176
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,157 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 176
+    ran_at: 2026-07-22
+    action: p10_wave5_row_180_audit_anomaly_scan_active_wholesale_happy_activated
+    result: |
+      Thirteenth wave-5 landing per docs/plans/p10-deferred-spec-activation-
+      order.md — activated row 180 (`audit-anomaly-scan.spec.ts` × `(n/a)`
+      × admin cron happy 200 with anomaly summary → both hotspot lists
+      surface actor + subject at threshold=READ_BURST). Twin coverage
+      alongside the pre-existing env-based describe (loadResellerHarness
+      contract via QA_RESELLER_ADMIN_EMAIL + QA_RESELLER_ATTRIBUTED_
+      CUSTOMER_ID + findResellerIdForAdmin lookup); the new describe uses
+      loadTempReseller('active_wholesale') + attachAttributedCustomer() so
+      a QAPROBE-cohort host (per seed-qa-reseller.mjs with QA_RESELLER_
+      MULTI_ADMIN=1) covers the plan §1223 Verification #5 anomaly-alert
+      half without a second env-var flip. Both describes fire the same
+      READ_BURST=5 drawer requests + scan endpoint pinned to
+      threshold=READ_BURST + reseller_id + actions=view_customer_drawer,
+      so a regression in the scan endpoint's aggregation, reseller-
+      scoping, or window handling lights up on either path.
+
+      Files:
+        - web/tests/e2e/reseller/audit-anomaly-scan.spec.ts (header block
+          updated: added "ACTIVATED wave-5 row 180 below (temp-reseller
+          mint fixture route via loadTempReseller('active_wholesale'))"
+          paragraph explaining that the pre-existing describe keeps the
+          env-based contract alive while the new describe covers the
+          QAPROBE cohort. Imports extended with `loadTempReseller` +
+          `tempResellerSkipReason` + `TempResellerFixture` from
+          fixtures/reseller. Appended `test.describe("Reseller audit-log
+          anomaly scan — P10 wave-5 row 180 happy path")` block after the
+          pre-existing harness-based describe. Inside the new block:
+          `test.beforeAll` loads the active_wholesale fixture;
+          `test.afterAll` runs fixture.cleanup() so the attributed
+          founder's app_users.attribution_reseller_id cache column is
+          restored if attachAttributedCustomer() flipped it. Single test
+          fires READ_BURST drawer reads THEN the scan endpoint pinned to
+          fixture.resellerId + threshold=SCAN_THRESHOLD, and asserts
+          body.summary.actor_hotspots contains (fixture.adminUserId,
+          fixture.resellerId) with count ≥ READ_BURST and
+          body.summary.subject_hotspots contains (attach.attributedUserId,
+          fixture.resellerId) with count ≥ READ_BURST. Five-step skip
+          discipline: fixture null / attributedUserId null /
+          !attributionExists / adminUserId null / attach null — each
+          carries a specific reseed hint pointing at either
+          seed-qa-reseller.mjs (with QA_RESELLER_MULTI_ADMIN=1) or
+          seed-test-users.mjs. Does NOT reach into supabase-admin —
+          fixture already resolves resellerId + adminUserId + subject
+          triple internally, so unlike the pre-existing describe the new
+          block does not need loadSupabaseAdmin / findUserIdByEmail /
+          findResellerIdForAdmin at spec scope. Only attachAttributedCustomer()
+          + attach.cleanup() touch supabase and both are fixture-managed.
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.175 → 2026-07-23.176; this review_history entry
+          prepended).
+
+      Design fidelity:
+        - Variant pin matches plan §970 posture (active_wholesale is the
+          only variant that populates fixture.attributedUserId +
+          fixture.attributionExists, so scopedReseller().allowedCustomer
+          Ids() accepts the burst subject). Row 180's plan-table variant
+          is (n/a) — the test does not care about wholesale vs retail,
+          only about the (actor, subject, reseller) triple appearing in
+          both hotspot buckets — but active_wholesale is the only variant
+          the fixture can drive against the drawer route today, so the
+          twin describe rides the wave-5 row 179 posture verbatim.
+        - Skip discipline mirrors the wave-5 row 179 posture (tick 175):
+          each skip carries the specific seeder command that would unblock
+          it. Notably, !attributionExists points at seed-qa-reseller.mjs
+          with QA_RESELLER_MULTI_ADMIN=1 because the fixture explicitly
+          documents that partial-seed hosts expose attributedUserId even
+          when the reseller_attributions row is missing — but drawer
+          requests would 403 not_in_scope in that state, so the spec
+          skips rather than fails on the 403.
+        - attachAttributedCustomer() called in the test body (not in
+          beforeAll) because it registers a restore closure with
+          fixture.cleanup() that must fire in afterAll to revert the
+          cache column. Registering in beforeAll would race the per-
+          test-worker teardown; the fixture's cleanup semantics expect
+          the attach/restore pair to bracket the same async scope.
+          Matches the wave-2 helper contract (fixtures/reseller.ts
+          §attachAttributedCustomer JSDoc) and the row 179 posture from
+          tick 175.
+        - Firing READ_BURST=5 drawer reads THEN the scan endpoint in the
+          same test (not split across two tests) so the shared beforeAll
+          fixture + attachAttributedCustomer() side-effect + afterAll
+          cleanup are not duplicated. The pre-existing describe already
+          uses a single test for the same reason; the new describe keeps
+          the shape identical so a side-by-side diff of the two describes
+          reveals only the fixture-vs-harness split.
+        - Scan window anchored to `now + 60s` so the just-fired reads
+          fall inside the scan's [now - window_days, now] range even
+          under clock skew. Matches the pre-existing describe verbatim
+          because the endpoint's window handling is invariant to which
+          describe fires the burst.
+        - No supabase-admin reach: fixture.resellerId + fixture.adminUserId
+          + attach.attributedUserId are all authoritative sources for the
+          hotspot triple, so the new describe does not import
+          loadSupabaseAdmin / findUserIdByEmail / findResellerIdForAdmin.
+          The pre-existing describe still uses those helpers because the
+          env-based contract only resolves the admin email + attributed
+          customer id; the fixture route resolves everything upstream so
+          the spec code is thinner.
+        - loginAs wrapped in try/catch so a missing password entry in
+          /tmp/blockid-qa-accounts.txt reports the exact reseed command
+          rather than the raw fixture throw — matches the row 179
+          posture from tick 175.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0). The three
+          new imports (loadTempReseller + tempResellerSkipReason +
+          TempResellerFixture) resolve against the existing exports in
+          fixtures/reseller.ts.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files,
+          R-03 scanned 31 manifest routes, 3 documented exemptions,
+          0 violations — unchanged from tick 175 (the spec is not
+          under /api/reseller/** for the R-01 grep and is not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - No DB apply this tick — no migration authored.
+        - Goal file version bumped 2026-07-23.175 → 2026-07-23.176.
+
+      Frontier after tick 176: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision
+      seed STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE;
+      P10 still blocked_by [P1..P9] until P8.5 clears. Wave 5 has now
+      landed 164 (list) + 167 (detail authz happy) + 168 (detail
+      validation happy + reject) + 169 (patch authz post-requireAdmin
+      reject × 3) + 170 (patch validator reject × 6) + 171 (delete
+      authz happy 200) + 172 (delete validation reject × 2 + happy
+      200) + 173 (loop-status happy) + 174 (admin-requests-list
+      happy) + 175 deny+cancel (admin-requests-patch two reject
+      branches) + 176 (showcase-reviews founder GET happy 200) + 179
+      (audit-log-writes twin describe via temp-reseller mint fixture
+      tick 175) + 180 (audit-anomaly-scan twin describe via temp-
+      reseller mint fixture this tick). Natural next picks:
+        (i) row 177 (`showcase-reviews-validation.spec.ts` × active_
+             wholesale × reviewer-flow POST — still deferred on the
+             seeded data_room_access_tokens dependency per plan §J.2);
+        (ii) row 178 attribution-timing wave-5 activation — needs a
+              fresh unattributed founder QA seed row (the fixture would
+              need a snapshot/restore of app_users.attribution_reseller_id
+              similar to attachAttributedCustomer());
+        (iii) row 181 scope-boundary — requires attributed customer
+              state to plant + reseller-admin session probing /api/svi/*,
+              /api/dataroom/*, /api/cap-table/*;
+        (iv) row 165 (`admin-resellers-create-authz.spec.ts` × happy
+              201 — still deferred on the "reseller INSERT poisoning"
+              design question; needs afterAll DELETE cleanup for the
+              mint OR a pre-provisioned code-slot the harness can
+              idempotently UPSERT into).
+    commit: (this tick)
+
   - tick: 175
     ran_at: 2026-07-22
     action: p10_wave5_row_179_audit_log_writes_active_wholesale_happy_activated
