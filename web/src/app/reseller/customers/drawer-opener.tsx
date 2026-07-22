@@ -3,6 +3,8 @@
 // Per-row "View" button that opens the CustomerDrawer inline.
 
 import { useState } from "react";
+
+import { useLocale, type Locale } from "@/lib/use-locale";
 import { CustomerDrawer } from "./customer-drawer";
 
 interface Props {
@@ -10,7 +12,13 @@ interface Props {
   displayName: string | null;
 }
 
+const VIEW_LABEL: Record<Locale, string> = {
+  en: "View",
+  vi: "Xem",
+};
+
 export function DrawerOpener({ customerId, displayName }: Props) {
+  const [locale] = useLocale();
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -19,7 +27,7 @@ export function DrawerOpener({ customerId, displayName }: Props) {
         onClick={() => setOpen(true)}
         className="text-xs text-brand-700 underline hover:text-brand-900"
       >
-        View
+        {VIEW_LABEL[locale]}
       </button>
       {open && (
         <CustomerDrawer

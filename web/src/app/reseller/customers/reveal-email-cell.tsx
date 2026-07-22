@@ -9,6 +9,8 @@
 
 import { useState } from "react";
 
+import { useLocale, type Locale } from "@/lib/use-locale";
+
 interface Props {
   customerId: string;
   maskedEmail: string;
@@ -20,7 +22,34 @@ type State =
   | { status: "revealed"; email: string }
   | { status: "error"; message: string };
 
+interface Copy {
+  show: string;
+  revealing: string;
+  hide: string;
+  reveal_failed: string;
+  retry: string;
+}
+
+const COPY: Record<Locale, Copy> = {
+  en: {
+    show: "Show",
+    revealing: "Revealing…",
+    hide: "Hide",
+    reveal_failed: "Reveal failed",
+    retry: "Retry",
+  },
+  vi: {
+    show: "Hiển thị",
+    revealing: "Đang hiển thị…",
+    hide: "Ẩn",
+    reveal_failed: "Không hiển thị được",
+    retry: "Thử lại",
+  },
+};
+
 export function RevealEmailCell({ customerId, maskedEmail }: Props) {
+  const [locale] = useLocale();
+  const copy = COPY[locale];
   const [state, setState] = useState<State>({ status: "masked" });
 
   async function reveal() {
@@ -50,7 +79,7 @@ export function RevealEmailCell({ customerId, maskedEmail }: Props) {
           onClick={() => setState({ status: "masked" })}
           className="text-xs text-ink-500 underline hover:text-ink-700"
         >
-          Hide
+          {copy.hide}
         </button>
       </span>
     );
@@ -61,14 +90,14 @@ export function RevealEmailCell({ customerId, maskedEmail }: Props) {
       <span className="inline-flex items-center gap-2">
         <span className="text-ink-700">{maskedEmail}</span>
         <span className="text-xs text-red-600" title={state.message}>
-          Reveal failed
+          {copy.reveal_failed}
         </span>
         <button
           type="button"
           onClick={reveal}
           className="text-xs text-brand-700 underline hover:text-brand-900"
         >
-          Retry
+          {copy.retry}
         </button>
       </span>
     );
@@ -83,7 +112,7 @@ export function RevealEmailCell({ customerId, maskedEmail }: Props) {
         disabled={state.status === "loading"}
         className="text-xs text-brand-700 underline hover:text-brand-900 disabled:text-ink-400 disabled:no-underline"
       >
-        {state.status === "loading" ? "Revealing…" : "Show"}
+        {state.status === "loading" ? copy.revealing : copy.show}
       </button>
     </span>
   );
