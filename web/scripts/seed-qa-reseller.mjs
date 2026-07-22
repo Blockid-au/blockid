@@ -72,11 +72,17 @@ const VARIANTS = [
     abn: QA_ABN,
   },
   {
+    // can_create_startups is intentionally TRUE here even though this variant
+    // is retail — the variant's job is to probe the billing_model_not_wholesale
+    // branch of decideCreateStartup(), which sits AFTER the capability_disabled
+    // gate. Setting can_create_startups=false would collapse this variant into
+    // no_capability (below) rather than isolating the retail-vs-wholesale
+    // decision. See docs/plans/p10-wave1-preflight-finding.md (tick 141).
     name: "active_retail",
     code: "QAPROBERETAILACTIVE",
     display_name: "QA Probe Retail (Active)",
     billing_model: "retail",
-    can_create_startups: false,
+    can_create_startups: true,
     can_grant_credits: false,
     status: "active",
     allowed_tiers: [0, 10, 20, 30, 40],
