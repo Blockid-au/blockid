@@ -807,6 +807,32 @@ test.describe("Reseller audit-log writes — P10 wave-5 row 179 deny symmetric l
       `expected 0 reseller_credit_grants rows for a denied over_budget_approval keyed by reseller_request_id=${attach.requestId}; got ${grantRows?.length ?? 0}. The mirror INSERT at route.ts:280-296 must stay inside the approve guard.`,
     ).toBe(0);
 
+    // Ledger table 3b (second-lens negative). Mirrors the tick 208 approve
+    // shape+helper alignment onto the deny branch: the shape read above is
+    // scoped only by (target_user_id, metadata->>reseller_request_id) so a
+    // regression that landed a stray mirror insert on the deny branch AND
+    // keyed it to a different reseller_id (e.g. actor_user_id inadvertently
+    // threaded as reseller_id, or a schema drift where reseller_id defaulted
+    // to the admin's user_id under a broken CTE) would leak past the
+    // metadata-scoped read. Filtering by (reseller_id=fixture.resellerId,
+    // target_user_id, kind='grant', since=patchSince) additionally guards
+    // that dimension. `patchSince` is captured at line 727 before the PATCH
+    // so cross-run mirror rows against the same (reseller, target) pair —
+    // which accumulate across the whole month_key window per route.ts:214
+    // when the approve branch DOES fire in a sibling test — cannot poison
+    // the count. Expected 0: the deny branch must never emit a
+    // reseller_credit_grants row.
+    const mirrorCount = await countResellerCreditGrantsFor(supabase, {
+      resellerId: fixture.resellerId,
+      targetUserId: attach.targetUserId,
+      kind: "grant",
+      since: patchSince,
+    });
+    expect(
+      mirrorCount,
+      `expected 0 reseller_credit_grants(kind='grant') mirror rows for (reseller=${fixture.resellerId}, target=${attach.targetUserId}) since ${patchSince}; got ${mirrorCount}. The mirror INSERT lives at web/src/app/api/admin/resellers/requests/[id]/route.ts:271-287 gated by the same approve+over_budget_approval branch as the credit_transactions insert (route.ts:255-271). >0 → the mirror insert escaped the approve guard, likely under a reseller_id-drift regression that the metadata-scoped shape read above would miss.`,
+    ).toBe(0);
+
     // Audit write: exactly one action='deny_request' row keyed on
     // (actor, subject=target_user_id, since=patchSince). subject_user_id
     // is stamped from payload.target_user_id for over_budget_approval
@@ -987,6 +1013,27 @@ test.describe("Reseller audit-log writes — P10 wave-5 row 179 cancel symmetric
     expect(
       grantRows?.length ?? 0,
       `expected 0 reseller_credit_grants rows for a cancelled over_budget_approval keyed by reseller_request_id=${attach.requestId}; got ${grantRows?.length ?? 0}. The mirror INSERT at route.ts:280-296 must stay inside the approve guard.`,
+    ).toBe(0);
+
+    // Ledger table 3b (second-lens negative). Same shape+helper alignment
+    // rationale as the deny block above: the metadata-scoped shape read
+    // would stay green under a reseller_id-drift regression that emitted a
+    // mirror insert on the cancel branch with reseller_id keyed to
+    // actor_user_id (or a default drift). The helper filters by
+    // (reseller_id=fixture.resellerId, target_user_id, kind='grant',
+    // since=patchSince) so that regression class lights up here. `patchSince`
+    // is captured at line 919 before the PATCH; the approve guard at
+    // route.ts:271-287 must exclude the cancel branch just as it excludes
+    // deny.
+    const mirrorCount = await countResellerCreditGrantsFor(supabase, {
+      resellerId: fixture.resellerId,
+      targetUserId: attach.targetUserId,
+      kind: "grant",
+      since: patchSince,
+    });
+    expect(
+      mirrorCount,
+      `expected 0 reseller_credit_grants(kind='grant') mirror rows for (reseller=${fixture.resellerId}, target=${attach.targetUserId}) since ${patchSince}; got ${mirrorCount}. The mirror INSERT lives at web/src/app/api/admin/resellers/requests/[id]/route.ts:271-287 gated by the same approve+over_budget_approval branch as the credit_transactions insert. >0 → the mirror insert escaped the approve guard, likely under a reseller_id-drift regression that the metadata-scoped shape read above would miss.`,
     ).toBe(0);
 
     const auditCount = await countResellerAuditLogFor(supabase, {
