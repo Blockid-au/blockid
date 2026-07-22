@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.137
+version: 2026-07-23.138
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,113 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 138
+    ran_at: 2026-07-22
+    action: p10_option_a_step3_reseller_fixture_per_variant_admin_email
+    result: |
+      Landed Option A step 3 of the docs/plans/p10-temp-reseller-
+      admin-scope-collision-finding.md resolution plan. Extended
+      web/tests/e2e/fixtures/reseller.ts's TempResellerFixture with a
+      new `adminEmail: string` field and a `resolveVariantAdminEmail()`
+      resolver that mirrors seed-qa-reseller.mjs's resolveVariantAdmin()
+      exactly — so specs `loginAs(page, fixture.adminEmail)` and each
+      variant hits a DISTINCT app_users row, avoiding the
+      scopedReseller() .maybeSingle() PGRST116 collision when one
+      user is a member of MORE THAN ONE variant.
+
+      Files:
+        - web/tests/e2e/fixtures/reseller.ts (extended — new
+          DEFAULT_MULTI_ADMIN_EMAILS map with the seven Option A slots
+          + VARIANT_ENV_SLOT upper-snake table; new exported
+          resolveVariantAdminEmail(variant) resolver gated on
+          QA_RESELLER_MULTI_ADMIN=1 to mirror both seeders'
+          --reseller-multi-admin gate; TempResellerFixture interface
+          gained `adminEmail: string` above the existing adminUserId
+          slot with a docblock explaining the collision-finding
+          rationale; loadTempReseller() now calls
+          resolveVariantAdminEmail(variant) instead of the single
+          QA_RESELLER_ADMIN_EMAIL env var and returns the resolved
+          email so specs consume fixture.adminEmail. Header docblock
+          updated to describe the step 3 delta; tempResellerSkipReason()
+          now points at BOTH the mint fixture design doc AND the
+          collision finding doc so an operator running the specs sees
+          the multi-admin gate instruction in the skip message.)
+
+      Design fidelity (per collision finding §Resolution options → A step 3):
+        - Contract mirroring: resolveVariantAdminEmail() dispatches
+          identically to seed-qa-reseller.mjs's resolveVariantAdmin() —
+          MULTI_ADMIN gate ON prefers QA_RESELLER_ADMIN_EMAIL_<VARIANT>
+          then DEFAULT_MULTI_ADMIN_EMAILS[variant] then
+          QA_RESELLER_ADMIN_EMAIL then the tick 132 default
+          qa-reseller-1@blockid.au. Gate OFF collapses every variant
+          to QA_RESELLER_ADMIN_EMAIL — matching the seeder's
+          single-admin cohort semantics so hosts that never ran with
+          --reseller-multi-admin keep their tick 132 behaviour.
+        - Backwards-compat: adminEmail is a plain string (never null)
+          so downstream specs don't need optional-chaining. When the
+          resolved email has no matching app_users row, adminUserId
+          stays null and the spec skips via tempResellerSkipReason(),
+          preserving the "test.skip on unprovisioned" posture used
+          across P4/P5/P7/P8/B7/B8/B9/B10.
+        - Single source of truth: DEFAULT_MULTI_ADMIN_EMAILS reproduces
+          the seven-slot map from BOTH .mjs seeders verbatim (both
+          seeders already share identical defaults). The .mjs files
+          live outside the tsconfig include glob so a shared import is
+          not viable; the fixture-side comment flags the drift risk
+          and points at both seeder file paths so a future variant
+          rename lands in all three files as a single mechanical edit.
+        - Env-var slot symmetry: VARIANT_ENV_SLOT is a hard-coded
+          upper-snake map rather than `variant.toUpperCase()` so a
+          future variant introduced with a hyphen does not silently
+          drift to a different env-var name than the seeders'
+          expected slot.
+
+      Verified:
+        - npx tsc --noEmit (repo-wide) exit=0, zero errors — the
+          extended interface + new export land clean and no consumer
+          of TempResellerFixture needed an update (only spec that
+          references the fixture is reseller-requests-list-authz.spec.ts
+          which references `harness.admin.email` on the OLDER
+          ResellerHarness type, not the new TempResellerFixture, so
+          the delta is additive-only).
+        - npm run lint:reseller unchanged — 11 R-01 file(s) + 31 R-03
+          route(s), 3 exemptions, 0 violations. The fixture lives at
+          web/tests/, not /api/reseller/**, so R-01 does not fire; no
+          feature-gates.manifest entry so R-03 does not fire either.
+        - No vitest suite added — the fixture directory lives outside
+          vitest's `src/**/*.test.ts` include glob so a colocated
+          fixtures/reseller.test.ts would not be picked up. The
+          resolver is a small pure branch (four ordered fallbacks)
+          exercised end-to-end by the deferred spec-activation ticks;
+          Option A step 3 is scoped to surfacing the email so specs
+          can consume it, not to activating any spec.
+        - No DB apply this tick — the extension is fixture-side
+          code only. Requires seed-test-users.mjs + seed-qa-reseller.mjs
+          to have run with --reseller-multi-admin so the seven
+          per-variant app_users rows + reseller_admins mirrors exist;
+          without them, adminUserId stays null and specs skip.
+        - Goal file version bumped 2026-07-23.137 → 2026-07-23.138.
+
+      REMAINING P10 Option A step:
+        - Step 4: docs/plans/p10-temp-reseller-mint-fixture-design.md
+          update — reflect the seven-account cohort in §§1, 5 and the
+          env-var contract table so the design doc matches the
+          shipped state of steps 1-3.
+
+      Frontier after tick 138: shape unchanged in terms of goal-file
+      phase status — Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision
+      seed STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE;
+      P10 still blocked_by [P1..P9] until P8.5 clears. What tick 138
+      unblocks: Option A step 4 (design-doc update) is now the last
+      Option A leaf; once shipped, the collision-finding resolution is
+      fully landed and deferred spec-activation ticks (~50 rows across
+      ~13 spec files) can boot against a multi-admin-seeded host.
+      Next autonomous tick options: (i) ship Option A step 4 as pure
+      documentation catchup so the design doc reflects the cohort
+      (deps: none); (ii) idle until human unblock on P8.5 or P1.5.
+    commit: (this tick)
+
   - tick: 137
     ran_at: 2026-07-22
     action: p10_option_a_step2_seed_qa_reseller_per_variant_admin_mirror
