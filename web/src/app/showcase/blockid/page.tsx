@@ -21,6 +21,7 @@ import Link from "next/link";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
+import { WebPageJsonLd } from "@/components/seo/json-ld";
 import {
   buildShowcaseDataRoomRows,
   type DataRoomShowcaseRow,
@@ -146,6 +147,15 @@ export default async function ShowcaseBlockidPage() {
   return (
     <>
       <PageTracker page="showcase-blockid" />
+      <WebPageJsonLd
+        url={CANONICAL}
+        name={TITLE}
+        description={DESCRIPTION}
+        breadcrumbs={[
+          { name: "Home", url: SITE_URL },
+          { name: "Showcase", url: CANONICAL },
+        ]}
+      />
       <Navbar />
       <main className="mx-auto max-w-6xl px-4 py-12 md:py-16">
         <header className="mb-10">

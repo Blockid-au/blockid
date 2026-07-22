@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.35
+version: 2026-07-23.36
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -1909,6 +1909,56 @@ review_history:
       vitest 624/624 (was 603/603, +21); lint:reseller unchanged.
       Track B is now COMPLETE (B1..B10 all done).
     commit: (this tick)
+  - tick: 67
+    ran_at: 2026-07-22
+    action: cmo_advisory_22_jsonld_structured_data
+    result: |
+      Closed CMO advisory §22 recommendation #3 ("Add JSON-LD Organization +
+      WebPage on /showcase/blockid and ItemList on /guide/reports — cheap SERP
+      win given the pages already have canonical URLs and unique metadata").
+      Pure builder lib at web/src/lib/seo/structured-data.ts exposes
+      buildWebPageJsonLd({url, name, description, breadcrumbs?, primaryImage?,
+      inLanguage?}) returning a schema.org WebPage object with isPartOf
+      (WebSite) + publisher (Organization) + optional BreadcrumbList; and
+      buildItemListJsonLd({url, name, description, items, itemLimit?}) returning
+      a schema.org ItemList object with 1-indexed ListItem entries and
+      numberOfItems reflecting the full input length (crawl payload is clamped
+      to itemLimit — default 100 — but the aggregate count stays honest). React
+      wrappers WebPageJsonLd + ItemListJsonLd added to
+      web/src/components/seo/json-ld.tsx alongside the existing OrganizationJsonLd
+      / SoftwareApplicationJsonLd / FAQJsonLd / ArticleJsonLd emitters (same
+      dangerouslySetInnerHTML pattern; server components so no hydration cost).
+      /showcase/blockid now emits WebPage JSON-LD with a two-level breadcrumb
+      trail (Home → Showcase) mounted right after PageTracker, before Navbar,
+      so the crawler sees it as part of the initial document. /guide/reports
+      now emits ItemList JSON-LD covering the reports gallery — each row
+      contributes {name: "<title> — <agent>", description: "<agent> · <date>"}
+      so the SERP signal aligns with the visible card metadata. Since
+      OrganizationJsonLd already renders inside the root layout, both pages
+      end up with Organization + WebPage/ItemList on the same document (no
+      duplicate emit).
+      Tests: 7/7 pass in structured-data.test.ts (minimum WebPage shape,
+      breadcrumb round-trip with 1-indexed positions, primaryImage +
+      inLanguage overrides, ItemList 1-indexed positions with url passthrough,
+      itemLimit clamp with numberOfItems preserving true count, zero-item
+      empty state, description passthrough). Verified: tsc clean; whole-tree
+      vitest 667/667 (was 633, +34 covering ticks 63-66 + this tick's 7); npm
+      run lint:reseller unchanged (8 R-01 files + 28 R-03 routes, 3
+      exemptions, 0 violations — new files under /lib/seo and /components/seo
+      don't touch any /api/reseller/** file or feature-gates.manifest so
+      neither rule fires).
+      Files: web/src/lib/seo/structured-data.ts (new), web/src/lib/seo/
+      structured-data.test.ts (new, 7 cases), web/src/components/seo/
+      json-ld.tsx (WebPageJsonLd + ItemListJsonLd emitters appended), web/src/
+      app/showcase/blockid/page.tsx (import + WebPageJsonLd emit),
+      web/src/app/guide/reports/page.tsx (import + listItems derivation +
+      ItemListJsonLd emit). REMAINING under §22: /guide/reports per-row
+      download route + GA event still deferred (needs the plan §284 redaction
+      pipeline — larger tick). Frontier unchanged: every real leaf still DONE
+      or HUMAN-BLOCKED (P8.5 Stripe env vars, P1.5 InfoVision seed on H.20
+      ABN).
+    commit: (this tick)
+
   - tick: 66
     ran_at: 2026-07-22
     action: cs_advisory_24_weekly_digest_cron
@@ -2367,7 +2417,8 @@ next_action:
     4) DONE tick 35 — Optional P6.5b widening: term-sheet/idea-lab/valuation/journal/data-room/evidence spendCredits callers now thread project_id via getProjectIdFromRequest(). See tick 35 for file list. Remaining spendCredits() callers not touched: financial-projections, investor-pack/generate, svi/pitch-deck, svi/docx, svi/report, svi/enhanced-report, svi/dimension-analyze, svi/ai-score, svi/research, revaluation, v1/analyze, evaluation/[criterionKey]/ai-suggest, data-room/goals (award path — misleading call, not a real debit).
     5) DONE tick 55 — P0.3_advisory_reviews closed. All 8 advisory reviewers (cmo/coo/cpo/cdo/chro/cro/customer-success/investor-relations) ran in parallel and returned approved_with_notes (0 revise; 0 blocking findings). Review files land under docs/plans/reviews/plan-review-<role>.md. Non-blocking findings captured as items 21-27 below.
    21) DONE tick 56 — P8.4b_end_of_cycle_removal fixed the CRO-flagged defect. handleRemoveItem now creates a Subscription Schedule from the active subscription (Stripe fills phase 0 with the current item set through current_period_end) and updates it with a phase 1 that drops the add-on for one iteration + end_behavior:'release' so the subscription reverts to normal renewal. Existing schedules on the sub are reused via activeSub.schedule → subscriptionSchedules.retrieve instead of erroring on a second create. Pure buildAddonRemovalSchedulePhases lib + 5/5 vitest covers happy path, string-vs-object price shape, quantity omit, sole-item guard, and quantity preservation. Response envelope + revenue_events.detail now carry schedule_id + effective_at Unix timestamp so downstream reconciliation / Playwright can assert the item is still active until current_period_end. Playwright E2E assertion still deferred to P10_hardening per the P4/P5/P7/P8/B7/B8/B9/B10 posture.
-   22) PARTIAL tick 58 — CMO brand-wording pass DONE: "Referred by" / "Brought to you by" swapped to "Introduced by" (EN) + "Được giới thiệu bởi" (VI) per plan §C.3 across web/src/lib/reseller/email-footer.ts + email-footer.test.ts (9/9 pass, incl. proper VI diacritics), web/src/components/workspace/reseller-pill.tsx tooltip, and web/src/app/api/stripe/checkout/route.ts (subscription_data.description = "Introduced by <name>"; invoice_creation.invoice_data.custom_fields = [{name:"Reseller", value:<name>}] per plan §C.3 line 688). REMAINING: /guide/reports download route + GA event so template-library ROI is measurable — deferred to a follow-up tick since it also requires the redaction pipeline per plan §284.
+   22) PARTIAL tick 67 — CMO advisory §22 rec #3 (JSON-LD structured data) DONE. Pure builder lib at web/src/lib/seo/structured-data.ts exposes buildWebPageJsonLd + buildItemListJsonLd returning schema.org objects (WebPage with isPartOf/publisher/breadcrumbs; ItemList with 1-indexed ListItem entries + numberOfItems). React wrappers WebPageJsonLd + ItemListJsonLd added to web/src/components/seo/json-ld.tsx (matches OrganizationJsonLd/FAQJsonLd/ArticleJsonLd emit pattern with dangerouslySetInnerHTML). /showcase/blockid page now emits WebPage JSON-LD with two-level breadcrumbs (Home → Showcase). /guide/reports page now emits ItemList JSON-LD covering all report rows (default 100-item clamp for polite crawl payload; numberOfItems still reflects full count so aggregate SEO signal is honest). OrganizationJsonLd was already in root layout so both pages now have Org + WebPage/ItemList on the same document. Test coverage: 7/7 pass in structured-data.test.ts (min WebPage shape, breadcrumbs, primaryImage+inLanguage overrides, ItemList positions, itemLimit clamp, zero-item empty state, description passthrough). Verified: tsc clean; whole-tree vitest 667/667 (was 633, +34 across seo + prior test additions from ticks 63-66); npm run lint:reseller unchanged (8 R-01 + 28 R-03, 3 exemptions, 0 violations — new files under /lib/seo and /components/seo don't touch reseller boundary). REMAINING under §22: (a) prior — CMO brand-wording DONE tick 58. (b) /guide/reports per-row download route + GA event deferred (still needs the plan §284 redaction pipeline; larger tick).
+   22b) PARTIAL tick 58 — CMO brand-wording pass DONE: "Referred by" / "Brought to you by" swapped to "Introduced by" (EN) + "Được giới thiệu bởi" (VI) per plan §C.3 across web/src/lib/reseller/email-footer.ts + email-footer.test.ts (9/9 pass, incl. proper VI diacritics), web/src/components/workspace/reseller-pill.tsx tooltip, and web/src/app/api/stripe/checkout/route.ts (subscription_data.description = "Introduced by <name>"; invoice_creation.invoice_data.custom_fields = [{name:"Reseller", value:<name>}] per plan §C.3 line 688). REMAINING: /guide/reports download route + GA event so template-library ROI is measurable — deferred to a follow-up tick since it also requires the redaction pipeline per plan §284.
    23) PARTIAL tick 57 — CDO advisory §23 reviews-aggregate pair suppression closed. buildReviewsSummary now treats (total_reviews, projects_with_reviews) as a correlated pair: if either falls under k the other is also suppressed and avg_rating drops to null so the observer cannot bound the hidden bucket into {1..min(exposed,k-1)}. Verified via updated + new vitest cases (reviews.test.ts: pair-suppression when projects<k with total exposed; pair-suppression when total<k under custom threshold). Complementary suppression on portfolio-phase-distribution was already applied at line 128 (via applyComplementarySuppression from portfolio-aggregates.ts) but had no regression test — added an 11-visible/1-suppressed case that asserts ≥2 buckets go dark so the "subtract from attributed_total" attack has multiple solutions. REMAINING under §23: GA4 event catalogue for showcase surfaces (deferred to a CMO/CPO joint tick per CDO rec #2 dependency order).
    24) PARTIAL tick 66 — Grant modal EN+VI parity DONE tick 62; denial-reason surface DONE tick 63; leading-signal pure lib DONE tick 65; leading-signal weekly-digest cron DONE tick 66 (new /api/cron/reseller-weekly-digest endpoint iterates active resellers, expands reseller_attributions → user_ids (project-typed rows resolved via projects.user_id mirroring scope.allowedCustomerIds), bridges svi_analyses through app_users.email since svi_analyses has no user_id column on this host per 0007/0014/0016/0020 migrations, computes buildLeadingSignalSummary per reseller, emails admin@blockid.au a CSV attachment + HTML body; Mondays 04:15 UTC crontab entry after clear-commissions; ?skip_email=1 dry-run; pure formatter lib web/src/lib/reseller/weekly-digest.ts with 8/8 vitest for isoWeekKey year-boundary, CSV suppression/escape, HTML empty state + sort). REMAINING under §24: (a) H.8 wholesale magic-link + welcome email for reseller-provisioned founders (needs email template + magic-link infra — larger surface).
    25) PARTIAL tick 61 — CPO advisory §25 customer-drawer EN+VI parity DONE. web/src/app/reseller/customers/customer-drawer.tsx + drawer-opener.tsx + reveal-email-cell.tsx now switch every user-facing string via useLocale() with a Copy: Record<Locale, Copy> table (real VI translation with diacritics — "Tổng quan"/"Tiến trình"/"Báo cáo"/"Đang tải chi tiết khách hàng…"/"Chương hướng dẫn"/etc.); currency helper fmtAud() now takes locale and flips VI decimal separator from "." to "," (A$99,00); credits use Intl.NumberFormat("vi-VN"|"en-AU") for thousands separator; tab labels are now data-driven (dropped CSS `capitalize` since it fails for VI multi-word labels). tsc clean; reseller vitest 276/276; lint:reseller unchanged 8+28 with 3 exemptions / 0 violations. REMAINING under §25: explicit non-payment confirmation step in wholesale onboarding wizard (bundled with the H.8 magic-link work in §24).
