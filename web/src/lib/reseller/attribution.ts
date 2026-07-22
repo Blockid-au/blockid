@@ -6,7 +6,9 @@
 // mechanic for `?via=<reseller_code>` so consumption sites (auth flow,
 // onboarding wizard, checkout) can find the code without changing shape.
 
-import { createHash } from "node:crypto";
+// NOTE: this module is imported by client components (billing-client.tsx
+// → share-mgmt-drawer.tsx). Do NOT add server-only imports (e.g.
+// `node:crypto`) here. Server-only helpers live in ./attribution-server.ts.
 
 /** URL param name for reseller code. */
 export const VIA_PARAM = "via";
@@ -108,14 +110,5 @@ export function extractViaFromCookieHeader(cookieHeader: string | null | undefin
   return null;
 }
 
-/**
- * Stable short hash of a reseller code, used for `client_reference_id` on
- * Stripe Checkout Sessions. Stripe truncates client_reference_id at ~200
- * chars but keeping it compact aids grep.
- */
-export function viaClientReferenceId(code: string): string {
-  const clean = normaliseResellerCode(code);
-  if (!clean) throw new Error("viaClientReferenceId: invalid code");
-  const short = createHash("sha256").update(clean).digest("hex").slice(0, 8);
-  return `reseller_attribution:${clean}:${short}`;
-}
+// viaClientReferenceId moved to ./attribution-server.ts (server-only)
+// so client bundles do not pull node:crypto.
