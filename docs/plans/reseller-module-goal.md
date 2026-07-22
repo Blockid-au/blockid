@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.153
+version: 2026-07-23.154
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,155 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 154
+    ran_at: 2026-07-22
+    action: p10_wave3_row_152_activate_credit_grant_validation_active_wholesale_happy
+    result: |
+      Second wave-3 row landed per docs/plans/p10-deferred-spec-activation-
+      order.md. One row landed — the credit-grant-validation.spec.ts ×
+      active_wholesale × happy branch (200 with body.ok=true +
+      body.credit_transaction_id UUID + body.over_budget=false). Row 152 is
+      the shortest remaining wave-3 row per tick 153's next-tick
+      recommendation and reuses the wave-2 fixture posture verbatim
+      (loadTempReseller("active_wholesale") + fixture.adminEmail loginAs +
+      fixture.attributedUserId + attributionExists guard). No
+      trackProjectForCleanup wiring needed — credit_transactions rows are
+      cheap and self-scoped per tick 153's frontier note.
+
+      Batching heuristic per schedule doc: row 152 is the ONLY wave-3 row
+      in credit-grant-validation.spec.ts (row 150/151 sit in credit-grant-
+      authz.spec.ts and are runtime-blocked on finding-2's seed+fixture
+      delta), so the "same file with the same variant" clause does not
+      permit further collapse. The wave-2 fixture posture (loadTempReseller
+      + adminEmail loginAs + attributionExists guard + no cleanup) transfers
+      into this spec unchanged; no fixture code touched this tick.
+
+      Files:
+        - web/tests/e2e/reseller/credit-grant-validation.spec.ts (imports
+          extended: added loadTempReseller + tempResellerSkipReason +
+          TempResellerFixture type-only import alongside the existing
+          harnessSkipReason + loadResellerHarness imports; added UUID_RE
+          constant at module scope so both the shape regex and the assertion
+          message stay in one place; new test.describe block "Reseller
+          credit-grant — P10 wave-3 happy path" holds row 152; "Deliberately
+          out of scope" comment block updated — the happy-path branch
+          flipped from folded/deferred to ACTIVATED with pointer at the new
+          test and a note that row 179 audit-log-writes.spec.ts owns the
+          audit-row side-effect assertion while row 152 focuses on the wire
+          envelope with credit_transaction_id + over_budget=false).
+        - docs/plans/p10-deferred-spec-activation-order.md ("Wave-3 row 152
+          landed (tick 154)" paragraph inserted above the tick 153 note
+          explaining the partnership with row 151 across the over_budget
+          twin, the assertion-budget rationale, and pointing at rows 155 +
+          156 as the next natural activations inside the wave-3-
+          active_wholesale subwave).
+
+      Design fidelity:
+        - Coverage-vs-duplication call: pin body.credit_transaction_id is
+          a plaintext string matching the 8-4-4-4-12 UUID regex plus
+          body.over_budget === false. Do NOT pin balance / remaining_budget
+          values because they drift with prior credit_balances state and
+          prior month-to-date spend across CI runs. The
+          credit_transaction_id regex catches (a) a route regression that
+          returned 200 without inserting the credit_transactions row
+          (transaction_insert_failed 500 short-circuits BEFORE the 200 so
+          body.ok would flip false), and (b) a route regression that
+          returned the wrong id type (a bigint from a stale migration
+          rather than a UUID).
+        - Twin-row accounting vs row 151 (no_budget × over_budget_
+          requires_approval 402): row 151 (still runtime-blocked on
+          finding-2 per tick 152's preflight) will assert
+          body.over_budget=true / status 402 when the reseller monthly
+          budget is exhausted. Row 152 pins the sibling within-budget
+          contract: body.over_budget=false / status 200 with the mirror
+          row inserted with over_budget=false per credits/grant/route.ts:
+          215. A regression that swapped the boolean would surface in
+          both rows once row 151 activates.
+        - Skip discipline mirrors row 148/149 verbatim: fixture null →
+          skip; adminUserId null → skip (scopedReseller would 403
+          no_membership before the balance path fires); attributedUserId
+          null → skip; attributionExists false → skip (would 403
+          not_in_scope from decideReveal, which is the exact failure mode
+          row 152 is designed to catch — a partial-seed host cannot
+          distinguish "seeder not run" from "code regression" so it must
+          skip rather than false-fail); loginAs throw → skip.
+        - State-pollution posture per tick 153 frontier note: amount=1
+          keeps the founder's credit_balances bump minimal (one credit per
+          CI run against staging). QAPROBEWHOLESALEACTIVE's monthly_
+          credit_budget is set by seed-qa-reseller.mjs well above the
+          spend a monthly CI cadence produces. Runaway spend surfaces as a
+          402 with helpful body (already_granted_this_month + remaining_
+          budget) — sentinel for "reset the QA reseller budget on staging."
+          reseller_credit_grants(kind=grant) mirror + reseller_audit_log
+          write are one row each per run, same posture as row 154's audit
+          row. No projects.id created → no fixture.trackProjectForCleanup
+          / cleanup() wiring needed; this is why row 152 is the shortest
+          remaining wave-3 row per tick 153's recommendation.
+        - Non-Stripe / non-GST discipline: credit-grant route reads
+          reseller_credit_grants (rollup for the current month) +
+          credit_balances (target row) and writes credit_balances +
+          credit_transactions + reseller_credit_grants +
+          reseller_audit_log. No promotion_code lookup, no revenue_events
+          read, no Stripe network call, no InfoVision dependency. P8.5 +
+          P1.5 remain neither a dependency nor a consequence. The
+          audit-log write side-effect is captured by wave-5 row 179
+          (audit-log-writes.spec.ts) so this row focuses on the wire
+          envelope — a broken audit-log write surfaces here as body.ok=
+          false through the 500 audit_failed branch rather than as a
+          missing audit row that only row 179 could detect.
+        - UUID_RE hoisted to module scope (rather than inlining inside
+          the test) so a future row 155 / 156 landing in this same file
+          reuses the constant without duplicating the regex — matches the
+          pattern used by sandbox-setup-authz.spec.ts after row 154.
+          Case-insensitive because supabase renders UUIDs lowercase but
+          Playwright body parsing does not force a case.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0, no output).
+          The new imports (loadTempReseller, tempResellerSkipReason,
+          TempResellerFixture type-only) type-check against the fixture
+          module unchanged since tick 153.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 documented exemptions, 0
+          violations — unchanged from tick 153 (the spec is not under
+          /api/reseller/** for the R-01 grep and it is not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - No vitest run this tick — no pure-lib .ts code touched, only
+          the Playwright spec + one docs edit. Mirrors the tick 148-153
+          precedent verbatim.
+        - No DB apply this tick — no migration authored. Row 152 consumes
+          the wave-2 fixture posture that ticks 147-151 already validated
+          against staging + the wave-3 subwave that tick 152's preflight
+          confirmed activation-ready without any seed/fixture delta.
+        - Goal file version bumped 2026-07-23.153 → 2026-07-23.154.
+
+      Frontier after tick 154: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision seed
+      STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE; P10 still
+      blocked_by [P1..P9] until P8.5 clears. What tick 154 unblocks: the
+      next tick can pick row 155 (requests-authz.spec.ts × active_wholesale
+      × happy POST 200 with over_budget code_request) or row 156
+      (requests-validation.spec.ts × active_wholesale × happy GET 200
+      returns pending list) — both sit inside the wave-3-active_wholesale
+      subwave, activation-ready today without any seed/fixture delta. Row
+      155 is naturally next (POST for state creation) so that row 156
+      (GET listing) has something to enumerate on the same run. Rows 150
+      + 151 stay test.skip() at runtime via the existing
+      tempResellerSkipReason guard until finding 2's seed + fixture delta
+      lands (recommend two separate ticks: seed delta first, fixture delta
+      second, then row 150 activation, then row 151 activation). Row 153
+      removal lands whenever the wave-3-active_wholesale subwave is done —
+      still no urgency. Next autonomous tick options:
+        (i) activate row 155 (requests-authz.spec.ts × active_wholesale
+            × happy POST 200 with over_budget code_request) — writes one
+            reseller_requests row for wave-4/wave-5 downstream rows to
+            enumerate against;
+        (ii) activate row 156 (requests-validation.spec.ts ×
+             active_wholesale × happy GET 200 returns pending list) —
+             pairs with row 155 as the GET-after-POST twin;
+        (iii) land finding 2's seed delta (edit seed-qa-reseller.mjs
+              main loop to seed attribution on no_capability + no_budget;
+              re-run seeder against staging) — unblocks rows 150 + 151.
   - tick: 153
     ran_at: 2026-07-22
     action: p10_wave3_row_154_activate_sandbox_setup_active_wholesale_happy
