@@ -20,6 +20,7 @@ import { ADMIN_EMAIL } from "./auth";
 import { getSupabaseAdmin } from "./supabase";
 import { resellerFooterHtml } from "./reseller/email-footer";
 import { resolveResellerDisplayNameByEmail } from "./reseller/email-attribution";
+import { buildWholesaleWelcomeEmail } from "./reseller/wholesale-welcome-email";
 
 const FROM_DEFAULT = "BlockID.au <info@blockid.au>";
 
@@ -692,6 +693,36 @@ export async function sendWelcomeWithReport(args: {
     unsubscribeUrl,
     ...(pdfAttachment && { attachments: [pdfAttachment] }),
   });
+}
+
+// ---------- Wholesale welcome (H.8 magic-link verification) ------------------
+// TRANSACTIONAL: dispatched by POST /api/reseller/create-startup after a
+// wholesale reseller provisions a founder workspace. Always sends — the
+// magic-link verifies the founder actually consented to the workspace so we
+// cannot gate delivery on prior subscription preferences (recipient may have
+// no BlockID account yet).
+
+export async function sendWholesaleWelcome(args: {
+  to: string;
+  founderName?: string | null;
+  companyName: string;
+  resellerDisplayName: string;
+  magicLinkUrl: string;
+  ttlHours: number;
+  locale?: "en" | "vi";
+}): Promise<SendResult> {
+  const { subject, html: body } = buildWholesaleWelcomeEmail({
+    founderName: args.founderName,
+    companyName: args.companyName,
+    resellerDisplayName: args.resellerDisplayName,
+    magicLinkUrl: args.magicLinkUrl,
+    ttlHours: args.ttlHours,
+    locale: args.locale,
+  });
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
+  const lang = args.locale === "vi" ? "vi" : "en";
+  const html = `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(subject)}</title></head><body style="margin:0;padding:24px;background:#F1F5F9;color:#0F172A;font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;"><div style="max-width:560px;margin:0 auto;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;padding:32px;">${body}</div>${unsubFooter(unsubscribeUrl, preferencesUrl, args.locale)}</body></html>`;
+  return sendEmail({ to: args.to, subject, html, unsubscribeUrl });
 }
 
 // ---------- Password reset email (with temp password) -------------------------
