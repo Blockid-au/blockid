@@ -3,13 +3,13 @@
 // Per docs/plans/reseller-module-plan.md § C.1.5 (create-startup form)
 // + § U.3 (wholesale billing model) + § H.8 (magic-link verification).
 //
-// Gated by resellers.can_create_startups. Submit target
-// (POST /api/reseller/create-startup) lands in P6 — button is disabled
-// until the endpoint exists.
+// Gated by resellers.can_create_startups. Submit posts to
+// /api/reseller/create-startup (§24(c) — shipped tick 75).
 
 import { getCurrentUser } from "@/lib/auth";
 import { scopedReseller, ResellerScopeError } from "@/lib/reseller/scope";
 import { resellerSupabase } from "@/lib/reseller/supabase";
+import CreateStartupForm from "./create-startup-form";
 
 export const dynamic = "force-dynamic";
 
@@ -90,87 +90,7 @@ export default async function ResellerCreateStartupPage() {
         </ul>
       </div>
 
-      <form
-        method="post"
-        action="/api/reseller/create-startup"
-        className="rounded-lg border border-surface-200 bg-white p-4"
-      >
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <label className="block">
-            <span className="text-xs font-medium uppercase tracking-wide text-ink-500">
-              Founder email
-            </span>
-            <input
-              type="email"
-              name="founder_email"
-              required
-              placeholder="founder@example.com"
-              className="mt-1 block w-full rounded border border-surface-300 bg-white p-3 text-sm text-ink-900"
-            />
-          </label>
-
-          <label className="block">
-            <span className="text-xs font-medium uppercase tracking-wide text-ink-500">
-              Company name
-            </span>
-            <input
-              type="text"
-              name="company_name"
-              required
-              placeholder="Acme Pty Ltd"
-              className="mt-1 block w-full rounded border border-surface-300 bg-white p-3 text-sm text-ink-900"
-            />
-          </label>
-
-          <label className="block">
-            <span className="text-xs font-medium uppercase tracking-wide text-ink-500">
-              Plan tier
-            </span>
-            <select
-              name="plan_tier"
-              defaultValue="founder_growth"
-              className="mt-1 block w-full rounded border border-surface-300 bg-white p-3 text-sm text-ink-900"
-            >
-              <option value="founder_growth">Founder — Growth ($99/mo)</option>
-            </select>
-          </label>
-
-          <label className="block">
-            <span className="text-xs font-medium uppercase tracking-wide text-ink-500">
-              Discount tier
-            </span>
-            <select
-              name="discount_tier"
-              className="mt-1 block w-full rounded border border-surface-300 bg-white p-3 text-sm text-ink-900"
-            >
-              {allowedTiers.length === 0 ? (
-                <option value="">— no tiers configured —</option>
-              ) : (
-                allowedTiers.map((t) => (
-                  <option key={t} value={t}>
-                    {t === 0 ? "Attribution only (0%)" : `${t}% off forever`}
-                  </option>
-                ))
-              )}
-            </select>
-          </label>
-        </div>
-
-        <div className="mt-4 flex items-center justify-between">
-          <p className="text-xs text-ink-500">
-            POST <span className="font-mono">/api/reseller/create-startup</span> —
-            coming in P6.
-          </p>
-          <button
-            type="submit"
-            disabled
-            className="rounded bg-surface-200 px-4 py-2 text-sm font-medium text-ink-500"
-            aria-disabled="true"
-          >
-            Provision startup (disabled)
-          </button>
-        </div>
-      </form>
+      <CreateStartupForm allowedTiers={allowedTiers} />
     </>
   );
 }
