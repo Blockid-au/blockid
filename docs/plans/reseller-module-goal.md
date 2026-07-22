@@ -2561,6 +2561,74 @@ review_history:
       tick per CDO rec #2).
     commit: (this tick)
 
+  - tick: 77
+    ran_at: 2026-07-22
+    action: reseller_stripe_billing_apply_migration_and_pure_lib
+    result: |
+      Autonomous tick composing two self-contained follow-ups on tick 76:
+      (a) applied migration 0101_reseller_stripe_billing_columns.sql via
+      docker exec supabase-db psql -U postgres -d postgres (BEGIN → ALTER
+      → CREATE INDEX → 2×COMMENT → COMMIT; idempotent re-run safe since
+      every ADD COLUMN uses IF NOT EXISTS and the partial unique uses
+      CREATE UNIQUE INDEX IF NOT EXISTS) + NOTIFY pgrst reload issued so
+      PostgREST picks up the new columns. Verified: resellers table now
+      exposes stripe_customer_id text + stripe_default_payment_method_id
+      text, and the resellers_stripe_customer_id_uniq partial unique
+      index (WHERE stripe_customer_id IS NOT NULL) is in place.
+      (b) shipped pure decision lib
+      web/src/lib/reseller/stripe-billing.ts exposing:
+        - buildResellerStripeCustomerParams(reseller) → Customer.create
+          params (name, optional email, metadata carrying reseller_id +
+          reseller_code + billing_model='wholesale' + source='reseller_org');
+          refuses retail resellers, non-active status, blank display_name,
+          malformed contact_email; lowercases + validates the 320-char
+          email cap;
+        - decideResellerCustomerAction(reseller) → {kind:'reuse'|'create'|
+          'error'} — reuses stored stripe_customer_id when present so
+          double-create attempts are idempotent, otherwise composes the
+          create params via the helper above;
+        - validateResellerBillingReadiness(reseller) → gate for
+          /api/reseller/create-startup so the atomic transaction refuses
+          BEFORE the app_users + projects rows land when the reseller has
+          no PM on file (avoids the compensation rollback path
+          decideCreateStartup was engineered to skip);
+        - buildResellerSetupIntentParams(reseller) → SetupIntent.create
+          params for the payment-method-setup UI (usage='off_session',
+          payment_method_types=['card'], metadata carrying reseller_id +
+          reseller_code + intent='reseller_default_pm');
+        - RESELLER_STRIPE_BILLING_ERROR_MESSAGES table with EN copy for
+          every error union member (admin surface per U.15.13 — VI parity
+          out of scope).
+      Zero Stripe SDK / Supabase imports so the module unit-tests as
+      pure functions; the route + adapter layer will wrap these
+      decisions with actual Stripe + Supabase writes in a follow-up
+      tick (the same "pure lib first" pattern as decideCreateStartup /
+      decideCodeMint / decideGrant / decideReveal).
+      Verified: 23/23 pass in stripe-billing.test.ts (covers wholesale
+      happy path with email present + email omitted + whitespace-only
+      email + email lowercasing; retail rejection; paused/terminated
+      rejection; blank display_name rejection; malformed contact_email
+      rejection; 320-char email cap; customer-action reuse vs create;
+      customer-action reuse wins over otherwise-erroring fields since
+      the Customer already exists in Stripe; readiness happy path +
+      four rejection branches; setup-intent params happy path + three
+      rejection branches; error-message coverage table); reseller
+      vitest 367/367 (was 344, +23 new); tsc clean; npm run
+      lint:reseller unchanged (9 R-01 + 29 R-03 files scanned, 3
+      exemptions, 0 violations — new files are under /lib/reseller/**
+      not /api/reseller/** so R-01 scope-boundary rule doesn't fire,
+      and not in feature-gates.manifest.ts so R-03 doesn't fire).
+      Frontier after tick 77: unchanged shape — Track A HUMAN-BLOCKED
+      on P8.5 Stripe env vars; Track B COMPLETE; P1.5 HUMAN-BLOCKED on
+      H.20; P10 blocked_by [P1..P9]. But the wholesale Stripe
+      subscription-line follow-up now has its full decision layer
+      pre-tested: the remaining work is a thin adapter (Stripe SDK
+      client + Supabase writes) plus the /reseller/settings
+      payment-method UI. Neither requires the P8.5 add-on price env
+      vars (SetupIntent uses card-only, no add-on price) so the
+      follow-up wholesale-billing tick is unblocked whenever it fires.
+    commit: (this tick)
+
   - tick: 76
     ran_at: 2026-07-22
     action: reseller_stripe_billing_schema_foundation
