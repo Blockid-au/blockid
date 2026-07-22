@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.112
+version: 2026-07-23.113
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,117 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 113
+    ran_at: 2026-07-22
+    action: p10_dry_run_create_startup_authz_playwright_spec
+    result: |
+      Closed the last remaining /api/reseller/** POST surface whose
+      pre-auth chain was not yet regression-guarded at the Playwright
+      lens. The sibling POST /api/reseller/create-startup input-validation
+      branches (invalid_email / company_name_required / invalid_plan_tier
+      / invalid_discount_tier) already ship via create-startup-validation
+      .spec.ts (tick 94), but that spec reaches the normalise gate via
+      loginAs(harness.admin.email) so the pre-auth chain (getCurrentUser
+      → gateRequireFeature("reseller.create_startup")) was uncovered on
+      the POST verb entirely.
+
+      Files:
+        - web/tests/e2e/reseller/create-startup-authz.spec.ts (new — two
+          rows probing the auth chain before scopedReseller, readBody,
+          normaliseCreateStartupInput, db.selfReseller, getSupabaseAdmin,
+          decideCreateStartup, or the app_users/projects/
+          reseller_attributions/reseller_audit_log writes fire:
+          (1) unauthenticated (POST with no session → getCurrentUser null →
+              401 { ok:false, error:"Authentication required" } at
+              feature-gate.ts:57-64 BEFORE any of the downstream branches),
+          (2) non_reseller_admin (loginAs(qa-founder-1@blockid.au) → POST →
+              requireFeature throws EntitlementError because founder plans
+              do not grant reseller.create_startup → 402
+              { ok:false, error:"feature_locked", feature:"reseller.create_startup" }
+              at feature-gate.ts:73-86; scopedReseller, readBody, and every
+              DB/Stripe/email branch never runs).
+          Row 1 runs unconditionally (no harness dep — just request.post
+          without loginAs). Row 2 test.skip()s with a diagnostic message
+          if /tmp/blockid-qa-accounts.txt is missing so operators without
+          the seed file get an actionable pointer rather than a hard fail.
+
+      Why this shape mirrors ticks 100-112: all the /api/reseller/** POST
+      surfaces (sandbox-setup, billing-setup-intent,
+      billing-save-default-payment-method, credits-grant,
+      customers/[id]/reveal-email, requests) emit
+      { ok:false, error:"Authentication required" } at HTTP 401 for the
+      no-session branch and { ok:false, error:"feature_locked",
+      feature:<key> } at HTTP 402 for the no-entitlement branch.
+      Symmetric envelope means a refactor that swaps gateRequireFeature()
+      for a bespoke inline check, changes the error wire format, or flips
+      the status codes to 403 lights up in all specs on the next
+      `npx playwright test` pass. Distinct from tick 111 (admin-reseller-
+      detail-authz) in ONE dimension only — that spec covers the admin
+      surface (requireAdmin + AdminGateError envelope at 401), this spec
+      covers the reseller-admin surface (gateRequireFeature +
+      EntitlementError envelope at 401/402). Distinct from tick 112
+      (reseller-crons-authz) in ONE dimension — that spec covers CRON_SECRET
+      Bearer env-var auth on GET, this spec covers session-cookie auth on
+      POST. A regression that let an anonymous or non-reseller caller
+      reach the create-startup fan-out writes would leak: (a) app_users
+      INSERT with attribution_reseller_id stamped from an attacker-chosen
+      body → poisoned founder→reseller mapping; (b) projects INSERT with
+      attribution_reseller_id stamped → free workspace provisioning at the
+      reseller's expense; (c) reseller_attributions INSERT with
+      source='provisioned' → shows up in reseller commissions/reports as
+      if the reseller onboarded them; (d) requestMagicLink mint sending an
+      attacker-controlled email → phishing vector; (e) sendWholesaleWelcome
+      dispatch to an attacker-controlled address. Every one of these
+      writes touches the wholesale provisioning pipeline so an
+      unauthenticated trigger is a real blast-radius event.
+
+      Why the 400/403/404/500/503 branches aren't covered: the six
+      decideCreateStartup() gates (reseller_not_active / capability_disabled
+      / billing_model_not_wholesale / tier_not_allowed /
+      existing_active_attribution / promotion_code_missing) sit BEHIND the
+      auth chain and need a real reseller row with specific column values
+      that a shared QA harness cannot uniformly seed. reseller_missing
+      (404) needs a reseller_admins row without a matching resellers row.
+      no_membership (403) needs entitlement without reseller_admins row —
+      inconsistent state that never occurs in production. not_configured
+      (503) needs SUPABASE_URL/SERVICE_ROLE unset which would break every
+      other Playwright spec in the same worker. Happy path (200) fires the
+      full atomic transaction (app_users + projects + reseller_attributions
+      inserts + magic-link mint + welcome email dispatch + audit log write
+      + Stripe wholesale subscription); folded into the temp-reseller mint
+      fixture follow-up alongside the deferred rows from ticks 94..112.
+
+      Verified: tsc clean (npx tsc --noEmit -p tsconfig.json exit 0 at
+      web/); vitest unchanged (Playwright spec is not picked up by vitest
+      — tests/e2e/** is excluded per playwright.config.ts:testDir); npm
+      run lint:reseller: R-01 scanned 11 file(s), R-03 scanned 31 manifest
+      route(s); 3 exemptions, 0 violations unchanged (spec lives under
+      web/tests/e2e/reseller/, not /api/reseller/**, so R-01 doesn't fire;
+      not a mutation route in feature-gates.manifest.ts so R-03 doesn't
+      fire). Playwright not run this tick — row 1 is harness-free and will
+      execute on the next CI Playwright pass; row 2 lights up as soon as
+      the qa accounts file is present.
+
+      Frontier after tick 113: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 113 unblocks: EVERY /api/reseller/** POST surface now has
+      symmetric Playwright dry-run coverage for the gateRequireFeature
+      pre-auth chain (create-startup this tick;
+      sandbox-setup/billing-setup-intent/billing-save-default-payment-method
+      already covered; credits-grant via credit-grant-validation;
+      reveal-email via reveal-email-authz; requests via requests-validation
+      + reseller-requests-list-authz). Twenty-five spec files now sit in
+      web/tests/e2e/reseller/. Next autonomous tick options: (i) landing
+      the QA-mode temp-reseller mint fixture that opens up all the deferred
+      HAPPY-PATH branches from ticks 94..113 at once (larger tick, wants a
+      design pass); (ii) sweep the /api/reseller/customers/[id]/drawer GET
+      surface — the drawer-authz.spec.ts spec exists but may not cover
+      every branch of the scopedReseller + decideReveal chain; (iii) idle
+      until human unblock arrives on P8.5 or P1.5.
     commit: (this tick)
 
   - tick: 112
