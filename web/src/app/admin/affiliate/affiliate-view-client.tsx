@@ -15,6 +15,24 @@ import type {
 } from "./types";
 
 type SourceKey = "provisioned" | "code" | "admin_manual";
+type TabKey = SourceKey | "impersonation";
+
+interface ImpersonationEventDTO {
+  id: string;
+  ts_iso: string;
+  action: string;
+  target_user_id: string;
+  target_email_masked: string;
+  actor_email: string | null;
+  summary: string;
+}
+
+interface ImpersonationGroupDTO {
+  target_user_id: string;
+  target_email_masked: string;
+  target_display_name: string | null;
+  events: ImpersonationEventDTO[];
+}
 
 interface AttributionUserRow {
   attribution_id: string;
@@ -36,10 +54,11 @@ interface AttributionsResponse {
   reseller: { id: string; code: string; display_name: string } | null;
   totals: AttributionSummaryBySource | null;
   rows: Record<SourceKey, AttributionUserRow[]>;
+  impersonation?: ImpersonationGroupDTO[];
   error?: string;
 }
 
-const TABS: { key: SourceKey; label: string; hint: string }[] = [
+const TABS: { key: TabKey; label: string; hint: string }[] = [
   {
     key: "provisioned",
     label: "Provisioned users",
@@ -54,6 +73,11 @@ const TABS: { key: SourceKey; label: string; hint: string }[] = [
     key: "admin_manual",
     label: "Admin-attributed",
     hint: "Manual overrides by BlockID admins — rare, audited.",
+  },
+  {
+    key: "impersonation",
+    label: "Impersonation trail",
+    hint: "admin.* audit-events touching any user attributed to this reseller (role / plan / permissions / credits / create).",
   },
 ];
 
@@ -86,7 +110,7 @@ export function AffiliateViewClient({
   const [data, setData] = React.useState<AttributionsResponse | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [activeTab, setActiveTab] = React.useState<SourceKey>("provisioned");
+  const [activeTab, setActiveTab] = React.useState<TabKey>("provisioned");
 
   const [creditsFor, setCreditsFor] = React.useState<AttributionUserRow | null>(
     null,
@@ -210,8 +234,14 @@ export function AffiliateViewClient({
 
             <nav className="flex gap-1 border-b border-surface-100 px-4 pt-3">
               {TABS.map((t) => {
-                const bucket = data?.totals?.[t.key];
-                const label = bucket ? fmtBucket(bucket) : "…";
+                let label = "…";
+                if (data?.totals) {
+                  if (t.key === "impersonation") {
+                    label = String(data.totals.impersonation ?? 0);
+                  } else {
+                    label = fmtBucket(data.totals[t.key]);
+                  }
+                }
                 return (
                   <button
                     key={t.key}
@@ -240,12 +270,18 @@ export function AffiliateViewClient({
                   {error}
                 </div>
               ) : data ? (
-                <AttributionTable
-                  rows={data.rows[activeTab] ?? []}
-                  onGrantCredits={(row) => setCreditsFor(row)}
-                  onPlanChanged={() => void fetchAttributions(selected.id)}
-                  onRevoked={() => void fetchAttributions(selected.id)}
-                />
+                activeTab === "impersonation" ? (
+                  <ImpersonationTrailPanel
+                    groups={data.impersonation ?? []}
+                  />
+                ) : (
+                  <AttributionTable
+                    rows={data.rows[activeTab] ?? []}
+                    onGrantCredits={(row) => setCreditsFor(row)}
+                    onPlanChanged={() => void fetchAttributions(selected.id)}
+                    onRevoked={() => void fetchAttributions(selected.id)}
+                  />
+                )
               ) : null}
             </div>
           </>
@@ -441,6 +477,139 @@ function AttributionRow({
         )}
       </td>
     </tr>
+  );
+}
+
+/* ------------------------------------------------------------------------- */
+/* Impersonation trail panel (P12.8)                                         */
+/* ------------------------------------------------------------------------- */
+
+function fmtTs(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toISOString().replace("T", " ").slice(0, 16) + "Z";
+}
+
+function actionBadge(action: string): { label: string; className: string } {
+  switch (action) {
+    case "admin.role.changed":
+      return {
+        label: "role",
+        className: "bg-purple-50 text-purple-800",
+      };
+    case "admin.credits.granted":
+      return {
+        label: "credits",
+        className: "bg-emerald-50 text-emerald-800",
+      };
+    case "admin.plan.changed":
+      return {
+        label: "plan",
+        className: "bg-brand-50 text-brand-800",
+      };
+    case "admin.permissions.granted":
+      return {
+        label: "perm+",
+        className: "bg-sky-50 text-sky-800",
+      };
+    case "admin.permissions.revoked":
+      return {
+        label: "perm-",
+        className: "bg-amber-50 text-amber-800",
+      };
+    case "admin.user.created":
+      return {
+        label: "created",
+        className: "bg-teal-50 text-teal-800",
+      };
+    default:
+      return {
+        label: action,
+        className: "bg-surface-100 text-ink-700",
+      };
+  }
+}
+
+function ImpersonationTrailPanel({
+  groups,
+}: {
+  groups: ImpersonationGroupDTO[];
+}) {
+  if (groups.length === 0) {
+    return (
+      <div className="rounded-md border border-dashed border-surface-300 bg-surface-50 p-6 text-center text-sm text-ink-500">
+        No admin.* audit events for any user in this reseller&apos;s
+        attribution set yet.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-ink-500">
+        admin.role.changed · admin.credits.granted · admin.plan.changed ·
+        admin.permissions.granted/revoked · admin.user.created — newest 500
+        events across every attributed user, grouped by target.
+      </p>
+      {groups.map((g) => (
+        <details
+          key={g.target_user_id}
+          className="rounded-md border border-surface-200 bg-white"
+          open={groups.length <= 3}
+        >
+          <summary className="flex cursor-pointer items-baseline justify-between px-3 py-2 text-sm">
+            <div className="flex items-baseline gap-2">
+              <span className="font-medium text-ink-900">
+                {g.target_display_name ?? g.target_email_masked}
+              </span>
+              {g.target_display_name && (
+                <span className="font-mono text-xs text-ink-500">
+                  {g.target_email_masked}
+                </span>
+              )}
+            </div>
+            <div className="flex items-baseline gap-2 text-xs text-ink-500">
+              <span>{g.events.length} event{g.events.length === 1 ? "" : "s"}</span>
+              <a
+                href={`/admin/users/${encodeURIComponent(g.target_user_id)}`}
+                className="text-brand-700 hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Open user →
+              </a>
+            </div>
+          </summary>
+          <ul className="divide-y divide-surface-100 border-t border-surface-100">
+            {g.events.map((ev) => {
+              const badge = actionBadge(ev.action);
+              return (
+                <li key={ev.id} className="px-3 py-2 text-sm">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <div className="flex items-baseline gap-2">
+                      <span
+                        className={`rounded px-1.5 py-0.5 text-[10px] uppercase ${badge.className}`}
+                        title={ev.action}
+                      >
+                        {badge.label}
+                      </span>
+                      <span className="text-ink-800">{ev.summary}</span>
+                    </div>
+                    <span className="font-mono text-xs text-ink-500">
+                      {fmtTs(ev.ts_iso)}
+                    </span>
+                  </div>
+                  {ev.actor_email && (
+                    <div className="mt-0.5 text-[11px] text-ink-500">
+                      by {ev.actor_email}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </details>
+      ))}
+    </div>
   );
 }
 
