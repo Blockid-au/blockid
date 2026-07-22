@@ -129,6 +129,28 @@ Prep cost: one tick to author the attributed-customer helper
 `app_users` upsert path in the fixture — then rows 145–149 each add
 2–3 assertions.
 
+**Wave-2 row 149 landed (tick 151).** Closes wave 2 in full. Added a
+companion `test.describe("Reseller reveal-email — P10 wave-2 uuid_in_scope
+happy")` block to `web/tests/e2e/reseller/reveal-email-validation.spec.ts`
+that mirrors the row 147 posture across the sibling POST reveal-email route:
+same `active_wholesale` + `fixture.attributedUserId` combination as row 148,
+but this row partners with the existing `invalid_id` / `not_in_scope`
+branches sitting above and pins the sound-chokepoint contract (a
+well-formed UUID that IS in `allowedCustomerIds()` returns 200 rather than
+403 not_in_scope). Row 148 owns the plaintext-vs-mask contract at the wire
+(contains '@' + NOT '*'); row 149 keeps its assertion budget to three
+(200 + body.ok true + `typeof body.email === "string"` + contains '@') —
+enough to catch a regression in `allowedCustomerIds().includes()` from the
+POSITIVE direction, and enough to prove the chain (app_users SELECT +
+audit-log write) completes without a 5xx leaking through. The '*' assertion
+is not duplicated here — row 148 owns that contract at the wire so a
+future plaintext-vs-mask change stays a one-spec edit. Wave 2 (rows 145 →
+149) fully lands the scope-boundary readback surface: `me-attribution`
+(145), `drawer-authz` (146) + `drawer-validation` (147) partner across the
+GET drawer route; `reveal-email-authz` (148) + `reveal-email-validation`
+(149) partner across the POST reveal-email route. Wave 3 (rows 150-156 —
+capability + budget gates) is now the frontier.
+
 **Wave-2 row 148 landed (tick 150).** Added a companion
 `test.describe("Reseller reveal-email — P10 wave-2 happy path")` block to
 `web/tests/e2e/reseller/reveal-email-authz.spec.ts` that reuses the

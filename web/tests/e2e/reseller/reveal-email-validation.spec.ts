@@ -56,11 +56,18 @@
 //     requires per-test tampering plan §J.2 forbids.
 //   - audit_failed (500) — needs the reseller_audit_log INSERT to fail,
 //     which requires per-test tampering plan §J.2 forbids.
-//   - Happy path (200 with email) — fires the full app_users SELECT +
-//     reseller_audit_log(reveal_email) chain against the harness reseller
-//     + attributed customer. Belongs to the temp-reseller mint fixture
-//     follow-up alongside the deferred rows from credit-grant-validation
-//     ticks 94..115 and the sandbox-setup / drawer / me happy-path probes.
+//   - Happy path (200 with email) — ACTIVATED as P10 wave-2 row 149 below
+//     via loadTempReseller("active_wholesale") + fixture.attributedUserId as
+//     the URL segment. Row 148 (reveal-email-authz.spec.ts, tick 150) already
+//     pinned the full envelope shape (200 + body.ok true + email plaintext
+//     string containing '@' + NOT containing '*'). Row 149 partners with the
+//     invalid_id / not_in_scope branches sitting above and asserts that the
+//     same well-formed UUID → decideReveal chokepoint that BLOCKS
+//     out-of-scope UUIDs PASSES an in-scope UUID (fixture.attributedUserId)
+//     from the reveal-email-validation surface too, so a regression in
+//     allowedCustomerIds().includes() surfaces in both the authz spec
+//     (where it would look like a fixture bug) and here (where it lands
+//     next to the invalid_id / not_in_scope branches it partners with).
 //
 // Random UUID that's astronomically unlikely to match any real app_users
 // row so the not_in_scope branch fires deterministically. Passes decideReveal's
@@ -69,10 +76,18 @@
 
 import { test, expect } from "@playwright/test";
 import { loginAs } from "../fixtures/accounts";
-import { harnessSkipReason, loadResellerHarness } from "../fixtures/reseller";
+import {
+  harnessSkipReason,
+  loadResellerHarness,
+  loadTempReseller,
+  tempResellerSkipReason,
+  type TempResellerFixture,
+} from "../fixtures/reseller";
 
 const OUT_OF_SCOPE_UUID = "00000000-0000-4000-8000-000000000001";
 const INVALID_ID_SEGMENT = "not-a-uuid";
+const REVEAL_ROUTE = (customerId: string) =>
+  `/api/reseller/customers/${customerId}/reveal-email`;
 
 test.describe("Reseller reveal-email input validation — P10 dry-run", () => {
   const harness = loadResellerHarness();
@@ -114,5 +129,128 @@ test.describe("Reseller reveal-email input validation — P10 dry-run", () => {
       `not_in_scope body.ok should be false: ${JSON.stringify(body)}`,
     ).toBe(false);
     expect(body.reason).toBe("not_in_scope");
+  });
+});
+
+// P10 wave-2 row 149 — active_wholesale variant probes decideReveal's
+// POSITIVE uuid_in_scope branch (allowedCustomerIds().includes()=true) from
+// the reveal-email-validation surface. Per docs/plans/p10-deferred-spec-
+// activation-order.md wave 2:
+//   149 | reveal-email-validation.spec.ts | active_wholesale |
+//         happy path with attributed customer id | 200
+//
+// Row 148 (reveal-email-authz.spec.ts, tick 150) already pinned the full
+// wire envelope (200 + body.ok true + email plaintext string containing '@'
+// + NOT containing '*'). Row 149 partners with the invalid_id / not_in_scope
+// branches sitting above and asserts that the same well-formed UUID →
+// decideReveal chokepoint that BLOCKS out-of-scope UUIDs PASSES an in-scope
+// UUID (fixture.attributedUserId). A regression in
+// allowedCustomerIds().includes() would either:
+//   (a) leak an out-of-scope UUID through (caught by the not_in_scope test
+//       above returning 200 instead of 403), or
+//   (b) reject an in-scope UUID (caught here returning 403 instead of 200).
+// Both branches must hold for the chokepoint to be sound. This row mirrors
+// the row 147 posture (drawer-validation.spec.ts happy path partnering with
+// invalid_id / not_in_scope) across the sibling POST reveal-email route.
+//
+// Fixture wiring (wave-2 helper landed tick 147; row 146 landed tick 148
+// added attributionExists guard; rows 147 + 148 landed ticks 149 + 150):
+//   - loadTempReseller("active_wholesale") reads the QAPROBEWHOLESALEACTIVE
+//     seed row + resolves adminEmail via the P10 Option A per-variant slot
+//     (qa-reseller-wholesale-active@blockid.au) + mirrors reseller_admins.
+//   - fixture.attributionExists asserts the seeder also planted a
+//     reseller_attributions row so scopedReseller().allowedCustomerIds()
+//     surfaces fixture.attributedUserId. Without the row the reveal-email
+//     route returns 403 not_in_scope (see route.ts:49-52); the fixture flag
+//     lets the spec skip cleanly rather than false-fail as a code regression.
+//   - loginAs(page, fixture.adminEmail) opens the reseller-admin session
+//     against the DISTINCT per-variant app_users row so scopedReseller()
+//     .maybeSingle() does not PGRST116-collide with other variants.
+//
+// Skip conditions (mirrors row 148 posture verbatim):
+//   - loadTempReseller returns null when SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
+//     are unset or the QAPROBEWHOLESALEACTIVE seed row is missing.
+//   - fixture.adminUserId null (variant admin row missing or reseller_admins
+//     mirror not seeded — scopedReseller would 403 no_membership).
+//   - fixture.attributedUserId null (attributed founder not in app_users).
+//   - fixture.attributionExists false (reseller_attributions row missing —
+//     reveal-email would 403 not_in_scope; that is the failure mode row 149
+//     is designed to catch, so a partial-seed host must skip rather than
+//     false-fail).
+//   - loginAs throws when /tmp/blockid-qa-accounts.txt has no row for the
+//     resolved admin email.
+//
+// Non-Stripe / non-GST discipline: mirrors row 148 — the reveal-email route
+// reads app_users (id + email columns only) and writes one
+// reseller_audit_log row via db.auditLog(). No promotion_code lookup, no
+// Stripe network call, no InfoVision dependency. P8.5 + P1.5 remain neither
+// a dependency nor a consequence. The audit-log write side-effect is
+// captured by wave-5 row 179 (audit-log-writes.spec.ts) so this row focuses
+// on the wire envelope — the 500 audit_failed branch means a broken
+// audit-log write would surface as body.ok=false here rather than as a
+// missing audit row that only row 179 could detect.
+//
+// Assertion scope per wave-2 prep-cost note ("rows 145-149 each add 2-3
+// assertions") and per row 147 precedent: row 148 pinned the FULL plaintext
+// contract at the wire (contains '@' + NOT '*'); row 149 pins only the
+// two dimensions that this spec's siblings (invalid_id / not_in_scope) do
+// NOT — status 200 with body.ok true (proves decideReveal's positive branch
+// fires) plus body.email defined string containing '@' (proves the chain
+// COMPLETES through the app_users SELECT + audit-log write without a 5xx
+// leaking through). The '*' assertion is NOT duplicated here — row 148 owns
+// the plaintext-vs-mask contract at the wire and duplicating it would (a)
+// burn one assertion for zero new coverage and (b) mean a future change
+// to the plaintext contract would force two spec edits instead of one.
+test.describe("Reseller reveal-email — P10 wave-2 uuid_in_scope happy", () => {
+  test("active_wholesale — well-formed UUID inside allowedCustomerIds returns 200 with plaintext email", async ({
+    page,
+  }) => {
+    let fixture: TempResellerFixture | null;
+    try {
+      fixture = await loadTempReseller("active_wholesale");
+    } catch (err) {
+      test.skip(
+        true,
+        `loadTempReseller('active_wholesale') threw: ${(err as Error).message}. ` +
+          tempResellerSkipReason("active_wholesale"),
+      );
+      return;
+    }
+    if (
+      !fixture ||
+      !fixture.adminUserId ||
+      !fixture.attributedUserId ||
+      !fixture.attributionExists
+    ) {
+      test.skip(true, tempResellerSkipReason("active_wholesale"));
+      return;
+    }
+    const attributedUserId = fixture.attributedUserId;
+    try {
+      await loginAs(page, fixture.adminEmail);
+    } catch (err) {
+      test.skip(
+        true,
+        `loginAs(${fixture.adminEmail}) threw: ${(err as Error).message}. ` +
+          tempResellerSkipReason("active_wholesale"),
+      );
+      return;
+    }
+    const resp = await page.request.post(REVEAL_ROUTE(attributedUserId));
+    expect(
+      resp.status(),
+      `uuid_in_scope + happy returned ${resp.status()} — expected 200. A 403 not_in_scope here means allowedCustomerIds().includes() rejected an in-scope UUID (mirror of the not_in_scope branch above). A 5xx here means the chain (app_users SELECT + audit-log write) leaked through. Body: ${await resp.text()}`,
+    ).toBe(200);
+    const body = (await resp.json()) as {
+      ok: boolean;
+      email?: string;
+      reason?: string;
+    };
+    expect(
+      body.ok,
+      `uuid_in_scope + happy body.ok should be true: ${JSON.stringify(body)}`,
+    ).toBe(true);
+    expect(typeof body.email).toBe("string");
+    expect(body.email ?? "").toContain("@");
   });
 });
