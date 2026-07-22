@@ -443,3 +443,5 @@
 {"ts":"2026-07-22T07:49:25.320Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 113 — P10 dry-run reseller create-startup auth-chain Playwright spec (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-22T07:49:30.563Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-22T07-45-01-588Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-22T07:55:31.214Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 114 — P10 dry-run /api/showcase-reviews validation+authz Playwright spec (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-22T07:55:37.488Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-22T07-50-01-989Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-22T08:04:47.433Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 115 — P10 dry-run credit-grant POST auth-chain Playwright spec (1 commits)","source":"github-webhook"}
