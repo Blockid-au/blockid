@@ -165,6 +165,20 @@ const ACTIVE_WHOLESALE_PROMO_TIERS = [
   { tier_pct: 40, stripe_coupon_id: "qa_probe_wholesale_active_t40", stripe_promotion_code_id: "promo_qa_probe_wholesale_active_t40" },
 ];
 
+// P10 wave-4 row 157 seed delta — the paused variant needs at least one
+// active reseller_promotion_codes row so /api/reseller/code/validate can
+// clear the promo lookup at route.ts:50-63 and reach the reseller.status
+// check at route.ts:66-74 (returns 404 reason='inactive'). Without a promo
+// row the route short-circuits at route.ts:61-63 with 404 reason='invalid',
+// which collapses row 157 into the code_not_found probe already covered by
+// the P10 dry-run block. Tier 20 chosen to mirror the active_wholesale
+// pattern and satisfy ck_stripe_objects_by_tier (tier > 0 requires both
+// Stripe IDs). QA-only placeholder Stripe IDs — never resolve against a
+// real Stripe account since the paused variant is never used in checkout.
+const PAUSED_PROMO_TIERS = [
+  { tier_pct: 20, stripe_coupon_id: "qa_probe_paused_t20", stripe_promotion_code_id: "promo_qa_probe_paused_t20" },
+];
+
 // -- flag parsing -----------------------------------------------------------
 const args = new Set(argv.slice(2));
 const DRY = args.has("--dry-run");
@@ -356,9 +370,9 @@ async function mirrorAdmin(resellerId, adminUserId, variantCode) {
   else console.log(`    + reseller_admins on ${variantCode}`);
 }
 
-// -- reseller_promotion_codes on active_wholesale ---------------------------
-async function seedPromotionCodes(resellerId, variantCode) {
-  for (const tier of ACTIVE_WHOLESALE_PROMO_TIERS) {
+// -- reseller_promotion_codes on active_wholesale + paused ------------------
+async function seedPromotionCodes(resellerId, variantCode, tiers = ACTIVE_WHOLESALE_PROMO_TIERS) {
+  for (const tier of tiers) {
     const promoCode = `${variantCode}${tier.tier_pct}`;
     const { data: existing } = await supabase
       .from("reseller_promotion_codes")
@@ -523,6 +537,13 @@ async function main() {
 
     if (variant.name === "active_wholesale" && resellerId) {
       await seedPromotionCodes(resellerId, variant.code);
+    }
+    // P10 wave-4 row 157 — mint an active promo on the paused variant so
+    // /api/reseller/code/validate reaches the reseller.status check and
+    // returns 404 reason='inactive' rather than short-circuiting at the
+    // promo lookup with reason='invalid'. See PAUSED_PROMO_TIERS above.
+    if (variant.name === "paused" && resellerId) {
+      await seedPromotionCodes(resellerId, variant.code, PAUSED_PROMO_TIERS);
     }
     // Finding-2 seed delta (docs/plans/p10-wave3-preflight-finding.md §Finding 2):
     // rows 150 (no_capability × capability_disabled) and 151 (no_budget ×

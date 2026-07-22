@@ -297,8 +297,13 @@ export interface TempResellerFixture {
   /** Only populated on `active_wholesale` — the reseller_attributions
    *  row's `subject_project_id`, when the seed script has stamped one. */
   attributedProjectId: string | null;
-  /** Only populated on `active_wholesale` — the reseller_promotion_codes
-   *  rows for tiers 20 + 40 (tier 0 skipped per ck_stripe_objects_by_tier). */
+  /** Populated on `active_wholesale` (tiers 20 + 40) and `paused` (tier 20
+   *  only, per PAUSED_PROMO_TIERS in web/scripts/seed-qa-reseller.mjs) —
+   *  the reseller_promotion_codes rows with active=true. Tier 0 is skipped
+   *  per ck_stripe_objects_by_tier. Row 157 in
+   *  docs/plans/p10-deferred-spec-activation-order.md consumes the paused
+   *  entry to drive code-validate past the promo lookup and hit the
+   *  reseller.status !== 'active' branch. */
   promotionCodes: ReadonlyArray<TempResellerPromotionCode>;
   /** Opt-in per-spec cleanup registration. The sandbox_setup happy path
    *  is the primary caller: pass the newly-minted projects.id here so
@@ -769,10 +774,10 @@ export async function loadTempReseller(
   // fixture.attributedUserId + attributionExists to populate so decideReveal
   // clears not_in_scope and the intended capability_disabled / over_budget
   // oracle fires. Whitelist mirrors ATTRIBUTION_VARIANTS in
-  // web/scripts/seed-qa-reseller.mjs. Promotion codes stay gated to
-  // active_wholesale — only that variant needs Stripe promo IDs per
-  // ck_stripe_objects_by_tier and only rows 158 + 175 (code_request approve
-  // branch, deferred on Stripe) will consume the promotionCodes array.
+  // web/scripts/seed-qa-reseller.mjs. Promotion codes are minted on
+  // active_wholesale (tiers 20 + 40) and paused (tier 20 only, per row 157
+  // in docs/plans/p10-deferred-spec-activation-order.md) — see
+  // PROMO_VARIANTS below.
   const ATTRIBUTION_VARIANTS = new Set<ResellerVariant>([
     "active_wholesale",
     "no_capability",
@@ -814,7 +819,18 @@ export async function loadTempReseller(
     }
   }
 
-  if (variant === "active_wholesale") {
+  // P10 wave-4 row 157 fixture delta — the paused variant also mints one
+  // active reseller_promotion_codes row so code-validate.spec.ts can drive
+  // the route past the promo lookup and hit the reseller.status !== 'active'
+  // branch (404 reason='inactive'). Mirrors the seedPromotionCodes(...,
+  // PAUSED_PROMO_TIERS) call in web/scripts/seed-qa-reseller.mjs. Other
+  // variants intentionally stay promo-less: active_retail has
+  // monthly_credit_budget=0 and no can_grant_credits so no downstream row
+  // needs a promo; terminated + no_capability + tier_only_zero + no_budget
+  // are probed via decideGrant/decideCreateStartup gates that fire before
+  // any promo lookup.
+  const PROMO_VARIANTS = new Set<ResellerVariant>(["active_wholesale", "paused"]);
+  if (PROMO_VARIANTS.has(variant)) {
     const { data: pc } = await supabase
       .from("reseller_promotion_codes")
       .select("id, tier_pct, code")

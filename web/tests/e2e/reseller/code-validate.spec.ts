@@ -28,17 +28,16 @@
 //
 // Deliberately out of scope (need reseller row column state that plan §J.2
 // forbids per-test seeding for):
-//   - inactive (404) — needs a promo whose reseller.status='terminated' or
-//     'paused' AND an active reseller_promotion_codes row pointing at that
-//     reseller. seed-qa-reseller.mjs only mints promotion codes on the
-//     active_wholesale variant (line 516-517), so the paused variant has no
-//     active promo for the route to look up and would return 404
-//     reason='invalid' at route.ts:61-63 rather than the intended 404
-//     reason='inactive' at route.ts:72-74. Row 157 in
-//     docs/plans/p10-deferred-spec-activation-order.md holds this; activation
-//     needs a seed delta that mints an active promo code on the paused
-//     variant (mirrors finding-2 pattern for rows 150+151). Deferred to a
-//     follow-up tick.
+//   - inactive (404) — ACTIVATED as P10 wave-4 row 157 below via
+//     loadTempReseller("paused") + fixture.promotionCodes[0].code. Uses the
+//     QAPROBEPAUSED20 promo code minted by
+//     seed-qa-reseller.mjs::seedPromotionCodes(..., PAUSED_PROMO_TIERS)
+//     (added tick 205 alongside the existing active_wholesale mint). The
+//     paused reseller row has status='paused' so route.ts:72-74 returns
+//     404 reason='inactive' AFTER the promo lookup at route.ts:50-63
+//     succeeds — proving the two 404 branches are distinguishable at the
+//     wire. No login needed since /api/reseller/code/validate is public
+//     unauthenticated (r-01-exempt in route.ts:18).
 //   - not_configured (503) — needs SUPABASE_URL/SERVICE_ROLE unset which
 //     would break every other Playwright spec running in the same worker.
 //   - Happy path (200 ok + reseller.display_name + tier_pct) — ACTIVATED
@@ -189,5 +188,73 @@ test.describe("Reseller code/validate — P10 wave-4 happy path", () => {
     expect(body.reseller?.code).toBe(fixture.code);
     expect(body.reseller?.display_name).toBe(fixture.displayName);
     expect(body.reseller?.billing_model).toBe("wholesale");
+  });
+});
+
+// P10 wave-4 row 157 — paused-reseller × active-promo probes the
+// reseller.status !== 'active' branch of /api/reseller/code/validate at
+// route.ts:66-74. Where row 158 pins the happy 200 with an active_wholesale
+// promo (both promo.active=true AND reseller.status='active'), row 157 pins
+// the intermediate state where the promo lookup succeeds (promo.active=true)
+// but the reseller org itself has been paused (reseller.status='paused').
+// Without the seed delta added in tick 205 (PAUSED_PROMO_TIERS in
+// web/scripts/seed-qa-reseller.mjs) this branch was unreachable because the
+// paused variant had no active promo row — the route short-circuited at
+// route.ts:61-63 with 404 reason='invalid' and collapsed into the
+// code_not_found probe already covered by the P10 dry-run block above.
+//
+// Regression signal: any change to route.ts that swaps the reason strings
+// between the two 404 branches, or that reorders the checks so promo.active
+// is verified against reseller.status, surfaces here without also breaking
+// row 158's happy 200 assertion.
+test.describe("Reseller code/validate — P10 wave-4 row 157 paused-reseller inactive branch", () => {
+  test("paused — POST with paused reseller's active promo code returns 404 reason='inactive'", async ({
+    request,
+  }) => {
+    let fixture: TempResellerFixture | null;
+    try {
+      fixture = await loadTempReseller("paused");
+    } catch (err) {
+      test.skip(
+        true,
+        `loadTempReseller('paused') threw: ${(err as Error).message}. ` +
+          tempResellerSkipReason("paused"),
+      );
+      return;
+    }
+    if (!fixture) {
+      test.skip(true, tempResellerSkipReason("paused"));
+      return;
+    }
+    if (fixture.promotionCodes.length === 0) {
+      test.skip(
+        true,
+        "paused fixture has no reseller_promotion_codes rows — " +
+          "seed-qa-reseller.mjs::seedPromotionCodes(..., PAUSED_PROMO_TIERS) " +
+          "(added tick 205) did not run on this host, or the QAPROBEPAUSED20 " +
+          "row was deleted. Re-run `node web/scripts/seed-qa-reseller.mjs` " +
+          "against staging to re-mint the tier-20 promo code on the paused " +
+          "variant.",
+      );
+      return;
+    }
+    const promo = fixture.promotionCodes[0];
+    const resp = await request.post(ROUTE, {
+      data: { code: promo.code },
+      headers: { "content-type": "application/json" },
+    });
+    expect(
+      resp.status(),
+      `paused + inactive returned ${resp.status()} — expected 404 with body.ok=false + body.reason='inactive'. A 200 here means the reseller row flipped to status='active' (route.ts:66-74 did not trip); a 404 reason='invalid' means the paused-variant promo row was dropped or deactivated (route.ts:50-63 short-circuited before the reseller.status check); a 503 means SUPABASE_URL/SERVICE_ROLE unset in the Playwright env (route.ts:43-46). Body: ${await resp.text()}`,
+    ).toBe(404);
+    const body = (await resp.json()) as { ok: boolean; reason?: string };
+    expect(
+      body.ok,
+      `paused + inactive body.ok should be false: ${JSON.stringify(body)}`,
+    ).toBe(false);
+    expect(
+      body.reason,
+      `paused + inactive expected reason='inactive' but got '${body.reason}' — the promo lookup succeeded but the reseller status check should have flipped the reason string. Body: ${JSON.stringify(body)}`,
+    ).toBe("inactive");
   });
 });
