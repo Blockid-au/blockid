@@ -62,14 +62,25 @@
 // Deliberately out of scope (needs a seeded resellers row which plan §J.2
 // forbids per-test or would poison every other admin-facing spec in the same
 // worker):
-//   - validateAdminResellerPatch (20+ error codes: empty_patch, unknown_field,
-//     display_name_required, invalid_tier, invalid_billing_model,
-//     wholesale_requires_gst, wholesale_requires_abn, invalid_abn_format,
-//     invalid_hex_color, invalid_commission_share, negative_budget, etc.) —
-//     each row needs a real resellers row to load before the validator can
-//     assess the patch delta against the existing invariants. Folded into
-//     the temp-reseller mint fixture follow-up alongside the deferred rows
-//     from ticks 94..122.
+//   - validateAdminResellerPatch reject branches (empty_patch,
+//     display_name_blank, invalid_billing_model, tiers_bad_value,
+//     abn_bad_format, wholesale_requires_gst — folded into six branches per
+//     wave-5 batching heuristic) — ACTIVATED wave-5 row 170 below via
+//     loadAdminHarness() (qa-admin-1@blockid.au) + loadTempReseller(
+//     'active_wholesale') (fetches the QAPROBEWHOLESALEACTIVE seed row so
+//     loadReseller resolves and validateAdminResellerPatch runs, then each
+//     branch trips a distinct validator rule and returns 400 BEFORE the
+//     resellers UPDATE fires — no cleanup needed because every branch bails
+//     at route.ts:166-169 without writing).
+//   - Remaining validator reasons (invalid_status, wholesale_requires_abn,
+//     budget_negative, sandbox_negative, commission_out_of_range,
+//     primary_color_bad_format) — deferred to a P10 follow-up tick; wave-5
+//     row 170 activates the six branches called out in the p10-deferred-
+//     spec-activation-order.md schedule and leaves the rest for a targeted
+//     follow-up if regressions appear. Note: the validator does NOT emit
+//     an "unknown_field" reason — unknown patch keys are silently ignored,
+//     so a patch of only-unknown keys collapses into empty_patch, which is
+//     already covered by row 170.
 //   - Happy path (200) — writes a real resellers UPDATE that would poison
 //     sibling PATCH / DELETE / list authz specs sharing the same worker AND
 //     leaves an updated_at bump on whichever row the harness happens to
@@ -99,7 +110,13 @@
 
 import { test, expect } from "@playwright/test";
 import { loginAs } from "../fixtures/accounts";
-import { adminHarnessSkipReason, loadAdminHarness } from "../fixtures/reseller";
+import {
+  adminHarnessSkipReason,
+  loadAdminHarness,
+  loadTempReseller,
+  tempResellerSkipReason,
+  type TempResellerFixture,
+} from "../fixtures/reseller";
 
 const PROBE_CODE = "qa-probe-should-not-persist";
 const ALL_PUNCT_CODE = "---";
@@ -156,6 +173,191 @@ test.describe("Admin reseller PATCH input validation — P10 dry-run", () => {
         resp.status(),
         `${c.label} returned ${resp.status()} — expected ${c.expectedStatus} (pre-load validator rejects before validateAdminResellerPatch or resellers UPDATE). Body: ${await resp.text()}`,
       ).toBe(c.expectedStatus);
+      const body = (await resp.json()) as { ok: boolean; reason?: string };
+      expect(
+        body.ok,
+        `${c.label} body.ok should be false: ${JSON.stringify(body)}`,
+      ).toBe(false);
+      expect(
+        body.reason,
+        `${c.label} expected reason='${c.expectedReason}' but got '${body.reason}'`,
+      ).toBe(c.expectedReason);
+    });
+  }
+});
+
+// P10 wave-5 row 170 — validateAdminResellerPatch reject-branch cluster
+// against the QAPROBEWHOLESALEACTIVE seed row. Per docs/plans/p10-deferred-
+// spec-activation-order.md wave 5:
+//   170 | admin-reseller-patch-validation.spec.ts | active_wholesale |
+//         4–6 validator branches (empty_patch / unknown_field /
+//         display_name_required / invalid_tier / invalid_billing_model /
+//         wholesale_requires_gst) folded into one tick | 400 × 6
+//
+// Six branches all trip route.ts:166-169 (validation.ok === false path)
+// which returns BEFORE the resellers UPDATE at route.ts:171-183 fires, so
+// the block is safe against the shared active_wholesale seed row — no
+// UPDATE lands, no updated_at bump, no fixture cleanup needed. loadReseller
+// DOES succeed (fixture.code === "QAPROBEWHOLESALEACTIVE") so the validator
+// runs; each patch is crafted to fail one specific validator rule and
+// return the expected reason.
+//
+// Actual validator reason codes vs plan wording (web/src/lib/reseller/
+// admin-validator.ts AdminResellerValidationError):
+//   - empty_patch              → matches plan
+//   - display_name_blank       → plan called it "display_name_required"
+//                                (validator emits display_name_blank)
+//   - invalid_billing_model    → matches plan
+//   - tiers_bad_value          → plan called it "invalid_tier"
+//                                (validator emits tiers_bad_value)
+//   - abn_bad_format           → not in plan's example list but included
+//                                to hit the ABN_RE guard at admin-validator.
+//                                ts:93; leaves invalid_status / wholesale_
+//                                requires_abn / budget_negative / sandbox_
+//                                negative / commission_out_of_range /
+//                                primary_color_bad_format for a follow-up
+//                                if regressions appear
+//   - wholesale_requires_gst   → matches plan; requires
+//                                current.billing_model === "wholesale"
+//                                which active_wholesale guarantees; PATCH
+//                                { gst_registered: false } merges with
+//                                current wholesale billing_model to trip
+//                                admin-validator.ts:169-170
+//
+// The plan's "unknown_field" bullet is not a real validator reason — the
+// validator silently ignores unknown patch keys (only known keys populate
+// `out`), so a patch of only-unknown keys collapses into empty_patch which
+// is already covered here. Documented in the "Deliberately out of scope"
+// block above so future authors don't chase a non-existent reason code.
+//
+// Route reference: web/src/app/api/admin/resellers/[code]/route.ts
+//   Line 21-32:  gate() — getCurrentUser + requireAdmin → 401 no_user / not_admin  (admin-reseller-patch-authz rows 1-2)
+//   Line 130-132: normaliseResellerCode → 400 code_required  (wave-5 row 169)
+//   Line 134-139: JSON parse → 400 invalid_body  (wave-5 row 169)
+//   Line 141-153: loadReseller → 404 not_found / 503 / 500  (wave-5 row 169)
+//   Line 157-169: validateAdminResellerPatch → 400 <reason>  ← this block (wave-5 row 170)
+//   Line 171-183: resellers UPDATE → 500 / 200  (deferred — needs write-path fixture)
+//
+// Fixture wiring:
+//   - loadAdminHarness() resolves qa-admin-1@blockid.au — a real admin
+//     session so requireAdmin() returns without throwing.
+//   - loadTempReseller('active_wholesale') reads the QAPROBEWHOLESALEACTIVE
+//     seed row so loadReseller returns a real row for the validator to
+//     inspect. adminUserId is NOT needed here because we log in as the
+//     platform admin, not the per-variant reseller-admin — mirrors row 167
+//     + row 168 fixture posture.
+//
+// Skip discipline mirrors row 168 (admin-reseller-detail-validation happy)
+// verbatim: harness-level skip via test.skip(!harness, adminHarnessSkipReason())
+// at describe scope, then two test-scope skips around loadTempReseller
+// null vs throw and loginAs throw. Each skip carries a
+// tempResellerSkipReason("active_wholesale") pointer so a fresh CI host
+// sees the exact seeder command.
+//
+// State-pollution posture: every branch rejects at route.ts:166-169 (return
+// NextResponse.json({ ok: false, reason: validation.reason }, {status})).
+// No INSERT / UPDATE / DELETE fires from any branch. Idempotent under CI
+// replay and safe against parallel workers because no shared state is
+// mutated. No fixture.trackProjectForCleanup / fixture.cleanup() call is
+// needed because loadTempReseller only reads the shared seed row for
+// active_wholesale — never writes.
+//
+// Non-Stripe / non-GST discipline preserved: no Stripe network call, no
+// InfoVision dependency, no revenue_events read. P8.5 + P1.5 remain
+// neither a dependency nor a consequence.
+interface PatchRejectCase {
+  label: string;
+  patch: Record<string, unknown>;
+  expectedReason:
+    | "empty_patch"
+    | "display_name_blank"
+    | "invalid_billing_model"
+    | "tiers_bad_value"
+    | "abn_bad_format"
+    | "wholesale_requires_gst";
+}
+
+const PATCH_REJECT_CASES: PatchRejectCase[] = [
+  {
+    label:
+      "empty_patch — PATCH with empty JSON body returns 400 empty_patch",
+    patch: {},
+    expectedReason: "empty_patch",
+  },
+  {
+    label:
+      "display_name_blank — PATCH with whitespace-only display_name returns 400 display_name_blank",
+    patch: { display_name: "   " },
+    expectedReason: "display_name_blank",
+  },
+  {
+    label:
+      "invalid_billing_model — PATCH with unknown billing_model returns 400 invalid_billing_model",
+    patch: { billing_model: "premium" },
+    expectedReason: "invalid_billing_model",
+  },
+  {
+    label:
+      "tiers_bad_value — PATCH with tier value outside {0,10,20,30,40} returns 400 tiers_bad_value",
+    patch: { allowed_tiers: [15] },
+    expectedReason: "tiers_bad_value",
+  },
+  {
+    label:
+      "abn_bad_format — PATCH with malformed ABN returns 400 abn_bad_format",
+    patch: { abn: "not-a-real-abn" },
+    expectedReason: "abn_bad_format",
+  },
+  {
+    label:
+      "wholesale_requires_gst — PATCH gst_registered=false against wholesale row returns 400 wholesale_requires_gst",
+    patch: { gst_registered: false },
+    expectedReason: "wholesale_requires_gst",
+  },
+];
+
+test.describe("Admin reseller PATCH validator reject cluster — P10 wave-5 row 170", () => {
+  const harness = loadAdminHarness();
+  test.skip(!harness, adminHarnessSkipReason());
+
+  for (const c of PATCH_REJECT_CASES) {
+    test(c.label, async ({ page }) => {
+      let fixture: TempResellerFixture | null;
+      try {
+        fixture = await loadTempReseller("active_wholesale");
+      } catch (err) {
+        test.skip(
+          true,
+          `loadTempReseller('active_wholesale') threw: ${(err as Error).message}. ` +
+            tempResellerSkipReason("active_wholesale"),
+        );
+        return;
+      }
+      if (!fixture) {
+        test.skip(true, tempResellerSkipReason("active_wholesale"));
+        return;
+      }
+      try {
+        await loginAs(page, harness!.admin.email);
+      } catch (err) {
+        test.skip(
+          true,
+          `Admin QA account not seeded: ${(err as Error).message}. Run ` +
+            `scripts/seed-test-users.mjs to populate /tmp/blockid-qa-accounts.txt.`,
+        );
+        return;
+      }
+
+      const route = `/api/admin/resellers/${fixture.code.toLowerCase()}`;
+      const resp = await page.request.patch(route, {
+        data: c.patch,
+        headers: { "content-type": "application/json" },
+      });
+
+      expect(
+        resp.status(),
+        `${c.label} returned ${resp.status()} — expected 400 after validateAdminResellerPatch rejects the patch (route.ts:166-169) BEFORE the resellers UPDATE fires. Body: ${await resp.text()}`,
+      ).toBe(400);
       const body = (await resp.json()) as { ok: boolean; reason?: string };
       expect(
         body.ok,
