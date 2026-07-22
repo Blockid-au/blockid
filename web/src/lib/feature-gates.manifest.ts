@@ -69,6 +69,7 @@ export const FEATURE_GATES: readonly FeatureGate[] = Object.freeze([
   // Reseller module
   { route: "api/reseller/credits/grant/route.ts", required_feature: "reseller.grant_credits" },
   { route: "api/reseller/sandbox/setup/route.ts", required_feature: "reseller.console" },
+  { route: "api/reseller/create-startup/route.ts", required_feature: "reseller.create_startup" },
 ]);
 
 /** Look up the required feature for a route path. Returns null if ungated. */
@@ -95,6 +96,7 @@ export const GATED_DIRECTORIES: readonly string[] = Object.freeze([
   "api/ai/esop",
   "api/reseller/credits",
   "api/reseller/sandbox",
+  "api/reseller/create-startup",
 ]);
 
 /** HTTP verbs that count as "mutation" for the completeness lens. */

@@ -82,6 +82,12 @@ export interface PendingPayload {
   // Reseller attribution code captured from ?via= URL param — mirrors the
   // referral flow. See web/src/lib/reseller/attribution.ts and § C.2.
   resellerCode?: string;
+  // Wholesale-provisioning hint stamped by POST /api/reseller/create-startup —
+  // signals to the verify route that this magic link claims a reseller-created
+  // workspace (H.8 provisional → active transition). No behaviour depends on
+  // it today; kept in the payload so downstream ticks can drop the workspace
+  // out of provisional state without another lookup.
+  wholesaleProvisioning?: boolean;
 }
 
 // -----------------------------------------------------------------------------
@@ -125,6 +131,12 @@ export interface RequestMagicLinkArgs {
   intent: MagicLinkIntent;
   pendingPayload?: PendingPayload;
   ipHash?: string | null;
+  /**
+   * Optional override for token TTL. Defaults to MAGIC_LINK_TTL_MIN=15.
+   * The wholesale provisioning flow (POST /api/reseller/create-startup)
+   * asks for 24×60 so the founder has a realistic window to check email.
+   */
+  ttlMinutes?: number;
 }
 
 export interface RequestMagicLinkResult {
@@ -138,8 +150,11 @@ export async function requestMagicLink(
   args: RequestMagicLinkArgs,
 ): Promise<RequestMagicLinkResult> {
   const token = newMagicLinkToken();
+  const ttlMin = Number.isFinite(args.ttlMinutes) && (args.ttlMinutes as number) > 0
+    ? Math.floor(args.ttlMinutes as number)
+    : MAGIC_LINK_TTL_MIN;
   const expiresAt = new Date(
-    Date.now() + MAGIC_LINK_TTL_MIN * 60 * 1000,
+    Date.now() + ttlMin * 60 * 1000,
   ).toISOString();
 
   const supabase = getSupabaseAdmin();
