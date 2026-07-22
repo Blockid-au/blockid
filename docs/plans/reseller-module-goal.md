@@ -2561,6 +2561,138 @@ review_history:
       tick per CDO rec #2).
     commit: (this tick)
 
+  - tick: 123
+    ran_at: 2026-07-22
+    action: p10_dry_run_admin_resellers_patch_validation_playwright_spec
+    result: |
+      Composed option (i) from tick 122's frontier note — "admin-resellers
+      PATCH validation twin (20+ error codes from validateAdminResellerPatch
+      — largest post-admin validator surface in the tree)". Constrained to
+      the three PRE-load validators that fire BEFORE loadReseller runs, since
+      plan §J.2 forbids per-test seeding of resellers rows and the 20+
+      post-load validateAdminResellerPatch reasons all require a real row to
+      load before the validator can assess a patch delta against the
+      existing wholesale/GST/ABN invariant. The three pre-load branches are
+      safe against staging: no resellers row is written, no updated_at bump
+      lands, and no P1.5 InfoVision seed is touched even after H.20 clears.
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-patch-validation.spec.ts
+          (new — three rows probing the route's pre-load validators BEFORE
+          loadReseller runs, all exercised behind the QA_ADMIN_EMAIL harness
+          from tick 122 so the getCurrentUser + requireAdmin chain resolves
+          to a real admin session:
+          (1) code_required — PATCH /api/admin/resellers/--- (three hyphens)
+              → 400 { ok:false, reason:"code_required" } at route.ts:130-132.
+              normaliseResellerCode('---') strips to null via the
+              trim/uppercase/[^A-Z0-9] replace so the guard fires BEFORE the
+              request.json() try/catch, BEFORE loadReseller, BEFORE
+              validateAdminResellerPatch, BEFORE the resellers UPDATE.
+          (2) invalid_body — PATCH /api/admin/resellers/qa-probe-should-not-
+              persist with raw non-JSON body ("not-json-{") and content-type:
+              application/json → 400 { ok:false, reason:"invalid_body" } at
+              route.ts:134-139 in the request.json() try/catch. Fires
+              post-code-normalisation but PRE-loadReseller so no resellers
+              SELECT is issued, no validateAdminResellerPatch runs, no
+              resellers UPDATE lands.
+          (3) not_found — PATCH /api/admin/resellers/qa-probe-should-not-
+              persist with an empty JSON body {} → 404 { ok:false,
+              reason:"not_found" } at route.ts:141-145 in the loadReseller
+              guard. The empty body would otherwise trip empty_patch inside
+              validateAdminResellerPatch (which counts as a fourth branch
+              deferred to the temp-reseller mint fixture) but not_found
+              short-circuits at loadReseller first, so this row is safe
+              against staging without a real resellers row.
+          PROBE_CODE = "qa-probe-should-not-persist" — a stable lowercase-
+          kebab prefix that normaliseResellerCode maps to the 22-char
+          "QAPROBESHOULDNOTPERSIST" which will not collide with any real
+          reseller_code (INFOVISION, ACCEL_*, etc.). P1.5 InfoVision seed
+          remains HUMAN-BLOCKED on H.20 ABN + GST anyway so no seeded row
+          exists on this host today.)
+        - docs/plans/reseller-module-goal.md (+ tick 123 entry)
+
+      Why this shape matches the ticks 117-122 pattern: same structural
+      shape — pre-auth authz is covered by a sibling *-authz spec that runs
+      harness-free (admin-reseller-patch-authz.spec.ts tick 103 covers
+      unauthenticated → 401 no_user and non_admin → 401 not_admin), and the
+      post-admin validation branches surface only after
+      loginAs(harness.admin.email) so the requireAdmin gate passes and the
+      endpoint's own validators are the gates under test. Differs from
+      admin-resellers-create-validation.spec.ts (tick 122) in one dimension
+      only — that spec probes the collection URL /api/admin/resellers where
+      normaliseResellerCode inspects the body's code field; this spec
+      probes the resource URL /api/admin/resellers/[code] where
+      normaliseResellerCode inspects the URL path segment. Same normaliser,
+      different source, so a regression that skips one won't necessarily
+      skip the other.
+
+      Why the 20+ validateAdminResellerPatch rows and happy-path (200)
+      aren't covered: same reasoning as ticks 94..122 — validateAdminResellerPatch
+      needs a real resellers row to load before the validator can assess
+      the patch delta (empty_patch counts columns present in the input,
+      unknown_field checks against the resellers column list, the wholesale/
+      GST/ABN triple invariant checks the delta against the existing row's
+      billing_model/gst_registered/abn to spot U.15.1 D2-CFO-01 + D4-CLO-03
+      violations mid-flight, etc.). Happy path writes a real resellers
+      UPDATE that would poison sibling PATCH / DELETE / list authz specs
+      sharing the same worker. All belong to the temp-reseller mint fixture
+      follow-up alongside the deferred rows from ticks 94..122.
+
+      Deliberately out of scope for this tick:
+        - admin-resellers DELETE validation twin — has only two pre-load
+          branches (code_required + not_found) since DELETE has no body to
+          parse, so a sibling spec would carry two rows. Follow-up tick per
+          the one-spec-per-tick cadence established in ticks 117..122.
+        - admin-resellers GET validation twin — same three pre-load
+          branches (code_required + not_found; no invalid_body since GET has
+          no body to parse). Follow-up tick.
+        - admin-resellers/requests PATCH validation twin — validateAdminDecision
+          state machine requires a seeded reseller_requests row to load
+          before the validator runs (route.ts:67-83). Plan §J.2 forbids
+          per-test seeding of a pending request, and re-using an existing
+          pending row would drain the pending inbox for the sibling
+          admin-requests-list-authz spec. Follow-up tick alongside the
+          temp-reseller mint fixture.
+        - Any change to /api/admin/resellers/[code] PATCH — the validators
+          fire correctly; this tick adds Playwright coverage of them.
+        - Extending scripts/seed-test-users.mjs with a qa-admin-1 row —
+          human-adjacent change deferred alongside P8.5 (STRIPE_PRICE_ADDON_*)
+          and P1.5 (H.20 ABN + GST) per the tick 122 posture.
+
+      Verified: tsc clean (npx tsc --noEmit exit=0); npm run lint:reseller:
+      R-01 scanned 11 file(s), R-03 scanned 31 manifest route(s), 3
+      exemptions, 0 violations (the spec lives under web/tests/e2e/reseller/
+      not /api/reseller/**, so R-01 doesn't fire; it's not a mutation
+      route in feature-gates.manifest.ts so R-03 doesn't fire). Playwright
+      not run this tick — rows will execute on the next CI Playwright pass
+      alongside the thirty-four other reseller-lens dry-run specs (now
+      thirty-five including this one).
+
+      Frontier after tick 123: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 123 unblocks: (a) admin-resellers/[code] PATCH now has
+      symmetric pre-load validation coverage matching the resource-URL
+      validators of every other admin surface (the 20+ post-load
+      validateAdminResellerPatch rows still wait on the temp-reseller
+      mint fixture, but the code_required/invalid_body/not_found trio
+      is now enforced on the resource URL); (b) the CASES-driven shape
+      is a template for the sibling admin-reseller-delete-validation
+      and admin-reseller-get-validation twins (each carry 2-3 rows of the
+      same pre-load triad, minus invalid_body for the two body-free
+      verbs). Thirty-five spec files now sit in web/tests/e2e/reseller/.
+      Next autonomous tick options: (i) admin-resellers DELETE validation
+      twin (2 rows: code_required + not_found); (ii) admin-resellers GET
+      validation twin (2 rows: code_required + not_found); (iii)
+      admin-resellers/requests PATCH validation twin (needs a seeded
+      reseller_requests row — deferred to temp-reseller mint fixture);
+      (iv) landing the QA-mode temp-reseller mint fixture that opens
+      up all the deferred HAPPY-PATH branches from ticks 94..123 at
+      once (larger tick, wants a design pass); (v) idle until human
+      unblock arrives on P8.5 or P1.5.
+    commit: (this tick)
+
   - tick: 122
     ran_at: 2026-07-22
     action: p10_dry_run_admin_resellers_create_validation_playwright_spec
