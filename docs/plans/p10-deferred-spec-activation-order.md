@@ -129,6 +129,46 @@ Prep cost: one tick to author the attributed-customer helper
 `app_users` upsert path in the fixture — then rows 145–149 each add
 2–3 assertions.
 
+**Wave-3 row 156 landed (tick 156).** Closes the wave-3-`active_wholesale`
+subwave (152 / 154 / 155 / 156). Added a companion `test.describe("Reseller
+requests — P10 wave-3 happy GET")` block to
+`web/tests/e2e/reseller/requests-validation.spec.ts` that mirrors the row
+155 posture verbatim EXCEPT it hits the sibling GET endpoint on the same
+route: `GET /api/reseller/requests` as `active_wholesale` reseller-admin →
+200 with `body.ok=true` + `Array.isArray(body.requests)` + per-row
+envelope shape assertions (id matches UUID_RE, request_type ∈ {code_
+request, over_budget_approval, collateral_approval}, status ∈ {pending,
+approved, denied, cancelled}, created_at typeof string). Assertion budget
+is deliberately generous (six per-row expects + three envelope expects)
+because the loop iterates over an unknown number of rows — every field
+in the SELECT list (route.ts:170-173) needs a shape pin so a stale
+migration cannot mask a dropped column with `undefined`. Do NOT pin the
+array length (fresh hosts have zero rows; hosts where row 155 has run
+in prior CI passes have ≥1 pending rows accumulated). Do NOT pin
+decision_at / decision_reason (both nullable in schema; null for
+pending rows). Twin-row accounting vs row 155: row 155 pins the INSERT
+envelope (body.request.id + request_type + status); row 156 pins the
+SELECT envelope (body.requests[].id + request_type + status +
+created_at). A regression that mis-echoed request_type or swapped
+status defaults between INSERT and SELECT would surface across both
+rows. State-pollution posture: read-only GET — no INSERT / UPDATE /
+DELETE fires; GET handler does NOT audit-log (unlike the POST handler
+at route.ts:113-126); perfectly idempotent under CI replay. Skip
+guards: fixture null → skip; adminUserId null → skip (scopedReseller
+would 403 no_membership before SELECT); loginAs throw → skip.
+attributionExists is intentionally NOT required — the GET route scopes
+by reseller_id (route.ts:174), not by subject_user_id, so a partial-
+seed host with attributedUserId populated but attributionExists=false
+still exercises the happy GET correctly. UUID_RE + ROUTE hoisted to
+module scope so both describe blocks share them and future wave-4/
+wave-5 rows landing in this file reuse the constants. Wave 3 is now
+CLOSED except rows 150 + 151 (still runtime-blocked on finding-2's
+seed + fixture delta) and the ~~row 153~~ struck-through entry (whose
+removal is now unblocked). Next natural picks: row 157 (code-validate
+× paused × inactive 404) opens wave 4 via the harness-free
+unauthenticated lookup, or land finding-2's seed delta to unblock rows
+150 + 151.
+
 **Wave-3 row 155 landed (tick 155).** Third wave-3 row landed. Added a
 companion `test.describe("Reseller requests — P10 wave-3 happy path")` block
 to `web/tests/e2e/reseller/requests-authz.spec.ts` that mirrors the wave-3

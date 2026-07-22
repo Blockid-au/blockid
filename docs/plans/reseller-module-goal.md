@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.155
+version: 2026-07-23.156
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,147 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 156
+    ran_at: 2026-07-22
+    action: p10_wave3_row_156_activate_requests_validation_active_wholesale_happy_get
+    result: |
+      Fourth wave-3 row landed per docs/plans/p10-deferred-spec-activation-
+      order.md. One row landed — the requests-validation.spec.ts ×
+      active_wholesale × happy GET branch (GET /api/reseller/requests →
+      200 with body.ok=true + Array.isArray(body.requests) + per-row
+      envelope shape assertions). Row 156 closes the wave-3-active_wholesale
+      subwave (152 / 154 / 155 / 156) that tick 152's preflight flagged as
+      activation-ready today without any seed/fixture delta. Row 155's next-
+      tick recommendation named row 156 as the natural next pick (POST for
+      state creation ran tick 155 so row 156 GET has something to enumerate
+      on the same run).
+
+      Files:
+        - web/tests/e2e/reseller/requests-validation.spec.ts (imports
+          extended: added loadTempReseller + tempResellerSkipReason +
+          TempResellerFixture type-only import alongside the existing
+          harnessSkipReason + loadResellerHarness imports; hoisted ROUTE
+          + UUID_RE to module scope so both describe blocks share them;
+          existing loop's inline `/api/reseller/requests` string swapped
+          for ROUTE constant; new test.describe block "Reseller requests
+          — P10 wave-3 happy GET" holds row 156; "Deliberately out of
+          scope" comment block updated — the happy-GET branch flipped
+          from folded/deferred to ACTIVATED with pointer at the new test
+          and a note that row 155 owns the POST wire envelope while row
+          156 owns the SELECT wire envelope).
+        - docs/plans/p10-deferred-spec-activation-order.md ("Wave-3 row 156
+          landed (tick 156)" paragraph inserted above the tick 155 note
+          explaining the twin-row accounting vs row 155 across the POST/
+          GET boundary, the array-length-not-pinned rationale, and the
+          per-row shape pin list).
+
+      Design fidelity:
+        - Coverage-vs-duplication call: pin 200 + body.ok=true +
+          Array.isArray(body.requests) + for every row {id: string
+          matching UUID_RE, request_type: string ∈ {code_request,
+          over_budget_approval, collateral_approval}, status: string ∈
+          {pending, approved, denied, cancelled}, created_at: string}. Do
+          NOT pin the array length — fresh hosts may have zero rows;
+          hosts where row 155 has run in prior CI passes will have ≥1
+          pending rows accumulated. Do NOT pin decision_at /
+          decision_reason (both nullable in the schema and null for
+          pending rows). The per-row shape pins catch (a) a route
+          regression that dropped a field from the SELECT list (route.ts:
+          170-173), (b) a route regression that returned the wrong id
+          type (bigint from a stale migration rather than UUID string),
+          and (c) a route regression that returned a non-array envelope
+          (e.g. wrapping in { requests: { rows: [] } }).
+        - Twin-row accounting vs row 155 (active_wholesale × happy POST
+          201): row 155 pins the INSERT envelope (body.request.id +
+          request_type + status); row 156 pins the SELECT envelope
+          (body.requests[].id + request_type + status + created_at). A
+          regression that mis-echoed request_type or swapped status
+          defaults between INSERT and SELECT would surface across both
+          rows. request_type enum matches the three-value validator
+          (web/src/lib/reseller/requests.ts:36-40); status enum matches
+          the DB CHECK constraint (0095_reseller_requests.sql:32).
+        - Skip discipline: fixture null → skip; adminUserId null → skip
+          (scopedReseller would 403 no_membership before the SELECT
+          fires); loginAs throw → skip. attributionExists is
+          intentionally NOT required — the GET route reads
+          reseller_requests scoped by reseller_id (route.ts:174), not by
+          subject_user_id, so a partial-seed host with attributedUserId
+          populated but attributionExists=false still exercises the
+          happy GET correctly. Same posture as row 155's over_budget_
+          approval POST which also does not consult
+          allowedCustomerIds().
+        - State-pollution posture: read-only GET — no INSERT / UPDATE /
+          DELETE fires from this endpoint. Route.ts GET handler
+          (148-186) does NOT audit-log (unlike the POST handler at
+          113-126 which writes reseller_audit_log(action='file_request')).
+          No projects.id created → no fixture.trackProjectForCleanup /
+          cleanup() wiring needed. Perfectly idempotent under CI replay.
+        - Non-Stripe / non-GST discipline: the GET requests route reads
+          reseller_requests only. No promotion_code lookup, no
+          credit_balances / credit_transactions write, no revenue_events
+          read, no Stripe network call, no InfoVision dependency. P8.5 +
+          P1.5 remain neither a dependency nor a consequence.
+        - UUID_RE hoisted to module scope (mirroring the pattern used by
+          requests-authz.spec.ts + credit-grant-validation.spec.ts +
+          sandbox-setup-authz.spec.ts after ticks 152-155) so future
+          wave-4/wave-5 rows landing in this file reuse the constant
+          without duplicating the regex. Case-insensitive because
+          supabase renders UUIDs lowercase but Playwright body parsing
+          does not force a case.
+        - ROUTE hoisted to module scope: the existing loop's inline
+          `/api/reseller/requests` string was swapped for the ROUTE
+          constant so both describe blocks share the same source and a
+          future route-path change is a one-line edit.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0, no output).
+          The new imports (loadTempReseller, tempResellerSkipReason,
+          TempResellerFixture type-only) type-check against the fixture
+          module unchanged since tick 155.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 documented exemptions, 0
+          violations — unchanged from tick 155 (the spec is not under
+          /api/reseller/** for the R-01 grep and it is not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - No vitest run this tick — no pure-lib .ts code touched, only
+          the Playwright spec + one docs edit. Mirrors the tick 148-155
+          precedent verbatim.
+        - No DB apply this tick — no migration authored. Row 156 consumes
+          the wave-2 fixture posture that ticks 147-152 validated against
+          staging + the wave-3 subwave that tick 152's preflight
+          confirmed activation-ready without any seed/fixture delta.
+        - Goal file version bumped 2026-07-23.155 → 2026-07-23.156.
+
+      Frontier after tick 156: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision seed
+      STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE; P10 still
+      blocked_by [P1..P9] until P8.5 clears. What tick 156 unblocks: the
+      wave-3-active_wholesale subwave (152 / 154 / 155 / 156) is now
+      COMPLETE. Next tick options move into wave 4 or land finding 2's
+      seed delta. Rows 150 + 151 stay test.skip() at runtime via the
+      existing tempResellerSkipReason guard until finding 2's seed +
+      fixture delta lands (recommend two separate ticks: seed delta
+      first, fixture delta second, then row 150 activation, then row 151
+      activation). Row 153 removal lands whenever the wave-3-
+      active_wholesale subwave is done — that is NOW, so the next tick
+      can also collapse the ~~row 153~~ struck-through entry in the
+      schedule doc. Next autonomous tick options:
+        (i) activate row 157 (code-validate.spec.ts × paused × inactive
+            404) — opens wave 4 with a variant boundary probe using the
+            harness-free approach (no loadTempReseller needed since
+            /api/reseller/code/validate is a public unauthenticated
+            lookup per r-01-exempt in P4.4);
+        (ii) activate row 158 (code-validate.spec.ts × active_wholesale
+             × happy 200 with tier_pct) — pairs with row 157 in the
+             same file, so the "same file with the same variant" batching
+             heuristic MAY collapse both into one tick;
+        (iii) land finding 2's seed delta (edit seed-qa-reseller.mjs
+              main loop to seed attribution on no_capability + no_budget;
+              re-run seeder against staging) — unblocks rows 150 + 151;
+        (iv) collapse the ~~row 153~~ struck-through entry in the
+             schedule doc since the wave-3-active_wholesale subwave is
+             done.
+
   - tick: 155
     ran_at: 2026-07-22
     action: p10_wave3_row_155_activate_requests_authz_active_wholesale_happy
