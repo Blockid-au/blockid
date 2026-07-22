@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.196
+version: 2026-07-23.197
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -429,7 +429,9 @@ tracks:
           gst_reconciliation_delta, cohort_velocity, ltv_cac_per_reseller
         ]
       P12_user_management:
-        status: in_progress
+        status: done
+        tick_completed: 197
+        completed_at: 2026-07-22
         sub_phases:
           P12.1_account_type_enum: {status: done, tick: 189, completed_at: 2026-07-22, files: [
             "web/src/lib/segments.ts (+ ACCOUNT_TYPE_VALUES const array + AccountType type + isAccountType() type guard + accountTypeLabel())",
@@ -469,7 +471,9 @@ tracks:
             "web/src/app/admin/affiliate/types.ts (AttributionSummaryBySource.impersonation counter)",
             "web/src/app/admin/affiliate/affiliate-view-client.tsx (fourth tab + ImpersonationTrailPanel)"
           ], note: "Impersonation trail tab landed as a 4th tab on /admin/affiliate reseller drawer. Pure lib exposes IMPERSONATION_ACTIONS (six admin.* actions: role.changed / credits.granted / plan.changed / permissions.granted / permissions.revoked / user.created — goal file names only role.changed + credits.granted but the sibling admin.* actions share the same audit shape family so a single OR filter is used, matching the P12.7 route note that 'the P12.8 impersonation trail tab lifts all four action names off audit_events with a single OR filter'), buildImpersonationTrail (groups audit_events by resource_id when actor='admin' + action ∈ IMPERSONATION_ACTIONS + resource_id ∈ allowedUserIds; each group sorted newest-first; groups sorted by latest-event newest-first so recent activity floats to the top), summariseEvent (per-action human-readable one-liner: role changes render 'Role user → admin', credits show 'Granted N credits (reason)', plan changes reveal reconciled credits when >0, permissions render + or - variants, user.created shows 'Created user (segment / account_type)'), flattenImpersonationTrail (chronological stream helper). API route runs a single .in('action', IMPERSONATION_ACTIONS).in('resource_id', userIdList) query alongside the existing usersRes/promoRes/revenueRes Promise.all fan-out — no extra request cost, .limit(500) caps blast radius for portfolios with heavy admin touch history; response shape adds impersonation: ImpersonationGroup[] plus totals.impersonation counter for the tab badge. Client component adds TabKey = SourceKey | 'impersonation' union, extends TABS with the 4th entry, renders ImpersonationTrailPanel when active with per-target <details> disclosures (open by default when ≤3 groups), colored action badges (purple=role, emerald=credits, brand=plan, sky=perm+, amber=perm-, teal=created), 'Open user →' deep-link to /admin/users/[id] on each group. NOT k-suppressed per the same rationale as row-level attribution details — admin can already open /admin/users/[id] and read the same audit trail; k rule guards aggregate summaries, not row-level identities the admin already has authorization to see. Verified: tsc clean; vitest 75 files 954/954 pass (+18 from prior 936); npm run lint:reseller 11 R-01 + 31 R-03 scanned, 3 exemptions, 0 violations — /admin/affiliate + /api/admin/affiliate are not in the reseller manifest so R-03 does not fire. Playwright E2E for the tab (open reseller → switch to Impersonation → assert group renders + Open-user link) deferred to P12.9."}
-          P12.9_playwright_e2e: {status: pending, action: "web/tests/e2e/admin/user-management.spec.ts — create / delete / permission flows"}
+          P12.9_playwright_e2e: {status: done, tick: 197, completed_at: 2026-07-22, files: [
+            "web/tests/e2e/admin/user-management.spec.ts"
+          ], note: "Playwright spec landed as one file with four describes. Three harness-free authz describes (create / permissions / delete) each cover unauthenticated (401 no_user) + non_admin (403 not_admin) branches — note the app_users endpoints split the requireAdmin envelope at 401 vs 403 unlike /api/admin/resellers which collapses both to 401 (see create/route.ts:42-49, permissions/route.ts:46-53, [id]/route.ts:40-46 + 145-151). Row 2 skips at test-scope when QA_UNATTRIBUTED_FOUNDER_EMAIL / qa-founder-1 is not seeded — same discipline as the sibling admin-reseller-*-authz specs. Fourth describe uses test.describe.serial to run the create → grant → revoke → delete flow against qa-admin-1 via loadAdminHarness: create mints per-run unique probeEmail p12-9-probe-<uuid>@blockid.qa (never collides on app_users_email_unique), grant asserts was_known=false + permissions array contains the probe ad-hoc slug 'reports.export' (deliberately absent from user-panels.ts KNOWN_PERMISSIONS so the PERMISSION_SLUG ad-hoc-slug branch is exercised), revoke asserts the slug is dropped, delete asserts the anonymised_email string matches deleted-<id>@removed.blockid.local. State-pollution posture: soft-delete leaves an anonymised row with plan=free/role=user + null PII columns — inert and idempotent under CI replay. Verified: tsc clean; npm run lint:reseller: 11 R-01 + 31 R-03 scanned, 3 exemptions, 0 violations (spec lives under tests/**, not in the reseller manifest); vitest 75 files 954/954 pass (Playwright specs are excluded from vitest by design so the count is unchanged from tick 196)."}
           P12.10_nav_wiring: {status: done, tick: 188, note: "shipped fe9946d — /admin/users + /admin/affiliate already surface in admin left-nav"}
         exit_criteria: [
           "AccountType enum + isAccountType() live in web/src/lib/segments.ts (DONE P12.1 tick 189)",
