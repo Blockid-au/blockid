@@ -2,6 +2,30 @@
   "articles": [
     {
       "slug": "startup-valuation-cap-table-impact-calculator",
+      "title": "Startup Valuation vs Equity Dilution: Cap Table Simulator",
+      "description": "Calculate dilution for your Australian startup. Use our tool to simulate pre-money vs post-money valuation impact and protect your founder equity.",
+      "keywords": [
+        "startup valuation vs equity dilution",
+        "how to calculate dilution australia",
+        "cap table simulation tool",
+        "pre-money vs post-money valuation impact",
+        "startup valuation scenarios australia",
+        "effect of valuation on founder equity",
+        "seed round dilution calculator",
+        "how much equity to give away australia",
+        "valuation impact on cap table",
+        "equity dilution simulation for founders"
+      ],
+      "category": "valuation",
+      "publishedAt": "2026-07-22",
+      "readingTime": 5,
+      "cta": {
+        "label": "Simulate Your Valuation",
+        "href": "/tools/valuation-calculator"
+      }
+    },
+    {
+      "slug": "startup-valuation-cap-table-impact-calculator",
       "title": "Startup Equity Dilution Calculator Australia | BlockID",
       "description": "Simulate your cap table with our startup equity dilution calculator. Model valuations and protect your ownership in every funding round. Try it now.",
       "keywords": [
