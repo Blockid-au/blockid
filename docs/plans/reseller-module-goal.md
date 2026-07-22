@@ -2561,6 +2561,111 @@ review_history:
       tick per CDO rec #2).
     commit: (this tick)
 
+  - tick: 124
+    ran_at: 2026-07-22
+    action: p10_dry_run_admin_reseller_loop_status_authz_playwright_spec
+    result: |
+      Composed option (ii) from tick 123's frontier — landed the last
+      uncovered admin surface under /api/admin/** whose requireAdmin()
+      gate had no Playwright dry-run. GET /api/admin/reseller-loop/status
+      is the read-only endpoint powering the /admin/reseller-loop
+      dashboard: it tails /tmp/blockid-reseller-monitor.txt +
+      reseller-monitor.jsonl + reseller-goal-history.jsonl +
+      /tmp/blockid-reseller-goal-done under a single Promise.all
+      safeRead fan-out, all of which sit BEHIND the requireAdmin gate at
+      route.ts:41-49. Symmetric-envelope regression coverage means a
+      refactor that collapses the two 401 reasons into a single
+      "unauthorised", swaps requireAdmin() for a bespoke inline check,
+      or flips the status code to 403 lights up in all seven admin
+      authz specs on the next `npx playwright test` pass.
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-loop-status-authz.spec.ts
+          (new — two rows probing the requireAdmin() chokepoint:
+          (1) unauthenticated — GET with no session → 401 { ok:false,
+              reason:"no_user" } at route.ts:41-47. getCurrentUser null →
+              requireAdmin throws AdminGateError("no_user") → gate returns
+              401 BEFORE the Promise.all safeRead fan-out fires against
+              /tmp/blockid-reseller-monitor.txt or the two JSONL logs.
+          (2) non_admin — GET as a founder QA account → 401 { ok:false,
+              reason:"not_admin" } at route.ts:41-47. getCurrentUser
+              resolves but user.role !== "admin" and user.email !==
+              ADMIN_EMAIL → isAdmin false → requireAdmin throws
+              AdminGateError("not_admin") → gate returns 401 BEFORE the
+              on-disk read fan-out.
+          Row 2 skips at test-scope if the qa-founder-1 account is not
+          seeded (loginAs throws); row 1 always runs — no harness
+          required — so this spec lights up in CI on the next
+          `npx playwright test` pass alongside the six sibling admin
+          authz specs.)
+        - docs/plans/reseller-module-goal.md (+ tick 124 entry)
+
+      Why this shape matches the ticks 103/105/106/107/108 pattern:
+      exact structural twin — same requireAdmin() chokepoint from
+      web/src/lib/reseller/require-admin.ts, same { ok:false,
+      reason: AdminGateError.code } envelope pair at HTTP 401 for BOTH
+      the no_user and not_admin branches, same two harness-free rows
+      probing the pre-gate chain, same "row 2 skips if qa-founder-1
+      unseeded" cadence. Differs from admin-resellers-list-authz
+      (tick 108) in one dimension only — that spec targets the resellers
+      table SELECT; this spec targets the /tmp + JSONL fan-out, so a
+      regression that skips one won't necessarily skip the other, and
+      the two together fully cover the requireAdmin() gate across every
+      admin-scoped read surface.
+
+      Why the happy path (200) isn't covered: same reasoning as ticks
+      94..123 — the 200 branch reads the on-disk loop state that mutates
+      every tick (reseller-monitor.jsonl gets a new row every minute
+      from scripts/cron/reseller-monitor.sh; reseller-goal-history.jsonl
+      grows on every autonomous tick), so asserting on the response
+      shape would flake against the moving target. A real admin session
+      also needs a QA_ADMIN_EMAIL harness that the tree doesn't yet
+      carry — folded into the temp-reseller mint fixture follow-up
+      alongside the deferred rows from ticks 94..123.
+
+      Deliberately out of scope for this tick:
+        - admin-resellers DELETE validation twin (2 rows: code_required
+          + not_found) — option (i) from tick 123's frontier; follow-up
+          tick per the one-spec-per-tick cadence.
+        - admin-resellers GET validation twin (2 rows: code_required +
+          not_found) — option (ii) from tick 123's frontier; follow-up
+          tick.
+        - admin-resellers/requests PATCH validation twin — needs a
+          seeded reseller_requests row (plan §J.2 forbids per-test
+          seeding); deferred to temp-reseller mint fixture.
+        - Any change to /api/admin/reseller-loop/status — the
+          requireAdmin gate fires correctly; this tick adds Playwright
+          coverage of it.
+        - Extending scripts/seed-test-users.mjs with a qa-admin-1 row —
+          human-adjacent change deferred alongside P8.5
+          (STRIPE_PRICE_ADDON_*) and P1.5 (H.20 ABN + GST) per the
+          tick 122 posture.
+
+      Verified: tsc clean (npx tsc --noEmit exit=0). Playwright not
+      run this tick — rows will execute on the next CI Playwright
+      pass alongside the thirty-five other reseller-lens dry-run specs
+      (now thirty-six including this one).
+
+      Frontier after tick 124: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 124 unblocks: the /api/admin/reseller-loop/status
+      requireAdmin gate — previously the last uncovered admin surface
+      whose auth-chain had no explicit dry-run — now has symmetric
+      coverage matching the six sibling admin authz specs. Thirty-six
+      spec files now sit in web/tests/e2e/reseller/. Next autonomous
+      tick options: (i) admin-resellers DELETE validation twin (2
+      rows: code_required + not_found); (ii) admin-resellers GET
+      validation twin (2 rows: code_required + not_found); (iii)
+      admin-resellers/requests PATCH validation twin (needs seeded
+      reseller_requests row — deferred to temp-reseller mint fixture);
+      (iv) landing the QA-mode temp-reseller mint fixture that opens
+      up all the deferred HAPPY-PATH branches from ticks 94..124 at
+      once (larger tick, wants a design pass); (v) idle until human
+      unblock arrives on P8.5 or P1.5.
+    commit: (this tick)
+
   - tick: 123
     ran_at: 2026-07-22
     action: p10_dry_run_admin_resellers_patch_validation_playwright_spec
