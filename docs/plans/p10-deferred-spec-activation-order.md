@@ -129,6 +129,62 @@ Prep cost: one tick to author the attributed-customer helper
 `app_users` upsert path in the fixture — then rows 145–149 each add
 2–3 assertions.
 
+**Wave-4 row 158 landed (tick 157).** Opens wave 4. Added a companion
+`test.describe("Reseller code/validate — P10 wave-4 happy path")` block to
+`web/tests/e2e/reseller/code-validate.spec.ts` that consumes the
+`active_wholesale` fixture without login (the route is
+public-unauthenticated per `r-01-exempt` in `route.ts:18`): POST
+`/api/reseller/code/validate` with `{ code: fixture.promotionCodes[0].code }`
+(the seeded `QAPROBEWHOLESALEACTIVE20` or `QAPROBEWHOLESALEACTIVE40` row
+from `seed-qa-reseller.mjs::seedPromotionCodes()` line 359-388) and assert
+200 with `body.ok=true` + `body.tier_pct === promo.tier_pct` +
+`typeof body.promotion_code_id_present === "boolean"` + `body.reseller.code
+=== fixture.code` + `body.reseller.display_name === fixture.displayName` +
+`body.reseller.billing_model === "wholesale"`. Row 158 is the harness-free
+happy path — no `loginAs` needed and no writes fire — so it is the shortest
+possible wave-4 row and the natural pick after the wave-3-`active_wholesale`
+subwave closed at tick 156. Coverage-vs-duplication call: pin
+`body.reseller.code + display_name + billing_model` (the three fields the
+consent modal reads at `svi-entrance.tsx:213` + onboarding StepReseller
+copy) plus `body.tier_pct` (the value stamped onto
+`checkout.subscription.metadata` at `stripe/checkout/route.ts:220` when
+tier>0). Do NOT pin `promotion_code_id_present` value (varies with whether
+the promo row has `stripe_promotion_code_id` populated — active_wholesale's
+seed script fills it verbatim, but downstream CI may deactivate the Stripe
+promo without dropping the row); pin its type only so a regression that
+returned `undefined` or `null` still surfaces. Do NOT pin
+`body.reseller.logo_url` / `primary_color` (both nullable in schema and
+NULL in the QA seed script's insert). Skip guards: fixture null → skip
+(SUPABASE_URL/SERVICE_ROLE unset OR resellers row missing); `fixture.
+promotionCodes.length === 0` → skip (seeder ran but promo insert failed
+OR promo rows were dropped) — this is the distinguishing skip from a code
+regression that dropped the promo SELECT. State-pollution posture:
+read-only — no INSERT / UPDATE / DELETE fires from this endpoint;
+perfectly idempotent under CI replay. Non-Stripe / non-GST discipline:
+the route reads `reseller_promotion_codes` + `resellers` only. No Stripe
+network call, no `promotion_code_id` mint, no `revenue_events` write, no
+InfoVision dependency. P8.5 + P1.5 remain neither a dependency nor a
+consequence. ROUTE hoisted to module scope so both describe blocks share
+it and a future route-path change is a one-line edit — mirrors the pattern
+used by requests-validation.spec.ts after tick 156. Twin-row accounting
+vs row 157 (paused × inactive 404, still deferred): row 158 pins the
+positive-status happy path (200 + tier_pct); row 157 will pin the
+paused-status inactive branch (404 reason='inactive') once the seeder mints
+an active promo code on the paused variant. A regression that inverted the
+status check at route.ts:72-74 would surface across both rows. Rows 159 +
+160 (reports-signed-url-authz + reports-signed-url-validation) sit next in
+wave-4 per the schedule doc but need one seeded `reseller_report_files` row
+per month bucket (attachReportRow helper); rows 161 (reseller-requests-
+list-authz happy 200) + 163 (cobranding-pill happy render) require the
+same active_wholesale fixture posture as row 158 but with login. Next
+natural picks: (i) activate row 161 (reseller-requests-list-authz × happy)
+— reuses the wave-3 requests-authz posture verbatim; (ii) activate row
+163 (cobranding-pill × active_wholesale attributed founder × EN + VI) —
+reuses the attributed-founder harness from wave 2; (iii) land finding-2's
+seed delta to unblock rows 150 + 151; (iv) mint an active promo code on
+the paused variant to unblock row 157; (v) collapse the ~~row 153~~
+struck-through entry.
+
 **Wave-3 row 156 landed (tick 156).** Closes the wave-3-`active_wholesale`
 subwave (152 / 154 / 155 / 156). Added a companion `test.describe("Reseller
 requests — P10 wave-3 happy GET")` block to
