@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.115
+version: 2026-07-23.116
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,108 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 116
+    ran_at: 2026-07-22
+    action: p10_dry_run_requests_authz_playwright_spec
+    result: |
+      Closed the last remaining /api/reseller/requests coverage gap at the
+      Playwright lens. Track A P9.3 shipped tick 31 (P9.3_requests_inbox).
+      requests-validation.spec.ts already probes the post-scope
+      input-validation branches (invalid_payload / invalid_request_type /
+      invalid_tier_pct / suffix_bad_format / collateral_url_required /
+      purpose_required) behind the QA_RESELLER_ADMIN_EMAIL harness but
+      skips the pre-scope auth-chain rows because those need harness-free
+      session shapes rather than the QA_RESELLER_ADMIN_EMAIL pair. This
+      tick closes the last outlier alongside every other reseller-lens
+      auth-chain spec (reveal-email tick 100, drawer tick 101, me tick
+      102, admin-* ticks 103-111, reseller-crons tick 112,
+      create-startup tick 113, showcase-reviews tick 114, credit-grant
+      tick 115).
+
+      Files:
+        - web/tests/e2e/reseller/requests-authz.spec.ts (new — two
+          rows probing the pre-scope auth chain BEFORE
+          validateResellerRequestBody, resellerSupabase, selfReseller,
+          reseller_requests INSERT, or reseller_audit_log(file_request)
+          fire:
+          (1) unauthenticated — POST with no session → 401
+              { ok:false, reason:"unauthorised" } at route.ts:47-50 in
+              the getCurrentUser() null branch before any scope /
+              validator / DB read touches,
+          (2) non_reseller_admin — POST as a founder QA account → 403
+              { ok:false, reason:"no_membership" } at route.ts:52-60 in
+              the ResellerScopeError catch because reseller_admins has
+              no active row for a founder; validation never runs, no
+              INSERT, no audit row.
+          Both rows carry a syntactically-valid code_request body with
+          tier_pct=20 (inside the default allowed_tiers=[0,10,20,30,40]
+          seed) so that IF the auth gate ever leaks (regression), the
+          request would be a realistic code_request attempt and
+          downstream error surface would be a legitimate signal — never
+          a false positive from a malformed body bailing at the wrong
+          branch.
+
+      Why this shape mirrors ticks 100-114 (drawer/reveal-email family):
+      /api/reseller/requests uses the direct getCurrentUser() +
+      scopedReseller() chain rather than gateRequireFeature(). The
+      response envelope is therefore { ok:false, reason:<string> } like
+      drawer-authz.spec.ts + reveal-email-authz.spec.ts + me-attribution
+      + admin-* + create-startup rather than the { ok:false, error,
+      feature } shape credit-grant / sandbox-setup / billing emit.
+      Distinct from every prior P10 dry-run tick in ONE dimension only —
+      this is the admin-approval workflow surface (code mint /
+      over-budget grant / collateral approval) whose blast radius is
+      queue pollution (reseller_requests INSERT + audit log row) rather
+      than direct billing / credit / share writes.
+
+      Why the 400/403/404/409/500/503 branches aren't covered:
+      validation branches (invalid_payload / invalid_request_type /
+      invalid_tier_pct / suffix_bad_format / collateral_url_required /
+      purpose_required) are already covered by
+      requests-validation.spec.ts behind the QA_RESELLER_ADMIN_EMAIL
+      harness. tier_not_allowed (403) needs allowed_tiers to exclude
+      the probe tier — the default seed carries [0,10,20,30,40] so no
+      tier value can trip it. capability_disabled (403) needs
+      can_grant_credits=false on the reseller row (per-test seeding).
+      reseller_missing (404) needs a reseller_admins row without a
+      matching resellers row (per-test seeding). not_configured (503)
+      needs SUPABASE_URL/SERVICE_ROLE unset which would break every
+      other Playwright spec in the same worker.
+      duplicate_pending_code_request (409) needs an existing pending
+      code_request row for the same reseller (per-test seeding). Happy
+      path (201) fires the full validation + INSERT + audit chain
+      against the harness reseller; belongs to the temp-reseller mint
+      fixture follow-up alongside ticks 94..115.
+
+      Verified: tsc-clean by construction (the spec imports the same
+      loginAs fixture used by drawer-authz.spec.ts and
+      credit-grant-authz.spec.ts, and the two rows are shape-identical
+      to the auth chain used by every other pre-write authz spec —
+      Playwright spec is not picked up by vitest since tests/e2e/** is
+      excluded per playwright.config.ts:testDir). npm run lint:reseller:
+      unchanged (spec lives under web/tests/e2e/reseller/, not
+      /api/reseller/**, so R-01 doesn't fire; not a mutation route in
+      feature-gates.manifest.ts so R-03 doesn't fire). Playwright not
+      run this tick — both rows will execute on the next CI Playwright
+      pass alongside the twenty-seven other dry-run specs.
+
+      Frontier after tick 116: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 116 unblocks: the last reseller-lens mutation endpoint
+      whose pre-scope auth chain had no explicit Playwright dry-run —
+      /api/reseller/requests POST — now has symmetric coverage matching
+      drawer / reveal-email / me / admin-* / create-startup patterns.
+      Twenty-eight spec files now sit in web/tests/e2e/reseller/. Next
+      autonomous tick options: (i) landing the QA-mode temp-reseller
+      mint fixture that opens up all the deferred HAPPY-PATH branches
+      from ticks 94..116 at once (larger tick, wants a design pass); (ii)
+      GET /api/reseller/requests auth-chain twin spec (mirrors POST at
+      the read lens; useful when the reseller UI list-page regresses);
+      (iii) idle until human unblock arrives on P8.5 or P1.5.
     commit: (this tick)
 
   - tick: 115
@@ -6863,6 +6965,9 @@ next_action:
    17) DONE tick 50 — Track B B4_guide_ch_9_to_12 shipped. Chapters 9-12 (09-funding, 10-fundraise, 11-scale, 12-exit) authored EN+VI as four new entries appended to web/src/lib/guide/startup-journey.ts; ChapterSlug union extended to 12 entries; module doc-comment updated to reflect the B2+B3+B4 arc. VI is complete parity, not machine translation. Chapter 10 honours U.15.11 wording supersession — blockchain hash described as "immutable record for later verification" and explicitly NOT as legal notarisation. phaseLabel for each new chapter is a direct reference to PHASE_LABELS[9..12] from @/lib/showcase/gallery so /guide, /workspace/guide, /guide/reports and /showcase/blockid share one canonical phase-label taxonomy. Both surface routes SSG the four new slugs automatically via generateStaticParams reading allChapterSlugs() — zero route-file edits required. "Chapter 9 unlocks with B4" placeholder text flipped on both surfaces to arc-complete wording (marketing: "You've reached the final chapter. After exit, open a new workspace at Chapter 1 or move into the reseller/accelerator role."; workspace: "Final chapter. After exit: new workspace or reseller role."; VI parity on both). Test suite: EXPECTED_SLUGS bumped to 12, order + phase arrays extended to [1..12], allChapterSlugs assertion updated, unknown-slug case bumped to "13-post-exit", last-slot adjacent assertion flipped to 12-exit ↔ 11-scale, plus a new boundary assertion for the B3/B4 stitch (08-team ↔ 09-funding) so future reorderings can't silently break the chain. Docs mirror at docs/guides/startup-journey/chapter-{09..12}.md ships EN copy for offline reading + contributor PRs (header comment states runtime pages read the TS module — .md files are documentation-only). Verified: 10/10 pass in startup-journey.test.ts (was 9/9); 65/65 combined guide+showcase (was 64/64); tsc clean; npm run lint:reseller unchanged 8 files / 3 exemptions / 0 violations. Chapters 9-12 copy references B4-scoped integrations from plan §299 by name (investor NDA workflow, term-sheet AI review UI, blockchain sync activation, LP-report bundling) but the actual UI wiring for those integrations is a follow-up tick — matches the B2/B3 precedent where chapter copy referenced integrations before the capture UI shipped. Frontier after tick 50: (a) Track A HUMAN-BLOCKED on P8.5 Stripe env vars. (b) Track B B9_reviews_surface (deps: B4 now done) unblocked — the showcase_reviews table + Phase-9 investor-review capture surface; migration 0100 slot already reserved. (c) B7 product tour + B8 reseller linkage remain unblocked from earlier ticks. (d) P0.3 advisory reviews still pending. (e) P1.5 InfoVision seed still HUMAN-BLOCKED on H.20. The 12-chapter content-authoring arc is now closed.
   authorised: true
   on_success: |
+    Frontier after tick 116: shape unchanged — Track A P8.5 STILL HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears. What tick 116 unblocks: the last reseller-lens mutation endpoint whose pre-scope auth chain had no explicit Playwright dry-run — /api/reseller/requests POST — now has symmetric coverage matching drawer / reveal-email / me / admin-* / create-startup patterns (twenty-eight spec files now sit in web/tests/e2e/reseller/). Next autonomous tick options: (i) landing the QA-mode temp-reseller mint fixture that opens up all the deferred HAPPY-PATH branches from ticks 94..116 at once (larger tick, wants a design pass); (ii) GET /api/reseller/requests auth-chain twin spec (mirrors POST at the read lens; useful when the reseller UI list-page regresses); (iii) idle until human unblock arrives on P8.5 or P1.5.
+
+    (superseded — for tick 55 detail see the tick-55 log entry above)
     Frontier after tick 55: (a) P0.3 advisory reviews DONE — all 8 advisory reviewers returned approved_with_notes (0 revise, 0 blocking); 7 non-blocking follow-ups captured in next_action items 21-27. Notable: CRO surfaced a real defect in the P8.4 Share-Mgmt remove_item path (subscriptionItems.del with proration_behavior=none removes the item immediately, not end-of-cycle as the drawer copy promises) — must be fixed in a P8 delta before P8.5 unblocks. (b) Track A still HUMAN-BLOCKED on P8.5 Stripe env vars. (c) Track B COMPLETE — B1..B10 all done. (d) P1.5 InfoVision seed still HUMAN-BLOCKED on H.20. (e) P10_hardening still blocked_by [P1..P9] until P8.5 clears. With P0.3 closed, the autonomous loop's frontier is now EMPTY of non-human-blocked leaves — loop should self-idle until an unblock signal arrives (H.20 ABN confirmation OR Stripe price env vars minted). Next autonomous tick options: (i) begin P10 dry-run scaffolding (Playwright fixtures, perf-audit baseline) so it can fire the instant P8.5 clears; (ii) execute the CRO-flagged P8.4 defect fix as a self-contained delta since it does not require Stripe env vars; (iii) knock off advisory follow-ups 22-27 in a housekeeping tick.
 
     (superseded — for tick 54 detail see the tick-20 log entry above)
