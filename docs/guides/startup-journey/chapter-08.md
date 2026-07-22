@@ -63,6 +63,39 @@ for Chapter 11 blockchain sync.
   needs the add-on active — trying to keep the cap table in a side
   spreadsheet defeats the Chapter 11 blockchain-sync pipeline.
 
+## Div 83A qualifying-tests checklist
+
+Mirrors the eight criteria evaluated by `web/src/lib/div83a-checker.ts`
+(Income Tax Assessment Act 1997, Subdivision 83A-B / 83A-C). *General
+information only. Not legal or tax advice. Confirm eligibility with a
+registered tax agent.*
+
+1. **ESIC-eligible start-up** — the company meets the `s83A-33` start-up
+   tests (confirm via ATO ESIC self-assessment or private ruling).
+2. **Unlisted at grant** — the company (and any holding entity) has no
+   class of shares quoted on an approved stock exchange at the grant date
+   (`s83A-33(1)(b)`).
+3. **Turnover cap** — aggregated turnover of the company group for the
+   financial year of the grant is A$50 million or less
+   (`s83A-33(1)(a)`).
+4. **Age cap** — the company was incorporated less than 10 years before
+   the grant date (`s83A-33(1)(c)`).
+5. **Grantee is an employee** — the grantee is on PAYG payroll (not a
+   contractor invoicing via ABN) of the issuing entity at the grant date
+   (`s83A-105(1)(a)`).
+6. **Strike ≥ market value** — options are issued with a strike price at
+   or above market value at grant, established under a `s960-410`
+   safe-harbour method or independent valuation (`s83A-33(4)`).
+7. **Ownership cap** — the grantee's post-grant beneficial ownership and
+   voting power in the company is 10% or less (`s83A-45(4)`).
+8. **Holding period or forfeiture risk** — the grant satisfies the
+   ≥ 3-year holding period **or** carries a real risk of forfeiture (e.g.
+   a 12-month or longer cliff) (`s83A-45(5)` / `s83A-105(6)`).
+
+Any test in the amber/red column on the Div83A checker output points at
+one of these criteria; the checker's `evidence` field names the specific
+input that failed.
+
 ## On BlockID.au's showcase workspace
 
 BlockID.au's Chapter 8 milestone `team_v1` and its ESOP scheme doc live
