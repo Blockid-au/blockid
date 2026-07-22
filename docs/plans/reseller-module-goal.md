@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.184
+version: 2026-07-23.185
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,174 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 185
+    ran_at: 2026-07-22
+    action: p10_wave5_row_179_approve_fanout_ledger_assertions_activated
+    result: |
+      Closes tick 184's frontier option (i): "fold ledger-row DB assertions
+      into wave-5 row 179 (audit-log-writes.spec.ts) to close the DB-level
+      state check for the approve fan-out (credit_balances.balance ===
+      balanceBefore + amount, credit_transactions.metadata->>reseller_
+      request_id === requestId, reseller_credit_grants.kind === 'grant' +
+      over_budget === true)". Landed a new describe block in
+      web/tests/e2e/reseller/audit-log-writes.spec.ts as the DB-state
+      companion to the row 175 approve(over_budget_approval) wire-envelope
+      block in admin-requests-patch-authz.spec.ts:544 — same fixture
+      (loadTempReseller('active_wholesale') + attachApproveTarget()), same
+      PATCH transition, distinct probe string
+      ("p10_wave5_row_179_ledger_probe") to keep leaked cleanups
+      disambiguable in the pending-inbox scan.
+
+      Files:
+        - web/tests/e2e/reseller/audit-log-writes.spec.ts (extended imports
+          to pull loadAdminHarness + adminHarnessSkipReason +
+          AttachApproveTargetResult from ../fixtures/reseller; added
+          REQUESTS_LIST_ROUTE constant; appended
+          test.describe("Reseller audit-log writes — P10 wave-5 row 179
+          approve fan-out ledger assertions") — beforeAll loads the
+          active_wholesale fixture and calls attachApproveTarget({
+          reason:"p10_wave5_row_179_ledger_probe" }) inside a
+          try/catch that captures fixtureError + attachError separately;
+          afterAll runs fixture.cleanup() inside try/catch that bubbles
+          any restore failure so a leaked row does not silently poison the
+          next spec worker. Single test PATCHes {action:"approve",
+          decision_reason:"p10_wave5_row_179_ledger_probe"} against the
+          fixture's requestId, asserts 200, then reads three tables via
+          loadSupabaseAdmin() to check the fan-out state:
+            (a) credit_balances.balance === (balanceBefore ?? 0) +
+                requestedAmount AND lifetime_earned === (lifetimeEarnedBefore
+                ?? 0) + requestedAmount — catches a dropped/swapped-sign
+                UPSERT at route.ts:228-238.
+            (b) exactly one credit_transactions row filtered by
+                (user_id = target, metadata->>reseller_request_id =
+                requestId) with reason='reseller_grant_over_budget',
+                amount === requestedAmount, balance_after === new balance,
+                metadata.reseller_request_id === requestId — catches a
+                dropped INSERT, a doubled INSERT (missing idempotency), or
+                a metadata-shape drift at route.ts:246-260.
+            (c) exactly one reseller_credit_grants row filtered by the
+                same metadata path with kind='grant', over_budget=true,
+                amount === requestedAmount, credit_transaction_id ===
+                (b).id — catches a dropped mirror INSERT (which the row 175
+                approve block's response envelope would NOT catch because
+                linked_credit_transaction_id points at the row 2 row, not
+                the row 3 mirror), a wrong kind (schema drift), or a
+                dropped over_budget=true (breaks monthly budget rollup).
+          Skip discipline: describe-scope on adminHarnessSkipReason();
+          test-scope on fixtureError / !fixture / attachError / !attach /
+          !supabase / loginAs throw — six skip points mirroring the row
+          175 approve block's discipline but adding the supabase gate
+          because this block requires DB service-role reads that the row
+          175 block does not.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.184 → 2026-07-23.185; this review_history entry
+          prepended).
+
+      Design fidelity:
+        - No new fixture helper needed — attachApproveTarget()
+          (fixtures/reseller.ts:1030) already returns balanceBefore +
+          lifetimeEarnedBefore + requestedAmount + targetUserId +
+          requestId, which is exactly what the ledger assertions need.
+          The reason override lets this block use a distinct probe
+          string without duplicating the helper.
+        - Parallelism-safe against the row 175 approve block: each
+          attachApproveTarget() call mints a fresh gen_random_uuid()
+          requestId, and every assertion filters on
+          metadata->>reseller_request_id = attach.requestId. Two workers
+          firing simultaneously write to different rows and cannot
+          collide. The credit_balances snapshot-restore closure in
+          fixture.cleanup() uses the same target_user_id though; if the
+          row 175 and row 179 blocks landed on the same
+          attributed_founder concurrently, the second cleanup would race
+          the first's UPSERT-back-to-snapshot. In practice Playwright
+          serializes describe blocks within a single spec file, and the
+          row 175 block lives in a different spec file (admin-requests-
+          patch-authz.spec.ts), so the race window only opens when
+          Playwright runs the two spec files in parallel workers — which
+          is safe under the current single-worker default (playwright.
+          config.ts:workers=1). A future workers>1 flip would need the
+          fixture to key snapshots on (targetUserId, requestId) instead
+          of targetUserId alone.
+        - No side-effect assertions on reseller_audit_log for the
+          approve transition — the admin PATCH route at
+          web/src/app/api/admin/resellers/requests/[id]/route.ts writes
+          NO reseller_audit_log rows on approve/deny/cancel (grep for
+          "audit" in that file returns zero hits). The tick 184 review_
+          history note's phrase "audit-log write coverage for the
+          approve fan-out is folded into wave-5 row 179" reflected the
+          INTENT to eventually add an audit write from the PATCH route,
+          not a claim that the route currently emits one. This block
+          stays scoped to the three ledger tables that the route DOES
+          write; a follow-up tick that adds a
+          reseller_audit_log(action='approve_request') write to the
+          route can extend this block with a fourth assertion via
+          countResellerAuditLogFor().
+        - Distinct decision_reason probe ("p10_wave5_row_179_ledger_probe"
+          vs row 175's "p10_wave5_row_175_approve_probe") means a
+          leaked-row scan on the pending inbox can point at exactly
+          which block failed to clean up. reseller_requests.
+          decision_reason is stored plaintext (0095:31), so grep-by-
+          reason on a leftover row unambiguously identifies the source
+          spec even after both cleanups have supposedly run.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0). New imports
+          resolve; the extended describe block does not shadow or
+          conflict with the two pre-existing describes in the file.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 exemptions, 0 violations —
+          unchanged (the spec is not under /api/reseller/** for R-01 and
+          is not in feature-gates.manifest.ts for R-03).
+        - `npx vitest run --reporter=default` in web/: 855/855 pass
+          across 69 test files (unchanged — no new unit suite; the
+          fixture wiring is exercised only by Playwright).
+        - No DB apply this tick — no migration authored. Assertions
+          read three pre-existing tables (0013 credit_balances +
+          credit_transactions, 0096 reseller_credit_grants); missing
+          any table surfaces as a Supabase error caught by the read
+          error assertions.
+        - Goal file version bumped 2026-07-23.184 → 2026-07-23.185.
+
+      Frontier after tick 185: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision seed
+      STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE; P10 still
+      blocked_by [P1..P9] until P8.5 clears. Wave 5 has now landed 163 +
+      164 + 165 + 166 + 167 + 168 + 169 + 170 + 171 + 172 + 173 + 174 +
+      175 (deny + cancel + approve/over_budget) + 176 + 177 + 178 + 179
+      (audit-write + ledger-fanout DB assertions) + 180 + 181 + 183 —
+      the row 179 block now covers BOTH the drawer/reveal-email audit
+      writes AND the approve fan-out ledger state, giving a single
+      spec file end-to-end DB-level coverage for the reseller privilege
+      paths. Remaining deferred wave-5 rows unchanged from tick 184:
+      175 approve(code_request) branch (Stripe test-mode key), 182
+      (Stripe test-mode key), plan §337 signup-jitter branch on row 178
+      (QA-mode signup flow). Natural next picks:
+        (i)   add reseller_audit_log(action='approve_request') write in
+              web/src/app/api/admin/resellers/requests/[id]/route.ts —
+              currently the approve/deny/cancel PATCHes emit NO audit
+              rows despite being the most sensitive admin transitions
+              (moves credits, mints coupons, closes disputes). Would
+              close a real observability gap surfaced by tick 185's
+              audit-write coverage check + let this block extend with
+              a fourth countResellerAuditLogFor() assertion.
+        (ii)  land the deny + cancel branch ledger assertions as a
+              second describe in audit-log-writes.spec.ts — should
+              assert that credit_balances / credit_transactions /
+              reseller_credit_grants remain unchanged after the deny/
+              cancel transitions, symmetric to the approve fan-out
+              coverage this tick added. Would catch a regression that
+              accidentally fired the credit-ledger triple-write on the
+              deny or cancel path.
+        (iii) row 175 approve(code_request) branch — still requires
+              stripe-test-mode key or QA-only coupon/promotion_code
+              mock harness (out of scope until P8.5 clears).
+        (iv)  row 182 — still requires stripe-test-mode key or QA-only
+              SetupIntent mock harness (out of scope until P8.5 clears).
+        (v)   plan §337 signup-jitter branch on row 178 — still
+              deferred pending a QA-mode signup flow Playwright can
+              drive.
+    commit: (this tick)
+
   - tick: 184
     ran_at: 2026-07-22
     action: p10_wave5_row_175_approve_over_budget_activated
