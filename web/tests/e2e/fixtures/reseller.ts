@@ -22,9 +22,16 @@ export interface AttributedFounderHarness {
   nonAttributedFounder: QaAccount | null;
 }
 
+export interface AttributionTimingHarness {
+  founder: QaAccount;
+  resellerCode: string;
+  resellerDisplayName: string;
+}
+
 const DEFAULT_RESELLER_EMAIL = "qa-reseller-1@blockid.au";
 const DEFAULT_ATTRIBUTED_FOUNDER_EMAIL = "qa-founder-attributed-1@blockid.au";
 const DEFAULT_UNATTRIBUTED_FOUNDER_EMAIL = "qa-founder-1@blockid.au";
+const DEFAULT_TIMING_FOUNDER_EMAIL = "qa-founder-fresh-1@blockid.au";
 
 export function loadResellerHarness(): ResellerHarness | null {
   const email = process.env.QA_RESELLER_ADMIN_EMAIL ?? DEFAULT_RESELLER_EMAIL;
@@ -89,5 +96,47 @@ export function attributedFounderSkipReason(): string {
     "qa-founder-attributed-1@blockid.au) whose app_users.attribution_reseller_id " +
     "points at that reseller. Optionally set QA_UNATTRIBUTED_FOUNDER_EMAIL for " +
     "the negative-case assertion (default qa-founder-1@blockid.au)."
+  );
+}
+
+/**
+ * Resolves the (fresh founder QA account, ?via= code, reseller display name)
+ * tuple that the attribution-timing spec needs. Distinct from
+ * loadAttributedFounderHarness() — that one models an already-attributed
+ * founder to prove the pill renders. This one models the *capture* half:
+ * a fresh account whose app_users.attribution_reseller_id starts NULL so
+ * the spec can seed a blockid_via cookie, sign in, and observe that the
+ * cache column flips to the reseller (P2.5 stamp-on-signup) — the follow-up
+ * assertion that reseller_attributions carries no row until createProject()
+ * fires (U.6 per-workspace attribution) needs a DB-inspection helper that
+ * does not exist yet, so those spec rows stay test.skip() with tracking
+ * comments per the tick 83 posture.
+ *
+ * Returns null when either QA_RESELLER_CODE (the ?via= code, e.g.
+ * INFOVISION20) or QA_RESELLER_DISPLAY_NAME is unset; specs test.skip()
+ * with attributionTimingSkipReason() until the human seeds the row.
+ */
+export function loadAttributionTimingHarness(): AttributionTimingHarness | null {
+  const founderEmail =
+    process.env.QA_RESELLER_FRESH_FOUNDER_EMAIL ?? DEFAULT_TIMING_FOUNDER_EMAIL;
+  const resellerCode = process.env.QA_RESELLER_CODE;
+  const resellerDisplayName = process.env.QA_RESELLER_DISPLAY_NAME;
+  if (!resellerCode || !resellerDisplayName) return null;
+  try {
+    const founder = getAccount(founderEmail);
+    return { founder, resellerCode, resellerDisplayName };
+  } catch {
+    return null;
+  }
+}
+
+export function attributionTimingSkipReason(): string {
+  return (
+    "Attribution-timing harness not provisioned — set QA_RESELLER_CODE " +
+    "(the ?via= code, e.g. INFOVISION20) + QA_RESELLER_DISPLAY_NAME " +
+    "(reseller.display_name returned by /api/reseller/me) and seed a fresh " +
+    "founder QA account whose app_users.attribution_reseller_id starts NULL, " +
+    "keyed by QA_RESELLER_FRESH_FOUNDER_EMAIL (default " +
+    "qa-founder-fresh-1@blockid.au)."
   );
 }

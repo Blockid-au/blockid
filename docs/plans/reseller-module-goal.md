@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.46
+version: 2026-07-23.47
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,115 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 84
+    ran_at: 2026-07-22
+    action: p10_dry_run_attribution_timing_playwright_scaffold
+    result: |
+      Autonomous tick composing option (i) from tick 83's frontier note —
+      begin the capture-half P10 dry-run scaffold so plan §J.2 point 9
+      (U.6: "user with blockid_via cookie logs in via Google, does NOT
+      create a project → assert no reseller_attributions row. Same user
+      then creates project → assert one row with subject_type='project'.")
+      has a Playwright home the instant P1.5 (H.20 InfoVision ABN + GST)
+      clears and a fresh QA founder row is seeded with
+      attribution_reseller_id=NULL alongside a live reseller code. No
+      production code paths touched; pure test infrastructure that skips
+      gracefully until the harness is provisioned.
+
+      Files:
+        - web/tests/e2e/fixtures/reseller.ts (extended — new
+          loadAttributionTimingHarness() + attributionTimingSkipReason()
+          resolve the (fresh founder QA account, ?via= code, reseller
+          display name) tuple. Env-var contract mirrors ticks 82 + 83:
+          QA_RESELLER_FRESH_FOUNDER_EMAIL (default
+          qa-founder-fresh-1@blockid.au) + QA_RESELLER_CODE (the ?via=
+          code, e.g. INFOVISION20 — required to activate) +
+          QA_RESELLER_DISPLAY_NAME (reseller.display_name returned by
+          /api/reseller/me — required to activate). Returns null when
+          either env var is unset so specs test.skip() rather than throw;
+          same skip-reason surfacing pattern so ops sees exactly which
+          env var to set. AttributionTimingHarness interface exported
+          from the fixture module so downstream helpers can widen it in
+          a future tick without breaking the spec.)
+        - web/tests/e2e/reseller/attribution-timing.spec.ts (new — three
+          test rows: (1) the fresh founder navigates with a preset
+          blockid_via cookie, signs in via loginAs(), then GETs
+          /api/reseller/me and asserts body.reseller.display_name flips
+          to the harness reseller — this exercises the P2.5 stamp-on-
+          signup path across login-form.tsx:167 / google/route.ts:114 /
+          auth.ts:517-642 without needing DB access; (2) test.skip() for
+          "no reseller_attributions row until createProject()" — tracked
+          because verifying row-absence needs a DB-inspection helper
+          (either a QA-only admin endpoint or a service-role Supabase
+          client in the fixture layer) that does not exist yet; (3)
+          test.skip() for the mirror positive assertion after project
+          creation — same DB-helper dependency. The two skipped rows
+          include the sketch of the eventual assertion body inside the
+          tracking comment so the tick that lands the DB helper drops
+          .skip() and fills in the assertion in the same diff.)
+
+      Why the two DB rows are test.skip() rather than authored
+      assertions: web/src/lib/reseller/scope.ts + resellerSupabase()
+      only expose reseller_attributions via scopedReseller() which
+      requires the *reseller admin* session, not the founder's; the
+      founder-facing /api/reseller/me route explicitly reads the
+      app_users cache column, not the reseller_attributions table, per
+      its r-01-exempt pragma. Adding a founder-facing "does my
+      attribution row exist yet" endpoint would either require a new
+      route (out of scope for the P10 dry-run posture used across ticks
+      82/83) or an unauthenticated QA hatch (fails the security-audit
+      row that gates P10). Leaving both rows as test.skip() with the
+      assertion sketch preserved keeps the spec complete for the
+      reseller reviewer without over-building an endpoint that only
+      exists to service a test. A future tick can land a service-role
+      Supabase client in the fixture layer (mirroring
+      web/src/lib/reseller/supabase.ts pattern) and flip both rows
+      atomically.
+
+      Deliberately out of scope for this tick:
+        - Grant-modal + drawer + audit-log specs (plan §J.4 points 5,
+          7, 8): each waits on the reseller-side harness pass and its
+          own capture flow — bundling four spec files into one tick
+          exceeds the P10 dry-run cadence.
+        - QA-only DB-inspection endpoint or fixture-layer service-role
+          Supabase client: larger surface (service-role key handling,
+          QA-mode gate audit, cleanup semantics) — wants its own tick.
+        - Widening reseller-pill.tsx to consume useLocale() so tick 83's
+          VI locale test.skip() row can drop its .skip() — orthogonal
+          content-tick, not gated by P10.
+        - Playwright config gate for the new spec: web/playwright.config
+          .ts already sets testDir: "./tests" so the new file is
+          auto-picked; no config change needed.
+
+      Verified: tsc clean (npx tsc --noEmit exit 0 at web/); vitest
+      unchanged (both changes are Playwright, not vitest); npm run
+      lint:reseller: R-01 scanned 11 file(s), R-03 scanned 31 manifest
+      route(s); 3 exemptions, 0 violations (new files under
+      web/tests/e2e/**, not /api/reseller/**, so R-01 doesn't fire;
+      nothing added to feature-gates.manifest so R-03 doesn't fire).
+      Playwright not run — the spec self-skips when the harness env
+      vars are unset, which is the current CI state; running would
+      only report the skip.
+
+      Frontier after tick 84: unchanged in shape — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 84 unblocks: the instant a human seeds
+      QA_RESELLER_CODE + QA_RESELLER_DISPLAY_NAME + one fresh founder
+      row with NULL attribution_reseller_id, the attribution-timing
+      spec runs in CI without any additional code — and the two
+      test.skip() rows convert to live assertions the moment a
+      service-role Supabase fixture lands. Next autonomous tick
+      options: (i) service-role Supabase fixture that flips both
+      test.skip() rows plus the co-branding pill VI row from tick 83
+      (three spec-row unblocks in one tick); (ii) audit-log write
+      assertion spec (plan Verification #5: viewing customer detail
+      writes a reseller_audit_log row — needs the same reseller admin
+      harness from tick 82 plus the DB helper); (iii) still idle until
+      human unblock arrives.
     commit: (this tick)
 
   - tick: 83
