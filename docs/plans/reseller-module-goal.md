@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.119
+version: 2026-07-23.120
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,121 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 120
+    ran_at: 2026-07-22
+    action: p10_dry_run_billing_save_default_payment_method_validation_playwright_spec
+    result: |
+      Closed the last remaining post-scope input-validation coverage gap
+      under /api/reseller/billing/**. Track A P0.2 § U.4 covers reseller
+      billing (Stripe SetupIntent mint + default-PM persistence).
+      billing-authz.spec.ts already probes the pre-scope auth chain for
+      BOTH billing routes (unauthenticated → 401 Authentication required,
+      non_reseller_admin → 402 feature_locked / reseller.console) and
+      explicitly deferred the post-scope invalid_json (400) branch to a
+      spec run behind QA_RESELLER_ADMIN_EMAIL because request.json()
+      sits BEHIND gateRequireFeature + scopedReseller + canProvisionSandbox
+      and therefore needs a real reseller-admin session to surface. This
+      tick lands that sibling twin of reveal-email-validation (tick 117) /
+      drawer-validation (tick 118) / reports-signed-url-validation
+      (tick 119) — the single post-scope validator on
+      save-default-payment-method that is safe to exercise without
+      touching Stripe state, updating invoice_settings.default_payment_method,
+      persisting resellers.stripe_default_payment_method_id, or writing a
+      reseller_audit_log(save_default_payment_method) row.
+
+      Files:
+        - web/tests/e2e/reseller/billing-validation.spec.ts (new — one row
+          probing the route's request.json() catch BEFORE
+          isStripeConfigured/getSupabaseAdmin, db.selfReseller(),
+          saveResellerDefaultPaymentMethod(), or db.auditLog fire:
+          (1) invalid_json — POST
+              /api/reseller/billing/save-default-payment-method with a
+              raw non-JSON payload ("not-json-{") and content-type:
+              application/json → 400
+              { ok:false, reason:"invalid_json" } at
+              save-default-payment-method/route.ts:68-76 in the
+              request.json() try/catch. Body shape mirrors the
+              credit-grant-validation invalid_body row (raw non-JSON
+              string with content-type text/plain would work equally
+              well; sticking with application/json keeps the header
+              minimal and matches the real-world regression shape where
+              a client sends the correct content-type but garbled JSON).
+          Row runs behind loadResellerHarness() + loginAs so
+          scopedReseller passes and the request.json() catch is
+          actually the gate that fires; without the harness the spec
+          test.skip()s with harnessSkipReason().
+
+      Why the sibling /api/reseller/billing/setup-intent route gets no
+      validation spec: setup-intent accepts no request body and has zero
+      post-scope validators — once gateRequireFeature + scopedReseller +
+      canProvisionSandbox + isStripeConfigured + selfReseller() all pass,
+      the very next call is ensureResellerStripeCustomer which either
+      mints or retrieves a real Stripe Customer against staging. No
+      pre-side-effect branch under the QA harness is probe-able, so the
+      pre-scope authz pair in billing-authz.spec.ts (unauthenticated +
+      non_reseller_admin) is the complete E2E coverage for that route
+      until the temp-reseller mint fixture happy-path posture lands.
+      This asymmetry mirrors the reveal-email → reveal-email-validation
+      split (route has post-scope validators) vs. me → me-attribution
+      (no post-scope validators, single spec file).
+
+      Why this shape is the twin of reports-signed-url-validation
+      (tick 119) / drawer-validation (tick 118) / reveal-email-validation
+      (tick 117): all four specs share the same structure — pre-scope
+      authz is covered by a separate *-authz spec that runs harness-free,
+      and the single post-scope validation branch surfaces only after
+      loginAs(harness.admin.email) so the scopedReseller chokepoint
+      passes and the endpoint's own validator is the branch under test.
+      billing-validation differs from the customer-scoped drawer/
+      reveal-email pair in one dimension only — the pre-side-effect
+      validator is a request.json() catch (invalid_json) rather than a
+      decideReveal(uuid + allowedCustomerIds) chokepoint, and the
+      response envelope carries reason: "invalid_json" rather than
+      reason: "invalid_id"|"not_in_scope". Both routes share the
+      { ok:false, reason:<string> } envelope shape (scopedReseller-
+      gated routes, not gateRequireFeature-gated routes).
+
+      Why the not_configured (503) / reseller_missing (404) / Stripe 400
+      (setup_intent_not_found / mismatched_customer / retrieval_failure)
+      / audit_failed (500) branches aren't covered: same reasoning as
+      ticks 100-119 — 503 needs STRIPE_SECRET_KEY/SUPABASE_URL unset
+      which would break every other Playwright spec in the same worker;
+      the four Stripe-400/404/500 rows need per-test tampering with
+      Stripe SetupIntent state, the reseller_admins/resellers pair, or
+      the reseller_audit_log INSERT which plan §J.2 forbids. The happy
+      path (200 with stripe_customer_id + payment_method_id +
+      setup_intent_id) mints a real Stripe SetupIntent against the
+      harness reseller — belongs to the temp-reseller mint fixture
+      follow-up alongside every other deferred happy-path row from
+      ticks 94..119.
+
+      Verified: tsc clean (npx tsc --noEmit exit=0); npm run
+      lint:reseller: R-01 scanned 11 file(s), R-03 scanned 31 manifest
+      route(s), 3 exemptions, 0 violations (the spec lives under
+      web/tests/e2e/reseller/ not /api/reseller/**, so R-01 doesn't
+      fire; it's not a mutation route in feature-gates.manifest.ts so
+      R-03 doesn't fire). Playwright not run this tick — row will
+      execute on the next CI Playwright pass alongside the thirty-one
+      other reseller-lens dry-run specs.
+
+      Frontier after tick 120: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 120 unblocks: the last post-scope validation
+      chokepoint under /api/reseller/billing/** now has symmetric
+      coverage matching reveal-email / drawer / reports-signed-url /
+      credit-grant / requests / create-startup validation patterns.
+      Thirty-two spec files now sit in web/tests/e2e/reseller/. Next
+      autonomous tick options: (i) landing the QA-mode temp-reseller
+      mint fixture that opens up all the deferred HAPPY-PATH branches
+      from ticks 94..120 at once (larger tick, wants a design pass);
+      (ii) sandbox-setup / showcase-reviews / admin-resellers-*
+      post-scope validation twin if any of those routes have
+      post-scope branches beyond auth that plan §J.2 permits;
+      (iii) idle until human unblock arrives on P8.5 or P1.5.
     commit: (this tick)
 
   - tick: 119
