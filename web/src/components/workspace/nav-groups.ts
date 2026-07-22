@@ -20,6 +20,7 @@ import {
   Target, TrendingUp, User, Users, Wand2, Wallet, Zap,
   ClipboardList, Eye, Layers, Settings2, MessageSquare, Send, Building2,
   ClipboardCheck, FileBarChart, Handshake, LayoutDashboard, Tag, Coins, Plug,
+  Inbox,
 } from "lucide-react";
 
 import type { PlanTier, Segment } from "@/lib/segments";
@@ -187,6 +188,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/reseller/customers", label: "Customers", icon: Users, feature: "reseller.console" },
       { href: "/reseller/codes", label: "Codes", icon: Tag, feature: "reseller.console" },
       { href: "/reseller/credits", label: "Credits", icon: Coins, feature: "reseller.console" },
+      { href: "/reseller/requests", label: "Requests", icon: Inbox, feature: "reseller.console" },
       { href: "/reseller/reports", label: "Reports", icon: FileText, feature: "reseller.console" },
       { href: "/reseller/settings", label: "Settings", icon: Settings2, feature: "reseller.console" },
     ],
