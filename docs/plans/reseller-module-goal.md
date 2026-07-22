@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.126
+version: 2026-07-23.127
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,117 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 127
+    ran_at: 2026-07-22
+    action: p10_temp_reseller_mint_fixture_design_pass
+    result: |
+      Composed option (iii) from tick 126's frontier — landed the design
+      pass for the QA-mode temp-reseller mint fixture that opens up the
+      deferred HAPPY-PATH branches from ticks 94..126 at once. Options (i)
+      and (ii) from tick 125 were closed at tick 126 (admin-reseller GET
+      validation twin) and are permanently deferred (admin-resellers/
+      requests PATCH validation twin needs a seeded reseller_requests row
+      per plan §J.2) respectively; option (iv) is idle. Design pass fits
+      U.13 stage 2 (Design) for P10_hardening — writes the specification a
+      follow-up implementation tick reads to ship all five artefacts in
+      one pass without further discovery.
+
+      Files:
+        - docs/plans/p10-temp-reseller-mint-fixture-design.md (new — ~350
+          line design doc capturing: (a) plan §J.2 constraints the fixture
+          must satisfy (no per-test row seeding, no harness-driven DB
+          tampering, no production data mutation); (b) per-route deferred-
+          row inventory across the eleven reseller/admin endpoints ticks
+          92..126 dry-ran the safe half of, with fixture requirements per
+          row and totals (~50 deferred rows total, grouped by
+          create-startup 7 / credits-grant 4 / sandbox-setup 3 / reveal-
+          email 2 / drawer 2 / reports-signed-url 3 / requests POST 4 +
+          GET 1 / admin-resellers-detail GET+PATCH+DELETE 14 /
+          admin-resellers POST 2 / admin-requests PATCH 6 / showcase-
+          reviews 2 / attribution-timing 2); (c) the seven-variant matrix
+          (active_wholesale, active_retail, paused, terminated,
+          no_capability, tier_only_zero, no_budget) covering every
+          decideCreateStartup / decideGrant / canProvisionSandbox reason
+          branch, each row prefixed QA-PROBE-* to guarantee normalise-safe
+          isolation from INFOVISION and ACCEL_* codes; (d) file-by-file
+          artefact list — five new scripts + one Playwright fixture
+          extension: web/scripts/seed-qa-reseller.mjs (variant mint +
+          idempotent ON CONFLICT), web/scripts/seed-qa-reseller-requests.
+          mjs (per-run reseller_requests rows keyed by qa_run_id for
+          mutation-heavy specs), web/scripts/seed-qa-reseller-storage.mjs
+          (private bucket seed for signed-URL happy path), web/scripts/
+          seed-test-users.mjs delta (qa-reseller-1 → reseller_admin
+          mirror + qa-founder-attributed-1 → app_users.attribution_reseller
+          _id stamp), web/tests/e2e/fixtures/reseller.ts extension
+          (loadTempReseller() reader + TempResellerFixture + ResellerVariant
+          type union); (e) env-var contract (QA_TEMP_RESELLER_ENABLED,
+          QA_RESELLER_ADMIN_EMAIL, QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL,
+          etc.) mirroring the tick 122 QA_ADMIN_EMAIL pattern; (f) five
+          risks + open questions (Stripe test-mode dependency on P8.5,
+          parallel-worker collision posture defaulting to workers:1,
+          audit-log cleanup vs. mutation-trigger interaction, RLS bypass
+          via service-role client, P1.5 independence).
+        - docs/plans/reseller-module-goal.md (+ tick 127 entry, version
+          bumped 2026-07-23.126 → 2026-07-23.127)
+
+      What this document is explicitly NOT: (a) NOT a plan-delta — nothing
+      here alters docs/plans/reseller-module-plan.md or the module goal
+      file's phase status; P10_hardening remains blocked_by [P1..P9] until
+      P8.5 clears. (b) NOT an implementation — no .mjs / .ts / .sql /
+      .spec.ts files land with this document beyond the design doc itself.
+      (c) NOT a schema change — all fixture tables already exist per
+      migrations 0091 / 0093 / 0094 / 0095 / 0096 / 0097 / 0100.
+
+      Why a design pass instead of the implementation itself: the plan §J.2
+      constraint set is complex enough (no per-test seeding + no shared
+      row mutation + no worker-collision + audit-trigger interaction + RLS
+      bypass posture + P1.5 independence) that shipping the fixture as one
+      atomic tick without prior alignment would either (a) miss a variant
+      (leaving deferred rows still deferred) or (b) collide with a real
+      reseller code / audit trigger / RLS check discovered at implementation
+      time. The design doc's variant matrix + risk list surface the trade-
+      offs to the human review layer before code lands, matching the
+      pattern used for the P0 blocking reviews at ticks 1-2.
+
+      Deliberately out of scope for this tick:
+        - Shipping any of the five artefacts described in the design doc
+          — that is the follow-up implementation tick's scope, gated on
+          human review of the variant matrix per the design doc's "Next
+          steps" section (item 1).
+        - Any change to migration files (0091 / 0093 / 0094 / 0095 / 0096
+          / 0097 / 0100) — fixture reads/writes existing schema only.
+        - Stripe test-mode integration — deferred to a follow-up tick that
+          reconciles the msw-intercept-vs-real-Stripe-test-mode decision
+          against P8.5 unblock (design doc §4 open question #1).
+        - Activating the deferred rows themselves — that is a per-route
+          activation tick sequence that fires AFTER the fixture ships,
+          not part of this design pass.
+
+      Verified: no tsc run needed (no .ts / .tsx delta this tick — pure
+      markdown doc). npm run lint:reseller unchanged (no /api/reseller/**
+      or feature-gates.manifest.ts delta so neither R-01 nor R-03 fires
+      on this tick's file set). Playwright not run — no spec delta.
+
+      Frontier after tick 127: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 127 unblocks: the temp-reseller mint fixture now has a
+      concrete design a follow-up implementation tick can execute
+      against without further discovery — the ~50 deferred HAPPY-PATH
+      rows from ticks 94..126 have a documented activation path. Design
+      doc is human-review-ready per the "Next steps" section. Next
+      autonomous tick options: (i) idle until human review of the
+      design doc lands (preferred — design decisions are cheaper to
+      revise before code ships); (ii) implement the seven-variant mint
+      script (web/scripts/seed-qa-reseller.mjs) as a stand-alone
+      artefact that ships without the Playwright fixture wiring, so
+      the human review layer has a concrete row-set to inspect before
+      the fixture consumes it; (iii) idle until human unblock arrives
+      on P8.5 or P1.5 — the fixture design is independent of both, so
+      implementation can proceed either before or after those clear.
     commit: (this tick)
 
   - tick: 126
@@ -8088,6 +8199,9 @@ next_action:
    17) DONE tick 50 — Track B B4_guide_ch_9_to_12 shipped. Chapters 9-12 (09-funding, 10-fundraise, 11-scale, 12-exit) authored EN+VI as four new entries appended to web/src/lib/guide/startup-journey.ts; ChapterSlug union extended to 12 entries; module doc-comment updated to reflect the B2+B3+B4 arc. VI is complete parity, not machine translation. Chapter 10 honours U.15.11 wording supersession — blockchain hash described as "immutable record for later verification" and explicitly NOT as legal notarisation. phaseLabel for each new chapter is a direct reference to PHASE_LABELS[9..12] from @/lib/showcase/gallery so /guide, /workspace/guide, /guide/reports and /showcase/blockid share one canonical phase-label taxonomy. Both surface routes SSG the four new slugs automatically via generateStaticParams reading allChapterSlugs() — zero route-file edits required. "Chapter 9 unlocks with B4" placeholder text flipped on both surfaces to arc-complete wording (marketing: "You've reached the final chapter. After exit, open a new workspace at Chapter 1 or move into the reseller/accelerator role."; workspace: "Final chapter. After exit: new workspace or reseller role."; VI parity on both). Test suite: EXPECTED_SLUGS bumped to 12, order + phase arrays extended to [1..12], allChapterSlugs assertion updated, unknown-slug case bumped to "13-post-exit", last-slot adjacent assertion flipped to 12-exit ↔ 11-scale, plus a new boundary assertion for the B3/B4 stitch (08-team ↔ 09-funding) so future reorderings can't silently break the chain. Docs mirror at docs/guides/startup-journey/chapter-{09..12}.md ships EN copy for offline reading + contributor PRs (header comment states runtime pages read the TS module — .md files are documentation-only). Verified: 10/10 pass in startup-journey.test.ts (was 9/9); 65/65 combined guide+showcase (was 64/64); tsc clean; npm run lint:reseller unchanged 8 files / 3 exemptions / 0 violations. Chapters 9-12 copy references B4-scoped integrations from plan §299 by name (investor NDA workflow, term-sheet AI review UI, blockchain sync activation, LP-report bundling) but the actual UI wiring for those integrations is a follow-up tick — matches the B2/B3 precedent where chapter copy referenced integrations before the capture UI shipped. Frontier after tick 50: (a) Track A HUMAN-BLOCKED on P8.5 Stripe env vars. (b) Track B B9_reviews_surface (deps: B4 now done) unblocked — the showcase_reviews table + Phase-9 investor-review capture surface; migration 0100 slot already reserved. (c) B7 product tour + B8 reseller linkage remain unblocked from earlier ticks. (d) P0.3 advisory reviews still pending. (e) P1.5 InfoVision seed still HUMAN-BLOCKED on H.20. The 12-chapter content-authoring arc is now closed.
   authorised: true
   on_success: |
+    Frontier after tick 127: shape unchanged — Track A P8.5 STILL HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears. What tick 127 unblocks: the QA-mode temp-reseller mint fixture that would activate the ~50 deferred HAPPY-PATH rows from ticks 94..126 now has a concrete design spec at docs/plans/p10-temp-reseller-mint-fixture-design.md — a follow-up implementation tick can ship all five artefacts (seed-qa-reseller.mjs + seed-qa-reseller-requests.mjs + seed-qa-reseller-storage.mjs + seed-test-users.mjs delta + web/tests/e2e/fixtures/reseller.ts extension) against a documented seven-variant matrix without further discovery. Thirty-eight Playwright spec files still sit in web/tests/e2e/reseller/. Next autonomous tick options: (i) idle until human review of the design doc lands (preferred — design decisions are cheaper to revise before code ships); (ii) implement the seven-variant mint script (web/scripts/seed-qa-reseller.mjs) as a stand-alone artefact that ships without the Playwright fixture wiring, so the human review layer has a concrete row-set to inspect before the fixture consumes it; (iii) idle until human unblock arrives on P8.5 or P1.5 — the fixture design is independent of both, so implementation can proceed either before or after those clear.
+
+    (superseded — for tick 125 detail see the tick-125 log entry above)
     Frontier after tick 125: shape unchanged — Track A P8.5 STILL HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears. What tick 125 unblocks: DELETE /api/admin/resellers/[code] pre-write validators (code_required + not_found) now have Playwright regression coverage matching admin-reseller-patch-validation.spec.ts (tick 123). Thirty-seven spec files now sit in web/tests/e2e/reseller/. Next autonomous tick options: (i) admin-resellers GET validation twin (2 rows: code_required + not_found — the same route file's remaining verb whose pre-load validators have no Playwright coverage); (ii) admin-resellers/requests PATCH validation twin (needs seeded reseller_requests row — deferred to temp-reseller mint fixture); (iii) landing the QA-mode temp-reseller mint fixture that opens up all the deferred HAPPY-PATH branches from ticks 94..125 at once (larger tick, wants a design pass); (iv) idle until human unblock arrives on P8.5 or P1.5.
 
     (superseded — for tick 116 detail see the tick-116 log entry above)
