@@ -2561,6 +2561,126 @@ review_history:
       tick per CDO rec #2).
     commit: (this tick)
 
+  - tick: 121
+    ran_at: 2026-07-22
+    action: p10_dry_run_showcase_reviews_get_validation_playwright_spec
+    result: |
+      Composed option (ii) from tick 120's frontier note — "sandbox-setup /
+      showcase-reviews / admin-resellers-* post-scope validation twin if any
+      of those routes have post-scope branches beyond auth that plan §J.2
+      permits." showcase-reviews GET fits: two clean post-auth validators
+      (projectId_required + not_found) surface BEFORE the projects owner-
+      check side effects, BEFORE getSupabaseAdmin returns a client that
+      touches storage, and BEFORE the showcase_reviews SELECT fires — safe
+      to exercise from Playwright against staging without seeding
+      showcase_reviews or projects rows.
+
+      sandbox-setup was considered and rejected — its post-scope validators
+      (insufficient_role 403 / reseller_missing 404) require either a
+      role='viewer' harness account or per-test seeding of an inconsistent
+      reseller_admins-without-resellers state, both of which plan §J.2
+      forbids. showcase-reviews-authz.spec.ts (tick 102) already probes the
+      four POST harness-free validators (invalid_json / missing_token /
+      invalid_rating / invalid_token) and the GET unauthenticated (401)
+      branch; that spec's header explicitly deferred the GET projectId_required
+      + not_found rows to a spec run behind the QA harness — this tick lands
+      that sibling.
+
+      Files:
+        - web/tests/e2e/reseller/showcase-reviews-validation.spec.ts (new —
+          two rows probing the route's post-auth validators BEFORE the
+          projects SELECT owner check side effects fire, both exercised
+          behind the QA_RESELLER_ADMIN_EMAIL harness so the getCurrentUser
+          call resolves to a real session:
+          (1) projectId_required — GET /api/showcase-reviews with no
+              ?projectId query param → 400 { ok:false, error:"projectId
+              required" } at route.ts:112-116 in the !projectId guard.
+              Fires post-getCurrentUser but pre-getSupabaseAdmin, so no
+              Storage client is minted, no projects SELECT is issued, no
+              showcase_reviews SELECT is issued.
+          (2) not_found — GET /api/showcase-reviews?projectId=<random-uuid>
+              with a well-formed UUID that resolves to no projects row → 404
+              { ok:false, error:"Not found" } at route.ts:123-130 in the
+              projects SELECT + owner-check guard. Fires the projects SELECT
+              but returns before the showcase_reviews SELECT — no reviewer
+              data leaves the boundary. NOT_FOUND_PROJECT_ID uses the
+              "00000000-0000-4000-8000-000000000002" sentinel (0002 to
+              distinguish from the reveal-email/drawer OUT_OF_SCOPE_UUID
+              which ends in 0001), astronomically unlikely to collide with
+              a live projects row.
+          Both rows use loadResellerHarness() + loginAs(harness.admin.email)
+          so getCurrentUser resolves; the route is not reseller-scoped, so
+          any authenticated QA account would work, but reusing the reseller
+          harness keeps the harness-provisioning surface identical to
+          reveal-email-validation / drawer-validation / reports-signed-url-
+          validation / billing-validation (five specs light up on a single
+          env-var flip). Without the harness the spec test.skip()s with
+          harnessSkipReason().
+
+      Why this shape matches the ticks 117-120 pattern: same structural
+      shape — pre-auth authz is covered by a separate *-authz spec that
+      runs harness-free, and the post-auth validation branches surface
+      only after loginAs(harness.admin.email) so getCurrentUser passes
+      and the endpoint's own validators are the gates under test. Differs
+      from the reseller-lens specs in one dimension only — showcase-reviews
+      uses getCurrentUser + projects.user_id owner-check rather than
+      scopedReseller + decideReveal, and the response envelope carries
+      `error` string field rather than `reason` string field
+      (showcase-reviews predates the reseller-lens { ok:false, reason:<code>
+      } convention that was introduced at tick 21 with P4.1).
+
+      Why the read_failed (500) / happy path (200) / POST reviewer-flow
+      seeded rows aren't covered: same reasoning as ticks 100-120 — 500
+      needs per-test tampering with a real showcase_reviews SELECT to
+      induce a Storage error which plan §J.2 forbids; the happy path
+      needs a projects row owned by the harness admin plus optionally
+      seeded showcase_reviews rows so the joined SELECT returns
+      realistic data; the reviewer-flow rows beyond the four already-
+      covered pre-write validators (expired_token 403 / missing_investor_email
+      400 / data_room_not_linked 409 / upsert_failed 500) all need seeded
+      data_room_access_tokens + data_rooms + projects state that plan
+      §J.2 forbids. All belong to the temp-reseller mint fixture follow-up
+      alongside the deferred rows from ticks 94..120.
+
+      Deliberately out of scope for this tick:
+        - sandbox-setup validation twin (all post-scope branches need
+          role='viewer' harness or per-test seeding).
+        - admin-resellers-* validation twin (list / detail / create / patch
+          / delete — each already has an authz spec at tick 103-107 that
+          probes the unauthenticated + non-admin branches; the post-admin
+          validators live under require-admin which requires a QA admin
+          account, a separate harness dimension from the reseller-admin
+          harness this tick reuses).
+        - Any change to the four route handlers (showcase-reviews POST/GET,
+          sandbox-setup POST) — the validators fire correctly; this tick
+          adds Playwright coverage of two of them.
+
+      Verified: tsc clean (npx tsc --noEmit exit=0); npm run lint:reseller:
+      R-01 scanned 11 file(s), R-03 scanned 31 manifest route(s), 3
+      exemptions, 0 violations (the spec lives under web/tests/e2e/reseller/
+      not /api/reseller/**, so R-01 doesn't fire; it's not a mutation route
+      in feature-gates.manifest.ts so R-03 doesn't fire). Playwright not
+      run this tick — row will execute on the next CI Playwright pass
+      alongside the thirty-two other reseller-lens dry-run specs.
+
+      Frontier after tick 121: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20
+      ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears. What
+      tick 121 unblocks: showcase-reviews GET now has symmetric post-auth
+      validation coverage matching the reveal-email / drawer / reports-
+      signed-url / credit-grant / requests / create-startup / billing
+      validation patterns. Thirty-three spec files now sit in
+      web/tests/e2e/reseller/. Next autonomous tick options: (i) landing
+      the QA-mode temp-reseller mint fixture that opens up all the
+      deferred HAPPY-PATH branches from ticks 94..121 at once (larger
+      tick, wants a design pass); (ii) admin-resellers-* validation twin
+      if any of the five admin routes have post-admin validators beyond
+      auth that a QA admin harness could exercise (would need a new
+      loadAdminHarness fixture parallel to loadResellerHarness);
+      (iii) idle until human unblock arrives on P8.5 or P1.5.
+    commit: (this tick)
+
   - tick: 120
     ran_at: 2026-07-22
     action: p10_dry_run_billing_save_default_payment_method_validation_playwright_spec
