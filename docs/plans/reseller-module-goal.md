@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.164
+version: 2026-07-23.165
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,164 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 165
+    ran_at: 2026-07-22
+    action: p10_wave4_helper_attach_report_row_fixture_authored
+    result: |
+      Authored the `attachReportRow(monthKey)` fixture helper called out as
+      next-tick option (iv) by tick 164's review_history entry. This is a
+      Track A P10_hardening prep landing (Track B is complete; P8.5 + P1.5
+      remain human-blocked so the frontier stays on P10 spec-activation
+      work). No spec was activated this tick — the helper itself is the
+      prerequisite that unblocks rows 159 + 160 on the schedule in
+      docs/plans/p10-deferred-spec-activation-order.md.
+
+      Files:
+        - web/tests/e2e/fixtures/reseller.ts (new `attachReportRow` method
+          added to the `TempResellerFixture` interface + implementation
+          appended alongside `attachAttributedCustomer` inside the returned
+          object; new `AttachReportRowResult` interface exposed; module-scope
+          `REPORT_CSV_HEADER` + `REPORT_BUCKET` + `REPORT_MONTH_RE` + pure
+          `buildReportCsvFixture(resellerId, displayName, monthKey)` helper
+          inlined so the fixture blob stays shape-compatible with
+          web/scripts/seed-qa-reseller-storage.mjs without pulling that
+          .mjs file across the tsconfig include boundary).
+        - docs/plans/p10-deferred-spec-activation-order.md (annotation
+          "Wave-4 helper landed (tick 165) — `attachReportRow(monthKey)`"
+          added at the top of the schedule ahead of tick 164's row-175-
+          cancel note; covers helper contract + snapshot-restore posture +
+          idempotence semantics + rollback-on-insert-failure discipline +
+          next-tick option list including options (i)–(vii) for the two
+          rows the helper unblocks plus the pre-existing options carried
+          from tick 164).
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.164 → 2026-07-23.165; this review_history entry).
+
+      Design fidelity:
+        - Guard on `variant === "active_wholesale"`: matches the
+          `attachAttributedCustomer` posture verbatim. The seed script
+          `seed-qa-reseller-storage.mjs` only mints storage rows for the
+          `QAPROBEWHOLESALEACTIVE` reseller (fixture invariant enforced by
+          the QAPROBE% prefix check in that seeder), so guarding here
+          prevents a caller with the wrong variant from silently minting
+          a row against a paused/terminated/no-capability reseller that
+          the seeder never touches. The helper returns null (rather than
+          throwing) so a spec that iterates variants can `test.skip` in
+          the same shape as `attachAttributedCustomer` callers.
+        - Guard on `REPORT_MONTH_RE.test(monthKey)`: mirrors the route's
+          own MONTH_RE at web/src/app/api/reseller/reports/[month]/signed-
+          url/route.ts:27 AND the CHECK constraint
+          `ck_reseller_report_files_month_key` at
+          web/supabase/migrations/0097_reseller_report_files.sql:31-33 so
+          a caller with a malformed month string ("2026-13", "2026/07",
+          etc.) bails BEFORE the insert can fire and violate the CHECK.
+          Returning null (rather than throwing) matches the variant-mismatch
+          discipline so a spec's `test.skip(!attach, ...)` call catches
+          both mismatches the same way.
+        - Snapshot-then-restore vs upsert-then-cleanup-unconditional:
+          chose snapshot-then-restore because seed-qa-reseller-storage.mjs
+          may have already run for the current month against the same
+          reseller. If the helper unconditionally inserted + deleted, the
+          first spec's cleanup would delete the seed's row — subsequent
+          Playwright workers (or subsequent CI passes that skip the
+          seeder) would surface `404 not_found` on rows 159 + 160 despite
+          the seed still being intact on disk. Snapshot-then-restore
+          returns `{created:false}` when the row pre-exists so cleanup is
+          a no-op and the seed row is preserved across worker parallelism.
+        - `created:boolean` flag: exposed on the result so a spec that
+          cares about "was this row minted by me" (e.g. an audit-log spec
+          that wants to assert 1 download_report row per attach call
+          rather than N cumulative rows) can branch on it. Row 159 will
+          typically read `expect(result.created).toBe(true)` in the local
+          dev CI where the seed script did not run, and treat `false` as
+          equivalent for the signed-URL response assertion (since the URL
+          + filename shape does not depend on who inserted the row).
+        - Rollback-on-insert-failure: after storage.upload succeeds but
+          reseller_report_files insert fails (e.g. uq_reseller_report_
+          files_scope violation from a race with the seeder mid-run), the
+          helper removes the just-uploaded object before throwing. Without
+          this, a partial mint would leak a dangling object into the
+          fixture bucket that the next `seed-qa-reseller-storage.mjs
+          --reset` would eventually sweep, but that reset runs on an
+          admin cadence — meanwhile the object counts drift on staging
+          storage metrics.
+        - CSV shape inlined vs imported: kept the CSV_HEADER + row shape
+          + fixture builder inlined in the fixture file rather than
+          importing from web/scripts/seed-qa-reseller-storage.mjs because
+          that .mjs sits outside the tsconfig include glob (matches the
+          existing MULTI_ADMIN_EMAILS + VARIANT_ENV_SLOT precedent in the
+          same file). Header duplication is 13 strings — a comment above
+          `REPORT_CSV_HEADER` calls out that both tables must be edited
+          in the same commit if monthly-report.ts ever grows a column,
+          which is the same convention already documented for
+          `MULTI_ADMIN_EMAILS`.
+        - Storage naming convention `<reseller_id>/<month_key>.csv`:
+          matches seed-qa-reseller-storage.mjs exactly + matches the
+          convention documented in web/src/lib/reseller/monthly-report.ts
+          + matches the RESET path's cleanup query (list rows by
+          reseller_id ∈ QAPROBE% then remove storage_path[]). No new
+          naming convention introduced.
+        - Interface addition posture: added to the TempResellerFixture
+          interface FIRST (top of file) then implemented in the returned
+          object at the bottom — matches how `attachAttributedCustomer`
+          + `trackProjectForCleanup` + `cleanup` are laid out. The
+          restoreClosures array (already used by
+          attachAttributedCustomer) is reused verbatim so a spec that
+          calls both attach helpers in `beforeAll` sees them cleaned up
+          in LIFO order on `afterAll`.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0, no output). The
+          new AttachReportRowResult interface + method addition type-check
+          against the existing TempResellerFixture + Supabase client
+          typings unchanged since tick 164.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 documented exemptions, 0
+          violations — unchanged from tick 164 (the fixture is not under
+          /api/reseller/** for the R-01 grep and is not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - `npx vitest run src/lib/reseller` in web/: 29 test files, 449
+          passed / 449 total — unchanged from tick 164 (the fixture sits
+          under web/tests/e2e/fixtures/** which is outside the reseller
+          vitest project's include glob so the pass count is unchanged;
+          no lib .ts touched this tick).
+        - No DB apply this tick — no migration authored. The helper
+          operates against migration 0097's existing
+          reseller_report_files table + the pre-existing reseller-reports
+          storage bucket (both landed tick 41).
+        - Goal file version bumped 2026-07-23.164 → 2026-07-23.165.
+
+      Frontier after tick 165: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision seed
+      STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE; P10 still
+      blocked_by [P1..P9] until P8.5 clears. What tick 165 unblocks: rows
+      159 + 160 in wave 4 are now activatable in future ticks — each can
+      call `await fixture.attachReportRow(monthKey)` inside beforeAll and
+      then assert the signed-URL route response. Next autonomous tick
+      options:
+        (i) activate row 159 (`reports-signed-url-authz.spec.ts` happy
+            200 with signed URL + filename + expires_at + reseller_audit_
+            log(download_report) row) — uses the new helper against the
+            current UTC month + loginAs(fixture.adminEmail);
+        (ii) activate row 160 (`reports-signed-url-validation.spec.ts`
+             happy 200 with the new helper for the current month, then
+             re-assert the existing 403 not_exposed branch on 2024-01);
+        (iii) activate row 163 (cobranding-pill × active_wholesale
+              attributed founder) — still requires the attributed-founder
+              harness seed (QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL +
+              QA_RESELLER_DISPLAY_NAME);
+        (iv) land finding-2's seed delta (edit seed-qa-reseller.mjs main
+             loop to seed attribution on no_capability + no_budget;
+             re-run seeder against staging) — unblocks rows 150 + 151;
+        (v) mint an active promo code on the paused variant to unblock
+            row 157;
+        (vi) land the approve-target seeder variant in scripts/seed-qa-
+             reseller.mjs to unblock row 175's approve branch — the last
+             remaining transition on the admin-requests-patch surface;
+        (vii) activate row 178 (attribution-timing × n/a — needs
+              loadAttributionTimingHarness fixture wired + a fresh
+              founder QA seed).
+
   - tick: 164
     ran_at: 2026-07-22
     action: p10_wave5_row_175_activate_admin_requests_patch_cancel_via_row_155b_seed
