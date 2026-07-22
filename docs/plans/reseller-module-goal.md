@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.107
+version: 2026-07-23.108
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,111 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 108
+    ran_at: 2026-07-22
+    action: p10_dry_run_admin_resellers_list_authz_playwright_spec
+    result: |
+      Composed option (i) from tick 107's frontier note — mirror-spec for GET
+      /api/admin/resellers list-side which shares the same requireAdmin() gate
+      as tick 103's admin-reseller-patch-authz.spec.ts, tick 105's
+      admin-requests-patch-authz.spec.ts, tick 106's admin-reseller-delete-authz.spec.ts,
+      and tick 107's admin-requests-list-authz.spec.ts. This closes the last
+      admin GET surface on /api/admin/resellers/** whose requireAdmin() gate
+      was not yet regression-guarded at the Playwright lens.
+
+      Files:
+        - web/tests/e2e/reseller/admin-resellers-list-authz.spec.ts (new — two
+          rows probing the auth chain before getSupabaseAdmin or the resellers
+          SELECT:
+          (1) unauthenticated (GET with no session → getCurrentUser null →
+              requireAdmin throws AdminGateError("no_user") → 401
+              { ok:false, reason:"no_user" } at route.ts:20-22 BEFORE
+              getSupabaseAdmin or the resellers SELECT),
+          (2) non_admin (loginAs(qa-founder-1@blockid.au) → GET →
+              requireAdmin throws AdminGateError("not_admin") because
+              user.role !== "admin" and user.email !== ADMIN_EMAIL → 401
+              { ok:false, reason:"not_admin" } — same 401 status as row 1,
+              different reason, so a refactor that collapses the two
+              branches to a single "unauthorised" reason lights up on the
+              next CI pass).
+          Row 1 runs unconditionally (no harness dep — just request.get
+          without loginAs). Row 2 test.skip()s with a diagnostic message
+          if /tmp/blockid-qa-accounts.txt is missing so operators without
+          the seed file get an actionable pointer rather than a hard fail.
+          The GET handler takes no query params so both harness-free rows
+          return BEFORE any URL parse fires — no path segment or search
+          string needed on either request.
+
+      Why this shape mirrors ticks 103/105/106/107: all five routes use
+      requireAdmin() from web/src/lib/reseller/require-admin.ts and all
+      five emit { ok:false, reason: AdminGateError.code } at HTTP 401 for
+      BOTH the no_user and not_admin branches. Symmetric envelope means a
+      refactor that swaps requireAdmin() for a bespoke inline check, or
+      that collapses the two 401 reasons into a single "unauthorised", or
+      that flips the status code to 403, lights up in all five specs on
+      the next `npx playwright test` run. Distinct from ticks 103/105/106/107
+      in ONE dimension only — this is the top-level resellers list SELECT
+      (returns every resellers row: code, display_name, billing_model,
+      abn, monthly_credit_budget, commission_share_pct, etc.), so a
+      regression that lets an anonymous or non-admin caller reach the
+      resellers SELECT would leak the full reseller directory including
+      commercial terms (per-reseller commission share, monthly credit
+      budget, sandbox allowance) that plan §J.2 defines as admin-only.
+
+      Why the 500/503 branches aren't covered: not_configured (503) needs
+      SUPABASE_URL/SERVICE_ROLE unset which would break every other
+      Playwright spec in the same worker. query_failed (500) needs a
+      broken resellers SELECT which requires per-test tampering plan §J.2
+      forbids. Happy path (200) reads real resellers rows (P1.5 InfoVision
+      seed still HUMAN-BLOCKED on H.20 anyway) and requires a real admin
+      session; folded into the admin QA harness follow-up alongside the
+      deferred rows from ticks 94..107.
+
+      Verified: tsc clean (npx tsc --noEmit -p tsconfig.json exit 0 at
+      web/); vitest unchanged (Playwright spec is not picked up by vitest
+      — tests/e2e/** is excluded per playwright.config.ts:testDir); npm
+      run lint:reseller: R-01 scanned 11 file(s), R-03 scanned 31
+      manifest route(s); 3 exemptions, 0 violations unchanged (spec
+      lives under web/tests/e2e/reseller/, not /api/reseller/**, so R-01
+      doesn't fire; not a mutation route in feature-gates.manifest.ts so
+      R-03 doesn't fire). Playwright not run this tick — row 1 is
+      harness-free and will execute on the next CI Playwright pass;
+      row 2 lights up as soon as the qa accounts file is present.
+
+      Frontier after tick 108: unchanged in shape — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 108 unblocks: the GET /api/admin/resellers auth-chain
+      ordering (getCurrentUser → requireAdmin → 401 no_user | not_admin
+      BEFORE getSupabaseAdmin / the resellers SELECT) is now
+      regression-guarded at the Playwright lens. Twenty spec files now
+      sit in web/tests/e2e/reseller/ (admin-requests-list-authz,
+      admin-requests-patch-authz, admin-reseller-delete-authz,
+      admin-reseller-patch-authz, admin-resellers-list-authz,
+      attribution-timing, audit-anomaly-scan, audit-log-writes,
+      billing-authz, cobranding-pill, code-validate,
+      create-startup-validation, credit-grant-validation, drawer-authz,
+      me-attribution, reports-signed-url-authz, requests-validation,
+      reveal-email-authz, sandbox-setup-authz, scope-boundary). All
+      admin-side REST surfaces under /api/admin/resellers/** gated by
+      requireAdmin() (resellers list GET, resellers [code] PATCH,
+      resellers [code] DELETE, resellers/requests list GET,
+      resellers/requests [id] PATCH) now have symmetric dry-run
+      coverage — with the sole exception of the resellers create POST
+      which the next tick can close in the same pattern (body
+      validation sits BEHIND the gate so both harness-free rows still
+      return at gate() BEFORE the invalid_body / code_required /
+      display_name_required / wholesale_requires_gst branches fire).
+      Next autonomous tick options: (i) POST /api/admin/resellers
+      create-side auth-chain (last remaining admin surface without a
+      dry-run spec — same requireAdmin() chokepoint, body validation
+      sits BEHIND the gate); (ii) landing the QA-mode temp-reseller
+      mint fixture that opens up all the deferred branches from ticks
+      94..108 at once (larger tick, wants a design pass); (iii) idle
+      until human unblock arrives.
     commit: (this tick)
 
   - tick: 107
