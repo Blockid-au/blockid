@@ -536,3 +536,5 @@
 {"ts":"2026-07-22T14:00:11.521Z","event":"github-push-master","detail":"Blockid-au: chore(release): v3.1.0 — 1 task(s) shipped (minor) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-22T14:01:46.668Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 159 — P10 wave-4 row 162 activate reseller-crons-authz HTTP method contract (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-22T14:02:02.284Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-22T13-55-01-558Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-22T14:04:13.105Z","event":"github-push-master","detail":"Blockid-au: feat(admin): full user-management dashboard + affiliate cross-view + P12 goal for loop (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-22T14:10:19.245Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 160 — P10 wave-5 row 164 activate admin-resellers-list-authz happy 200 (1 commits)","source":"github-webhook"}
