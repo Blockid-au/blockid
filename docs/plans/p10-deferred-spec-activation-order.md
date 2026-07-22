@@ -129,6 +129,28 @@ Prep cost: one tick to author the attributed-customer helper
 `app_users` upsert path in the fixture — then rows 145–149 each add
 2–3 assertions.
 
+**Wave-3 preflight landed (tick 152).** Three design-time findings recorded
+in `docs/plans/p10-wave3-preflight-finding.md` before wave-3 activation
+starts. (1) Row 150 status code inline-fixed: `capability_disabled` returns
+403 from the route (`credits/grant/route.ts:128-134`), not 402 as originally
+scheduled — table row 150 updated above (401 → 403; row 151 unchanged at
+402 because `over_budget_requires_approval` correctly returns 402). (2)
+Rows 150 + 151 still runtime-blocked on a seed + fixture delta —
+`seed-qa-reseller.mjs` only plants `reseller_attributions` on the
+`active_wholesale` variant, so `no_capability` + `no_budget` sessions land
+`403 not_in_scope` from `decideReveal` before the intended `capability_
+disabled` / `over_budget_requires_approval` branch fires. Fix: extend the
+seeder's main loop to also seed attribution on those two variants + widen
+`loadTempReseller()`'s `attributedUserId` variant gate; deferred to
+follow-up tick per U.13 sign-off cadence. (3) Row 153 struck out
+above because `sandbox-setup/route.ts` has no `sandbox_disabled` branch
+(no reseller-column capability flag consulted by the route) — row 154
+already covers the wave-3 sandbox surface with the happy 200 assertion.
+Recommend next tick activates row 154 (`sandbox-setup-authz.spec.ts` ×
+`active_wholesale` × happy 200) — that subwave sits inside the wave-3-
+`active_wholesale` cluster (152 / 154 / 155 / 156) which is
+activation-ready today without any seed/fixture delta.
+
 **Wave-2 row 149 landed (tick 151).** Closes wave 2 in full. Added a
 companion `test.describe("Reseller reveal-email — P10 wave-2 uuid_in_scope
 happy")` block to `web/tests/e2e/reseller/reveal-email-validation.spec.ts`
@@ -223,10 +245,10 @@ variant so the four capability failure modes surface distinctly.
 
 | tick | spec | variant | branch | expected |
 | --- | --- | --- | --- | --- |
-| 150 | `credit-grant-authz.spec.ts` | `no_capability` | `capability_disabled` | 402 |
+| 150 | `credit-grant-authz.spec.ts` | `no_capability` | `capability_disabled` | 403 |
 | 151 | `credit-grant-authz.spec.ts` | `no_budget` | `over_budget_requires_approval` | 402 |
 | 152 | `credit-grant-validation.spec.ts` | `active_wholesale` | happy 200 with credit_transaction_id | 200 |
-| 153 | `sandbox-setup-authz.spec.ts` | `no_capability` | `sandbox_disabled` | 402 |
+| ~~153~~ | ~~`sandbox-setup-authz.spec.ts`~~ | ~~`no_capability`~~ | ~~`sandbox_disabled`~~ | ~~402~~ |
 | 154 | `sandbox-setup-authz.spec.ts` | `active_wholesale` | happy 200 with project_id + slug | 200 |
 | 155 | `requests-authz.spec.ts` | `active_wholesale` | happy POST 200 (over_budget code_request) | 200 |
 | 156 | `requests-validation.spec.ts` | `active_wholesale` | happy GET 200 (returns pending list) | 200 |

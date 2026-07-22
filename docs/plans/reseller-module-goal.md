@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.151
+version: 2026-07-23.152
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,147 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 152
+    ran_at: 2026-07-22
+    action: p10_wave3_preflight_finding_and_schedule_doc_inline_fix
+    result: |
+      UNDERSTAND stage for row 150 of docs/plans/p10-deferred-spec-
+      activation-order.md (credit-grant-authz.spec.ts × no_capability ×
+      capability_disabled → 402) surfaced three design-time mismatches
+      that block wave-3 rows 150 / 151 / 153. Tick 152 lands one inline
+      schedule-doc fix + one findings doc; row 150 / 151 activation
+      deferred to the follow-up tick that closes the seed + fixture delta
+      (finding 2). Row 153 struck out in-place pending its follow-up
+      removal tick. Mirrors the tick 141 precedent (wave-1 preflight)
+      verbatim.
+
+      Files:
+        - docs/plans/p10-wave3-preflight-finding.md (new — records all
+          three findings):
+          Finding 1: schedule doc row 150 expected column reads 402;
+          web/src/app/api/reseller/credits/grant/route.ts:128-134 maps
+          decision.reason=capability_disabled → 403 (402 is reserved for
+          over_budget_requires_approval which row 151 correctly cites).
+          Doc was speculative; route is source of truth. Fix landed
+          inline this tick.
+          Finding 2: seed-qa-reseller.mjs:516-519 only seeds
+          reseller_attributions on the active_wholesale variant. Rows
+          150 (no_capability) + 151 (no_budget) each need
+          scopedReseller().allowedCustomerIds() to return the attributed
+          founder so decideReveal passes and decideGrant fires the
+          intended capability_disabled / over_budget_requires_approval
+          branch. Without the attribution row, decideReveal returns
+          403 not_in_scope before decideGrant runs. Recommended
+          Option A (smallest surface): extend the seeder's main loop to
+          seed attribution on no_capability + no_budget as well (guarded
+          on QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL being resolvable, same
+          as active_wholesale), then widen loadTempReseller()'s
+          `if (variant === "active_wholesale")` variant gate at
+          fixtures/reseller.ts:464 to a whitelist covering all three
+          variants. Deferred to follow-up tick under U.13 sign-off
+          cadence.
+          Finding 3: schedule doc row 153 (sandbox-setup no_capability
+          sandbox_disabled 402) references a branch that does not exist
+          in web/src/app/api/reseller/sandbox/setup/route.ts — the route
+          gates on gateRequireFeature("reseller.console") + scopedReseller
+          + canProvisionSandbox(role) only, with no consultation of
+          resellers.can_grant_credits or any sandbox-capability flag.
+          Recommended Option A (remove row 153 from the schedule):
+          row 154 (active_wholesale happy 200) already covers the
+          wave-3 sandbox surface completely; a `no_capability` probe
+          would either 200 already_existed or 200 with a fresh projects
+          row, never 402. Row 153 struck out in the schedule doc this
+          tick; in-place removal + exit-condition arithmetic update
+          deferred to the follow-up tick.
+        - docs/plans/p10-deferred-spec-activation-order.md (wave-3 table
+          row 150 status flipped 402 → 403; row 153 struck out with ~~
+          markdown; new "Wave-3 preflight landed (tick 152)" paragraph
+          inserted above the tick 151 note pointing at the finding doc
+          for the seed/fixture delta rationale and calling out that
+          rows 152 / 154 / 155 / 156 form a wave-3-active_wholesale
+          subwave that is activation-ready today without any seed/
+          fixture delta — recommending row 154 as the natural next
+          autonomous tick).
+
+      Design fidelity:
+        - All three findings are gate-order + data-shape observations
+          against shipped route code (credits/grant/route.ts:128-134 for
+          finding 1; credits/grant/route.ts:82-134 for finding 2's
+          decideReveal-precedes-decideGrant ordering; sandbox/setup/
+          route.ts:40-115 gate chain grep-verified for finding 3). No
+          speculative claims; every referenced file:line was read before
+          landing.
+        - Non-Stripe / non-GST discipline: none of the three findings
+          depend on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL (P8.5)
+          or the InfoVision ABN/GST seed (P1.5 / H.20). Wave 3 stays
+          inside the non-human-blocked cohort described in the schedule
+          doc's "Human-blocked exclusions" section.
+        - Row 150's 402 → 403 flip is a doc-only correction; no route
+          change was considered because route is the source of truth
+          for status contracts (same posture as tick 141 finding 1's
+          seed-flip rationale).
+        - Row 153 strike-out uses ~~markdown~~ rather than deletion so
+          the row-count arithmetic in the schedule doc's exit-condition
+          sentence ("When all 43 rows in waves 1–5 land as green
+          Playwright assertions in CI") stays stable pending the
+          follow-up tick that both removes the row and decrements the
+          count to 42. Preserves audit trail for a future reviewer who
+          wants to trace why the schedule shrank.
+        - Row 150 / 151 activation deferred: the failure protocol in the
+          schedule doc's § "Failure protocol" describes runtime sentinels
+          (403 no_membership, test.skip); this finding is a DESIGN-time
+          sentinel captured before either row activates so a future tick
+          does not repeat the discovery. Same posture as tick 141.
+
+      Verified:
+        - No tsc / vitest run this tick — no .ts / .tsx / .sql / .spec.ts
+          files touched. Only docs/plans/*.md edits + one new
+          docs/plans/p10-wave3-preflight-finding.md file.
+        - No DB apply this tick — documentation only. The follow-up tick
+          that closes finding 2 must (a) edit seed-qa-reseller.mjs, (b)
+          re-run the seeder against staging with
+          QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL set so no_capability +
+          no_budget resellers pick up the new reseller_attributions rows,
+          (c) edit web/tests/e2e/fixtures/reseller.ts to widen the
+          variant gate, and (d) activate rows 150 + 151 assertions. Each
+          step is a distinct tick under U.13.
+        - Grep verification: no route file references sandbox_disabled
+          (`grep -rn "sandbox_disabled" web/src/app/api/reseller/` returns
+          zero matches); confirms finding 3's claim that the branch is
+          fictional. credits/grant/route.ts:128-134 verified against the
+          exact ternary that maps capability_disabled → 403.
+        - No lint:reseller change (no /api/reseller/** files touched, no
+          feature-gates.manifest.ts entries added).
+        - Goal file version bumped 2026-07-23.151 → 2026-07-23.152.
+
+      Frontier after tick 152: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision seed
+      STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE; P10 still
+      blocked_by [P1..P9] until P8.5 clears. What tick 152 unblocks:
+      the follow-up tick can now pick row 154 (sandbox-setup
+      active_wholesale happy) as the natural next activation — it sits
+      inside the wave-3-active_wholesale subwave (152 / 154 / 155 / 156)
+      that has no seed/fixture blocker and reuses the tick 150 fixture
+      posture verbatim (loadTempReseller("active_wholesale") + fixture.
+      adminEmail loginAs + trackProjectForCleanup on the returned
+      project_id + fixture.cleanup() in afterEach). Rows 150 + 151 stay
+      test.skip() at runtime via the existing tempResellerSkipReason
+      guard until finding 2's seed + fixture delta lands (recommend two
+      separate ticks: seed delta first, fixture delta second, then
+      row 150 activation, then row 151 activation). Row 153 removal
+      lands whenever the wave-3-active_wholesale subwave is done — no
+      urgency because the strikethrough already documents the removal
+      intent. Next autonomous tick options:
+        (i) activate row 154 (sandbox-setup-authz.spec.ts ×
+            active_wholesale × happy 200 with project_id + slug) —
+            wave-3-active_wholesale subwave; no seed/fixture delta;
+            writes one projects row cleanable via existing
+            trackProjectForCleanup;
+        (ii) land finding 2's seed delta (edit seed-qa-reseller.mjs
+             main loop to seed attribution on no_capability +
+             no_budget; re-run seeder against staging) — unblocks rows
+             150 + 151 for two subsequent ticks;
+        (iii) idle until human unblock arrives on P8.5 or P1.5.
   - tick: 151
     ran_at: 2026-07-22
     action: p10_wave2_row_149_activate_reveal_email_validation_uuid_in_scope_happy
