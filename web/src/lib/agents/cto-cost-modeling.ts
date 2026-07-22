@@ -91,94 +91,100 @@ export const AU_SECURITY_BENCHMARKS = {
   sastAdoptionRate: 0.72,
   cicdQualityGateIntegration: 0.68,
   averageMaintainabilityIndex: 68,
-  staticAnalysisCoverage: 0.85,
+  staticAnalysisCoverageSaaS: 0.85,
 } as const;
 
-/** Next.js 16 Performance Constants for APAC/Australian Latency Optimization */
-export const NEXTJS_OPTIMIZATION_METRICS = {
-  bundleSizeReduction: 0.42,
-  serverComponentJsReduction: 0.40,
-  streamingTtfbImprovement: 0.60,
-  targetMaintainabilityIndex: 80,
+/** Next.js 16 & React 19 Performance Targets */
+export const NEXTJS_PERFORMANCE_TARGETS = {
+  bundleSizeReductionTarget: 0.42,
+  clientJsReductionTarget: 0.40,
+  ttfbImprovementTarget: 0.60,
+  recommendedStrategy: "Streaming SSR for APAC high-latency networks",
 } as const;
 
-/** Calculates the compliance gap between a company's current state and AU benchmarks */
-export function calculateComplianceGap(current: TechHealthScore): Record<string, number> {
+/**
+ * Calculates the security compliance gap for an Australian SME
+ * @param currentCompliance - The current compliance percentage (0-1)
+ * @param metric - The specific benchmark key from AU_SECURITY_BENCHMARKS
+ */
+export function calculateSecurityGap(
+  currentCompliance: number,
+  metric: keyof typeof AU_SECURITY_BENCHMARKS
+): number {
+  const benchmark = AU_SECURITY_BENCHMARKS[metric];
+  return Math.max(0, benchmark - currentCompliance);
+}
+
+/**
+ * Evaluates the maintainability of a codebase against AU startup benchmarks
+ * @param currentIndex - The measured maintainability index (0-100)
+ */
+export function evaluateMaintainability(currentIndex: number): "Below Average" | "Average" | "Above Average" {
+  const benchmark = AU_SECURITY_BENCHMARKS.averageMaintainabilityIndex;
+  if (currentIndex < benchmark * 0.8) return "Below Average";
+  if (currentIndex > benchmark * 1.2) return "Above Average";
+  return "Average";
+}
+
+/**
+ * Projects performance gains based on Next.js 16 migration research
+ * @param currentBundleSize - Current bundle size in KB
+ * @param currentTTFB - Current Time to First Byte in ms
+ */
+export function projectNextJsOptimization(currentBundleSize: number, currentTTFB: number) {
   return {
-    essentialEightGap: AU_SECURITY_BENCHMARKS.essentialEightSmeCompliance - current.essentialEightMaturity,
-    owaspGap: AU_SECURITY_BENCHMARKS.owaspTop10Adoption - current.owaspAdoptionRate,
-    sastGap: AU_SECURITY_BENCHMARKS.sastAdoptionRate - current.sastCoverage,
-    maintainabilityGap: AU_SECURITY_BENCHMARKS.averageMaintainabilityIndex - current.maintainabilityIndex,
+    projectedBundleSize: currentBundleSize * (1 - NEXTJS_PERFORMANCE_TARGETS.bundleSizeReductionTarget),
+    projectedTTFB: currentTTFB * (1 - NEXTJS_PERFORMANCE_TARGETS.ttfbImprovementTarget),
+    clientJsReduction: currentBundleSize * NEXTJS_PERFORMANCE_TARGETS.clientJsReductionTarget,
   };
 }
 
-/** Evaluates the infrastructure modernity score based on recent framework adoption */
-export function evaluateInfrastructureModernity(usesK8s: boolean, usesServerless: boolean, usesStreamingSSR: boolean): number {
-  let score = 0;
-  if (usesK8s) score += 40;
-  if (usesServerless) score += 30;
-  if (usesStreamingSSR) score += 30;
-  return score;
-}
-
-/** Estimates the potential performance gain for AU users adopting Next.js 16 streaming SSR */
-export function estimatePerformanceGain(currentTtfbMs: number): { estimatedTtfb: number; improvementPercent: number } {
-  const improvement = NEXTJS_OPTIMIZATION_METRICS.streamingTtfbImprovement;
-  return {
-    estimatedTtfb: currentTtfbMs * (1 - improvement),
-    improvementPercent: improvement * 100,
-  };
-}
-
-/** Calculates overall tech health score weighted by AU market benchmarks */
-export function calculateOverallTechHealth(score: TechHealthScore): number {
+/**
+ * Computes an overall Tech Health Score based on weighted research metrics
+ * @param metrics - The current health metrics of the platform
+ */
+export function calculateOverallHealthScore(metrics: Partial<TechHealthScore>): number {
   const weights = {
-    security: 0.4,
-    maintainability: 0.3,
-    modernity: 0.3,
+    securityCompliance: 0.4,
+    maintainabilityIndex: 0.3,
+    infrastructureModernity: 0.2,
+    nextJsOptimizationScore: 0.1,
   };
 
-  const securityScore = (score.essentialEightMaturity + score.owaspAdoptionRate + score.sastCoverage) / 3;
-  const maintainabilityScore = score.maintainabilityIndex / 100;
-  const modernityScore = (score.infrastructureModernity + score.nextJsOptimizationScore) / 200;
+  let totalScore = 0;
+  let weightSum = 0;
 
-  return (
-    (securityScore * weights.security) + 
-    (maintainabilityScore * weights.maintainability) + 
-    (modernityScore * weights.modernity)
-  ) * 100;
+  for (const [key, weight] of Object.entries(weights)) {
+    const value = metrics[key as keyof TechHealthScore];
+    if (typeof value === "number") {
+      totalScore += value * weight;
+      weightSum += weight;
+    }
+  }
+
+  return weightSum === 0 ? 0 : totalScore / weightSum;
 }
 
-/** Generates a budget projection based on team size and infrastructure costs */
-export function projectAnnualTechBudget(
-  monthlyInfra: TechStackCost[], 
-  devCosts: DevelopmentCost[], 
-  monthlyTools: TechItem[]
-): TechBudgetProjection {
-  const infraMonthly = monthlyInfra.reduce((acc, curr) => acc + curr.monthlyCost, 0);
-  const toolsMonthly = monthlyTools.reduce((acc, curr) => acc + curr.monthlyCost, 0);
-  
-  const totalDev12 = devCosts.reduce((acc, curr) => acc + curr.totalCost, 0);
-  const totalInfra12 = infraMonthly * 12;
-  const totalTools12 = toolsMonthly * 12;
-  const totalAI12 = toolsMonthly * 0.2 * 12; // Estimated AI overhead based on tool adoption
+/**
+ * Validates if the tech stack aligns with modern production trends (2026)
+ * @param stack - The current technology stack configuration
+ */
+export function validateStackModernity(stack: {
+  usesK8s: boolean;
+  usesServerless: boolean;
+  frontendFramework: string;
+  usesAICompanion: boolean;
+}) {
+  const scores: Record<string, number> = {
+    infra: stack.usesK8s ? 1 : 0,
+    serverless: stack.usesServerless ? 1 : 0,
+    frontend: stack.frontendFramework === "React" ? 1 : 0.5,
+    dx: stack.usesAICompanion ? 1 : 0,
+  };
 
-  const months: TechBudgetMonth[] = Array.from({ length: 12 }, (_, i) => ({
-    month: i + 1,
-    label: `Month ${i + 1}`,
-    infra: infraMonthly,
-    development: totalDev12 / 12,
-    aiModels: totalAI12 / 12,
-    tools: toolsMonthly,
-    total: infraMonthly + (totalDev12 / 12) + (totalAI12 / 12) + toolsMonthly,
-  }));
-
+  const averageModernity = Object.values(scores).reduce((a, b) => a + b, 0) / 4;
   return {
-    months,
-    totalInfra12,
-    totalDev12,
-    totalAI12,
-    totalTools12,
-    grandTotal12: totalInfra12 + totalDev12 + totalAI12 + totalTools12,
+    modernityScore: averageModernity,
+    isCompetitive: averageModernity >= 0.75,
   };
 }
