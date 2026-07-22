@@ -129,6 +129,31 @@ Prep cost: one tick to author the attributed-customer helper
 `app_users` upsert path in the fixture — then rows 145–149 each add
 2–3 assertions.
 
+**Wave-3 row 152 landed (tick 154).** Second wave-3 row landed. Added a
+companion `test.describe("Reseller credit-grant — P10 wave-3 happy path")`
+block to `web/tests/e2e/reseller/credit-grant-validation.spec.ts` that
+mirrors the wave-2 row 148/149 posture verbatim: POST as `active_wholesale`
+reseller-admin against `/api/reseller/credits/grant` with
+`{ target_user_id: fixture.attributedUserId, amount: 1, reason:
+"p10_wave3_row_152_happy_probe" }` and assert 200 with `body.ok=true` +
+`typeof body.credit_transaction_id === "string"` matching UUID shape +
+`body.over_budget === false`. Row 152 is the shortest remaining wave-3 row
+per tick 153's next-tick recommendation — no `trackProjectForCleanup`
+wiring needed because credit_transactions rows are cheap and self-scoped
+(the founder's credit_balances bump by 1 per CI run, well within
+QAPROBEWHOLESALEACTIVE's seeded monthly_credit_budget). The
+`over_budget=false` assertion pins the twin of row 151 (no_budget →
+over_budget=true / 402): when the reseller IS within budget the mirror row
+is inserted with over_budget=false per `credits/grant/route.ts:215`. Same
+attribution / adminUserId / attributionExists skip guards as row 148/149 —
+partial-seed hosts skip cleanly rather than false-fail as a code
+regression. Runaway spend surfaces as a 402 with helpful body carrying
+already_granted_this_month + remaining_budget, which is the sentinel for
+"reset the QA reseller budget on staging." Rows 155 (requests-authz happy
+POST) and 156 (requests-validation happy GET) sit next in the wave-3-
+`active_wholesale` subwave. Rows 150 + 151 remain runtime-blocked on
+finding-2's seed + fixture delta per tick 152's preflight.
+
 **Wave-3 row 154 landed (tick 153).** Opens wave 3. Added a companion
 `test.describe("Reseller sandbox-setup — P10 wave-3 happy path")` block to
 `web/tests/e2e/reseller/sandbox-setup-authz.spec.ts` that mirrors the
