@@ -669,3 +669,6 @@
 {"ts":"2026-07-22T23:10:05.254Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-22T23-05-01-773Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-22T23:14:52Z","status":"success","gates":"8/8","pid":"835179","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-22T23:20:31.173Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 220 — P10 sandbox-setup-authz.spec.ts row 154 envelope shape-pin parity with credit-grant row 152 (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-22T23:20:40.315Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-22T23-15-01-739Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-22T23:25:25Z","status":"success","gates":"8/8","pid":"870596","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-22T23:35:12.126Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 221 — P10 admin-requests-list-authz.spec.ts row 174 FK-echo shape pins (requested_by/decision_by/linked_credit_transaction_id/linked_promotion_code_id) (1 commits)","source":"github-webhook"}
