@@ -497,3 +497,5 @@
 {"ts":"2026-07-22T11:14:08.510Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 140 — P10 deferred spec activation order doc (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-22T11:14:20.347Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-22T11-10-01-327Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-22T11:22:24.451Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 141 — P10 wave-1 preflight finding + active_retail seed flip (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-22T11:22:33.810Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-22T11-15-02-036Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-22T11:30:34.659Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 142 — P10 wave-1 Option A reseller_admin bundle (1 commits)","source":"github-webhook"}
