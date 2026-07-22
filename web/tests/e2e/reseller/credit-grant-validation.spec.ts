@@ -301,6 +301,9 @@ test.describe("Reseller credit-grant — P10 wave-3 happy path", () => {
       ok: boolean;
       credit_transaction_id?: string;
       over_budget?: boolean;
+      month_key?: string;
+      remaining_budget?: number;
+      balance?: number;
       reason?: string;
     };
     expect(
@@ -313,5 +316,27 @@ test.describe("Reseller credit-grant — P10 wave-3 happy path", () => {
     // within-budget branch: reseller_credit_grants mirror row is inserted
     // with over_budget=false per route.ts:215.
     expect(body.over_budget).toBe(false);
+    // Parallel FK-echo shape pins landed tick 219 per tick 218 "natural next
+    // pick" option (a) — the sibling credit-grant-authz.spec.ts row 152
+    // (line 471-482) already pins month_key + remaining_budget + balance
+    // shape on the same envelope; this validation spec only carried the
+    // credit_transaction_id + over_budget pins prior. Pinning the remaining
+    // three fields here means a route regression that (a) dropped
+    // month_key/remaining_budget from the response echo (route.ts:250-260),
+    // (b) stringified remaining_budget from a number to a string on some
+    // NextResponse.json path, or (c) drifted balance from number → null
+    // would surface at this validation-spec happy path instead of only at
+    // the authz sibling. Shape pins only — the balance/remaining_budget
+    // VALUES depend on the founder's snapshot balance and monthly rollup so
+    // this spec pins the type shape rather than the arithmetic identity
+    // (which is the authz sibling's job — balanceBefore is captured there
+    // via a pre-POST credit_balances read that this input-validation spec
+    // deliberately does not perform per the plan §J.2 "no per-test row
+    // seeding" discipline).
+    expect(typeof body.month_key).toBe("string");
+    expect(body.month_key ?? "").toMatch(/^\d{4}-\d{2}$/);
+    expect(typeof body.remaining_budget).toBe("number");
+    expect(body.remaining_budget ?? -1).toBeGreaterThanOrEqual(0);
+    expect(typeof body.balance).toBe("number");
   });
 });
