@@ -426,6 +426,19 @@ test.describe("Reseller audit-log writes — P10 wave-5 row 179 approve fan-out 
       return;
     }
 
+    const actorId = await findUserIdByEmail(supabase, harness!.admin.email);
+    expect(
+      actorId,
+      `expected app_users row for admin ${harness!.admin.email} — reseed via scripts/seed-test-users.mjs`,
+    ).not.toBeNull();
+
+    // Capture cursor BEFORE the PATCH so the audit-row assertion (below,
+    // after the ledger triple-write assertions) filters out any pre-existing
+    // approve_request rows the same admin may have written against the same
+    // target in a previous run. reseller_audit_log is append-only per
+    // migration 0093 (mutation triggers block UPDATE/DELETE).
+    const patchSince = new Date().toISOString();
+
     const patchResp = await page.request.patch(
       `${REQUESTS_LIST_ROUTE}/${attach.requestId}`,
       {
@@ -527,5 +540,430 @@ test.describe("Reseller audit-log writes — P10 wave-5 row 179 approve fan-out 
       grantRow.credit_transaction_id,
       `reseller_credit_grants.credit_transaction_id mismatch: expected ${txRow.id} (the row 2 credit_transactions id), got ${grantRow.credit_transaction_id}`,
     ).toBe(txRow.id);
+
+    // 4. reseller_audit_log — the tick 186 non-fatal write from route.ts:338-366
+    //    emits exactly one action='approve_request' row per PATCH, keyed on
+    //    (reseller_id, actor_user_id, subject_user_id=target_user_id for
+    //    over_budget_approval). Filtering by (action, actor, subject, since)
+    //    isolates this run from any prior approve_request rows the same
+    //    admin may have written against the same target. A regression that
+    //    dropped the audit insert (e.g. broke the try/catch swallow into a
+    //    throw or moved the insert BEFORE the status flip so it fires on
+    //    every failed decode too) surfaces here as count === 0 or > 1.
+    const auditCount = await countResellerAuditLogFor(supabase, {
+      action: "approve_request",
+      actorUserId: actorId!,
+      subjectUserId: attach.targetUserId,
+      since: patchSince,
+    });
+    expect(
+      auditCount,
+      `expected exactly 1 approve_request audit row for (actor=${actorId}, subject=${attach.targetUserId}) since ${patchSince}; got ${auditCount}. Route write lives at web/src/app/api/admin/resellers/requests/[id]/route.ts:338-366 (non-fatal try/catch — a swallowed exception would show as 0).`,
+    ).toBe(1);
+  });
+});
+
+// P10 wave-5 row 179 — deny/cancel symmetric probe. The tick 186 audit
+// write in web/src/app/api/admin/resellers/requests/[id]/route.ts:338-366
+// fires on approve AND deny AND cancel (action = `${decision.status ===
+// "cancelled" ? "cancel" : decision.status === "approved" ? "approve" :
+// "deny"}_request`). This block asserts:
+//
+//   (a) the audit-write side effect is symmetric — deny + cancel each
+//       emit exactly one reseller_audit_log row keyed on the same
+//       (actor_user_id, subject_user_id) pair the approve branch uses,
+//       so the observability surface never silently drops a decision
+//       terminal from a regression like a `if decision.status ===
+//       'approved'` guard being accidentally added around the insert.
+//
+//   (b) the ledger triple-write NEVER fires on deny or cancel — a
+//       regression that folded a stray credit_balances UPSERT into the
+//       terminal handler (e.g. moved the UPSERT above the
+//       `if (decision.status === "approved" && current.request_type ===
+//       "over_budget_approval")` guard) surfaces here as unexpected
+//       credit_transactions / reseller_credit_grants rows keyed by
+//       reseller_request_id, or as a mutated credit_balances snapshot.
+//
+// Fixture: attachApproveTarget() minted an over_budget_approval pending
+// request whose payload.target_user_id is set. The route stamps
+// subject_user_id from that payload on the audit row for over_budget_
+// approval terminals regardless of decision.status, so the deny/cancel
+// blocks reuse the same subject-user filter path the approve block uses.
+// Each block mints a fresh gen_random_uuid() requestId + distinct probe
+// reason ("p10_wave5_row_179_{deny,cancel}_probe") so a leaked cleanup
+// row surfaces unambiguously on the pending-inbox scan; the balance
+// snapshot restore in fixture.cleanup() is a no-op in the deny/cancel
+// case (nothing to restore) but the request-row + audit-row deletes are
+// still needed. Note: reseller_audit_log has DELETE-blocking mutation
+// triggers per 0093, so leaked audit rows accumulate append-only — the
+// `since` cursor in every count query keeps that accumulation from
+// poisoning the assertion.
+test.describe("Reseller audit-log writes — P10 wave-5 row 179 deny symmetric ledger + audit", () => {
+  const harness = loadAdminHarness();
+  test.skip(!harness, adminHarnessSkipReason());
+
+  let fixture: TempResellerFixture | null = null;
+  let fixtureError: Error | null = null;
+  let attach: AttachApproveTargetResult | null = null;
+  let attachError: Error | null = null;
+
+  test.beforeAll(async () => {
+    try {
+      fixture = await loadTempReseller("active_wholesale");
+    } catch (err) {
+      fixtureError = err as Error;
+      return;
+    }
+    if (!fixture) return;
+    try {
+      attach = await fixture.attachApproveTarget({
+        reason: "p10_wave5_row_179_deny_probe",
+      });
+    } catch (err) {
+      attachError = err as Error;
+    }
+  });
+
+  test.afterAll(async () => {
+    if (fixture) {
+      try {
+        await fixture.cleanup();
+      } catch (err) {
+        throw new Error(
+          `wave-5 row 179 deny cleanup failed — reseller_requests row keyed by reseller_request_id=${attach?.requestId ?? "<none>"} may leak into the pending inbox: ${(err as Error).message}`,
+        );
+      }
+    }
+  });
+
+  test("deny PATCH leaves credit ledger untouched AND emits exactly one deny_request audit row", async ({
+    page,
+  }) => {
+    if (fixtureError) {
+      test.skip(
+        true,
+        `loadTempReseller('active_wholesale') threw: ${fixtureError.message}. ${tempResellerSkipReason("active_wholesale")}`,
+      );
+      return;
+    }
+    if (!fixture) {
+      test.skip(true, tempResellerSkipReason("active_wholesale"));
+      return;
+    }
+    if (attachError) {
+      test.skip(
+        true,
+        `attachApproveTarget threw: ${attachError.message}. Common causes: migration 0091/0095 not applied on this host, or reseller_requests table missing.`,
+      );
+      return;
+    }
+    if (!attach) {
+      test.skip(
+        true,
+        "attachApproveTarget returned null — attributed founder or reseller-admin app_users row missing on this host. Run scripts/seed-qa-reseller.mjs + scripts/seed-test-users.mjs with QA_RESELLER_MULTI_ADMIN=1 to plant both rows.",
+      );
+      return;
+    }
+
+    const supabase = loadSupabaseAdmin();
+    if (!supabase) {
+      test.skip(true, supabaseAdminSkipReason());
+      return;
+    }
+
+    try {
+      await loginAs(page, harness!.admin.email);
+    } catch (err) {
+      test.skip(
+        true,
+        `Admin QA account not seeded: ${(err as Error).message}. Run scripts/seed-test-users.mjs to populate /tmp/blockid-qa-accounts.txt.`,
+      );
+      return;
+    }
+
+    const actorId = await findUserIdByEmail(supabase, harness!.admin.email);
+    if (!actorId) {
+      test.skip(
+        true,
+        `admin app_users row missing for ${harness!.admin.email} — seed-test-users.mjs was not run against this host`,
+      );
+      return;
+    }
+
+    const patchSince = new Date().toISOString();
+    const patchResp = await page.request.patch(
+      `${REQUESTS_LIST_ROUTE}/${attach.requestId}`,
+      {
+        data: {
+          action: "deny",
+          decision_reason: "p10_wave5_row_179_deny_probe",
+        },
+        headers: { "content-type": "application/json" },
+      },
+    );
+    expect(
+      patchResp.status(),
+      `deny returned ${patchResp.status()} — expected 200 (pure status flip). Body: ${await patchResp.text()}`,
+    ).toBe(200);
+
+    // Ledger table 1: credit_balances snapshot MUST match the pre-attach
+    // snapshot. A regression that fired the UPSERT on the deny branch
+    // would surface as balance !== balanceBefore or lifetime_earned !==
+    // lifetimeEarnedBefore. When balanceBefore is null the row must
+    // still not exist post-deny.
+    const { data: balanceRow, error: balReadErr } = await supabase
+      .from("credit_balances")
+      .select("balance, lifetime_earned")
+      .eq("user_id", attach.targetUserId)
+      .maybeSingle();
+    expect(
+      balReadErr,
+      `credit_balances read failed for target_user_id=${attach.targetUserId}: ${balReadErr?.message}`,
+    ).toBeNull();
+    if (attach.balanceBefore === null) {
+      expect(
+        balanceRow,
+        `credit_balances row for target_user_id=${attach.targetUserId} did not exist before the deny; a row now indicates the deny path incorrectly UPSERTed the balance.`,
+      ).toBeNull();
+    } else {
+      expect(
+        balanceRow,
+        `credit_balances row for target_user_id=${attach.targetUserId} vanished — cleanup ran early?`,
+      ).not.toBeNull();
+      expect(
+        Number(balanceRow!.balance),
+        `credit_balances.balance mutated on deny: expected snapshot ${attach.balanceBefore}, got ${balanceRow!.balance}. The approve-only UPSERT guard at route.ts:209 must not fire on deny.`,
+      ).toBe(attach.balanceBefore);
+      expect(
+        Number(balanceRow!.lifetime_earned),
+        `credit_balances.lifetime_earned mutated on deny: expected snapshot ${attach.lifetimeEarnedBefore}, got ${balanceRow!.lifetime_earned}`,
+      ).toBe(attach.lifetimeEarnedBefore ?? 0);
+    }
+
+    // Ledger table 2: credit_transactions — must be zero rows keyed by
+    // reseller_request_id. A regression that let the INSERT escape the
+    // approve guard surfaces here.
+    const { data: txRows, error: txReadErr } = await supabase
+      .from("credit_transactions")
+      .select("id")
+      .eq("user_id", attach.targetUserId)
+      .filter("metadata->>reseller_request_id", "eq", attach.requestId);
+    expect(
+      txReadErr,
+      `credit_transactions read failed for reseller_request_id=${attach.requestId}: ${txReadErr?.message}`,
+    ).toBeNull();
+    expect(
+      txRows?.length ?? 0,
+      `expected 0 credit_transactions rows for a denied over_budget_approval keyed by reseller_request_id=${attach.requestId}; got ${txRows?.length ?? 0}. The INSERT at route.ts:255-271 must stay inside the approve guard.`,
+    ).toBe(0);
+
+    // Ledger table 3: reseller_credit_grants — must be zero rows keyed
+    // by reseller_request_id.
+    const { data: grantRows, error: grantReadErr } = await supabase
+      .from("reseller_credit_grants")
+      .select("id")
+      .eq("target_user_id", attach.targetUserId)
+      .filter("metadata->>reseller_request_id", "eq", attach.requestId);
+    expect(
+      grantReadErr,
+      `reseller_credit_grants read failed for reseller_request_id=${attach.requestId}: ${grantReadErr?.message}`,
+    ).toBeNull();
+    expect(
+      grantRows?.length ?? 0,
+      `expected 0 reseller_credit_grants rows for a denied over_budget_approval keyed by reseller_request_id=${attach.requestId}; got ${grantRows?.length ?? 0}. The mirror INSERT at route.ts:280-296 must stay inside the approve guard.`,
+    ).toBe(0);
+
+    // Audit write: exactly one action='deny_request' row keyed on
+    // (actor, subject=target_user_id, since=patchSince). subject_user_id
+    // is stamped from payload.target_user_id for over_budget_approval
+    // terminals regardless of decision.status per route.ts:340-343.
+    const auditCount = await countResellerAuditLogFor(supabase, {
+      action: "deny_request",
+      actorUserId: actorId,
+      subjectUserId: attach.targetUserId,
+      since: patchSince,
+    });
+    expect(
+      auditCount,
+      `expected exactly 1 deny_request audit row for (actor=${actorId}, subject=${attach.targetUserId}) since ${patchSince}; got ${auditCount}. Route write lives at route.ts:338-366 (non-fatal try/catch — a swallowed exception would show as 0; a duplicated insert would show as > 1).`,
+    ).toBe(1);
+  });
+});
+
+test.describe("Reseller audit-log writes — P10 wave-5 row 179 cancel symmetric ledger + audit", () => {
+  const harness = loadAdminHarness();
+  test.skip(!harness, adminHarnessSkipReason());
+
+  let fixture: TempResellerFixture | null = null;
+  let fixtureError: Error | null = null;
+  let attach: AttachApproveTargetResult | null = null;
+  let attachError: Error | null = null;
+
+  test.beforeAll(async () => {
+    try {
+      fixture = await loadTempReseller("active_wholesale");
+    } catch (err) {
+      fixtureError = err as Error;
+      return;
+    }
+    if (!fixture) return;
+    try {
+      attach = await fixture.attachApproveTarget({
+        reason: "p10_wave5_row_179_cancel_probe",
+      });
+    } catch (err) {
+      attachError = err as Error;
+    }
+  });
+
+  test.afterAll(async () => {
+    if (fixture) {
+      try {
+        await fixture.cleanup();
+      } catch (err) {
+        throw new Error(
+          `wave-5 row 179 cancel cleanup failed — reseller_requests row keyed by reseller_request_id=${attach?.requestId ?? "<none>"} may leak into the pending inbox: ${(err as Error).message}`,
+        );
+      }
+    }
+  });
+
+  test("cancel PATCH leaves credit ledger untouched AND emits exactly one cancel_request audit row", async ({
+    page,
+  }) => {
+    if (fixtureError) {
+      test.skip(
+        true,
+        `loadTempReseller('active_wholesale') threw: ${fixtureError.message}. ${tempResellerSkipReason("active_wholesale")}`,
+      );
+      return;
+    }
+    if (!fixture) {
+      test.skip(true, tempResellerSkipReason("active_wholesale"));
+      return;
+    }
+    if (attachError) {
+      test.skip(
+        true,
+        `attachApproveTarget threw: ${attachError.message}. Common causes: migration 0091/0095 not applied on this host, or reseller_requests table missing.`,
+      );
+      return;
+    }
+    if (!attach) {
+      test.skip(
+        true,
+        "attachApproveTarget returned null — attributed founder or reseller-admin app_users row missing on this host. Run scripts/seed-qa-reseller.mjs + scripts/seed-test-users.mjs with QA_RESELLER_MULTI_ADMIN=1 to plant both rows.",
+      );
+      return;
+    }
+
+    const supabase = loadSupabaseAdmin();
+    if (!supabase) {
+      test.skip(true, supabaseAdminSkipReason());
+      return;
+    }
+
+    try {
+      await loginAs(page, harness!.admin.email);
+    } catch (err) {
+      test.skip(
+        true,
+        `Admin QA account not seeded: ${(err as Error).message}. Run scripts/seed-test-users.mjs to populate /tmp/blockid-qa-accounts.txt.`,
+      );
+      return;
+    }
+
+    const actorId = await findUserIdByEmail(supabase, harness!.admin.email);
+    if (!actorId) {
+      test.skip(
+        true,
+        `admin app_users row missing for ${harness!.admin.email} — seed-test-users.mjs was not run against this host`,
+      );
+      return;
+    }
+
+    const patchSince = new Date().toISOString();
+    const patchResp = await page.request.patch(
+      `${REQUESTS_LIST_ROUTE}/${attach.requestId}`,
+      {
+        data: {
+          action: "cancel",
+          decision_reason: "p10_wave5_row_179_cancel_probe",
+        },
+        headers: { "content-type": "application/json" },
+      },
+    );
+    expect(
+      patchResp.status(),
+      `cancel returned ${patchResp.status()} — expected 200 (pure status flip). Body: ${await patchResp.text()}`,
+    ).toBe(200);
+
+    const { data: balanceRow, error: balReadErr } = await supabase
+      .from("credit_balances")
+      .select("balance, lifetime_earned")
+      .eq("user_id", attach.targetUserId)
+      .maybeSingle();
+    expect(
+      balReadErr,
+      `credit_balances read failed for target_user_id=${attach.targetUserId}: ${balReadErr?.message}`,
+    ).toBeNull();
+    if (attach.balanceBefore === null) {
+      expect(
+        balanceRow,
+        `credit_balances row for target_user_id=${attach.targetUserId} did not exist before the cancel; a row now indicates the cancel path incorrectly UPSERTed the balance.`,
+      ).toBeNull();
+    } else {
+      expect(
+        balanceRow,
+        `credit_balances row for target_user_id=${attach.targetUserId} vanished — cleanup ran early?`,
+      ).not.toBeNull();
+      expect(
+        Number(balanceRow!.balance),
+        `credit_balances.balance mutated on cancel: expected snapshot ${attach.balanceBefore}, got ${balanceRow!.balance}. The approve-only UPSERT guard at route.ts:209 must not fire on cancel.`,
+      ).toBe(attach.balanceBefore);
+      expect(
+        Number(balanceRow!.lifetime_earned),
+        `credit_balances.lifetime_earned mutated on cancel: expected snapshot ${attach.lifetimeEarnedBefore}, got ${balanceRow!.lifetime_earned}`,
+      ).toBe(attach.lifetimeEarnedBefore ?? 0);
+    }
+
+    const { data: txRows, error: txReadErr } = await supabase
+      .from("credit_transactions")
+      .select("id")
+      .eq("user_id", attach.targetUserId)
+      .filter("metadata->>reseller_request_id", "eq", attach.requestId);
+    expect(
+      txReadErr,
+      `credit_transactions read failed for reseller_request_id=${attach.requestId}: ${txReadErr?.message}`,
+    ).toBeNull();
+    expect(
+      txRows?.length ?? 0,
+      `expected 0 credit_transactions rows for a cancelled over_budget_approval keyed by reseller_request_id=${attach.requestId}; got ${txRows?.length ?? 0}. The INSERT at route.ts:255-271 must stay inside the approve guard.`,
+    ).toBe(0);
+
+    const { data: grantRows, error: grantReadErr } = await supabase
+      .from("reseller_credit_grants")
+      .select("id")
+      .eq("target_user_id", attach.targetUserId)
+      .filter("metadata->>reseller_request_id", "eq", attach.requestId);
+    expect(
+      grantReadErr,
+      `reseller_credit_grants read failed for reseller_request_id=${attach.requestId}: ${grantReadErr?.message}`,
+    ).toBeNull();
+    expect(
+      grantRows?.length ?? 0,
+      `expected 0 reseller_credit_grants rows for a cancelled over_budget_approval keyed by reseller_request_id=${attach.requestId}; got ${grantRows?.length ?? 0}. The mirror INSERT at route.ts:280-296 must stay inside the approve guard.`,
+    ).toBe(0);
+
+    const auditCount = await countResellerAuditLogFor(supabase, {
+      action: "cancel_request",
+      actorUserId: actorId,
+      subjectUserId: attach.targetUserId,
+      since: patchSince,
+    });
+    expect(
+      auditCount,
+      `expected exactly 1 cancel_request audit row for (actor=${actorId}, subject=${attach.targetUserId}) since ${patchSince}; got ${auditCount}. Route write lives at route.ts:338-366 (non-fatal try/catch — a swallowed exception would show as 0; a duplicated insert would show as > 1).`,
+    ).toBe(1);
   });
 });

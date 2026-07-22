@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.186
+version: 2026-07-23.187
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,158 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 187
+    ran_at: 2026-07-22
+    action: p10_wave5_row_179_audit_symmetry_approve_deny_cancel
+    result: |
+      Closes tick 186's frontier option (i): "extend wave-5 row 179 audit-
+      log-writes.spec.ts with a fourth countResellerAuditLogFor(action=
+      'approve_request') assertion inside the ledger fan-out describe block,
+      plus symmetric describe blocks for deny_request + cancel_request
+      (ledger tables unchanged; exactly one audit row per PATCH)". Landed
+      as three edits on web/tests/e2e/reseller/audit-log-writes.spec.ts —
+      the 4th assertion piggybacks on the existing row 179 approve fixture
+      (same attach.requestId + same patchSince cursor); the two new
+      describe blocks each mint a fresh attachApproveTarget() with a
+      distinct probe ("p10_wave5_row_179_deny_probe" and
+      "p10_wave5_row_179_cancel_probe") so a leaked cleanup row surfaces
+      unambiguously on the pending-inbox scan without confusing rows from
+      the approve probe.
+
+      Files:
+        - web/tests/e2e/reseller/audit-log-writes.spec.ts (grew from 531 →
+          969 lines; three additions on top of the existing tick 185 row
+          179 approve fan-out describe):
+            (a) 4th assertion inside the existing approve fan-out
+                describe: countResellerAuditLogFor(action='approve_request',
+                actorUserId=admin.id, subjectUserId=target_user_id,
+                since=patchSince) → expect exactly 1. patchSince cursor
+                captured BEFORE the PATCH so append-only accumulation from
+                prior runs cannot poison the count. actorId resolved via
+                findUserIdByEmail(harness!.admin.email); expect(actorId).
+                not.toBeNull() gate falls through to the assertion. Route
+                write at web/src/app/api/admin/resellers/requests/[id]/
+                route.ts:338-366 (tick 186) emits subject_user_id from
+                payload.target_user_id for over_budget_approval terminals
+                regardless of decision.status, so the (actor, subject)
+                filter path is the same the approve branch uses.
+            (b) New describe "P10 wave-5 row 179 deny symmetric ledger +
+                audit": beforeAll(loadTempReseller + attachApproveTarget
+                with reason='p10_wave5_row_179_deny_probe'), afterAll(
+                fixture.cleanup() with bubble-on-error), one test that
+                PATCHes {action:'deny'} against the fresh requestId,
+                asserts 200, then verifies:
+                  • credit_balances snapshot matches attach.balanceBefore
+                    + attach.lifetimeEarnedBefore (or row absent when
+                    balanceBefore is null) — catches a regression that
+                    fired the UPSERT on the deny branch;
+                  • credit_transactions filtered by metadata->>reseller_
+                    request_id === requestId → 0 rows — catches a
+                    regression that fired the INSERT on the deny branch;
+                  • reseller_credit_grants filtered by metadata->>reseller_
+                    request_id === requestId → 0 rows — catches a
+                    regression that fired the mirror INSERT on the deny
+                    branch;
+                  • countResellerAuditLogFor(action='deny_request') → 1
+                    row.
+                Skip discipline: describe-scope on adminHarnessSkipReason();
+                test-scope on fixtureError / !fixture / attachError /
+                !attach / !supabase / loginAs throw / !actorId — seven
+                skip points matching the row 175 approve block plus the
+                supabase gate this block requires for the DB peeks.
+            (c) New describe "P10 wave-5 row 179 cancel symmetric ledger +
+                audit": identical shape to (b) but PATCHes
+                {action:'cancel'} + probe='p10_wave5_row_179_cancel_probe'
+                + audit assertion filters on action='cancel_request'.
+                Kept as a separate describe (rather than a second test
+                inside the deny block) because Playwright serialises
+                tests within a describe but parallelises describes across
+                workers when workers>1; each block owns its own
+                requestId so the parallel worker case is safe.
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.186 → 2026-07-23.187; this review_history entry
+          prepended).
+
+      Design fidelity:
+        - No new fixture helper needed — attachApproveTarget() already
+          minted an over_budget_approval pending row + snapshotted
+          credit_balances + registered a cleanup restore closure. The
+          reason override lets each block use a distinct probe string
+          without duplicating helper code. The deny/cancel snapshot
+          restore is a no-op in practice (the transition doesn't touch
+          credit_balances) but the request-row delete + audit-row
+          accumulation cleanup still runs correctly.
+        - Parallelism-safe against the row 179 approve block AND against
+          each other: each attachApproveTarget() call mints a fresh
+          gen_random_uuid() requestId; every ledger assertion filters
+          on metadata->>reseller_request_id = attach.requestId; every
+          audit assertion filters on (actor, subject, since=patchSince
+          captured immediately before the PATCH). Two workers firing
+          the same describe write to different requestIds and cannot
+          collide. The credit_balances snapshot-restore closure keys on
+          target_user_id which IS shared across blocks — under
+          playwright.config.ts:workers=1 (current default) blocks
+          serialise so the second restore sees the first's restored
+          snapshot as its own snapshot; under a future workers>1 flip
+          the restore would need to key on (targetUserId, requestId).
+          Same caveat surfaced in tick 185's row 179 approve block —
+          not a regression, just an unchanged constraint.
+        - The 4th assertion (approve_request audit row) uses .toBe(1)
+          not .toBeGreaterThanOrEqual(1) — the since cursor + specific
+          (actor, subject) filter narrow the window enough that a > 1
+          result signals a duplicated insert (e.g. the try/catch got
+          replaced with a retry loop), which is a real regression
+          worth surfacing.
+        - subject_user_id filter is safe across all three PATCH
+          transitions because the route stamps subject_user_id from
+          current.payload.target_user_id for over_budget_approval
+          regardless of decision.status; the guard is on request_type,
+          not decision.status (route.ts:340-343). A regression that
+          moved the subject_user_id resolver inside the approve branch
+          would surface as count === 0 on the deny/cancel assertions.
+        - Ledger-zero-rows assertions on the deny/cancel blocks (0
+          credit_transactions + 0 reseller_credit_grants filtered by
+          reseller_request_id) are the DB-level companion to the
+          existing wire-envelope tests in admin-requests-patch-authz.
+          spec.ts that assert linked_credit_transaction_id === null
+          and linked_promotion_code_id === null on the deny/cancel
+          response bodies. Together they close the "did the branch
+          escape its guard" regression path from both directions.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0). All new
+          imports resolve; the three additions do not shadow or
+          conflict with the pre-existing describes in the file.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 exemptions, 0 violations —
+          unchanged (the spec is not under /api/reseller/** for R-01
+          and is not in feature-gates.manifest.ts for R-03).
+        - No DB apply this tick — no migration authored. Assertions
+          read four pre-existing tables (credit_balances,
+          credit_transactions, reseller_credit_grants, reseller_audit_log
+          — 0013 + 0096 + 0093); missing any surfaces as a Supabase
+          error caught by the read-error assertions.
+        - No unit-vitest impact — new coverage is Playwright-only.
+        - Goal file version bumped 2026-07-23.186 → 2026-07-23.187.
+
+      Frontier after tick 187: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision seed
+      STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE; P10 wave
+      5 has now landed the full audit-write symmetry check for the
+      admin PATCH surface (approve + deny + cancel each verified end-
+      to-end at the DB level: ledger triple-write fires only on approve,
+      audit row emits on all three). Follow-ups from tick 186 still
+      open:
+        (i)  mirror the same audit write into /api/admin/affiliate/
+             attributions/[id]/revoke's approve/deny path if that route
+             grows one (currently only revoke fires an audit write —
+             approve/deny paths not yet wired);
+        (ii) unchanged from tick 185/186: row 175 approve(code_request)
+             branch still needs stripe-test-mode key; row 182 still
+             needs stripe-test-mode key; plan §337 signup-jitter branch
+             on row 178 still deferred pending a QA-mode signup flow.
+    commit: (this tick)
+
   - tick: 186
     ran_at: 2026-07-22
     action: p10_wave5_row_185_option_i_admin_patch_audit_log_write
