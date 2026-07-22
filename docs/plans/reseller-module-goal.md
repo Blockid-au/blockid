@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.148
+version: 2026-07-23.149
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,130 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 149
+    ran_at: 2026-07-22
+    action: p10_wave2_row_147_activate_drawer_validation_uuid_in_scope_happy
+    result: |
+      Opened wave 2 row 147 per
+      docs/plans/p10-deferred-spec-activation-order.md. One row landed —
+      the drawer-validation.spec.ts × active_wholesale × uuid_in_scope +
+      happy branch (200 with body.ok true + overview + non-empty
+      progression). Row 146 (tick 148) already pinned the full envelope
+      shape at the wire in drawer-authz.spec.ts; row 147 partners with
+      the invalid_id / not_in_scope branches already in
+      drawer-validation.spec.ts so that a regression in
+      allowedCustomerIds().includes() surfaces in BOTH failure directions:
+      row above catches an out-of-scope UUID leaking through as 200; row
+      147 catches an in-scope UUID being rejected as 403.
+
+      Batching heuristic per schedule doc: row 147 is the ONLY wave-2 row
+      in drawer-validation.spec.ts (rows 148/149 live in
+      reveal-email-authz.spec.ts / reveal-email-validation.spec.ts), so
+      the "same file with the same variant" clause does not permit
+      further collapse. The attributionExists guard (added tick 148)
+      transfers cleanly into this spec — no fixture changes needed this
+      tick.
+
+      Files:
+        - web/tests/e2e/reseller/drawer-validation.spec.ts (imports
+          extended: added loadTempReseller + tempResellerSkipReason +
+          TempResellerFixture type-only import alongside the existing
+          harness/loginAs imports; added DRAWER_ROUTE helper mirroring
+          drawer-authz.spec.ts so the URL construction stays canonical
+          across the twin specs; new test.describe block "Reseller
+          customer-drawer — P10 wave-2 uuid_in_scope happy" holds row
+          147; "Deliberately out of scope" comment updated — the
+          happy-path branch flipped from folded/deferred to ACTIVATED
+          with pointer at the new test and a note that row 146 owns the
+          full envelope while row 147 focuses on the positive-branch
+          coverage that partners with invalid_id/not_in_scope).
+
+      Design fidelity:
+        - Coverage-vs-duplication call: chose to NOT re-pin the full
+          envelope shape here (overview.masked_email / signup_at /
+          credits_balance / progression[0].kind === "signup" / svi_curve
+          Array.isArray / reports Array.isArray). Row 146's assertions
+          already own that contract in drawer-authz.spec.ts; duplicating
+          them here would (a) burn ~10 lines of assertion for zero new
+          coverage and (b) mean a future change to the envelope surface
+          would force two spec edits instead of one. The three
+          assertions here (200 + body.ok + overview defined + progression
+          is a non-empty array) cover the two dimensions the sibling
+          invalid_id / not_in_scope branches do NOT: (i) proves
+          decideReveal's POSITIVE branch fires; (ii) proves the chain
+          (app_users SELECT + Promise.all fan-out + audit-log write)
+          completes without a 5xx leaking through. That is the "2-3
+          assertions" ceiling the schedule doc's wave-2 prep-cost note
+          calls for.
+        - Sibling twin: reveal-email-validation.spec.ts (tick 117) has
+          the same pair of pre-scope validation branches (invalid_id +
+          not_in_scope) and its happy path becomes wave-2 row 149. The
+          two twin activations should reference each other's tick
+          numbers when row 149 lands so the reader can trace the pair.
+        - Skip discipline mirrors row 146: fixture null → skip;
+          adminUserId null → skip (scopedReseller would 403
+          no_membership before the drawer body assembles);
+          attributedUserId null → skip; attributionExists false → skip
+          (would 403 not_in_scope from allowedCustomerIds, which is the
+          exact failure mode row 147 is designed to catch — a partial-
+          seed host cannot distinguish "seeder not run" from "code
+          regression" so it must skip rather than false-fail);
+          loginAs throw → skip.
+        - Non-Stripe / non-GST discipline: unchanged from row 146. The
+          drawer route touches app_users + svi_analyses + revenue_events
+          + credit_transactions + credit_balances only. No
+          promotion_code lookup, no Stripe network call, no InfoVision
+          dependency. P8.5 + P1.5 remain neither a dependency nor a
+          consequence. The audit-log write side-effect is captured by
+          wave-5 row 179 (audit-log-writes.spec.ts) so this row focuses
+          on the read envelope, same as row 146.
+        - Route-order coverage vs row 146: row 146 exercises the same
+          route.ts:148 return with the same variant and the same
+          attributedUserId. The two rows differ ONLY in which spec file
+          they live in (drawer-authz.spec.ts vs drawer-validation.spec
+          .ts). That is intentional per the schedule doc: the "each
+          spec" contract of wave 2 pins the surface even when the route
+          being probed is shared, so a spec-file rename or a decideReveal
+          reorganisation surfaces in both spec surfaces.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0, no output).
+          The new imports (loadTempReseller, tempResellerSkipReason,
+          TempResellerFixture type-only) type-check against the fixture
+          module unchanged since tick 148.
+        - `npx vitest run src/lib/reseller/ src/lib/feature-gate.test.ts
+          src/lib/entitlements.test.ts` in web/: 31 files / 462 tests
+          pass (2.19s, identical to tick 148 — no pure-lib code touched,
+          only the Playwright spec).
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 documented exemptions, 0
+          violations — unchanged from tick 148 (the spec is not under
+          /api/reseller/** for the R-01 grep and it is not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - No DB apply this tick — pure test-file addition + schedule-doc
+          callout.
+        - Goal file version bumped 2026-07-23.148 → 2026-07-23.149.
+
+      Frontier after tick 149: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision seed
+      STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE; P10 still
+      blocked_by [P1..P9] until P8.5 clears. What tick 149 unblocks:
+      row 147 lit up in CI on the next `npx playwright test` run —
+      closes the wave-2 drawer surface (rows 146 + 147 both green,
+      drawer-authz.spec.ts + drawer-validation.spec.ts both pin
+      decideReveal's positive branch). Row 148
+      (reveal-email-authz.spec.ts × active_wholesale × happy 200 with
+      plaintext email + audit-log side effect) sits next in the wave-2
+      queue and reuses the same attributionExists guard so it will land
+      as a lightweight paste that mirrors this tick's structure across
+      the POST reveal-email surface. Next autonomous tick options:
+        (i) advance to wave 2 row 148 (reveal-email-authz.spec.ts ×
+            active_wholesale × happy 200 with plaintext email + audit-log
+            side effect) — same guards, POST verb, different route;
+        (ii) advance to wave 2 row 149 (reveal-email-validation.spec.ts ×
+             active_wholesale × happy path with attributed customer id) —
+             twin of row 147 across the POST reveal-email surface;
+        (iii) idle until human unblock arrives on P8.5 or P1.5.
   - tick: 148
     ran_at: 2026-07-22
     action: p10_wave2_row_146_activate_drawer_authz_happy_and_extend_fixture_attribution_flag
