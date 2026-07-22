@@ -2561,6 +2561,147 @@ review_history:
       tick per CDO rec #2).
     commit: (this tick)
 
+  - tick: 122
+    ran_at: 2026-07-22
+    action: p10_dry_run_admin_resellers_create_validation_playwright_spec
+    result: |
+      Composed option (ii) from tick 121's frontier note — "admin-resellers-*
+      validation twin if any of the five admin routes have post-admin
+      validators beyond auth that a QA admin harness could exercise (would
+      need a new loadAdminHarness fixture parallel to loadResellerHarness)."
+      admin-resellers POST fits: five clean post-requireAdmin body validators
+      (invalid_body / code_required / display_name_required /
+      wholesale_requires_gst / wholesale_requires_abn) surface BEFORE the
+      resellers INSERT side effects fire, BEFORE getSupabaseAdmin is invoked,
+      and BEFORE the (reseller_id, tier_pct) unique index gets consumed by
+      any downstream reseller_promotion_codes row — safe to exercise from
+      Playwright against staging without seeding a resellers row.
+
+      Files:
+        - web/tests/e2e/fixtures/reseller.ts (+ loadAdminHarness() +
+          adminHarnessSkipReason() — new fixture parallel to
+          loadResellerHarness/loadAttributedFounderHarness/loadAttribution
+          TimingHarness. Reads QA_ADMIN_EMAIL (default qa-admin-1@blockid.au)
+          from process.env and hydrates via getAccount() from the same
+          /tmp/blockid-qa-accounts.txt file used by the reseller harness.
+          Returns null when the QA account is not seeded so specs
+          test.skip() rather than hard-fail on a legitimately-un-provisioned
+          host. The admin identity check inside the route uses
+          requireAdmin() from web/src/lib/reseller/require-admin.ts which
+          matches by app_users.role='admin' OR email===ADMIN_EMAIL (default
+          admin@blockid.au) — so a seed row for qa-admin-1 with role='admin'
+          is the natural cutover.)
+        - web/tests/e2e/reseller/admin-resellers-create-validation.spec.ts
+          (new — five rows probing the route's post-requireAdmin body
+          validators BEFORE the resellers INSERT side effects fire, all
+          exercised behind the QA_ADMIN_EMAIL harness so the getCurrentUser
+          + requireAdmin chain resolves to a real admin session:
+          (1) invalid_body — POST with raw non-JSON body ("not-json-{")
+              and content-type: application/json → 400
+              { ok:false, reason:"invalid_body" } at route.ts:70-75 in the
+              request.json() try/catch. Fires post-requireAdmin but
+              pre-normaliseResellerCode, pre-display_name check,
+              pre-wholesale invariants, pre-getSupabaseAdmin, and pre-
+              resellers INSERT.
+          (2) code_required — POST with code="" and a valid display_name
+              → 400 { ok:false, reason:"code_required" } at
+              route.ts:77-80 in the normaliseResellerCode guard.
+          (3) display_name_required — POST with a valid code but no
+              display_name field → 400 { ok:false,
+              reason:"display_name_required" } at route.ts:81-83.
+          (4) wholesale_requires_gst — POST with billing_model=wholesale
+              but no gst_registered flag → 400 { ok:false,
+              reason:"wholesale_requires_gst" } at route.ts:87-93 in the
+              U.15.1 D2-CFO-01 gate.
+          (5) wholesale_requires_abn — POST with billing_model=wholesale +
+              gst_registered=true but no ABN → 400 { ok:false,
+              reason:"wholesale_requires_abn", hint:"format: NN NNN NNN
+              NNN" } at route.ts:94-99 in the U.15.1 D4-CLO-03 gate. Row
+              5 additionally asserts body.hint carries the format string
+              so a regression that drops the admin UI's inline help
+              lights up here.
+          PROBE_CODE_BASE="qa-probe-should-not-persist" is used for the
+          rows 3-5 code field so even if the requireAdmin gate silently
+          fell open the eventual INSERT would still hit the code_taken /
+          insert_failed branches rather than persist a real row.)
+        - docs/plans/reseller-module-goal.md (+ tick 122 entry)
+
+      Why this shape matches the ticks 117-121 pattern: same structural
+      shape — pre-auth authz is covered by a separate *-authz spec
+      (admin-resellers-create-authz.spec.ts tick 109) that runs harness-
+      free (unauthenticated → 401 no_user, non_admin → 401 not_admin),
+      and the post-admin validation branches surface only after
+      loginAs(harness.admin.email) so the requireAdmin gate passes and
+      the endpoint's own validators are the gates under test. Differs
+      from the reseller-lens specs in one dimension only — the auth
+      chokepoint is requireAdmin() (staff surface) rather than
+      scopedReseller() (reseller-admin surface), and the response
+      envelope carries reason:<code> at HTTP 400 rather than 402
+      (feature-locked is a reseller.console concept, not admin).
+
+      Why the code_taken (409) / insert_failed (500) / happy path (201)
+      / not_configured (503) rows aren't covered: same reasoning as
+      ticks 94..121 — code_taken needs a seeded resellers row whose code
+      matches the POSTed value, insert_failed needs per-test tampering
+      with a broken resellers INSERT that plan §J.2 forbids, happy path
+      201 writes a new resellers row that would poison every subsequent
+      admin-facing spec in the worker (including the sibling PATCH /
+      DELETE / list authz specs) AND consume (reseller_id, tier_pct)
+      unique index slots under reseller_promotion_codes for later P9.4
+      code-mint approval flows, not_configured needs SUPABASE_URL/
+      SERVICE_ROLE unset which would break every other Playwright spec
+      in the same worker. All belong to the temp-reseller mint fixture
+      follow-up alongside the deferred rows from ticks 94..121.
+
+      Deliberately out of scope for this tick:
+        - admin-resellers PATCH / DELETE / requests PATCH validation
+          twins — each has its own post-admin validator set that a
+          separate spec should probe (PATCH covers validateAdminResellerPatch
+          from web/src/lib/reseller/admin-validator.ts with 20+ error
+          codes; requests PATCH covers validateAdminDecision from
+          web/src/lib/reseller/requests.ts with approval/deny/cancel
+          state-machine gates). Each spec follows this tick's shape;
+          bundling them into one tick would be too large for the
+          established one-spec-per-tick cadence.
+        - Any change to /api/admin/resellers POST — the validators fire
+          correctly; this tick adds Playwright coverage of them.
+        - Extending scripts/seed-test-users.mjs with a qa-admin-1 row —
+          human-adjacent change (needs coordination with the QA seed
+          contract and any staging fixture that consumes the file);
+          deferred alongside P8.5 (STRIPE_PRICE_ADDON_*) and P1.5
+          (H.20 ABN + GST).
+
+      Verified: tsc clean (npx tsc --noEmit exit=0); npm run lint:reseller:
+      R-01 scanned 11 file(s), R-03 scanned 31 manifest route(s), 3
+      exemptions, 0 violations (the spec lives under web/tests/e2e/reseller/
+      not /api/reseller/**, so R-01 doesn't fire; it's not a mutation
+      route in feature-gates.manifest.ts so R-03 doesn't fire). Playwright
+      not run this tick — rows will execute on the next CI Playwright pass
+      alongside the thirty-three other reseller-lens dry-run specs (now
+      thirty-four including this one).
+
+      Frontier after tick 122: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 122 unblocks: (a) admin-resellers POST now has symmetric
+      post-admin validation coverage matching the reveal-email / drawer /
+      reports-signed-url / credit-grant / requests / create-startup /
+      billing / showcase-reviews validation patterns; (b) new
+      loadAdminHarness fixture opens the door for admin-resellers PATCH /
+      DELETE / requests PATCH validation twins in subsequent ticks
+      without further fixture churn. Thirty-four spec files now sit in
+      web/tests/e2e/reseller/. Next autonomous tick options: (i)
+      admin-resellers PATCH validation twin (20+ error codes from
+      validateAdminResellerPatch — largest post-admin validator surface
+      in the tree); (ii) admin-resellers/requests PATCH validation twin
+      (validateAdminDecision approval/deny/cancel state machine);
+      (iii) landing the QA-mode temp-reseller mint fixture that opens
+      up all the deferred HAPPY-PATH branches from ticks 94..122 at
+      once (larger tick, wants a design pass); (iv) idle until human
+      unblock arrives on P8.5 or P1.5.
+    commit: (this tick)
+
   - tick: 121
     ran_at: 2026-07-22
     action: p10_dry_run_showcase_reviews_get_validation_playwright_spec

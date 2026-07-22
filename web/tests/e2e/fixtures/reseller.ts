@@ -140,3 +140,45 @@ export function attributionTimingSkipReason(): string {
     "qa-founder-fresh-1@blockid.au)."
   );
 }
+
+export interface AdminHarness {
+  admin: QaAccount;
+}
+
+const DEFAULT_ADMIN_EMAIL = "qa-admin-1@blockid.au";
+
+/**
+ * Resolves the admin QA account that the /api/admin/** validation specs
+ * need to exercise post-requireAdmin() branches. Distinct from
+ * loadResellerHarness() — that one models a reseller-admin session probing
+ * scopedReseller(); this one models a BlockID staff session probing
+ * requireAdmin() (see web/src/lib/reseller/require-admin.ts).
+ *
+ * Returns null when QA_ADMIN_EMAIL (default qa-admin-1@blockid.au) is not
+ * present in /tmp/blockid-qa-accounts.txt AND ADMIN_EMAIL is not overridden
+ * to match a seeded QA account. In practice this means the admin-*
+ * validation specs test.skip() until scripts/seed-test-users.mjs is
+ * extended with a qa-admin-1 row whose app_users.role='admin' (or the env
+ * var flip lands with a matching seeded email).
+ */
+export function loadAdminHarness(): AdminHarness | null {
+  const email = process.env.QA_ADMIN_EMAIL ?? DEFAULT_ADMIN_EMAIL;
+  try {
+    const admin = getAccount(email);
+    return { admin };
+  } catch {
+    return null;
+  }
+}
+
+export function adminHarnessSkipReason(): string {
+  return (
+    "Admin QA harness not provisioned — set QA_ADMIN_EMAIL (default " +
+    "qa-admin-1@blockid.au) to a seeded QA account in " +
+    "/tmp/blockid-qa-accounts.txt whose app_users.role='admin' or whose " +
+    "email matches ADMIN_EMAIL (default admin@blockid.au). Extend " +
+    "scripts/seed-test-users.mjs to write the qa-admin-1 row before running " +
+    "these specs. Deferred alongside P8.5 (STRIPE_PRICE_ADDON_*) and " +
+    "P1.5 (H.20 ABN + GST)."
+  );
+}
