@@ -7,6 +7,15 @@
 // human-blocked. Once those clear, set QA_RESELLER_ADMIN_EMAIL +
 // QA_RESELLER_ATTRIBUTED_CUSTOMER_ID (or QA_RESELLER_ATTRIBUTED_PROJECT_ID)
 // to activate the specs against staging.
+//
+// P10 Option A step 3 (docs/plans/p10-temp-reseller-admin-scope-
+// collision-finding.md §Resolution options → A): loadTempReseller() now
+// exposes a per-variant `adminEmail` so specs `loginAs(page,
+// fixture.adminEmail)` and each variant hits a DISTINCT app_users row,
+// avoiding the scopedReseller() .maybeSingle() PGRST116 collision that
+// fires when one user is mirrored onto more than one variant. Multi-admin
+// gate: `QA_RESELLER_MULTI_ADMIN=1` (matches the seeders in
+// web/scripts/seed-test-users.mjs + web/scripts/seed-qa-reseller.mjs).
 
 import { getAccount, type QaAccount } from "./accounts";
 import { loadSupabaseAdmin } from "./supabase-admin";
@@ -249,8 +258,19 @@ export interface TempResellerFixture {
   resellerId: string;
   code: string;
   displayName: string;
-  /** Reseller-admin user_id resolved via QA_RESELLER_ADMIN_EMAIL. `null`
-   *  when the QA account seeder delta (§5) has not run yet. */
+  /** Per-variant reseller-admin email resolved via the P10 Option A
+   *  MULTI_ADMIN_EMAILS slot (see docs/plans/p10-temp-reseller-admin-scope-
+   *  collision-finding.md §Resolution options → A). Specs
+   *  `loginAs(page, fixture.adminEmail)` so each variant hits a DISTINCT
+   *  app_users row, avoiding the scopedReseller() .maybeSingle() PGRST116
+   *  collision when the same user is mirrored onto multiple variants.
+   *  Falls back to QA_RESELLER_ADMIN_EMAIL (or the tick 132 default
+   *  qa-reseller-1@blockid.au) when the per-variant slot is unset, so
+   *  single-admin hosts stay backwards-compatible. */
+  adminEmail: string;
+  /** Reseller-admin user_id resolved via the resolved adminEmail. `null`
+   *  when the QA account seeder delta (§5) has not run yet OR the
+   *  per-variant admin app_users row is missing from the target host. */
   adminUserId: string | null;
   /** Only populated on `active_wholesale` — the attributed founder resolved
    *  via QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL. */
@@ -272,6 +292,77 @@ export interface TempResellerFixture {
 
 const DEFAULT_TEMP_RESELLER_ADMIN_EMAIL = "qa-reseller-1@blockid.au";
 const DEFAULT_TEMP_RESELLER_ATTRIBUTED_EMAIL = "qa-founder-attributed-1@blockid.au";
+
+// P10 Option A step 3 — per-variant admin email map. Mirrors MULTI_ADMIN_EMAILS
+// in web/scripts/seed-test-users.mjs and web/scripts/seed-qa-reseller.mjs so
+// the fixture binds to the SAME seven emails without a shared import (the
+// two .mjs seeders are outside the tsconfig include glob). Per-slot override
+// via QA_RESELLER_ADMIN_EMAIL_<VARIANT> (upper-snake) matches the seeder
+// contract. Defaults reproduce the collision-finding table verbatim.
+const DEFAULT_MULTI_ADMIN_EMAILS: Readonly<Record<ResellerVariant, string>> = {
+  active_wholesale: "qa-reseller-wholesale-active@blockid.au",
+  active_retail: "qa-reseller-retail-active@blockid.au",
+  paused: "qa-reseller-paused@blockid.au",
+  terminated: "qa-reseller-terminated@blockid.au",
+  no_capability: "qa-reseller-no-cap@blockid.au",
+  tier_only_zero: "qa-reseller-tier-zero@blockid.au",
+  no_budget: "qa-reseller-no-budget@blockid.au",
+};
+
+// Uppercase-snake variant slug for the QA_RESELLER_ADMIN_EMAIL_<VARIANT>
+// env-var lookup. Kept as a table (rather than variant.toUpperCase()) so a
+// future variant with hyphens does not silently drift from the seeder's own
+// slot names.
+const VARIANT_ENV_SLOT: Readonly<Record<ResellerVariant, string>> = {
+  active_wholesale: "ACTIVE_WHOLESALE",
+  active_retail: "ACTIVE_RETAIL",
+  paused: "PAUSED",
+  terminated: "TERMINATED",
+  no_capability: "NO_CAPABILITY",
+  tier_only_zero: "TIER_ONLY_ZERO",
+  no_budget: "NO_BUDGET",
+};
+
+/**
+ * Resolves the reseller-admin email for the given variant. Mirrors
+ * `resolveVariantAdmin()` in web/scripts/seed-qa-reseller.mjs so the fixture
+ * points at exactly the same app_users row the seeder mirrored onto
+ * `reseller_admins`.
+ *
+ * Multi-admin gate: `QA_RESELLER_MULTI_ADMIN=1` (matches the seeder flag).
+ *
+ * When gate is ON (Option A cohort):
+ *   1. `QA_RESELLER_ADMIN_EMAIL_<VARIANT>` per-slot override (upper-snake).
+ *   2. `DEFAULT_MULTI_ADMIN_EMAILS[variant]` hard-coded slot.
+ *   3. `QA_RESELLER_ADMIN_EMAIL` shared fallback (per collision finding
+ *      §A step 2: preserve when per-slot missing).
+ *   4. `DEFAULT_TEMP_RESELLER_ADMIN_EMAIL` (qa-reseller-1@blockid.au).
+ *
+ * When gate is OFF (tick 132 single-admin contract): return
+ * `QA_RESELLER_ADMIN_EMAIL` or the default. Every variant collapses to the
+ * same email, matching the seeder's single-admin mirror.
+ *
+ * Always returns a string so `TempResellerFixture.adminEmail` is never null;
+ * when the resolved email has no matching app_users row the fixture's
+ * adminUserId stays null and the spec skips via tempResellerSkipReason().
+ */
+export function resolveVariantAdminEmail(variant: ResellerVariant): string {
+  const multiAdminGate = process.env.QA_RESELLER_MULTI_ADMIN === "1";
+  if (multiAdminGate) {
+    const slot = VARIANT_ENV_SLOT[variant];
+    const perVariantOverride = slot
+      ? process.env[`QA_RESELLER_ADMIN_EMAIL_${slot}`]
+      : undefined;
+    if (perVariantOverride && perVariantOverride.length > 0) {
+      return perVariantOverride;
+    }
+    const perVariantDefault = DEFAULT_MULTI_ADMIN_EMAILS[variant];
+    if (perVariantDefault) return perVariantDefault;
+  }
+  const single = process.env.QA_RESELLER_ADMIN_EMAIL;
+  if (single && single.length > 0) return single;
+  return DEFAULT_TEMP_RESELLER_ADMIN_EMAIL;
+}
 
 /**
  * Resolves the fixture tuple for a given variant. Reads (never writes) the
@@ -300,8 +391,7 @@ export async function loadTempReseller(
 
   const resellerId = reseller.id as string;
 
-  const adminEmail =
-    process.env.QA_RESELLER_ADMIN_EMAIL ?? DEFAULT_TEMP_RESELLER_ADMIN_EMAIL;
+  const adminEmail = resolveVariantAdminEmail(variant);
   let adminUserId: string | null = null;
   if (adminEmail) {
     const { data: adminUser } = await supabase
@@ -371,6 +461,7 @@ export async function loadTempReseller(
     resellerId,
     code: reseller.code as string,
     displayName: reseller.display_name as string,
+    adminEmail,
     adminUserId,
     attributedUserId,
     attributedProjectId,
@@ -403,7 +494,11 @@ export function tempResellerSkipReason(variant: ResellerVariant): string {
     "Playwright env and run `node web/scripts/seed-qa-reseller.mjs` " +
     "(and, for the active_wholesale variant, seed-qa-reseller-storage.mjs + " +
     "the seed-test-users.mjs reseller-fixture delta) before invoking the " +
-    "Playwright suite. Design source: " +
-    "docs/plans/p10-temp-reseller-mint-fixture-design.md §3."
+    "Playwright suite. For the P10 Option A multi-admin cohort, run both " +
+    "seeders with QA_RESELLER_MULTI_ADMIN=1 (or --reseller-multi-admin) so " +
+    "each variant mirrors a DISTINCT app_users row and scopedReseller() " +
+    ".maybeSingle() does not PGRST116 on the first /api/reseller/* request. " +
+    "Design source: docs/plans/p10-temp-reseller-mint-fixture-design.md §3 + " +
+    "docs/plans/p10-temp-reseller-admin-scope-collision-finding.md §A step 3."
   );
 }
