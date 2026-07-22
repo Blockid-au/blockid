@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.139
+version: 2026-07-23.140
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,110 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 140
+    ran_at: 2026-07-22
+    action: p10_deferred_spec_activation_order_doc
+    result: |
+      Landed the tick 139 review_history "options list item (ii)"
+      artefact — an ordering doc for the ~50 deferred HAPPY-PATH /
+      downstream-reason rows across the reseller Playwright suite. Ships
+      as pure documentation so subsequent autonomous ticks can pick "the
+      next row" without re-scoping the fixture cohort each pass.
+
+      Files:
+        - docs/plans/p10-deferred-spec-activation-order.md (new — five
+          waves, 43 rows total, tick numbers 141..183 pre-assigned):
+            (a) Prerequisites section names both seeders + the
+                QA_RESELLER_MULTI_ADMIN=1 gate explicitly so a future
+                tick reader lands on the exact command that must have
+                run against the target host before the row's fixture
+                resolves.
+            (b) Human-blocked exclusions section carves out Stripe-mint
+                rows (P8.5 blocker) and GST-reconciliation rows (P1.5 /
+                H.20 blocker) so the loop does not schedule them.
+                Everything else is safe.
+            (c) Wave 1 (rows 141-144, four rows in
+                create-startup-authz.spec.ts) — variant boundary probes
+                that prove resolveVariantAdmin × loadTempReseller ×
+                per-variant reseller row shape end-to-end without
+                touching customer state.
+            (d) Wave 2 (rows 145-149, five rows across me-attribution +
+                drawer + reveal-email specs) — scope-boundary readbacks
+                that exercise the attributed-customer path.
+            (e) Wave 3 (rows 150-156, seven rows across credit-grant +
+                sandbox-setup + requests specs) — capability + budget
+                gate coverage via distinct variants (no_capability,
+                no_budget, active_wholesale) so each failure mode
+                surfaces on its own row.
+            (f) Wave 4 (rows 157-163, seven rows across code-validate +
+                reports-signed-url + reseller-requests-list + reseller-
+                crons + cobranding-pill specs) — reads + code-validate
+                inactive branch + signed-URL happy path + co-branding
+                pill render.
+            (g) Wave 5 (rows 164-183, twenty rows across the admin-
+                resellers-* suite + scope-boundary + billing + audit
+                specs) — sequenced last because each row writes real
+                resellers state and needs afterAll cleanup before the
+                next row runs.
+            (h) Batching heuristic caps collapsed rows at same-file +
+                same-variant + < 20 lines added, so the loop cannot
+                silently balloon a tick.
+            (i) Failure protocol section pins two escalation sentinels
+                (`403 no_membership` = seeders not re-run; `test.skip` at
+                runtime = variant admin missing from app_users) with
+                review_history posting semantics so a bad-fixture host
+                does not flip a row to activated.
+            (j) Exit condition section stitches the wave-5 completion
+                back into P10 §412 exit_criteria — the Playwright
+                Track A coverage gate closes when the 43 rows all land
+                as green assertions.
+
+      Design fidelity:
+        - Non-Stripe / non-GST discipline: every row in waves 1-5 was
+          hand-checked against the "Deliberately out of scope" block in
+          its host spec to confirm the branch's oracle does not depend
+          on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL or on the
+          InfoVision seed's ABN/GST columns. Rows that failed that
+          check (e.g. addon-purchase happy path, GST-reconciliation
+          drift row) intentionally do NOT appear in the schedule and
+          instead carry over to the human-blocked exclusions callout.
+        - Variant assignments mirror seed-test-users.mjs / seed-qa-
+          reseller.mjs / fixtures/reseller.ts DEFAULT_MULTI_ADMIN_EMAILS
+          verbatim — no invented variant names, no renamed slots. If a
+          future variant is renamed the doc updates in the same
+          mechanical edit as the three shipped files.
+        - Tick numbers 141..183 chosen so the schedule is dense and
+          contiguous but the loop can insert non-schedule work between
+          waves without renumbering the doc (only the wave headers'
+          numbers appear in the review_history entries; nothing else
+          references them).
+        - Documentation only: no .mjs / .ts / .sql / .spec.ts files
+          land with this tick. The new doc lives under docs/plans/
+          which is outside the tsconfig include + vitest include globs.
+
+      Verified:
+        - No tsc / vitest run this tick — pure docs change.
+        - No DB apply this tick — documentation only.
+        - Doc renders cleanly in the markdown preview surface; every
+          spec-file reference (13 host specs) was grep-verified against
+          web/tests/e2e/reseller/ before landing.
+        - Goal file version bumped 2026-07-23.139 → 2026-07-23.140.
+
+      Frontier after tick 140: shape unchanged in terms of goal-file
+      phase status — Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision
+      seed STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE;
+      P10 still blocked_by [P1..P9] until P8.5 clears. What tick 140
+      unblocks: the ~50-row deferred activation queue now has a fixed
+      order so the loop can burn through it one row per tick without
+      re-scoping the fixture cohort each pass. Next autonomous tick
+      options: (i) tick 141 — activate wave-1 row (create-startup-
+      authz.spec.ts × active_retail × billing_model_not_wholesale)
+      against a multi-admin-seeded host; requires the seeders to have
+      run with --reseller-multi-admin; (ii) idle until human unblock
+      on P8.5 or P1.5 if the host has not been re-seeded.
+    commit: (this tick)
+
   - tick: 139
     ran_at: 2026-07-22
     action: p10_option_a_step4_mint_fixture_design_doc_cohort_update
