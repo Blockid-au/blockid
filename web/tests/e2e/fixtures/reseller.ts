@@ -383,10 +383,56 @@ export interface TempResellerFixture {
   attachReviewerAccessToken(opts?: {
     investorEmail?: string;
   }): Promise<AttachReviewerAccessTokenResult | null>;
+  /** Wave-5 helper (schedule doc row 175 approve-branch prep note). Inserts
+   *  a fresh pending `reseller_requests` row (request_type =
+   *  'over_budget_approval', requested_by = adminUserId, payload =
+   *  {target_user_id, requested_amount, reason}) against THIS variant's
+   *  reseller so PATCH /api/admin/resellers/requests/[id] with
+   *  {action:'approve'} can fan out end-to-end (approve branch: credit_balances
+   *  UPSERT + credit_transactions INSERT + reseller_credit_grants INSERT +
+   *  reseller_requests UPDATE). Snapshots the credit_balances baseline for
+   *  the target user before the PATCH runs so the spec can assert the exact
+   *  post-approve delta rather than relying on a bare non-null check.
+   *
+   *  Snapshot-then-restore semantics: cleanup() drops the reseller_credit_grants
+   *  row (filtered by metadata->>'reseller_request_id' = requestId), the
+   *  reseller_requests row (by id — its linked_credit_transaction_id FK to
+   *  credit_transactions is ON DELETE SET NULL so the request row deletes
+   *  cleanly even after the transaction row is gone), the credit_transactions
+   *  row (same metadata filter), and restores credit_balances — either
+   *  UPSERTs back to the snapshot (balance, lifetime_earned) when a row
+   *  existed pre-attach, or DELETEs the row entirely when this call minted a
+   *  fresh row via the route's approve-branch UPSERT (route.ts:228-238).
+   *
+   *  Returns null when variant !== "active_wholesale" (matches the other
+   *  attach helpers — the seed script only mints the active_wholesale
+   *  reseller's attributed founder + admin mirror, and the approve branch
+   *  reads resellers.can_grant_credits which is only true for the wholesale
+   *  variant per the seed script's default), when `attributedUserId` is null
+   *  (attributed founder not seeded — no valid target_user_id UUID), or when
+   *  `adminUserId` is null (reseller_admins mirror missing — the requested_by
+   *  FK to app_users would violate).
+   *
+   *  Throws on any SQL error so a caller-supplied beforeAll catch can
+   *  distinguish "table missing" (migration 0095 or 0096 not applied →
+   *  reseller_requests INSERT fails) from "prerequisite missing" (no
+   *  admin user, no attributed founder) — the former surfaces as a
+   *  Playwright test.skip() with the error message, the latter surfaces as
+   *  a null return + a targeted skip reason.
+   *
+   *  Idempotent under CI replay: over_budget_approval carries no partial
+   *  unique index (see 0095:71-73 — only code_request does) so a rerun
+   *  inserts a fresh row without a 409 collision. Each call is a NEW
+   *  request row keyed on gen_random_uuid(), so parallel workers do not
+   *  race the same target row. */
+  attachApproveTarget(opts?: {
+    requestedAmount?: number;
+    reason?: string;
+  }): Promise<AttachApproveTargetResult | null>;
   /** No-op by default. Deletes any projects.id registered via
    *  trackProjectForCleanup() during the spec AND runs any restore
    *  closure registered by attachAttributedCustomer(), attachReportRow(),
-   *  or attachReviewerAccessToken(). */
+   *  attachReviewerAccessToken(), or attachApproveTarget(). */
   cleanup(): Promise<void>;
 }
 
@@ -409,6 +455,34 @@ export interface AttachReportRowResult {
    *  remove the row + storage object; false = no restore closure registered
    *  so parallel specs sharing the seed do not race a delete. */
   created: boolean;
+}
+
+export interface AttachApproveTargetResult {
+  /** `reseller_requests.id` of the freshly-inserted pending row that the
+   *  spec will PATCH via `/api/admin/resellers/requests/[id]` with
+   *  {action:"approve"}. */
+  requestId: string;
+  /** `credit_balances.user_id` the approve branch will credit — mirrors
+   *  the payload.target_user_id column, resolved from
+   *  `TempResellerFixture.attributedUserId`. */
+  targetUserId: string;
+  /** The over_budget_approval payload's `requested_amount` — echoed here so
+   *  the spec can assert the exact post-approve balance delta without
+   *  re-reading the request row. */
+  requestedAmount: number;
+  /** `credit_balances.balance` BEFORE the PATCH ran. Null if the target
+   *  user had no credit_balances row at attach time; cleanup() deletes the
+   *  row entirely in that case. Non-null means cleanup() UPSERTs back to
+   *  this value + `lifetimeEarnedBefore`. */
+  balanceBefore: number | null;
+  /** `credit_balances.lifetime_earned` BEFORE the PATCH ran. Null under
+   *  the same condition as `balanceBefore`. */
+  lifetimeEarnedBefore: number | null;
+  /** The `reseller_requests.payload.reason` string echoed onto both the
+   *  reseller_credit_grants.metadata + credit_transactions.metadata during
+   *  the approve fan-out. The spec can assert the ledger rows carry this
+   *  string. */
+  reason: string;
 }
 
 export interface AttachReviewerAccessTokenResult {
@@ -951,6 +1025,140 @@ export async function loadTempReseller(
         dataRoomId,
         projectId,
         dataRoomCreated,
+      };
+    },
+    async attachApproveTarget(opts?: {
+      requestedAmount?: number;
+      reason?: string;
+    }) {
+      if (variant !== "active_wholesale") return null;
+      if (!attributedUserId) return null;
+      if (!adminUserId) return null;
+      const targetUserIdSnapshot = attributedUserId;
+      const requestedAmount = opts?.requestedAmount ?? 1;
+      const reason = opts?.reason ?? "p10_wave5_row_175_approve_probe";
+
+      const { data: balanceBefore, error: balReadErr } = await supabase
+        .from("credit_balances")
+        .select("balance, lifetime_earned")
+        .eq("user_id", targetUserIdSnapshot)
+        .maybeSingle();
+      if (balReadErr) {
+        throw new Error(
+          `attachApproveTarget: read credit_balances failed: ${balReadErr.message}`,
+        );
+      }
+      const balanceBeforeVal =
+        (balanceBefore?.balance as number | null | undefined) ?? null;
+      const lifetimeBeforeVal =
+        (balanceBefore?.lifetime_earned as number | null | undefined) ?? null;
+      const balanceRowExisted = balanceBefore !== null;
+
+      const { data: insertedRequest, error: insertErr } = await supabase
+        .from("reseller_requests")
+        .insert({
+          reseller_id: resellerId,
+          requested_by: adminUserId,
+          request_type: "over_budget_approval",
+          status: "pending",
+          payload: {
+            target_user_id: targetUserIdSnapshot,
+            requested_amount: requestedAmount,
+            reason,
+          },
+        })
+        .select("id")
+        .maybeSingle();
+      if (insertErr || !insertedRequest?.id) {
+        throw new Error(
+          `attachApproveTarget: insert reseller_requests failed: ${insertErr?.message ?? "no row returned"}`,
+        );
+      }
+      const requestId = insertedRequest.id as string;
+
+      restoreClosures.push(async () => {
+        const errors: string[] = [];
+        // 1. reseller_credit_grants first — mirror row that references
+        //    credit_transactions.id via ON DELETE SET NULL, but scrubbing
+        //    it first keeps the cleanup trace tidy.
+        const { error: delGrantErr } = await supabase
+          .from("reseller_credit_grants")
+          .delete()
+          .eq("reseller_id", resellerId)
+          .eq("target_user_id", targetUserIdSnapshot)
+          .filter("metadata->>reseller_request_id", "eq", requestId);
+        if (delGrantErr) {
+          errors.push(
+            `delete reseller_credit_grants (${requestId}): ${delGrantErr.message}`,
+          );
+        }
+        // 2. reseller_requests — its linked_credit_transaction_id FK is
+        //    ON DELETE SET NULL so the request row deletes cleanly even
+        //    while credit_transactions is still present.
+        const { error: delReqErr } = await supabase
+          .from("reseller_requests")
+          .delete()
+          .eq("id", requestId);
+        if (delReqErr) {
+          errors.push(
+            `delete reseller_requests ${requestId}: ${delReqErr.message}`,
+          );
+        }
+        // 3. credit_transactions — deleted after request row so the FK
+        //    holder (reseller_requests.linked_credit_transaction_id) is
+        //    already gone.
+        const { error: delTxErr } = await supabase
+          .from("credit_transactions")
+          .delete()
+          .eq("user_id", targetUserIdSnapshot)
+          .filter("metadata->>reseller_request_id", "eq", requestId);
+        if (delTxErr) {
+          errors.push(
+            `delete credit_transactions (${requestId}): ${delTxErr.message}`,
+          );
+        }
+        // 4. credit_balances — restore snapshot when a row existed, else
+        //    delete the row the approve branch's UPSERT freshly minted.
+        if (balanceRowExisted) {
+          const { error: restoreErr } = await supabase
+            .from("credit_balances")
+            .upsert(
+              {
+                user_id: targetUserIdSnapshot,
+                balance: balanceBeforeVal ?? 0,
+                lifetime_earned: lifetimeBeforeVal ?? 0,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "user_id" },
+            );
+          if (restoreErr) {
+            errors.push(
+              `restore credit_balances ${targetUserIdSnapshot}: ${restoreErr.message}`,
+            );
+          }
+        } else {
+          const { error: delBalErr } = await supabase
+            .from("credit_balances")
+            .delete()
+            .eq("user_id", targetUserIdSnapshot);
+          if (delBalErr) {
+            errors.push(
+              `delete credit_balances ${targetUserIdSnapshot}: ${delBalErr.message}`,
+            );
+          }
+        }
+        if (errors.length > 0) {
+          throw new Error(`attachApproveTarget.restore: ${errors.join("; ")}`);
+        }
+      });
+
+      return {
+        requestId,
+        targetUserId: targetUserIdSnapshot,
+        requestedAmount,
+        balanceBefore: balanceBeforeVal,
+        lifetimeEarnedBefore: lifetimeBeforeVal,
+        reason,
       };
     },
     async cleanup() {

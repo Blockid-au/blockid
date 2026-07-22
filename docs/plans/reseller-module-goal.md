@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.183
+version: 2026-07-23.184
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,196 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 184
+    ran_at: 2026-07-22
+    action: p10_wave5_row_175_approve_over_budget_activated
+    result: |
+      Twenty-first wave-5 landing per docs/plans/p10-deferred-spec-activation-
+      order.md — activated row 175 approve branch (over_budget_approval:
+      `admin-requests-patch-authz.spec.ts` × active_wholesale × PATCH
+      {action:"approve"} → 200 with linked_credit_transaction_id populated).
+      Closes tick 183's frontier option (i): "row 175 approve branch — needs
+      an attachApproveTarget fixture helper OR seed-qa-reseller.mjs variant
+      that plants a deterministic target_user_id + pre-seeded credit_balances
+      row so approve's triple-write is idempotent under CI replay". Chose
+      the attachApproveTarget() helper path over the seed-script variant
+      because it isolates the four-write fan-out (credit_balances UPSERT +
+      credit_transactions INSERT + reseller_credit_grants INSERT +
+      reseller_requests UPDATE) inside a single beforeAll/afterAll
+      snapshot-restore closure rather than baking a permanent pending row
+      into the seed script.
+
+      Files:
+        - web/tests/e2e/fixtures/reseller.ts (added
+          AttachApproveTargetResult interface + attachApproveTarget() on
+          TempResellerFixture; the helper snapshot-restores four tables —
+          snapshots credit_balances (balance + lifetime_earned) BEFORE the
+          insert so cleanup can UPSERT back to baseline or DELETE when no
+          row existed pre-attach; inserts a fresh
+          reseller_requests row (request_type='over_budget_approval',
+          status='pending', requested_by=adminUserId, payload carries
+          target_user_id + requested_amount + reason); cleanup() runs in
+          reverse order — DELETE reseller_credit_grants filtered by
+          metadata->>'reseller_request_id' first, then DELETE
+          reseller_requests row by id (its
+          linked_credit_transaction_id FK is ON DELETE SET NULL so the
+          request row deletes cleanly even after the transaction is gone),
+          then DELETE credit_transactions filtered by the same metadata
+          path, then restore credit_balances via UPSERT-to-snapshot or
+          DELETE-if-not-existed. Return null on non-active_wholesale
+          variants + missing attributedUserId + missing adminUserId,
+          matching the attachAttributedCustomer / attachReportRow /
+          attachReviewerAccessToken discipline. Docblock on TempResellerFixture
+          + AttachApproveTargetResult explains the snapshot-restore
+          semantics, the four writes covered, the null-return conditions,
+          and idempotency posture — over_budget_approval carries no partial
+          unique index (see 0095:71-73 — only code_request does) so parallel
+          workers do not race the same row.)
+        - web/tests/e2e/reseller/admin-requests-patch-authz.spec.ts
+          (header docblock "Deliberately out of scope" split the approve
+          branch entry into two — approve(code_request) stays deferred on
+          Stripe test-mode wiring, approve(over_budget_approval) is now
+          activated. Imports extended with loadTempReseller +
+          tempResellerSkipReason + AttachApproveTargetResult +
+          TempResellerFixture from ../fixtures/reseller. Appended a new
+          `test.describe("Admin reseller requests PATCH — P10 wave-5 row
+          175 happy path (approve over_budget_approval)")` block after the
+          deny + cancel describes. Inside the block: beforeAll loads the
+          active_wholesale fixture + calls attachApproveTarget(),
+          capturing both throw and null-return separately so the test-
+          scope skip messages can point at the specific cause (fixture
+          load, attach SQL error, or attach null on missing prerequisites).
+          afterAll runs fixture.cleanup() inside a try/catch so a teardown
+          regression does not mask the test verdict. The single test
+          PATCHes the fixture's requestId with {action:"approve",
+          decision_reason:"p10_wave5_row_175_approve_probe"} and asserts
+          200 + body.ok=true + body.request.status="approved" + body.request
+          .decision_reason matches probe string + body.request.linked_
+          credit_transaction_id is a non-null UUID + body.request.linked_
+          promotion_code_id is null. Skip discipline: describe-scope for
+          missing admin harness, test-scope for fixture load throw /
+          fixture null / attach throw / attach null / loginAs throw — five
+          skip points mirroring the wave-5 row 178 + row 177 patterns.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.183 → 2026-07-23.184; this review_history entry
+          prepended).
+
+      Design fidelity:
+        - Variant pin matches plan-doc wave-5 row 175 (active_wholesale) —
+          the approve branch reads resellers.can_grant_credits which is
+          only true for the wholesale variant per the seed script's
+          default. Paused / terminated / no_capability variants would
+          return null from attachApproveTarget() before any DB write,
+          matching the discipline of the other three attach helpers.
+        - attachApproveTarget() inserts the reseller_requests row directly
+          via Supabase admin rather than piggybacking on the /api/reseller/
+          requests POST route. Rationale: the fixture must run against
+          adminUserId (not the reseller-admin session) so the requested_by
+          column can point at a real app_users row without needing the
+          spec to loginAs the reseller admin first. This isolates the
+          approve-branch test from any state that wave-3 row 155 or row
+          155-b seeder wrote — parallel CI passes with row 155 running
+          alongside this row do not collide because each attach mints its
+          own gen_random_uuid() request id.
+        - Snapshot-restore ordering matches the FK dependency graph:
+          reseller_credit_grants deletes first (its credit_transaction_id
+          FK is ON DELETE SET NULL — order doesn't strictly matter here,
+          but scrubbing the mirror first keeps the trace tidy);
+          reseller_requests deletes second (its linked_credit_transaction
+          _id FK is ON DELETE SET NULL so the request row deletes cleanly
+          even after the transaction is gone); credit_transactions deletes
+          third (the FK holders are already gone, so no orphan-ref risk);
+          credit_balances restore is last (independent of the other three).
+        - metadata->>'reseller_request_id' filter for
+          reseller_credit_grants + credit_transactions cleanup mirrors the
+          route's metadata write at route.ts:253-259 + 281-286 — a
+          regression that changed the metadata schema (e.g. renamed the
+          reseller_request_id key) would surface as a leftover row after
+          cleanup, detectable by re-running the spec and seeing a second
+          approve fire against a re-inserted request row that the leftover
+          would then double-count.
+        - No side-effect assertions on reseller_audit_log this tick.
+          Audit-log write coverage for the approve fan-out is folded into
+          wave-5 row 179 (audit-log-writes.spec.ts) alongside the deny +
+          cancel audit-log writes so a single describe block owns the DB-
+          level state check for admin-side approval events. This block
+          owns the wire envelope (200 + populated linked_credit_transaction
+          _id + null linked_promotion_code_id) which is the tightest
+          signal for a route regression in the approve branch's happy
+          path — the deeper ledger-row assertions (credit_balances.balance
+          === balanceBefore + amount, credit_transactions.metadata->>reseller
+          _request_id === requestId, reseller_credit_grants.kind === 'grant')
+          are intentionally deferred to keep this describe block scoped to
+          the wire contract.
+        - Skip discipline uses beforeAll + afterAll (not beforeEach +
+          afterEach) because the fixture load + attach are expensive
+          (four SQL round-trips) and the block contains a single test.
+          A future extension that adds a second test (e.g. asserting the
+          reseller_requests row can NOT be approved a second time — the
+          idempotency probe) would benefit from beforeEach/afterEach
+          isolation, but a single-test describe folds cleanly into
+          beforeAll/afterAll per the tick 183 pattern.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0). Four new
+          imports (loadTempReseller + tempResellerSkipReason +
+          AttachApproveTargetResult + TempResellerFixture) all resolve
+          against existing exports in fixtures/reseller.ts; the new
+          interface + helper are exported from the same module.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 documented exemptions, 0
+          violations — unchanged from tick 183 (the fixture + spec are
+          not under /api/reseller/** for the R-01 grep and are not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - `npx vitest run --reporter=default` in web/: 855/855 pass
+          across 69 test files (unchanged from tick 183 — no new unit
+          suite; the fixture wiring is exercised only by Playwright).
+        - No DB apply this tick — no migration authored. The fixture
+          writes into pre-existing tables (0013 credit_balances +
+          credit_transactions, 0095 reseller_requests, 0096
+          reseller_credit_grants) so hosts missing any of the four will
+          surface the missing table as a Supabase error inside
+          attachApproveTarget(), and the spec catches the throw and
+          calls test.skip() with a targeted message naming the specific
+          migration to apply.
+        - Goal file version bumped 2026-07-23.183 → 2026-07-23.184.
+
+      Frontier after tick 184: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision seed
+      STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE; P10 still
+      blocked_by [P1..P9] until P8.5 clears. Wave 5 has now landed 163 +
+      164 + 165 + 166 + 167 + 168 + 169 + 170 + 171 + 172 + 173 + 174 +
+      175 (deny + cancel + approve/over_budget) + 176 + 177 + 178 + 179
+      + 180 + 181 + 183 — the row 175 approve branch now has QAPROBE-
+      cohort coverage for the over_budget_approval fan-out, joining
+      deny + cancel to give the PATCH route full transition coverage on
+      the non-Stripe path. Remaining deferred wave-5 rows:
+      175 approve(code_request) branch (deferred on Stripe coupon +
+      promotion_code mint side effect; needs stripe-test-mode key or
+      QA-only mock harness — same posture as row 182), 182 (billing-authz
+      active_wholesale happy 200 — deferred on Stripe SetupIntent side
+      effect + reseller_audit_log(mint_setup_intent) write, needs
+      stripe-test-mode key or QA-only mock harness), and plan §337 signup-
+      jitter branch on row 178 (still deferred pending a QA-mode signup
+      flow Playwright can drive without user interaction). Natural next
+      picks:
+        (i) fold ledger-row DB assertions into wave-5 row 179 (audit-log-
+             writes.spec.ts) to close the DB-level state check for the
+             approve fan-out (credit_balances.balance === balanceBefore
+             + amount, credit_transactions.metadata->>reseller_request_id
+             === requestId, reseller_credit_grants.kind === 'grant' +
+             over_budget === true);
+        (ii) row 175 approve(code_request) branch — still requires
+              stripe-test-mode key or QA-only coupon/promotion_code mock
+              harness (out of scope for the autonomous loop until P8.5
+              clears);
+        (iii) row 182 — still requires stripe-test-mode key or QA-only
+               SetupIntent mock harness (out of scope for the autonomous
+               loop until P8.5 clears);
+        (iv) plan §337 signup-jitter branch on row 178 — still deferred
+              pending a QA-mode signup flow Playwright can drive.
+    commit: (this tick)
+
   - tick: 183
     ran_at: 2026-07-22
     action: p10_wave5_row_177_showcase_reviews_reviewer_post_happy_activated

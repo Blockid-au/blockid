@@ -69,16 +69,19 @@
 //     _failed / credit ledger insert failures / update_failed (500) — all fold
 //     into the admin QA harness follow-up alongside the deferred rows from
 //     ticks 94/95/96/97/98/99/100/101/102/103/104.
-//   - Happy path (200) approve branch — fires a Stripe coupon+promotion_code
-//     mint (code_request) or the credit-grant ledger triple-write
-//     (over_budget_approval → credit_balances UPSERT + credit_transactions
-//     INSERT + reseller_credit_grants INSERT). Deferred alongside the
-//     temp-reseller mint fixture follow-up: activating the approve branch
-//     safely needs deterministic control over the row's target_user_id AND
-//     the pre/post credit_balances state so the test can assert the ledger
-//     delta without cross-run drift. Follow-up tick can seed the row via
-//     scripts/seed-qa-reseller.mjs (add an approve-target variant) rather
-//     than doing per-test writes from the spec.
+//   - Happy path (200) approve branch (code_request) — still fires a Stripe
+//     coupon+promotion_code mint. Deferred until Stripe test-mode wiring
+//     lands (same posture as wave-5 row 182 billing-authz happy path).
+//   - Happy path (200) approve branch (over_budget_approval) — ACTIVATED
+//     wave-5 row 175 approve-branch block below via the new
+//     attachApproveTarget() fixture helper. The helper snapshot-restores
+//     four writes end-to-end (reseller_requests INSERT then reseller_credit
+//     _grants + reseller_requests + credit_transactions DELETE + credit_
+//     balances restore) so the ledger triple-write (route.ts:200-293) has
+//     deterministic control over target_user_id AND the pre/post credit_
+//     balances state — the delta assertion pins balanceBefore + amount
+//     without cross-run drift. Only the code_request approve branch stays
+//     deferred (Stripe mint dependency).
 //   - Happy path (200) cancel branch — ACTIVATED wave-5 row 175 cancel-
 //     branch block below via loadAdminHarness() (qa-admin-1@blockid.au) once
 //     row 155-b seeder landed in requests-authz.spec.ts (tick 164) to insert
@@ -115,7 +118,14 @@
 
 import { test, expect } from "@playwright/test";
 import { loginAs } from "../fixtures/accounts";
-import { adminHarnessSkipReason, loadAdminHarness } from "../fixtures/reseller";
+import {
+  adminHarnessSkipReason,
+  loadAdminHarness,
+  loadTempReseller,
+  tempResellerSkipReason,
+  type AttachApproveTargetResult,
+  type TempResellerFixture,
+} from "../fixtures/reseller";
 
 const NON_ADMIN_FOUNDER_EMAIL =
   process.env.QA_UNATTRIBUTED_FOUNDER_EMAIL ?? "qa-founder-1@blockid.au";
@@ -475,5 +485,196 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
     // _id or linked_promotion_code_id.
     expect(patchBody.request?.linked_credit_transaction_id).toBeNull();
     expect(patchBody.request?.linked_promotion_code_id).toBeNull();
+  });
+});
+
+// P10 wave-5 row 175 — happy path APPROVE branch (over_budget_approval).
+// Admin PATCHes a pending over_budget_approval row minted by the temp-
+// reseller fixture's attachApproveTarget() helper (fixtures/reseller.ts) and
+// approves it via {action:"approve", decision_reason:"..."}. Approve is the
+// heavyweight transition at web/src/app/api/admin/resellers/requests/[id]
+// /route.ts:200-293: credit_balances UPSERT (bumps balance +
+// lifetime_earned by payload.requested_amount) + credit_transactions INSERT
+// (reason='reseller_grant_over_budget', metadata carries reseller_request_id
+// + approved_by_admin) + reseller_credit_grants INSERT (kind='grant',
+// over_budget=true, credit_transaction_id links to the fresh transaction)
+// + reseller_requests UPDATE (status pending → approved, decision_by +
+// decision_at + decision_reason + linked_credit_transaction_id stamped).
+// No Stripe network call — the code_request approve branch is the Stripe-
+// dependent path and stays deferred (see "Deliberately out of scope"
+// above) pending Stripe test-mode wiring.
+//
+// Coverage-vs-duplication call vs the deny + cancel blocks: pin 200 +
+// body.ok=true + body.request.id matching UUID_RE + body.request.status ===
+// "approved" + body.request.decision_reason === explicit probe string +
+// body.request.linked_credit_transaction_id matching UUID_RE (non-null,
+// distinguishes approve from deny/cancel where both linked_* stay null) +
+// body.request.linked_promotion_code_id === null (over_budget_approval
+// approve NEVER mints a promotion_code — that path is code_request only).
+// The linked_credit_transaction_id UUID pin catches (a) a regression that
+// dropped the transaction insert but returned 200 anyway, and (b) a
+// regression that folded promotion_code stamping into the over_budget
+// branch. Do NOT pin body.request.decision_at value (timestamp drift).
+//
+// State-pollution posture: attachApproveTarget() snapshot-restores four
+// writes end-to-end on fixture.cleanup(). The reseller_credit_grants row
+// is filtered by metadata->>'reseller_request_id' = requestId (matches the
+// route's metadata write at route.ts:281-286). The reseller_requests row
+// is deleted by id. The credit_transactions row is filtered by the same
+// metadata path (route.ts:253-259). credit_balances is either UPSERTed
+// back to snapshot (balance, lifetime_earned) when a row existed pre-
+// attach, or DELETEd entirely when this call minted a fresh row.
+// cleanup() runs in afterAll so a failing assertion in the test still
+// triggers the restore closure.
+//
+// Skip discipline mirrors the deny + cancel blocks with three extra
+// layers for the fixture: loadAdminHarness null (describe-scope skip via
+// adminHarnessSkipReason), loadTempReseller throw (test-scope skip),
+// loadTempReseller null (test-scope skip via tempResellerSkipReason),
+// attachApproveTarget throw (SQL error — test-scope skip surfaces the
+// underlying error), attach null (attributedUserId or adminUserId missing
+// on this host — targeted skip pointer at the seeder scripts).
+//
+// Non-Stripe / non-GST discipline: the approve branch for over_budget_
+// approval only writes credit_balances + credit_transactions +
+// reseller_credit_grants + reseller_requests. No Stripe network call, no
+// revenue_events read, no InfoVision dependency. P8.5 + P1.5 remain
+// neither a dependency nor a consequence — the same posture that let the
+// deny + cancel blocks land in prior ticks.
+test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (approve over_budget_approval)", () => {
+  const harness = loadAdminHarness();
+  test.skip(!harness, adminHarnessSkipReason());
+
+  let fixture: TempResellerFixture | null = null;
+  let fixtureError: Error | null = null;
+  let attach: AttachApproveTargetResult | null = null;
+  let attachError: Error | null = null;
+
+  test.beforeAll(async () => {
+    try {
+      fixture = await loadTempReseller("active_wholesale");
+    } catch (err) {
+      fixtureError = err as Error;
+      return;
+    }
+    if (!fixture) return;
+    try {
+      attach = await fixture.attachApproveTarget();
+    } catch (err) {
+      attachError = err as Error;
+    }
+  });
+
+  test.afterAll(async () => {
+    if (fixture) {
+      try {
+        await fixture.cleanup();
+      } catch {
+        // Swallow cleanup errors so a teardown regression does not mask
+        // the test verdict — the leaked row will surface on the next run
+        // via the pending-inbox scan.
+      }
+    }
+  });
+
+  test("approve — PATCH as qa-admin-1 flips a pending over_budget_approval row to status=approved and stamps linked_credit_transaction_id", async ({
+    page,
+  }) => {
+    if (fixtureError) {
+      test.skip(
+        true,
+        `loadTempReseller('active_wholesale') threw: ${fixtureError.message}. ` +
+          tempResellerSkipReason("active_wholesale"),
+      );
+      return;
+    }
+    if (!fixture) {
+      test.skip(true, tempResellerSkipReason("active_wholesale"));
+      return;
+    }
+    if (attachError) {
+      test.skip(
+        true,
+        `attachApproveTarget threw: ${attachError.message}. Common ` +
+          `causes: migration 0091/0095/0096 not applied on this host, or ` +
+          `the credit_balances / credit_transactions / reseller_credit_grants ` +
+          `/ reseller_requests table missing.`,
+      );
+      return;
+    }
+    if (!attach) {
+      test.skip(
+        true,
+        "attachApproveTarget returned null — attributed founder or " +
+          "reseller-admin app_users row missing on this host. Run " +
+          "scripts/seed-qa-reseller.mjs + scripts/seed-test-users.mjs " +
+          "with QA_RESELLER_MULTI_ADMIN=1 to plant both rows.",
+      );
+      return;
+    }
+
+    try {
+      await loginAs(page, harness!.admin.email);
+    } catch (err) {
+      test.skip(
+        true,
+        `Admin QA account not seeded: ${(err as Error).message}. Run ` +
+          `scripts/seed-test-users.mjs to populate /tmp/blockid-qa-accounts.txt.`,
+      );
+      return;
+    }
+
+    const decisionReason = "p10_wave5_row_175_approve_probe";
+    const patchResp = await page.request.patch(
+      `${REQUESTS_LIST_ROUTE}/${attach.requestId}`,
+      {
+        data: { action: "approve", decision_reason: decisionReason },
+        headers: { "content-type": "application/json" },
+      },
+    );
+    expect(
+      patchResp.status(),
+      `approve returned ${patchResp.status()} — expected 200 after requireAdmin() + validateAdminDecision() + credit-ledger triple-write. A 401 means the admin session dropped mid-test; a 404 not_found means the fixture-inserted row was deleted (concurrent worker); a 422 payload_incomplete means the fixture's payload lost target_user_id or requested_amount (fixture drift); a 500 balance_read_failed / balance_upsert_failed / transaction_insert_failed / mirror_insert_failed / update_failed means one of the four ledger writes leaked through. Body: ${await patchResp.text()}`,
+    ).toBe(200);
+
+    const patchBody = (await patchResp.json()) as {
+      ok?: unknown;
+      request?: {
+        id?: unknown;
+        status?: unknown;
+        decision_at?: unknown;
+        decision_reason?: unknown;
+        linked_credit_transaction_id?: unknown;
+        linked_promotion_code_id?: unknown;
+      };
+    };
+    expect(patchBody.ok).toBe(true);
+    expect(typeof patchBody.request?.id).toBe("string");
+    expect(patchBody.request?.id as string).toBe(attach.requestId);
+    expect(patchBody.request?.status).toBe("approved");
+    expect(typeof patchBody.request?.decision_at).toBe("string");
+    expect(patchBody.request?.decision_reason).toBe(decisionReason);
+    // Approve branch for over_budget_approval MUST populate
+    // linked_credit_transaction_id (route.ts:269+303). A regression that
+    // dropped the transaction insert but returned 200 anyway would surface
+    // here as a null value.
+    const linkedTxId = patchBody.request?.linked_credit_transaction_id;
+    expect(typeof linkedTxId).toBe("string");
+    expect(linkedTxId as string).toMatch(UUID_RE);
+    // over_budget_approval NEVER mints a promotion_code — that path is
+    // code_request only (route.ts:93-197). A regression that folded
+    // promotion_code stamping into the over_budget branch would surface
+    // here as a non-null value.
+    expect(patchBody.request?.linked_promotion_code_id).toBeNull();
+
+    // Deeper ledger-row assertions (credit_balances.balance ===
+    // balanceBefore + amount, credit_transactions.metadata->>reseller_
+    // request_id === requestId, reseller_credit_grants.kind === 'grant')
+    // are folded into wave-5 row 179 (audit-log-writes.spec.ts) alongside
+    // the audit event writes so a single describe block owns the DB-level
+    // state check for the approve fan-out. This block owns the wire
+    // envelope (200 + populated linked_credit_transaction_id + null
+    // linked_promotion_code_id) which is the tightest signal for a route
+    // regression in the approve branch's happy path.
   });
 });
