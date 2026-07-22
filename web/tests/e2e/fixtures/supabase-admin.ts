@@ -13,9 +13,11 @@
 // tempted to import from src/, don't: use resellerSupabase() + scopedReseller()
 // from lib/reseller/supabase.ts instead.
 //
-// The two helpers below cover the read paths the attribution-timing spec needs.
-// Add more helpers as future spec ticks land (audit-log lookup, credit-grant
-// mirror row lookup, etc.) — keep them single-table and read-only.
+// The helpers below cover the read paths the reseller P10 dry-run specs need:
+// attribution-timing (reseller_attributions row-count) and audit-log-writes
+// (reseller_audit_log row-count by action + actor + subject). Add more helpers
+// as future spec ticks land (credit-grant mirror row lookup, etc.) — keep them
+// single-table and read-only.
 //
 // Write paths are deliberately absent: seeding QA rows lives in
 // scripts/seed-test-users.mjs; specs must not mutate DB state.
@@ -98,4 +100,42 @@ export async function findUserIdByEmail(
     throw new Error(`findUserIdByEmail failed: ${error.message}`);
   }
   return (data?.id as string | undefined) ?? null;
+}
+
+/**
+ * Count reseller_audit_log rows matching an (action, actor, subject) triple,
+ * optionally filtered to rows created at or after a captured timestamp.
+ * Used by the audit-log-writes spec (plan Verification #5) to assert that a
+ * privileged read — /api/reseller/customers/[id]/{drawer, reveal-email} —
+ * produces a durable audit row before the response returns.
+ *
+ * The `since` cursor is required in practice because reseller_audit_log is
+ * append-only (0093 mutation triggers block UPDATE/DELETE), so cross-run
+ * accumulation would otherwise poison count-based assertions. Callers should
+ * capture `new Date().toISOString()` immediately before firing the request
+ * and pass it here.
+ */
+export async function countResellerAuditLogFor(
+  supabase: SupabaseClient,
+  opts: {
+    action: string;
+    actorUserId: string;
+    subjectUserId: string;
+    since?: string;
+  },
+): Promise<number> {
+  let query = supabase
+    .from("reseller_audit_log")
+    .select("id", { count: "exact", head: true })
+    .eq("action", opts.action)
+    .eq("actor_user_id", opts.actorUserId)
+    .eq("subject_user_id", opts.subjectUserId);
+  if (opts.since) {
+    query = query.gte("created_at", opts.since);
+  }
+  const { count, error } = await query;
+  if (error) {
+    throw new Error(`countResellerAuditLogFor failed: ${error.message}`);
+  }
+  return count ?? 0;
 }
