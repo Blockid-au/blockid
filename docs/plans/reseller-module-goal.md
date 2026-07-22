@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.117
+version: 2026-07-23.118
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,110 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 118
+    ran_at: 2026-07-22
+    action: p10_dry_run_drawer_validation_playwright_spec
+    result: |
+      Closed the last remaining /api/reseller/customers/[id]/drawer coverage
+      gap at the Playwright lens. Track A P4.2 shipped tick 22
+      (P4.2_customer_drawer). drawer-authz.spec.ts (tick 101) already probes
+      the pre-scope auth chain (unauthenticated + non_reseller_admin
+      returning 401 unauthorised / 403 no_membership). This tick lands the
+      sibling validation-branch spec that mirrors reveal-email-validation
+      (tick 117) — the two decideReveal() branches surfaced BEFORE the
+      app_users SELECT, the Promise.all fan-out, and the
+      reseller_audit_log(view_customer_drawer) write, both exercised behind
+      the QA_RESELLER_ADMIN_EMAIL harness so the reseller session is a real
+      scope-passing account instead of a founder or unauthenticated caller.
+
+      Files:
+        - web/tests/e2e/reseller/drawer-validation.spec.ts (new — two rows
+          probing decideReveal(id, allowedCustomerIds) BEFORE
+          getSupabaseAdmin, the app_users SELECT, the parallel
+          svi_analyses / revenue_events / credit_transactions /
+          credit_balances joins, or the
+          reseller_audit_log(view_customer_drawer) write fire:
+          (1) invalid_id — GET /api/reseller/customers/not-a-uuid/drawer
+              with a non-UUID [id] path segment → 400
+              { ok:false, reason:"invalid_id" } at route.ts:62-68 in the
+              decideReveal UUID_RE branch,
+          (2) not_in_scope — GET /api/reseller/customers/<well-formed uuid
+              outside allowedCustomerIds>/drawer → 403
+              { ok:false, reason:"not_in_scope" } at route.ts:62-68 in the
+              decideReveal allowedIds.includes() branch. Uses
+              00000000-0000-4000-8000-000000000001 in lockstep with
+              reveal-email-validation.spec.ts so the two twin specs share
+              a single sentinel — if the value ever needs to change
+              (collision with a real row) both specs update together.
+          Both rows use the QA_RESELLER_ADMIN_EMAIL harness via
+          loadResellerHarness() + loginAs so scopedReseller passes and
+          decideReveal is actually the gate that fires; without the
+          harness the spec test.skip()s with harnessSkipReason().
+
+      Why this shape is the twin of reveal-email-validation (tick 117):
+      the two routes share the decideReveal chokepoint verbatim
+      (customer-reveal.ts is imported by both handlers), so the two specs
+      together assert that a regression in the shared helper surfaces via
+      both the POST reveal-email lens AND the GET drawer lens. The GET
+      drawer route uses the direct getCurrentUser() + scopedReseller() +
+      decideReveal() chain rather than gateRequireFeature(). The response
+      envelope is therefore { ok:false, reason:<string> } like drawer-authz
+      / reveal-email-authz / me-attribution / admin-* / create-startup /
+      requests-authz rather than the { ok:false, error, feature } shape
+      billing / sandbox-setup / credit-grant emit. Distinct from
+      reveal-email-validation in one dimension only — this is the READ
+      lens (GET) rather than the WRITE lens (POST), whose blast radius is
+      a durable audit-log row + a joined view-model (Overview + Progression
+      + SVI curve + Reports) leaving the reseller boundary rather than a
+      single plaintext email.
+
+      Why the missing_id branch isn't covered: decideReveal returns
+      missing_id when customerId.length === 0, but Next.js dynamic route
+      matching rejects an empty [id] segment at the router and returns 404
+      before route.ts:47 runs — so missing_id is only reachable via unit
+      tests in customer-reveal.test.ts (tick 21, 7/7) and not via a live
+      HTTP request. Deliberately noted in the spec header comment so a
+      future reader doesn't try to add a third row.
+
+      Why 404 / 500 / 503 branches aren't covered: not_configured (503)
+      needs SUPABASE_URL/SERVICE_ROLE unset which would break every other
+      Playwright spec in the same worker. not_found (404) needs the
+      app_users SELECT to return no row for an in-scope id (requires
+      per-test app_users tampering). lookup_failed / audit_failed (500)
+      need per-test tampering plan §J.2 forbids. Happy path (200 with
+      overview + progression + svi_curve + reports) fires the full
+      app_users SELECT + Promise.all fan-out + reseller_audit_log write
+      against the harness reseller + attributed customer — belongs to the
+      temp-reseller mint fixture follow-up alongside every other deferred
+      happy-path row from ticks 94..117.
+
+      Verified: tsc clean (npx tsc --noEmit exit=0); npm run lint:reseller:
+      unchanged from tick 117 baseline — R-01 scanned 11 file(s), R-03
+      scanned 31 manifest route(s), 3 exemptions, 0 violations (the spec
+      lives under web/tests/e2e/reseller/ not /api/reseller/**, so R-01
+      doesn't fire; it's not a mutation route in feature-gates.manifest.ts
+      so R-03 doesn't fire). Playwright not run this tick — both rows will
+      execute on the next CI Playwright pass alongside the twenty-nine
+      other reseller-lens dry-run specs.
+
+      Frontier after tick 118: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 118 unblocks: the last decideReveal() validation
+      chokepoint under /api/reseller/customers/[id]/drawer now has
+      symmetric coverage matching reveal-email / credit-grant / requests /
+      create-startup validation patterns. Thirty spec files now sit in
+      web/tests/e2e/reseller/. Next autonomous tick options: (i) landing
+      the QA-mode temp-reseller mint fixture that opens up all the
+      deferred HAPPY-PATH branches from ticks 94..118 at once (larger
+      tick, wants a design pass); (ii) sandbox-setup input-validation
+      spec if that route has post-scope branches; (iii) GET
+      /api/reseller/requests auth-chain twin spec (mirrors POST at the
+      read lens; useful when the reseller UI list-page regresses); (iv)
+      idle until human unblock arrives on P8.5 or P1.5.
     commit: (this tick)
 
   - tick: 117
