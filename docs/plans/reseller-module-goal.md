@@ -2561,6 +2561,98 @@ review_history:
       tick per CDO rec #2).
     commit: (this tick)
 
+  - tick: 94
+    ran_at: 2026-07-22
+    action: p10_dry_run_create_startup_validation_playwright_spec
+    result: |
+      Composed the shape of tick 91/92's "author more P10 dry-run spec rows
+      that self-skip until harness provisions" posture. Tick 75 landed POST
+      /api/reseller/create-startup and tick 77 wired the wholesale Stripe
+      subscription line, but no Playwright spec covered the endpoint's
+      input-validation contract. Small, self-contained, orthogonal to the
+      P8.5 / P1.5 human-blocked leaves, and adds regression coverage for
+      the four normaliseCreateStartupInput() branches so a future refactor
+      that reorders the gate precedence surfaces before the DB writes fire.
+
+      Files:
+        - web/tests/e2e/reseller/create-startup-validation.spec.ts (new —
+          four parametrised test rows probing the normalise-gate branches
+          invalid_email / company_name_required / invalid_plan_tier /
+          invalid_discount_tier. Each row POSTs a malformed body via
+          page.request.post with content-type: application/json, asserts
+          HTTP 400, body.ok === false, body.reason matches the
+          CreateStartupError literal, and body.message is present so the
+          CREATE_STARTUP_ERROR_MESSAGES map coverage stays end-to-end. All
+          bodies share a VALID_BASE object and override exactly one field
+          to trip a target gate, so a passing assertion proves that
+          specific branch fires rather than an earlier-in-order gate
+          absorbing the failure. Describe-scope skip via
+          loadResellerHarness() — same posture as audit-log-writes /
+          audit-anomaly-scan / attribution-timing / cobranding-pill /
+          scope-boundary specs so the row lights up the instant
+          QA_RESELLER_ADMIN_EMAIL + QA_RESELLER_ATTRIBUTED_CUSTOMER_ID
+          provision.)
+
+      Why only the four normalise branches, not the six decideCreateStartup
+      gates: the normalise gate rejects before touching app_users /
+      projects / reseller_attributions, so a 400 response never mutates
+      DB state — the spec is safe against staging. The decideCreateStartup
+      branches (reseller_not_active / capability_disabled /
+      billing_model_not_wholesale / tier_not_allowed /
+      existing_active_attribution / promotion_code_missing) each need a
+      real reseller row with specific column values (e.g.
+      billing_model='retail' for billing_model_not_wholesale) —
+      asserting them would either need per-test row seeding (forbidden
+      by plan §J.2) or a bespoke harness that mints a temp reseller
+      with the target state. Tracked as follow-up.
+
+      Deliberately out of scope for this tick:
+        - Happy-path spec (200 provisioning end-to-end) — would fire
+          real DB writes + Stripe subscription create (tick 77 wiring)
+          against the harness reseller, needs opt-in guarding + cleanup
+          semantics. Belongs to a dedicated tick that lands both.
+        - Fixture helper for asserting no DB row was written after a
+          400 response — the normalise gate rejects before any INSERT
+          fires, so absence-of-side-effect is guaranteed by the route
+          contract, not by post-hoc DB inspection. If a future refactor
+          moves any DB write above the normalise call the vitest suite
+          for create-startup.ts (23 cases) would catch the regression
+          before Playwright would.
+        - Extending decide-gate coverage via a QA-only reseller-swap
+          endpoint — larger surface (service-role handling, cleanup
+          semantics, audit trail) than a P10 dry-run tick.
+
+      Verified: tsc clean (npx tsc --noEmit exit 0 at web/); vitest
+      845/845 unchanged (Playwright spec is not picked up by vitest —
+      tests/e2e/** is excluded per playwright.config.ts:testDir); npm
+      run lint:reseller: R-01 scanned 11 file(s), R-03 scanned 31
+      manifest route(s); 3 exemptions, 0 violations unchanged (spec
+      lives under web/tests/e2e/reseller/, not /api/reseller/**, so
+      R-01 doesn't fire; not a mutation route in
+      feature-gates.manifest.ts so R-03 doesn't fire). Playwright not
+      run — spec self-skips at describe-scope when
+      QA_RESELLER_ATTRIBUTED_CUSTOMER_ID is unset (current CI state).
+
+      Frontier after tick 94: unchanged in shape — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 94 unblocks: the /api/reseller/create-startup input-
+      validation contract is now regression-guarded at the Playwright
+      lens — a refactor that swaps the gate precedence in
+      normaliseCreateStartupInput (email → company → plan_tier →
+      discount_tier) or drops the CREATE_STARTUP_ERROR_MESSAGES map
+      coverage lights up in CI the instant the reseller harness
+      provisions. Six spec files now sit in web/tests/e2e/reseller/
+      (attribution-timing, audit-anomaly-scan, audit-log-writes,
+      cobranding-pill, scope-boundary, create-startup-validation) —
+      the P10 Playwright surface keeps shrinking one authored row at
+      a time. Next autonomous tick options: (i) landing a dedicated
+      QA-mode temp-reseller mint fixture that opens up the six
+      decideCreateStartup branches to spec assertions (larger tick,
+      wants a design pass); (ii) idle until human unblock arrives.
+    commit: (this tick)
+
   - tick: 93
     ran_at: 2026-07-22
     action: p11_ongoing_backfill_retail_reseller_attributions_script
