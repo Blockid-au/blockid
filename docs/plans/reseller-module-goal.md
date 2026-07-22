@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.221
+version: 2026-07-23.222
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,162 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 222
+    ran_at: 2026-07-22
+    action: p10_admin_requests_list_authz_row_174_resellers_join_shape_pin
+    result: |
+      Landed tick 221 "natural next pick" option (b) verbatim: added the
+      resellers(code, display_name) nested-join shape pin to
+      admin-requests-list-authz.spec.ts row 174 happy path. This closes the
+      last un-pinned field in the admin request envelope — tick 221 shipped
+      the four FK-echo UUID pins (requested_by / decision_by / linked_credit
+      _transaction_id / linked_promotion_code_id), and this tick shipped the
+      one remaining embed.
+
+      Route SELECT at web/src/app/api/admin/resellers/requests/route.ts:44
+      embeds `resellers(code, display_name)` — a Supabase nested select on
+      the parent resellers row via the reseller_requests.reseller_id →
+      resellers.id FK (0095:27). PostgREST returns this as a single embedded
+      object (not an array) because the FK targets a UNIQUE column (resellers
+      .id PRIMARY KEY per 0091:23). reseller_id is NOT NULL + ON DELETE
+      RESTRICT so r.resellers is never null — a NULL would only appear if the
+      FK were nullable AND unlinked. Both embed columns are NOT NULL text per
+      0091:24-25 (code UNIQUE UPPERCASE slug, display_name plain text). Pre-
+      tick posture left the entire nested join silent — a route regression
+      that dropped `resellers(code, display_name)` from the SELECT list would
+      surface only at the /admin/resellers/requests visual QA lens which
+      renders the parent reseller badge next to each row. Purely additive —
+      no test removed, no assertion weakened, no production code touched.
+
+      Frontier before this tick: tick 221 shipped the four FK-echo pins on
+      the same row 174 loop body. Options (a) and (c) from the tick 221 next-
+      pick list remain open (drawer-authz + drawer-validation richer envelope
+      audit for option (a), P8.5-blocked code_request approve/deny/cancel
+      shape+helper alignment for option (c)); option (b) chosen this tick as
+      the tightest self-contained pin (single embed → three shape assertions:
+      object-not-null-not-array + typeof code === "string" + typeof
+      display_name === "string").
+
+      Diagnostic delta of the pass:
+        - Pre-tick admin-requests-list-authz.spec.ts row 174 loop body had
+          13 expects per row (5 FK-echo pins from tick 221 + 8 pre-existing
+          identity/enum/nullable shape pins). Post-tick adds 3 expects per
+          row: r.resellers embed object-plainness (1 combined expect), code
+          typeof (1 expect), display_name typeof (1 expect). Total = 16
+          expects per row on happy path when body.requests is non-empty;
+          still well within the "per-row shape loop" budget since each
+          expect targets a distinct schema field.
+        - Object-plainness pattern (`x !== null && typeof x === "object" &&
+          !Array.isArray(x)`) chosen over `expect.objectContaining(...)` so
+          the assertion runs against a plain runtime value rather than
+          Jest/Vitest matcher DSL (Playwright's expect is a superset of the
+          matcher API but the plain-truthy form matches sibling pins on
+          rows 187-188 that use the same three-part guard for the row itself
+          — spec-local pattern consistency preserved).
+        - Value assertions on code + display_name kept as typeof-string
+          only — pinning to specific values would require the InfoVision
+          seed row's exact code/display_name to be stable across staging
+          reseeds, which is a wider dependency than the shape-pin scope.
+          Tick 221 discipline of "shape pins only, no VALUE assertions on
+          fields that drift across staging seed rewrites" preserved.
+        - Diagnostic message on the object-plainness pin references the
+          PostgREST to-one-FK semantics so a future maintainer reading a
+          failure sees why "should not be an array" — a Supabase view that
+          exposed the FK as many-to-one would flip r.resellers to an array
+          and this pin would light up with the array-shape failure alongside
+          the underlying schema-drift signal.
+        - No production code touched. Spec + goal file only. Route
+          web/src/app/api/admin/resellers/requests/route.ts unchanged;
+          migration 0091 + 0095 unchanged.
+
+      Files:
+        - web/tests/e2e/reseller/admin-requests-list-authz.spec.ts (row 174
+          happy path body destructure extended with the optional resellers
+          field + 3 new shape assertions inserted at the end of the per-row
+          loop, immediately after the decision_reason nullable pin. Header
+          comment above the new block references tick 221 next-pick option
+          (b) rationale, the route.ts:44 embed source, the migration 0091
+          NOT NULL text columns, and the PostgREST to-one FK single-object
+          echo shape.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.221 → 2026-07-23.222; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Shape pins only — no VALUE assertion on code or display_name (an
+          InfoVision seed row's exact strings would drift across staging
+          seed rewrites; a wholesale reseller code/name renames would
+          false-positive here). Matches ticks 218-221 discipline of shape-
+          pinning without arithmetic-pinning on out-of-scope-state fields.
+        - Position at the end of the per-row loop preserves the "primitive
+          fields first, embed/join last" convention across sibling authz
+          specs — the four UUID FK fields tick 221 added come before the
+          request_type / status / created_at pins because they extend the
+          identity block; the resellers embed comes after all primitive
+          field pins because it is structurally distinct (nested object
+          rather than scalar).
+        - No new spec-local constant declared — the object-plainness guard
+          is the same three-part pattern used at rows 187-188 for the row
+          itself, and the typeof-string pattern is the same as every other
+          string field in the loop. Single-source constants preserved.
+
+      Verification:
+        - `npx tsc --noEmit` in web/: clean, no diagnostics.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 file(s), R-03
+          scanned 31 manifest route(s); 3 exemption(s), 0 violations —
+          unchanged from tick 221.
+        - `npx vitest run` in web/: 75 files / 954 tests passed
+          (Playwright specs are excluded from vitest by design so the
+          count is unchanged from tick 221).
+        - No DB apply this tick — no migration authored. Playwright run
+          against staging still gated on the tick 198 seed re-run per
+          P10 hardening exit criteria, not this tick.
+
+      Frontier after tick 222:
+        - Track A P8.5 STILL HUMAN-BLOCKED on
+          STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL.
+        - Track A P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20
+          ABN + GST.
+        - Track B COMPLETE.
+        - All 43 rows in the P10 activation matrix (waves 1-5) are
+          activated; only human-blocked rows (175 approve code_request /
+          178 signup-jitter / 182 SetupIntent) remain on the plan doc's
+          canonical list.
+        - admin-requests-list-authz.spec.ts row 174 happy path now
+          carries FULL envelope shape-pin discipline: identity (id +
+          reseller_id UUID_RE), FK echoes (requested_by + decision_by +
+          linked_credit_transaction_id + linked_promotion_code_id UUID_RE
+          or null-or-UUID), enums (request_type + status), timestamps
+          (created_at typeof; decision_at + decision_reason nullable), and
+          nested join (resellers.code + resellers.display_name typeof).
+          No un-pinned fields remain in the admin request envelope.
+
+      Natural next pick for tick 223:
+        (a) audit drawer-authz.spec.ts + drawer-validation.spec.ts happy
+            paths for parallel envelope-shape pins on the typed body
+            fields the P4.2 customer-drawer route echoes (customer_id
+            UUID, plan slug, MRR number, credits number, last-active
+            timestamp, timeline event array shape, monthly SVI curve
+            array shape). Named as option (a) at tick 221 and remains
+            open. Drawer envelope is richer than requests envelope so a
+            full audit would run 5-10 new shape pins per happy path —
+            still tightly scoped as a single tick.
+        (b) audit reseller-requests-list-authz.spec.ts row 161 happy path
+            for the four nullable pin extensions (decision_at typeof
+            string-or-null, decision_reason typeof string-or-null,
+            payload typeof object-or-null since jsonb default is '{}'
+            per 0095:33, request_type/status enum membership) — tick 221
+            audited this spec and left it as "no FK UUIDs → no action"
+            but the four nullable/enum extensions were named as an
+            explicit deferral to preserve tight scope. Now available as
+            option (b) if drawer audit takes too long for a single tick.
+        (c) mirror the row 179 shape+helper alignment onto the row 175
+            approve+deny+cancel code_request branches once P8.5
+            unblocks; today only the over_budget_approval branch of the
+            terminal handler carries the shape+helper twin coverage.
+            Still open, P8.5-blocked.
+    commit: (this tick)
+
   - tick: 221
     ran_at: 2026-07-22
     action: p10_admin_requests_list_authz_row_174_fk_echo_shape_pins
