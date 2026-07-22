@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.212
+version: 2026-07-23.213
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,173 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 213
+    ran_at: 2026-07-22
+    action: p10_wave3_row_156c_four_chain_db_companion_shape_helper_alignment
+    result: |
+      Extended the shape+helper twin-lens from ticks 211-212 (row 155 single-
+      POST, row 156 two-chain, row 156b three-chain) onto the last remaining
+      wave-3 self-approve DB-companion rung: row 156c four-chain (line 2095
+      in web/tests/e2e/reseller/audit-log-writes.spec.ts). Block already
+      carried the shared-helper cardinality lens
+      (countResellerCreditGrantsFor === 4) but did not carry the per-row
+      shape read companion. This tick lands option (a) from tick 212's
+      "natural next pick" list verbatim and closes the wave-3 self-approve
+      DB-companion family end-to-end: row 155 (1 POST → 1 row), row 156 (2
+      POSTs → 2 rows), row 156b (3 POSTs → 3 rows), row 156c (4 POSTs → 4
+      rows) — all four topology rungs now carry BOTH lenses in parallel.
+
+      Diagnostic delta of the new lens vs the pre-existing count assertion
+      on the four-chain block:
+        - the count-only helper catches "mirror insert dropped" (count<4)
+          and "mirror insert duplicated" (count>4) but stays green under:
+          (a) any later POST's mirror insert reusing an earlier POST's
+              credit_transaction_id (FK collision that preserves count but
+              breaks the per-grant ledger link — the wrong txRow variable
+              read at route.ts:213 across three UPSERT re-entries);
+          (b) any row's amount stamped from a stale variable across UPSERT
+              re-entries (off-by-one on the second, third, or fourth UPSERT
+              re-entry that still writes the correct credit_balances math);
+          (c) any row's granted_by_user_id NULL'd or threaded as
+              targetUserId (self-service credit theft class);
+          (d) any row's over_budget flipped true when none of the four
+              self-approve POSTs trip gate 3 (5+3+2+1=11, budget 20000);
+          (e) any row's month_key drifting AEST vs UTC on the first-of-
+              month rollover;
+          (f) any row's metadata.reason dropped or replaced.
+      Four-chain amplifies all six modes across four rows plus the
+      six-pair distinctness assertion (Set-size === 4) that covers (1,2),
+      (1,3), (1,4), (2,3), (2,4), (3,4) collisions simultaneously — a
+      superset of the three-chain's three-pair distinctness lens ((1,2),
+      (1,3), (2,3)).
+
+      Frontier before this tick: tick 212 activated the shape+helper twin-
+      lens on rows 156 (two-chain) and 156b (three-chain) DB companion
+      blocks. All 43 rows in the P10 activation matrix (waves 1-5, rows
+      141-183) remained activated except the three human-blocked rows:
+      175 approve (code_request) branch (P8.5-blocked on Stripe test-mode),
+      178 signup-jitter (QA-mode-blocked), 182 SetupIntent (P8.5-blocked).
+      This tick is purely additive: no test removed, no assertion
+      weakened, no production code touched.
+
+      Files:
+        - web/tests/e2e/reseller/audit-log-writes.spec.ts (four-chain
+          block at line 2095: added `body1 = await resp1.json()` +
+          `body2 = await resp2.json()` + `body3 = await resp3.json()` +
+          `body4 = await resp4.json()` capture after each 200 assertion
+          with UUID_RE match on credit_transaction_id; appended shape-
+          read block after the mirrorCount === 4 assertion. Fetches all
+          mirror rows for (reseller_id, target_user_id, kind='grant',
+          created_at >= chainSince) ordered by created_at ASC — the
+          natural post-write ordering that binds per-row assertions to
+          the sequenced 5/3/2/1 pin from AMOUNT_ONE/TWO/THREE/FOUR. Per-
+          row assertions: kind='grant', Number(amount)===expectedAmounts
+          [idx], over_budget===false, granted_by_user_id===fixture.
+          adminUserId, credit_transaction_id===expectedTxIds[idx] (FK
+          echo match against the response body's echo of route.ts:187-
+          198's INSERT), month_key===expected UTC key (computed inline
+          `${year}-${MM}` matching credit-grants.ts:34 verbatim without
+          importing app libs per this spec's fixture-only import
+          discipline), month_key===body echo (cross-echo check catching
+          mirror INSERT / response echo split per POST), metadata.reason
+          ==='reseller_grant' (route.ts:74-76 default when body.reason
+          omitted). Trailing distinctness assertion pins
+          `new Set([...credit_transaction_id]).size === 4` catching the
+          UPSERT-re-entry FK-collision class that per-row equality misses
+          when the collision preserves per-POST amount ordering — covers
+          all six pairs simultaneously.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.212 → 2026-07-23.213; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Shape read follows the tick 212 row 156b three-chain posture
+          verbatim: per-field assertions with diagnostic messages naming
+          the regression class, month_key computed inline rather than
+          imported, rows fetched ordered by created_at ASC + length
+          assertion because count === 4 requires binding per-row
+          assertions to the write-order sequence.
+        - Scoping strategy matches countResellerCreditGrantsFor's
+          filters (reseller_id + target_user_id + kind + created_at
+          >= since) so the shape read and the count read scope
+          identically. A null shape read after mirrorCount === 4 landed
+          would flag an RLS scope drift between the count-only head:
+          true call path and the shape SELECT path (both go through
+          loadSupabaseAdmin's service-role client so this should never
+          race in practice; the assertion message names that
+          expectation so a future refactor that split the two clients
+          gets an actionable pointer).
+        - Response envelope parse happens ONCE per POST after the
+          status assertion; body.text() is only called inside the
+          failing-status error message so a 200 path never consumes
+          the body twice. Each body.credit_transaction_id is UUID_RE-
+          matched before the FK equality assertion so a null/undefined
+          echo surfaces as a shape violation not an equality mismatch.
+        - Amounts inherited from the existing block (5+3+2+1 for four-
+          chain) — DISTINCT positive integers so a `amount = amount_
+          first` regression on any POST 2/3/4 returns 5 instead of 3/2/
+          1 (reads unambiguously as "stamped from a stale variable
+          across UPSERT re-entries"), keeping running total (11) well
+          under active_wholesale's monthly_credit_budget=20000 so
+          gate 3 fires on every POST without ever tripping over_
+          budget_requires_approval (402).
+        - Distinctness assertion (Set-size === 4) added AFTER the per-
+          row FK equality loop rather than in place of it — the per-
+          row loop catches the "wrong tx echoed" class with a specific
+          diagnostic on which row broke; the Set assertion catches the
+          class where mirror insert stamped a valid but collided UUID
+          that happens to match ANOTHER POST's echo under an aliasing
+          regression. Both assertions are needed for full coverage —
+          neither subsumes the other.
+        - No production code touched. Spec + goal file only. Neither
+          the R-01 scope-boundary rule (only /api/reseller/**) nor the
+          R-03 manifest rule (only feature-gates.manifest.ts routes)
+          scan web/tests/e2e/** so lint counts are unchanged.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: exit 0.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files,
+          R-03 scanned 31 manifest routes, 3 exemptions, 0
+          violations — unchanged from tick 212.
+        - `npx vitest run` in web/: 75 files / 954 tests passed
+          (unit + integration; Playwright specs are excluded from
+          vitest by design so the count is unchanged from tick 212).
+        - No DB apply this tick — no migration authored. Playwright
+          run against staging still gated on the tick 198 seed re-run
+          per P10 hardening exit criteria, not this tick.
+
+      Frontier after tick 213:
+        - Track A P8.5 STILL HUMAN-BLOCKED on
+          STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL.
+        - Track A P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20
+          ABN + GST.
+        - Track B COMPLETE.
+        - All 43 rows in the P10 activation matrix (waves 1-5) are
+          activated; only human-blocked rows (175 approve
+          code_request / 178 signup-jitter / 182 SetupIntent) remain
+          on the plan doc's canonical list.
+        - Wave-3 self-approve DB-companion family now carries BOTH
+          the count lens AND the shape-read lens on ALL FOUR
+          topology rungs — the staircase (1/2/3/4 POSTs → 1/2/3/4
+          mirror rows) is closed end-to-end.
+
+      Natural next pick for tick 214: (a) audit-log-writes.spec.ts
+      posture review — walk the file end-to-end to identify any other
+      block still carrying only one lens; row 154 (credit-grant fan-
+      out, audit-log lens only) and row 179 happy path (line 161,
+      audit-log helper via >= 1 rather than strict === 1) remain the
+      two candidates named across tick 211-212 review_history. (b)
+      mirror the row 179 shape+helper alignment onto the row 175
+      approve+deny+cancel code_request branches once P8.5 unblocks;
+      today only the over_budget_approval branch of the terminal
+      handler carries the shape+helper twin coverage. (c) audit
+      credit-grant-authz.spec.ts (the HTTP sibling spec) for parallel
+      shape+helper opportunities — the response-envelope arithmetic
+      assertions already carry the amount lens; adding a per-response
+      credit_transaction_id shape assertion would give the HTTP surface
+      the same FK-echo lens the DB companion just landed.
+    commit: (this tick)
+
   - tick: 212
     ran_at: 2026-07-22
     action: p10_wave3_two_and_three_chain_db_companion_shape_helper_alignment
