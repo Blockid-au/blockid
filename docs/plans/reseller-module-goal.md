@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.203
+version: 2026-07-23.204
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,170 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 204
+    ran_at: 2026-07-22
+    action: p10_wave3_row_156b_three_chained_grant_activation
+    result: |
+      Activated P10 wave-3 row 156b in
+      web/tests/e2e/reseller/credit-grant-authz.spec.ts (three-chained-grant
+      identity — HTTP-side arithmetic contract across three sequential
+      POSTs). Frontier before this tick: tick 203 closed row 156 (two-grant
+      balance-readback chain 5→5 then 3→8) and named row 156b (three-chain
+      extension with amount=2 landing on 10) as the top carried-forward
+      active_wholesale pick per tick 203's "Natural next pick for tick 204"
+      line — this tick closes row 156b. Row 157 (paused-inactive) still
+      needs a distinct promo mint edit path. Rows 175 (approve code_request)
+      + 182 (SetupIntent) stay P8.5-blocked. Row 178 (signup-jitter) stays
+      QA-mode-blocked.
+
+      Files:
+        - web/tests/e2e/reseller/credit-grant-authz.spec.ts (new
+          test.describe("Credit-grant × active_wholesale × three-chained-
+          POST balance-readback — P10 wave-3 row 156b") block appended
+          after the row 156 two-chain block at end of file. Uses same
+          TempResellerFixture + attachAttributedCustomer +
+          attachGrantSelfApprove({amount:5}) → POST /api/reseller/credits/
+          grant → attachGrantSelfApprove({amount:3}) → POST → attachGrant
+          SelfApprove({amount:2}) → POST /api/reseller/credits/grant with
+          three arithmetic pins on POST 3: body3.balance === grant3.
+          balanceBefore + 2 (single-POST identity), body3.balance ===
+          balanceBefore1 + 5 + 3 + 2 === 10 (chained identity), body3.
+          balance - body2.balance === 2 (delta identity). Plus a between-
+          POSTs pin grant3.balanceBefore === balanceBefore1 + 5 + 3 that
+          catches credit_balances not being written on POST 2 despite the
+          200 envelope. Also pins credit_transaction_id !== against BOTH
+          prior UUIDs so a re-use regression on either the (POST 2, POST 3)
+          pair or the (POST 1, POST 3) pair surfaces here — row 156's
+          existing pin only covers the (POST 1, POST 2) pair. Same skip-
+          guard topology as rows 152/156: fixtureError / fixture null /
+          adminUserId null / attributedUserId null / attributionExists
+          false / attachAttributedCustomer null / attachGrantSelfApprove
+          null branches short-circuit cleanly with the shared
+          tempResellerSkipReason hint.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.203 → 2026-07-23.204; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Row 156b lives in credit-grant-authz.spec.ts (not audit-log-
+          writes.spec.ts) matching the row 156 topology decision: authz
+          specs own the HTTP contract (status codes + envelope shape +
+          response-side arithmetic); audit-log-writes.spec.ts owns the
+          DB-level side-effect assertions on the append-only ledger and
+          the mirror table. Row 156b probes the response envelope's
+          `balance` field across THREE sequential requests — pure HTTP-
+          side arithmetic, no DB reads post-POST beyond what attachGrant
+          SelfApprove's snapshot lens already does — so credit-grant-
+          authz.spec.ts is the natural home.
+        - Route write reference: web/src/app/api/reseller/credits/grant/
+          route.ts:166 sets `newBalance = currentBalance + amount` where
+          currentBalance is the pre-write credit_balances.balance read at
+          route.ts:143-152, and the response envelope at route.ts:250-260
+          echoes `balance: newBalance`. The UPSERT branch at route.ts:174-
+          198 fires INSERT on POST 1 (fresh row) then on-conflict UPDATE
+          on POSTs 2 + 3. A regression that mis-handled the on-conflict
+          path only after two successful writes (e.g. a rewrite that
+          split UPSERT into INSERT-with-catch → SELECT-then-UPDATE where
+          the third call re-read a stale snapshot) would leave rows 152 +
+          156 green while surfacing on POST 3's balance pin here.
+        - amounts 5 + 3 + 2 chosen deliberately: three distinct primes so
+          a `balance = amount` regression on POST 3 (returning 2) reads
+          as "matches the third amount, dropped running total"; a
+          `balance = amount_last + amount_second` regression (returning 5)
+          reads as "dropped POST 1's contribution"; a `balance =
+          balanceBefore + amount_last` regression (returning balanceBefore1
+          + 2) reads as "restored to pre-attach snapshot". Each failure
+          mode diagnoses uniquely from the assertion message alone.
+          Running total (10) stays well under monthly_credit_budget=20000
+          per seed-qa-reseller active_wholesale defaults so gate 3 fires
+          on all three POSTs without ever tripping over_budget_requires_
+          approval (402); headroom identical to rows 152/156's CI-replay
+          posture.
+        - Cleanup topology under LIFO restore-closure order (three attach
+          calls): closure A pushed before POST 1 (snapshot balance=B0,
+          since=T1); closure B before POST 2 (snapshot B0+5, since=T2);
+          closure C before POST 3 (snapshot B0+8, since=T3). Cleanup pops
+          C→B→A: C deletes rows created >= T3 (POST 3 row) + upserts
+          balance back to B0+8; B deletes rows >= T2 (POST 2 row) +
+          upserts back to B0+5; A deletes rows >= T1 (POST 1 row) + either
+          restores to B0 (row existed pre-attach) or deletes the row
+          (fresh insert). Net effect atomic — matches the wave-3 self-
+          approve cleanup guarantee rows 152 + 156 depend on for CI
+          replay stability. Confirmed via a trace of fixture.ts:1250-1356
+          restore closures against the three sequential attach calls.
+        - between-POSTs pin (grant3.balanceBefore === balanceBefore1 +
+          AMOUNT_ONE + AMOUNT_TWO) surfaces regressions that the chained
+          POST 3 assertion could false-pass if a route change accidentally
+          made body3.balance recompute from stale in-memory state rather
+          than reading credit_balances — the intermediate credit_balances
+          readback catches the write-visibility drift even before POST 3
+          runs. Complements the row 156 between-POSTs pin at snapshot #2.
+        - remaining_budget delta pins guarded by typeof number checks on
+          all three responses so an older route build that omitted the
+          field (pre-P6.5b) skips cleanly rather than false-failing; row
+          152's single-POST shape assertion already guards field presence.
+          Cumulative-decrease pin (body1.remaining_budget -
+          body3.remaining_budget === AMOUNT_TWO + AMOUNT_THREE) catches a
+          budget accumulator that reset on any of the three writes.
+        - No production code touched. Spec + goal file only. Neither the
+          R-01 scope-boundary rule (only /api/reseller/**) nor the R-03
+          manifest rule (only feature-gates.manifest.ts routes) scan
+          web/tests/e2e/** so lint counts are unchanged.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: exit 0. New describe block
+          resolves against the existing TempResellerFixture,
+          attachAttributedCustomer, attachGrantSelfApprove,
+          loadTempReseller, tempResellerSkipReason imports already at the
+          top of credit-grant-authz.spec.ts — no new import lines
+          required.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 exemptions, 0 violations —
+          unchanged.
+        - `npx vitest run src/lib/reseller` in web/: 29 files 449/449
+          pass — unchanged (Playwright specs are excluded from vitest by
+          design).
+        - No DB apply this tick — no migration authored. Playwright run
+          against staging still gated on the tick 198 seed re-run per
+          P10 hardening exit criteria, not this tick.
+
+      Frontier after tick 204:
+        - Track A P8.5 STILL HUMAN-BLOCKED on
+          STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL.
+        - Track A P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20 ABN +
+          GST.
+        - Track B COMPLETE.
+        - Row 156b now activated — will land as a fully-green Playwright
+          row on the next staging seed re-run under
+          QA_RESELLER_MULTI_ADMIN=1 + QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL
+          set. Skips cleanly under-provisioned.
+        - Row 157 (code-validate × paused × inactive 404) — still needs an
+          active promo mint on the paused variant so code-validate hits
+          status='inactive' rather than promo_missing.
+        - Row 158 (over_budget_approved=true branch, self-approve gate 4)
+          — needs a new fixture helper to seed a reseller with
+          admin_over_budget_approved=true so the route.ts response
+          envelope carries over_budget=true; larger fixture surface,
+          wants its own tick.
+        - Row 175 approve(code_request) branch — still P8.5-blocked
+          (Stripe test-mode key required).
+        - Row 178 signup-jitter branch — still QA-mode-blocked.
+        - Row 182 SetupIntent happy — still P8.5-blocked.
+
+      Natural next pick for tick 205: activate row 158 by extending the
+      seed-qa-reseller.mjs script with a fifth reseller variant carrying
+      admin_over_budget_approved=true (or an equivalent per-request flag),
+      then add a test.describe("Credit-grant × over_budget_approved ×
+      self-approve gate 4 — P10 wave-3 row 158") block to credit-grant-
+      authz.spec.ts asserting the response envelope carries over_budget=
+      true when the gate-3 headroom is intentionally overshot. Alternative:
+      activate row 157 (code-validate paused-inactive) — needs the seed
+      script to mint a promotion_code on the paused variant so
+      validate.route.ts hits the inactive branch rather than promo_missing;
+      larger fixture-side surface. Neither has a natural row 156c three-
+      chain follow-on since the on-conflict path is now covered twice.
+    commit: (this tick)
+
   - tick: 203
     ran_at: 2026-07-22
     action: p10_wave3_row_156_credit_grant_balance_readback_chain_activation
