@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.120
+version: 2026-07-23.125
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,107 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 125
+    ran_at: 2026-07-22
+    action: p10_dry_run_admin_reseller_delete_validation_playwright_spec
+    result: |
+      Composed option (i) from tick 124's frontier — landed the DELETE
+      counterpart to admin-reseller-patch-validation.spec.ts (tick 123).
+      DELETE /api/admin/resellers/[code] has two pre-write validators that
+      fire BEFORE the resellers UPDATE status=terminated lands:
+      code_required (route.ts:196-197) and not_found (route.ts:199-202).
+      Both branches are safely exercisable against staging without a seeded
+      resellers row — row 1 short-circuits at normaliseResellerCode(null)
+      before loadReseller runs; row 2 short-circuits at loadReseller.error
+      ='not_found' before the resellers UPDATE fires. Symmetric-shape
+      regression coverage means a refactor that swaps the pre-load order,
+      collapses code_required into invalid_body, or promotes not_found
+      from 404 to 400 lights up in both the PATCH validation (tick 123)
+      and DELETE validation (this tick) specs on the next
+      `npx playwright test` pass.
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-delete-validation.spec.ts
+          (new — two rows probing the pre-write validators BEFORE the
+          resellers UPDATE runs, all exercised behind the QA_ADMIN_EMAIL
+          harness from tick 122 so the getCurrentUser + requireAdmin chain
+          resolves to a real admin session:
+          (1) code_required — DELETE /api/admin/resellers/--- (three
+              hyphens) → 400 { ok:false, reason:"code_required" } at
+              route.ts:196-197. normaliseResellerCode('---') strips to
+              null via the trim/uppercase/[^A-Z0-9] replace so the guard
+              fires BEFORE loadReseller, BEFORE the resellers UPDATE
+              status=terminated.
+          (2) not_found — DELETE /api/admin/resellers/qa-probe-should-not-
+              persist → 404 { ok:false, reason:"not_found" } at
+              route.ts:199-202 in the loadReseller guard. The probe code
+              normalises to "QAPROBESHOULDNOTPERSIST" (22 char) which
+              safely does not collide with any seeded reseller_code
+              (INFOVISION, ACCEL_*, etc.) — P1.5 InfoVision seed remains
+              HUMAN-BLOCKED on H.20 anyway so the collision surface is
+              nil.
+          Both rows skip at describe-scope if the QA admin harness is not
+          provisioned via loadAdminHarness() (tick 122 fixture).)
+        - docs/plans/reseller-module-goal.md (+ tick 125 entry)
+
+      Why this shape matches tick 123: exact structural twin — same route
+      file, same pre-load normaliseResellerCode source (URL path segment
+      via params.code, not request body), same loadReseller guard, same
+      { ok:false, reason: <string> } envelope. Differs in one dimension
+      only — DELETE takes no request body so there is no invalid_body row
+      and no validateAdminResellerPatch call downstream. The full row set
+      collapses from three (code_required + invalid_body + not_found) to
+      two (code_required + not_found). Same PROBE_CODE constant for
+      convenience.
+
+      Why the happy path (200) isn't covered: same reasoning as ticks
+      94..124 — the 200 branch writes a real resellers UPDATE that flips
+      status to "terminated" and would revoke attribution for every
+      attributed customer of the target reseller (irreversible-ish
+      soft-delete). A real seeded reseller row also needs the QA
+      mint fixture that the tree doesn't yet carry — folded into the
+      temp-reseller mint fixture follow-up alongside the deferred rows
+      from ticks 94..124.
+
+      Deliberately out of scope for this tick:
+        - admin-resellers GET validation twin (2 rows: code_required +
+          not_found) — option (ii) from tick 124's frontier; follow-up
+          tick per the one-spec-per-tick cadence.
+        - admin-resellers/requests PATCH validation twin — needs a
+          seeded reseller_requests row (plan §J.2 forbids per-test
+          seeding); deferred to temp-reseller mint fixture.
+        - Any change to /api/admin/resellers/[code] — the DELETE handler
+          fires correctly; this tick adds Playwright coverage of the
+          pre-write validators.
+        - Extending scripts/seed-test-users.mjs with a qa-admin-1 row —
+          human-adjacent change deferred alongside P8.5
+          (STRIPE_PRICE_ADDON_*) and P1.5 (H.20 ABN + GST) per the
+          tick 122 posture.
+
+      Verified: tsc clean (npx tsc --noEmit exit=0). Playwright not
+      run this tick — rows will execute on the next CI Playwright
+      pass alongside the thirty-six other reseller-lens dry-run specs
+      (now thirty-seven including this one).
+
+      Frontier after tick 125: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 125 unblocks: the DELETE /api/admin/resellers/[code]
+      pre-write validators now have Playwright regression coverage
+      matching the PATCH validation spec (tick 123). Thirty-seven spec
+      files now sit in web/tests/e2e/reseller/. Next autonomous tick
+      options: (i) admin-resellers GET validation twin (2 rows:
+      code_required + not_found — the same route file's remaining verb
+      whose pre-load validators have no Playwright coverage); (ii)
+      admin-resellers/requests PATCH validation twin (needs seeded
+      reseller_requests row — deferred to temp-reseller mint fixture);
+      (iii) landing the QA-mode temp-reseller mint fixture that opens
+      up all the deferred HAPPY-PATH branches from ticks 94..125 at
+      once (larger tick, wants a design pass); (iv) idle until human
+      unblock arrives on P8.5 or P1.5.
     commit: (this tick)
 
   - tick: 124
@@ -7886,6 +7987,9 @@ next_action:
    17) DONE tick 50 — Track B B4_guide_ch_9_to_12 shipped. Chapters 9-12 (09-funding, 10-fundraise, 11-scale, 12-exit) authored EN+VI as four new entries appended to web/src/lib/guide/startup-journey.ts; ChapterSlug union extended to 12 entries; module doc-comment updated to reflect the B2+B3+B4 arc. VI is complete parity, not machine translation. Chapter 10 honours U.15.11 wording supersession — blockchain hash described as "immutable record for later verification" and explicitly NOT as legal notarisation. phaseLabel for each new chapter is a direct reference to PHASE_LABELS[9..12] from @/lib/showcase/gallery so /guide, /workspace/guide, /guide/reports and /showcase/blockid share one canonical phase-label taxonomy. Both surface routes SSG the four new slugs automatically via generateStaticParams reading allChapterSlugs() — zero route-file edits required. "Chapter 9 unlocks with B4" placeholder text flipped on both surfaces to arc-complete wording (marketing: "You've reached the final chapter. After exit, open a new workspace at Chapter 1 or move into the reseller/accelerator role."; workspace: "Final chapter. After exit: new workspace or reseller role."; VI parity on both). Test suite: EXPECTED_SLUGS bumped to 12, order + phase arrays extended to [1..12], allChapterSlugs assertion updated, unknown-slug case bumped to "13-post-exit", last-slot adjacent assertion flipped to 12-exit ↔ 11-scale, plus a new boundary assertion for the B3/B4 stitch (08-team ↔ 09-funding) so future reorderings can't silently break the chain. Docs mirror at docs/guides/startup-journey/chapter-{09..12}.md ships EN copy for offline reading + contributor PRs (header comment states runtime pages read the TS module — .md files are documentation-only). Verified: 10/10 pass in startup-journey.test.ts (was 9/9); 65/65 combined guide+showcase (was 64/64); tsc clean; npm run lint:reseller unchanged 8 files / 3 exemptions / 0 violations. Chapters 9-12 copy references B4-scoped integrations from plan §299 by name (investor NDA workflow, term-sheet AI review UI, blockchain sync activation, LP-report bundling) but the actual UI wiring for those integrations is a follow-up tick — matches the B2/B3 precedent where chapter copy referenced integrations before the capture UI shipped. Frontier after tick 50: (a) Track A HUMAN-BLOCKED on P8.5 Stripe env vars. (b) Track B B9_reviews_surface (deps: B4 now done) unblocked — the showcase_reviews table + Phase-9 investor-review capture surface; migration 0100 slot already reserved. (c) B7 product tour + B8 reseller linkage remain unblocked from earlier ticks. (d) P0.3 advisory reviews still pending. (e) P1.5 InfoVision seed still HUMAN-BLOCKED on H.20. The 12-chapter content-authoring arc is now closed.
   authorised: true
   on_success: |
+    Frontier after tick 125: shape unchanged — Track A P8.5 STILL HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears. What tick 125 unblocks: DELETE /api/admin/resellers/[code] pre-write validators (code_required + not_found) now have Playwright regression coverage matching admin-reseller-patch-validation.spec.ts (tick 123). Thirty-seven spec files now sit in web/tests/e2e/reseller/. Next autonomous tick options: (i) admin-resellers GET validation twin (2 rows: code_required + not_found — the same route file's remaining verb whose pre-load validators have no Playwright coverage); (ii) admin-resellers/requests PATCH validation twin (needs seeded reseller_requests row — deferred to temp-reseller mint fixture); (iii) landing the QA-mode temp-reseller mint fixture that opens up all the deferred HAPPY-PATH branches from ticks 94..125 at once (larger tick, wants a design pass); (iv) idle until human unblock arrives on P8.5 or P1.5.
+
+    (superseded — for tick 116 detail see the tick-116 log entry above)
     Frontier after tick 116: shape unchanged — Track A P8.5 STILL HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears. What tick 116 unblocks: the last reseller-lens mutation endpoint whose pre-scope auth chain had no explicit Playwright dry-run — /api/reseller/requests POST — now has symmetric coverage matching drawer / reveal-email / me / admin-* / create-startup patterns (twenty-eight spec files now sit in web/tests/e2e/reseller/). Next autonomous tick options: (i) landing the QA-mode temp-reseller mint fixture that opens up all the deferred HAPPY-PATH branches from ticks 94..116 at once (larger tick, wants a design pass); (ii) GET /api/reseller/requests auth-chain twin spec (mirrors POST at the read lens; useful when the reseller UI list-page regresses); (iii) idle until human unblock arrives on P8.5 or P1.5.
 
     (superseded — for tick 55 detail see the tick-55 log entry above)
