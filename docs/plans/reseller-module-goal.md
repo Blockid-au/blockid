@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.129
+version: 2026-07-23.130
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,126 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 130
+    ran_at: 2026-07-22
+    action: p10_temp_reseller_mint_script_stand_alone
+    result: |
+      Composed option (ii) from tick 127's frontier — landed
+      web/scripts/seed-qa-reseller.mjs as a stand-alone artefact so
+      the human review layer has a concrete row-set to inspect
+      before the Playwright fixture consumes it. Design source:
+      docs/plans/p10-temp-reseller-mint-fixture-design.md §1. This
+      tick DOES NOT ship the companion requests seeder (§2), the
+      storage bucket seeder (§4), the Playwright fixture wiring
+      (§3), or the seed-test-users.mjs delta (§5) — kept out of
+      scope so the row-set can be reviewed against the seven-
+      variant matrix in isolation before the shared fixture wires
+      into every deferred spec.
+
+      Files:
+        - web/scripts/seed-qa-reseller.mjs (new — ESM, direct
+          @supabase/supabase-js client via SUPABASE_SERVICE_ROLE_KEY,
+          #!/usr/bin/env node executable bit set. Seven-variant
+          matrix per design §1: active_wholesale / active_retail /
+          paused / terminated / no_capability / tier_only_zero /
+          no_budget. Every code normalises to QAPROBE% so the
+          LIKE 'QAPROBE%' guard covers both mint and cleanup;
+          wholesale variants stamp gst_registered=true + placeholder
+          ABN '11 111 111 111' (format-valid per
+          ck_wholesale_gst_required + ck_abn_format regex; not a
+          real ABN, checksum-invalid, obviously synthetic).
+          Idempotent per row via lookup-first pattern —
+          resellers, reseller_admins, reseller_promotion_codes,
+          reseller_attributions all check for existing row before
+          insert so a re-run is a no-op. --dry-run prints planned
+          rows without touching DB; --reset cascades child rows in
+          FK order (reseller_report_files → credit_grants →
+          requests → attributions → promotion_codes → admins →
+          resellers) then deletes the QAPROBE resellers. --variant
+          <name> filters to a single row for surgical iteration.
+          QA_RESELLER_ADMIN_EMAIL + QA_RESELLER_ATTRIBUTED_FOUNDER_
+          EMAIL env vars trigger conditional reseller_admins and
+          reseller_attributions mirrors when the target app_users
+          row exists; missing env or missing user prints a "skip"
+          notice pointing at the design §5 seed-test-users.mjs
+          delta as the correct unblocker.)
+
+      What the row-set covers per design §1 exit table:
+        - active_wholesale — happy path for create-startup /
+          credits/grant / sandbox/setup / reveal-email / drawer /
+          reports/signed-url when combined with §2 (requests) and
+          §4 (storage) seeders in later ticks.
+        - active_retail — billing_model_not_wholesale reason branch.
+        - paused / terminated — reseller_not_active reason branch.
+        - no_capability — capability_disabled reason branch.
+        - tier_only_zero — tier_not_allowed reason branch (probe
+          tier ∉ allowed_tiers).
+        - no_budget — budget_exhausted / over_budget_requires_
+          approval reason branches once companion §2 rows land.
+
+      Verified:
+        - node --check web/scripts/seed-qa-reseller.mjs exit=0
+          (syntax clean, no top-level parse errors).
+        - No DB apply this tick — the script is authored but not
+          run against staging/prod. Follow-up tick reviews the
+          row-set, then --dry-run against staging, then live seed
+          once the human review layer signs off.
+        - npm run lint:reseller unchanged — new file lives at
+          web/scripts/ not under /api/reseller/** and not in
+          feature-gates.manifest.ts so neither R-01 nor R-03 rule
+          fires.
+        - tsc unaffected — .mjs file outside the tsconfig.json
+          include glob.
+
+      Explicitly deferred to follow-up ticks:
+        - Companion §2 seed-qa-reseller-requests.mjs — mints
+          per-run reseller_requests rows keyed by qa_run_id for
+          mutation-heavy specs. Needs a resolved requests-inbox
+          spec design pass first.
+        - §3 web/tests/e2e/fixtures/reseller.ts extension with
+          loadTempReseller() + TempResellerFixture + ResellerVariant
+          type union. Gated on human review of this row-set to
+          confirm variant names before the fixture pins them into
+          the Playwright type system.
+        - §4 seed-qa-reseller-storage.mjs — private-bucket blob
+          upload for reports/signed-url happy path. Gated on
+          reseller_report_files inserts which themselves need a
+          real reseller_id from this script's mint.
+        - §5 seed-test-users.mjs delta — adds qa-reseller-1@ and
+          qa-founder-attributed-1@ so QA_RESELLER_ADMIN_EMAIL /
+          QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL resolve. Kept
+          separate to preserve the seed-test-users.mjs blast-
+          radius (it's already consumed by the qa-release-gate
+          pipeline).
+        - Activating any of the ~50 deferred rows in the 38
+          Playwright specs from ticks 92..126 — requires §3
+          fixture wiring first, then per-spec activation ticks.
+        - Actual DB apply — deliberately unrun so a human
+          reviewer can eyeball the row-set before it lands.
+
+      Frontier after tick 130: shape unchanged — Track A P8.5
+      STILL HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_
+      MONTHLY|ANNUAL; P1.5 InfoVision seed STILL HUMAN-BLOCKED
+      on H.20 ABN + GST; Track B COMPLETE; P10 still blocked_by
+      [P1..P9] until P8.5 clears. What tick 130 unblocks: the
+      P10 temp-reseller mint script (design §1) is now a
+      concrete artefact — no more design-doc back-and-forth
+      before implementation lands. The row-set is reviewable in
+      isolation from the fixture wiring, storage seed, and
+      requests seeder so a reviewer can validate the seven-
+      variant matrix before the shared fixture pins the shapes.
+      Next autonomous tick options: (i) idle until human review
+      of the mint script lands + human ok to --dry-run against
+      staging; (ii) ship §5 seed-test-users.mjs delta (adds
+      qa-reseller-1@ + qa-founder-attributed-1@ so the mint
+      script's env-driven admin+attribution mirrors resolve);
+      (iii) ship §2 seed-qa-reseller-requests.mjs (mutation-heavy
+      spec companion — but needs the shared reseller_id from
+      this script, so gated on --dry-run of this tick's script
+      first); (iv) idle until human unblock arrives on P8.5 or
+      P1.5.
     commit: (this tick)
 
   - tick: 129
