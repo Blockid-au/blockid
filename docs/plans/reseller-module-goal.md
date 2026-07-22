@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.193
+version: 2026-07-23.195
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -457,7 +457,11 @@ tracks:
             "web/src/lib/admin/permissions-mutation.test.ts (21/21 pass)",
             "web/src/app/api/admin/users/[id]/permissions/route.ts"
           ], note: "POST endpoint grants/revokes one entry on app_users.permissions (jsonb array). Body: {action:'grant'|'revoke', permission:string}. Pure lib exposes validatePermissionBody (action enum + permission slug /^[a-z][a-z0-9_.]{0,63}$/ so an admin can grant a forward-looking capability like 'reports.export' before P12.4's KNOWN_PERMISSIONS list is updated — the detail panel already amber-rings unknown entries so unfamiliar grants are not silent), normalisePermissionsColumn (folds jsonb array + JSON-string + null edge cases into string[] with dedup + insertion-order preservation, matches P12.4's buildRolesPermissionsPanel folding to keep both surfaces coherent), applyPermissionMutation (grant appends if absent, revoke drops if present; returns changed=false + same reference when the mutation is a no-op so the caller can skip both the DB update and the audit-events row — hash-chained log does not accumulate empty rows). Route: requireAdmin gate → self-mutation guard (cannot change own permissions) → validatePermissionBody → app_users lookup by id → normalise column → applyPermissionMutation → skip DB write on unchanged; otherwise UPDATE app_users SET permissions=next then appendAudit action='admin.permissions.granted'|'admin.permissions.revoked' with target_email/permission/was_known/previous/next/actor_email detail (matches existing admin.role.changed audit shape from /api/admin/users/[id]/role/route.ts so the P12.8 impersonation trail tab can lift both action names off audit_events with a single OR filter). Verified: tsc clean; vitest 893/893 (+21 from prior 872); npm run lint:reseller 11 R-01 + 31 R-03, 3 exemptions, 0 violations — /api/admin/** is not in the manifest so R-03 does not fire on this route. Panel-side edit affordance (drops the amber 'Edit via P12.6' chip in web/src/app/admin/users/[id]/page.tsx:486 for a real inline editor client) intentionally deferred so the endpoint can be exercised via curl/Playwright before UI churn; P12.9 Playwright E2E is the natural close-out."}
-          P12.7_plan_endpoint: {status: pending, action: "POST /api/admin/users/[id]/plan — plan change with audit + optional credit reconciliation (extends /api/admin/users/manage)"}
+          P12.7_plan_endpoint: {status: done, tick: 195, completed_at: 2026-07-22, files: [
+            "web/src/lib/admin/plan-mutation.ts",
+            "web/src/lib/admin/plan-mutation.test.ts (19/19 pass)",
+            "web/src/app/api/admin/users/[id]/plan/route.ts"
+          ], note: "POST endpoint flips app_users.plan on behalf of an admin. Body: {plan:string, reconcile_credits?:boolean}. Pure lib exposes validatePlanBody (plan slug /^[a-z][a-z0-9_]{0,63}$/ so both v2 catalogue ids like founder_growth/investor_vc_small and grandfathered legacy ids like free/founding50/growth/growth_annual land without this endpoint enumerating the plans.csv snapshot; reconcile_credits optional boolean defaulting false so a bare {plan} POST is a pure plan flip without touching the ledger) plus decidePlanChange (no-op path returns changed=false so the route short-circuits both the UPDATE and appendAudit write; grant path returns Math.floor(monthly_credits) only when reconcile_credits=true AND monthly_credits > 0 so free-tier and unlimited-sentinel -1 rows never accidentally hand out a signed-integer overflow's worth of credits). Route: requireAdmin gate → validate body → getPlanCached(plan) resolution against plans-db (falls through to bundled GENERATED_PLANS_BY_ID so a fresh dev DB without plans seeded still validates against plans.csv) → 400 plan_not_found when slug matches PLAN_SLUG but resolves to neither v2 nor legacy → app_users lookup by id → decidePlanChange with usage_limits.monthly_credits → skip UPDATE + audit on unchanged; otherwise UPDATE app_users SET plan=next then grantCredits(target, allowance, 'plan_grant', {plan, previous_plan, granted_by, admin_action, changed_via:'admin.users.plan'}) when grant_credits>0 (mirrors the /api/admin/users/manage side-effect from L96-106 so both surfaces write the same reason + metadata shape and the credit_transactions ledger stays coherent whether the admin used the legacy manage endpoint or this one) then appendAudit action='admin.plan.changed' with target_email/previous_plan/new_plan/reconcile_credits/credits_granted/actor_email detail (same shape family as admin.role.changed + admin.permissions.granted + admin.user.created so the P12.8 impersonation trail tab lifts all four action names off audit_events with a single OR filter). No self-mutation guard on this endpoint since flipping own plan cannot lock an admin out of the console (unlike role or permissions), and the existing /api/admin/users/manage precedent also allows self-plan-change. Verified: tsc clean; vitest 74 files 936/936 pass (+19 from prior 917); npm run lint:reseller 11 R-01 + 31 R-03, 3 exemptions, 0 violations — /api/admin/** is not in the reseller manifest so R-03 does not fire on this route. Panel-side edit affordance in web/src/app/admin/users/[id]/page.tsx intentionally deferred so the endpoint can be exercised via curl/Playwright before UI churn; P12.9 Playwright E2E is the natural close-out."}
           P12.8_impersonation_trail: {status: pending, action: "extend /admin/affiliate cross-view with Impersonation trail tab showing admin.role.changed + admin.credits.granted events per attribution (from audit_events)"}
           P12.9_playwright_e2e: {status: pending, action: "web/tests/e2e/admin/user-management.spec.ts — create / delete / permission flows"}
           P12.10_nav_wiring: {status: done, tick: 188, note: "shipped fe9946d — /admin/users + /admin/affiliate already surface in admin left-nav"}
@@ -642,6 +646,77 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 195
+    ran_at: 2026-07-22
+    action: p12_7_admin_plan_endpoint
+    result: |
+      Track A P12.7 closed. Shipped POST /api/admin/users/[id]/plan with a
+      pure lib (validatePlanBody + decidePlanChange) at
+      web/src/lib/admin/plan-mutation.ts (+ 19/19 vitest) and a thin route
+      that resolves against getPlanCached, mutates app_users.plan, optionally
+      grantCredits when reconcile_credits=true AND the destination plan has
+      a positive monthly_credits allowance, and appendAudit
+      action='admin.plan.changed'. Frontier before this tick was P12.7,
+      P12.8, P12.9 (plus permanent human-gated P1.5 / P8.5 and
+      never-completing P10 / P11). Picked P12.7 as the next in-sequence
+      leaf so P12.8 gets its full complement of action names to lift into
+      the impersonation trail tab.
+
+      Files:
+        - web/src/lib/admin/plan-mutation.ts (new; validatePlanBody +
+          decidePlanChange pure helpers)
+        - web/src/lib/admin/plan-mutation.test.ts (new; 19/19 pass —
+          slug shape gates, reconcile_credits boolean coercion, no-op
+          when target already on requested plan, floor of fractional
+          monthly_credits, zero / negative / null / undefined
+          allowance never grants)
+        - web/src/app/api/admin/users/[id]/plan/route.ts (new; requireAdmin
+          → validate → getPlanCached → decide → UPDATE + optional
+          grantCredits + appendAudit; 400 plan_not_found when slug
+          matches PLAN_SLUG but resolves to neither v2 nor legacy)
+        - docs/plans/reseller-module-goal.md (P12.7 status pending → done
+          with tick 195 completion note + files list; version bumped
+          2026-07-23.193 → 2026-07-23.195; this review_history entry
+          prepended).
+
+      Design fidelity:
+        - Pure lib matches the P12.5 create + P12.6 permissions pattern
+          exactly — validate* returns a discriminated union, decide*
+          returns the effect + kept side-effect-free so vitest covers
+          the branch without Supabase.
+        - No self-mutation guard: unlike role/permissions where a
+          self-flip could lock the admin out of the console, changing
+          your own plan cannot deny console access, and the existing
+          /api/admin/users/manage precedent (L96-106) already allows
+          admin self-plan-change. Documented at the top of the route.
+        - grantCredits reason='plan_grant' matches the /api/admin/users/
+          manage side-effect so the credit_transactions ledger stays
+          coherent whether the admin used the legacy manage endpoint or
+          this one; metadata adds changed_via='admin.users.plan' so the
+          two paths can be disambiguated in the audit trail.
+        - appendAudit shape mirrors admin.role.changed +
+          admin.permissions.granted + admin.user.created so the P12.8
+          impersonation trail tab can lift all four action names off
+          audit_events with a single OR filter — the next tick's job
+          just got easier.
+        - Zero and negative monthly_credits are hard-guarded in
+          decidePlanChange so the free tier and unlimited-sentinel
+          -1 rows never accidentally grant. The floor call protects
+          against a plan row with a fractional allowance.
+
+      Verification:
+        - tsc: clean.
+        - vitest: 74 files 936/936 pass (+19 from prior 917).
+        - lint:reseller: 11 R-01 files + 31 R-03 routes, 3 exemptions,
+          0 violations. /api/admin/** is not in the reseller manifest
+          so R-03 does not fire on this route.
+
+      Frontier next tick: P12.8 (impersonation trail tab under
+      /admin/affiliate), P12.9 (Playwright E2E for
+      create/delete/permission flows). P10 still blocked_by [P1..P9]
+      until P8.5 clears. P1.5 and P8.5 remain HUMAN-BLOCKED (H.20
+      Auschain ABN/GST + STRIPE_PRICE_ADDON_SHARE_MGMT_* env vars).
+
   - tick: 190
     ran_at: 2026-07-22
     action: p12_2_user_role_permissions_migration
