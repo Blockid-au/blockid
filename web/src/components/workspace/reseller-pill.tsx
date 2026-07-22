@@ -1,8 +1,8 @@
 "use client";
 
-// Topbar co-branding pill — renders "Powered by BlockID · Brought to you
-// by {reseller.display_name}" when the current user has an active
-// reseller attribution.
+// Topbar co-branding pill — renders "Powered by BlockID · Introduced by
+// {reseller.display_name}" when the current user has an active reseller
+// attribution. Wording matches docs/plans/reseller-module-plan.md § C.3.
 //
 // Rendered null when:
 //   - useResellerAttribution() is still loading (avoids flash)
@@ -25,7 +25,7 @@ export function ResellerPill(): React.ReactElement | null {
   return (
     <div
       className="hidden md:inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[11px] font-medium text-ink-700 bg-surface-100 ring-1 ring-surface-200"
-      title={`Brought to you by ${reseller.display_name}`}
+      title={`Introduced by ${reseller.display_name}`}
     >
       {reseller.logo_url ? (
         <img
