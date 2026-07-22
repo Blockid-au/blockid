@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.99
+version: 2026-07-23.101
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,111 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 101
+    ran_at: 2026-07-22
+    action: p10_dry_run_drawer_authz_playwright_spec
+    result: |
+      Composed option (i) from tick 100's frontier note — a mirror-spec
+      for the sibling GET /api/reseller/customers/[id]/drawer route that
+      shares the same direct getCurrentUser() + scopedReseller() chain as
+      reveal-email. Two harness-free rows cover the top of that alternate
+      chain before decideReveal, app_users SELECT, the parallel fan-out
+      across svi_analyses + revenue_events + credit_transactions +
+      credit_balances, or the reseller_audit_log(view_customer_drawer)
+      write ever fires.
+
+      Files:
+        - web/tests/e2e/reseller/drawer-authz.spec.ts (new — two rows
+          probing the auth chain before any DB read or audit-log write:
+          (1) unauthenticated (GET with no session → getCurrentUser
+              null → 401 { ok:false, reason:"unauthorised" } before
+              scopedReseller, decideReveal, app_users SELECT, parallel
+              fan-out, or db.auditLog(view_customer_drawer) run),
+          (2) non_reseller_admin (loginAs(qa-founder-1@blockid.au) →
+              GET → scopedReseller throws ResellerScopeError with
+              code="no_membership" → 403 { ok:false, reason:"no_membership" }
+              because reseller_admins has no active row for a founder
+              account; decideReveal is never called, no DB reads fire,
+              no audit row is written).
+          Row 1 runs unconditionally (no harness dep — just page.request
+          without loginAs). Row 2 test.skip()s with a diagnostic message
+          if /tmp/blockid-qa-accounts.txt is missing so operators without
+          the seed file get an actionable pointer rather than a hard fail.
+          Placeholder UUID (00000000-0000-0000-0000-000000000000) sits
+          in the [id] segment for URL well-formedness only — both rows
+          return before the segment is inspected so the placeholder never
+          reaches decideReveal.
+
+      Why this shape: drawer is the second (and last) /api/reseller/**
+      route that hits getCurrentUser() + scopedReseller() directly rather
+      than gateRequireFeature() — reveal-email covered by tick 100 was
+      the first. Response envelope is { ok:false, reason:<string> } rather
+      than the { ok:false, error, feature } shape gateRequireFeature
+      emits. A refactor that swaps the direct auth chain for
+      gateRequireFeature would light up both rows in CI (row 1 status
+      would still be 401 but body.error rather than body.reason; row 2
+      status would flip to 402 feature_locked). Method is GET rather
+      than POST — matches the read-only nature of the drawer view.
+
+      Why the 400/403/404/500 branches aren't covered: decideReveal
+      (invalid_uuid → 400 / not_in_scope → 403), the app_users SELECT
+      (not_found → 404 / lookup_failed → 500), and the four-way
+      Promise.all fan-out all sit BEHIND scopedReseller — surfacing them
+      needs a real reseller-admin session. audit_failed (500) needs a
+      broken reseller_audit_log write path which requires per-test
+      tampering plan §J.2 forbids. not_configured (503) needs
+      SUPABASE_URL/SERVICE_ROLE unset which would break every other
+      Playwright spec in the same worker. revoked / no_reseller (403 via
+      scopedReseller) are inconsistent states that never occur in
+      production because reseller_admins.status='active' is provisioned
+      alongside the resellers row.
+
+      Why the happy path is out of scope: minting a real drawer render
+      against the harness reseller fires the app_users SELECT + the
+      Promise.all across svi_analyses/revenue_events/credit_transactions/
+      credit_balances + a reseller_audit_log(view_customer_drawer) row
+      that would need cleanup semantics. Belongs to the temp-reseller
+      mint fixture follow-up alongside the deferred rows from ticks
+      94/95/96/97/98/99/100.
+
+      Verified: tsc clean (npx tsc --noEmit exit 0 at web/); vitest
+      unchanged (Playwright spec is not picked up by vitest —
+      tests/e2e/** is excluded per playwright.config.ts:testDir); npm
+      run lint:reseller: R-01 scanned 11 file(s), R-03 scanned 31
+      manifest route(s); 3 exemptions, 0 violations unchanged (spec
+      lives under web/tests/e2e/reseller/, not /api/reseller/**, so
+      R-01 doesn't fire; not a mutation route in
+      feature-gates.manifest.ts so R-03 doesn't fire). Playwright not
+      run this tick — row 1 is harness-free and will execute on the
+      next CI Playwright pass; row 2 lights up as soon as the qa
+      accounts file is present.
+
+      Frontier after tick 101: unchanged in shape — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 101 unblocks: the /api/reseller/customers/[id]/drawer
+      auth-chain ordering (getCurrentUser → scopedReseller) is now
+      regression-guarded at the Playwright lens — a refactor that
+      reorders the two calls or drops the 401/403 status codes on
+      either branch lights up in CI on the next `npx playwright test`
+      run. Thirteen spec files now sit in web/tests/e2e/reseller/
+      (attribution-timing, audit-anomaly-scan, audit-log-writes,
+      billing-authz, cobranding-pill, code-validate,
+      create-startup-validation, credit-grant-validation,
+      drawer-authz, requests-validation, reveal-email-authz,
+      sandbox-setup-authz, scope-boundary). Both direct-auth-chain
+      reseller-admin routes (reveal-email + drawer) now have
+      symmetric dry-run coverage. Next autonomous tick options:
+      (i) landing the QA-mode temp-reseller mint fixture that opens
+      up all the deferred branches from ticks
+      94/95/96/97/98/99/100/101 at once (larger tick, wants a design
+      pass); (ii) audit remaining /api/reseller/** GET/PATCH surfaces
+      for any pre-write branches still uncovered (candidates include
+      /api/reseller/me and admin-side PATCH endpoints); (iii) idle
+      until human unblock arrives.
     commit: (this tick)
 
   - tick: 100
