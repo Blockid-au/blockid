@@ -33,7 +33,13 @@ At 20-40x ARR multiple (standard for high-growth SaaS/fintech):
 | Tokenization Fees | 5+ | — | A$50K | A$500K | A$2M | A$5M |
 | Dividends/Revenue Module | 7+ | — | — | A$200K | A$1M | A$2M |
 | Enterprise/API | 6+ | — | A$100K | A$300K | A$1M | A$3M |
-| **Total ARR** | | **A$55K** | **A$1.15M** | **A$8M** | **A$26M** | **A$53M** |
+| Reseller Channel (wholesale + retail) | 3+ | — | A$150K | A$1.2M | A$4M | A$8M |
+| **Total ARR** | | **A$55K** | **A$1.30M** | **A$9.2M** | **A$30M** | **A$61M** |
+
+**Reseller channel arithmetic (path from A$10K → A$100K MRR).** The reseller module ships two billing models on one ledger (see `docs/plans/reseller-module-plan.md` §U.1, §G.2 and `web/content/pitch/reseller-channel-gtm-lever.md`):
+- **Wholesale (InfoVision-style):** BlockID collects A$99/mo/seat at **0% commission**; reseller carries CAC + support. 20 wholesale partners × ~50 attributed seats × A$99 = A$99K/mo = **A$1.19M ARR** — 100% margin at the SaaS layer.
+- **Retail (referral partners, 60/40 split):** BlockID keeps A$59.40 gross per A$99 seat (invariant across tiers 0/10/20/30/40). Retail scale layers on top of wholesale as the accelerator/scout pipeline warms up in 2027-2028.
+- **Auschain PTY LTD is seller-of-record on every invoice** (both models) — no Stripe Connect, one ABN, one GST remitter, one audit trail. Diligence-ready from day one via the append-only `reseller_commissions` ledger + monthly GST reconciliation cron (A$1 tolerance).
 
 ---
 

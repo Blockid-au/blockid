@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.36
+version: 2026-07-23.37
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -1909,6 +1909,86 @@ review_history:
       vitest 624/624 (was 603/603, +21); lint:reseller unchanged.
       Track B is now COMPLETE (B1..B10 all done).
     commit: (this tick)
+  - tick: 68
+    ran_at: 2026-07-22
+    action: ir_advisory_27_channel_economics_and_gtm_memo
+    result: |
+      Closed the IR half of COO advisory §27 (the last remaining advisory
+      follow-up in the loop's queue). Three related content edits — no code,
+      no schema, no lint touch — landed in a single tick since all three
+      addresses of the plan-review-ir.md recommendations (#1 Channel
+      Economics slide, #3 GTM one-pager memo, #4 unicorn masterplan reseller
+      row) share the same $99 SKU worked example + Auschain seller-of-record
+      framing:
+        (a) web/content/pitch/pitch-deck-v1.md — new Slide 8 "Channel
+            Economics" inserted between Slide 7 (Business Model) and Slide 8
+            (Traction). Renders side-by-side wholesale vs retail comparison
+            (0% vs 40% commission; reseller-owned vs BlockID-owned CAC;
+            A$99 vs A$59.40 BlockID gross retention per seat) plus the full
+            plan §H truth-table (tiers 0/10/20/30/40 at A$99 list with the
+            A$59.40 invariant highlighted in every row). Slides 9-13 bumped
+            down by one (Traction 8→9, Competitive 9→10, Roadmap 10→11,
+            Team 11→12, Ask 12→13). Slide 9 (Traction) additionally weaves
+            the /showcase/blockid live-dogfood link per plan-review-ir.md
+            rec #2 with "Live Dogfood" badge treatment alongside the
+            existing "Live Product" badge. Deck version bumped 1.0 → 1.1
+            with a changelog note.
+        (b) web/content/pitch/reseller-channel-gtm-lever.md — new data-room
+            one-pager (9 sections: memo purpose, seller-of-record rationale,
+            two-channel comparison table, retail commission truth-table
+            verbatim from plan §H, InfoVision as design-partner reference,
+            forward pipeline of retail-partner categories ranked by
+            ecosystem fit, diligence-readiness artefacts already shipped
+            (append-only commission ledger, append-only reveal audit,
+            signed-URL report delivery, monthly reconciliation cron),
+            what to link from the deck, cross-references to plan + goal +
+            IR review + unicorn masterplan). Filed under web/content/pitch/
+            alongside the existing IR content (executive-summary.md,
+            investor-targets.md, antler-application.md) since there is no
+            docs/data-room/ directory convention yet — colocating with the
+            other pitch artefacts keeps the "data-room index" concept
+            single-source until a dedicated dir emerges.
+        (c) .claude/goals/unicorn-masterplan.md — Reseller Channel row
+            added to the Revenue Streams by Phase table (2027: A$150K,
+            2028: A$1.2M, 2029: A$4M, 2030: A$8M) with a subsequent
+            arithmetic paragraph showing the 20 wholesale × 50 seats × A$99
+            → A$1.19M ARR path from plan-review-ir.md rec #4 ("how do you
+            get from A$10K to A$100K MRR" as a channel number, not a
+            hand-wave). Total ARR row updated in-place: 2027 A$1.15M →
+            A$1.30M, 2028 A$8M → A$9.2M, 2029 A$26M → A$30M, 2030 A$53M →
+            A$61M — the reseller channel is now visible in the trajectory
+            arithmetic rather than buried inside SVI Analysis Credits.
+      Rec #5 ("preserve historical reseller_commissions as data-room
+      artefact") was already the design of the ledger (append-only via
+      mutation triggers on migration 0093, 6-year statute retention per
+      H.9); the GTM memo section 7 cites this shipped invariant so
+      diligence readers can find it without reading the plan file.
+      Verified: no code paths touched — pure content edits under
+      web/content/pitch/ + .claude/goals/ + docs/plans/reseller-module-goal.md.
+      tsc / vitest / lint:reseller unchanged from tick 67 baseline (no
+      TypeScript, no test, no /api/reseller/** surface touched).
+      Frontier after tick 68: (a) Track A HUMAN-BLOCKED on P8.5 Stripe env
+      vars (STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL). (b) Track B
+      COMPLETE. (c) P1.5 InfoVision seed HUMAN-BLOCKED on H.20. (d)
+      P10_hardening blocked_by [P1..P9]. (e) Advisory follow-ups: 22
+      (PARTIAL — CMO §22 JSON-LD DONE tick 67; /guide/reports download
+      route + GA event still deferred pending redaction pipeline per plan
+      §284), 23 (PARTIAL — CDO §23 pair suppression DONE tick 57; GA4
+      event catalogue for showcase deferred to CMO/CPO joint tick), 24
+      (PARTIAL — customer-success Grant modal EN+VI tick 62 + denial
+      surface tick 63 + leading-signal lib tick 65 + weekly-digest cron
+      tick 66; H.8 wholesale magic-link + welcome email still open —
+      larger surface), 25 (PARTIAL — CPO customer-drawer EN+VI tick 61;
+      wholesale non-payment confirmation bundled with §24 magic-link
+      work), 26 (DONE tick 60), 27 (DONE tick 68 — COO half tick 64 +
+      IR half this tick). With §27 IR half closed, the only remaining
+      autonomous advisory work is inside §24 (H.8 magic-link infra) which
+      requires new email templates + magic-link infra — a larger surface
+      that would benefit from a dedicated multi-tick sequence rather than
+      an in-loop tick. Loop should self-idle until an unblock signal
+      arrives (H.20 ABN confirmation OR Stripe price env vars minted).
+    commit: (this tick)
+
   - tick: 67
     ran_at: 2026-07-22
     action: cmo_advisory_22_jsonld_structured_data
@@ -2423,7 +2503,7 @@ next_action:
    24) PARTIAL tick 66 — Grant modal EN+VI parity DONE tick 62; denial-reason surface DONE tick 63; leading-signal pure lib DONE tick 65; leading-signal weekly-digest cron DONE tick 66 (new /api/cron/reseller-weekly-digest endpoint iterates active resellers, expands reseller_attributions → user_ids (project-typed rows resolved via projects.user_id mirroring scope.allowedCustomerIds), bridges svi_analyses through app_users.email since svi_analyses has no user_id column on this host per 0007/0014/0016/0020 migrations, computes buildLeadingSignalSummary per reseller, emails admin@blockid.au a CSV attachment + HTML body; Mondays 04:15 UTC crontab entry after clear-commissions; ?skip_email=1 dry-run; pure formatter lib web/src/lib/reseller/weekly-digest.ts with 8/8 vitest for isoWeekKey year-boundary, CSV suppression/escape, HTML empty state + sort). REMAINING under §24: (a) H.8 wholesale magic-link + welcome email for reseller-provisioned founders (needs email template + magic-link infra — larger surface).
    25) PARTIAL tick 61 — CPO advisory §25 customer-drawer EN+VI parity DONE. web/src/app/reseller/customers/customer-drawer.tsx + drawer-opener.tsx + reveal-email-cell.tsx now switch every user-facing string via useLocale() with a Copy: Record<Locale, Copy> table (real VI translation with diacritics — "Tổng quan"/"Tiến trình"/"Báo cáo"/"Đang tải chi tiết khách hàng…"/"Chương hướng dẫn"/etc.); currency helper fmtAud() now takes locale and flips VI decimal separator from "." to "," (A$99,00); credits use Intl.NumberFormat("vi-VN"|"en-AU") for thousands separator; tab labels are now data-driven (dropped CSS `capitalize` since it fails for VI multi-word labels). tsc clean; reseller vitest 276/276; lint:reseller unchanged 8+28 with 3 exemptions / 0 violations. REMAINING under §25: explicit non-payment confirmation step in wholesale onboarding wizard (bundled with the H.8 magic-link work in §24).
    26) DONE tick 60 — CHRO advisory §26 both halves closed. (a) Div 83A qualifying-tests checklist (tick 59): guide chapter 08-team publishes the eight s83A tests EN + VI (esic_eligible / unlisted / turnover_cap / age_lt_10y / grantee_is_employee / market_value / ownership_cap / holding_or_forfeiture) on both /guide/08-team and /workspace/guide/08-team plus docs/guides/startup-journey/chapter-08.md; Chapter interface gained optional qualifyingTests?: LocalisedList; startup-journey.test.ts 12/12 pass. (b) human-review-minutes KPI (tick 60): counter file at web/content/reports/human-review-minutes.jsonl (append-only JSONL); helper module scripts/cron/human-review-minutes.mjs (sumHumanReviewMinutes7d + appendHumanReviewMinutes); bump CLI scripts/cron/bump-human-review-minutes.mjs (chmod +x); reseller-goal-loop.mjs samples the 7-day sum once at process start and every log() row now carries human_review_minutes_7d so the "0 eng-weeks burned" kpi.eng_weeks_burned=0 claim carries a real number visible on every telemetry line. Verified: node --check clean on all three scripts; smoke-test append+sum cycle worked (0 → 0.5 for tagged self-test row); loop kill-switch dry run exits 0 with no regressions.
-   27) PARTIAL tick 64 — COO advisory §27 half closed. (a) scripts/cron/reseller-goal-loop.mjs now emits `stage: human_blocked_snapshot` on every tick with [{id, blocker}] extracted via dependency-free regex — currently surfaces P1.5_infovision_seed (H.20) + P8.5_env_and_playwright (Stripe env vars) so the weekly-digest reader of reseller-goal-history.jsonl gets both escalations without grepping the goal file (COO Findings item 4 + Recommendations item 1 + Next-tick asks item 1). Failure path emits `human_blocked_snapshot_failed` so a malformed goal cannot block a tick. (b) tracks.B.current_focus flipped from stale "B1_showcase_scaffold" to "done" so the frontier picker's Track B rescan is a no-op (COO Next-tick asks item 2). REMAINING under §27: IR half — pitch-deck Channel Economics slide, data-room GTM one-pager, reseller row in unicorn masterplan — content work outside the reseller-module tree; deferred to a CMO/IR joint tick.
+   27) DONE tick 68 — COO/IR advisory §27 both halves closed. (a) COO half tick 64 — reseller-goal-loop.mjs emits `stage: human_blocked_snapshot` on every tick + tracks.B.current_focus flipped to "done" (see tick 64 log). (b) IR half tick 68 — three content edits: (i) web/content/pitch/pitch-deck-v1.md new Slide 8 "Channel Economics" inserted between Business Model + Traction with the full plan §H truth-table (tiers 0/10/20/30/40 at A$99 with A$59.40 invariant highlighted) + side-by-side wholesale vs retail comparison; slides 9-13 renumbered; Slide 9 (Traction) weaves the /showcase/blockid live-dogfood link per IR rec #2. Deck version bumped 1.0 → 1.1. (ii) web/content/pitch/reseller-channel-gtm-lever.md new data-room one-pager (seller-of-record rationale + commission truth-table + InfoVision as design partner + forward pipeline of retail-partner categories + diligence-readiness artefacts already shipped + cross-references to plan/goal/IR review/unicorn masterplan). (iii) .claude/goals/unicorn-masterplan.md Reseller Channel row added to Revenue Streams by Phase table (2027: A$150K → 2030: A$8M) with the "20 wholesale × 50 seats × A$99 = A$1.19M ARR" arithmetic paragraph per IR rec #4; Total ARR row updated in-place across all five year columns so the reseller channel is now visible in the trajectory arithmetic. Rec #5 ("preserve historical reseller_commissions as data-room artefact") already the design of the ledger (append-only via 0093 mutation triggers, 6-year retention per H.9) — GTM memo section 7 cites this shipped invariant so diligence readers can find it. No code paths touched; tsc / vitest / lint:reseller unchanged from tick 67 baseline.
    10) DONE tick 43 — P0.4_ceo_final_sign_off closed with verdict=approved. P0 pre-flight window is now fully sealed; only P0.3 advisory reviews remain pending (non-blocking).
    11) DONE tick 44 — P8_share_management_addon decomposed into P8.1..P8.5 and P8.1_manifest_completeness shipped. feature-gates.manifest.ts now maps 28 real mutation routes (9 phantoms removed, 20 real routes added); completeness test 6/6 pass guards against future drift.
    16) DONE tick 49 — Track B B3_guide_ch_5_to_8 shipped. Chapters 5-8 (05-pmf, 06-revenue, 07-growth, 08-team) authored EN+VI as four new entries appended to web/src/lib/guide/startup-journey.ts; ChapterSlug union extended; module doc-comment updated to reflect the B2+B3 arc. VI is complete parity, not machine translation. phaseLabel for each new chapter is a direct reference to PHASE_LABELS[5..8] from @/lib/showcase/gallery so /guide, /workspace/guide, /guide/reports and /showcase/blockid share one canonical phase-label taxonomy. Both surface routes (web/src/app/guide/[chapter]/page.tsx and web/src/app/workspace/guide/[chapter]/page.tsx) SSG the four new slugs automatically via generateStaticParams reading allChapterSlugs() — zero route-file edits required. "Chapter 5 unlocks with the B3 release" placeholder text flipped on both surfaces to "Chapter 9 unlocks with the B4 release" (EN + VI). Test suite: EXPECTED_SLUGS bumped to 8, order + phase arrays extended to [1..8], allChapterSlugs assertion updated, unknown-slug case bumped to 09-funding, first/last adjacent-chapter assertions flipped to 01-vision / 08-team, plus a new boundary assertion for the B2/B3 stitch (04-mvp ↔ 05-pmf) so future reorderings can't silently break the chain. Docs mirror at docs/guides/startup-journey/chapter-{05..08}.md ships EN copy for offline reading + contributor PRs (header comment states runtime pages read the TS module — .md files are documentation-only). Verified: 9/9 pass in startup-journey.test.ts (was 8/8); 64/64 combined guide+showcase pass (was 63/63); tsc clean; npm run lint:reseller unchanged 8 files / 3 exemptions / 0 violations. Chapters 5-8 copy references B3-scoped integrations from plan §298 by name (founder-own Stripe test-mode → live-mode flip in ch5+ch7, GA4 property connection in ch7, weekly SVI cron in ch7, Div83A checker + ESOP scheme in ch8) but the actual UI wiring for those integrations is a follow-up tick — matches the B2 precedent where chapters 1-4 referenced GitHub repo-link + GA measurement-ID capture without shipping the capture UI. Frontier after tick 49: (a) Track A HUMAN-BLOCKED on P8.5 Stripe env vars. (b) Track B B4_guide_ch_9_to_12 (chapters 9-12: Funding-Ready → Fundraise/Term Sheet → Post-Funding/Scale → Exit/Beyond) now unblocked in the same startup-journey.ts pattern — preferred next tick to close the 12-chapter content-authoring arc and unblock B9 (reviews & feedback surface, deps: B4). (c) B7 product tour (deps: B2) + B8 reseller linkage (deps: B1 + track_A_P4) remain unblocked as fallbacks. (d) P0.3 advisory reviews still pending (advisory-only). (e) P1.5 InfoVision seed still HUMAN-BLOCKED on H.20.
