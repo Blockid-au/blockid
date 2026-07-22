@@ -70,12 +70,26 @@
 //     would break every other Playwright spec in the same worker.
 //   - insert_failed (500) — needs a broken resellers INSERT which
 //     requires per-test tampering plan §J.2 forbids.
-//   - Happy path (201) — writes a new resellers row that would then
-//     poison every subsequent admin-facing spec in the worker (including
-//     the sibling PATCH/DELETE/list authz specs) and would also require
-//     downstream cleanup for the (code, tier) unique constraint under
-//     reseller_promotion_codes; folded into the admin QA harness
-//     follow-up alongside the deferred rows from ticks 94..108.
+//   - Happy path (201) — ACTIVATED wave-5 row 165 (tick 180) below via
+//     loadAdminHarness() (qa-admin-1@blockid.au). Uses a per-run unique
+//     probe code prefix (`PROBETICK180<random>`) so successive CI worker
+//     runs never collide on the resellers_code_key UNIQUE index — a
+//     rerun after a failed cleanup just mints a fresh code and the
+//     stale row keeps its status='terminated' bucket without ever
+//     blocking a subsequent tick. Retail billing_model chosen so the
+//     wholesale GST/ABN gate at route.ts:87-100 never fires — the happy
+//     assertion pins the INSERT branch, not the wholesale invariants
+//     (those are row 166's territory, already covered by tick 179).
+//     afterAll flips the row to status='terminated' via the sibling
+//     DELETE /api/admin/resellers/[code] endpoint (soft-delete per
+//     route.ts:220-224) so a live production run never accumulates
+//     status='active' probe rows — the terminated bucket is discarded
+//     by every downstream aggregate (portfolio, phase-distribution,
+//     integrations catalogue, commission accrual) so the residue is
+//     inert. Reseller_promotion_codes cleanup is a no-op here because
+//     the POST route does NOT invoke decideCodeMint (that's the
+//     /api/reseller/requests approve-side of P9.4); the resellers row
+//     itself is the only downstream artefact.
 //
 // Placeholder body used on both rows: an object with a lowercase-kebab
 // code and a display_name, safe enough that even if the requireAdmin
@@ -87,6 +101,7 @@
 
 import { test, expect } from "@playwright/test";
 import { loginAs } from "../fixtures/accounts";
+import { adminHarnessSkipReason, loadAdminHarness } from "../fixtures/reseller";
 
 const NON_ADMIN_FOUNDER_EMAIL =
   process.env.QA_UNATTRIBUTED_FOUNDER_EMAIL ?? "qa-founder-1@blockid.au";
@@ -97,7 +112,19 @@ const CREATE_BODY = {
   display_name: "POST placeholder — should not reach DB",
 };
 
-test.describe("Admin resellers POST pre-write authorization — P10 dry-run", () => {
+// Row 165 happy path — per-run unique code so a live-CI rerun after a
+// failed afterAll cleanup mints a fresh row rather than colliding on
+// resellers_code_key. normaliseResellerCode strips non-alphanumeric +
+// uppercases (attribution.ts:25-29) so the raw string can carry
+// hex-encoded randomness and normalisation still resolves it to a
+// unique canonical code. Kept short (< 20 chars) to fit typical
+// resellers.code column conventions without over-consuming index space.
+function mintProbeCode(): string {
+  const random = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `PROBETICK180${random}`;
+}
+
+test.describe("Admin resellers POST pre-write authorization — P10 wave-5 row 165 pre-write branches", () => {
   test("unauthenticated — POST with no session returns 401 no_user", async ({
     request,
   }) => {
@@ -138,5 +165,119 @@ test.describe("Admin resellers POST pre-write authorization — P10 dry-run", ()
       `non_admin body.ok should be false: ${JSON.stringify(body)}`,
     ).toBe(false);
     expect(body.reason).toBe("not_admin");
+  });
+});
+
+// P10 wave-5 row 165 happy path — admin harness + retail body + probe
+// code cleanup. Per docs/plans/p10-deferred-spec-activation-order.md
+// wave-5 table row 165 (`admin-resellers-create-authz.spec.ts` × (n/a)
+// × happy 201 with new reseller row). The row is the last wave-5
+// admin-surface leaf; every sibling admin-authz spec (list/detail/patch/
+// delete/loop-status/requests-list/requests-patch) already carries a
+// happy 200 branch. Closes the P10 admin-surface authz matrix so the
+// P10 exit criterion §420 "admin-facing endpoints regression-guarded
+// at the Playwright lens" holds symmetrically across GET/POST/PATCH/
+// DELETE for /api/admin/resellers[/:code] and /api/admin/reseller-
+// requests[/:id].
+//
+// State-pollution posture: POST writes a fresh resellers row with
+// status='active'; afterAll DELETEs it (soft-delete → status=
+// 'terminated' per route.ts:220-224). The row survives in the DB after
+// the run but is idempotent under CI replay because every subsequent
+// run mints a fresh probe code via mintProbeCode(). If afterAll's
+// DELETE fails, the row stays status='active' but its code is unique
+// per run so a future POST never collides. Cleanup is best-effort —
+// the test itself does NOT reassert on the DELETE response so a
+// cleanup 5xx does not mask the primary 201 assertion.
+//
+// Non-Stripe / non-GST discipline: retail billing_model so route.ts:87-
+// 100 skips the wholesale GST/ABN gate; no Stripe network call fires,
+// no revenue_events row is written, no reseller_promotion_codes row is
+// minted (that pipeline runs in /api/reseller/requests approve-side of
+// P9.4, not the direct create endpoint). P8.5 + P1.5 remain neither a
+// dependency nor a consequence.
+test.describe("Admin resellers POST — P10 wave-5 row 165 happy path", () => {
+  const harness = loadAdminHarness();
+  test.skip(!harness, adminHarnessSkipReason());
+
+  const probeCode = mintProbeCode();
+  let createdCode: string | null = null;
+
+  test.afterAll(async ({ request }) => {
+    if (!createdCode) return;
+    try {
+      await request.delete(`${ROUTE}/${createdCode.toLowerCase()}`);
+    } catch {
+      // Cleanup is best-effort — a network flake or session drop must
+      // not mask the primary 201 assertion. See state-pollution posture
+      // in the describe docblock: successive probe codes never collide,
+      // so a stale status='active' row is inert.
+    }
+  });
+
+  test("happy — POST as qa-admin-1 with unique probe code returns 201 with reseller row", async ({
+    page,
+  }) => {
+    try {
+      await loginAs(page, harness!.admin.email);
+    } catch (err) {
+      test.skip(
+        true,
+        `Admin QA account not seeded: ${(err as Error).message}. Run ` +
+          `scripts/seed-test-users.mjs to populate /tmp/blockid-qa-accounts.txt.`,
+      );
+      return;
+    }
+
+    const resp = await page.request.post(ROUTE, {
+      data: {
+        code: probeCode,
+        display_name: `Probe tick 180 — ${probeCode}`,
+        billing_model: "retail",
+      },
+    });
+    expect(
+      resp.status(),
+      `happy POST returned ${resp.status()} — expected 201 after requireAdmin() passes, JSON.parse succeeds, normaliseResellerCode resolves the probe code, display_name is present, the retail branch skips the wholesale GST/ABN gate, getSupabaseAdmin resolves, and the resellers INSERT commits. A 400 code_required means normalisation rejected the probe (attribution.ts:25-29). A 400 display_name_required means the display_name field dropped. A 409 code_taken means a prior run's cleanup failed AND the mintProbeCode() collision guard held — unexpected. A 503 not_configured means SUPABASE_URL/SERVICE_ROLE is unset. A 500 insert_failed means the resellers INSERT hit a DB error (route.ts:137-142). Body: ${await resp.text()}`,
+    ).toBe(201);
+
+    const body = (await resp.json()) as {
+      ok?: unknown;
+      reseller?: {
+        code?: unknown;
+        display_name?: unknown;
+        billing_model?: unknown;
+        status?: unknown;
+      };
+    };
+
+    expect(
+      body.ok,
+      `happy body.ok should be true (route.ts:136 returns {ok:true, reseller:data}): ${JSON.stringify(body).slice(0, 200)}`,
+    ).toBe(true);
+    expect(
+      body.reseller,
+      `happy body.reseller should be present so the .select().single() row surfaces to the admin caller: ${JSON.stringify(body).slice(0, 200)}`,
+    ).toBeTruthy();
+
+    // Capture the DB-normalised code for afterAll cleanup. Guarded by
+    // typeof check so an unexpected null shape does not throw here and
+    // still leaves createdCode=null for the afterAll no-op branch.
+    if (body.reseller && typeof body.reseller.code === "string") {
+      createdCode = body.reseller.code;
+    }
+
+    expect(
+      body.reseller?.code,
+      `happy body.reseller.code should match the normalised probe (attribution.ts uppercases + strips non-alphanumeric): ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe(probeCode);
+    expect(
+      body.reseller?.billing_model,
+      `happy body.reseller.billing_model should be 'retail' per the POSTed body: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe("retail");
+    expect(
+      body.reseller?.status,
+      `happy body.reseller.status should default to 'active' per route.ts:121: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe("active");
   });
 });
