@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.127
+version: 2026-07-23.128
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,98 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 128
+    ran_at: 2026-07-22
+    action: coo_advisory_h_human_blocked_digest_section
+    result: |
+      Closed COO advisory §h (docs/plans/reviews/plan-review-coo.md
+      rec #1) — surface open human_blocked escalations in the
+      Monday weekly digest so admin@blockid.au sees them without
+      grepping the goal file. Two open items registered: (a)
+      P1.5_infovision_seed (blocked on H.20 ABN + GST confirmation);
+      (b) P8.5_env_and_playwright (blocked on STRIPE_PRICE_ADDON_
+      SHARE_MGMT_MONTHLY|ANNUAL env-var mint).
+
+      Files:
+        - web/src/lib/reseller/human-blocked-registry.ts (new — pure
+          hand-maintained const `HUMAN_BLOCKED_ITEMS` with typed
+          `HumanBlockedItem` shape {id, phase, title, blocker,
+          action_required, owner}. Deliberately a static registry
+          rather than a goal-file YAML parser: the two entries have
+          been stable since P0 sign-off (tick 43) and a parser would
+          need to track YAML-shape drift across every tick. When a
+          new human_blocked leaf lands, an operator edits this file
+          in the same tick. `buildHumanBlockedSnapshot(now)` returns
+          a JSONL-friendly {ran_at, count, items:[{id,phase,owner}]}
+          shape so a follow-up tick can honour COO next-tick-ask #1
+          — appending a human_blocked_snapshot row to
+          reseller-goal-history.jsonl per goal-loop tick.)
+        - web/src/lib/reseller/weekly-digest.ts (adds
+          `formatWeeklyDigestHumanBlockedSection(items)` — returns
+          empty string when items[]==[] so the cron can
+          unconditionally append; otherwise renders one table row
+          per escalation sorted by phase (P1 before P8) with escapeHtml
+          on every cell so a hostile registry entry cannot inject
+          markup. Reused escapeHtml + the same 13px Arial styling as
+          the existing anomaly section.)
+        - web/src/lib/reseller/weekly-digest.test.ts (4 new cases:
+          empty→"" return; two-item render with header +
+          admin@blockid.au owner + goal-file <code> reference;
+          phase-sort assertion (input reversed → P1 renders before
+          P8); XSS-escape assertion on title / blocker containing
+          <script>, & and ").
+        - web/src/app/api/cron/reseller-weekly-digest/route.ts
+          (imports HUMAN_BLOCKED_ITEMS + formatter; appends the
+          section AFTER the anomaly section so leading-signal
+          telemetry stays the primary content; JSON response body
+          gains a `human_blocked: {count, ids}` field so
+          skip_email=1 dry-runs surface the count without inspecting
+          the HTML).
+
+      Verified:
+        - vitest src/lib/reseller/weekly-digest.test.ts 16/16 pass
+          (was 12/12, +4).
+        - vitest src/lib/reseller/ 449/449 pass — no regression in
+          the surrounding reseller lib suite.
+        - `npx tsc --noEmit -p tsconfig.json` clean.
+        - `npm run lint:reseller` unchanged: 3 exemptions, 0
+          violations (the new files are not under /api/reseller/**
+          so the R-01 scope-boundary rule doesn't apply, and the
+          cron route is not in feature-gates.manifest.ts so R-03
+          doesn't fire either).
+
+      Explicitly deferred:
+        - COO next-tick-ask #1 (append a `human_blocked_snapshot`
+          stage line to reseller-goal-history.jsonl each tick) is a
+          scripts/cron/reseller-goal-loop.mjs delta — kept out of
+          this tick to preserve blast-radius scope (this tick only
+          touches web/src/ + docs/). `buildHumanBlockedSnapshot()`
+          is exported so the follow-up tick has a ready-made pure
+          helper to compose against.
+        - Wiring the goal-file YAML into the registry as an
+          auto-refreshed source of truth: rejected for the reasons
+          above (parser fragility >> value of automation for a
+          two-item registry that has been stable since tick 43).
+
+      Frontier after tick 128: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20; Track B
+      COMPLETE; P10 still blocked_by [P1..P9] until P8.5 clears.
+      Advisory follow-ups now closed: 22 brand-wording (tick 58) +
+      /guide/reports download route + GA event (tick 61 group) +
+      23 phase-distribution pair-suppression (tick 57) + 23 GA4
+      showcase catalogue (tick 69) + 26 Div 83A checklist (tick 59)
+      + 26 human-review-minutes KPI (tick 60) + h human_blocked
+      digest section (this tick). Remaining advisory follow-ups:
+      §24 customer-success (H.8 wholesale magic-link + welcome
+      email + Grant modal EN-only + reseller-side denial-reason
+      surface), §25 CPO (Customer drawer EN-only + wholesale
+      wizard non-payment confirmation), §27 IR/COO (pitch-deck
+      Channel Economics slide + data-room GTM one-pager) — pitch-
+      deck Channel Economics slide 8 shipped at tick 60/68 per
+      earlier note, data-room GTM one-pager still pending.
     commit: (this tick)
 
   - tick: 127
