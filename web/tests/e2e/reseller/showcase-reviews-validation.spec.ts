@@ -74,10 +74,31 @@
 // reveal-email-validation / drawer-validation so a future collision with a
 // live projects.id would break all three specs in lockstep — cheap to
 // re-anchor if that ever happens.
+//
+// ACTIVATED wave-5 row 177 below: reviewer-flow POST happy path via
+// loadTempReseller('active_wholesale') + fixture.attachReviewerAccessToken().
+// The helper seeds a QAPROBE-prefixed data_room_access_tokens row (and, when
+// no data_rooms row exists for the founder's first project, an accompanying
+// data_rooms row) so the route can clear the token SELECT + data_rooms
+// SELECT + showcase_reviews upsert chain end-to-end. cleanup() removes any
+// showcase_reviews row the spec upserted before dropping the access-token
+// row (and, when the fixture created it, the data_rooms row) so re-runs
+// land as fixed inserts rather than repeat upserts. Deliberately deferred:
+// the assertion that the founder-scoped GET path returns the row we just
+// created — row 176 already covers the GET happy path against organic
+// reviews, and pairing them here would double-drive the same route in one
+// spec and risk cross-spec ordering flake.
 
 import { test, expect } from "@playwright/test";
 import { loginAs } from "../fixtures/accounts";
-import { harnessSkipReason, loadResellerHarness } from "../fixtures/reseller";
+import {
+  harnessSkipReason,
+  loadResellerHarness,
+  loadTempReseller,
+  tempResellerSkipReason,
+  type AttachReviewerAccessTokenResult,
+  type TempResellerFixture,
+} from "../fixtures/reseller";
 
 const ROUTE = "/api/showcase-reviews";
 const NOT_FOUND_PROJECT_ID = "00000000-0000-4000-8000-000000000002";
@@ -120,5 +141,102 @@ test.describe("Showcase-reviews GET input validation — P10 dry-run", () => {
       `not_found body.ok should be false: ${JSON.stringify(body)}`,
     ).toBe(false);
     expect(body.error).toBe("Not found");
+  });
+});
+
+// Wave-5 row 177 — reviewer-flow POST happy path. Uses the active_wholesale
+// variant per the plan §J.2 activation-order pin because the fixture's
+// attributed founder (qa-founder-attributed-1@blockid.au by default) is the
+// only variant seeded by scripts/seed-qa-reseller.mjs that also owns a
+// projects row on the target host — the fixture helper walks
+// attributedUserId → projects → data_rooms → data_room_access_tokens so any
+// gap in that chain surfaces as a targeted skip rather than a spurious 4xx.
+// The POST is authenticated purely via the seeded token (no BlockID account
+// required on the reviewer side), mirroring the /api/data-room/engage
+// pattern already covered by the route's inline documentation.
+test.describe("Showcase-reviews reviewer POST — P10 wave-5 row 177 happy path", () => {
+  let fixture: TempResellerFixture | null = null;
+  let fixtureError: string | null = null;
+
+  test.beforeAll(async () => {
+    try {
+      fixture = await loadTempReseller("active_wholesale");
+    } catch (err) {
+      fixtureError = (err as Error).message;
+    }
+  });
+
+  test.afterAll(async () => {
+    if (fixture) {
+      try {
+        await fixture.cleanup();
+      } catch (err) {
+        // Bubble via console; do not throw during teardown so a fixture
+        // cleanup regression does not mask the underlying test verdict.
+        // eslint-disable-next-line no-console
+        console.error(
+          `showcase-reviews wave-5 row 177 cleanup: ${(err as Error).message}`,
+        );
+      }
+    }
+  });
+
+  test("happy — POST with seeded access token returns 200 { ok: true }", async ({
+    request,
+  }) => {
+    if (fixtureError) {
+      test.skip(
+        true,
+        `${tempResellerSkipReason("active_wholesale")} (${fixtureError})`,
+      );
+      return;
+    }
+    if (!fixture) {
+      test.skip(true, tempResellerSkipReason("active_wholesale"));
+      return;
+    }
+    if (!fixture.attributedUserId || !fixture.attributedFounderEmail) {
+      test.skip(
+        true,
+        `${tempResellerSkipReason("active_wholesale")} — attributedUserId or attributedFounderEmail null (attributed founder app_users row missing on this host).`,
+      );
+      return;
+    }
+
+    let attachment: AttachReviewerAccessTokenResult | null = null;
+    try {
+      attachment = await fixture.attachReviewerAccessToken();
+    } catch (err) {
+      test.skip(
+        true,
+        `attachReviewerAccessToken failed: ${(err as Error).message} — most likely because migration 0062 (data_room_access_tokens) is not applied on this host, or the founder's data_rooms row shape drifted. Apply 0062 via docker exec supabase-db psql or re-run scripts/seed-test-users.mjs.`,
+      );
+      return;
+    }
+    if (!attachment) {
+      test.skip(
+        true,
+        `attachReviewerAccessToken returned null — attributed founder ${fixture.attributedFounderEmail} owns no projects.id yet. Seed via /workspace UI or backfill so the reviewer chain (project → data_room → access_token) can be provisioned.`,
+      );
+      return;
+    }
+
+    const resp = await request.post(ROUTE, {
+      data: {
+        token: attachment.token,
+        rating: 5,
+        comment:
+          "P10 wave-5 row 177 happy path — QA reviewer stub review upserted via attachReviewerAccessToken fixture.",
+      },
+    });
+    expect(
+      resp.status(),
+      `happy POST returned ${resp.status()} — expected 200 after data_room_access_tokens SELECT + data_rooms SELECT + showcase_reviews upsert all clear. Body: ${await resp.text()}`,
+    ).toBe(200);
+    const body = (await resp.json()) as { ok: boolean; error?: string };
+    expect(
+      body.ok,
+      `happy body.ok should be true: ${JSON.stringify(body)}`,
+    ).toBe(true);
   });
 });
