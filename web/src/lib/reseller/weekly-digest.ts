@@ -11,6 +11,7 @@
 // without touching Supabase or nodemailer.
 
 import type { AnomalySummary } from "./audit-anomaly";
+import type { HumanBlockedItem } from "./human-blocked-registry";
 import type { LeadingSignalSummary } from "./leading-signals";
 import type { KAnonBucket } from "./portfolio-aggregates";
 
@@ -241,4 +242,53 @@ export function formatWeeklyDigestAnomaliesSection(
     </table>`);
   }
   return parts.join("");
+}
+
+/**
+ * Renders the human-review escalation section for the weekly digest.
+ *
+ * Closes COO advisory rec #1 (docs/plans/reviews/plan-review-coo.md): the two
+ * open human_blocked leaves (P1.5 InfoVision seed on H.20 ABN + GST; P8.5
+ * Stripe add-on env vars) need to surface in the Monday digest so the operator
+ * sees them without grepping the goal file.
+ *
+ * Returns an empty string when `items` is empty so callers can unconditionally
+ * append. The block is a compact table — one row per open escalation with the
+ * phase, title, blocker sentence, owner, and required action.
+ */
+export function formatWeeklyDigestHumanBlockedSection(
+  items: ReadonlyArray<HumanBlockedItem>,
+): string {
+  if (items.length === 0) return "";
+
+  const sorted = [...items].sort((a, b) => a.phase.localeCompare(b.phase));
+  const rows = sorted
+    .map(
+      (i) => `
+      <tr>
+        <td>${escapeHtml(i.phase)}</td>
+        <td>${escapeHtml(i.title)}</td>
+        <td>${escapeHtml(i.blocker)}</td>
+        <td>${escapeHtml(i.owner)}</td>
+        <td>${escapeHtml(i.action_required)}</td>
+      </tr>`,
+    )
+    .join("");
+
+  return `
+    <h3 style="margin-top:24px;font-family:Arial,sans-serif;font-size:14px">Human-review escalations (${sorted.length} open)</h3>
+    <p style="font-family:Arial,sans-serif;font-size:13px">The autonomous loop cannot advance these until a human unblocks each item. Source of truth: <code>docs/plans/reseller-module-goal.md</code>.</p>
+    <table cellpadding="6" cellspacing="0" border="1" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:13px">
+      <thead>
+        <tr>
+          <th>Phase</th>
+          <th>Item</th>
+          <th>Blocker</th>
+          <th>Owner</th>
+          <th>Action required</th>
+        </tr>
+      </thead>
+      <tbody>${rows}
+      </tbody>
+    </table>`;
 }

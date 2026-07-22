@@ -24,6 +24,7 @@ import {
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
 } from "@/lib/reseller/audit-anomaly";
+import { HUMAN_BLOCKED_ITEMS } from "@/lib/reseller/human-blocked-registry";
 import {
   buildLeadingSignalSummary,
   type AttributedCustomerRow,
@@ -33,6 +34,7 @@ import {
   formatWeeklyDigestAnomaliesSection,
   formatWeeklyDigestCsv,
   formatWeeklyDigestEmail,
+  formatWeeklyDigestHumanBlockedSection,
   isoWeekKey,
   type WeeklyDigestRow,
 } from "@/lib/reseller/weekly-digest";
@@ -252,6 +254,13 @@ export async function GET(req: Request) {
     if (section) html += section;
   }
 
+  // COO advisory rec #1: surface the two open human_blocked escalations
+  // (P1.5 InfoVision H.20 ABN + GST; P8.5 Stripe add-on price env vars) so
+  // admin@blockid.au sees them in the Monday email without grepping the goal
+  // file. Static registry — see human-blocked-registry.ts for the source list.
+  const humanBlockedSection = formatWeeklyDigestHumanBlockedSection(HUMAN_BLOCKED_ITEMS);
+  if (humanBlockedSection) html += humanBlockedSection;
+
   let emailed = false;
   if (!skipEmail && digestRows.length > 0) {
     const result = await sendEmail({
@@ -297,6 +306,10 @@ export async function GET(req: Request) {
           window_end: anomalySummary.window_end,
         }
       : { skipped_reason: "audit_log_query_failed" },
+    human_blocked: {
+      count: HUMAN_BLOCKED_ITEMS.length,
+      ids: HUMAN_BLOCKED_ITEMS.map((i) => i.id),
+    },
     ran_at: now.toISOString(),
   });
 }

@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { AnomalySummary } from "./audit-anomaly";
 import type { LeadingSignalSummary } from "./leading-signals";
+import type { HumanBlockedItem } from "./human-blocked-registry";
 import {
   formatWeeklyDigestAnomaliesSection,
   formatWeeklyDigestCsv,
   formatWeeklyDigestEmail,
+  formatWeeklyDigestHumanBlockedSection,
   isoWeekKey,
   type WeeklyDigestRow,
 } from "./weekly-digest";
@@ -218,5 +220,62 @@ describe("formatWeeklyDigestAnomaliesSection", () => {
     );
     expect(html).toContain("&lt;script&gt;");
     expect(html).not.toContain("<script>");
+  });
+});
+
+describe("formatWeeklyDigestHumanBlockedSection", () => {
+  const p15: HumanBlockedItem = {
+    id: "P1.5_infovision_seed",
+    phase: "P1",
+    title: "InfoVision reseller seed",
+    blocker: "ABN + GST TBD per H.20.",
+    action_required: "Confirm Auschain InfoVision ABN + GST.",
+    owner: "admin@blockid.au",
+  };
+  const p85: HumanBlockedItem = {
+    id: "P8.5_env_and_playwright",
+    phase: "P8",
+    title: "Share-management add-on Stripe env vars",
+    blocker: "STRIPE_PRICE_ADDON_SHARE_MGMT_* not minted.",
+    action_required: "Mint two Stripe add-on price IDs.",
+    owner: "admin@blockid.au",
+  };
+
+  it("returns empty string when no items are open", () => {
+    expect(formatWeeklyDigestHumanBlockedSection([])).toBe("");
+  });
+
+  it("renders one table row per open escalation with the human-review header", () => {
+    const html = formatWeeklyDigestHumanBlockedSection([p15, p85]);
+    expect(html).toContain("Human-review escalations (2 open)");
+    expect(html).toContain("InfoVision reseller seed");
+    expect(html).toContain("Share-management add-on Stripe env vars");
+    expect(html).toContain("admin@blockid.au");
+    expect(html).toContain("<code>docs/plans/reseller-module-goal.md</code>");
+  });
+
+  it("sorts rows by phase so P1 renders before P8 regardless of input order", () => {
+    const html = formatWeeklyDigestHumanBlockedSection([p85, p15]);
+    const p1Idx = html.indexOf("InfoVision reseller seed");
+    const p8Idx = html.indexOf("Share-management add-on");
+    expect(p1Idx).toBeGreaterThan(-1);
+    expect(p8Idx).toBeGreaterThan(-1);
+    expect(p1Idx).toBeLessThan(p8Idx);
+  });
+
+  it("HTML-escapes hostile item content so a bad registry entry cannot inject markup", () => {
+    const bad: HumanBlockedItem = {
+      id: "P0.0_xss",
+      phase: "P0",
+      title: "<script>alert(1)</script>",
+      blocker: "\"bad\" & <b>markup</b>",
+      action_required: "n/a",
+      owner: "admin@blockid.au",
+    };
+    const html = formatWeeklyDigestHumanBlockedSection([bad]);
+    expect(html).toContain("&lt;script&gt;");
+    expect(html).not.toContain("<script>alert");
+    expect(html).toContain("&amp;");
+    expect(html).toContain("&quot;bad&quot;");
   });
 });
