@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.140
+version: 2026-07-23.141
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,113 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 141
+    ran_at: 2026-07-22
+    action: p10_wave1_preflight_finding_and_seed_flip
+    result: |
+      UNDERSTAND stage for row 141 of docs/plans/p10-deferred-spec-
+      activation-order.md (create-startup-authz.spec.ts × active_retail ×
+      billing_model_not_wholesale → 400) surfaced two design-time
+      mismatches that block wave-1 activation. Tick 141 lands one fix +
+      one findings doc; row 141 spec activation deferred to the follow-up
+      tick that closes the second finding.
+
+      Files:
+        - web/scripts/seed-qa-reseller.mjs (active_retail variant flipped
+          can_create_startups: false → true; comment added cross-
+          referencing the new finding doc so a future edit does not
+          silently revert it. Rationale: variant purpose is to isolate the
+          billing_model_not_wholesale branch of decideCreateStartup(),
+          which sits AFTER the capability_disabled gate. Leaving
+          can_create_startups=false collapses this variant onto
+          no_capability's oracle (row 143) and leaves the retail-vs-
+          wholesale gate uncovered by any variant. can_grant_credits stays
+          false — no wave row uses active_retail against the grant surface;
+          wave 3 uses no_capability + no_budget instead.)
+        - docs/plans/p10-wave1-preflight-finding.md (new — records both
+          findings + recommends Option A for the second):
+          Finding 1: seed shape mismatch above (landed).
+          Finding 2: gateRequireFeature("reseller.create_startup") fails
+          for every reseller-admin QA account because no plan grants the
+          feature — LEGACY_FEATURE_FALLBACK in web/src/lib/entitlements.ts
+          only maps founder_free/founder_starter/founder_growth/
+          founder_scale/founder_enterprise, none of which include any
+          reseller.* entry; migration 0074_plans_matrix_and_gst.sql
+          contains zero reseller references; web/content/plans.csv does
+          not exist on this host. Reseller-admin QA users are seeded with
+          plan="free" (mapped to founder_free) which only grants
+          ["svi.run.limited"]. Result: every wave-1..3 row that POSTs
+          against /api/reseller/create-startup, /api/reseller/credits/
+          grant, /api/reseller/sandbox/setup, /api/reseller/requests
+          returns 402 feature_locked before reaching the branch under
+          test. Recommended Option A (smallest surface): extend
+          LEGACY_FEATURE_FALLBACK with a "reseller_admin" bundle carrying
+          [reseller.console, reseller.create_startup, reseller.grant_credits]
+          and stamp plan="reseller_admin" on the seven qa-reseller-<
+          variant>@blockid.au rows inside upsertResellerFixtureUser().
+          Options B (migration seed row) + C (short-circuit gate on
+          reseller_admins membership) documented and de-recommended.
+
+      Design fidelity:
+        - Both findings are gate-order + data-shape observations against
+          shipped code (create-startup route.ts:459 gateRequireFeature +
+          create-startup.ts:207 decideCreateStartup gate 2 & 3). No
+          speculative claims; every referenced file:line was grep-verified
+          before landing.
+        - Non-Stripe / non-GST discipline: neither finding depends on
+          STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL (P8.5) or the
+          InfoVision ABN/GST seed (P1.5 / H.20). Row 141 stays inside the
+          non-human-blocked wave-1 cohort described in the schedule doc.
+        - The active_retail seed flip is safe against production /
+          existing CI: the seeder is consumed only by
+          web/tests/e2e/fixtures/reseller.ts::loadTempReseller() and
+          docs/plans/p10-temp-reseller-mint-fixture-design.md; no
+          production route or shipping CI job reads the row.
+        - Row 141–144 activation still deferred: the failure protocol in
+          docs/plans/p10-deferred-spec-activation-order.md § "Failure
+          protocol" describes runtime sentinels (403 no_membership,
+          test.skip); this finding is a DESIGN-time sentinel captured
+          before the row activates so a future tick does not repeat the
+          discovery.
+
+      Verified:
+        - No tsc / vitest run this tick — the seed script sits outside
+          the tsconfig include + vitest include globs (web/scripts/*.mjs),
+          and the finding doc lives under docs/plans/. No .ts / .tsx /
+          .sql / .spec.ts files touched.
+        - No DB apply this tick — documentation + one .mjs constant flip
+          only. The seeder must be re-run against any target host that
+          previously seeded active_retail so the resellers row picks up
+          the new can_create_startups=true value; the run itself is a
+          human-triggered command, out of scope for this tick.
+        - Grep verification: doc's finding-2 claims that neither 0074 nor
+          plans.csv contain reseller entries were checked with `grep -in
+          reseller` and `ls plans.csv`; both returned empty (0 matches
+          and file-not-found respectively).
+        - Goal file version bumped 2026-07-23.140 → 2026-07-23.141.
+
+      Frontier after tick 141: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20 ABN + GST; Track
+      B COMPLETE; P10 still blocked_by [P1..P9] until P8.5 clears. What
+      tick 141 unblocks: row 141 (and by extension rows 142–144) no
+      longer carry the silent active_retail collision; the wave-1 tick
+      that finally lands the create-startup-authz.spec.ts row expansion
+      can now assume the fixture's active_retail variant fires
+      billing_model_not_wholesale rather than capability_disabled. Row
+      141's actual test.skip → assertion flip is deferred pending
+      Option A (extend LEGACY_FEATURE_FALLBACK + seed reseller_admin
+      plan on the seven per-variant admin rows) — the same follow-up
+      tick then unblocks wave-1 (rows 141–144) + all downstream waves
+      that POST against reseller mutation routes. Next autonomous tick
+      options: (i) implement Option A per finding 2 (three-file edit:
+      web/src/lib/entitlements.ts fallback map + web/scripts/seed-test-
+      users.mjs upsertResellerFixtureUser + a new vitest for the
+      reseller_admin bundle) which is self-contained and unblocks
+      rows 141–156 in one motion; (ii) idle until human unblock arrives
+      on P8.5 or P1.5.
+    commit: (this tick)
+
   - tick: 140
     ran_at: 2026-07-22
     action: p10_deferred_spec_activation_order_doc
