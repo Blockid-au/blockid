@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.109
+version: 2026-07-23.110
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,109 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 110
+    ran_at: 2026-07-22
+    action: p10_dry_run_reseller_requests_list_authz_playwright_spec
+    result: |
+      Composed option (ii) from tick 109's frontier note — swept the
+      /api/reseller/** surface for any remaining scopedReseller() gates
+      without a symmetric dry-run spec. Result: GET /api/reseller/requests
+      was the last GET surface under /api/reseller/** whose scopedReseller()
+      auth chain was not yet regression-guarded at the Playwright lens. The
+      sibling POST /api/reseller/requests validation branches already ship
+      via requests-validation.spec.ts (tick 88), but that spec exercises
+      the validator branches AFTER auth via loginAs(harness.admin.email),
+      leaving the pre-auth chain (getCurrentUser → scopedReseller) uncovered
+      on the GET verb entirely.
+
+      Files:
+        - web/tests/e2e/reseller/reseller-requests-list-authz.spec.ts (new — two
+          rows probing the auth chain before getSupabaseAdmin or the
+          reseller_requests SELECT:
+          (1) unauthenticated (GET with no session → getCurrentUser null →
+              401 { ok:false, reason:"unauthorised" } at route.ts:149-152
+              BEFORE scopedReseller, getSupabaseAdmin, or reseller_requests
+              SELECT),
+          (2) non_reseller_admin (loginAs(qa-founder-1@blockid.au) → GET →
+              scopedReseller throws ResellerScopeError("no_membership")
+              because reseller_admins has no active row for a founder →
+              403 { ok:false, reason:"no_membership" } at route.ts:154-162
+              BEFORE getSupabaseAdmin or reseller_requests SELECT).
+          Row 1 runs unconditionally (no harness dep — just request.get
+          without loginAs). Row 2 test.skip()s with a diagnostic message
+          if /tmp/blockid-qa-accounts.txt is missing so operators without
+          the seed file get an actionable pointer rather than a hard fail.
+          The GET handler takes no query params so both harness-free rows
+          return BEFORE any URL parse fires — no query string needed.
+
+      Why this shape mirrors the earlier reseller-scope specs
+      (reveal-email-authz tick 100, drawer-authz tick 101,
+      reports-signed-url-authz tick 99, sandbox-setup-authz tick 96,
+      billing-authz tick 95): all six routes use the direct
+      getCurrentUser() + scopedReseller() chain (NOT gateRequireFeature)
+      and all six emit { ok:false, reason: <string> } — either
+      "unauthorised" (401) on missing session or the ResellerScopeError.code
+      (403) on missing/revoked membership. Symmetric envelope means a
+      refactor that swaps scopedReseller() for a bespoke inline check,
+      that changes the error reason wire format, or that flips the status
+      codes lights up in all six specs on the next `npx playwright test`
+      pass. Distinct from the earlier reseller specs in ONE dimension
+      only — this is the ADMIN-approval queue LIST surface (returns the
+      reseller's own pending/approved/denied request rows scoped by
+      reseller_id), so a regression that let an anonymous or non-reseller
+      caller reach the reseller_requests SELECT would leak decision_at /
+      decision_reason / payload jsonb on every reseller's open
+      code_request / over_budget_approval / collateral_approval row —
+      commercially-sensitive queue state that plan §C.5 restricts to the
+      requesting reseller admin.
+
+      Why the 500/503 branches aren't covered: not_configured (503) needs
+      SUPABASE_URL/SERVICE_ROLE unset which would break every other
+      Playwright spec in the same worker. query_failed (500) needs a
+      broken reseller_requests SELECT which requires per-test tampering
+      plan §J.2 forbids. Happy path (200 with requests[]) needs a real
+      reseller_admins session PLUS pre-seeded reseller_requests rows on
+      that reseller_id; folded into the admin QA harness / temp-reseller
+      mint follow-up alongside the deferred rows from ticks 94..109.
+
+      Verified: tsc clean (npx tsc --noEmit -p tsconfig.json exit 0 at
+      web/); vitest unchanged (Playwright spec is not picked up by vitest
+      — tests/e2e/** is excluded per playwright.config.ts:testDir); npm
+      run lint:reseller: R-01 scanned 11 file(s), R-03 scanned 31
+      manifest route(s); 3 exemptions, 0 violations unchanged (spec
+      lives under web/tests/e2e/reseller/, not /api/reseller/**, so R-01
+      doesn't fire; not a mutation route in feature-gates.manifest.ts so
+      R-03 doesn't fire). Playwright not run this tick — row 1 is
+      harness-free and will execute on the next CI Playwright pass;
+      row 2 lights up as soon as the qa accounts file is present.
+
+      Frontier after tick 110: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 110 unblocks: EVERY scopedReseller()-gated GET surface
+      under /api/reseller/** now has symmetric Playwright dry-run
+      coverage (customer-drawer GET, reveal-email POST, reports
+      signed-url GET, sandbox/setup POST, billing setup-intent POST,
+      billing save-default-payment-method POST, requests GET, requests
+      POST validation, credits/grant POST validation, create-startup
+      POST validation, code/validate POST, me GET). Twenty-two spec
+      files now sit in web/tests/e2e/reseller/
+      (admin-requests-list-authz, admin-requests-patch-authz,
+      admin-reseller-delete-authz, admin-reseller-patch-authz,
+      admin-resellers-create-authz, admin-resellers-list-authz,
+      attribution-timing, audit-anomaly-scan, audit-log-writes,
+      billing-authz, cobranding-pill, code-validate,
+      create-startup-validation, credit-grant-validation, drawer-authz,
+      me-attribution, reports-signed-url-authz, requests-validation,
+      reseller-requests-list-authz, reveal-email-authz,
+      sandbox-setup-authz, scope-boundary). Next autonomous tick
+      options: (i) landing the QA-mode temp-reseller mint fixture that
+      opens up all the deferred HAPPY-PATH branches from ticks 94..110
+      at once (larger tick, wants a design pass); (ii) idle until human
+      unblock arrives on P8.5 or P1.5.
     commit: (this tick)
 
   - tick: 109
