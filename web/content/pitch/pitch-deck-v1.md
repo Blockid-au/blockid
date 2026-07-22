@@ -3,7 +3,7 @@
 *Company: Auschain Pty Ltd (ACN 659 615 111, ABN 79 659 615 111)*
 *Founder: Do Van Long — linkedin.com/in/dovanlong*
 *Product: blockid.au — Live, AI-powered startup valuation platform*
-*Version: 1.0 — May 2026*
+*Version: 1.1 — 2026-07-22 (added Slide 8 Channel Economics + wove /showcase/blockid into Traction; IR advisory §27 close)*
 
 ---
 
@@ -207,23 +207,64 @@
 
 ---
 
-## Slide 8: Traction
+## Slide 8: Channel Economics
 
-**Headline:** Live Product. Real Users. Growing Fast.
+**Headline:** Two Channels, One Ledger — 100% and 60% Margin Options
 
 **Key Points:**
-- Product is live at blockid.au
+- **Wholesale (InfoVision-style):** BlockID collects A$99/mo/seat at 0% commission; reseller carries CAC and support. **100% BlockID margin** at the SaaS layer.
+- **Retail (referral partners):** 60/40 split; BlockID keeps A$59.40 gross per A$99 seat (invariant across tiers 0/10/20/30/40); reseller earns 0-40% commission.
+- **Auschain PTY LTD is seller-of-record on every invoice** (both models) -- no Stripe Connect, one ABN 79 659 615 111, one GST remitter, one audit trail.
+- Append-only `reseller_commissions` ledger with DB CHECK invariant + monthly GST reconciliation cron (tolerance A$1) -- diligence-grade auditability from day one.
+- Design partner: **InfoVision** (wholesale seed row shipped; 20K credits/mo budget, 500 sandbox credits/mo).
+
+**Visual Description:**
+- Side-by-side comparison table:
+  - Column A "Wholesale": 0% commission | Reseller owns CAC | BlockID retains A$99 | Best for accelerators/incubators
+  - Column B "Retail": 40% commission | BlockID owns CAC | BlockID retains A$59.40 | Best for advisors/scouts
+- Below: A$99 SKU worked example (5 rows, tiers 0/10/20/30/40) with BlockID gross column highlighted -- always A$59.40 on retail
+- Right-side callout: "One `resellers` table, one billing_model discriminator, one CHECK-constraint ledger"
+- Bottom-left badge: "Live in production -- see /reseller and /admin/resellers"
+
+**Data/Stats (A$99 SKU truth-table, retail):**
+
+| Tier | Discount | Customer paid | Commission | BlockID gross | GST remit | BlockID net |
+|------|----------|---------------|------------|---------------|-----------|-------------|
+| 0%   | 0.00     | 99.00         | 39.60      | **59.40**     | 9.00      | 50.40       |
+| 10%  | 9.90     | 89.10         | 29.70      | **59.40**     | 8.10      | 51.30       |
+| 20%  | 19.80    | 79.20         | 19.80      | **59.40**     | 7.20      | 52.20       |
+| 30%  | 29.70    | 69.30         | 9.90       | **59.40**     | 6.30      | 53.10       |
+| 40%  | 39.60    | 59.40         | 0.00       | **59.40**     | 5.40      | 54.00       |
+
+**Speaker Notes:**
+"Most SaaS companies have one channel model. We ship two, on the same platform, on day one. Wholesale -- for accelerators, incubators, and corporate innovation programmes -- BlockID collects A$99 per seat per month at zero commission; the partner runs the customer relationship. That's a 100%-margin channel with the CAC carried by someone else. Retail -- for individual advisors and scout networks -- we split 60/40, so BlockID's gross retention stays constant at A$59.40 per A$99 seat regardless of the tier the partner discounts to. Auschain PTY LTD is the seller of record on every invoice in both models -- one ABN, one GST remitter, one clean bank statement for diligence. Our ledger is append-only and reconciled to Stripe monthly against a A$1 GST tolerance. InfoVision is our first wholesale partner and the reference for the model. The full one-pager lives in the data room at `web/content/pitch/reseller-channel-gtm-lever.md`."
+
+**References:**
+- Plan §U.1 (seller-of-record), §G.2 (commission truth-table), §H.11/H.17 (GST invariant reading)
+- Live surfaces: `/reseller` (partner console), `/admin/resellers` (admin surface), `/showcase/blockid` (live workspace mirror)
+- Data-room memo: `web/content/pitch/reseller-channel-gtm-lever.md`
+
+---
+
+## Slide 9: Traction
+
+**Headline:** Live Product. Live Dogfood. Real Users. Growing Fast.
+
+**Key Points:**
+- Product is live at [blockid.au](https://blockid.au)
+- **Live dogfood at [/showcase/blockid](https://blockid.au/showcase/blockid)** -- public mirror of our own workspace, updated by autonomous loop on every page load (real reports, real phase strip, real agent activity)
 - AI-powered SVI analysis operational (10-page reports in 60 seconds)
 - 8 free tools deployed and functional
 - 30+ SEO articles published
 - Email nurture sequences (10 automated emails) operational
 - Evidence Vault and auto-rescore system built
 - Growth Intelligence dashboard operational
+- Reseller module in production: `/reseller` partner console + `/admin/resellers` admin surface + monthly commission cron
 
 **Visual Description:**
-- Dashboard screenshot showing real metrics
+- Split hero: Left = product screenshot; Right = live screenshot of `/showcase/blockid` with the phase strip visible
+- "Live Product" and "Live Dogfood" badges prominently displayed
 - Timeline showing milestones achieved (Phase 1 complete, Phase 2 in progress)
-- "Live Product" badge prominently displayed
 - Growth curve of user engagement metrics
 
 **Data/Stats:**
@@ -233,13 +274,14 @@
 - 10 automated nurture emails deployed
 - 8 free tools live
 - Multiple AI providers integrated
+- Reseller module: 12 phases scoped, P1-P9 shipped, P8.5 human-blocked on Stripe env vars
 
 **Speaker Notes:**
-"We are not a slide deck -- we are a live product. BlockID.au is operational today. Phase 1 is complete with our AI scoring engine generating comprehensive reports in 60 seconds. We have 8 free tools live, 30 SEO articles driving organic traffic, and automated email nurture sequences converting users. Phase 2 -- evidence-based validation -- is in progress now with a target completion of Q3 2026."
+"We are not a slide deck -- we are a live product with live dogfood. BlockID.au is operational today. Phase 1 is complete with our AI scoring engine generating comprehensive reports in 60 seconds. We have 8 free tools live, 30 SEO articles driving organic traffic, and automated email nurture sequences converting users. Uniquely for an AU pre-seed, our own workspace is publicly mirrored at /showcase/blockid -- refreshed on every page load by the autonomous loop, showing real report artefacts, real phase progression, real agent activity. Investors can watch us dogfood the platform in real time. Phase 2 -- evidence-based validation -- is in progress with a target completion of Q3 2026. The reseller channel module is already shipped through P9 and awaiting a Stripe env-var mint to unblock the final add-on gate."
 
 ---
 
-## Slide 9: Competitive Landscape
+## Slide 10: Competitive Landscape
 
 **Headline:** No One Covers the Full Lifecycle
 
@@ -267,7 +309,7 @@
 
 ---
 
-## Slide 10: Roadmap
+## Slide 11: Roadmap
 
 **Headline:** 8 Phases: Idea to IPO
 
@@ -297,7 +339,7 @@
 
 ---
 
-## Slide 11: Team
+## Slide 12: Team
 
 **Headline:** Built by a Founder Who Knows the Pain
 
@@ -327,7 +369,7 @@
 
 ---
 
-## Slide 12: The Ask
+## Slide 13: The Ask
 
 **Headline:** Join Us at the Ground Floor
 
