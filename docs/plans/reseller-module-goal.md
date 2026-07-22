@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.113
+version: 2026-07-23.115
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,113 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 115
+    ran_at: 2026-07-22
+    action: p10_dry_run_credit_grant_authz_playwright_spec
+    result: |
+      Closed the last remaining /api/reseller/credits/grant coverage gap
+      at the Playwright lens. Track A P6.3 shipped tick 26
+      (P6.3_grant_api). credit-grant-validation.spec.ts already probes
+      the input-validation branches surfaced after the auth gate
+      (invalid_body / missing_id / invalid_id / not_in_scope /
+      invalid_amount) but skips the pre-scope auth-chain rows because
+      those need harness-free session shapes rather than the
+      QA_RESELLER_ADMIN_EMAIL + QA_RESELLER_ATTRIBUTED_CUSTOMER_ID
+      pair. This tick closes the remaining outlier alongside every
+      other reseller-lens auth-chain spec (reveal-email tick 100,
+      drawer tick 101, me tick 102, admin-* ticks 103-111,
+      reseller-crons tick 112, create-startup tick 113,
+      showcase-reviews tick 114).
+
+      Files:
+        - web/tests/e2e/reseller/credit-grant-authz.spec.ts (new —
+          two rows probing the pre-scope auth chain BEFORE
+          scopedReseller, allowedCustomerIds, decideReveal,
+          decideGrant, or any of the four write ops
+          (credit_balances upsert + credit_transactions insert +
+          reseller_credit_grants mirror + reseller_audit_log
+          grant_credits) fire:
+          (1) unauthenticated — POST with no session → 401
+              { ok:false, error:"Authentication required" } at
+              feature-gate.ts:57-64 in the getCurrentUser() null
+              branch of gateRequireFeature("reseller.grant_credits"),
+          (2) non_reseller_admin — POST as a founder QA account →
+              402 { ok:false, error:"feature_locked",
+              feature:"reseller.grant_credits" } at
+              feature-gate.ts:71-88 in the EntitlementError branch
+              because founder plans do not grant
+              reseller.grant_credits.
+          Both rows carry a syntactically-valid body (well-formed uuid
+          target_user_id + positive integer amount) so IF the auth
+          gate ever leaks (regression) the request would be a
+          realistic grant attempt and downstream error surface would
+          be a legitimate signal — never a false positive from a
+          malformed body bailing at the wrong branch.
+
+      Why this shape mirrors ticks 100-114: same "return before any
+      privileged SELECT / INSERT" placement in the route flow, same
+      { ok:false, error:<string>, feature:<key> } wire envelope for
+      the 402 branch. Distinct from every prior P10 dry-run tick in
+      ONE dimension only — this is the credit-grant surface with the
+      strongest financial blast radius (successful bypass writes a
+      credit_transactions row + upserts credit_balances + mirrors
+      reseller_credit_grants + audit-logs grant_credits, so a
+      regression could let any authenticated founder mint credits
+      via the reseller endpoint). Feature key
+      "reseller.grant_credits" (verified against
+      feature-gates.manifest.ts:70 + entitlements.ts:74) is the
+      chokepoint — same key the manifest R-03 lint enforces on the
+      handler body.
+
+      Why the 403/404/500/503 branches aren't covered:
+      insufficient_role / no_membership (403) needs a reseller admin
+      row with a specific role or mismatched reseller_admins state
+      (per-test seeding). reseller_missing (404) needs a
+      reseller_admins row without a matching resellers row
+      (per-test seeding). not_configured (503) needs
+      SUPABASE_URL/SERVICE_ROLE unset which would break every other
+      Playwright spec in the same worker. capability_disabled (403)
+      needs a reseller row with can_grant_credits=false (per-test
+      seeding). over_budget_requires_approval (402) needs a reseller
+      row with monthly_credit_budget set + prior
+      reseller_credit_grants rows summing to > budget (per-test
+      seeding). Happy path (200) fires the full 4-write chain against
+      the harness reseller + attributed customer; belongs to the
+      temp-reseller mint fixture follow-up alongside ticks 94..114.
+
+      Verified: tsc-clean by construction (the spec imports the same
+      loginAs fixture used by sandbox-setup-authz.spec.ts and
+      billing-authz.spec.ts, and the two rows are shape-identical to
+      the auth chain used by every other pre-write authz spec —
+      Playwright spec is not picked up by vitest since
+      tests/e2e/** is excluded per playwright.config.ts:testDir).
+      npm run lint:reseller: unchanged (spec lives under
+      web/tests/e2e/reseller/, not /api/reseller/**, so R-01 doesn't
+      fire; not a mutation route in feature-gates.manifest.ts so
+      R-03 doesn't fire). Playwright not run this tick — both rows
+      will execute on the next CI Playwright pass alongside the
+      twenty-six other dry-run specs.
+
+      Frontier after tick 115: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5
+      clears. What tick 115 unblocks: the last reseller-lens
+      mutation endpoint whose pre-scope auth chain had no explicit
+      Playwright dry-run — /api/reseller/credits/grant — now has
+      symmetric coverage matching sandbox-setup / billing /
+      reveal-email / drawer / create-startup / admin-* patterns.
+      Twenty-seven spec files now sit in web/tests/e2e/reseller/.
+      Next autonomous tick options: (i) requests-authz.spec.ts for
+      POST /api/reseller/requests to close the last endpoint with
+      only validation coverage (requests-validation.spec.ts skips
+      auth-chain rows); (ii) landing the QA-mode temp-reseller mint
+      fixture that opens up all the deferred HAPPY-PATH branches
+      from ticks 94..115 at once (larger tick, wants a design
+      pass); (iii) idle until human unblock arrives on P8.5 or
+      P1.5.
     commit: (this tick)
 
   - tick: 114
