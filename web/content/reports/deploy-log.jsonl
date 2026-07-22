@@ -675,3 +675,6 @@
 {"ts":"2026-07-22T23:35:19.094Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-22T23-30-01-126Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-22T23:39:49Z","status":"success","gates":"8/8","pid":"917547","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-22T23:44:19.481Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 222 — P10 admin-requests-list-authz.spec.ts row 174 resellers(code,display_name) join shape pin (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-22T23:44:27.588Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-22T23-40-01-131Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-22T23:48:58Z","status":"success","gates":"8/8","pid":"948913","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-22T23:54:05.766Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 223 — P10 reseller-requests-list-authz.spec.ts row 161 nullable + jsonb shape pins (payload/decision_at/decision_reason) (1 commits)","source":"github-webhook"}
