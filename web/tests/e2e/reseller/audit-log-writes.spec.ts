@@ -1458,3 +1458,167 @@ test.describe("Reseller credit-grant mirror rows — P10 wave-3 row 156b DB comp
     }
   });
 });
+
+// P10 wave-3 row 156 DB companion — two-chained credit-grant mirror-row
+// fanout DB assertion. Companion to row 156's HTTP arithmetic block in
+// credit-grant-authz.spec.ts (which pins the response-envelope balance
+// identity `balanceBefore + 5 + 3 === 8` across two sequential POSTs) and
+// the intermediate step between row 155's single-POST fanout (== 1 mirror
+// row) and row 156b's three-chain fanout (== 3 mirror rows).
+//
+// Rationale for a dedicated two-chain block instead of leaning on
+// row 156b: the three-chain assertion counts 3 mirror rows across three
+// POSTs, so a regression that landed 2 mirror rows for 3 POSTs and a
+// regression that landed 2 mirror rows for 2 POSTs are BOTH surfaced as
+// `mirrorCount === 2 !== 3` in the three-chain block — the diagnostic
+// signal cannot distinguish "on-conflict UPSERT branch dropped the second
+// insert" from "on-conflict UPSERT branch dropped the third insert". The
+// two-chain block pins the specific on-conflict UPSERT branch entered by
+// POST 2 (the FIRST time route.ts:206-218 re-fires the mirror insert
+// against a (reseller_id, target_user_id) pair that already has a row
+// under the same month_key window) independently of the third-POST re-
+// entry. A route rewrite that collapsed the mirror insert into an
+// idempotent-by-month_key branch (assuming the mirror table is a
+// per-month rollup rather than a per-grant ledger) would leave row 155
+// green (single POST → 1 row) and row 156b failing at mirrorCount==1 with
+// the same signal as a two-POST regression — this block splits those
+// signals apart.
+//
+// Assertion contract:
+//   - After two chained self-approve POSTs, exactly 2 mirror rows land
+//     for the (reseller_id, target_user_id) pair with kind='grant' since
+//     the pre-first-POST cursor.
+//   - 0 → both inserts dropped (would also break row 155).
+//   - 1 → POST 2's mirror insert silently skipped despite the 200
+//         envelope — the specific on-conflict UPSERT drift this row pins.
+//   - >2 → duplicated write on one of the two POSTs (fan-out ran twice
+//          on a single request).
+//
+// Single-cursor posture inherited from row 156b: a per-POST cursor pair
+// would give two independent "expected 1, got 1" assertions but would
+// MASK a regression where POST 2 duplicated a POST 1 row (both cursors
+// see their expected 1 because the duplicate lands under a different
+// cursor window). One cursor spanning both POSTs gives a single
+// unambiguous count that catches drop, duplicate, AND cross-POST
+// misattribution simultaneously — same discipline row 155 uses for its
+// single-POST cursor.
+//
+// Cleanup topology follows row 156b's LIFO restore-closure order (two
+// attachGrantSelfApprove calls push A, B snapshots; cleanup pops B→A).
+// fixture.cleanup() at the end of the try/finally sweeps both
+// reseller_credit_grants rows before their FK-linked credit_transactions
+// rows to satisfy credit_transaction_id → credit_transactions.id.
+// reseller_audit_log rows stay in place (append-only per migration 0093).
+//
+// Sits in audit-log-writes.spec.ts per the same topology decision that
+// placed rows 155 + 156b here: authz specs own the HTTP contract (row
+// 156 in credit-grant-authz.spec.ts); audit-log-writes.spec.ts owns the
+// DB-level side effects on the append-only ledger + mirror table.
+//
+// Amounts 5 + 3 chosen to match row 156's HTTP arithmetic pin verbatim
+// so both blocks share the same test-side fixture state under CI replay.
+// Running total (8) stays well under active_wholesale's
+// monthly_credit_budget=20000 so gate 3 fires on both POSTs without ever
+// tripping over_budget_requires_approval (402). Same CI-replay posture
+// as rows 152/155/156/156b.
+//
+// Non-Stripe / non-GST discipline: pure reseller_credit_grants +
+// credit_transactions + credit_balances writes; no promotion_code lookup,
+// no revenue_events read, no Stripe network call, no InfoVision
+// dependency. P8.5 + P1.5 remain neither a dependency nor a consequence.
+test.describe("Reseller credit-grant mirror rows — P10 wave-3 row 156 DB companion (two-chain fanout)", () => {
+  test("two chained self-approve POSTs insert exactly 2 reseller_credit_grants(kind='grant') mirror rows", async ({
+    page,
+  }) => {
+    let fixture: TempResellerFixture | null;
+    try {
+      fixture = await loadTempReseller("active_wholesale");
+    } catch (err) {
+      test.skip(
+        true,
+        `loadTempReseller('active_wholesale') threw: ${(err as Error).message}. ` +
+          tempResellerSkipReason("active_wholesale"),
+      );
+      return;
+    }
+    if (
+      !fixture ||
+      !fixture.adminUserId ||
+      !fixture.attributedUserId ||
+      !fixture.attributionExists
+    ) {
+      test.skip(true, tempResellerSkipReason("active_wholesale"));
+      return;
+    }
+    const supabase = loadSupabaseAdmin();
+    if (!supabase) {
+      test.skip(true, supabaseAdminSkipReason());
+      return;
+    }
+    const targetUserId = fixture.attributedUserId;
+    const AMOUNT_ONE = 5;
+    const AMOUNT_TWO = 3;
+    try {
+      const attributed = await fixture.attachAttributedCustomer();
+      if (!attributed) {
+        test.skip(true, tempResellerSkipReason("active_wholesale"));
+        return;
+      }
+      const grant1 = await fixture.attachGrantSelfApprove({ amount: AMOUNT_ONE });
+      if (!grant1) {
+        test.skip(true, tempResellerSkipReason("active_wholesale"));
+        return;
+      }
+      try {
+        await loginAs(page, fixture.adminEmail);
+      } catch (err) {
+        test.skip(
+          true,
+          `loginAs(${fixture.adminEmail}) threw: ${(err as Error).message}. ` +
+            tempResellerSkipReason("active_wholesale"),
+        );
+        return;
+      }
+
+      // Single cursor spanning both POSTs — see header for rationale.
+      const chainSince = new Date().toISOString();
+
+      const resp1 = await page.request.post("/api/reseller/credits/grant", {
+        data: { target_user_id: targetUserId, amount: AMOUNT_ONE },
+      });
+      expect(
+        resp1.status(),
+        `POST 1 returned ${resp1.status()} — expected 200. Body: ${await resp1.text()}`,
+      ).toBe(200);
+
+      const grant2 = await fixture.attachGrantSelfApprove({ amount: AMOUNT_TWO });
+      if (!grant2) {
+        test.skip(true, tempResellerSkipReason("active_wholesale"));
+        return;
+      }
+      const resp2 = await page.request.post("/api/reseller/credits/grant", {
+        data: { target_user_id: targetUserId, amount: AMOUNT_TWO },
+      });
+      expect(
+        resp2.status(),
+        `POST 2 returned ${resp2.status()} — expected 200. Body: ${await resp2.text()}`,
+      ).toBe(200);
+
+      const mirrorCount = await countResellerCreditGrantsFor(supabase, {
+        resellerId: fixture.resellerId,
+        targetUserId,
+        kind: "grant",
+        since: chainSince,
+      });
+      expect(
+        mirrorCount,
+        `expected exactly 2 reseller_credit_grants(kind='grant') mirror rows for (reseller=${fixture.resellerId}, target=${targetUserId}) since ${chainSince}; got ${mirrorCount}. Route write lives at route.ts:206-218. ` +
+          `0 → both inserts dropped (would also break row 155); ` +
+          `1 → POST 2 silently skipped the mirror insert despite 200 (on-conflict UPSERT re-fired credit_transactions but not reseller_credit_grants — the specific drift this row pins independently of the row 156b three-chain block); ` +
+          `>2 → duplicated write on one of the two POSTs (fan-out ran twice on a single request).`,
+      ).toBe(2);
+    } finally {
+      await fixture.cleanup();
+    }
+  });
+});

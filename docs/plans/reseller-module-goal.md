@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.206
+version: 2026-07-23.207
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,170 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 207
+    ran_at: 2026-07-22
+    action: p10_wave3_row_156_db_companion_two_chain_mirror_fanout_activation
+    result: |
+      Activated the DB-side companion to P10 wave-3 row 156 in
+      web/tests/e2e/reseller/audit-log-writes.spec.ts. Where row 156
+      (in credit-grant-authz.spec.ts) pins the HTTP response-envelope
+      balance identity across two sequential POST /api/reseller/credits/
+      grant calls (5 + 3 landing on balance=8), this tick closes the
+      corresponding mirror-INSERT gap: after the two chained POSTs land
+      200s, the reseller_credit_grants table must carry EXACTLY 2
+      kind='grant' rows for the (reseller_id, target_user_id) pair since
+      a single pre-first-POST cursor. Row 156's balance-readback pins
+      would stay green under a regression where the on-conflict UPSERT
+      on POST 2 silently dropped the reseller_credit_grants insert while
+      re-firing credit_transactions + credit_balances writes correctly
+      — the response envelope's balance/newBalance is computed off
+      credit_balances, not the mirror table. This block closes that gap.
+
+      Frontier before this tick: tick 206 activated row 156b DB
+      companion (three-chain fanout) and named row 156 two-chain DB
+      companion as the natural next pick — this tick closes it. All 43
+      rows in the plan doc P10 activation matrix (waves 1-5, rows 141-
+      183) remain activated except three human-blocked rows: 175
+      approve (code_request) branch (P8.5-blocked on Stripe test-mode),
+      178 signup-jitter (QA-mode-blocked), 182 SetupIntent (P8.5-
+      blocked).
+
+      Files:
+        - web/tests/e2e/reseller/audit-log-writes.spec.ts (new
+          test.describe("Reseller credit-grant mirror rows — P10
+          wave-3 row 156 DB companion (two-chain fanout)") block
+          appended after the row 156b three-chain block at end of file.
+          Uses the same TempResellerFixture + attachAttributedCustomer
+          + attachGrantSelfApprove(×2) pattern that row 156 in credit-
+          grant-authz.spec.ts already runs against, and mirrors the
+          row 156b block's topology with one fewer POST. Single
+          `chainSince` cursor captured BEFORE POST 1 so a single
+          countResellerCreditGrantsFor call spans both POSTs — see the
+          header comment block for why the single-cursor design is
+          stronger than per-POST cursors would be. Cleanup via
+          try/finally around fixture.cleanup() so the two attach
+          snapshots pop LIFO B→A. Skip-guard topology mirrors row 156b
+          verbatim: fixtureError / fixture null / missing admin/
+          attributed/attributionExists / loginAs throw / loadSupabase
+          Admin null / attachAttributedCustomer null / two
+          attachGrantSelfApprove null branches all short-circuit
+          cleanly with the shared tempResellerSkipReason hint.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.206 → 2026-07-23.207; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Row lives in audit-log-writes.spec.ts (not credit-grant-
+          authz.spec.ts) per the topology decision established at
+          tick 202 for row 155 and re-affirmed at tick 206 for row
+          156b: authz specs own the HTTP contract (status codes +
+          envelope shape + response-side arithmetic); audit-log-
+          writes.spec.ts owns the DB-level side effects on the
+          append-only ledger and the mirror table.
+        - Why the two-chain block and not just relying on row 156b:
+          the three-chain block asserts mirrorCount === 3, so a
+          regression that landed 2 rows for 3 POSTs and a regression
+          that landed 2 rows for 2 POSTs both surface as `mirrorCount
+          === 2` in the three-chain block — the diagnostic signal
+          cannot distinguish "on-conflict UPSERT branch dropped the
+          second insert" from "on-conflict UPSERT branch dropped the
+          third insert". The two-chain block pins the specific
+          on-conflict UPSERT branch entered by POST 2 (the FIRST time
+          route.ts:206-218 re-fires the mirror insert against a
+          (reseller_id, target_user_id) pair that already has a row
+          under the same month_key window) independently of the third-
+          POST re-entry. A route rewrite that collapsed the mirror
+          insert into an idempotent-by-month_key branch (assuming the
+          mirror table is a per-month rollup rather than a per-grant
+          ledger) would leave row 155 green (single POST → 1 row) and
+          row 156b failing at mirrorCount==1 with the same signal as
+          a two-POST regression — this block splits those signals
+          apart.
+        - Route write reference: web/src/app/api/reseller/credits/
+          grant/route.ts:206-218 fires supabase.from('reseller_credit_
+          grants').insert({reseller_id, target_user_id, kind:'grant',
+          amount, credit_transaction_id, month_key, over_budget:false,
+          granted_by_user_id, metadata:{reason,...clientMetadata}})
+          AFTER the credit_transactions insert at route.ts:184-204 and
+          BEFORE the response envelope composition at route.ts:250-260.
+        - Single-cursor vs two-cursor design: two per-POST cursors
+          would give two separate "expected 1, got 1" assertions but
+          would MASK a regression where POST 2 duplicated a POST 1
+          row (each cursor sees its expected 1 because the duplicate
+          lands under a different cursor window). A single cursor
+          spanning both POSTs gives one unambiguous "expected 2,
+          got 2" assertion that catches drop, duplicate, AND cross-
+          POST misattribution simultaneously. Same discipline row 155
+          uses for its single-POST cursor and row 156b uses for its
+          three-POST cursor: capture once, count once.
+        - Cleanup topology: two attachGrantSelfApprove calls push
+          restore closures A, B in order. fixture.cleanup() pops
+          B→A per the LIFO contract at fixture.ts:1250-1356 that
+          rows 156 + 156b already depend on. Each closure sweeps the
+          reseller_credit_grants rows keyed at its snapshot cursor
+          BEFORE the FK-parent credit_transactions rows (to avoid the
+          credit_transaction_id → credit_transactions.id FK dangling),
+          then upserts credit_balances back to the pre-attach
+          snapshot. reseller_audit_log rows stay in place (append-only
+          per 0093 mutation triggers) — row 154's since cursor still
+          catches drift on the next audit-log run.
+        - Amounts 5 + 3: identical to row 156's HTTP arithmetic pin so
+          the two blocks share the same test-side fixture state under
+          CI replay. Running total (8) stays well under
+          active_wholesale's monthly_credit_budget=20000 so gate 3
+          fires on both POSTs without ever tripping
+          over_budget_requires_approval (402). Same CI-replay posture
+          as rows 152/155/156/156b.
+        - No production code touched. Spec + goal file only. Neither
+          the R-01 scope-boundary rule (only /api/reseller/**) nor the
+          R-03 manifest rule (only feature-gates.manifest.ts routes)
+          scan web/tests/e2e/** so lint counts are unchanged.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: exit 0. New describe block
+          resolves against the existing loadTempReseller,
+          tempResellerSkipReason, TempResellerFixture, loginAs,
+          loadSupabaseAdmin, supabaseAdminSkipReason, and
+          countResellerCreditGrantsFor imports already at the top of
+          audit-log-writes.spec.ts — no new import lines required.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files,
+          R-03 scanned 31 manifest routes, 3 exemptions, 0
+          violations — unchanged.
+        - `npx vitest run src/lib/reseller` in web/: 29 files 449/449
+          pass — unchanged (Playwright specs are excluded from vitest
+          by design).
+        - No DB apply this tick — no migration authored. Playwright
+          run against staging still gated on the tick 198 seed re-run
+          per P10 hardening exit criteria, not this tick.
+
+      Frontier after tick 207:
+        - Track A P8.5 STILL HUMAN-BLOCKED on
+          STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL.
+        - Track A P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20
+          ABN + GST.
+        - Track B COMPLETE.
+        - All 43 rows in the P10 activation matrix (waves 1-5) are
+          activated; only human-blocked rows (175 approve
+          code_request / 178 signup-jitter / 182 SetupIntent) remain
+          on the plan doc's canonical list.
+        - Rows 152/155/156 now have HTTP arithmetic (row 152/156 in
+          credit-grant-authz.spec.ts) AND DB fanout lenses (rows 155/
+          156-DB / 156b-DB in audit-log-writes.spec.ts) covering the
+          single / two-chain / three-chain self-approve grant paths —
+          a full regression-catching triangle across POST count.
+
+      Natural next pick for tick 208: symmetrise the DB-side mirror-
+      row assertion across the admin-approve path (wave-5 row 179)
+      that currently uses a raw supabase select instead of the
+      countResellerCreditGrantsFor helper — a small refactor tick that
+      would align the self-approve (rows 155/156/156b) and admin-
+      approve (row 179) mirror-row lenses under one shared counting
+      helper. Alternative: author a four-chain (5+3+2+1 → balance=11)
+      variant row 156c in credit-grant-authz.spec.ts + its DB companion
+      in audit-log-writes.spec.ts, extending the accumulation identity
+      chain by one more UPSERT re-entry.
+    commit: (this tick)
+
   - tick: 206
     ran_at: 2026-07-22
     action: p10_wave3_row_156b_db_companion_three_chain_mirror_fanout_activation
