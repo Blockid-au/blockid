@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.44
+version: 2026-07-23.45
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,92 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 78
+    ran_at: 2026-07-22
+    action: reseller_stripe_billing_adapter_and_setup_intent_route
+    result: |
+      Autonomous tick composing tick 77's pure decision lib into the first
+      real Stripe SDK + Supabase surface for the wholesale billing flow.
+      (a) shipped web/src/lib/reseller/stripe-billing-adapter.ts — thin
+      adapter exposing:
+        - ensureResellerStripeCustomer(reseller, {stripe, supabase}) —
+          reuses stored stripe_customer_id when present; otherwise calls
+          stripe.customers.create(params) with the tick-77 param builder
+          and persists the returned id back to the resellers row via
+          UPDATE resellers SET stripe_customer_id=$1 WHERE id=$2 so the
+          next call short-circuits. Errors mapped to a discriminated union:
+          decision errors surface intact (billing_model_not_wholesale /
+          reseller_not_active / display_name_required /
+          invalid_contact_email); Stripe SDK rejection → stripe_create_failed
+          with error.message in detail; Supabase update failure →
+          db_persist_failed with error.message in detail. Idempotency: a
+          mid-flight failure between customers.create() and the DB write
+          orphans a Stripe Customer (metadata.source=reseller_org); the
+          documented reap-cron follow-up will clean these up by metadata
+          match.
+        - createResellerSetupIntent(reseller, {stripe}) — builds the
+          SetupIntent via the tick-77 param builder (card-only,
+          off_session, metadata.intent=reseller_default_pm) and calls
+          stripe.setupIntents.create; returns {client_secret,
+          stripe_customer_id, setup_intent_id} on success or one of
+          {stripe_customer_missing, billing_model_not_wholesale,
+          reseller_not_active, stripe_setup_intent_failed, no_client_secret}
+          otherwise.
+      Dependency-injected Stripe + Supabase (never module-scope import)
+      so the adapter unit-tests as a pure function with fakes — matches
+      the pattern used elsewhere in /lib/reseller (grants adapter,
+      sandbox provision, code mint) where the pure decision layer stays
+      testable end-to-end. Structural StripeLike / SupabaseLike interfaces
+      widen only the .customers.create / .setupIntents.create /
+      .from().update().eq() shapes we need, so leakage of the full Stripe
+      or Supabase surface into the module contract is avoided.
+      Deliberately no `import "server-only"` — matches commission.ts
+      precedent so vitest can import without the Next shim; runtime
+      objects are DI-supplied so no server-only capability is imported at
+      module scope.
+      (b) shipped POST /api/reseller/billing/setup-intent (route.ts).
+      Wiring order: gateRequireFeature('reseller.console') → scopedReseller
+      chokepoint (R-01) → canProvisionSandbox(role) owner/admin gate
+      (viewers cannot authorise money movements) → isStripeConfigured() +
+      getSupabaseAdmin() readiness check → resellerSupabase().selfReseller()
+      loads the reseller row including the two new 0101 columns →
+      ensureResellerStripeCustomer() (persists customer id on first call)
+      → createResellerSetupIntent() (mints the client_secret) →
+      reseller_audit_log(action='mint_setup_intent',
+      fields=[stripe_customer_id, setup_intent_id],
+      metadata={customer_created}) written BEFORE returning 200 (D3-CISO
+      chokepoint pattern shared with reveal-email / grant / drawer /
+      provision-sandbox). Response envelope carries
+      {ok, client_secret, stripe_customer_id, setup_intent_id,
+      customer_created}. Error envelope carries {ok:false, reason, message}
+      with the message drawn from RESELLER_STRIPE_BILLING_ERROR_MESSAGES so
+      the admin surface renders human-readable copy per U.15.13.
+      (c) manifest additions: feature-gates.manifest.ts adds route entry
+      api/reseller/billing/setup-intent/route.ts →
+      required_feature='reseller.console', plus GATED_DIRECTORIES adds
+      'api/reseller/billing' so the R-03 CI lint scans the new route + the
+      completeness test asserts the manifest matches the tree.
+      Verified: vitest 385/385 (was 373, +12 adapter cases covering create
+      + reuse + retail-refusal + paused-refusal + Stripe rejection + DB
+      persist failure + SetupIntent happy path + missing-customer refusal
+      + billing-model refusal + terminated-refusal + Stripe rejection +
+      no-client-secret); tsc clean; npm run lint:reseller: R-01 scans 10
+      file(s) + R-03 scans 30 manifest route(s); 3 exemptions, 0
+      violations.
+      Frontier after tick 78: unchanged shape — Track A HUMAN-BLOCKED on
+      P8.5 Stripe env vars; Track B COMPLETE; P1.5 HUMAN-BLOCKED on H.20;
+      P10 blocked_by [P1..P9]. What tick 78 does unblock: the
+      /reseller/settings payment-method UI can now be a thin client
+      component that POSTs /api/reseller/billing/setup-intent, feeds the
+      returned client_secret into stripe.confirmCardSetup(), and — on
+      success — calls a follow-up save-default-PM endpoint that writes
+      stripe_default_payment_method_id via the same adapter shape. Once
+      that lands, the /api/reseller/create-startup route can start
+      composing validateResellerBillingReadiness + stripe.subscriptions.
+      create() against the reseller's PM (the last real subscription-line
+      leaf). Neither depends on the P8.5 Stripe add-on env vars.
     commit: (this tick)
 
   - tick: 77
