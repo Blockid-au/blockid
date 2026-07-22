@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.156
+version: 2026-07-23.157
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,162 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 157
+    ran_at: 2026-07-22
+    action: p10_wave4_row_158_activate_code_validate_active_wholesale_happy
+    result: |
+      First wave-4 row landed per docs/plans/p10-deferred-spec-activation-
+      order.md. One row landed — the code-validate.spec.ts ×
+      active_wholesale × happy branch (POST /api/reseller/code/validate with
+      { code: fixture.promotionCodes[0].code } → 200 with body.ok=true +
+      body.tier_pct === promo.tier_pct + typeof body.promotion_code_id_present
+      === "boolean" + body.reseller.code === fixture.code +
+      body.reseller.display_name === fixture.displayName +
+      body.reseller.billing_model === "wholesale"). Row 158 is the
+      harness-free happy path — no loginAs needed, no writes fire — so it
+      is the shortest possible wave-4 row and the natural pick after the
+      wave-3-active_wholesale subwave closed at tick 156. Tick 156's
+      next-tick recommendation named row 157 first ("code-validate ×
+      paused × inactive 404") but row 157 requires an active promo code
+      on the paused variant which seed-qa-reseller.mjs::seedPromotionCodes
+      does not currently seed (line 359-388 only mints for
+      active_wholesale). Row 158 sidesteps that seed delta because
+      active_wholesale already has QAPROBEWHOLESALEACTIVE20 +
+      QAPROBEWHOLESALEACTIVE40 minted verbatim by the seeder. Row 157 is
+      folded into a follow-up tick alongside finding-2 (rows 150+151),
+      matching the "seed delta first, then activation" pattern
+      established at tick 152's preflight.
+
+      Payload choice — promotionCodes[0] (first element, tier=20): the
+      seeder inserts tier 20 then tier 40 in ACTIVE_WHOLESALE_PROMO_TIERS
+      order (line 163-166). A rerun of this spec against a fresh CI
+      worker still finds an active row because the seeder is idempotent
+      (the "existing" branch at line 369-372 keeps the row rather than
+      re-inserting). No ordering dependency between promoCodes[0] and
+      the fixture's other rows — the assertion pins the value returned
+      against the value the fixture used to look it up, so a schema
+      drift where the seeder wrote a different tier_pct than the code
+      column would surface as body.tier_pct !== promo.tier_pct rather
+      than as a false-pass.
+
+      Files:
+        - web/tests/e2e/reseller/code-validate.spec.ts (imports extended:
+          added loadTempReseller + tempResellerSkipReason +
+          TempResellerFixture type-only import alongside the existing
+          test + expect; added ROUTE constant at module scope and swapped
+          the existing loop's inline "/api/reseller/code/validate" string
+          for ROUTE; new test.describe block "Reseller code/validate —
+          P10 wave-4 happy path" holds row 158; "Deliberately out of
+          scope" comment block updated — the happy-path branch flipped
+          from folded/deferred to ACTIVATED with pointer at the new test
+          and a note explaining that row 157 stays deferred until a seed
+          delta mints an active promo code on the paused variant so the
+          route can pass the promo-active gate at line 61-63 and land on
+          the reseller-status gate at line 72-74 with reason='inactive').
+        - docs/plans/p10-deferred-spec-activation-order.md ("Wave-4 row
+          158 landed (tick 157)" paragraph inserted above the tick 156
+          note explaining the harness-free posture, the coverage-vs-
+          duplication call around promotion_code_id_present + logo_url/
+          primary_color, the twin-row accounting vs the still-deferred
+          row 157, and the next-natural-pick options 161 + 163).
+
+      Design fidelity:
+        - Coverage-vs-duplication call: pin body.reseller.code +
+          display_name + billing_model (the three fields the consent
+          modal reads at svi-entrance.tsx:213 + onboarding StepReseller
+          copy) plus body.tier_pct (the value stamped onto
+          checkout.subscription.metadata at stripe/checkout/route.ts:220
+          when tier>0). Do NOT pin promotion_code_id_present value
+          (varies with whether the promo row has stripe_promotion_code_id
+          populated — active_wholesale's seed script fills it verbatim
+          but downstream CI may deactivate the Stripe promo without
+          dropping the row); pin its TYPE only so a regression that
+          returned undefined or null still surfaces. Do NOT pin
+          body.reseller.logo_url / primary_color (both nullable in
+          schema and NULL in the QA seed script's insert).
+        - Twin-row accounting vs row 157 (paused × inactive 404, still
+          deferred): row 158 pins the positive-status happy path (200 +
+          tier_pct); row 157 will pin the paused-status inactive branch
+          (404 reason='inactive') once the seeder mints an active promo
+          code on the paused variant. A regression that inverted the
+          status check at route.ts:72-74 would surface across both rows.
+        - Skip discipline: fixture null → skip (SUPABASE_URL /
+          SERVICE_ROLE unset OR resellers row missing);
+          fixture.promotionCodes.length === 0 → skip (seeder ran but
+          promo insert failed OR promo rows were dropped) — this is the
+          distinguishing skip from a code regression that dropped the
+          promo SELECT. adminUserId is intentionally NOT required (the
+          route is public unauthenticated — no getCurrentUser call
+          fires — so per-variant admin app_users rows are not consumed
+          by this spec at all).
+        - State-pollution posture: read-only — no INSERT / UPDATE /
+          DELETE fires from this endpoint; perfectly idempotent under CI
+          replay. No projects.id created → no
+          fixture.trackProjectForCleanup / cleanup() wiring needed.
+        - Non-Stripe / non-GST discipline: the route reads
+          reseller_promotion_codes + resellers only. No Stripe network
+          call, no promotion_code_id mint, no revenue_events write, no
+          InfoVision dependency. P8.5 + P1.5 remain neither a dependency
+          nor a consequence. The route does NOT audit-log (public
+          endpoint) so wave-5 row 179 (audit-log-writes.spec.ts) has no
+          contract to twin with this row.
+        - ROUTE hoisted to module scope so both describe blocks share it
+          and a future route-path change is a one-line edit — mirrors
+          the pattern used by requests-validation.spec.ts after tick
+          156.
+        - No loginAs — /api/reseller/code/validate is public
+          unauthenticated per r-01-exempt in route.ts:18. Row 158 is the
+          first wave-4 row that does not consume the reseller-admin
+          cohort at all, so it stays activation-ready even if the
+          multi-admin seeder gate is off. Skip discipline still catches
+          partial-seed hosts via the promotionCodes.length === 0 guard.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0, no output).
+          The new imports (loadTempReseller, tempResellerSkipReason,
+          TempResellerFixture type-only) type-check against the fixture
+          module unchanged since tick 156.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 documented exemptions, 0
+          violations — unchanged from tick 156 (the spec is not under
+          /api/reseller/** for the R-01 grep and it is not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - No vitest run this tick — no pure-lib .ts code touched, only
+          the Playwright spec + one docs edit. Mirrors the tick 148-156
+          precedent verbatim.
+        - No DB apply this tick — no migration authored. Row 158
+          consumes the active_wholesale fixture posture verbatim.
+        - Goal file version bumped 2026-07-23.156 → 2026-07-23.157.
+
+      Frontier after tick 157: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision seed
+      STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE; P10 still
+      blocked_by [P1..P9] until P8.5 clears. What tick 157 unblocks: wave
+      4 is now open (rows 159..163 remain). Row 157 (code-validate ×
+      paused × inactive 404) stays deferred until a seed delta mints an
+      active promo code on the paused variant; folded alongside
+      finding-2's rows 150 + 151. Next autonomous tick options:
+        (i) activate row 161 (reseller-requests-list-authz × happy 200)
+            — reuses the wave-3 requests-authz posture verbatim with
+            active_wholesale fixture + loginAs + GET assertion on
+            /api/reseller/requests/list (or the equivalent per plan §J.2);
+        (ii) activate row 163 (cobranding-pill × active_wholesale
+             attributed founder × EN + VI) — reuses the attributed-
+             founder harness from wave 2 and pins the pill-render side
+             (this is customer-side, not reseller-admin-side, so it
+             deep-links to /workspace/dashboard with the attributed
+             founder session);
+        (iii) land finding-2's seed delta (edit seed-qa-reseller.mjs main
+              loop to seed attribution on no_capability + no_budget;
+              re-run seeder against staging) — unblocks rows 150 + 151;
+        (iv) mint an active promo code on the paused variant (add
+             PAUSED_PROMO_TIERS array to seed-qa-reseller.mjs; extend
+             the main loop's paused branch to call seedPromotionCodes)
+             — unblocks row 157;
+        (v) collapse the ~~row 153~~ struck-through entry in the
+            schedule doc since the wave-3-active_wholesale subwave is
+            done.
+
   - tick: 156
     ran_at: 2026-07-22
     action: p10_wave3_row_156_activate_requests_validation_active_wholesale_happy_get
