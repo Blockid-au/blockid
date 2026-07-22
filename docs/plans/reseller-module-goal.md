@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.38
+version: 2026-07-23.39
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2558,6 +2558,56 @@ review_history:
       tick per CDO rec #2).
     commit: (this tick)
 
+  - tick: 70
+    ran_at: 2026-07-22
+    action: cmo_advisory_22_guide_reports_download_route
+    result: |
+      Closed CMO advisory §22 residual (rec #4). /guide/reports gallery
+      cards now surface a per-row Download .md CTA that emits
+      showcase_report_downloaded GA4 event on click and fetches from a
+      new public route /api/guide/reports/[filename] which serves the
+      markdown body through a redaction pipeline per plan §284.
+      Pure lib at web/src/lib/showcase/report-redaction.ts exposes
+      isDownloadableReportFilename (rejects path traversal, non-.md
+      extensions, the _daily-report-template.md scaffold, and any
+      filename outside ^[a-z0-9][a-z0-9._-]{0,120}\.md$), redactReportMarkdown
+      (masks emails, AU phone numbers, Bearer tokens, GitHub PATs,
+      Stripe live/test keys, Anthropic + OpenAI keys, AWS access key
+      IDs, 3-part JWTs, and generic KEY/SECRET/TOKEN/PASSWORD env-style
+      assignments; prepends a public-copy banner), and
+      buildDownloadFilename (lowercases + collapses illegal chars,
+      appends .md when missing, clamps to 80 chars).
+      Route web/src/app/api/guide/reports/[filename]/route.ts is
+      Node runtime, force-dynamic, no auth by design (marketing
+      counterpart of the reseller signed-URL flow). Uses the same
+      dual-candidate lookup as /guide/reports/page.tsx (process.cwd()
+      may be repo root or web/), returns 400 invalid_filename on gate
+      failure, 404 not_found when no candidate resolves, and 200 with
+      Content-Type text/markdown + Content-Disposition attachment +
+      Cache-Control public,max-age=3600 + x-content-type-options
+      nosniff + referrer-policy no-referrer on success.
+      Client CTA web/src/app/guide/reports/report-download-cta.tsx is
+      a "use client" anchor with rel=nofollow + download attribute
+      that calls trackEvent("showcase_report_downloaded", {template,
+      phase ?? 0}) BEFORE navigation; cross-cutting rows (phase=null)
+      report as phase 0 so GA4 audiences can still segment "unphased"
+      downloads without a separate event name. Card wiring in
+      /guide/reports/page.tsx renders the CTA only when
+      isDownloadableReportFilename() passes, so templates and any
+      future oddly-named artefact are invisible to the download path.
+      Verified: 23/23 pass in report-redaction.test.ts (filename
+      gate + banner prepend + email/phone/Bearer/GitHub/Stripe/
+      Anthropic/AWS/JWT/env-secret masking + empty-input + clean-copy
+      round-trip + filename normalisation clamping); whole-tree
+      vitest 703/703 (was 680/680, +23); tsc clean; npm run
+      lint:reseller unchanged (8 R-01 + 28 R-03, 3 exemptions, 0
+      violations — new files don't touch the /api/reseller/**
+      boundary and aren't in feature-gates.manifest.ts).
+      REMAINING under advisory follow-ups: item 24/25 (H.8 wholesale
+      magic-link + welcome email + non-payment confirmation step)
+      remains. Track A still HUMAN-BLOCKED on P8.5 Stripe env vars.
+    commit: (this tick)
+
 next_action:
   agent: applier
   task: |
@@ -2567,7 +2617,7 @@ next_action:
     4) DONE tick 35 — Optional P6.5b widening: term-sheet/idea-lab/valuation/journal/data-room/evidence spendCredits callers now thread project_id via getProjectIdFromRequest(). See tick 35 for file list. Remaining spendCredits() callers not touched: financial-projections, investor-pack/generate, svi/pitch-deck, svi/docx, svi/report, svi/enhanced-report, svi/dimension-analyze, svi/ai-score, svi/research, revaluation, v1/analyze, evaluation/[criterionKey]/ai-suggest, data-room/goals (award path — misleading call, not a real debit).
     5) DONE tick 55 — P0.3_advisory_reviews closed. All 8 advisory reviewers (cmo/coo/cpo/cdo/chro/cro/customer-success/investor-relations) ran in parallel and returned approved_with_notes (0 revise; 0 blocking findings). Review files land under docs/plans/reviews/plan-review-<role>.md. Non-blocking findings captured as items 21-27 below.
    21) DONE tick 56 — P8.4b_end_of_cycle_removal fixed the CRO-flagged defect. handleRemoveItem now creates a Subscription Schedule from the active subscription (Stripe fills phase 0 with the current item set through current_period_end) and updates it with a phase 1 that drops the add-on for one iteration + end_behavior:'release' so the subscription reverts to normal renewal. Existing schedules on the sub are reused via activeSub.schedule → subscriptionSchedules.retrieve instead of erroring on a second create. Pure buildAddonRemovalSchedulePhases lib + 5/5 vitest covers happy path, string-vs-object price shape, quantity omit, sole-item guard, and quantity preservation. Response envelope + revenue_events.detail now carry schedule_id + effective_at Unix timestamp so downstream reconciliation / Playwright can assert the item is still active until current_period_end. Playwright E2E assertion still deferred to P10_hardening per the P4/P5/P7/P8/B7/B8/B9/B10 posture.
-   22) PARTIAL tick 67 — CMO advisory §22 rec #3 (JSON-LD structured data) DONE. Pure builder lib at web/src/lib/seo/structured-data.ts exposes buildWebPageJsonLd + buildItemListJsonLd returning schema.org objects (WebPage with isPartOf/publisher/breadcrumbs; ItemList with 1-indexed ListItem entries + numberOfItems). React wrappers WebPageJsonLd + ItemListJsonLd added to web/src/components/seo/json-ld.tsx (matches OrganizationJsonLd/FAQJsonLd/ArticleJsonLd emit pattern with dangerouslySetInnerHTML). /showcase/blockid page now emits WebPage JSON-LD with two-level breadcrumbs (Home → Showcase). /guide/reports page now emits ItemList JSON-LD covering all report rows (default 100-item clamp for polite crawl payload; numberOfItems still reflects full count so aggregate SEO signal is honest). OrganizationJsonLd was already in root layout so both pages now have Org + WebPage/ItemList on the same document. Test coverage: 7/7 pass in structured-data.test.ts (min WebPage shape, breadcrumbs, primaryImage+inLanguage overrides, ItemList positions, itemLimit clamp, zero-item empty state, description passthrough). Verified: tsc clean; whole-tree vitest 667/667 (was 633, +34 across seo + prior test additions from ticks 63-66); npm run lint:reseller unchanged (8 R-01 + 28 R-03, 3 exemptions, 0 violations — new files under /lib/seo and /components/seo don't touch reseller boundary). REMAINING under §22: (a) prior — CMO brand-wording DONE tick 58. (b) /guide/reports per-row download route + GA event deferred (still needs the plan §284 redaction pipeline; larger tick).
+   22) DONE tick 70 (rec #3 DONE tick 67, rec #4 DONE tick 70) — CMO advisory §22 rec #3 (JSON-LD structured data) DONE. Pure builder lib at web/src/lib/seo/structured-data.ts exposes buildWebPageJsonLd + buildItemListJsonLd returning schema.org objects (WebPage with isPartOf/publisher/breadcrumbs; ItemList with 1-indexed ListItem entries + numberOfItems). React wrappers WebPageJsonLd + ItemListJsonLd added to web/src/components/seo/json-ld.tsx (matches OrganizationJsonLd/FAQJsonLd/ArticleJsonLd emit pattern with dangerouslySetInnerHTML). /showcase/blockid page now emits WebPage JSON-LD with two-level breadcrumbs (Home → Showcase). /guide/reports page now emits ItemList JSON-LD covering all report rows (default 100-item clamp for polite crawl payload; numberOfItems still reflects full count so aggregate SEO signal is honest). OrganizationJsonLd was already in root layout so both pages now have Org + WebPage/ItemList on the same document. Test coverage: 7/7 pass in structured-data.test.ts (min WebPage shape, breadcrumbs, primaryImage+inLanguage overrides, ItemList positions, itemLimit clamp, zero-item empty state, description passthrough). Verified: tsc clean; whole-tree vitest 667/667 (was 633, +34 across seo + prior test additions from ticks 63-66); npm run lint:reseller unchanged (8 R-01 + 28 R-03, 3 exemptions, 0 violations — new files under /lib/seo and /components/seo don't touch reseller boundary). REMAINING under §22: (a) prior — CMO brand-wording DONE tick 58. (b) /guide/reports per-row download route + GA event + redaction pipeline DONE tick 70 — new pure lib web/src/lib/showcase/report-redaction.ts (23/23 tests) + public route /api/guide/reports/[filename] serving redacted markdown attachments + client CTA firing showcase_report_downloaded on click.
    22b) PARTIAL tick 58 — CMO brand-wording pass DONE: "Referred by" / "Brought to you by" swapped to "Introduced by" (EN) + "Được giới thiệu bởi" (VI) per plan §C.3 across web/src/lib/reseller/email-footer.ts + email-footer.test.ts (9/9 pass, incl. proper VI diacritics), web/src/components/workspace/reseller-pill.tsx tooltip, and web/src/app/api/stripe/checkout/route.ts (subscription_data.description = "Introduced by <name>"; invoice_creation.invoice_data.custom_fields = [{name:"Reseller", value:<name>}] per plan §C.3 line 688). REMAINING: /guide/reports download route + GA event so template-library ROI is measurable — deferred to a follow-up tick since it also requires the redaction pipeline per plan §284.
    23) DONE tick 69 — CDO advisory §23 both halves closed. (a) reviews-aggregate pair suppression DONE tick 57 (buildReviewsSummary treats (total_reviews, projects_with_reviews) as a correlated pair; complementary suppression on portfolio-phase-distribution regression-tested). (b) GA4 event catalogue for showcase surfaces DONE tick 69 — new pure resolver at web/src/lib/analytics/showcase-tracker.ts maps the four Track B page slugs (/showcase/blockid, /guide/reports, /guide/[chapter], /workspace/guide/[chapter]) to typed AnalyticsEventMap events; PageTracker gains chapter/locale/source/totalReports optional props + document.referrer plumbing; new showcase_reports_viewed event registered (the /guide/reports view had no prior event); catalogue doc at docs/analytics/showcase-events.md documents the surface→event map + GA4 audience recipes + change-control. Root cause: PAGE_EVENTS map at page-tracker.tsx had no entries for the four showcase page slugs, so every showcase view silently dropped from GA4 + GTM dataLayer despite the events existing in the type registry. Verified: tsc clean; whole-tree vitest 680/680 (+13); lint:reseller unchanged.
    24) PARTIAL tick 66 — Grant modal EN+VI parity DONE tick 62; denial-reason surface DONE tick 63; leading-signal pure lib DONE tick 65; leading-signal weekly-digest cron DONE tick 66 (new /api/cron/reseller-weekly-digest endpoint iterates active resellers, expands reseller_attributions → user_ids (project-typed rows resolved via projects.user_id mirroring scope.allowedCustomerIds), bridges svi_analyses through app_users.email since svi_analyses has no user_id column on this host per 0007/0014/0016/0020 migrations, computes buildLeadingSignalSummary per reseller, emails admin@blockid.au a CSV attachment + HTML body; Mondays 04:15 UTC crontab entry after clear-commissions; ?skip_email=1 dry-run; pure formatter lib web/src/lib/reseller/weekly-digest.ts with 8/8 vitest for isoWeekKey year-boundary, CSV suppression/escape, HTML empty state + sort). REMAINING under §24: (a) H.8 wholesale magic-link + welcome email for reseller-provisioned founders (needs email template + magic-link infra — larger surface).
