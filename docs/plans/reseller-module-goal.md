@@ -2561,6 +2561,83 @@ review_history:
       tick per CDO rec #2).
     commit: (this tick)
 
+  - tick: 83
+    ran_at: 2026-07-22
+    action: p10_dry_run_cobranding_pill_playwright_scaffold
+    result: |
+      Autonomous tick composing option (ii) from tick 82's frontier note —
+      begin the customer-side P10 dry-run scaffold so plan Verification #6
+      ("attributed workspace renders pill; non-attributed workspace does
+      not; VI locale renders VI strings") has a Playwright home the instant
+      P1.5 (H.20 InfoVision ABN + GST) clears and a QA founder row is
+      seeded with attribution_reseller_id pointing at a real reseller. No
+      production code paths touched; pure test infrastructure that skips
+      gracefully until the harness is provisioned.
+
+      Files:
+        - web/tests/e2e/fixtures/reseller.ts (extended — new
+          loadAttributedFounderHarness() + attributedFounderSkipReason()
+          resolve the (attributed-founder QA account, reseller display
+          name, non-attributed comparison account) tuple. Env-var contract
+          mirrors the tick 82 loadResellerHarness() pattern:
+          QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL (default
+          qa-founder-attributed-1@blockid.au) + QA_RESELLER_DISPLAY_NAME
+          (required to activate) + optional QA_UNATTRIBUTED_FOUNDER_EMAIL
+          for the negative case (default qa-founder-1@blockid.au). Returns
+          null when display name is unset so specs test.skip() rather than
+          throw; same skip-reason surfacing pattern so ops sees exactly
+          which env var to set.)
+        - web/tests/e2e/reseller/cobranding-pill.spec.ts (new — three
+          test rows: (1) attributed founder visits /workspace and sees a
+          [title="Introduced by X"] element containing "via X"; (2)
+          non-attributed founder visits /workspace and no
+          [title^="Introduced by"] element exists; (3) VI locale renders
+          VI strings — test.skip() with tracking comment because
+          ResellerPill currently ships EN-only, and the "Được giới thiệu
+          bởi" VI variant exists only in email-footer.ts, not in the
+          topbar pill. Negative case has its own inner test.skip() when
+          QA_UNATTRIBUTED_FOUNDER_EMAIL resolves to a missing row, so a
+          minimally-seeded environment still runs the positive assertion.)
+
+      Why the pill i18n row is a test.skip() rather than an authored
+      assertion: web/src/components/workspace/reseller-pill.tsx:19 has no
+      useLocale() coupling — the string "via" and the title
+      "Introduced by X" are hard-coded EN. Landing a VI assertion now
+      would either force a scaffold-tick to widen the pill component (out
+      of scope for the P10 dry-run posture used across ticks 82/83) or
+      author a spec that must fail on the first run. Leaving the row as
+      test.skip() with a plain-language reason keeps the assertion set
+      complete for the reseller reviewer without pretending the pill is
+      already i18n'd; a future tick can drop the .skip() and add the
+      "Được giới thiệu bởi" contains-check in the same PR that ships the
+      pill VI wiring.
+
+      Verified: tsc clean (npx tsc --noEmit exit 0 at web/); vitest
+      817/817 unchanged (both changes are Playwright, not vitest); npm
+      run lint:reseller: R-01 scanned 11 file(s), R-03 scanned 31
+      manifest route(s); 3 exemptions, 0 violations (new files under
+      web/tests/e2e/**, not /api/reseller/**, so R-01 doesn't fire;
+      nothing added to feature-gates.manifest so R-03 doesn't fire).
+      Playwright not run — the spec self-skips when the harness env
+      vars are unset, which is the current CI state; running would only
+      report the skip.
+
+      Frontier after tick 83: unchanged in shape — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 83 unblocks: the instant a human seeds
+      QA_RESELLER_DISPLAY_NAME + one founder row with a matching
+      attribution_reseller_id, the cobranding-pill spec runs in CI
+      without any additional code. Next autonomous tick options: (i)
+      add the attribution-timing spec skeleton (plan Verification #9 —
+      U.6: user with blockid_via cookie logs in via Google, does NOT
+      create a project → assert no reseller_attributions row); (ii)
+      add the audit-log write assertion spec (plan Verification #5:
+      viewing customer detail writes an audit row); (iii) still idle
+      until human unblock arrives.
+    commit: (this tick)
+
   - tick: 82
     ran_at: 2026-07-22
     action: p10_dry_run_reseller_scope_playwright_scaffold
