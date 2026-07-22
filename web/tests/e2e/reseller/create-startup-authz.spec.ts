@@ -52,15 +52,15 @@
 //   - reseller_missing (404) — needs a reseller_admins row without a
 //     matching resellers row (edge case; per-test seeding).
 //   - reseller_not_active (400) / capability_disabled (400) /
-//     billing_model_not_wholesale (400) / tier_not_allowed (400) /
-//     existing_active_attribution (400) / promotion_code_missing (400)
-//     — all six decideCreateStartup() branches sit BEHIND the auth chain
-//     and need a real reseller row with specific column values (e.g.
-//     billing_model='retail' for billing_model_not_wholesale, status
-//     ='paused' for reseller_not_active, allowed_tiers not containing the
-//     requested tier for tier_not_allowed). Asserting them here would
-//     either need per-test row seeding (forbidden by plan §J.2) or a
-//     bespoke harness that mints a temp reseller with the target state.
+//     tier_not_allowed (400) / existing_active_attribution (400) /
+//     promotion_code_missing (400) — five remaining decideCreateStartup()
+//     branches still sit BEHIND the auth chain; wave-1 rows 142–144
+//     activate them via the temp-reseller mint fixture per
+//     docs/plans/p10-deferred-spec-activation-order.md (paused variant for
+//     reseller_not_active, no_capability variant for capability_disabled,
+//     active_wholesale + tier=99 body for tier_not_allowed). Row 141
+//     (billing_model_not_wholesale via the active_retail variant) is
+//     ACTIVATED below.
 //   - not_configured (503) — needs SUPABASE_URL/SERVICE_ROLE unset which
 //     would break every other Playwright spec running in the same worker.
 //   - Happy path (200 with project_id/user_id/magic_link_sent/stripe_wiring)
@@ -71,6 +71,11 @@
 
 import { test, expect } from "@playwright/test";
 import { loginAs } from "../fixtures/accounts";
+import {
+  loadTempReseller,
+  tempResellerSkipReason,
+  type TempResellerFixture,
+} from "../fixtures/reseller";
 
 const ROUTE = "/api/reseller/create-startup";
 const NON_RESELLER_FOUNDER_EMAIL =
@@ -121,5 +126,88 @@ test.describe("Reseller create-startup pre-write authorization — P10 dry-run",
     ).toBe(false);
     expect(body.error).toBe("feature_locked");
     expect(body.feature).toBe("reseller.create_startup");
+  });
+});
+
+// P10 wave-1 row 141 — active_retail variant probes the third
+// decideCreateStartup gate (billing_model !== "wholesale"). Order per
+// web/src/lib/reseller/create-startup.ts:210-222:
+//   1. reseller.status !== "active"        → reseller_not_active   (row 142)
+//   2. !reseller.can_create_startups        → capability_disabled   (row 143)
+//   3. reseller.billing_model !== "wholesale" → billing_model_not_wholesale ← THIS
+//   4. discount_tier ∉ allowed_tiers        → tier_not_allowed      (row 144)
+//   5. existing active project attribution  → existing_active_attribution
+//   6. promotion code missing               → promotion_code_missing
+//
+// active_retail seed (web/scripts/seed-qa-reseller.mjs:81-92):
+//   status="active", can_create_startups=true (flipped tick 141 so gates
+//   1+2 pass), billing_model="retail" → gate 3 fires. allowed_tiers
+//   includes every tier so the row does not accidentally short-circuit on
+//   gate 4 if a future edit ever reorders the gates.
+//
+// Skip conditions:
+//   - loadTempReseller("active_retail") returns null when SUPABASE_URL /
+//     SUPABASE_SERVICE_ROLE_KEY are unset or when the QA_PROBE seed row is
+//     missing (seed-qa-reseller.mjs not run against the target host).
+//   - fixture.adminUserId is null when the per-variant reseller_admins
+//     mirror is missing (seed-test-users.mjs and seed-qa-reseller.mjs must
+//     both be re-run with QA_RESELLER_MULTI_ADMIN=1 after tick 142's
+//     LEGACY_FEATURE_FALLBACK Option A landed).
+//   - loginAs throws when the per-variant admin email is not in
+//     /tmp/blockid-qa-accounts.txt (same seeder gap).
+test.describe("Reseller create-startup — P10 wave-1 downstream reason branches", () => {
+  test("active_retail — POST returns 400 with reason=billing_model_not_wholesale", async ({
+    page,
+  }) => {
+    let fixture: TempResellerFixture | null;
+    try {
+      fixture = await loadTempReseller("active_retail");
+    } catch (err) {
+      test.skip(
+        true,
+        `loadTempReseller('active_retail') threw: ${(err as Error).message}. ` +
+          tempResellerSkipReason("active_retail"),
+      );
+      return;
+    }
+    if (!fixture || !fixture.adminUserId) {
+      test.skip(true, tempResellerSkipReason("active_retail"));
+      return;
+    }
+    try {
+      await loginAs(page, fixture.adminEmail);
+    } catch (err) {
+      test.skip(
+        true,
+        `loginAs(${fixture.adminEmail}) threw: ${(err as Error).message}. ` +
+          tempResellerSkipReason("active_retail"),
+      );
+      return;
+    }
+    const resp = await page.request.post(ROUTE, {
+      data: {
+        founder_email: "p10-wave1-active-retail@blockid.au",
+        company_name: "P10 Wave 1 — active_retail probe",
+        plan_tier: "founder_growth",
+        discount_tier: 0,
+      },
+    });
+    expect(
+      resp.status(),
+      `active_retail returned ${resp.status()} — expected 400 (decideCreateStartup gate 3). Body: ${await resp.text()}`,
+    ).toBe(400);
+    const body = (await resp.json()) as {
+      ok: boolean;
+      reason?: string;
+      message?: string;
+    };
+    expect(
+      body.ok,
+      `active_retail body.ok should be false: ${JSON.stringify(body)}`,
+    ).toBe(false);
+    expect(body.reason).toBe("billing_model_not_wholesale");
+    expect(body.message).toBe(
+      "Wholesale provisioning requires the wholesale billing model.",
+    );
   });
 });

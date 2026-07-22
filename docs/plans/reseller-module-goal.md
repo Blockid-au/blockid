@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.142
+version: 2026-07-23.143
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,114 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 143
+    ran_at: 2026-07-22
+    action: p10_wave1_row_141_activate_active_retail
+    result: |
+      Activated the first Track A P10 deferred spec row per docs/plans/
+      p10-deferred-spec-activation-order.md wave 1 row 141 —
+      create-startup-authz.spec.ts × active_retail ×
+      billing_model_not_wholesale → 400. Tick 141 flipped the
+      active_retail seed row's can_create_startups=true and tick 142
+      landed LEGACY_FEATURE_FALLBACK reseller_admin bundle + seed plan
+      stamp, so this tick is the pure spec-side landing.
+
+      Files:
+        - web/tests/e2e/reseller/create-startup-authz.spec.ts
+          (imports loadTempReseller + tempResellerSkipReason +
+          TempResellerFixture from ../fixtures/reseller; adds
+          test.describe "P10 wave-1 downstream reason branches" with one
+          test that calls loadTempReseller('active_retail'), skips via
+          tempResellerSkipReason when fixture is null or when
+          fixture.adminUserId is null (seeders not re-run) or when
+          loginAs(fixture.adminEmail) throws (per-variant admin email
+          not in /tmp/blockid-qa-accounts.txt), then POSTs a valid body
+          {founder_email, company_name, plan_tier:'founder_growth',
+          discount_tier:0} and asserts status=400 + body.reason=
+          'billing_model_not_wholesale' + body.message matches
+          CREATE_STARTUP_ERROR_MESSAGES[billing_model_not_wholesale]
+          verbatim.
+          Top-of-file "Deliberately out of scope" comment updated to
+          remove billing_model_not_wholesale from the deferred list and
+          point rows 142-144 at the sibling variants (paused,
+          no_capability, active_wholesale + tier=99). No fixture code
+          landed — this row exercises the fixture surface as it exists
+          today; wave 2 will be the first row that needs an
+          attributed-customer helper).
+
+      Design fidelity:
+        - Gate ordering verified against
+          web/src/lib/reseller/create-startup.ts:210-222 — active_retail
+          seed sits at (status=active, can_create_startups=true, billing_
+          model=retail, allowed_tiers=[0,10,20,30,40]) so gates 1+2 pass,
+          gate 3 fires. discount_tier=0 chosen so the assertion is
+          independent of allowed_tiers ordering AND does not need the
+          reseller_promotion_codes tier-0 row (which is
+          intentionally skipped for the active_retail variant since
+          ck_stripe_objects_by_tier forbids Stripe IDs at tier 0 and
+          gate 3 pre-empts gate 6 anyway).
+        - Skip discipline mirrors the failure protocol in docs/plans/
+          p10-deferred-spec-activation-order.md § "Failure protocol":
+          fixture null → test.skip(tempResellerSkipReason) so single-
+          admin hosts / hosts that skipped QA_RESELLER_MULTI_ADMIN=1
+          land as test.skip rather than 403. loginAs throw → test.skip
+          with the seeder gap message.
+        - Non-Stripe / non-GST discipline: the assertion does not touch
+          Stripe (no promotion_code_missing branch reached), does not
+          touch GST reconciliation, and does not depend on the
+          InfoVision seed. P8.5 + P1.5 remain neither a dependency nor
+          a consequence.
+        - Body.message assertion is the strongest oracle available for
+          the 400 branch — the pure lib's CREATE_STARTUP_ERROR_MESSAGES
+          record is a compile-time enum so a future maintainer who
+          changes the copy without updating the spec fails CI on this
+          row.
+
+      Verified:
+        - `npx tsc -p .` in web/: clean (exit 0). tests/ is excluded
+          from the main tsconfig so the spec's TS errors from
+          @playwright/test + process references are expected and
+          identical in shape to the pre-existing test at line 100 in
+          the same file (verified via a scratch tsconfig extension that
+          included tests/e2e — the 5 errors reported on the new test
+          are the same TS2307/TS2580/TS7031 pattern as the pre-existing
+          one; no new error class introduced by this tick).
+        - `npx vitest run src/lib/reseller/ src/lib/feature-gate.test.ts
+          src/lib/entitlements.test.ts` in web/: 31 files / 462 tests
+          pass (0.74s runtime, identical to tick 142's baseline).
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 documented exemptions, 0
+          violations — unchanged from tick 142 (the spec is not under
+          /api/reseller/** and not in feature-gates.manifest.ts).
+        - No DB apply this tick — pure test-file addition.
+        - Goal file version bumped 2026-07-23.142 → 2026-07-23.143.
+
+      Frontier after tick 143: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision
+      seed STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE;
+      P10 still blocked_by [P1..P9] until P8.5 clears. What tick 143
+      unblocks: row 141 lit up in CI on the next `npx playwright test`
+      run — the row lands as either a green expect(400) assertion
+      (both seeders re-run with QA_RESELLER_MULTI_ADMIN=1) or as
+      test.skip with tempResellerSkipReason (seeders not refreshed).
+      The follow-up ticks flip rows 142 (paused ×
+      reseller_not_active), 143 (no_capability × capability_disabled),
+      144 (active_wholesale × tier_not_allowed via tier=99) using the
+      same skeleton — each is a ~30-line paste of this tick's describe
+      block with the variant + body + expected reason string swapped.
+      Next autonomous tick options:
+        (i) activate row 142 (create-startup-authz.spec.ts × paused ×
+            reseller_not_active) — same file, single-line variant swap
+            + one-line body/oracle swap; qualifies for the batching
+            heuristic in the schedule doc since rows 141-144 are
+            same-file + < 20 lines each;
+        (ii) collapse rows 141-144 into a table-driven test.each so
+             the four downstream branches share one setup — deferred
+             to a future tick that owns the refactor, since the
+             schedule doc's ordering assumes one row per tick;
+        (iii) idle until human unblock arrives on P8.5 or P1.5.
+    commit: (this tick)
+
   - tick: 142
     ran_at: 2026-07-22
     action: p10_wave1_option_a_reseller_admin_bundle
