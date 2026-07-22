@@ -40,10 +40,13 @@
 import { test, expect } from "@playwright/test";
 import { loginAs } from "../fixtures/accounts";
 import {
+  adminHarnessSkipReason,
   harnessSkipReason,
+  loadAdminHarness,
   loadResellerHarness,
   loadTempReseller,
   tempResellerSkipReason,
+  type AttachApproveTargetResult,
   type TempResellerFixture,
 } from "../fixtures/reseller";
 import {
@@ -52,6 +55,8 @@ import {
   loadSupabaseAdmin,
   supabaseAdminSkipReason,
 } from "../fixtures/supabase-admin";
+
+const REQUESTS_LIST_ROUTE = "/api/admin/resellers/requests";
 
 test.describe("Reseller audit-log writes — P10 dry-run", () => {
   const harness = loadResellerHarness();
@@ -288,5 +293,239 @@ test.describe("Reseller audit-log writes — P10 wave-5 row 179 happy path", () 
       revealCount,
       `expected ≥1 reveal_email audit row for (actor=${actorId}, subject=${attach.attributedUserId}) since ${revealSince}; got ${revealCount}`,
     ).toBeGreaterThanOrEqual(1);
+  });
+});
+
+// P10 wave-5 row 179 — approve fan-out ledger-row DB assertions. Companion
+// block to the row 175 approve(over_budget_approval) wire-envelope block in
+// admin-requests-patch-authz.spec.ts (line 544). That block owns the
+// response envelope (200 + linked_credit_transaction_id UUID + null
+// linked_promotion_code_id); this block owns the DB-level state check on
+// the four writes the approve branch fans out via
+// web/src/app/api/admin/resellers/requests/[id]/route.ts:200-293:
+//
+//   1. credit_balances UPSERT — balance + lifetime_earned bumped by
+//      payload.requested_amount (route.ts:228-238).
+//   2. credit_transactions INSERT — reason='reseller_grant_over_budget',
+//      granted_by_reseller_id + metadata.reseller_request_id ===
+//      requestId (route.ts:246-260).
+//   3. reseller_credit_grants INSERT — kind='grant', over_budget=true,
+//      metadata.reseller_request_id === requestId, links back to the
+//      credit_transactions row via credit_transaction_id (route.ts:271-287).
+//   4. reseller_requests UPDATE — status=approved with linked_credit_
+//      transaction_id stamped (route.ts:296-310); already covered by the
+//      row 175 approve block's response-body assertions.
+//
+// Folding the DB assertions here (rather than into the admin-requests-
+// patch-authz block) matches the existing pattern for the audit-log side
+// effects — the "audit-log-writes.spec.ts" file already owns Supabase
+// service-role DB peeks via loadSupabaseAdmin(), so the ledger reads
+// piggyback on the same env-gate (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)
+// without a second env-flip. attachApproveTarget() snapshot-restores all
+// four writes on fixture.cleanup(), so this block is idempotent under CI
+// replay and does not race the row 175 approve block (each attach mints a
+// distinct gen_random_uuid() requestId; the metadata->>reseller_request_id
+// filter isolates the assertions).
+//
+// Skip discipline mirrors row 175 approve: describe-scope on admin
+// harness; test-scope on fixture load throw / fixture null / attach throw
+// / attach null / loginAs throw / supabase null. Distinct decision_reason
+// probe ("p10_wave5_row_179_ledger_probe") so a failed cleanup that
+// leaks either row surfaces on the next run via the pending-inbox scan
+// without confusing rows from the row 175 approve probe.
+test.describe("Reseller audit-log writes — P10 wave-5 row 179 approve fan-out ledger assertions", () => {
+  const harness = loadAdminHarness();
+  test.skip(!harness, adminHarnessSkipReason());
+
+  let fixture: TempResellerFixture | null = null;
+  let fixtureError: Error | null = null;
+  let attach: AttachApproveTargetResult | null = null;
+  let attachError: Error | null = null;
+
+  test.beforeAll(async () => {
+    try {
+      fixture = await loadTempReseller("active_wholesale");
+    } catch (err) {
+      fixtureError = err as Error;
+      return;
+    }
+    if (!fixture) return;
+    try {
+      attach = await fixture.attachApproveTarget({
+        reason: "p10_wave5_row_179_ledger_probe",
+      });
+    } catch (err) {
+      attachError = err as Error;
+    }
+  });
+
+  test.afterAll(async () => {
+    if (fixture) {
+      try {
+        await fixture.cleanup();
+      } catch (err) {
+        // Bubble so a partial restore fails the run rather than leaking
+        // credit_balances / credit_transactions / reseller_credit_grants
+        // rows into the next spec worker.
+        throw new Error(
+          `wave-5 row 179 approve-fanout cleanup failed — ledger tables may still hold rows keyed by reseller_request_id=${attach?.requestId ?? "<none>"}: ${(err as Error).message}`,
+        );
+      }
+    }
+  });
+
+  test("approve PATCH writes credit_balances + credit_transactions + reseller_credit_grants rows keyed by reseller_request_id", async ({
+    page,
+  }) => {
+    if (fixtureError) {
+      test.skip(
+        true,
+        `loadTempReseller('active_wholesale') threw: ${fixtureError.message}. ${tempResellerSkipReason("active_wholesale")}`,
+      );
+      return;
+    }
+    if (!fixture) {
+      test.skip(true, tempResellerSkipReason("active_wholesale"));
+      return;
+    }
+    if (attachError) {
+      test.skip(
+        true,
+        `attachApproveTarget threw: ${attachError.message}. Common ` +
+          `causes: migration 0091/0095/0096 not applied on this host, or ` +
+          `the credit_balances / credit_transactions / reseller_credit_grants ` +
+          `/ reseller_requests table missing.`,
+      );
+      return;
+    }
+    if (!attach) {
+      test.skip(
+        true,
+        "attachApproveTarget returned null — attributed founder or " +
+          "reseller-admin app_users row missing on this host. Run " +
+          "scripts/seed-qa-reseller.mjs + scripts/seed-test-users.mjs " +
+          "with QA_RESELLER_MULTI_ADMIN=1 to plant both rows.",
+      );
+      return;
+    }
+
+    const supabase = loadSupabaseAdmin();
+    if (!supabase) {
+      test.skip(true, supabaseAdminSkipReason());
+      return;
+    }
+
+    try {
+      await loginAs(page, harness!.admin.email);
+    } catch (err) {
+      test.skip(
+        true,
+        `Admin QA account not seeded: ${(err as Error).message}. Run ` +
+          `scripts/seed-test-users.mjs to populate /tmp/blockid-qa-accounts.txt.`,
+      );
+      return;
+    }
+
+    const patchResp = await page.request.patch(
+      `${REQUESTS_LIST_ROUTE}/${attach.requestId}`,
+      {
+        data: {
+          action: "approve",
+          decision_reason: "p10_wave5_row_179_ledger_probe",
+        },
+        headers: { "content-type": "application/json" },
+      },
+    );
+    expect(
+      patchResp.status(),
+      `approve returned ${patchResp.status()} — expected 200 after the credit-ledger triple-write. Body: ${await patchResp.text()}`,
+    ).toBe(200);
+
+    const expectedBalance = (attach.balanceBefore ?? 0) + attach.requestedAmount;
+    const expectedLifetime =
+      (attach.lifetimeEarnedBefore ?? 0) + attach.requestedAmount;
+
+    // 1. credit_balances — UPSERT bumps balance + lifetime_earned by
+    //    payload.requested_amount. A regression that dropped either write
+    //    (or swapped the sign) surfaces here as a mismatch against the
+    //    snapshot captured by attachApproveTarget().
+    const { data: balanceRow, error: balReadErr } = await supabase
+      .from("credit_balances")
+      .select("balance, lifetime_earned")
+      .eq("user_id", attach.targetUserId)
+      .maybeSingle();
+    expect(
+      balReadErr,
+      `credit_balances read failed for target_user_id=${attach.targetUserId}: ${balReadErr?.message}`,
+    ).toBeNull();
+    expect(
+      balanceRow,
+      `expected a credit_balances row for target_user_id=${attach.targetUserId} after approve UPSERT`,
+    ).not.toBeNull();
+    expect(
+      Number(balanceRow!.balance),
+      `credit_balances.balance mismatch: expected ${expectedBalance} (balanceBefore=${attach.balanceBefore} + requested=${attach.requestedAmount}), got ${balanceRow!.balance}`,
+    ).toBe(expectedBalance);
+    expect(
+      Number(balanceRow!.lifetime_earned),
+      `credit_balances.lifetime_earned mismatch: expected ${expectedLifetime} (lifetimeEarnedBefore=${attach.lifetimeEarnedBefore} + requested=${attach.requestedAmount}), got ${balanceRow!.lifetime_earned}`,
+    ).toBe(expectedLifetime);
+
+    // 2. credit_transactions — INSERT with reason='reseller_grant_over_budget',
+    //    amount === requestedAmount, metadata.reseller_request_id === requestId.
+    //    Filter by metadata path so parallel workers do not collide on the
+    //    (user_id, amount) tuple; the requestId is a fresh UUID per attach
+    //    call.
+    const { data: txRows, error: txReadErr } = await supabase
+      .from("credit_transactions")
+      .select("id, amount, balance_after, reason, granted_by_reseller_id, metadata")
+      .eq("user_id", attach.targetUserId)
+      .filter("metadata->>reseller_request_id", "eq", attach.requestId);
+    expect(
+      txReadErr,
+      `credit_transactions read failed for reseller_request_id=${attach.requestId}: ${txReadErr?.message}`,
+    ).toBeNull();
+    expect(
+      txRows?.length ?? 0,
+      `expected exactly 1 credit_transactions row for reseller_request_id=${attach.requestId}; got ${txRows?.length ?? 0}. A regression that fired the INSERT twice (e.g. missing idempotency guard) or dropped it (approve returned 200 without the INSERT) surfaces here.`,
+    ).toBe(1);
+    const txRow = txRows![0]!;
+    expect(txRow.reason).toBe("reseller_grant_over_budget");
+    expect(Number(txRow.amount)).toBe(attach.requestedAmount);
+    expect(Number(txRow.balance_after)).toBe(expectedBalance);
+    const txMetadata = txRow.metadata as Record<string, unknown> | null;
+    expect(
+      (txMetadata ?? {})["reseller_request_id"],
+      `credit_transactions.metadata.reseller_request_id mismatch: expected ${attach.requestId}, got ${JSON.stringify(txMetadata)}`,
+    ).toBe(attach.requestId);
+
+    // 3. reseller_credit_grants — INSERT with kind='grant', over_budget=true,
+    //    metadata.reseller_request_id === requestId, credit_transaction_id
+    //    links back to the row 2 row. A regression that folded a
+    //    sandbox_spend row into the approve branch (impossible per
+    //    ck_amount_sign but the assertion catches a schema drift) or
+    //    dropped over_budget=true (breaking the monthly budget rollup)
+    //    surfaces here.
+    const { data: grantRows, error: grantReadErr } = await supabase
+      .from("reseller_credit_grants")
+      .select("id, kind, amount, over_budget, credit_transaction_id, target_user_id, metadata")
+      .eq("target_user_id", attach.targetUserId)
+      .filter("metadata->>reseller_request_id", "eq", attach.requestId);
+    expect(
+      grantReadErr,
+      `reseller_credit_grants read failed for reseller_request_id=${attach.requestId}: ${grantReadErr?.message}`,
+    ).toBeNull();
+    expect(
+      grantRows?.length ?? 0,
+      `expected exactly 1 reseller_credit_grants row for reseller_request_id=${attach.requestId}; got ${grantRows?.length ?? 0}. The mirror INSERT lives at route.ts:271-287 — a regression that dropped it surfaces here even though the credit_transactions row (row 2) landed.`,
+    ).toBe(1);
+    const grantRow = grantRows![0]!;
+    expect(grantRow.kind).toBe("grant");
+    expect(grantRow.over_budget).toBe(true);
+    expect(Number(grantRow.amount)).toBe(attach.requestedAmount);
+    expect(
+      grantRow.credit_transaction_id,
+      `reseller_credit_grants.credit_transaction_id mismatch: expected ${txRow.id} (the row 2 credit_transactions id), got ${grantRow.credit_transaction_id}`,
+    ).toBe(txRow.id);
   });
 });
