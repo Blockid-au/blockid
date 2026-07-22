@@ -117,6 +117,22 @@ function ChapterBody({ c, locale }: { c: Chapter; locale: Locale }) {
         <Bullets items={list(c.commonPitfalls)} />
       </section>
 
+      {c.qualifyingTests ? (
+        <section className="mt-10 rounded-lg border border-amber-200 bg-amber-50 p-6 dark:border-amber-900/40 dark:bg-amber-950/20">
+          <h2 className="text-xl font-semibold text-amber-900 dark:text-amber-200">
+            {locale === "vi"
+              ? "Checklist điều kiện Div 83A"
+              : "Div 83A qualifying-tests checklist"}
+          </h2>
+          <p className="mt-2 text-xs text-amber-800 dark:text-amber-300">
+            {locale === "vi"
+              ? "Thông tin chung. Không phải tư vấn pháp lý hay thuế. Xác nhận đủ điều kiện với đại lý thuế đã đăng ký."
+              : "General information only. Not legal or tax advice. Confirm eligibility with a registered tax agent."}
+          </p>
+          <Bullets items={list(c.qualifyingTests)} />
+        </section>
+      ) : null}
+
       <section className="mt-10 rounded-lg border border-emerald-200 bg-emerald-50 p-6 dark:border-emerald-900/40 dark:bg-emerald-950/30">
         <h2 className="text-base font-semibold text-emerald-900 dark:text-emerald-200">
           {locale === "vi"

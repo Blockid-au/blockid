@@ -87,6 +87,28 @@ describe("chapter content coverage", () => {
   });
 });
 
+describe("qualifyingTests (Div 83A checklist on chapter 08)", () => {
+  it("chapter 08-team publishes the eight Div 83A tests EN + VI", () => {
+    const c = getChapter("08-team");
+    expect(c).not.toBeNull();
+    expect(c?.qualifyingTests).toBeDefined();
+    expect(c?.qualifyingTests?.en.length).toBe(8);
+    expect(c?.qualifyingTests?.vi.length).toBe(8);
+    // Every test cites at least one statutory reference so the checklist stays
+    // auditable against the div83a-checker.ts pure evaluator.
+    for (const line of c?.qualifyingTests?.en ?? []) {
+      expect(line.length).toBeGreaterThan(20);
+    }
+  });
+
+  it("no other chapter carries qualifyingTests (single-chapter feature)", () => {
+    for (const chapter of listChapters()) {
+      if (chapter.slug === "08-team") continue;
+      expect(chapter.qualifyingTests).toBeUndefined();
+    }
+  });
+});
+
 describe("getAdjacentChapters()", () => {
   it("returns null previous for the first chapter and null next for the last", () => {
     expect(getAdjacentChapters("01-vision").previous).toBeNull();

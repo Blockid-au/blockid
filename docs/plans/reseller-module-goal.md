@@ -1909,6 +1909,43 @@ review_history:
       vitest 624/624 (was 603/603, +21); lint:reseller unchanged.
       Track B is now COMPLETE (B1..B10 all done).
     commit: (this tick)
+  - tick: 59
+    ran_at: 2026-07-22
+    action: chro_advisory_26_div83a_checklist
+    result: |
+      Closed the ch08-team half of CHRO advisory §26. Guide chapter 8 now
+      publishes the eight Div 83A start-up-concession qualifying tests EN + VI
+      immediately below Common pitfalls on both /guide/08-team and
+      /workspace/guide/08-team. Each bullet cites the statutory reference (s83A-
+      33 / s83A-45 / s83A-105 / s960-410) so the checklist stays auditable
+      against the pure evaluator at web/src/lib/div83a-checker.ts (8 criteria,
+      identical order: esic_eligible / unlisted / turnover_cap / age_lt_10y /
+      grantee_is_employee / market_value / ownership_cap /
+      holding_or_forfeiture). Chapter interface gained optional
+      qualifyingTests?: LocalisedList so future statutory-gated chapters can
+      reuse the shape; both surface pages guard with `c.qualifyingTests ?` and
+      render an amber-bordered section with the AFSL "general information only,
+      not legal or tax advice" disclaimer above the bullets so the founder never
+      sees an unqualified statutory claim. Docs mirror at
+      docs/guides/startup-journey/chapter-08.md carries the same eight-item list
+      + disclaimer for offline reading. Test coverage: new "qualifyingTests"
+      describe block asserts chapter 08 has exactly 8 EN + 8 VI entries and
+      that no other chapter defines the field (single-chapter feature guard).
+      Files: web/src/lib/guide/startup-journey.ts (Chapter interface +
+      chapter-08 entry), web/src/lib/guide/startup-journey.test.ts (2 new
+      cases), web/src/app/guide/[chapter]/page.tsx (marketing surface),
+      web/src/app/workspace/guide/[chapter]/page.tsx (workspace surface),
+      docs/guides/startup-journey/chapter-08.md (docs mirror). Verified:
+      startup-journey.test.ts 12/12 pass (was 10/10, +2); tsc clean;
+      lint:reseller unchanged (no /api/reseller/** or manifest touch).
+      REMAINING under §26: human-review-minutes KPI wiring into loop telemetry
+      (defer to a follow-up housekeeping tick — needs a counter file + a bump
+      point in scripts/cron/reseller-goal-loop.mjs log() so the "0 eng-weeks"
+      claim carries a real number). Frontier after tick 59: unchanged — all
+      real leaves still DONE or HUMAN-BLOCKED; loop keeps knocking off
+      advisory follow-ups (22 partial, 23 partial, 24-27 partial or pending).
+    commit: (this tick)
+
   - tick: 58
     ran_at: 2026-07-22
     action: cmo_advisory_22_brand_wording
@@ -1971,7 +2008,7 @@ next_action:
    23) PARTIAL tick 57 — CDO advisory §23 reviews-aggregate pair suppression closed. buildReviewsSummary now treats (total_reviews, projects_with_reviews) as a correlated pair: if either falls under k the other is also suppressed and avg_rating drops to null so the observer cannot bound the hidden bucket into {1..min(exposed,k-1)}. Verified via updated + new vitest cases (reviews.test.ts: pair-suppression when projects<k with total exposed; pair-suppression when total<k under custom threshold). Complementary suppression on portfolio-phase-distribution was already applied at line 128 (via applyComplementarySuppression from portfolio-aggregates.ts) but had no regression test — added an 11-visible/1-suppressed case that asserts ≥2 buckets go dark so the "subtract from attributed_total" attack has multiple solutions. REMAINING under §23: GA4 event catalogue for showcase surfaces (deferred to a CMO/CPO joint tick per CDO rec #2 dependency order).
    24) TODO (advisory — Customer-Success) — Wire H.8 wholesale magic-link + welcome email for reseller-provisioned founders; add reseller-side denial-reason surface (page render, not just API); add EN+VI parity to Grant modal; add leading-signal KPIs (last-login, first-report) to P11 weekly digest.
    25) TODO (advisory — CPO) — EN+VI parity for reseller Customer drawer; explicit non-payment confirmation step in wholesale onboarding wizard.
-   26) TODO (advisory — CHRO) — Add human-review-minutes KPI to autonomous loop telemetry so the "0 eng-weeks" claim carries a concrete counter; add Div 83A qualifying-tests checklist to docs/guides/startup-journey/chapter-08-team.md.
+   26) PARTIAL tick 59 — CHRO advisory §26 Div 83A qualifying-tests checklist DONE: guide chapter 08-team now publishes the eight s83A tests EN + VI (esic_eligible / unlisted / turnover_cap / age_lt_10y / grantee_is_employee / market_value / ownership_cap / holding_or_forfeiture) on both /guide/08-team and /workspace/guide/08-team plus docs/guides/startup-journey/chapter-08.md; Chapter interface gained optional qualifyingTests?: LocalisedList; startup-journey.test.ts 12/12 pass with two new cases asserting chapter-08 has exactly 8 EN+8 VI and no other chapter carries the field. Amber-bordered section renders the AFSL "general information only" disclaimer above the bullets so no unqualified statutory claim is surfaced. REMAINING: human-review-minutes KPI wiring — a counter file + bump point in scripts/cron/reseller-goal-loop.mjs log() so the "0 eng-weeks" claim carries a concrete number instead of an assertion (self-contained housekeeping tick, no code risk).
    27) TODO (advisory — IR + COO) — Pitch-deck Channel Economics slide, data-room GTM one-pager, reseller row in unicorn masterplan; surface human-blocked items (P1.5, P8.5) in weekly digest.
    10) DONE tick 43 — P0.4_ceo_final_sign_off closed with verdict=approved. P0 pre-flight window is now fully sealed; only P0.3 advisory reviews remain pending (non-blocking).
    11) DONE tick 44 — P8_share_management_addon decomposed into P8.1..P8.5 and P8.1_manifest_completeness shipped. feature-gates.manifest.ts now maps 28 real mutation routes (9 phantoms removed, 20 real routes added); completeness test 6/6 pass guards against future drift.

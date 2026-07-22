@@ -64,6 +64,11 @@ export interface Chapter {
   showcaseExample: LocalisedText;    // (e) "what this looks like on BlockID.au"
   cta: LocalisedText;                // call to action into the workspace
   sections?: ChapterSection[];       // optional deeper prose sections
+  // Optional legal/qualifying-tests checklist rendered under its own heading.
+  // Used for chapters that gate on a formal statutory test (e.g. chapter 08
+  // reproduces the eight Division 83A start-up concession criteria so founders
+  // can walk them without leaving the guide).
+  qualifyingTests?: LocalisedList;
 }
 
 const CHAPTERS: Chapter[] = [
@@ -609,6 +614,31 @@ const CHAPTERS: Chapter[] = [
     cta: {
       en: "Draft the ESOP scheme this week; run the Div83A checker on any grants already made. If you have the Share Management add-on, walk the CHRO's cap-table draft with a co-founder before approving each row — three eyes catch what two miss.",
       vi: "Soạn scheme ESOP tuần này; chạy bộ kiểm tra Div83A cho các grant đã phát hành. Nếu có add-on Share Management, đi qua bản nháp cap table của CHRO với đồng sáng lập trước khi duyệt từng dòng — ba con mắt bắt lỗi mà hai bỏ sót.",
+    },
+    // Mirrors the eight criteria evaluated by web/src/lib/div83a-checker.ts
+    // (Income Tax Assessment Act 1997 Subdivision 83A-B / 83A-C). General
+    // information only — the checker doc also carries the AFSL disclaimer.
+    qualifyingTests: {
+      en: [
+        "Company is an ESIC-eligible start-up (s83A-33 tests met) — confirm via ATO ESIC self-assessment or private ruling.",
+        "Company (and any holding entity) is unlisted at the grant date — no class of shares quoted on an approved stock exchange (s83A-33(1)(b)).",
+        "Aggregated turnover of the company group for the financial year of the grant is A$50 million or less (s83A-33(1)(a)).",
+        "Company was incorporated less than 10 years before the grant date (s83A-33(1)(c)).",
+        "Grantee is an employee (PAYG, not a contractor invoicing via ABN) of the issuing entity at the grant date (s83A-105(1)(a)).",
+        "Options are issued with a strike price at or above market value at grant, established under a s960-410 safe-harbour method or independent valuation (s83A-33(4)).",
+        "Grantee's post-grant beneficial ownership and voting power in the company is 10% or less (s83A-45(4)).",
+        "Grant satisfies the ≥ 3-year holding period OR carries a real risk of forfeiture (e.g. a 12-month or longer cliff) (s83A-45(5) / s83A-105(6)).",
+      ],
+      vi: [
+        "Công ty là start-up đủ điều kiện ESIC (các test s83A-33 đạt) — xác nhận qua ATO ESIC tự đánh giá hoặc private ruling.",
+        "Công ty (và bất kỳ đơn vị mẹ nào) chưa niêm yết tại ngày grant — không có loại cổ phần nào niêm yết trên sàn giao dịch được công nhận (s83A-33(1)(b)).",
+        "Doanh thu hợp nhất của cả nhóm công ty cho năm tài chính có ngày grant ≤ A$50 triệu (s83A-33(1)(a)).",
+        "Công ty được thành lập chưa đến 10 năm trước ngày grant (s83A-33(1)(c)).",
+        "Người nhận grant là nhân viên (PAYG, không phải nhà thầu xuất hoá đơn qua ABN) của đơn vị phát hành tại ngày grant (s83A-105(1)(a)).",
+        "Option phát hành với giá thực hiện bằng hoặc cao hơn giá thị trường tại ngày grant, xác định bằng phương pháp safe-harbour s960-410 hoặc định giá độc lập (s83A-33(4)).",
+        "Tỷ lệ sở hữu hưởng lợi và quyền biểu quyết sau grant của người nhận trong công ty ≤ 10% (s83A-45(4)).",
+        "Grant thoả điều kiện giữ ≥ 3 năm HOẶC có rủi ro mất quyền thực sự (ví dụ cliff từ 12 tháng trở lên) (s83A-45(5) / s83A-105(6)).",
+      ],
     },
   },
   {
