@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.216
+version: 2026-07-23.217
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,144 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 217
+    ran_at: 2026-07-22
+    action: p10_audit_log_writes_uuid_re_module_scope_hoist
+    result: |
+      Landed tick 216 "natural next pick" option (c) verbatim: hoisted the
+      ten inline `/^[0-9a-f]{8}-.../i` UUID regex sites in
+      web/tests/e2e/reseller/audit-log-writes.spec.ts onto a single
+      module-scope `UUID_RE` constant defined immediately after the
+      REQUESTS_LIST_ROUTE constant at the top of the file. Matches the
+      pattern used across the sibling reseller specs
+      (admin-requests-list-authz.spec.ts:81, reseller-requests-list-
+      authz.spec.ts:73, credit-grant-authz.spec.ts:101, credit-grant-
+      validation.spec.ts:250, requests-authz.spec.ts:250,
+      admin-requests-patch-authz.spec.ts:139, and 3 others). Case-
+      insensitive `/i` flag preserves the sibling constants' posture so
+      upper-case UUIDs (which PostgreSQL uuid::text can return depending
+      on the client library) still match.
+
+      Frontier before this tick: tick 216 landed the FK-echo UUID_RE
+      shape lens on the HTTP surface of credit-grant-authz.spec.ts rows
+      152/156/156b/156c. Option (c) from the tick 216 natural-next-pick
+      list called out audit-log-writes.spec.ts as carrying the same
+      duplication opportunity — 10 inline copies of the identical
+      regex/typeof/coalesced-.toMatch pattern across the wave-3 rows
+      154/156/156b/156c DB-companion assertions. This tick is purely
+      additive: no test removed, no assertion weakened, no production
+      code touched — each `.toMatch(...)` call now references the
+      hoisted `UUID_RE` constant instead of an inline regex literal, so
+      a future maintainer editing the shape pin (e.g. tightening to
+      require a specific version nibble in position 15) only needs to
+      touch one site. Assertion form `body{N}.credit_transaction_id ?? ""
+      ).toMatch(UUID_RE)` is preserved so a null value still surfaces
+      as "empty string does not match /^[0-9a-f]{8}.../" rather than
+      throwing on "toMatch called on non-string".
+
+      Diagnostic delta of the hoist:
+        - Same regex, same case-insensitive posture, same `?? ""`
+          null-coalesced input at every site.
+        - Failure message on a shape drift: prior "expected value to
+          match /^[0-9a-f]{8}-.../" now reads "expected value to match
+          UUID_RE" — the constant name is more informative in a CI log
+          because a maintainer reading the failure knows to grep for
+          UUID_RE rather than count the exact `{8}-{4}-{4}-{4}-{12}`
+          segments to figure out what shape was intended.
+        - A regression that renamed credit_transaction_id in the
+          response envelope would still surface at the `typeof === "string"`
+          check that precedes each `.toMatch(UUID_RE)` — the shape pin
+          fires second per the tick 216 discipline that keeps the
+          shape check downstream of the typeof pin so `null !==
+          "not-a-uuid"` cannot false-pass at the string check.
+
+      Files:
+        - web/tests/e2e/reseller/audit-log-writes.spec.ts
+          (added module-scope UUID_RE after REQUESTS_LIST_ROUTE with an
+          8-line comment naming the sibling constants and the tick 216
+          "natural next pick" option (c) rationale; replaced 10 inline
+          regex sites — line 1416 (row 154 grant_credits mirror), 1625
+          (row 156 body1), 1648 (row 156 body2), 1671 (row 156 body3),
+          1927 (row 156b body1), 1950 (row 156b body2), 2204 (row 156c
+          body1), 2227 (row 156c body2), 2250 (row 156c body3), 2273
+          (row 156c body4) — with the hoisted constant reference. Each
+          replacement collapses the multi-line `.toMatch(regex,)` form
+          onto a single line `.toMatch(UUID_RE)` matching the pattern
+          used at credit-grant-authz.spec.ts:1015/1023/1030/1041 which
+          also inlines the single-line form after tick 216.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.216 → 2026-07-23.217; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Module-scope constant name `UUID_RE` matches the sibling spec
+          files verbatim so a future audit sweep that greps `UUID_RE =`
+          across web/tests/e2e/reseller/ finds every constant with one
+          query. No `UuidRe`, `UUID_REGEX`, or `RE_UUID` variants
+          introduced — consistency with the ten other spec files was
+          the single criterion.
+        - Placement immediately after `REQUESTS_LIST_ROUTE` matches the
+          top-of-file constant block convention in the sibling files —
+          UUID_RE lives outside every describe so both env-based and
+          temp-reseller-fixture describes see it without a
+          per-describe hoist.
+        - Regex verbatim from the sibling constants: same
+          `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`
+          body and case-insensitive `/i` flag. No RFC-4122 version
+          nibble pin (position 15 = version 1/2/3/4/5) so a mocked
+          fixture that returns a zero-version UUID for determinism
+          still matches — matches the sibling posture where the shape
+          check exists to catch stringified bigints and reseller_id
+          leaks, not to validate RFC-4122 conformance.
+        - No production code touched. Spec + goal file only. R-01
+          (only scans /api/reseller/**) and R-03 (only scans
+          feature-gates.manifest.ts routes) do not scan
+          web/tests/e2e/** so lint counts stay at 11 R-01 + 31 R-03 +
+          3 exemptions + 0 violations.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: exit 0.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files,
+          R-03 scanned 31 manifest routes, 3 exemptions, 0 violations
+          — unchanged from tick 216.
+        - `npx vitest run` in web/: 75 files / 954 tests passed
+          (Playwright specs are excluded from vitest by design so the
+          count is unchanged from tick 216).
+        - No DB apply this tick — no migration authored. Playwright
+          run against staging still gated on the tick 198 seed re-run
+          per P10 hardening exit criteria, not this tick.
+
+      Frontier after tick 217:
+        - Track A P8.5 STILL HUMAN-BLOCKED on
+          STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL.
+        - Track A P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20
+          ABN + GST.
+        - Track B COMPLETE.
+        - All 43 rows in the P10 activation matrix (waves 1-5) are
+          activated; only human-blocked rows (175 approve
+          code_request / 178 signup-jitter / 182 SetupIntent) remain
+          on the plan doc's canonical list.
+        - audit-log-writes.spec.ts now carries a module-scope UUID_RE
+          constant. Zero inline `/^[0-9a-f]{8}.../` regex literals
+          remaining in the file for FK-echo shape pins on the wave-3
+          self-approve DB companion rows 154/156/156b/156c.
+
+      Natural next pick for tick 218: (a) sweep the OTHER spec files
+      under web/tests/e2e/reseller/ that still inline the UUID regex
+      instead of hoisting — the tick 216 review_history called out the
+      pattern "each spec currently inlines the regex" as a duplication
+      opportunity beyond audit-log-writes.spec.ts (attribution-
+      timing.spec.ts, drawer-*.spec.ts, reports-signed-url-*.spec.ts,
+      cobranding-pill.spec.ts). (b) mirror the row 179 shape+helper
+      alignment onto the row 175 approve+deny+cancel code_request
+      branches once P8.5 unblocks; today only the over_budget_approval
+      branch of the terminal handler carries the shape+helper twin
+      coverage. (Still open, P8.5-blocked.) (c) audit credit-grant-
+      validation.spec.ts happy paths for parallel FK-echo shape pins on
+      the same credit_transaction_id echoes — the tick 216 pass
+      targeted the authz sibling but not the validation sibling.
+    commit: (this tick)
+
   - tick: 216
     ran_at: 2026-07-22
     action: p10_wave3_row_156_156b_156c_credit_transaction_id_fk_echo_shape_lens

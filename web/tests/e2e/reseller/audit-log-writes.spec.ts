@@ -59,6 +59,22 @@ import {
 
 const REQUESTS_LIST_ROUTE = "/api/admin/resellers/requests";
 
+// Module-scope UUID_RE mirrors the sibling constants in admin-requests-list-
+// authz.spec.ts:81, reseller-requests-list-authz.spec.ts:73, credit-grant-
+// authz.spec.ts:101, credit-grant-validation.spec.ts:250, and requests-
+// authz.spec.ts:250. Extracted in tick 217 to close the review_history
+// tick 216 "natural next pick" option (c) — the ten inline copies at rows
+// 156/156b/156c self-approve DB companions were duplicating the same pattern
+// (typeof === "string" check followed by a null-coalesced .toMatch that keeps
+// the "empty string does not match /^[0-9a-f]{8}.../" failure message intact)
+// so a single hoist keeps the FK-echo shape lens coherent across the file
+// without churning the assertion ordering. Case-insensitive `/i` flag
+// preserves the sibling constants' posture so upper-case UUIDs (which
+// PostgreSQL uuid columns can return via ::text depending on the client
+// library) still match.
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 test.describe("Reseller audit-log writes — P10 dry-run", () => {
   const harness = loadResellerHarness();
   test.skip(!harness, harnessSkipReason());
@@ -1412,9 +1428,7 @@ test.describe("Reseller credit-grant mirror row — P10 wave-3 row 155", () => {
     };
     expect(body.ok, `body.ok should be true: ${JSON.stringify(body)}`).toBe(true);
     expect(typeof body.credit_transaction_id).toBe("string");
-    expect(body.credit_transaction_id ?? "").toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-    );
+    expect(body.credit_transaction_id ?? "").toMatch(UUID_RE);
 
     const mirrorCount = await countResellerCreditGrantsFor(supabase, {
       resellerId: fixture.resellerId,
@@ -1621,9 +1635,7 @@ test.describe("Reseller credit-grant mirror rows — P10 wave-3 row 156b DB comp
       };
       expect(body1.ok, `POST 1 body.ok should be true: ${JSON.stringify(body1)}`).toBe(true);
       expect(typeof body1.credit_transaction_id).toBe("string");
-      expect(body1.credit_transaction_id ?? "").toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-      );
+      expect(body1.credit_transaction_id ?? "").toMatch(UUID_RE);
 
       const grant2 = await fixture.attachGrantSelfApprove({ amount: AMOUNT_TWO });
       if (!grant2) {
@@ -1644,9 +1656,7 @@ test.describe("Reseller credit-grant mirror rows — P10 wave-3 row 156b DB comp
       };
       expect(body2.ok, `POST 2 body.ok should be true: ${JSON.stringify(body2)}`).toBe(true);
       expect(typeof body2.credit_transaction_id).toBe("string");
-      expect(body2.credit_transaction_id ?? "").toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-      );
+      expect(body2.credit_transaction_id ?? "").toMatch(UUID_RE);
 
       const grant3 = await fixture.attachGrantSelfApprove({ amount: AMOUNT_THREE });
       if (!grant3) {
@@ -1667,9 +1677,7 @@ test.describe("Reseller credit-grant mirror rows — P10 wave-3 row 156b DB comp
       };
       expect(body3.ok, `POST 3 body.ok should be true: ${JSON.stringify(body3)}`).toBe(true);
       expect(typeof body3.credit_transaction_id).toBe("string");
-      expect(body3.credit_transaction_id ?? "").toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-      );
+      expect(body3.credit_transaction_id ?? "").toMatch(UUID_RE);
 
       const mirrorCount = await countResellerCreditGrantsFor(supabase, {
         resellerId: fixture.resellerId,
@@ -1923,9 +1931,7 @@ test.describe("Reseller credit-grant mirror rows — P10 wave-3 row 156 DB compa
       };
       expect(body1.ok, `POST 1 body.ok should be true: ${JSON.stringify(body1)}`).toBe(true);
       expect(typeof body1.credit_transaction_id).toBe("string");
-      expect(body1.credit_transaction_id ?? "").toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-      );
+      expect(body1.credit_transaction_id ?? "").toMatch(UUID_RE);
 
       const grant2 = await fixture.attachGrantSelfApprove({ amount: AMOUNT_TWO });
       if (!grant2) {
@@ -1946,9 +1952,7 @@ test.describe("Reseller credit-grant mirror rows — P10 wave-3 row 156 DB compa
       };
       expect(body2.ok, `POST 2 body.ok should be true: ${JSON.stringify(body2)}`).toBe(true);
       expect(typeof body2.credit_transaction_id).toBe("string");
-      expect(body2.credit_transaction_id ?? "").toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-      );
+      expect(body2.credit_transaction_id ?? "").toMatch(UUID_RE);
 
       const mirrorCount = await countResellerCreditGrantsFor(supabase, {
         resellerId: fixture.resellerId,
@@ -2200,9 +2204,7 @@ test.describe("Reseller credit-grant mirror rows — P10 wave-3 row 156c DB comp
       };
       expect(body1.ok, `POST 1 body.ok should be true: ${JSON.stringify(body1)}`).toBe(true);
       expect(typeof body1.credit_transaction_id).toBe("string");
-      expect(body1.credit_transaction_id ?? "").toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-      );
+      expect(body1.credit_transaction_id ?? "").toMatch(UUID_RE);
 
       const grant2 = await fixture.attachGrantSelfApprove({ amount: AMOUNT_TWO });
       if (!grant2) {
@@ -2223,9 +2225,7 @@ test.describe("Reseller credit-grant mirror rows — P10 wave-3 row 156c DB comp
       };
       expect(body2.ok, `POST 2 body.ok should be true: ${JSON.stringify(body2)}`).toBe(true);
       expect(typeof body2.credit_transaction_id).toBe("string");
-      expect(body2.credit_transaction_id ?? "").toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-      );
+      expect(body2.credit_transaction_id ?? "").toMatch(UUID_RE);
 
       const grant3 = await fixture.attachGrantSelfApprove({ amount: AMOUNT_THREE });
       if (!grant3) {
@@ -2246,9 +2246,7 @@ test.describe("Reseller credit-grant mirror rows — P10 wave-3 row 156c DB comp
       };
       expect(body3.ok, `POST 3 body.ok should be true: ${JSON.stringify(body3)}`).toBe(true);
       expect(typeof body3.credit_transaction_id).toBe("string");
-      expect(body3.credit_transaction_id ?? "").toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-      );
+      expect(body3.credit_transaction_id ?? "").toMatch(UUID_RE);
 
       const grant4 = await fixture.attachGrantSelfApprove({ amount: AMOUNT_FOUR });
       if (!grant4) {
@@ -2269,9 +2267,7 @@ test.describe("Reseller credit-grant mirror rows — P10 wave-3 row 156c DB comp
       };
       expect(body4.ok, `POST 4 body.ok should be true: ${JSON.stringify(body4)}`).toBe(true);
       expect(typeof body4.credit_transaction_id).toBe("string");
-      expect(body4.credit_transaction_id ?? "").toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-      );
+      expect(body4.credit_transaction_id ?? "").toMatch(UUID_RE);
 
       const mirrorCount = await countResellerCreditGrantsFor(supabase, {
         resellerId: fixture.resellerId,
