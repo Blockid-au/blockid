@@ -51,10 +51,25 @@
 //   - duplicate_pending_code_request (409 — needs an existing pending
 //                                code_request row for the same reseller,
 //                                which is per-test seeding)
+//   - Happy GET (200 with body.requests array) — ACTIVATED as P10 wave-3
+//     row 156 below via loadTempReseller("active_wholesale") + fixture.
+//     adminEmail loginAs. Sits inside the wave-3-active_wholesale subwave
+//     (152 / 154 / 155 / 156) that tick 152's preflight flagged as
+//     activation-ready without any seed/fixture delta.
 
 import { test, expect } from "@playwright/test";
 import { loginAs } from "../fixtures/accounts";
-import { harnessSkipReason, loadResellerHarness } from "../fixtures/reseller";
+import {
+  harnessSkipReason,
+  loadResellerHarness,
+  loadTempReseller,
+  tempResellerSkipReason,
+  type TempResellerFixture,
+} from "../fixtures/reseller";
+
+const ROUTE = "/api/reseller/requests";
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface ValidationCase {
   label: string;
@@ -126,7 +141,7 @@ test.describe("Reseller requests input validation — P10 dry-run", () => {
   for (const c of CASES) {
     test(c.label, async ({ page }) => {
       await loginAs(page, harness!.admin.email);
-      const resp = await page.request.post(`/api/reseller/requests`, {
+      const resp = await page.request.post(ROUTE, {
         data: c.body as never,
         headers: c.headers ?? { "content-type": "application/json" },
       });
@@ -142,4 +157,155 @@ test.describe("Reseller requests input validation — P10 dry-run", () => {
       ).toBe(c.expectedReason);
     });
   }
+});
+
+// P10 wave-3 row 156 — active_wholesale variant probes the GET /api/reseller/
+// requests happy path (reseller-admin session → 200 with body.ok=true +
+// Array.isArray(body.requests) + per-row envelope shape). Per docs/plans/
+// p10-deferred-spec-activation-order.md wave 3:
+//   156 | requests-validation.spec.ts | active_wholesale |
+//         happy GET 200 (returns pending list) | 200
+//
+// Partners with row 155 (requests-authz.spec.ts × active_wholesale × happy
+// POST 201) — row 155 inserts a pending over_budget_approval row into
+// reseller_requests scoped to the QAPROBEWHOLESALEACTIVE reseller_id, and
+// this row's GET enumerates the same scope so a regression that dropped
+// either the reseller_id filter (route.ts:174) or the envelope shape
+// (route.ts:170-173 select-list) would surface across both rows.
+//
+// Route reference (web/src/app/api/reseller/requests/route.ts):
+//   Line 149-152: getCurrentUser null                          → 401 unauthorised
+//   Line 154-162: scopedReseller throws                         → 403 { reason: err.code }
+//   Line 164-167: getSupabaseAdmin null                         → 503 not_configured
+//   Line 169-176: SELECT reseller_requests WHERE reseller_id=$1
+//                 ORDER BY created_at DESC LIMIT 100 (envelope
+//                 pins id, request_type, status, payload,
+//                 decision_at, decision_reason, created_at)
+//   Line 178-183: query error                                   → 500 query_failed
+//   Line 185: 200 { ok:true, requests: [...] } ← THIS
+//
+// Fixture wiring (mirrors row 155 posture verbatim — same describe pattern
+// hoisted here; no seed or fixture delta needed per wave-3 preflight tick
+// 152):
+//   - loadTempReseller("active_wholesale") reads the QAPROBEWHOLESALEACTIVE
+//     seed row + resolves adminEmail via the P10 Option A per-variant slot
+//     (qa-reseller-wholesale-active@blockid.au) + mirrors reseller_admins so
+//     scopedReseller() returns a live scope with reseller_id set to the
+//     QAPROBEWHOLESALEACTIVE row.
+//   - loginAs(page, fixture.adminEmail) opens the reseller-admin session
+//     against the DISTINCT per-variant app_users row so scopedReseller()
+//     .maybeSingle() does not PGRST116-collide with other variants.
+//   - No attributedUserId dependency — the GET route reads reseller_requests
+//     scoped by reseller_id (route.ts:174), not by subject_user_id, so
+//     attributionExists is intentionally NOT required (unlike wave-2 rows
+//     146-149 which hit scopedReseller().allowedCustomerIds()).
+//
+// Skip conditions:
+//   - loadTempReseller returns null (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
+//     unset or QAPROBEWHOLESALEACTIVE seed row missing).
+//   - fixture.adminUserId null (variant admin row missing or reseller_admins
+//     mirror not seeded — scopedReseller would 403 no_membership).
+//   - loginAs throws when /tmp/blockid-qa-accounts.txt has no row for the
+//     resolved admin email.
+//
+// State-pollution posture: read-only GET — no INSERT / UPDATE / DELETE fires
+// from this endpoint (audit-log write is on the POST side only per
+// route.ts:113-126, GET does not audit-log per route.ts:148-186). No
+// projects.id created → no fixture.trackProjectForCleanup / cleanup()
+// wiring needed. Perfectly idempotent under CI replay.
+//
+// Coverage-vs-duplication call: pin 200 + body.ok=true + Array.isArray(
+// body.requests) + when the array is non-empty, EVERY row has string id +
+// string request_type + string status + string created_at. Do NOT pin the
+// array length (fresh hosts may have zero rows; hosts where row 155 has
+// run in prior CI passes will have ≥1 pending rows accumulated). Do NOT
+// pin decision_at / decision_reason (both nullable in the schema and null
+// for pending rows). The per-row shape pins catch (a) a route regression
+// that dropped a field from the SELECT list (route.ts:170-173), (b) a
+// route regression that returned the wrong id type (bigint from a stale
+// migration rather than UUID string), and (c) a route regression that
+// returned a non-array envelope (e.g. wrapping in { requests: { rows: [] } }).
+//
+// Twin-row accounting vs row 155 (active_wholesale × happy POST 201): row
+// 155 pins the INSERT envelope (body.request.id + request_type + status);
+// row 156 pins the SELECT envelope (body.requests[].id + request_type +
+// status + created_at). A regression that mis-echoed request_type or
+// swapped status defaults between INSERT and SELECT would surface across
+// both rows. UUID_RE hoisted to module scope (same posture as row 155 in
+// requests-authz.spec.ts + row 152 in credit-grant-validation.spec.ts +
+// row 154 in sandbox-setup-authz.spec.ts) so future wave-4/wave-5 rows
+// landing in this file reuse the constant.
+//
+// Non-Stripe / non-GST discipline: the GET requests route reads
+// reseller_requests only (no promotion_code lookup, no credit_balances /
+// credit_transactions write, no revenue_events read, no Stripe network
+// call, no InfoVision dependency). P8.5 + P1.5 remain neither a
+// dependency nor a consequence.
+test.describe("Reseller requests — P10 wave-3 happy GET", () => {
+  test("active_wholesale — GET as reseller-admin returns 200 with body.requests array", async ({
+    page,
+  }) => {
+    let fixture: TempResellerFixture | null;
+    try {
+      fixture = await loadTempReseller("active_wholesale");
+    } catch (err) {
+      test.skip(
+        true,
+        `loadTempReseller('active_wholesale') threw: ${(err as Error).message}. ` +
+          tempResellerSkipReason("active_wholesale"),
+      );
+      return;
+    }
+    if (!fixture || !fixture.adminUserId) {
+      test.skip(true, tempResellerSkipReason("active_wholesale"));
+      return;
+    }
+    try {
+      await loginAs(page, fixture.adminEmail);
+    } catch (err) {
+      test.skip(
+        true,
+        `loginAs(${fixture.adminEmail}) threw: ${(err as Error).message}. ` +
+          tempResellerSkipReason("active_wholesale"),
+      );
+      return;
+    }
+    const resp = await page.request.get(ROUTE);
+    expect(
+      resp.status(),
+      `active_wholesale + happy GET returned ${resp.status()} — expected 200 with body.requests array. A 403 no_membership here means reseller_admins mirror lost the per-variant row (seed drift). A 5xx means the reseller_requests SELECT leaked through (route.ts:178-183 query_failed branch). Body: ${await resp.text()}`,
+    ).toBe(200);
+    const body = (await resp.json()) as {
+      ok: boolean;
+      requests?: Array<{
+        id?: string;
+        request_type?: string;
+        status?: string;
+        payload?: unknown;
+        decision_at?: string | null;
+        decision_reason?: string | null;
+        created_at?: string;
+      }>;
+      reason?: string;
+    };
+    expect(
+      body.ok,
+      `active_wholesale + happy GET body.ok should be true: ${JSON.stringify(body)}`,
+    ).toBe(true);
+    expect(
+      Array.isArray(body.requests),
+      `active_wholesale + happy GET body.requests should be an array: ${JSON.stringify(body)}`,
+    ).toBe(true);
+    for (const row of body.requests ?? []) {
+      expect(typeof row.id).toBe("string");
+      expect(row.id ?? "").toMatch(UUID_RE);
+      expect(typeof row.request_type).toBe("string");
+      expect(["code_request", "over_budget_approval", "collateral_approval"]).toContain(
+        row.request_type,
+      );
+      expect(typeof row.status).toBe("string");
+      expect(["pending", "approved", "denied", "cancelled"]).toContain(row.status);
+      expect(typeof row.created_at).toBe("string");
+    }
+  });
 });
