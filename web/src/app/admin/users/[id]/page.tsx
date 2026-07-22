@@ -14,6 +14,16 @@ import { redirect, notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { isAdmin } from "@/lib/reseller/require-admin";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import {
+  buildAdvisorClientList,
+  buildAttributionHistory,
+  buildResellerAdminMembership,
+  buildRolesPermissionsPanel,
+  type AdvisorClientRow,
+  type AttributionHistoryRow,
+  type ResellerAdminMembershipRow,
+  type RolesPermissionsPanel,
+} from "@/lib/admin/user-panels";
 import { UserActionsClient } from "./user-actions-client";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +54,8 @@ interface UserFull {
   verified_at: string | null;
   created_at: string;
   last_login_at: string | null;
+  custom_role: string | null;
+  permissions: unknown;
 }
 
 interface BalanceRow {
@@ -87,6 +99,10 @@ async function loadDetail(id: string): Promise<
       transactions: TransactionRow[];
       sessions: SessionRow[];
       reseller: ResellerLite | null;
+      rolesPanel: RolesPermissionsPanel;
+      attributionHistory: AttributionHistoryRow[];
+      resellerMemberships: ResellerAdminMembershipRow[];
+      advisorClients: AdvisorClientRow[];
     }
 > {
   const supabase = getSupabaseAdmin();
@@ -122,6 +138,8 @@ async function loadDetail(id: string): Promise<
           "verified_at",
           "created_at",
           "last_login_at",
+          "custom_role",
+          "permissions",
         ].join(", "),
       )
       .eq("id", id)
@@ -131,7 +149,7 @@ async function loadDetail(id: string): Promise<
 
     const typedUser = user as unknown as UserFull;
 
-    const [balRes, txRes, sessRes, resellerRes] = await Promise.all([
+    const [balRes, txRes, sessRes, resellerRes, attrRes, memberRes, clientLinkRes] = await Promise.all([
       supabase
         .from("credit_balances")
         .select("balance, lifetime_earned, lifetime_spent, updated_at")
@@ -156,7 +174,92 @@ async function loadDetail(id: string): Promise<
             .eq("id", typedUser.attribution_reseller_id)
             .maybeSingle()
         : Promise.resolve({ data: null }),
+      supabase
+        .from("reseller_attributions")
+        .select(
+          "reseller_id, subject_type, subject_project_id, source, status, opted_out, opted_out_at, attributed_at",
+        )
+        .eq("subject_user_id", id)
+        .limit(50),
+      supabase
+        .from("reseller_admins")
+        .select("reseller_id, role, status, linked_at, revoked_at")
+        .eq("user_id", id)
+        .limit(50),
+      supabase
+        .from("advisor_clients")
+        .select("client_id, status, linked_at")
+        .eq("advisor_id", id)
+        .limit(50),
     ]);
+
+    const attributionRaw =
+      (attrRes.data ?? []) as Array<{
+        reseller_id: string;
+        subject_type: string | null;
+        subject_project_id: string | null;
+        source: string | null;
+        status: string | null;
+        opted_out: boolean | null;
+        opted_out_at: string | null;
+        attributed_at: string | null;
+      }>;
+    const memberRaw =
+      (memberRes.data ?? []) as Array<{
+        reseller_id: string;
+        role: string | null;
+        status: string | null;
+        linked_at: string | null;
+        revoked_at: string | null;
+      }>;
+    const clientLinkRaw =
+      (clientLinkRes.data ?? []) as Array<{
+        client_id: string;
+        status: string | null;
+        linked_at: string | null;
+      }>;
+
+    const resellerIds = new Set<string>();
+    for (const r of attributionRaw) resellerIds.add(r.reseller_id);
+    for (const r of memberRaw) resellerIds.add(r.reseller_id);
+    if (typedUser.attribution_reseller_id) resellerIds.add(typedUser.attribution_reseller_id);
+
+    const resellerLookup = new Map<
+      string,
+      { id: string; code: string | null; display_name: string | null }
+    >();
+    if (resellerIds.size > 0) {
+      const { data: resellerRows } = await supabase
+        .from("resellers")
+        .select("id, code, display_name")
+        .in("id", [...resellerIds]);
+      for (const r of (resellerRows ?? []) as Array<{
+        id: string;
+        code: string | null;
+        display_name: string | null;
+      }>) {
+        resellerLookup.set(r.id, r);
+      }
+    }
+
+    const clientIds = [...new Set(clientLinkRaw.map((c) => c.client_id))];
+    const clientLookup = new Map<
+      string,
+      { id: string; email: string | null; display_name: string | null }
+    >();
+    if (clientIds.length > 0) {
+      const { data: clientRows } = await supabase
+        .from("app_users")
+        .select("id, email, display_name")
+        .in("id", clientIds);
+      for (const c of (clientRows ?? []) as Array<{
+        id: string;
+        email: string | null;
+        display_name: string | null;
+      }>) {
+        clientLookup.set(c.id, c);
+      }
+    }
 
     return {
       kind: "ok",
@@ -165,6 +268,10 @@ async function loadDetail(id: string): Promise<
       transactions: (txRes.data ?? []) as TransactionRow[],
       sessions: (sessRes.data ?? []) as SessionRow[],
       reseller: (resellerRes.data as ResellerLite | null) ?? null,
+      rolesPanel: buildRolesPermissionsPanel(typedUser),
+      attributionHistory: buildAttributionHistory(attributionRaw, resellerLookup),
+      resellerMemberships: buildResellerAdminMembership(memberRaw, resellerLookup),
+      advisorClients: buildAdvisorClientList(clientLinkRaw, clientLookup),
     };
   } catch {
     return { kind: "not_configured" };
@@ -206,7 +313,17 @@ export default async function AdminUserDetailPage({
 
   if (result.kind === "not_found") notFound();
 
-  const { user, balance, transactions, sessions, reseller } = result;
+  const {
+    user,
+    balance,
+    transactions,
+    sessions,
+    reseller,
+    rolesPanel,
+    attributionHistory,
+    resellerMemberships,
+    advisorClients,
+  } = result;
   const isSelf = currentUser.id === user.id;
 
   return (
@@ -360,6 +477,190 @@ export default async function AdminUserDetailPage({
             </p>
           </section>
         )}
+
+        <section className="mb-6 grid gap-6 md:grid-cols-2">
+          <div className="rounded-lg border border-surface-200 bg-white p-4">
+            <div className="mb-3 flex items-baseline justify-between">
+              <h3 className="text-sm font-semibold text-ink-900">Roles & permissions</h3>
+              <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-amber-800">
+                Edit via P12.6
+              </span>
+            </div>
+            <Field label="Base role" value={rolesPanel.base_role} />
+            <Field label="Custom role" value={rolesPanel.custom_role ?? "—"} mono />
+            <div className="mt-3">
+              <div className="text-xs uppercase tracking-wide text-ink-500">
+                Permissions ({rolesPanel.permissions.length})
+              </div>
+              {rolesPanel.permissions.length === 0 ? (
+                <p className="mt-1 text-xs text-ink-500">No permissions granted.</p>
+              ) : (
+                <ul className="mt-1 flex flex-wrap gap-1">
+                  {rolesPanel.permissions.map((p) => {
+                    const known = rolesPanel.unknown_permissions.indexOf(p) === -1;
+                    return (
+                      <li
+                        key={p}
+                        className={`rounded px-1.5 py-0.5 font-mono text-[11px] ${
+                          known
+                            ? "bg-indigo-50 text-indigo-800"
+                            : "bg-surface-100 text-ink-700 ring-1 ring-amber-200"
+                        }`}
+                      >
+                        {p}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              {rolesPanel.unknown_permissions.length > 0 && (
+                <p className="mt-2 text-[11px] text-amber-800">
+                  {rolesPanel.unknown_permissions.length} unrecognised entry(ies) —
+                  audit before granting further capabilities.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-surface-200 bg-white p-4">
+            <h3 className="mb-3 text-sm font-semibold text-ink-900">
+              Reseller admin membership ({resellerMemberships.length})
+            </h3>
+            {resellerMemberships.length === 0 ? (
+              <p className="text-xs text-ink-500">
+                Not linked to any reseller org.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {resellerMemberships.map((m) => (
+                  <li
+                    key={`${m.reseller_id}-${m.linked_at_iso}`}
+                    className="rounded border border-surface-100 p-2"
+                  >
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium text-ink-800">
+                        {m.reseller_code ? (
+                          <a
+                            href={`/admin/resellers/${m.reseller_code.toLowerCase()}`}
+                            className="text-brand-700 underline"
+                          >
+                            {m.reseller_display_name ?? m.reseller_code}
+                          </a>
+                        ) : (
+                          m.reseller_display_name ?? "—"
+                        )}
+                      </span>
+                      <span
+                        className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${
+                          m.status === "active"
+                            ? "bg-emerald-50 text-emerald-800"
+                            : "bg-surface-100 text-ink-500"
+                        }`}
+                      >
+                        {m.membership_role} · {m.status}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-[11px] text-ink-500">
+                      linked {m.linked_at_iso.slice(0, 10)}
+                      {m.revoked_at_iso &&
+                        ` · revoked ${m.revoked_at_iso.slice(0, 10)}`}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
+
+        <section className="mb-6 grid gap-6 md:grid-cols-2">
+          <div className="rounded-lg border border-surface-200 bg-white p-4">
+            <h3 className="mb-3 text-sm font-semibold text-ink-900">
+              Attribution history ({attributionHistory.length})
+            </h3>
+            {attributionHistory.length === 0 ? (
+              <p className="text-xs text-ink-500">
+                No reseller attributions on record for this user.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {attributionHistory.map((a) => (
+                  <li
+                    key={`${a.reseller_id}-${a.attributed_at_iso}-${a.subject_type}`}
+                    className="rounded border border-surface-100 p-2"
+                  >
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium text-ink-800">
+                        {a.reseller_code ? (
+                          <a
+                            href={`/admin/resellers/${a.reseller_code.toLowerCase()}`}
+                            className="text-brand-700 underline"
+                          >
+                            {a.reseller_display_name ?? a.reseller_code}
+                          </a>
+                        ) : (
+                          "—"
+                        )}
+                      </span>
+                      <span
+                        className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${
+                          a.status === "active" && !a.opted_out
+                            ? "bg-emerald-50 text-emerald-800"
+                            : "bg-surface-100 text-ink-500"
+                        }`}
+                      >
+                        {a.subject_type} · {a.source}
+                        {a.opted_out ? " · opted-out" : ""}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-[11px] text-ink-500">
+                      attributed {a.attributed_at_iso.slice(0, 10)}
+                      {a.subject_project_id && ` · project ${a.subject_project_id.slice(0, 8)}…`}
+                      {a.opted_out_at_iso && ` · opted-out ${a.opted_out_at_iso.slice(0, 10)}`}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="rounded-lg border border-surface-200 bg-white p-4">
+            <h3 className="mb-3 text-sm font-semibold text-ink-900">
+              Advisor client list ({advisorClients.length})
+            </h3>
+            <p className="mb-2 text-[11px] text-ink-500">
+              Startups this user advises via /advisor. Blank if the user is not
+              enrolled as an advisor.
+            </p>
+            {advisorClients.length === 0 ? (
+              <p className="text-xs text-ink-500">No advisor–client links.</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {advisorClients.map((c) => (
+                  <li
+                    key={c.client_id}
+                    className="flex items-center justify-between rounded border border-surface-100 p-2 text-sm"
+                  >
+                    <a
+                      href={`/admin/users/${c.client_id}`}
+                      className="truncate text-brand-700 underline"
+                    >
+                      {c.client_display_name ?? c.client_email ?? c.client_id.slice(0, 8)}
+                    </a>
+                    <span
+                      className={`ml-2 rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${
+                        c.status === "active"
+                          ? "bg-emerald-50 text-emerald-800"
+                          : "bg-surface-100 text-ink-500"
+                      }`}
+                    >
+                      {c.status}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
 
         <section className="mb-6 rounded-lg border border-surface-200 bg-white">
           <div className="border-b border-surface-100 p-3">
