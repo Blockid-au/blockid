@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.39
+version: 2026-07-23.40
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -218,11 +218,14 @@ tracks:
           "web/src/components/workspace/workspace-layout.tsx (wires <ResellerPill /> ahead of ConnectWalletButton in topbar)",
           "web/src/app/api/stripe/checkout/route.ts (looks up reseller.display_name; stamps subscription_data.description = 'Referred by X' for recurring + invoice_creation.invoice_data.custom_fields = [{name: 'Brought to you by', value: X}] for one-off)",
           "web/src/lib/reseller/email-footer.ts (pure locale-switched HTML + text helper; EN/VI; HTML-escapes displayName)",
-          "web/src/lib/reseller/email-footer.test.ts (9/9 pass: null/blank guard, EN default, VI switch, HTML escape, whitespace trim)"
+          "web/src/lib/reseller/email-footer.test.ts (9/9 pass: null/blank guard, EN default, VI switch, HTML escape, whitespace trim)",
+          "web/src/lib/reseller/email-attribution.ts (tick 71 — resolveResellerDisplayNameByEmail DB adapter + pickActiveResellerDisplayName pure decision helper)",
+          "web/src/lib/reseller/email-attribution.test.ts (tick 71 — 6/6 pass on pure decision layer)",
+          "web/src/lib/email.ts (tick 71 — sendWelcomeWithReport + sendPaymentReceipt now interpolate resellerFooterHtml when attribution resolves)"
         ]
         exit_criteria: [
           "topbar pill at workspace-layout.tsx renders via <ResellerPill /> when useResellerAttribution() returns value (DONE)",
-          "email footer helper locale-switched EN + VI available for welcome + receipt integration (DONE — pure helper; wiring into sendWelcomeWithReport + payment receipt deferred to P7 monthly-report tick since both call sites live in the 2156-line email.ts monolith)",
+          "email footer helper locale-switched EN + VI available for welcome + receipt integration (DONE — pure helper; wiring into sendWelcomeWithReport + sendPaymentReceipt landed tick 71 via web/src/lib/reseller/email-attribution.ts resolver + one-line footer interpolation in each caller)",
           "Stripe invoice memo carries reseller name via subscription description + one-off custom_fields (DONE)",
           "Playwright pill vs no-pill test — DEFERRED to P10_hardening (Playwright suite currently un-provisioned; P10 exit_criteria owns the E2E lens)"
         ]
@@ -2556,6 +2559,54 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 71
+    ran_at: 2026-07-22
+    action: p5_cobranding_email_footer_wiring
+    result: |
+      Closed the deferred P5 co-branding email-footer wiring flagged in
+      the P5_cobranding phase notes ("wiring into sendWelcomeWithReport +
+      payment receipt deferred to P7 monthly-report tick since both call
+      sites live in the 2156-line email.ts monolith"). New pure helper
+      lib at web/src/lib/reseller/email-attribution.ts exposes
+      pickActiveResellerDisplayName(userRow, resellerRow) (pure
+      decision — null when attribution missing, reseller missing,
+      status !== 'active', or display_name blank) plus a thin
+      resolveResellerDisplayNameByEmail(email, supabase) DB adapter
+      that looks up app_users by ilike(email) → attribution_reseller_id
+      → resellers.display_name where status='active', fails closed on
+      any DB or transient error so email delivery is never blocked by a
+      reseller-side lookup miss. web/src/lib/email.ts now imports
+      resellerFooterHtml + resolveResellerDisplayNameByEmail +
+      getSupabaseAdmin at the top and both sendWelcomeWithReport (uses
+      args.locale for EN/VI) and sendPaymentReceipt (EN — payment
+      receipts are always EN in the current tree) resolve the display
+      name once at the top of the function and interpolate
+      resellerFooter into the card body just after the "BlockID.au —
+      Valuation. Ownership. Growth." tagline (welcome puts it after
+      the AFSL disclaimer; receipt puts it after the tagline since it
+      has no disclaimer). Vitest: 6 new cases in email-attribution.
+      test.ts covering null user, missing attribution_reseller_id,
+      missing reseller row, non-active status (terminated + paused),
+      blank/whitespace display_name (null + empty + whitespace-only),
+      and the happy path with a trimmed name. Verified: whole-tree
+      vitest 709/709 (was 703/703, +6); tsc clean; npm run
+      lint:reseller unchanged (8 R-01 + 28 R-03, 3 exemptions, 0
+      violations — new lib is under /lib/reseller/ but not
+      /api/reseller/** so the R-01 scope-boundary rule doesn't fire
+      and it's not in feature-gates.manifest.ts so R-03 doesn't
+      fire). Attribution lookup is O(2) round-trips per email; the
+      cost lives on the /api/svi/*, /api/rnd/*, and Stripe webhook
+      hot paths that already call these send functions, so no
+      additional caller changes needed. REMAINING P5 exit criterion
+      "Playwright pill vs no-pill test" still DEFERRED to
+      P10_hardening per the same posture used for P4/P5/P7/P8/B7-B10.
+      Frontier after tick 71: unchanged — Track A HUMAN-BLOCKED on
+      P8.5 Stripe env vars; Track B COMPLETE; P1.5 HUMAN-BLOCKED on
+      H.20; P10 blocked_by [P1..P9]; loop continues knocking off
+      advisory follow-ups (24/25 wholesale magic-link + welcome
+      email is the last real remaining leaf, larger surface).
     commit: (this tick)
 
   - tick: 70
