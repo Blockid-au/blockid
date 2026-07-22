@@ -694,7 +694,21 @@ export async function loadTempReseller(
   let attributionExists = false;
   let promotionCodes: ReadonlyArray<TempResellerPromotionCode> = [];
 
-  if (variant === "active_wholesale") {
+  // Finding-2 fixture delta (docs/plans/p10-wave3-preflight-finding.md §Finding 2):
+  // rows 150 + 151 probe `no_capability` + `no_budget` variants and need
+  // fixture.attributedUserId + attributionExists to populate so decideReveal
+  // clears not_in_scope and the intended capability_disabled / over_budget
+  // oracle fires. Whitelist mirrors ATTRIBUTION_VARIANTS in
+  // web/scripts/seed-qa-reseller.mjs. Promotion codes stay gated to
+  // active_wholesale — only that variant needs Stripe promo IDs per
+  // ck_stripe_objects_by_tier and only rows 158 + 175 (code_request approve
+  // branch, deferred on Stripe) will consume the promotionCodes array.
+  const ATTRIBUTION_VARIANTS = new Set<ResellerVariant>([
+    "active_wholesale",
+    "no_capability",
+    "no_budget",
+  ]);
+  if (ATTRIBUTION_VARIANTS.has(variant)) {
     const attrEmail =
       process.env.QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL ??
       DEFAULT_TEMP_RESELLER_ATTRIBUTED_EMAIL;
@@ -728,7 +742,9 @@ export async function loadTempReseller(
         }
       }
     }
+  }
 
+  if (variant === "active_wholesale") {
     const { data: pc } = await supabase
       .from("reseller_promotion_codes")
       .select("id, tier_pct, code")

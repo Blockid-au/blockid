@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.197
+version: 2026-07-23.198
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,122 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 198
+    ran_at: 2026-07-22
+    action: p10_wave3_finding_2_seed_and_fixture_delta
+    result: |
+      Landed finding-2's coupled seed + fixture delta per
+      docs/plans/p10-wave3-preflight-finding.md §Finding 2, unblocking P10
+      wave-3 rows 150 (credit-grant-authz × no_capability × capability_disabled
+      → 403) and 151 (credit-grant-authz × no_budget ×
+      over_budget_requires_approval → 402) which have been the top
+      carried-forward option in the "next natural picks" list on every wave-4
+      + wave-5 review_history entry since tick 158. Frontier before this tick:
+      P12 sequence closed at tick 197 (P12.9); P10 wave-5 audit-symmetry
+      closed at tick 187; STRIPE-mint rows (175 approve/code_request + 182)
+      remain P8.5-blocked; row 178 signup-jitter branch remains QA-mode-
+      blocked; rows 150 + 151 + 157 remained the only wave-through rows
+      whose activation depended on seeder/fixture edits inside the loop's
+      control. Row 157 (paused × inactive promo code) requires an active
+      promo mint on the paused variant which is a distinct edit path;
+      picked finding-2 as the higher-payoff single tick because it unblocks
+      TWO rows with ONE coupled edit.
+
+      Files:
+        - web/scripts/seed-qa-reseller.mjs (added ATTRIBUTION_VARIANTS
+          module const = ["active_wholesale", "no_capability", "no_budget"];
+          main-loop branch at L516 split into (a) promotion_codes still gated
+          to active_wholesale only per ck_stripe_objects_by_tier, plus (b)
+          new attribution seed block that iterates ATTRIBUTION_VARIANTS
+          gated on attributedUser existing so single-admin hosts without
+          QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL stay compatible)
+        - web/tests/e2e/fixtures/reseller.ts (ATTRIBUTION_VARIANTS Set<
+          ResellerVariant> mirrors the seed-side whitelist; attribution
+          lookup block at L697 now runs on the three attribution-seeded
+          variants so fixture.attributedUserId + attributionExists +
+          attributedFounderEmail populate for no_capability + no_budget;
+          promotion_codes lookup kept as a separate active_wholesale-only
+          block below so wave-4 row 158's tier_pct pin does not accidentally
+          activate on the new variants)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.197 → 2026-07-23.198; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Seed script's seedAttribution() is already lookup-first idempotent
+          (SELECT on (reseller_id, subject_user_id) → early-return when a
+          row exists) so re-runs on partially-seeded hosts are safe. The
+          attributed founder single-row is legal against three reseller
+          ids because reseller_attributions has no unique on
+          subject_user_id alone; (reseller_id, subject_user_id,
+          subject_type) is the natural key per finding-2 §Recommended fix.
+        - Fixture whitelist mirrors the seed whitelist verbatim (both as
+          "active_wholesale, no_capability, no_budget") so a divergence
+          would surface immediately when the next tick tries to activate
+          row 150 or 151 — attributionExists=false would trip the
+          existing wave-2 row 146+ skip guard rather than false-positive
+          the assertion.
+        - Promotion codes gate stays active_wholesale-only. Only that
+          variant mints Stripe promo IDs per ck_stripe_objects_by_tier;
+          rows 158 (code-validate happy 200) and 175 approve
+          (code_request) are the only downstream consumers and both are
+          already scoped to active_wholesale in the schedule doc.
+        - No production code touched. Both changes live under
+          web/scripts/** (build-time seeder) and web/tests/e2e/fixtures/**
+          (Playwright fixture) — neither is scanned by R-01 or R-03.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: exit 0. New Set<ResellerVariant>
+          type parameter resolves against the pre-existing
+          `export type ResellerVariant = ...` union at L230; no shape
+          drift in the returned TempResellerFixture envelope.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 exemptions, 0 violations —
+          unchanged (neither edited file is under /api/reseller/** for
+          R-01 or in feature-gates.manifest.ts for R-03).
+        - `npx vitest run src/lib/reseller` in web/: 29 files 449/449
+          pass (unchanged — the reseller unit-test surface never
+          touches the seeder or fixture).
+        - No DB apply this tick — no migration authored. Seed script
+          re-run against staging is a separate operational step per
+          finding-2 §Recommended fix; the delta ships to git in this
+          tick, the actual seed re-run under
+          QA_RESELLER_MULTI_ADMIN=1 + QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL
+          set is captured under the P10 Playwright provisioning gate.
+
+      Frontier after tick 198:
+        - Track A P8.5 STILL HUMAN-BLOCKED on
+          STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL.
+        - Track A P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20
+          ABN + GST.
+        - Track B COMPLETE.
+        - P10 wave-3 unlock:
+          (i)  row 150 (credit-grant-authz × no_capability ×
+               capability_disabled 403) — spec addition; consumes the
+               new fixture fields on no_capability variant.
+          (ii) row 151 (credit-grant-authz × no_budget ×
+               over_budget_requires_approval 402) — spec addition;
+               consumes the new fixture fields on no_budget variant.
+        - Row 157 (code-validate × paused × inactive 404) — still
+          needs an active promo mint on the paused variant so
+          code-validate hits status='inactive' rather than
+          promo_missing.
+        - Row 175 approve(code_request) branch — still P8.5-blocked
+          (Stripe test-mode key required).
+        - Row 178 signup-jitter branch — still QA-mode-blocked.
+        - Row 182 SetupIntent happy — still P8.5-blocked.
+
+      Natural next pick for tick 199: activate row 150 by adding a
+      test.describe("Credit-grant × no_capability × capability_disabled —
+      P10 wave-3 row 150") block to credit-grant-authz.spec.ts that uses
+      loadTempReseller("no_capability") + fixture.attributedUserId as the
+      target_user_id + POST /api/reseller/credits/grant → 403 with
+      body.reason === "capability_disabled". Row 151 lands identically
+      against the no_budget variant with body.reason ===
+      "over_budget_requires_approval" once row 150 proves the fixture
+      wiring end-to-end.
+    commit: (this tick)
+
   - tick: 195
     ran_at: 2026-07-22
     action: p12_7_admin_plan_endpoint

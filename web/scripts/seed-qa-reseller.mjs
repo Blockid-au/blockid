@@ -387,7 +387,15 @@ async function seedPromotionCodes(resellerId, variantCode) {
   }
 }
 
-// -- reseller_attributions on active_wholesale ------------------------------
+// Variants that receive a reseller_attributions seed row against the QA
+// attributed founder. Kept in sync with the whitelist in
+// web/tests/e2e/fixtures/reseller.ts loadTempReseller() — a spec that reads
+// fixture.attributedUserId must find the matching reseller_attributions row
+// server-side or decideReveal() will 403 not_in_scope before the intended
+// oracle fires. See docs/plans/p10-wave3-preflight-finding.md §Finding 2.
+const ATTRIBUTION_VARIANTS = ["active_wholesale", "no_capability", "no_budget"];
+
+// -- reseller_attributions on attribution-seeded variants -------------------
 async function seedAttribution(resellerId, founderUserId, variantCode) {
   const { data: existing } = await supabase
     .from("reseller_attributions")
@@ -515,7 +523,22 @@ async function main() {
 
     if (variant.name === "active_wholesale" && resellerId) {
       await seedPromotionCodes(resellerId, variant.code);
-      if (attributedUser) await seedAttribution(resellerId, attributedUser.id, variant.code);
+    }
+    // Finding-2 seed delta (docs/plans/p10-wave3-preflight-finding.md §Finding 2):
+    // rows 150 (no_capability × capability_disabled) and 151 (no_budget ×
+    // over_budget_requires_approval) sit downstream of decideReveal, which
+    // reads reseller_attributions.subject_user_id. Seeding attribution on
+    // these two variants (in addition to active_wholesale) lets the spec
+    // target_user_id clear the not_in_scope guard so the intended oracle
+    // fires. reseller_attributions has no unique on subject_user_id alone
+    // ((reseller_id, subject_user_id, subject_type) is the natural key), so
+    // one attributed founder mapped to three reseller ids is legal.
+    if (
+      ATTRIBUTION_VARIANTS.includes(variant.name) &&
+      resellerId &&
+      attributedUser
+    ) {
+      await seedAttribution(resellerId, attributedUser.id, variant.code);
     }
     summary.push({
       variant: variant.name,
