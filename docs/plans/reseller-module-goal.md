@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.32
+version: 2026-07-23.33
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -1909,6 +1909,67 @@ review_history:
       vitest 624/624 (was 603/603, +21); lint:reseller unchanged.
       Track B is now COMPLETE (B1..B10 all done).
     commit: (this tick)
+  - tick: 61
+    ran_at: 2026-07-22
+    action: cpo_advisory_25_customer_drawer_en_vi
+    result: |
+      Closed the customer-drawer half of CPO advisory §25 ("EN+VI parity for
+      reseller Customer drawer"). All three files on the reseller Customers
+      surface now switch copy via useLocale() (cookie: blockid_lang), matching
+      the pattern established by ProductTour, share-mgmt drawer, grant form,
+      and the guide chapters:
+        - web/src/app/reseller/customers/customer-drawer.tsx: new Copy
+          interface + COPY: Record<Locale, Copy> table covering every user-
+          facing string across the header, close button, three tab labels,
+          loading/error placeholders, all eight Overview rows (labels + the
+          onboarding-complete/in-progress badge + the "—" dash + display-
+          name fallback), the two Progression headings + the "Guide chapter"
+          prefix, and the three Reports column headers + empty-state. VI copy
+          is real translation with proper diacritics ("Đang tải chi tiết
+          khách hàng…", "Tổng quan", "Tiến trình", "Báo cáo", "Chương hướng
+          dẫn", "Đường cong SVI (theo tháng)", etc), not a machine-translation
+          stub. Currency helper fmtAud() now takes locale — VI flips the
+          decimal separator from "." to "," so A$99.00 renders as A$99,00 in
+          country while the currency symbol stays A$ in both locales.
+          Credits number uses Intl.NumberFormat("vi-VN" | "en-AU") so the
+          thousands separator adapts (1.234 vs 1,234). Tab nav previously
+          relied on CSS `capitalize` on the raw string keys ("overview" /
+          "progression" / "reports") — that trick fails for VI ("Tổng quan"),
+          so tabs are now data-driven with explicit label strings and the
+          `capitalize` class dropped from the button. Timeline event labels
+          come from the API payload (already localised at build time) so
+          they're rendered as-is.
+        - web/src/app/reseller/customers/drawer-opener.tsx: "View" button
+          now flips to "Xem" for VI via a small VIEW_LABEL table.
+        - web/src/app/reseller/customers/reveal-email-cell.tsx: five UI
+          strings (Show / Revealing… / Hide / Reveal failed / Retry) all
+          localised through a Copy table + useLocale(). The error tooltip
+          `title` attribute still carries the raw server reason (untranslated
+          debug info); localisation only touches the visible chrome.
+      No server-side changes — the /api/reseller/customers/[id]/drawer route
+      already returns locale-agnostic payload keys and the labels shipped
+      in the payload come from server helpers that pick locale via cookie
+      elsewhere. Files touched are pure UI so no R-01/R-03 lint delta and
+      no manifest change.
+      Verified: tsc clean; reseller vitest 276/276 (unchanged — no new pure
+      lib behaviour introduced, the drawer is a thin wrapper over already-
+      tested buildOverviewSummary/buildProgressionTimeline/buildSviCurve/
+      buildReportsList); npm run lint:reseller: 8 R-01 files + 28 R-03
+      routes, 3 exemptions, 0 violations (customer-drawer.tsx and
+      drawer-opener.tsx are client components, not /api/reseller/** routes,
+      so R-01 doesn't fire; none appears in feature-gates.manifest so R-03
+      doesn't fire either). Frontier unchanged from tick 60 — CPO §25 wholesale
+      non-payment confirmation step is a separate leaf (belongs to the
+      customer-success wholesale magic-link tick per §24), and every other
+      real leaf remains DONE or HUMAN-BLOCKED (P8.5 Stripe env vars, P1.5
+      InfoVision seed on H.20 ABN). Remaining advisory follow-ups: 22
+      (PARTIAL — /guide/reports download route + GA event), 23 (PARTIAL — GA4
+      event catalogue for showcase), 24 (TODO — customer-success magic-link
+      + Grant modal EN+VI + denial surface), 25 (PARTIAL — customer drawer
+      done this tick; wholesale non-payment confirmation remaining), 27
+      (TODO — IR + COO pitch-deck + weekly digest human-blocked surface).
+    commit: (this tick)
+
   - tick: 60
     ran_at: 2026-07-22
     action: chro_advisory_26_human_review_minutes_kpi
@@ -2050,7 +2111,7 @@ next_action:
    22) PARTIAL tick 58 — CMO brand-wording pass DONE: "Referred by" / "Brought to you by" swapped to "Introduced by" (EN) + "Được giới thiệu bởi" (VI) per plan §C.3 across web/src/lib/reseller/email-footer.ts + email-footer.test.ts (9/9 pass, incl. proper VI diacritics), web/src/components/workspace/reseller-pill.tsx tooltip, and web/src/app/api/stripe/checkout/route.ts (subscription_data.description = "Introduced by <name>"; invoice_creation.invoice_data.custom_fields = [{name:"Reseller", value:<name>}] per plan §C.3 line 688). REMAINING: /guide/reports download route + GA event so template-library ROI is measurable — deferred to a follow-up tick since it also requires the redaction pipeline per plan §284.
    23) PARTIAL tick 57 — CDO advisory §23 reviews-aggregate pair suppression closed. buildReviewsSummary now treats (total_reviews, projects_with_reviews) as a correlated pair: if either falls under k the other is also suppressed and avg_rating drops to null so the observer cannot bound the hidden bucket into {1..min(exposed,k-1)}. Verified via updated + new vitest cases (reviews.test.ts: pair-suppression when projects<k with total exposed; pair-suppression when total<k under custom threshold). Complementary suppression on portfolio-phase-distribution was already applied at line 128 (via applyComplementarySuppression from portfolio-aggregates.ts) but had no regression test — added an 11-visible/1-suppressed case that asserts ≥2 buckets go dark so the "subtract from attributed_total" attack has multiple solutions. REMAINING under §23: GA4 event catalogue for showcase surfaces (deferred to a CMO/CPO joint tick per CDO rec #2 dependency order).
    24) TODO (advisory — Customer-Success) — Wire H.8 wholesale magic-link + welcome email for reseller-provisioned founders; add reseller-side denial-reason surface (page render, not just API); add EN+VI parity to Grant modal; add leading-signal KPIs (last-login, first-report) to P11 weekly digest.
-   25) TODO (advisory — CPO) — EN+VI parity for reseller Customer drawer; explicit non-payment confirmation step in wholesale onboarding wizard.
+   25) PARTIAL tick 61 — CPO advisory §25 customer-drawer EN+VI parity DONE. web/src/app/reseller/customers/customer-drawer.tsx + drawer-opener.tsx + reveal-email-cell.tsx now switch every user-facing string via useLocale() with a Copy: Record<Locale, Copy> table (real VI translation with diacritics — "Tổng quan"/"Tiến trình"/"Báo cáo"/"Đang tải chi tiết khách hàng…"/"Chương hướng dẫn"/etc.); currency helper fmtAud() now takes locale and flips VI decimal separator from "." to "," (A$99,00); credits use Intl.NumberFormat("vi-VN"|"en-AU") for thousands separator; tab labels are now data-driven (dropped CSS `capitalize` since it fails for VI multi-word labels). tsc clean; reseller vitest 276/276; lint:reseller unchanged 8+28 with 3 exemptions / 0 violations. REMAINING under §25: explicit non-payment confirmation step in wholesale onboarding wizard (bundled with the H.8 magic-link work in §24).
    26) DONE tick 60 — CHRO advisory §26 both halves closed. (a) Div 83A qualifying-tests checklist (tick 59): guide chapter 08-team publishes the eight s83A tests EN + VI (esic_eligible / unlisted / turnover_cap / age_lt_10y / grantee_is_employee / market_value / ownership_cap / holding_or_forfeiture) on both /guide/08-team and /workspace/guide/08-team plus docs/guides/startup-journey/chapter-08.md; Chapter interface gained optional qualifyingTests?: LocalisedList; startup-journey.test.ts 12/12 pass. (b) human-review-minutes KPI (tick 60): counter file at web/content/reports/human-review-minutes.jsonl (append-only JSONL); helper module scripts/cron/human-review-minutes.mjs (sumHumanReviewMinutes7d + appendHumanReviewMinutes); bump CLI scripts/cron/bump-human-review-minutes.mjs (chmod +x); reseller-goal-loop.mjs samples the 7-day sum once at process start and every log() row now carries human_review_minutes_7d so the "0 eng-weeks burned" kpi.eng_weeks_burned=0 claim carries a real number visible on every telemetry line. Verified: node --check clean on all three scripts; smoke-test append+sum cycle worked (0 → 0.5 for tagged self-test row); loop kill-switch dry run exits 0 with no regressions.
    27) TODO (advisory — IR + COO) — Pitch-deck Channel Economics slide, data-room GTM one-pager, reseller row in unicorn masterplan; surface human-blocked items (P1.5, P8.5) in weekly digest.
    10) DONE tick 43 — P0.4_ceo_final_sign_off closed with verdict=approved. P0 pre-flight window is now fully sealed; only P0.3 advisory reviews remain pending (non-blocking).
