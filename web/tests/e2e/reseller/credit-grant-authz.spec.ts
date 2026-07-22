@@ -90,6 +90,17 @@ const ROUTE = "/api/reseller/credits/grant";
 const PLACEHOLDER_TARGET_USER_ID = "00000000-0000-0000-0000-000000000000";
 const PLACEHOLDER_AMOUNT = 10;
 
+// Shared UUID_RE hoisted at tick 216 so every chained-POST body in rows
+// 156 / 156b / 156c can pin the per-response credit_transaction_id shape
+// (the FK-echo lens the DB companion in audit-log-writes.spec.ts landed
+// via ticks 211-213). Row 152's single-POST assertion also switches to
+// this constant for consistency; the regex is identical to the sibling
+// UUID_RE in credit-grant-validation.spec.ts:250 + reseller-requests-
+// list-authz.spec.ts:73 + admin-requests-list-authz.spec.ts:81 so the
+// shape check reads the same across the reseller spec cluster.
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const NON_RESELLER_FOUNDER_EMAIL =
   process.env.QA_UNATTRIBUTED_FOUNDER_EMAIL ?? "qa-founder-1@blockid.au";
 
@@ -444,9 +455,7 @@ test.describe("Credit-grant × active_wholesale × happy 200 — P10 wave-3 row 
       // here — a null would flag a mirror-insert regression that returned
       // 200 without cleaning up the transaction row.
       expect(typeof body.credit_transaction_id).toBe("string");
-      expect(body.credit_transaction_id ?? "").toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-      );
+      expect(body.credit_transaction_id ?? "").toMatch(UUID_RE);
       // over_budget=false pins gate 3 (within-budget path) vs gate 4
       // (admin_over_budget_approved=true → over_budget=true) so a route
       // regression that accidentally set over_budget=true on the happy
@@ -600,6 +609,19 @@ test.describe("Credit-grant × active_wholesale × balance-readback chain — P1
       // credit_balances row from a prior failed run does not false-fail
       // this row on absolute values.
       expect(body1.balance).toBe(balanceBefore1 + AMOUNT_ONE);
+      // Pin body1.credit_transaction_id shape (tick 216 FK-echo lens) —
+      // every chain-body must echo a well-formed UUID matching the
+      // credit_transactions.id inserted at route.ts:174-198. Rows 152's
+      // single-POST already carries this pin; extending it onto EVERY
+      // chain body gives the HTTP surface parity with the DB companion's
+      // FK-echo lens landed via ticks 211-213 on audit-log-writes.spec.ts
+      // mirrorCount+FK-shape checks. A route regression that stripped the
+      // credit_transaction_id off the intermediate 200 payload while the
+      // final POST's payload still carried it would leave row 156's
+      // distinctness pin at line 660 green (both null → !== fails, but
+      // the earlier per-body shape pin catches null first).
+      expect(typeof body1.credit_transaction_id).toBe("string");
+      expect(body1.credit_transaction_id ?? "").toMatch(UUID_RE);
 
       // Snapshot #2 — reads credit_balances AFTER POST 1's UPSERT, so
       // balanceBefore2 must equal balanceBefore1 + AMOUNT_ONE. If a route
@@ -655,7 +677,11 @@ test.describe("Credit-grant × active_wholesale × balance-readback chain — P1
       // let the chained balance assertions pass (route ignores this
       // field for arithmetic) while breaking the credit_transactions
       // ledger's append-only invariant. Cheap pin; catches shape drift.
+      // Tick 216: extended from typeof-only to UUID_RE so a null / non-
+      // UUID payload flags at shape (matches row 152 + body1) BEFORE the
+      // distinctness pin below false-passes on two identical nulls.
       expect(typeof body2.credit_transaction_id).toBe("string");
+      expect(body2.credit_transaction_id ?? "").toMatch(UUID_RE);
       expect(body2.credit_transaction_id).not.toBe(body1.credit_transaction_id);
 
       // Both POSTs must stamp the same month_key (both fired within the
@@ -797,6 +823,10 @@ test.describe("Credit-grant × active_wholesale × three-chained-POST balance-re
       expect(body1.ok, `POST 1 body.ok should be true: ${JSON.stringify(body1)}`).toBe(true);
       expect(body1.over_budget).toBe(false);
       expect(body1.balance).toBe(balanceBefore1 + AMOUNT_ONE);
+      // Pin body1.credit_transaction_id shape (tick 216 FK-echo lens) —
+      // see row 156's rationale for full context.
+      expect(typeof body1.credit_transaction_id).toBe("string");
+      expect(body1.credit_transaction_id ?? "").toMatch(UUID_RE);
 
       // Snapshot #2 — reads credit_balances AFTER POST 1's UPSERT.
       const grant2 = await fixture.attachGrantSelfApprove({ amount: AMOUNT_TWO });
@@ -830,6 +860,9 @@ test.describe("Credit-grant × active_wholesale × three-chained-POST balance-re
       expect(body2.over_budget).toBe(false);
       expect(body2.balance).toBe(balanceBefore2 + AMOUNT_TWO);
       expect(body2.balance).toBe(balanceBefore1 + AMOUNT_ONE + AMOUNT_TWO);
+      // Pin body2.credit_transaction_id shape (tick 216 FK-echo lens).
+      expect(typeof body2.credit_transaction_id).toBe("string");
+      expect(body2.credit_transaction_id ?? "").toMatch(UUID_RE);
 
       // Snapshot #3 — reads credit_balances AFTER POST 2's UPSERT. This is
       // the second on-conflict UPDATE the UPSERT path fires (POST 1 was
@@ -881,7 +914,11 @@ test.describe("Credit-grant × active_wholesale × three-chained-POST balance-re
       // — pin distinctness against BOTH prior UUIDs so a re-use regression
       // on either the (POST 2, POST 3) pair or the (POST 1, POST 3) pair
       // surfaces here (row 156 already pins the (POST 1, POST 2) pair).
+      // Tick 216: extended from typeof-only to UUID_RE so a null / non-
+      // UUID payload flags at shape (matches row 152 + body1 + body2)
+      // BEFORE the distinctness pins false-pass on three identical nulls.
       expect(typeof body3.credit_transaction_id).toBe("string");
+      expect(body3.credit_transaction_id ?? "").toMatch(UUID_RE);
       expect(body3.credit_transaction_id).not.toBe(body1.credit_transaction_id);
       expect(body3.credit_transaction_id).not.toBe(body2.credit_transaction_id);
 
@@ -1030,6 +1067,10 @@ test.describe("Credit-grant × active_wholesale × four-chained-POST balance-rea
       expect(body1.ok, `POST 1 body.ok should be true: ${JSON.stringify(body1)}`).toBe(true);
       expect(body1.over_budget).toBe(false);
       expect(body1.balance).toBe(balanceBefore1 + AMOUNT_ONE);
+      // Pin body1.credit_transaction_id shape (tick 216 FK-echo lens) —
+      // see row 156's rationale for full context.
+      expect(typeof body1.credit_transaction_id).toBe("string");
+      expect(body1.credit_transaction_id ?? "").toMatch(UUID_RE);
 
       // Snapshot #2 — reads credit_balances AFTER POST 1's UPSERT.
       const grant2 = await fixture.attachGrantSelfApprove({ amount: AMOUNT_TWO });
@@ -1063,6 +1104,9 @@ test.describe("Credit-grant × active_wholesale × four-chained-POST balance-rea
       expect(body2.over_budget).toBe(false);
       expect(body2.balance).toBe(balanceBefore2 + AMOUNT_TWO);
       expect(body2.balance).toBe(balanceBefore1 + AMOUNT_ONE + AMOUNT_TWO);
+      // Pin body2.credit_transaction_id shape (tick 216 FK-echo lens).
+      expect(typeof body2.credit_transaction_id).toBe("string");
+      expect(body2.credit_transaction_id ?? "").toMatch(UUID_RE);
 
       // Snapshot #3 — reads credit_balances AFTER POST 2's UPSERT.
       const grant3 = await fixture.attachGrantSelfApprove({ amount: AMOUNT_THREE });
@@ -1097,6 +1141,9 @@ test.describe("Credit-grant × active_wholesale × four-chained-POST balance-rea
       expect(body3.over_budget).toBe(false);
       expect(body3.balance).toBe(balanceBefore3 + AMOUNT_THREE);
       expect(body3.balance).toBe(balanceBefore1 + AMOUNT_ONE + AMOUNT_TWO + AMOUNT_THREE);
+      // Pin body3.credit_transaction_id shape (tick 216 FK-echo lens).
+      expect(typeof body3.credit_transaction_id).toBe("string");
+      expect(body3.credit_transaction_id ?? "").toMatch(UUID_RE);
 
       // Snapshot #4 — reads credit_balances AFTER POST 3's UPSERT. This is
       // the third on-conflict UPDATE the UPSERT path fires (POST 1 was the
@@ -1152,7 +1199,11 @@ test.describe("Credit-grant × active_wholesale × four-chained-POST balance-rea
       // (POST 3, POST 4) pairs surfaces here (rows 156 + 156b already pin
       // the (POST 1, POST 2), (POST 2, POST 3), and (POST 1, POST 3) pairs
       // through their own distinctness assertions).
+      // Tick 216: extended from typeof-only to UUID_RE so a null / non-
+      // UUID payload flags at shape (matches row 152 + bodies 1..3)
+      // BEFORE the distinctness pins false-pass on four identical nulls.
       expect(typeof body4.credit_transaction_id).toBe("string");
+      expect(body4.credit_transaction_id ?? "").toMatch(UUID_RE);
       expect(body4.credit_transaction_id).not.toBe(body1.credit_transaction_id);
       expect(body4.credit_transaction_id).not.toBe(body2.credit_transaction_id);
       expect(body4.credit_transaction_id).not.toBe(body3.credit_transaction_id);
