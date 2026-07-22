@@ -229,7 +229,7 @@ export default async function GuideChapterPage({
   const t = (v: { en: string; vi: string }) => (locale === "vi" ? v.vi : v.en);
   return (
     <>
-      <PageTracker page="guide-chapter" />
+      <PageTracker page="guide-chapter" chapter={c.phase} locale={locale} />
       <Navbar />
       <main className="mx-auto max-w-3xl px-4 py-12 md:py-16">
         <header className="mb-10">

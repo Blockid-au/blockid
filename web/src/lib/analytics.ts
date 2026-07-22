@@ -153,6 +153,7 @@ export interface AnalyticsEventMap {
   //   own workspace + guide. Feeds the "know where we are" dashboard.
   showcase_phase_advanced: { from_phase: number; to_phase: number; sha: string };
   showcase_guide_viewed: { chapter: number; locale: "en" | "vi"; source: "onboarding" | "marketing" };
+  showcase_reports_viewed: { total_reports: number; source: "marketing" };
   showcase_report_downloaded: { template: string; phase: number };
   showcase_public_viewed: { referrer: string };
   showcase_integration_wired: { integration: "stripe_founder" | "ga4" | "github" | "blockchain" };

@@ -196,7 +196,7 @@ export default async function GuideReportsPage() {
 
   return (
     <>
-      <PageTracker page="guide-reports" />
+      <PageTracker page="guide-reports" totalReports={summary.total_rows} />
       <ItemListJsonLd
         url={CANONICAL}
         name={TITLE}
