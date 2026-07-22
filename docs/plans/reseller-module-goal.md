@@ -2561,6 +2561,101 @@ review_history:
       tick per CDO rec #2).
     commit: (this tick)
 
+  - tick: 90
+    ran_at: 2026-07-22
+    action: p10_dry_run_audit_anomaly_scan_endpoint_verification_5_playwright_unblock
+    result: |
+      Composed option (i) from tick 89's frontier note — "author a dev-only
+      /api/cron/reseller-audit-anomaly-scan?dry_run=1 endpoint so Playwright
+      can assert the alert path against a pinned low threshold." The weekly
+      digest cron already folds buildAnomalySummary() into its Monday email
+      (tick 89), but that path is unsuitable for automated assertion — the
+      digest fires once per week, the response envelope only carries hotspot
+      *counts*, and the primary signal is email. The new standalone endpoint
+      exposes the full AnomalySummary shape (both actor + subject hotspot
+      arrays), accepts pinned threshold/window_days/now/reseller_id/actions,
+      never sends email, and is scoped to a single tenant when reseller_id=
+      is supplied — so a Playwright spec (or cron-health probe, or ops
+      one-shot) can fire N reveal-email requests against a harness admin,
+      then hit the scan endpoint with ?threshold=N&reseller_id=<harness_reseller>
+      and assert actor_hotspots.length === 1 without waiting a week or
+      inspecting a mail sink.
+
+      Files:
+        - web/src/app/api/cron/reseller-audit-anomaly-scan/route.ts (new —
+          GET handler; cron auth via CRON_SECRET bearer matches sibling
+          reseller-clear-commissions / reseller-weekly-digest posture; when
+          CRON_SECRET is unset the endpoint accepts any request as the
+          siblings also do. Query params (all optional): threshold,
+          window_days, now (ISO), reseller_id (scope the audit-log SELECT
+          to one tenant — critical for spec isolation so a stray audit row
+          on another reseller can't inflate the hotspot count), actions
+          (comma-separated allowlist, empty string or "*" widens to
+          wildcard). No reseller_id filter → scan across every active
+          reseller (same reseller_id set the weekly digest builds).
+          Response envelope: {ok, summary, resellers_scanned, window,
+          dry_run, ran_at} — summary is the full AnomalySummary
+          (actor_hotspots + subject_hotspots + window_start/end + threshold
+          + total_rows_in_window) so specs can assert on either list. Pure
+          parsePositiveInt / parseNow / parseActions helpers stay in the
+          route file (dead-simple query-param coercion; adding a separate
+          test module would be overkill vs. the existing 13-case
+          audit-anomaly.test.ts already covering the underlying detector).
+          Also exports {GET as POST} matching the sibling reseller-* cron
+          pattern so cron-runner.sh's POST can hit it if ever scheduled.)
+
+      Deliberately out of scope for this tick:
+        - The Playwright spec itself. Authoring the spec is now unblocked
+          — the harness pattern is already established by
+          web/tests/e2e/reseller/audit-log-writes.spec.ts (tick 87), and
+          the fire-N-reveal-email-requests-then-scan flow needs only ~5
+          requests against a threshold=5 scan, well under the 30s per-test
+          wall clock. But writing the spec requires the same reseller
+          admin harness + service-role Supabase fixture that tick 87 also
+          gates on (QA_RESELLER_ADMIN_EMAIL + QA_RESELLER_ATTRIBUTED_CUSTOMER_ID
+          + CRON_SECRET in the Playwright env), so shipping the spec
+          without proving it green would just add another test.skip()
+          row. Leaving to a follow-up tick that either provisions those
+          env vars or accepts the .skip() posture explicitly.
+        - Cron schedule entry. The endpoint is intentionally NOT wired
+          into crontab.production — the weekly digest already runs the
+          detector every Monday and the standalone endpoint's purpose is
+          on-demand invocation (specs, ops probes), not periodic scanning.
+          Adding a cron entry would create two email-adjacent paths
+          telling ops the same story with different cadences; the digest
+          is authoritative.
+        - Extending the endpoint to also return the raw filtered rows
+          (instead of just the hotspot rollup). Would let specs assert
+          per-row provenance but crosses the same privacy boundary as
+          reseller_audit_log itself — the current shape mirrors the
+          weekly digest fold-in so operators see the same envelope.
+
+      Verified: tsc clean (npx tsc --noEmit exit 0); vitest audit-anomaly
+      suite 13/13 unchanged (route is a thin adapter over the tested
+      detector — no new pure lib behaviour); npm run lint:reseller: R-01
+      scanned 11 file(s), R-03 scanned 31 manifest route(s); 3 exemptions,
+      0 violations unchanged (new route lives under /api/cron/** not
+      /api/reseller/** so R-01 doesn't fire; not a mutation route in
+      feature-gates.manifest.ts so R-03 doesn't fire either).
+
+      Frontier after tick 90: unchanged in shape — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20
+      ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears. What
+      tick 90 unblocks: (1) the spec half of Verification #5 is now
+      authorable in a single tick — hit /api/cron/reseller-audit-anomaly-scan
+      with ?threshold=5&reseller_id=<harness>, fire 5 reveal-email
+      requests, hit the endpoint again, assert actor_hotspots contains
+      the harness admin; (2) any future cron-health probe that wants to
+      surface hotspot trends without waiting for the weekly digest email
+      has a stable JSON envelope to scrape. Next autonomous tick
+      options: (i) author the Playwright spec now that the endpoint
+      exists (accepts .skip() posture until harness env vars provision);
+      (ii) close the retail createProject → reseller_attributions gap
+      (still needs CTO advisory review); (iii) idle until human unblock
+      arrives.
+    commit: (this tick)
+
   - tick: 89
     ran_at: 2026-07-22
     action: p10_dry_run_wire_audit_anomaly_into_reseller_weekly_digest
