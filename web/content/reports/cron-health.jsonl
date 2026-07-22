@@ -1012,3 +1012,7 @@
 {"ts":"2026-07-22T12:00:02Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16526,"detail":""}
 {"ts":"2026-07-22T12:00:02Z","endpoint":"agent-orchestrator","status":"ok","duration_ms":432879,"detail":"{\"stagesRun\": [\"deploy\", \"fix\", \"report\"], \"results\": [{\"stage\": \"deploy\", \"ok\": false, \"message\": \"Deploy failed: \\u001b[2m   Duration \\u001b[22m 5.84s\\u001b[2m (transform 5.25s, setup 0ms, import 10"}
 {"ts":"2026-07-22T12:10:02Z","endpoint":"agent-guardian","status":"ok","duration_ms":505,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 15, \"raw\": \"15% used (237049068 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (275004608 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-07-22T12:15:01Z","endpoint":"dunning-retry","status":"fail","duration_ms":16532,"detail":""}
+{"ts":"2026-07-22T12:15:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16545,"detail":""}
+{"ts":"2026-07-22T12:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":133,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
+{"ts":"2026-07-22T12:20:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":515,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 15, \"raw\": \"15% used (237031252 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (275004608 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
