@@ -129,6 +129,64 @@ Prep cost: one tick to author the attributed-customer helper
 `app_users` upsert path in the fixture — then rows 145–149 each add
 2–3 assertions.
 
+**Wave-5 row 175 landed (tick 163) — deny branch only.** Fourth wave-5 row.
+Added a companion `test.describe("Admin reseller requests PATCH — P10
+wave-5 row 175 happy path (deny)")` block to
+`web/tests/e2e/reseller/admin-requests-patch-authz.spec.ts` that pins
+`PATCH /api/admin/resellers/requests/[id]` with `{action:"deny",
+decision_reason:"..."}` as the seeded admin → 200 with envelope shape
+assertions: body.ok=true, body.request.id === targetId matches UUID_RE,
+body.request.status === "denied", typeof body.request.decision_at ===
+"string", body.request.decision_reason === "p10_wave5_row_175_deny_probe",
+and body.request.linked_credit_transaction_id === null +
+body.request.linked_promotion_code_id === null (deny branch skips the
+approve fan-out so both linked_* columns stay null; a regression that
+leaked an approve-branch ledger insert or coupon mint into the deny path
+surfaces here). Do NOT pin body.request.decision_at value — a timestamp
+string set at `now = new Date().toISOString()` in the route (assert typeof
+string only). Row 175's approve and cancel branches remain DEFERRED —
+approve fires a Stripe coupon+promotion_code mint (code_request) or a
+credit-ledger triple-write (over_budget_approval → credit_balances UPSERT
++ credit_transactions INSERT + reseller_credit_grants INSERT) and needs
+deterministic control over target_user_id + pre/post credit_balances
+state; cancel is a pure status flip like deny but would race for the
+same pending row per CI pass. Both deferrals documented inline in the
+spec's "Deliberately out of scope" block. Skip discipline:
+`loadAdminHarness()` returns null → describe-scope skip via
+`adminHarnessSkipReason()`; `loginAs` throw → test-scope skip; empty
+pending list (fresh CI host where row 155 has not run yet) → test-scope
+skip with a pointer at wave-3 row 155. State-pollution posture: the PATCH
+mutates ONE reseller_requests row (status pending → denied + decision_by
++ decision_at + decision_reason) but does NOT touch credit_balances,
+credit_transactions, reseller_credit_grants, reseller_promotion_codes,
+revenue_events, or Stripe. Net-of-row-155 the pending queue length is
+unchanged across CI passes — row 155 inserts one pending
+over_budget_approval row per CI pass; this row consumes it via the PATCH
+so the queue nets to zero rather than accumulating. Row 155 was
+intentionally scoped to over_budget_approval (not code_request) so the
+seeded row lives outside the reseller_requests_pending_code_uniq partial
+unique index; a rerun that lands a fresh pending row before this spec
+fires does not 409 duplicate the seed either. Non-Stripe / non-GST
+discipline: the deny branch only writes reseller_requests — no
+promotion_code lookup, no credit ledger, no Stripe network call, no
+revenue_events read, no InfoVision dependency. P8.5 + P1.5 remain neither
+a dependency nor a consequence. Row 175 was named as next-tick option (i)
+by tick 162's review_history entry — same admin-only harness posture as
+rows 164 + 173 + 174; row 175's over_budget_approval-only enumeration
+(filter to `request_type === "over_budget_approval"` before picking) also
+avoids depleting any pending code_request row that a downstream
+approve-branch tick may need. Next natural picks: (i) activate row 163
+(cobranding-pill × active_wholesale attributed founder × EN + VI) —
+reuses the attributed-founder harness scaffold from wave 2; (ii) land
+finding-2's seed delta (edit `seed-qa-reseller.mjs` main loop to seed
+attribution on `no_capability` + `no_budget`; re-run seeder against
+staging) — unblocks rows 150 + 151; (iii) mint an active promo code on
+the paused variant to unblock row 157; (iv) author the `attachReportRow`
+helper to unblock rows 159 + 160; (v) extend row 175 to cover the cancel
+branch by seeding a second over_budget_approval row (row 155-b or an
+extension to row 155's seed loop) and add a second test-scope block to
+this file.
+
 **Wave-5 row 174 landed (tick 162).** Third wave-5 row. Added a companion
 `test.describe("Admin reseller-requests list — P10 wave-5 row 174 happy path")`
 block to `web/tests/e2e/reseller/admin-requests-list-authz.spec.ts` that

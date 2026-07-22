@@ -69,9 +69,34 @@
 //     _failed / credit ledger insert failures / update_failed (500) — all fold
 //     into the admin QA harness follow-up alongside the deferred rows from
 //     ticks 94/95/96/97/98/99/100/101/102/103/104.
-//   - Happy path (200) — fires a reseller_requests UPDATE + (approve branch)
-//     either a Stripe coupon+promotion_code mint or the credit-grant ledger
-//     triple-write. Belongs to the temp-reseller mint fixture follow-up.
+//   - Happy path (200) approve branch — fires a Stripe coupon+promotion_code
+//     mint (code_request) or the credit-grant ledger triple-write
+//     (over_budget_approval → credit_balances UPSERT + credit_transactions
+//     INSERT + reseller_credit_grants INSERT). Deferred alongside the
+//     temp-reseller mint fixture follow-up: activating the approve branch
+//     safely needs deterministic control over the row's target_user_id AND
+//     the pre/post credit_balances state so the test can assert the ledger
+//     delta without cross-run drift. Follow-up tick can seed the row via
+//     scripts/seed-qa-reseller.mjs (add an approve-target variant) rather
+//     than doing per-test writes from the spec.
+//   - Happy path (200) cancel branch — pure status flip like deny but
+//     semantically distinct (reseller-side self-cancel vs admin-side deny).
+//     Deferred to a follow-up tick because activating cancel here would
+//     consume a second pending row per CI run, whereas row 155 only seeds
+//     one; the two branches would race for the same row and one would
+//     test.skip nondeterministically. Follow-up tick can pair a cancel probe
+//     with a fresh seeded row from an extended row-155 or a new row-155-b.
+//   - Happy path (200) DENY branch — ACTIVATED wave-5 row 175 below via
+//     loadAdminHarness() (qa-admin-1@blockid.au) so the requireAdmin() gate
+//     passes. Deny is the safest of the three transitions: pure status flip
+//     at route.ts:296-311 (no Stripe coupon mint, no credit_balances /
+//     credit_transactions / reseller_credit_grants write, no
+//     revenue_events read, no reseller_promotion_codes insert). Idempotent
+//     under CI replay net-of-row-155: row 155 inserts one pending
+//     over_budget_approval row per CI pass; this row consumes it via the
+//     PATCH so the queue nets to zero rather than accumulating. Fresh CI
+//     hosts (where row 155 has not run yet) test.skip when the pending
+//     enumeration returns an empty array — no false failure.
 //
 // Placeholder id used in the URL path: a well-formed UUID
 // (00000000-0000-0000-0000-000000000000) sits in the [id] segment so it passes
@@ -86,6 +111,7 @@
 
 import { test, expect } from "@playwright/test";
 import { loginAs } from "../fixtures/accounts";
+import { adminHarnessSkipReason, loadAdminHarness } from "../fixtures/reseller";
 
 const NON_ADMIN_FOUNDER_EMAIL =
   process.env.QA_UNATTRIBUTED_FOUNDER_EMAIL ?? "qa-founder-1@blockid.au";
@@ -93,6 +119,11 @@ const NON_ADMIN_FOUNDER_EMAIL =
 const PLACEHOLDER_ID = "00000000-0000-0000-0000-000000000000";
 const ROUTE = `/api/admin/resellers/requests/${PLACEHOLDER_ID}`;
 const PATCH_BODY = { action: "approve" };
+
+const REQUESTS_LIST_ROUTE = "/api/admin/resellers/requests";
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 test.describe("Admin reseller requests PATCH pre-write authorization — P10 dry-run", () => {
   test("unauthenticated — PATCH with no session returns 401 no_user", async ({
@@ -135,5 +166,158 @@ test.describe("Admin reseller requests PATCH pre-write authorization — P10 dry
       `non_admin body.ok should be false: ${JSON.stringify(body)}`,
     ).toBe(false);
     expect(body.reason).toBe("not_admin");
+  });
+});
+
+// P10 wave-5 row 175 — happy path DENY branch. Admin PATCHes a pending
+// over_budget_approval row seeded by wave-3 row 155 (see
+// requests-authz.spec.ts:253+) and flips status pending → denied via
+// {action:"deny", decision_reason:"..."}. Deny is picked over approve /
+// cancel per the "Deliberately out of scope" block above — pure status
+// flip at web/src/app/api/admin/resellers/requests/[id]/route.ts:296-311
+// with no Stripe coupon mint, no credit_balances / credit_transactions /
+// reseller_credit_grants write, no revenue_events read. Idempotent net-of-
+// row-155: row 155 inserts one pending over_budget_approval row per CI
+// pass; this row consumes it via the PATCH so the reseller_requests queue
+// nets to zero rather than accumulating pending rows. Fresh CI hosts
+// (where row 155 has not run yet) test.skip when the pending enumeration
+// returns an empty array — no false failure.
+//
+// Coverage-vs-duplication call: pin 200 + body.ok=true + body.request.id
+// matching UUID_RE + body.request.status === "denied" + body.request
+// .decision_reason non-empty string. Do NOT pin body.request.decision_at
+// (a timestamp string that drifts every run — assert typeof string only).
+// Do NOT pin linked_credit_transaction_id / linked_promotion_code_id —
+// both are null for the deny branch (approve branch would populate them;
+// deferred here), so pin their null-ness so a route regression that leaks
+// a stray ledger insert into the deny path surfaces here as a non-null
+// linked_credit_transaction_id.
+//
+// State-pollution posture: the PATCH mutates ONE reseller_requests row
+// (status flip + decision_reason + decision_at + decision_by) but does
+// NOT touch credit_balances, credit_transactions, reseller_credit_grants,
+// reseller_promotion_codes, revenue_events, or Stripe. Net-of-row-155 the
+// pending queue length is unchanged across CI passes. Row 155 was
+// intentionally scoped to over_budget_approval (not code_request) so its
+// pending row lives outside the reseller_requests_pending_code_uniq
+// partial unique index — a rerun that lands a fresh pending row before
+// this spec fires does not 409 duplicate the seed either.
+//
+// Non-Stripe / non-GST discipline: the deny branch only writes
+// reseller_requests. No promotion_code lookup, no credit ledger, no
+// Stripe network call, no revenue_events read, no InfoVision dependency.
+// P8.5 + P1.5 remain neither a dependency nor a consequence.
+//
+// Skip discipline: loadAdminHarness() returns null → describe-scope skip
+// via adminHarnessSkipReason(); loginAs throw → test-scope skip; empty
+// pending list (fresh CI host where row 155 has not run yet) → test-scope
+// skip with a pointer at wave-3 row 155. Sibling admin-only rows (164 +
+// 173 + 174) use the same pattern; row 174 skips discipline mirrors this
+// one but skips at test-scope only for loginAs since its assertion loop
+// greens over empty-array too.
+test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (deny)", () => {
+  const harness = loadAdminHarness();
+  test.skip(!harness, adminHarnessSkipReason());
+
+  test("deny — PATCH as qa-admin-1 flips a pending over_budget_approval row to status=denied with a decision_reason", async ({
+    page,
+  }) => {
+    try {
+      await loginAs(page, harness!.admin.email);
+    } catch (err) {
+      test.skip(
+        true,
+        `Admin QA account not seeded: ${(err as Error).message}. Run ` +
+          `scripts/seed-test-users.mjs to populate /tmp/blockid-qa-accounts.txt.`,
+      );
+      return;
+    }
+
+    // Enumerate pending requests to find a row we can safely deny. The
+    // list endpoint's default status filter is 'pending' (route.ts:37+46
+    // of the list route) so an omit-?status query returns exactly the
+    // rows we want. Filter to over_budget_approval to avoid depleting
+    // any code_request row that a downstream approve-branch tick may
+    // need — over_budget_approval sits outside the pending-code partial
+    // unique index (0095:71-73) so denying one does not create a slot
+    // race with the code_request seeder.
+    const listResp = await page.request.get(REQUESTS_LIST_ROUTE);
+    expect(
+      listResp.status(),
+      `list route returned ${listResp.status()} — expected 200 to enumerate pending rows before the PATCH. A 401 here means the admin session was not established; a 5xx means the SELECT leaked through. Body: ${await listResp.text()}`,
+    ).toBe(200);
+    const listBody = (await listResp.json()) as {
+      ok?: unknown;
+      requests?: unknown;
+    };
+    expect(listBody.ok).toBe(true);
+    expect(Array.isArray(listBody.requests)).toBe(true);
+
+    const rows = (listBody.requests as Array<{
+      id?: unknown;
+      request_type?: unknown;
+      status?: unknown;
+    }>) ?? [];
+    const target = rows.find(
+      (row) =>
+        typeof row?.id === "string" &&
+        row.request_type === "over_budget_approval" &&
+        row.status === "pending",
+    );
+
+    if (!target) {
+      test.skip(
+        true,
+        "No pending over_budget_approval row available to deny — " +
+          "wave-3 row 155 (requests-authz.spec.ts:253+) has not run yet on " +
+          "this host. Run the wave-3 seeder step or execute row 155 before " +
+          "this row to populate at least one pending row.",
+      );
+      return;
+    }
+
+    const targetId = target.id as string;
+    expect(targetId).toMatch(UUID_RE);
+
+    const decisionReason = "p10_wave5_row_175_deny_probe";
+    const patchResp = await page.request.patch(
+      `${REQUESTS_LIST_ROUTE}/${targetId}`,
+      {
+        data: { action: "deny", decision_reason: decisionReason },
+        headers: { "content-type": "application/json" },
+      },
+    );
+    expect(
+      patchResp.status(),
+      `deny returned ${patchResp.status()} — expected 200 after requireAdmin() + validateAdminDecision() pass. A 401 means the admin session dropped mid-test; a 404 not_found means the target row was consumed by a concurrent CI worker (fold into the retry posture below if seen); a 409 already_decided means a concurrent PATCH raced this one; a 500 update_failed means the reseller_requests UPDATE (route.ts:296-322) leaked through. Body: ${await patchResp.text()}`,
+    ).toBe(200);
+
+    const patchBody = (await patchResp.json()) as {
+      ok?: unknown;
+      request?: {
+        id?: unknown;
+        status?: unknown;
+        decision_at?: unknown;
+        decision_reason?: unknown;
+        linked_credit_transaction_id?: unknown;
+        linked_promotion_code_id?: unknown;
+      };
+    };
+    expect(patchBody.ok).toBe(true);
+    expect(typeof patchBody.request?.id).toBe("string");
+    expect(patchBody.request?.id as string).toBe(targetId);
+    expect(patchBody.request?.status).toBe("denied");
+    // decision_at is a timestamp string set inside the route at now =
+    // new Date().toISOString() (route.ts:89) — assert typeof string only
+    // so the value can drift.
+    expect(typeof patchBody.request?.decision_at).toBe("string");
+    expect(patchBody.request?.decision_reason).toBe(decisionReason);
+    // Deny branch skips the code_request + over_budget_approval fan-outs
+    // so both linked_* columns stay null. A route regression that leaked
+    // an approve-branch ledger insert or coupon mint into the deny path
+    // would surface here as a non-null linked_credit_transaction_id or
+    // linked_promotion_code_id.
+    expect(patchBody.request?.linked_credit_transaction_id).toBeNull();
+    expect(patchBody.request?.linked_promotion_code_id).toBeNull();
   });
 });
