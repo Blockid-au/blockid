@@ -1365,6 +1365,22 @@ test.describe("Reseller credit-grant mirror row — P10 wave-3 row 155", () => {
       `credit-grant route returned ${resp.status()} — expected 200 with the fixture-attributed customer. Body: ${await resp.text()}`,
     ).toBe(200);
 
+    // Parse the response envelope once — used for both the mirror-row shape
+    // read below (credit_transaction_id FK match) and to catch drift where
+    // route.ts:250-260 stops echoing credit_transaction_id / month_key.
+    const body = (await resp.json()) as {
+      ok: boolean;
+      credit_transaction_id?: string;
+      month_key?: string;
+      over_budget?: boolean;
+      balance?: number;
+    };
+    expect(body.ok, `body.ok should be true: ${JSON.stringify(body)}`).toBe(true);
+    expect(typeof body.credit_transaction_id).toBe("string");
+    expect(body.credit_transaction_id ?? "").toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    );
+
     const mirrorCount = await countResellerCreditGrantsFor(supabase, {
       resellerId: fixture.resellerId,
       targetUserId: fixture.attributedUserId,
@@ -1375,6 +1391,77 @@ test.describe("Reseller credit-grant mirror row — P10 wave-3 row 155", () => {
       mirrorCount,
       `expected exactly 1 reseller_credit_grants(kind='grant') mirror row for (reseller=${fixture.resellerId}, target=${fixture.attributedUserId}) since ${grantSince}; got ${mirrorCount}. Route write lives at route.ts:206-218 — 0 flags a silent mirror-insert regression (route drops the insert or RLS scope drift); >1 flags a duplicated write (fan-out ran twice).`,
     ).toBe(1);
+
+    // Second-lens shape read on the mirror row — pins per-field values that
+    // the count-only helper above cannot catch. Companion assertion to the
+    // shape+helper alignment ticks 208-209 landed on row 179 approve/deny/
+    // cancel branches and tick 207 landed on row 156b DB companion three-
+    // chain. A regression that landed the mirror insert with wrong
+    // granted_by_user_id (e.g. NULL, or targetUserId, or a stale actor),
+    // wrong amount (off-by-one), wrong over_budget (true when a self-approve
+    // POST never trips gate 3), wrong month_key (AEST vs UTC drift on the
+    // route.ts:101 monthKey() call), wrong metadata.reason (route default
+    // dropped or overridden), or wrong credit_transaction_id FK (dangling
+    // or pointing at a prior-run tx) would leave mirrorCount === 1 green
+    // while surfacing here on the specific-field assertion. Scoped by
+    // (reseller_id, target_user_id, kind='grant', created_at >= grantSince)
+    // so parallel workers on the same variant do not collide and prior-run
+    // rows under the same month_key window cannot poison the read.
+    const { data: mirrorRow, error: mirrorReadErr } = await supabase
+      .from("reseller_credit_grants")
+      .select(
+        "kind, amount, over_budget, granted_by_user_id, credit_transaction_id, month_key, metadata",
+      )
+      .eq("reseller_id", fixture.resellerId)
+      .eq("target_user_id", fixture.attributedUserId)
+      .eq("kind", "grant")
+      .gte("created_at", grantSince)
+      .maybeSingle();
+    expect(
+      mirrorReadErr,
+      `reseller_credit_grants shape read failed for (reseller=${fixture.resellerId}, target=${fixture.attributedUserId}) since ${grantSince}: ${mirrorReadErr?.message}`,
+    ).toBeNull();
+    expect(
+      mirrorRow,
+      `expected the reseller_credit_grants row for (reseller=${fixture.resellerId}, target=${fixture.attributedUserId}) since ${grantSince} to resolve after mirrorCount===1 landed — a null row here would flag an RLS scope drift between countResellerCreditGrantsFor's count(*) and the shape SELECT (both go through loadSupabaseAdmin's service-role client so this should never race).`,
+    ).not.toBeNull();
+    expect(mirrorRow!.kind).toBe("grant");
+    expect(Number(mirrorRow!.amount)).toBe(AMOUNT);
+    expect(mirrorRow!.over_budget).toBe(false);
+    expect(
+      mirrorRow!.granted_by_user_id,
+      `reseller_credit_grants.granted_by_user_id mismatch: expected fixture.adminUserId=${fixture.adminUserId}, got ${mirrorRow!.granted_by_user_id}. A regression that threaded targetUserId here (a self-service credit theft class) or NULL'd the column (would break the P4 audit-trail attribution) surfaces here.`,
+    ).toBe(fixture.adminUserId);
+    expect(
+      mirrorRow!.credit_transaction_id,
+      `reseller_credit_grants.credit_transaction_id mismatch: expected ${body.credit_transaction_id} (the response body's echo of the credit_transactions.id INSERT at route.ts:187-198), got ${mirrorRow!.credit_transaction_id}. A dangling FK here means route.ts:213 read from the wrong txRow variable (e.g. shadowed by a refactor) or the mirror INSERT stamped a stale UUID from a prior in-request scope.`,
+    ).toBe(body.credit_transaction_id);
+    // month_key is stamped by route.ts:101 via monthKey(new Date()) which
+    // mirrors web/src/lib/reseller/credit-grants.ts:34's YYYY-MM UTC
+    // discipline. Assert by computing the current UTC month key inline (no
+    // import from app libs per audit-log-writes.spec.ts's fixture-only
+    // import discipline). A drift to AEST here would surface on the first
+    // of each UTC month between 00:00 and 10:00 UTC (10 AM AEST = 00 UTC),
+    // which is when the credit-reset cron rolls the budget window.
+    const now = new Date();
+    const expectedMonthKey = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+    expect(
+      mirrorRow!.month_key,
+      `reseller_credit_grants.month_key mismatch: expected ${expectedMonthKey} (UTC YYYY-MM at test time), got ${mirrorRow!.month_key}.`,
+    ).toBe(expectedMonthKey);
+    // Response echo already pinned month_key via body.month_key; assert
+    // the DB row matches the echo too so a regression that split the two
+    // (e.g. mirror INSERT stamps its own key from a stale variable while
+    // the response echo still reads route.ts:101's `key`) surfaces here.
+    expect(
+      mirrorRow!.month_key,
+      `reseller_credit_grants.month_key ${mirrorRow!.month_key} does not match response echo body.month_key ${body.month_key} — a split here means the mirror INSERT stamped a different key from the one route.ts:255 echoes back to the caller.`,
+    ).toBe(body.month_key);
+    const mirrorMetadata = mirrorRow!.metadata as Record<string, unknown> | null;
+    expect(
+      (mirrorMetadata ?? {})["reason"],
+      `reseller_credit_grants.metadata.reason mismatch: expected 'reseller_grant' (route.ts:74-76 default when body.reason omitted), got ${JSON.stringify(mirrorMetadata)}. This POST omits body.reason so the route falls through to the default; a regression that dropped the default or replaced it with an empty string surfaces here.`,
+    ).toBe("reseller_grant");
   });
 });
 
