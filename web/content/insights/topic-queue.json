@@ -1077,6 +1077,21 @@
         "href": "/tools/valuation-calculator"
       },
       "angle": "Explain the direct relationship between valuation shifts (up-rounds vs down-rounds) and founder ownership. Provide a practical walkthrough on how to simulate different valuation scenarios to avoid unexpected dilution before a pitch."
+    },
+    {
+      "slug": "startup-valuation-cap-table-impact-calculator",
+      "title": "How Valuation Changes Affect Your Cap Table | BlockID Guide",
+      "category": "valuation",
+      "keywords": [
+        "startup valuation impact",
+        "cap table simulation Australia",
+        "valuation vs equity dilution"
+      ],
+      "cta": {
+        "label": "Simulate Your Valuation",
+        "href": "/tools/valuation-calculator"
+      },
+      "angle": "Explain the direct relationship between a company's valuation and the resulting equity dilution for founders. Provide a step-by-step guide on how to simulate different valuation scenarios to decide the 'sweet spot' for their next funding round."
     }
   ]
 }
