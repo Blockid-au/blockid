@@ -318,9 +318,38 @@ export interface TempResellerFixture {
    *  seeded on this host) or on non-active-wholesale variants; the caller
    *  should skip in that case. */
   attachAttributedCustomer(): Promise<AttachAttributedCustomerResult | null>;
+  /** Wave-4 helper (schedule doc rows 159 + 160 prep note). Ensures a
+   *  reseller_report_files row + storage object exist for the given month
+   *  bucket against THIS variant's reseller so
+   *  /api/reseller/reports/[month]/signed-url can mint a signed URL end-to-
+   *  end (row 159 happy path) or so a validation spec can prove that an
+   *  in-window month with a real metadata row returns 200 while an expired
+   *  month returns 403 not_exposed (row 160 in-window vs expired).
+   *
+   *  Snapshot-then-restore semantics: if the metadata row + storage object
+   *  already exist for (reseller_id, month_key) — e.g.
+   *  seed-qa-reseller-storage.mjs already ran for this month — the helper
+   *  reuses them, returns `{created:false}`, and registers no cleanup so
+   *  parallel specs sharing the seed do not race a delete. Only when this
+   *  call was the one that inserted the row does cleanup() remove the row
+   *  AND the storage object.
+   *
+   *  Uploads a stripped-down CSV shape-compatible with
+   *  web/scripts/seed-qa-reseller-storage.mjs (same CSV_HEADER + one-row
+   *  KPI body) so the signed URL round-trip surfaces a valid text/csv
+   *  Content-Type against the same object naming convention
+   *  (<reseller_id>/<month_key>.csv) that the monthly cron uses.
+   *
+   *  Returns null when variant !== "active_wholesale" (matches the
+   *  attachAttributedCustomer discipline — the seed script only mints the
+   *  active_wholesale reseller's storage row so gating other variants here
+   *  would be a false positive). Also returns null on an invalid monthKey
+   *  so a caller with a bad `YYYY-MM` string bails cleanly instead of
+   *  inserting a CHECK-violating row. */
+  attachReportRow(monthKey: string): Promise<AttachReportRowResult | null>;
   /** No-op by default. Deletes any projects.id registered via
    *  trackProjectForCleanup() during the spec AND runs any restore
-   *  closure registered by attachAttributedCustomer(). */
+   *  closure registered by attachAttributedCustomer() or attachReportRow(). */
   cleanup(): Promise<void>;
 }
 
@@ -330,6 +359,73 @@ export interface AttachAttributedCustomerResult {
   /** The cache-column value BEFORE the attach ran — null if unset. cleanup()
    *  writes this back so cross-spec state does not leak. */
   previousAttributionResellerId: string | null;
+}
+
+export interface AttachReportRowResult {
+  monthKey: string;
+  storageBucket: string;
+  storagePath: string;
+  sizeBytes: number;
+  /** True when this call inserted a fresh metadata row + storage object.
+   *  False when a pre-existing row was reused (e.g. seed-qa-reseller-
+   *  storage.mjs already ran for this month). Only when true does cleanup()
+   *  remove the row + storage object; false = no restore closure registered
+   *  so parallel specs sharing the seed do not race a delete. */
+  created: boolean;
+}
+
+// Mirrors seed-qa-reseller-storage.mjs CSV_HEADER so the fixture-minted CSV
+// stays shape-compatible with what the /api/reseller/reports/[month]/signed-
+// url route hands back and with what web/src/lib/reseller/monthly-report.ts
+// emits. If monthly-report.ts grows a column, both this table AND the seeder
+// must add it in the same commit — the signed-URL happy path asserts a
+// well-formed CSV body, not a column-by-column diff, but keeping them in
+// sync stops future divergence.
+const REPORT_CSV_HEADER = [
+  "reseller_id",
+  "reseller_display_name",
+  "month",
+  "new_signups",
+  "active_customers_eom",
+  "attributed_mrr_aud",
+  "churned_customers",
+  "blockid_gross_revenue_aud",
+  "blockid_net_revenue_aud",
+  "commission_pct_effective",
+  "commission_owed_aud",
+  "ai_credits_granted",
+  "ai_credits_over_budget_count",
+];
+
+const REPORT_BUCKET = "reseller-reports";
+const REPORT_MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+function buildReportCsvFixture(
+  resellerId: string,
+  displayName: string,
+  monthKey: string,
+): string {
+  const row = [
+    resellerId,
+    displayName,
+    monthKey,
+    "0",
+    "0",
+    "0.00",
+    "0",
+    "0.00",
+    "0.00",
+    "0.00",
+    "0.00",
+    "0",
+    "0",
+  ];
+  const lines = [
+    `# BlockID reseller monthly KPI report — ${monthKey} (attachReportRow fixture blob)`,
+    REPORT_CSV_HEADER.join(","),
+    row.join(","),
+  ];
+  return `${lines.join("\n")}\n`;
 }
 
 const DEFAULT_TEMP_RESELLER_ADMIN_EMAIL = "qa-reseller-1@blockid.au";
@@ -571,6 +667,103 @@ export async function loadTempReseller(
         attributedUserId: attributedUserIdSnapshot,
         attributedFounderEmail,
         previousAttributionResellerId,
+      };
+    },
+    async attachReportRow(monthKey: string) {
+      if (variant !== "active_wholesale") return null;
+      if (!REPORT_MONTH_RE.test(monthKey)) return null;
+
+      const storagePath = `${resellerId}/${monthKey}.csv`;
+
+      const { data: existing, error: readErr } = await supabase
+        .from("reseller_report_files")
+        .select("id, storage_bucket, storage_path, size_bytes")
+        .eq("reseller_id", resellerId)
+        .eq("month_key", monthKey)
+        .maybeSingle();
+      if (readErr) {
+        throw new Error(
+          `attachReportRow: read reseller_report_files failed: ${readErr.message}`,
+        );
+      }
+      if (existing) {
+        return {
+          monthKey,
+          storageBucket: (existing.storage_bucket as string) ?? REPORT_BUCKET,
+          storagePath: (existing.storage_path as string) ?? storagePath,
+          sizeBytes: (existing.size_bytes as number) ?? 0,
+          created: false,
+        };
+      }
+
+      const displayName = reseller.display_name as string;
+      const csv = buildReportCsvFixture(resellerId, displayName, monthKey);
+      const sizeBytes = Buffer.byteLength(csv, "utf8");
+
+      const { error: uploadErr } = await supabase.storage
+        .from(REPORT_BUCKET)
+        .upload(storagePath, csv, {
+          contentType: "text/csv",
+          upsert: true,
+        });
+      if (uploadErr) {
+        throw new Error(
+          `attachReportRow: storage.upload ${REPORT_BUCKET}/${storagePath}: ${uploadErr.message}`,
+        );
+      }
+
+      const { data: inserted, error: insertErr } = await supabase
+        .from("reseller_report_files")
+        .insert({
+          reseller_id: resellerId,
+          month_key: monthKey,
+          storage_bucket: REPORT_BUCKET,
+          storage_path: storagePath,
+          size_bytes: sizeBytes,
+          row_count: 1,
+        })
+        .select("id")
+        .maybeSingle();
+      if (insertErr || !inserted) {
+        // Roll the storage upload back before throwing so a failed insert
+        // does not leak a dangling object into the fixture bucket.
+        await supabase.storage.from(REPORT_BUCKET).remove([storagePath]);
+        throw new Error(
+          `attachReportRow: reseller_report_files insert failed: ${insertErr?.message ?? "no row returned"}`,
+        );
+      }
+      const insertedId = inserted.id as string;
+
+      restoreClosures.push(async () => {
+        const errors: string[] = [];
+        const { error: delMetaErr } = await supabase
+          .from("reseller_report_files")
+          .delete()
+          .eq("id", insertedId);
+        if (delMetaErr) {
+          errors.push(
+            `delete reseller_report_files ${insertedId}: ${delMetaErr.message}`,
+          );
+        }
+        const { error: delObjErr } = await supabase.storage
+          .from(REPORT_BUCKET)
+          .remove([storagePath]);
+        if (delObjErr) {
+          errors.push(
+            `storage.remove ${REPORT_BUCKET}/${storagePath}: ${delObjErr.message}`,
+          );
+        }
+        if (errors.length > 0) {
+          throw new Error(`attachReportRow.restore: ${errors.join("; ")}`);
+        }
+      });
+
+      return {
+        monthKey,
+        storageBucket: REPORT_BUCKET,
+        storagePath,
+        sizeBytes,
+        created: true,
       };
     },
     async cleanup() {

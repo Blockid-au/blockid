@@ -129,6 +129,55 @@ Prep cost: one tick to author the attributed-customer helper
 `app_users` upsert path in the fixture — then rows 145–149 each add
 2–3 assertions.
 
+**Wave-4 helper landed (tick 165) — `attachReportRow(monthKey)`.** Authored
+the fixture helper called out as next-tick option (iv) by tick 164's
+review_history entry. Extended `web/tests/e2e/fixtures/reseller.ts` with a
+new `attachReportRow(monthKey)` method on `TempResellerFixture` (guarded on
+`variant === "active_wholesale"` and `REPORT_MONTH_RE.test(monthKey)`;
+returns null on both mismatches so callers can `test.skip` cleanly). Also
+exposes an `AttachReportRowResult` interface with `monthKey`,
+`storageBucket`, `storagePath`, `sizeBytes`, and a `created:boolean` flag
+that distinguishes "we minted this row" from "seed-qa-reseller-storage.mjs
+already ran for this month". Snapshot-then-restore discipline matches
+`attachAttributedCustomer` — pre-existing metadata rows are reused (no
+insert, no upload, no restore closure registered) so parallel Playwright
+workers sharing the seed do not race the delete on afterEach; only when
+this call inserted the row does `cleanup()` remove the row AND the storage
+object. The CSV blob is inlined from `web/scripts/seed-qa-reseller-
+storage.mjs` (`CSV_HEADER` + one KPI row with zero-valued cells) so a
+fixture-minted object stays shape-compatible with what the monthly cron
+would emit and with the response `/api/reseller/reports/[month]/signed-url`
+signs behind. Storage naming convention `<reseller_id>/<month_key>.csv`
+matches the seeder + cron exactly. On insert failure the helper rolls back
+the storage upload before throwing so a partial mint does not leak a
+dangling object into the fixture bucket. Verified: `npx tsc -p . --noEmit`
+clean; vitest reseller-lib suite 449/449 (no lib .ts touched — the fixture
+sits under `web/tests/e2e/fixtures/**` which is not swept by the reseller
+lib vitest project so the pass count is unchanged from tick 164); `npm run
+lint:reseller` R-01 scanned 11 files + R-03 scanned 31 manifest routes, 3
+exemptions, 0 violations (fixture is not under /api/reseller/** and is not
+a manifest route). No DB apply this tick — no migration authored. Unblocks
+rows 159 (`reports-signed-url-authz.spec.ts` happy 200 with signed URL +
+audit log) and 160 (`reports-signed-url-validation.spec.ts` in-window vs
+expired month) for landing in subsequent ticks: each row will call
+`await fixture.attachReportRow(monthKey)` inside `test.beforeAll` (or
+`beforeEach` for row 160's paired assertion) then assert the route response
+against the returned envelope. Next natural picks after tick 165: (i)
+activate row 159 by adding a `test.describe` block to `reports-signed-url-
+authz.spec.ts` that uses the new helper to seed a current-month row + login
+as the reseller admin + GET /api/reseller/reports/{month}/signed-url and
+assert 200 + signed_url + filename + expires_at + audit-log write; (ii)
+activate row 160 by adding a paired-assertion test.describe block to
+`reports-signed-url-validation.spec.ts` that calls the helper for the
+current month (expect 200) and the 2024-01 sentinel month is NOT called
+(expect 403 not_exposed since isMonthExposed short-circuits before the
+SELECT); (iii) activate row 163 (cobranding-pill × active_wholesale
+attributed founder) — still requires the attributed-founder harness seed;
+(iv) land finding-2's seed delta for rows 150 + 151; (v) mint an active
+promo code on the paused variant to unblock row 157; (vi) land the
+approve-target seeder variant to unblock row 175's approve branch; (vii)
+row 178 attribution-timing — requires new founder QA seed.
+
 **Wave-5 row 175 cancel branch landed (tick 164) — row 155-b seeder
 extension.** Fifth wave-5 landing. Extended `web/tests/e2e/reseller/
 requests-authz.spec.ts` with a new `test.describe("Reseller requests — P10
