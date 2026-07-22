@@ -1297,3 +1297,164 @@ test.describe("Reseller credit-grant mirror row — P10 wave-3 row 155", () => {
     ).toBe(1);
   });
 });
+
+// P10 wave-3 row 156b DB companion — three-chained credit-grant mirror-row
+// fanout DB assertion. Companion to row 156b's HTTP arithmetic block in
+// credit-grant-authz.spec.ts (tick 204) and extension of row 155's single-
+// grant mirror-row assertion above. Row 156b pins the response-envelope
+// balance identity across three sequential POSTs (5 → 3 → 2 landing on 10)
+// but never verifies that the mirror-INSERT fan-out fired three times — a
+// regression where the on-conflict UPSERT on POST 2 OR POST 3 silently
+// dropped the reseller_credit_grants insert while still returning 200 with
+// the correct credit_balances math would leave row 156b green. This block
+// closes that gap by counting kind='grant' rows for (resellerId,
+// targetUserId) since a single pre-first-POST cursor and asserting == 3.
+//
+// Assertion contract:
+//   - After three chained self-approve POSTs, exactly 3 mirror rows land
+//     for the (reseller_id, target_user_id) pair with kind='grant' since
+//     the pre-first-POST cursor.
+//   - 0 → all three inserts dropped (unlikely — would also break row 155).
+//   - 1 → only the first insert landed; POST 2 and POST 3 silently skipped.
+//   - 2 → one of the three inserts silently dropped (specific to on-conflict
+//     UPSERT paths that only re-fire the credit_transactions insert without
+//     the mirror insert).
+//   - >3 → duplicated write on one of the three POSTs (fan-out ran twice).
+//
+// The single-cursor posture is deliberate: row 155 uses a fresh cursor per
+// POST because it only ever fires one, but a three-cursor design here would
+// mask a POST 3 regression that also duplicated a POST 1 row (both cursors
+// would see their expected 1 each). One cursor spanning all three POSTs
+// gives a single unambiguous count that catches drop, duplicate, AND
+// cross-POST misattribution simultaneously.
+//
+// Cleanup topology inherits row 156b's LIFO restore-closure order (three
+// attachGrantSelfApprove calls push A, B, C snapshots; cleanup pops
+// C→B→A). fixture.cleanup() at the end of the try/finally sweeps all
+// three reseller_credit_grants rows before their FK-linked
+// credit_transactions rows to satisfy credit_transaction_id → credit_
+// transactions.id, mirroring the row 156b posture in credit-grant-authz.
+// reseller_audit_log rows stay in place (append-only per migration 0093).
+//
+// Sits in audit-log-writes.spec.ts per the same topology decision that
+// placed row 155 here: authz specs own the HTTP contract (row 156b in
+// credit-grant-authz.spec.ts); audit-log-writes.spec.ts owns the DB-level
+// side effects on the append-only ledger + mirror table. A future row
+// 156c four-chain variant would sit alongside this block, sharing the
+// same fixture and helper.
+//
+// Non-Stripe / non-GST discipline: pure reseller_credit_grants +
+// credit_transactions + credit_balances writes; no promotion_code lookup,
+// no revenue_events read, no Stripe network call, no InfoVision
+// dependency. P8.5 + P1.5 remain neither a dependency nor a consequence.
+test.describe("Reseller credit-grant mirror rows — P10 wave-3 row 156b DB companion (three-chain fanout)", () => {
+  test("three chained self-approve POSTs insert exactly 3 reseller_credit_grants(kind='grant') mirror rows", async ({
+    page,
+  }) => {
+    let fixture: TempResellerFixture | null;
+    try {
+      fixture = await loadTempReseller("active_wholesale");
+    } catch (err) {
+      test.skip(
+        true,
+        `loadTempReseller('active_wholesale') threw: ${(err as Error).message}. ` +
+          tempResellerSkipReason("active_wholesale"),
+      );
+      return;
+    }
+    if (
+      !fixture ||
+      !fixture.adminUserId ||
+      !fixture.attributedUserId ||
+      !fixture.attributionExists
+    ) {
+      test.skip(true, tempResellerSkipReason("active_wholesale"));
+      return;
+    }
+    const supabase = loadSupabaseAdmin();
+    if (!supabase) {
+      test.skip(true, supabaseAdminSkipReason());
+      return;
+    }
+    const targetUserId = fixture.attributedUserId;
+    const AMOUNT_ONE = 5;
+    const AMOUNT_TWO = 3;
+    const AMOUNT_THREE = 2;
+    try {
+      const attributed = await fixture.attachAttributedCustomer();
+      if (!attributed) {
+        test.skip(true, tempResellerSkipReason("active_wholesale"));
+        return;
+      }
+      const grant1 = await fixture.attachGrantSelfApprove({ amount: AMOUNT_ONE });
+      if (!grant1) {
+        test.skip(true, tempResellerSkipReason("active_wholesale"));
+        return;
+      }
+      try {
+        await loginAs(page, fixture.adminEmail);
+      } catch (err) {
+        test.skip(
+          true,
+          `loginAs(${fixture.adminEmail}) threw: ${(err as Error).message}. ` +
+            tempResellerSkipReason("active_wholesale"),
+        );
+        return;
+      }
+
+      // Single cursor spanning all three POSTs — see header for rationale.
+      const chainSince = new Date().toISOString();
+
+      const resp1 = await page.request.post("/api/reseller/credits/grant", {
+        data: { target_user_id: targetUserId, amount: AMOUNT_ONE },
+      });
+      expect(
+        resp1.status(),
+        `POST 1 returned ${resp1.status()} — expected 200. Body: ${await resp1.text()}`,
+      ).toBe(200);
+
+      const grant2 = await fixture.attachGrantSelfApprove({ amount: AMOUNT_TWO });
+      if (!grant2) {
+        test.skip(true, tempResellerSkipReason("active_wholesale"));
+        return;
+      }
+      const resp2 = await page.request.post("/api/reseller/credits/grant", {
+        data: { target_user_id: targetUserId, amount: AMOUNT_TWO },
+      });
+      expect(
+        resp2.status(),
+        `POST 2 returned ${resp2.status()} — expected 200. Body: ${await resp2.text()}`,
+      ).toBe(200);
+
+      const grant3 = await fixture.attachGrantSelfApprove({ amount: AMOUNT_THREE });
+      if (!grant3) {
+        test.skip(true, tempResellerSkipReason("active_wholesale"));
+        return;
+      }
+      const resp3 = await page.request.post("/api/reseller/credits/grant", {
+        data: { target_user_id: targetUserId, amount: AMOUNT_THREE },
+      });
+      expect(
+        resp3.status(),
+        `POST 3 returned ${resp3.status()} — expected 200. Body: ${await resp3.text()}`,
+      ).toBe(200);
+
+      const mirrorCount = await countResellerCreditGrantsFor(supabase, {
+        resellerId: fixture.resellerId,
+        targetUserId,
+        kind: "grant",
+        since: chainSince,
+      });
+      expect(
+        mirrorCount,
+        `expected exactly 3 reseller_credit_grants(kind='grant') mirror rows for (reseller=${fixture.resellerId}, target=${targetUserId}) since ${chainSince}; got ${mirrorCount}. Route write lives at route.ts:206-218. ` +
+          `0 → all three inserts dropped (would also break row 155); ` +
+          `1 → POST 2 and POST 3 silently skipped the mirror insert despite 200; ` +
+          `2 → one of the three chained mirror inserts silently dropped (on-conflict UPSERT path re-fired credit_transactions but not reseller_credit_grants); ` +
+          `>3 → duplicated write on one of the three POSTs (fan-out ran twice on a single request).`,
+      ).toBe(3);
+    } finally {
+      await fixture.cleanup();
+    }
+  });
+});
