@@ -20,11 +20,17 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendEmail } from "@/lib/email";
 import {
+  buildAnomalySummary,
+  DEFAULT_ANOMALY_WINDOW_DAYS,
+  type AuditLogRow,
+} from "@/lib/reseller/audit-anomaly";
+import {
   buildLeadingSignalSummary,
   type AttributedCustomerRow,
   type AttributedReportRow,
 } from "@/lib/reseller/leading-signals";
 import {
+  formatWeeklyDigestAnomaliesSection,
   formatWeeklyDigestCsv,
   formatWeeklyDigestEmail,
   isoWeekKey,
@@ -218,7 +224,33 @@ export async function GET(req: Request) {
   }
 
   const csv = formatWeeklyDigestCsv(week, digestRows);
-  const html = formatWeeklyDigestEmail(week, digestRows);
+  let html = formatWeeklyDigestEmail(week, digestRows);
+
+  // Fold in audit-log anomaly hotspots (P10 dry-run per plan Verification #5).
+  // Scope the query to the active reseller set so a stale terminated reseller
+  // can't inflate the counts. Failures are logged and skipped — the leading-
+  // signal digest is the primary content and must ship even when audit
+  // telemetry is unavailable.
+  const anomalyWindowStart = new Date(
+    now.getTime() - DEFAULT_ANOMALY_WINDOW_DAYS * 24 * 60 * 60 * 1000,
+  );
+  const { data: auditRows, error: auditErr } = await supabase
+    .from("reseller_audit_log")
+    .select("reseller_id, actor_user_id, subject_user_id, action, created_at")
+    .in("reseller_id", resellerIds)
+    .gte("created_at", anomalyWindowStart.toISOString());
+  let anomalySummary: ReturnType<typeof buildAnomalySummary> | null = null;
+  if (auditErr) {
+    console.error("[reseller-weekly-digest] audit_log query failed", auditErr.message);
+  } else {
+    anomalySummary = buildAnomalySummary((auditRows ?? []) as AuditLogRow[], { now });
+    const resellerDisplayNames: Record<string, string> = {};
+    for (const r of resellers) {
+      resellerDisplayNames[r.id] = r.display_name ?? r.code;
+    }
+    const section = formatWeeklyDigestAnomaliesSection(anomalySummary, resellerDisplayNames);
+    if (section) html += section;
+  }
 
   let emailed = false;
   if (!skipEmail && digestRows.length > 0) {
@@ -255,6 +287,16 @@ export async function GET(req: Request) {
       median_days_to_first_report: r.summary.median_days_to_first_report,
     })),
     emailed,
+    anomalies: anomalySummary
+      ? {
+          actor_hotspot_count: anomalySummary.actor_hotspots.length,
+          subject_hotspot_count: anomalySummary.subject_hotspots.length,
+          total_rows_in_window: anomalySummary.total_rows_in_window,
+          threshold: anomalySummary.threshold,
+          window_start: anomalySummary.window_start,
+          window_end: anomalySummary.window_end,
+        }
+      : { skipped_reason: "audit_log_query_failed" },
     ran_at: now.toISOString(),
   });
 }
