@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.118
+version: 2026-07-23.119
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,113 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 119
+    ran_at: 2026-07-22
+    action: p10_dry_run_reports_signed_url_validation_playwright_spec
+    result: |
+      Closed the last remaining
+      /api/reseller/reports/[month]/signed-url coverage gap at the
+      Playwright lens. Track A P7.2 shipped tick 33
+      (P7.2_signed_url_storage). reports-signed-url-authz.spec.ts (tick,
+      "Deliberately out of scope" list) already probes the pre-scope
+      auth chain (unauthenticated + non_reseller_admin returning 401
+      unauthorised / 403 no_membership) and explicitly deferred the two
+      post-scope branches (invalid_month + not_exposed) to a spec run
+      behind QA_RESELLER_ADMIN_EMAIL. This tick lands that sibling twin
+      of drawer-validation (tick 118) / reveal-email-validation (tick
+      117) — the two branches surfaced BEFORE the
+      reseller_report_files SELECT, the storage.createSignedUrl call,
+      and the reseller_audit_log(download_report) write, both exercised
+      behind the QA_RESELLER_ADMIN_EMAIL harness so the reseller
+      session is a real scope-passing account.
+
+      Files:
+        - web/tests/e2e/reseller/reports-signed-url-validation.spec.ts
+          (new — two rows probing the route's post-scope validators
+          BEFORE getSupabaseAdmin, the reseller_report_files SELECT,
+          the storage-sign call, or the audit-log write fire:
+          (1) invalid_month — GET
+              /api/reseller/reports/2026-13/signed-url with a
+              MONTH_RE-failing [month] segment → 400
+              { ok:false, reason:"invalid_month" } at route.ts:55-58
+              in the MONTH_RE.test() false branch. Using "2026-13"
+              rather than "not-a-month" keeps the URL well-formed
+              against Next.js dynamic segment matching so the router
+              still delivers the request to the handler and the
+              route's own validator is the real gate.
+          (2) not_exposed — GET
+              /api/reseller/reports/2024-01/signed-url with a valid
+              MONTH_RE shape but outside the 12-month exposed window
+              → 403 { ok:false, reason:"not_exposed" } at
+              route.ts:59-61 in the isMonthExposed() false branch.
+              "2024-01" sits ~18 months before the current 2026-07
+              anchor so the row stays deterministic for another
+              eight-plus years without needing a computed helper.
+          Both rows use the QA_RESELLER_ADMIN_EMAIL harness via
+          loadResellerHarness() + loginAs so scopedReseller passes
+          and the two validators are actually the gates that fire;
+          without the harness the spec test.skip()s with
+          harnessSkipReason().
+
+      Why this shape is the twin of reveal-email-validation (tick 117)
+      + drawer-validation (tick 118): all three specs share the same
+      structure — pre-scope authz is covered by a separate *-authz spec
+      that runs harness-free, and the post-scope validation branches
+      surface only after loginAs(harness.admin.email) so the
+      scopedReseller chokepoint passes and the endpoint's own validator
+      is the branch under test. reports-signed-url differs from the
+      customer-scoped drawer/reveal-email pair in one dimension only —
+      the [month] path segment is a text validator (regex + numeric
+      window) rather than a decideReveal(uuid + allowedCustomerIds)
+      chokepoint, and the response envelope carries reason: "invalid_
+      month"|"not_exposed" rather than reason: "invalid_id"|"not_in_
+      scope". Both routes share the { ok:false, reason:<string> }
+      envelope shape (scopedReseller-gated routes, not
+      gateRequireFeature-gated routes).
+
+      Why the not_configured (503) / not_found (404) / lookup_failed
+      (500) / sign_failed (500) / audit_failed (500) branches aren't
+      covered: same reasoning as ticks 100-118 — 503 needs SUPABASE_URL
+      / SERVICE_ROLE unset which would break every other Playwright
+      spec in the same worker; the four 500/404 rows need per-test
+      tampering with reseller_report_files, Storage client, or the
+      reseller_audit_log INSERT which plan §J.2 forbids. The happy
+      path (200 with signed_url + filename + expires_at + bucket) fires
+      the reseller_report_files SELECT + storage.createSignedUrl +
+      reseller_audit_log(download_report) INSERT against the harness
+      reseller for a month with an actual CSV upserted by the monthly
+      cron — belongs to the temp-reseller mint fixture follow-up
+      alongside every other deferred happy-path row from ticks
+      94..118.
+
+      Verified: tsc clean (npx tsc --noEmit exit=0); npm run
+      lint:reseller: unchanged from tick 118 baseline — R-01 scanned
+      11 file(s), R-03 scanned 31 manifest route(s), 3 exemptions, 0
+      violations (the spec lives under web/tests/e2e/reseller/ not
+      /api/reseller/**, so R-01 doesn't fire; it's not a mutation
+      route in feature-gates.manifest.ts so R-03 doesn't fire).
+      Playwright not run this tick — both rows will execute on the
+      next CI Playwright pass alongside the thirty other reseller-lens
+      dry-run specs.
+
+      Frontier after tick 119: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 119 unblocks: the last post-scope validation
+      chokepoint under /api/reseller/reports/[month]/signed-url now
+      has symmetric coverage matching reveal-email / drawer /
+      credit-grant / requests / create-startup validation patterns.
+      Thirty-one spec files now sit in web/tests/e2e/reseller/. Next
+      autonomous tick options: (i) landing the QA-mode temp-reseller
+      mint fixture that opens up all the deferred HAPPY-PATH branches
+      from ticks 94..119 at once (larger tick, wants a design pass);
+      (ii) billing setup-intent / save-default-payment-method
+      post-scope validation twin if either route has post-scope
+      branches beyond auth; (iii) idle until human unblock arrives on
+      P8.5 or P1.5.
     commit: (this tick)
 
   - tick: 118
