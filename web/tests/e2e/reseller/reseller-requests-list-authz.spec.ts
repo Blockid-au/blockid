@@ -251,6 +251,41 @@ test.describe("Reseller requests list — P10 wave-4 happy path", () => {
       expect(typeof row.status).toBe("string");
       expect(["pending", "approved", "denied", "cancelled"]).toContain(row.status);
       expect(typeof row.created_at).toBe("string");
+      // tick 223 option (b) — extend row 161 with the three nullable/jsonb
+      // pins the sibling row 174 discipline (admin-requests-list-authz.spec
+      // .ts tick 221 FK-echo + tick 222 nested-embed shape) leaves open on
+      // the reseller-side envelope. Route SELECT at web/src/app/api/reseller
+      // /requests/route.ts:169-173 emits payload + decision_at +
+      // decision_reason on every row; pre-tick posture pinned only id +
+      // request_type + status + created_at leaving those three silent. A
+      // route regression that dropped any of the three from the SELECT list
+      // would surface only at the /reseller/requests inbox visual QA lens.
+      //   payload — jsonb NOT NULL DEFAULT '{}' per 0095:33 so every row
+      //   carries a plain object (never null, never array). Object-plain
+      //   guard mirrors admin-requests-list-authz.spec.ts tick 222
+      //   resellers-embed shape assertion — three-part pattern chosen over
+      //   expect.objectContaining(...) for spec-local consistency.
+      //   decision_at — timestamptz nullable per 0095:35, NULL on pending
+      //   rows per ck_decision_shape at 0095:41-45. Assertion is (null OR
+      //   typeof string), matching credit-grant-authz row 152 discipline
+      //   for nullable timestamp echoes.
+      //   decision_reason — text nullable per 0095:36 with no CHECK tying
+      //   it to status, so may be null even on approved/denied/cancelled
+      //   rows. Assertion is (null OR typeof string).
+      expect(
+        row.payload !== null &&
+          typeof row.payload === "object" &&
+          !Array.isArray(row.payload),
+        `active_wholesale + happy GET row.payload should be a plain object (jsonb NOT NULL DEFAULT '{}' per 0095:33; a PostgREST view that mistyped the column would surface here). Row: ${JSON.stringify(row)}`,
+      ).toBe(true);
+      expect(
+        row.decision_at === null || typeof row.decision_at === "string",
+        `active_wholesale + happy GET row.decision_at should be null or a string timestamp (nullable per 0095:35; NULL on pending rows per ck_decision_shape at 0095:41-45). Row: ${JSON.stringify(row)}`,
+      ).toBe(true);
+      expect(
+        row.decision_reason === null || typeof row.decision_reason === "string",
+        `active_wholesale + happy GET row.decision_reason should be null or a string (nullable per 0095:36; no CHECK ties it to status so nullable across all row states). Row: ${JSON.stringify(row)}`,
+      ).toBe(true);
     }
   });
 });
