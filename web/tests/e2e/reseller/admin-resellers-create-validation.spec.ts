@@ -1,8 +1,12 @@
-// POST /api/admin/resellers input-validation contract — P10 dry-run per
-// plan §C.5 (admin surfaces) and §J.2 (Playwright must cover the admin
-// surfaces so a regression in the resellers POST body validator surfaces
-// before the endpoint fires the resellers INSERT or breaks the wholesale
-// GST/ABN invariant from U.15.1 D2-CFO-01 + D4-CLO-03).
+// POST /api/admin/resellers input-validation contract — ACTIVATED
+// wave-5 row 166 per docs/plans/p10-deferred-spec-activation-order.md.
+// The entire spec runs behind loadAdminHarness() (qa-admin-1@blockid.au)
+// so the requireAdmin() gate at route.ts:60-68 passes without needing
+// the per-variant reseller cohort. Plan §C.5 (admin surfaces) and §J.2
+// (Playwright must cover the admin surfaces so a regression in the
+// resellers POST body validator surfaces before the endpoint fires the
+// resellers INSERT or breaks the wholesale GST/ABN invariant from
+// U.15.1 D2-CFO-01 + D4-CLO-03).
 //
 // admin-resellers-create-authz.spec.ts (tick 109) already probes the two
 // pre-scope requireAdmin branches (unauthenticated → 401 no_user;
@@ -29,14 +33,27 @@
 //                                the wholesale ABN format check or the
 //                                resellers INSERT)
 //   5. wholesale_requires_abn  — POST with billing_model=wholesale +
-//                                gst_registered=true but missing/mal-format
-//                                ABN                             → 400 { ok:false, reason:"wholesale_requires_abn",
+//                                gst_registered=true but missing ABN
+//                                                                → 400 { ok:false, reason:"wholesale_requires_abn",
 //                                                                        hint:"format: NN NNN NNN NNN" }
-//                                (bails at the U.15.1 D4-CLO-03 gate before
+//                                (bails at the U.15.1 D4-CLO-03 gate on the
+//                                !body.abn branch of the regex guard before
 //                                the resellers INSERT)
+//   6. invalid_abn_format      — POST with billing_model=wholesale +
+//                                gst_registered=true + a malformed ABN string
+//                                that fails the /^\d{2} \d{3} \d{3} \d{3}$/
+//                                regex                            → 400 { ok:false, reason:"wholesale_requires_abn",
+//                                                                        hint:"format: NN NNN NNN NNN" }
+//                                (bails at the U.15.1 D4-CLO-03 gate on the
+//                                regex-fail branch of the same guard —
+//                                distinguished from row 5 by exercising the
+//                                right-hand disjunct of the || rather than
+//                                the left-hand !body.abn branch; a route
+//                                refactor that dropped the regex would flip
+//                                THIS row to 201 while row 5 stayed at 400)
 //
-// All five branches return BEFORE the resellers INSERT fires (row 1 short-
-// circuits at request.json() catch; rows 2-5 short-circuit at their
+// All six branches return BEFORE the resellers INSERT fires (row 1 short-
+// circuits at request.json() catch; rows 2-6 short-circuit at their
 // respective validator gates), so the spec is safe against staging (no
 // resellers row is written, no reseller_promotion_codes row is written, no
 // (reseller_id, tier_pct) unique index is consumed).
@@ -146,9 +163,29 @@ const CASES: ValidationCase[] = [
     },
     expectedReason: "wholesale_requires_abn",
   },
+  {
+    label:
+      "invalid_abn_format — wholesale + gst with malformed ABN returns 400 wholesale_requires_abn",
+    body: {
+      code: `${PROBE_CODE_BASE}-6`,
+      display_name: "Probe Co",
+      billing_model: "wholesale",
+      gst_registered: true,
+      // Malformed on purpose — "123" is 3 chars, fails the
+      // /^\d{2} \d{3} \d{3} \d{3}$/ regex at route.ts:94. The route
+      // folds the missing-ABN and malformed-ABN cases into the same
+      // reason=wholesale_requires_abn envelope, so this row asserts
+      // the regex-fail branch runs (rather than the !body.abn branch
+      // exercised by row 5). A future refactor that split the two
+      // reasons — e.g. reason=invalid_abn_format — would flip this
+      // row red while row 5 stayed green.
+      abn: "123",
+    },
+    expectedReason: "wholesale_requires_abn",
+  },
 ];
 
-test.describe("Admin resellers POST input validation — P10 dry-run", () => {
+test.describe("Admin resellers POST input validation — P10 wave-5 row 166", () => {
   const harness = loadAdminHarness();
   test.skip(!harness, adminHarnessSkipReason());
 
