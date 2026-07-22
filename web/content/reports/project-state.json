@@ -1,6 +1,6 @@
 {
   "version": "3.0.0",
-  "updatedAt": "2026-07-21T14:00:01.993Z",
+  "updatedAt": "2026-07-22T12:04:02.983Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-07-20T14:00:02.419Z",
@@ -31,7 +31,7 @@
     ]
   },
   "plan": {
-    "decidedAt": "2026-07-20T12:04:02.950Z",
+    "decidedAt": "2026-07-22T12:04:02.983Z",
     "decidedBy": "ceo",
     "tasks": [
       {
@@ -1165,6 +1165,33 @@
         "createdAt": "2026-07-20T22:00:00.000Z",
         "completedAt": "2026-07-20T22:00:00.000Z",
         "commitSha": "d3db6e6"
+      },
+      {
+        "id": "T0165",
+        "agent": "cfo",
+        "title": "Implement Multi-Method Valuation Engine",
+        "rationale": "Convert research on VC Method, DCF, Berkus, and Scorecard formulas into a functional calculation module to provide precise valuation ranges.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-07-22T12:04:02.983Z"
+      },
+      {
+        "id": "T0166",
+        "agent": "cfo",
+        "title": "Build TAM/SAM/SOM Calculation Framework",
+        "rationale": "Implement the top-down and bottom-up market sizing methodology researched to help founders justify valuation to investors.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-07-22T12:04:02.983Z"
+      },
+      {
+        "id": "T0167",
+        "agent": "cfo",
+        "title": "Sector-Specific Revenue Multiple Library",
+        "rationale": "Integrate Bessemer and PitchBook multiples for SaaS, Fintech, and AI to automate the 'comparables' valuation approach.",
+        "versionImpact": "patch",
+        "status": "pending",
+        "createdAt": "2026-07-22T12:04:02.983Z"
       }
     ]
   },
