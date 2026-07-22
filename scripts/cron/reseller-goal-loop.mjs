@@ -26,6 +26,7 @@ import { existsSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, resolve } from 'node:path'
+import { sumHumanReviewMinutes7d } from './human-review-minutes.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = resolve(__dirname, '..', '..')
@@ -37,11 +38,24 @@ const HISTORY_FILE = join(REPO_ROOT, 'web', 'content', 'reports', 'reseller-goal
 const KILL_ENV = 'RESELLER_AUTONOMOUS_LOOP'
 const TICK_ID = new Date().toISOString().replace(/[:.]/g, '-')
 
+// Sampled once per process so log() stays synchronous-friendly. CHRO §26 rec #1
+// — surfaces cumulative human-review time so the "0 eng-weeks burned" KPI
+// carries a real number instead of an assertion.
+let HUMAN_REVIEW_MINUTES_7D = 0
+try {
+  HUMAN_REVIEW_MINUTES_7D = await sumHumanReviewMinutes7d()
+} catch { /* best-effort — a bad counter file must not block a tick */ }
+
 // -- helpers -----------------------------------------------------------------
 
 /** Emit a telemetry row matching cron-health.jsonl / guardian-history.jsonl format. */
 async function log(row) {
-  const line = JSON.stringify({ tick_id: TICK_ID, ts: new Date().toISOString(), ...row }) + '\n'
+  const line = JSON.stringify({
+    tick_id: TICK_ID,
+    ts: new Date().toISOString(),
+    human_review_minutes_7d: HUMAN_REVIEW_MINUTES_7D,
+    ...row,
+  }) + '\n'
   await mkdir(dirname(HISTORY_FILE), { recursive: true })
   await appendFile(HISTORY_FILE, line, 'utf8')
   process.stderr.write(line)
