@@ -2561,6 +2561,134 @@ review_history:
       tick per CDO rec #2).
     commit: (this tick)
 
+  - tick: 114
+    ran_at: 2026-07-22
+    action: p10_dry_run_showcase_reviews_authz_playwright_spec
+    result: |
+      Closed the last real /api/showcase-reviews coverage gap at the
+      Playwright lens. Track B B9_reviews_surface shipped tick 53
+      (migration 0100 + hashComment + buildReviewsSummary + POST /GET
+      /api/showcase-reviews + reseller dashboard "Investor reviews"
+      section) but the route itself had zero Playwright regression
+      guard — every other Track B leaf that terminates in a public
+      route (reviewer-facing POST via data_room_access_tokens.token +
+      founder-facing GET via getCurrentUser) had at least one
+      P10 dry-run spec, so this closes the last outlier.
+
+      Files:
+        - web/tests/e2e/reseller/showcase-reviews-authz.spec.ts (new —
+          five rows probing the pre-write / pre-read chain before
+          data_room_access_tokens SELECT, data_rooms SELECT,
+          showcase_reviews upsert, projects SELECT, or the
+          showcase_reviews founder-lens SELECT fire:
+          (1) invalid_json     — POST with an unparseable body → 400
+              { ok:false, error:"Invalid JSON" } at route.ts:41-46 in
+              the req.json() try/catch,
+          (2) missing_token    — POST with an empty token → 400
+              { ok:false, error:"token required" } at route.ts:53-55
+              before the rating range check or any DB SELECT,
+          (3) invalid_rating   — POST with rating=6 → 400 { ok:false,
+              error:"rating must be 1-5" } at route.ts:56-58 before any
+              DB SELECT,
+          (4) invalid_token    — POST with an all-zeros UUID-shaped
+              token → 403 { ok:false, error:"Invalid or expired token" }
+              at route.ts:66 after the data_room_access_tokens SELECT
+              returns no row, before data_rooms SELECT or
+              showcase_reviews upsert,
+          (5) unauthenticated  — GET with no session → 401 { ok:false,
+              error:"Auth required" } at route.ts:107-110 before
+              projectId parse, projects SELECT, or showcase_reviews
+              SELECT.
+          All five rows are harness-free: rows 1-3 short-circuit
+          before any DB call, row 4 hits only the tokens SELECT (no
+          row returned → 403 without writes), row 5 bails in
+          getCurrentUser before any SELECT.
+
+      Why this shape mirrors ticks 100-113: same "return before any
+      privileged SELECT / INSERT" placement in the route flow, same
+      { ok:false, error:<string> } wire envelope. Symmetric envelope
+      means a refactor that swaps the inline validation guards for a
+      shared helper, changes the error wire format, or flips the
+      status codes (e.g. 400→422 for validation, 401→403 for auth)
+      lights up in all five rows on the next `npx playwright test`
+      pass. Distinct from every prior P10 dry-run tick in ONE
+      dimension only — this is the /api/showcase-reviews public
+      surface (reviewer flow authenticates via
+      data_room_access_tokens.token same as /api/data-room/engage;
+      founder flow authenticates via getCurrentUser same as every
+      other founder-scoped GET), so a regression that let an
+      arbitrary caller reach these surfaces would leak:
+      (a) reviewer flow with an unbounded rating → showcase_reviews
+          insert with rating outside 1..5 → breaks the CHECK
+          constraint at the DB layer but corrupts the client-side
+          histogram if the constraint is dropped in a future
+          migration;
+      (b) reviewer flow with an empty token → showcase_reviews upsert
+          with an attacker-controlled reviewer_email → reputation
+          attack on the founder's project via a spoofed 1-star review;
+      (c) reviewer flow with an invalid token that would otherwise
+          resolve → same reputation attack as (b) but via a token
+          collision;
+      (d) founder-lens GET without auth → leaks the reviewer_email +
+          comment plaintext of every project's showcase_reviews rows
+          → violates the U.9 §5 "founder-only" invariant for review
+          content.
+      Every one of these routes is on the Track B B9 chokepoint so
+      an unauthenticated / malformed trigger is a real blast-radius
+      event.
+
+      Why the 400/409/500/503 branches aren't covered: expired_token
+      (403) needs a seeded data_room_access_tokens row with
+      expires_at in the past (per-test seeding). missing_investor_email
+      (400) needs a seeded access-token row with null investor_email
+      (never occurs in the retail invite flow because
+      /api/data-room/access requires the invitee email up front).
+      data_room_not_linked (409) needs a data_room_access_tokens row
+      pointing at a data_rooms row where project_id is null
+      (per-test seeding). upsert_failed (500) needs per-test
+      tampering that plan §J.2 forbids. not_configured (503) needs
+      SUPABASE_URL/SERVICE_ROLE unset which would break every other
+      Playwright spec in the same worker. projectId_required (400 on
+      GET) + not_found (404 on GET) both sit BEHIND getCurrentUser so
+      they need a real logged-in QA account; folded into the
+      temp-reseller mint fixture follow-up. Happy path (200) fires
+      the full data_room_access_tokens → data_rooms →
+      showcase_reviews upsert chain (reviewer flow) or the projects
+      owner check + showcase_reviews SELECT (founder flow); both need
+      seeded test rows and are also folded into the temp-reseller
+      mint fixture follow-up alongside the deferred rows from
+      ticks 94..113.
+
+      Verified: tsc clean (npx tsc --noEmit -p tsconfig.json exit 0
+      at web/); vitest unchanged (Playwright spec is not picked up
+      by vitest — tests/e2e/** is excluded per
+      playwright.config.ts:testDir); npm run lint:reseller: R-01
+      scanned 11 file(s), R-03 scanned 31 manifest route(s); 3
+      exemptions, 0 violations unchanged (spec lives under
+      web/tests/e2e/reseller/, not /api/reseller/**, so R-01 doesn't
+      fire; not a mutation route in feature-gates.manifest.ts so
+      R-03 doesn't fire). Playwright not run this tick — all five
+      rows will execute on the next CI Playwright pass alongside the
+      twenty-five other dry-run specs.
+
+      Frontier after tick 114: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5
+      clears. What tick 114 unblocks: the last public-surface Track
+      B chokepoint — /api/showcase-reviews — now has symmetric
+      Playwright dry-run coverage for the validation + auth chain
+      that guards the reviewer POST + founder GET surfaces.
+      Twenty-six spec files now sit in web/tests/e2e/reseller/. Next
+      autonomous tick options: (i) landing the QA-mode
+      temp-reseller mint fixture that opens up all the deferred
+      HAPPY-PATH branches from ticks 94..114 at once (larger tick,
+      wants a design pass); (ii) sweep any remaining harness-free
+      validation gaps on GET /api/reseller/reports/[month]/signed-url
+      or similar; (iii) idle until human unblock arrives on P8.5 or
+      P1.5.
+    commit: (this tick)
+
   - tick: 113
     ran_at: 2026-07-22
     action: p10_dry_run_create_startup_authz_playwright_spec
