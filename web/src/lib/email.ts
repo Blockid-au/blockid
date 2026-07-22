@@ -17,6 +17,9 @@ import {
   getPreferencesUrl,
 } from "./email-preferences";
 import { ADMIN_EMAIL } from "./auth";
+import { getSupabaseAdmin } from "./supabase";
+import { resellerFooterHtml } from "./reseller/email-footer";
+import { resolveResellerDisplayNameByEmail } from "./reseller/email-attribution";
 
 const FROM_DEFAULT = "BlockID.au <info@blockid.au>";
 
@@ -580,6 +583,8 @@ export async function sendWelcomeWithReport(args: {
   const loginUrl = `${siteUrl()}/auth/login`;
   const profileUrl = `${siteUrl()}/workspace/profile`;
   const trackUrl = `${siteUrl()}/api/track/open?slug=${args.slug}&email=${encodeURIComponent(args.to)}`;
+  const resellerName = await resolveResellerDisplayNameByEmail(args.to, getSupabaseAdmin());
+  const resellerFooter = resellerFooterHtml(resellerName, args.locale ?? "en");
   const ideaSummary = args.rawInput ? escapeHtml(args.rawInput.replace(/^File:.*\n/, "").trim().slice(0, 300)) + (args.rawInput.length > 300 ? "..." : "") : null;
   const strengths = args.analysis.subs.filter((s) => s.value >= 60).sort((a, b) => b.value - a.value).slice(0, 3);
   const gaps = args.analysis.evidenceGaps.slice(0, 3);
@@ -672,6 +677,7 @@ export async function sendWelcomeWithReport(args: {
     : "Forgot your password? Visit the login page and click 'Forgot your password?' to receive a new one via email."
   }</p>
           <p style="margin:0;color:#475569;font-size:10px;line-height:1.4;">This analysis is produced by BlockID.au (Auschain PTY LTD, ACN 659 615 111). The SVI is NOT a financial valuation or investment recommendation. BlockID does not hold an AFSL. Seek independent professional advice. Prices in AUD incl. GST.</p>
+          ${resellerFooter}
         </td></tr>
       </table>
     </td></tr>
@@ -1029,6 +1035,8 @@ export async function sendPaymentReceipt(args: { to: string; amountCents: number
   const dashUrl = `${siteUrl()}/dashboard`;
   const currency = (args.currency ?? "aud").toUpperCase();
   const amountFormatted = `$${(args.amountCents / 100).toFixed(2)} ${currency}`;
+  const resellerName = await resolveResellerDisplayNameByEmail(args.to, getSupabaseAdmin());
+  const resellerFooter = resellerFooterHtml(resellerName, "en");
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
     <tr><td align="center">
@@ -1044,6 +1052,7 @@ export async function sendPaymentReceipt(args: { to: string; amountCents: number
           <p style="margin:0 0 24px 0;text-align:center;"><a href="${dashUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Go to Dashboard</a></p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
           <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          ${resellerFooter}
         </td></tr>
       </table>
     </td></tr>
