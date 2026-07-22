@@ -972,3 +972,5 @@
 {"ts":"2026-07-22T09:00:01Z","endpoint":"ai-health","status":"ok","duration_ms":27884,"detail":"{\"provider\": \"groq\", \"model\": \"gemma-4-31b\", \"response\": \"OK\"}"}
 {"ts":"2026-07-22T09:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16502,"detail":""}
 {"ts":"2026-07-22T09:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":563,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 15, \"raw\": \"15% used (237095700 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (275004620 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-07-22T09:15:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16481,"detail":""}
+{"ts":"2026-07-22T09:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":138,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
