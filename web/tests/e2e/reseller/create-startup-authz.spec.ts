@@ -51,16 +51,15 @@
 //     are provisioned together.
 //   - reseller_missing (404) — needs a reseller_admins row without a
 //     matching resellers row (edge case; per-test seeding).
-//   - reseller_not_active (400) / capability_disabled (400) /
-//     tier_not_allowed (400) / existing_active_attribution (400) /
-//     promotion_code_missing (400) — five remaining decideCreateStartup()
-//     branches still sit BEHIND the auth chain; wave-1 rows 142–144
-//     activate them via the temp-reseller mint fixture per
-//     docs/plans/p10-deferred-spec-activation-order.md (paused variant for
-//     reseller_not_active, no_capability variant for capability_disabled,
-//     active_wholesale + tier=99 body for tier_not_allowed). Row 141
-//     (billing_model_not_wholesale via the active_retail variant) is
-//     ACTIVATED below.
+//   - capability_disabled (400) / tier_not_allowed (400) /
+//     existing_active_attribution (400) / promotion_code_missing (400) —
+//     four remaining decideCreateStartup() branches still sit BEHIND the
+//     auth chain; wave-1 rows 143–144 activate them via the temp-reseller
+//     mint fixture per docs/plans/p10-deferred-spec-activation-order.md
+//     (no_capability variant for capability_disabled, active_wholesale +
+//     tier=99 body for tier_not_allowed). Rows 141
+//     (billing_model_not_wholesale via the active_retail variant) and 142
+//     (reseller_not_active via the paused variant) are ACTIVATED below.
 //   - not_configured (503) — needs SUPABASE_URL/SERVICE_ROLE unset which
 //     would break every other Playwright spec running in the same worker.
 //   - Happy path (200 with project_id/user_id/magic_link_sent/stripe_wiring)
@@ -208,6 +207,78 @@ test.describe("Reseller create-startup — P10 wave-1 downstream reason branches
     expect(body.reason).toBe("billing_model_not_wholesale");
     expect(body.message).toBe(
       "Wholesale provisioning requires the wholesale billing model.",
+    );
+  });
+
+  // P10 wave-1 row 142 — paused variant probes the first
+  // decideCreateStartup gate (reseller.status !== "active"). Order per
+  // web/src/lib/reseller/create-startup.ts:210-222:
+  //   1. reseller.status !== "active"        → reseller_not_active   ← THIS
+  //   2. !reseller.can_create_startups        → capability_disabled   (row 143)
+  //   3. reseller.billing_model !== "wholesale" → billing_model_not_wholesale (row 141)
+  //   4. discount_tier ∉ allowed_tiers        → tier_not_allowed      (row 144)
+  //
+  // paused seed (web/scripts/seed-qa-reseller.mjs:93-105):
+  //   status="paused", billing_model="wholesale", can_create_startups=true,
+  //   allowed_tiers=[0,10,20,30,40] → gate 1 fires before any downstream
+  //   gate can short-circuit the row's assertion.
+  //
+  // discount_tier=0 chosen so the row is independent of allowed_tiers
+  // ordering AND does not require a reseller_promotion_codes row (gate 1
+  // pre-empts gate 6 anyway). Body shape mirrors row 141 verbatim so the
+  // only variance across the four wave-1 rows is variant + expected reason.
+  test("paused — POST returns 400 with reason=reseller_not_active", async ({
+    page,
+  }) => {
+    let fixture: TempResellerFixture | null;
+    try {
+      fixture = await loadTempReseller("paused");
+    } catch (err) {
+      test.skip(
+        true,
+        `loadTempReseller('paused') threw: ${(err as Error).message}. ` +
+          tempResellerSkipReason("paused"),
+      );
+      return;
+    }
+    if (!fixture || !fixture.adminUserId) {
+      test.skip(true, tempResellerSkipReason("paused"));
+      return;
+    }
+    try {
+      await loginAs(page, fixture.adminEmail);
+    } catch (err) {
+      test.skip(
+        true,
+        `loginAs(${fixture.adminEmail}) threw: ${(err as Error).message}. ` +
+          tempResellerSkipReason("paused"),
+      );
+      return;
+    }
+    const resp = await page.request.post(ROUTE, {
+      data: {
+        founder_email: "p10-wave1-paused@blockid.au",
+        company_name: "P10 Wave 1 — paused probe",
+        plan_tier: "founder_growth",
+        discount_tier: 0,
+      },
+    });
+    expect(
+      resp.status(),
+      `paused returned ${resp.status()} — expected 400 (decideCreateStartup gate 1). Body: ${await resp.text()}`,
+    ).toBe(400);
+    const body = (await resp.json()) as {
+      ok: boolean;
+      reason?: string;
+      message?: string;
+    };
+    expect(
+      body.ok,
+      `paused body.ok should be false: ${JSON.stringify(body)}`,
+    ).toBe(false);
+    expect(body.reason).toBe("reseller_not_active");
+    expect(body.message).toBe(
+      "Your reseller account is not active. Contact admin@blockid.au.",
     );
   });
 });
