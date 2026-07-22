@@ -429,10 +429,53 @@ export interface TempResellerFixture {
     requestedAmount?: number;
     reason?: string;
   }): Promise<AttachApproveTargetResult | null>;
+  /** Wave-3 helper (schedule doc row 152 prep note). Snapshots
+   *  `credit_balances` for the attributed founder and registers a restore
+   *  closure that reverses the reseller-side self-approve fan-out that
+   *  `POST /api/reseller/credits/grant` executes when `decideGrant()` gate 3
+   *  fires (within-budget approval path: `credit_balances` UPSERT +
+   *  `credit_transactions` INSERT with `granted_by_reseller_id` stamped +
+   *  `reseller_credit_grants` mirror row + `reseller_audit_log`
+   *  action='grant_credits' write).
+   *
+   *  Snapshot-then-restore semantics: `cleanup()` deletes the
+   *  `reseller_credit_grants` mirror row (filtered by (reseller_id,
+   *  target_user_id, granted_by_user_id, created_at >= since) so a leak from
+   *  an earlier spec run cannot be reaped), deletes the `credit_transactions`
+   *  row (filtered by (user_id, granted_by_reseller_id, created_at >= since)
+   *  matching the route's stamped column at route.ts:194), and restores
+   *  `credit_balances` — either UPSERTs back to the (balance,
+   *  lifetime_earned) snapshot when a row existed pre-attach, or DELETEs the
+   *  row entirely when this call fired the fresh UPSERT branch at
+   *  route.ts:169-179. `reseller_audit_log` rows are append-only per
+   *  migration 0093 (mutation triggers block DELETE/UPDATE) so they
+   *  intentionally are not swept — matches the audit-log-writes.spec.ts
+   *  posture where append-only accumulation is expected.
+   *
+   *  Returns null when variant !== "active_wholesale" (matches the other
+   *  attach helpers — the reseller-side self-approve path is scoped to the
+   *  wholesale variant since retail resellers do not carry
+   *  `can_grant_credits=true` in the seed script's default), when
+   *  `attributedUserId` is null (attributed founder not seeded — no valid
+   *  target_user_id UUID), or when `adminUserId` is null (reseller_admins
+   *  mirror missing — the grant path stamps `granted_by_user_id` from the
+   *  authenticated session which resolves to the missing admin user).
+   *
+   *  Throws on any SQL error so a caller-supplied beforeAll catch can
+   *  distinguish "table missing" (migration 0094 not applied →
+   *  reseller_credit_grants filter fails) from "prerequisite missing"
+   *  (no attributed founder, no admin user).
+   *
+   *  Idempotent under CI replay: each call captures a fresh `since` cursor
+   *  so parallel workers or repeated runs cannot cross-contaminate. */
+  attachGrantSelfApprove(opts: {
+    amount: number;
+  }): Promise<AttachGrantSelfApproveResult | null>;
   /** No-op by default. Deletes any projects.id registered via
    *  trackProjectForCleanup() during the spec AND runs any restore
    *  closure registered by attachAttributedCustomer(), attachReportRow(),
-   *  attachReviewerAccessToken(), or attachApproveTarget(). */
+   *  attachReviewerAccessToken(), attachApproveTarget(), or
+   *  attachGrantSelfApprove(). */
   cleanup(): Promise<void>;
 }
 
@@ -483,6 +526,33 @@ export interface AttachApproveTargetResult {
    *  the approve fan-out. The spec can assert the ledger rows carry this
    *  string. */
   reason: string;
+}
+
+export interface AttachGrantSelfApproveResult {
+  /** `credit_balances.user_id` the reseller-side self-approve branch will
+   *  credit — mirrors `TempResellerFixture.attributedUserId`. */
+  targetUserId: string;
+  /** The `amount` the caller intends to POST to /api/reseller/credits/grant.
+   *  Echoed here so the spec can assert `body.balance === (balanceBefore ??
+   *  0) + amount` without re-reading the request payload. */
+  amount: number;
+  /** Snapshot of `credit_balances.balance` BEFORE the POST fires. Null when
+   *  the target user had no `credit_balances` row at attach time; in that
+   *  case `cleanup()` deletes the row entirely rather than UPSERTing back to
+   *  a non-existent baseline. Non-null → `cleanup()` UPSERTs back to
+   *  (`balanceBefore`, `lifetimeEarnedBefore`). */
+  balanceBefore: number | null;
+  /** Snapshot of `credit_balances.lifetime_earned` BEFORE the POST fires.
+   *  Null under the same condition as `balanceBefore`. */
+  lifetimeEarnedBefore: number | null;
+  /** ISO cursor captured immediately before the restore closure was
+   *  registered. `cleanup()` scopes its `credit_transactions` +
+   *  `reseller_credit_grants` DELETEs to `created_at >= since` so a leak
+   *  from an earlier spec run cannot be accidentally reaped. Note:
+   *  `reseller_audit_log` rows are append-only per migration 0093 (mutation
+   *  triggers block DELETE/UPDATE) so they intentionally are not swept —
+   *  the append-only audit trail is the reason the ledger exists. */
+  since: string;
 }
 
 export interface AttachReviewerAccessTokenResult {
@@ -1175,6 +1245,113 @@ export async function loadTempReseller(
         balanceBefore: balanceBeforeVal,
         lifetimeEarnedBefore: lifetimeBeforeVal,
         reason,
+      };
+    },
+    async attachGrantSelfApprove(opts: { amount: number }) {
+      if (variant !== "active_wholesale") return null;
+      if (!attributedUserId) return null;
+      if (!adminUserId) return null;
+      const targetUserIdSnapshot = attributedUserId;
+      const adminUserIdSnapshot = adminUserId;
+      const amount = opts.amount;
+
+      const { data: balanceBefore, error: balReadErr } = await supabase
+        .from("credit_balances")
+        .select("balance, lifetime_earned")
+        .eq("user_id", targetUserIdSnapshot)
+        .maybeSingle();
+      if (balReadErr) {
+        throw new Error(
+          `attachGrantSelfApprove: read credit_balances failed: ${balReadErr.message}`,
+        );
+      }
+      const balanceBeforeVal =
+        (balanceBefore?.balance as number | null | undefined) ?? null;
+      const lifetimeBeforeVal =
+        (balanceBefore?.lifetime_earned as number | null | undefined) ?? null;
+      const balanceRowExisted = balanceBefore !== null;
+      const since = new Date().toISOString();
+
+      restoreClosures.push(async () => {
+        const errors: string[] = [];
+        // 1. reseller_credit_grants mirror first — scoped by (reseller_id,
+        //    target_user_id, granted_by_user_id, created_at >= since) so a
+        //    prior-run leak on the same triple stays intact. Matches the
+        //    columns route.ts:206-218 writes on the wave-3 self-approve path.
+        const { error: delGrantErr } = await supabase
+          .from("reseller_credit_grants")
+          .delete()
+          .eq("reseller_id", resellerId)
+          .eq("target_user_id", targetUserIdSnapshot)
+          .eq("granted_by_user_id", adminUserIdSnapshot)
+          .gte("created_at", since);
+        if (delGrantErr) {
+          errors.push(
+            `delete reseller_credit_grants (${since}): ${delGrantErr.message}`,
+          );
+        }
+        // 2. credit_transactions — filtered by the stamped
+        //    granted_by_reseller_id column that route.ts:194 writes, plus
+        //    the since cursor. Deleted after the mirror row so the FK
+        //    holder (reseller_credit_grants.credit_transaction_id) is
+        //    already gone when this row disappears.
+        const { error: delTxErr } = await supabase
+          .from("credit_transactions")
+          .delete()
+          .eq("user_id", targetUserIdSnapshot)
+          .eq("granted_by_reseller_id", resellerId)
+          .gte("created_at", since);
+        if (delTxErr) {
+          errors.push(
+            `delete credit_transactions (${since}): ${delTxErr.message}`,
+          );
+        }
+        // 3. credit_balances — restore snapshot when a row existed, else
+        //    delete the row the self-approve branch's UPSERT freshly
+        //    minted at route.ts:169-179.
+        if (balanceRowExisted) {
+          const { error: restoreErr } = await supabase
+            .from("credit_balances")
+            .upsert(
+              {
+                user_id: targetUserIdSnapshot,
+                balance: balanceBeforeVal ?? 0,
+                lifetime_earned: lifetimeBeforeVal ?? 0,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "user_id" },
+            );
+          if (restoreErr) {
+            errors.push(
+              `restore credit_balances ${targetUserIdSnapshot}: ${restoreErr.message}`,
+            );
+          }
+        } else {
+          const { error: delBalErr } = await supabase
+            .from("credit_balances")
+            .delete()
+            .eq("user_id", targetUserIdSnapshot);
+          if (delBalErr) {
+            errors.push(
+              `delete credit_balances ${targetUserIdSnapshot}: ${delBalErr.message}`,
+            );
+          }
+        }
+        // reseller_audit_log rows deliberately left in place — migration
+        // 0093 mutation triggers block DELETE/UPDATE (append-only ledger)
+        // so a sweep would fail. Matches audit-log-writes.spec.ts posture
+        // where append-only accumulation is expected.
+        if (errors.length > 0) {
+          throw new Error(`attachGrantSelfApprove.restore: ${errors.join("; ")}`);
+        }
+      });
+
+      return {
+        targetUserId: targetUserIdSnapshot,
+        amount,
+        balanceBefore: balanceBeforeVal,
+        lifetimeEarnedBefore: lifetimeBeforeVal,
+        since,
       };
     },
     async cleanup() {

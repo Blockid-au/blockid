@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.199
+version: 2026-07-23.200
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,163 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 200
+    ran_at: 2026-07-22
+    action: p10_wave3_row_152_credit_grant_happy_activation
+    result: |
+      Activated P10 wave-3 row 152 in
+      web/tests/e2e/reseller/credit-grant-authz.spec.ts (happy 200 self-
+      approve branch) and shipped the fixture-side snapshot/restore helper
+      the row needs so the four-write chain the endpoint fires does not
+      leak into future spec runs. Frontier before this tick: tick 199
+      closed rows 150 + 151 (error branches, no writes); wave-3 rows 152 /
+      154 / 155 / 156 remained the top carried-forward active_wholesale
+      picks per the tick 199 "Natural next pick" line. Row 175 approve
+      (code_request) + 182 SetupIntent remain P8.5-blocked, row 178
+      signup-jitter remains QA-mode-blocked, row 157 paused-inactive still
+      needs a distinct promo mint edit path.
+
+      Files:
+        - web/tests/e2e/fixtures/reseller.ts (new AttachGrantSelfApprove
+          Result interface after AttachApproveTargetResult; new
+          attachGrantSelfApprove(opts:{amount}) method on
+          TempResellerFixture that snapshots credit_balances +
+          registers a restore closure filtering deletes by (reseller_id,
+          target_user_id, granted_by_user_id, created_at >= since) for
+          reseller_credit_grants and by (user_id, granted_by_reseller_id,
+          created_at >= since) for credit_transactions plus a
+          credit_balances UPSERT-back or DELETE branch matching whether
+          the row existed pre-attach. Cleanup() JSDoc updated to name
+          the new helper alongside attachAttributedCustomer /
+          attachReportRow / attachReviewerAccessToken /
+          attachApproveTarget so a future author writing an afterEach
+          knows which helpers push closures.)
+        - web/tests/e2e/reseller/credit-grant-authz.spec.ts (new
+          test.describe("Credit-grant × active_wholesale × happy 200 —
+          P10 wave-3 row 152") block appended after row 151. Single test
+          uses loadTempReseller("active_wholesale") + skip-guard on
+          fixture.adminUserId + attributedUserId + attributionExists (same
+          triple wave-2 row 145 uses), calls attachAttributedCustomer +
+          attachGrantSelfApprove({amount:5}) inside a try/finally, POSTs
+          {target_user_id:fixture.attributedUserId, amount:5} → 200,
+          asserts body.ok=true + credit_transaction_id UUID + over_budget
+          false + balance=(snapshot??0)+5 + month_key ~ /^\d{4}-\d{2}$/ +
+          remaining_budget >= 0. finally block calls fixture.cleanup()
+          so a mid-request failure still sweeps the fan-out.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.199 → 2026-07-23.200; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - amount=5 chosen so the row stays stable under CI replay against
+          the same (reseller, month) pair even if a prior run's cleanup
+          leaked a small reseller_credit_grants row into the current
+          month_key — 5 leaves ~19995 of the 20000 seeded budget headroom
+          before gate 5 would fire. Matches the tick 199 conservative-
+          amount discipline used on rows 150 (amount=10, positive integer
+          so gate 1 clears cleanly) and 151 (amount=200, 2x margin over
+          the 100 budget cap so gate 5 fires under any prior accumulated
+          state).
+        - Snapshot-then-restore mirrors attachApproveTarget's shape
+          (docs/plans/reseller-module-goal.md tick 175 helper docs) —
+          delete order is (reseller_credit_grants → credit_transactions
+          → credit_balances restore) so the FK holder
+          (reseller_credit_grants.credit_transaction_id → credit_
+          transactions.id) is scrubbed before the row it references is
+          deleted. credit_balances is either UPSERTed back to the
+          snapshot when the row existed pre-attach OR deleted when the
+          route's UPSERT at route.ts:169-179 minted a fresh row. The
+          since cursor is captured immediately before restoreClosures.
+          push so a prior-run leak on the same (reseller, target) pair
+          stays intact and only THIS spec's writes get reaped.
+        - reseller_audit_log rows deliberately NOT swept — migration 0093
+          mutation triggers block DELETE/UPDATE (append-only ledger). The
+          helper's JSDoc calls this out inline so a future author who
+          adds an audit-log cleanup branch understands why the sweep
+          would fail before they try. Matches the audit-log-writes.spec.
+          ts posture where append-only accumulation is expected and the
+          `since` cursor is the append-only-safe way to scope counts.
+        - attachAttributedCustomer is called even though the grant
+          endpoint's scope resolves via reseller_attributions (scope.ts:
+          61-89) not via the app_users.attribution_reseller_id cache
+          column — matches the wave-2 row 145 attach recipe used by
+          drawer-authz.spec.ts + reveal-email-authz.spec.ts so a future
+          spec author reading three neighbouring happy-path specs sees
+          the same setup order (loadTempReseller → attachAttributedCustomer
+          → attachGrantSelfApprove → loginAs → POST → cleanup) and does
+          not accidentally omit the cache-column stamp on a spec whose
+          route DOES need it (e.g., co-branding pill checks).
+        - Skip-guard mirrors row 150 + 151 verbatim on the same three
+          fields (adminUserId + attributedUserId + attributionExists)
+          plus a null-guard on attachAttributedCustomer + attachGrantSelfApprove
+          returns (both return null on non-active-wholesale variants or
+          when adminUserId is missing) so under-provisioned hosts skip
+          cleanly rather than false-fail with a partial-fixture 500.
+        - No production code touched. Fixture + spec live under
+          web/tests/e2e/** — neither directory is scanned by R-01
+          (only /api/reseller/** files) or R-03 (only feature-gates.
+          manifest.ts routes) so the lint counts are unchanged.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: exit 0. New
+          AttachGrantSelfApproveResult interface resolves against the
+          existing TempResellerFixture shape; new attachGrantSelfApprove
+          method signature matches the interface's Promise<AttachGrantSelfApproveResult | null>
+          return type; spec imports resolve against the existing
+          `../fixtures/reseller` exports without new import lines.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 exemptions, 0 violations —
+          unchanged (edited files live under web/tests/** and neither
+          lint scans that directory).
+        - `npx vitest run src/lib/reseller` in web/: 29 files 449/449
+          pass (unchanged from tick 199 — reseller unit-test surface
+          never touches the Playwright fixture or spec directories).
+        - No DB apply this tick — no migration authored. Playwright run
+          against staging remains under the P10 provisioning gate
+          (needs the tick 198 seed re-run against staging per
+          finding-2 §Recommended fix step 1 — captured under P10
+          hardening exit criteria, not this tick).
+
+      Frontier after tick 200:
+        - Track A P8.5 STILL HUMAN-BLOCKED on
+          STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL.
+        - Track A P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20
+          ABN + GST.
+        - Track B COMPLETE.
+        - Row 152 now activated — will land as a fully-green Playwright
+          row on the next staging seed re-run under
+          QA_RESELLER_MULTI_ADMIN=1 + QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL
+          set. Skip on under-provisioned hosts (fixture.attributionExists=
+          false or attachGrantSelfApprove null).
+        - Rows 154 / 155 / 156 — same active_wholesale posture as row
+          152; each probes a distinct decideGrant branch or a downstream
+          side effect (audit-log write assertion via
+          countResellerAuditLogFor, mirror insert row-count assertion,
+          balance readback assertion after a chain of grants). All three
+          can now reuse attachGrantSelfApprove for cleanup.
+        - Row 157 (code-validate × paused × inactive 404) — still needs
+          an active promo mint on the paused variant so code-validate
+          hits status='inactive' rather than promo_missing.
+        - Row 175 approve(code_request) branch — still P8.5-blocked
+          (Stripe test-mode key required).
+        - Row 178 signup-jitter branch — still QA-mode-blocked.
+        - Row 182 SetupIntent happy — still P8.5-blocked.
+
+      Natural next pick for tick 201: activate row 154 by adding a
+      test.describe("Credit-grant × active_wholesale × audit-log-writes
+      — P10 wave-3 row 154") block to credit-grant-authz.spec.ts (OR to
+      audit-log-writes.spec.ts alongside the pre-existing wave-5 row 179
+      block). Use loadTempReseller("active_wholesale") +
+      attachAttributedCustomer + attachGrantSelfApprove({amount:5}) +
+      loadSupabaseAdmin + captureSince cursor + POST /api/reseller/
+      credits/grant → 200, then countResellerAuditLogFor({action:
+      "grant_credits", actorUserId: fixture.adminUserId, subjectUserId:
+      fixture.attributedUserId, since}) ≥ 1 so a route regression that
+      returned 200 without writing the audit row lights up. Follows the
+      wave-5 row 179 pattern verbatim so future audit-log rows land
+      through one canonical helper.
+    commit: (this tick)
+
   - tick: 199
     ran_at: 2026-07-22
     action: p10_wave3_rows_150_151_credit_grant_authz_activation
