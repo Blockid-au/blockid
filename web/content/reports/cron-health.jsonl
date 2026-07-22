@@ -1132,3 +1132,4 @@
 {"ts":"2026-07-22T20:15:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16442,"detail":""}
 {"ts":"2026-07-22T20:00:02Z","endpoint":"agent-research","status":"error","duration_ms":916137,"detail":"curl exit 28 (timeout or connection refused)"}
 {"ts":"2026-07-22T20:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":113,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
+{"ts":"2026-07-22T20:20:02Z","endpoint":"agent-guardian","status":"ok","duration_ms":1990,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 15, \"raw\": \"15% used (236206504 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (275004264 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
