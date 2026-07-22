@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.47
+version: 2026-07-23.48
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -214,7 +214,7 @@ tracks:
         files: [
           "web/src/app/api/reseller/me/route.ts (GET returns {ok, reseller: {code, display_name, logo_url, primary_color, billing_model}} from app_users.attribution_reseller_id → resellers join; graceful null when pre-P1.4 apply)",
           "web/src/hooks/useResellerAttribution.ts (60s TTL client hook mirroring useEntitlement pattern)",
-          "web/src/components/workspace/reseller-pill.tsx (topbar pill; renders null when loading/no-attribution)",
+          "web/src/components/workspace/reseller-pill.tsx (topbar pill; renders null when loading/no-attribution; tick 85 — useLocale() + COPY table so title flips to 'Được giới thiệu bởi' / 'qua' when blockid_lang=vi cookie present, matching the shared VI variant already in email-footer.ts)",
           "web/src/components/workspace/workspace-layout.tsx (wires <ResellerPill /> ahead of ConnectWalletButton in topbar)",
           "web/src/app/api/stripe/checkout/route.ts (looks up reseller.display_name; stamps subscription_data.description = 'Referred by X' for recurring + invoice_creation.invoice_data.custom_fields = [{name: 'Brought to you by', value: X}] for one-off)",
           "web/src/lib/reseller/email-footer.ts (pure locale-switched HTML + text helper; EN/VI; HTML-escapes displayName)",
@@ -227,7 +227,7 @@ tracks:
           "topbar pill at workspace-layout.tsx renders via <ResellerPill /> when useResellerAttribution() returns value (DONE)",
           "email footer helper locale-switched EN + VI available for welcome + receipt integration (DONE — pure helper; wiring into sendWelcomeWithReport + sendPaymentReceipt landed tick 71 via web/src/lib/reseller/email-attribution.ts resolver + one-line footer interpolation in each caller)",
           "Stripe invoice memo carries reseller name via subscription description + one-off custom_fields (DONE)",
-          "Playwright pill vs no-pill test — DEFERRED to P10_hardening (Playwright suite currently un-provisioned; P10 exit_criteria owns the E2E lens)"
+          "Playwright pill vs no-pill test — DEFERRED to P10_hardening (Playwright suite currently un-provisioned; P10 exit_criteria owns the E2E lens; tick 83 scaffolded web/tests/e2e/reseller/cobranding-pill.spec.ts with positive/negative rows; tick 85 dropped the VI locale test.skip() since the pill now consumes useLocale() and emits the shared 'Được giới thiệu bởi' variant)"
         ]
       P6_capabilities_sandbox:
         status: done
@@ -2559,6 +2559,87 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 85
+    ran_at: 2026-07-22
+    action: p5_cobranding_pill_i18n_and_playwright_vi_unblock
+    result: |
+      Autonomous tick composing option (iii) from tick 84's frontier note —
+      "widening reseller-pill.tsx to consume useLocale() so tick 83's VI
+      locale test.skip() row can drop its .skip()." Small orthogonal
+      content-tick, not gated by P10 or any human-blocked leaf; converts
+      one deferred Playwright row into a live assertion.
+
+      Files:
+        - web/src/components/workspace/reseller-pill.tsx (added `useLocale()`
+          import + `COPY: Record<Locale, { title: string; via: string }>` table
+          keyed en={"Introduced by", "via"} / vi={"Được giới thiệu bởi",
+          "qua"}. Title attribute now interpolates copy.title before the
+          display_name; the "via" span reads copy.via. Same wording as
+          web/src/lib/reseller/email-footer.ts so welcome-email footers +
+          topbar pill share one VI variant — no drift between the two
+          co-branding surfaces).
+        - web/tests/e2e/reseller/cobranding-pill.spec.ts (dropped the
+          test.skip() marker; the VI locale row is now an authored
+          Playwright case: seeds blockid_lang=vi cookie via context
+          .addCookies before loginAs + goto /workspace, asserts a
+          [title="Được giới thiệu bởi ${resellerDisplayName}"] locator is
+          visible and contains both the display name + /qua/i. Cookie host
+          derived from PLAYWRIGHT_BASE_URL/BASE_URL/DEMO_URL/https://
+          blockid.au — same fallback chain as playwright.config.ts:7-11 so
+          the spec works against staging + a dev harness pointing at
+          localhost).
+
+      Why now: tick 84 explicitly named this widening as an "orthogonal
+      content-tick, not gated by P10" and it's the only autonomous-loop
+      leaf currently satisfiable without either the DB-inspection helper
+      (blocks the two attribution-timing test.skip() rows) or human-
+      unblocks on P8.5 / H.20. The pill component was already the only
+      customer-facing reseller surface still hard-coded EN — every other
+      customer-visible string in /reseller/** consumes useLocale()
+      (credits/grant-form, customers/customer-drawer, customers/drawer-
+      opener, customers/reveal-email-cell, requests/requests-view,
+      settings/payment-method-form).
+
+      Deliberately out of scope for this tick:
+        - Service-role Supabase fixture that would flip the two
+          attribution-timing test.skip() rows (larger surface — needs
+          service-role key handling, QA-mode gate audit, cleanup
+          semantics).
+        - Widening the pill to consume the reseller's own
+          reseller.locale preference if we ever add one (product
+          decision; not on any current plan row).
+
+      Verified: tsc clean (npx tsc --noEmit exit 0 at web/); vitest
+      817/817 unchanged (the component change is UI-only — no vitest
+      coverage of reseller-pill.tsx existed before this tick and none
+      was authored this tick because the visual assertion lives at the
+      Playwright layer where the useLocale() cookie plumbing actually
+      executes); npm run lint:reseller: R-01 scanned 11 file(s), R-03
+      scanned 31 manifest route(s); 3 exemptions, 0 violations
+      unchanged (the pill lives at /components/workspace/, not
+      /api/reseller/**, and the spec lives at /tests/e2e/reseller/, so
+      neither R-01 nor R-03 fires). Playwright not run — the spec
+      still self-skips at describe-scope when
+      QA_RESELLER_DISPLAY_NAME is unset, which is the current CI
+      state; running it would only report the skip.
+
+      Frontier after tick 85: unchanged in shape — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5
+      clears. What tick 85 unblocks: the co-branding pill spec's VI
+      locale row now runs alongside the positive/negative rows the
+      instant the attributed-founder harness is provisioned — one
+      fewer deferred marker in the P10 Playwright surface. Next
+      autonomous tick options: (i) service-role Supabase fixture
+      that flips the two attribution-timing test.skip() rows (two
+      spec-row unblocks in one tick); (ii) audit-log write
+      assertion spec (plan Verification #5: viewing customer detail
+      writes a reseller_audit_log row — needs the same reseller
+      admin harness from tick 82 plus the DB helper); (iii) still
+      idle until human unblock arrives.
     commit: (this tick)
 
   - tick: 84
