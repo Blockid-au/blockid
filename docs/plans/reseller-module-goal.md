@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.152
+version: 2026-07-23.153
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,149 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 153
+    ran_at: 2026-07-22
+    action: p10_wave3_row_154_activate_sandbox_setup_active_wholesale_happy
+    result: |
+      Opens wave 3 per docs/plans/p10-deferred-spec-activation-order.md. One
+      row landed — the sandbox-setup-authz.spec.ts × active_wholesale × happy
+      branch (200 with body.ok true + body.project_id UUID; slug + name
+      additionally pinned when already_existed=false; already_existed=true
+      replay branch keeps assertions to the shared envelope so a dirty host
+      does not false-fail). Row 154 is the first row of the wave-3-
+      active_wholesale subwave (152 / 154 / 155 / 156) that tick 152's
+      preflight flagged as activation-ready today without any seed/fixture
+      delta. Rows 150 + 151 remain runtime-blocked on finding-2's seed +
+      fixture delta; row 153 remains struck out pending its removal tick.
+
+      Batching heuristic per schedule doc: row 154 is the ONLY wave-3 row
+      in sandbox-setup-authz.spec.ts (rows 152/155/156 sit in
+      credit-grant-validation.spec.ts / requests-authz.spec.ts /
+      requests-validation.spec.ts), so the "same file with the same variant"
+      clause does not permit further collapse. The wave-2 fixture posture
+      (loadTempReseller + adminEmail loginAs + fixture.cleanup in finally)
+      transfers into this spec unchanged; no fixture code touched this tick.
+
+      Files:
+        - web/tests/e2e/reseller/sandbox-setup-authz.spec.ts (imports
+          extended: added loadTempReseller + tempResellerSkipReason +
+          TempResellerFixture type-only import alongside the existing
+          loginAs import; added SANDBOX_SETUP_ROUTE constant so URL
+          construction stays canonical against the two describe blocks; new
+          test.describe block "Reseller sandbox-setup — P10 wave-3 happy
+          path" holds row 154; "Deliberately out of scope" comment updated —
+          the happy-path branch flipped from deferred-to-fixture-follow-up
+          to ACTIVATED with pointer at the new test + a note that wave-5
+          row 179 owns the audit-log side-effect contract while row 154
+          focuses on the wire envelope).
+        - docs/plans/p10-deferred-spec-activation-order.md ("Wave-3 row
+          154 landed (tick 153)" paragraph inserted above the tick 152
+          preflight note explaining the fresh-vs-replay branch, the
+          attribution-not-required rationale (sandbox is per-reseller, not
+          per-customer), the assertion budget (5 expects + 1 conditional
+          block), and pointing at rows 152 / 155 / 156 as the next natural
+          activations inside the wave-3-active_wholesale subwave).
+
+      Design fidelity:
+        - Idempotent-replay guard: sandbox-setup returns either
+          {ok:true, project_id, slug, name, already_existed:false} (fresh
+          insert path per route.ts:139-145) OR {ok:true, project_id,
+          already_existed:true} (idempotency short-circuit per route.ts:67-
+          74). Row 154 pins slug + name ONLY on the fresh branch; the
+          replay branch keeps assertions to the shared envelope (200 +
+          body.ok + typeof project_id + UUID regex). A dirty host without
+          afterEach cleanup still lands 200 + project_id, so the row does
+          not false-fail across runs while still catching a body.ok=false
+          or missing project_id regression.
+        - Cleanup contract: fixture.trackProjectForCleanup(body.project_id)
+          registers the freshly provisioned sandbox for afterEach cleanup
+          via fixture.cleanup() in the finally block. Next run through
+          this spec starts from an empty projects table for this reseller
+          (scope.sandboxProjectId() returns null again per scope.ts:91-96
+          when no projects row has reseller_sandbox_id = reseller_id), so
+          the assertion path re-enters the fresh-insert branch and
+          already_existed=false stays green across replays. If cleanup
+          fails to fire (e.g. tsc crash mid-test), the replay branch guard
+          keeps the row idempotent.
+        - Attribution NOT required: sandbox-setup reads scope.role +
+          scope.sandboxProjectId() + resellers.selfReseller() only. No
+          consultation of reseller_attributions, allowedCustomerIds(), or
+          any app_users lookup keyed by attributed customer id. That is
+          why the skip conditions omit the attributionExists / attributed
+          UserId guards that wave-2 rows 146-149 required — row 154 is
+          safe to run against ANY active variant whose adminUserId
+          resolves. Kept the skip on adminUserId null because
+          scopedReseller() would 403 no_membership before the sandbox
+          insert fires.
+        - Coverage-vs-duplication call: the wave-2 posture pinned mask-
+          vs-plaintext contracts across POST vs GET twins (rows 146/148).
+          Wave 3 does not have that twin structure at row 154 — this is
+          the ONLY happy-path row in the sandbox-setup file, and rows
+          152/155/156 sit in different files across different routes. So
+          no "leave the mask-safety assertion to the sibling row"
+          collapse applies here. The 5-expect budget is the natural
+          minimum: 200 status, body.ok, typeof project_id, UUID shape,
+          conditional slug + name for the fresh branch.
+        - UUID shape regex mirrors the shape used by
+          decideReveal(id, allowed) in scope.ts's decideReveal helper (the
+          same 8-4-4-4-12 hex canonical), so a route regression that
+          returned a non-UUID (e.g. a slug instead of project_id, or the
+          old numeric bigint from a stale migration) surfaces on the
+          regex assertion before slug/name are inspected. Case-insensitive
+          because supabase renders UUIDs lowercase but Playwright body
+          parsing does not force a case.
+        - Non-Stripe / non-GST discipline: sandbox-setup writes one
+          projects row + one reseller_audit_log(provision_sandbox) row.
+          No promotion_code lookup, no revenue_events read, no Stripe
+          network call, no InfoVision dependency. P8.5 + P1.5 remain
+          neither a dependency nor a consequence.
+
+      Verified:
+        - tsc: `npx tsc --noEmit` clean (no new type errors from the
+          added loadTempReseller/tempResellerSkipReason/TempResellerFixture
+          imports or the SANDBOX_SETUP_ROUTE constant).
+        - lint:reseller: 8 R-01 files + 28 R-03 routes with 3 exemptions,
+          0 violations — unchanged from tick 152 (the Playwright spec is
+          not under /api/reseller/** and does not touch feature-gates.
+          manifest.ts, so neither R-01 nor R-03 fires on the delta).
+        - No vitest run this tick — no pure-lib .ts code touched, only a
+          Playwright spec + one docs edit. Mirrors the tick 148-152
+          precedent verbatim.
+        - No DB apply this tick — no migration authored. Row 154 consumes
+          the wave-2 fixture posture that ticks 147-151 already validated
+          against staging.
+        - Goal file version bumped 2026-07-23.152 → 2026-07-23.153.
+
+      Frontier after tick 153: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision seed
+      STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE; P10 still
+      blocked_by [P1..P9] until P8.5 clears. What tick 153 unblocks: the
+      next tick can pick row 155 (requests-authz.spec.ts × active_wholesale
+      × happy POST 200 with over_budget code_request), row 156
+      (requests-validation.spec.ts × active_wholesale × happy GET 200
+      returns pending list), or row 152 (credit-grant-validation.spec.ts ×
+      active_wholesale × happy 200 with credit_transaction_id) — all three
+      sit inside the wave-3-active_wholesale subwave and each is
+      activation-ready today without any seed/fixture delta. Prefer row 152
+      next tick because it is the shortest path (single POST + assert the
+      credit_transaction_id shape + trackProjectForCleanup pattern isn't
+      even needed — credit_transactions rows are cheap and self-scoped).
+      Rows 150 + 151 stay test.skip() at runtime via the existing
+      tempResellerSkipReason guard until finding 2's seed + fixture delta
+      lands (recommend two separate ticks: seed delta first, fixture delta
+      second, then row 150 activation, then row 151 activation). Row 153
+      removal lands whenever the wave-3-active_wholesale subwave is done —
+      no urgency because the strikethrough already documents the removal
+      intent. Next autonomous tick options:
+        (i) activate row 152 (credit-grant-validation.spec.ts ×
+            active_wholesale × happy 200) — shortest wave-3 row remaining;
+        (ii) activate row 155 (requests-authz.spec.ts × active_wholesale
+             × happy POST 200) — extends the wave-3 subwave laterally;
+        (iii) activate row 156 (requests-validation.spec.ts ×
+              active_wholesale × happy GET 200) — pairs with row 155;
+        (iv) land finding 2's seed delta (edit seed-qa-reseller.mjs
+             main loop to seed attribution on no_capability + no_budget;
+             re-run seeder against staging) — unblocks rows 150 + 151.
   - tick: 152
     ran_at: 2026-07-22
     action: p10_wave3_preflight_finding_and_schedule_doc_inline_fix
