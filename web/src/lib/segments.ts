@@ -27,7 +27,7 @@ export type Segment =
 // (founder / investor / journalist) via migration 0067; P12.1 extends the
 // TypeScript-side surface with the seven persona buckets the admin
 // user-management dashboard needs to create + filter over. The database
-// CHECK constraint gets extended in P12.2 (migration 0101) so an insert
+// CHECK constraint gets extended in P12.2 (migration 0102) so an insert
 // against a value not in this list still fails at the DB layer if the
 // migration has not yet been applied on that host.
 export const ACCOUNT_TYPE_VALUES = [
