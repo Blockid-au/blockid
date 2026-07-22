@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.132
+version: 2026-07-23.133
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,116 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 133
+    ran_at: 2026-07-22
+    action: p10_temp_reseller_mint_storage_bucket_seeder_delta
+    result: |
+      Composed §4 of the P10 temp-reseller mint fixture design
+      (docs/plans/p10-temp-reseller-mint-fixture-design.md).
+      Landed web/scripts/seed-qa-reseller-storage.mjs as the
+      storage-bucket seeder for the private reseller-reports
+      bucket. Resolves reseller_id at runtime via a
+      `resellers.code = 'QAPROBEWHOLESALEACTIVE'` lookup — no
+      dependency on tick 132's --dry-run output. When §1's
+      parent row is missing the seeder exits with a friendly
+      pointer at seed-qa-reseller.mjs. §3 (Playwright fixture
+      wiring) is now the sole non-Playwright artefact remaining
+      from the design.
+
+      Files:
+        - web/scripts/seed-qa-reseller-storage.mjs (new,
+          executable — ESM, direct @supabase/supabase-js client
+          via SUPABASE_SERVICE_ROLE_KEY, #!/usr/bin/env node
+          shebang, chmod +x applied. Builds a §4-shaped CSV
+          blob whose CSV_HEADER mirrors
+          web/src/lib/reseller/monthly-report.ts CSV_HEADER so
+          the fixture body stays shape-compatible with what the
+          reseller signed-URL route serves in production.
+          Storage path is <reseller_id>/<month_key>.csv keyed
+          into the reseller-reports bucket (matches
+          web/src/lib/reseller/report-storage.ts
+          buildStoragePath). Uploads with contentType='text/csv'
+          + upsert:true so re-runs replace the object in place.
+          Metadata upsert onto reseller_report_files is keyed
+          on (reseller_id, month_key) — the UNIQUE constraint
+          from migration 0097 — so re-run against unchanged
+          state is a no-op stamp bump. Flags: --dry-run /
+          --reset (cascades storage.remove + delete metadata
+          rows for the entire QAPROBE% cohort in one pass) /
+          --month <YYYY-MM> / --reseller-code <code> with a
+          QAPROBE% prefix guard so a stray real reseller code
+          cannot land as the parent. --reset guard walks
+          reseller_report_files first, gathers storage_path
+          into a batch, then runs storage.remove([...paths])
+          before deleting the metadata rows so orphan objects
+          never remain if the metadata delete fails.)
+
+      Design deviations captured inline (none material):
+        - §4 quotes a static `2026-07` in the sample CSV
+          content. Seeder defaults to the current UTC
+          month_key so re-runs at different calendar months
+          land a fresh row rather than stomping the July
+          fixture (Playwright happy-path resolves
+          --month=$(node -pe 'new Date().toISOString().slice(0,7)')
+          in CI). Design's literal `2026-07` value is
+          reachable via `--month 2026-07`.
+        - §4 quotes a 3-column mini-CSV. Seeder uses the real
+          13-column CSV_HEADER so the fixture blob is
+          shape-compatible with the production monthly-report
+          format. Playwright happy path only asserts the
+          Content-Type header + a well-formed CSV body, so
+          the wider column set is a no-op for the E2E
+          coverage but future-proofs the fixture for
+          column-drift regression tests.
+
+      Verified:
+        - node --check web/scripts/seed-qa-reseller-storage.mjs
+          exit=0 (syntax clean, no top-level parse errors).
+        - chmod +x applied so the shebang works at
+          `./web/scripts/seed-qa-reseller-storage.mjs
+          --dry-run`.
+        - No DB apply this tick — the script is authored but
+          not run against staging/prod. Follow-up tick invokes
+          --dry-run against staging first, then a live seed
+          once §1's parent reseller row is confirmed present.
+        - npm run lint:reseller unchanged — the file lives at
+          web/scripts/, not /api/reseller/**, so R-01 does not
+          fire; no feature-gates.manifest entry so R-03 does
+          not fire either.
+        - tsc unaffected — .mjs file outside the tsconfig.json
+          include glob.
+        - No vitest suite added — the seeder is thin wiring
+          over already-tested Supabase client + storage
+          primitives; the Playwright fixture wiring (§3) will
+          exercise the full end-to-end blob lifecycle when
+          that tick lands.
+
+      REMAINING P10 §-artefacts:
+        - §3 Playwright fixture wiring (web/tests/e2e/
+          fixtures/reseller.ts extension with loadTempReseller
+          () + TempResellerFixture + ResellerVariant type
+          union). Gated on human review of the mint script
+          row-set landing first per tick 130's frontier note;
+          §1 + §2 + §4 + §5 are now all shipped so the row
+          shapes are frozen and §3 can pin the variant name
+          union without a moving target.
+
+      Frontier after tick 133: shape unchanged — Track A
+      P8.5 STILL HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_
+      MGMT_MONTHLY|ANNUAL; P1.5 InfoVision seed STILL HUMAN-
+      BLOCKED on H.20 ABN + GST; Track B COMPLETE; P10 still
+      blocked_by [P1..P9] until P8.5 clears. What tick 133
+      unblocks: the P10 signed-URL happy-path Playwright row
+      can now resolve its fixture blob against a real object
+      under reseller-reports/<reseller_id>/<month_key>.csv
+      once §3 wiring lands + CI invokes the seeder. Next
+      autonomous tick options: (i) ship §3 Playwright fixture
+      wiring (deps §1 + §2 + §4 + §5 = all four now shipped;
+      only gate remaining is human review of the combined
+      row-set before the TypeScript variant name union pins);
+      (ii) idle until human unblock arrives on P8.5 or P1.5.
+    commit: (this tick)
+
   - tick: 132
     ran_at: 2026-07-22
     action: p10_temp_reseller_mint_qa_account_seeder_delta
