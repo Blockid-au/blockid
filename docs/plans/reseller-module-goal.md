@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.177
+version: 2026-07-23.178
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,123 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 178
+    ran_at: 2026-07-22
+    action: p10_wave5_row_183_billing_validation_active_wholesale_invalid_json_activated
+    result: |
+      Fifteenth wave-5 landing per docs/plans/p10-deferred-spec-activation-
+      order.md — activated row 183 (`billing-validation.spec.ts` ×
+      `active_wholesale` × invalid_json non-Stripe validator branch on
+      /api/reseller/billing/save-default-payment-method → 400 {reason:
+      "invalid_json"}). Twin coverage alongside the pre-existing
+      loadResellerHarness-based describe; the new describe uses
+      loadTempReseller('active_wholesale') + fixture.adminEmail so a
+      QAPROBE-cohort host (per seed-qa-reseller.mjs with
+      QA_RESELLER_MULTI_ADMIN=1) hits the same route.ts:68-76
+      request.json() catch without setting QA_RESELLER_ADMIN_EMAIL.
+      Simplest wave-5 activation shape — no attachAttributedCustomer, no
+      attachReportRow, no projects lookup — because the invalid_json
+      branch fires BEFORE isStripeConfigured / selfReseller /
+      saveResellerDefaultPaymentMethod / reseller_audit_log ever touch
+      state.
+
+      Files:
+        - web/tests/e2e/reseller/billing-validation.spec.ts (header block
+          extended with an "ACTIVATED wave-5 row 183" paragraph naming
+          the mirror-shape relationship to row 181 scope-boundary tick
+          177 and the simplest-possible-fixture-usage rationale; imports
+          extended with `loadTempReseller` + `tempResellerSkipReason` +
+          `TempResellerFixture` from fixtures/reseller. Appended
+          `test.describe("Reseller billing input validation — P10
+          wave-5 row 183 happy path")` block after the pre-existing
+          harness-based describe. Inside the new block: `test.beforeAll`
+          loads the active_wholesale fixture and captures any load error;
+          `test.afterAll` runs fixture.cleanup() and bubbles cleanup
+          failure per row 181 posture; the single test asserts 400 +
+          body.ok=false + body.reason='invalid_json' after loginAs(fixture
+          .adminEmail) + POST with raw non-JSON payload. Skip discipline
+          collapses to two conditions — fixtureError/fixture null and
+          adminUserId null — because the route is self-scope so
+          attributedUserId / attributionExists are not required.
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.177 → 2026-07-23.178; this review_history entry
+          prepended).
+
+      Design fidelity:
+        - Variant pin matches plan §974 (`active_wholesale`) — the
+          reseller-admin session for QAPROBEWHOLESALEACTIVE lands with
+          role=owner/admin so canProvisionSandbox(scope.role) does NOT
+          short-circuit at 403 insufficient_role before request.json()
+          fires. Route ordering (route.ts:47-76) confirmed:
+          gateRequireFeature → scopedReseller → canProvisionSandbox →
+          request.json(). All three pre-body gates must pass for the
+          invalid_json branch to surface; a QAPROBE cohort admin
+          satisfies each per seed-qa-reseller.mjs.
+        - Content-type header set to application/json so the Playwright
+          request framework does not silently coerce the raw string
+          payload into form-urlencoded — matches the pre-existing
+          describe's row verbatim so a side-by-side diff shows only the
+          fixture-vs-harness split.
+        - loginAs wrapped in try/catch so a missing password entry in
+          /tmp/blockid-qa-accounts.txt reports the exact reseed command
+          rather than the raw fixture throw — matches the row 181
+          posture from tick 177.
+        - Expected error message widened in the assertion body to name
+          each of the three plausible pre-body-gate failures (401 seed
+          not landed / 402 feature_locked / 403 insufficient_role) so a
+          regression names the exact gate that leaked instead of a
+          bare "expected 400" message. Twin of row 152's diagnostic-
+          error message posture from tick 155.
+        - beforeAll/afterAll shape mirrors row 181 rather than the row
+          152 inline try/catch shape because this activation adds an
+          entire describe block with fixture lifecycle; using
+          beforeAll/afterAll keeps a future twin-test row (e.g. adding
+          a second validation branch to the same describe) trivial to
+          append.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0). The three new
+          imports (loadTempReseller + tempResellerSkipReason +
+          TempResellerFixture) all resolve against existing exports in
+          fixtures/reseller.ts.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files,
+          R-03 scanned 31 manifest routes, 3 documented exemptions,
+          0 violations — unchanged from tick 177 (the spec is not
+          under /api/reseller/** for the R-01 grep and is not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - No DB apply this tick — no migration authored.
+        - Goal file version bumped 2026-07-23.177 → 2026-07-23.178.
+
+      Frontier after tick 178: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision
+      seed STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE;
+      P10 still blocked_by [P1..P9] until P8.5 clears. Wave 5 has now
+      landed 164 + 167 + 168 + 169 + 170 + 171 + 172 + 173 + 174 +
+      175 (deny+cancel) + 176 + 179 + 180 + 181 + 183. Natural next
+      picks:
+        (i) row 182 (`billing-authz.spec.ts` × active_wholesale ×
+             happy 200 with SetupIntent client_secret — still deferred
+             on the Stripe SetupIntent mint side effect + reseller_
+             audit_log(mint_setup_intent) write, which need a
+             stripe-test-mode key or a QA-only mock harness; row 182
+             is the last "happy path" row and remains the primary
+             deferred candidate);
+        (ii) row 178 attribution-timing wave-5 activation — needs a
+              fresh unattributed founder QA seed row (the fixture
+              would need a snapshot/restore of
+              app_users.attribution_reseller_id similar to
+              attachAttributedCustomer());
+        (iii) row 177 (`showcase-reviews-validation.spec.ts` × active_
+               wholesale × reviewer-flow POST — still deferred on the
+               seeded data_room_access_tokens dependency per plan
+               §J.2);
+        (iv) row 165 (`admin-resellers-create-authz.spec.ts` × happy
+              201 — still deferred on the "reseller INSERT poisoning"
+              design question; needs afterAll DELETE cleanup for the
+              mint OR a pre-provisioned code-slot the harness can
+              idempotently UPSERT into).
+    commit: (this tick)
+
   - tick: 177
     ran_at: 2026-07-22
     action: p10_wave5_row_181_scope_boundary_active_wholesale_happy_activated

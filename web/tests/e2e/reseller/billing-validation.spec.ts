@@ -75,10 +75,33 @@
 // reveal-email → reveal-email-validation split (route has post-scope
 // validators) vs. me → me-attribution (no post-scope validators, single spec
 // file).
+//
+// ACTIVATED wave-5 row 183 below (temp-reseller mint fixture route via
+// loadTempReseller('active_wholesale')). The pre-existing describe covers
+// the env-based loadResellerHarness contract for hosts that hold the
+// QA_RESELLER_ADMIN_EMAIL env-var; the new describe covers the QAPROBE
+// cohort (per seed-qa-reseller.mjs with QA_RESELLER_MULTI_ADMIN=1) so a
+// spec-worker that never sets QA_RESELLER_ADMIN_EMAIL still exercises the
+// same invalid_json branch. Both blocks assert the identical invariant
+// (malformed JSON body → 400 { reason:"invalid_json" } BEFORE the Stripe/DB/
+// audit chain fires) so a regression in the request.json() catch, in
+// gateRequireFeature ordering, in scopedReseller ordering, or in
+// canProvisionSandbox ordering lights up on either path. Mirror-shape of
+// wave-5 row 181 (scope-boundary twin describe tick 177) but with the
+// simplest possible fixture usage — no attachAttributedCustomer, no
+// attachReportRow, no projects lookup, because request.json() rejects at
+// route.ts:68-76 before the endpoint ever reads reseller state or the
+// attributed customer graph.
 
 import { test, expect } from "@playwright/test";
 import { loginAs } from "../fixtures/accounts";
-import { harnessSkipReason, loadResellerHarness } from "../fixtures/reseller";
+import {
+  harnessSkipReason,
+  loadResellerHarness,
+  loadTempReseller,
+  tempResellerSkipReason,
+  type TempResellerFixture,
+} from "../fixtures/reseller";
 
 const ROUTE = "/api/reseller/billing/save-default-payment-method";
 
@@ -106,6 +129,101 @@ test.describe("Reseller billing input validation — P10 dry-run", () => {
     expect(
       body.ok,
       `invalid_json body.ok should be false: ${JSON.stringify(body)}`,
+    ).toBe(false);
+    expect(body.reason).toBe("invalid_json");
+  });
+});
+
+// Wave-5 row 183 — save-default-payment-method invalid_json branch driven via
+// the temp-reseller mint fixture's active_wholesale variant. Twin of the pre-
+// existing describe: uses fixture.adminEmail (P10 Option A per-variant slot)
+// instead of the env-based QA_RESELLER_ADMIN_EMAIL, so a QAPROBE-cohort host
+// covers the branch without setting either QA_* env var. Fixture wiring is
+// intentionally minimal — no attachAttributedCustomer, no attachReportRow, no
+// projects lookup — because request.json() rejects at route.ts:68-76 BEFORE
+// isStripeConfigured, selfReseller, saveResellerDefaultPaymentMethod, or the
+// reseller_audit_log(save_default_payment_method) row are touched. Two skip
+// conditions:
+//   1. fixture null / fixtureError → tempResellerSkipReason.
+//   2. fixture.adminUserId null → per-variant admin app_users row missing.
+// attributedUserId + attributionExists are NOT checked because this route
+// operates on self-scope (the reseller's own Stripe Customer), not on an
+// attributed customer's records — the auth chain never touches
+// scopedReseller().allowedCustomerIds(). Mirror-shape follows the row-181
+// scope-boundary posture (beforeAll fixture load + afterAll cleanup) so a
+// side-by-side diff against scope-boundary.spec.ts shows only the branch
+// difference (single invalid_json probe vs. the four scope-refusal probes).
+test.describe("Reseller billing input validation — P10 wave-5 row 183 happy path", () => {
+  let fixture: TempResellerFixture | null = null;
+  let fixtureError: string | null = null;
+
+  test.beforeAll(async () => {
+    try {
+      fixture = await loadTempReseller("active_wholesale");
+    } catch (err) {
+      fixtureError = (err as Error).message;
+    }
+  });
+
+  test.afterAll(async () => {
+    if (fixture) {
+      try {
+        await fixture.cleanup();
+      } catch (err) {
+        // Bubble so a partial cleanup fails the run rather than leaking
+        // fixture state into the next spec worker. Matches row 181 posture.
+        throw new Error(
+          `wave-5 row 183 cleanup failed: ${(err as Error).message}`,
+        );
+      }
+    }
+  });
+
+  test("active_wholesale — save-default-payment-method invalid_json POST as reseller-admin returns 400 invalid_json", async ({
+    page,
+  }) => {
+    if (fixtureError) {
+      test.skip(true, `${tempResellerSkipReason("active_wholesale")} (${fixtureError})`);
+      return;
+    }
+    if (!fixture) {
+      test.skip(true, tempResellerSkipReason("active_wholesale"));
+      return;
+    }
+    if (!fixture.adminUserId) {
+      test.skip(
+        true,
+        `${tempResellerSkipReason("active_wholesale")} — reseller-admin app_users row missing for ${fixture.adminEmail}. Run seed-test-users.mjs with QA_RESELLER_MULTI_ADMIN=1 to populate the per-variant admin row.`,
+      );
+      return;
+    }
+
+    try {
+      await loginAs(page, fixture.adminEmail);
+    } catch (err) {
+      test.skip(
+        true,
+        `Reseller-admin QA account not seeded for variant='active_wholesale' (${fixture.adminEmail}): ${(err as Error).message}. Run scripts/seed-test-users.mjs with QA_RESELLER_MULTI_ADMIN=1 to populate /tmp/blockid-qa-accounts.txt.`,
+      );
+      return;
+    }
+
+    // Raw non-JSON payload identical to the pre-existing describe's row so a
+    // regression in the request.json() catch surfaces on either path. Content-
+    // type header set to application/json so the framework does not silently
+    // coerce the payload into form-urlencoded.
+    const resp = await page.request.post(ROUTE, {
+      data: "not-json-{",
+      headers: { "content-type": "application/json" },
+    });
+    expect(
+      resp.status(),
+      `active_wholesale + invalid_json returned ${resp.status()} — expected 400 before stripe.setupIntents.retrieve, invoice_settings.default_payment_method update, stripe_default_payment_method_id persist, or reseller_audit_log(save_default_payment_method) write. A 401 here means the QAPROBE cohort's reseller-admin session did not land (investigate seed-qa-reseller.mjs output + /tmp/blockid-qa-accounts.txt). A 402 feature_locked means the QAPROBE cohort's admin lacks the reseller.console entitlement (investigate seed-qa-reseller.mjs entitlements insert). A 403 insufficient_role means canProvisionSandbox rejected the seeded role (should be owner/admin per seed). Body: ${await resp.text()}`,
+    ).toBe(400);
+    const body = (await resp.json()) as { ok: boolean; reason?: string };
+    expect(
+      body.ok,
+      `active_wholesale + invalid_json body.ok should be false: ${JSON.stringify(body)}`,
     ).toBe(false);
     expect(body.reason).toBe("invalid_json");
   });
