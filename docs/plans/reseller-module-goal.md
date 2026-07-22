@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.168
+version: 2026-07-23.169
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,149 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 169
+    ran_at: 2026-07-22
+    action: p10_wave5_row_168_admin_reseller_detail_validation_happy_activated
+    result: |
+      Sixth wave-5 landing per docs/plans/p10-deferred-spec-activation-
+      order.md — activated row 168 (`admin-reseller-detail-validation.spec.ts`
+      × `active_wholesale` × happy 200 with detail payload). Closes the
+      third row of that spec's contract table (code_required / not_found /
+      happy → 400 / 404 / 200); the two reject branches were already
+      harness-free at tick 104. Twin of row 167 tick 168 — same endpoint,
+      same fixture wiring, same coverage-vs-duplication call — kept in
+      this file so a future tightening of the pre-read validators cannot
+      silently reject well-formed admin GETs. Consumes both
+      loadAdminHarness() (qa-admin-1@blockid.au from tick 130) and
+      loadTempReseller('active_wholesale') (QAPROBEWHOLESALEACTIVE seed
+      row) that opened wave 5 at ticks 147/160 — no new fixture code.
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-detail-validation.spec.ts
+          (header block updated: the "Deliberately out of scope" bullet
+          for happy 200 now points at wave-5 row 168 and cross-links to
+          row 167 as the twin lens; imports extended with `loadTempReseller`
+          + `tempResellerSkipReason` + `TempResellerFixture` from
+          `../fixtures/reseller`; added module-scope UUID_RE +
+          BILLING_MODELS + STATUSES constants mirroring the row-164
+          list-authz + row-167 detail-authz specs so the three admin
+          reseller-shape probes stay in lockstep; appended
+          `test.describe("Admin reseller GET input validation — P10
+          wave-5 row 168 happy path")` block after the pre-existing
+          CASES-driven code_required + not_found describe. Inside the
+          new block: loadAdminHarness() + loadTempReseller(
+          'active_wholesale') + loginAs(harness.admin.email) + GET
+          /api/admin/resellers/<fixture.code.toLowerCase()> + assertions
+          on 200, body.ok=true, reseller {id UUID, code === fixture.code
+          uppercased, display_name string, billing_model ∈ {retail,
+          wholesale}, status ∈ {active, paused, terminated}}, Array.
+          isArray on the four Promise.all outputs + per-row shape pins
+          on promotion_codes (id UUID, tier_pct number, code string) +
+          admins (id UUID, user_id UUID, role string, status string) +
+          attributions_summary {total number, active number, by_source
+          plain object}. No array-length pins so the row is idempotent
+          under CI replay across fresh + seeded hosts.
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.168 → 2026-07-23.169; this review_history entry
+          prepended).
+
+      Design fidelity:
+        - Skip discipline mirrors tick 168 row 167 verbatim: harness-
+          level skip via test.skip(!harness, adminHarnessSkipReason())
+          at describe scope, then three test-scope skips around
+          loadTempReseller null vs throw and loginAs throw. Each skip
+          carries the exact seeder command so a fresh CI host sees the
+          fix path.
+        - URL lowercasing: fixture.code is stored uppercase
+          (QAPROBEWHOLESALEACTIVE) in resellers.code because
+          normaliseResellerCode(attribution.ts:25-29) uppercases +
+          alnum-strips before insertion. The [code] URL segment
+          convention uses lowercase for aesthetics; the server re-
+          uppercases via the same normaliseResellerCode inside the GET
+          handler before the resellers SELECT. The spec passes the
+          lowercased form so URL matches the browser convention AND
+          asserts the RESPONSE `reseller.code` equals the uppercased
+          form — a regression that changed either the lowercase URL
+          contract or the uppercase DB storage would surface as a
+          mismatched assertion.
+        - Reseller-admin scope NOT loaded: we log in as the ADMIN
+          (qa-admin-1@blockid.au from loadAdminHarness), NOT as the
+          per-variant reseller-admin. The requireAdmin() gate is an
+          independent auth dimension from scopedReseller(), so
+          fixture.adminUserId being null (partial-seed hosts where the
+          multi-admin cohort seeder never ran) does NOT gate this test.
+          Same posture as row 164 / row 167 / row 173 which log in as
+          the platform admin, not the reseller-admin.
+        - Twin coverage posture: row 167 pins the DETAIL envelope from
+          admin-reseller-detail-authz.spec.ts; row 168 pins the same
+          DETAIL envelope from admin-reseller-detail-validation.spec.ts.
+          Both specs assert the same {ok, reseller, promotion_codes,
+          admins, attributions_summary, commissions} shape but from
+          different lenses — row 167 lives in the file that gates on
+          the requireAdmin() surface, row 168 lives in the file that
+          gates on the normaliseResellerCode + loadReseller pre-read
+          validators. A route refactor that swapped normaliseResellerCode
+          for a bespoke check would light up in both specs; a refactor
+          that changed the DETAIL envelope would also light up in both.
+        - Array-length silence: none of promotion_codes / admins /
+          attributions_summary.total / commissions have their length
+          pinned. Reason mirrors row 167 verbatim — seeder volume
+          varies per host: active_wholesale seeds tiers 20+40
+          promotion_codes (2 rows) plus 1 per-variant reseller_admins
+          row when MULTI_ADMIN is on (or 0 when it's not),
+          attributions_summary.total varies with whether the
+          attributed-founder was planted, and
+          reseller_commissions_current holds only rows from P3 webhook
+          accrual which may not have fired on fresh CI. Per-row shape
+          pins catch column-drift regressions without depending on
+          seed cardinality.
+        - Non-Stripe / non-GST discipline preserved: the GET route
+          reads resellers + reseller_promotion_codes + reseller_admins
+          + reseller_attributions + reseller_commissions_current only.
+          No Stripe network call, no InfoVision dependency, no
+          revenue_events read. Net side-effect budget per CI pass: 0
+          writes.
+        - No fixture cleanup wiring: read-only GET so
+          fixture.trackProjectForCleanup / fixture.cleanup() are
+          intentionally NOT called. The row is safe against parallel
+          CI workers because no shared state is mutated. Same idempotent
+          posture as row 167 / row 164 / row 173.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0, no output).
+          The three new imports resolve against the existing exports in
+          fixtures/reseller.ts (loadTempReseller, tempResellerSkipReason,
+          TempResellerFixture).
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 documented exemptions, 0
+          violations — unchanged from tick 168 (the spec is not under
+          /api/reseller/** for the R-01 grep and is not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - No DB apply this tick — no migration authored.
+        - Goal file version bumped 2026-07-23.168 → 2026-07-23.169.
+
+      Frontier after tick 169: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision seed
+      STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE; P10 still
+      blocked_by [P1..P9] until P8.5 clears. Wave 5 read-only rows have
+      now landed 164 (list) + 167 (detail authz) + 168 (detail
+      validation happy) + 173 (loop-status) + 174 (admin-requests-list)
+      + 175 deny+cancel (admin-requests-patch two branches). Natural
+      next picks:
+        (i) row 172 (`admin-reseller-delete-validation.spec.ts` ×
+             active_wholesale × code_required + happy — happy branch
+             writes status=terminated so needs cleanup afterEach; can
+             target the pre-existing `terminated` variant so the happy
+             branch is idempotent);
+        (ii) row 176 (`showcase-reviews-authz.spec.ts` × active_wholesale
+              × founder-scoped GET happy 200 — requires the attributed-
+              founder session, not the reseller-admin or the platform
+              admin);
+        (iii) row 178 attribution-timing — needs new founder QA seed;
+        (iv) row 181 scope-boundary — requires attributed customer state
+             planted so the reseller-admin gets 403 not_in_scope on
+             /api/svi/*, /api/dataroom/*, /api/cap-table/*.
+
   - tick: 168
     ran_at: 2026-07-22
     action: p10_wave5_row_167_admin_reseller_detail_authz_happy_activated

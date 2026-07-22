@@ -47,11 +47,17 @@
 // Deliberately out of scope (needs a seeded resellers row which plan §J.2
 // forbids per-test or would poison every other admin-facing spec in the same
 // worker):
-//   - Happy path (200) — reads a real resellers row + fans out into the four
-//     related-rows Promise.all which returns promotion_codes / admins /
-//     attributions_summary / commissions payloads. Folded into the temp-
-//     reseller mint fixture follow-up alongside the deferred rows from
-//     ticks 94..125.
+//   - Happy path (200) — ACTIVATED wave-5 row 168 below via
+//     loadAdminHarness() (qa-admin-1@blockid.au) + loadTempReseller(
+//     'active_wholesale') (fetches the QAPROBEWHOLESALEACTIVE seed row).
+//     Reads real resellers + reseller_promotion_codes + reseller_admins +
+//     reseller_attributions + reseller_commissions_current rows for the
+//     variant — pins envelope shape without pinning any array lengths so
+//     the row is idempotent under CI replay across fresh + seeded hosts.
+//     Twin of row 167 (admin-reseller-detail-authz happy 200) — same
+//     endpoint, same fixture wiring, same coverage-vs-duplication call.
+//     Kept in this spec so a refactor of the pre-read validators does not
+//     accidentally reject well-formed happy calls.
 //   - not_configured (503) — needs SUPABASE_URL/SERVICE_ROLE unset which
 //     would break every other Playwright spec in the same worker.
 //   - query_failed (500) — needs a broken resellers SELECT which requires
@@ -70,10 +76,21 @@
 
 import { test, expect } from "@playwright/test";
 import { loginAs } from "../fixtures/accounts";
-import { adminHarnessSkipReason, loadAdminHarness } from "../fixtures/reseller";
+import {
+  adminHarnessSkipReason,
+  loadAdminHarness,
+  loadTempReseller,
+  tempResellerSkipReason,
+  type TempResellerFixture,
+} from "../fixtures/reseller";
 
 const PROBE_CODE = "qa-probe-should-not-persist";
 const ALL_PUNCT_CODE = "---";
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const BILLING_MODELS = new Set(["retail", "wholesale"]);
+const STATUSES = new Set(["active", "paused", "terminated"]);
 
 interface ValidationCase {
   label: string;
@@ -123,4 +140,222 @@ test.describe("Admin reseller GET input validation — P10 dry-run", () => {
       ).toBe(c.expectedReason);
     });
   }
+});
+
+// P10 wave-5 row 168 happy path — active_wholesale variant + admin harness →
+// 200 with detail payload. Per docs/plans/p10-deferred-spec-activation-order.md
+// wave 5:
+//   168 | admin-reseller-detail-validation.spec.ts | active_wholesale |
+//         code_required / not_found / happy | 400 / 404 / 200
+//
+// The code_required (400) + not_found (404) branches above are harness-free
+// (they short-circuit before loadReseller fires). This block closes the
+// third row in the same file's contract table — the control 200 that
+// proves the two reject branches above genuinely reject on their specific
+// validator logic and not on a stale auth or a broken URL contract.
+//
+// Twin of row 167 (admin-reseller-detail-authz happy 200 tick 168). The
+// two happy-path activations pin the same endpoint from two spec files so
+// a route refactor that changes the DETAIL envelope surfaces in both on
+// the next `npx playwright test` run. Kept in this spec so a future
+// tightening of the pre-read validators cannot silently reject well-formed
+// admin GETs — the happy row runs in the same file as the reject rows.
+//
+// Route reference: web/src/app/api/admin/resellers/[code]/route.ts
+//   Line 21-32:  gate() — getCurrentUser + requireAdmin → 401 no_user / not_admin (row 167 authz)
+//   Line 47-56:  code normalisation → 400 code_required (row 168 above)
+//   Line 58-70:  loadReseller → 404 not_found / 503 / 500 (row 168 above)
+//   Line 74-97:  Promise.all — reseller_promotion_codes + reseller_admins +
+//                reseller_attributions + reseller_commissions_current
+//   Line 113-120: 200 { ok, reseller, promotion_codes, admins,
+//                       attributions_summary: {total, active, by_source},
+//                       commissions }
+//
+// Fixture wiring:
+//   - loadAdminHarness() resolves qa-admin-1@blockid.au — a real admin
+//     session so requireAdmin() returns without throwing.
+//   - loadTempReseller('active_wholesale') reads the QAPROBEWHOLESALEACTIVE
+//     seed row so fixture.code is the real DB code. adminUserId is NOT
+//     needed here because we log in as the ADMIN, not the reseller-admin
+//     for the variant — the admin gate is independent of scopedReseller().
+//
+// Skip conditions:
+//   - loadAdminHarness returns null (QA_ADMIN_EMAIL unset or not seeded).
+//   - loadTempReseller returns null (SUPABASE_URL / SUPABASE_SERVICE_ROLE_
+//     KEY unset or QAPROBEWHOLESALEACTIVE seed row missing).
+//   - loginAs throws when /tmp/blockid-qa-accounts.txt has no row for the
+//     resolved admin email.
+//
+// State-pollution posture: read-only GET — no INSERT / UPDATE / DELETE
+// fires from this endpoint. Idempotent under CI replay. No fixture
+// cleanup wiring because the fixture only reads existing seed rows.
+//
+// Coverage-vs-duplication call: pin 200 + body.ok=true + reseller shape
+// (id UUID, code === fixture.code uppercased, display_name string,
+// billing_model ∈ {retail, wholesale}, status ∈ {active, paused,
+// terminated}) + Array.isArray on the four related-rows arrays +
+// attributions_summary { total: number, active: number, by_source:
+// object }. Do NOT pin ANY array length — promotion_codes may hold 0-3
+// rows (tiers 20 + 40 seeded for active_wholesale + optional admin
+// mints); admins holds ≥1 (per-variant reseller_admins row when the
+// multi-admin cohort seeder ran) or 0 otherwise; commissions may be
+// empty on fresh CI or ≥1 on hosts where P3 webhook accrual has fired;
+// attributions_summary.total varies with whether the attributed-founder
+// seed has been planted. Per-row shape pins on promotion_codes + admins
+// catch a route regression that dropped a column from the SELECT list
+// (route.ts:75-77 lists the exact column set) without depending on
+// seed volume.
+//
+// Non-Stripe / non-GST discipline: reads resellers +
+// reseller_promotion_codes + reseller_admins + reseller_attributions +
+// reseller_commissions_current only. No Stripe network call, no
+// InfoVision dependency, no revenue_events read. P8.5 + P1.5 remain
+// neither a dependency nor a consequence.
+test.describe("Admin reseller GET input validation — P10 wave-5 row 168 happy path", () => {
+  const harness = loadAdminHarness();
+  test.skip(!harness, adminHarnessSkipReason());
+
+  test("active_wholesale — GET with well-formed code as qa-admin-1 returns 200 with detail payload", async ({
+    page,
+  }) => {
+    let fixture: TempResellerFixture | null;
+    try {
+      fixture = await loadTempReseller("active_wholesale");
+    } catch (err) {
+      test.skip(
+        true,
+        `loadTempReseller('active_wholesale') threw: ${(err as Error).message}. ` +
+          tempResellerSkipReason("active_wholesale"),
+      );
+      return;
+    }
+    if (!fixture) {
+      test.skip(true, tempResellerSkipReason("active_wholesale"));
+      return;
+    }
+    try {
+      await loginAs(page, harness!.admin.email);
+    } catch (err) {
+      test.skip(
+        true,
+        `Admin QA account not seeded: ${(err as Error).message}. Run ` +
+          `scripts/seed-test-users.mjs to populate /tmp/blockid-qa-accounts.txt.`,
+      );
+      return;
+    }
+
+    const detailRoute = `/api/admin/resellers/${fixture.code.toLowerCase()}`;
+    const resp = await page.request.get(detailRoute);
+    expect(
+      resp.status(),
+      `active_wholesale + happy GET returned ${resp.status()} — expected 200 after requireAdmin() passes, normaliseResellerCode accepts the fixture code, and loadReseller resolves the QAPROBEWHOLESALEACTIVE row. A 400 code_required means the fixture code was rejected by normalisation (attribution.ts:25-29). A 404 not_found means the seed row is missing (run seed-qa-reseller.mjs). A 5xx means one of the four Promise.all SELECTs failed (route.ts:74-97). Body: ${await resp.text()}`,
+    ).toBe(200);
+
+    const body = (await resp.json()) as {
+      ok?: unknown;
+      reseller?: {
+        id?: unknown;
+        code?: unknown;
+        display_name?: unknown;
+        billing_model?: unknown;
+        status?: unknown;
+      };
+      promotion_codes?: Array<{
+        id?: unknown;
+        tier_pct?: unknown;
+        code?: unknown;
+      }>;
+      admins?: Array<{
+        id?: unknown;
+        user_id?: unknown;
+        role?: unknown;
+        status?: unknown;
+      }>;
+      attributions_summary?: {
+        total?: unknown;
+        active?: unknown;
+        by_source?: unknown;
+      };
+      commissions?: unknown;
+    };
+
+    expect(
+      body.ok,
+      `happy body.ok should be true: ${JSON.stringify(body).slice(0, 200)}`,
+    ).toBe(true);
+
+    // Reseller row shape — reads resellers.* (route.ts:37-41).
+    expect(body.reseller, "body.reseller should be present").toBeTruthy();
+    expect(
+      typeof body.reseller?.id === "string" &&
+        UUID_RE.test(body.reseller!.id as string),
+      `reseller.id should be UUID: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe(true);
+    expect(
+      body.reseller?.code,
+      `reseller.code should equal fixture.code (uppercase form): ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe(fixture.code);
+    expect(typeof body.reseller?.display_name).toBe("string");
+    expect(
+      BILLING_MODELS.has(body.reseller?.billing_model as string),
+      `reseller.billing_model should be retail|wholesale: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe(true);
+    expect(
+      STATUSES.has(body.reseller?.status as string),
+      `reseller.status should be active|paused|terminated: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe(true);
+
+    // Related-rows arrays — do NOT pin length; each row-shape pin catches
+    // a SELECT-column drift on the route-side Promise.all (route.ts:74-97).
+    expect(
+      Array.isArray(body.promotion_codes),
+      `promotion_codes should be an array: ${JSON.stringify(body).slice(0, 200)}`,
+    ).toBe(true);
+    for (const row of body.promotion_codes ?? []) {
+      expect(
+        typeof row.id === "string" && UUID_RE.test(row.id as string),
+        `promotion_codes[].id should be UUID: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(typeof row.tier_pct).toBe("number");
+      expect(typeof row.code).toBe("string");
+    }
+
+    expect(
+      Array.isArray(body.admins),
+      `admins should be an array: ${JSON.stringify(body).slice(0, 200)}`,
+    ).toBe(true);
+    for (const row of body.admins ?? []) {
+      expect(
+        typeof row.id === "string" && UUID_RE.test(row.id as string),
+        `admins[].id should be UUID: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        typeof row.user_id === "string" && UUID_RE.test(row.user_id as string),
+        `admins[].user_id should be UUID: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(typeof row.role).toBe("string");
+      expect(typeof row.status).toBe("string");
+    }
+
+    // Attributions summary — pins the {total, active, by_source} shape
+    // computed by route.ts:104-111. Sub-map by_source is an object with
+    // numeric counts; not pinning its keys because sources vary.
+    expect(
+      body.attributions_summary,
+      `attributions_summary should be present: ${JSON.stringify(body).slice(0, 200)}`,
+    ).toBeTruthy();
+    expect(typeof body.attributions_summary?.total).toBe("number");
+    expect(typeof body.attributions_summary?.active).toBe("number");
+    expect(
+      body.attributions_summary?.by_source !== null &&
+        typeof body.attributions_summary?.by_source === "object" &&
+        !Array.isArray(body.attributions_summary?.by_source),
+      `attributions_summary.by_source should be a plain object: ${JSON.stringify(body.attributions_summary).slice(0, 200)}`,
+    ).toBe(true);
+
+    expect(
+      Array.isArray(body.commissions),
+      `commissions should be an array: ${JSON.stringify(body).slice(0, 200)}`,
+    ).toBe(true);
+  });
 });
