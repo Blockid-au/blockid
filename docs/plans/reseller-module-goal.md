@@ -2561,6 +2561,121 @@ review_history:
       tick per CDO rec #2).
     commit: (this tick)
 
+  - tick: 88
+    ran_at: 2026-07-22
+    action: p10_dry_run_audit_anomaly_detector_verification_5_second_half
+    result: |
+      Autonomous tick composing option (ii) from tick 87's frontier note —
+      "author the audit-log anomaly detector so the >200-reads/week half of
+      Verification #5 becomes assertable." Landed the pure primitive plus a
+      vitest suite; the digest wiring + spec authoring stay deferred to
+      follow-up ticks since either would grow the surface (digest email
+      layout is a live-ops concern; the spec needs either DB seeding — plan
+      §J.2 forbids — or a wall-clock throttled simulation that pushes past
+      Playwright's 30s default).
+
+      Files:
+        - web/src/lib/reseller/audit-anomaly.ts (new — pure detector; no
+          Supabase, no fetch, no timers. Exports:
+            * AuditLogRow — the shape the caller selects from
+              reseller_audit_log (matches migration 0093 column contract).
+            * AnomalyOptions — {threshold?, windowDays?, now?, actions?}
+              with defaults DEFAULT_ANOMALY_THRESHOLD=200 (plan §J.2
+              Verification #5 wording),
+              DEFAULT_ANOMALY_WINDOW_DAYS=7, and
+              DEFAULT_ANOMALY_ACTIONS=['view_customer_drawer',
+              'reveal_email'] — the two privileged-read actions written by
+              the P4.1 + P4.2 route handlers. Empty actions[] = wildcard so
+              ops can point the same detector at any action set later.
+            * resolveWindow(opts) — pinnable so specs can freeze the window.
+              Non-positive threshold/windowDays fall through to defaults so
+              a malformed cron env can't silently disable the alert.
+            * detectActorHotspots(rows, opts) — groups by (reseller_id,
+              actor_user_id), returns rollups whose count >= threshold.
+              Segregates by reseller_id so a shared actor UUID across two
+              orgs cannot mask a single-org anomaly. Tracks
+              distinct_subjects so ops can see whether the excess is one
+              actor scraping many customers or repeatedly hitting one.
+            * detectSubjectHotspots(rows, opts) — mirror for the
+              (reseller_id, subject_user_id) grouping — one customer being
+              probed. Ignores rows with null subject_user_id.
+            * buildAnomalySummary(rows, opts) — envelope carrying both
+              hotspot lists plus total_rows_in_window (denominator for the
+              digest email so ops can gauge false-positive risk).
+            * Constants + AnomalySummary/ActorHotspot/SubjectHotspot types
+              exported for the digest cron consumer to import.
+          Rows outside the window, with malformed created_at, missing
+          identifiers, or in the non-allowlisted action set are dropped in
+          one linear scan before bucketing so a single bad row cannot poison
+          a rollup — same defensive posture as leading-signals.ts.)
+        - web/src/lib/reseller/audit-anomaly.test.ts (new — 13/13 pass:
+          resolveWindow default + empty-actions wildcard + non-positive
+          fallback (3); detectActorHotspots at-threshold + under-threshold +
+          distinct-subject count + window/action/identifier filter drop +
+          multi-reseller segregation + custom action allowlist + wildcard
+          (7); detectSubjectHotspots at-threshold with distinct-actor count
+          + null-subject drop (2); buildAnomalySummary envelope + empty
+          result (2).)
+
+      Why the digest wiring + spec are follow-up ticks, not this one:
+        - reseller-weekly-digest cron (tick 66) is admin-facing but its
+          current CSV shape is one row per reseller with leading-signal
+          counters. Splicing in an anomaly section means either (a) a
+          separate CSV attachment (needs a new schema decision) or
+          (b) an inline HTML block above the CS table (CS advisory §24
+          rec #3 owns the layout — needs a review pass). Both are larger
+          than a P10 dry-run cadence.
+        - Playwright spec for the anomaly branch cannot "simulate 200
+          reads" within the 30s per-test wall clock (each reveal-email
+          POST is a round-trip through auth + Supabase + audit-write —
+          rough est ~150ms means ~30s just for the loop). The spec
+          alternatives are (i) seed 200 audit rows directly via the
+          service-role fixture — but plan §J.2 forbids DB mutation from
+          specs; (ii) drop the threshold to 5, do 5 requests, assert
+          detector fires — that changes the production alert threshold in
+          the deployed detector because the spec would need to pass a
+          low threshold at HTTP boundary the detector doesn't expose;
+          (iii) skip the E2E half and unit-test detector separately —
+          which is exactly what this tick's vitest suite already does.
+          The "authored Playwright row" for this Verification would end
+          up as a test.skip() with a comment pointing at this vitest
+          suite — net negative signal versus just leaving the tracking
+          comment in audit-log-writes.spec.ts (tick 87).
+
+      Deliberately out of scope for this tick:
+        - Wiring the summary into reseller-weekly-digest CSV/email.
+        - Adding a standalone /api/cron/reseller-audit-anomaly-scan
+          endpoint (would need CS advisory §24 alignment on cadence).
+        - Extending the fixture with a bulk audit-log inspector for
+          specs (would need to widen supabase-admin.ts read helpers).
+        - Any change to the two /api/reseller/customers/[id]/** routes —
+          they already write audit rows correctly; this detector reads
+          those rows, doesn't change how they are written.
+
+      Verified: vitest 830/830 (was 817/817, +13 audit-anomaly); tsc
+      clean; npm run lint:reseller: R-01 scanned 11 file(s), R-03
+      scanned 31 manifest route(s); 3 exemptions, 0 violations
+      unchanged (new files live under /lib/reseller/** not
+      /api/reseller/** so R-01 doesn't fire; not in
+      feature-gates.manifest.ts so R-03 doesn't fire).
+
+      Frontier after tick 88: unchanged in shape — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5
+      clears. What tick 88 unblocks: (1) the digest wiring can now
+      import buildAnomalySummary directly — no design work needed on
+      the shape; (2) once digest wiring lands, a follow-up spec can
+      seed a dev-only fixture that pins now and threshold via query
+      params on a /api/cron/reseller-audit-anomaly-scan?dry_run=1
+      endpoint, avoiding the E2E-volume problem entirely.
+      Next autonomous tick options: (i) wire buildAnomalySummary into
+      the reseller-weekly-digest cron (needs CS §24 layout alignment);
+      (ii) close the retail createProject → reseller_attributions gap
+      (still needs CTO advisory review); (iii) idle until human
+      unblock arrives.
+    commit: (this tick)
+
   - tick: 87
     ran_at: 2026-07-22
     action: p10_dry_run_audit_log_write_assertion_spec_verification_5
