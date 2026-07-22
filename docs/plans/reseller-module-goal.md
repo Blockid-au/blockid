@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.162
+version: 2026-07-23.163
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,164 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 163
+    ran_at: 2026-07-22
+    action: p10_wave5_row_175_activate_admin_requests_patch_deny_happy_200
+    result: |
+      Fourth wave-5 row landed per docs/plans/p10-deferred-spec-
+      activation-order.md — activation is scoped to the DENY branch of
+      row 175 (approve + cancel branches remain deferred). One test.
+      describe block added to
+      web/tests/e2e/reseller/admin-requests-patch-authz.spec.ts pinning
+      PATCH /api/admin/resellers/requests/[id] with
+      {action:"deny", decision_reason:"p10_wave5_row_175_deny_probe"} as
+      qa-admin-1 → 200. Row 175 was named as option (i) by tick 162's
+      next-tick recommendation. Deny was chosen over approve + cancel as
+      the safest single-branch entry point per the "Deliberately out of
+      scope" comment block in the spec.
+
+      Files:
+        - web/tests/e2e/reseller/admin-requests-patch-authz.spec.ts
+          (new test.describe block "Admin reseller requests PATCH — P10
+          wave-5 row 175 happy path (deny)" holds row 175's deny branch;
+          loadAdminHarness + adminHarnessSkipReason imported from
+          ../fixtures/reseller; UUID_RE + REQUESTS_LIST_ROUTE module-
+          scope constants added so future wave-5 approve/cancel branch
+          activations in this file can reuse them; describe-scope test.
+          skip(!harness, adminHarnessSkipReason()); test-scope try/catch
+          around loginAs so a seeded-but-unroutable harness surfaces as
+          test.skip rather than a hard failure; test-scope test.skip
+          when the pending enumeration returns no over_budget_approval
+          row (fresh CI host where wave-3 row 155 has not run yet). Body
+          shape assertions: 200 + body.ok=true + body.request.id ===
+          targetId matching UUID_RE + body.request.status === "denied" +
+          typeof body.request.decision_at === "string" + body.request.
+          decision_reason === "p10_wave5_row_175_deny_probe" + body.
+          request.linked_credit_transaction_id === null + body.request.
+          linked_promotion_code_id === null. "Deliberately out of scope"
+          comment block updated — the Happy path (200) bullet split into
+          three sub-bullets: approve DEFERRED with rationale (Stripe
+          coupon mint or credit-ledger triple-write; needs deterministic
+          target_user_id + pre/post credit_balances control), cancel
+          DEFERRED with rationale (would race for the same pending row
+          per CI pass), deny ACTIVATED with pointer at the new test).
+        - docs/plans/p10-deferred-spec-activation-order.md (annotation
+          added: "Wave-5 row 175 landed (tick 163) — deny branch only"
+          with full activation posture, deferral rationale for approve
+          + cancel, state-pollution posture, skip discipline, next-tick
+          option list).
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.162 → 2026-07-23.163; this review_history entry).
+
+      Design fidelity:
+        - Branch selection: deny is a pure status flip at web/src/app/
+          api/admin/resellers/requests/[id]/route.ts:296-311 — no Stripe
+          coupon mint, no credit_balances / credit_transactions /
+          reseller_credit_grants / reseller_promotion_codes /
+          revenue_events write. Approve is deferred because activating
+          it here would fire a Stripe coupon+promotion_code mint
+          (code_request) or a credit-ledger triple-write
+          (over_budget_approval → credit_balances UPSERT +
+          credit_transactions INSERT + reseller_credit_grants INSERT)
+          and needs deterministic control over target_user_id + pre/
+          post credit_balances state — cleaner to seed the row via
+          scripts/seed-qa-reseller.mjs (add an approve-target variant)
+          than to do per-test writes from the spec, which the read-only
+          supabase-admin.ts fixture explicitly forbids. Cancel is
+          deferred because it would race for the same pending row per
+          CI pass — row 155 only seeds one pending row so deny + cancel
+          in the same file would test.skip nondeterministically.
+        - Coverage-vs-duplication call: pin 200 + body.ok=true + body.
+          request.id === targetId matching UUID_RE + body.request.status
+          === "denied" + typeof body.request.decision_at === "string" +
+          body.request.decision_reason === "p10_wave5_row_175_deny_probe"
+          + body.request.linked_credit_transaction_id === null + body.
+          request.linked_promotion_code_id === null. Do NOT pin body.
+          request.decision_at value — a timestamp string that drifts
+          every run. The linked_* null pins catch a regression that
+          leaked an approve-branch ledger insert or coupon mint into the
+          deny path (e.g. a code_request approve fan-out that fires when
+          status flag is 'denied' rather than 'approved'). The status
+          === "denied" pin catches a regression that mis-computed the
+          status enum from action (validateAdminDecision at
+          web/src/lib/reseller/requests.ts:301-303 folds action ===
+          "deny" → "denied"). The id round-trip pin catches a regression
+          that returns a different row id than the one we PATCHed.
+        - Skip discipline: loadAdminHarness() returns null → describe-
+          scope skip via adminHarnessSkipReason(); loginAs throw →
+          test-scope skip; empty pending list (fresh CI host where row
+          155 has not run yet) → test-scope skip with a pointer at
+          wave-3 row 155. Matches the row 174 posture with the extra
+          empty-list skip because row 175 needs a specific row to
+          patch, whereas row 174 asserts shape only over the array.
+        - State-pollution posture: the PATCH mutates ONE
+          reseller_requests row (status pending → denied + decision_by
+          + decision_at + decision_reason + linked_credit_transaction
+          _id + linked_promotion_code_id, both nulls). No credit_
+          balances / credit_transactions / reseller_credit_grants /
+          reseller_promotion_codes / revenue_events / Stripe writes.
+          Net-of-row-155 the pending queue length is unchanged across
+          CI passes. Row 155 was scoped to over_budget_approval (not
+          code_request) so its seeded row lives outside the reseller_
+          requests_pending_code_uniq partial unique index (0095:71-73)
+          — a rerun that lands a fresh pending row before this spec
+          fires does not 409 duplicate the seed either. The filter to
+          request_type === "over_budget_approval" in the enumeration
+          also avoids depleting any pending code_request row that a
+          downstream approve-branch tick may need.
+        - Non-Stripe / non-GST discipline: the deny branch only writes
+          reseller_requests. No promotion_code lookup, no credit ledger,
+          no Stripe network call, no revenue_events read, no InfoVision
+          dependency. P8.5 + P1.5 remain neither a dependency nor a
+          consequence.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0, no output).
+          The new imports (loadAdminHarness, adminHarnessSkipReason)
+          type-check against the fixture module unchanged since tick
+          162.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 documented exemptions, 0
+          violations — unchanged from tick 162 (the spec is not under
+          /api/reseller/** for the R-01 grep and it is not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - No vitest run this tick — no pure-lib .ts code touched, only
+          the Playwright spec + two doc edits. Mirrors the tick 148-162
+          precedent verbatim.
+        - No DB apply this tick — no migration authored. Row 175
+          consumes wave-3 row 155's seeded pending over_budget_approval
+          row unchanged (or test.skips when absent).
+        - Goal file version bumped 2026-07-23.162 → 2026-07-23.163.
+
+      Frontier after tick 163: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision
+      seed STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE;
+      P10 still blocked_by [P1..P9] until P8.5 clears. What tick 163
+      unblocks: wave 5 admin-only cluster is now 4/? shipped (rows 164
+      + 173 + 174 + 175-deny); row 175's approve + cancel branches
+      remain deferred pending an approve-target seed variant + a
+      second pending row per CI pass. Next autonomous tick options:
+        (i) activate row 163 (cobranding-pill × active_wholesale
+            attributed founder × EN + VI) — reuses the attributed-
+            founder harness scaffold (loadAttributedFounderHarness in
+            web/tests/e2e/fixtures/reseller.ts) which currently skips
+            at describe-scope until the fixture is provisioned;
+        (ii) land finding-2's seed delta (edit seed-qa-reseller.mjs
+             main loop to seed attribution on no_capability +
+             no_budget; re-run seeder against staging) — unblocks
+             rows 150 + 151;
+        (iii) mint an active promo code on the paused variant to
+              unblock row 157;
+        (iv) author the attachReportRow helper (extend fixtures/
+             reseller.ts with a reseller_report_files seeder for one
+             month bucket per variant) — unblocks rows 159 + 160;
+        (v) extend row 175 to cover the cancel branch by adding a
+            row-155-b seeder (or extending row 155's seed loop) that
+            inserts a second over_budget_approval pending row per CI
+            pass and add a second test-scope block to admin-requests-
+            patch-authz.spec.ts pinning {action:"cancel"} → 200 with
+            status === "cancelled".
+
   - tick: 162
     ran_at: 2026-07-22
     action: p10_wave5_row_174_activate_admin_requests_list_authz_happy_200
