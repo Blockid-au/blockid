@@ -138,7 +138,12 @@ export default async function WorkspaceGuideChapterPage({
 
   return (
     <WorkspaceLayout user={user}>
-      <PageTracker page="workspace-guide-chapter" />
+      <PageTracker
+        page="workspace-guide-chapter"
+        chapter={c.phase}
+        locale={locale}
+        source="onboarding"
+      />
       <div className="mx-auto max-w-3xl p-6">
         <header className="mb-6">
           <p className="text-xs font-medium uppercase tracking-wide text-emerald-600">

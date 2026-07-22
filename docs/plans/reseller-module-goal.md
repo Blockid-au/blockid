@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.37
+version: 2026-07-23.38
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -1909,6 +1909,76 @@ review_history:
       vitest 624/624 (was 603/603, +21); lint:reseller unchanged.
       Track B is now COMPLETE (B1..B10 all done).
     commit: (this tick)
+  - tick: 69
+    ran_at: 2026-07-22
+    action: cdo_cmo_cpo_advisory_23_ga4_showcase_catalogue
+    result: |
+      Closed the second half of CDO advisory §23 ("GA4 event catalogue for
+      showcase surfaces", deferred to CMO/CPO joint tick per CDO rec #2).
+      Root cause: all four Track B showcase surfaces (/showcase/blockid,
+      /guide/reports, /guide/[chapter], /workspace/guide/[chapter]) already
+      mount <PageTracker /> but the runtime dispatcher's PAGE_EVENTS map at
+      web/src/components/analytics/page-tracker.tsx:7 had no matching
+      entries, so every showcase page view silently dropped from GA4 +
+      GTM dataLayer. AnalyticsEventMap already declared four showcase
+      events (showcase_public_viewed / showcase_guide_viewed /
+      showcase_report_downloaded / showcase_phase_advanced /
+      showcase_integration_wired at web/src/lib/analytics.ts:154-158)
+      but only two of them (guide_viewed, public_viewed) match a page
+      view; the /guide/reports view had no event at all.
+      Files:
+        - web/src/lib/analytics.ts (+ showcase_reports_viewed:
+          { total_reports: number; source: "marketing" } inserted
+          alphabetically after showcase_guide_viewed; keeps AnalyticsEventMap
+          the single source of truth for event schemas)
+        - web/src/lib/analytics/showcase-tracker.ts (new — pure
+          resolveShowcasePageEvent(page, ctx) returns { name, params } |
+          null for the four page slugs; normaliseReferrer trims to
+          origin+pathname so the GA4 param never leaks query/fragment PII;
+          out-of-range chapter / invalid locale returns null so a
+          misplumbed prop degrades gracefully; kept browser-free so vitest
+          covers the mapping without jsdom)
+        - web/src/lib/analytics/showcase-tracker.test.ts (13/13 pass — 4
+          page-slug happy paths, 2 chapter-range guards, 2 locale guards,
+          referrer normalisation + malformed-referrer truncation + empty-
+          referrer branch, total_reports default 0, explicit source
+          override on guide-chapter)
+        - web/src/components/analytics/page-tracker.tsx (+ optional props
+          chapter / locale / source / totalReports; useEffect now calls
+          resolveShowcasePageEvent(page, ctx) and dispatches via a switch
+          per event name so trackEvent's discriminated union stays honest
+          at each call site; document.referrer read guarded by
+          typeof document check to keep SSR safe)
+        - web/src/app/showcase/blockid/page.tsx (no prop change — page slug
+          alone is enough; referrer plumbed automatically from
+          document.referrer at effect run)
+        - web/src/app/guide/reports/page.tsx (+ totalReports={summary.
+          total_rows} so the event carries the same headline count the page
+          renders)
+        - web/src/app/guide/[chapter]/page.tsx (+ chapter={c.phase}
+          locale={locale}; source defaults to "marketing" in the resolver)
+        - web/src/app/workspace/guide/[chapter]/page.tsx (+ chapter=
+          {c.phase} locale={locale} source="onboarding" so the same event
+          discriminates authenticated founder reads from anonymous
+          marketing reads)
+        - docs/analytics/showcase-events.md (new — catalogue for CMO/CPO;
+          surface→event map, GA4 audience recipes, change-control notes)
+      Verified: tsc clean; whole-tree vitest 680/680 (was 667, +13 new
+      showcase-tracker cases); npm run lint:reseller: 8 R-01 files + 28
+      R-03 routes, 3 exemptions, 0 violations (unchanged — new files are
+      under /lib/analytics/ + /components/analytics/, not /api/reseller/**,
+      so R-01 doesn't fire; nothing added to feature-gates.manifest so
+      R-03 doesn't fire either). REMAINING under §23: none — both halves
+      (pair-suppression tick 57 + GA4 catalogue this tick) now closed.
+      Frontier unchanged: every real leaf still DONE or HUMAN-BLOCKED
+      (P8.5 Stripe env vars, P1.5 InfoVision seed on H.20). Remaining
+      advisory follow-ups: 22 (PARTIAL — /guide/reports download route +
+      GA event still deferred pending redaction pipeline per plan §284),
+      24 (PARTIAL — H.8 wholesale magic-link + welcome email; larger
+      surface), 25 (PARTIAL — wholesale non-payment confirmation bundled
+      with §24).
+    commit: (this tick)
+
   - tick: 68
     ran_at: 2026-07-22
     action: ir_advisory_27_channel_economics_and_gtm_memo
@@ -2499,7 +2569,7 @@ next_action:
    21) DONE tick 56 — P8.4b_end_of_cycle_removal fixed the CRO-flagged defect. handleRemoveItem now creates a Subscription Schedule from the active subscription (Stripe fills phase 0 with the current item set through current_period_end) and updates it with a phase 1 that drops the add-on for one iteration + end_behavior:'release' so the subscription reverts to normal renewal. Existing schedules on the sub are reused via activeSub.schedule → subscriptionSchedules.retrieve instead of erroring on a second create. Pure buildAddonRemovalSchedulePhases lib + 5/5 vitest covers happy path, string-vs-object price shape, quantity omit, sole-item guard, and quantity preservation. Response envelope + revenue_events.detail now carry schedule_id + effective_at Unix timestamp so downstream reconciliation / Playwright can assert the item is still active until current_period_end. Playwright E2E assertion still deferred to P10_hardening per the P4/P5/P7/P8/B7/B8/B9/B10 posture.
    22) PARTIAL tick 67 — CMO advisory §22 rec #3 (JSON-LD structured data) DONE. Pure builder lib at web/src/lib/seo/structured-data.ts exposes buildWebPageJsonLd + buildItemListJsonLd returning schema.org objects (WebPage with isPartOf/publisher/breadcrumbs; ItemList with 1-indexed ListItem entries + numberOfItems). React wrappers WebPageJsonLd + ItemListJsonLd added to web/src/components/seo/json-ld.tsx (matches OrganizationJsonLd/FAQJsonLd/ArticleJsonLd emit pattern with dangerouslySetInnerHTML). /showcase/blockid page now emits WebPage JSON-LD with two-level breadcrumbs (Home → Showcase). /guide/reports page now emits ItemList JSON-LD covering all report rows (default 100-item clamp for polite crawl payload; numberOfItems still reflects full count so aggregate SEO signal is honest). OrganizationJsonLd was already in root layout so both pages now have Org + WebPage/ItemList on the same document. Test coverage: 7/7 pass in structured-data.test.ts (min WebPage shape, breadcrumbs, primaryImage+inLanguage overrides, ItemList positions, itemLimit clamp, zero-item empty state, description passthrough). Verified: tsc clean; whole-tree vitest 667/667 (was 633, +34 across seo + prior test additions from ticks 63-66); npm run lint:reseller unchanged (8 R-01 + 28 R-03, 3 exemptions, 0 violations — new files under /lib/seo and /components/seo don't touch reseller boundary). REMAINING under §22: (a) prior — CMO brand-wording DONE tick 58. (b) /guide/reports per-row download route + GA event deferred (still needs the plan §284 redaction pipeline; larger tick).
    22b) PARTIAL tick 58 — CMO brand-wording pass DONE: "Referred by" / "Brought to you by" swapped to "Introduced by" (EN) + "Được giới thiệu bởi" (VI) per plan §C.3 across web/src/lib/reseller/email-footer.ts + email-footer.test.ts (9/9 pass, incl. proper VI diacritics), web/src/components/workspace/reseller-pill.tsx tooltip, and web/src/app/api/stripe/checkout/route.ts (subscription_data.description = "Introduced by <name>"; invoice_creation.invoice_data.custom_fields = [{name:"Reseller", value:<name>}] per plan §C.3 line 688). REMAINING: /guide/reports download route + GA event so template-library ROI is measurable — deferred to a follow-up tick since it also requires the redaction pipeline per plan §284.
-   23) PARTIAL tick 57 — CDO advisory §23 reviews-aggregate pair suppression closed. buildReviewsSummary now treats (total_reviews, projects_with_reviews) as a correlated pair: if either falls under k the other is also suppressed and avg_rating drops to null so the observer cannot bound the hidden bucket into {1..min(exposed,k-1)}. Verified via updated + new vitest cases (reviews.test.ts: pair-suppression when projects<k with total exposed; pair-suppression when total<k under custom threshold). Complementary suppression on portfolio-phase-distribution was already applied at line 128 (via applyComplementarySuppression from portfolio-aggregates.ts) but had no regression test — added an 11-visible/1-suppressed case that asserts ≥2 buckets go dark so the "subtract from attributed_total" attack has multiple solutions. REMAINING under §23: GA4 event catalogue for showcase surfaces (deferred to a CMO/CPO joint tick per CDO rec #2 dependency order).
+   23) DONE tick 69 — CDO advisory §23 both halves closed. (a) reviews-aggregate pair suppression DONE tick 57 (buildReviewsSummary treats (total_reviews, projects_with_reviews) as a correlated pair; complementary suppression on portfolio-phase-distribution regression-tested). (b) GA4 event catalogue for showcase surfaces DONE tick 69 — new pure resolver at web/src/lib/analytics/showcase-tracker.ts maps the four Track B page slugs (/showcase/blockid, /guide/reports, /guide/[chapter], /workspace/guide/[chapter]) to typed AnalyticsEventMap events; PageTracker gains chapter/locale/source/totalReports optional props + document.referrer plumbing; new showcase_reports_viewed event registered (the /guide/reports view had no prior event); catalogue doc at docs/analytics/showcase-events.md documents the surface→event map + GA4 audience recipes + change-control. Root cause: PAGE_EVENTS map at page-tracker.tsx had no entries for the four showcase page slugs, so every showcase view silently dropped from GA4 + GTM dataLayer despite the events existing in the type registry. Verified: tsc clean; whole-tree vitest 680/680 (+13); lint:reseller unchanged.
    24) PARTIAL tick 66 — Grant modal EN+VI parity DONE tick 62; denial-reason surface DONE tick 63; leading-signal pure lib DONE tick 65; leading-signal weekly-digest cron DONE tick 66 (new /api/cron/reseller-weekly-digest endpoint iterates active resellers, expands reseller_attributions → user_ids (project-typed rows resolved via projects.user_id mirroring scope.allowedCustomerIds), bridges svi_analyses through app_users.email since svi_analyses has no user_id column on this host per 0007/0014/0016/0020 migrations, computes buildLeadingSignalSummary per reseller, emails admin@blockid.au a CSV attachment + HTML body; Mondays 04:15 UTC crontab entry after clear-commissions; ?skip_email=1 dry-run; pure formatter lib web/src/lib/reseller/weekly-digest.ts with 8/8 vitest for isoWeekKey year-boundary, CSV suppression/escape, HTML empty state + sort). REMAINING under §24: (a) H.8 wholesale magic-link + welcome email for reseller-provisioned founders (needs email template + magic-link infra — larger surface).
    25) PARTIAL tick 61 — CPO advisory §25 customer-drawer EN+VI parity DONE. web/src/app/reseller/customers/customer-drawer.tsx + drawer-opener.tsx + reveal-email-cell.tsx now switch every user-facing string via useLocale() with a Copy: Record<Locale, Copy> table (real VI translation with diacritics — "Tổng quan"/"Tiến trình"/"Báo cáo"/"Đang tải chi tiết khách hàng…"/"Chương hướng dẫn"/etc.); currency helper fmtAud() now takes locale and flips VI decimal separator from "." to "," (A$99,00); credits use Intl.NumberFormat("vi-VN"|"en-AU") for thousands separator; tab labels are now data-driven (dropped CSS `capitalize` since it fails for VI multi-word labels). tsc clean; reseller vitest 276/276; lint:reseller unchanged 8+28 with 3 exemptions / 0 violations. REMAINING under §25: explicit non-payment confirmation step in wholesale onboarding wizard (bundled with the H.8 magic-link work in §24).
    26) DONE tick 60 — CHRO advisory §26 both halves closed. (a) Div 83A qualifying-tests checklist (tick 59): guide chapter 08-team publishes the eight s83A tests EN + VI (esic_eligible / unlisted / turnover_cap / age_lt_10y / grantee_is_employee / market_value / ownership_cap / holding_or_forfeiture) on both /guide/08-team and /workspace/guide/08-team plus docs/guides/startup-journey/chapter-08.md; Chapter interface gained optional qualifyingTests?: LocalisedList; startup-journey.test.ts 12/12 pass. (b) human-review-minutes KPI (tick 60): counter file at web/content/reports/human-review-minutes.jsonl (append-only JSONL); helper module scripts/cron/human-review-minutes.mjs (sumHumanReviewMinutes7d + appendHumanReviewMinutes); bump CLI scripts/cron/bump-human-review-minutes.mjs (chmod +x); reseller-goal-loop.mjs samples the 7-day sum once at process start and every log() row now carries human_review_minutes_7d so the "0 eng-weeks burned" kpi.eng_weeks_burned=0 claim carries a real number visible on every telemetry line. Verified: node --check clean on all three scripts; smoke-test append+sum cycle worked (0 → 0.5 for tagged self-test row); loop kill-switch dry run exits 0 with no regressions.
