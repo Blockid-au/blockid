@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.181
+version: 2026-07-23.182
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,126 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 182
+    ran_at: 2026-07-22
+    action: p10_wave5_row_163_cobranding_pill_attributed_founder_en_vi_activated
+    result: |
+      Nineteenth wave-5 landing per docs/plans/p10-deferred-spec-activation-
+      order.md — activated row 163 (`cobranding-pill.spec.ts` × active_wholesale
+      × attributed founder → topbar pill EN + VI). Closes tick 181's frontier
+      option carried across several prior review_history entries: "row 163
+      (cobranding-pill × active_wholesale attributed founder × EN + VI) —
+      reuses the attributed-founder harness scaffold from wave 2". A QAPROBE-
+      cohort host now gets identical /workspace topbar coverage via
+      loadTempReseller('active_wholesale') + attachAttributedCustomer()
+      without needing the env-based loadAttributedFounderHarness
+      (QA_ATTRIBUTED_FOUNDER_EMAIL + QA_RESELLER_DISPLAY_NAME) that the pre-
+      existing describe consumes.
+
+      Files:
+        - web/tests/e2e/reseller/cobranding-pill.spec.ts (header docblock
+          appended a paragraph naming the wave-5 activation + the identical
+          cache-column-stamp mechanism used by wave-5 row 178; imports
+          extended with loadTempReseller + tempResellerSkipReason +
+          TempResellerFixture from fixtures/reseller; appended a new
+          `test.describe("Reseller co-branding pill — P10 wave-5 row 163")`
+          block after the pre-existing dry-run describe. Inside the block:
+          beforeAll loads the active_wholesale fixture; afterAll runs
+          fixture.cleanup() so the attribution_reseller_id cache-column
+          restore fires even if the assertions throw; two tests fire —
+          (a) EN topbar pill visible with title="Introduced by
+          <fixture.displayName>" + text contains "via"; (b) VI topbar pill
+          visible with title="Được giới thiệu bởi <fixture.displayName>" +
+          text contains "qua" after seeding blockid_lang=vi on the context
+          BEFORE loginAs so the initial workspace render already picks VI.
+          Skip discipline mirrors wave-5 row 178 verbatim: five skip points
+          per test (fixtureError catch, fixture null, attributedUserId or
+          attributedFounderEmail null, attach null, loginAs throw) each
+          carrying tempResellerSkipReason("active_wholesale").
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.181 → 2026-07-23.182; this review_history entry
+          prepended).
+
+      Design fidelity:
+        - Variant pin matches plan-doc wave-5 row 163 (active_wholesale) —
+          the pill renders iff /api/reseller/me returns a non-null reseller,
+          and the /me handler short-circuits on any reseller row whose
+          status !== "active" (route.ts:60-63). active_wholesale is the
+          only variant where attachAttributedCustomer() → /me → pill
+          resolves cleanly; paused / terminated / no_capability would trip
+          reseller:null and duplicate the "non-attributed founder sees no
+          pill" negative assertion already covered by test 2 in the pre-
+          existing describe.
+        - attachAttributedCustomer() reused verbatim from wave-5 row 178
+          rather than adding a new attachAttributedFounder helper.
+          Rationale: the plan's row 163 test only needs
+          attribution_reseller_id stamped on app_users so useResellerAttribution()
+          resolves; per-workspace reseller_attributions rows are not
+          required for the pill render path (the client hook consumes /me,
+          which reads only the cache column). Adding a new helper here
+          would duplicate the same UPDATE app_users SET
+          attribution_reseller_id = ... path.
+        - Two describe-scope tests instead of one three-test block matches
+          the existing spec's shape (EN test + VI test as siblings, not
+          steps). Follows the tick 181 pattern of one describe block per
+          activated row.
+        - Response-shape assertions match the pre-existing dry-run tests
+          (title anchor + text contains display_name + text contains
+          locale-appropriate preposition) so a partial-regression in the
+          pill (e.g. stripped display_name from /me → resellers SELECT,
+          or dropped 'via'/'qua' preposition in reseller-pill.tsx COPY
+          table) surfaces here as well.
+        - No side-effect assertions (no reseller_audit_log count, no
+          revenue_events read) because the pill render path is a pure /me
+          read via useResellerAttribution() client hook — audit-log write
+          coverage lives in wave-5 row 179 (audit-log-writes.spec.ts)
+          against drawer + reveal-email.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0). Three new
+          imports (loadTempReseller + tempResellerSkipReason +
+          TempResellerFixture) all resolve against existing exports in
+          fixtures/reseller.ts.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 documented exemptions, 0
+          violations — unchanged from tick 181 (the spec is not under
+          /api/reseller/** for the R-01 grep and is not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - No DB apply this tick — no migration authored.
+        - Goal file version bumped 2026-07-23.181 → 2026-07-23.182.
+
+      Frontier after tick 182: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision
+      seed STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE;
+      P10 still blocked_by [P1..P9] until P8.5 clears. Wave 5 has now
+      landed 163 + 164 + 165 + 166 + 167 + 168 + 169 + 170 + 171 + 172 +
+      173 + 174 + 175 (deny+cancel) + 176 + 178 + 179 + 180 + 181 +
+      183 — the cobranding-pill spec now has QAPROBE-cohort coverage
+      alongside its env-based describe. Remaining deferred wave-5 rows:
+      177 (showcase-reviews-validation reviewer-flow POST — deferred
+      on seeded data_room_access_tokens per plan §J.2), 182 (billing-
+      authz active_wholesale happy 200 — deferred on Stripe SetupIntent
+      side effect + reseller_audit_log(mint_setup_intent) write, needs
+      stripe-test-mode key or QA-only mock harness), and 175 approve
+      branch (deferred on credit-ledger triple-write side effect,
+      needs approve-target seeder variant in scripts/seed-qa-reseller
+      .mjs). Natural next picks:
+        (i) row 177 reviewer-flow POST — needs an attachReviewerAccessToken
+             fixture helper (mirrors attachAttributedCustomer +
+             attachReportRow pattern; seeds data_room_access_tokens +
+             data_rooms + projects rows against the active_wholesale
+             variant, tears down on cleanup);
+        (ii) row 175 approve branch — needs an attachApproveTarget
+              fixture helper OR seed-qa-reseller.mjs variant that plants
+              a deterministic target_user_id + pre-seeded credit_balances
+              row so approve's triple-write is idempotent under CI replay;
+        (iii) row 182 — still requires stripe-test-mode key or QA-only
+               SetupIntent mock harness (out of scope for the autonomous
+               loop until P8.5 clears);
+        (iv) plan §337 signup-jitter branch on row 178 — still deferred
+              pending a QA-mode signup flow Playwright can drive.
+    commit: (this tick)
+
   - tick: 181
     ran_at: 2026-07-22
     action: p10_wave5_row_178_attribution_timing_me_flip_activated
