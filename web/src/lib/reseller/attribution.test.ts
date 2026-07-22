@@ -3,10 +3,10 @@ import {
   normaliseResellerCode,
   extractViaFromSearchParams,
   extractViaFromCookieHeader,
-  viaClientReferenceId,
   VIA_KEY,
   VIA_PARAM,
 } from "./attribution";
+import { viaClientReferenceId } from "./attribution-server";
 
 describe("normaliseResellerCode", () => {
   it("uppercases and strips punctuation", () => {

@@ -4,7 +4,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { getPlan, isGrowthEarlyBird } from "@/lib/plans";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { normaliseResellerCode, viaClientReferenceId } from "@/lib/reseller/attribution";
+import { normaliseResellerCode } from "@/lib/reseller/attribution";
+import { viaClientReferenceId } from "@/lib/reseller/attribution-server";
 
 // POST /api/stripe/checkout
 // Body: { plan, couponCode? }
