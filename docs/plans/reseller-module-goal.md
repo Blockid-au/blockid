@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.55
+version: 2026-07-23.98
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,93 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 98
+    ran_at: 2026-07-22
+    action: p10_dry_run_sandbox_setup_authz_playwright_spec
+    result: |
+      Composed option (i) from tick 97's frontier note — "POST /api/reseller/
+      sandbox/setup dry-run spec (three gates: insufficient_role /
+      reseller_missing / not_configured — narrow but complete-able even
+      with harness)". After walking the route file
+      (web/src/app/api/reseller/sandbox/setup/route.ts) I narrowed the
+      harness-free surface further: the endpoint takes NO body, so the only
+      pre-write assertions that don't require the reseller QA harness OR
+      per-test seeding are two auth-chain branches — unauthenticated →
+      401 and non-reseller-admin authenticated → 402 feature_locked.
+      (insufficient_role needs a viewer-role reseller admin, reseller_missing
+      needs a reseller_admins row without a matching resellers row, and
+      not_configured needs SUPABASE_URL/SERVICE_ROLE unset — all forbidden
+      per plan §J.2.)
+
+      Files:
+        - web/tests/e2e/reseller/sandbox-setup-authz.spec.ts (new — two
+          rows probing the auth chain before the projects INSERT or the
+          reseller_audit_log(provision_sandbox) row fires:
+          (1) unauthenticated (POST with no session → gateRequireFeature
+              returns 401 error="Authentication required" before scopedReseller
+              or supabase-admin is touched),
+          (2) non_reseller_admin (loginAs(qa-founder-1@blockid.au) → POST →
+              gateRequireFeature returns 402 error="feature_locked",
+              feature="reseller.console" because founder_growth's
+              feature_flags don't include reseller.console per
+              LEGACY_FEATURE_FALLBACK/plans.csv — scopedReseller never
+              runs, reseller_admins is never queried, no INSERT fires).
+          Row 1 runs unconditionally (no harness dep — just page.request
+          without loginAs). Row 2 test.skip()s with a diagnostic message
+          if /tmp/blockid-qa-accounts.txt is missing so operators without
+          the seed file get an actionable pointer rather than a hard fail.
+
+      Why this shape: the sandbox-setup route reads the request body zero
+      times — it needs no {} JSON payload — so unlike create-startup /
+      credit-grant / requests, there are no input-validation branches to
+      probe. The pre-write surface is entirely auth-chain, and the two
+      branches above cover the top of that chain (getCurrentUser → 401,
+      requireFeature("reseller.console") → 402) without touching scope or
+      DB. A refactor that swaps gateRequireFeature for direct
+      getCurrentUser() (dropping the 402 branch entirely) OR that moves
+      scopedReseller ahead of gateRequireFeature lights up row 2 with a
+      403/500 instead of 402 on the next Playwright pass.
+
+      Why the 403 no_membership branch isn't covered: that gate requires
+      a user who has reseller.console entitlement but NO reseller_admins
+      row — an inconsistent state that never occurs in production because
+      the two are provisioned together (P9.2 admin flow inserts both under
+      the same PATCH). Fabricating the state via QA plan overrides would
+      cost more than it protects.
+
+      Verified: tsc clean (npx tsc --noEmit exit 0 at web/); vitest
+      unchanged (Playwright spec is not picked up by vitest —
+      tests/e2e/** is excluded per playwright.config.ts:testDir); npm
+      run lint:reseller: R-01 scanned 11 file(s), R-03 scanned 31
+      manifest route(s); 3 exemptions, 0 violations unchanged (spec
+      lives under web/tests/e2e/reseller/, not /api/reseller/**, so
+      R-01 doesn't fire; not a mutation route in feature-gates.manifest.ts
+      so R-03 doesn't fire). Playwright not run this tick — row 1 is
+      harness-free and will execute on the next CI Playwright pass; row
+      2 lights up as soon as the qa accounts file is present.
+
+      Frontier after tick 98: unchanged in shape — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 98 unblocks: the /api/reseller/sandbox/setup auth-chain
+      ordering is now regression-guarded at the Playwright lens — a
+      refactor that reorders gateRequireFeature/scopedReseller/canProvisionSandbox
+      or drops the 401/402 status codes lights up in CI on the next
+      `npx playwright test` run. Ten spec files now sit in
+      web/tests/e2e/reseller/ (attribution-timing, audit-anomaly-scan,
+      audit-log-writes, cobranding-pill, code-validate,
+      create-startup-validation, credit-grant-validation,
+      requests-validation, sandbox-setup-authz, scope-boundary). Next
+      autonomous tick options: (i) landing the QA-mode temp-reseller
+      mint fixture that opens up all the deferred branches from ticks
+      94/95/96/97/98 at once (larger tick, wants a design pass);
+      (ii) POST /api/reseller/billing/setup-intent + save-default-
+      payment-method dry-run auth-chain spec (mirrors this tick's shape
+      — those two routes also have limited pre-write branches beyond
+      the auth chain); (iii) idle until human unblock arrives.
     commit: (this tick)
 
   - tick: 97
