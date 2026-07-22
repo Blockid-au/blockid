@@ -129,6 +129,57 @@ Prep cost: one tick to author the attributed-customer helper
 `app_users` upsert path in the fixture — then rows 145–149 each add
 2–3 assertions.
 
+**Wave-4 row 159 landed (tick 166) — happy 200 signed-URL mint.** Sixth wave-4
+landing. Consumes the `attachReportRow(monthKey)` helper that tick 165
+authored. Extended `web/tests/e2e/reseller/reports-signed-url-authz.spec.ts`
+with imports for `loadTempReseller` + `tempResellerSkipReason` +
+`TempResellerFixture` from `../fixtures/reseller`; added pure module-scope
+helpers `currentUtcMonthKey(now?)` (mirrors
+`web/src/lib/reseller/report-storage.ts::monthKeyOffset(now, 0)` without
+importing the app lib across the Playwright/browser bundle boundary) and
+`slugifyForFilename(input)` (mirrors buildDownloadFilename's slug math:
+lowercase → non-alnum→dash → trim-dashes → slice 40); appended
+`test.describe("Reseller reports signed-url — P10 wave-4 row 159 happy path")`
+block after the pre-existing unauth + non_reseller pre-scope rows. Inside
+the block: loadTempReseller('active_wholesale') + attachReportRow(currentUtc
+MonthKey()) + loginAs(fixture.adminEmail) + GET
+/api/reseller/reports/<currentMonth>/signed-url, then asserts body.ok=true +
+body.signed_url is a string containing '/storage/v1/object/sign/' +
+attach.storageBucket + body.filename matches
+`blockid-<slug(displayName||code)>-<month>.csv` (computed shape match, not
+substring) + body.month === monthKey + body.expires_at parses as a Date +
+body.ttl_seconds === 86400 (SIGNED_URL_TTL_SECONDS = 24*60*60) + body.bucket
+=== 'reseller-reports' (REPORT_BUCKET). try/finally invokes
+fixture.cleanup() when attach.created === true so a fixture-minted row +
+storage object are removed after the assertion — reused seed rows stay
+intact for parallel workers per the tick-165 helper contract. audit-log side
+effect NOT asserted (append-only per migration 0093; wave-4 posture matches
+reveal-email happy path row 148). Skip discipline mirrors wave-2
+me-attribution + wave-4 code-validate happy path verbatim: three skip
+points (loadTempReseller null vs throw, attachReportRow null, loginAs
+throw) each carrying tempResellerSkipReason("active_wholesale"). Verified:
+`npx tsc -p . --noEmit` clean; `npm run lint:reseller` R-01 scanned 11 files
++ R-03 scanned 31 manifest routes, 3 exemptions, 0 violations — unchanged
+from tick 165 (the spec is not under /api/reseller/** for the R-01 grep and
+is not in feature-gates.manifest.ts for the R-03 rule). No DB apply this
+tick — no migration authored; the fixture helper handles the
+reseller_report_files insert + storage upload inline at test-time. Unblocks
+row 160 (`reports-signed-url-validation.spec.ts` paired assertion: current
+month with fixture-minted row → 200, 2024-01 → 403 not_exposed) as the next
+natural pick — the existing spec already handles the not_exposed branch via
+loadResellerHarness single-admin fallback, so adding a wave-4 describe block
+that uses loadTempReseller("active_wholesale") + attachReportRow for the
+happy 200 path completes the pair. Next natural picks after tick 166: (i)
+activate row 160 per above; (ii) activate row 161
+(`reseller-requests-list-authz.spec.ts` happy 200 with request rows) —
+needs the reseller-admin session on active_wholesale + does NOT need
+attachReportRow; (iii) activate row 163 (cobranding-pill × active_wholesale
+attributed founder) — still requires the attributed-founder harness seed;
+(iv) land finding-2's seed delta for rows 150 + 151; (v) mint an active
+promo code on the paused variant to unblock row 157; (vi) land the
+approve-target seeder variant to unblock row 175's approve branch; (vii)
+row 178 attribution-timing — requires new founder QA seed.
+
 **Wave-4 helper landed (tick 165) — `attachReportRow(monthKey)`.** Authored
 the fixture helper called out as next-tick option (iv) by tick 164's
 review_history entry. Extended `web/tests/e2e/fixtures/reseller.ts` with a

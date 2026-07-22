@@ -85,12 +85,42 @@
 
 import { test, expect } from "@playwright/test";
 import { loginAs } from "../fixtures/accounts";
+import {
+  loadTempReseller,
+  tempResellerSkipReason,
+  type TempResellerFixture,
+} from "../fixtures/reseller";
 
 const NON_RESELLER_FOUNDER_EMAIL =
   process.env.QA_UNATTRIBUTED_FOUNDER_EMAIL ?? "qa-founder-1@blockid.au";
 
 const PLACEHOLDER_MONTH = "2026-07";
 const ROUTE = `/api/reseller/reports/${PLACEHOLDER_MONTH}/signed-url`;
+
+// Mirrors web/src/lib/reseller/report-storage.ts::monthKeyOffset(now, 0)
+// without the .ts import — Playwright specs stay import-free of app/lib code
+// so the runtime sits alongside the browser bundle boundary. Current UTC
+// month is always inside the 12-month RETENTION_EXPOSED_MONTHS window so the
+// isMonthExposed gate at route.ts:59-61 always passes here.
+function currentUtcMonthKey(now: Date = new Date()): string {
+  const y = now.getUTCFullYear();
+  const m = now.getUTCMonth() + 1;
+  return `${y}-${String(m).padStart(2, "0")}`;
+}
+
+// buildDownloadFilename() at web/src/lib/reseller/report-storage.ts:20-31
+// slugifies the reseller display_name (fallback: code, fallback: "reseller")
+// to `blockid-<slug>-<monthKey>.csv`. Duplicated here as a validator for the
+// route response — the spec asserts filename === expected shape rather than
+// deep-equality of a specific value because the shared fixture rotates the
+// display_name across seed re-runs.
+function slugifyForFilename(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+}
 
 test.describe("Reseller reports signed-url pre-read authorization — P10 dry-run", () => {
   test("unauthenticated — GET with no session returns 401 unauthorised", async ({
@@ -133,5 +163,163 @@ test.describe("Reseller reports signed-url pre-read authorization — P10 dry-ru
       `non_reseller_admin body.ok should be false: ${JSON.stringify(body)}`,
     ).toBe(false);
     expect(body.reason).toBe("no_membership");
+  });
+});
+
+// Wave-4 row 159 landed (tick 166) — happy path for the reseller-admin
+// signed-url mint. Uses loadTempReseller("active_wholesale") +
+// fixture.attachReportRow(currentMonth) to seed a reseller_report_files row
+// + the sibling storage object BEFORE the request, so the route's
+// (reseller_id, month_key) SELECT at route.ts:68-73 resolves and the
+// storage.createSignedUrl call at :92-96 mints a real URL. `loginAs(page,
+// fixture.adminEmail)` opens the reseller-admin session so scopedReseller
+// at :45-53 resolves to the wholesale-active variant. Asserts the full
+// response envelope shape from route.ts:129-137 including the constant
+// contract (ttl_seconds === SIGNED_URL_TTL_SECONDS === 86400 and bucket ===
+// REPORT_BUCKET === 'reseller-reports') so a route refactor that drops or
+// renames any envelope key surfaces here.
+//
+// Fixture wiring (wave-4 prep, tick 165):
+//   - loadTempReseller("active_wholesale") reads the QAPROBEWHOLESALEACTIVE
+//     seed row + resolves adminEmail via QA_RESELLER_ADMIN_EMAIL_ACTIVE_WHOLESALE
+//     (default qa-reseller-wholesale-active@blockid.au). Returns null when
+//     SUPABASE_URL/SERVICE_ROLE unset or the seed row is missing.
+//   - fixture.attachReportRow(monthKey) inserts a reseller_report_files row
+//     + uploads a fixture CSV to reseller-reports/<resellerId>/<monthKey>.csv
+//     when the row does not exist; returns {created:false} when a pre-existing
+//     seed row is reused (e.g. seed-qa-reseller-storage.mjs already ran).
+//   - loginAs(page, fixture.adminEmail) signs the reseller admin in via the QA
+//     login endpoint; scopedReseller then resolves and the route reads the
+//     just-inserted metadata row.
+//   - fixture.cleanup() in finally removes the fixture-minted metadata row +
+//     storage object when attachReportRow returned {created:true}; no-op
+//     when the row was reused. Runs even if the request fails so leaked
+//     rows do not poison the next spec.
+//
+// Skip conditions (mirrors wave-2 me-attribution / wave-4 code-validate posture):
+//   - loadTempReseller returns null when SUPABASE_URL/SERVICE_ROLE_KEY unset
+//     or the QAPROBEWHOLESALEACTIVE seed row is missing.
+//   - attachReportRow returns null when variant !== "active_wholesale" (guard
+//     redundancy — loadTempReseller already scoped to that variant) or when
+//     the monthKey fails REPORT_MONTH_RE (never fires here — the helper below
+//     builds a well-formed YYYY-MM from `new Date()`).
+//   - loginAs throws when /tmp/blockid-qa-accounts.txt has no row for the
+//     resolved adminEmail (seed-test-users.mjs delta not run against this host).
+//
+// Side-effect discipline: the route writes ONE reseller_audit_log(action=
+// 'download_report') row per happy request (route.ts:105-125). That row is
+// APPEND-ONLY per the reseller_audit_log mutation-trigger contract from
+// migration 0093, so the spec neither cleans it up nor asserts its
+// contents — the reveal-email happy path (row 148) follows the same
+// discipline. If a future audit-anomaly-scan spec needs to pin the row,
+// filter reseller_audit_log by (action='download_report', route=<ROUTE>,
+// actor_user_id=fixture.adminUserId, metadata->>month_key=monthKey).
+test.describe("Reseller reports signed-url — P10 wave-4 row 159 happy path", () => {
+  test("active_wholesale — GET returns 200 with signed_url + filename + month + expires_at + ttl_seconds + bucket", async ({
+    page,
+  }) => {
+    let fixture: TempResellerFixture | null;
+    try {
+      fixture = await loadTempReseller("active_wholesale");
+    } catch (err) {
+      test.skip(
+        true,
+        `loadTempReseller('active_wholesale') threw: ${(err as Error).message}. ` +
+          tempResellerSkipReason("active_wholesale"),
+      );
+      return;
+    }
+    if (!fixture) {
+      test.skip(true, tempResellerSkipReason("active_wholesale"));
+      return;
+    }
+
+    const monthKey = currentUtcMonthKey();
+    let attached = false;
+    try {
+      const attach = await fixture.attachReportRow(monthKey);
+      if (!attach) {
+        test.skip(
+          true,
+          `attachReportRow('${monthKey}') returned null — variant guard or ` +
+            "REPORT_MONTH_RE reject. Neither should fire on active_wholesale + " +
+            "a computed UTC monthKey; investigate the fixture. " +
+            tempResellerSkipReason("active_wholesale"),
+        );
+        return;
+      }
+      attached = attach.created;
+
+      try {
+        await loginAs(page, fixture.adminEmail);
+      } catch (err) {
+        test.skip(
+          true,
+          `loginAs(${fixture.adminEmail}) threw: ${(err as Error).message}. ` +
+            tempResellerSkipReason("active_wholesale"),
+        );
+        return;
+      }
+
+      const url = `/api/reseller/reports/${monthKey}/signed-url`;
+      const resp = await page.request.get(url);
+      expect(
+        resp.status(),
+        `happy returned ${resp.status()} — expected 200 after scopedReseller ` +
+          `passes, isMonthExposed accepts the current UTC month, the reseller_report_files ` +
+          `row resolves via attachReportRow, storage.createSignedUrl mints a URL, and ` +
+          `reseller_audit_log(download_report) writes. A 404 not_found here means ` +
+          `attachReportRow did not persist the row (fixture regression); a 403 no_membership ` +
+          `means adminEmail did not resolve to an active reseller_admins row (P10 Option A ` +
+          `multi-admin seed missing). Body: ${await resp.text()}`,
+      ).toBe(200);
+
+      const body = (await resp.json()) as {
+        ok?: unknown;
+        signed_url?: unknown;
+        filename?: unknown;
+        month?: unknown;
+        expires_at?: unknown;
+        ttl_seconds?: unknown;
+        bucket?: unknown;
+      };
+
+      expect(
+        body.ok,
+        `happy body.ok should be true: ${JSON.stringify(body).slice(0, 200)}`,
+      ).toBe(true);
+      expect(typeof body.signed_url).toBe("string");
+      expect((body.signed_url as string).length).toBeGreaterThan(0);
+      // Signed URL points at the Supabase Storage sign endpoint; the exact
+      // host varies by environment (staging vs prod), so match on the
+      // storage-signing path fragment rather than a full URL.
+      expect(body.signed_url as string).toContain("/storage/v1/object/sign/");
+      expect(body.signed_url as string).toContain(attach.storageBucket);
+
+      expect(typeof body.filename).toBe("string");
+      const expectedFilename =
+        `blockid-${slugifyForFilename(fixture.displayName || fixture.code)}` +
+        `-${monthKey}.csv`;
+      expect(body.filename).toBe(expectedFilename);
+
+      expect(body.month).toBe(monthKey);
+
+      expect(typeof body.expires_at).toBe("string");
+      expect(Number.isNaN(new Date(body.expires_at as string).valueOf())).toBe(
+        false,
+      );
+
+      // SIGNED_URL_TTL_SECONDS = 24 * 60 * 60 (report-storage.ts:10). A
+      // route refactor that shortens or lengthens the TTL surfaces here.
+      expect(body.ttl_seconds).toBe(24 * 60 * 60);
+
+      // REPORT_BUCKET constant (report-storage.ts:9). Same rationale as
+      // ttl_seconds — pin the constant so a bucket rename surfaces.
+      expect(body.bucket).toBe("reseller-reports");
+    } finally {
+      if (attached) {
+        await fixture.cleanup();
+      }
+    }
   });
 });
