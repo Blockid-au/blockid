@@ -1056,3 +1056,6 @@
 {"ts":"2026-07-22T15:15:02Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16410,"detail":""}
 {"ts":"2026-07-22T15:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":110,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
 {"ts":"2026-07-22T15:20:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":484,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 15, \"raw\": \"15% used (236293164 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (275004268 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-07-22T15:30:02Z","endpoint":"agent-guardian","status":"ok","duration_ms":588,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 15, \"raw\": \"15% used (236290596 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (275004268 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-07-22T15:30:02Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16966,"detail":""}
+{"ts":"2026-07-22T15:30:02Z","endpoint":"performance-audit","status":"fail","duration_ms":17008,"detail":"<!DOCTYPE html><html lang=\"en-AU\" class=\"__variable_48b81b __variable_1f5b15 __variable_6b9622 h-full antialiased\"><head"}
