@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.116
+version: 2026-07-23.117
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,103 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 117
+    ran_at: 2026-07-22
+    action: p10_dry_run_reveal_email_validation_playwright_spec
+    result: |
+      Closed the last remaining /api/reseller/customers/[id]/reveal-email
+      coverage gap at the Playwright lens. Track A P4.1 shipped tick 21
+      (P4.1_reveal_email_audit). reveal-email-authz.spec.ts (tick 100)
+      already probes the pre-scope auth chain (unauthenticated +
+      non_reseller_admin returning 401 unauthorised / 403 no_membership).
+      This tick lands the sibling validation-branch spec that mirrors
+      credit-grant-validation / requests-validation / create-startup-
+      validation — the two decideReveal() branches surfaced BEFORE the
+      app_users SELECT and the reseller_audit_log(reveal_email) write, both
+      exercised behind the QA_RESELLER_ADMIN_EMAIL harness so the reseller
+      session is a real scope-passing account instead of a founder or
+      unauthenticated caller.
+
+      Files:
+        - web/tests/e2e/reseller/reveal-email-validation.spec.ts (new — two
+          rows probing decideReveal(id, allowedCustomerIds) BEFORE
+          getSupabaseAdmin, the app_users SELECT, or the
+          reseller_audit_log(reveal_email) write fire:
+          (1) invalid_id — POST /api/reseller/customers/not-a-uuid/reveal-email
+              with a non-UUID [id] path segment → 400
+              { ok:false, reason:"invalid_id" } at route.ts:47-53 in the
+              decideReveal UUID_RE branch,
+          (2) not_in_scope — POST /api/reseller/customers/<well-formed uuid
+              outside allowedCustomerIds>/reveal-email → 403
+              { ok:false, reason:"not_in_scope" } at route.ts:47-53 in the
+              decideReveal allowedIds.includes() branch. Uses
+              00000000-0000-4000-8000-000000000001 (astronomically unlikely
+              to collide with a real app_users row so the branch is
+              deterministic).
+          Both rows use the QA_RESELLER_ADMIN_EMAIL harness via
+          loadResellerHarness() + loginAs so scopedReseller passes and
+          decideReveal is actually the gate that fires; without the
+          harness the spec test.skip()s with harnessSkipReason().
+
+      Why this shape mirrors credit-grant-validation / requests-validation /
+      create-startup-validation: reveal-email uses the direct getCurrentUser()
+      + scopedReseller() + decideReveal() chain rather than
+      gateRequireFeature(). The response envelope is therefore
+      { ok:false, reason:<string> } like drawer / requests / me /
+      credit-grant / create-startup rather than the { ok:false, error,
+      feature } shape billing / sandbox-setup emit. Distinct from every
+      prior P10 dry-run validation tick in one dimension only — this is
+      the H.10 email-reveal chokepoint whose blast radius is a real email
+      leaving the masked-list boundary + a durable audit-log row (both
+      short-circuited by decideReveal before the SELECT / audit write).
+
+      Why the missing_id branch isn't covered: decideReveal returns
+      missing_id when customerId.length === 0, but Next.js dynamic route
+      matching rejects an empty [id] segment at the router and returns 404
+      before route.ts:32 runs — so missing_id is only reachable via unit
+      tests in customer-reveal.test.ts (tick 21, 7/7) and not via a live
+      HTTP request. Deliberately noted in the spec header comment so a
+      future reader doesn't try to add a third row.
+
+      Why 404 / 500 / 503 branches aren't covered: not_configured (503)
+      needs SUPABASE_URL/SERVICE_ROLE unset which would break every other
+      Playwright spec in the same worker. not_found (404) needs the
+      app_users SELECT to return no row for an in-scope id (requires
+      per-test app_users tampering). lookup_failed / audit_failed (500)
+      need per-test tampering plan §J.2 forbids. Happy path (200 with
+      email) fires the full app_users SELECT + reseller_audit_log chain
+      against the harness reseller + attributed customer — belongs to the
+      temp-reseller mint fixture follow-up alongside every other deferred
+      happy-path row from ticks 94..116.
+
+      Verified: tsc clean (npx tsc --noEmit exit=0); npm run lint:reseller:
+      unchanged from tick 116 baseline — R-01 scanned 11 file(s), R-03
+      scanned 31 manifest route(s), 3 exemptions, 0 violations (the spec
+      lives under web/tests/e2e/reseller/ not /api/reseller/**, so R-01
+      doesn't fire; it's not a mutation route in feature-gates.manifest.ts
+      so R-03 doesn't fire). Playwright not run this tick — both rows will
+      execute on the next CI Playwright pass alongside the twenty-eight
+      other reseller-lens dry-run specs.
+
+      Frontier after tick 117: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 117 unblocks: the last decideReveal() validation
+      chokepoint under /api/reseller/customers/[id]/reveal-email now has
+      symmetric coverage matching credit-grant / requests / create-startup
+      validation patterns. Twenty-nine spec files now sit in
+      web/tests/e2e/reseller/. Next autonomous tick options: (i) landing
+      the QA-mode temp-reseller mint fixture that opens up all the
+      deferred HAPPY-PATH branches from ticks 94..117 at once (larger
+      tick, wants a design pass); (ii) drawer input-validation twin spec
+      (GET /api/reseller/customers/[id]/drawer uses the exact same
+      decideReveal chain — 400 invalid_id + 403 not_in_scope harness rows
+      would light up the read lens); (iii) sandbox-setup input-validation
+      spec if that route has post-scope branches; (iv) idle until human
+      unblock arrives on P8.5 or P1.5.
     commit: (this tick)
 
   - tick: 116
