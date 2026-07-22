@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.34
+version: 2026-07-23.35
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -427,7 +427,7 @@ tracks:
         ]
   B:
     name: showcase-track
-    current_focus: B1_showcase_scaffold
+    current_focus: done  # B1..B10 all shipped (B10 tick 54); frontier picker should skip Track B rescans
     phases:
       B1_showcase_scaffold:
         status: done
@@ -1909,6 +1909,43 @@ review_history:
       vitest 624/624 (was 603/603, +21); lint:reseller unchanged.
       Track B is now COMPLETE (B1..B10 all done).
     commit: (this tick)
+  - tick: 64
+    ran_at: 2026-07-22
+    action: coo_advisory_27_human_blocked_snapshot
+    result: |
+      Partial close on COO advisory §27 next-tick asks. Two housekeeping wires
+      landed:
+        (a) scripts/cron/reseller-goal-loop.mjs now emits a
+            `stage: human_blocked_snapshot` line on every tick (right after
+            tick_start, before the goal-completion detector). Extracted via a
+            dependency-free regex scan (extractHumanBlockedSnapshot) that
+            matches inline-YAML rows `<id>: {status: human_blocked, ...,
+            blocker: "..."}` and returns [{id, blocker}]. Current tree emits
+            two entries: P1.5_infovision_seed (H.20 ABN + GST confirm) and
+            P8.5_env_and_playwright (STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|
+            ANNUAL). Failure to scan degrades to a `human_blocked_snapshot_
+            failed` telemetry row so a malformed goal file cannot block a
+            tick. Now the weekly-digest reader of reseller-goal-history.jsonl
+            gets both open escalations without having to grep the goal file
+            (COO Findings item 4 + Recommendations item 1 + Next-tick asks
+            item 1 all close on the same wire).
+        (b) tracks.B.current_focus flipped from "B1_showcase_scaffold" (stale
+            since B10 landed tick 54) to "done" with a comment noting all
+            B1..B10 shipped. Frontier picker's Track B rescan is now a
+            single-line no-op (COO Next-tick asks item 2).
+      Verified: node --check clean on the loop script; kill-switch dry run
+      (RESELLER_AUTONOMOUS_LOOP=off) still exits 0 without touching the new
+      code path (snapshot is emitted AFTER the kill-switch gate by design);
+      offline regex smoke test confirms both current human_blocked entries
+      are extracted with full blocker text intact. No new deps, no new files
+      — pure edit to the existing loop driver + the goal file. Remaining
+      under §27: IR advisory §27 (pitch-deck Channel Economics slide, data-
+      room GTM one-pager, reseller row in unicorn masterplan) is content
+      work outside the reseller-module tree — deferred to a CMO/IR joint
+      tick. Frontier unchanged: every real leaf still DONE or HUMAN-BLOCKED
+      (P8.5 Stripe env vars, P1.5 InfoVision seed on H.20 ABN).
+    commit: (this tick)
+
   - tick: 63
     ran_at: 2026-07-22
     action: customer_success_advisory_24_denial_reason_surface
@@ -2212,7 +2249,7 @@ next_action:
    24) PARTIAL tick 63 — Grant modal EN+VI parity DONE tick 62; denial-reason surface DONE tick 63 (new /reseller/requests page renders reseller's own filed requests bucketed pending/denied/approved/cancelled with denied cards prominently displaying admin decision_reason in an amber card + mailto:admin@blockid.au fallback; EN+VI parity via useLocale() Copy: Record<Locale, Copy> table + Intl.NumberFormat + Intl.DateTimeFormat; pure summariser lib web/src/lib/reseller/request-summary.ts with 8/8 vitest; nav entry added between Credits and Reports). REMAINING under §24: (a) H.8 wholesale magic-link + welcome email for reseller-provisioned founders (needs email template + magic-link infra); (c) leading-signal KPIs (last-login, first-report) into P11 weekly digest.
    25) PARTIAL tick 61 — CPO advisory §25 customer-drawer EN+VI parity DONE. web/src/app/reseller/customers/customer-drawer.tsx + drawer-opener.tsx + reveal-email-cell.tsx now switch every user-facing string via useLocale() with a Copy: Record<Locale, Copy> table (real VI translation with diacritics — "Tổng quan"/"Tiến trình"/"Báo cáo"/"Đang tải chi tiết khách hàng…"/"Chương hướng dẫn"/etc.); currency helper fmtAud() now takes locale and flips VI decimal separator from "." to "," (A$99,00); credits use Intl.NumberFormat("vi-VN"|"en-AU") for thousands separator; tab labels are now data-driven (dropped CSS `capitalize` since it fails for VI multi-word labels). tsc clean; reseller vitest 276/276; lint:reseller unchanged 8+28 with 3 exemptions / 0 violations. REMAINING under §25: explicit non-payment confirmation step in wholesale onboarding wizard (bundled with the H.8 magic-link work in §24).
    26) DONE tick 60 — CHRO advisory §26 both halves closed. (a) Div 83A qualifying-tests checklist (tick 59): guide chapter 08-team publishes the eight s83A tests EN + VI (esic_eligible / unlisted / turnover_cap / age_lt_10y / grantee_is_employee / market_value / ownership_cap / holding_or_forfeiture) on both /guide/08-team and /workspace/guide/08-team plus docs/guides/startup-journey/chapter-08.md; Chapter interface gained optional qualifyingTests?: LocalisedList; startup-journey.test.ts 12/12 pass. (b) human-review-minutes KPI (tick 60): counter file at web/content/reports/human-review-minutes.jsonl (append-only JSONL); helper module scripts/cron/human-review-minutes.mjs (sumHumanReviewMinutes7d + appendHumanReviewMinutes); bump CLI scripts/cron/bump-human-review-minutes.mjs (chmod +x); reseller-goal-loop.mjs samples the 7-day sum once at process start and every log() row now carries human_review_minutes_7d so the "0 eng-weeks burned" kpi.eng_weeks_burned=0 claim carries a real number visible on every telemetry line. Verified: node --check clean on all three scripts; smoke-test append+sum cycle worked (0 → 0.5 for tagged self-test row); loop kill-switch dry run exits 0 with no regressions.
-   27) TODO (advisory — IR + COO) — Pitch-deck Channel Economics slide, data-room GTM one-pager, reseller row in unicorn masterplan; surface human-blocked items (P1.5, P8.5) in weekly digest.
+   27) PARTIAL tick 64 — COO advisory §27 half closed. (a) scripts/cron/reseller-goal-loop.mjs now emits `stage: human_blocked_snapshot` on every tick with [{id, blocker}] extracted via dependency-free regex — currently surfaces P1.5_infovision_seed (H.20) + P8.5_env_and_playwright (Stripe env vars) so the weekly-digest reader of reseller-goal-history.jsonl gets both escalations without grepping the goal file (COO Findings item 4 + Recommendations item 1 + Next-tick asks item 1). Failure path emits `human_blocked_snapshot_failed` so a malformed goal cannot block a tick. (b) tracks.B.current_focus flipped from stale "B1_showcase_scaffold" to "done" so the frontier picker's Track B rescan is a no-op (COO Next-tick asks item 2). REMAINING under §27: IR half — pitch-deck Channel Economics slide, data-room GTM one-pager, reseller row in unicorn masterplan — content work outside the reseller-module tree; deferred to a CMO/IR joint tick.
    10) DONE tick 43 — P0.4_ceo_final_sign_off closed with verdict=approved. P0 pre-flight window is now fully sealed; only P0.3 advisory reviews remain pending (non-blocking).
    11) DONE tick 44 — P8_share_management_addon decomposed into P8.1..P8.5 and P8.1_manifest_completeness shipped. feature-gates.manifest.ts now maps 28 real mutation routes (9 phantoms removed, 20 real routes added); completeness test 6/6 pass guards against future drift.
    16) DONE tick 49 — Track B B3_guide_ch_5_to_8 shipped. Chapters 5-8 (05-pmf, 06-revenue, 07-growth, 08-team) authored EN+VI as four new entries appended to web/src/lib/guide/startup-journey.ts; ChapterSlug union extended; module doc-comment updated to reflect the B2+B3 arc. VI is complete parity, not machine translation. phaseLabel for each new chapter is a direct reference to PHASE_LABELS[5..8] from @/lib/showcase/gallery so /guide, /workspace/guide, /guide/reports and /showcase/blockid share one canonical phase-label taxonomy. Both surface routes (web/src/app/guide/[chapter]/page.tsx and web/src/app/workspace/guide/[chapter]/page.tsx) SSG the four new slugs automatically via generateStaticParams reading allChapterSlugs() — zero route-file edits required. "Chapter 5 unlocks with the B3 release" placeholder text flipped on both surfaces to "Chapter 9 unlocks with the B4 release" (EN + VI). Test suite: EXPECTED_SLUGS bumped to 8, order + phase arrays extended to [1..8], allChapterSlugs assertion updated, unknown-slug case bumped to 09-funding, first/last adjacent-chapter assertions flipped to 01-vision / 08-team, plus a new boundary assertion for the B2/B3 stitch (04-mvp ↔ 05-pmf) so future reorderings can't silently break the chain. Docs mirror at docs/guides/startup-journey/chapter-{05..08}.md ships EN copy for offline reading + contributor PRs (header comment states runtime pages read the TS module — .md files are documentation-only). Verified: 9/9 pass in startup-journey.test.ts (was 8/8); 64/64 combined guide+showcase pass (was 63/63); tsc clean; npm run lint:reseller unchanged 8 files / 3 exemptions / 0 violations. Chapters 5-8 copy references B3-scoped integrations from plan §298 by name (founder-own Stripe test-mode → live-mode flip in ch5+ch7, GA4 property connection in ch7, weekly SVI cron in ch7, Div83A checker + ESOP scheme in ch8) but the actual UI wiring for those integrations is a follow-up tick — matches the B2 precedent where chapters 1-4 referenced GitHub repo-link + GA measurement-ID capture without shipping the capture UI. Frontier after tick 49: (a) Track A HUMAN-BLOCKED on P8.5 Stripe env vars. (b) Track B B4_guide_ch_9_to_12 (chapters 9-12: Funding-Ready → Fundraise/Term Sheet → Post-Funding/Scale → Exit/Beyond) now unblocked in the same startup-journey.ts pattern — preferred next tick to close the 12-chapter content-authoring arc and unblock B9 (reviews & feedback surface, deps: B4). (c) B7 product tour (deps: B2) + B8 reseller linkage (deps: B1 + track_A_P4) remain unblocked as fallbacks. (d) P0.3 advisory reviews still pending (advisory-only). (e) P1.5 InfoVision seed still HUMAN-BLOCKED on H.20.
