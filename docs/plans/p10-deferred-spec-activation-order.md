@@ -129,6 +129,18 @@ Prep cost: one tick to author the attributed-customer helper
 `app_users` upsert path in the fixture — then rows 145–149 each add
 2–3 assertions.
 
+**Wave-2 helper landed (tick 147).** Row 145 was activated in the same
+tick that added the helper to `web/tests/e2e/fixtures/reseller.ts`:
+`TempResellerFixture.attachAttributedCustomer()` stamps the cache column
+`app_users.attribution_reseller_id = fixture.resellerId` on the seeded
+`qa-founder-attributed-1@blockid.au` row (the seed script only writes
+`reseller_attributions`, not the cache column, so /me returned `reseller:null`
+before). `cleanup()` restores the previous cache value in `afterEach` so
+cross-spec state does not leak. Rows 146–149 now consume the same helper
+without additional prep — each row is a 2–3 assertion paste of the same
+skeleton (loadTempReseller → attachAttributedCustomer → loginAs → GET
+route → assert body → fixture.cleanup()).
+
 ### Wave 3 — capability + budget gates (credit grants + sandbox)
 
 Exercises `decideGrant` / `decideSandboxSpend` / `computeMonthlyUsage`
