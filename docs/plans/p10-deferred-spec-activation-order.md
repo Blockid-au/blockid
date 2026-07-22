@@ -129,6 +129,24 @@ Prep cost: one tick to author the attributed-customer helper
 `app_users` upsert path in the fixture — then rows 145–149 each add
 2–3 assertions.
 
+**Wave-2 row 147 landed (tick 149).** Added a companion
+`test.describe("Reseller customer-drawer — P10 wave-2 uuid_in_scope happy")`
+block to `web/tests/e2e/reseller/drawer-validation.spec.ts` that
+partners with the existing `invalid_id` / `not_in_scope` branches:
+same `active_wholesale` + `fixture.attributedUserId` combination as row
+146, but this row asserts that `decideReveal`'s POSITIVE branch fires
+(a UUID that IS in `allowedCustomerIds()` returns 200 rather than 403
+not_in_scope). Row 146 owns the full envelope shape at the wire
+(overview.masked_email / signup_at / credits_balance + progression[0].
+kind === "signup" + svi_curve/reports arrays); row 147 keeps its
+assertion budget to three (200 + body.ok true + overview defined +
+progression non-empty array) — enough to catch a regression in the
+chain (app_users SELECT + Promise.all fan-out + audit-log write)
+without duplicating row 146. The `attributionExists` guard added tick
+148 transfers into this spec unchanged. Rows 148 (reveal-email-authz)
+and 149 (reveal-email-validation) sit in different files so cannot be
+collapsed per the batching heuristic.
+
 **Wave-2 row 146 landed (tick 148).** Extended
 `TempResellerFixture` with `attributionExists: boolean` — true only when
 `loadTempReseller("active_wholesale")` confirmed the seeder also planted a

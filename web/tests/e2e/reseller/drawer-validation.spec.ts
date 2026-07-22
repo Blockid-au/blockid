@@ -73,11 +73,16 @@
 //     — fires the app_users SELECT + Promise.all fan-out across
 //     svi_analyses / revenue_events / credit_transactions /
 //     credit_balances + the reseller_audit_log(view_customer_drawer)
-//     write against the harness reseller + attributed customer. Belongs
-//     to the temp-reseller mint fixture follow-up alongside the deferred
-//     rows from credit-grant-validation ticks 94..115, the
-//     reveal-email-validation happy-path probe (tick 117), and the
-//     sandbox-setup / drawer / me happy-path probes.
+//     write against the harness reseller + attributed customer. ACTIVATED
+//     as P10 wave-2 row 147 below (uuid_in_scope + happy branch) via
+//     loadTempReseller("active_wholesale") + fixture.attributedUserId as
+//     the URL segment. Row 146 (drawer-authz.spec.ts, tick 148) already
+//     pinned the full envelope shape; row 147 is a companion probe that
+//     proves decideReveal's POSITIVE uuid_in_scope branch fires from the
+//     validation-spec surface too, so a regression in
+//     allowedCustomerIds().includes() surfaces in both the authz spec
+//     (where it would look like a fixture bug) and here (where it lands
+//     next to the invalid_id / not_in_scope branches it partners with).
 //
 // Random UUID that's astronomically unlikely to match any real app_users
 // row so the not_in_scope branch fires deterministically. Passes
@@ -89,10 +94,18 @@
 
 import { test, expect } from "@playwright/test";
 import { loginAs } from "../fixtures/accounts";
-import { harnessSkipReason, loadResellerHarness } from "../fixtures/reseller";
+import {
+  harnessSkipReason,
+  loadResellerHarness,
+  loadTempReseller,
+  tempResellerSkipReason,
+  type TempResellerFixture,
+} from "../fixtures/reseller";
 
 const OUT_OF_SCOPE_UUID = "00000000-0000-4000-8000-000000000001";
 const INVALID_ID_SEGMENT = "not-a-uuid";
+const DRAWER_ROUTE = (customerId: string) =>
+  `/api/reseller/customers/${customerId}/drawer`;
 
 test.describe("Reseller customer-drawer input validation — P10 dry-run", () => {
   const harness = loadResellerHarness();
@@ -134,5 +147,122 @@ test.describe("Reseller customer-drawer input validation — P10 dry-run", () =>
       `not_in_scope body.ok should be false: ${JSON.stringify(body)}`,
     ).toBe(false);
     expect(body.reason).toBe("not_in_scope");
+  });
+});
+
+// P10 wave-2 row 147 — active_wholesale variant probes decideReveal's
+// POSITIVE uuid_in_scope branch (allowedCustomerIds().includes()=true) from
+// the drawer-validation surface. Per docs/plans/p10-deferred-spec-activation-
+// order.md wave 2:
+//   147 | drawer-validation.spec.ts | active_wholesale | uuid_in_scope + happy | 200
+//
+// Row 146 (drawer-authz.spec.ts, tick 148) already pinned the full envelope
+// shape (overview.masked_email / signup_at / credits_balance + progression[0]
+// .kind === "signup" + svi_curve/reports arrays). Row 147 partners with the
+// invalid_id / not_in_scope branches sitting above and asserts that the same
+// well-formed UUID → decideReveal chokepoint that BLOCKS out-of-scope UUIDs
+// PASSES an in-scope UUID (fixture.attributedUserId). A regression in
+// allowedCustomerIds().includes() would either:
+//   (a) leak an out-of-scope UUID through (caught by the not_in_scope test
+//       above returning 200 instead of 403), or
+//   (b) reject an in-scope UUID (caught here returning 403 instead of 200).
+// Both branches must hold for the chokepoint to be sound.
+//
+// Fixture wiring (wave-2 helper landed tick 147; row 146 landed tick 148):
+//   - loadTempReseller("active_wholesale") reads the QAPROBEWHOLESALEACTIVE
+//     seed row + resolves adminEmail via the P10 Option A per-variant slot
+//     (qa-reseller-wholesale-active@blockid.au) + mirrors reseller_admins.
+//   - fixture.attributionExists asserts the seeder also planted a
+//     reseller_attributions row so scopedReseller().allowedCustomerIds()
+//     surfaces fixture.attributedUserId. Without the row the drawer route
+//     returns 403 not_in_scope; the fixture flag lets the spec skip cleanly
+//     rather than false-fail as a code regression.
+//   - loginAs(page, fixture.adminEmail) opens the reseller-admin session
+//     against the DISTINCT per-variant app_users row so scopedReseller()
+//     .maybeSingle() does not PGRST116-collide with other variants.
+//
+// Skip conditions (mirrors wave-2 row 146 posture verbatim):
+//   - loadTempReseller returns null when SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
+//     are unset or the QAPROBEWHOLESALEACTIVE seed row is missing.
+//   - fixture.adminUserId null (variant admin row missing or reseller_admins
+//     mirror not seeded — scopedReseller would 403 no_membership).
+//   - fixture.attributedUserId null (attributed founder not in app_users).
+//   - fixture.attributionExists false (reseller_attributions row missing —
+//     drawer would 403 not_in_scope; that is the failure mode row 147 is
+//     designed to catch, so a partial-seed host must skip rather than
+//     false-fail).
+//   - loginAs throws when /tmp/blockid-qa-accounts.txt has no row for the
+//     resolved admin email.
+//
+// Non-Stripe / non-GST discipline: mirrors row 146 — no promotion_code
+// lookup, no Stripe network call, no InfoVision dependency. P8.5 + P1.5
+// remain neither a dependency nor a consequence. The audit-log write is
+// captured by wave-5 row 179 (audit-log-writes.spec.ts) so this row focuses
+// on the read envelope only.
+//
+// Assertion scope per wave-2 prep-cost note ("rows 145-149 each add 2-3
+// assertions"): row 146 pinned the FULL envelope shape; row 147 pins
+// only the two dimensions that row 146 covers by side-effect but that this
+// spec's siblings (invalid_id / not_in_scope) do NOT — status 200 with
+// body.ok true (proves decideReveal's positive branch fires) plus overview
+// defined + progression is a non-empty array (proves the chain COMPLETES
+// through the app_users SELECT + fan-out + audit-log write without a 5xx
+// leaking through). Body shape is authoritatively tested at
+// customer-drawer.test.ts (10/10) and pinned at the wire in row 146.
+test.describe("Reseller customer-drawer — P10 wave-2 uuid_in_scope happy", () => {
+  test("active_wholesale — well-formed UUID inside allowedCustomerIds returns 200 with drawer envelope", async ({
+    page,
+  }) => {
+    let fixture: TempResellerFixture | null;
+    try {
+      fixture = await loadTempReseller("active_wholesale");
+    } catch (err) {
+      test.skip(
+        true,
+        `loadTempReseller('active_wholesale') threw: ${(err as Error).message}. ` +
+          tempResellerSkipReason("active_wholesale"),
+      );
+      return;
+    }
+    if (
+      !fixture ||
+      !fixture.adminUserId ||
+      !fixture.attributedUserId ||
+      !fixture.attributionExists
+    ) {
+      test.skip(true, tempResellerSkipReason("active_wholesale"));
+      return;
+    }
+    const attributedUserId = fixture.attributedUserId;
+    try {
+      await loginAs(page, fixture.adminEmail);
+    } catch (err) {
+      test.skip(
+        true,
+        `loginAs(${fixture.adminEmail}) threw: ${(err as Error).message}. ` +
+          tempResellerSkipReason("active_wholesale"),
+      );
+      return;
+    }
+    const resp = await page.request.get(DRAWER_ROUTE(attributedUserId));
+    expect(
+      resp.status(),
+      `uuid_in_scope + happy returned ${resp.status()} — expected 200. A 403 not_in_scope here means allowedCustomerIds().includes() rejected an in-scope UUID (mirror of the not_in_scope branch above). A 5xx here means the chain (app_users SELECT + fan-out + audit-log) leaked through. Body: ${await resp.text()}`,
+    ).toBe(200);
+    const body = (await resp.json()) as {
+      ok: boolean;
+      overview?: unknown;
+      progression?: Array<{ kind: string }>;
+      svi_curve?: unknown;
+      reports?: unknown;
+      reason?: string;
+    };
+    expect(
+      body.ok,
+      `uuid_in_scope + happy body.ok should be true: ${JSON.stringify(body)}`,
+    ).toBe(true);
+    expect(body.overview, "overview missing").toBeDefined();
+    expect(Array.isArray(body.progression)).toBe(true);
+    expect((body.progression ?? []).length).toBeGreaterThan(0);
   });
 });
