@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.101
+version: 2026-07-23.102
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,97 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 102
+    ran_at: 2026-07-22
+    action: p10_dry_run_me_attribution_authz_playwright_spec
+    result: |
+      Composed option (ii) from tick 101's frontier note — "audit remaining
+      /api/reseller/** GET/PATCH surfaces for any pre-write branches still
+      uncovered (candidates include /api/reseller/me and admin-side PATCH
+      endpoints)". Picked GET /api/reseller/me because it is the third
+      /api/reseller/** route (after reveal-email + drawer) that hits
+      getCurrentUser() directly rather than gateRequireFeature() — but
+      UNLIKE those two it also skips scopedReseller() by design (the
+      r-01-exempt pragma at route.ts:18 documents this: any signed-in user
+      may read their OWN attribution because the useResellerAttribution()
+      client hook needs it to render the topbar co-branding pill for
+      attributed customers who are NOT reseller admins).
+
+      Files:
+        - web/tests/e2e/reseller/me-attribution.spec.ts (new — two rows
+          probing the top of the auth chain before getSupabaseAdmin,
+          app_users SELECT, or resellers SELECT run:
+          (1) unauthenticated (GET with no session → getCurrentUser null →
+              401 { ok:false, reason:"unauthenticated" } before any DB
+              call fires),
+          (2) authenticated_no_attribution (loginAs(qa-founder-1@blockid.au)
+              → GET → 200 { ok:true, reseller:null } because the founder's
+              app_users.attribution_reseller_id is null so the code returns
+              at route.ts:53 before the resellers SELECT runs).
+          Row 1 runs unconditionally (no harness dep — just page.request
+          without loginAs). Row 2 test.skip()s with a diagnostic message
+          if /tmp/blockid-qa-accounts.txt is missing so operators without
+          the seed file get an actionable pointer rather than a hard fail.
+          Row 2 hits the app_users SELECT scoped to the caller's OWN id
+          only — no write, no audit-log row, no cross-tenant read.
+
+      Why row 2 is worth a spec even though the response envelope matches
+      the fail-open/fail-closed/catch shapes: it pins the CONTRACT for the
+      caller — a founder with no attribution must see {ok:true,
+      reseller:null} rather than a 401 (which would flash the auth banner
+      on the pill) or a 402 (which would suggest a plan gate exists). The
+      pill component treats reseller:null as "hide" and any other shape as
+      "show or error"; a refactor that accidentally gate-locks this route
+      to reseller-admins would light up as row 2 flipping from 200 to 402.
+
+      Why the attributed-founder happy path (200 with populated reseller
+      object) isn't covered: requires an app_users row whose
+      attribution_reseller_id points at an active resellers row; folded
+      into the temp-reseller mint fixture follow-up alongside the deferred
+      rows from ticks 94/95/96/97/98/99/100/101. The inactive-reseller
+      silent-null branch (200 reseller:null when status !== 'active') and
+      the fail-open/fail-closed branches (SUPABASE_URL unset / pre-0091
+      DB throws) are all forbidden by plan §J.2 without per-test tampering
+      or cross-worker breakage.
+
+      Verified: tsc clean (npx tsc --noEmit exit 0 at web/); vitest
+      unchanged (Playwright spec is not picked up by vitest — tests/e2e/**
+      is excluded per playwright.config.ts:testDir); npm run lint:reseller:
+      R-01 scanned 11 file(s), R-03 scanned 31 manifest route(s); 3
+      exemptions, 0 violations unchanged (spec lives under
+      web/tests/e2e/reseller/, not /api/reseller/**, so R-01 doesn't fire;
+      not a mutation route in feature-gates.manifest.ts so R-03 doesn't
+      fire). Playwright not run this tick — row 1 is harness-free and
+      will execute on the next CI Playwright pass; row 2 lights up as
+      soon as the qa accounts file is present.
+
+      Frontier after tick 102: unchanged in shape — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 102 unblocks: the /api/reseller/me auth-chain contract
+      (getCurrentUser → 401 vs authenticated-null-attribution → 200
+      reseller:null) is now regression-guarded at the Playwright lens —
+      a refactor that gate-locks the route to reseller-admins, or that
+      swaps the fail-closed catch for a 500, lights up in CI on the
+      next `npx playwright test` run. Fourteen spec files now sit in
+      web/tests/e2e/reseller/ (attribution-timing, audit-anomaly-scan,
+      audit-log-writes, billing-authz, cobranding-pill, code-validate,
+      create-startup-validation, credit-grant-validation, drawer-authz,
+      me-attribution, requests-validation, reveal-email-authz,
+      sandbox-setup-authz, scope-boundary). All three direct-auth-chain
+      /api/reseller routes (reveal-email + drawer + me) now have
+      symmetric dry-run coverage. Next autonomous tick options:
+      (i) landing the QA-mode temp-reseller mint fixture that opens
+      up all the deferred branches from ticks
+      94/95/96/97/98/99/100/101/102 at once (larger tick, wants a
+      design pass); (ii) audit admin-side PATCH surfaces for any
+      pre-write branches still uncovered (candidates:
+      /api/admin/resellers/[code] PATCH/DELETE,
+      /api/admin/resellers/requests/[id] PATCH); (iii) idle until
+      human unblock arrives.
     commit: (this tick)
 
   - tick: 101
