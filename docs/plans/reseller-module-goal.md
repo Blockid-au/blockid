@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.207
+version: 2026-07-23.208
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,199 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 208
+    ran_at: 2026-07-22
+    action: p10_wave5_row_179_approve_fanout_mirror_lens_alignment_via_shared_helper
+    result: |
+      Aligned the P10 wave-5 row 179 approve-fanout mirror-row lens with
+      the P10 wave-3 self-approve mirror-row lenses (rows 155 / 156 DB
+      companion / 156b DB companion) by ADDING a second-lens
+      countResellerCreditGrantsFor(supabase, {resellerId, targetUserId,
+      kind:'grant', since:patchSince}) assertion to the row 179 approve
+      block in web/tests/e2e/reseller/audit-log-writes.spec.ts, folded
+      between the existing shape-read (step 3) and the audit-log count
+      (step 4) and labelled as step "3b" so the two lenses are read
+      contiguously without disturbing the step numbering the rest of the
+      block references. The existing shape-read stays as the row-CONTENT
+      lens (kind, over_budget, amount, credit_transaction_id, metadata);
+      the new helper call is the row-COUNT lens (fan-out cardinality plus
+      cross-reseller isolation).
+
+      Why the addition (not a replacement): the shape read at
+      audit-log-writes.spec.ts:523-527 scopes only by (target_user_id,
+      metadata->>reseller_request_id). A regression that landed the
+      reseller_credit_grants insert but keyed it to a different
+      reseller_id — e.g. actor_user_id inadvertently threaded as
+      reseller_id in a route-side CTE rewrite, or a schema drift where
+      reseller_id defaulted to the admin's user_id under a broken
+      DEFAULT clause — would still return the matching row on the shape
+      read (metadata->>reseller_request_id is the requestId echoed from
+      the request payload, independent of the reseller_id column) and
+      leave every field-shape assertion green. The helper filters
+      additionally by reseller_id=fixture.resellerId so that dimension is
+      now covered on the admin-approve branch, matching the coverage
+      rows 155 / 156 DB companion / 156b DB companion already give to
+      the self-approve branch. Replacing the shape read entirely with the
+      helper would REGRESS the audit-approve block because the helper
+      returns only a count — it cannot assert kind/over_budget/
+      credit_transaction_id linkage/metadata content, all of which are
+      necessary to catch content-shape regressions the count alone
+      would miss. Both lenses read from the same reseller_credit_grants
+      table so the network cost delta is one HEAD-count query on a
+      table already indexed on (reseller_id, month_key) per migration
+      0096:35 (reseller_credit_grants_reseller_month_idx).
+
+      Frontier before this tick: tick 207 activated the row 156 DB
+      companion (two-chain fanout) and named row 179 refactor via
+      shared helper as the natural next pick. All 43 rows in the P10
+      activation matrix (waves 1-5, rows 141-183) remain activated
+      except the three human-blocked rows: 175 approve (code_request)
+      branch (P8.5-blocked on Stripe test-mode), 178 signup-jitter
+      (QA-mode-blocked), 182 SetupIntent (P8.5-blocked). This tick is
+      a purely additive lens-alignment refactor: no test was removed,
+      no assertion was weakened, no production code was touched.
+
+      Files:
+        - web/tests/e2e/reseller/audit-log-writes.spec.ts (new step
+          "3b" block inserted between the existing step 3 shape read
+          (ends at line 543 with the credit_transaction_id assertion)
+          and step 4 audit-log count (line 545 onward). The step 3b
+          block runs countResellerCreditGrantsFor with the same
+          patchSince cursor step 4 uses so cross-run mirror rows
+          against the same (reseller_id, target_user_id) pair cannot
+          poison the count. Long header comment above the call
+          documents (a) the alignment intent — matches rows 155 /
+          156 DB companion / 156b DB companion single-cursor posture,
+          (b) the shape-vs-count diagnostic split — shape read
+          validates content, helper validates fan-out + reseller_id,
+          (c) the specific regression class the helper catches that
+          the shape read misses — mirror insert keyed to a different
+          reseller_id (e.g. actor_user_id or DEFAULT drift). The
+          countResellerCreditGrantsFor import at line 54 is already
+          in scope from the earlier row 155 activation so no new
+          import line is required.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.207 → 2026-07-23.208; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Row lives in audit-log-writes.spec.ts (not admin-requests-
+          patch-authz.spec.ts) per the topology decision established
+          at tick 186 for wave-5 row 179 approve-fanout: authz specs
+          own the HTTP contract (status codes + envelope shape +
+          response-side arithmetic); audit-log-writes.spec.ts owns
+          the DB-level side effects on the append-only ledger and
+          the mirror table. Row 179's shape read has always lived
+          here; the helper call sits alongside it.
+        - Why the assertion is additive and not a replacement of
+          step 3: dropping the shape read entirely to lean only on
+          the helper would lose (a) kind='grant' vs 'sandbox_spend'
+          discrimination (helper filters by kind but does not assert
+          the fetched row's kind matches — count-only), (b)
+          over_budget=true assertion (helper cannot assert this
+          without a schema round-trip), (c) amount === requestedAmount
+          assertion, (d) credit_transaction_id === txRow.id linkage
+          assertion (this is the row that catches a regression where
+          the mirror insert races the credit_transactions insert and
+          writes a null credit_transaction_id under a relaxed CHECK
+          constraint). All four content assertions must stay to
+          catch the shape-regression class. The helper only adds
+          coverage for the reseller_id-drift + fan-out-cardinality
+          regression classes that the shape read does NOT cover.
+        - Why patchSince is the correct cursor: patchSince is
+          captured at line 441 immediately before the approve PATCH
+          fires (matching the same discipline used by the audit-log
+          countResellerAuditLogFor call at step 4 which reuses it).
+          The helper counts mirror rows created at or after
+          patchSince — this excludes prior-run rows that a partial
+          cleanup may have leaked (reseller_credit_grants is not
+          append-only so cleanup normally removes them, but a
+          cleanup failure between runs could leave a leaked row
+          keyed to the same (reseller_id, target_user_id) under a
+          different month_key window). Using a fresh chain cursor
+          per PATCH matches the row 155 single-POST cursor discipline
+          rather than the row 156b three-chain single-cursor
+          discipline; both are valid — the difference is scope, and
+          row 179 fires exactly one PATCH per test so per-PATCH
+          cursor is correct.
+        - Route write reference: web/src/app/api/admin/resellers/
+          requests/[id]/route.ts:271-287 fires supabase.from(
+          'reseller_credit_grants').insert({reseller_id: current.
+          reseller_id, target_user_id: payload.target_user_id, kind:
+          'grant', amount: payload.requested_amount, over_budget:
+          true, credit_transaction_id: creditTxRow.id, month_key,
+          metadata: {reseller_request_id: current.id, ...}}) inside
+          the same PATCH handler that step 4's audit-log write also
+          runs inside. Both the shape read and the helper read the
+          same row; the helper adds the reseller_id column filter
+          the shape read omits.
+        - Cleanup topology unchanged: attachApproveTarget's restore
+          closure at fixture.ts:1250-1356 already sweeps the
+          reseller_credit_grants row before the FK-parent
+          credit_transactions row (satisfying credit_transaction_id
+          → credit_transactions.id). fixture.cleanup() runs in
+          afterAll on this describe (line 363-376) so the additive
+          assertion does not change cleanup fidelity.
+        - No production code touched. Spec + goal file only. Neither
+          the R-01 scope-boundary rule (only /api/reseller/**) nor
+          the R-03 manifest rule (only feature-gates.manifest.ts
+          routes) scan web/tests/e2e/** so lint counts are unchanged.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: exit 0. `fixture` is
+          narrowed non-null in scope by the earlier
+          `if (!fixture) { test.skip(true, ...); return; }` guard at
+          line 388-391 so fixture.resellerId type-checks. The
+          countResellerCreditGrantsFor + loadSupabaseAdmin +
+          supabaseAdminSkipReason imports at lines 52-58 are already
+          in scope from the earlier row 155 activation — no new
+          import line required.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files,
+          R-03 scanned 31 manifest routes, 3 exemptions, 0
+          violations — unchanged.
+        - No DB apply this tick — no migration authored. Playwright
+          run against staging still gated on the tick 198 seed re-run
+          per P10 hardening exit criteria, not this tick.
+
+      Frontier after tick 208:
+        - Track A P8.5 STILL HUMAN-BLOCKED on
+          STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL.
+        - Track A P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20
+          ABN + GST.
+        - Track B COMPLETE.
+        - All 43 rows in the P10 activation matrix (waves 1-5) are
+          activated; only human-blocked rows (175 approve
+          code_request / 178 signup-jitter / 182 SetupIntent) remain
+          on the plan doc's canonical list.
+        - Rows 152/155/156 now have HTTP arithmetic (rows 152/156 in
+          credit-grant-authz.spec.ts) AND DB fanout lenses (rows
+          155 / 156 DB companion / 156b DB companion in audit-log-
+          writes.spec.ts) covering the single / two-chain / three-
+          chain self-approve grant paths. Row 179 approve-fanout
+          now has BOTH the shape-read content lens AND the shared-
+          helper cardinality+reseller_id lens covering the admin-
+          approve grant path. Full regression-catching lens
+          coverage on the credit-grant surface across both
+          branches.
+
+      Natural next pick for tick 209: mirror this same shape+helper
+      alignment onto the row 179 deny/cancel symmetric blocks
+      (audit-log-writes.spec.ts:602-792 + 794-999) which currently
+      assert `expected 0 reseller_credit_grants rows` via raw
+      supabase select. Adding a countResellerCreditGrantsFor helper
+      call scoped by (reseller_id, target_user_id, kind='grant',
+      since=patchSince) as a second-lens negative assertion would
+      close the same reseller_id-drift regression class on the
+      deny/cancel branches too — a regression that landed a stray
+      reseller_credit_grants insert on the deny/cancel branch and
+      keyed it to a different reseller_id would leak past the
+      current `metadata->>reseller_request_id` filter. Alternative:
+      author a four-chain (5+3+2+1 → balance=11) variant row 156c
+      in credit-grant-authz.spec.ts + its DB companion in audit-
+      log-writes.spec.ts, extending the accumulation identity chain
+      by one more UPSERT re-entry.
+    commit: (this tick)
+
   - tick: 207
     ran_at: 2026-07-22
     action: p10_wave3_row_156_db_companion_two_chain_mirror_fanout_activation
