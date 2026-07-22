@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.29
+version: 2026-07-23.30
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -353,7 +353,12 @@ tracks:
             "web/src/app/workspace/billing/page.tsx (Suspense wrap for useSearchParams; passes ADDON_PRICE_IDS to BillingClient)",
             "web/src/components/workspace/nav-groups.ts (+addOnKey?: 'share_management' on NavItem; Cap Table / Shareholders / ESOP / Vesting / Equity Setup / Equity Split tagged)",
             "web/src/components/workspace/workspace-layout.tsx (locked+addOnKey → link to /workspace/billing?openAddon=<key> + amber 'Add-on' pill instead of Lock icon; sidebar item never navigates away from the user's context)"
-          ], note: "purchase drawer functional with proration preview; cancel path defaults cancel_at_period_end-style via proration_behavior:'none' on subscriptionItems.del (customer keeps access through paid period, no commission clawback per plan §F.5); typecheck clean; all 551 vitest tests pass; STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars remain human-blocked (P8.5) — Playwright provisioning depends on those being minted by Stripe account owner"}
+          ], note: "purchase drawer functional with proration preview; cancel path SUPERSEDED by P8.4b (subscription-schedule end-of-cycle); typecheck clean; all 551 vitest tests pass; STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars remain human-blocked (P8.5) — Playwright provisioning depends on those being minted by Stripe account owner"}
+          P8.4b_end_of_cycle_removal: {status: done, tick: 56, completed_at: 2026-07-22, files: [
+            "web/src/lib/stripe/addon-schedule.ts (pure buildAddonRemovalSchedulePhases returning two SchedulePhaseInput phases or {ok:false, reason:'target_not_in_phase'|'no_items_after_removal'})",
+            "web/src/lib/stripe/addon-schedule.test.ts (5/5 pass — happy path, string-vs-object price shape, zero/undefined quantity omit, sole-item guard, quantity>1 preservation)",
+            "web/src/app/api/stripe/change-plan/route.ts (handleRemoveItem swapped from subscriptionItems.del to subscriptionSchedules.create({from_subscription}) → subscriptionSchedules.update({end_behavior:'release', phases:[current,reduced-iterations-1]}); reuses activeSub.schedule when one already exists so re-calls or existing schedules don't 400; revenue_events.detail now carries schedule_id + effective_at Unix timestamp; response envelope adds schedule_id + effective_at)"
+          ], note: "CRO advisory #21 fixed. Old path called stripe.subscriptionItems.del(target.id, {proration_behavior:'none'}) which per Stripe API contract removes the item IMMEDIATELY — the customer lost add-on access mid-cycle despite the drawer copy promising end-of-cycle removal. New path creates a Subscription Schedule from the active subscription (Stripe fills phase 0 with the current item set through current_period_end); the update then appends phase 1 with the reduced item set + iterations:1 + proration_behavior:'none' and sets end_behavior:'release' so the subscription reverts to normal renewal after the schedule completes. Extracted the phase-building math into a pure helper so the branch is unit-tested without Stripe network. Verified: tsc clean; vitest 629/629 (+5); npm run lint:reseller unchanged (8 R-01 + 28 R-03, 3 exemptions, 0 violations). P8.5 remains HUMAN-BLOCKED on Stripe env vars; Playwright E2E for the end-of-cycle assertion is now the last remaining P10 gate for this defect."}
           P8.5_env_and_playwright: {status: human_blocked, blocker: "STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars must be minted in Stripe dashboard by account owner before Playwright can green"}
         exit_criteria: [
           "STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars set (HUMAN — P8.5)",
@@ -361,7 +366,7 @@ tracks:
           "AST lint enforces requireFeature('<key>') on all gated routes (D3-CISO-02) (DONE P8.2 tick 45 — R-03 analyzer + CLI live; 28 routes gated; 1 documented exemption for anonymous investor telemetry)",
           "grandfather backfill migrated on cutover T (DONE P8.3 tick 46 — migration 0098 authored + applied; idempotent)",
           "purchase drawer functional with proration preview (P8.4)",
-          "cancel path defaults to end-of-cycle (cancel_at_period_end on item) (P8.4)",
+          "cancel path defaults to end-of-cycle (subscription schedule with end_behavior=release) (DONE P8.4b tick 56)",
           "Playwright: grandfathered user unchanged; new Growth user 402 on cap-table without add-on (P8.5 — deferred until Stripe prices minted)"
         ]
       P9_admin_surface:
@@ -1757,6 +1762,69 @@ review_history:
       flipped pending → done with evidence field only; no
       code files touched this tick.
     commit: (this tick)
+  - tick: 56
+    ran_at: 2026-07-22
+    action: p8.4b_end_of_cycle_removal
+    result: |
+      CRO advisory item #21 closed. Old handleRemoveItem() in
+      web/src/app/api/stripe/change-plan/route.ts called
+      stripe.subscriptionItems.del(target.id,{proration_behavior:'none'})
+      which per the Stripe API contract removes the sub-item
+      IMMEDIATELY — the customer lost add-on access mid-cycle
+      despite the drawer copy and the persisted
+      revenue_events.detail.effective='end_of_current_period'
+      both claiming end-of-cycle removal. Correct pattern per
+      Stripe docs is a Subscription Schedule. New path:
+      (a) reuse activeSub.schedule if the subscription already
+      has one attached (retrieve it) else
+      subscriptionSchedules.create({from_subscription:activeSub.id})
+      which fills phase 0 with the current item set through
+      current_period_end; (b) call
+      subscriptionSchedules.update(schedule.id, {end_behavior:
+      'release', phases:[<phase 0 preserved with start_date/
+      end_date/items>, {items: current minus target, iterations:
+      1, proration_behavior:'none'}]}) so the subscription
+      reverts to normal Stripe renewal after phase 1's single
+      cycle completes with the reduced items. Pure phase-builder
+      extracted to web/src/lib/stripe/addon-schedule.ts so the
+      branch is unit-tested without any Stripe network dep:
+      buildAddonRemovalSchedulePhases returns a discriminated
+      {ok:true, phases:[p0,p1]} | {ok:false, reason:
+      'target_not_in_phase'|'no_items_after_removal'} envelope so
+      malformed inputs cannot reach Stripe. 5/5 vitest cases:
+      happy path (2 items → both phases correct), string-vs-
+      object price.id shape acceptance, zero/undefined quantity
+      omit (so downstream Stripe params don't reject a quantity:0),
+      sole-item guard (would empty phase 1 → returns reason so the
+      caller 400s instead of cancelling the whole sub), and
+      quantity>1 preservation. Response envelope now carries
+      schedule_id + effective_at (Unix timestamp of
+      current_period_end) alongside the existing removed_item_id
+      + effective:'end_of_current_period'; revenue_events.detail
+      mirrors the new fields so downstream reconciliation +
+      Playwright can assert item is still active until
+      current_period_end. Verified: tsc clean; vitest 629/629
+      (was 624/624, +5 addon-schedule); npm run lint:reseller
+      unchanged (8 R-01 + 28 R-03 files, 3 exemptions, 0
+      violations — no new /api/reseller/** file and change-plan
+      route is not gated behind an entitlement). Playwright E2E
+      that hits the actual Stripe test-mode cancel + verifies
+      the item survives to current_period_end still deferred to
+      P10_hardening — same posture as every other P4/P5/P7/P8/
+      B7/B8/B9/B10 leaf that shipped a real code path but left
+      the E2E to the hardening phase. Frontier after tick 56:
+      (a) Track A still HUMAN-BLOCKED on P8.5 Stripe env vars —
+      the P8.4b fix does NOT unblock P8.5 since Playwright
+      provisioning requires the actual STRIPE_PRICE_ADDON_
+      SHARE_MGMT_MONTHLY|ANNUAL price IDs. (b) Track B COMPLETE.
+      (c) P1.5 InfoVision seed still HUMAN-BLOCKED on H.20.
+      (d) P10_hardening still blocked_by [P1..P9] until P8.5
+      clears. Autonomous loop remains substantively IDLE — the
+      only remaining self-contained items are advisory follow-
+      ups 22-27; every real leaf is either DONE or HUMAN-
+      BLOCKED.
+    commit: (this tick)
+
   - tick: 55
     ran_at: 2026-07-21
     action: p0.3_advisory_reviews
@@ -1850,7 +1918,7 @@ next_action:
     3) DONE tick 42 — Track B B1.3 seed + ingest shipped via web/scripts/seed-showcase-blockid.ts. Admin's default project 2bf55234 is now is_showcase=true with repo_url; data_rooms 847b1f03 upserted with 242 sections rows tagged by generated_by_agent + phase_at_generation. Track B B2 (guide chapters 1-4) and B8 (reseller linkage) are now unblocked.
     4) DONE tick 35 — Optional P6.5b widening: term-sheet/idea-lab/valuation/journal/data-room/evidence spendCredits callers now thread project_id via getProjectIdFromRequest(). See tick 35 for file list. Remaining spendCredits() callers not touched: financial-projections, investor-pack/generate, svi/pitch-deck, svi/docx, svi/report, svi/enhanced-report, svi/dimension-analyze, svi/ai-score, svi/research, revaluation, v1/analyze, evaluation/[criterionKey]/ai-suggest, data-room/goals (award path — misleading call, not a real debit).
     5) DONE tick 55 — P0.3_advisory_reviews closed. All 8 advisory reviewers (cmo/coo/cpo/cdo/chro/cro/customer-success/investor-relations) ran in parallel and returned approved_with_notes (0 revise; 0 blocking findings). Review files land under docs/plans/reviews/plan-review-<role>.md. Non-blocking findings captured as items 21-27 below.
-   21) TODO (P8 delta before P8.5 unblock — flagged by CRO advisory) — Fix web/src/app/api/stripe/change-plan/route.ts:540 remove_item path. Current code: `stripe.subscriptionItems.del(target.id, {proration_behavior: "none"})` deletes the sub-item IMMEDIATELY (Stripe API contract), but the surrounding comment and revenue_events detail claim "effective: end_of_current_period". Correct pattern: (a) fetch subscription, (b) call stripe.subscriptions.update(sub.id, {items:[{id: target.id, deleted: true}], proration_behavior:'none', cancel_at_period_end: false}) BUT that still deletes now — end-of-cycle removal requires a Subscription Schedule with a next-phase items[] that omits the add-on. Prefer schedule path so the customer keeps access through the billed period as the drawer copy promises. Add a Playwright case in P10 that asserts the item is still active until current_period_end.
+   21) DONE tick 56 — P8.4b_end_of_cycle_removal fixed the CRO-flagged defect. handleRemoveItem now creates a Subscription Schedule from the active subscription (Stripe fills phase 0 with the current item set through current_period_end) and updates it with a phase 1 that drops the add-on for one iteration + end_behavior:'release' so the subscription reverts to normal renewal. Existing schedules on the sub are reused via activeSub.schedule → subscriptionSchedules.retrieve instead of erroring on a second create. Pure buildAddonRemovalSchedulePhases lib + 5/5 vitest covers happy path, string-vs-object price shape, quantity omit, sole-item guard, and quantity preservation. Response envelope + revenue_events.detail now carry schedule_id + effective_at Unix timestamp so downstream reconciliation / Playwright can assert the item is still active until current_period_end. Playwright E2E assertion still deferred to P10_hardening per the P4/P5/P7/P8/B7/B8/B9/B10 posture.
    22) TODO (advisory — CMO) — /guide/reports lacks a download route + GA event so template-library ROI is unmeasurable; brand-wording pass "Referred by" → "Introduced by" per plan §C.3.
    23) TODO (advisory — CDO) — Add complementary-suppression pass to portfolio-phase-distribution + reviews aggregate rollups so k=1..4 buckets cannot leak via subtraction of the complement bucket; author GA4 event catalogue for showcase surfaces.
    24) TODO (advisory — Customer-Success) — Wire H.8 wholesale magic-link + welcome email for reseller-provisioned founders; add reseller-side denial-reason surface (page render, not just API); add EN+VI parity to Grant modal; add leading-signal KPIs (last-login, first-report) to P11 weekly digest.
