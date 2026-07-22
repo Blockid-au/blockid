@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.204
+version: 2026-07-23.205
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,165 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 205
+    ran_at: 2026-07-22
+    action: p10_wave4_row_157_code_validate_paused_inactive_activation
+    result: |
+      Activated P10 wave-4 row 157 in
+      web/tests/e2e/reseller/code-validate.spec.ts (paused-reseller ×
+      active-promo × inactive branch). Frontier before this tick: tick
+      204 closed row 156b (three-chained-grant identity in credit-grant-
+      authz.spec.ts) and named row 157 as one of two natural next picks
+      — this tick closes row 157. Row 158's "over_budget_approved=true"
+      probe (in the tick-204 note) is INFEASIBLE against the current
+      /api/reseller/credits/grant route which hard-codes
+      admin_over_budget_approved:false at route.ts:125 — the reseller
+      POST path cannot self-approve an over-budget grant by design (see
+      route.ts:11-14). That branch is exercised via the admin PATCH path
+      only (wave-5 row 175 approve-branch, already landed tick 164) and
+      needs no new fixture surface. Rows 175 approve(code_request) + 182
+      SetupIntent stay P8.5-blocked. Row 178 signup-jitter stays
+      QA-mode-blocked.
+
+      Files:
+        - web/scripts/seed-qa-reseller.mjs (+PAUSED_PROMO_TIERS constant
+          holding one tier-20 entry with placeholder QA Stripe IDs;
+          seedPromotionCodes signature widened to accept a tiers param
+          defaulting to ACTIVE_WHOLESALE_PROMO_TIERS so the
+          active_wholesale call site stays untouched; new per-variant
+          branch in main() invokes seedPromotionCodes(resellerId,
+          variant.code, PAUSED_PROMO_TIERS) after mirrorAdmin on the
+          paused variant. Mints QAPROBEPAUSED20 with active=true so
+          /api/reseller/code/validate can clear the promo lookup at
+          route.ts:50-63 and reach the reseller.status !== 'active'
+          check at route.ts:66-74.)
+        - web/tests/e2e/fixtures/reseller.ts (PROMO_VARIANTS set widened
+          to include "paused" so loadTempReseller('paused').promotionCodes
+          resolves the same SELECT the active_wholesale path already
+          uses. TempResellerFixture.promotionCodes doc-comment updated
+          to describe both variants. Loading-block comment for the
+          finding-2 delta re-worded so the "gated to active_wholesale"
+          claim no longer contradicts the widened set.)
+        - web/tests/e2e/reseller/code-validate.spec.ts (new
+          test.describe("Reseller code/validate — P10 wave-4 row 157
+          paused-reseller inactive branch") block appended after the
+          existing wave-4 row 158 happy 200 block. Uses same
+          loadTempReseller('paused') + fixture.promotionCodes[0].code +
+          POST /api/reseller/code/validate → asserts 404 + body.ok=false
+          + body.reason==='inactive'. Same skip-guard topology as row
+          158: fixtureError / fixture null / promotionCodes.length===0
+          branches short-circuit cleanly with tempResellerSkipReason
+          hints. Deliberately-out-of-scope header comment flipped from
+          "Deferred to a follow-up tick" to the ACTIVATED variant of
+          the wave-4 row 158 comment.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.204 → 2026-07-23.205; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Row 157 lives in code-validate.spec.ts (not requests-authz.spec
+          .ts or a new spec) — the plan doc's activation table
+          (docs/plans/p10-deferred-spec-activation-order.md line 934)
+          binds the row to this spec by name. The header comment at
+          code-validate.spec.ts:29-41 already reserved the slot; this
+          tick swaps the "Deferred to a follow-up tick" wording for the
+          ACTIVATED equivalent.
+        - Route write reference: web/src/app/api/reseller/code/validate/
+          route.ts:50-74 executes the promo lookup then the reseller
+          lookup. Line 61-63 returns 404 reason='invalid' when the promo
+          row is missing OR active=false. Line 72-74 returns 404
+          reason='inactive' when the reseller row is missing OR
+          status!=='active'. Row 157 pins the transition between the two
+          — a route change that (a) collapsed both branches under one
+          reason string, (b) reordered the lookups so reseller.status
+          was checked before promo.active, or (c) accidentally accepted
+          promo.reseller_id pointing at a paused org would surface here
+          without also tripping the row 158 happy-200 assertion.
+        - Seeder posture: PAUSED_PROMO_TIERS mirrors the shape of
+          ACTIVE_WHOLESALE_PROMO_TIERS so seedPromotionCodes can consume
+          both arrays through the same insert path. QA-only Stripe IDs
+          (qa_probe_paused_t20 / promo_qa_probe_paused_t20) are placeholder
+          strings — the paused variant is never used in checkout so
+          these strings never resolve against a real Stripe account.
+          ck_stripe_objects_by_tier is satisfied because tier=20 pairs
+          with two non-null Stripe IDs. Reseller row itself keeps
+          status='paused' from the existing VARIANTS entry so
+          route.ts:72-74 fires regardless of the promo row's active flag.
+        - Fixture posture: promotionCodes SELECT already scopes by
+          reseller_id + active=true, so the PROMO_VARIANTS widen doesn't
+          risk cross-variant leaks — a paused variant fixture only reads
+          the paused reseller's promo rows. Other variants
+          (active_retail, terminated, no_capability, tier_only_zero,
+          no_budget) intentionally stay promo-less: their downstream
+          gates (decideGrant / decideCreateStartup / decideReveal) fire
+          before any promo lookup is needed. Row 175 approve(code_request)
+          activation will need a separate seed delta for a
+          reseller_requests row of kind='code_request', but that remains
+          P8.5-blocked pending a real Stripe test-mode account.
+        - No login needed — /api/reseller/code/validate is public
+          unauthenticated (r-01-exempt in route.ts:18). Same
+          request.post() posture as the existing dry-run block above.
+        - Cleanup topology: no restore closure needed since this row
+          only reads. Seeded reseller_promotion_codes rows persist for
+          re-use by parallel workers, matching the seedPromotionCodes
+          existing "kept" branch when a row already exists.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: exit 0.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 exemptions, 0 violations —
+          unchanged. Neither the fixture nor the spec is under
+          /api/reseller/** (R-01) or in feature-gates.manifest.ts (R-03).
+        - `npx vitest run src/lib/reseller` in web/: 29 files 449/449
+          pass — unchanged (Playwright specs are excluded from vitest by
+          design).
+        - No DB apply this tick — no migration authored. Seeder
+          extension takes effect on the next
+          QA_RESELLER_MULTI_ADMIN=1 node web/scripts/seed-qa-reseller.mjs
+          run against staging.
+
+      Frontier after tick 205:
+        - Track A P8.5 STILL HUMAN-BLOCKED on
+          STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL.
+        - Track A P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20 ABN +
+          GST.
+        - Track B COMPLETE.
+        - Row 157 now activated — will land fully-green on the next
+          staging seed re-run once seed-qa-reseller.mjs is re-executed
+          with the tick 205 delta so QAPROBEPAUSED20 lives in
+          reseller_promotion_codes with active=true. Skips cleanly
+          under-provisioned.
+        - Row 158 (over_budget_approved=true, self-approve gate 4) —
+          not activatable via reseller POST; route.ts:125 hard-codes the
+          flag to false by design. Coverage lives at wave-5 row 175
+          approve-branch (already landed).
+        - Row 161 (reseller-requests-list-authz happy 200) — needs
+          the reseller-admin session on active_wholesale + a seeded
+          reseller_requests row (row 155 already provides one per CI
+          pass); ready to activate.
+        - Row 163 (cobranding-pill × attributed founder) — needs
+          founder-side login harness on active_wholesale; ready to
+          activate.
+        - Row 175 approve(code_request) branch — still P8.5-blocked
+          (Stripe test-mode key required).
+        - Row 178 signup-jitter branch — still QA-mode-blocked.
+        - Row 182 SetupIntent happy — still P8.5-blocked.
+
+      Natural next pick for tick 206: activate row 161 by adding a
+      `test.describe("Reseller requests list — P10 wave-4 row 161 happy
+      200")` block to reseller-requests-list-authz.spec.ts that uses
+      loadTempReseller('active_wholesale') + loginAs(fixture.adminEmail)
+      + GET /api/reseller/requests → asserts 200 + body.requests is an
+      array + at least one row when row 155 has already seeded a pending
+      over_budget_approval. No new fixture surface needed — the
+      requests-authz spec's row 155 block already handles the seed
+      lifecycle. Alternative: activate row 163 (cobranding-pill × active_
+      wholesale attributed founder) — needs a founder-side login helper
+      that the existing fixture already exposes via
+      attachAttributedCustomer. Both rows land in ~30 lines each and
+      require no seeder delta.
+    commit: (this tick)
+
   - tick: 204
     ran_at: 2026-07-22
     action: p10_wave3_row_156b_three_chained_grant_activation
