@@ -599,6 +599,83 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 131
+    ran_at: 2026-07-22
+    action: p10_temp_reseller_mint_requests_companion_seeder
+    result: |
+      Composed §2 of the P10 temp-reseller mint fixture design (docs/plans/
+      p10-temp-reseller-mint-fixture-design.md). Landed
+      web/scripts/seed-qa-reseller-requests.mjs as the companion seeder for
+      reseller_requests rows keyed by qa_run_id — parent reseller is the
+      QAPROBEWHOLESALEACTIVE row minted by §1's seed-qa-reseller.mjs
+      (tick 130), so this tick has zero dependency on P8.5 Stripe env or
+      P1.5 InfoVision ABN — both companions can mint concrete DB rows for
+      the Playwright fixture (§3) to consume once wiring lands.
+
+      Files:
+        - web/scripts/seed-qa-reseller-requests.mjs (new, executable — ESM,
+          direct @supabase/supabase-js client via SUPABASE_SERVICE_ROLE_KEY,
+          #!/usr/bin/env node executable bit set. Six-variant matrix per
+          design §2: code_request_pending_tier20 / code_request_pending_
+          tier0 / code_request_incomplete / over_budget_pending /
+          already_approved / already_denied. Each variant mints a fresh
+          row per run — reseller_requests carries terminal status
+          transitions via ck_credit_link + ck_promo_link + ck_decision_
+          shape so the "upsert then flip" pattern used by seed-qa-
+          reseller.mjs (§1) does not translate here; instead the seeder
+          keys rows by a qa_run_id stamped into payload so parallel CI
+          workers can clean up their own rows without stomping each
+          other. Flags: --dry-run / --reset (delete ALL QAPROBE_
+          prefixed requests) / --reset-metadata qa_run_id=<id> (delete
+          only rows carrying that qa_run_id in payload) / --variant
+          <name> / --qa-run-id <id> (defaults to randomUUID).
+          over_budget_pending only mints when QA_RESELLER_ATTRIBUTED_
+          FOUNDER_EMAIL resolves (needs a real user_id for
+          target_user_id). already_approved only mints when the
+          matching reseller_promotion_codes row exists (tier_pct=20 on
+          the active_wholesale variant, seeded by §1). already_denied
+          + already_approved stamp decision_at + decision_by +
+          decision_reason so ck_decision_shape passes; already_
+          approved additionally links a promotion_code_id so
+          ck_promo_link passes.
+
+      Design deviation captured in the file header: code_request_
+      incomplete originally lists payload={tier_pct: "not-a-number"} in
+      the design table, but the reseller_requests_pending_code_uniq
+      partial unique index casts payload->>'tier_pct' to int at insert
+      time via ((payload->>'tier_pct')::int) — a non-castable string
+      raises `invalid input syntax for type integer` before the row
+      lands. Seeder OMITS tier_pct entirely (partial-index treats
+      missing key as NULL which is allowed) so the admin PATCH
+      validator still returns invalid_tier_pct / payload_incomplete
+      when it processes the row, honouring the test intent without
+      breaking the DB. Documented in a code-comment header above
+      VARIANTS so future readers know why the seeder diverges from the
+      literal design.
+
+      Verified: `node --check` clean; `chmod +x` applied so the shebang
+      works; dry-run smoke test with fake SUPABASE credentials boots
+      the process, parses --dry-run + --variant flags, calls the
+      Supabase client, and fails at the network layer as expected
+      (fake host unreachable). No lint:reseller delta — the file lives
+      under /scripts/**, not /api/reseller/**, so R-01 does not fire;
+      no feature-gates.manifest entry so R-03 does not fire either.
+      No vitest suite added — the seeder is a stand-alone one-shot
+      artefact composed of already-tested pure primitives (jsonb
+      payload shape, reseller lookup by code, app_users lookup by
+      email); the Playwright fixture wiring (§3) will exercise the
+      full end-to-end row lifecycle when that tick lands.
+
+      REMAINING P10 §-artefacts: §3 Playwright fixture wiring
+      (web/tests/e2e/fixtures/reseller.ts extension), §4 storage
+      bucket seeder (web/scripts/seed-qa-reseller-storage.mjs), §5
+      seed-test-users.mjs delta for qa-reseller-1@blockid.au +
+      qa-founder-attributed-1@blockid.au. Frontier unchanged: every
+      real leaf still DONE or HUMAN-BLOCKED (P8.5 Stripe env vars,
+      P1.5 InfoVision seed on H.20 ABN). Loop keeps knocking off the
+      P10 fixture artefacts one §-section per tick.
+    commit: (this tick)
+
   - tick: 1
     ran_at: 2026-07-23
     reviewers: [cto, cfo, ciso, clo]
