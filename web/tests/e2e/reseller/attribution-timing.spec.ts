@@ -6,17 +6,18 @@
 // Extends ticks 82/83 (scope-boundary + co-branding pill) with the capture
 // half of the attribution funnel. Skips at describe-scope until the timing
 // harness is provisioned (see fixtures/reseller.ts loadAttributionTimingHarness).
-// Row 2 (no-row-before-project) also requires the service-role Supabase
-// fixture; when SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY are unset the row
-// self-skips with supabaseAdminSkipReason() while row 1 keeps running.
+// Rows 2 + 3 also require the service-role Supabase fixture; when
+// SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY are unset those rows self-skip
+// with supabaseAdminSkipReason() while row 1 keeps running.
 //
 // Attribution write reference:
 //   - login-form.tsx:167, google/route.ts:114, auth.ts:517/642 → app_users
 //     .attribution_reseller_id (user-level cache; P2.5 stamp-on-signup).
-//   - reseller_attributions(subject_type='project') is written by the
-//     wholesale-provisioned /api/reseller/create-startup route (route.ts:302);
-//     retail createProject() does NOT write the row today — that's the
-//     open code-side gap row 3 tracks.
+//   - reseller_attributions(subject_type='project') is written by two
+//     paths: (a) wholesale-provisioned /api/reseller/create-startup route
+//     (route.ts:302) and (b) retail createProject() via
+//     attributeProjectFromUserCache() in web/src/lib/reseller/retail-attribution.ts
+//     (closes the tick 91 frontier gap).
 //
 // See docs/plans/reseller-module-plan.md §J.2 point 9 for the full spec.
 
@@ -28,6 +29,7 @@ import {
 } from "../fixtures/reseller";
 import {
   countResellerAttributionsFor,
+  countResellerAttributionsForProject,
   findUserIdByEmail,
   loadSupabaseAdmin,
   supabaseAdminSkipReason,
@@ -107,19 +109,69 @@ test.describe("Reseller attribution timing — P10 dry-run", () => {
     ).toBe(0);
   });
 
-  test.skip(
-    "reseller_attributions row appears with subject_type='project' after createProject() (U.6)",
-    // Blocked on a code-side gap, not just a test-side helper: the retail
-    // createProject() path at web/src/lib/projects.ts:420 does not write to
-    // reseller_attributions today — only the wholesale-provisioned
-    // /api/reseller/create-startup/route.ts:302 does. Un-skipping this row
-    // requires either (a) closing the gap in createProject() so retail
-    // founders with app_users.attribution_reseller_id set get an
-    // attribution row per workspace, or (b) reshaping the spec to exercise
-    // the wholesale route with a reseller-admin harness instead of the
-    // founder-signup path. Both are larger surfaces than the P10 dry-run
-    // cadence supports — tracking here so the next tick that closes the
-    // gap drops the .skip() in the same diff.
-    () => {},
-  );
+  test("reseller_attributions row appears with subject_type='project' after createProject() (U.6)", async ({
+    page,
+    context,
+    request,
+  }) => {
+    const supabase = loadSupabaseAdmin();
+    test.skip(!supabase, supabaseAdminSkipReason());
+
+    const baseURL = page.context()._options.baseURL ?? "http://localhost:3000";
+    const parsed = new URL(baseURL);
+    await context.addCookies([
+      {
+        name: "blockid_via",
+        value: harness!.resellerCode,
+        domain: parsed.hostname,
+        path: "/",
+        sameSite: "Lax",
+      },
+    ]);
+    await loginAs(page, harness!.founder.email);
+
+    // POST /api/projects creates a new workspace. The retail-attribution
+    // adapter (web/src/lib/reseller/retail-attribution.ts) fires from
+    // createProject() after the row lands, materialising the U.6 canonical
+    // per-project attribution row from the app_users.attribution_reseller_id
+    // cache the P2.5 signup hooks populated.
+    const projectName = `attrib-timing-${Date.now()}`;
+    const created = await page.request.post("/api/projects", {
+      data: { name: projectName },
+    });
+    expect(
+      created.ok(),
+      `POST /api/projects responded ${created.status()}`,
+    ).toBe(true);
+    const createdBody = (await created.json()) as {
+      ok: boolean;
+      project?: { id: string };
+    };
+    expect(createdBody.ok).toBe(true);
+    const projectId = createdBody.project?.id;
+    expect(projectId, "expected the created project id in the response").toBeTruthy();
+
+    const count = await countResellerAttributionsForProject(supabase!, projectId!);
+    expect(
+      count,
+      `expected exactly 1 active project-scoped reseller_attributions row for ${projectId}; got ${count}`,
+    ).toBe(1);
+
+    // Belt-and-braces: the user-scoped subject_type='user' row must NOT
+    // exist (U.6 forbids user-level attribution rows — canonical shape is
+    // per-project). If a regression starts writing subject_type='user'
+    // rows this catches it before the ledger inherits ambiguous provenance.
+    const userId = await findUserIdByEmail(supabase!, harness!.founder.email);
+    expect(userId, "expected app_users row for harness founder").not.toBeNull();
+    const userScoped = await countResellerAttributionsFor(supabase!, userId!, {
+      subjectType: "user",
+    });
+    expect(
+      userScoped,
+      `expected 0 subject_type='user' reseller_attributions rows; got ${userScoped}`,
+    ).toBe(0);
+    // Silence unused param lint — `request` is exposed for symmetry with
+    // sibling specs but this row uses page.request for cookie propagation.
+    void request;
+  });
 });

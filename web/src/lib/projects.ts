@@ -470,7 +470,27 @@ export async function createProject(
     return { ok: false, error: "Failed to create project" };
   }
 
-  return { ok: true, project: mapProject(data) };
+  const project = mapProject(data);
+
+  // Retail reseller attribution — if the founder arrived via a ?via= cookie
+  // (processAttribution() stamped app_users.attribution_reseller_id at
+  // signup), materialise the per-project reseller_attributions row now that
+  // we have a projects.id. Wholesale-provisioned workspaces write this row
+  // inside /api/reseller/create-startup and never touch createProject().
+  // Failure is non-fatal — a broken attribution write must not prevent
+  // retail project creation. See web/src/lib/reseller/retail-attribution.ts
+  // for the design rationale (mirrors the CTO-approved wholesale execute()
+  // pattern from create-startup/route.ts:299-320).
+  try {
+    const { attributeProjectFromUserCache } = await import(
+      "./reseller/retail-attribution"
+    );
+    await attributeProjectFromUserCache(userId, project.id);
+  } catch (attrErr) {
+    console.error("[blockid:projects] retail attribution write threw", attrErr);
+  }
+
+  return { ok: true, project };
 }
 
 /** Update a project's name, description, or industry. */
