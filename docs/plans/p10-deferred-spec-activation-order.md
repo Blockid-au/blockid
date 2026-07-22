@@ -129,6 +129,34 @@ Prep cost: one tick to author the attributed-customer helper
 `app_users` upsert path in the fixture — then rows 145–149 each add
 2–3 assertions.
 
+**Wave-4 row 161 landed (tick 158).** Second wave-4 row. Added a companion
+`test.describe("Reseller requests list — P10 wave-4 happy path")` block to
+`web/tests/e2e/reseller/reseller-requests-list-authz.spec.ts` that mirrors
+the wave-3 row 156 posture verbatim across the sibling spec-file surface:
+GET `/api/reseller/requests` as `active_wholesale` reseller-admin → 200 with
+`body.ok=true` + `Array.isArray(body.requests)` + per-row envelope shape
+assertions (id matches UUID_RE, request_type ∈ {code_request,
+over_budget_approval, collateral_approval}, status ∈ {pending, approved,
+denied, cancelled}, created_at typeof string). Twin-row posture with row 156
+is intentional — row 156 pins the SELECT wire envelope from the validation-
+focused `requests-validation.spec.ts`; row 161 pins the SAME wire envelope
+from the authz-focused `reseller-requests-list-authz.spec.ts` so the file
+that owns the 401/403 branches also owns its own happy 200 case. UUID_RE
+hoisted to module scope (same pattern as `requests-authz.spec.ts` +
+`requests-validation.spec.ts` after ticks 155/156). Skip guards match row
+156: fixture null → skip; adminUserId null → skip; loginAs throw → skip;
+attributionExists intentionally NOT required (GET scopes by reseller_id,
+not subject_user_id). State-pollution posture: read-only GET — no INSERT
+/ UPDATE / DELETE; GET handler does NOT audit-log (unlike POST at
+route.ts:113-126); perfectly idempotent under CI replay. Non-Stripe /
+non-GST: no promotion_code lookup, no credit ledger write, no revenue_events
+read, no Stripe network call, no InfoVision dependency. Next natural picks:
+(i) row 162 (reseller-crons-authz × admin harness) opens the admin-only
+wave-4 corner; (ii) row 163 (cobranding-pill) needs the attributed-founder
+harness activation; (iii) land finding-2's seed delta to unblock rows 150 +
+151; (iv) mint an active promo code on the paused variant to unblock row
+157; (v) author `attachReportRow` helper to unblock rows 159 + 160.
+
 **Wave-4 row 158 landed (tick 157).** Opens wave 4. Added a companion
 `test.describe("Reseller code/validate — P10 wave-4 happy path")` block to
 `web/tests/e2e/reseller/code-validate.spec.ts` that consumes the

@@ -530,3 +530,4 @@
 {"ts":"2026-07-22T13:30:06.184Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-22T13-25-01-131Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-22T13:34:28.831Z","event":"github-push-master","detail":"Blockid-au: feat(showcase): Track C.4 SafetyCulture case study skeleton (4/6 cases live) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-22T13:41:09.732Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 157 — P10 wave-4 row 158 activate code-validate active_wholesale happy (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-22T13:41:18.294Z","event":"github-push-master","detail":"Blockid-au: fix(pricing): remove crossed-out old prices ($25, $99, 'normally A$25') (1 commits)","source":"github-webhook"}
