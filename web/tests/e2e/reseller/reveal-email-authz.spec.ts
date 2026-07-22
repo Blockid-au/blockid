@@ -52,10 +52,16 @@
 //   - revoked / no_reseller (403 via scopedReseller) — inconsistent states
 //     that never occur in production because reseller_admins.status='active'
 //     is provisioned alongside the resellers row.
-//   - Happy path (200 with email) — fires the app_users SELECT +
-//     reseller_audit_log(reveal_email) write against the harness reseller;
-//     folded into the temp-reseller mint fixture follow-up alongside the
-//     deferred rows from ticks 94/95/96/97/98/99.
+//   - Happy path (200 with email) — ACTIVATED as P10 wave-2 row 148 below
+//     via loadTempReseller("active_wholesale") + fixture.adminEmail loginAs +
+//     fixture.attributedUserId in the URL path; skips when the fixture is
+//     null, adminUserId is null (reseller_admins mirror missing), or
+//     attributionExists is false (reseller_attributions row missing —
+//     allowedCustomerIds() would 403 not_in_scope). Audit-log write
+//     side-effect is captured by wave-5 row 179 (audit-log-writes.spec.ts)
+//     so this row focuses on the 200 wire envelope with plaintext email —
+//     a route regression that swallowed the audit_failed 500 surfaces as
+//     a body.ok=false rather than as an incorrect audit-row assertion.
 //
 // Placeholder UUID used in the URL path: 00000000-0000-0000-0000-000000000000.
 // Both harness-free rows return BEFORE the id path param is inspected
@@ -67,12 +73,19 @@
 
 import { test, expect } from "@playwright/test";
 import { loginAs } from "../fixtures/accounts";
+import {
+  loadTempReseller,
+  tempResellerSkipReason,
+  type TempResellerFixture,
+} from "../fixtures/reseller";
 
 const NON_RESELLER_FOUNDER_EMAIL =
   process.env.QA_UNATTRIBUTED_FOUNDER_EMAIL ?? "qa-founder-1@blockid.au";
 
 const PLACEHOLDER_CUSTOMER_ID = "00000000-0000-0000-0000-000000000000";
 const ROUTE = `/api/reseller/customers/${PLACEHOLDER_CUSTOMER_ID}/reveal-email`;
+const REVEAL_ROUTE = (customerId: string) =>
+  `/api/reseller/customers/${customerId}/reveal-email`;
 
 test.describe("Reseller reveal-email pre-write authorization — P10 dry-run", () => {
   test("unauthenticated — POST with no session returns 401 unauthorised", async ({
@@ -115,5 +128,126 @@ test.describe("Reseller reveal-email pre-write authorization — P10 dry-run", (
       `non_reseller_admin body.ok should be false: ${JSON.stringify(body)}`,
     ).toBe(false);
     expect(body.reason).toBe("no_membership");
+  });
+});
+
+// P10 wave-2 row 148 — active_wholesale variant probes the reveal-email
+// happy path (reseller-admin session → 200 with plaintext email in
+// body.email). Per docs/plans/p10-deferred-spec-activation-order.md wave 2:
+//   148 | reveal-email-authz.spec.ts | active_wholesale | happy 200 with
+//         plaintext email + audit-log side effect | 200
+//
+// Route order per web/src/app/api/reseller/customers/[id]/reveal-email/route.ts:
+//   Line 32-34: getCurrentUser null                        → 401 (row 1)
+//   Line 37-45: scopedReseller throws                      → 403 (row 2 / no_membership)
+//   Line 47-52: decideReveal(id, allowedCustomerIds)       → 400 invalid_uuid / 403 not_in_scope
+//   Line 55-57: getSupabaseAdmin() null                    → 503 not_configured
+//   Line 60-73: app_users lookup                           → 500 lookup_failed / 404 not_found
+//   Line 76-93: db.auditLog(reveal_email)                  → 500 audit_failed
+//   Line 95:    200 { ok: true, email } ← THIS
+//
+// Fixture wiring (wave-2 helper landed tick 147; row 146 landed tick 148
+// added attributionExists guard; row 147 landed tick 149; this tick reuses
+// the same skeleton for the sibling POST reveal-email route):
+//   - loadTempReseller("active_wholesale") reads the QAPROBEWHOLESALEACTIVE
+//     seed row + resolves adminEmail via the P10 Option A per-variant slot
+//     (qa-reseller-wholesale-active@blockid.au) + mirrors reseller_admins.
+//   - fixture.attributionExists asserts the seeder also planted a
+//     reseller_attributions row so scopedReseller().allowedCustomerIds()
+//     surfaces fixture.attributedUserId. Without the row the reveal-email
+//     route returns 403 not_in_scope (see route.ts:49-52); the fixture flag
+//     lets the spec skip cleanly rather than false-fail as a code regression.
+//   - loginAs(page, fixture.adminEmail) opens the reseller-admin session
+//     against the DISTINCT per-variant app_users row so scopedReseller()
+//     .maybeSingle() does not PGRST116-collide with other variants.
+//
+// Skip conditions (mirrors row 146/147 posture verbatim):
+//   - loadTempReseller returns null when SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
+//     are unset or the QAPROBEWHOLESALEACTIVE seed row is missing.
+//   - fixture.adminUserId null (variant admin row missing or reseller_admins
+//     mirror not seeded — scopedReseller would 403 no_membership).
+//   - fixture.attributedUserId null (attributed founder not in app_users).
+//   - fixture.attributionExists false (reseller_attributions row missing —
+//     reveal-email would 403 not_in_scope).
+//   - loginAs throws when /tmp/blockid-qa-accounts.txt has no row for the
+//     resolved admin email.
+//
+// Coverage-vs-duplication call: pin body.ok=true + body.email is a plaintext
+// string containing '@' (never a mask; the reveal-email contract is
+// specifically to return plaintext for authorised reseller-admin clicks per
+// plan §H.10). Do NOT pin the exact email string — the seeded attributed
+// founder email is DEFAULT_ATTRIBUTED_FOUNDER_EMAIL (qa-founder-attributed-
+// 1@blockid.au) but a host that overrides QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL
+// (see fixtures/reseller.ts) would surface an unrelated spec failure that
+// tracks env drift rather than a code regression. The shape assertions
+// (typeof string + contains '@' + does NOT contain a '*') are enough to
+// pin the plaintext contract.
+//
+// Non-Stripe / non-GST discipline: the reveal-email route reads app_users
+// (id + email columns only) and writes one reseller_audit_log row via
+// db.auditLog(). No promotion_code lookup, no Stripe network call, no
+// InfoVision dependency. P8.5 + P1.5 remain neither a dependency nor a
+// consequence. The audit-log write side-effect is captured by wave-5 row
+// 179 (audit-log-writes.spec.ts) so this row focuses on the wire envelope
+// — the 500 audit_failed branch means a broken audit-log write would
+// surface as body.ok=false here rather than as a missing audit row that
+// only row 179 could detect. This is the same posture used by row 146
+// for the drawer route's audit-log write.
+test.describe("Reseller reveal-email — P10 wave-2 happy path", () => {
+  test("active_wholesale — POST as reseller-admin returns 200 with plaintext email", async ({
+    page,
+  }) => {
+    let fixture: TempResellerFixture | null;
+    try {
+      fixture = await loadTempReseller("active_wholesale");
+    } catch (err) {
+      test.skip(
+        true,
+        `loadTempReseller('active_wholesale') threw: ${(err as Error).message}. ` +
+          tempResellerSkipReason("active_wholesale"),
+      );
+      return;
+    }
+    if (
+      !fixture ||
+      !fixture.adminUserId ||
+      !fixture.attributedUserId ||
+      !fixture.attributionExists
+    ) {
+      test.skip(true, tempResellerSkipReason("active_wholesale"));
+      return;
+    }
+    const attributedUserId = fixture.attributedUserId;
+    try {
+      await loginAs(page, fixture.adminEmail);
+    } catch (err) {
+      test.skip(
+        true,
+        `loginAs(${fixture.adminEmail}) threw: ${(err as Error).message}. ` +
+          tempResellerSkipReason("active_wholesale"),
+      );
+      return;
+    }
+    const resp = await page.request.post(REVEAL_ROUTE(attributedUserId));
+    expect(
+      resp.status(),
+      `active_wholesale returned ${resp.status()} — expected 200 with plaintext email. Body: ${await resp.text()}`,
+    ).toBe(200);
+    const body = (await resp.json()) as {
+      ok: boolean;
+      email?: string;
+      reason?: string;
+    };
+    expect(
+      body.ok,
+      `active_wholesale body.ok should be true: ${JSON.stringify(body)}`,
+    ).toBe(true);
+    // Plaintext contract per plan §H.10 — reveal-email must return the raw
+    // app_users.email column, never the masked form the list view uses.
+    // A regression that piped the value through maskEmail() would surface
+    // here via the '*' assertion.
+    expect(typeof body.email).toBe("string");
+    expect(body.email ?? "").toContain("@");
+    expect(body.email ?? "").not.toMatch(/\*/);
   });
 });

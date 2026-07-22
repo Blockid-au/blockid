@@ -129,6 +129,25 @@ Prep cost: one tick to author the attributed-customer helper
 `app_users` upsert path in the fixture — then rows 145–149 each add
 2–3 assertions.
 
+**Wave-2 row 148 landed (tick 150).** Added a companion
+`test.describe("Reseller reveal-email — P10 wave-2 happy path")` block to
+`web/tests/e2e/reseller/reveal-email-authz.spec.ts` that reuses the
+`attributionExists` guard (tick 148) unchanged: POST as `active_wholesale`
+reseller-admin against `/api/reseller/customers/[fixture.attributedUserId]/
+reveal-email` and assert 200 with `body.ok=true` + `body.email` is a
+plaintext string containing `@` and NOT containing `*`. Row 148 partners
+with row 146 (drawer-authz) since both routes share the getCurrentUser →
+scopedReseller → decideReveal → app_users lookup → audit-log write chain
+but differ in HTTP verb (POST vs GET), response field (`email` vs
+`overview`), and mask-vs-plaintext contract (drawer masks the email in
+overview; reveal-email returns raw). The audit-log write side-effect is
+captured by wave-5 row 179 (audit-log-writes.spec.ts) so row 148 keeps its
+assertion budget at three (200 + body.ok=true + email plaintext) — enough
+to catch an accidental mask leak or a mid-route swallow of the 500
+audit_failed branch. Row 149 (reveal-email-validation.spec.ts × happy
+path) sits next in the wave-2 queue and reuses the same guards over the
+POST reveal-email surface.
+
 **Wave-2 row 147 landed (tick 149).** Added a companion
 `test.describe("Reseller customer-drawer — P10 wave-2 uuid_in_scope happy")`
 block to `web/tests/e2e/reseller/drawer-validation.spec.ts` that
