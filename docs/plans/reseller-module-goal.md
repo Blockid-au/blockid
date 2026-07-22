@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.98
+version: 2026-07-23.99
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,103 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 99
+    ran_at: 2026-07-22
+    action: p10_dry_run_billing_authz_playwright_spec
+    result: |
+      Composed option (ii) from tick 98's frontier note — "POST
+      /api/reseller/billing/setup-intent + save-default-payment-method
+      dry-run auth-chain spec". Both routes share the same top auth chain
+      (gateRequireFeature → scopedReseller → canProvisionSandbox → Stripe/
+      Supabase config → selfReseller lookup → Stripe API branch), so a
+      single parametrised spec covers the two harness-free pre-write
+      branches on each — four rows total.
+
+      Files:
+        - web/tests/e2e/reseller/billing-authz.spec.ts (new — for each of
+          the two billing routes, two rows probing the top of the auth
+          chain before any Stripe SetupIntent mint or
+          reseller_audit_log(mint_setup_intent / save_default_payment_method)
+          row fires:
+          (1) unauthenticated (POST with no session → gateRequireFeature
+              returns 401 error="Authentication required" before scope,
+              selfReseller, or Stripe is touched),
+          (2) non_reseller_admin (loginAs(qa-founder-1@blockid.au) → POST →
+              gateRequireFeature returns 402 error="feature_locked",
+              feature="reseller.console" because founder_growth's
+              feature_flags don't include reseller.console per
+              LEGACY_FEATURE_FALLBACK/plans.csv — scopedReseller never
+              runs, selfReseller is never queried, no Stripe call fires).
+          Row 1 runs unconditionally (no harness dep — just page.request
+          without loginAs). Row 2 test.skip()s with a diagnostic message
+          if /tmp/blockid-qa-accounts.txt is missing so operators without
+          the seed file get an actionable pointer rather than a hard fail.
+
+      Why this shape: even though save-default-payment-method DOES read a
+      request body (unlike sandbox-setup from tick 98), the invalid_json
+      catch sits BEHIND gateRequireFeature + scopedReseller +
+      canProvisionSandbox — a payload probe from a non-reseller session
+      lights up the 402 branch before request.json() ever runs, so we
+      can't exercise the 400 invalid_json branch without a real
+      reseller-admin session. The pre-write surface reachable without a
+      harness is entirely the auth-chain top, which is exactly what this
+      spec pins. A refactor that swaps gateRequireFeature for direct
+      getCurrentUser() (dropping the 402 branch entirely) OR that moves
+      scopedReseller ahead of gateRequireFeature lights up row 2 with a
+      403/500 instead of 402 on the next Playwright pass.
+
+      Why the 403 no_membership and 404 reseller_missing branches aren't
+      covered: same reason as tick 98 — no_membership requires a user
+      with reseller.console entitlement but no reseller_admins row (an
+      inconsistent state that never occurs in production because the
+      two are provisioned together under the same PATCH); reseller_missing
+      requires the mirror — a reseller_admins row without a matching
+      resellers row. Fabricating either state via QA plan overrides costs
+      more than it protects.
+
+      Why the happy path is out of scope: minting a real Stripe
+      SetupIntent + writing the audit log against the harness reseller
+      belongs to the temp-reseller mint fixture follow-up alongside the
+      deferred rows from ticks 94/95/96/97/98.
+
+      Verified: tsc clean (npx tsc --noEmit exit 0 at web/); vitest
+      unchanged (Playwright spec is not picked up by vitest —
+      tests/e2e/** is excluded per playwright.config.ts:testDir); npm
+      run lint:reseller: R-01 scanned 11 file(s), R-03 scanned 31
+      manifest route(s); 3 exemptions, 0 violations unchanged (spec
+      lives under web/tests/e2e/reseller/, not /api/reseller/**, so
+      R-01 doesn't fire; not a mutation route in feature-gates.manifest.ts
+      so R-03 doesn't fire). Playwright not run this tick — the two
+      unauthenticated rows are harness-free and will execute on the
+      next CI Playwright pass; the two non_reseller_admin rows light
+      up as soon as the qa accounts file is present.
+
+      Frontier after tick 99: unchanged in shape — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 99 unblocks: the /api/reseller/billing/setup-intent
+      and /api/reseller/billing/save-default-payment-method auth-chain
+      ordering is now regression-guarded at the Playwright lens — a
+      refactor that reorders gateRequireFeature/scopedReseller/
+      canProvisionSandbox or drops the 401/402 status codes on either
+      route lights up in CI on the next `npx playwright test` run.
+      Eleven spec files now sit in web/tests/e2e/reseller/
+      (attribution-timing, audit-anomaly-scan, audit-log-writes,
+      billing-authz, cobranding-pill, code-validate,
+      create-startup-validation, credit-grant-validation,
+      requests-validation, sandbox-setup-authz, scope-boundary). Next
+      autonomous tick options: (i) landing the QA-mode temp-reseller
+      mint fixture that opens up all the deferred branches from ticks
+      94/95/96/97/98/99 at once (larger tick, wants a design pass);
+      (ii) a dry-run auth-chain spec for the remaining reseller-admin
+      mutation route surface not yet covered (candidates: POST
+      /api/reseller/customers/[id]/reveal-email — needs id path param
+      shape; PATCH endpoints from admin-resellers if any pre-write
+      branches remain uncovered); (iii) idle until human unblock
+      arrives.
     commit: (this tick)
 
   - tick: 98
