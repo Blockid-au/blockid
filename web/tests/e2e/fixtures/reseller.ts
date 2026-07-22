@@ -275,6 +275,12 @@ export interface TempResellerFixture {
   /** Only populated on `active_wholesale` — the attributed founder resolved
    *  via QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL. */
   attributedUserId: string | null;
+  /** Only populated on `active_wholesale` — the attributed founder's email
+   *  (env-resolved via QA_RESELLER_ATTRIBUTED_FOUNDER_EMAIL, fallback
+   *  qa-founder-attributed-1@blockid.au). Wave-2 rows 145-149 use this to
+   *  `loginAs(page, fixture.attributedFounderEmail)`; null on non-active
+   *  wholesale variants so specs skip cleanly. */
+  attributedFounderEmail: string | null;
   /** Only populated on `active_wholesale` — the reseller_attributions
    *  row's `subject_project_id`, when the seed script has stamped one. */
   attributedProjectId: string | null;
@@ -285,9 +291,34 @@ export interface TempResellerFixture {
    *  is the primary caller: pass the newly-minted projects.id here so
    *  cleanup() drops it after the spec finishes. */
   trackProjectForCleanup(projectId: string): void;
+  /** Wave-2 helper (schedule doc row 145 prep note). Ensures the
+   *  attributed founder's app_users.attribution_reseller_id cache column
+   *  points at THIS variant's reseller so /api/reseller/me returns a
+   *  populated `reseller` object. The seed script only writes
+   *  reseller_attributions (per-project), not the cache column, so this
+   *  helper is required to close the gap without touching the seed script.
+   *
+   *  Registers a restore closure with cleanup() that reverts the column
+   *  to its previous value; specs MUST call fixture.cleanup() in afterEach
+   *  so a failing assertion does not leak attribution state into the next
+   *  spec.
+   *
+   *  Returns null when attributedUserId is null (attributed founder not
+   *  seeded on this host) or on non-active-wholesale variants; the caller
+   *  should skip in that case. */
+  attachAttributedCustomer(): Promise<AttachAttributedCustomerResult | null>;
   /** No-op by default. Deletes any projects.id registered via
-   *  trackProjectForCleanup() during the spec. */
+   *  trackProjectForCleanup() during the spec AND runs any restore
+   *  closure registered by attachAttributedCustomer(). */
   cleanup(): Promise<void>;
+}
+
+export interface AttachAttributedCustomerResult {
+  attributedUserId: string;
+  attributedFounderEmail: string;
+  /** The cache-column value BEFORE the attach ran — null if unset. cleanup()
+   *  writes this back so cross-spec state does not leak. */
+  previousAttributionResellerId: string | null;
 }
 
 const DEFAULT_TEMP_RESELLER_ADMIN_EMAIL = "qa-reseller-1@blockid.au";
@@ -414,6 +445,7 @@ export async function loadTempReseller(
   }
 
   let attributedUserId: string | null = null;
+  let attributedFounderEmail: string | null = null;
   let attributedProjectId: string | null = null;
   let promotionCodes: ReadonlyArray<TempResellerPromotionCode> = [];
 
@@ -428,6 +460,10 @@ export async function loadTempReseller(
         .ilike("email", attrEmail)
         .maybeSingle();
       if (attrUser?.id) {
+        // Expose the founder's email whenever the app_users row exists so
+        // wave-2 attachAttributedCustomer() can drive attribution_reseller_id
+        // even before the seed script's reseller_attributions row lands.
+        attributedFounderEmail = attrEmail;
         const { data: attr } = await supabase
           .from("reseller_attributions")
           .select("subject_user_id, subject_project_id")
@@ -438,6 +474,11 @@ export async function loadTempReseller(
         if (attr) {
           attributedUserId = (attr.subject_user_id as string | null) ?? null;
           attributedProjectId = (attr.subject_project_id as string | null) ?? null;
+        } else {
+          // Row missing but user seeded — still surface the user_id so
+          // attachAttributedCustomer() can toggle the cache column against
+          // the correct app_users row.
+          attributedUserId = attrUser.id as string;
         }
       }
     }
@@ -455,6 +496,7 @@ export async function loadTempReseller(
   }
 
   const projectsToClean: string[] = [];
+  const restoreClosures: Array<() => Promise<void>> = [];
 
   return {
     variant,
@@ -464,6 +506,7 @@ export async function loadTempReseller(
     adminEmail,
     adminUserId,
     attributedUserId,
+    attributedFounderEmail,
     attributedProjectId,
     promotionCodes,
     trackProjectForCleanup(projectId: string) {
@@ -471,16 +514,75 @@ export async function loadTempReseller(
         projectsToClean.push(projectId);
       }
     },
-    async cleanup() {
-      if (projectsToClean.length === 0) return;
-      const ids = projectsToClean.splice(0);
-      const { error } = await supabase.from("projects").delete().in("id", ids);
-      if (error) {
-        // Bubble up so afterEach fails loudly rather than silently leaving
-        // an orphan projects row that would poison the next spec run.
+    async attachAttributedCustomer() {
+      if (variant !== "active_wholesale") return null;
+      if (!attributedUserId || !attributedFounderEmail) return null;
+      const attributedUserIdSnapshot = attributedUserId;
+      const { data: before, error: readErr } = await supabase
+        .from("app_users")
+        .select("attribution_reseller_id")
+        .eq("id", attributedUserIdSnapshot)
+        .maybeSingle();
+      if (readErr) {
         throw new Error(
-          `loadTempReseller.cleanup(): failed to delete projects [${ids.join(",")}]: ${error.message}`,
+          `attachAttributedCustomer: read app_users failed: ${readErr.message}`,
         );
+      }
+      const previousAttributionResellerId =
+        ((before as { attribution_reseller_id?: string | null } | null)
+          ?.attribution_reseller_id ?? null) as string | null;
+      if (previousAttributionResellerId !== resellerId) {
+        const { error: writeErr } = await supabase
+          .from("app_users")
+          .update({ attribution_reseller_id: resellerId })
+          .eq("id", attributedUserIdSnapshot);
+        if (writeErr) {
+          throw new Error(
+            `attachAttributedCustomer: update app_users failed: ${writeErr.message}`,
+          );
+        }
+        restoreClosures.push(async () => {
+          const { error } = await supabase
+            .from("app_users")
+            .update({ attribution_reseller_id: previousAttributionResellerId })
+            .eq("id", attributedUserIdSnapshot);
+          if (error) {
+            throw new Error(
+              `attachAttributedCustomer.restore: update app_users failed: ${error.message}`,
+            );
+          }
+        });
+      }
+      return {
+        attributedUserId: attributedUserIdSnapshot,
+        attributedFounderEmail,
+        previousAttributionResellerId,
+      };
+    },
+    async cleanup() {
+      const errors: string[] = [];
+      while (restoreClosures.length > 0) {
+        const restore = restoreClosures.pop();
+        if (!restore) continue;
+        try {
+          await restore();
+        } catch (err) {
+          errors.push((err as Error).message);
+        }
+      }
+      if (projectsToClean.length > 0) {
+        const ids = projectsToClean.splice(0);
+        const { error } = await supabase.from("projects").delete().in("id", ids);
+        if (error) {
+          errors.push(
+            `failed to delete projects [${ids.join(",")}]: ${error.message}`,
+          );
+        }
+      }
+      if (errors.length > 0) {
+        // Bubble up so afterEach fails loudly rather than silently leaving
+        // state that would poison the next spec run.
+        throw new Error(`loadTempReseller.cleanup(): ${errors.join("; ")}`);
       }
     },
   };

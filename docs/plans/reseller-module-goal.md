@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.146
+version: 2026-07-23.147
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -599,6 +599,164 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 147
+    ran_at: 2026-07-22
+    action: p10_wave2_row_145_activate_me_attribution_happy_and_ship_helper
+    result: |
+      Opened wave 2 per docs/plans/p10-deferred-spec-activation-order.md.
+      Two things landed in the same tick — the helper the wave-2 prep-cost
+      note called for (attachAttributedCustomer) and row 145 itself
+      (me-attribution.spec.ts × active_wholesale × happy → 200 with
+      populated reseller.display_name).
+
+      Design correction lodged inline in the schedule doc: the wave-2
+      prep-cost note reads "one tick to author the helper — then rows
+      145–149 each add 2–3 assertions", but row 145 is unreachable
+      without the helper (the seed script writes reseller_attributions
+      but NOT the cache column app_users.attribution_reseller_id that
+      /api/reseller/me reads on route.ts:42-54, so /me returned
+      reseller:null against the seeded attributed founder). Rather than
+      burn one tick on helper-only and a second tick on the trivial
+      assertion paste, both were shipped together with the "Wave-2 helper
+      landed (tick 147)" callout under the schedule doc's wave-2 prep
+      note explaining the join. Rows 146–149 now consume the same helper
+      without additional prep.
+
+      Files:
+        - web/tests/e2e/fixtures/reseller.ts (+ attributedFounderEmail
+          field on TempResellerFixture, populated when active_wholesale's
+          attributed founder resolves in app_users — separated from
+          attributedUserId so specs can distinguish "founder seeded but
+          no reseller_attributions row" from "founder not seeded";
+          + attachAttributedCustomer() method on the fixture — reads
+          app_users.attribution_reseller_id, UPDATE-s to fixture.resellerId,
+          pushes a restore closure that reverts to the previous value;
+          returns {attributedUserId, attributedFounderEmail,
+          previousAttributionResellerId} or null when variant !==
+          active_wholesale or attributedUserId is null; + AttachAttributed
+          CustomerResult exported; + cleanup() extended to drain
+          restoreClosures BEFORE projectsToClean deletes so a failing
+          per-spec restore surfaces its own error rather than being
+          shadowed by a subsequent projects.delete failure; kept the
+          "throw with concatenated errors" contract from the existing
+          cleanup so afterEach still fails loudly).
+        - web/tests/e2e/reseller/me-attribution.spec.ts (adds a new
+          describe block "P10 wave-2 attributed happy path" holding row
+          145; skeleton mirrors wave-1 verbatim — try/catch around
+          loadTempReseller, dual-null guard on fixture +
+          attributedUserId + attributedFounderEmail, attach helper call
+          with null-return skip, try/catch around loginAs; oracle
+          asserts body.reseller.display_name === fixture.displayName
+          per the schedule doc's "happy (returns display_name)" label,
+          plus body.reseller.code + body.reseller.billing_model ===
+          "wholesale" so a partial-shape regression on
+          route.ts:66-75 SELECT clause surfaces on the same test;
+          try/finally guarantees fixture.cleanup() runs even on
+          assertion failure; "Deliberately out of scope" comment
+          updated — attributed-founder branch flipped from folded/
+          deferred to ACTIVATED with pointer at the new test).
+        - docs/plans/p10-deferred-spec-activation-order.md ("Wave-2
+          helper landed (tick 147)" paragraph appended beneath the
+          wave-2 prep-cost note explaining why the helper and row 145
+          shipped together and confirming rows 146-149 are unblocked
+          by the same helper).
+
+      Design fidelity:
+        - Helper vs seed-script edit: chose the fixture helper per the
+          schedule doc's design intent ("author the attributed-customer
+          helper — reuses the existing app_users upsert path in the
+          fixture"). Alternative — extending seed-qa-reseller.mjs's
+          seedAttribution to also set attribution_reseller_id — would
+          have required re-running seeders on the target host to unlock
+          row 145 and would have blurred the fixture's "mint script
+          owns writes / fixture reads only" contract past the sandbox_setup
+          projects.id carve-out that was already made. The helper's
+          restore closure keeps that contract: any mutation the fixture
+          makes lives inside a single spec's window.
+        - Route contract pinned: expect body.reseller.display_name +
+          .code + .billing_model but NOT logo_url + primary_color
+          because the QAPROBE seed row does not populate those columns
+          (seed-qa-reseller.mjs VARIANTS[0] — active_wholesale — omits
+          them so the assertion would fail against a null default). The
+          route's happy-path SELECT includes those columns so the
+          three-column check is a strict subset of the response shape;
+          a future edit that drops one of display_name / code /
+          billing_model from route.ts:66-75 surfaces on this assertion.
+        - Skip discipline mirrors wave-1: fixture null → skip with
+          tempResellerSkipReason("active_wholesale");
+          fixture.attributedUserId null → skip; fixture.attributed
+          FounderEmail null → skip (redundant guard — kept so a future
+          variant change surfaces on the exact skip line); attach helper
+          returning null → skip; loginAs throw → skip. Single-admin
+          hosts / hosts that skipped QA_RESELLER_MULTI_ADMIN=1 land as
+          test.skip rather than 403 no_membership per the schedule doc's
+          "Failure protocol" § — same posture as ticks 141-146.
+        - Non-Stripe / non-GST discipline: /me is a pure app_users +
+          resellers SELECT. No promotion_code lookup, no revenue_events
+          read, no Stripe network call, no InfoVision dependency. P8.5
+          + P1.5 remain neither a dependency nor a consequence.
+        - Restore ordering: cleanup() drains restoreClosures (LIFO)
+          BEFORE running projects.delete — a spec that both attaches
+          the customer AND registers a projects.id for deletion has
+          those undone in reverse-insertion order matching test
+          teardown expectations.
+        - previousAttributionResellerId short-circuit: if the cache
+          column is already set to fixture.resellerId (idempotent
+          re-run of the spec on the same DB), attachAttributedCustomer
+          skips the UPDATE + skips the restore push. The return value
+          still carries previousAttributionResellerId=resellerId so
+          the spec can inspect it if a future assertion cares.
+        - Batching heuristic: row 145 is the only wave-2 row in
+          me-attribution.spec.ts (rows 146-149 sit in drawer-authz.spec.
+          ts / drawer-validation.spec.ts / reveal-email-authz.spec.ts /
+          reveal-email-validation.spec.ts), so the "same file with the
+          same variant" clause does not permit further collapse. The
+          helper WAS collapsed into the same tick as row 145 rather
+          than shipping alone in tick 147 — see the design-correction
+          note above; the schedule doc's "Wave-2 helper landed" callout
+          preserves the accounting so a reader sees the join.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: clean (exit 0, no output).
+          The new AttachAttributedCustomerResult export + fixture
+          method type-check against the existing TempResellerFixture
+          shape; tests/ excluded from the main tsconfig so the spec
+          errors on @playwright/test are expected (identical to the
+          pre-existing tests in the same file).
+        - `npx vitest run src/lib/reseller/ src/lib/feature-gate.test.
+          ts src/lib/entitlements.test.ts` in web/: 31 files / 462
+          tests pass (2.15s, identical to tick 146 — no pure-lib code
+          touched, only the Playwright fixture + spec).
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files, R-03
+          scanned 31 manifest routes, 3 documented exemptions, 0
+          violations — unchanged from tick 146 (the spec is not under
+          /api/reseller/** for the R-01 grep and the fixture is not in
+          feature-gates.manifest.ts for the R-03 rule).
+        - No DB apply this tick — pure fixture code + test-file
+          addition + design-doc edit.
+        - Goal file version bumped 2026-07-23.146 → 2026-07-23.147.
+
+      Frontier after tick 147: Track A P8.5 STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision
+      seed STILL HUMAN-BLOCKED on H.20 ABN + GST; Track B COMPLETE;
+      P10 still blocked_by [P1..P9] until P8.5 clears. What tick 147
+      unblocks: row 145 lit up in CI on the next `npx playwright test`
+      run — opens wave 2 in full. Rows 146-149 all sit on the same
+      attachAttributedCustomer() helper so each is now a 2-3 assertion
+      paste with the same skeleton. Next autonomous tick options:
+        (i) advance to wave 2 row 146 (drawer-authz.spec.ts ×
+            active_wholesale × happy 200 with overview/progression/
+            svi_curve/reports) — reuses attachAttributedCustomer + adds
+            one GET /api/reseller/customers/[id]/drawer request against
+            fixture.attributedUserId;
+        (ii) advance to wave 2 row 148 (reveal-email-authz.spec.ts ×
+             active_wholesale × happy 200 with plaintext email + audit-
+             log side effect) — same helper, adds the countReseller
+             AuditLogFor read from supabase-admin.ts to assert the row
+             lands;
+        (iii) idle until human unblock arrives on P8.5 or P1.5.
+    commit: (this tick)
+
   - tick: 146
     ran_at: 2026-07-22
     action: p10_wave1_row_144_activate_tier_not_allowed_branch
