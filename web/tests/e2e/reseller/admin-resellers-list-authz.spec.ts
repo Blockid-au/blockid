@@ -47,10 +47,15 @@
 //     would break every other Playwright spec in the same worker.
 //   - query_failed (500) — needs a broken resellers SELECT which requires
 //     per-test tampering plan §J.2 forbids.
-//   - Happy path (200) — reads real resellers rows (P1.5 InfoVision seed
-//     still HUMAN-BLOCKED on H.20 anyway), requires a real admin session;
-//     folded into the admin QA harness follow-up alongside the deferred
-//     rows from ticks 94..107.
+//   - Happy path (200) — ACTIVATED wave-5 row 164 (tick 160). Opens wave 5
+//     via loadAdminHarness() (qa-admin-1@blockid.au) so the requireAdmin()
+//     gate passes without needing the per-variant reseller cohort. Reads
+//     real resellers rows — pins { ok:true, resellers: [] } shape + per-row
+//     shape (id UUID, code text, display_name text, billing_model enum,
+//     status enum). Does NOT pin array length (fresh CI hosts may hold 0
+//     resellers rows; hosts where seed-qa-reseller.mjs has fired hold ≥7
+//     cohort rows; P1.5 InfoVision seed adds one more when H.20 clears).
+//     Read-only — no writes fire so this row is idempotent under CI replay.
 //
 // The GET handler takes no query params, so both harness-free rows return
 // BEFORE any URL parse fires — no path segment or search string is needed
@@ -58,11 +63,17 @@
 
 import { test, expect } from "@playwright/test";
 import { loginAs } from "../fixtures/accounts";
+import { adminHarnessSkipReason, loadAdminHarness } from "../fixtures/reseller";
 
 const NON_ADMIN_FOUNDER_EMAIL =
   process.env.QA_UNATTRIBUTED_FOUNDER_EMAIL ?? "qa-founder-1@blockid.au";
 
 const ROUTE = "/api/admin/resellers";
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const BILLING_MODELS = new Set(["retail", "wholesale"]);
+const STATUSES = new Set(["active", "paused", "terminated"]);
 
 test.describe("Admin resellers list pre-read authorization — P10 dry-run", () => {
   test("unauthenticated — GET with no session returns 401 no_user", async ({
@@ -105,5 +116,73 @@ test.describe("Admin resellers list pre-read authorization — P10 dry-run", () 
       `non_admin body.ok should be false: ${JSON.stringify(body)}`,
     ).toBe(false);
     expect(body.reason).toBe("not_admin");
+  });
+});
+
+test.describe("Admin resellers list — P10 wave-5 row 164 happy path", () => {
+  const harness = loadAdminHarness();
+  test.skip(!harness, adminHarnessSkipReason());
+
+  test("happy — GET as qa-admin-1 returns 200 with resellers array", async ({
+    page,
+  }) => {
+    try {
+      await loginAs(page, harness!.admin.email);
+    } catch (err) {
+      test.skip(
+        true,
+        `Admin QA account not seeded: ${(err as Error).message}. Run ` +
+          `scripts/seed-test-users.mjs to populate /tmp/blockid-qa-accounts.txt.`,
+      );
+      return;
+    }
+
+    const resp = await page.request.get(ROUTE);
+    expect(
+      resp.status(),
+      `happy returned ${resp.status()} — expected 200 after requireAdmin() passes. Body: ${await resp.text()}`,
+    ).toBe(200);
+
+    const body = (await resp.json()) as {
+      ok: boolean;
+      resellers?: Array<{
+        id?: unknown;
+        code?: unknown;
+        display_name?: unknown;
+        billing_model?: unknown;
+        status?: unknown;
+      }>;
+    };
+    expect(
+      body.ok,
+      `happy body.ok should be true: ${JSON.stringify(body).slice(0, 200)}`,
+    ).toBe(true);
+    expect(
+      Array.isArray(body.resellers),
+      `happy body.resellers should be an array: ${JSON.stringify(body).slice(0, 200)}`,
+    ).toBe(true);
+
+    // Do NOT pin body.resellers.length — fresh CI hosts may have zero
+    // rows; seeded hosts hold ≥7 cohort rows from seed-qa-reseller.mjs;
+    // production hosts hold ≥1 (INFOVISION when P1.5 clears H.20). Per-row
+    // shape pins catch a route regression that dropped a column from the
+    // SELECT list (route.ts:32-35 currently uses select("*")) or returned
+    // a stale envelope shape.
+    for (const row of body.resellers ?? []) {
+      expect(
+        typeof row.id === "string" && UUID_RE.test(row.id as string),
+        `reseller.id should be UUID string: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(typeof row.code).toBe("string");
+      expect(typeof row.display_name).toBe("string");
+      expect(
+        BILLING_MODELS.has(row.billing_model as string),
+        `reseller.billing_model should be retail|wholesale: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        STATUSES.has(row.status as string),
+        `reseller.status should be active|paused|terminated: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+    }
   });
 });
