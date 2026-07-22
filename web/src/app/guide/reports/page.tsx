@@ -18,6 +18,7 @@ import Link from "next/link";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
+import { ItemListJsonLd } from "@/components/seo/json-ld";
 import {
   buildShowcaseDataRoomRows,
   type DataRoomShowcaseRow,
@@ -186,10 +187,22 @@ export default async function GuideReportsPage() {
 
   const rows = await readReportRows();
   const summary = summariseGallery(rows);
+  const listItems = rows.map((row) => ({
+    name: `${row.title} — ${agentLabel(row.generated_by_agent)}`,
+    description: row.generated_at
+      ? `${agentLabel(row.generated_by_agent)} · ${row.generated_at}`
+      : agentLabel(row.generated_by_agent),
+  }));
 
   return (
     <>
       <PageTracker page="guide-reports" />
+      <ItemListJsonLd
+        url={CANONICAL}
+        name={TITLE}
+        description={DESCRIPTION}
+        items={listItems}
+      />
       <Navbar />
       <main className="mx-auto max-w-6xl px-4 py-12 md:py-16">
         <header className="mb-10">

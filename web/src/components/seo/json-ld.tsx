@@ -1,3 +1,10 @@
+import {
+  buildItemListJsonLd,
+  buildWebPageJsonLd,
+  type ItemListJsonLdInput,
+  type WebPageJsonLdInput,
+} from "@/lib/seo/structured-data";
+
 export function OrganizationJsonLd() {
   const data = {
     "@context": "https://schema.org",
@@ -42,6 +49,26 @@ export function SoftwareApplicationJsonLd() {
       description: "First SVI analysis free",
     },
   };
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+    />
+  );
+}
+
+export function WebPageJsonLd(input: WebPageJsonLdInput) {
+  const data = buildWebPageJsonLd(input);
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+    />
+  );
+}
+
+export function ItemListJsonLd(input: ItemListJsonLdInput) {
+  const data = buildItemListJsonLd(input);
   return (
     <script
       type="application/ld+json"
