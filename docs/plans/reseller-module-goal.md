@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.49
+version: 2026-07-23.50
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,97 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 87
+    ran_at: 2026-07-22
+    action: p10_dry_run_audit_log_write_assertion_spec_verification_5
+    result: |
+      Autonomous tick composing option (i) from tick 86's frontier note —
+      "audit-log write assertion spec (Verification #5: viewing customer
+      detail writes a reseller_audit_log row — needs the same reseller
+      admin harness from tick 82 plus countResellerAuditLogFor helper
+      added to fixtures/supabase-admin.ts)." Both halves landed in one
+      tick: helper first, then the spec that consumes it. Small, self-
+      contained, orthogonal to any human-blocked leaf. Converts one more
+      deferred Playwright row into an authored assertion pair.
+
+      Files:
+        - web/tests/e2e/fixtures/supabase-admin.ts (+ countResellerAuditLogFor
+          helper — count-only head:true SELECT on reseller_audit_log filtered
+          by (action, actor_user_id, subject_user_id, since?). `since` cursor
+          is documented as effectively required because migration 0093
+          mutation triggers block UPDATE/DELETE, so cross-run accumulation
+          would poison count-based assertions if callers didn't pass it;
+          header comment widened from "attribution-timing spec" to name both
+          consuming specs so the next fixture-writer sees the boundary.)
+        - web/tests/e2e/reseller/audit-log-writes.spec.ts (new — two authored
+          Playwright cases mirroring the two /api/reseller/customers/[id]/**
+          privileged-read routes: drawer GET (action='view_customer_drawer')
+          and reveal-email POST (action='reveal_email'). Both capture
+          new Date().toISOString() BEFORE firing the request, expect the
+          response ok(), then assert countResellerAuditLogFor(≥1) for
+          (actor_user_id resolved via findUserIdByEmail on the harness admin,
+          subject_user_id = harness.attributedCustomerId, since=cursor).
+          Describe-scope skip on loadResellerHarness() (needs
+          QA_RESELLER_ADMIN_EMAIL + QA_RESELLER_ATTRIBUTED_CUSTOMER_ID);
+          per-test skip on loadSupabaseAdmin() (needs SUPABASE_URL +
+          SUPABASE_SERVICE_ROLE_KEY) — same posture as attribution-timing
+          row 2 from tick 86.)
+
+      Why the spec covers only the "viewing customer detail writes an audit
+      row" half of Verification #5: the ">200 subject-reads/week anomaly
+      alert" half needs a simulated-volume harness against a rate-limit
+      surface that does not exist in the tree yet (no rate-limit lives on
+      the drawer/reveal-email routes today — the plan describes it as a
+      future digest-side anomaly detector, not an inline 429). That half
+      belongs to a separate tick that first authors the anomaly detector,
+      then writes the spec that simulates the >200/week volume against it.
+      Tracking as a next_action follow-up rather than a test.skip() row.
+
+      Deliberately out of scope for this tick:
+        - The anomaly-alert half of Verification #5 (needs anomaly
+          detector first; see above).
+        - Extending the fixture with a countResellerAuditLogByAction total
+          (would let specs assert absence-of-audit-write on non-privileged
+          routes; not currently requested by any exit criterion).
+        - Adding matching audit-log write assertions for the credit-grant
+          route (action='grant_credits') and admin approval route
+          (action='approve_over_budget') — those routes DO write audit
+          rows per P6.3 / P9.3 and would fit the same helper unchanged;
+          leaving to a follow-up tick since the reseller admin harness
+          doesn't seed a pending grant/request row today (would need
+          fixture writes, which the plan §J.2 posture forbids).
+
+      Verified: tsc clean (npx tsc --noEmit exit 0 at web/); vitest 817/817
+      unchanged (both changes are Playwright infrastructure — no vitest
+      coverage exists for tests/e2e/fixtures/ or tests/e2e/reseller/ by
+      design); npm run lint:reseller: R-01 scanned 11 file(s), R-03
+      scanned 31 manifest route(s); 3 exemptions, 0 violations unchanged
+      (new fixture lives under web/tests/e2e/fixtures/, not
+      /api/reseller/**, so R-01 doesn't fire; new spec lives under
+      web/tests/e2e/reseller/, not a route handler, so R-03 doesn't
+      fire either). Playwright not run — audit-log-writes.spec.ts still
+      self-skips at describe-scope when QA_RESELLER_ATTRIBUTED_CUSTOMER_ID
+      is unset (current CI state); each per-test row further gates on
+      SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY so both rows run only
+      when both harness halves are provisioned.
+
+      Frontier after tick 87: unchanged in shape — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5
+      clears. What tick 87 unblocks: (1) both rows of the audit-log-
+      writes spec are live assertions the instant the reseller admin
+      harness + service-role env vars are provisioned; (2) any future
+      reseller spec that needs "did action X write an audit row for
+      (actor, subject) since cursor" has a home. Next autonomous tick
+      options: (i) close the retail createProject → reseller_attributions
+      gap (needs CTO advisory review for ledger semantics; would drop
+      attribution-timing row 3's .skip()); (ii) author the audit-log
+      anomaly detector so the >200-reads/week half of Verification #5
+      becomes assertable (larger surface — new lib + cron + spec);
+      (iii) still idle until human unblock arrives.
     commit: (this tick)
 
   - tick: 86
