@@ -193,6 +193,10 @@ test.describe("Admin reseller-requests list — P10 wave-5 row 174 happy path", 
         status?: unknown;
         created_at?: unknown;
         reseller_id?: unknown;
+        requested_by?: unknown;
+        decision_by?: unknown;
+        linked_credit_transaction_id?: unknown;
+        linked_promotion_code_id?: unknown;
         payload?: unknown;
         decision_at?: unknown;
         decision_reason?: unknown;
@@ -201,6 +205,59 @@ test.describe("Admin reseller-requests list — P10 wave-5 row 174 happy path", 
       expect(r.id as string).toMatch(UUID_RE);
       expect(typeof r.reseller_id).toBe("string");
       expect(r.reseller_id as string).toMatch(UUID_RE);
+      // Tick 221 — FK-echo shape pins per tick 220 next-pick option (a).
+      // Route SELECT at route.ts:44 echoes four additional UUID FK fields
+      // beyond id + reseller_id: requested_by (NOT NULL per migration
+      // 0095:28), decision_by (nullable per 0095:35, NULL for pending),
+      // linked_credit_transaction_id (nullable per 0095:38, NULL for
+      // pending — ck_credit_link at 0095:47-49 forbids non-null except on
+      // approved over_budget_approval), linked_promotion_code_id (nullable
+      // per 0095:39, NULL for pending — ck_promo_link at 0095:50-52
+      // forbids non-null except on approved code_request). Pre-tick posture
+      // left all four silent, so a route regression that dropped any of
+      // them from the SELECT list would surface only at the admin inbox
+      // visual QA lens or the P9.3 approve-flow PATCH lens (which reads
+      // the row back via a separate GET). Post-tick each FK carries a
+      // shape assertion identical to the credit-grant-authz row 152
+      // discipline: typeof=string + UUID_RE for NOT NULL fields, and
+      // (null OR (typeof=string AND UUID_RE)) for nullable fields.
+      //
+      // requested_by is NOT NULL — POST route at route.ts:91 stamps it
+      // from user.id, and the CHECK at 0095:28 forbids NULL. A regression
+      // that dropped the field from the SELECT would surface as
+      // typeof=undefined (fails "string" check).
+      expect(typeof r.requested_by).toBe("string");
+      expect(r.requested_by as string).toMatch(UUID_RE);
+      // decision_by is nullable in the schema but under the default
+      // status='pending' filter applied here (route.ts:39 + 46), the
+      // ck_decision_shape CHECK at 0095:41-45 enforces decision_by IS NULL
+      // for pending rows. Pin as null-or-UUID rather than strict null so
+      // the shape assertion is robust to a future ?status= filter change
+      // that surfaces non-pending rows via this spec.
+      expect(
+        r.decision_by === null ||
+          (typeof r.decision_by === "string" &&
+            UUID_RE.test(r.decision_by as string)),
+        `decision_by should be null or a UUID string: ${JSON.stringify(r.decision_by)}`,
+      ).toBe(true);
+      // linked_credit_transaction_id is nullable — ck_credit_link enforces
+      // NULL except on approved over_budget_approval rows, so pending rows
+      // always echo null. Same null-or-UUID posture as decision_by.
+      expect(
+        r.linked_credit_transaction_id === null ||
+          (typeof r.linked_credit_transaction_id === "string" &&
+            UUID_RE.test(r.linked_credit_transaction_id as string)),
+        `linked_credit_transaction_id should be null or a UUID string: ${JSON.stringify(r.linked_credit_transaction_id)}`,
+      ).toBe(true);
+      // linked_promotion_code_id is nullable — ck_promo_link enforces NULL
+      // except on approved code_request rows, so pending rows always echo
+      // null. Same null-or-UUID posture as decision_by.
+      expect(
+        r.linked_promotion_code_id === null ||
+          (typeof r.linked_promotion_code_id === "string" &&
+            UUID_RE.test(r.linked_promotion_code_id as string)),
+        `linked_promotion_code_id should be null or a UUID string: ${JSON.stringify(r.linked_promotion_code_id)}`,
+      ).toBe(true);
       expect(typeof r.request_type).toBe("string");
       expect(
         REQUEST_TYPES.has(r.request_type as string),
