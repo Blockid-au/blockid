@@ -11,6 +11,8 @@
 import { getCurrentUser } from "@/lib/auth";
 import { scopedReseller, ResellerScopeError } from "@/lib/reseller/scope";
 import { resellerSupabase } from "@/lib/reseller/supabase";
+import { canProvisionSandbox } from "@/lib/reseller/sandbox-provision";
+import { PaymentMethodForm } from "./payment-method-form";
 
 export const dynamic = "force-dynamic";
 
@@ -161,6 +163,15 @@ export default async function ResellerSettingsPage() {
           </Field>
         </div>
       </section>
+
+      {r.billing_model === "wholesale" &&
+        r.status === "active" &&
+        canProvisionSandbox(scope.role) && (
+          <PaymentMethodForm
+            hasExistingPaymentMethod={Boolean(r.stripe_default_payment_method_id)}
+            existingPaymentMethodId={r.stripe_default_payment_method_id ?? null}
+          />
+        )}
 
       <section className="mb-4 rounded-lg border border-surface-200 bg-white p-4">
         <h3 className="text-base font-semibold text-ink-900">Capabilities & budget</h3>

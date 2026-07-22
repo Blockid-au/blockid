@@ -2561,6 +2561,76 @@ review_history:
       tick per CDO rec #2).
     commit: (this tick)
 
+  - tick: 80
+    ran_at: 2026-07-22
+    action: reseller_stripe_billing_payment_method_ui
+    result: |
+      Autonomous tick composing the next unblocked leaf explicitly named at
+      the end of tick 79 — the /reseller/settings payment-method-setup UI
+      that composes the two already-tested endpoints (POST
+      /api/reseller/billing/setup-intent + POST
+      /api/reseller/billing/save-default-payment-method) into a working
+      wholesale card-capture surface.
+      New client component web/src/app/reseller/settings/payment-method-form.tsx:
+        - Reads {hasExistingPaymentMethod, existingPaymentMethodId} from the
+          server page; renders a masked pm_••••<tail4> line when a default
+          PM is already on file so operators see current state at a glance.
+        - beginSetup() POSTs /api/reseller/billing/setup-intent, expects
+          {ok, client_secret, setup_intent_id, ...}; on failure surfaces the
+          server-provided `message` (from RESELLER_STRIPE_BILLING_ERROR_
+          MESSAGES) so the copy stays consistent with the admin surface per
+          U.15.13. On success flips mode → 'ready' which mounts a vanilla
+          Stripe.js Elements card element via getStripeClient() (@stripe/
+          stripe-js only; @stripe/react-stripe-js is not installed and
+          matching that constraint is enforced by web/AGENTS.md — same
+          pattern as web/src/components/onboarding/step-payment.tsx).
+        - handleSubmit runs stripe.confirmCardSetup(clientSecret,
+          {payment_method:{card}}), then POSTs
+          /api/reseller/billing/save-default-payment-method with the
+          returned setup_intent_id. On success clears state, flips to
+          'success', and router.refresh() so the parent server page re-reads
+          resellers.stripe_default_payment_method_id and the "on file" line
+          updates without a hard reload.
+        - EN+VI copy table matches the shape used by grant-form.tsx +
+          product-tour.tsx + share-mgmt-drawer.tsx (single COPY: Record<
+          Locale, Copy> switched via useLocale()).
+        - Card element unmounts in cleanup + on cancel — no leaked DOM
+          nodes between open/close cycles.
+      Wiring in web/src/app/reseller/settings/page.tsx: renders
+      <PaymentMethodForm /> only when reseller.billing_model==='wholesale'
+      AND reseller.status==='active' AND canProvisionSandbox(scope.role) —
+      mirrors the server-side gate on both endpoints so viewers see the
+      capability list without a phantom form. Retail resellers, paused/
+      terminated orgs, and viewer-role reseller staff never see the section
+      at all (matches the "no self-service" note at the top of the page for
+      billing model changes).
+      Deliberately no new /api/ route, no manifest additions — the UI is
+      pure client composition over already-manifested and already-lint-
+      exempt-clean endpoints (setup-intent + save-default-payment-method
+      both landed with R-03 gates in ticks 78/79).
+      Verified: tsc clean; vitest 797/797 unchanged (no new lib logic to
+      test — the pure decision + adapter layers under the two endpoints
+      already carry 25 + 12 cases from ticks 77-79 covering the happy paths
+      and every discriminated error variant this UI surfaces); npm run
+      lint:reseller: R-01 scanned 11 file(s), R-03 scanned 31 manifest
+      route(s); 3 exemptions, 0 violations — the new .tsx is a client
+      component under /app/reseller/settings/, not /api/reseller/**, so
+      R-01 scope-boundary lint doesn't fire, and it's not in the feature-
+      gates manifest so R-03 doesn't fire either.
+      Frontier after tick 80: unchanged shape — Track A HUMAN-BLOCKED on
+      P8.5 Stripe env vars; Track B COMPLETE; P1.5 HUMAN-BLOCKED on H.20;
+      P10 blocked_by [P1..P9]. What tick 80 does unblock: end-to-end
+      wholesale card capture is now shippable — a reseller admin can open
+      /reseller/settings, add a card, and the pm_id lands on
+      resellers.stripe_default_payment_method_id so
+      validateResellerBillingReadiness() will finally return {ok:true}
+      once the InfoVision seed row (P1.5) exists. The remaining wholesale
+      subscription-line follow-up (creating stripe.subscriptions.create
+      against the reseller's PM inside /api/reseller/create-startup, which
+      tick 75 deferred) is now unblocked at the code level — the only gap
+      left is InfoVision's ABN + GST confirmation (H.20).
+    commit: (this tick)
+
   - tick: 79
     ran_at: 2026-07-22
     action: reseller_stripe_billing_save_default_payment_method
