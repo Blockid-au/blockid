@@ -18,6 +18,15 @@ import {
 
 export const dynamic = "force-dynamic";
 
+const ROUTE = "/api/admin/resellers/[code]";
+
+function readClientMeta(request: Request): { ip: string; ua: string } {
+  const fwd = request.headers.get("x-forwarded-for") || "";
+  const ip = fwd.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "";
+  const ua = request.headers.get("user-agent") || "";
+  return { ip, ua };
+}
+
 async function gate() {
   const user = await getCurrentUser();
   try {
@@ -182,11 +191,35 @@ export async function PATCH(
     );
   }
 
+  // Observability record for the admin edit. Non-fatal: the resellers row
+  // is already committed; a 500 out of a downstream audit hiccup would
+  // misleadingly suggest the update rolled back. Mirrors the
+  // requests/[id] PATCH pattern added tick 186.
+  try {
+    const { ip, ua } = readClientMeta(request);
+    await supabase.from("reseller_audit_log").insert({
+      reseller_id: row.id,
+      actor_user_id: g.user.id,
+      subject_user_id: null,
+      action: "update_reseller",
+      fields: Object.keys(validation.patch),
+      route: ROUTE,
+      ip,
+      user_agent: ua,
+      metadata: {
+        code: row.code,
+        patch: validation.patch,
+      },
+    });
+  } catch (err) {
+    console.warn("[admin.reseller.PATCH] reseller_audit_log insert failed", err);
+  }
+
   return NextResponse.json({ ok: true, reseller: data });
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ code: string }> },
 ) {
   const g = await gate();
@@ -222,6 +255,28 @@ export async function DELETE(
       { ok: false, reason: "terminate_failed", error: error.message },
       { status: 500 },
     );
+  }
+
+  // Observability record for soft-delete. Non-fatal — the terminate flip
+  // is already committed. Mirrors requests/[id] PATCH pattern (tick 186).
+  try {
+    const { ip, ua } = readClientMeta(request);
+    await supabase.from("reseller_audit_log").insert({
+      reseller_id: row.id,
+      actor_user_id: g.user.id,
+      subject_user_id: null,
+      action: "terminate_reseller",
+      fields: ["status"],
+      route: ROUTE,
+      ip,
+      user_agent: ua,
+      metadata: {
+        code: row.code,
+        previous_status: row.status,
+      },
+    });
+  } catch (err) {
+    console.warn("[admin.reseller.DELETE] reseller_audit_log insert failed", err);
   }
 
   return NextResponse.json({ ok: true });

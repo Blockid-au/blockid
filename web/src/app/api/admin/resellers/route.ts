@@ -12,6 +12,15 @@ import { normaliseResellerCode } from "@/lib/reseller/attribution";
 
 export const dynamic = "force-dynamic";
 
+const ROUTE = "/api/admin/resellers";
+
+function readClientMeta(request: Request): { ip: string; ua: string } {
+  const fwd = request.headers.get("x-forwarded-for") || "";
+  const ip = fwd.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "";
+  const ua = request.headers.get("user-agent") || "";
+  return { ip, ua };
+}
+
 export async function GET() {
   const user = await getCurrentUser();
   try {
@@ -131,6 +140,31 @@ export async function POST(request: Request) {
         );
       }
       throw error;
+    }
+
+    // Observability record for the new reseller org. Non-fatal — the
+    // resellers INSERT is already committed. Mirrors requests/[id] PATCH
+    // pattern (tick 186).
+    try {
+      const { ip, ua } = readClientMeta(request);
+      await supabase.from("reseller_audit_log").insert({
+        reseller_id: data.id,
+        actor_user_id: user!.id,
+        subject_user_id: null,
+        action: "create_reseller",
+        fields: [],
+        route: ROUTE,
+        ip,
+        user_agent: ua,
+        metadata: {
+          code: data.code,
+          billing_model: billingModel,
+          gst_registered: body.gst_registered ?? false,
+          abn: body.abn ?? null,
+        },
+      });
+    } catch (err) {
+      console.warn("[admin.resellers.POST] reseller_audit_log insert failed", err);
     }
 
     return NextResponse.json({ ok: true, reseller: data }, { status: 201 });
