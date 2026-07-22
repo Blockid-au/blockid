@@ -29,15 +29,16 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   if (!body) return NextResponse.json({ ok: false, error: "Invalid body" }, { status: 400 });
 
-  const { email, field, value } = body as {
+  const { email, user_id, field, value } = body as {
     email?: string;
+    user_id?: string;
     field?: string;
     value?: string;
   };
 
-  if (!email || !field || !value) {
+  if ((!email && !user_id) || !field || !value) {
     return NextResponse.json(
-      { ok: false, error: "email, field, value required" },
+      { ok: false, error: "email OR user_id, plus field and value required" },
       { status: 400 },
     );
   }
@@ -69,12 +70,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "DB not configured" }, { status: 503 });
   }
 
-  // Find user by email
-  const { data: targetUser } = await supabase
+  // Find user by user_id (preferred, unambiguous) or email fallback.
+  const lookup = supabase
     .from("app_users")
-    .select("id, email, display_name, plan, role")
-    .eq("email", email.toLowerCase().trim())
-    .maybeSingle();
+    .select("id, email, display_name, plan, role");
+  const { data: targetUser } = await (user_id
+    ? lookup.eq("id", user_id).maybeSingle()
+    : lookup.eq("email", (email as string).toLowerCase().trim()).maybeSingle());
 
   if (!targetUser) {
     return NextResponse.json({ ok: false, error: "User not found" }, { status: 404 });
