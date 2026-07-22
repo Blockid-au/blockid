@@ -1175,3 +1175,7 @@
 {"ts":"2026-07-22T23:15:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16541,"detail":""}
 {"ts":"2026-07-22T23:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":164,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
 {"ts":"2026-07-22T23:20:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":456,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (234057972 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274961708 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-07-22T23:30:01Z","endpoint":"telegram-report","status":"ok","duration_ms":1606,"detail":"{\"sent\": true, \"chatId\": \"539796782\", \"deploysToday\": 344, \"agentsReported\": 6, \"total\": 8}"}
+{"ts":"2026-07-22T23:30:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2614,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (234056324 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274946424 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-07-22T23:30:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16506,"detail":""}
+{"ts":"2026-07-22T23:30:01Z","endpoint":"performance-audit","status":"fail","duration_ms":17050,"detail":"<!DOCTYPE html><html lang=\"en-AU\" class=\"__variable_48b81b __variable_1f5b15 __variable_6b9622 h-full antialiased\"><head"}
