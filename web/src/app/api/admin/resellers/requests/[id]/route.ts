@@ -30,6 +30,15 @@ import { decideCodeMint } from "@/lib/reseller/promotion-code-mint";
 
 export const dynamic = "force-dynamic";
 
+const ROUTE = "/api/admin/resellers/requests/[id]";
+
+function readClientMeta(request: Request): { ip: string; ua: string } {
+  const fwd = request.headers.get("x-forwarded-for") || "";
+  const ip = fwd.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "";
+  const ua = request.headers.get("user-agent") || "";
+  return { ip, ua };
+}
+
 interface RequestRow {
   id: string;
   reseller_id: string;
@@ -318,6 +327,41 @@ export async function PATCH(
         error: updateErr?.message ?? "no_row",
       },
       { status: 500 },
+    );
+  }
+
+  // Observability record for the sensitive admin transition. Non-fatal:
+  // the ledger writes and request flip are already committed, and the
+  // reseller-side auditors should not see 500s from a downstream table
+  // hiccup after the state has moved. Matches the affiliate-revoke pattern
+  // at /api/admin/affiliate/attributions/[id]/revoke.
+  try {
+    const { ip, ua } = readClientMeta(request);
+    const subjectUserId =
+      current.request_type === "over_budget_approval"
+        ? ((current.payload as { target_user_id?: string }).target_user_id ?? null)
+        : null;
+    await supabase.from("reseller_audit_log").insert({
+      reseller_id: current.reseller_id,
+      actor_user_id: user.id,
+      subject_user_id: subjectUserId,
+      action: `${decision.status === "cancelled" ? "cancel" : decision.status === "approved" ? "approve" : "deny"}_request`,
+      fields: ["status"],
+      route: ROUTE,
+      ip,
+      user_agent: ua,
+      metadata: {
+        request_id: current.id,
+        request_type: current.request_type,
+        linked_credit_transaction_id: linkedCreditTransactionId,
+        linked_promotion_code_id: linkedPromotionCodeId,
+        decision_reason: decision.decision_reason,
+      },
+    });
+  } catch (err) {
+    console.warn(
+      "[admin.reseller.requests.PATCH] reseller_audit_log insert failed",
+      err,
     );
   }
 
