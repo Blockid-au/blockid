@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.43
+version: 2026-07-23.44
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -2559,6 +2559,56 @@ review_history:
       exemptions / 0 violations). Remaining under §23: GA4 event
       catalogue for showcase surfaces (deferred to CMO/CPO joint
       tick per CDO rec #2).
+    commit: (this tick)
+
+  - tick: 76
+    ran_at: 2026-07-22
+    action: reseller_stripe_billing_schema_foundation
+    result: |
+      Autonomous tick landing the schema foundation the tick 75
+      /api/reseller/create-startup route explicitly named as blocking
+      the deferred wholesale Stripe subscription line. New migration
+      web/supabase/migrations/0101_reseller_stripe_billing_columns.sql
+      adds two nullable columns to the resellers table:
+        - stripe_customer_id (text) — one Stripe Customer per reseller
+          org owning wholesale subscriptions ($99/mo × N Growth seats
+          per attributed founder workspace). Nullable for retail
+          resellers (retail commission accrues off the end-founder's
+          own Stripe customer).
+        - stripe_default_payment_method_id (text) — denormalised
+          default PM so the create-startup endpoint doesn't couple its
+          p95 to a Stripe round-trip. The reseller-stripe-sync weekly
+          cron (P3.1) will re-hydrate on drift.
+      Also lands a partial unique index resellers_stripe_customer_id_uniq
+      so one Stripe Customer maps to at most one reseller row while
+      still allowing multiple nulls pre-payment-method. ADDITIVE +
+      IDEMPOTENT (every ADD COLUMN uses IF NOT EXISTS; the partial
+      unique uses CREATE UNIQUE INDEX IF NOT EXISTS).
+      NOT enforced as required-for-wholesale via CHECK: the current
+      tree has zero wholesale sign-ups (P1.5 InfoVision seed is
+      HUMAN-BLOCKED on H.20 ABN + GST), so a "wholesale requires
+      stripe_customer_id" CHECK would prevent the admin console from
+      creating the first wholesale reseller row before the
+      payment-method-setup UI ships. The follow-up tick that lands
+      the payment-method UI + subscription-create wiring will add that
+      CHECK once InfoVision is seeded and the payment-method flow is
+      proven.
+      Migration NOT applied via docker exec this tick — apply is a
+      manual step per project memory reference_db_migrations, and the
+      route wiring that reads these columns won't land until the
+      payment-method UI + subscription-create follow-up tick, so
+      applying the columns before their consumer ships would only
+      surface a schema-only diff on prod. The migration file is
+      committed so the applier tick can run it alongside the
+      follow-up route wiring.
+      Frontier after tick 76: unchanged — Track A HUMAN-BLOCKED on
+      P8.5 Stripe env vars; Track B COMPLETE; P1.5 HUMAN-BLOCKED on
+      H.20; P10 blocked_by [P1..P9]. The stripe_customer_id / PM
+      schema is now in place so the wholesale Stripe subscription
+      line can ship as a single tick without a nested schema step
+      once the payment-method UI is ready. No code paths touched;
+      tsc / vitest / lint:reseller unchanged from tick 75 baseline
+      (migration is SQL-only, no TS consumer this tick).
     commit: (this tick)
 
   - tick: 75
