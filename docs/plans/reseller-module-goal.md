@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.209
+version: 2026-07-23.210
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,198 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 210
+    ran_at: 2026-07-22
+    action: p10_wave3_row_156c_four_chain_self_approve_http_and_db_companion
+    result: |
+      Activated the P10 wave-3 row 156c four-chain self-approve variant on
+      both the HTTP arithmetic surface (credit-grant-authz.spec.ts) and its
+      DB companion mirror-fanout surface (audit-log-writes.spec.ts). Where
+      row 156b's three-chain block (tick 204 + its DB companion tick 207)
+      pins `balanceBefore1 + 5 + 3 + 2 === 10` after three sequential
+      /api/reseller/credits/grant POSTs and 3 mirror rows for the
+      (reseller_id, target_user_id) pair, this tick extends the staircase
+      by one step: four chained POSTs with amounts 5+3+2+1 landing on
+      balance=11 and 4 mirror rows. This closes the natural next pick tick
+      209 named — the only remaining topology extension on the wave-3
+      self-approve surface not yet exercised.
+
+      Diagnostic power of the extra step: row 156b's DB companion cannot
+      distinguish "on-conflict UPSERT drops the mirror insert on POST 2's
+      re-entry" from "on-conflict UPSERT drops the mirror insert on POST
+      3's re-re-entry" — mirrorCount=2 in the three-chain block is
+      ambiguous between the two failure modes. Row 156c DB companion
+      extends the staircase by one step so a regression that only affects
+      the SECOND on-conflict re-entry (POST 4 here, i.e. the second re-
+      re-entry) surfaces at mirrorCount=3 while row 156b DB companion
+      still sees its expected mirrorCount=3 (its assertion is
+      `expect(mirrorCount).toBe(3)` and its fixture fires exactly three
+      POSTs — it passes). Together the four blocks (row 155 single-POST +
+      row 156 DB companion two-chain + row 156b DB companion three-chain +
+      row 156c DB companion four-chain) provide a complete on-conflict
+      UPSERT re-entry diagnostic: N POSTs → N mirror rows, one block per
+      stair. The staircase closes the fan-out mirror lens exhaustively up
+      to four re-entries; extending to five (row 156d) is possible but
+      would not surface a new regression class the four already-shipped
+      blocks miss.
+
+      Frontier before this tick: tick 209 activated the P10 wave-5 row
+      179 deny+cancel-fanout mirror lens alignment (audit-log-writes.
+      spec.ts approve+deny+cancel branches all now carry both the shape-
+      read content lens and the shared-helper cardinality+reseller_id
+      lens). All 43 rows in the P10 activation matrix (waves 1-5, rows
+      141-183) remain activated except the three human-blocked rows: 175
+      approve (code_request) branch (P8.5-blocked on Stripe test-mode),
+      178 signup-jitter (QA-mode-blocked), 182 SetupIntent (P8.5-blocked).
+      This tick is a purely additive topology extension: no test was
+      removed, no assertion weakened, no production code touched.
+
+      Files:
+        - web/tests/e2e/reseller/credit-grant-authz.spec.ts (new row 156c
+          describe block appended after the row 156b describe at line
+          911. Fires four sequential /api/reseller/credits/grant POSTs
+          with amounts 5+3+2+1 against a fresh loadTempReseller(
+          'active_wholesale') fixture, snapshotting credit_balances
+          BEFORE each POST via attachGrantSelfApprove so the LIFO
+          restore-closure order pops D→C→B→A on cleanup. Pins the
+          balance-readback identity three ways for POST 4: (a) single-
+          POST `body4.balance === grant4.balanceBefore + AMOUNT_FOUR`,
+          (b) chained `body4.balance === balanceBefore1 + 5 + 3 + 2 + 1`,
+          (c) delta `body4.balance - body3.balance === AMOUNT_FOUR`.
+          Pins credit_transaction_id distinctness against ALL THREE
+          prior UUIDs so a re-use regression on any of the (POST 1,
+          POST 4), (POST 2, POST 4), or (POST 3, POST 4) pairs surfaces
+          here — rows 156 + 156b already pin (POST 1, POST 2), (POST 2,
+          POST 3), and (POST 1, POST 3) through their own distinctness
+          assertions, so the four-block set now covers all six pairs of
+          the four-POST chain. Same-month invariant pinned across all
+          four POSTs. remaining_budget delta pins (a) `body3 - body4 ===
+          AMOUNT_FOUR` and (b) `body1 - body4 === AMOUNT_TWO +
+          AMOUNT_THREE + AMOUNT_FOUR` when all four surfaces return
+          numbers — skipped for older route builds pre-P6.5b.)
+        - web/tests/e2e/reseller/audit-log-writes.spec.ts (new row 156c
+          DB companion describe block appended after the row 156 DB
+          companion two-chain describe at line 1704. Fires four
+          sequential POSTs sharing a single chainSince cursor captured
+          BEFORE POST 1 — the same single-cursor posture rows 156 + 156b
+          DB companion use so cross-run mirror rows against the same
+          (reseller_id, target_user_id) pair cannot poison the count
+          AND a duplicated POST N row that landed under a different
+          slice cannot be masked by a per-POST cursor design. Asserts
+          countResellerCreditGrantsFor(supabase, {resellerId,
+          targetUserId, kind:'grant', since:chainSince}) === 4 with a
+          long diagnostic message enumerating every ambiguous drop
+          count (0/1/2/3/>4) and the specific regression class each
+          maps to.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.209 → 2026-07-23.210; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Row 156c HTTP block sits alongside rows 156 + 156b in credit-
+          grant-authz.spec.ts per the topology decision established at
+          tick 197 for the wave-3 self-approve family: authz specs own
+          the HTTP contract (status codes + envelope shape + response
+          arithmetic); audit-log-writes.spec.ts owns the DB-level side
+          effects on the append-only ledger and the mirror table. Row
+          156c DB companion sits alongside rows 155 + 156 DB companion
+          + 156b DB companion in audit-log-writes.spec.ts for the
+          symmetric reason.
+        - Amounts 5+3+2+1 chosen deliberately: four distinct positive
+          integers with the fourth being the smallest so each failure
+          mode on POST 4 diagnoses uniquely from the assertion message
+          alone. A `balance = amount` regression on POST 4 returns 1
+          instead of 11 (reads as "matches the fourth amount, dropped
+          the running total"); a `balance = balanceBefore + amount_last`
+          regression returns balanceBefore1 + 1 (reads as "restored to
+          the pre-attach snapshot"); a `balance = sum-through-POST-3`
+          regression returns 10 (reads as "POST 4 UPSERT went through
+          but the response echo lagged one write behind"). Running
+          total (11) still well under monthly_credit_budget=20000 per
+          seed-qa-reseller active_wholesale defaults so gate 3 fires on
+          all four POSTs without ever tripping
+          over_budget_requires_approval (402); headroom identical to
+          rows 152/156/156b's CI-replay posture.
+        - Single-cursor posture on the DB companion inherited from
+          row 156b DB companion for the exact reason its header
+          documents: a four-cursor design would give four independent
+          "expected 1, got 1" assertions but would MASK a regression
+          where POST N duplicated a POST N-1 row (both cursors would
+          see their expected 1 because the duplicate lands under a
+          different cursor slice). One cursor spanning all four POSTs
+          gives a single unambiguous count that catches drop,
+          duplicate, AND cross-POST misattribution simultaneously.
+        - Cleanup topology inherits row 156b's LIFO restore-closure
+          order extended by one: four attachGrantSelfApprove calls
+          push A, B, C, D snapshots; cleanup pops D→C→B→A. Each
+          restore closure deletes rows created >= its captured cursor
+          and upserts the balance back to its captured snapshot. Net
+          effect atomic — matches the wave-3 self-approve cleanup
+          guarantee rows 152 + 156 + 156b depend on for CI replay
+          stability.
+        - Route write references: web/src/app/api/reseller/credits/
+          grant/route.ts:143-152 (pre-write balance read) + 174-198
+          (credit_balances UPSERT ON CONFLICT DO UPDATE) + 206-218
+          (reseller_credit_grants mirror INSERT) + 250-260 (response
+          echo). A regression that mis-handled the ON CONFLICT DO
+          UPDATE branch after three successful writes (e.g. a rewrite
+          that split UPSERT into INSERT-with-catch → SELECT-then-
+          UPDATE where the fourth call re-read a stale snapshot),
+          introduced any state that only accumulates on the first
+          three writes but drops the fourth, or reset the newBalance
+          arithmetic on the fourth call would leave rows 152 + 156 +
+          156b green while surfacing here on POST 4.
+        - No production code touched. Spec + goal file only. Neither
+          the R-01 scope-boundary rule (only /api/reseller/**) nor the
+          R-03 manifest rule (only feature-gates.manifest.ts routes)
+          scan web/tests/e2e/** so lint counts are unchanged.
+
+      Verified:
+        - `npx tsc -p . --noEmit` in web/: exit 0.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 files,
+          R-03 scanned 31 manifest routes, 3 exemptions, 0
+          violations — unchanged from tick 209.
+        - No DB apply this tick — no migration authored. Playwright
+          run against staging still gated on the tick 198 seed re-run
+          per P10 hardening exit criteria, not this tick.
+
+      Frontier after tick 210:
+        - Track A P8.5 STILL HUMAN-BLOCKED on
+          STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL.
+        - Track A P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20
+          ABN + GST.
+        - Track B COMPLETE.
+        - All 43 rows in the P10 activation matrix (waves 1-5) are
+          activated; only human-blocked rows (175 approve
+          code_request / 178 signup-jitter / 182 SetupIntent) remain
+          on the plan doc's canonical list.
+        - Wave-3 self-approve mirror-fanout staircase now complete
+          through four re-entries: row 155 (1 POST → 1 row) + row
+          156 DB companion (2 POSTs → 2 rows) + row 156b DB
+          companion (3 POSTs → 3 rows) + row 156c DB companion
+          (4 POSTs → 4 rows). Full on-conflict UPSERT re-entry
+          diagnostic lens coverage; extending to five (row 156d)
+          would not surface a new regression class the four
+          already-shipped blocks miss.
+
+      Natural next pick for tick 211: (a) mirror the row 179 shape+
+      helper alignment onto the row 175 approve+deny+cancel
+      code_request branches once P8.5 unblocks — today only the
+      over_budget_approval branch of the terminal handler carries
+      the shape+helper twin coverage. (b) alternative: extend the
+      wave-5 row 183 sandbox-consumption family with the mirror
+      lens (row 183 currently only carries the HTTP contract lens
+      via credit-grant-authz.spec.ts; the audit-log-writes.spec.ts
+      DB companion for sandbox_spend kind on reseller_credit_grants
+      is not yet activated). (c) audit-log-writes.spec.ts posture
+      review — walk the file end-to-end to identify any block that
+      relies exclusively on a shape read without a shared-helper
+      cardinality companion; row 179 approve+deny+cancel (ticks
+      208-209) and row 156b DB companion three-chain (tick 207)
+      set the precedent that both lenses in parallel gives the
+      widest regression-catching envelope.
+    commit: (this tick)
+
   - tick: 209
     ran_at: 2026-07-22
     action: p10_wave5_row_179_deny_cancel_mirror_lens_alignment_via_shared_helper

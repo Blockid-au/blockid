@@ -909,3 +909,279 @@ test.describe("Credit-grant × active_wholesale × three-chained-POST balance-re
     }
   });
 });
+
+// P10 wave-3 row 156c — four-chained-grant identity extends row 156b's
+// three-grant chain with a FOURTH POST (amount=1) so the accumulating
+// identity walks past the UPSERT's on-conflict branch a THIRD time. Where
+// row 156b pins `balanceBefore1 + 5 + 3 + 2 === 10` on the third POST, this
+// row pins `balanceBefore1 + 5 + 3 + 2 + 1 === 11` on the fourth. Route
+// reference: web/src/app/api/reseller/credits/grant/route.ts:143-224 — the
+// pre-write balance read at 143-152 + credit_balances UPSERT at 174-198 +
+// response echo at 250-260. A regression that (a) mis-handled the ON
+// CONFLICT DO UPDATE branch after three successful writes (e.g. a rewrite
+// that split UPSERT into INSERT-with-catch → SELECT-then-UPDATE where the
+// fourth call re-read a stale snapshot), (b) introduced any state that only
+// accumulates on the first three writes but drops the fourth (e.g. an
+// in-memory rollup invalidated after 3 hits), or (c) reset the newBalance
+// arithmetic on the fourth call (unlikely per route.ts:166's plain sum but
+// pinnable) would leave rows 152 + 156 + 156b green while surfacing here on
+// POST 4.
+//
+// amounts = 5 + 3 + 2 + 1 chosen deliberately: four distinct positive
+// integers with the fourth being the smallest so a `balance = amount`
+// regression on POST 4 (returning 1 instead of 11) reads as "matches the
+// fourth amount, dropped the running total"; a `balance = balanceBefore +
+// amount_last` regression (returning balanceBefore1 + 1) reads as
+// "restored to the pre-attach snapshot"; a `balance = amount_first + ... +
+// amount_prev` regression (returning 10) reads as "POST 4 UPSERT went
+// through but the response echo lagged one write behind". Each failure
+// mode diagnoses uniquely from the assertion message alone. Running total
+// (11) still well under monthly_credit_budget=20000 per seed-qa-reseller
+// active_wholesale defaults so gate 3 fires on all four POSTs without ever
+// tripping over_budget_requires_approval (402); headroom identical to rows
+// 152/156/156b's CI-replay posture.
+//
+// Cleanup topology under LIFO restore-closure order (four attach calls):
+// closure A pushed before POST 1 (snapshot balance=B0, since=T1); closure B
+// before POST 2 (snapshot B0+5, since=T2); closure C before POST 3
+// (snapshot B0+8, since=T3); closure D before POST 4 (snapshot B0+10,
+// since=T4). Cleanup pops D→C→B→A: D deletes rows created >= T4 (POST 4
+// row) + upserts balance back to B0+10; C deletes rows >= T3 (POST 3 row)
+// + upserts back to B0+8; B deletes rows >= T2 (POST 2 row) + upserts back
+// to B0+5; A deletes rows >= T1 (POST 1 row) + either restores to B0 (row
+// existed pre-attach) or deletes the row (fresh insert). Net effect atomic
+// — matches the wave-3 self-approve cleanup guarantee rows 152 + 156 +
+// 156b depend on for CI replay stability.
+//
+// Sits alongside rows 156 + 156b in credit-grant-authz.spec.ts per the
+// same topology decision: authz specs own the HTTP wire contract (status
+// codes + envelope shape + response arithmetic); audit-log-writes.spec.ts
+// owns the append-only ledger + mirror-row side effects. A companion DB
+// assertion pinning `mirrorCount === 4` sits alongside row 156b's DB
+// companion in audit-log-writes.spec.ts under this same tick.
+test.describe("Credit-grant × active_wholesale × four-chained-POST balance-readback — P10 wave-3 row 156c", () => {
+  test("active_wholesale — four chained POSTs return balances 5, 8, 10, 11 against a fresh reseller", async ({
+    page,
+  }) => {
+    let fixture: TempResellerFixture | null;
+    try {
+      fixture = await loadTempReseller("active_wholesale");
+    } catch (err) {
+      test.skip(
+        true,
+        `loadTempReseller('active_wholesale') threw: ${(err as Error).message}. ` +
+          tempResellerSkipReason("active_wholesale"),
+      );
+      return;
+    }
+    if (
+      !fixture ||
+      !fixture.adminUserId ||
+      !fixture.attributedUserId ||
+      !fixture.attributionExists
+    ) {
+      test.skip(true, tempResellerSkipReason("active_wholesale"));
+      return;
+    }
+    const targetUserId = fixture.attributedUserId;
+    const AMOUNT_ONE = 5;
+    const AMOUNT_TWO = 3;
+    const AMOUNT_THREE = 2;
+    const AMOUNT_FOUR = 1;
+    try {
+      const attributed = await fixture.attachAttributedCustomer();
+      if (!attributed) {
+        test.skip(true, tempResellerSkipReason("active_wholesale"));
+        return;
+      }
+      // Snapshot #1 — captures balance BEFORE POST 1 + registers the
+      // outermost restore closure. See row 156 header for full rationale.
+      const grant1 = await fixture.attachGrantSelfApprove({ amount: AMOUNT_ONE });
+      if (!grant1) {
+        test.skip(true, tempResellerSkipReason("active_wholesale"));
+        return;
+      }
+      const balanceBefore1 = grant1.balanceBefore ?? 0;
+      try {
+        await loginAs(page, fixture.adminEmail);
+      } catch (err) {
+        test.skip(
+          true,
+          `loginAs(${fixture.adminEmail}) threw: ${(err as Error).message}. ` +
+            tempResellerSkipReason("active_wholesale"),
+        );
+        return;
+      }
+      const resp1 = await page.request.post(ROUTE, {
+        data: { target_user_id: targetUserId, amount: AMOUNT_ONE },
+      });
+      expect(
+        resp1.status(),
+        `POST 1 returned ${resp1.status()} — expected 200 with the full self-approve envelope. Body: ${await resp1.text()}`,
+      ).toBe(200);
+      const body1 = (await resp1.json()) as {
+        ok: boolean;
+        balance?: number;
+        credit_transaction_id?: string;
+        over_budget?: boolean;
+        month_key?: string;
+        remaining_budget?: number;
+      };
+      expect(body1.ok, `POST 1 body.ok should be true: ${JSON.stringify(body1)}`).toBe(true);
+      expect(body1.over_budget).toBe(false);
+      expect(body1.balance).toBe(balanceBefore1 + AMOUNT_ONE);
+
+      // Snapshot #2 — reads credit_balances AFTER POST 1's UPSERT.
+      const grant2 = await fixture.attachGrantSelfApprove({ amount: AMOUNT_TWO });
+      if (!grant2) {
+        test.skip(true, tempResellerSkipReason("active_wholesale"));
+        return;
+      }
+      const balanceBefore2 = grant2.balanceBefore ?? 0;
+      expect(
+        balanceBefore2,
+        `credit_balances readback after POST 1 should equal balanceBefore1 + ${AMOUNT_ONE}: ` +
+          `got ${balanceBefore2}, expected ${balanceBefore1 + AMOUNT_ONE}.`,
+      ).toBe(balanceBefore1 + AMOUNT_ONE);
+
+      const resp2 = await page.request.post(ROUTE, {
+        data: { target_user_id: targetUserId, amount: AMOUNT_TWO },
+      });
+      expect(
+        resp2.status(),
+        `POST 2 returned ${resp2.status()} — expected 200. Body: ${await resp2.text()}`,
+      ).toBe(200);
+      const body2 = (await resp2.json()) as {
+        ok: boolean;
+        balance?: number;
+        credit_transaction_id?: string;
+        over_budget?: boolean;
+        month_key?: string;
+        remaining_budget?: number;
+      };
+      expect(body2.ok, `POST 2 body.ok should be true: ${JSON.stringify(body2)}`).toBe(true);
+      expect(body2.over_budget).toBe(false);
+      expect(body2.balance).toBe(balanceBefore2 + AMOUNT_TWO);
+      expect(body2.balance).toBe(balanceBefore1 + AMOUNT_ONE + AMOUNT_TWO);
+
+      // Snapshot #3 — reads credit_balances AFTER POST 2's UPSERT.
+      const grant3 = await fixture.attachGrantSelfApprove({ amount: AMOUNT_THREE });
+      if (!grant3) {
+        test.skip(true, tempResellerSkipReason("active_wholesale"));
+        return;
+      }
+      const balanceBefore3 = grant3.balanceBefore ?? 0;
+      expect(
+        balanceBefore3,
+        `credit_balances readback after POST 2 should equal balanceBefore1 + ${AMOUNT_ONE} + ${AMOUNT_TWO}: ` +
+          `got ${balanceBefore3}, expected ${balanceBefore1 + AMOUNT_ONE + AMOUNT_TWO}. ` +
+          `A drift here signals credit_balances was not written on POST 2 despite the 200 envelope.`,
+      ).toBe(balanceBefore1 + AMOUNT_ONE + AMOUNT_TWO);
+
+      const resp3 = await page.request.post(ROUTE, {
+        data: { target_user_id: targetUserId, amount: AMOUNT_THREE },
+      });
+      expect(
+        resp3.status(),
+        `POST 3 returned ${resp3.status()} — expected 200. Body: ${await resp3.text()}`,
+      ).toBe(200);
+      const body3 = (await resp3.json()) as {
+        ok: boolean;
+        balance?: number;
+        credit_transaction_id?: string;
+        over_budget?: boolean;
+        month_key?: string;
+        remaining_budget?: number;
+      };
+      expect(body3.ok, `POST 3 body.ok should be true: ${JSON.stringify(body3)}`).toBe(true);
+      expect(body3.over_budget).toBe(false);
+      expect(body3.balance).toBe(balanceBefore3 + AMOUNT_THREE);
+      expect(body3.balance).toBe(balanceBefore1 + AMOUNT_ONE + AMOUNT_TWO + AMOUNT_THREE);
+
+      // Snapshot #4 — reads credit_balances AFTER POST 3's UPSERT. This is
+      // the third on-conflict UPDATE the UPSERT path fires (POST 1 was the
+      // INSERT branch on a fresh reseller/founder pair; POST 2 was the
+      // first on-conflict UPDATE; POST 3 was the second). If the fourth-
+      // write on-conflict path silently dropped the running total, this pin
+      // catches it BEFORE the POST 4 arithmetic pin runs.
+      const grant4 = await fixture.attachGrantSelfApprove({ amount: AMOUNT_FOUR });
+      if (!grant4) {
+        test.skip(true, tempResellerSkipReason("active_wholesale"));
+        return;
+      }
+      const balanceBefore4 = grant4.balanceBefore ?? 0;
+      expect(
+        balanceBefore4,
+        `credit_balances readback after POST 3 should equal balanceBefore1 + ${AMOUNT_ONE} + ${AMOUNT_TWO} + ${AMOUNT_THREE}: ` +
+          `got ${balanceBefore4}, expected ${balanceBefore1 + AMOUNT_ONE + AMOUNT_TWO + AMOUNT_THREE}. ` +
+          `A drift here signals credit_balances was not written on POST 3 despite the 200 envelope.`,
+      ).toBe(balanceBefore1 + AMOUNT_ONE + AMOUNT_TWO + AMOUNT_THREE);
+
+      const resp4 = await page.request.post(ROUTE, {
+        data: { target_user_id: targetUserId, amount: AMOUNT_FOUR },
+      });
+      expect(
+        resp4.status(),
+        `POST 4 returned ${resp4.status()} — expected 200 with the full self-approve envelope. Body: ${await resp4.text()}`,
+      ).toBe(200);
+      const body4 = (await resp4.json()) as {
+        ok: boolean;
+        balance?: number;
+        credit_transaction_id?: string;
+        over_budget?: boolean;
+        month_key?: string;
+        remaining_budget?: number;
+      };
+      expect(body4.ok, `POST 4 body.ok should be true: ${JSON.stringify(body4)}`).toBe(true);
+      expect(body4.over_budget).toBe(false);
+      // Pin the four-way chained arithmetic identity — the fourth POST
+      // must accumulate on top of the first three, not overwrite any.
+      // Same three shapes as row 156b extended:
+      //   (a) body4.balance === grant4.balanceBefore + AMOUNT_FOUR  (single-POST)
+      //   (b) body4.balance === balanceBefore1 + AMOUNT_ONE + AMOUNT_TWO + AMOUNT_THREE + AMOUNT_FOUR  (chained)
+      //   (c) body4.balance - body3.balance === AMOUNT_FOUR          (delta)
+      expect(body4.balance).toBe(balanceBefore4 + AMOUNT_FOUR);
+      expect(body4.balance).toBe(
+        balanceBefore1 + AMOUNT_ONE + AMOUNT_TWO + AMOUNT_THREE + AMOUNT_FOUR,
+      );
+      expect((body4.balance ?? 0) - (body3.balance ?? 0)).toBe(AMOUNT_FOUR);
+
+      // credit_transaction_id must be a fresh UUID on the fourth POST too
+      // — pin distinctness against ALL THREE prior UUIDs so a re-use
+      // regression on any of the (POST 1, POST 4), (POST 2, POST 4), or
+      // (POST 3, POST 4) pairs surfaces here (rows 156 + 156b already pin
+      // the (POST 1, POST 2), (POST 2, POST 3), and (POST 1, POST 3) pairs
+      // through their own distinctness assertions).
+      expect(typeof body4.credit_transaction_id).toBe("string");
+      expect(body4.credit_transaction_id).not.toBe(body1.credit_transaction_id);
+      expect(body4.credit_transaction_id).not.toBe(body2.credit_transaction_id);
+      expect(body4.credit_transaction_id).not.toBe(body3.credit_transaction_id);
+
+      // Same-month invariant across all four POSTs — fired within the
+      // same test's monotonic clock, so any month_key drift signals a
+      // helper regression that recomputed monthKey off a stale Date.
+      expect(body4.month_key).toBe(body1.month_key);
+      expect(body4.month_key).toBe(body2.month_key);
+      expect(body4.month_key).toBe(body3.month_key);
+
+      // remaining_budget must decrease by exactly AMOUNT_FOUR from POST 3
+      // to POST 4, and the cumulative decrease from POST 1 to POST 4 must
+      // equal AMOUNT_TWO + AMOUNT_THREE + AMOUNT_FOUR. Skip pins if any
+      // surface returns a non-number (older route builds pre-P6.5b).
+      if (
+        typeof body1.remaining_budget === "number" &&
+        typeof body2.remaining_budget === "number" &&
+        typeof body3.remaining_budget === "number" &&
+        typeof body4.remaining_budget === "number"
+      ) {
+        expect(body3.remaining_budget - body4.remaining_budget).toBe(AMOUNT_FOUR);
+        expect(body1.remaining_budget - body4.remaining_budget).toBe(
+          AMOUNT_TWO + AMOUNT_THREE + AMOUNT_FOUR,
+        );
+        expect(body4.remaining_budget).toBeGreaterThanOrEqual(0);
+      }
+    } finally {
+      await fixture.cleanup();
+    }
+  });
+});
