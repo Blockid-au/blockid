@@ -440,6 +440,31 @@ const UUID_RE =
 // enumerates every column; all bool/int/uuid/text columns from that
 // block now carry a wire-shape pin on both admin-list + admin-detail
 // surfaces).
+//
+// Tick 299 — promotion_codes[].active bool wire-shape pin, opening the
+// promotion_codes[] child-row column-pin cluster per tick 298 next-tick
+// option (i). Detail-only tick because the admin-resellers-list surface
+// does NOT project promotion_codes (the list route selects only the
+// resellers-row shape); the Promise.all leg at
+// web/src/app/api/admin/resellers/[code]/route.ts:83-88 is unique to
+// the detail surface. Column declared at 0091:94 as `active bool NOT
+// NULL DEFAULT true` on the reseller_promotion_codes table with no
+// CHECK beyond the NOT NULL discipline. Projected via
+// select("id, tier_pct, code, stripe_coupon_id,
+// stripe_promotion_code_id, active, created_at") on the same leg, so a
+// projection-side drop would surface here on the first offending row.
+// Application write path never sets active=NULL — the code_request
+// approve branch at web/src/lib/reseller/promotion-code-mint.ts leaves
+// the column at its DB default (true) and there is no admin flip
+// surface yet, so drift from the NOT NULL discipline would indicate a
+// schema-side widening or a PostgREST serialisation regression that
+// started returning null|undefined for the column. NOT-NULL discipline
+// → single typeof-boolean assert inside the existing for-of loop over
+// body.promotion_codes, mirroring gst_registered's tick 287 posture on
+// the resellers-row column-pin project (no null branch, no format
+// layer, no value enum). Seeded reseller rows with N minted codes
+// exercise the pin N times per green CI run; on hosts without seeded
+// codes the for-loop is a no-op so the pin never fires.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Uppercase-alphanumeric invariant for promotion_codes[].code — matches the
@@ -659,6 +684,7 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         id?: unknown;
         tier_pct?: unknown;
         code?: unknown;
+        active?: unknown;
       }>;
       admins?: Array<{
         id?: unknown;
@@ -1015,6 +1041,15 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
       // /admin/resellers/[code].
       expect(typeof row.code).toBe("string");
       expect(row.code as string).toMatch(PROMO_CODE_RE);
+      // Tick 299 — promotion_codes[].active bool wire-shape pin. Column
+      // 0091:94 `active bool NOT NULL DEFAULT true`. NOT-NULL discipline
+      // → single typeof-boolean assert; no null branch, no format layer.
+      // See module-scope doc-block above ISO_TIMESTAMP_RE (tick 299
+      // paragraph) for the rationale.
+      expect(
+        typeof row.active === "boolean",
+        `promotion_codes[].active '${String(row.active)}' should be a boolean (bool NOT NULL DEFAULT true per 0091:94; a schema-side widening, a PostgREST serialisation regression that returned null|undefined, or a projection-side drop from route.ts:83-88 select would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
     }
 
     expect(
