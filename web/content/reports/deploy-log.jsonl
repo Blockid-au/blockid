@@ -869,3 +869,4 @@
 {"ts":"2026-07-23T12:00:14.614Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 286 — P10 commission_share_pct numeric wire-shape + [0,100] value pin cross-surface pair on admin-resellers-list + admin-reseller-detail (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T12:00:26.878Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-23T11-55-02-001Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T12:05:20Z","status":"success","gates":"8/8","pid":"3372387","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-23T12:14:24.416Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 287 — P10 gst_registered bool wire-shape pin cross-surface pair on admin-resellers-list + admin-reseller-detail (2 commits)","source":"github-webhook"}
