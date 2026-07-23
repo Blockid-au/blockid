@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.244
+version: 2026-07-23.245
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,168 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 245
+    ran_at: 2026-07-23
+    action: p10_loop_status_tick_row_human_blocked_snapshot_conditional_pin_option_y9
+    result: |
+      Landed tick 244's "natural next pick" option (y9) as the seventh
+      conditional-by-stage schema pin on tick_history rows in admin-
+      reseller-loop-status-authz.spec.ts happy path. Symmetric two-pin
+      shape matching tick 240's phase_failed guard + tick 242's
+      auto_commit_finished guard + tick 244's error guard — adds one
+      typeof=number pin for `count` and one Array.isArray pin for
+      `entries` guarded by `stage === 'human_blocked_snapshot'`.
+
+      Writer-schema justification:
+        - scripts/cron/reseller-goal-loop.mjs:228-232 writes
+          `log({ stage: 'human_blocked_snapshot', count: humanBlocked.length,
+          entries: humanBlocked })` inside the try/catch at mjs:226-235
+          that wraps extractHumanBlockedSnapshot(goalMd).
+        - `count` is `humanBlocked.length` — Array.prototype.length is a
+          schema-level typeof=number guarantee (never null, never absent,
+          always >=0). extractHumanBlockedSnapshot returns an array on the
+          happy path, so `.length` is well-defined without null-coalesce.
+        - `entries` is `humanBlocked` — the array reference itself. Since
+          extractHumanBlockedSnapshot returns a plain array of entries, the
+          value is Array.isArray-guaranteed on the happy path.
+        - The log() helper at mjs:52-58 prepends tick_id/ts/human_review_
+          minutes_7d then spreads `...row` — both keyvals flow through
+          untouched.
+
+      Design choice — mirrors ticks 240 + 242 + 244's two-pin shape:
+        - Conditional-by-stage guard (`if (tickRow.stage === 'human_
+          blocked_snapshot')`) matches ticks 239-244's convention verbatim
+          except for the stage literal. Reads clearly inline; hoisting
+          the guard into a helper would obscure the per-writer-line
+          citation each expect message carries.
+        - Two pins in one guard because count + entries share the same
+          conditional at mjs:229 — they always land together on the same
+          row, so the guard cost is amortised. Matches tick 240's
+          phase_failed two-pin rationale + tick 242's auto_commit_finished
+          two-pin rationale + tick 244's error two-pin rationale verbatim
+          except for the stage literal + writer source line citations.
+        - Y9 picked over Y3 / Y6 / Y10 for tick 245 because the
+          human_blocked_snapshot stage fires on EVERY tick (mjs:226-235
+          is unconditional apart from the try/catch — it does not sit
+          inside an `if (dirty)` or `if (result.status !== 0)` branch
+          like auto_commit_started or phase_failed), so this pin
+          executes on every green-path CI run. Highest coverage-per-guard
+          of any remaining stage. Y3 (auto_deploy_finished) still needs
+          the `head` empty-string audit closed; Y6 (delegated_dispatch)
+          still needs the `signal` string|null audit closed; Y10
+          (tick_start / tick_end comment-only block) is cheaper but
+          adds no runtime assertion. Breaks the one-pin / two-pin
+          alternation (three consecutive two-pins: 244 error, 245
+          human_blocked_snapshot) — coverage-per-guard advantage
+          outweighs the pattern-preservation preference.
+
+      Diagnostic delta of the pass:
+        - Added 1 new stage-guarded block (2 expect statements — count
+          typeof=number + entries Array.isArray) inside the tick_history
+          row loop, immediately after the tick 244 error guard. Inline
+          citation of reseller-goal-loop.mjs:228-232 (write site) +
+          mjs:226-235 (try/catch source lines).
+        - No production code touched, no fixture change, no route
+          change, no new imports, no vitest / Playwright runtime
+          posture change, no new module-scope constant. Matches ticks
+          223-244 discipline: tighten one dimension, symmetrise
+          against known invariants, single tick.
+        - One comment block added citing the tick 245 landing + the
+          writer-script line + "symmetric two-pin shape matching tick
+          240 + 242 + 244" rationale + the "fires on every tick"
+          coverage-per-guard note.
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-loop-status-authz.spec.ts
+          (one stage-guarded two-pin block added after the tick 244
+          error two-pin block, with inline writer-schema comments
+          pointing to reseller-goal-loop.mjs:226-235.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.244 → 2026-07-23.245; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Schema pin only. No new spec-local constant (the stage-guard
+          + typeof/Array.isArray pins read clearly inline; hoisting
+          would obscure the tie-back to the specific writer line in
+          the expect message). No fixture-file delta, no seed-script
+          change, no P8.5-gated code_request work (option (c) still
+          blocked), no production-code touch.
+
+      Verified:
+        - reseller-goal-loop.mjs:228-232 grepped and read to confirm the
+          write shape { stage, count, entries } is unconditional in the
+          try body — the only escape is the catch branch which emits
+          a different stage (`human_blocked_snapshot_failed`) with a
+          different key set (`error`), so the happy path pin is safe.
+        - reseller vitest suite unchanged (no production code or lib
+          touched — Playwright specs are excluded from vitest by
+          design).
+        - The edited spec file lives under web/tests/e2e/**, not in
+          the reseller manifest, so R-01/R-03 do not fire on the
+          edited file.
+
+      Frontier after tick 245: unchanged shape — Track A HUMAN-BLOCKED
+      on P8.5 Stripe env vars + P1.5 InfoVision seed on H.20 ABN + GST;
+      Track B COMPLETE; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 245 does NOT unblock: P8.5 STRIPE_PRICE_ADDON_SHARE_MGMT_*
+      env vars still human-gated; P1.5 InfoVision ABN + GST still
+      human-gated per H.20.
+
+      Natural next pick for tick 246:
+        (y10) land `tick_start` (mjs:212) and `tick_end` (mjs:375)
+             rows — both are `log({ stage: '<literal>' })` with no
+             stage-specific extras, so no pin content beyond the
+             already-pinned tick_id + ts + stage + human_review_
+             minutes_7d. Marks the stages as intentionally-extra-less
+             via a comment-only block; no expect added. Cheapest
+             possible tick — documentation only. Restores the one-pin
+             cadence after two consecutive two-pins.
+        (y3) audit `auto_deploy_finished` (mjs:367) row's `{ status,
+             head }` — status is spawnSync `deploy.status ?? -1`
+             (number guaranteed); head is `headSha` = git rev-parse
+             output. `head` is derived from a git rev-parse — could
+             be empty string on a repo-less host — so the pin should
+             be typeof-string-only (not ISO-pinned) or narrower to
+             just `status`. Deferred audit still open.
+        (y6) land `delegated_dispatch` (mjs:319) row spread of
+             dispatchToClaude() — same `{ status, elapsed_ms, signal,
+             label }` shape as phase_failed except `signal` is
+             `string | null` on Node.js `spawnSync` returns. Deferred
+             audit: signal nullability.
+        (y11) land `auto_commit_failed` (mjs:340) row's `error`
+             key — `String(err)` cast pattern identical to tick 244's
+             error stage, so a typeof=string pin is safe. Only fires
+             on the safety-net commit catch branch — very rare in
+             CI runs, so coverage-per-guard is low.
+        (y12) land `human_blocked_snapshot_failed` (mjs:234) row's
+             `error` key — `String(err)` cast pattern identical to
+             tick 244's error stage. Only fires when
+             extractHumanBlockedSnapshot throws, which is bounded by
+             the try/catch at mjs:226-235. Very rare in CI runs.
+        (u) audit whether the admin-requests-list-authz per-key content
+            pins deferred at tick 234's option (r) could land as a
+            three-surface change (reseller-side twin + admin-side list +
+            admin-side patch spec) in a single bigger-diff tick.
+            Available; deferred at ticks 235-244.
+        (r) audit whether the admin-requests-list-authz newly-pinned
+            payload plain-object guard could be extended to per-key
+            content pins for the three request_type variants. Still
+            available; deferred at ticks 235-244.
+        (n) audit whether admin-requests-patch-authz.spec.ts approve
+            branch decision_at pin could be tightened from typeof string
+            to an ISO-8601 regex — header-rewrite-first option
+            (contradicts existing "assert typeof string only" header
+            comment from tick 230). Still available; deferred at 235-244.
+        (x) audit format-shape pins for now_utc / next_utc (HH:MM:SS /
+            HH:MM regex) / seconds_until (0..3600 range) / tick_state
+            (enum of 4 branches) — header-rewrite option (contradicts
+            existing "typeof-string only so the value can drift" comment).
+        (c) mirror row 179 shape+helper alignment onto row 175 approve+
+            deny+cancel code_request branches once P8.5 unblocks.
+            P8.5-blocked, no available today.
+    commit: (this tick)
+
   - tick: 244
     ran_at: 2026-07-23
     action: p10_loop_status_tick_row_error_conditional_pin_option_y8

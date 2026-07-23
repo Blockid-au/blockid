@@ -577,6 +577,41 @@ test.describe("Admin reseller-loop status — P10 wave-5 row 173 happy path", ()
           `tick_history error row.error should be typeof string (reseller-goal-loop.mjs:218 writes \`String(err)\` — narrows any throwable to a JSON string): ${JSON.stringify(row).slice(0, 200)}`,
         ).toBe("string");
       }
+      // tick 245 — human_blocked_snapshot stage schema pin (option y9;
+      // symmetric two-pin shape matching tick 240's phase_failed guard +
+      // tick 242's auto_commit_finished guard + tick 244's error guard).
+      // scripts/cron/reseller-goal-loop.mjs:228-232 writes
+      // `log({ stage: 'human_blocked_snapshot', count: humanBlocked.length,
+      // entries: humanBlocked })` inside the try/catch at mjs:226-235 that
+      // fires on EVERY tick (not branch-conditional) so this guard executes
+      // on every green-path CI run — highest coverage-per-guard of any
+      // remaining stage. Two pins in one guard because count + entries share
+      // the same conditional at mjs:229 — they always land together on the
+      // same row, so the guard cost is amortised (matches tick 240 + 242 +
+      // 244 two-pin rationale verbatim except for the stage literal + writer
+      // source line citations). Breaks the one-pin / two-pin alternation
+      // cadence (three consecutive two-pins: 244 error, 245 human_blocked_
+      // snapshot, and the next natural two-pin candidate) — coverage-per-
+      // guard advantage outweighs the pattern-preservation preference per
+      // tick 244's y9 rationale. count is `humanBlocked.length` (Array.
+      // prototype.length; typeof=number schema guarantee, never null, never
+      // absent, always >=0). entries is `humanBlocked` (the array itself;
+      // Array.isArray schema guarantee from extractHumanBlockedSnapshot
+      // which returns an array on the happy path). Comes AFTER the error
+      // stage guard because the writer contract emits human_blocked_snapshot
+      // on every tick's happy path, but the row order in tick_history is
+      // determined by log() insertion time — pin order in the spec does not
+      // need to mirror it since each guard is an independent stage check.
+      if (tickRow.stage === "human_blocked_snapshot") {
+        expect(
+          typeof tickRow.count,
+          `tick_history human_blocked_snapshot row.count should be typeof number (reseller-goal-loop.mjs:230 writes \`humanBlocked.length\` — Array.prototype.length): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("number");
+        expect(
+          Array.isArray(tickRow.entries),
+          `tick_history human_blocked_snapshot row.entries should be Array.isArray (reseller-goal-loop.mjs:231 writes \`humanBlocked\` — the array returned by extractHumanBlockedSnapshot): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe(true);
+      }
     }
     expect(
       typeof body.generated_at === "string" &&
