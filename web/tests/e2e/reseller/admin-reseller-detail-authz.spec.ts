@@ -1705,6 +1705,116 @@ const UUID_RE =
 //   (d) idle — the frontier remains tight (P1.5 + P8.5 HUMAN-
 //   BLOCKED, P11 never_completes, Track B closed, P10 continues
 //   accepting incremental pin-tightening ticks).
+//
+// Tick 329 — reseller.code text NOT NULL UNIQUE two-part labelled
+// wire-shape lift on the tick-1710 baseline single-part
+// `.toBe(fixture.code)` identity check. Executes tick 328 next-pick
+// option (a) verbatim: the top-level reseller.code column on the
+// detail payload was the last outstanding bare pin on the
+// resellers-row wire-shape sweep — carrying only a bare
+// `.toBe(fixture.code)` equality with a single combined
+// `should equal fixture.code (uppercase form)` diagnostic and no
+// per-half typeof-vs-equality separation. Every neighbour column
+// (id UUID at 325, display_name at 327, billing_model + status at
+// 328, created_at/updated_at at 285, commission_share_pct at 286,
+// gst_registered at 287) has already moved on to the two-part
+// labelled discipline. Lifting code onto the same shape closes the
+// top-level resellers-row column-pin cluster completely — every
+// projected column on the select("*") tuple now carries the tick-
+// numbered labelled two-expect discipline.
+//
+// Writer-schema justification:
+//   - 0091_reseller_module_foundations.sql:24 declares `code text
+//     NOT NULL UNIQUE`. The DB has no CHECK constraint against
+//     mixed-case or non-alphanumeric slugs — uppercase discipline
+//     is enforced ONLY on the application write path via
+//     normaliseResellerCode() in web/src/lib/reseller/scope.ts and
+//     mirrored at the admin-validator.ts create-branch. A legacy
+//     INSERT that bypassed the normaliser could still land a
+//     lowercase / punctuated code straight through PostgREST onto
+//     the wire.
+//   - Application read path: projected via route.ts:47-48
+//     select("*") on the loadReseller() single-row lookup, then
+//     surfaced as the top-level `reseller` field on the detail
+//     payload body at web/src/app/api/admin/resellers/[code]/
+//     route.ts:122-129 — same read-path leg as the tick 325 UUID
+//     PK pin, the tick 327 display_name pin, the tick 328
+//     billing_model/status pins, the tick 285 created_at/
+//     updated_at ISO pins, and the tick 286 commission_share_pct
+//     numeric pin.
+//   - Fixture-side guarantee: seed-qa-reseller.mjs mints the
+//     QAPROBEWHOLESALEACTIVE reseller with the uppercase code
+//     stamped verbatim by the seeder, and fixture.code is loaded
+//     from the same seed-authored env constant so the equality
+//     half is a stable identity check against the seed-side
+//     writer.
+//
+// Design choice — two-part guard mirroring the tick 325/327
+// posture verbatim, keeping the sibling column posture symmetric
+// across the top-level resellers-row column-pin cluster:
+//   - (a) typeof-string preserves the NOT-NULL raw-type
+//     discipline; catches a PostgREST regression that returned
+//     null|undefined, a schema-side NOT NULL drop, or a
+//     projection-side drop from the route.ts:47-48 SELECT tuple.
+//     Without the typeof-string half, a serialisation regression
+//     that returned reseller.code=null would fail the equality
+//     check with a `null !== 'QAPROBEWHOLESALEACTIVE'` diagnostic
+//     that hides the raw-type flip behind the equality mismatch;
+//     the per-half split surfaces the shape defect directly.
+//   - (b) toBe(fixture.code) preserves the identity check — the
+//     detail route resolves the `[code]` path segment via
+//     normaliseResellerCode() on read (route.ts:47), so the
+//     round-trip guarantee is that the wire-side code is the
+//     uppercase form of the seed. A drift on the normaliser
+//     (returning the raw path segment without uppercasing) or a
+//     PostgREST projection that returned a different reseller's
+//     code (i.e. a horizontal-lookup regression) would surface
+//     here.
+//
+// Coverage-per-guard posture:
+//   - Detail surface: wave-5 row 167 single-row GET fires the
+//     two-part pin at least once per test on the
+//     QAPROBEWHOLESALEACTIVE seed reseller (top-level parent row
+//     is always present when loadReseller() returns row-not-null;
+//     seed fixture stamps the uppercase code so both shape halves
+//     pass on every green CI run).
+//
+// Rotation rationale:
+//   - Closes the last outstanding bare pin on the top-level
+//     resellers-row wire-shape sweep. Symmetric close-out of the
+//     top-level resellers-row column-pin cluster: id (325) + code
+//     (329) + display_name (327) + billing_model (328) + status
+//     (328) + created_at/updated_at (285) + commission_share_pct
+//     (286) + gst_registered (287) all now carry the tick-
+//     numbered labelled two-expect discipline.
+//   - No new imports, no new module-scope const needed — pure
+//     typeof + toBe(fixture.code) inline check.
+//   - Continues the P10 hardening posture per ticks 234-328 — no
+//     production code touched, no fixture change, no route
+//     change, no new imports, no new module-scope const.
+//
+// Natural next-pick tick 330 candidates:
+//   (a) rotate to promotion_codes[] cross-column pin summary
+//   comment (tier 0 → stripe ids null / tier > 0 → stripe ids
+//   non-null already lives inline at ticks 301-302 — a symmetric
+//   close-out summary comment could hoist it into module-scope
+//   doc-block form).
+//   (b) rotate to the cross-surface twin spec
+//   (admin-resellers-list-authz.spec.ts) — the list projection
+//   shares the same resellers-row shape but its billing_model/
+//   status/code pins may still be bare, and a symmetric refresh
+//   across both surfaces keeps the twin discipline coherent
+//   (tick 328 option (c) refreshed).
+//   (c) rotate to reseller_attributions[] child-row column-pin
+//   sweep close-out (subject_type / subject_user_id / project_id
+//   / source / attributed_at / opted_out) — several columns are
+//   still on the tick-1710 baseline single-part typeof-string
+//   discipline while the sibling admins[] cluster (321-326) has
+//   moved on to per-column two-expect + cross-column lifecycle
+//   pins.
+//   (d) idle — the frontier remains tight (P1.5 + P8.5 HUMAN-
+//   BLOCKED, P11 never_completes, Track B closed, P10 continues
+//   accepting incremental pin-tightening ticks).
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Tick 309 — Stripe invoice ID shape regex. Matches the modern Stripe
@@ -2054,9 +2164,23 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
       UUID_RE.test(body.reseller?.id as string),
       `reseller.id '${String(body.reseller?.id)}' should match UUID shape (uuid PRIMARY KEY per 0091:23); a schema-side type flip that replaced id with a stringified integer, a bigint-serialised-as-string sequence id, or a truncated non-UUID slug would surface here. Reseller: ${JSON.stringify(body.reseller).slice(0, 200)}`,
     ).toBe(true);
+    // Tick 329 — reseller.code text NOT NULL UNIQUE two-part labelled
+    // wire-shape lift on the tick-1710 baseline single-part
+    // `.toBe(fixture.code)` identity check. Column source
+    // `resellers.code text NOT NULL UNIQUE` at 0091:24, projected via
+    // route.ts:47-48 select("*") and surfaced at route.ts:122-129.
+    // Uppercase discipline is enforced ONLY on the application write
+    // path via normaliseResellerCode(); the DB carries no CHECK
+    // constraint against mixed-case or non-alphanumeric slugs. See
+    // module-scope doc-block above ISO_TIMESTAMP_RE (tick 329
+    // paragraph) for the full rationale.
+    expect(
+      typeof body.reseller?.code === "string",
+      `reseller.code '${String(body.reseller?.code)}' should be a string (text NOT NULL per 0091:24; a schema-side NOT NULL drop, a projection-side drop from route.ts:47-48 select("*"), or a PostgREST serialisation regression that returned null|undefined would surface here — separated from the equality check below so a raw-type flip does not hide behind a mismatch diagnostic). Reseller: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe(true);
     expect(
       body.reseller?.code,
-      `reseller.code should equal fixture.code (uppercase form): ${JSON.stringify(body.reseller).slice(0, 200)}`,
+      `reseller.code '${String(body.reseller?.code)}' should equal fixture.code '${fixture.code}' (uppercase form stamped by seed-qa-reseller.mjs); a normaliseResellerCode() drift that returned the raw path segment without uppercasing, a PostgREST projection regression that returned a different reseller's code (horizontal-lookup leak), or a mixed-case legacy INSERT that bypassed the write-path normaliser would surface here. Reseller: ${JSON.stringify(body.reseller).slice(0, 200)}`,
     ).toBe(fixture.code);
     // Tick 327 — reseller.display_name text NOT NULL two-part labelled
     // lift on the tick-1710 baseline single-part typeof-string pin.
