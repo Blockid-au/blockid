@@ -97,6 +97,27 @@ const UUID_RE =
 // natural next-pick option (b) from tick 282's review_history entry
 // ("rotate to a different admin spec surface — admin-resellers-list-
 // authz.spec.ts").
+//
+// Tick 284 — updated_at ISO-8601 wire-shape pin, natural next-pick
+// option (c) from tick 283. resellers.updated_at is a second timestamptz
+// NOT NULL DEFAULT now() column declared at 0091:44 immediately after
+// created_at on the same table, echoed on the wire via the same route
+// select("*") projection (route.ts:41-44), and today has zero pins on
+// any Playwright surface — this tick lands the first pin on the column.
+// Same regex source-of-truth (ISO_TIMESTAMP_RE hoisted at tick 283
+// above), same NOT-NULL discipline (single typeof-string + regex
+// assert), same coverage-per-guard posture (wave-5 row 164 admin
+// harness iterates every returned resellers row → seeded hosts holding
+// ≥7 cohort rows exercise the pin on every green CI run; fresh CI hosts
+// with zero rows still green because the pin lives inside the per-row
+// for-loop). Fresh-column rotation rather than another surface mirror —
+// closes the last-remaining timestamptz column on the resellers row
+// with a wire-shape pin so a PostgREST serialisation drift or a
+// projection-side column drop on updated_at (whose value equals
+// created_at on fresh INSERTs since there is no touch-updated trigger
+// on this table today — PATCH callers at /api/admin/resellers/[code]
+// are responsible for stamping updated_at=now() on write) surfaces
+// at the read layer too.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 
@@ -187,6 +208,7 @@ test.describe("Admin resellers list — P10 wave-5 row 164 happy path", () => {
         billing_model?: unknown;
         status?: unknown;
         created_at?: unknown;
+        updated_at?: unknown;
       }>;
     };
     expect(
@@ -245,6 +267,26 @@ test.describe("Admin resellers list — P10 wave-5 row 164 happy path", () => {
       expect(
         ISO_TIMESTAMP_RE.test(row.created_at as string),
         `reseller.created_at '${String(row.created_at)}' should match ISO 8601 shape (timestamptz NOT NULL DEFAULT now() per 0091:43 serialised via PostgREST); a drift to a non-ISO string, a number, or null would surface here: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      // Tick 284 — updated_at ISO wire-shape tightening. See module-scope
+      // doc-block above ISO_TIMESTAMP_RE (tick 284 paragraph) for the
+      // rationale. Column source 0091:44 `updated_at timestamptz NOT
+      // NULL DEFAULT now()` — second timestamptz column on the resellers
+      // row echoed via the same route select("*") projection (route.ts:
+      // 41-44). NOT-NULL discipline → single typeof-string + regex
+      // assert, matching the tick 283 created_at posture verbatim
+      // rather than the null-or-string / null-or-string+regex layering
+      // used for nullable decision_at / decision_reason columns on the
+      // admin-requests-list surface. Zero-coverage-per-guard extension
+      // beyond created_at: a PostgREST serialisation regression on
+      // resellers.updated_at, a projection-side drop of the column
+      // from route.ts:43 select("*"), or a PATCH-time drift that
+      // stopped stamping updated_at=now() would surface here on the
+      // next CI pass whenever any resellers row is returned.
+      expect(typeof row.updated_at).toBe("string");
+      expect(
+        ISO_TIMESTAMP_RE.test(row.updated_at as string),
+        `reseller.updated_at '${String(row.updated_at)}' should match ISO 8601 shape (timestamptz NOT NULL DEFAULT now() per 0091:44 serialised via PostgREST); a drift to a non-ISO string, a number, or null would surface here: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
     }
   });

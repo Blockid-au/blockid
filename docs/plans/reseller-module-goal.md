@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.283
+version: 2026-07-23.284
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,155 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 284
+    ran_at: 2026-07-23
+    action: p10_admin_resellers_list_updated_at_iso_pin_fresh_column_rotation
+    result: |
+      Fresh-column rotation per tick 283 next-pick option (c) verbatim —
+      resellers.updated_at ISO wire-shape pin landed on
+      admin-resellers-list-authz.spec.ts, closing the last-remaining
+      timestamptz column on the resellers row with a wire-shape pin.
+      Pre-tick posture pinned id (UUID) / code (RESELLER_CODE_RE) /
+      display_name (typeof string) / billing_model (enum) / status
+      (enum) / created_at (ISO regex, landed tick 283) on each row but
+      left resellers.updated_at silent even though the route projects it
+      via select("*") alongside created_at (route.ts:41-44).
+
+      Tenth pin in the tick 275-284 lineage; first fresh-column rotation
+      rather than a cross-surface mirror — echoes ISO_TIMESTAMP_RE onto
+      a second column on the same row (resellers.updated_at) rather
+      than the same column on a different surface. Reseller_requests /
+      admin_requests / admin_resellers surfaces now all carry a full
+      NOT-NULL timestamptz ISO pin on their created_at column via the
+      275/280/283 lineage; the updated_at column is unique to the
+      resellers table (reseller_requests has decision_at instead), so
+      this pin has no sibling-surface twin to mirror to.
+
+      Writer-schema justification:
+        - 0091_reseller_module_foundations.sql:44 declares
+          `updated_at timestamptz NOT NULL DEFAULT now()` on the
+          resellers table — second timestamptz column on the row
+          immediately after created_at at 0091:43. NON-NULL column so
+          the pin uses a single typeof+regex assert (mirrors tick 283
+          created_at posture verbatim: NOT-NULL columns → single
+          assert; nullable columns like decision_at / decision_reason
+          → two-part null-or-string / null-or-string+regex layering).
+        - No touch-updated trigger exists on the resellers table
+          today (verified via grep across web/supabase/migrations/;
+          only founder_profiles at 0064:52-53 and startup_listings at
+          0082:83-94 carry touch-updated triggers). PATCH callers at
+          /api/admin/resellers/[code] are responsible for stamping
+          updated_at=now() on write — so on fresh INSERTs
+          updated_at === created_at, and on any subsequent admin PATCH
+          the two columns diverge. The pin holds regardless of the
+          PATCH cadence — both timestamps stay ISO-8601 on the wire.
+        - PostgREST serialises timestamptz to ISO-8601 on the wire
+          (same library behaviour ticks 275/280/283 exercise on
+          reseller_requests.created_at / created_at / decision_at).
+
+      Design choice — reuse the tick 283 ISO_TIMESTAMP_RE constant:
+        - Zero new module-scope constants — the regex hoisted at tick
+          283 is the single source-of-truth for ISO wire-shape asserts
+          on this file, and the new updated_at pin composes with it.
+        - Single-part guard (matches tick 283 NOT-NULL discipline
+          verbatim): typeof-string assert fires first, ISO_TIMESTAMP_RE
+          match fires immediately after so a projection drop surfaces
+          on the typeof check before the regex runs.
+
+      Coverage-per-guard posture:
+        - Green-path fixture wave-5 row 164 seeds an ACTIVATED admin
+          harness (qa-admin-1@blockid.au) so the requireAdmin() gate
+          passes; the loop iterates every returned resellers row so
+          seeded hosts holding ≥7 cohort rows exercise the pin on
+          every green CI run.
+        - Fresh CI hosts with zero resellers rows still green because
+          the pin lives inside the per-row for-loop — an empty array
+          skips the loop body entirely, matching the tick 283
+          created_at pin's skip discipline.
+        - No fixture that seeds a PATCH-diverged updated_at row today,
+          so the pin exercises the "updated_at === created_at" branch
+          on wave-5 row 164 only; the diverged-branch coverage waits
+          on a future PATCH-fixture seed (matches tick 261 zero-
+          coverage-per-guard rationale — the pin still closes the
+          serialisation contract so a drift surfaces on the next CI
+          pass whenever any row is returned).
+
+      Diagnostic delta of the pass:
+        - Zero new module-scope constants (ISO_TIMESTAMP_RE reused
+          from tick 283).
+        - Extended tick 283 doc-block above ISO_TIMESTAMP_RE with a
+          tick 284 paragraph citing 0091:44 as the column source, the
+          no-touch-trigger observation, and the fresh-column-rotation
+          rationale.
+        - One new inline assertion block (two-line typeof-string +
+          ISO_TIMESTAMP_RE.test() assert) inside the per-row for-loop
+          of the wave-5 row 164 happy GET block, immediately after
+          the existing tick 283 created_at pin. Block-scope comment
+          cites 0091:44 and the tick 283 sibling posture.
+        - One-line addition to the body.resellers row interface
+          (updated_at?: unknown) so tsc still resolves the shape.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no widening of existing guards.
+          Matches ticks 234-283 discipline verbatim: tighten one
+          dimension (add ISO wire-shape assert on
+          resellers.updated_at) with zero net new imports.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: 11 R-01 files + 31 R-03 routes
+          scanned, 3 exemptions, 0 violations
+        - npx vitest run: 75 files 954/954 pass (unchanged —
+          Playwright specs are excluded from vitest by design)
+
+      Files:
+        - web/tests/e2e/reseller/admin-resellers-list-authz.spec.ts
+          (module-scope tick 283 doc-comment block extended with a
+          tick 284 paragraph immediately above ISO_TIMESTAMP_RE;
+          body.resellers row interface gains updated_at?: unknown;
+          per-row for-loop of the wave-5 row 164 happy GET block
+          gains a typeof-string + ISO_TIMESTAMP_RE.test() assert on
+          row.updated_at immediately after the tick 283 created_at
+          assert, with a block-scope comment citing 0091:44 as the
+          column source and the tick 283 sibling posture.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.283 → 2026-07-23.284; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no production-code touch, no
+          new import, no widening of the guards on existing pins.
+          Consistent with ticks 234-283's incremental-pin pattern.
+        - Fresh-column rotation rather than cross-surface mirror —
+          echoes ISO_TIMESTAMP_RE onto a second column on the same
+          row (resellers.updated_at) so a PostgREST serialisation
+          regression on either created_at or updated_at surfaces on
+          the same CI pass. Tenth pin in the 275-284 lineage; first
+          rotation onto a second column of the same row.
+
+      Next natural picks on tick 285:
+        (a) mirror tick 283/284 created_at + updated_at ISO pins onto
+        admin-reseller-detail-authz.spec.ts (single-row GET surface for
+        /api/admin/resellers/[code]) so the third admin resellers-
+        family surface joins the pin. Same schema source (0091:43-44),
+        same regex, same NOT-NULL discipline. Confirmed candidate from
+        tick 283's option (a) still open.
+        (b) rotate to a fresh non-timestamp column pin on the resellers
+        row — commission_share_pct (numeric(5,2) NOT NULL DEFAULT 40.00
+        at 0091:38) is the natural pick; assert typeof-number + within
+        [0, 100] range so a schema-side drift or a projection swap
+        surfaces at the read layer.
+        (c) rotate to the reseller-side /api/reseller/me/route.ts
+        surface if it projects reseller row created_at / updated_at
+        (needs a quick route read to confirm the projection first).
+        (d) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks while the two HUMAN-BLOCKED leaves await external
+        unblock signals (H.20 InfoVision ABN + GST confirmation
+        OR Stripe add-on price env vars).
+    commit: (this tick)
+
   - tick: 283
     ran_at: 2026-07-23
     action: p10_admin_resellers_list_created_at_iso_pin_mirror_from_admin_requests_280
