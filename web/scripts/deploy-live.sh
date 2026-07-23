@@ -811,6 +811,23 @@ npx --no-install playwright install chromium >/dev/null 2>&1 || \
   echo "  ⚠ chromium install returned non-zero; Gate 11 test will surface real error"
 # Give Cloudflare + purge a moment to propagate before we probe the CDN.
 sleep 5
+# ── iter-17 flake safeguard A: warm-up curl loop ─────────────────────
+# Cold Next.js hydration on the first hit to a route can push its
+# render past Playwright's 15s waitFor ceiling (observed on Gate 11's
+# /pricing Accelerator tab, iter-17 deploy). Pre-warm the exact routes
+# the hydrated smoke exercises so RSC + CDN caches are hot before the
+# browser probes them. Never fatal — a transient CDN miss must not
+# block deploy, so per-URL failures simply move on.
+WARMUP_URLS=(/ /pricing /roadmap /dashboard/portfolio)
+echo "  ℹ  Warming up ${#WARMUP_URLS[@]} routes before hydrated smoke..."
+for url in "${WARMUP_URLS[@]}"; do
+  for i in {1..3}; do
+    if curl -sf -o /dev/null -m 10 "https://blockid.au${url}"; then
+      break
+    fi
+    sleep 2
+  done
+done
 # Capture playwright's exit code via PIPESTATUS[0] — piping to `tail` without
 # `set -o pipefail` would otherwise mask a non-zero exit and false-pass.
 set +e
