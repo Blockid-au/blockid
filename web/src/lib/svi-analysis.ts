@@ -10,7 +10,12 @@ import type { WebsiteCompetitiveIntelligence, MarketEbitdaMetrics } from "./comp
 export const SVI_VERSION = "2.0.0";
 
 // ─── Stage labels ─────────────────────────────────────────────────────────────
-export const SVI_STAGE_LABELS: string[] = [
+// DEPRECATED: This 8-stage vocabulary predates the canonical journey
+// taxonomy published in `./journey-vocabulary.ts` (see
+// docs/plans/real-world-workflow-parity-audit-2026-07-23.md §3). Callers
+// should migrate to `CANONICAL_STAGE_LABELS` and use `sviStageToCanonical`
+// to translate stored SVI indices.
+export const LEGACY_SVI_STAGE_LABELS: string[] = [
   "Concept",
   "Validated Idea",
   "MVP / Prototype",
@@ -20,6 +25,28 @@ export const SVI_STAGE_LABELS: string[] = [
   "Scale",
   "Corporation",
 ];
+
+let __sviStageLabelsWarned = false;
+function warnSviStageLabelsDeprecated(): void {
+  if (__sviStageLabelsWarned) return;
+  __sviStageLabelsWarned = true;
+  const env =
+    typeof process !== "undefined" ? process.env?.NODE_ENV : undefined;
+  if (env === "production" || env === "test") return;
+  // eslint-disable-next-line no-console
+  console.warn(
+    "[deprecation] SVI_STAGE_LABELS is legacy — migrate to CANONICAL_STAGE_LABELS in @/lib/journey-vocabulary and use sviStageToCanonical() for stored SVI indices.",
+  );
+}
+
+/**
+ * @deprecated Use `CANONICAL_STAGE_LABELS` from `./journey-vocabulary.ts`.
+ * Re-export shim over {@link LEGACY_SVI_STAGE_LABELS} kept so existing call
+ * sites keep working while they migrate. Emits a one-shot dev-only console
+ * warning on module load.
+ */
+export const SVI_STAGE_LABELS: string[] = LEGACY_SVI_STAGE_LABELS;
+warnSviStageLabelsDeprecated();
 
 const STAGE_BONUSES: Record<number, number> = {
   0: 0,
