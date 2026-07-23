@@ -1147,6 +1147,61 @@ test.describe("Admin reseller-loop status — P10 wave-5 row 173 happy path", ()
           `tick_history human_blocked_snapshot_failed row.error should be typeof string (reseller-goal-loop.mjs:234 writes \`String(err)\` — narrows any throwable from the extractHumanBlockedSnapshot try/catch at mjs:226-235 to a JSON string): ${JSON.stringify(row).slice(0, 200)}`,
         ).toBe("string");
       }
+      // tick 256 — cron_removal_failed stage schema pin (option y19 from
+      // tick 255's natural-next-picks — the goal-completion-branch cron
+      // removal catch's `error` key). One-pin candidate — the only field
+      // the writer at scripts/cron/reseller-goal-loop.mjs:259 spreads
+      // beyond the log() helper's own tick_id/ts/human_review_minutes_7d
+      // is the bare `error: String(err)` cast. Continues the one-pin
+      // cadence of ticks 254 + 255, and closes the last unpinned
+      // catch-branch `error` cast row in the top-level main() flow —
+      // combined with tick 244 readGoal(), tick 254 auto_commit_failed,
+      // tick 255 human_blocked_snapshot_failed, and tick 250
+      // auto_deploy_failed, all five String(err) catch-branch writer
+      // sites in main() are now schema-guarded.
+      //
+      // Writer-schema justification:
+      //   - scripts/cron/reseller-goal-loop.mjs:259 writes
+      //     `log({ stage: 'cron_removal_failed', error: String(err) })`
+      //     inside the try/catch at mjs:252-260 that wraps the
+      //     `crontab -l | grep -v 'reseller-goal-loop.mjs' | crontab -`
+      //     spawnSync inside the goal-completion detector at mjs:241-266.
+      //     Only fires on the FINAL tick of the entire loop (when the
+      //     goal file's top-level status is 'done') AND when the
+      //     spawnSync itself throws — bounded twice, so this row is
+      //     effectively zero-coverage on green-path CI runs. The pin
+      //     still closes the writer contract for the completion-path
+      //     failure branch so a future writer-side rename (e.g. `error`
+      //     → `err` or payload restructure) surfaces as a test failure
+      //     rather than silent drift.
+      //   - `error` is `String(err)` at mjs:259 — the `String()` cast
+      //     narrows any throwable (Error subclass, string throw, non-
+      //     Error object, undefined, null) to a JSON-serialisable
+      //     string, so this row is a schema-level typeof=string
+      //     guarantee. Matches tick 244 + tick 254 + tick 255 rationale
+      //     verbatim.
+      //
+      // Design choice — one-pin single guard:
+      //   - Sits in its own conditional-by-stage guard matching the
+      //     tick 240-255 convention. Comes AFTER the tick 255
+      //     human_blocked_snapshot_failed guard so future guards land
+      //     in monotonic tick-order.
+      //   - TYPEOF pin only (not value) — `error` varies per throw
+      //     site (message text, stack trace snippet, arbitrary
+      //     throwable). Value pin would require a moving-target regex,
+      //     matching the tick 230 "typeof only so the value can drift"
+      //     convention verbatim.
+      //   - One pin because the writer contract at mjs:259 emits exactly
+      //     one field beyond the log() helper's fixed prefix — matches
+      //     the tick 241 idle + tick 243 auto_commit_started + tick 254
+      //     auto_commit_failed + tick 255 human_blocked_snapshot_failed
+      //     precedent for single-field rows.
+      if (tickRow.stage === "cron_removal_failed") {
+        expect(
+          typeof tickRow.error,
+          `tick_history cron_removal_failed row.error should be typeof string (reseller-goal-loop.mjs:259 writes \`String(err)\` — narrows any throwable from the goal-completion cron-removal try/catch at mjs:252-260 to a JSON string): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("string");
+      }
     }
     expect(
       typeof body.generated_at === "string" &&
