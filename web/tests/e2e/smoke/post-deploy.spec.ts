@@ -26,6 +26,29 @@ const PAGE_TIMEOUT = 15_000;
 test.describe("Post-deploy hydrated smoke", () => {
   test.setTimeout(45_000);
 
+  test("/pricing?tier=accelerator — SSR seeds Accelerator tab (deep link)", async ({
+    page,
+  }) => {
+    // iter-19 flake hardening: the tab-click path (next test) can flake on
+    // cold CDN hydration because Playwright must wait for React to hydrate
+    // before the click registers + the panel swap paints. The `?tier=`
+    // deep-link path renders the Accelerator matrix as the SSR default, so
+    // we can assert on first paint without waiting for hydration at all.
+    // If THIS test fails but the click test passes, the query-param wire
+    // has regressed. If BOTH fail, the surface is genuinely broken.
+    test.setTimeout(30_000);
+    await page.goto("/pricing?tier=accelerator", {
+      waitUntil: "domcontentloaded",
+    });
+    const acceleratorTab = page.getByRole("tab", { name: /accelerator/i });
+    await expect(acceleratorTab).toHaveAttribute("aria-selected", "true", {
+      timeout: PAGE_TIMEOUT,
+    });
+    await expect(page.getByText(/cohort enterprise/i).first()).toBeVisible({
+      timeout: 30_000,
+    });
+  });
+
   test("/pricing — Accelerator tab reveals Cohort Enterprise", async ({
     page,
   }) => {

@@ -9,8 +9,32 @@ import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingSection } from "@/components/marketing/marketing-section";
 import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
+import type { Segment } from "@/lib/plans-v2";
 
 export const dynamic = "force-dynamic";
+
+// iter-19 Gate 11 flake hardening: allow deep-linking a specific segment via
+// `?tier=<founder|investor|advisor|accelerator>` so Playwright (and marketing
+// campaigns) can hit the Accelerator surface on first render without a
+// client-side tab click. Unknown/missing values fall back to the default
+// "founder" tab, so SSR behavior on the bare `/pricing` URL is unchanged.
+const VALID_SEGMENTS: readonly Segment[] = [
+  "founder",
+  "investor",
+  "advisor",
+  "accelerator",
+] as const;
+
+function resolveSegmentFromTier(
+  tier: string | string[] | undefined,
+): Segment {
+  const raw = Array.isArray(tier) ? tier[0] : tier;
+  if (typeof raw !== "string") return "founder";
+  const normalized = raw.toLowerCase() as Segment;
+  return (VALID_SEGMENTS as readonly string[]).includes(normalized)
+    ? normalized
+    : "founder";
+}
 
 export const metadata: Metadata = {
   title: "Pricing — BlockID.au",
@@ -73,7 +97,13 @@ const FAQ_JSONLD = [
 // Page
 // ---------------------------------------------------------------------------
 
-export default function PricingPage() {
+interface PricingPageProps {
+  searchParams: Promise<{ tier?: string | string[] }>;
+}
+
+export default async function PricingPage({ searchParams }: PricingPageProps) {
+  const sp = await searchParams;
+  const initialSegment = resolveSegmentFromTier(sp?.tier);
   return (
     <MarketingShell>
       <FAQJsonLd items={FAQ_JSONLD} />
@@ -110,7 +140,7 @@ export default function PricingPage() {
         aria-label="Pricing matrix"
         className="mx-auto max-w-7xl px-6 py-8 sm:py-12"
       >
-        <SegmentTabs>
+        <SegmentTabs defaultSegment={initialSegment}>
           <PricingMatrix />
         </SegmentTabs>
       </section>

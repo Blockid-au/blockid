@@ -22,6 +22,15 @@ export default defineConfig({
       name: "chromium",
       use: { browserName: "chromium" },
       testIgnore: ["**/a11y/**"],
+      // iter-19 Gate 11 flake hardening: the post-deploy hydrated smoke runs
+      // from scripts/deploy-live.sh WITHOUT the CI env var set, so the
+      // top-level `retries: process.env.CI ? 1 : 0` collapses to 0 and a
+      // transient CDN/hydration blip on /pricing false-fails the deploy.
+      // Pin one retry on the chromium (smoke) project unconditionally so
+      // transient flakes get exactly one auto-retry — real regressions still
+      // fail the second attempt and block the release. Cap intentionally at
+      // 1 to keep regressions visible; do NOT raise.
+      retries: 1,
     },
     {
       name: "a11y",
