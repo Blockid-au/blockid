@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.348
+version: 2026-07-23.349
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,144 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 349
+    ran_at: 2026-07-23
+    action: p10_commissions_created_at_two_part_typeof_string_iso_timestamp_re_cross_surface_twin_lift_closes_commissions_cluster_on_admin_reseller_detail_validation
+    result: |
+      Executes tick 348 next-pick option (a) verbatim: closes the
+      reseller_commissions_current[] child-row cluster sweep on admin-
+      reseller-detail-validation.spec.ts by propagating the tick 317 pin
+      already carried on the sibling admin-reseller-detail-authz.spec.ts —
+      commissions[].created_at two-part typeof-string + ISO_TIMESTAMP_RE
+      wire-shape pin. Before this tick the sibling cluster on this file
+      carried column pins for commission_id (tick 342) + list_price_aud_cents
+      (tick 343) + stripe_invoice_id (tick 344) + discount_pct (tick 345) +
+      commission_aud_cents (tick 346) + net_owed_cents (tick 347) + status
+      (tick 348); this tick adds the eighth and FINAL column, closing the
+      commissions[] cluster on this surface (all 8 tuple columns pinned)
+      and completing cross-surface twin symmetrisation with the sibling
+      detail-authz spec for the full reseller_commissions_current[]
+      projection.
+
+      Shape lifted:
+        - Writer-side source: the underlying reseller_commissions.created_at
+          is declared at
+          web/supabase/migrations/0094_reseller_commissions_and_events.sql:44
+          as `created_at timestamptz NOT NULL DEFAULT now()`; the
+          reseller_commissions_current view projects it via alias
+          rc.created_at at 0094:149. Wire type is text NOT NULL
+          (timestamptz is serialised as an ISO 8601 string by PostgREST).
+          ALSO the ORDER BY column for the route.ts:104
+          `.order("created_at", { ascending: false })` sort, so a shape
+          drift here would break the deterministic row ordering the
+          50-row projection cap relies on.
+        - Application read path: projected via select("commission_id,
+          stripe_invoice_id, list_price_aud_cents, discount_pct,
+          commission_aud_cents, net_owed_cents, status, created_at") on
+          the Promise.all fan-out at
+          web/src/app/api/admin/resellers/[code]/route.ts:98-105.
+        - Runtime enforcement in this spec: two-part guard mirroring the
+          tick 317 posture on the sibling spec verbatim + the tick 285
+          resellers.created_at + tick 300 promotion_codes[].created_at
+          ISO-shape posture. (a) typeof-string half preserves the NOT-NULL
+          raw-type discipline; (b) ISO_TIMESTAMP_RE.test() shape assert
+          catches a serialisation regression to a Postgres-native "YYYY-
+          MM-DD HH:MM:SS" form with a space delimiter, a Unix epoch
+          number-as-string, a truncated date-only slug, or a legacy
+          pre-ISO timestamp.
+
+      Rotation rationale:
+        - Executes tick 348 next-pick option (a) verbatim. Priorities
+          (b) rotate to detail-authz twin attributions_summary lift +
+          (c) idle rotate to future ticks.
+        - Cross-surface twin symmetrisation: continues the column-by-
+          column sweep in the same order the sibling spec pinned columns
+          (tick 308 commission_id → tick 309 stripe_invoice_id → tick 311
+          list_price_aud_cents → tick 312 discount_pct → tick 314
+          commission_aud_cents → tick 315 net_owed_cents → tick 316
+          status → tick 317 created_at on the sibling). Reads the SELECT
+          tuple at route.ts:98-105 in projection order. CLOSES the
+          commissions[] cluster on this surface.
+        - Introduces ONE new module-scope const:
+          ISO_TIMESTAMP_RE =
+          /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/
+          — mirrors the sibling const at detail-authz:2401 verbatim.
+          Placed adjacent to the ALLOWED_COMMISSION_STATUSES cluster
+          since both consts were introduced to close the commissions[]
+          child-row column sweep on this spec. THIRD new module-scope
+          const added to this file in the commissions[] sweep (tick 344
+          introduced STRIPE_INVOICE_ID_RE; tick 348 introduced
+          ALLOWED_COMMISSION_STATUSES; this tick introduces
+          ISO_TIMESTAMP_RE — closing the cluster with all 8 tuple
+          columns pinned).
+        - Zero new imports, no fixture change, no route change. Comment-
+          plus-inline-pin tightening tick — matches the accepted P10
+          rotation shape while P8.5 remains HUMAN-BLOCKED on Stripe env
+          vars.
+
+      Coverage-per-guard posture: the two-part pin fires once per
+      commissions[] row when the seeded reseller has attributed founders
+      with paid Stripe invoices in the last 50 rows (route.ts:105 limits
+      the projection to 50). On hosts without seeded commission events
+      the for-loop is a no-op so the pin never fires — matches the tick
+      342/343/344/345/346/347/348 posture on this spec.
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-validation.spec.ts:
+            + new module-scope ISO_TIMESTAMP_RE regex const placed
+              adjacent to the ALLOWED_COMMISSION_STATUSES cluster with a
+              doc-comment naming the tick 285/300/317 sibling const at
+              detail-authz:2401 + the 0094:44 declaration source + the
+              ORDER-BY-column-for-route.ts:104 relevance.
+            + widened commissions body annotation to add
+              `created_at?: unknown` in projection-tuple order (after
+              status).
+            + added a two-expect pin block after the status guards (row
+              order matches the SELECT tuple at route.ts:98-105:
+              commission_id → stripe_invoice_id → list_price_aud_cents →
+              discount_pct → commission_aud_cents → net_owed_cents →
+              status → created_at) with typeof-string half naming the
+              NOT-NULL raw-type discipline + shape-assert half naming
+              the Postgres-native-space-delimiter fault-model.
+            + inline tick-349 doc-comment placed above the pin block for
+              cross-column traceability + rationale for the two-part
+              guard shape + reference to the new module-scope const +
+              CLOSES-CLUSTER announcement.
+        - No production code touched, no fixture change, no route
+          change, no new imports (only one new module-scope const).
+
+      Verification:
+        - `cd web && npx tsc --noEmit`: exit 0 (whole tree clean).
+        - `cd web && npm run lint:reseller`: R-01 11 files + R-03 32
+          routes + R-04 8 stripe files; 6 exemptions, 0 violations
+          (unchanged from tick 348).
+        - Playwright specs excluded from vitest by design.
+
+      Frontier after tick 349: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      commissions[] cluster on admin-reseller-detail-validation NOW
+      COMPLETE — all 8 tuple columns pinned; cross-surface twin
+      symmetrisation with sibling detail-authz spec finished for the
+      full reseller_commissions_current[] projection.
+
+      Next natural picks on tick 350:
+        (a) rotate to cross-surface twin on admin-reseller-detail-authz:
+        propagate the tick 341 attributions_summary .total + .active
+        two-part typeof-number + Number.isFinite + range discipline (the
+        detail-validation spec has attributions_summary pinned at the
+        outer .total / .active / .by_source level; the sibling detail-
+        authz has NOT yet mirrored the tick 341 range discipline).
+        (b) open a fresh cluster on admin-reseller-detail-validation:
+        attributions_summary.by_source enum-tightening exhaustiveness
+        pass on wave-5-seeded hosts (needs a new ALLOWED_BY_SOURCE_KEYS
+        module-scope const).
+        (c) idle — frontier remains tight: P1.5 + P8.5 HUMAN-BLOCKED,
+        P11 never_completes, Track B closed. P10 hardening continues to
+        accept incremental pin-tightening ticks.
+    commit: (this tick)
+
   - tick: 348
     ran_at: 2026-07-23
     action: p10_commissions_status_two_part_typeof_string_allowed_commission_statuses_cross_surface_twin_lift_on_admin_reseller_detail_validation
