@@ -1060,6 +1060,39 @@ const UUID_RE =
 // to a no-op. Continues the P10 hardening posture — no fixture change,
 // no route change, no new imports; adds ONE new module-scope const
 // (ALLOWED_COMMISSION_STATUSES).
+//
+// Tick 317 — commissions[].created_at timestamptz NOT NULL wire-shape pin.
+// Continues the reseller_commissions_current[] child-row cluster after the
+// tick 316 status pin. Tick 316 next-pick option (a) taken verbatim —
+// rotates to the created_at column using the existing module-scope
+// ISO_TIMESTAMP_RE const, no new const needed. Column source: the
+// reseller_commissions ledger row declares `created_at timestamptz NOT
+// NULL DEFAULT now()` at 0094:44; the reseller_commissions_current view
+// projects `rc.created_at` verbatim at 0094:149. Selected on the
+// Promise.all leg at web/src/app/api/admin/resellers/[code]/route.ts:99-105
+// as the 8th column in the reseller_commissions_current tuple (and the
+// column the .order("created_at", { ascending: false }) at route.ts:104
+// sorts by, so a drift on this column also breaks the deterministic row
+// order that the wave-5 row 167 detail payload assumes).
+//
+// Design choice — two-part guard mirroring the tick 285 reseller.created_at
+// / reseller.updated_at posture verbatim: (a) typeof-string preserves the
+// NOT-NULL raw-type discipline; catches a PostgREST regression that
+// returned null|undefined, a schema-side NOT NULL drop, or a projection-
+// side drop from the route.ts:99-105 SELECT tuple. (b) ISO_TIMESTAMP_RE
+// .test() shape assert catches a serialisation regression that returned
+// a Postgres-native "YYYY-MM-DD HH:MM:SS" form with a space delimiter, a
+// Unix epoch number-as-string, a truncated date-only slug, or a legacy
+// pre-ISO timestamp. Detail-surface only per the same posture as ticks
+// 299-316 — the commissions Promise.all leg is unique to the detail route.
+//
+// Coverage-per-guard posture: wave-5 row 167 single-row GET fires the
+// two-part pin up to 50 times per test, once per commissions[] row on the
+// QAPROBEWHOLESALEACTIVE seed reseller. Hosts without seeded commission
+// rows still green because the for-loop degrades gracefully to a no-op.
+// Continues the P10 hardening posture — no fixture change, no route
+// change, no new imports; no new module-scope const needed
+// (ISO_TIMESTAMP_RE already lives at row 1063).
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Tick 309 — Stripe invoice ID shape regex. Matches the modern Stripe
@@ -1381,6 +1414,7 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         commission_aud_cents?: unknown;
         net_owed_cents?: unknown;
         status?: unknown;
+        created_at?: unknown;
       }>;
     };
 
@@ -2090,6 +2124,25 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
       expect(
         ALLOWED_COMMISSION_STATUSES.has(row.status as string),
         `commissions[].status '${String(row.status)}' should be one of {cleared, pending_clearance, clawed_back, dispute_open, partially_refunded} (CASE at 0094:150-172 in the reseller_commissions_current view; a view-definition drift that introduced a new status literal outside the enumeration or a schema-side edit that added a new event_type without extending the CASE would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      // Tick 317 — commissions[].created_at timestamptz NOT NULL wire-shape
+      // pin. Column source: reseller_commissions.created_at `timestamptz NOT
+      // NULL DEFAULT now()` at 0094:44, projected via view alias rc.created_at
+      // at 0094:149. Two-part guard mirroring the tick 285 reseller.created_at
+      // posture verbatim: (a) typeof-string preserves the NOT-NULL raw-type
+      // discipline; (b) ISO_TIMESTAMP_RE.test() shape assert catches a
+      // serialisation regression. Also the ORDER BY column for the
+      // route.ts:104 .order("created_at", { ascending: false }) sort, so a
+      // shape drift here breaks the deterministic row ordering the wave-5
+      // row 167 detail payload assumes. See module-scope doc-block above
+      // ISO_TIMESTAMP_RE (tick 317 paragraph) for the full rationale.
+      expect(
+        typeof row.created_at === "string",
+        `commissions[].created_at '${String(row.created_at)}' should be a string (timestamptz NOT NULL DEFAULT now() per 0094:44; view alias rc.created_at at 0094:149; a schema-side NOT NULL drop, a projection-side drop from route.ts:99-105 select, or a PostgREST serialisation regression that returned null|undefined would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        ISO_TIMESTAMP_RE.test(row.created_at as string),
+        `commissions[].created_at '${String(row.created_at)}' should match ISO 8601 shape (timestamptz NOT NULL DEFAULT now() per 0094:44 serialised via PostgREST); a drift to a Postgres-native "YYYY-MM-DD HH:MM:SS" form with a space delimiter, a Unix epoch number-as-string, a truncated date-only slug, or a legacy pre-ISO timestamp would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
     }
   });

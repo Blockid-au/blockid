@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.316
+version: 2026-07-23.317
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -651,6 +651,92 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 317
+    ran_at: 2026-07-23
+    action: p10_commissions_created_at_iso_timestamp_pin_on_admin_reseller_detail
+    result: |
+      Seventh column tightened in the reseller_commissions_current[] child-row
+      cluster opened at tick 308 — commissions[].created_at. Tick 316 next-pick
+      option (a) taken verbatim — rotates to the created_at column reusing the
+      existing module-scope ISO_TIMESTAMP_RE const (no new const needed).
+
+      Writer-schema justification:
+        - 0094_reseller_commissions_and_events.sql:44 declares
+          `created_at timestamptz NOT NULL DEFAULT now()` on the base
+          reseller_commissions ledger row.
+        - 0094:149 projects `rc.created_at` verbatim through the
+          reseller_commissions_current view.
+        - Application read path: selected on the Promise.all leg at
+          web/src/app/api/admin/resellers/[code]/route.ts:99-105 as the
+          8th column in the reseller_commissions_current tuple. Also the
+          ORDER BY column for the sibling .order("created_at",
+          { ascending: false }) at route.ts:104, so a shape drift here
+          also breaks the deterministic row ordering the wave-5 row 167
+          detail payload assumes.
+
+      Design choice — two-part guard mirroring the tick 285
+      reseller.created_at / reseller.updated_at posture verbatim:
+        - (a) typeof-string preserves the NOT-NULL raw-type discipline;
+          catches a PostgREST regression that returned null|undefined, a
+          schema-side NOT NULL drop, or a projection-side drop from the
+          route.ts:99-105 SELECT tuple.
+        - (b) ISO_TIMESTAMP_RE.test() shape assert catches a
+          serialisation regression that returned a Postgres-native
+          "YYYY-MM-DD HH:MM:SS" form with a space delimiter, a Unix
+          epoch number-as-string, a truncated date-only slug, or a
+          legacy pre-ISO timestamp.
+
+      Coverage-per-guard posture:
+        - Detail surface: wave-5 row 167 single-row GET fires the two-
+          part pin up to 50 times per test, once per commissions[] row
+          on the QAPROBEWHOLESALEACTIVE seed reseller. Hosts without
+          seeded commission rows still green because the for-loop
+          degrades gracefully to a no-op.
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 317 paragraph) added below
+              the tick 316 status paragraph above ISO_TIMESTAMP_RE.
+            + body type widened: commissions? row shape extended with
+              created_at?: unknown so TypeScript narrows the row.
+              created_at access inside the for-of loop.
+            + wave-5 row 167 for-of loop pin appended after the tick
+              316 status guard: typeof-string assert plus
+              ISO_TIMESTAMP_RE.test() shape assert against row.created_at.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope const. Matches
+          ticks 234-316 discipline.
+
+      Verification:
+        - tsc --noEmit: production tree clean (exit 0).
+        - npm run lint:reseller: R-01 scanned 11 files, R-03 scanned
+          32 manifest routes, R-04 scanned 8 stripe files; 6 exemptions,
+          0 violations — unchanged from tick 316 baseline.
+        - vitest src/lib/reseller: 32 files / 472 pass — Playwright specs
+          are excluded from vitest by design so count unchanged.
+
+      Next natural picks on tick 318:
+        (a) rotate to the amount_paid_aud_cents column of commissions[]
+        (int NOT NULL at 0094:40, projected via rc.amount_paid_aud_cents
+        at 0094:146) — three-part typeof-number + Number.isInteger +
+        >= 0 assert; mirrors tick 314 commission_aud_cents posture.
+        (b) rotate to discount_aud_cents (int NOT NULL >= 0 at 0094:39,
+        projected implicitly — check route select tuple). NB the
+        route.ts:99-105 SELECT does not include discount_aud_cents so
+        this option is a no-op on wire until the route widens.
+        (c) rotate forward to attributions_summary.total /
+        attributions_summary.active — refine the existing typeof-number
+        asserts with Number.isInteger + >= 0 tail asserts matching the
+        posture applied to by_source values at tick 313.
+        (d) rotate to promotion_codes[].stripe_coupon_id (text nullable
+        at 0091:97 projected via route.ts:80-89 select) — two-part
+        typeof-string-or-null wire-shape pin.
+        (e) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks.
+    commit: (this tick)
+
   - tick: 316
     ran_at: 2026-07-23
     action: p10_commissions_status_value_set_enum_pin_on_admin_reseller_detail
