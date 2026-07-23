@@ -775,6 +775,27 @@ bash "$WEB_DIR/scripts/purge-cloudflare-cache.sh" 2>/dev/null && echo "  ✅ Clo
 rm -rf /tmp/nginx-blockid-cache/* 2>/dev/null && echo "  ✅ Nginx cache cleared" || true
 
 # ══════════════════════════════════════════════════════════════════════
+# GATE 11: Post-deploy hydrated smoke (Playwright)
+# Catches client-side rendered regressions the SSR curl grep in gate 6/9 misses
+# — e.g. Accelerator tab on /pricing (SegmentTabs) that swaps plans on click.
+# Runs against the LIVE public URL because that's where CDN/Cloudflare + real
+# hydration are wired up. Non-installable Playwright is fatal — do NOT skip
+# quietly; the browsers were provisioned in commit f9316160.
+# ══════════════════════════════════════════════════════════════════════
+gate "Post-deploy hydrated smoke (Playwright)"
+export PLAYWRIGHT_BASE_URL="${PLAYWRIGHT_BASE_URL:-https://blockid.au}"
+# Give Cloudflare + purge a moment to propagate before we probe the CDN.
+sleep 5
+PW_EXIT=0
+npm run e2e:post-deploy 2>&1 | tail -40 || PW_EXIT=$?
+if [ "$PW_EXIT" -ne 0 ]; then
+  echo "  ❌ Playwright hydrated smoke failed against $PLAYWRIGHT_BASE_URL"
+  echo "  Rollback candidate: bash scripts/deploy-live.sh --rollback"
+  fail "Post-deploy hydrated smoke returned $PW_EXIT"
+fi
+pass "Post-deploy hydrated smoke passed against $PLAYWRIGHT_BASE_URL"
+
+# ══════════════════════════════════════════════════════════════════════
 # G-11: Snapshot the successful release to /data/blockid-releases/ and
 # prune to the 5 most-recent snapshots. Runs AFTER swap + smoke succeed so
 # only verified builds are kept. Non-fatal — failure never breaks deploy.
