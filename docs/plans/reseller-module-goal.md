@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.263
+version: 2026-07-23.264
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,174 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 264
+    ran_at: 2026-07-23
+    action: p10_admin_requests_patch_approve_post_readback_per_key_payload_content_pins_option_s3
+    result: |
+      Landed tick 263's "natural next pick" option (s3) as per-key payload
+      content pins on the APPROVE block of admin-requests-patch-authz.spec.ts
+      post-PATCH read-back GET. Mirrors the tick 262 deny-block + tick 263
+      cancel-block read-backs verbatim onto the approve block so the payload
+      jsonb per-type shape contract is now content-pinned on SIX list read
+      surfaces simultaneously (admin GET pending tick 259 + reseller GET
+      pending tick 260 + reseller GET route tick 261 + admin GET denied
+      tick 262 + admin GET cancelled tick 263 + admin GET approved tick 264).
+      Fourth non-default ?status= filter path exercised (?status=approved),
+      complementing tick 262's ?status=denied and tick 263's ?status=cancelled
+      — the ALLOWED_STATUS.has() gate at route.ts:39 now has three of its
+      four non-pending enum values covered by an end-to-end read-back after
+      a PATCH flip, with the fourth (pending) already covered by the three
+      list surfaces from ticks 259/260/261.
+
+      Writer-schema justification:
+        - requests.ts:41-44 defines the ResellerRequestPayload
+          discriminated union: code_request | over_budget_approval |
+          collateral_approval. The POST route at
+          /api/reseller/requests/route.ts writes the validator's
+          `{...res.value}` output into reseller_requests.payload (jsonb
+          NOT NULL DEFAULT '{}' per 0095:33).
+        - The PATCH response envelope at
+          /api/admin/resellers/requests/[id]/route.ts:317-319 only echoes
+          id/status/decision_at/decision_reason/linked_credit_transaction_id
+          /linked_promotion_code_id — payload is NOT re-emitted by the
+          UPDATE ... SELECT. To close the writer contract on the payload
+          jsonb column for the approve-flipped row, the tick 264 addition
+          re-reads via the list route with ?status=approved and locates
+          the row by attach.requestId in the returned array.
+        - The approve branch for over_budget_approval flips ONLY status +
+          decision_by + decision_at + decision_reason +
+          linked_credit_transaction_id (route.ts:200-293) — payload is
+          untouched so the read-back reflects exactly what the fixture's
+          attachApproveTarget() INSERT wrote (identical to the deny +
+          cancel branch's payload preservation posture cited in
+          tick 262 + 263).
+        - Per-branch key shape mirrors the tick 259/260/261/262/263 pin
+          verbatim (same 3 branches, same 5 module-scope constants, same
+          source-line citations):
+            - code_request → tier_pct (∈ {0,10,20,30,40}), suggested_
+              suffix (null or /^[A-Z0-9]{1,16}$/), notes (null or
+              string length ≤ 200)
+            - over_budget_approval → target_user_id (UUID), requested_
+              amount (positive integer), reason (null or string ≤ 200),
+              remaining_budget_snapshot (null or non-negative integer)
+            - collateral_approval → collateral_url (https URL),
+              purpose (string ≤ 500)
+
+      Design choice — post-PATCH read-back + module-scope constants:
+        - Constants ALLOWED_TIER_PCT_VALUES / SUFFIX_RE / HTTPS_URL_RE /
+          REASON_MAX / PURPOSE_MAX REUSED (not re-hoisted) from the tick
+          262 + 263 module-scope block. Header doc-comment expanded from
+          "Tick 262 + 263 — ... deny + cancel blocks' post-PATCH read-back
+          GET" to "Tick 262 + 263 + 264 — ... deny (tick 262) + cancel
+          (tick 263) + approve (tick 264) blocks' post-PATCH read-back
+          GET" so a future reader sees at the constants declaration site
+          that three blocks now share the same drift check.
+        - Read-back GET fires ONLY after the existing approve-branch
+          PATCH assertions all pass (200 + status=approved +
+          decision_reason + linked_credit_transaction_id UUID +
+          linked_promotion_code_id null) so a regression in the PATCH
+          envelope surfaces at the tighter existing pins before the
+          read-back is even attempted.
+        - Row locator by attach.requestId (from attachApproveTarget()
+          fixture) in the ?status=approved returned array — not by
+          position or count — so parallel CI workers approving multiple
+          rows do not race. Each spec run only asserts on the row the
+          fixture minted for it.
+        - Missing-row branch surfaces as test.skip with an explicit
+          pointer at the fixture-teardown or concurrent-worker cleanup
+          scenario (points at attachApproveTarget() rather than a wave
+          seed row since the approve branch's target is minted by the
+          fixture, not by a seed script).
+        - Two-part guard per nullable key: (a) `x === null` short-
+          circuit + (b) typeof-string + regex/length check. Same shape
+          as the tick 259/260/261/262/263 pins.
+        - TYPEOF + VALUE-tighten pins per key. Value pin uses the same
+          set/regex the validator uses so a rename OR a shape drift
+          both surface — matches tick 262/263 rationale verbatim.
+
+      Coverage-per-guard posture:
+        - The row that gets approved on green-path CI runs is minted by
+          attachApproveTarget() as an over_budget_approval type (fixture
+          contract — the request_type is guaranteed on green-path runs),
+          so that branch is exercised on this new sixth surface too.
+          code_request + collateral_approval branches remain zero-
+          coverage on this surface for the same reason as ticks
+          259/260/261/262/263 — no approve targets carry those types
+          today (code_request approve is P8.5-blocked on Stripe test-
+          mode wiring; collateral_approval approve is not exercised by
+          any fixture yet). The pin still closes the writer contract
+          for both branches so a route regression that dropped a key
+          from the SELECT (route.ts:44 echoes payload jsonb straight
+          through) or a validator regression that swapped a key shape
+          at requests.ts would surface across all six list surfaces on
+          the next CI pass — matches the tick 259/260/261/262/263 zero-
+          coverage-per-guard rationale.
+
+      Diagnostic delta of the pass:
+        - No new module-scope constants (reused all five from tick 263).
+        - Header doc-comment above the constants expanded from
+          two-block coverage (tick 262 deny + tick 263 cancel) to
+          three-block coverage (tick 262 deny + tick 263 cancel +
+          tick 264 approve) so the constants block advertises its
+          full audit reach.
+        - Mid-file tick 263 doc-comment updated: "Extending the same
+          read-back onto the APPROVE branch is option (s3) available on
+          tick 264" → "landed on tick 264 in the approve describe block
+          below".
+        - Added 1 post-PATCH read-back block (~170 lines: ~72 lines of
+          justifying comment + ~98 lines of GET + row locator +
+          plain-object guard + discriminated-union switch + per-key
+          expects) inside the approve describe block, immediately after
+          the existing linked_promotion_code_id null assertion, before
+          the "Deeper ledger-row assertions" trailing comment.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no vitest/Playwright runtime posture
+          change. Matches ticks 223-263 discipline: tighten one
+          dimension (in this case extend content-pin coverage to the
+          admin list route's non-default ?status=approved filter path)
+          with zero net new imports.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: 11 R-01 files + 31 R-03 routes
+          scanned, 3 exemptions, 0 violations
+        - npx vitest run: 75 files 954/954 pass (unchanged — Playwright
+          specs are excluded from vitest by design)
+
+      Files:
+        - web/tests/e2e/reseller/admin-requests-patch-authz.spec.ts
+          (module-scope constants header expanded from tick-262+263 to
+          tick-262+263+264 coverage; mid-file tick 263 doc-comment updated
+          from "option (s3) available on tick 264" to "landed on tick 264
+          in the approve describe block below"; post-PATCH read-back GET +
+          discriminated-union payload guard added after the approve
+          block's linked_promotion_code_id null assertion, citing
+          requests.ts:41-44 as the union source, requests.ts:63-67 +
+          validator body ranges as the per-key invariant source, and
+          route.ts:317-319 / 200-293 as the reason a read-back GET is
+          needed rather than pinning the PATCH response body directly.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.263 → 2026-07-23.264; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no P8.5-gated code_request
+          work (option (c) still blocked), no production-code touch.
+          Consistent with ticks 234-263's incremental-pin pattern.
+        - Approve block only. code_request approve branch intentionally
+          untouched — that path is still Stripe-mint-blocked per P8.5.
+          Next natural picks on tick 265: (a) extending the same read-
+          back to the reseller-scoped GET list route for ?status=denied
+          or ?status=cancelled or ?status=approved (there is no reseller-
+          scoped equivalent for these three non-default filter values
+          today), or (b) adding a decision_at ISO-8601 timestamp shape
+          pin (typeof-string + ISO regex) to the read-back rows so a
+          drift in the reseller_requests.decision_at column from
+          timestamptz to something else surfaces, following the same
+          one-surface-at-a-time discipline the tick 259/260/261/262/263
+          sequence used across the list + deny + cancel surfaces.
+
   - tick: 263
     ran_at: 2026-07-23
     action: p10_admin_requests_patch_cancel_post_readback_per_key_payload_content_pins_option_s2

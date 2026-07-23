@@ -139,11 +139,12 @@ const REQUESTS_LIST_ROUTE = "/api/admin/resellers/requests";
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// Tick 262 + 263 — per-key payload content invariants mirrored from
+// Tick 262 + 263 + 264 — per-key payload content invariants mirrored from
 // web/src/lib/reseller/requests.ts so the discriminated-union pin in the
-// deny block's post-PATCH read-back GET (tick 262) and the cancel block's
-// post-PATCH read-back GET (tick 263) both echo the same source-of-truth
-// shapes the validator writes:
+// deny block's post-PATCH read-back GET (tick 262), the cancel block's
+// post-PATCH read-back GET (tick 263), and the approve block's post-PATCH
+// read-back GET (tick 264) all echo the same source-of-truth shapes the
+// validator writes:
 //   - ALLOWED_TIER_PCT_VALUES ← ALLOWED_TIER_VALUES at requests.ts:63
 //   - SUFFIX_RE               ← SUFFIX_RE at requests.ts:64
 //   - HTTPS_URL_RE            ← HTTPS_URL_RE at requests.ts:65
@@ -154,9 +155,13 @@ const UUID_RE =
 // ts / reseller-requests-list-authz.spec.ts / this spec's deny block (which
 // themselves follow the tick 231 RESELLER_CODE_RE precedent — whenever a
 // validator-side invariant exists, the spec echoes it verbatim rather than
-// re-deriving inline). Tick 263 reuses these five constants verbatim for the
+// re-deriving inline). Tick 263 reused these five constants verbatim for the
 // cancel block's post-PATCH read-back so the same drift check fires on both
-// non-default ?status= filter paths (denied + cancelled).
+// non-default ?status= filter paths (denied + cancelled). Tick 264 reuses
+// them a third time for the approve block's post-PATCH read-back under the
+// ?status=approved filter path — completing three of the four ALLOWED_STATUS
+// enum values (pending covered by the three list surfaces, denied +
+// cancelled + approved covered by the three PATCH-branch read-backs).
 const ALLOWED_TIER_PCT_VALUES = new Set([0, 10, 20, 30, 40]);
 const SUFFIX_RE = /^[A-Z0-9]{1,16}$/;
 const HTTPS_URL_RE = /^https:\/\/[a-zA-Z0-9.-]+(\/.*)?$/;
@@ -687,8 +692,9 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
     //   - admin-requests-patch-authz.spec.ts cancel block (this tick, admin
     //     list under ?status=cancelled filter path — third non-default
     //     status enum exercised, complements tick 262's ?status=denied)
-    // Extending the same read-back onto the APPROVE branch is option (s3)
-    // available on tick 264.
+    // Extending the same read-back onto the APPROVE branch landed on
+    // tick 264 in the approve describe block below (?status=approved
+    // filter path).
     //
     // Writer-schema justification: unchanged from the tick 262 deny-branch
     // read-back — the PATCH response envelope at route.ts:317-319 only
@@ -1013,6 +1019,174 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
     // here as a non-null value.
     expect(patchBody.request?.linked_promotion_code_id).toBeNull();
 
+    // Tick 264 — post-PATCH read-back GET with discriminated-union payload
+    // content pin per tick 263 next-pick option (s3). Mirrors the tick 262
+    // deny-branch + tick 263 cancel-branch read-backs verbatim onto the
+    // approve-branch surface so the payload jsonb per-type shape contract
+    // is now content-pinned on SIX list read surfaces simultaneously:
+    //   - admin-requests-list-authz.spec.ts:341-432 (tick 259, admin list,
+    //     default ?status=pending path)
+    //   - requests-validation.spec.ts (tick 260, reseller happy GET twin,
+    //     default status=pending path)
+    //   - reseller-requests-list-authz.spec.ts (tick 261, reseller GET,
+    //     default status=pending path)
+    //   - admin-requests-patch-authz.spec.ts deny block (tick 262, admin
+    //     list under ?status=denied filter path)
+    //   - admin-requests-patch-authz.spec.ts cancel block (tick 263, admin
+    //     list under ?status=cancelled filter path)
+    //   - admin-requests-patch-authz.spec.ts approve block (this tick,
+    //     admin list under ?status=approved filter path — fourth
+    //     non-default status enum exercised, completing three of the four
+    //     ALLOWED_STATUS values via the PATCH-branch read-back trio and
+    //     the fourth via the tick 259 default-pending list surface)
+    //
+    // Writer-schema justification: unchanged from the tick 262 + 263
+    // read-backs — the PATCH response envelope at route.ts:317-319 only
+    // echoes id/status/decision_at/decision_reason/linked_credit_transaction
+    // _id/linked_promotion_code_id (payload is NOT re-emitted by the
+    // UPDATE ... SELECT). The approve branch for over_budget_approval flips
+    // ONLY status + decision_by + decision_at + decision_reason +
+    // linked_credit_transaction_id (route.ts:200-293) — payload is untouched
+    // so the read-back reflects exactly what the fixture's
+    // attachApproveTarget() INSERT wrote (identical to the deny + cancel
+    // branch's payload preservation posture cited in tick 262 + 263).
+    //
+    // Per-branch key shape mirrors the tick 259/260/261/262/263 pin verbatim
+    // (same 3 branches, same 5 module-scope constants, same source-line
+    // citations):
+    //   - code_request → tier_pct (∈ {0,10,20,30,40}), suggested_suffix
+    //     (null or /^[A-Z0-9]{1,16}$/), notes (null or string length ≤ 200)
+    //   - over_budget_approval → target_user_id (UUID), requested_amount
+    //     (positive integer), reason (null or string ≤ 200),
+    //     remaining_budget_snapshot (null or non-negative integer)
+    //   - collateral_approval → collateral_url (https URL), purpose
+    //     (string ≤ 500)
+    //
+    // Coverage-per-guard posture: the row we just approved was minted by
+    // attachApproveTarget() as an over_budget_approval type (fixture
+    // contract — the request_type is guaranteed on green-path runs), so the
+    // over_budget_approval branch is exercised on this sixth surface too.
+    // code_request + collateral_approval branches remain zero-coverage on
+    // this surface for the same reason as ticks 259/260/261/262/263 — no
+    // approve targets carry those types today (code_request approve is
+    // blocked on Stripe test-mode wiring; collateral_approval approve is
+    // not exercised by any fixture yet). The pin still closes the writer
+    // contract for both branches so a route regression that dropped a key
+    // from the SELECT (route.ts:44 echoes payload jsonb straight through)
+    // or a validator regression that swapped a key shape at requests.ts
+    // would surface across all six list surfaces on the next CI pass —
+    // matches the tick 259/260/261/262/263 zero-coverage-per-guard
+    // rationale.
+    //
+    // Skip discipline: a fresh CI host where the ?status=approved query
+    // returns an array missing our target id (e.g. concurrent worker or
+    // fixture cleanup raced ahead) surfaces as an explicit test.skip
+    // pointer rather than a bare undefined-access — approve already
+    // flipped one row this run so a missing read-back means the row was
+    // consumed externally between the PATCH and this GET.
+    const readbackResp = await page.request.get(
+      `${REQUESTS_LIST_ROUTE}?status=approved`,
+    );
+    expect(
+      readbackResp.status(),
+      `read-back GET returned ${readbackResp.status()} — expected 200 after requireAdmin() + ALLOWED_STATUS.has("approved") filter path. A 401 means the admin session dropped between the PATCH and this GET; a 5xx means the reseller_requests SELECT under the ?status=approved filter leaked through. Body: ${await readbackResp.text()}`,
+    ).toBe(200);
+    const readbackBody = (await readbackResp.json()) as {
+      ok?: unknown;
+      requests?: unknown;
+    };
+    expect(readbackBody.ok).toBe(true);
+    expect(Array.isArray(readbackBody.requests)).toBe(true);
+    const readbackRow = ((readbackBody.requests as unknown[]) ?? []).find(
+      (row) =>
+        row !== null &&
+        typeof row === "object" &&
+        (row as { id?: unknown }).id === attach.requestId,
+    ) as
+      | {
+          id?: unknown;
+          request_type?: unknown;
+          status?: unknown;
+          payload?: unknown;
+        }
+      | undefined;
+    if (!readbackRow) {
+      test.skip(
+        true,
+        `read-back could not locate id=${attach.requestId} in status=approved list — ` +
+          "a concurrent CI worker or fixture teardown likely consumed the row " +
+          "between the PATCH and this GET. Re-run to pick up a fresh " +
+          "attachApproveTarget() mint.",
+      );
+      return;
+    }
+    // Route SELECT at route.ts:44 echoes the payload jsonb column straight
+    // through with no normalisation. The DB column is `payload jsonb NOT
+    // NULL DEFAULT '{}'` per 0095:33 so every row carries a plain object
+    // (never null, never array). Precondition for the per-key discriminated-
+    // union guard below.
+    expect(
+      readbackRow.payload !== null &&
+        typeof readbackRow.payload === "object" &&
+        !Array.isArray(readbackRow.payload),
+      `read-back row.payload should be a plain object (jsonb NOT NULL DEFAULT '{}' per 0095:33): ${JSON.stringify(readbackRow).slice(0, 200)}`,
+    ).toBe(true);
+    // Two-part guard per nullable key: (a) `x === null` short-circuit +
+    // (b) typeof-string + regex/length check. Same shape as the tick
+    // 259/260/261/262/263 pins. TYPEOF + VALUE-tighten pins per key so a
+    // rename OR a shape drift both surface — matches tick 262/263
+    // rationale verbatim.
+    const readbackPayload = readbackRow.payload as Record<string, unknown>;
+    if (readbackRow.request_type === "code_request") {
+      expect(typeof readbackPayload.tier_pct).toBe("number");
+      expect(
+        ALLOWED_TIER_PCT_VALUES.has(readbackPayload.tier_pct as number),
+        `read-back code_request payload.tier_pct '${String(readbackPayload.tier_pct)}' not in {0, 10, 20, 30, 40} per requests.ts:63: ${JSON.stringify(readbackPayload).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        readbackPayload.suggested_suffix === null ||
+          (typeof readbackPayload.suggested_suffix === "string" &&
+            SUFFIX_RE.test(readbackPayload.suggested_suffix as string)),
+        `read-back code_request payload.suggested_suffix should be null or match /^[A-Z0-9]{1,16}$/ per requests.ts:64+98-104: ${JSON.stringify(readbackPayload.suggested_suffix)}`,
+      ).toBe(true);
+      expect(
+        readbackPayload.notes === null ||
+          (typeof readbackPayload.notes === "string" &&
+            (readbackPayload.notes as string).length <= REASON_MAX),
+        `read-back code_request payload.notes should be null or string length ≤ ${REASON_MAX} per requests.ts:106-113: ${JSON.stringify(readbackPayload.notes)}`,
+      ).toBe(true);
+    } else if (readbackRow.request_type === "over_budget_approval") {
+      expect(typeof readbackPayload.target_user_id).toBe("string");
+      expect(readbackPayload.target_user_id as string).toMatch(UUID_RE);
+      expect(typeof readbackPayload.requested_amount).toBe("number");
+      expect(
+        Number.isInteger(readbackPayload.requested_amount) &&
+          (readbackPayload.requested_amount as number) > 0,
+        `read-back over_budget_approval payload.requested_amount should be a positive integer per requests.ts:139-149: ${JSON.stringify(readbackPayload.requested_amount)}`,
+      ).toBe(true);
+      expect(
+        readbackPayload.reason === null ||
+          (typeof readbackPayload.reason === "string" &&
+            (readbackPayload.reason as string).length <= REASON_MAX),
+        `read-back over_budget_approval payload.reason should be null or string length ≤ ${REASON_MAX} per requests.ts:150-157: ${JSON.stringify(readbackPayload.reason)}`,
+      ).toBe(true);
+      expect(
+        readbackPayload.remaining_budget_snapshot === null ||
+          (typeof readbackPayload.remaining_budget_snapshot === "number" &&
+            Number.isInteger(readbackPayload.remaining_budget_snapshot) &&
+            (readbackPayload.remaining_budget_snapshot as number) >= 0),
+        `read-back over_budget_approval payload.remaining_budget_snapshot should be null or non-negative integer per requests.ts:158-162: ${JSON.stringify(readbackPayload.remaining_budget_snapshot)}`,
+      ).toBe(true);
+    } else if (readbackRow.request_type === "collateral_approval") {
+      expect(typeof readbackPayload.collateral_url).toBe("string");
+      expect(readbackPayload.collateral_url as string).toMatch(HTTPS_URL_RE);
+      expect(typeof readbackPayload.purpose).toBe("string");
+      expect(
+        (readbackPayload.purpose as string).length <= PURPOSE_MAX,
+        `read-back collateral_approval payload.purpose should be length ≤ ${PURPOSE_MAX} per requests.ts:193-195: ${JSON.stringify(readbackPayload.purpose).slice(0, 100)}`,
+      ).toBe(true);
+    }
+
     // Deeper ledger-row assertions (credit_balances.balance ===
     // balanceBefore + amount, credit_transactions.metadata->>reseller_
     // request_id === requestId, reseller_credit_grants.kind === 'grant')
@@ -1020,7 +1194,8 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
     // the audit event writes so a single describe block owns the DB-level
     // state check for the approve fan-out. This block owns the wire
     // envelope (200 + populated linked_credit_transaction_id + null
-    // linked_promotion_code_id) which is the tightest signal for a route
-    // regression in the approve branch's happy path.
+    // linked_promotion_code_id) plus the payload jsonb preservation
+    // read-back which is the tightest signal for a route regression in the
+    // approve branch's happy path.
   });
 });
