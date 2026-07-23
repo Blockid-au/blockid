@@ -3,7 +3,11 @@
 import * as React from "react";
 import type { WizardState } from "./wizard-types";
 
-const STEP_LABELS = ["Segment", "Goal", "Plan", "Trial", "Payment"];
+// Kept in step-order alignment with `WizardState["step"]` (1..6). The 6th
+// slot — "Startup" — is the activation-moment step added by real-world
+// audit #8 (see wizard-types.ts header). If you re-order or rename these,
+// keep the reducer's MAX_STEP + `WIZARD_TOTAL_STEPS` in sync.
+const STEP_LABELS = ["Segment", "Goal", "Plan", "Trial", "Payment", "Startup"];
 
 export function WizardProgress({ step }: { step: WizardState["step"] }) {
   return (

@@ -1,8 +1,12 @@
 "use client";
 
 // Main shell for the BlockID.au v2 onboarding wizard: segment -> goal ->
-// tier -> trial consent -> payment (5 steps). See
-// knowledge-base/upgrade-plan-2026-07-16/cpo-spec.md §5-6.
+// tier -> trial consent -> payment -> first startup (6 steps). See
+// knowledge-base/upgrade-plan-2026-07-16/cpo-spec.md §5-6. Step 6 was added
+// by real-world audit #8
+// (docs/plans/real-world-workflow-parity-audit-2026-07-23.md §6): activation
+// lifts when the flow ends with the user's first meaningful action —
+// naming what they're building — rather than a payment screen.
 //
 // State lives in a single useReducer (wizardReducer). On every change it is
 // (a) persisted to localStorage so a refresh/bounce resumes in place, and
@@ -27,8 +31,10 @@ import { StepGoal } from "@/components/onboarding/step-goal";
 import { StepTier } from "@/components/onboarding/step-tier";
 import { StepTrial } from "@/components/onboarding/step-trial";
 import { StepPayment } from "@/components/onboarding/step-payment";
+import { StepFirstStartup } from "@/components/onboarding/step-first-startup";
 import {
   wizardReducer,
+  WIZARD_TOTAL_STEPS,
   type Segment,
   type WizardState,
 } from "@/components/onboarding/wizard-types";
@@ -88,7 +94,7 @@ function loadInitialState(initialParams: OnboardingInitialParams): WizardState {
   }
   if (initialParams.step) {
     const n = Number(initialParams.step);
-    if (Number.isFinite(n) && n >= 1 && n <= 5) {
+    if (Number.isFinite(n) && n >= 1 && n <= WIZARD_TOTAL_STEPS) {
       state.step = n as WizardState["step"];
     }
   }
@@ -180,6 +186,9 @@ export function OnboardingWizard({
           {state.step === 4 && <StepTrial state={state} dispatch={dispatch} />}
           {state.step === 5 && (
             <StepPayment state={state} dispatch={dispatch} />
+          )}
+          {state.step === 6 && (
+            <StepFirstStartup state={state} dispatch={dispatch} />
           )}
         </div>
 

@@ -1,12 +1,33 @@
 // src/lib/scn-detect.ts
 //
-// SCN context detection — turns whatever a founder gives us (an idea/biz
-// description, a website URL, a GitHub repo, revenue numbers, or answers to
-// follow-up questions) into a detected startup CONTEXT: stage, growth phase,
-// a VC-grade valuation, the SCN follow-up questions still worth asking, and the
-// next-best-action. This is the front door of the SCN model
-// (Validation → Position → Value → Direction → Capital): detect where they are,
-// then value and reason about what comes next — all from the evidence given.
+// SCN — Startup Compass (BlockID's synthesis overlay).
+//
+// SCN is a 5-dimension lens that synthesises widely-used, externally-published
+// startup frameworks into a single actionable diagnostic. It is NOT
+// BlockID-proprietary theory — it is a bundling that spares founders from
+// juggling 8-12 disparate frameworks. Each dimension links back to its
+// primary source in the /guide chapters and the /guide/scn primer.
+//
+//   - Validation ← Sean Ellis "40% Rule" PMF survey + Superhuman PMF Engine
+//                  (Rahul Vohra). See /guide/05-pmf.
+//   - Position   ← Porter's Five Forces + Kim/Mauborgne Blue-Ocean Strategy.
+//                  See /guide/03-market-research.
+//   - Value      ← T2D3 growth trajectory (Battery Ventures, Neeraj Agrawal)
+//                  + Bessemer BVP "State of the Cloud" SaaS benchmarks.
+//                  See /guide/06-revenue and /guide/07-growth.
+//   - Direction  ← Christensen "Jobs-to-be-Done" (JTBD) + Amazon PR/FAQ
+//                  working-backwards. See /guide/02-idea-validation.
+//   - Capital    ← YC seed hurdle-rate guidance + Bessemer BVP canonical
+//                  stage definitions (Pre-seed → Seed → A → B → Growth).
+//                  See /guide/10-fundraise.
+//
+// Externally we display SCN as "Startup Compass". The identifier SCN is kept
+// as the internal code symbol and API surface for backward compatibility.
+//
+// Turns whatever a founder gives us (an idea/biz description, a website URL,
+// a GitHub repo, revenue numbers, or answers to follow-up questions) into a
+// detected startup CONTEXT: stage, growth phase, a VC-grade valuation, the
+// SCN follow-up questions still worth asking, and the next-best-action.
 //
 // Composes the existing brains: extractSignals/detectStage (svi-analysis),
 // getCurrentPhase (startup-growth-phases) and buildVcValuationReport

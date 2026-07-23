@@ -1,9 +1,15 @@
 // Shared types + reducer for the BlockID.au v2 onboarding wizard.
 //
-// The wizard is a 5-step client-side flow: segment -> goal -> tier -> trial
-// consent -> payment. State lives in a single reducer so it can be
-// round-tripped to localStorage + /api/onboarding/save-progress from one
-// place (see onboarding-wizard.tsx).
+// The wizard is a 6-step client-side flow: segment -> goal -> tier -> trial
+// consent -> payment -> first startup. State lives in a single reducer so it
+// can be round-tripped to localStorage + /api/onboarding/save-progress from
+// one place (see onboarding-wizard.tsx).
+//
+// Step 6 ("Create first startup") is the activation moment — see real-world
+// audit #8 (docs/plans/real-world-workflow-parity-audit-2026-07-23.md §6):
+// Atlassian/Canva-style onboarding lifts activation when the flow ends with
+// the user's first meaningful action (a workspace / startup profile),
+// not a payment screen.
 
 /**
  * NOTE: this 5-way segment is the wizard's own UX segmentation — it is
@@ -24,12 +30,24 @@ export type Segment =
 export type Goal = string;
 
 export interface WizardState {
-  step: 1 | 2 | 3 | 4 | 5;
+  step: 1 | 2 | 3 | 4 | 5 | 6;
   segment?: Segment;
   goal?: Goal;
   planId?: string;
   consentGranted?: boolean;
   paymentMethodId?: string;
+  /**
+   * ISO timestamp stamped when the user completes (or explicitly skips) the
+   * Step-6 "create first startup" activation moment. Real-world audit #8.
+   * Persisted alongside the rest of `state` via /api/onboarding/save-progress.
+   */
+  firstStartupCreatedAt?: string;
+  /**
+   * Server-generated project id of the startup created in Step 6 (when the
+   * user completes it rather than skipping). Kept so downstream surfaces
+   * (dashboard "welcome" tour, agent-fanout) can link straight to it.
+   */
+  firstStartupId?: string;
   error?: string;
   loading?: boolean;
 }
@@ -40,14 +58,19 @@ export type WizardAction =
   | { type: "SET_PLAN"; planId: string }
   | { type: "SET_CONSENT"; granted: boolean }
   | { type: "SET_PAYMENT_METHOD"; pmId: string }
+  | { type: "SET_FIRST_STARTUP"; createdAt: string; projectId?: string }
   | { type: "NEXT" }
   | { type: "BACK" }
-  | { type: "GO_TO"; step: 1 | 2 | 3 | 4 | 5 }
+  | { type: "GO_TO"; step: 1 | 2 | 3 | 4 | 5 | 6 }
   | { type: "SET_ERROR"; error?: string }
   | { type: "SET_LOADING"; loading: boolean };
 
 const MIN_STEP = 1;
-const MAX_STEP = 5;
+const MAX_STEP = 6;
+
+/** Total number of steps in the wizard. Exported so the progress indicator
+ * and the wizard shell agree on the same denominator. */
+export const WIZARD_TOTAL_STEPS = MAX_STEP;
 
 function clampStep(n: number): WizardState["step"] {
   return Math.min(MAX_STEP, Math.max(MIN_STEP, n)) as WizardState["step"];
@@ -75,6 +98,13 @@ export function wizardReducer(
       return { ...state, consentGranted: action.granted, error: undefined };
     case "SET_PAYMENT_METHOD":
       return { ...state, paymentMethodId: action.pmId, error: undefined };
+    case "SET_FIRST_STARTUP":
+      return {
+        ...state,
+        firstStartupCreatedAt: action.createdAt,
+        firstStartupId: action.projectId,
+        error: undefined,
+      };
     case "NEXT":
       return { ...state, step: clampStep(state.step + 1), error: undefined };
     case "BACK":
