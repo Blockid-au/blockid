@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.338
+version: 2026-07-23.339
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,178 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 339
+    ran_at: 2026-07-23
+    action: p10_promotion_codes_tier_pct_two_part_typeof_number_set_membership_lift_on_admin_reseller_detail_validation
+    result: |
+      Executes tick 338 next-pick option (a) verbatim: sweep the first
+      remaining pre-tick 320+ bare typeof assert on
+      admin-reseller-detail-validation.spec.ts —
+      `expect(typeof row.tier_pct).toBe("number")` at the prior row 354
+      on the promotion_codes[] loop. Lifted to the tick 320+ two-part
+      labelled discipline: (a) typeof-number half with diagnostic prose
+      naming writer schema source + PostgREST serialisation contract
+      + projection-side drop failure mode; (b) ALLOWED_TIER_PCTS.has
+      set-membership half with diagnostic prose naming the CHECK
+      backstop + the deterministic Stripe coupon namespace consequence.
+      Mirrors the tick 330 row.billing_model + row.status two-part
+      typeof + Set.has discipline on the top-level reseller row so the
+      promotion_codes[] cluster now carries symmetric assertion shape
+      across every projected column with an enum-shaped invariant
+      (row.tier_pct this tick, row.code via tick 232 PROMO_CODE_RE
+      already in place).
+
+      Shape lifted (mirrors tick 330 row.billing_model + row.status
+      two-part posture verbatim, adapted to the promotion_codes[] loop
+      lens):
+        - Writer-side source: reseller_promotion_codes.tier_pct
+          declared at web/supabase/migrations/0091_reseller_module_
+          foundations.sql:90 as `tier_pct int NOT NULL CHECK
+          (tier_pct IN (0,10,20,30,40))`. The DB CHECK is the sole
+          schema backstop for the tier enum — the P9.4 approve-branch
+          normalisation at web/src/lib/reseller/promotion-code-mint.ts
+          uses the tier as part of the deterministic coupon id
+          (res_<uuid8>_t<tier>) so a slip past the CHECK would also
+          poison the Stripe coupon namespace.
+        - Application read path: projected via .from(
+          "reseller_promotion_codes").select("id, tier_pct, code,
+          stripe_coupon_id, stripe_promotion_code_id, active,
+          created_at") on the detail route at web/src/app/api/admin/
+          resellers/[code]/route.ts:85-86 — the Promise.all fan-out
+          surfaces the promotion_codes array on every detail GET after
+          loadReseller resolves the parent row.
+        - Runtime enforcement in this spec: two-part guard mirroring
+          the tick 330 top-level reseller-row posture verbatim —
+            - (a) typeof-number labelled with diagnostic prose
+              preserves the NOT-NULL raw-type discipline. Catches a
+              PostgREST regression that returned null|undefined, a
+              schema-side type flip (int → text), or a projection-side
+              drop from the route.ts:86 SELECT tuple. Separated from
+              the set-membership check below so a raw-type flip does
+              not hide behind an out-of-band diagnostic.
+            - (b) ALLOWED_TIER_PCTS.has(row.tier_pct as number) shape
+              assert catches an unvalidated INSERT / bypass write
+              path that stamped tier_pct outside the {0,10,20,30,40}
+              set on ANY row of the promotion_codes cluster. A future
+              ALTER CHECK DROP or a superuser INSERT bypassing the
+              constraint would slip an out-of-band tier straight past
+              both admin-validator.ts and the P9.4 approve-branch
+              normalisation.
+        - Module-scope precedent: BILLING_MODELS + STATUSES already
+          live at module scope as Sets consumed by the tick 330 top-
+          level reseller-row two-part guards, so ALLOWED_TIER_PCTS is
+          the coherent addition of a third enum-Set alongside them
+          (typed as Set<number> because tier_pct is an int column,
+          distinct from the string enums on billing_model/status).
+
+      Rotation rationale:
+        - Closes the first outstanding tick-1710 baseline bare
+          typeof assert on the promotion_codes[] row cluster per
+          tick 338 option (a) verbatim. The row.code line
+          immediately below already carries the tick 232 twin
+          PROMO_CODE_RE second half, so this tick is a natural
+          symmetrisation with the sibling column on the same loop.
+        - Distinct from tick 338 (body.reseller.display_name two-
+          part typeof + non-blank on the single-row detail lens) in
+          TWO dimensions: (i) tick 339 targets the promotion_codes[]
+          loop-row lens rather than the single-row body.reseller
+          lens; (ii) the second half is a set-membership assert
+          rather than a trim non-blank assert. Both share the tick
+          320+ two-part labelled discipline.
+        - Distinct from ticks 327 + 336 (display_name two-part
+          typeof + non-blank on detail-authz + list-authz surfaces)
+          in ONE dimension: those two ticks were cross-surface twin
+          symmetrisation ticks over the same shape; this tick is a
+          within-file column sweep from the top-level reseller-row
+          cluster (already lifted at ticks 327/330/337) down to the
+          promotion_codes[] child-row cluster.
+        - One new module-scope const (ALLOWED_TIER_PCTS), no new
+          imports, no fixture change, no route change. The module-
+          scope const follows the BILLING_MODELS + STATUSES precedent
+          from the same file so a future tighter enum surface
+          (allowed_tiers array-shape lift on the top-level reseller
+          row already lifted at tick 288) can reuse the same
+          constant.
+
+      Coverage-per-guard posture: the two-part pin fires once per
+      row on the promotion_codes[] loop. The wave-5 row 168 seed
+      reseller (QAPROBEWHOLESALEACTIVE) surfaces tiers 20 + 40 per
+      the P10 wave-5 fixture doc so both halves fire twice per test
+      on that surface. On fresh hosts without the seeded fixture
+      the loop iterates zero rows and the pin block is skipped upstream
+      via loadTempReseller() short-circuit.
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-validation.spec.ts:
+            + module-scope ALLOWED_TIER_PCTS Set<number> const
+              inserted after STATUSES with tick 339 doc-comment
+              naming writer source (0091:90) + P9.4 Stripe coupon
+              namespace consequence + module-scope precedent
+              rationale (BILLING_MODELS/STATUSES).
+            + inline pin at prior row 354 lifted from bare
+              `expect(typeof row.tier_pct).toBe("number")` to a
+              labelled two-expect discipline: typeof-number half
+              with diagnostic prose + set-membership half with
+              admin-validator + P9.4 Stripe coupon namespace
+              reference. Inline tick-339 doc-comment placed above
+              the pin block for cross-column + cross-surface twin
+              traceability. The tick 232 PROMO_CODE_RE lines
+              immediately below preserved verbatim.
+        - No production code touched, no fixture change, no route
+          change, no new imports. Matches ticks 234-338 discipline
+          (comment-and-const-only tightening ticks are the accepted
+          P10 rotation shape while P8.5 remains HUMAN-BLOCKED on
+          Stripe env vars). The one module-scope const addition
+          follows the same file's own BILLING_MODELS + STATUSES
+          precedent.
+
+      Verification:
+        - `cd web && npx tsc --noEmit`: exit 0 (whole tree clean).
+        - `cd web && npm run lint:reseller`: R-01 11 files + R-03
+          32 routes + R-04 8 stripe files; 6 exemptions, 0
+          violations (unchanged from tick 338).
+        - Playwright specs excluded from vitest by design.
+
+      Frontier after tick 339: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5
+      clears. promotion_codes[].tier_pct two-part typeof + set-
+      membership pin now COMPLETE on the admin-reseller-detail-
+      validation surface — first of the four promotion_codes[] +
+      admins[] + attributions_summary bare typeof asserts that
+      tick 338 option (a) enumerated as follow-ups.
+
+      Next natural picks on tick 340:
+        (a) continue sweep on admin-reseller-detail-validation.spec.ts
+        — rows 378/379 (admins[].role + admins[].status typeof-string
+        pair; natural second half is a Set.has against the
+        reseller_admins.role + reseller_admins.status enum from 0091)
+        or rows 389/390 (attributions_summary.total + .active typeof-
+        number; natural second half is a Number.isFinite + >= 0 range
+        assert since these are non-negative counters from route.ts:
+        104-111).
+        (b) cross-surface twin lift on admin-reseller-detail-authz.
+        spec.ts: propagate the tick 339 promotion_codes[].tier_pct
+        two-part typeof + ALLOWED_TIER_PCTS discipline to the sibling
+        surface — the promotion_codes[] loop on that spec still
+        carries the pre-tick 320+ bare typeof assert per the tick 338
+        grep. Would mirror the tick 336-338 sequence that
+        symmetrised display_name across list-authz + detail-authz +
+        detail-validation.
+        (c) rotate to reseller_commissions_current[] cross-column
+        lifecycle summary cross-surface twin on
+        admin-reseller-loop-status-authz spec — the tick 334
+        detail-side commissions[] summary landed on admin-reseller-
+        detail-authz.spec.ts only; the loop-status spec has no
+        commissions references today so this would be a fresh
+        column-set introduction rather than a mirror.
+        (d) idle — frontier remains tight: P1.5 + P8.5 HUMAN-
+        BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks.
+    commit: (this tick)
+
   - tick: 338
     ran_at: 2026-07-23
     action: p10_reseller_display_name_message_symmetry_lift_on_admin_reseller_detail_validation_two_part_typeof_non_blank_pin

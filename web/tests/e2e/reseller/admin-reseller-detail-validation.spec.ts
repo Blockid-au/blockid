@@ -103,6 +103,19 @@ const UUID_RE =
 const PROMO_CODE_RE = /^[A-Z0-9]+$/;
 const BILLING_MODELS = new Set(["retail", "wholesale"]);
 const STATUSES = new Set(["active", "paused", "terminated"]);
+// Tick 339 — allowed tier_pct set for the promotion_codes[] row.tier_pct
+// two-part typeof-number + set-membership lift below (executes tick 338
+// next-pick option (a) verbatim). Mirrors the module-scope BILLING_MODELS +
+// STATUSES precedent above so the set-membership half of a two-part guard
+// reads off a single-source-of-truth constant rather than an inline literal.
+// Writer-side source: reseller_promotion_codes.tier_pct declared at
+// web/supabase/migrations/0091_reseller_module_foundations.sql:90 as
+// `tier_pct int NOT NULL CHECK (tier_pct IN (0,10,20,30,40))`. The DB CHECK
+// is the sole schema backstop for the tier enum — the P9.4 approve-branch
+// normalisation at web/src/lib/reseller/promotion-code-mint.ts uses the
+// tier as part of the deterministic coupon id (res_<uuid8>_t<tier>) so a
+// slip past the CHECK would also poison the Stripe coupon namespace.
+const ALLOWED_TIER_PCTS = new Set<number>([0, 10, 20, 30, 40]);
 
 interface ValidationCase {
   label: string;
@@ -351,7 +364,43 @@ test.describe("Admin reseller GET input validation — P10 wave-5 row 168 happy 
         typeof row.id === "string" && UUID_RE.test(row.id as string),
         `promotion_codes[].id should be UUID: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
-      expect(typeof row.tier_pct).toBe("number");
+      // Tick 339 — promotion_codes[].tier_pct two-part typeof-number +
+      // ALLOWED_TIER_PCTS set-membership lift on this detail-validation
+      // spec, mirroring the tick 330 row.billing_model + row.status two-
+      // part discipline on the top-level reseller row above. Executes
+      // tick 338 next-pick option (a) verbatim: the bare
+      // `expect(typeof row.tier_pct).toBe("number")` at the prior row
+      // 354 was the first outstanding tick-1710 baseline bare typeof
+      // pin on the promotion_codes[] row cluster (the row.code line
+      // below already carries the tick 232 twin PROMO_CODE_RE second
+      // half). Two-part guard:
+      //   (a) typeof-number half labelled with diagnostic prose
+      //       preserves the NOT-NULL raw-type discipline — catches a
+      //       schema-side type flip (int → text), a projection-side
+      //       drop from the reseller_promotion_codes SELECT tuple at
+      //       route.ts:86, or a PostgREST serialisation regression
+      //       that returned null|undefined. Separated from the set-
+      //       membership check below so a raw-type flip does not hide
+      //       behind an out-of-band diagnostic.
+      //   (b) ALLOWED_TIER_PCTS.has(row.tier_pct as number) shape
+      //       assert catches an unvalidated INSERT / bypass write path
+      //       that stamped tier_pct outside the {0,10,20,30,40} set —
+      //       the DB CHECK at 0091:90 is the sole schema backstop but
+      //       a future ALTER CHECK DROP or a superuser bypass would
+      //       slip an out-of-band tier straight past both admin-
+      //       validator.ts and the P9.4 approve-branch normalisation
+      //       (which additionally uses the tier in the deterministic
+      //       Stripe coupon id res_<uuid8>_t<tier> per web/src/lib/
+      //       reseller/promotion-code-mint.ts — an out-of-band tier
+      //       would also poison the Stripe coupon namespace).
+      expect(
+        typeof row.tier_pct,
+        `promotion_codes[].tier_pct '${String(row.tier_pct)}' should be a number (int NOT NULL CHECK (tier_pct IN (0,10,20,30,40)) per 0091:90; a schema-side type flip, a projection-side drop from the SELECT tuple at route.ts:86, or a PostgREST serialisation regression that returned null|undefined would surface here — separated from the set-membership check below so a raw-type flip does not hide behind an out-of-band diagnostic). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("number");
+      expect(
+        ALLOWED_TIER_PCTS.has(row.tier_pct as number),
+        `promotion_codes[].tier_pct '${String(row.tier_pct)}' should be one of {0,10,20,30,40} (0091:90 tier_pct int NOT NULL CHECK (tier_pct IN (0,10,20,30,40)) — DB CHECK is the sole schema backstop; an ALTER CHECK DROP or a superuser INSERT bypassing the constraint would slip an out-of-band tier straight past both admin-validator.ts and the P9.4 approve-branch normalisation, and would additionally poison the deterministic Stripe coupon id res_<uuid8>_t<tier> namespace at web/src/lib/reseller/promotion-code-mint.ts). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
       // Tick 232 twin-symmetrisation with admin-reseller-detail-authz.spec.ts
       // row 335: shape-pin promotion_codes[].code against PROMO_CODE_RE
       // (uppercase alphanumeric per buildPromoCodeName). A route regression
