@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.337
+version: 2026-07-23.338
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,148 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 338
+    ran_at: 2026-07-23
+    action: p10_reseller_display_name_message_symmetry_lift_on_admin_reseller_detail_validation_two_part_typeof_non_blank_pin
+    result: |
+      Executes tick 337 next-pick option (a) verbatim: rotate to the
+      sibling admin-reseller-detail-validation surface which was
+      identified as still carrying pre-tick 320+ bare typeof-string /
+      typeof-number / typeof-boolean asserts. The line 310
+      `expect(typeof body.reseller?.display_name).toBe("string")` was
+      the last bare tick-1710 baseline pin on the single-row
+      body.reseller lens on this spec that mirrors the columns
+      already lifted on the admin-reseller-detail-authz.spec.ts twin
+      (tick 327 display_name, tick 337 created_at/updated_at/
+      commission_share_pct) and the admin-resellers-list-authz.spec.ts
+      cohort twin (tick 336 display_name). Lift closes the display_name
+      raw-type + non-blank guard on this third admin-resellers-family
+      lens so the projected column now carries the tick 320+ labelled
+      two-expect discipline across all three surfaces (list cohort,
+      detail authz single-row, detail validation single-row).
+
+      Shape lifted (mirrors detail-authz tick 327 + list tick 336
+      posture verbatim, adapted to the single-row body.reseller lens):
+        - Writer-side source: resellers.display_name declared at
+          0091_reseller_module_foundations.sql:25 as `display_name
+          text NOT NULL`. The DB carries NO CHECK constraint against
+          blank/whitespace-only strings — an unvalidated INSERT
+          could stamp display_name='' and the database would accept
+          it.
+        - Application write path: admin-validator.ts:66-70 rejects
+          patch.display_name that trims to empty with
+          reason='display_name_blank' inside
+          validateAdminResellerPatch. Sole application-layer gate.
+        - Application read path: projected via select("*") on the
+          detail route at web/src/app/api/admin/resellers/[code]/
+          route.ts:37-41 loadReseller() single-row lookup, then
+          payload stamp at route.ts:113-120 surfaces display_name
+          on every detail GET.
+        - Runtime enforcement in this spec: two-part guard mirroring
+          the detail-authz tick 327 + list tick 336 posture verbatim —
+            - (a) typeof-string labelled with diagnostic prose
+              preserves the NOT-NULL raw-type discipline. Catches a
+              PostgREST regression that returned null|undefined, a
+              schema-side NOT NULL drop, or a projection-side drop
+              from the route.ts:37-41 SELECT tuple. Separated from
+              the trim non-blank check below so a raw-type flip does
+              not hide behind a length-based diagnostic.
+            - (b) String(body.reseller?.display_name ?? "").trim().
+              length > 0 shape assert catches an unvalidated INSERT /
+              bypass write path that stamped display_name='' or
+              display_name='   ' straight past the validator's
+              display_name_blank guard on the single row surfaced by
+              the /code lens.
+
+      Rotation rationale:
+        - Closes the last outstanding tick-1710 baseline bare pin
+          on body.reseller.display_name across the three admin-
+          resellers-family lenses. The detail-authz side lifted at
+          tick 327; the list side lifted at tick 336; the
+          detail-validation side was the last outstanding sibling.
+          Restores the tick 231-232 twin-symmetrisation discipline
+          so a future display_name non-blank invariant refactor
+          cannot leave any of the three lenses unpinned.
+        - Distinct from tick 337 (detail-authz created_at/updated_at/
+          commission_share_pct on body.reseller) in ONE dimension:
+          tick 337 lifted three timestamptz + numeric halves on the
+          authz spec's happy-body block; this tick lifts the text-
+          NOT-NULL display_name half on the detail-validation
+          spec's happy-body block. Both share the single-row
+          body.reseller lens and the two-part labelled discipline.
+        - No new imports, no new module-scope const, no fixture
+          change, no route change. Matches ticks 234-337 discipline
+          (comment-only tightening ticks are the accepted P10
+          rotation shape while P8.5 remains HUMAN-BLOCKED on
+          Stripe env vars).
+
+      Coverage-per-guard posture: the two-part pin fires once per
+      test on the single-row GET; the wave-5 row 168 seed reseller
+      (QAPROBEWHOLESALEACTIVE) surfaces a populated display_name so
+      both halves pass on hosts where the seed has fired. On fresh
+      hosts without the seeded fixture the happy path skips upstream
+      via loadTempReseller() and the pin block never fires.
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-validation.spec.ts:
+            + inline pin at prior row 310 lifted from bare
+              `expect(typeof body.reseller?.display_name).toBe(
+              "string")` to a labelled two-expect discipline: typeof-
+              string half with diagnostic prose + trim non-blank half
+              with admin-validator.ts:66-70 reference. Mirrors the
+              detail-authz tick 327 + list tick 336 shape verbatim
+              adapted to the body.reseller single-row lens. Inline
+              tick-338 doc-comment placed above the pin for
+              cross-surface twin traceability.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope const, no
+          per-row assert added beyond the labelled two-part shape.
+          Matches ticks 234-337 discipline.
+
+      Verification:
+        - `cd web && npx tsc --noEmit`: exit 0 (whole tree clean).
+        - `cd web && npm run lint:reseller`: R-01 11 files + R-03
+          32 routes + R-04 8 stripe files; 6 exemptions, 0
+          violations (unchanged from tick 337).
+        - Playwright specs excluded from vitest by design.
+
+      Frontier after tick 338: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5
+      clears. Detail-validation body.reseller.display_name wire-shape
+      pin now COMPLETE across the three admin-resellers-family
+      lenses (list cohort tick 336, detail-authz single-row tick 327,
+      detail-validation single-row this tick).
+
+      Next natural picks on tick 339:
+        (a) continue sweep of remaining bare typeof asserts on
+        admin-reseller-detail-validation.spec.ts — row 331 (row.
+        tier_pct typeof-number on promotion_codes[]), row 338 (row.
+        code typeof-string on promotion_codes[] — already has a
+        trailing PROMO_CODE_RE regex second half so this would
+        mirror tick 331 style), rows 355/356 (row.role/row.status
+        typeof-string on admins[]), rows 366/367 (attributions_
+        summary.total/.active typeof-number). Any of the six could
+        anchor a tick 339 sweep.
+        (b) rotate to attributions_summary.by_source enum-tightening
+        exhaustiveness pass — the current pin accepts arbitrary
+        subsets of ALLOWED_ATTRIBUTION_SOURCES; a stronger pin
+        would assert every enum value present on hosts where the
+        wave-5 seed cohort exercises all three sources.
+        (c) rotate to reseller_commissions_current[] cross-column
+        lifecycle summary cross-surface twin on
+        admin-reseller-loop-status-authz spec — the tick 334
+        detail-side commissions[] summary landed on admin-reseller-
+        detail-authz.spec.ts only; the loop-status spec has no
+        commissions references today so this would be a fresh
+        column-set introduction rather than a mirror.
+        (d) idle — frontier remains tight: P1.5 + P8.5 HUMAN-
+        BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks.
+    commit: (this tick)
+
   - tick: 337
     ran_at: 2026-07-23
     action: p10_reseller_created_updated_at_and_commission_share_pct_message_prose_refresh_on_admin_reseller_detail_typeof_asserts

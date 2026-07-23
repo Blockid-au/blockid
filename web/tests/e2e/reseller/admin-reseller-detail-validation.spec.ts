@@ -307,7 +307,30 @@ test.describe("Admin reseller GET input validation — P10 wave-5 row 168 happy 
       body.reseller?.code,
       `reseller.code should equal fixture.code (uppercase form): ${JSON.stringify(body.reseller).slice(0, 200)}`,
     ).toBe(fixture.code);
-    expect(typeof body.reseller?.display_name).toBe("string");
+    // Tick 338 — reseller.display_name message-symmetry lift on this
+    // detail-validation spec, cross-surface twin of the tick 327 lift on
+    // admin-reseller-detail-authz.spec.ts and the tick 336 lift on
+    // admin-resellers-list-authz.spec.ts. Executes tick 337 next-pick
+    // option (a) verbatim: the last outstanding tick-1710 baseline bare
+    // `expect(typeof body.reseller?.display_name).toBe("string")` on this
+    // spec was the only projected column on the body.reseller single-row
+    // lens still carrying the bare typeof half. Two-part guard: (a)
+    // typeof-string labelled with diagnostic prose preserves the NOT-NULL
+    // raw-type discipline; (b) String(...).trim().length > 0 shape assert
+    // catches an unvalidated INSERT / bypass write path that stamped
+    // display_name='' or display_name='   ' straight past the admin-
+    // validator.ts:66-70 display_name_blank guard. Writer-side source:
+    // resellers.display_name declared at 0091:25 as `display_name text
+    // NOT NULL` — DB carries NO CHECK against blank/whitespace-only
+    // values so the trim non-blank half is the sole shape backstop.
+    expect(
+      typeof body.reseller?.display_name,
+      `reseller.display_name '${String(body.reseller?.display_name)}' should be a string (text NOT NULL per 0091:25; a schema-side NOT NULL drop, a projection-side drop from route.ts:37-41 select("*"), or a PostgREST serialisation regression that returned null|undefined would surface here — separated from the trim-non-blank check below so a raw-type flip does not hide behind a length-based diagnostic). Reseller: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe("string");
+    expect(
+      String(body.reseller?.display_name ?? "").trim().length > 0,
+      `reseller.display_name '${String(body.reseller?.display_name)}' should be a non-blank string (admin-validator.ts:66-70 rejects trimmed-empty writes with reason='display_name_blank' but the DB has no CHECK constraint against blank/whitespace-only values — a bypass write path that INSERTed display_name='' or display_name='   ' straight past validateAdminResellerPatch would surface here). Reseller: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe(true);
     expect(
       BILLING_MODELS.has(body.reseller?.billing_model as string),
       `reseller.billing_model should be retail|wholesale: ${JSON.stringify(body.reseller).slice(0, 200)}`,
