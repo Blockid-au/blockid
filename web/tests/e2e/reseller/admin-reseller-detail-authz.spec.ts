@@ -650,6 +650,44 @@ const UUID_RE =
 // in the admins[] child-row cluster — remaining un-tightened columns
 // are status (value-set enum), linked_at (ISO-8601 shape), and
 // revoked_at (nullable ISO-8601 shape).
+//
+// Tick 305 — admins[].status value-set enum tightening, second column
+// pinned in the reseller_admins[] child-row cluster opened at tick 304
+// per that tick's next-tick option (a). Natural pair to role because
+// role + status are the two enum-typed text columns on reseller_admins
+// (0091:71-74) and share the same CHECK-only enforcement posture —
+// neither column has an application write-path guard beyond the DB
+// CHECK. Column declared at 0091:73-74 as `status text NOT NULL DEFAULT
+// 'active' CHECK (status IN ('active','revoked'))` on the
+// reseller_admins table — the CHECK fully enumerates the legal value
+// set (two discrete strings: active for currently-linked admins,
+// revoked for tombstoned admins whose revoked_at timestamp is set).
+// NOTE: this enum is NARROWER than the resellers.status enum
+// {active, paused, terminated} captured by the module-scope STATUSES
+// Set at row 682 — reseller_admins.status is a link-lifecycle enum
+// (active|revoked), not a business-lifecycle enum (active|paused|
+// terminated), so a separate module-scope ALLOWED_ADMIN_STATUSES Set
+// is introduced rather than reusing STATUSES. Prior baseline landed
+// only a bare `expect(typeof row.status).toBe("string")`; this tick
+// promotes the guard to a two-part shape: (a) typeof-string preserving
+// the raw-type discipline the baseline pin already covered;
+// (b) ALLOWED_ADMIN_STATUSES.has() membership assert against the new
+// module-scope Set mirroring the CHECK enumeration. A schema-side
+// CHECK drop, a legacy INSERT that stamped a link-state outside the
+// enumeration ('disabled', 'pending'), or a PostgREST serialisation
+// regression that returned a mixed-case slug ('Active') would surface
+// here on the first offending row. Detail-surface only per the same
+// posture as ticks 299-304 — the admin-resellers-list route projects
+// the resellers-row shape only and does not fan out to reseller_admins;
+// the Promise.all leg that pulls admins rows is unique to the detail
+// route at web/src/app/api/admin/resellers/[code]/route.ts:89-93
+// (select("id, user_id, role, status, linked_at, revoked_at")). Fires
+// on every green CI run because seed-qa-reseller.mjs mints per-variant
+// admins rows per reseller cohort; on hosts without seeded admins the
+// for-loop is a no-op so the pin never fires. Continues the admins[]
+// child-row column-pin cluster — remaining un-tightened columns after
+// this tick are linked_at (ISO-8601 shape) and revoked_at (nullable
+// ISO-8601 shape).
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Uppercase-alphanumeric invariant for promotion_codes[].code — matches the
@@ -694,6 +732,18 @@ const ALLOWED_TIER_VALUES = new Set([0, 10, 20, 30, 40]);
 // outside the enumeration would land straight through PostgREST onto
 // the wire, which this Set catches on the first offending row.
 const ALLOWED_ADMIN_ROLES = new Set(["owner", "admin", "viewer"]);
+// Tick 305 — value set for admins[].status element membership. Mirrors
+// the DB CHECK at 0091:73-74 `status IN ('active','revoked')` on the
+// reseller_admins table. NARROWER than the resellers-row STATUSES Set
+// {active, paused, terminated} at row 682 because reseller_admins.status
+// is a link-lifecycle enum (link is either currently-active or
+// revoked/tombstoned), not the business-lifecycle enum used on the
+// resellers table. Application write path has no separate enum guard on
+// admin status writes — the CHECK is the sole enforcement layer — so a
+// schema-side CHECK drop or a legacy INSERT that stamped a status
+// outside the enumeration would land straight through PostgREST onto
+// the wire, which this Set catches on the first offending row.
+const ALLOWED_ADMIN_STATUSES = new Set(["active", "revoked"]);
 
 test.describe("Admin reseller GET pre-read authorization — P10 dry-run", () => {
   test("unauthenticated — GET with no session returns 401 no_user", async ({
@@ -1357,7 +1407,24 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         ALLOWED_ADMIN_ROLES.has(row.role as string),
         `admins[].role '${String(row.role)}' should be in the enum {owner,admin,viewer} per ck_reseller_admins role CHECK at 0091:71-72; a DB CHECK drop, a legacy INSERT that stamped a role outside the enumeration, or a PostgREST serialisation regression that returned a mixed-case slug ('Owner') would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
-      expect(typeof row.status).toBe("string");
+      // Tick 305 — admins[].status value-set enum tightening. Column
+      // source 0091:73-74 declares `status text NOT NULL DEFAULT
+      // 'active' CHECK (status IN ('active','revoked'))`. Two-part
+      // shape mirroring tick 304's role guard verbatim: (a) typeof-
+      // string preserves the raw-type discipline the baseline pin
+      // already covered; (b) ALLOWED_ADMIN_STATUSES.has() membership
+      // assert against the module-scope Set mirrors the DB CHECK
+      // enumeration (narrower than the resellers-row STATUSES enum
+      // — link-lifecycle vs business-lifecycle). See the tick 305 doc
+      // paragraph above ISO_TIMESTAMP_RE for the full rationale.
+      expect(
+        typeof row.status === "string",
+        `admins[].status '${String(row.status)}' should be a string (text NOT NULL per 0091:73; a schema-side widening, a PostgREST serialisation regression that returned null|undefined, or a projection-side drop from route.ts:89-93 select would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        ALLOWED_ADMIN_STATUSES.has(row.status as string),
+        `admins[].status '${String(row.status)}' should be in the enum {active,revoked} per ck_reseller_admins status CHECK at 0091:73-74; a DB CHECK drop, a legacy INSERT that stamped a status outside the enumeration ('disabled', 'pending'), or a PostgREST serialisation regression that returned a mixed-case slug ('Active') would surface here. NOTE: this enum is narrower than the resellers-row STATUSES set — reseller_admins.status is a link-lifecycle enum (active|revoked), not a business-lifecycle enum. Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
     }
 
     // Attributions summary — pins the {total, active, by_source} shape

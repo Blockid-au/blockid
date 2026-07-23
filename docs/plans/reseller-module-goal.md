@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.304
+version: 2026-07-23.305
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -658,6 +658,130 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 305
+    ran_at: 2026-07-23
+    action: p10_admins_status_value_set_enum_tightening_on_admin_reseller_detail
+    result: |
+      Second column tightened in the reseller_admins[] child-row cluster
+      opened at tick 304 — admins[].status. Tick 304 next-pick option (a)
+      taken verbatim. Continues the two-part value-set enum discipline
+      landed at ticks 299-304 across the promotion_codes[] cluster and
+      the admins[].role column.
+
+      Writer-schema justification:
+        - 0091_reseller_module_foundations.sql:73-74 declares
+          `status text NOT NULL DEFAULT 'active' CHECK (status IN
+          ('active','revoked'))` on reseller_admins — the CHECK fully
+          enumerates the legal value set at the DB layer. NARROWER than
+          the resellers-row STATUSES enum {active,paused,terminated}
+          because reseller_admins.status is a link-lifecycle enum
+          (active|revoked), not a business-lifecycle enum.
+        - Application write path has NO separate enum guard on admin
+          status writes — the CHECK is the sole enforcement layer,
+          matching the tick 304 admins[].role posture. A DB CHECK drop
+          or a legacy INSERT that stamped an out-of-enum status slug
+          lands straight through PostgREST onto the wire.
+        - Projected on the same Promise.all leg at
+          web/src/app/api/admin/resellers/[code]/route.ts:89-93
+          (select("id, user_id, role, status, linked_at, revoked_at")).
+
+      Design choice — promote the baseline bare typeof-string guard
+      `expect(typeof row.status).toBe("string")` to a full two-part
+      shape mirroring the tick 304 role guard verbatim:
+        - (a) typeof-string preserves the raw-type discipline the
+          baseline pin already covered; catches a schema-side widening
+          or a PostgREST regression that returned null|undefined.
+        - (b) ALLOWED_ADMIN_STATUSES.has() membership assert against a
+          new module-scope Set mirroring the CHECK enumeration. A DB
+          CHECK drop, a legacy INSERT that stamped an out-of-enum
+          status ('disabled', 'pending'), or a PostgREST serialisation
+          regression that returned a mixed-case slug ('Active') would
+          surface here on the first offending row.
+        - Separate module-scope const rather than reusing STATUSES
+          (row 682) because the enums are NARROWER — link-lifecycle
+          vs business-lifecycle.
+
+      Coverage-per-guard posture:
+        - Detail surface: wave-5 row 167 single-row GET fires the pin
+          N times per test, once per admins[] row on the
+          QAPROBEWHOLESALEACTIVE seed reseller. seed-qa-reseller.mjs
+          mints per-variant admins rows per reseller cohort so at least
+          one row exercises the enum on every green CI run.
+        - Fresh CI hosts without the QA reseller seed still green
+          because the for-loop is a no-op on zero rows (matches
+          tick 299/300/301/302/303/304 posture).
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 305 paragraph) added below
+              the tick 304 admins[].role block above ISO_TIMESTAMP_RE.
+            + new module-scope const ALLOWED_ADMIN_STATUSES = new Set([
+              "active", "revoked"]) placed after ALLOWED_ADMIN_ROLES
+              with a per-const doc-comment.
+            + wave-5 row 167 for-of loop over body.admins: bare
+              `expect(typeof row.status).toBe("string")` replaced by a
+              two-part assert — typeof-string guard followed by
+              ALLOWED_ADMIN_STATUSES.has() enum membership assert.
+        - No production code touched, no fixture change, no route
+          change, no new imports. Matches ticks 234-304 discipline
+          verbatim.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: R-01 + R-03 + R-04 scanned — 11 R-01
+          + 32 R-03 + 8 R-04 files, 6 exemptions; one PRE-EXISTING R-03
+          violation on web/src/app/api/branding/route.ts:53 is from
+          uncommitted ancillary pdf_branding wiring work (not owned by
+          this tick; the spec-only diff for tick 305 does not touch
+          the manifest surface).
+        - npx vitest run: 88 files 1058/1058 pass (Playwright specs
+          excluded from vitest by design; the new asserts fire when
+          `npx playwright test admin-reseller-detail-authz` runs on a
+          seeded host).
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-detail-authz.spec.ts
+          (module-scope doc-block extended with tick 305 paragraph;
+          module-scope const ALLOWED_ADMIN_STATUSES added after
+          ALLOWED_ADMIN_ROLES; admins[] for-loop row 1414 bare
+          typeof-string assert replaced by two-part typeof-string +
+          ALLOWED_ADMIN_STATUSES.has() enum guard.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.304 → 2026-07-23.305; this review_history entry
+          prepended noting the second-column tightening in the
+          reseller_admins[] child-row cluster.)
+
+      Design fidelity:
+        - Additive-plus-tighten only. No new spec-local test case, no
+          fixture-file delta, no seed-script change, no production-code
+          touch, no new imports. Consistent with ticks 234-304's
+          incremental-pin pattern.
+        - Detail-only tick — second column tightened in the
+          reseller_admins[] child-row cluster (0091:68-76). List surface
+          not touched because the list route doesn't project admins at
+          all.
+
+      Next natural picks on tick 306:
+        (a) continue the reseller_admins[] cluster with
+        admins[].linked_at ISO-8601 timestamp shape pin — 0091:75
+        `linked_at timestamptz NOT NULL DEFAULT now()`. Reuse the
+        module-scope ISO_TIMESTAMP_RE already used for
+        promotion_codes[].created_at at tick 300. Detail-surface only
+        per the same posture as this tick.
+        (b) continue with admins[].revoked_at nullable ISO-8601 shape
+        pin — 0091:76 `revoked_at timestamptz` (no NOT NULL). Nullable
+        variant of the linked_at shape; guard the two-part
+        null|typeof-string + ISO regex shape.
+        (c) rotate to reseller_attributions[] or reseller_commissions[]
+        clusters — larger fan-outs with more per-row columns; same
+        pinning discipline.
+        (d) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening ticks
+        while the two HUMAN-BLOCKED leaves await external unblock
+        signals.
+    commit: (this tick)
+
   - tick: 304
     ran_at: 2026-07-23
     action: p10_admins_role_value_set_enum_tightening_on_admin_reseller_detail
