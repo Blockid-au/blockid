@@ -2083,6 +2083,245 @@ const UUID_RE =
 //   (d) idle — the frontier remains tight (P1.5 + P8.5 HUMAN-
 //   BLOCKED, P11 never_completes, Track B closed, P10 continues
 //   accepting incremental pin-tightening ticks).
+//
+// Tick 334 — reseller_commissions_current[] cross-column lifecycle
+// invariant summary hoist. Executes tick 333 next-pick option (a)
+// verbatim: hoist the CASE-expression status derivation at
+// 0094:150-172 (that couples reseller_commission_events.event_type
+// history with the view-computed reseller_commissions_current.status
+// column) + the net_owed_cents derivation at 0094:173-177 (that sums
+// delta_aud_cents over the same event log) + the pending_until
+// timing invariant at 0094:42 (invoice.created + 7 days, gates the
+// nightly reseller-clear-commissions cron flipping pending_clearance
+// → cleared) into a module-scope doc-block summary. The eight per-
+// column shape pins at ticks 308-317 already narrate their halves of
+// the projected commissions[] tuple inline — tick 316 (status)
+// mentions "reseller_commissions_current view derives the status via
+// the CASE expression at 0094:150-172" and tick 315 (net_owed_cents)
+// mentions "the view computes net_owed_cents at 0094:173-177 as
+// `rc.commission_aud_cents + COALESCE(SUM(delta_aud_cents), 0)` over
+// every non-accrued/non-cleared/non-dispute_opened/non-dispute_won
+// event" — but the SUMMARY view naming ALL the coupled surfaces + the
+// event_type enumeration + the pending_until timing + the append-
+// only-log invariant they all key off has never lived at module-
+// scope in a form a future rotation could lift from without re-
+// reading ticks 315 + 316 + the reseller_commission_events schema in
+// full. Hoisting closes the reseller_commissions_current[] cluster —
+// the LAST uncovered child slot on the detail-route response shape
+// { ok, reseller, promotion_codes, admins, attributions_summary,
+// commissions } — into its symmetric summary state, matching the
+// promotion_codes[] cluster which tick 332 closed with the ck_stripe_
+// objects_by_tier tier→stripe-id summary, the admins[] cluster which
+// tick 326 closed with the status ⇔ revoked_at cross-column lifecycle
+// summary, the attributions_summary aggregate which tick 319 closed
+// with the total + active + by_source triple-pin summary, and the
+// resellers-row invariant which tick 333 closed with the ck_wholesale
+// _gst_required billing_model ⇔ gst_registered ⇔ abn summary. No
+// new imports, no new module-scope const, no per-column assert added —
+// the per-column pins at ticks 308-317 (see rows 3157-3316) are
+// already the runtime enforcement; this hoist is a documentation-
+// only close-out lift completing all FIVE child slots of the detail
+// route response shape.
+//
+// Cross-column invariant summary — commissions[].{status,
+// net_owed_cents, created_at, commission_aud_cents} ⇔ reseller_
+// commission_events(event_type, delta_aud_cents) + reseller_
+// commissions.pending_until
+//   Writer-side sources:
+//     (a) reseller_commissions ledger at 0094:31-73 — immutable base
+//     row minted per invoice.paid; carries commission_aud_cents (the
+//     base owed) + pending_until timestamptz NOT NULL (defaulted to
+//     invoice.created + 7 days by the webhook processor per the
+//     `-- invoice.created + 7 days` doc comment at 0094:42) + billing
+//     _model denormalised so the ck_commission_split CHECK at 0094:52-60
+//     can enforce the retail-vs-wholesale split legally (Postgres
+//     CHECK cannot reference resellers.billing_model directly).
+//     (b) reseller_commission_events append-only log at 0094:101-118 —
+//     event_type text NOT NULL CHECK IN ('accrued','cleared','refund_
+//     full','refund_partial','dispute_opened','dispute_lost',
+//     'dispute_won','void') per 0094:104-113. Every commission status
+//     change is a new row here; reseller_commissions is never mutated
+//     after the initial insert. delta_aud_cents int NOT NULL is the
+//     signed adjustment (accrued=+commission_aud_cents, cleared=0,
+//     refund_full=-commission_aud_cents, refund_partial=pro-rated
+//     negative, dispute_opened=0, dispute_lost=-remaining, dispute_
+//     won=0, void=-remaining per the branch-level doc-comments at
+//     0094:105-112). stripe_event_id text UNIQUE at 0094:115 anchors
+//     idempotency so a Stripe retry cannot double-write.
+//   View-derived surfaces (reseller_commissions_current at 0094:133-178):
+//     (a) status CASE expression at 0094:150-172 derives one of five
+//     values from the presence/absence of specific event_type rows:
+//       - 'clawed_back'  ⇔ EXISTS event_type IN (refund_full, dispute
+//                          _lost, void) — terminal-loss states short-
+//                          circuit all other branches.
+//       - 'dispute_open' ⇔ EXISTS event_type = 'dispute_opened' AND NOT
+//                          EXISTS event_type IN (dispute_won, dispute_
+//                          lost) — freezes clearance until resolved.
+//       - 'partially_refunded' ⇔ EXISTS event_type = 'refund_partial'
+//                          (evaluated only after clawback + dispute
+//                          branches so a partial-refund + full-refund
+//                          sequence surfaces as 'clawed_back').
+//       - 'cleared'      ⇔ EXISTS event_type = 'cleared' (fired by the
+//                          nightly reseller-clear-commissions cron at
+//                          web/src/app/api/cron/reseller-clear-
+//                          commissions/route.ts + crontab 15 3 * * *
+//                          per P3.3 sign-off, but only past pending_
+//                          until so the timing invariant lives on
+//                          pending_until + the cron's WHERE clause).
+//       - 'pending_clearance' ⇔ ELSE (default for freshly-accrued rows
+//                          still inside the pending_until window).
+//     (b) net_owed_cents = commission_aud_cents + COALESCE(SUM(delta_
+//     aud_cents) FILTER event_type NOT IN (accrued, cleared, dispute
+//     _opened, dispute_won), 0) at 0094:173-177 — sums adjustments
+//     over the event log. The FILTER exclusions matter: accrued is
+//     excluded because commission_aud_cents already carries the base
+//     (adding accrued.delta_aud_cents would double-count); cleared is
+//     excluded because its delta is 0 (informational only); dispute_
+//     opened / dispute_won are excluded because they are also 0-delta
+//     informational rows. Only refund_full / refund_partial / dispute
+//     _lost / void carry non-zero deltas, all negative, so net_owed_
+//     cents ≤ commission_aud_cents (may be negative when a clawback
+//     delta exceeds the base — pin at tick 315 deliberately omits the
+//     `>= 0` tail assert per its rationale).
+//   Application write paths:
+//     (a) Insert path — webhook helpers at web/src/lib/reseller/
+//     webhook-helpers.ts.planAccrualForLine (P3.2 pure lib, wired by
+//     P3.2b commit d155547) fires on invoice.paid, mints the immutable
+//     reseller_commissions row + writes the initial reseller_commission
+//     _events(event_type='accrued', delta=+commission_aud_cents) row
+//     inside the same webhook transaction.
+//     (b) Refund/clawback paths — same webhook-helpers module exposes
+//     refundGstReversal + prorateClawback which append refund_full /
+//     refund_partial / dispute_lost / void rows atop the initial
+//     accrued row (never mutate the base ledger row per D1-CTO-04 —
+//     "reseller_commissions is never mutated" per the table COMMENT
+//     at 0094:126-127). Stripe idempotency via reseller_commission_
+//     events.stripe_event_id UNIQUE at 0094:115 means a Stripe retry
+//     hitting the same charge.refunded event cannot double-write.
+//     (c) Clearance path — nightly cron at /api/cron/reseller-clear-
+//     commissions inserts reseller_commission_events(event_type=
+//     'cleared', delta=0) for every row past its pending_until without
+//     a terminal-loss or open-dispute event. Delta is informational
+//     only; the actual money-owed change happened at the 'accrued'
+//     event. The cron flip from pending_clearance → cleared is
+//     observable on the view side but leaves both underlying rows
+//     immutable.
+//   Read path: projected via
+//   web/src/app/api/admin/resellers/[code]/route.ts:99-105 with
+//   select("commission_id, stripe_invoice_id, list_price_aud_cents,
+//   discount_pct, commission_aud_cents, net_owed_cents, status,
+//   created_at") — .eq("reseller_id", row.id) + .order("created_at",
+//   descending) + .limit(50). Note the read path deliberately does
+//   NOT project pending_until (visible in the view at 0094:148 but
+//   suppressed at the wire) — the admin surface consumes the derived
+//   status verbatim rather than re-deriving from pending_until +
+//   created_at on the client, and net_owed_cents already encodes the
+//   money-owed truth so pending_until would be redundant on the
+//   detail response. A future admin-facing panel wanting to surface
+//   "N days until clearance" would need to extend the SELECT tuple
+//   at route.ts:99-105 to add pending_until — the view already
+//   projects it so no schema/view change would be required.
+//   Runtime enforcement in this spec: per-column pins at
+//     - rows 3157-3173 (commission_id typeof-string + UUID_RE, tick 308)
+//     - rows 3174-3193 (stripe_invoice_id typeof-string + STRIPE_
+//       INVOICE_ID_RE, tick 309)
+//     - rows 3194-3215 (list_price_aud_cents typeof-number + integer
+//       + > 0, tick 311)
+//     - rows 3216-3234 (discount_pct typeof-number + ALLOWED_TIER_
+//       VALUES Set.has, tick 312)
+//     - rows 3235-3256 (commission_aud_cents typeof-number + integer
+//       + >= 0, tick 314)
+//     - rows 3257-3277 (net_owed_cents typeof-number + integer, no
+//       sign assert, tick 315)
+//     - rows 3278-3297 (status typeof-string + ALLOWED_COMMISSION_
+//       STATUSES Set.has, tick 316)
+//     - rows 3298-3316 (created_at typeof-string + ISO_TIMESTAMP_RE,
+//       tick 317)
+//   fire on every green CI run against the QAPROBEWHOLESALEACTIVE
+//   seed reseller inside the for-loop at row 3156. Hosts without
+//   seeded commissions rows still green because the for-loop
+//   degrades gracefully to a no-op. No inline cross-column if/else
+//   assert added because the status derivation is view-computed (not
+//   a stored column) so the CASE expression itself IS the invariant
+//   — a hypothetical drift that returned status='cleared' AND net_
+//   owed_cents<0 would surface via the per-column pins independently
+//   (status membership + net_owed_cents integer), and the view
+//   definition is the sole enforcement layer for the coupling itself.
+//   Coverage-per-guard posture: wave-5 row 167 single-row GET fires
+//   the eight per-column pins up to 50 times per test (once per
+//   commissions[] row on the QAPROBEWHOLESALEACTIVE seed reseller).
+//   On hosts without seeded commission rows the for-loop is a no-op
+//   so none of the pins fire. The pins collectively enforce the
+//   projected tuple shape; the CASE + SUM invariants are enforced
+//   by the view itself on every PostgREST read.
+//   Symmetric-cluster posture: this summary hoist mirrors the tick
+//   333 resellers-row ck_wholesale_gst_required summary, the tick
+//   332 promotion_codes[] tier ⇔ stripe-id summary, the tick 326
+//   admins[] status ⇔ revoked_at summary, and the tick 319
+//   attributions_summary total + active + by_source summary. All
+//   five detail-route child slots (reseller row, promotion_codes[],
+//   admins[], attributions_summary, commissions[]) now carry a
+//   module-scope invariant summary at labelled tick-numbered prose.
+//   Distinct dimension from ticks 326 + 332: those child-row
+//   clusters carry a per-row if/else assert on the coupled columns
+//   (promotion_codes branches on tier_pct, admins branches on status)
+//   because both have a stored-column coupling; this cluster does
+//   NOT carry a per-row if/else because the coupling is VIEW-COMPUTED
+//   (status derives from event log via CASE, net_owed_cents derives
+//   from event log via SUM) so the view CASE expression + SUM
+//   expression ARE the invariant — pinning the same relationship on
+//   the wire would just re-derive the CASE logic on the client, adding
+//   client-side maintenance burden without catching a new failure
+//   mode (a view-definition drift already surfaces at the tick 316
+//   ALLOWED_COMMISSION_STATUSES membership pin).
+//
+// Rotation rationale:
+//   - Closes the reseller_commissions_current[] cluster symmetrically
+//     into its summary form and completes the FULL matrix of five
+//     detail-route child-slot summaries at module-scope: tick 319
+//     attributions_summary triple-pin (total + active + by_source),
+//     tick 326 admins[] status ⇔ revoked_at cross-column lifecycle,
+//     tick 332 promotion_codes[] tier ⇔ stripe-id disjunction, tick
+//     333 resellers-row billing_model ⇔ gst_registered ⇔ abn ck_
+//     wholesale_gst_required disjunction, tick 334 commissions[]
+//     status ⇔ event_type + net_owed_cents ⇔ delta_aud_cents view
+//     derivation (this tick). The detail-route response shape
+//     { ok, reseller, promotion_codes, admins, attributions_summary,
+//     commissions } now has EVERY child slot covered by a module-
+//     scope invariant summary — no further child-slot summary
+//     hoists remain on this surface.
+//   - No new imports, no new module-scope const, no fixture change,
+//     no route change, no per-row assert added — pure documentation-
+//     only close-out lift. Continues the P10 hardening posture per
+//     ticks 234-333 (comment-only tightening ticks are the accepted
+//     P10 rotation shape while P8.5 remains HUMAN-BLOCKED on Stripe
+//     env vars).
+//
+// Natural next-pick tick 335 candidates:
+//   (a) rotate to the cross-surface twin spec (admin-resellers-list-
+//   authz.spec.ts) — mirror any of the five detail-surface child-
+//   slot summaries onto the list surface. The list route projects a
+//   subset of the detail projection so only summaries applicable to
+//   the list-surface projection would fit; the tick 333 resellers-
+//   row ck_wholesale_gst_required summary is the most natural twin
+//   candidate since the list route also select("*") from resellers.
+//   This matches the tick 231-232 twin-symmetrisation discipline.
+//   (b) rotate to attributions_summary.by_source enum-tightening
+//   pass — the current pin at row 2979-2987 accepts arbitrary
+//   string keys against ALLOWED_ATTRIBUTION_SOURCES; a stronger pin
+//   would assert exhaustiveness (every enum value present) rather
+//   than membership (every present value in enum). Tightens the
+//   ck_reseller_attributions_source CHECK coverage.
+//   (c) rotate to per-column message-prose refresh on any of the
+//   ticks 283-317 pins where the wording predates the tick 320+
+//   two-part labelled discipline. Sibling to ticks 324 (promotion_
+//   codes messages) and 331 (resellers-row messages).
+//   (d) idle — the frontier remains tight (P1.5 + P8.5 HUMAN-
+//   BLOCKED, P11 never_completes, Track B closed, P10 continues
+//   accepting incremental pin-tightening ticks). All five detail-
+//   route child-slot summary hoists are now complete so the next
+//   rotation naturally moves to the list-surface twin (option a) or
+//   message-prose refresh (option c).
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Tick 309 — Stripe invoice ID shape regex. Matches the modern Stripe
