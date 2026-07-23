@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.271
+version: 2026-07-23.272
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,170 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 272
+    ran_at: 2026-07-23
+    action: p10_admin_requests_patch_readback_requested_by_uuid_pin_option_c
+    result: |
+      Landed tick 271's "natural next pick" option (c) as a requested_by UUID
+      wire-shape pin on all THREE post-PATCH read-back rows of admin-requests-
+      patch-authz.spec.ts (deny + cancel + approve blocks). Eighth per-column
+      pin on the same three surfaces after tick 265 (decision_at ISO-8601),
+      tick 266 (decision_by UUID), tick 267 (created_at ISO-8601), tick 268
+      (decision_reason value), tick 269 (request_type enum), tick 270 (status
+      enum value), and tick 271 (reseller_id UUID). Closes a route-projection
+      gap where a stripped-column regression at the list route (/api/admin/
+      resellers/requests/route.ts:43 explicitly lists requested_by as the
+      third column) would have left the read-back row without a requester
+      identifier — the PATCH-response envelope at route.ts:305-320 does NOT
+      stamp requested_by (only status + decision_* + linked_* columns are
+      touched) so the existing PATCH-response pins never exercised this
+      column at all.
+
+      Writer-schema justification:
+        - 0095_reseller_requests.sql:28 declares `requested_by uuid NOT NULL
+          REFERENCES public.app_users(id) ON DELETE RESTRICT`. The
+          NOT-NULL-plus-uuid guarantees the wire value is always a UUID
+          string on every green-path INSERT, and the ON DELETE RESTRICT
+          semantics guarantee the referenced app_users row cannot vanish
+          mid-fixture — so a null read-back here would surface a bona-fide
+          route or projection regression rather than a fixture race.
+        - Admin list route at /api/admin/resellers/requests/route.ts:43
+          projects requested_by as the third column of the SELECT list. A
+          drop from that projection would surface as a typeof-string guard
+          failure on this pin (undefined is not a string).
+        - No PATCH branch (deny at route.ts:296-311 / cancel at same fan-out
+          / approve at route.ts:200-320) writes requested_by, so the read-
+          back value mirrors whatever the reseller-side POST /api/reseller/
+          requests handler INSERTed at row creation time.
+
+      Design choice — reuse UUID_RE + three-surface symmetric pin:
+        - Reuses the module-scope UUID_RE constant (line 139-140) rather
+          than adding a ninth module-scope constant — same invariant as
+          the tick-266 decision_by + tick-271 reseller_id pins (all three
+          are uuid columns per 0095:27-28 + 0095:34; all three stamp UUID
+          strings via PostgREST serialisation).
+        - Two-part guard shape (matches tick 271 reseller_id pin verbatim,
+          one guard fewer than the three-part exact-string equality pins
+          from tick 268/270 because requested_by has no block-specific
+          expected literal — the reseller-side POST INSERTs an opaque
+          app_users UUID per run so we can only pin the shape not the
+          value): (a) typeof-string (catches a column-type flip from
+          uuid to say a bigint would surface as a number here — and
+          catches a projection drop of requested_by from the SELECT at
+          route.ts:43, which would fail the guard because undefined is
+          not a string), (b) UUID_RE (catches a drift in the uuid
+          serialisation shape from PostgREST or a route regression that
+          returned a placeholder-string value).
+        - Symmetric across all three surfaces (deny + cancel + approve)
+          per the "requested_by is populated at INSERT time and never
+          touched by any PATCH branch" rationale from tick 271's option
+          (c) description — the pin surface is uniform regardless of
+          which PATCH branch fired since none of them stamp
+          requested_by.
+        - Pin fires ONLY after the tick-271 reseller_id UUID pin has
+          passed on the same read-back row so tighter existing pins
+          surface first (matches tick 265→266→267→268→269→270→271
+          layering discipline verbatim).
+        - readbackRow inline type shape gains a new `requested_by?:
+          unknown;` field on all three declarations (deny/cancel/
+          approve) — second new inline-type-shape field addition
+          after tick 271's reseller_id, matching the projection order
+          at route.ts:43 (id, reseller_id, requested_by, request_type,
+          ...).
+
+      Coverage-per-guard posture:
+        - All three PATCH branches (deny + cancel + approve) exercise
+          requested_by on green-path CI runs — the reseller-side POST
+          seeder for wave-3 row 155 (deny), wave-5 row 155-b (cancel),
+          and attachApproveTarget() (approve) each INSERT a row scoped
+          to a distinct app_users requester, so the pin catches a
+          projection drop or column-type flip regardless of which
+          surface is exercised.
+        - No zero-coverage-per-guard risk on the shape guards — every
+          green-path fixture INSERTs a non-null UUID here so both the
+          typeof-string and UUID_RE guards are exercised on every read-
+          back surface. This is a tighter posture than tick 269/270's
+          enum value pins where some enum members were zero-coverage on
+          the wire.
+
+      Diagnostic delta of the pass:
+        - Zero new module-scope constants (reuses UUID_RE from line
+          139-140). One new field on each of the three inline
+          readbackRow type shapes (`requested_by?: unknown;` added
+          between `reseller_id?: unknown;` and `request_type?: unknown;`
+          to mirror the projection order at route.ts:43). One new two-
+          line assertion pair (typeof-string + UUID_RE) inside each of
+          the three read-back blocks after the tick-271 reseller_id
+          pin.
+        - Module-scope doc-comment block above the constants extended
+          with a new tick-272 paragraph describing the pin's writer-
+          schema justification + the UUID_RE reuse + the two-part
+          guard rationale.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no vitest/Playwright runtime posture
+          change. Matches ticks 223-271 discipline: tighten one
+          dimension (in this case add a new column pin to the
+          requested_by UUID column across three surfaces
+          simultaneously) with zero net new imports.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: 11 R-01 files + 31 R-03 routes
+          scanned, 3 exemptions, 0 violations
+        - npx vitest run: 75 files 954/954 pass (unchanged — Playwright
+          specs are excluded from vitest by design)
+
+      Files:
+        - web/tests/e2e/reseller/admin-requests-patch-authz.spec.ts
+          (module-scope constants doc-comment block gains a tick-272
+          paragraph describing the requested_by UUID pin + the UUID_RE
+          reuse justification; three inline readbackRow type shapes
+          each gain a `requested_by?: unknown;` field between
+          `reseller_id?: unknown;` and `request_type?: unknown;`
+          mirroring the projection order at route.ts:43; three read-
+          back blocks each gain a typeof-string + UUID_RE assertion
+          pair after the tick-271 reseller_id pin, each with a block-
+          scope comment citing 0095:28 as the column declaration source
+          and route.ts:43 as the projection surface.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.271 → 2026-07-23.272; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no production-code touch, no
+          new import, no widening of the guards on existing pins.
+          Consistent with ticks 234-271's incremental-pin pattern.
+        - Three surfaces at once (option c design was for a single new
+          pin type applied uniformly to all three read-back rows — the
+          tick 262/263/264/265/266/267/268/269/270/271 sequence already
+          established the three read-back rows share the same shape
+          contract for each pinned column; extending that contract to
+          include requested_by is a single logical unit rather than
+          three separate ticks).
+
+      Next natural picks on tick 273:
+        (a) extending the same read-back pin to the reseller-scoped GET
+        list route (still-outstanding tick 266/268/269/270/271 option a —
+        the reseller-scoped list route at /api/reseller/requests/route.ts
+        has its own SELECT + filter logic that today only has the tick
+        260/261 default-pending read-back pinned),
+        (b) adding a linked_credit_transaction_id UUID pin to the
+        approve-block read-back (asymmetric single-surface pin — deny +
+        cancel null this column per the ck_credit_link CHECK so only
+        the approve surface would carry it — ninth per-column pin),
+        (c) adding a linked_promotion_code_id UUID pin to the approve-
+        block read-back (asymmetric single-surface pin — deny + cancel
+        null this column per the ck_promo_link CHECK so only the
+        approve-code_request surface would carry it — but green-path
+        fixtures only seed over_budget_approval requests so this pin
+        would be zero-coverage on the wire; skippable pending a code_
+        request approve fixture),
+        (d) adding a resellers-join projection pin on the list route's
+        embedded `resellers(code, display_name)` (0095:44 admin route
+        SELECT clause) — a shape pin catches a route regression that
+        stripped the join.
+
   - tick: 271
     ran_at: 2026-07-23
     action: p10_admin_requests_patch_readback_reseller_id_uuid_pin_option_c
