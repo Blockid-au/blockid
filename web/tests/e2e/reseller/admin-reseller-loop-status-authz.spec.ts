@@ -720,6 +720,56 @@ test.describe("Admin reseller-loop status — P10 wave-5 row 173 happy path", ()
           `tick_history auto_deploy_finished row.head should be typeof string (reseller-goal-loop.mjs:367 threads the same \`headSha\` from mjs:358-359 as the paired auto_deploy_triggered row): ${JSON.stringify(row).slice(0, 200)}`,
         ).toBe("string");
       }
+      // tick 249 — auto_deploy_skipped stage schema pin (option y15;
+      // two-pin shape preserving the two-pin cadence established by
+      // ticks 240 + 242 + 244 + 245 + 247 + 248 rather than the
+      // available three-pin ceiling break). scripts/cron/reseller-goal-
+      // loop.mjs:369 writes `log({ stage: 'auto_deploy_skipped',
+      // reason: 'no new commits', head: headSha, last_deployed: lastSha
+      // })` inside the else-branch at mjs:368-370 that fires whenever
+      // headSha === lastSha (or headSha is empty on a repo-less host) —
+      // the idle-tick counterpart of the tick 247/248 triggered/finished
+      // pair. Closes the auto_deploy_* family cluster alongside 247 +
+      // 248 so the three writer branches (triggered, finished, skipped)
+      // all carry pinned shape guards after this tick, with only
+      // auto_deploy_failed (mjs:372, catch branch) remaining for a
+      // future tick. Two pins in one guard because reason + head share
+      // the same conditional at mjs:369 (else-branch at mjs:368) — they
+      // always land together on the same row, so the guard cost is
+      // amortised (matches ticks
+      // 240 + 242 + 244 + 245 + 247 + 248 two-pin rationale verbatim
+      // except for the stage literal + writer source line citations).
+      // `reason` is the bare string literal 'no new commits' written
+      // directly at mjs:369 — schema-guaranteed to that exact value
+      // because it is a compile-time constant with no interpolation, so
+      // this is one of the rare stage guards where a value-equality
+      // pin is safe (breaks tick 230's "typeof only so value can drift"
+      // convention deliberately — the writer literal has no drift
+      // surface, unlike deploy.status or headSha). `head` is the same
+      // `headSha` string threaded through from the tick 247 + 248
+      // guards — always a string (empty on repo-less host, otherwise
+      // 7-char short-sha from `git rev-parse --short HEAD`), so the
+      // typeof=string pin matches the tick 247 + 248 head convention
+      // verbatim. No `last_deployed` pin — dropped to preserve the two-
+      // pin cadence, and its shape is already covered by the tick 247
+      // auto_deploy_triggered guard (same derivation at mjs:355), so
+      // pinning it here would be redundant surface. Coverage-per-guard
+      // is high on green-path CI runs when the loop has no new commits
+      // between ticks — inverse of the tick 247/248 branch which fires
+      // when there ARE new commits, so together the three guards cover
+      // the full auto_deploy_* branch matrix. Comes AFTER the tick 248
+      // auto_deploy_finished guard so future guards land in monotonic
+      // tick-order.
+      if (tickRow.stage === "auto_deploy_skipped") {
+        expect(
+          tickRow.reason,
+          `tick_history auto_deploy_skipped row.reason should equal the exact string literal 'no new commits' (reseller-goal-loop.mjs:369 writes it as a compile-time constant with no interpolation, so a value-equality pin is schema-safe): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("no new commits");
+        expect(
+          typeof tickRow.head,
+          `tick_history auto_deploy_skipped row.head should be typeof string (reseller-goal-loop.mjs:369 threads the same \`headSha\` from mjs:358-359 as the tick 247/248 auto_deploy_triggered/finished guards): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("string");
+      }
     }
     expect(
       typeof body.generated_at === "string" &&
