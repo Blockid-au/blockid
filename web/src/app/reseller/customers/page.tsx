@@ -12,6 +12,7 @@ import { resellerSupabase } from "@/lib/reseller/supabase";
 import { maskEmail } from "@/lib/reseller/customer-reveal";
 import { RevealEmailCell } from "./reveal-email-cell";
 import { DrawerOpener } from "./drawer-opener";
+import { StageCell } from "./stage-cell";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +69,7 @@ export default async function ResellerCustomersPage() {
               <tr>
                 <th className="p-3">Company / Name</th>
                 <th className="p-3">Contact</th>
+                <th className="p-3">Stage</th>
                 <th className="p-3">Joined</th>
                 <th className="p-3">Last active</th>
                 <th className="p-3">Details</th>
@@ -84,6 +86,9 @@ export default async function ResellerCustomersPage() {
                       customerId={c.user_id}
                       maskedEmail={maskEmail(c.email)}
                     />
+                  </td>
+                  <td className="p-3">
+                    <StageCell stage={c.canonical_stage} />
                   </td>
                   <td className="p-3 text-ink-600">{fmtDate(c.created_at)}</td>
                   <td className="p-3 text-ink-600">{fmtDate(c.last_login_at)}</td>
