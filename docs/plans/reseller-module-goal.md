@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.327
+version: 2026-07-23.328
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,140 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 328
+    ran_at: 2026-07-23
+    action: p10_reseller_billing_model_status_two_part_typeof_string_set_has_value_set_enum_pin_on_admin_reseller_detail
+    result: |
+      Executes tick 327 next-pick option (a) verbatim: the two
+      remaining single-part Set.has() pins on the top-level
+      resellers-row shape at
+      `BILLING_MODELS.has(body.reseller?.billing_model as string)` +
+      `STATUSES.has(body.reseller?.status as string)` were still
+      carrying single-line combined `should be retail|wholesale` /
+      `should be active|paused|terminated` diagnostics with no per-
+      half typeof-vs-membership separation and no tick-numbered
+      doc-block, while the sibling admins[].role/status pins at
+      ticks 304-305 (link-lifecycle enum) already carried the two-
+      expect labelled discipline. Lifting billing_model + status
+      onto the same two-part shape closes the top-level reseller-
+      row wire-shape sweep symmetrically — every projected column
+      on the select("*") tuple (id / display_name / billing_model
+      / status / created_at / updated_at / commission_share_pct /
+      gst_registered) now carries the tick-numbered labelled
+      discipline.
+
+      Writer-schema justification:
+        - 0091_reseller_module_foundations.sql:26 declares
+          `billing_model text NOT NULL CHECK (billing_model IN
+          ('retail','wholesale'))` on the resellers base table.
+        - 0091_reseller_module_foundations.sql:29 declares
+          `status text NOT NULL DEFAULT 'active'
+          CHECK (status IN ('active','paused','terminated'))` on
+          the resellers base table — WIDER than the
+          reseller_admins.status enum (active|revoked) pinned at
+          tick 305 because this is a business-lifecycle enum, not
+          a link-lifecycle enum.
+        - Application read path: projected via route.ts:47-48
+          select("*") on the loadReseller() single-row lookup,
+          then surfaced as the top-level `reseller` field on the
+          detail payload body at route.ts:122-129.
+
+      Design choice — two-part guard mirroring the tick 304/305/
+      312/316 value-set posture verbatim:
+        - (a) typeof-string preserves the NOT-NULL raw-type
+          discipline; catches a PostgREST regression that
+          returned null|undefined, a schema-side NOT NULL drop,
+          or a projection-side drop from route.ts:47-48 SELECT.
+        - (b) BILLING_MODELS.has() / STATUSES.has() membership
+          assert against the existing module-scope Sets mirrors
+          the DB CHECK enumeration; catches a DB CHECK drop, a
+          legacy INSERT that stamped a value outside the
+          enumeration ('trial', 'suspended'), or a PostgREST
+          serialisation regression that returned a mixed-case
+          slug ('Retail', 'Active').
+
+      Rotation rationale:
+        - Closes the last two outstanding single-part Set.has()
+          pins on the top-level reseller-row wire-shape sweep.
+          Symmetric close-out of the top-level resellers-row
+          column-pin cluster: id (325) + display_name (327) +
+          billing_model (328) + status (328) + created_at/
+          updated_at (285) + commission_share_pct (286) +
+          gst_registered (287) all now carry the tick-numbered
+          labelled two-expect discipline.
+        - No new imports, no new module-scope const needed — the
+          BILLING_MODELS + STATUSES Sets already live at rows
+          1636-1637.
+
+      Coverage-per-guard posture:
+        - Detail surface: wave-5 row 167 single-row GET fires
+          the two-part pin at least once per test on the
+          QAPROBEWHOLESALEACTIVE seed reseller (top-level parent
+          row is always present when loadReseller() returns
+          row-not-null; seed fixture stamps billing_model=
+          'wholesale' + status='active' so both shape halves
+          pass on every green CI run).
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 328 paragraph) added
+              below the tick 327 paragraph above ISO_TIMESTAMP_RE.
+            + bare billing_model single-part Set.has() pin
+              replaced with tick-numbered labelled two-expect
+              guard: typeof-string + BILLING_MODELS.has — each
+              with a bespoke failure message pointing at 0091:26
+              as the writer-schema source.
+            + bare status single-part Set.has() pin replaced
+              with tick-numbered labelled two-expect guard:
+              typeof-string + STATUSES.has — each with a bespoke
+              failure message pointing at 0091:29 as the writer-
+              schema source and calling out that this enum is
+              wider than the reseller_admins.status Set at tick
+              305 (business-lifecycle vs link-lifecycle).
+        - No production code touched, no fixture change, no
+          route change, no new imports, no new module-scope
+          const. Matches ticks 234-327 discipline.
+
+      Verification:
+        - tsc --noEmit: whole tree clean (exit 0).
+        - Playwright specs excluded from vitest by design.
+
+      Frontier after tick 328: shape unchanged — Track A P8.5
+      STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; Track B
+      COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5
+      clears. Top-level resellers-row wire-shape column-pin
+      sweep now symmetrically closed across every projected
+      column on select("*"): id (325) + code (231 identity) +
+      display_name (327) + billing_model (328) + status (328) +
+      created_at/updated_at (285) + commission_share_pct (286)
+      + gst_registered (287).
+
+      Next natural picks on tick 329:
+        (a) rotate to reseller.code text NOT NULL UNIQUE tick-
+        numbered labelled shape lift (currently bare
+        `.toBe(fixture.code)` equality with no per-half
+        diagnostic — refresh the identity check into a two-part
+        typeof-string + toBe(fixture.code) shape mirroring the
+        sibling column posture).
+        (b) rotate to promotion_codes[] cross-column pin
+        summary comment (tier 0 → stripe ids null / tier > 0 →
+        stripe ids non-null already lives inline at ticks 301-
+        302 — a symmetric close-out summary comment could hoist
+        it into module-scope doc-block form).
+        (c) rotate to a NEW cluster on the cross-surface twin
+        spec (admin-resellers-list-authz.spec.ts) — the list
+        projection shares the same resellers-row shape but its
+        billing_model/status pins may still be bare Set.has() as
+        well, and a symmetric refresh across both surfaces keeps
+        the twin discipline coherent.
+        (d) idle — the frontier remains tight: P1.5 + P8.5
+        remain HUMAN-BLOCKED, P11 never_completes, Track B
+        closed. P10 hardening continues to accept incremental
+        pin-tightening ticks.
+    commit: (this tick)
+
   - tick: 327
     ran_at: 2026-07-23
     action: p10_reseller_display_name_text_not_null_two_part_labelled_pin_on_admin_reseller_detail
