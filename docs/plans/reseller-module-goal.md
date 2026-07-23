@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.293
+version: 2026-07-23.294
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -658,6 +658,189 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 294
+    ran_at: 2026-07-23
+    action: p10_abn_text_nullable_wire_shape_pin_cross_surface_pair_on_admin_resellers_list_plus_admin_reseller_detail
+    result: |
+      Fresh-column rotation per tick 293 next-pick option (a) —
+      resellers.abn text nullable wire-shape pin landed on BOTH
+      admin-resellers-list-authz.spec.ts AND
+      admin-reseller-detail-authz.spec.ts in the same tick, extending
+      the tick 286+287+288+289+290+291+292+293 discipline of bringing
+      both admin resellers-family surfaces up to parity in one pass.
+
+      Twentieth pin in the tick 275-294 lineage; ninth consecutive
+      single-tick cross-surface pair (commission_share_pct at 286,
+      gst_registered at 287, allowed_tiers at 288, monthly_credit_budget
+      at 289, monthly_sandbox_credits at 290, can_create_startups at
+      291, can_grant_credits at 292, collateral_approval_required at
+      293, abn at 294). Rotates OFF the four-column bool cluster
+      (287/291/292/293) ONTO the first nullable text column on the
+      resellers row — the first column in the tick 275-294 lineage
+      requiring a two-part null-or-string / null-or-string+regex guard
+      rather than the single-guard NOT-NULL bool posture. Sibling of
+      gst_registered (pinned at tick 287) via the ck_wholesale_gst_
+      required CHECK at 0091:47-50 — wholesale rows require both
+      gst_registered=true AND abn IS NOT NULL, so the bool cluster and
+      this text column together enforce the reseller-U.15.1 wholesale
+      invariant.
+
+      Writer-schema justification:
+        - 0091_reseller_module_foundations.sql:37 declares
+          `abn text` on the resellers table with no NOT NULL
+          constraint (nullable).
+        - 0091:52-54 declares CHECK ck_abn_format:
+          `abn IS NULL OR abn ~ '^\d{2} \d{3} \d{3} \d{3}$'` — the
+          spaced AU ABN format `NN NNN NNN NNN`.
+        - 0091:47-50 declares CHECK ck_wholesale_gst_required which
+          couples abn to the wholesale invariant: retail rows may
+          legally carry a NULL abn, wholesale rows must carry a
+          non-NULL abn.
+        - Application write path enforces the same regex via ABN_RE
+          at web/src/lib/reseller/admin-validator.ts:52
+          (/^\d{2} \d{3} \d{3} \d{3}$/) — patch.abn writes that fail
+          the regex are rejected with reason='abn_bad_format' at
+          admin-validator.ts:93-95.
+        - The two admin resellers-family GET surfaces project the
+          column via select("*"):
+            list: route.ts:41-44 select("*").order("created_at", …)
+            detail: route.ts:47-48 select("*").eq("code", code)
+        - PostgREST returns text columns as JS string (or JSON null
+          when the column value is NULL) on the wire so the two-part
+          guard below reflects the actual serialisation contract. A
+          schema-side type flip from text, a PostgREST serialisation
+          regression that returned NULL as the literal string "null",
+          a DB CHECK constraint drop, or an admin-validator drift
+          that stopped enforcing ABN_RE would surface at a distinct
+          assertion failure mode.
+
+      Design choice — two-part guard shape matching the tick 276/277
+      nullable-text posture rather than the single-guard NOT-NULL bool
+      posture used at ticks 287/291/292/293:
+        - (a) null-or-typeof-string — preserves the tick 275 posture
+          for nullable text columns; catches a schema-side type flip
+          from text to non-string or a PostgREST regression that
+          returned NULL as a non-null placeholder.
+        - (b) null-or-(typeof-string AND ABN_RE.test()) — tightens
+          onto the DB CHECK + validator regex; catches a DB CHECK
+          drop or an admin-validator drift that stopped enforcing
+          the spaced-format invariant.
+        - Two-part shape rather than the single typeof-boolean guard
+          used at ticks 287/291/292/293 because the column has a
+          semantic dimension (regex format) beyond raw type, similar
+          to the tick 283/284 typeof-string+ISO_TIMESTAMP_RE guard
+          for the timestamptz columns.
+        - Nullable column → both guards allow the null branch so
+          retail-cohort rows (billing_model=retail, abn=NULL by
+          default per seed-qa-reseller.mjs) still pass cleanly;
+          wholesale-cohort rows (QAPROBEWHOLESALEACTIVE + variants)
+          exercise the null-or-string+ABN_RE branch on every green
+          CI run.
+
+      Coverage-per-guard posture:
+        - List surface: wave-5 row 164 admin harness iterates every
+          returned resellers row inside the per-row for-loop, so
+          seeded hosts holding ≥7 cohort rows from seed-qa-reseller.mjs
+          exercise the pin on every green CI run (mixed retail +
+          wholesale cohort exercises both null and null-or-string+
+          ABN_RE branches).
+        - Detail surface: wave-5 row 167 single-row GET fires the
+          pin ONCE per test against the QAPROBEWHOLESALEACTIVE seed
+          row — since that row is wholesale, the null-or-string+
+          ABN_RE branch is exercised (the null branch is exercised
+          on the list surface via the retail-cohort rows).
+        - Fresh CI hosts without the QA reseller seed still green
+          because test.skip() fires when the fixture returns null
+          (list surface's for-loop is a no-op on zero rows).
+
+      Diagnostic delta of the pass:
+        - admin-resellers-list-authz.spec.ts:
+            + module-scope doc-block (tick 294 paragraph) above
+              ISO_TIMESTAMP_RE citing 0091:37 as the column source.
+            + ABN_RE constant added after RESELLER_CODE_RE, mirrors
+              admin-validator.ts:52.
+            + row interface widened with abn?: unknown.
+            + Two-part null-or-string / null-or-string+ABN_RE guards
+              inside the wave-5 row 164 per-row for-loop, immediately
+              after the tick 293 collateral_approval_required
+              typeof-boolean assert.
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 294 paragraph) above
+              ISO_TIMESTAMP_RE citing the same schema source.
+            + ABN_RE constant added after PROMO_CODE_RE.
+            + body.reseller row interface widened with abn?: unknown.
+            + Two-part null-or-string / null-or-string+ABN_RE guards
+              inside the wave-5 row 167 happy GET test, immediately
+              after the tick 293 collateral_approval_required
+              typeof-boolean assert.
+        - No production code touched, no fixture change, no route
+          change, no other new imports. Matches ticks 234-293
+          discipline: tighten one column across two surfaces with
+          zero net new imports (other than the ABN_RE constant local
+          to each spec, which matches admin-validator.ts:52 verbatim)
+          and zero production-code touches.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: R-01 scanned 11 files + R-03 scanned
+          31 manifest routes + R-04 scanned 8 stripe files, 6
+          exemptions, 0 violations
+        - Playwright specs excluded from vitest by design; the four
+          new asserts (2 per surface) fire when `npx playwright test
+          admin-resellers-list-authz admin-reseller-detail-authz` runs
+          on a seeded host (wave-5 row 164/167 skip on CI hosts lacking
+          loadAdminHarness / loadTempReseller seeds).
+
+      Files:
+        - web/tests/e2e/reseller/admin-resellers-list-authz.spec.ts
+          (module-scope doc-block extended with tick 294 paragraph;
+          ABN_RE constant added after RESELLER_CODE_RE; per-row shape
+          interface gains abn?: unknown; wave-5 row 164 for-loop body
+          gains two null-or-string / null-or-string+ABN_RE asserts
+          immediately after the tick 293 collateral_approval_required
+          typeof-boolean assert.)
+        - web/tests/e2e/reseller/admin-reseller-detail-authz.spec.ts
+          (module-scope doc-block extended with tick 294 paragraph;
+          ABN_RE constant added after PROMO_CODE_RE; body.reseller
+          row interface gains abn?: unknown; wave-5 row 167 happy
+          GET body gains two null-or-string / null-or-string+ABN_RE
+          asserts immediately after the tick 293
+          collateral_approval_required typeof-boolean assert.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.293 → 2026-07-23.294; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no production-code touch, no
+          new imports beyond the local ABN_RE constant that mirrors
+          admin-validator.ts:52 verbatim, no widening of the guards
+          on existing pins. Consistent with ticks 234-293's
+          incremental-pin pattern.
+        - Cross-surface pair rather than staggered mirror — the
+          list-surface + detail-surface pins land in the same tick so
+          the two admin resellers-family GET lenses carry the same
+          nullable text wire-shape pin on abn simultaneously. Matches
+          tick 286+287+288+289+290+291+292+293 cross-surface pair
+          discipline rotated onto the first nullable text column,
+          transitioning off the four-column bool cluster.
+
+      Next natural picks on tick 295:
+        (a) rotate to logo_url or primary_color nullable text columns
+        at 0091:26-27 — both nullable free text with no DB CHECK, so
+        a single-guard null-or-string assert would land (looser than
+        the tick 294 two-part guard because there's no format regex
+        to layer on top).
+        (b) rotate to contact_email or notes nullable text columns
+        at 0091:41-42 — both nullable free text with no DB CHECK,
+        same single-guard null-or-string shape as (a).
+        (c) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks while the two HUMAN-BLOCKED leaves await external
+        unblock signals.
+    commit: (this tick)
+
   - tick: 293
     ran_at: 2026-07-23
     action: p10_collateral_approval_required_bool_wire_shape_pin_cross_surface_pair_on_admin_resellers_list_plus_admin_reseller_detail
