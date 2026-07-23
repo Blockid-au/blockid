@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Compass, MapPin, TrendingUp } from "lucide-react";
 
 interface Props {
@@ -27,7 +28,7 @@ export function ScnPositionHero({ sviScore, stageLabel, percentile, valuationLab
       <div className="mb-4 flex items-center gap-2">
         <Compass className="h-4 w-4 text-brand-600" />
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-700">
-          Startup Navigation System · Where you are
+          Startup Compass · Where you are
         </p>
       </div>
 
@@ -79,6 +80,15 @@ export function ScnPositionHero({ sviScore, stageLabel, percentile, valuationLab
           </span>
         </div>
       )}
+
+      <p className="mt-4 border-t border-brand-100 pt-3 text-[10px] leading-relaxed text-ink-400">
+        Startup Compass is BlockID&apos;s synthesis overlay on Sean Ellis PMF, Porter Five Forces,
+        T2D3, JTBD, and Bessemer BVP canonical stages —{" "}
+        <Link href="/guide/scn" className="underline decoration-dotted hover:text-brand-600">
+          framework citations
+        </Link>
+        .
+      </p>
     </div>
   );
 }
