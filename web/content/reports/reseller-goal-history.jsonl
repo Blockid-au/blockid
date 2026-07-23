@@ -1301,3 +1301,11 @@
 {"tick_id":"2026-07-23T23-40-01-894Z","ts":"2026-07-23T23:40:01.952Z","human_review_minutes_7d":0.5,"stage":"human_blocked_snapshot","count":1,"entries":[{"id":"P8.5_env_and_playwright","blocker":"STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars must be minted in Stripe dashboard by account owner before Playwright can green"}]}
 {"tick_id":"2026-07-23T23-40-01-894Z","ts":"2026-07-23T23:45:03.618Z","human_review_minutes_7d":0.5,"stage":"delegated_dispatch","status":0,"elapsed_ms":301662,"signal":null,"label":"delegated"}
 {"tick_id":"2026-07-23T23-40-01-894Z","ts":"2026-07-23T23:45:03.648Z","human_review_minutes_7d":0.5,"stage":"auto_commit_started","dirty_files":14}
+{"tick_id":"2026-07-23T23-40-01-894Z","ts":"2026-07-23T23:45:04.945Z","human_review_minutes_7d":0.5,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-07-23T23-40-01-894Z","ts":"2026-07-23T23:45:04.952Z","human_review_minutes_7d":0.5,"stage":"auto_deploy_triggered","head":"07792ee2","last_deployed":"311b32b"}
+{"tick_id":"2026-07-23T23-40-01-894Z","ts":"2026-07-23T23:46:43.472Z","human_review_minutes_7d":0.5,"stage":"auto_deploy_finished","status":1,"head":"07792ee2"}
+{"tick_id":"2026-07-23T23-40-01-894Z","ts":"2026-07-23T23:46:43.473Z","human_review_minutes_7d":0.5,"stage":"tick_end"}
+{"tick_id":"2026-07-23T23-50-01-889Z","ts":"2026-07-23T23:50:01.892Z","human_review_minutes_7d":0.5,"stage":"tick_start"}
+{"tick_id":"2026-07-23T23-50-01-889Z","ts":"2026-07-23T23:50:01.946Z","human_review_minutes_7d":0.5,"stage":"human_blocked_snapshot","count":1,"entries":[{"id":"P8.5_env_and_playwright","blocker":"STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars must be minted in Stripe dashboard by account owner before Playwright can green"}]}
+{"tick_id":"2026-07-23T23-50-01-889Z","ts":"2026-07-23T23:55:51.007Z","human_review_minutes_7d":0.5,"stage":"delegated_dispatch","status":0,"elapsed_ms":349057,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-23T23-50-01-889Z","ts":"2026-07-23T23:55:51.038Z","human_review_minutes_7d":0.5,"stage":"auto_commit_started","dirty_files":9}
