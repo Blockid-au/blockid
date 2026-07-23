@@ -967,3 +967,7 @@
 {"ts":"2026-07-23T16:43:28Z","status":"success","gates":"10/10","pid":"120982","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-23T16:43:57.025Z","event":"github-push-master","detail":"Blockid-au: chore(deploy): iter-8 live deploy 089caa42 — 10/10 gates, 15/15 smoke green (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T16:44:14.009Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): P10 tick 312 — commissions[].discount_pct value-set enum pin on admin reseller detail (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T16:44:24.306Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-23T16-40-01-616Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T16:49:42Z","status":"success","gates":"8/8","pid":"143273","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-23T16:51:08.122Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 313 — P10 attributions_summary.by_source enum tightening (SCOPE ROTATION: commissions[] → attributions_summary) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T16:53:18.433Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): P10 tick 314 — commissions[].commission_aud_cents int-nonnegative pin on admin reseller detail (1 commits)","source":"github-webhook"}
