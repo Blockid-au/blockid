@@ -918,3 +918,8 @@
 {"ts":"2026-07-23T14:22:21Z","status":"success","gates":"8/8","pid":"3840099","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-23T14:24:55.447Z","event":"github-push-master","detail":"Blockid-au: chore(qa): install @axe-core/playwright + unlock a11y CI lens (audit remediation) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T14:29:57.197Z","event":"github-push-master","detail":"Blockid-au: test(reseller): P10 tick 299 — promotion_codes[].active bool wire-shape pin on admin reseller detail (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T14:30:07.209Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-23T14-25-01-982Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T14:31:20.808Z","event":"github-push-master","detail":"Blockid-au: feat(pricing): seed Investor per-seat SKUs (Angel/Advisor/VC-Small/Enterprise) with placeholder Stripe IDs (PRC-INV) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T14:35:18Z","status":"success","gates":"8/8","pid":"3884488","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-23T14:40:18.836Z","event":"github-push-master","detail":"Blockid-au: fix(onboarding): route Stripe-hosted checkout return → Step 6 \"Create first startup\" (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T14:45:54.960Z","event":"github-push-master","detail":"Blockid-au: test(reseller): P10 tick 300 — promotion_codes[].created_at timestamptz wire-shape pin on admin reseller detail (1 commits)","source":"github-webhook"}
