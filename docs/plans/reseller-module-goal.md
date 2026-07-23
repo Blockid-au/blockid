@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.234
+version: 2026-07-23.235
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,185 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 235
+    ran_at: 2026-07-23
+    action: p10_loop_status_row_field_schema_pins_option_q_reclassified
+    result: |
+      Landed tick 234 "natural next pick" option (q) after an audit-driven
+      reclassification. Original (q) framing speculated monitor_history rows
+      should carry a `ts` or `timestamp` field and tick_history rows should
+      carry `tick` and `ran_at`; verified against the two writer scripts and
+      those field names are wrong — the real writer schemas use `monitor_ts`
+      + `head_sha` (monitor rows) and `tick_id` + `ts` + `stage` (tick rows).
+      Landed the correct field-name pins this tick.
+
+      Audit outcome:
+        - monitor_history row schema — writer at scripts/cron/reseller-
+          monitor.sh:58-64 builds every row with `monitor_ts` (Python
+          datetime.datetime.now(datetime.timezone.utc).isoformat().replace
+          ("+00:00","Z")) + `head_sha` (`git rev-parse --short HEAD` with
+          "unknown" fallback) then spreads the show-next-reseller-tick.sh
+          `--json` state + `last_log` object. `monitor_ts` and `head_sha`
+          are schema-level guarantees from the writer — every appended row
+          carries them. Route at web/src/app/api/admin/reseller-loop/status/
+          route.ts:58-66 tailLines→JSON.parse→.filter(Boolean) fan-out
+          echoes those keys straight through. Landing typeof-string pins
+          catches a writer regression that renamed either column, a
+          Python-side crash that produced an empty row, or a route regression
+          that swapped .filter(Boolean) for a map that drops keys.
+        - tick_history row schema — writer at scripts/cron/reseller-goal-
+          loop.mjs:52-58 log() helper prepends `tick_id` (from `new Date().
+          toISOString().replace(/[:.]/g, '-')` deterministic per-process
+          const), `ts` (new Date().toISOString() sampled per log call),
+          `human_review_minutes_7d` (number sampled once per process from
+          sumHumanReviewMinutes7d), then merges `...row` where every call
+          site passes a `stage` string (mjs:70 shows the `stage:
+          row.stage ?? 'unknown'` default guaranteeing presence). `tick_id`
+          / `ts` / `stage` are schema-level guarantees from the writer —
+          every appended row carries all three. Landing typeof-string pins
+          catches a writer regression that renamed any of the three keys
+          or a call site that stopped passing a stage.
+        - Timestamp value pinning — per tick 230's "assert typeof string
+          only so the value can drift" convention, monitor_ts and ts are
+          NOT ISO-regex pinned this tick. Presence + type is the schema
+          contract; the value can drift with the writer clock. generated_at
+          on the route response envelope IS ISO-pinned at line 224 because
+          that value is minted by the route itself (new Date().toISOString()
+          at route.ts:87) not by an external writer, so its shape is a
+          route-code contract rather than a writer-cron contract.
+        - Twin surface — none (this endpoint is singleton; no reseller-side
+          or paired validation spec reads reseller-monitor.jsonl or
+          reseller-goal-history.jsonl). Landing the pins is justified by
+          the writer-script schema guarantees documented inline in the pin
+          comments (file paths + line numbers so a future refactor of
+          either writer surfaces a coupled diff obligation).
+
+      Shape pins landed (inside the pre-existing plain-object row loops so
+      the pin is a two-line insertion after each guard, not a new loop):
+
+        for (const row of monitor_history) {
+          expect(plain-object-guard).toBe(true)
+          // + monitor_ts typeof string
+          // + head_sha typeof string
+        }
+        for (const row of tick_history) {
+          expect(plain-object-guard).toBe(true)
+          // + tick_id typeof string
+          // + ts typeof string
+          // + stage typeof string
+        }
+
+      Regression coverage tightened:
+        - PRE-tick: a writer regression that renamed monitor_ts →
+          created_at or dropped head_sha (or on the tick side, renamed
+          tick_id → id, dropped ts, or a call site that stopped passing
+          stage) would silently pass admin-reseller-loop-status-authz —
+          the plain-object guard only checks that the row is a plain
+          object, not that any specific column exists. The admin visual-QA
+          lens (/admin/reseller-loop dashboard) would carry the mismatch
+          alone.
+        - POST-tick: the two writer schemas are now covered by presence +
+          type pins at the wire, so a rename / drop / stage-default-removal
+          on either writer surfaces here.
+
+      Trade-off accepted:
+        - The five typeof-string pins are coupled to the writer schemas at
+          reseller-monitor.sh:59-60 (monitor_ts + head_sha) and reseller-
+          goal-loop.mjs:54-55 + call-site `stage` propagation (tick_id +
+          ts + stage). A future writer refactor that switched to a
+          different schema (e.g. numeric epoch timestamps, or a versioned
+          envelope like {v:2, ts, ...}) would force a coordinated bump
+          across both writer scripts + this spec.
+        - Accepted because the coupling reflects the schema contract
+          between the two log writers and the /admin/reseller-loop
+          dashboard renderer at web/src/app/admin/reseller-loop/page.tsx.
+          That dashboard already reads monitor_ts + head_sha (page.tsx
+          renders "Latest monitor snapshot" using both) and tick_id + ts
+          + stage (page.tsx renders "Recent ticks" using all three), so
+          a rename that broke the wire pins would also break the
+          dashboard's UI — landing the spec pins keeps the wire lens in
+          step with the UI consumer.
+
+      Diagnostic delta of the pass:
+        - Added 5 new expect blocks in admin-reseller-loop-status-authz.
+          spec.ts (2 for monitor rows, 3 for tick rows), each with an
+          inline citation of the writer-script line number.
+        - No production code touched, no fixture change, no route change,
+          no new imports, no vitest / Playwright runtime posture change,
+          no new module-scope constant (typeof pins are inline literals).
+        - Two comment blocks added citing the tick 235 landing + the two
+          writer-script paths + the tick 230 "timestamps can drift"
+          convention + the singleton-endpoint-no-twin-surface rationale.
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-loop-status-authz.spec.ts
+          (five typeof-string pins added inside the existing monitor +
+          tick row loops with inline writer-schema comments pointing to
+          reseller-monitor.sh:58-64 and reseller-goal-loop.mjs:52-58.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.234 → 2026-07-23.235; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Schema pins only. No new spec-local constant (the field-presence
+          + typeof-string pins read clearly inline; hoisting would obscure
+          the tie-back to the specific writer line number in each expect
+          message). No fixture-file delta, no seed-script change, no P8.5-
+          gated code_request work (option (c) still blocked), no
+          production-code touch. Matches ticks 223-234 discipline:
+          tighten one dimension, symmetrise against known invariants,
+          single tick.
+
+      Verified:
+        - tsc clean (npx tsc --noEmit; no output = success).
+        - npm run lint:reseller: R-01 scanned 11 file(s), R-03 scanned
+          31 manifest route(s); 3 exemption(s), 0 violation(s). The
+          edited spec file lives under web/tests/e2e/**, not in the
+          reseller manifest, so R-01/R-03 do not fire on the edited
+          file.
+        - reseller vitest 449/449 pass (unchanged; no production code
+          or lib touched — Playwright specs are excluded from vitest
+          by design).
+
+      Frontier after tick 235: unchanged shape — Track A HUMAN-BLOCKED
+      on P8.5 Stripe env vars + P1.5 InfoVision seed on H.20 ABN + GST;
+      Track B COMPLETE; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 235 does NOT unblock: P8.5 STRIPE_PRICE_ADDON_SHARE_MGMT_*
+      env vars still human-gated; P1.5 InfoVision ABN + GST still
+      human-gated per H.20.
+
+      Natural next pick for tick 236:
+        (r) audit whether the admin-requests-list-authz newly-pinned
+            payload plain-object guard could be extended to per-key
+            content pins for the three request_type variants
+            (code_request: tier_pct + optional suggested_suffix;
+            over_budget_approval: target_user_id + requested_amount;
+            collateral_approval: collateral_url + purpose). Trade-off
+            noted at tick 234: reseller-side twins do NOT carry per-key
+            pins today, so a per-key admin pin would BREAK the three-
+            surface symmetry established this tick — either land per-key
+            pins across all three surfaces in one tick (bigger diff), or
+            defer.
+        (s) audit whether the admin-reseller-loop-status happy row's
+            `last_log` nested object (mirrored from reseller-goal-
+            history.jsonl.last-line into the monitor row via
+            reseller-monitor.sh:62) could be pinned as a plain-object
+            guard — the writer at reseller-monitor.sh:55-57 uses
+            json.loads with `{}` fallback so last_log is guaranteed to
+            be an object (never null, never array). One-line pin
+            following the same monitor_ts + head_sha convention.
+        (n) audit whether admin-requests-patch-authz.spec.ts approve
+            branch decision_at pin could be tightened from typeof
+            string to an ISO-8601 regex — trade-off called out in tick
+            230 (the header comment explicitly says "assert typeof
+            string only so the value can drift"). Landing the ISO
+            regex would contradict the header, so this is a header-
+            rewrite-first option.
+        (c) mirror row 179 shape+helper alignment onto row 175 approve+
+            deny+cancel code_request branches once P8.5 unblocks.
+            P8.5-blocked, no available today.
+    commit: (this tick)
+
   - tick: 234
     ran_at: 2026-07-23
     action: p10_admin_requests_list_payload_plain_object_pin_option_p_sibling_audit

@@ -213,12 +213,54 @@ test.describe("Admin reseller-loop status — P10 wave-5 row 173 happy path", ()
         row !== null && typeof row === "object" && !Array.isArray(row),
         `monitor_history row should be a plain object: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
+      // Writer schema pin — scripts/cron/reseller-monitor.sh:58-64 constructs
+      // every row with `monitor_ts` (Python datetime.now().isoformat()) +
+      // `head_sha` (git rev-parse --short with "unknown" fallback) then
+      // spreads the show-next-reseller-tick.sh state + `last_log`. `monitor_ts`
+      // and `head_sha` are schema-level guarantees from the writer, so a
+      // regression that renamed either column (or the fan-out that stopped
+      // populating them) surfaces here. typeof-string only — do NOT ISO-pin
+      // monitor_ts per tick 230's "assert typeof string only so the value can
+      // drift" convention for timestamps. No twin surface (singleton endpoint).
+      const monitorRow = row as Record<string, unknown>;
+      expect(
+        typeof monitorRow.monitor_ts,
+        `monitor_history row.monitor_ts should be typeof string (reseller-monitor.sh:59 writer schema): ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("string");
+      expect(
+        typeof monitorRow.head_sha,
+        `monitor_history row.head_sha should be typeof string (reseller-monitor.sh:60 writer schema; falls back to "unknown" when git rev-parse fails): ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("string");
     }
     for (const row of (body.tick_history as unknown[]) ?? []) {
       expect(
         row !== null && typeof row === "object" && !Array.isArray(row),
         `tick_history row should be a plain object: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
+      // Writer schema pin — scripts/cron/reseller-goal-loop.mjs:52-58 log()
+      // helper prepends `tick_id` (from `new Date().toISOString().replace(/
+      // [:.]/g, '-')`) + `ts` (`new Date().toISOString()`) + `human_review_
+      // minutes_7d` (number sampled once per process), then merges `...row`
+      // where every call site passes a `stage` string (see the ??  'unknown'
+      // default at mjs:70). Those four fields are schema-level guarantees from
+      // the writer, so a regression that renamed any column (or a call site
+      // that stopped passing stage) surfaces here. typeof-string only for
+      // tick_id/ts/stage per tick 230's "assert typeof string only so the
+      // value can drift" convention for timestamps + free-form enum strings.
+      // No twin surface (singleton endpoint).
+      const tickRow = row as Record<string, unknown>;
+      expect(
+        typeof tickRow.tick_id,
+        `tick_history row.tick_id should be typeof string (reseller-goal-loop.mjs:54 writer schema): ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("string");
+      expect(
+        typeof tickRow.ts,
+        `tick_history row.ts should be typeof string (reseller-goal-loop.mjs:55 writer schema): ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("string");
+      expect(
+        typeof tickRow.stage,
+        `tick_history row.stage should be typeof string (reseller-goal-loop.mjs:70 default 'unknown' guarantees presence at every call site): ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("string");
     }
     expect(
       typeof body.generated_at === "string" &&
