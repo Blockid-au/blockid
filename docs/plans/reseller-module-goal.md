@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.310
+version: 2026-07-23.311
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -651,6 +651,104 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 311
+    ran_at: 2026-07-23
+    action: p10_commissions_list_price_aud_cents_int_positive_pin_on_admin_reseller_detail
+    result: |
+      Third column tightened in the reseller_commissions_current[]
+      child-row cluster opened at tick 308 — commissions[].
+      list_price_aud_cents. Tick 309 next-pick option (a) taken verbatim.
+      Continues the P10 hardening posture — pin-tightening only, no
+      production code touched, no fixture change, no route change, no
+      new imports, no new module-scope constants (Number.isInteger is
+      the built-in).
+
+      Writer-schema justification:
+        - 0094_reseller_commissions_and_events.sql:37 declares
+          `list_price_aud_cents int NOT NULL CHECK
+          (list_price_aud_cents > 0)` on reseller_commissions. Wire
+          type is therefore number NOT NULL, strictly positive
+          integer cents.
+        - Application write path: minted by the webhook processor's
+          planAccrualForLine helper (web/src/lib/reseller/
+          webhook-helpers.ts) from Stripe invoice.paid line-item
+          amount_paid values. Real values follow Stripe's canonical
+          integer-cents convention (never fractional).
+        - Projected via `rc.list_price_aud_cents` in the
+          reseller_commissions_current view at 0094:143 and selected
+          on the Promise.all leg at web/src/app/api/admin/resellers/
+          [code]/route.ts:99-105.
+
+      Design choice — three-part guard extending the tick 285/292
+      UUID-shape posture to a numeric shape:
+        - (a) typeof-number preserves the NOT-NULL raw-type
+          discipline; catches a PostgREST regression that returned
+          null|undefined, a schema-side NOT NULL drop, or a
+          projection-side drop from the SELECT tuple.
+        - (b) Number.isInteger() shape assert catches a PostgREST
+          bigint-as-string serialisation regression, a fractional-
+          cents value from a proration edge, or NaN/Infinity from a
+          webhook processor drift. Uses the built-in rather than a
+          new module-scope const because the shape is intrinsic to
+          the number type and no regex construction is required.
+        - (c) > 0 assert catches a schema-side CHECK constraint drop
+          or a webhook processor drift that stamped 0 or negative
+          cents (both would be legal at the wire-type level but
+          violate the DB CHECK invariant).
+
+      Coverage-per-guard posture:
+        - Detail surface: wave-5 row 167 single-row GET fires the
+          three-part pin up to 50 times per test, once per
+          commissions[] row on the QAPROBEWHOLESALEACTIVE seed
+          reseller. Hosts without seeded commission events still
+          green because the for-loop degrades gracefully to a no-op.
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 311 paragraph) added below
+              the tick 309 STRIPE_INVOICE_ID_RE paragraph above
+              ISO_TIMESTAMP_RE.
+            + body type widened: commissions? row shape extended with
+              list_price_aud_cents?: unknown so TypeScript narrows
+              the row.list_price_aud_cents access inside the for-of
+              loop.
+            + wave-5 row 167 for-of loop pin appended after the tick
+              309 stripe_invoice_id guard: typeof-number assert plus
+              Number.isInteger() assert plus > 0 assert against
+              row.list_price_aud_cents.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope constants.
+          Matches ticks 234-309 discipline verbatim.
+
+      Verification:
+        - tsc --noEmit: exit 0 (tests/** excluded from tsc include
+          set; production tree unchanged).
+        - npm run lint:reseller: 11 R-01 + 32 R-03 + 8 R-04, 6
+          exemptions, 0 violations (spec lives under tests/**, not
+          in the reseller manifest).
+        - vitest: unchanged — Playwright specs are excluded from
+          vitest by design.
+
+      Next natural picks on tick 312:
+        (a) rotate to the discount_pct column (int CHECK IN
+        (0,10,20,30,40) at 0094:38) — value-set enum pin using the
+        ALLOWED_TIER Set from tick 288 (natural reuse — same value
+        set).
+        (b) rotate to the commission_aud_cents column (int NOT NULL
+        CHECK >= 0 at 0094:41) — three-part numeric pin mirroring
+        this tick's list_price_aud_cents guard but with >= 0 tail
+        assert rather than > 0 (retail rows carry positive commission,
+        wholesale rows always 0 per ck_commission_split at 0094:52-60).
+        (c) rotate to the status column (view CASE at 0094:150-172
+        exposes {cleared, pending_clearance, clawed_back, dispute_open,
+        partially_refunded}) — value-set enum pin using a new
+        module-scope Set const.
+        (d) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks.
+    commit: (this tick)
+
   - tick: 309
     ran_at: 2026-07-23
     action: p10_commissions_stripe_invoice_id_shape_pin_on_admin_reseller_detail

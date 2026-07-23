@@ -842,6 +842,35 @@ const UUID_RE =
 // (STRIPE_INVOICE_ID_RE) matching the discipline of ISO_TIMESTAMP_RE,
 // UUID_RE, PROMO_CODE_RE, ABN_RE, HEX_COLOR_RE that already sit in the
 // module-scope regex cluster.
+//
+// Tick 311 — commissions[].list_price_aud_cents int NOT NULL positive
+// wire-shape pin, third column pinned in the reseller_commissions_current[]
+// child-row cluster opened at tick 308. Tick 309 next-pick option (a)
+// taken verbatim. Column source: reseller_commissions.list_price_aud_cents
+// `int NOT NULL CHECK (list_price_aud_cents > 0)` at 0094:37, projected
+// verbatim through the reseller_commissions_current view at 0094:143 and
+// selected on the Promise.all leg at web/src/app/api/admin/resellers/
+// [code]/route.ts:99-105. Wire type is therefore number NOT NULL, strictly
+// positive integer (cents). Real values are minted by the webhook
+// processor's planAccrualForLine helper (web/src/lib/reseller/
+// webhook-helpers.ts) from Stripe invoice.paid line-item amounts. Three-
+// part guard extending the tick 285/292 UUID posture to a numeric shape:
+// (a) typeof-number preserves the NOT-NULL raw-type discipline; (b)
+// Number.isInteger() shape assert catches a PostgREST serialisation
+// regression that returned the value as a stringified integer (bigint
+// bind), a floating-point cents value from a proration edge, or NaN/
+// Infinity from a webhook drift; (c) > 0 assert catches a schema-side
+// CHECK constraint drop or a webhook processor drift that stamped 0 or
+// negative cents. No new module-scope const needed — Number.isInteger is
+// the built-in. Detail-surface only per the same posture as ticks
+// 299-309 — the admin-resellers-list route projects only the resellers-
+// row shape and does not fan out to reseller_commissions_current; the
+// Promise.all leg that pulls the commissions rows is unique to the detail
+// route. Fires on every green CI run only where the seeded reseller has
+// attributed founders with paid Stripe invoices in the last 50 rows; on
+// hosts without seeded commission events the for-loop is a no-op so the
+// pin never fires. Continues the P10 hardening posture — no fixture
+// change, no route change, no new imports, no new module-scope constants.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Tick 309 — Stripe invoice ID shape regex. Matches the modern Stripe
@@ -1109,6 +1138,7 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
       commissions?: Array<{
         commission_id?: unknown;
         stripe_invoice_id?: unknown;
+        list_price_aud_cents?: unknown;
       }>;
     };
 
@@ -1681,6 +1711,28 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
       expect(
         STRIPE_INVOICE_ID_RE.test(row.stripe_invoice_id as string),
         `commissions[].stripe_invoice_id '${String(row.stripe_invoice_id)}' should match Stripe invoice id shape /^in_[A-Za-z0-9]{8,}$/ (write-path invariant: minted by Stripe API and stored verbatim by the webhook processor from invoice.paid events); a webhook-processor drift that stamped a stringified integer, a truncated slug, or a legacy non-in_ prefix would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      // Tick 311 — commissions[].list_price_aud_cents int NOT NULL positive
+      // wire-shape pin. Column source: reseller_commissions.list_price_aud_cents
+      // `int NOT NULL CHECK (list_price_aud_cents > 0)` at 0094:37, projected
+      // via view alias rc.list_price_aud_cents at 0094:143. Three-part guard:
+      // (a) typeof-number preserves the NOT-NULL raw-type discipline; (b)
+      // Number.isInteger() catches PostgREST bigint-as-string serialisation,
+      // fractional cents from a proration edge, or NaN/Infinity from webhook
+      // drift; (c) > 0 assert enforces the DB CHECK invariant. See module-
+      // scope doc-block above ISO_TIMESTAMP_RE (tick 311 paragraph) for the
+      // full rationale.
+      expect(
+        typeof row.list_price_aud_cents === "number",
+        `commissions[].list_price_aud_cents '${String(row.list_price_aud_cents)}' should be a number (int NOT NULL per 0094:37; view alias rc.list_price_aud_cents at 0094:143; a schema-side NOT NULL drop, a projection-side drop from route.ts:99-105 select, or a PostgREST serialisation regression that returned null|undefined|stringified-int would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        Number.isInteger(row.list_price_aud_cents),
+        `commissions[].list_price_aud_cents '${String(row.list_price_aud_cents)}' should be an integer (int NOT NULL per 0094:37; a PostgREST serialisation regression that returned a bigint-as-string, a floating-point cents value from a proration edge, or NaN/Infinity from a webhook processor drift would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        (row.list_price_aud_cents as number) > 0,
+        `commissions[].list_price_aud_cents '${String(row.list_price_aud_cents)}' should be strictly positive (CHECK (list_price_aud_cents > 0) per 0094:37; a schema-side CHECK constraint drop or a webhook processor drift that stamped 0 or negative cents would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
     }
   });
