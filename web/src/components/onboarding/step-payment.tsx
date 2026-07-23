@@ -67,7 +67,16 @@ export function StepPayment({
         const res = await fetch("/api/stripe/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ plan: state.planId, mode: "setup_intent" }),
+          // `origin: "onboarding"` tells the route to stamp `&onboarding=1`
+          // on the Stripe success_url so /checkout/success bounces the user
+          // back into the wizard at Step 6 ("Create your first startup").
+          // Without this flag, Stripe-hosted return lands on the marketing
+          // thank-you page and Step 6 is unreachable in production.
+          body: JSON.stringify({
+            plan: state.planId,
+            mode: "setup_intent",
+            origin: "onboarding",
+          }),
         });
         const data = await res.json().catch(() => ({ ok: false }));
         if (cancelled) return;
