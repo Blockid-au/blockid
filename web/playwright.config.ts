@@ -2,8 +2,6 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  // axe.spec.ts requires @axe-core/playwright (separate dep, not provisioned here).
-  testIgnore: ["**/a11y/axe.spec.ts"],
   timeout: 30_000,
   workers: process.env.CI ? 1 : undefined,
   retries: process.env.CI ? 1 : 0,
@@ -23,6 +21,12 @@ export default defineConfig({
     {
       name: "chromium",
       use: { browserName: "chromium" },
+      testIgnore: ["**/a11y/**"],
+    },
+    {
+      name: "a11y",
+      use: { browserName: "chromium" },
+      testMatch: ["**/a11y/**/*.spec.ts"],
     },
   ],
 });
