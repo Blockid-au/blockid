@@ -1102,6 +1102,51 @@ test.describe("Admin reseller-loop status — P10 wave-5 row 173 happy path", ()
           `tick_history auto_commit_failed row.error should be typeof string (reseller-goal-loop.mjs:340 writes \`String(err)\` — narrows any throwable from the safety-net commit try/catch at mjs:328-341 to a JSON string): ${JSON.stringify(row).slice(0, 200)}`,
         ).toBe("string");
       }
+      // tick 255 — human_blocked_snapshot_failed stage schema pin (option
+      // y12 from tick 254's natural-next-picks — the failure branch's
+      // `error` key inside the extractHumanBlockedSnapshot try/catch).
+      // One-pin candidate — the only field the writer at scripts/cron/
+      // reseller-goal-loop.mjs:234 spreads beyond the log() helper's own
+      // tick_id/ts/human_review_minutes_7d is the bare `error: String(err)`
+      // cast. Continues the one-pin cadence of tick 254, and symmetrises
+      // against the tick 244 `error` stage guard + tick 254 auto_commit_
+      // failed guard which pinned the same `String(err)` cast pattern.
+      //
+      // Writer-schema justification:
+      //   - scripts/cron/reseller-goal-loop.mjs:234 writes
+      //     `log({ stage: 'human_blocked_snapshot_failed', error: String(err) })`
+      //     inside the try/catch at mjs:226-235 that wraps the
+      //     extractHumanBlockedSnapshot(goalMd) call. Only fires when
+      //     extractHumanBlockedSnapshot throws — bounded by the try/catch
+      //     envelope, so this row is very rare in CI runs (coverage-per-
+      //     guard effectively zero on green-path runs, since the sibling
+      //     happy-path human_blocked_snapshot row at mjs:228-232 is what
+      //     fires on every tick — pinned since tick 245). The pin still
+      //     closes the writer contract for the failure path so a future
+      //     writer-side rename (e.g. `error` → `err` or payload
+      //     restructure) surfaces as a test failure rather than silent
+      //     drift.
+      //   - `error` is `String(err)` at mjs:234 — the `String()` cast
+      //     narrows any throwable (Error subclass, string throw, non-
+      //     Error object, undefined, null) to a JSON-serialisable string,
+      //     so this row is a schema-level typeof=string guarantee.
+      //     Matches tick 244 + tick 254 rationale verbatim.
+      //
+      // Design choice — one-pin single guard:
+      //   - Sits in its own conditional-by-stage guard matching the
+      //     tick 240-254 convention. Comes AFTER the tick 254
+      //     auto_commit_failed guard so future guards land in
+      //     monotonic tick-order.
+      //   - TYPEOF pin only (not value) — `error` varies per throw
+      //     site. Value pin would require a moving-target regex.
+      //   - One pin because the writer contract at mjs:234 emits
+      //     exactly one field beyond the log() helper's fixed prefix.
+      if (tickRow.stage === "human_blocked_snapshot_failed") {
+        expect(
+          typeof tickRow.error,
+          `tick_history human_blocked_snapshot_failed row.error should be typeof string (reseller-goal-loop.mjs:234 writes \`String(err)\` — narrows any throwable from the extractHumanBlockedSnapshot try/catch at mjs:226-235 to a JSON string): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("string");
+      }
     }
     expect(
       typeof body.generated_at === "string" &&
