@@ -629,6 +629,47 @@ test.describe("Admin reseller-loop status — P10 wave-5 row 173 happy path", ()
       // additions (244 error, 245 human_blocked_snapshot) — cheapest possible
       // tick per tick 245's y10 note ("documentation only. Restores the one-
       // pin cadence after two consecutive two-pins").
+      // tick 247 — auto_deploy_triggered stage schema pin (option y14;
+      // symmetric two-pin shape matching tick 240's phase_failed guard +
+      // tick 242's auto_commit_finished guard + tick 244's error guard +
+      // tick 245's human_blocked_snapshot guard). scripts/cron/reseller-
+      // goal-loop.mjs:361 writes `log({ stage: 'auto_deploy_triggered',
+      // head: headSha, last_deployed: lastSha })` inside the try/catch at
+      // mjs:348-373 that wraps the post-phase auto-deploy hook. This row
+      // fires whenever the tick's HEAD short-sha differs from the recorded
+      // last-good-build.json sha — which is the common case in the
+      // autonomous loop that commits+deploys on every non-idle tick, so
+      // coverage-per-guard is high on green-path CI runs. `head` is
+      // `spawnSync('git', ['rev-parse', '--short', 'HEAD']).stdout?.trim()
+      // ?? ''` (mjs:358-359) — always a string (empty on a repo-less host,
+      // otherwise a 7-char short-sha), never null, never absent, never a
+      // non-string primitive. `last_deployed` is `lastSha` derived from
+      // `(parsed.git_sha || parsed.sha || '').slice(0, 7)` at mjs:355 —
+      // always a string (empty when last-good-build.json is missing or
+      // malformed, otherwise a 7-char short-sha), never null, never
+      // absent, never a non-string primitive. No value pin — the pin
+      // tolerates empty-string on repo-less / fresh-host CI environments
+      // per tick 230's "assert typeof string only so the value can drift"
+      // convention. Two pins in one guard because head + last_deployed
+      // share the same conditional at mjs:361 — they always land together
+      // on the same row, so the guard cost is amortised (matches ticks
+      // 240 + 242 + 244 + 245 two-pin rationale verbatim except for the
+      // stage literal + writer source line citations). Comes after the
+      // tick 245 human_blocked_snapshot guard so future guards land in
+      // monotonic tick-order. Continues the two-pin cadence broken by
+      // tick 246's y10 documentation-only pass — one-pin was restored,
+      // now stepping back into a two-pin because head + last_deployed
+      // are inseparable at the writer site.
+      if (tickRow.stage === "auto_deploy_triggered") {
+        expect(
+          typeof tickRow.head,
+          `tick_history auto_deploy_triggered row.head should be typeof string (reseller-goal-loop.mjs:358-359 writes \`spawnSync('git', ['rev-parse', '--short', 'HEAD']).stdout?.trim() ?? ''\` — empty on repo-less host, otherwise 7-char short-sha): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("string");
+        expect(
+          typeof tickRow.last_deployed,
+          `tick_history auto_deploy_triggered row.last_deployed should be typeof string (reseller-goal-loop.mjs:355 writes \`(parsed.git_sha || parsed.sha || '').slice(0, 7)\` — empty when last-good-build.json missing/malformed, otherwise 7-char short-sha): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("string");
+      }
     }
     expect(
       typeof body.generated_at === "string" &&
