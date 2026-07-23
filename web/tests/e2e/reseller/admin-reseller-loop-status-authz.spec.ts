@@ -805,6 +805,60 @@ test.describe("Admin reseller-loop status — P10 wave-5 row 173 happy path", ()
           `tick_history auto_deploy_failed row.error should be typeof string (reseller-goal-loop.mjs:372 writes \`String(err)\` from the catch branch wrapping the mjs:348-373 auto-deploy hook — any Node.js Error subclass or string thrown from the try body is coerced via String() so the value legitimately drifts per throw-site but the type is invariant): ${JSON.stringify(row).slice(0, 200)}`,
         ).toBe("string");
       }
+      // tick 251 — phase_dispatched stage schema pin (option y16;
+      // symmetric two-pin shape matching tick 240's phase_failed guard
+      // verbatim except for the stage literal — phase_dispatched is
+      // the paired success-path writer contract of phase_failed).
+      // scripts/cron/reseller-goal-loop.mjs:299 writes
+      // `log({ stage: 'phase_dispatched', ...result })` inside the
+      // per-frontier-entry loop at mjs:296-304 where `result` is the
+      // return value of dispatchToClaude() at mjs:190-205 which
+      // constructs `{ status: res.status ?? -1, elapsed_ms, signal,
+      // label }`. Unlike phase_failed (which only fires when
+      // result.status !== 0), phase_dispatched fires on EVERY frontier
+      // entry the loop dispatches — the tick 240 guard only lights up
+      // on subprocess-failure branches, but this guard lights up on
+      // every green-path CI run that has any unblocked frontier at
+      // all, giving it much higher coverage-per-guard than tick 240.
+      // `label` is threaded in at mjs:298 as `${entry.track}:${entry.
+      // phase}` — a template literal over string keys from
+      // computeFrontier() (mjs:147: `frontier.push({ track: t, phase:
+      // name, ... })` where t/name come from Object.keys(goal.tracks)
+      // + Object.entries(...phases)), so it is a schema-level
+      // typeof=string guarantee. `status` is `res.status ?? -1` where
+      // `res` is the spawnSync result — `.status` is `number | null`
+      // and the ?? -1 fallback narrows it to a JSON number every time.
+      // Two pins in one guard because label + status share the same
+      // conditional at mjs:299 — they always land together on the
+      // same row, so the guard cost is amortised (matches ticks
+      // 240 + 242 + 244 + 245 + 247 + 248 two-pin rationale verbatim
+      // except for the stage literal + writer source line citations).
+      // Dropped `elapsed_ms` + `signal` from this two-pin pass to
+      // preserve the two-pin cadence: elapsed_ms is typeof=number
+      // (Date.now() - started at mjs:203, always a finite integer,
+      // never null); signal is `string | null` on the Node.js
+      // spawnSync contract (null on clean exit, string on kill signal
+      // like 'SIGTERM'), so it needs a nullable typeof guard rather
+      // than a bare typeof=string pin — deferred to a future tick as
+      // a paired two-pin (elapsed_ms + signal) landing that closes
+      // the dispatchToClaude() writer contract completely. Fires on
+      // every non-idle tick where the loop has an unblocked frontier
+      // (i.e. the common case in autonomous CI runs), so this is one
+      // of the highest-coverage guards in the file — inverse of the
+      // tick 240 phase_failed guard which is one of the lowest (only
+      // subprocess-failure branches). Comes AFTER the tick 250
+      // auto_deploy_failed guard so future guards land in monotonic
+      // tick-order.
+      if (tickRow.stage === "phase_dispatched") {
+        expect(
+          typeof tickRow.label,
+          `tick_history phase_dispatched row.label should be typeof string (reseller-goal-loop.mjs:298 threads \`\${entry.track}:\${entry.phase}\` through dispatchToClaude → mjs:299 spread): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("string");
+        expect(
+          typeof tickRow.status,
+          `tick_history phase_dispatched row.status should be typeof number (reseller-goal-loop.mjs:204 dispatchToClaude returns \`res.status ?? -1\` → mjs:299 spread): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("number");
+      }
     }
     expect(
       typeof body.generated_at === "string" &&
