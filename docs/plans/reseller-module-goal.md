@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.329
+version: 2026-07-23.330
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,144 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 330
+    ran_at: 2026-07-23
+    action: p10_reseller_billing_model_status_two_part_typeof_string_set_has_twin_symmetry_lift_on_admin_resellers_list
+    result: |
+      Executes tick 329 next-pick option (b) verbatim: rotate to the
+      cross-surface twin spec (admin-resellers-list-authz.spec.ts) —
+      the list projection shares the same resellers-row shape as the
+      detail spec, and the billing_model + status pins on the list
+      side were still bare single-part Set.has() calls
+      (`BILLING_MODELS.has(row.billing_model as string)` +
+      `STATUSES.has(row.status as string)`) with no per-half typeof-vs-
+      membership separation and no tick-numbered failure messages,
+      while the detail-side had already moved on to the two-part
+      labelled discipline via tick 328. Lifting the list-side onto the
+      same two-part shape restores twin-symmetry across the admin-
+      resellers list + detail surfaces.
+
+      Writer-schema justification (mirrors tick 328 detail-side notes
+      verbatim to keep the twin diagnostic messages symmetric):
+        - 0091_reseller_module_foundations.sql:26 declares
+          `billing_model text NOT NULL CHECK (billing_model IN
+          ('retail','wholesale'))` on the resellers base table.
+        - 0091_reseller_module_foundations.sql:29 declares
+          `status text NOT NULL DEFAULT 'active'
+          CHECK (status IN ('active','paused','terminated'))` on
+          the resellers base table — WIDER than the
+          reseller_admins.status enum (active|revoked) pinned at
+          tick 305 because this is a business-lifecycle enum, not
+          a link-lifecycle enum.
+        - Application read path: projected via route.ts:41-44
+          select("*") on the /api/admin/resellers list endpoint,
+          then echoed on every row of the resellers[] array on the
+          wire.
+
+      Design choice — two-part guard mirroring the tick 328 detail-
+      side posture verbatim to keep the sibling-column posture
+      symmetric across the admin-resellers-family list + detail
+      surfaces:
+        - (a) typeof-string preserves the NOT-NULL raw-type
+          discipline; catches a PostgREST regression that returned
+          null|undefined, a schema-side NOT NULL drop, or a
+          projection-side drop from route.ts:41-44 SELECT tuple.
+          Without the typeof-string half, a serialisation
+          regression that returned row.billing_model=null would fail
+          the Set.has() check with a `has(undefined)` diagnostic
+          that hides the raw-type flip behind the membership
+          mismatch; the per-half split surfaces the shape defect
+          directly.
+        - (b) BILLING_MODELS.has() / STATUSES.has() membership
+          assert against the existing module-scope Sets mirrors
+          the DB CHECK enumeration; catches a DB CHECK drop, a
+          legacy INSERT that stamped a value outside the
+          enumeration ('trial', 'suspended'), or a PostgREST
+          serialisation regression that returned a mixed-case
+          slug ('Retail', 'Active').
+
+      Rotation rationale:
+        - Closes the last outstanding single-part Set.has() pins on
+          the list-side resellers-row wire-shape sweep. Symmetric
+          close-out across BOTH admin-resellers-family surfaces:
+          the top-level column-pin cluster now carries the tick-
+          numbered labelled two-expect discipline on both the list
+          (tick 330) and detail (tick 328) lenses.
+        - No new imports, no new module-scope const needed —
+          BILLING_MODELS + STATUSES already hoisted at
+          admin-resellers-list-authz.spec.ts:525-526.
+
+      Coverage-per-guard posture:
+        - List surface: wave-5 row 164 all-rows GET iterates the
+          resellers[] array in a for-loop; on seeded hosts (≥7
+          cohort rows from seed-qa-reseller.mjs) the two-part pin
+          fires at least seven times per test with a mix of
+          billing_model=retail (default) and billing_model=wholesale
+          (QAPROBEWHOLESALEACTIVE + variants), and status ∈
+          {active,paused,terminated} across the cohort. Fresh CI
+          hosts with zero rows still green because the pin lives
+          inside the per-row for-loop.
+
+      Diagnostic delta of the pass:
+        - admin-resellers-list-authz.spec.ts:
+            + module-scope doc-block (tick 330 paragraph) added
+              below the tick 298 paragraph above ISO_TIMESTAMP_RE.
+            + bare `BILLING_MODELS.has(...)` pin replaced with
+              tick-numbered labelled two-expect guard:
+              typeof-string + BILLING_MODELS.has() — each with a
+              bespoke failure message pointing at 0091:26 as the
+              writer-schema source.
+            + bare `STATUSES.has(...)` pin replaced with tick-
+              numbered labelled two-expect guard: typeof-string +
+              STATUSES.has() — each with a bespoke failure message
+              pointing at 0091:29 as the writer-schema source and
+              noting the enum-width contrast vs reseller_admins.
+              status at tick 305.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope const.
+          Matches ticks 234-329 discipline.
+
+      Verification:
+        - tsc --noEmit: whole tree clean (exit 0).
+        - Playwright specs excluded from vitest by design.
+
+      Frontier after tick 330: shape unchanged — Track A P8.5
+      STILL HUMAN-BLOCKED on
+      STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; Track B
+      COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20
+      ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      Top-level resellers-row wire-shape column-pin sweep now
+      COMPLETELY closed across BOTH surfaces (list + detail) with
+      the tick-numbered labelled two-expect discipline on every
+      NOT-NULL column with an enum invariant: billing_model
+      (list:330 + detail:328) + status (list:330 + detail:328).
+
+      Next natural picks on tick 331:
+        (a) rotate to promotion_codes[] cross-column pin summary
+        comment (tier 0 → stripe ids null / tier > 0 → stripe ids
+        non-null already lives inline at ticks 301-302 — a
+        symmetric close-out summary comment could hoist it into
+        module-scope doc-block form).
+        (b) rotate to reseller_attributions[] child-row column-
+        pin sweep close-out (subject_type / subject_user_id /
+        project_id / source / attributed_at / opted_out) —
+        several columns are still on the tick-1710 baseline
+        single-part typeof-string discipline while the sibling
+        admins[] cluster (321-326) has moved on to per-column
+        two-expect + cross-column lifecycle pins.
+        (c) rotate to the tick 329 detail-side `code` equality-
+        style pin's cross-surface counterpart: the list-side code
+        pin (line 657-658) already carries a two-part typeof +
+        regex shape via tick 231, but the diagnostic message is
+        still shorter than the tick-329 detail-side. A message-
+        symmetry pass would bring the two surfaces to parity on
+        prose too, not just structure.
+        (d) idle — the frontier remains tight: P1.5 + P8.5
+        remain HUMAN-BLOCKED, P11 never_completes, Track B
+        closed. P10 hardening continues to accept incremental
+        pin-tightening ticks.
+    commit: (this tick)
+
   - tick: 329
     ran_at: 2026-07-23
     action: p10_reseller_code_text_not_null_unique_two_part_typeof_string_plus_equality_pin_on_admin_reseller_detail

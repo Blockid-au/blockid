@@ -498,6 +498,59 @@ const UUID_RE =
 // no format regex on the resellers row (0091:22-42 enumerates every
 // column; all bool/int/uuid/text columns from that block now carry a
 // wire-shape pin on both admin-list + admin-detail surfaces).
+//
+// Tick 330 — billing_model + status two-part typeof-string + Set.has()
+// twin-symmetry lift, cross-surface pair with the sibling lift landed on
+// admin-reseller-detail-authz.spec.ts at tick 328. Executes tick 329
+// next-pick option (b) verbatim: the list-side billing_model + status
+// pins below were still carrying single-part Set.has() diagnostics
+// (`BILLING_MODELS.has(row.billing_model as string)` +
+// `STATUSES.has(row.status as string)`) with no per-half typeof-vs-
+// membership separation and no tick-numbered failure messages, while
+// the detail-side had already moved on to the two-part labelled
+// discipline via tick 328. Lifting the list-side onto the same two-
+// part shape restores twin-symmetry across the admin-resellers list +
+// detail surfaces so a Set.has() regression, a typeof drop, or a
+// PostgREST serialisation flip on either enum column surfaces on both
+// admin surfaces on the same CI pass rather than only the detail lens.
+//
+// Writer-schema justification (mirrors tick 328 detail-side notes):
+//   - 0091_reseller_module_foundations.sql:26 declares billing_model
+//     text NOT NULL CHECK (billing_model IN ('retail','wholesale')).
+//   - 0091_reseller_module_foundations.sql:29 declares status text NOT
+//     NULL DEFAULT 'active' CHECK (status IN ('active','paused',
+//     'terminated')) — WIDER than reseller_admins.status ({active,
+//     revoked}) because this is a business-lifecycle enum, not a link-
+//     lifecycle enum.
+//   - Application read path: projected via route.ts:41-44 select("*")
+//     on the /api/admin/resellers list endpoint, echoed on every row of
+//     the resellers[] array on the wire.
+//
+// Design choice — two-part guard per column:
+//   - (a) typeof-string preserves the NOT-NULL raw-type discipline;
+//     catches a PostgREST regression that returned null|undefined, a
+//     schema-side NOT NULL drop, or a projection-side drop from
+//     route.ts:41-44 select("*") SELECT tuple. Without the typeof-
+//     string half, a serialisation regression that returned
+//     row.billing_model=null would fail the Set.has() check with a
+//     `has(undefined)` diagnostic that hides the raw-type flip behind
+//     the membership mismatch; the per-half split surfaces the shape
+//     defect directly.
+//   - (b) BILLING_MODELS.has() / STATUSES.has() membership assert
+//     against the existing module-scope Sets mirrors the DB CHECK
+//     enumeration; catches a DB CHECK drop, a legacy INSERT that
+//     stamped a value outside the enumeration ('trial', 'suspended'),
+//     or a PostgREST serialisation regression that returned a mixed-
+//     case slug ('Retail', 'Active').
+//
+// Rotation rationale: closes the last outstanding single-part Set.has()
+// pins on the list-side resellers-row wire-shape sweep so the top-level
+// column-pin cluster carries the tick-numbered labelled two-expect
+// discipline across BOTH admin-resellers-family surfaces
+// (list + detail): billing_model + status now match the detail-side
+// tick 328 posture verbatim. No new imports, no new module-scope const
+// needed — BILLING_MODELS + STATUSES already hoisted at the const block
+// below.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 
@@ -657,13 +710,39 @@ test.describe("Admin resellers list — P10 wave-5 row 164 happy path", () => {
       expect(typeof row.code).toBe("string");
       expect(row.code as string).toMatch(RESELLER_CODE_RE);
       expect(typeof row.display_name).toBe("string");
+      // Tick 330 — billing_model two-part typeof-string + Set.has()
+      // twin-symmetry lift. See module-scope doc-block (tick 330
+      // paragraph) above ISO_TIMESTAMP_RE for the rationale. Column
+      // source 0091:26 `billing_model text NOT NULL CHECK
+      // (billing_model IN ('retail','wholesale'))`; the two-part shape
+      // mirrors the detail-side tick 328 posture verbatim so a Set.has()
+      // regression, a typeof drop, or a PostgREST serialisation flip
+      // that returned null|undefined surfaces on both admin-resellers-
+      // family surfaces (list + detail) on the same CI pass.
+      expect(
+        typeof row.billing_model,
+        `reseller.billing_model '${String(row.billing_model)}' should be a string (text NOT NULL per 0091:26; a schema-side widening, a PostgREST serialisation regression that returned null|undefined, or a projection-side drop from route.ts:41-44 select("*") would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("string");
       expect(
         BILLING_MODELS.has(row.billing_model as string),
-        `reseller.billing_model should be retail|wholesale: ${JSON.stringify(row).slice(0, 200)}`,
+        `reseller.billing_model '${String(row.billing_model)}' should be in the enum {retail,wholesale} per ck_reseller_billing_model CHECK at 0091:26; a DB CHECK drop, a legacy INSERT that stamped a billing_model outside the enumeration ('trial', 'partner'), or a PostgREST serialisation regression that returned a mixed-case slug ('Retail', 'WHOLESALE') would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
+      // Tick 330 — status two-part typeof-string + Set.has() twin-
+      // symmetry lift, sibling column to billing_model above. See
+      // module-scope doc-block (tick 330 paragraph) above ISO_TIMESTAMP_RE
+      // for the rationale. Column source 0091:29 `status text NOT NULL
+      // DEFAULT 'active' CHECK (status IN ('active','paused',
+      // 'terminated'))` — WIDER than reseller_admins.status
+      // ({active,revoked}) because this is a business-lifecycle enum,
+      // not a link-lifecycle enum. Two-part shape mirrors detail-side
+      // tick 328 posture verbatim.
+      expect(
+        typeof row.status,
+        `reseller.status '${String(row.status)}' should be a string (text NOT NULL per 0091:29; a schema-side widening, a PostgREST serialisation regression that returned null|undefined, or a projection-side drop from route.ts:41-44 select("*") would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("string");
       expect(
         STATUSES.has(row.status as string),
-        `reseller.status should be active|paused|terminated: ${JSON.stringify(row).slice(0, 200)}`,
+        `reseller.status '${String(row.status)}' should be in the enum {active,paused,terminated} per ck_reseller_status CHECK at 0091:29; a DB CHECK drop, a legacy INSERT that stamped a status outside the enumeration ('trial', 'suspended'), or a PostgREST serialisation regression that returned a mixed-case slug ('Active', 'Paused') would surface here. NOTE: this enum is WIDER than the reseller_admins.status Set pinned at tick 305 — resellers.status is a business-lifecycle enum, not a link-lifecycle enum. Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
       // Tick 283 — created_at ISO wire-shape tightening. See module-scope
       // doc-block above ISO_TIMESTAMP_RE for the rationale. Column source
