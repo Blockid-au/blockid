@@ -1010,3 +1010,4 @@
 {"ts":"2026-07-23T18:50:30.682Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): P10 tick 326 — admins[] status↔revoked_at cross-column lifecycle invariant pin on admin reseller detail (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T18:50:38.320Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-23T18-40-01-370Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T19:00:14.945Z","event":"github-push-master","detail":"Blockid-au: feat(dashboard): portfolio view — all user projects side-by-side with canonical stage (Q4 Multi-project #1) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T19:00:47.664Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): P10 tick 327 — reseller.display_name text NOT NULL two-part labelled pin on admin reseller detail (1 commits)","source":"github-webhook"}
