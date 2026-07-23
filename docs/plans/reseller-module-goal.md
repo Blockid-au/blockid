@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.353
+version: 2026-07-23.354
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,128 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 354
+    ran_at: 2026-07-23
+    action: p10_commissions_current_cross_column_lifecycle_invariant_summary_hoist_twin_lift_closes_commissions_cluster_on_admin_reseller_detail_validation
+    result: |
+      Executes tick 353 next-pick option (iii) verbatim as a cross-surface
+      twin lift of the tick 334 module-scope summary at
+      web/tests/e2e/reseller/admin-reseller-detail-authz.spec.ts:2087-2276.
+      Closes the reseller_commissions_current[] cluster — the LAST
+      uncovered child slot on the detail-route response shape { ok,
+      reseller, promotion_codes, admins, attributions_summary,
+      commissions } on the detail-validation surface — into its symmetric
+      summary state, matching the admins[] cluster which tick 352 closed
+      with the status ⇔ revoked_at cross-column lifecycle pin inline
+      (rows 828-906) and the attributions_summary aggregate which tick
+      353 closed with the by_source enum-tightening pin inline (rows
+      974-1030).
+
+      Module-scope doc-block inserted at spec row 278 (between the
+      ALLOWED_ATTRIBUTION_SOURCES const and the tick 342 opener),
+      mirroring the sibling tick 334 shape verbatim: writer-side
+      sources (0094:31-73 base ledger + 0094:101-118 append-only event
+      log), view-derived surfaces (0094:150-172 status CASE +
+      0094:173-177 net_owed_cents SUM), application write paths
+      (planAccrualForLine insert + refundGstReversal/prorateClawback
+      refund + reseller-clear-commissions cron), read path (route.ts:
+      98-105 SELECT tuple + .order("created_at",desc).limit(50)),
+      runtime enforcement (per-column pins at ticks 342-349 rows
+      1044-1446 with per-row row-range mapping), and symmetric-cluster
+      posture (mirrors tick 334 rejection of inline cross-column
+      if/else asserts — the view CASE + SUM ARE the invariant so
+      re-deriving on the client would add maintenance burden without
+      catching a new failure mode).
+
+      Rotation rationale:
+        - Executes tick 353 next-pick option (iii) verbatim.
+          Reinterpreted as a documentation-only summary hoist (matching
+          the tick 334 sibling rationale) rather than inline
+          cross-column if/else asserts — the tick 334 sibling
+          explicitly rejects inline asserts here because they would
+          just re-derive the view CASE logic on the client, and a
+          view-definition drift already surfaces at the tick 348
+          ALLOWED_COMMISSION_STATUSES membership pin.
+        - Cross-surface twin symmetrisation on all FIVE detail-route
+          child slots is now complete on this file: (1) resellers row
+          — per-column pins at ticks 283-298 (summary lives on sibling
+          at tick 333); (2) promotion_codes[] — per-column pins at
+          ticks 299-306 (tier ⇔ stripe-id disjunction summary lives on
+          sibling at tick 332); (3) admins[] — per-column pins closed
+          at tick 351 + status ⇔ revoked_at lifecycle pinned inline at
+          tick 352; (4) attributions_summary — total + active +
+          by_source pinned inline at ticks 341 + 353; (5) commissions[]
+          — per-column pins closed at tick 349 + THIS TICK hoists the
+          view CASE + SUM cross-column invariant summary at module
+          scope.
+        - Introduces ZERO new module-scope constants, zero new imports,
+          zero new per-row asserts, zero fixture changes, zero route
+          changes. Pure documentation-only close-out lift matching the
+          tick 234-333 posture on the sibling spec (comment-only
+          tightening ticks are the accepted P10 rotation shape while
+          P8.5 remains HUMAN-BLOCKED on Stripe env vars).
+
+      Coverage-per-guard posture: this tick adds no new asserts, so no
+      new pin fires on any CI run. The doc-block gives future rotation
+      ticks a single module-scope entry to lift from without re-reading
+      ticks 347 + 348 + the reseller_commission_events schema in full,
+      matching the tick 334 sibling summary's role on detail-authz.
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-validation.spec.ts:
+            + new module-scope tick 354 doc-block placed between the
+              ALLOWED_ATTRIBUTION_SOURCES const (row 273-277) and the
+              tick 342 commissions[] cluster opener (row 278+).
+            + Cross-references: tick 334 sibling summary at admin-
+              reseller-detail-authz.spec.ts:2087-2276 + per-column pin
+              rows on this file at 1044-1446 + writer-schema sources at
+              0094:31-73 + 0094:101-118 + 0094:150-172 + 0094:173-177 +
+              route.ts:98-105 SELECT tuple.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope constants.
+
+      Verification:
+        - `cd web && npx tsc --noEmit`: exit 0 (whole tree clean).
+        - `cd web && npm run lint:reseller`: R-01 11 files + R-03 32
+          routes + R-04 8 stripe files; 6 exemptions, 0 violations
+          (unchanged from tick 353).
+        - Playwright specs excluded from vitest by design.
+
+      Frontier after tick 354: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      commissions[] cluster on admin-reseller-detail-validation NOW
+      COMPLETE at both the per-column shape lens (all 8 tuple columns
+      pinned across ticks 342-349) AND the cross-column invariant lens
+      (module-scope summary lifted this tick). Cross-surface twin
+      symmetrisation complete on ALL five detail-route child slots on
+      this surface.
+
+      Next natural picks on tick 355:
+        (i) hoist the tick 326/352 admins[] status ⇔ revoked_at
+        lifecycle-invariant doc-block and the tick 313/353
+        attributions_summary by_source enum-tightening doc-block from
+        their inline positions on this file (rows 828-906 + 974-1030)
+        into module-scope summary comments, matching tick 353's
+        next-pick option (ii). Would complete a THIRD module-scope
+        summary on this surface alongside this tick's commissions[]
+        hoist.
+        (ii) rotate to the cross-surface twin spec (admin-resellers-
+        list-authz.spec.ts) — either mirror the tick 333 resellers-row
+        ck_wholesale_gst_required summary onto the list surface (the
+        list route also select("*") from resellers so the invariant is
+        observable there too, matching the tick 231-232 twin-
+        symmetrisation discipline).
+        (iii) rotate to a wholly new cluster like reseller_requests[]
+        on admin-requests-*.spec.ts (the reseller-requests inbox
+        cluster has not yet been surface-lifted between detail-authz
+        and its validation twin).
+        (iv) idle — frontier remains tight: P1.5 + P8.5 HUMAN-BLOCKED,
+        P11 never_completes, Track B closed. P10 hardening continues
+        to accept incremental pin-tightening + summary-hoist ticks.
+    commit: (this tick)
+
   - tick: 349
     ran_at: 2026-07-23
     action: p10_commissions_created_at_two_part_typeof_string_iso_timestamp_re_cross_surface_twin_lift_closes_commissions_cluster_on_admin_reseller_detail_validation
