@@ -67,6 +67,35 @@ test.describe("Post-deploy hydrated smoke", () => {
     expect(okUrl, `unexpected final URL ${finalUrl}`).toBe(true);
   });
 
+  // ── /workspace/audit-log + /workspace/projects (iter-12) ────────────
+  // Both pages call `redirect("/auth/login?next=...")` inside an async
+  // Server Component when getCurrentUser() returns null. Because they
+  // sit under app/workspace/loading.tsx, Next 16 streams a shell + the
+  // NEXT_REDIRECT template rather than returning a raw 307 to the wire.
+  // A `curl -sI` sees HTTP 200 and (incorrectly) flags this as an auth
+  // leak — the client runtime honours the template and lands on
+  // /auth/login. This hydrated smoke asserts the visible behaviour so
+  // the false-positive from the iter-12 curl-only gate can't recur.
+  for (const path of ["/workspace/audit-log", "/workspace/projects"] as const) {
+    test(`${path} — anonymous lands on /auth/login (hydrated)`, async ({
+      page,
+      context,
+    }) => {
+      await context.clearCookies();
+      const resp = await page.goto(path, { waitUntil: "domcontentloaded" });
+      expect(resp, `no response for ${path}`).not.toBeNull();
+      const status = resp!.status();
+      // 200 (streamed shell) or a raw 307/302 both count — regression is 4xx/5xx.
+      expect([200, 302, 307], `unexpected status ${status}`).toContain(status);
+      // Once hydration processes the NEXT_REDIRECT template the URL must
+      // settle on /auth/login (anonymous session).
+      await page.waitForURL(/\/auth\/login/, { timeout: PAGE_TIMEOUT });
+      expect(page.url()).toMatch(
+        new RegExp(`/auth/login.*next=.*${path.replace(/\//g, "%2F")}`),
+      );
+    });
+  }
+
   test("/showcase/blockid — opengraph-image returns image/png", async ({
     request,
   }) => {
