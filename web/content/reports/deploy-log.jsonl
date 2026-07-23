@@ -1037,3 +1037,8 @@
 {"ts":"2026-07-23T20:37:17Z","status":"success","gates":"9/9","pid":"903478","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-23T20:40:30.567Z","event":"github-push-master","detail":"Blockid-au: feat(audit): wire user audit log into project.updated + member.invited/revoked/accepted (SOC2-lite expansion) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T20:45:05.240Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): P10 tick 335 (goal) — resellers-row ck_wholesale_gst_required cross-column invariant summary hoist on admin-resellers-list twin (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T20:45:13.524Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-23T20-40-01-276Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T20:51:05Z","status":"success","gates":"9/9","pid":"949023","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-23T20:58:39.997Z","event":"github-push-master","detail":"Blockid-au: test(smoke): add /dashboard/portfolio auth-gate smoke coverage (iter-15 DX) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T20:59:33.967Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 336 — P10 reseller.display_name two-part typeof-string + non-blank message-symmetry lift on admin-resellers-list twin (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T21:07:46.016Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): P10 tick 337 (goal) — reseller.created_at / updated_at / commission_share_pct message-prose refresh on admin-reseller-detail typeof asserts (1 commits)","source":"github-webhook"}

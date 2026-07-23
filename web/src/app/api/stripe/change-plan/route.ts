@@ -11,6 +11,7 @@ import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { getPlan } from "@/lib/plans";
 import { buildAddonRemovalSchedulePhases } from "@/lib/stripe/addon-schedule";
 import { hashUserId } from "@/lib/reseller/hash";
+import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
 
 // POST /api/stripe/change-plan
 // Body (three modes):

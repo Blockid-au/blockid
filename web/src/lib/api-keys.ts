@@ -296,9 +296,19 @@ export async function listApiKeys(userId: string): Promise<ApiKeyInfo[]> {
 export async function revokeApiKey(
   keyId: string,
   userId: string,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; error?: string; keyPrefix?: string }> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return { ok: false, error: "Database not configured." };
+
+  // Read prefix first (ownership-scoped) so callers — specifically the audit
+  // wire-in on DELETE /api/keys/[id] — can record the PII-safe key_prefix
+  // without ever re-fetching the raw key material.
+  const { data: existing } = await supabase
+    .from("api_keys")
+    .select("key_prefix")
+    .eq("id", keyId)
+    .eq("user_id", userId)
+    .maybeSingle();
 
   const { error } = await supabase
     .from("api_keys")
@@ -311,5 +321,5 @@ export async function revokeApiKey(
     return { ok: false, error: "Failed to revoke key." };
   }
 
-  return { ok: true };
+  return { ok: true, keyPrefix: existing?.key_prefix ?? undefined };
 }
