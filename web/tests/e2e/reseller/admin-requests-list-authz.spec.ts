@@ -103,6 +103,23 @@ const REQUEST_STATUSES = new Set([
   "cancelled",
 ]);
 
+// Tick 259 — per-key payload content invariants mirrored from
+// web/src/lib/reseller/requests.ts so the discriminated-union pin below
+// echoes the same source-of-truth shapes the validator writes:
+//   - ALLOWED_TIER_PCT_VALUES ← ALLOWED_TIER_VALUES at requests.ts:63
+//   - SUFFIX_RE               ← SUFFIX_RE at requests.ts:64
+//   - HTTPS_URL_RE            ← HTTPS_URL_RE at requests.ts:65
+//   - REASON_MAX              ← REASON_MAX at requests.ts:66
+//   - PURPOSE_MAX             ← PURPOSE_MAX at requests.ts:67
+// Kept as module-scope constants for parity with the RESELLER_CODE_RE
+// hoist landed at tick 231 (whenever a validator-side invariant exists,
+// the spec echoes it verbatim rather than re-deriving inline).
+const ALLOWED_TIER_PCT_VALUES = new Set([0, 10, 20, 30, 40]);
+const SUFFIX_RE = /^[A-Z0-9]{1,16}$/;
+const HTTPS_URL_RE = /^https:\/\/[a-zA-Z0-9.-]+(\/.*)?$/;
+const REASON_MAX = 200;
+const PURPOSE_MAX = 500;
+
 test.describe("Admin reseller-requests list pre-read authorization — P10 dry-run", () => {
   test("unauthenticated — GET with no session returns 401 no_user", async ({
     request,
@@ -321,6 +338,98 @@ test.describe("Admin reseller-requests list — P10 wave-5 row 174 happy path", 
           !Array.isArray(r.payload),
         `admin happy GET row.payload should be a plain object (jsonb NOT NULL DEFAULT '{}' per 0095:33; a PostgREST view that mistyped the column would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
+      // Tick 259 — per-key payload content pins per tick 258 next-pick
+      // option (r). The tick 234 plain-object guard above closes the
+      // "is this a jsonb object" invariant, but leaves the per-request-
+      // type key shapes silent. This tick extends coverage into the
+      // discriminated union documented at
+      // web/src/lib/reseller/requests.ts:41-44:
+      //   - code_request payload → tier_pct (number ∈ {0,10,20,30,40})
+      //     + suggested_suffix (null or /^[A-Z0-9]{1,16}$/) + notes
+      //     (null or string, trimmed length ≤ 200). See
+      //     validateCodeRequest at requests.ts:82-118 for the source-
+      //     of-truth invariants; the route stores {...res.value} at
+      //     requests.ts:229-233 so the jsonb column mirrors the exact
+      //     same three-key shape.
+      //   - over_budget_approval payload → target_user_id (UUID string),
+      //     requested_amount (positive integer), reason (null or string
+      //     length ≤ 200), remaining_budget_snapshot (null or non-
+      //     negative integer). See validateOverBudgetApproval at
+      //     requests.ts:125-172; the route stores {...res.value} at
+      //     requests.ts:243-246.
+      //   - collateral_approval payload → collateral_url (https URL) +
+      //     purpose (string length ≤ 500). See validateCollateralApproval
+      //     at requests.ts:178-197; the route stores {...res.value} at
+      //     requests.ts:253-256.
+      //
+      // The seeded QA dataset carries a pending over_budget_approval
+      // row via wave-3 row 155 against the active_wholesale variant —
+      // so the over_budget_approval branch is exercised by the happy-
+      // path admin GET, while the code_request + collateral_approval
+      // branches depend on future QA seeding to fire. Coverage-per-
+      // guard on the two unseeded branches is zero today, but the pin
+      // still closes the writer contract so a route regression that
+      // dropped a key from the SELECT (route.ts:44 echoes payload jsonb
+      // straight through) or a validator regression that swapped a key
+      // shape at requests.ts would surface across both surfaces on the
+      // next CI pass, matching the tick 258 zero-coverage-per-guard
+      // rationale for the goal_completed row.
+      //
+      // TYPEOF + VALUE-tighten pins per key so a rename OR a shape
+      // drift (e.g. tier_pct swapped for tier, or reason no longer
+      // trimmed) both surface. Symmetric with the tick 231 embed.code
+      // value pin — spec-local convention is that whenever a validator-
+      // side invariant exists, the pin echoes it verbatim.
+      const payload = r.payload as Record<string, unknown>;
+      if (r.request_type === "code_request") {
+        expect(typeof payload.tier_pct).toBe("number");
+        expect(
+          ALLOWED_TIER_PCT_VALUES.has(payload.tier_pct as number),
+          `code_request payload.tier_pct '${String(payload.tier_pct)}' not in {0, 10, 20, 30, 40} per requests.ts:63: ${JSON.stringify(payload).slice(0, 200)}`,
+        ).toBe(true);
+        expect(
+          payload.suggested_suffix === null ||
+            (typeof payload.suggested_suffix === "string" &&
+              SUFFIX_RE.test(payload.suggested_suffix as string)),
+          `code_request payload.suggested_suffix should be null or match /^[A-Z0-9]{1,16}$/ per requests.ts:64+98-104: ${JSON.stringify(payload.suggested_suffix)}`,
+        ).toBe(true);
+        expect(
+          payload.notes === null ||
+            (typeof payload.notes === "string" &&
+              (payload.notes as string).length <= REASON_MAX),
+          `code_request payload.notes should be null or string length ≤ ${REASON_MAX} per requests.ts:106-113: ${JSON.stringify(payload.notes)}`,
+        ).toBe(true);
+      } else if (r.request_type === "over_budget_approval") {
+        expect(typeof payload.target_user_id).toBe("string");
+        expect(payload.target_user_id as string).toMatch(UUID_RE);
+        expect(typeof payload.requested_amount).toBe("number");
+        expect(
+          Number.isInteger(payload.requested_amount) &&
+            (payload.requested_amount as number) > 0,
+          `over_budget_approval payload.requested_amount should be a positive integer per requests.ts:139-149: ${JSON.stringify(payload.requested_amount)}`,
+        ).toBe(true);
+        expect(
+          payload.reason === null ||
+            (typeof payload.reason === "string" &&
+              (payload.reason as string).length <= REASON_MAX),
+          `over_budget_approval payload.reason should be null or string length ≤ ${REASON_MAX} per requests.ts:150-157: ${JSON.stringify(payload.reason)}`,
+        ).toBe(true);
+        expect(
+          payload.remaining_budget_snapshot === null ||
+            (typeof payload.remaining_budget_snapshot === "number" &&
+              Number.isInteger(payload.remaining_budget_snapshot) &&
+              (payload.remaining_budget_snapshot as number) >= 0),
+          `over_budget_approval payload.remaining_budget_snapshot should be null or non-negative integer per requests.ts:158-162: ${JSON.stringify(payload.remaining_budget_snapshot)}`,
+        ).toBe(true);
+      } else if (r.request_type === "collateral_approval") {
+        expect(typeof payload.collateral_url).toBe("string");
+        expect(payload.collateral_url as string).toMatch(HTTPS_URL_RE);
+        expect(typeof payload.purpose).toBe("string");
+        expect(
+          (payload.purpose as string).length <= PURPOSE_MAX,
+          `collateral_approval payload.purpose should be length ≤ ${PURPOSE_MAX} per requests.ts:193-195: ${JSON.stringify(payload.purpose).slice(0, 100)}`,
+        ).toBe(true);
+      }
       // Tick 222 — resellers(code, display_name) nested-join shape pin per
       // tick 221 next-pick option (b). Route SELECT at route.ts:44 embeds a
       // Supabase nested select on the parent resellers row via the
