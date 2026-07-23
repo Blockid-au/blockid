@@ -981,3 +981,4 @@
 {"ts":"2026-07-23T19:00:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":592,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (234726128 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274149448 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
 {"ts":"2026-07-23T19:00:01Z","endpoint":"svi-review","status":"ok","duration_ms":1995,"detail":"{\"reviewed\": 1, \"milestones\": 0, \"skipped\": 43, \"totalUsers\": 44, \"weekKey\": \"2026_w30\"}"}
 {"ts":"2026-07-23T19:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16940,"detail":""}
+{"ts":"2026-07-23T19:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2034,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (234363896 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274148988 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
