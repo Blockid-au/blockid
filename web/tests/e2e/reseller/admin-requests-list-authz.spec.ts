@@ -81,6 +81,15 @@ const ROUTE = "/api/admin/resellers/requests";
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// resellers.code invariant per normaliseResellerCode() at
+// web/src/lib/reseller/attribution.ts:29 — trim → toUpperCase() →
+// replace(/[^A-Z0-9]/g, "") so every code stored in the resellers table
+// is UPPERCASE alphanumeric only. Applied at admin-create time
+// (web/src/app/api/admin/resellers/route.ts:86). Twin-symmetrised in the
+// same tick onto admin-resellers-list-authz.spec.ts:176 which echoes the
+// same column directly.
+const RESELLER_CODE_RE = /^[A-Z0-9]+$/;
+
 const REQUEST_TYPES = new Set([
   "code_request",
   "over_budget_approval",
@@ -309,7 +318,19 @@ test.describe("Admin reseller-requests list — P10 wave-5 row 174 happy path", 
         `resellers embed should be a plain object (PostgREST returns a single row for a to-one FK, not an array): ${JSON.stringify(r.resellers)}`,
       ).toBe(true);
       const embed = r.resellers as { code?: unknown; display_name?: unknown };
+      // Tick 231 option (j) — VALUE-tighten embed.code from typeof string
+      // to the normaliseResellerCode() invariant /^[A-Z0-9]+$/ (see hoisted
+      // RESELLER_CODE_RE above). Twin-symmetrised in the same tick onto
+      // admin-resellers-list-authz.spec.ts:176 which echoes the same
+      // column directly (this file echoes it via the nested
+      // resellers(code, display_name) embed at route.ts:44). A route
+      // regression that dropped the normaliser at admin-create time
+      // (route.ts:86) or a schema-side change that removed the UPPERCASE
+      // convention would surface across both admin surfaces
+      // simultaneously. display_name has no such invariant (free text per
+      // 0091:25) so it stays as typeof string only.
       expect(typeof embed.code).toBe("string");
+      expect(embed.code as string).toMatch(RESELLER_CODE_RE);
       expect(typeof embed.display_name).toBe("string");
     }
   });
