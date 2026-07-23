@@ -492,6 +492,43 @@ test.describe("Admin reseller-loop status — P10 wave-5 row 173 happy path", ()
           `tick_history auto_commit_finished row.push_status should be typeof number (reseller-goal-loop.mjs:337 writes \`p.status ?? -1\` from spawnSync git push at mjs:336): ${JSON.stringify(row).slice(0, 200)}`,
         ).toBe("number");
       }
+      // Writer schema pin (tick 243 option y7 — fifth conditional-by-stage pin,
+      // symmetric one-pin single-guard shape matching tick 241's idle guard).
+      // scripts/cron/reseller-goal-loop.mjs:332 writes `log({ stage:
+      // 'auto_commit_started', dirty_files: dirty.split('\n').length })` inside
+      // the safety-net commit branch at mjs:328-341 that fires whenever the
+      // Claude CLI subprocess landed uncommitted edits. `dirty` is the trimmed
+      // stdout of `git status --porcelain` (mjs:329-330); `dirty.split('\n').
+      // length` is `Array.prototype.length` on the split result so it is a
+      // schema-level typeof=number guarantee (never null, never string, never
+      // absent — the branch is only entered when `dirty` is a non-empty string
+      // per the `if (dirty)` guard at mjs:331, so the split always returns
+      // ≥1 element and .length is always ≥1). The log() helper at mjs:52-58
+      // prepends tick_id/ts/human_review_minutes_7d then spreads `...row` — the
+      // `dirty_files` keyval flows through untouched. Landing a stage-guarded
+      // pin catches (a) a writer regression that renamed the key (e.g.
+      // dirty_files → uncommitted_count); (b) a call-site regression that
+      // swapped `.length` for the raw split array (typeof would flip to
+      // 'object' since arrays are objects); (c) a call-site regression that
+      // dropped the field from the spread. No value pin — the count drifts
+      // with subprocess edit volume per tick. Skipped on hosts where the loop
+      // has never taken the dirty-tree branch — the pin has no effect on hosts
+      // where every phase committed inline, same natural side effect as the
+      // tick 239 frontier_computed guard + tick 240 phase_failed guard + tick
+      // 241 idle guard + tick 242 auto_commit_finished guard. Restores the
+      // one-pin / two-pin alternation cadence established by ticks 239-242
+      // (frontier_computed: 1 → phase_failed: 2 → idle: 1 → auto_commit_
+      // finished: 2 → auto_commit_started: 1). Paired writer contract with
+      // the tick 242 auto_commit_finished guard — auto_commit_started fires
+      // at mjs:332 immediately before the git commit+push at mjs:335-336
+      // whose results feed auto_commit_finished at mjs:337, so both rows land
+      // together whenever the dirty-tree branch is taken.
+      if (tickRow.stage === "auto_commit_started") {
+        expect(
+          typeof tickRow.dirty_files,
+          `tick_history auto_commit_started row.dirty_files should be typeof number (reseller-goal-loop.mjs:332 writes \`dirty.split('\\n').length\` — Array.prototype.length): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("number");
+      }
     }
     expect(
       typeof body.generated_at === "string" &&
