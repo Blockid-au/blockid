@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.335
+version: 2026-07-23.336
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,176 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 336
+    ran_at: 2026-07-23
+    action: p10_reseller_display_name_message_symmetry_lift_on_admin_resellers_list_two_part_typeof_non_blank_pin
+    result: |
+      Executes tick 335 next-pick option (c) verbatim: message-prose
+      refresh on the last outstanding tick-1710 baseline bare pin
+      remaining on the resellers-row wire-shape sweep on the list
+      surface. The list-side row.display_name column at row 939 was
+      still carrying the bare
+      `expect(typeof row.display_name).toBe("string")` with no
+      diagnostic message and no tick-numbered doc-block, while every
+      other projected resellers-row column on the list surface had
+      moved on to the tick 320+ two-part labelled discipline (row.id
+      UUID at tick 231, row.code at tick 331 two-part typeof +
+      RESELLER_CODE_RE, row.billing_model + row.status at tick 330
+      two-part typeof + Set.has, row.commission_share_pct at tick
+      286, row.gst_registered at tick 287, row.allowed_tiers at tick
+      288, row.monthly_credit_budget at tick 289, row.monthly_sandbox
+      _credits at tick 290, row.can_create_startups at tick 291, row.
+      can_grant_credits at tick 292, row.collateral_approval_required
+      at tick 293, row.abn at tick 294, row.logo_url at tick 295, row.
+      primary_color at tick 296, row.contact_email at tick 297, row.
+      notes at tick 298, row.created_at/updated_at at ticks 283/284).
+      Lift closes the last bare tick-1710 baseline pin on the
+      resellers-row cluster on the list surface — every projected
+      column on the select("*") tuple now carries the tick-numbered
+      labelled two-expect discipline. Mirrors the detail-side tick
+      327 two-part labelled lift verbatim so the two admin-resellers-
+      family lenses now carry symmetric prose + assertion shape on
+      display_name.
+
+      Shape lifted (mirrors detail-side tick 327 posture verbatim):
+        - Writer-side source: resellers.display_name declared at
+          0091_reseller_module_foundations.sql:25 as `display_name
+          text NOT NULL`. The DB carries NO CHECK constraint against
+          blank/whitespace-only strings — an unvalidated INSERT
+          could stamp display_name='' and the database would accept
+          it.
+        - Application write path: admin-validator.ts:66-70 rejects
+          patch.display_name that trims to empty with
+          reason='display_name_blank' inside
+          validateAdminResellerPatch. Sole application-layer gate —
+          a P9 create-branch that bypassed the validator or a
+          future non-admin write path that forgot to route through
+          validateAdminResellerPatch could still slip an empty-
+          string value into the column since the DB has no CHECK
+          constraint to backstop the validator.
+        - Application read path: projected via select("*") on the
+          list route at web/src/app/api/admin/resellers/route.ts:
+          41-44 — .from("resellers").select("*").order("created_at",
+          {ascending:false}) surfaces display_name on every row of
+          the resellers[] array on every list GET. Detail lens
+          surfaces the same column via loadReseller() single-row
+          lookup at web/src/app/api/admin/resellers/[code]/route.
+          ts:47-48 select("*") then route.ts:122-129 payload stamp.
+        - Runtime enforcement in this spec: two-part guard mirroring
+          the detail-side tick 327 posture verbatim —
+            - (a) typeof-string labelled with diagnostic prose
+              preserves the NOT-NULL raw-type discipline. Catches a
+              PostgREST regression that returned null|undefined,
+              a schema-side NOT NULL drop, or a projection-side
+              drop from the route.ts:41-44 SELECT tuple. Separated
+              from the trim non-blank check below so a raw-type
+              flip does not hide behind a length-based diagnostic.
+            - (b) String(row.display_name ?? "").trim().length > 0
+              shape assert catches an unvalidated INSERT / bypass
+              write path that stamped display_name='' or
+              display_name='   ' straight past the validator's
+              display_name_blank guard on ANY row of the cohort.
+              Distinct from the detail lens in ONE dimension: the
+              list surface iterates the cohort so a legacy INSERT
+              that stamped a blank display_name on ANY row would
+              surface here — the detail surface would only catch
+              it if the /code lens landed on that specific row.
+
+      Rotation rationale:
+        - Closes the last outstanding tick-1710 baseline bare pin
+          on the resellers-row wire-shape sweep on the list surface
+          per tick 335 option (c) verbatim. The detail-side lifted
+          at tick 327; the list-side has been the last outstanding
+          bare tick-1710 baseline pin since. Restores the tick 231-
+          232 twin-symmetrisation discipline across the two admin-
+          resellers-family lenses so a future non-blank invariant
+          refactor cannot leave one lens unpinned.
+        - Distinct from tick 331 (reseller.code message-symmetry
+          lift on the list-side) in ONE dimension: tick 331 lifted
+          the RESELLER_CODE_RE regex half; this tick lifts the
+          non-blank .trim().length > 0 shape half. Both share the
+          typeof-string first half. Together with tick 331 the two
+          nullable-adjacent text NOT NULL columns on the resellers
+          row (code + display_name) now carry the tick 320+
+          labelled two-expect discipline on both admin-resellers-
+          family lenses.
+        - No new imports, no new module-scope const, no fixture
+          change, no route change. Matches ticks 234-335 discipline
+          (comment-only tightening ticks are the accepted P10
+          rotation shape while P8.5 remains HUMAN-BLOCKED on
+          Stripe env vars).
+
+      Coverage-per-guard posture: the two-part pin fires on every
+      green CI run for every row of the resellers[] array; the wave-
+      5 cohort from seed-qa-reseller.mjs stamps a non-empty
+      display_name on every seeded probe variant so both halves
+      pass on hosts where the seed has fired. On fresh hosts without
+      seeded cohort the resellers[] loop is a no-op so no pins fire.
+
+      Diagnostic delta of the pass:
+        - admin-resellers-list-authz.spec.ts:
+            + tick 336 doc-block inserted between tick 335's closing
+              paragraph and the `const ISO_TIMESTAMP_RE` declaration
+              at the same module-scope-comment position pattern used
+              by ticks 328-335. Summary paragraph names the coupled
+              write-path validator branch (admin-validator.ts:66-70
+              display_name_blank), the list read-path projection at
+              route.ts:41-44, the detail-side twin at tick 327, and
+              the inline two-part shape.
+            + inline pin at row 939 lifted from bare
+              `expect(typeof row.display_name).toBe("string")` to a
+              labelled two-expect discipline: typeof-string half
+              with diagnostic prose + trim non-blank half with
+              admin-validator.ts:66-70 reference. Mirrors the
+              detail-side tick 327 shape verbatim.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope const, no
+          per-row assert added beyond the labelled two-part shape.
+          Matches ticks 234-335 discipline.
+
+      Verification:
+        - `cd web && npx tsc --noEmit`: exit 0 (whole tree clean).
+        - `cd web && npm run lint:reseller`: R-01 11 files + R-03
+          32 routes + R-04 8 stripe files; 6 exemptions, 0
+          violations (unchanged from tick 335).
+        - Playwright specs excluded from vitest by design.
+
+      Frontier after tick 336: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5
+      clears. List-side resellers-row wire-shape sweep now COMPLETE
+      across every projected column — every select("*") tuple entry
+      on the list surface carries the tick-numbered labelled
+      discipline (this tick closes display_name, the last
+      outstanding tick-1710 bare baseline pin).
+
+      Next natural picks on tick 337:
+        (a) rotate to reseller.created_at / reseller.updated_at ISO
+        pin message-prose refresh on the detail side — the tick 285
+        detail-side pins at rows 2760/2765 still carry the bare
+        `expect(typeof body.reseller?.created_at).toBe("string")` +
+        trailing ISO regex without the tick 320+ two-part labelled
+        discipline; a symmetric refresh would close the last bare
+        tick-1710 baseline pins on the top-level reseller-row
+        cluster on the detail surface.
+        (b) rotate to attributions_summary.by_source enum-tightening
+        exhaustiveness pass — the current pin accepts arbitrary
+        subsets of ALLOWED_ATTRIBUTION_SOURCES; a stronger pin would
+        assert every enum value present (exhaustive coverage) rather
+        than membership of present values.
+        (c) rotate to reseller_commissions_current[] cross-column
+        lifecycle summary cross-surface twin — the tick 334 detail-
+        side commissions[] summary landed on admin-reseller-detail-
+        authz.spec.ts only; the list route does NOT project
+        commissions[] so this invariant has no natural list-surface
+        home, but the sibling admin-reseller-loop-status-authz spec
+        would be a candidate.
+        (d) idle — frontier remains tight: P1.5 + P8.5 HUMAN-
+        BLOCKED, P11 never_completes, Track B closed. P10 hardening
+        continues to accept incremental pin-tightening ticks.
+    commit: (this tick)
+
   - tick: 335
     ran_at: 2026-07-23
     action: p10_resellers_row_wholesale_gst_abn_cross_column_invariant_summary_hoist_on_admin_resellers_list_twin

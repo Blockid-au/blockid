@@ -763,6 +763,126 @@ const UUID_RE =
 //   now carry the resellers-row cross-column-invariant summary so
 //   the natural rotation moves to the commissions cluster (option
 //   a) or the by_source exhaustiveness pin (option b).
+//
+// Tick 336 — reseller.display_name message-symmetry lift on the list-
+// side row.display_name pin, cross-surface twin of the detail-side
+// tick 327 two-part labelled lift. Executes tick 335 next-pick option
+// (c) verbatim: the list-side row.display_name column at row 939 was
+// still carrying the bare tick-1710 baseline
+// `expect(typeof row.display_name).toBe("string")` with no diagnostic
+// message and no tick-numbered doc-block, while its sibling columns
+// (row.id UUID at tick 231, row.code at tick 331 two-part typeof +
+// RESELLER_CODE_RE, row.billing_model + row.status at tick 330 two-
+// part typeof + Set.has, row.commission_share_pct at tick 286, row.
+// gst_registered at tick 287) have all moved on to the tick 320+
+// two-part labelled discipline. The detail-side counterpart at tick
+// 327 lifted the same column into a two-part typeof-string + non-
+// blank shape mirroring the admin-validator.ts:66-70 display_name_
+// blank write-path invariant; this tick mirrors the same shape onto
+// the list surface so the two admin-resellers-family lenses carry
+// symmetric prose + assertion shape on display_name, matching the
+// tick 231-232 twin-symmetrisation discipline and closing the last
+// bare tick-1710 baseline pin on the resellers-row cluster on the
+// list surface.
+//
+// Writer-schema justification (mirrors detail-side tick 327 verbatim):
+//   - 0091_reseller_module_foundations.sql:25 declares
+//     `display_name text NOT NULL`. The DB carries NO CHECK
+//     constraint against blank/whitespace-only strings — an
+//     unvalidated INSERT could stamp display_name='' and the
+//     database would accept it.
+//   - Application write path: admin-validator.ts:66-70 REJECTS
+//     patch.display_name that trims to empty with
+//     reason='display_name_blank' (see validateAdminResellerPatch
+//     branch); a P9 create-branch that bypasses the validator (or
+//     a future non-admin write path that forgot to route through
+//     validateAdminResellerPatch) could still slip an empty-string
+//     value into the column since the DB has no CHECK constraint
+//     to backstop the validator.
+//   - Application read path (list surface, distinct from detail):
+//     projected via route.ts:41-44 select("*") on the resellers
+//     query in the list route at
+//     web/src/app/api/admin/resellers/route.ts — the pattern
+//     .from("resellers").select("*").order("created_at",
+//     {ascending: false}) surfaces display_name on every row of the
+//     resellers[] array on every list GET. Detail lens surfaces the
+//     same column on the top-level `reseller` field via route.ts:
+//     47-48 select("*") loadReseller() single-row lookup surfaced
+//     at route.ts:122-129.
+//
+// Design choice — two-part guard mirroring the tick 327 detail-side
+// posture verbatim (differs only in the lens: this list lens
+// iterates a cohort of rows in a for-loop, the detail lens fires
+// once per single-row GET):
+//   - (a) typeof-string labelled with diagnostic prose preserves the
+//     NOT-NULL raw-type discipline; catches a PostgREST regression
+//     that returned null|undefined, a schema-side NOT NULL drop, or
+//     a projection-side drop from the route.ts:41-44 SELECT tuple.
+//     Separated from the non-blank check below so a raw-type flip
+//     does not hide behind a length-based diagnostic.
+//   - (b) String(...).trim().length > 0 shape assert catches an
+//     unvalidated INSERT / bypass write path that stamped
+//     display_name='' or display_name='   ' straight past the
+//     validator's display_name_blank guard on ANY row of the
+//     cohort; the DB has no CHECK constraint against blank strings
+//     so the invariant lives ONLY on the application write path
+//     (admin-validator.ts:66-70) plus the Playwright wire-shape
+//     pin. Distinct from the detail lens in ONE dimension: the
+//     list surface iterates the cohort (every SELECTed row must
+//     satisfy the non-blank invariant) rather than pinning a
+//     single fixture row, so a legacy INSERT that stamped a blank
+//     display_name on ANY row of the cohort would surface here —
+//     the detail surface would only catch it if the /code lens
+//     landed on that specific row.
+//
+// Coverage-per-guard posture: the two-part pin fires on every green
+// CI run for every row of the resellers[] array; the wave-5 cohort
+// from seed-qa-reseller.mjs stamps a non-empty display_name on every
+// seeded probe variant so both halves pass on hosts where the seed
+// has fired. On fresh hosts without seeded cohort the resellers[]
+// loop is a no-op so no pins fire. Closes the last bare tick-1710
+// baseline pin on the resellers-row wire-shape sweep on the list
+// surface — every projected column on the select("*") tuple now
+// carries the tick-numbered labelled discipline.
+//
+// Rotation rationale:
+//   - Closes the twin-symmetry gap on the resellers-row.
+//     display_name column between the list + detail surfaces per
+//     tick 335 option (c) verbatim. The detail-side lifted at
+//     tick 327; the list-side has been the last outstanding bare
+//     tick-1710 baseline pin since. Restores the tick 231-232
+//     twin-symmetrisation discipline so a future non-blank
+//     invariant refactor cannot leave one lens unpinned.
+//   - No new imports, no new module-scope const needed — pure
+//     typeof + String().trim().length inline check.
+//   - Continues the P10 hardening posture per ticks 234-335 — no
+//     production code touched, no fixture change, no route change,
+//     no new imports, no new module-scope const.
+//
+// Natural next-pick tick 337 candidates:
+//   (a) rotate to reseller.created_at / reseller.updated_at ISO
+//   pin message-prose refresh on the detail side — the tick 285
+//   detail-side pins at rows 2760/2765 still carry the bare
+//   `expect(typeof body.reseller?.created_at).toBe("string")` +
+//   trailing ISO regex without the tick 320+ two-part labelled
+//   discipline; a symmetric refresh would close the last bare
+//   tick-1710 baseline pins on the top-level reseller-row cluster
+//   on the detail surface.
+//   (b) rotate to attributions_summary.by_source enum-tightening
+//   exhaustiveness pass — the current pin accepts arbitrary
+//   subsets of ALLOWED_ATTRIBUTION_SOURCES; a stronger pin would
+//   assert every enum value present (exhaustive coverage) rather
+//   than membership of present values.
+//   (c) rotate to reseller_commissions_current[] cross-column
+//   lifecycle summary cross-surface twin — the tick 334 detail-
+//   side commissions[] summary landed on admin-reseller-detail-
+//   authz.spec.ts only; the list route does NOT project
+//   commissions[] so this invariant has no natural list-surface
+//   home, but the sibling admin-reseller-loop-status-authz spec
+//   would be a candidate.
+//   (d) idle — the frontier remains tight (P1.5 + P8.5 HUMAN-
+//   BLOCKED, P11 never_completes, Track B closed, P10 continues
+//   accepting incremental pin-tightening ticks).
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 
@@ -936,7 +1056,30 @@ test.describe("Admin resellers list — P10 wave-5 row 164 happy path", () => {
         RESELLER_CODE_RE.test(row.code as string),
         `reseller.code '${String(row.code)}' should match RESELLER_CODE_RE /^[A-Z0-9]+$/ (normaliseResellerCode() invariant at web/src/lib/reseller/attribution.ts:29 applied at admin-create time via route.ts:86); a normaliser drift, a legacy INSERT that stamped a mixed-case or punctuated slug bypassing the write path, or a PostgREST serialisation regression that returned a lower-cased slug would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
-      expect(typeof row.display_name).toBe("string");
+      // Tick 336 — reseller.display_name message-symmetry lift on the
+      // list-side row.display_name pin, cross-surface twin of the
+      // detail-side tick 327 two-part labelled lift. See module-scope
+      // doc-block (tick 336 paragraph) above ISO_TIMESTAMP_RE for the
+      // full rationale. Two-part guard mirroring the detail-side tick
+      // 327 posture verbatim: (a) typeof-string labelled with
+      // diagnostic prose preserves the NOT-NULL raw-type discipline;
+      // (b) String(...).trim().length > 0 shape assert catches an
+      // unvalidated INSERT / bypass write path that stamped
+      // display_name='' or display_name='   ' straight past the
+      // admin-validator.ts:66-70 display_name_blank guard on ANY row
+      // of the cohort. Distinct from the detail lens in ONE dimension:
+      // the list surface iterates the cohort so a legacy INSERT that
+      // stamped a blank display_name on ANY row would surface here;
+      // the detail surface would only catch it if the /code lens
+      // landed on that specific row.
+      expect(
+        typeof row.display_name,
+        `reseller.display_name '${String(row.display_name)}' should be a string (text NOT NULL per 0091:25; a schema-side NOT NULL drop, a projection-side drop from route.ts:41-44 select("*"), or a PostgREST serialisation regression that returned null|undefined would surface here — separated from the trim-non-blank check below so a raw-type flip does not hide behind a length-based diagnostic). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("string");
+      expect(
+        String(row.display_name ?? "").trim().length > 0,
+        `reseller.display_name '${String(row.display_name)}' should be a non-blank string (admin-validator.ts:66-70 rejects trimmed-empty writes with reason='display_name_blank' but the DB has no CHECK constraint against blank/whitespace-only values — a bypass write path that INSERTed display_name='' or display_name='   ' straight past validateAdminResellerPatch would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
       // Tick 330 — billing_model two-part typeof-string + Set.has()
       // twin-symmetry lift. See module-scope doc-block (tick 330
       // paragraph) above ISO_TIMESTAMP_RE for the rationale. Column
