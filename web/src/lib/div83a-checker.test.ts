@@ -98,6 +98,81 @@ describe("checkDiv83A", () => {
     expect(holding?.met).toBe(true);
   });
 
+  describe("qualifying_tests summary", () => {
+    it("(a) all-pass fresh startup returns concession_available true", () => {
+      const result = checkDiv83A(
+        baseGrant(),
+        baseProject({ isAustralianResidentTaxpayer: true }),
+        1.5,
+      );
+      const qt = result.qualifying_tests;
+      expect(qt.test_1_startup.passed).toBe(true);
+      expect(qt.test_2_unlisted.passed).toBe(true);
+      expect(qt.test_3_turnover_le_50m.passed).toBe(true);
+      expect(qt.test_4_australian_resident.passed).toBe(true);
+      expect(qt.test_5_holding_period.passed).toBe(true);
+      expect(qt.all_passed).toBe(true);
+      expect(qt.concession_available).toBe(true);
+      expect(qt.test_1_startup.reason).toMatch(/s83A-33/);
+      expect(qt.test_5_holding_period.reason).toMatch(/s83A-45/);
+    });
+
+    it("(b) turnover fail flips test_3 and blocks concession", () => {
+      const result = checkDiv83A(
+        baseGrant(),
+        baseProject({
+          isAustralianResidentTaxpayer: true,
+          aggregatedTurnoverAud: 75_000_000,
+        }),
+        1.5,
+      );
+      const qt = result.qualifying_tests;
+      expect(qt.test_3_turnover_le_50m.passed).toBe(false);
+      expect(qt.test_3_turnover_le_50m.reason).toMatch(/A\$50m/);
+      expect(qt.all_passed).toBe(false);
+      expect(qt.concession_available).toBe(false);
+    });
+
+    it("(c) age fail (>10 years) flips test_1 and blocks concession", () => {
+      const result = checkDiv83A(
+        baseGrant({ grantDate: "2025-06-01" }),
+        baseProject({
+          isAustralianResidentTaxpayer: true,
+          incorporatedAt: "2010-01-01",
+        }),
+        1.5,
+      );
+      const qt = result.qualifying_tests;
+      expect(qt.test_1_startup.passed).toBe(false);
+      expect(qt.test_1_startup.reason).toMatch(/10 or more years/);
+      expect(qt.all_passed).toBe(false);
+      expect(qt.concession_available).toBe(false);
+    });
+
+    it("(d) turnover exactly 50m still passes (inclusive cap edge)", () => {
+      const result = checkDiv83A(
+        baseGrant(),
+        baseProject({
+          isAustralianResidentTaxpayer: true,
+          aggregatedTurnoverAud: 50_000_000,
+        }),
+        1.5,
+      );
+      const qt = result.qualifying_tests;
+      expect(qt.test_3_turnover_le_50m.passed).toBe(true);
+      expect(qt.all_passed).toBe(true);
+      expect(qt.concession_available).toBe(true);
+    });
+
+    it("fails closed when Australian residency signal is missing", () => {
+      const result = checkDiv83A(baseGrant(), baseProject(), 1.5);
+      const qt = result.qualifying_tests;
+      expect(qt.test_4_australian_resident.passed).toBe(false);
+      expect(qt.test_4_australian_resident.reason).toMatch(/not supplied/);
+      expect(qt.all_passed).toBe(false);
+    });
+  });
+
   it("carries the AFSL-style disclaimer in guidance regardless of outcome", () => {
     const eligibleAttempt = checkDiv83A(baseGrant(), baseProject(), 1.5);
     const ineligibleAttempt = checkDiv83A(

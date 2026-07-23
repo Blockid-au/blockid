@@ -337,7 +337,174 @@ export function checkDiv83A(
     guidance = `Cannot confirm eligibility — resolve the following before relying on the start-up concession: ${unknownKeys.join(", ")}. ${AFSL_DISCLAIMER}`;
   }
 
-  return { status, criteria, guidance };
+  const qualifying_tests = deriveQualifyingTests(grant, project);
+
+  return { status, criteria, guidance, qualifying_tests };
+}
+
+// ---------------------------------------------------------------------------
+// Qualifying-tests summary (ATO start-up concession, ITAA 1997 s83A-33)
+// ---------------------------------------------------------------------------
+
+/**
+ * Derive the five ATO qualifying tests for the Div 83A start-up concession
+ * from the same request signals used by the criterion checker above. This is
+ * a fail-closed summary — a missing signal counts as "not passed" so the CHRO
+ * surface never over-claims eligibility.
+ */
+function deriveQualifyingTests(
+  grant: Div83AGrantInput,
+  project: Div83AProjectInput,
+): QualifyingTests {
+  // Test 1 — Employer < 10 years since incorporation (s83A-33(6)(a)).
+  let test_1_startup: QualifyingTest;
+  if (project.incorporatedAt) {
+    const ageYears = yearsBetween(project.incorporatedAt, grant.grantDate);
+    if (Number.isNaN(ageYears)) {
+      test_1_startup = {
+        passed: false,
+        reason:
+          "ITAA 1997 s83A-33(6)(a) — could not parse incorporation date; the 10-year start-up test cannot be verified.",
+      };
+    } else if (ageYears < MAX_AGE_YEARS) {
+      test_1_startup = {
+        passed: true,
+        reason:
+          "ITAA 1997 s83A-33(6)(a) — employer incorporated less than 10 years before the grant.",
+        evidence: `Company age at grant: ${ageYears.toFixed(1)} years.`,
+      };
+    } else {
+      test_1_startup = {
+        passed: false,
+        reason:
+          "ITAA 1997 s83A-33(6)(a) — employer incorporated 10 or more years before the grant.",
+        evidence: `Company age at grant: ${ageYears.toFixed(1)} years.`,
+      };
+    }
+  } else {
+    test_1_startup = {
+      passed: false,
+      reason:
+        "ITAA 1997 s83A-33(6)(a) — incorporation date not supplied; cannot confirm the 10-year start-up test.",
+    };
+  }
+
+  // Test 2 — Employer not listed on any stock exchange (s83A-33(6)(b)).
+  let test_2_unlisted: QualifyingTest;
+  if (project.isListed === false) {
+    test_2_unlisted = {
+      passed: true,
+      reason:
+        "ITAA 1997 s83A-33(6)(b) — employer and holding entities are not listed on any approved stock exchange.",
+      evidence: "Listing status recorded as unlisted.",
+    };
+  } else if (project.isListed === true) {
+    test_2_unlisted = {
+      passed: false,
+      reason:
+        "ITAA 1997 s83A-33(6)(b) — employer (or a holding entity) is listed on a stock exchange.",
+      evidence: "Listing status recorded as listed.",
+    };
+  } else {
+    test_2_unlisted = {
+      passed: false,
+      reason:
+        "ITAA 1997 s83A-33(6)(b) — listing status not supplied; cannot confirm the unlisted test.",
+    };
+  }
+
+  // Test 3 — Aggregated turnover ≤ AUD 50m for prior year (s83A-33(6)(c)).
+  let test_3_turnover_le_50m: QualifyingTest;
+  if (typeof project.aggregatedTurnoverAud === "number") {
+    if (project.aggregatedTurnoverAud <= TURNOVER_CAP_AUD) {
+      test_3_turnover_le_50m = {
+        passed: true,
+        reason:
+          "ITAA 1997 s83A-33(6)(c) — aggregated turnover for the prior income year is within the A$50m cap.",
+        evidence: `Aggregated turnover: A$${project.aggregatedTurnoverAud.toLocaleString()}.`,
+      };
+    } else {
+      test_3_turnover_le_50m = {
+        passed: false,
+        reason:
+          "ITAA 1997 s83A-33(6)(c) — aggregated turnover for the prior income year exceeds the A$50m cap.",
+        evidence: `Aggregated turnover: A$${project.aggregatedTurnoverAud.toLocaleString()}.`,
+      };
+    }
+  } else {
+    test_3_turnover_le_50m = {
+      passed: false,
+      reason:
+        "ITAA 1997 s83A-33(6)(c) — aggregated turnover not supplied; cannot confirm the A$50m cap.",
+    };
+  }
+
+  // Test 4 — Employer is an Australian resident-taxpayer (s83A-33(6)(d)).
+  let test_4_australian_resident: QualifyingTest;
+  if (project.isAustralianResidentTaxpayer === true) {
+    test_4_australian_resident = {
+      passed: true,
+      reason:
+        "ITAA 1997 s83A-33(6)(d) — employer is an Australian resident-taxpayer for the income year of the grant.",
+      evidence: "Australian residency declared on request.",
+    };
+  } else if (project.isAustralianResidentTaxpayer === false) {
+    test_4_australian_resident = {
+      passed: false,
+      reason:
+        "ITAA 1997 s83A-33(6)(d) — employer is not an Australian resident-taxpayer for the income year of the grant.",
+      evidence: "Australian residency declared as false on request.",
+    };
+  } else {
+    test_4_australian_resident = {
+      passed: false,
+      reason:
+        "ITAA 1997 s83A-33(6)(d) — Australian resident-taxpayer status not supplied; cannot confirm the residency test.",
+    };
+  }
+
+  // Test 5 — Employee holds the interest for ≥ 3 years OR until employment
+  // ceases (s83A-45(4)/(5)).
+  let test_5_holding_period: QualifyingTest;
+  if (grant.vestingYears >= MIN_HOLDING_YEARS) {
+    test_5_holding_period = {
+      passed: true,
+      reason:
+        "ITAA 1997 s83A-45(4)/(5) — vesting schedule satisfies the 3-year minimum holding period.",
+      evidence: `Vesting: ${grant.vestingYears} year(s); cliff: ${grant.cliffMonths} month(s).`,
+    };
+  } else if (grant.cliffMonths >= 12) {
+    test_5_holding_period = {
+      passed: true,
+      reason:
+        "ITAA 1997 s83A-45(4)/(5) — vesting is under 3 years but a 12-month+ cliff creates a real risk of forfeiture until employment ceases.",
+      evidence: `Vesting: ${grant.vestingYears} year(s); cliff: ${grant.cliffMonths} month(s).`,
+    };
+  } else {
+    test_5_holding_period = {
+      passed: false,
+      reason:
+        "ITAA 1997 s83A-45(4)/(5) — neither the 3-year holding period nor a real risk of forfeiture until employment ceases is satisfied.",
+      evidence: `Vesting: ${grant.vestingYears} year(s); cliff: ${grant.cliffMonths} month(s).`,
+    };
+  }
+
+  const all_passed =
+    test_1_startup.passed &&
+    test_2_unlisted.passed &&
+    test_3_turnover_le_50m.passed &&
+    test_4_australian_resident.passed &&
+    test_5_holding_period.passed;
+
+  return {
+    test_1_startup,
+    test_2_unlisted,
+    test_3_turnover_le_50m,
+    test_4_australian_resident,
+    test_5_holding_period,
+    all_passed,
+    concession_available: all_passed,
+  };
 }
 
 export const DIV83A_DISCLAIMER = AFSL_DISCLAIMER;
