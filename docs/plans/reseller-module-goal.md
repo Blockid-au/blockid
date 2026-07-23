@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.267
+version: 2026-07-23.268
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,162 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 268
+    ran_at: 2026-07-23
+    action: p10_admin_requests_patch_readback_decision_reason_value_pin_option_c
+    result: |
+      Landed tick 266's "natural next pick" option (c) as a decision_reason
+      value pin on all THREE post-PATCH read-back rows of admin-requests-
+      patch-authz.spec.ts (deny + cancel + approve blocks). Fourth per-
+      column pin on the same three surfaces after tick 265 (decision_at
+      ISO-8601), tick 266 (decision_by UUID), and tick 267 (created_at
+      ISO-8601). Complements the existing PATCH-response decision_reason
+      pin at line 407/772/1154 by closing the same contract against the
+      list route's SELECT column projection at /api/admin/resellers/
+      requests/route.ts:44 — a projection drop of decision_reason there
+      would still let the PATCH echo the value on the write envelope but
+      would fail the read-back here.
+
+      Writer-schema justification:
+        - 0095_reseller_requests.sql:36 declares
+          `decision_reason text` — nullable in every status. The validator
+          at web/src/lib/reseller/requests.ts:293-303 trims the caller-
+          supplied string and enforces the REASON_MAX (200) cap before
+          returning the sanitised value to the PATCH route at
+          /api/admin/resellers/requests/[id]/route.ts:305-320. All three
+          PATCH branches in this spec (deny + cancel + approve) send a
+          distinct probe decision_reason ("p10_wave5_row_175_<deny|cancel|
+          approve>_probe" — 30 chars each, well under REASON_MAX) so the
+          read-back MUST carry that exact string on the happy path.
+        - The list route SELECT at /api/admin/resellers/requests/
+          route.ts:44 includes decision_reason in the column projection so
+          the PostgREST serialisation of text shows up in the read-back
+          row.
+        - Unlike decision_at, the 0095:43-45 CHECK constraint does NOT
+          force decision_reason to be non-null when status ∈ ('approved',
+          'denied','cancelled') — a route regression that dropped the
+          decision_reason write could pass the DB CHECK and return
+          status='approved' with a null decision_reason, but this pin
+          catches that regression here since the fixture guarantees the
+          probe string is on the wire.
+
+      Design choice — reuse REASON_MAX + three-block reuse:
+        - No new module-scope constant. REASON_MAX (line 216) already
+          backs the per-branch payload.reason / payload.notes length
+          checks in the discriminated-union pin below, so reusing it for
+          decision_reason keeps the source-of-truth invariant coupling
+          consistent (a widening of REASON_MAX in requests.ts:66 would
+          surface across all three column-pin surfaces at once via the
+          same import site — module-scope const).
+        - Header doc-comment above the constants block extended with a
+          tick-268 paragraph describing the pin's three-part guard + the
+          explicit call NOT to add a ninth constant (REASON_MAX at line
+          216 already covers this; adding a ninth constant would fork the
+          cap definition across the same file).
+        - decision_reason pin fires ONLY after the tick-267 created_at
+          pin has passed on the same read-back row so a regression in the
+          created_at wire shape surfaces at the tighter existing pin
+          before the decision_reason check even runs.
+        - Three-part guard shape (upgraded from the tick 265/266/267 two-
+          part guards): (a) typeof-string (catches a column-type flip
+          from text to something else, or a route regression that
+          returned null after the PATCH stamped a non-null value), (b)
+          length ≤ REASON_MAX (catches a validator-side widening of the
+          cap that this spec did not track), (c) exact-string equality
+          against the probe (catches a route regression that swapped
+          decision_reason for a different column value or a validator
+          regression that trimmed/normalised the string in an unexpected
+          way — the probe is intentionally ASCII-only + underscore-
+          delimited so PostgREST/PostgreSQL text serialisation is
+          guaranteed byte-for-byte round-trip).
+        - readbackRow type shape extended with `decision_reason?: unknown;`
+          in all three inline type declarations (deny/cancel/approve)
+          so the pin does not require a `(row as any)` cast.
+
+      Coverage-per-guard posture:
+        - All three PATCH branches (deny + cancel + approve) exercise
+          decision_reason on green-path CI runs — each branch sends a
+          distinct probe string and the route's validator writes it
+          unconditionally per branch. Zero-coverage branches from the
+          payload pin (code_request + collateral_approval on green path)
+          do NOT apply to the decision_reason pin because decision_reason
+          is populated regardless of request_type.
+        - The three read-back surfaces (?status=denied /
+          ?status=cancelled / ?status=approved) each carry the same pin
+          so a regression in any one of the three ALLOWED_STATUS filter
+          paths that dropped decision_reason from the SELECT would
+          surface on that specific surface only — matches the tick
+          262/263/264/265/266/267 one-surface-at-a-time discipline.
+
+      Diagnostic delta of the pass:
+        - Zero new module-scope constants (REASON_MAX at line 216 reused
+          verbatim). One new field on each of the three inline
+          readbackRow type shapes (decision_reason?: unknown), and one
+          new three-line assertion block (typeof-string + length ≤
+          REASON_MAX + exact-string equality) inside each of the three
+          read-back blocks after the tick-267 created_at pin.
+        - Header doc-comment above the module-scope constants block
+          expanded with a new tick-268 paragraph describing the pin's
+          reuse of REASON_MAX + the deliberate reuse over adding a ninth
+          constant.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no vitest/Playwright runtime posture
+          change. Matches ticks 223-267 discipline: tighten one
+          dimension (in this case add a new value pin to the reseller_
+          requests.decision_reason column across three surfaces
+          simultaneously) with zero net new imports.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: 11 R-01 files + 31 R-03 routes
+          scanned, 3 exemptions, 0 violations
+        - npx vitest run: 75 files 954/954 pass (unchanged — Playwright
+          specs are excluded from vitest by design)
+
+      Files:
+        - web/tests/e2e/reseller/admin-requests-patch-authz.spec.ts
+          (module-scope constants doc-comment block gains a tick-268
+          paragraph describing the decision_reason value pin + the
+          REASON_MAX reuse; three inline readbackRow type shapes each
+          extended with `decision_reason?: unknown;`; three read-back
+          blocks each gain a typeof-string + length + exact-string
+          equality assertion trio after the tick-267 created_at pin,
+          each with a block-scope comment citing 0095:36 as the column
+          declaration source, requests.ts:293-303 as the validator
+          write site, and route.ts:305-320 as the UPDATE site.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.267 → 2026-07-23.268; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no production-code touch, no
+          new import, no new module-scope constant. Consistent with
+          ticks 234-267's incremental-pin pattern.
+        - Three surfaces at once (option c design was for a single new
+          pin type applied uniformly to all three read-back rows — the
+          tick 262/263/264/265/266/267 sequence already established the
+          three read-back rows share the same shape contract for each
+          pinned column; extending that contract to include
+          decision_reason is a single logical unit rather than three
+          separate ticks).
+          Next natural picks on tick 269: (a) extending the same read-
+          back to the reseller-scoped GET list route for ?status=denied
+          or ?status=cancelled or ?status=approved (the still-outstanding
+          tick 266 option a — the reseller-scoped list route at
+          /api/reseller/requests/route.ts has its own SELECT + filter
+          logic that today only has the tick 260/261 default-pending
+          read-back pinned), or (b) adding an updated_at ISO-8601 pin to
+          the read-back rows for the row-mutation-clock column if one
+          exists at 0095, or (c) adding a linked_credit_transaction_id
+          UUID pin to the approve-block read-back (the deny+cancel
+          branches null this column so only the approve surface would
+          carry it — sixth per-column pin), or (d) adding a request_type
+          enum value pin (∈ {'code_request','over_budget_approval',
+          'collateral_approval'}) to the read-back rows so a route
+          regression that returned a stale/mismatched request_type after
+          the PATCH surfaces here.
+
   - tick: 266
     ran_at: 2026-07-23
     action: p10_admin_requests_patch_readback_decision_by_uuid_shape_pin_option_b

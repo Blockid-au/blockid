@@ -210,6 +210,33 @@ const UUID_RE =
 // column-type flip from timestamptz to something else (e.g. a bigint
 // created_at_ms clock migration would surface as a number here). Two-part
 // guard mirrors the decision_at pin: typeof-string + ISO_TIMESTAMP_RE.
+//
+// Tick 268 — decision_reason value pin added as the fourth per-column pin on
+// the same three post-PATCH read-back rows (deny + cancel + approve).
+// reseller_requests.decision_reason is a nullable text column (0095:36) that
+// the PATCH route trims + writes via validateAdminDecision (requests.ts:293-
+// 303) with a REASON_MAX (200) cap before UPDATE at route.ts:305-320. All
+// three PATCH branches in this spec send a distinct probe decision_reason
+// ("p10_wave5_row_175_<deny|cancel|approve>_probe"), all under 200 chars, so
+// the read-back MUST carry that exact string. Reuses the module-scope
+// REASON_MAX (line 216) rather than adding a ninth constant — same source
+// invariant already backs the per-branch payload.reason / payload.notes
+// length checks in the discriminated-union pin below. Three-part guard:
+// (a) typeof-string (catches a column-type flip from text to something
+// else, or a route regression that returned null after the PATCH stamped a
+// non-null value), (b) length ≤ REASON_MAX (catches a validator-side
+// widening of the cap that this spec did not track — e.g. bump REASON_MAX
+// to 500 in requests.ts without a spec update), (c) exact-string equality
+// against the probe (catches a route regression that swapped
+// decision_reason for a different column value or a validator regression
+// that trimmed/normalised the string in an unexpected way — the probe is
+// intentionally ASCII-only + underscore-delimited so PostgREST/PostgreSQL
+// text serialisation is guaranteed byte-for-byte round-trip). The PATCH
+// response body already pins decision_reason value at route.ts:317-319, but
+// the read-back closes the same pin against the list route's SELECT column
+// projection at /api/admin/resellers/requests/route.ts:44 — a projection
+// drop of decision_reason there would still let the PATCH echo the value
+// back on the write envelope but would fail the read-back here.
 const ALLOWED_TIER_PCT_VALUES = new Set([0, 10, 20, 30, 40]);
 const SUFFIX_RE = /^[A-Z0-9]{1,16}$/;
 const HTTPS_URL_RE = /^https:\/\/[a-zA-Z0-9.-]+(\/.*)?$/;
@@ -498,6 +525,7 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
           payload?: unknown;
           decision_at?: unknown;
           decision_by?: unknown;
+          decision_reason?: unknown;
           created_at?: unknown;
         }
       | undefined;
@@ -571,6 +599,24 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
       ISO_TIMESTAMP_RE.test(readbackRow.created_at as string),
       `read-back row.created_at '${String(readbackRow.created_at)}' should match ISO 8601 shape (timestamptz per 0095:39 serialised via PostgREST); a drift to a non-ISO string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
     ).toBe(true);
+    // Tick 268 — decision_reason value pin, fourth per-column pin on the
+    // deny-branch read-back row. reseller_requests.decision_reason is a
+    // nullable text column (0095:36) that the deny PATCH just wrote via
+    // validateAdminDecision (requests.ts:293-303 trims + caps at REASON_MAX)
+    // and UPDATE at route.ts:305-320. Three-part guard: typeof-string
+    // (column-type flip catch), length ≤ REASON_MAX (validator-cap widening
+    // catch), exact-string equality against the probe (route swap +
+    // validator normalisation catch). Complements the existing PATCH-
+    // response pin at line 407 by closing the SELECT column projection at
+    // /api/admin/resellers/requests/route.ts:44 — a projection drop of
+    // decision_reason there would still let the PATCH echo the value on the
+    // write envelope but would fail the read-back here.
+    expect(typeof readbackRow.decision_reason).toBe("string");
+    expect(
+      (readbackRow.decision_reason as string).length <= REASON_MAX,
+      `read-back row.decision_reason length ${(readbackRow.decision_reason as string).length} > REASON_MAX (${REASON_MAX}) per requests.ts:66 — a validator-side cap widening would surface here: ${JSON.stringify(readbackRow.decision_reason).slice(0, 100)}`,
+    ).toBe(true);
+    expect(readbackRow.decision_reason).toBe(decisionReason);
     // Two-part guard per nullable key: (a) `x === null` short-circuit +
     // (b) typeof-string + regex/length check. Same shape as the tick
     // 259/260/261 pins. TYPEOF + VALUE-tighten pins per key so a rename OR
@@ -866,6 +912,7 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
           payload?: unknown;
           decision_at?: unknown;
           decision_by?: unknown;
+          decision_reason?: unknown;
           created_at?: unknown;
         }
       | undefined;
@@ -929,6 +976,22 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
       ISO_TIMESTAMP_RE.test(readbackRow.created_at as string),
       `read-back row.created_at '${String(readbackRow.created_at)}' should match ISO 8601 shape (timestamptz per 0095:39 serialised via PostgREST); a drift to a non-ISO string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
     ).toBe(true);
+    // Tick 268 — decision_reason value pin mirrored from the deny-block onto
+    // the cancel-block surface so the nullable text column (0095:36) is
+    // content-pinned on the second of the three post-PATCH read-back rows
+    // too. Same three-part guard as the deny surface: typeof-string + length
+    // ≤ REASON_MAX + exact-string equality against the cancel probe. The
+    // cancel PATCH wrote decision_reason via validateAdminDecision at
+    // requests.ts:293-303 (identical validator call as deny + approve;
+    // action='cancel' folds to status='cancelled' at requests.ts:301-303 but
+    // decision_reason path is unchanged). See the deny-block block-scope
+    // comment above and the module-scope tick-268 comment for full rationale.
+    expect(typeof readbackRow.decision_reason).toBe("string");
+    expect(
+      (readbackRow.decision_reason as string).length <= REASON_MAX,
+      `read-back row.decision_reason length ${(readbackRow.decision_reason as string).length} > REASON_MAX (${REASON_MAX}) per requests.ts:66 — a validator-side cap widening would surface here: ${JSON.stringify(readbackRow.decision_reason).slice(0, 100)}`,
+    ).toBe(true);
+    expect(readbackRow.decision_reason).toBe(decisionReason);
     // Two-part guard per nullable key: (a) `x === null` short-circuit +
     // (b) typeof-string + regex/length check. Same shape as the tick
     // 259/260/261/262 pins. TYPEOF + VALUE-tighten pins per key so a rename
@@ -1256,6 +1319,7 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
           payload?: unknown;
           decision_at?: unknown;
           decision_by?: unknown;
+          decision_reason?: unknown;
           created_at?: unknown;
         }
       | undefined;
@@ -1343,6 +1407,26 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
       ISO_TIMESTAMP_RE.test(readbackRow.created_at as string),
       `read-back row.created_at '${String(readbackRow.created_at)}' should match ISO 8601 shape (timestamptz per 0095:39 serialised via PostgREST); a drift to a non-ISO string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
     ).toBe(true);
+    // Tick 268 — decision_reason value pin mirrored from the deny-block +
+    // cancel-block onto the approve-block surface so the nullable text
+    // column (0095:36) is now content-pinned on all three post-PATCH read-
+    // back rows. Same three-part guard as the deny + cancel surfaces:
+    // typeof-string + length ≤ REASON_MAX + exact-string equality against
+    // the approve probe. The approve PATCH wrote decision_reason via
+    // validateAdminDecision at requests.ts:293-303 (identical validator call
+    // as deny + cancel; the approve fan-out at route.ts:200-293 does not
+    // touch the decision_reason column separately). Unlike decision_at,
+    // 0095:43-45 CHECK does NOT force decision_reason to be non-null in any
+    // status — a route regression that dropped the decision_reason write
+    // could pass the DB CHECK and return status='approved' with a null
+    // decision_reason, but this pin catches that regression here since the
+    // fixture guarantees the probe string is on the wire.
+    expect(typeof readbackRow.decision_reason).toBe("string");
+    expect(
+      (readbackRow.decision_reason as string).length <= REASON_MAX,
+      `read-back row.decision_reason length ${(readbackRow.decision_reason as string).length} > REASON_MAX (${REASON_MAX}) per requests.ts:66 — a validator-side cap widening would surface here: ${JSON.stringify(readbackRow.decision_reason).slice(0, 100)}`,
+    ).toBe(true);
+    expect(readbackRow.decision_reason).toBe(decisionReason);
     // Two-part guard per nullable key: (a) `x === null` short-circuit +
     // (b) typeof-string + regex/length check. Same shape as the tick
     // 259/260/261/262/263 pins. TYPEOF + VALUE-tighten pins per key so a
