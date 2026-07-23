@@ -752,7 +752,7 @@ review_history:
         - npm run lint:reseller: R-01 + R-03 + R-04 unchanged from
           tick 301 (11 R-01 + 31 R-03 + 8 R-04, 6 exemptions, 0
           violations)
-        - npx vitest run: 87 files 1053/1053 pass (Playwright specs
+        - npx vitest run: 88 files 1058/1058 pass (Playwright specs
           excluded from vitest by design; the new asserts fire when
           `npx playwright test admin-reseller-detail-authz` runs on a
           seeded host)
