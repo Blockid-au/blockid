@@ -132,6 +132,31 @@ export async function getUserProjects(userId: string): Promise<Project[]> {
 }
 
 /**
+ * List archived projects for a user, ordered by archive date (most recent first).
+ *
+ * Used by the /workspace/projects "Archived" tab so founders can inspect
+ * (and optionally restore) previously archived startups.
+ */
+export async function getUserArchivedProjects(userId: string): Promise<Project[]> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("user_id", userId)
+    .not("archived_at", "is", null)
+    .order("archived_at", { ascending: false });
+
+  if (error) {
+    console.error("[blockid:projects] getUserArchivedProjects failed", error);
+    return [];
+  }
+
+  return (data ?? []).map(mapProject);
+}
+
+/**
  * Get the active project for a user.
  * If `slug` is provided, find by slug. Otherwise return the default project.
  */
@@ -585,6 +610,42 @@ export async function archiveProject(
   if (error) {
     console.error("[blockid:projects] archiveProject failed", error);
     return { ok: false, error: "Failed to archive project" };
+  }
+
+  return { ok: true };
+}
+
+/**
+ * Restore an archived project by clearing archived_at.
+ *
+ * Respects the plan's project limit — a founder cannot unarchive past their
+ * quota (they'd have to archive an active project first, or upgrade).
+ */
+export async function unarchiveProject(
+  projectId: string,
+  userId: string,
+  plan: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { ok: false, error: "Service unavailable" };
+
+  const limit = await getProjectLimit(plan);
+  const active = await getUserProjects(userId);
+  if (active.length >= limit) {
+    return {
+      ok: false,
+      error: `Your ${plan || "free"} plan allows up to ${limit} active startup${limit === 1 ? "" : "s"}. Archive another startup or upgrade before restoring this one.`,
+    };
+  }
+
+  const { error } = await supabase
+    .from("projects")
+    .update({ archived_at: null, updated_at: new Date().toISOString() })
+    .eq("id", projectId);
+
+  if (error) {
+    console.error("[blockid:projects] unarchiveProject failed", error);
+    return { ok: false, error: "Failed to restore project" };
   }
 
   return { ok: true };
