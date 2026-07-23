@@ -4,7 +4,7 @@ import * as React from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  Briefcase, Plus, Pencil, Archive, X, Loader2, ArrowUpRight, Sparkles,
+  Briefcase, Plus, Pencil, Archive, ArchiveRestore, X, Loader2, ArrowUpRight, Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,14 +21,18 @@ interface Project {
   industry: string | null;
   stage: number;
   isDefault: boolean;
+  archivedAt?: string | null;
   createdAt: string;
 }
 
 interface ProjectsClientProps {
   initialProjects: Project[];
+  initialArchivedProjects?: Project[];
   limit: number;
   plan: string;
 }
+
+type Tab = "active" | "archived";
 
 // ---------------------------------------------------------------------------
 // Stage labels
@@ -71,10 +75,21 @@ function formatDate(iso: string): string {
 // Component
 // ---------------------------------------------------------------------------
 
-export function ProjectsClient({ initialProjects, limit, plan }: ProjectsClientProps) {
+export function ProjectsClient({
+  initialProjects,
+  initialArchivedProjects = [],
+  limit,
+  plan,
+}: ProjectsClientProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [projects, setProjects] = React.useState<Project[]>(initialProjects);
+  const [archivedProjects, setArchivedProjects] = React.useState<Project[]>(
+    initialArchivedProjects,
+  );
+  const [tab, setTab] = React.useState<Tab>(
+    searchParams.get("view") === "archived" ? "archived" : "active",
+  );
   const [showCreate, setShowCreate] = React.useState(searchParams.get("new") === "1");
   const [editingId, setEditingId] = React.useState<string | null>(null);
 
@@ -91,8 +106,10 @@ export function ProjectsClient({ initialProjects, limit, plan }: ProjectsClientP
   const [editIndustry, setEditIndustry] = React.useState("");
   const [saving, setSaving] = React.useState(false);
 
-  // Archiving state
+  // Archiving state (covers both archive and restore inflight requests)
   const [archivingId, setArchivingId] = React.useState<string | null>(null);
+  const [restoringId, setRestoringId] = React.useState<string | null>(null);
+  const [restoreError, setRestoreError] = React.useState<string | null>(null);
 
   const canCreate = projects.length < limit;
 
@@ -173,22 +190,78 @@ export function ProjectsClient({ initialProjects, limit, plan }: ProjectsClientP
   }
 
   async function handleArchive(projectId: string) {
-    if (!confirm("Archive this startup? You can contact support to restore it later.")) return;
+    if (!confirm("Archive this startup? Its data is retained and you can restore it from the Archived tab.")) return;
+
+    // Optimistic UI — move row to archived list immediately.
+    const target = projects.find((p) => p.id === projectId);
+    if (!target) return;
+
     setArchivingId(projectId);
+    setProjects((prev) => prev.filter((p) => p.id !== projectId));
+    const nowIso = new Date().toISOString();
+    setArchivedProjects((prev) => [
+      { ...target, archivedAt: nowIso },
+      ...prev,
+    ]);
 
     try {
-      const res = await fetch(`/api/projects/${projectId}`, { method: "DELETE" });
+      const res = await fetch(`/api/projects/${projectId}/archive`, {
+        method: "POST",
+      });
       const json = await res.json();
-      if (json.ok) {
-        setProjects((prev) => prev.filter((p) => p.id !== projectId));
-        router.refresh();
-      } else {
+      if (!json.ok) {
+        // Roll back on failure
+        setArchivedProjects((prev) => prev.filter((p) => p.id !== projectId));
+        setProjects((prev) => [...prev, target]);
         alert(json.error ?? "Failed to archive project");
+      } else {
+        router.refresh();
       }
     } catch {
+      setArchivedProjects((prev) => prev.filter((p) => p.id !== projectId));
+      setProjects((prev) => [...prev, target]);
       alert("Network error. Please try again.");
     } finally {
       setArchivingId(null);
+    }
+  }
+
+  async function handleRestore(projectId: string) {
+    const target = archivedProjects.find((p) => p.id === projectId);
+    if (!target) return;
+    if (projects.length >= limit) {
+      setRestoreError(
+        `Your ${plan} plan allows up to ${limit} active startup${limit === 1 ? "" : "s"}. Archive another startup or upgrade before restoring this one.`,
+      );
+      return;
+    }
+
+    setRestoreError(null);
+    setRestoringId(projectId);
+
+    // Optimistic UI — move back to active list.
+    setArchivedProjects((prev) => prev.filter((p) => p.id !== projectId));
+    setProjects((prev) => [...prev, { ...target, archivedAt: null }]);
+
+    try {
+      const res = await fetch(`/api/projects/${projectId}/archive`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (!json.ok) {
+        // Roll back
+        setProjects((prev) => prev.filter((p) => p.id !== projectId));
+        setArchivedProjects((prev) => [target, ...prev]);
+        setRestoreError(json.error ?? "Failed to restore project");
+      } else {
+        router.refresh();
+      }
+    } catch {
+      setProjects((prev) => prev.filter((p) => p.id !== projectId));
+      setArchivedProjects((prev) => [target, ...prev]);
+      setRestoreError("Network error. Please try again.");
+    } finally {
+      setRestoringId(null);
     }
   }
 
@@ -224,8 +297,123 @@ export function ProjectsClient({ initialProjects, limit, plan }: ProjectsClientP
         )}
       </div>
 
-      {/* Project grid */}
-      {projects.length === 0 ? (
+      {/* Tabs — Active | Archived */}
+      <div className="mb-6 border-b border-surface-200 flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => setTab("active")}
+          aria-pressed={tab === "active"}
+          className={cn(
+            "inline-flex items-center gap-2 px-4 py-2 -mb-px border-b-2 text-sm font-medium transition-colors cursor-pointer",
+            tab === "active"
+              ? "border-brand-600 text-brand-700"
+              : "border-transparent text-ink-500 hover:text-ink-700",
+          )}
+        >
+          Active
+          <span className="rounded-full bg-surface-100 px-2 py-0.5 text-[10px] font-semibold text-ink-500">
+            {projects.length}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab("archived")}
+          aria-pressed={tab === "archived"}
+          className={cn(
+            "inline-flex items-center gap-2 px-4 py-2 -mb-px border-b-2 text-sm font-medium transition-colors cursor-pointer",
+            tab === "archived"
+              ? "border-brand-600 text-brand-700"
+              : "border-transparent text-ink-500 hover:text-ink-700",
+          )}
+        >
+          <Archive strokeWidth={1.75} className="h-3.5 w-3.5" />
+          Archived
+          <span className="rounded-full bg-surface-100 px-2 py-0.5 text-[10px] font-semibold text-ink-500">
+            {archivedProjects.length}
+          </span>
+        </button>
+      </div>
+
+      {/* Restore error banner */}
+      {restoreError && tab === "archived" && (
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 flex items-start gap-3">
+          <div className="flex-1">
+            <p className="text-sm font-medium text-red-700">{restoreError}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setRestoreError(null)}
+            className="text-red-600 hover:text-red-800"
+          >
+            <X strokeWidth={1.75} className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Archived list — only in the archived tab */}
+      {tab === "archived" ? (
+        archivedProjects.length === 0 ? (
+          <div className="text-center py-16 bg-surface-50 rounded-2xl border border-surface-200">
+            <Archive strokeWidth={1.5} className="h-12 w-12 mx-auto text-ink-300 mb-4" />
+            <h2 className="text-lg font-semibold text-ink-700 mb-2">No archived startups</h2>
+            <p className="text-sm text-ink-500 max-w-sm mx-auto">
+              Archived startups appear here so you can restore them later. Data is retained — nothing is deleted.
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {archivedProjects.map((project) => (
+              <div
+                key={project.id}
+                className="rounded-2xl border border-surface-200 bg-white p-5 opacity-90 relative"
+              >
+                <span className="absolute top-3 right-3 text-[10px] font-semibold uppercase tracking-wider text-ink-500 bg-surface-100 rounded-full px-2 py-0.5">
+                  Archived
+                </span>
+
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="h-10 w-10 rounded-xl bg-surface-100 flex items-center justify-center shrink-0">
+                    <Briefcase strokeWidth={1.5} className="h-5 w-5 text-ink-400" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-ink-800 truncate">{project.name}</h3>
+                    {project.industry && (
+                      <p className="text-xs text-ink-500">{project.industry}</p>
+                    )}
+                  </div>
+                </div>
+
+                {project.description && (
+                  <p className="text-xs text-ink-500 mb-3 line-clamp-2">{project.description}</p>
+                )}
+
+                <div className="flex items-center gap-3 text-xs text-ink-400 mb-4">
+                  <span>Stage: {STAGE_LABELS[project.stage] ?? `Stage ${project.stage}`}</span>
+                  <span className="text-surface-300">|</span>
+                  <span>Archived {project.archivedAt ? formatDate(project.archivedAt) : formatDate(project.createdAt)}</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleRestore(project.id)}
+                  disabled={restoringId === project.id}
+                  className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-xs font-semibold text-brand-700 hover:bg-brand-100 transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 focus-visible:ring-offset-2"
+                >
+                  {restoringId === project.id ? (
+                    <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <ArchiveRestore strokeWidth={1.75} className="h-3.5 w-3.5" />
+                  )}
+                  Restore
+                </button>
+              </div>
+            ))}
+          </div>
+        )
+      ) : (
+
+      /* Active project grid */
+      projects.length === 0 ? (
         <div className="text-center py-16 bg-surface-50 rounded-2xl border border-surface-200">
           <Briefcase strokeWidth={1.5} className="h-12 w-12 mx-auto text-ink-300 mb-4" />
           <h2 className="text-lg font-semibold text-ink-700 mb-2">No startups yet</h2>
@@ -319,10 +507,11 @@ export function ProjectsClient({ initialProjects, limit, plan }: ProjectsClientP
             </div>
           ))}
         </div>
+      )
       )}
 
       {/* Plan limit info */}
-      {!canCreate && projects.length > 0 && (
+      {!canCreate && projects.length > 0 && tab === "active" && (
         <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-amber-800">
