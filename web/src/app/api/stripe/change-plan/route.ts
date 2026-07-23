@@ -232,6 +232,23 @@ export async function POST(request: Request) {
         },
       });
 
+      // SOC2-lite audit: PII-safe — plan ids + cadence only. No customer
+      // id, no subscription id (opaque Stripe refs are excluded from fields).
+      await logUserAction({
+        userId: user.id,
+        action: "stripe.plan.changed",
+        subjectType: "subscription",
+        subjectId: activeSub.id,
+        fields: {
+          from_plan: fromPlanId,
+          to_plan: newPlanId,
+          cadence: newPlan.cadence,
+        },
+        route: "/api/stripe/change-plan",
+        ip: extractIp(request.headers),
+        ua: extractUserAgent(request.headers),
+      });
+
       return NextResponse.json({ ok: true });
     }
 
@@ -269,6 +286,24 @@ export async function POST(request: Request) {
         from_segment: fromSegment,
         to_segment: toSegment,
       },
+    });
+
+    // SOC2-lite audit — one-off checkout branch also counts as a plan
+    // change once the checkout session is created (subscription cancels
+    // above and the customer commits to the new plan on payment).
+    await logUserAction({
+      userId: user.id,
+      action: "stripe.plan.changed",
+      subjectType: "subscription",
+      subjectId: null,
+      fields: {
+        from_plan: fromPlanId,
+        to_plan: newPlanId,
+        cadence: newPlan.cadence,
+      },
+      route: "/api/stripe/change-plan",
+      ip: extractIp(request.headers),
+      ua: extractUserAgent(request.headers),
     });
 
     return NextResponse.json({ ok: true, url: session.url });

@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { revokeApiKey } from "@/lib/api-keys";
+import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
 
 // DELETE /api/keys/[id] — Revoke an API key (session auth + ownership check)
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const user = await getCurrentUser();
@@ -32,6 +33,23 @@ export async function DELETE(
       { status: 500 },
     );
   }
+
+  // SOC2-lite audit — key_prefix is the DB-stored truncated form (first
+  // 16 chars + "..."), never the raw secret. If the pre-update lookup
+  // missed (e.g. race), prefix is omitted rather than fabricated.
+  await logUserAction({
+    userId: user.id,
+    action: "api_key.revoked",
+    subjectType: "api_key",
+    subjectId: id,
+    fields: {
+      key_id: id,
+      ...(result.keyPrefix ? { key_prefix: result.keyPrefix } : {}),
+    },
+    route: `/api/keys/${id}`,
+    ip: extractIp(request.headers),
+    ua: extractUserAgent(request.headers),
+  });
 
   return NextResponse.json({ ok: true });
 }

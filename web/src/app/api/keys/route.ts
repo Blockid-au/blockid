@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { listApiKeys, createApiKey, canCreateApiKeys, getRateLimitForPlan } from "@/lib/api-keys";
+import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
 
 // GET /api/keys — List user's API keys (session auth required)
 export async function GET() {
@@ -51,11 +52,31 @@ export async function POST(request: Request) {
     );
   }
 
+  const displayName = name?.trim() || "Default";
+  const keyPrefix = result.key.slice(0, 8);
+
+  // SOC2-lite audit — fields carry ONLY the display name + first-8-char
+  // prefix. The raw secret (`result.key`) is returned to the caller but
+  // NEVER written to the audit trail.
+  await logUserAction({
+    userId: user.id,
+    action: "api_key.created",
+    subjectType: "api_key",
+    subjectId: result.id,
+    fields: {
+      key_name: displayName,
+      key_prefix: keyPrefix,
+    },
+    route: "/api/keys",
+    ip: extractIp(request.headers),
+    ua: extractUserAgent(request.headers),
+  });
+
   return NextResponse.json({
     ok: true,
     key: result.key,
     id: result.id,
-    name: name?.trim() || "Default",
+    name: displayName,
     prefix: result.key.slice(0, 16) + "...",
     permissions: ["svi:read", "svi:create", "score:create"],
     rateLimitPerMin: getRateLimitForPlan(user.plan),
