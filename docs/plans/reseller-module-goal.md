@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.309
+version: 2026-07-23.310
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -127,7 +127,9 @@ tracks:
           P2.6_checkout_stamp: {status: done, commit: de1e389, note: "web/src/app/api/stripe/checkout/route.ts stamps client_reference_id + subscription.metadata + customer.metadata; applies promotion_code when tier>0"}
           P2.7_consent_modal: {status: done, commit: 3096426, note: "E.1 collection notice EN+VI rendered when valid code applied (commit 3096426: P2.7 consent modal)"}
       P3_ledger_webhooks:
-        status: partial
+        status: done_pending_agreement
+        tick: 310
+        completed_at: 2026-07-23
         migration_files: [0094]
         sub_phases:
           P3.1_migration_authored: {status: done, tick: 11, files: ["web/supabase/migrations/0094_reseller_commissions_and_events.sql"]}
@@ -135,26 +137,17 @@ tracks:
           P3.2b_webhook_integration: {status: done, commit: d155547, note: "webhook route wired to planAccrualForLine + resolveAttributionCandidate + prorateClawback + refundGstReversal; charge.refunded handler live (commit d155547: P3.2b webhook refund integration)"}
           P3.3_clearance_cron: {status: done, tick: 15, files: ["web/src/app/api/cron/reseller-clear-commissions/route.ts", "crontab entry 15 3 * * *"]}
           P3.4_credit_reset_cron: {status: done, tick: 16, files: ["web/src/app/api/cron/credit-reset/route.ts", "crontab entry 15 2 1 * *"]}
+        sign_off_note: "Tick 310 sign-off: all 5 sub-phases done + on-disk verified (0094 migration file present; webhook-helpers.ts + reseller-clear-commissions/route.ts + credit-reset/route.ts all exist). 8/9 exit_criteria met via code (see below). Only remaining item = InfoVision reseller agreement execution (D4-CLO-02) which is human-blocked on the same H.20 chain as P1.5_infovision_seed (Auschain counsel / LegalVision AU confirmation of ABN + GST + SLA terms). Per goal-file rule that TBD on required attribute = human intervention required, this carve-out does not block downstream phases: P4-P9 already shipped without the executed agreement because they consume the resellers table shape rather than the counterparty contract. Aligning wording with P1's done_pending_seed convention. Also removed the duplicate stale P3_ledger_webhooks stub (status:blocked_by:P2) that predated P2 close — its exit_criteria were merged into the live block below."
         exit_criteria: [
-          "?via= capture end-to-end (cookie + localStorage + all 5 consumption sites)",
-          "StepTier extended with collapsed 'Have a reseller code?' field EN + VI",
-          "POST /api/reseller/code/validate returns {ok, tier_pct, reseller.display_name, ...} (DONE)",
-          "checkout route stamps client_reference_id + subscription.metadata + customer.metadata (0% tier attribution-only)",
-          "Playwright: valid code applied → dashboard shows co-branding pill"
-        ]
-      P3_ledger_webhooks:
-        status: blocked_by: P2
-        migration_files: [0094]
-        exit_criteria: [
-          "reseller_commissions + reseller_commission_events tables live (per D1-CTO-04 append-only)",
-          "charge.refunded, charge.dispute.created/closed, credit_note.created, invoice.voided handlers",
-          "invoice.paid iterates invoice.lines.data for per-line commission",
-          "3-part GST reversal on refunds (D2-CFO-03)",
-          "web/src/lib/reseller/commission.ts unit tests pass truth-table (0/10/20/30/40 at $99)",
-          "DB CHECK ±1c tolerance passes at $99 and at $19.99 rounding-edge SKUs",
-          "monthly credit-reset cron /api/cron/credit-reset lives (H.11 resolution)",
-          "reseller-clear-commissions nightly cron promotes pending→cleared past pending_until",
-          "InfoVision reseller agreement executed (D4-CLO-02)"
+          "reseller_commissions + reseller_commission_events tables live (per D1-CTO-04 append-only) (DONE — 0094 authored P3.1, applied tick 41 alongside 0091/0092/0093/0095/0096/0097 via docker exec psql per P1.4 note)",
+          "charge.refunded, charge.dispute.created/closed, credit_note.created, invoice.voided handlers (DONE — P3.2 pure lib + P3.2b hot-path integration commit d155547)",
+          "invoice.paid iterates invoice.lines.data for per-line commission (DONE — planAccrualForLine per-line accrual in webhook-helpers.ts wired by P3.2b)",
+          "3-part GST reversal on refunds (D2-CFO-03) (DONE — refundGstReversal in webhook-helpers.ts wired by P3.2b)",
+          "web/src/lib/reseller/commission.ts unit tests pass truth-table (0/10/20/30/40 at $99) (DONE — P1.3 31/31 pass; commission.test.ts + attribution.test.ts)",
+          "DB CHECK ±1c tolerance passes at $99 and at $19.99 rounding-edge SKUs (DONE — commission ledger CHECK constraints in 0094; edge cases in commission.test.ts)",
+          "monthly credit-reset cron /api/cron/credit-reset lives (H.11 resolution) (DONE P3.4 — /api/cron/credit-reset/route.ts + crontab 15 2 1 * *)",
+          "reseller-clear-commissions nightly cron promotes pending→cleared past pending_until (DONE P3.3 — /api/cron/reseller-clear-commissions/route.ts + crontab 15 3 * * *)",
+          "InfoVision reseller agreement executed (D4-CLO-02) (HUMAN — shares H.20 unblock chain with P1.5_infovision_seed)"
         ]
       P3.1_reconciliation_cron:
         status: done
