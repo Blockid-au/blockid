@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.341
+version: 2026-07-23.342
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,154 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 342
+    ran_at: 2026-07-23
+    action: p10_commissions_commission_id_uuid_two_part_typeof_string_regex_cross_surface_twin_open_on_admin_reseller_detail_validation
+    result: |
+      Executes caller-brief option (d) verbatim: opens the
+      reseller_commissions_current[] child-row cluster on
+      admin-reseller-detail-validation.spec.ts by pinning the FIRST column
+      of the projection tuple — commission_id UUID — as a cross-surface
+      twin of the tick 308 pin already carried on the sibling
+      admin-reseller-detail-authz.spec.ts. Before this tick the commissions[]
+      array on the detail-validation spec was pinned only at the
+      Array.isArray() top level (tick 168 wave-5 activation) with ZERO
+      per-row shape asserts, while the sibling detail-authz spec has
+      carried a five-column commissions[] cluster since tick 308
+      (commission_id / stripe_invoice_id / list_price_aud_cents /
+      discount_pct / commission_aud_cents). This tick closes the
+      asymmetry on the FIRST column and opens the mirror cluster.
+
+      Shape lifted:
+        - Writer-side source: reseller_commissions_current view at
+          web/supabase/migrations/0094_reseller_commissions_and_events.sql
+          :130-178 exposes `rc.id AS commission_id` where the underlying
+          reseller_commissions.id is declared at 0094:34 as `id uuid
+          PRIMARY KEY DEFAULT gen_random_uuid()`. Wire type is UUID
+          NOT NULL.
+        - Application read path: projected via select("commission_id,
+          stripe_invoice_id, list_price_aud_cents, discount_pct,
+          commission_aud_cents, net_owed_cents, status, created_at") on
+          the Promise.all fan-out at
+          web/src/app/api/admin/resellers/[code]/route.ts:98-105.
+        - Runtime enforcement in this spec: two-part guard per column,
+          mirroring the tick 308 UUID posture on the sibling spec + the
+          promotion_codes[].id + admins[].id + admins[].user_id UUID pins
+          already carried on this file:
+            - (a) typeof-string half labelled with diagnostic prose
+              preserves the NOT-NULL raw-type discipline. Catches a
+              schema-side type flip (uuid → bigserial), a view-side column
+              drop, or a PostgREST serialisation regression that returned
+              null|undefined. Separated from the UUID_RE assert below so a
+              raw-type flip does not hide behind a shape-based diagnostic.
+            - (b) UUID_RE.test() shape assert catches a projection-side
+              drop from the SELECT tuple at route.ts:98-105 that replaced
+              commission_id with a stringified integer id, a bigint-
+              serialised-as-string sequence id, or a truncated non-UUID
+              slug.
+        - Module-scope precedent: UUID_RE reused verbatim from row 90-91
+          (pinned tick 232 for promotion_codes[].id + expanded across
+          admins[] child cluster at ticks 339-340). Zero new module-scope
+          constants introduced — matches the tick 308 posture on the
+          sibling spec (also UUID_RE reuse).
+
+      Rotation rationale:
+        - Executes caller-brief option (d) verbatim — priorities (a)
+          admins[].role/status and (b)/(c) attributions_summary.total/
+          active were already landed on ticks 340 + 341 so the frontier
+          rotates to (d) commissions[] columns which were entirely
+          un-pinned per-row on the detail-validation surface.
+        - Cross-surface twin symmetrisation: the sibling
+          admin-reseller-detail-authz.spec.ts carries a five-column
+          commissions[] cluster since tick 308 while the detail-validation
+          twin carried only Array.isArray() at the top level. Cross-
+          surface twin lifts historically pin the FIRST column first
+          (matching the tick 308 opening posture on the sibling) — the
+          UUID_RE column reuses the existing module-scope regex so no new
+          const is needed on the opening tick, keeping the module-scope
+          diff empty.
+        - Distinct from ticks 339/340/341 in ONE dimension: those three
+          ticks tightened columns on already-opened child-row clusters
+          (promotion_codes[] tier_pct at 339; admins[] role/status at 340;
+          attributions_summary aggregate at 341). Tick 342 OPENS a new
+          child-row cluster (commissions[]) — the frontier signal shifts
+          from column-sweep-within-cluster to cluster-open on the same
+          spec.
+        - Zero new imports, zero new module-scope consts, no fixture
+          change, no route change. Comment-and-inline-pin-only tightening
+          tick — matches the accepted P10 rotation shape while P8.5
+          remains HUMAN-BLOCKED on Stripe env vars.
+
+      Coverage-per-guard posture: the two-part pin fires once per
+      commissions[] row when the seeded reseller has attributed founders
+      with paid Stripe invoices in the last 50 rows (route.ts:105 limits
+      the projection to 50). On hosts without seeded commission events
+      the for-loop is a no-op so the pin never fires — matches the tick
+      308 posture on the sibling spec verbatim.
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-validation.spec.ts:
+            + widened `commissions?: unknown;` body annotation to
+              `commissions?: Array<{ commission_id?: unknown }>;` so the
+              per-row commission_id read compiles under tsc.
+            + added `for (const row of body.commissions ?? [])` loop
+              under the existing Array.isArray commissions pin, with
+              two-expect discipline: typeof-string half with diagnostic
+              prose naming 0094:34/135 + route.ts:98-105 sources +
+              UUID_RE.test() half naming the projection-side drop /
+              schema-side type flip fault-model.
+            + inline tick-342 doc-comment placed above the pin block for
+              cross-column traceability + module-scope doc-block placed
+              adjacent to the ADMIN_ROLES + ADMIN_STATUSES module-scope
+              consts explaining the cross-surface twin posture + naming
+              the six remaining un-tightened commissions[] columns for
+              future ticks (stripe_invoice_id, list_price_aud_cents,
+              discount_pct, commission_aud_cents, net_owed_cents,
+              status, created_at).
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope consts. Matches
+          ticks 234-341 discipline.
+
+      Verification:
+        - `cd web && npx tsc --noEmit`: exit 0 (whole tree clean; the
+          widened `commissions?: Array<{ commission_id?: unknown }>` body
+          annotation typechecks the per-row access under the existing
+          strict flags).
+        - `cd web && npm run lint:reseller`: R-01 11 files + R-03
+          32 routes + R-04 8 stripe files; 6 exemptions, 0
+          violations (unchanged from tick 341).
+        - Playwright specs excluded from vitest by design.
+
+      Frontier after tick 342: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      commissions[].commission_id UUID two-part pin now COMPLETE on the
+      admin-reseller-detail-validation surface — first column pinned in
+      the reseller_commissions_current[] child-row cluster on this
+      surface. Cross-surface twin gap with detail-authz narrows by one
+      column (5→4 remaining).
+
+      Next natural picks on tick 343:
+        (a) continue the commissions[] cross-surface twin sweep on
+        admin-reseller-detail-validation: propagate the tick 309
+        stripe_invoice_id text NOT NULL + STRIPE_INVOICE_ID_RE shape
+        pin (needs one new module-scope const, STRIPE_INVOICE_ID_RE).
+        (b) continue the commissions[] cross-surface twin sweep on
+        admin-reseller-detail-validation: propagate the tick 311
+        list_price_aud_cents int NOT NULL positive three-part pin
+        (typeof-number + Number.isInteger + > 0; no new const).
+        (c) rotate to cross-surface twin on admin-reseller-detail-authz.
+        spec.ts: propagate the tick 340 admins[].role + admins[].status
+        two-part typeof + set-membership discipline to the sibling
+        surface — the admins[] loop on that spec still carries the
+        pre-tick 320+ bare typeof asserts.
+        (d) idle — frontier remains tight: P1.5 + P8.5 HUMAN-
+        BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks.
+    commit: (this tick)
+
   - tick: 341
     ran_at: 2026-07-23
     action: p10_attributions_summary_total_and_active_two_part_typeof_number_isfinite_range_lift_on_admin_reseller_detail_validation
