@@ -120,7 +120,11 @@ const PLAN_ID_TO_TIER: Record<string, PlanTier> = {
   investor_advisor: "advisor",
   investor_vc_sm: "vc_small",
   investor_vc_ent: "vc_ent",
-  // Accelerator v2
+  // Accelerator v2 — canonical SKU ids (post accel_* → accelerator_* reconciliation)
+  accelerator_starter: "accel_starter",
+  accelerator_growth: "accel_growth",
+  accelerator_enterprise: "accel_ent",
+  // Legacy grandfathered SKU ids from pre-reconciliation sessions
   accel_starter: "accel_starter",
   accel_growth: "accel_growth",
   accel_scale: "accel_ent",
