@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.269
+version: 2026-07-23.270
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,177 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 270
+    ran_at: 2026-07-23
+    action: p10_admin_requests_patch_readback_status_enum_value_pin_option_b
+    result: |
+      Landed tick 269's "natural next pick" option (b) as a status enum value
+      pin on all THREE post-PATCH read-back rows of admin-requests-patch-
+      authz.spec.ts (deny + cancel + approve blocks). Sixth per-column pin on
+      the same three surfaces after tick 265 (decision_at ISO-8601), tick 266
+      (decision_by UUID), tick 267 (created_at ISO-8601), tick 268
+      (decision_reason value), and tick 269 (request_type enum). Closes a
+      route-regression gap where a broken ?status= filter contract at the
+      list route (/api/admin/resellers/requests/route.ts:39+46) would return
+      rows whose status column did not match the requested filter — the
+      preceding PATCH-response pins at line 469/843/1231 already asserted the
+      write envelope carried the correct status literal, but the read-back
+      surface would have folded through unnoticed.
+
+      Writer-schema justification:
+        - 0095_reseller_requests.sql:31-32 declares
+          `status text NOT NULL DEFAULT 'pending' CHECK (status IN
+          ('pending','approved','denied','cancelled'))`. The DB CHECK
+          guarantees the wire value can only be one of the four enum
+          members on any row a green-path INSERT or UPDATE stamped, so
+          this pin is backed by a database-level invariant across all
+          three PATCH branches AND the pending-list surface.
+        - Validator side mirrors the terminal three values at
+          web/src/lib/reseller/requests.ts:17-21 (ResellerRequestStatus
+          union — pending/approved/denied/cancelled). The admin list
+          route mirrors all four at /api/admin/resellers/requests/
+          route.ts:13 (ALLOWED_STATUS set) which is used at route.ts:39
+          for the ?status= param parse and at route.ts:46 for the
+          .eq("status", status) filter.
+        - The list route SELECT at /api/admin/resellers/requests/
+          route.ts:44 includes status in the column projection so the
+          PostgREST serialisation of text shows up in the read-back row.
+
+      Design choice — eighth module-scope constant + three-block reuse:
+        - New eighth module-scope constant ALLOWED_STATUS_VALUES mirrors
+          the DB CHECK at 0095:32 + the TS union at requests.ts:17-21 +
+          the route ALLOWED_STATUS at route.ts:13 verbatim. Kept as a
+          Set for O(1) has() lookup consistent with the sibling
+          ALLOWED_REQUEST_TYPES (line 282-286 from tick 269) and
+          ALLOWED_TIER_PCT_VALUES (line 275) sets.
+        - Header doc-comment above the constants block extended with a
+          tick-270 paragraph describing the pin's triple-source-of-truth
+          reference (DB CHECK + TS union + route ALLOWED_STATUS) + the
+          exact-string equality guard as the third check on top of
+          typeof + set-membership + zero-coverage-per-guard rationale
+          for the 'pending' enum value on the read-back path.
+        - status pin fires ONLY after the tick-269 request_type enum
+          pin has passed on the same read-back row so a regression in
+          the request_type wire shape surfaces at the tighter existing
+          pin before the status check even runs.
+        - Three-part guard shape (upgraded from tick 269's two-part
+          guard): (a) typeof-string (catches a projection drop of
+          status from the list SELECT at route.ts:44, which would fail
+          the guard because undefined is not a string), (b)
+          ALLOWED_STATUS_VALUES.has() set membership (catches a
+          DB-level CHECK widening or a route regression that returned
+          a stale/mismatched enum value), (c) exact-string equality
+          against block-specific expected literal ("denied" / "cancelled"
+          / "approved") — closes the ?status= filter contract at
+          route.ts:39+46 by asserting the row's status actually matches
+          the filter, catching a route regression that silently
+          ignored the ?status= param and returned mixed-status rows.
+        - readbackRow inline type shape already carries `status?:
+          unknown;` in all three declarations (deny/cancel/approve)
+          from ticks 262/263/264's payload discriminated-union pin —
+          no new type-shape field required.
+
+      Coverage-per-guard posture:
+        - All three PATCH branches (deny + cancel + approve) exercise
+          status on green-path CI runs — each branch stamps a distinct
+          terminal status literal at route.ts:305-320 that this spec
+          then reads back via the corresponding ?status= filter. The
+          exact-string equality check on each surface exercises the
+          specific enum value at that surface.
+        - Zero-coverage on 'pending' enum value: green-path fixtures
+          never exercise the read-back path with ?status=pending
+          because the pre-PATCH state is pending and the three read-
+          back surfaces filter for the terminal three states only —
+          but the ALLOWED_STATUS_VALUES set still forbids a route-
+          regression drift to a non-enum string, which is what the
+          middle guard catches. Matches the tick 269 request_type
+          zero-coverage-per-guard rationale for code_request +
+          collateral_approval enum values verbatim.
+        - The three read-back surfaces (?status=denied /
+          ?status=cancelled / ?status=approved) each carry the same
+          three-part pin so a regression in any one of the three
+          ALLOWED_STATUS filter paths that returned a wrong-status row
+          for the matching id would surface on that specific surface
+          only — matches the tick 262/263/264/265/266/267/268/269
+          one-surface-at-a-time discipline.
+
+      Diagnostic delta of the pass:
+        - One new module-scope constant (ALLOWED_STATUS_VALUES, eighth
+          in the constants block). Zero new fields on the three inline
+          readbackRow type shapes (status?: unknown was already present
+          from ticks 262/263/264). One new three-line assertion trio
+          (typeof-string + Set.has() + exact-string equality) inside
+          each of the three read-back blocks after the tick-269
+          request_type pin.
+        - Header doc-comment above the module-scope constants block
+          expanded with a new tick-270 paragraph describing the pin's
+          triple-source-of-truth reference + the exact-string equality
+          as the third guard.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no vitest/Playwright runtime posture
+          change. Matches ticks 223-269 discipline: tighten one
+          dimension (in this case add a new value pin to the reseller_
+          requests.status column across three surfaces simultaneously)
+          with zero net new imports.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: 11 R-01 files + 31 R-03 routes
+          scanned, 3 exemptions, 0 violations
+        - npx vitest run: 75 files 954/954 pass (unchanged — Playwright
+          specs are excluded from vitest by design)
+
+      Files:
+        - web/tests/e2e/reseller/admin-requests-patch-authz.spec.ts
+          (module-scope constants doc-comment block gains a tick-270
+          paragraph describing the status enum pin + the
+          ALLOWED_STATUS_VALUES triple-source-of-truth reference; new
+          eighth module-scope constant ALLOWED_STATUS_VALUES defined
+          as Set of four enum values; three read-back blocks each
+          gain a typeof-string + Set.has() + exact-string equality
+          assertion trio after the tick-269 request_type pin, each
+          with a block-scope comment citing 0095:31-32 as the column
+          declaration source, requests.ts:17-21 as the TS union mirror,
+          and route.ts:13 as the ALLOWED_STATUS set mirror.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.269 → 2026-07-23.270; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no production-code touch, no
+          new import, no widening of any inline type shape. Consistent
+          with ticks 234-269's incremental-pin pattern.
+        - Three surfaces at once (option b design was for a single new
+          pin type applied uniformly to all three read-back rows — the
+          tick 262/263/264/265/266/267/268/269 sequence already
+          established the three read-back rows share the same shape
+          contract for each pinned column; extending that contract to
+          include status is a single logical unit rather than three
+          separate ticks).
+
+      Next natural picks on tick 271:
+        (a) extending the same read-back to the reseller-scoped GET
+        list route (still-outstanding tick 266/268/269 option a — the
+        reseller-scoped list route at /api/reseller/requests/route.ts
+        has its own SELECT + filter logic that today only has the tick
+        260/261 default-pending read-back pinned),
+        (b) adding a linked_credit_transaction_id UUID pin to the
+        approve-block read-back (asymmetric single-surface pin — deny
+        + cancel null this column per the ck_credit_link CHECK so only
+        the approve surface would carry it — seventh per-column pin),
+        (c) adding a reseller_id UUID pin (0095:27 declares
+        `reseller_id uuid NOT NULL REFERENCES public.resellers(id)
+        ON DELETE RESTRICT` — a routing regression that stripped
+        reseller_id from the SELECT would surface here as a seventh
+        per-column pin; symmetric across all three surfaces since
+        reseller_id is populated at INSERT time and never touched by
+        any PATCH branch),
+        (d) adding a requester_user_id UUID pin (0095:28 declares
+        `requester_user_id uuid NOT NULL REFERENCES public.app_users
+        (id) ON DELETE RESTRICT` — same rationale as reseller_id;
+        seventh per-column pin symmetric across all three surfaces).
+
   - tick: 269
     ran_at: 2026-07-23
     action: p10_admin_requests_patch_readback_request_type_enum_value_pin_option_d
