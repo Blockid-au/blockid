@@ -465,6 +465,36 @@ const UUID_RE =
 // layer, no value enum). Seeded reseller rows with N minted codes
 // exercise the pin N times per green CI run; on hosts without seeded
 // codes the for-loop is a no-op so the pin never fires.
+//
+// Tick 300 — promotion_codes[].created_at timestamptz wire-shape pin,
+// second column pinned in the promotion_codes[] child-row cluster opened
+// at tick 299 per that tick's next-tick option (i). Column declared at
+// 0091:95 as `created_at timestamptz NOT NULL DEFAULT now()` on the
+// reseller_promotion_codes table with no CHECK beyond the NOT NULL
+// discipline. Projected via select("id, tier_pct, code,
+// stripe_coupon_id, stripe_promotion_code_id, active, created_at") on
+// the same Promise.all leg at web/src/app/api/admin/resellers/[code]/
+// route.ts:83-88 that pulls reseller_promotion_codes rows, so a
+// projection-side drop or a PostgREST serialisation regression on this
+// column would surface here on the first offending row. Application
+// write path never sets created_at explicitly — the code_request approve
+// branch at web/src/app/api/admin/resellers/requests/[id]/route.ts +
+// web/src/lib/reseller/promotion-code-mint.ts leaves the column at its
+// DB DEFAULT now(), so drift from the NOT NULL discipline would indicate
+// a schema-side widening or a PostgREST serialisation regression that
+// started returning null|undefined for the column. NOT-NULL discipline
+// with an ISO timestamp shape → two-part typeof-string + ISO_TIMESTAMP_RE
+// assert inside the existing for-of loop over body.promotion_codes,
+// mirroring resellers.created_at's tick 283/285 posture verbatim rather
+// than the tick 299 single typeof-boolean guard because this column
+// carries an ISO 8601 serialisation dimension beyond raw type. Seeded
+// reseller rows with N minted codes exercise the pin N times per green
+// CI run; on hosts without seeded codes the for-loop is a no-op so the
+// pin never fires. Detail-only tick because the admin-resellers-list
+// surface does NOT project promotion_codes (list route selects only the
+// resellers-row shape); the Promise.all fan-out that pulls the child
+// rows is unique to the detail surface, matching the tick 299 detail-
+// only posture.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Uppercase-alphanumeric invariant for promotion_codes[].code — matches the
@@ -685,6 +715,7 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         tier_pct?: unknown;
         code?: unknown;
         active?: unknown;
+        created_at?: unknown;
       }>;
       admins?: Array<{
         id?: unknown;
@@ -1049,6 +1080,21 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
       expect(
         typeof row.active === "boolean",
         `promotion_codes[].active '${String(row.active)}' should be a boolean (bool NOT NULL DEFAULT true per 0091:94; a schema-side widening, a PostgREST serialisation regression that returned null|undefined, or a projection-side drop from route.ts:83-88 select would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      // Tick 300 — promotion_codes[].created_at timestamptz wire-shape
+      // pin. Column 0091:95 `created_at timestamptz NOT NULL DEFAULT
+      // now()`. NOT-NULL discipline with ISO 8601 shape → two-part
+      // typeof-string + ISO_TIMESTAMP_RE assert; mirrors the resellers.
+      // created_at tick 283/285 posture verbatim. See module-scope doc-
+      // block above ISO_TIMESTAMP_RE (tick 300 paragraph) for the
+      // rationale.
+      expect(
+        typeof row.created_at === "string",
+        `promotion_codes[].created_at '${String(row.created_at)}' should be a string (timestamptz NOT NULL DEFAULT now() per 0091:95 serialised via PostgREST as an ISO 8601 string; a schema-side widening, a PostgREST serialisation regression that returned null|undefined, or a projection-side drop from route.ts:83-88 select would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        ISO_TIMESTAMP_RE.test(row.created_at as string),
+        `promotion_codes[].created_at '${String(row.created_at)}' should match ISO 8601 shape (timestamptz NOT NULL DEFAULT now() per 0091:95); a drift to a non-ISO string, a Unix epoch number rendered as string, or a truncated date-only value would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
     }
 
