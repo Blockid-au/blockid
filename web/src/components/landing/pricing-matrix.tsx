@@ -38,25 +38,37 @@ interface PricingAnchorPayload {
   anchorFeatures?: string[];
 }
 
-const SEGMENT_INTRO: Record<Segment, { headline: string; sub: string; note?: string }> = {
+const SEGMENT_INTRO: Record<Segment, { headline: string; sub: string; roleFit: string; note?: string }> = {
   founder: {
     headline: "Pricing for founders",
     sub: "Start free. Upgrade the day you decide to raise. Cancel any time.",
+    roleFit: "How this fits your role: build your startup profile, model your cap-table, and get investor-ready — from Day 0 to a signed term sheet.",
   },
   investor: {
     headline: "Pricing for investors",
     sub: "From solo angels to fund-grade DD workflows.",
+    roleFit: "How this fits your role: evaluate incoming deals with SVI Pro, track your watchlist and portfolio, and export LP-grade reports.",
   },
   advisor: {
     headline: "Pricing for advisors",
     sub: "Same plans as investors — the Advisor tier ships the warm-intro engine and equity calculator you actually use.",
+    roleFit: "How this fits your role: guide founders, back them with time (not just capital), and track advisor equity + vesting on-chain.",
     note: "Advisor-specific features live in the Advisor plan: warm intro engine, advisor equity/vesting calculator, and portfolio tracking of the founders you back with time (not just capital).",
   },
   accelerator: {
     headline: "Pricing for accelerators",
     sub: "Per-cohort pricing with seats included. White-label available on Scale.",
+    roleFit: "How this fits your role: run a cohort with batched SVI reports, mentor-pool marketplace, Demo Day kit, and LP reporting.",
   },
 };
+
+/**
+ * Founder plans keep the /onboarding trial flow (Stripe env vars wired for
+ * the Founder Stripe products). Investor / Advisor / Accelerator plans route
+ * to the contact form until the P8.5 Stripe env vars land for those SKUs.
+ * See docs/pricing-upgrade-plan-2026-07-16.md § Tier Matrix.
+ */
+const CONTACT_SALES_SEGMENTS: readonly Segment[] = ["investor", "advisor", "accelerator"];
 
 export interface PricingMatrixProps {
   /** Optional override; by default the active <SegmentTabs> segment wins. */
@@ -154,6 +166,10 @@ export function PricingMatrix({ segment: overrideSegment }: PricingMatrixProps =
         <IntervalToggle value={interval} onChange={setInterval} />
       </div>
 
+      <p className="mx-auto mb-6 max-w-3xl text-center text-sm text-brand-ink/80">
+        {intro.roleFit}
+      </p>
+
       {intro.note && (
         <p className="mx-auto mb-8 max-w-3xl rounded-lg border border-brand-cyan/20 bg-brand-navy-elev-1/60 px-4 py-3 text-center text-sm text-brand-ink-muted">
           {intro.note}
@@ -166,6 +182,7 @@ export function PricingMatrix({ segment: overrideSegment }: PricingMatrixProps =
             key={plan.id}
             plan={plan}
             interval={interval}
+            forceContactSales={CONTACT_SALES_SEGMENTS.includes(plan.segment)}
             onSelect={recordAnchorConversion}
           />
         ))}
@@ -262,17 +279,20 @@ function ToggleButton({
 function PlanCard({
   plan,
   interval,
+  forceContactSales = false,
   onSelect,
 }: {
   plan: Plan;
   interval: Interval;
+  /** When true, override CTA to contact-sales regardless of `plan.cta_kind`. */
+  forceContactSales?: boolean;
   onSelect?: (valueAud?: number) => void;
 }) {
   const price = interval === "annual" ? plan.annual_aud : plan.monthly_aud;
   const priceLabel = formatAud(price);
   const isCustom = price === null;
   const saving = annualSavingPct(plan);
-  const isContact = plan.cta_kind === "contact" || isCustom;
+  const isContact = forceContactSales || plan.cta_kind === "contact" || isCustom;
 
   const ctaHref = isContact
     ? `/contact?plan=${plan.id}`
