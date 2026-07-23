@@ -1032,3 +1032,8 @@
 {"ts":"2026-07-23T20:23:03.013Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-23T20-15-01-850Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T20:23:54Z","status":"success","gates":"11/11","pid":"858823","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-23T20:31:15.425Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): P10 tick 334 (goal) — commissions[] status↔event_type + net_owed_cents↔delta_aud_cents view-derivation lifecycle invariant summary hoist on admin-reseller-detail (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T20:31:23.246Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-23T20-25-01-400Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T20:32:44.031Z","event":"github-push-master","detail":"Blockid-au: feat(projects): enforce editor/viewer/admin permissions on mutation routes (Q4 Multi-project #4) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T20:37:17Z","status":"success","gates":"9/9","pid":"903478","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-23T20:40:30.567Z","event":"github-push-master","detail":"Blockid-au: feat(audit): wire user audit log into project.updated + member.invited/revoked/accepted (SOC2-lite expansion) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T20:45:05.240Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): P10 tick 335 (goal) — resellers-row ck_wholesale_gst_required cross-column invariant summary hoist on admin-resellers-list twin (1 commits)","source":"github-webhook"}
