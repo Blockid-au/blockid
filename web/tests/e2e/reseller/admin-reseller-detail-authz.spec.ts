@@ -1303,6 +1303,69 @@ const UUID_RE =
 // message ticks (roles + statuses of the enum guards) or a rotation
 // back to the promotion_codes[] column-pin cluster on the remaining
 // tuple positions.
+//
+// Tick 324 — promotion_codes[].code PROMO_CODE_RE two-part wire-shape
+// pin, sibling-column continuation of the promotion_codes[] child-row
+// cluster opened at tick 320 (id / column 0 of the route.ts:83-88
+// select tuple). Tick 322 next-pick option (a) taken verbatim — lifts
+// the prior tick 232 baseline bare two-part pin at
+// `expect(typeof row.code).toBe("string"); expect(row.code as string)
+// .toMatch(PROMO_CODE_RE);` (already two-part but lacks the tick-
+// numbered labelled message shape used by the tick 320 lift) into the
+// two-expect labelled shape matching the tick 320 promotion_codes[].id
+// + tick 321 admins[].id + tick 322 admins[].user_id posture verbatim.
+//
+// Writer-schema justification:
+//   - 0091_reseller_module_foundations.sql:91 declares
+//     `code text NOT NULL UNIQUE` on the reseller_promotion_codes base
+//     table. UNIQUE + NOT NULL text column with the uppercase-
+//     alphanumeric invariant living on the application write path
+//     only (buildPromoCodeName at
+//     web/src/lib/reseller/promotion-code-mint.ts:41-58 — uppercase +
+//     <=40 chars, composed from normaliseResellerCode() output +
+//     optional SUFFIX_RE-vetted tier suffix). No DB CHECK, so a raw /
+//     lowercase / punctuated INSERT bypassing buildPromoCodeName would
+//     land silently at the schema layer and only surface at visual QA.
+//   - Application read path: selected on the Promise.all leg at
+//     web/src/app/api/admin/resellers/[code]/route.ts:83-88 as the
+//     3rd column in the reseller_promotion_codes tuple
+//     .select("id, tier_pct, code, stripe_coupon_id,
+//     stripe_promotion_code_id, active, created_at").
+//
+// Design choice — two-part guard mirroring the tick 320
+// promotion_codes[].id posture verbatim: (a) typeof-string preserves
+// the NOT-NULL raw-type discipline; catches a PostgREST regression
+// that returned null|undefined, a schema-side NOT NULL drop, or a
+// projection-side drop from the route.ts:83-88 SELECT tuple.
+// (b) PROMO_CODE_RE.test() shape assert catches a P9.4 approve-branch
+// bypass that INSERTed a raw / lowercase / punctuated code straight
+// past buildPromoCodeName, or a write-path drift widening the SUFFIX_RE
+// -vetted tier suffix. Each half carries a bespoke failure message
+// pointing at 0091:91 as the writer-schema source and promotion-code-
+// mint.ts:41-58 as the application invariant.
+//
+// Detail-surface only per the same posture as ticks 299-322 — the
+// admin-resellers-list route projects only the resellers-row shape
+// and does not fan out to reseller_promotion_codes; the Promise.all
+// leg that pulls promotion_codes rows is unique to the detail route.
+// Fires on every green CI run because seed-qa-reseller.mjs mints per-
+// variant reseller_promotion_codes rows per reseller cohort; on hosts
+// without seeded promotion codes the for-loop is a no-op so the pin
+// never fires. No new module-scope const needed — PROMO_CODE_RE
+// already lives at row 1328. Continues the P10 hardening posture — no
+// fixture change, no route change, no new imports. Two of the seven
+// promotion_codes[] tuple positions (id, code) now carry the tick-
+// numbered two-part labelled discipline; tier_pct enum pin (tick 303)
+// already labelled, active bool (tick 299) / created_at (tick 300) /
+// stripe_coupon_id (tick 301) / stripe_promotion_code_id (tick 302)
+// already carry bespoke messages so the cluster is nearing symmetric
+// close-out on the next rotation. Natural next-pick tick 325
+// candidates: (a) rotate to admins[].linked_at / admins[].revoked_at
+// ISO-8601 shape refresh (ticks 306-307 already labelled), (b) rotate
+// to attributions[].* row-shape pins now that the aggregate
+// attributions_summary cluster closed at tick 319, (c) idle — the
+// frontier remains tight (P1.5 + P8.5 HUMAN-BLOCKED, P11
+// never_completes, Track B closed).
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Tick 309 — Stripe invoice ID shape regex. Matches the modern Stripe
@@ -1991,15 +2054,24 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         ALLOWED_TIER_VALUES.has(row.tier_pct as number),
         `promotion_codes[].tier_pct '${String(row.tier_pct)}' should be in the enum {0,10,20,30,40} per ck_reseller_promotion_codes tier_pct CHECK at 0091:90; a DB CHECK drop, a legacy code_request approve branch that stamped an out-of-enum tier, or an admin-validator drift that widened STARTUP_TIER_STEPS would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
-      // Tick 232 twin-symmetrisation with admin-reseller-detail-validation.
-      // spec.ts row 320: shape-pin promotion_codes[].code against
-      // PROMO_CODE_RE (uppercase alphanumeric per buildPromoCodeName). A
-      // route regression that echoed a raw / lowercase / punctuated code
-      // (bypassing the P9.4 approve-branch normalisation) surfaces here on
-      // the first offending row rather than only at visual QA of
-      // /admin/resellers/[code].
-      expect(typeof row.code).toBe("string");
-      expect(row.code as string).toMatch(PROMO_CODE_RE);
+      // Tick 324 — promotion_codes[].code PROMO_CODE_RE two-part wire-
+      // shape pin. Lifts the prior tick 232 baseline bare two-part pin
+      // into two labelled asserts matching the tick 320 promotion_codes[]
+      // .id posture verbatim. Column source
+      // `reseller_promotion_codes.code text NOT NULL UNIQUE` at 0091:91
+      // with the uppercase-alphanumeric invariant living on the
+      // application write path only (buildPromoCodeName at
+      // web/src/lib/reseller/promotion-code-mint.ts:41-58) — no DB CHECK.
+      // See module-scope doc-block above ISO_TIMESTAMP_RE (tick 324
+      // paragraph) for the rationale.
+      expect(
+        typeof row.code === "string",
+        `promotion_codes[].code '${String(row.code)}' should be a string (text NOT NULL UNIQUE per 0091:91; a schema-side NOT NULL drop, a projection-side drop from route.ts:83-88 select, or a PostgREST serialisation regression that returned null|undefined would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        PROMO_CODE_RE.test(row.code as string),
+        `promotion_codes[].code '${String(row.code)}' should match uppercase-alphanumeric shape /^[A-Z0-9]+$/ (buildPromoCodeName write-path invariant at web/src/lib/reseller/promotion-code-mint.ts:41-58 — uppercase + <=40 chars, composed from normaliseResellerCode() output + optional SUFFIX_RE-vetted tier suffix); a P9.4 approve-branch bypass that INSERTed a raw / lowercase / punctuated code straight past buildPromoCodeName would surface here rather than only at visual QA of /admin/resellers/[code]. Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
       // Tick 299 — promotion_codes[].active bool wire-shape pin. Column
       // 0091:94 `active bool NOT NULL DEFAULT true`. NOT-NULL discipline
       // → single typeof-boolean assert; no null branch, no format layer.
