@@ -1,281 +1,233 @@
-/** Tech stack cost model */
+/**
+ * CTO Domain Module: Cost Modeling & Tech Stack Evaluation
+ * Enhanced with 2026 Australian Market Research Data
+ */
+
 export interface TechStackCost {
   /** Category name (e.g., "infra", "service") */
-  category: string
+  category: string;
   /** Items belonging to the category */
-  items: TechItem[]
+  items: TechItem[];
   /** Aggregated monthly cost for the category */
-  monthlyCost: number
+  monthlyCost: number;
 }
 
-/** Tech item */
 export interface TechItem {
   /** Human‑readable name */
-  name: string
+  name: string;
   /** Classification of the item */
-  type: 'infra' | 'service' | 'tool' | 'ai_model'
+  type: 'infra' | 'service' | 'tool' | 'ai_model' | 'security';
   /** Recurring cost per month */
-  monthlyCost: number
+  monthlyCost: number;
   /** Unit of measurement (e.g., "instance", "license") */
-  unit: string
+  unit: string;
   /** Additional notes */
-  notes: string
+  notes: string;
 }
 
-/** Development cost model */
 export interface DevelopmentCost {
   /** Phase identifier (e.g., "MVP", "Scale") */
-  phase: string
+  phase: string;
   /** Duration in weeks */
-  durationWeeks: number
+  durationWeeks: number;
   /** Team composition */
-  teamSize: TeamMember[]
-  /** Weekly burn rate (USD) */
-  weeklyBurn: number
+  teamSize: TeamMember[];
+  /** Weekly burn rate (AUD) */
+  weeklyBurn: number;
   /** Total cost for the phase */
-  totalCost: number
+  totalCost: number;
   /** Milestones for the phase */
-  milestones: string[]
+  milestones: string[];
 }
 
-/** Team member */
 export interface TeamMember {
   /** Role name (e.g., "Frontend Engineer") */
-  role: string
+  role: string;
   /** Number of people in this role */
-  count: number
-  /** Weekly rate per person (USD) */
-  weeklyRate: number
+  count: number;
+  /** Weekly rate per person (AUD) */
+  weeklyRate: number;
   /** Full‑time flag */
-  isFullTime: boolean
+  isFullTime: boolean;
 }
 
-/** Tech budget projection */
 export interface TechBudgetProjection {
   /** Monthly breakdown */
-  months: TechBudgetMonth[]
+  months: TechBudgetMonth[];
   /** 12‑month infra total */
-  totalInfra12: number
+  totalInfra12: number;
   /** 12‑month development total */
-  totalDev12: number
+  totalDev12: number;
   /** 12‑month AI models total */
-  totalAI12: number
+  totalAI12: number;
   /** 12‑month tools total */
-  totalTools12: number
+  totalTools12: number;
+  /** 12‑month security total */
+  totalSecurity12: number;
   /** Grand total for 12 months */
-  grandTotal12: number
+  grandTotal12: number;
 }
 
-/** Tech budget month */
 export interface TechBudgetMonth {
   /** Month index (1‑based) */
-  month: number
-  /** Human‑readable label (e.g., "Jan 2025") */
-  label: string
+  month: number;
+  /** Human‑readable label (e.g., "Jan 2026") */
+  label: string;
   /** Infra cost for the month */
-  infra: number
+  infra: number;
   /** Development cost for the month */
-  development: number
-  /** AI models cost for the month */
-  aiModels: number
-  /** Tools cost for the month */
-  tools: number
-  /** Sum of all categories for the month */
-  total: number
+  development: number;
+  /** AI model costs for the month */
+  aiModels: number;
+  /** tooling costs for the month */
+  tools: number;
+  /** security costs for the month */
+  security: number;
 }
 
-/** Tech stack health and compliance score */
-export interface TechHealthScore {
-  /** Overall security compliance (0‑1) */
-  securityCompliance: number
-  /** Maintainability index (0‑100) */
-  maintainabilityIndex: number
-  /** Modernity of infrastructure (0‑1) */
-  infrastructureModernity: number
-  /** Aggregated overall score (0‑1) */
-  overallScore: number
-  /** Essential Eight maturity (0‑1) */
-  essentialEightMaturity: number
-  /** OWASP Top 10 adoption rate (0‑1) */
-  owaspAdoptionRate: number
-  /** SAST coverage (0‑1) */
-  sastCoverage: number
-  /** CI/CD quality‑gate integration flag */
-  cicdQualityGateIntegration: boolean
-  /** Next.js optimization score (0‑1) */
-  nextJsOptimizationScore: number
-  /** Streaming SSR enabled flag */
-  streamingSsrEnabled: boolean
-  /** Bundle size reduction percentage (0‑1) */
-  bundleSizeReductionPercentage: number
+export interface SecurityComplianceScore {
+  /** Essential Eight overall compliance percentage */
+  essentialEightCompliance: number;
+  /** Maturity level for Patch Applications (Target: 71% for L3) */
+  patchingMaturityLevel: number;
+  /** OWASP Top 10 controls integrated (out of 10) */
+  owaspControlsIntegrated: number;
+  /** SAST tool adoption status */
+  sastEnabled: boolean;
+  /** CI/CD quality gate integration status */
+  qualityGatesEnabled: boolean;
 }
 
-/** Market share and adoption benchmarks based on 2024‑2026 research */
-export const TECH_ADOPTION_BENCHMARKS = {
-  infrastructure: {
-    kubernetesProduction: 0.78,
-    serverlessProduction: 0.34,
-  },
-  frontend: {
+export interface TechStackBenchmark {
+  /** Frontend framework market share % */
+  frontendMarketShare: {
+    react: number;
+    vue: number;
+    angular: number;
+    svelte: number;
+  };
+  /** Infrastructure adoption % */
+  infraAdoption: {
+    kubernetes: number;
+    serverless: number;
+  };
+  /** Developer Productivity */
+  aiAssistantUsageRate: number;
+  /** Code Quality Indices */
+  averageMaintainabilityIndex: number;
+  /** Static Analysis Coverage % */
+  staticAnalysisCoverage: number;
+}
+
+export const AU_MARKET_BENCHMARKS_2026: TechStackBenchmark = {
+  frontendMarketShare: {
     react: 0.62,
     vue: 0.14,
     angular: 0.11,
     svelte: 0.09,
   },
-  developerExperience: {
-    aiAssistantUsage: 0.48,
+  infraAdoption: {
+    kubernetes: 0.78,
+    serverless: 0.34,
   },
-} as const
+  aiAssistantUsageRate: 0.48,
+  averageMaintainabilityIndex: 68,
+  staticAnalysisCoverage: 0.85,
+};
 
-/** Australian Security and Quality Compliance Benchmarks (2026) */
-export const AU_SECURITY_BENCHMARKS = {
+export const AU_SECURITY_BENCHMARKS_2026 = {
   essentialEightSmeCompliance: 0.38,
-  essentialEightPatchLevel3: 0.71,
+  patchingLevel3Compliance: 0.71,
   owaspTop10AdoptionRate: 0.45,
   sastAdoptionRate: 0.72,
-  cicdQualityGateIntegrationRate: 0.68,
-  maintainabilityIndexAverage: 68,
-  staticAnalysisCoverage: 0.85,
-} as const
+  cicdQualityGateRate: 0.68,
+};
 
-/** Next.js 16 performance optimization benchmarks */
-export const NEXTJS_OPTIMIZATION_BENCHMARKS = {
-  bundleSizeReduction: 0.42,
-  streamingSsrTtfbImprovement: 0.60,
-  concurrentFeaturesReRenderReduction: 0.10,
-} as const
-
-/** Calculate infrastructure modernity score (0‑1) */
-export function calculateInfrastructureModernity(): number {
-  const { kubernetesProduction, serverlessProduction } = TECH_ADOPTION_BENCHMARKS.infrastructure
-  return (kubernetesProduction + serverlessProduction) / 2
+/**
+ * Calculates the projected performance improvement based on Next.js 16 migration research.
+ * Specifically targets high-latency APAC networks.
+ * @param currentTtfb Current Time to First Byte in ms
+ * @returns Projected TTFB after Streaming SSR implementation
+ */
+export function calculateProjectedTtfbImprovement(currentTtfb: number): number {
+  const improvementFactor = 0.60;
+  return currentTtfb * (1 - improvementFactor);
 }
 
-/** Calculate security compliance score (0‑1) */
-export function calculateSecurityCompliance(): number {
-  const {
-    essentialEightSmeCompliance,
-    essentialEightPatchLevel3,
-    owaspTop10AdoptionRate,
-  } = AU_SECURITY_BENCHMARKS
-  return (essentialEightSmeCompliance + essentialEightPatchLevel3 + owaspTop10AdoptionRate) / 3
-}
-
-/** Calculate maintainability index (0‑100) */
-export function calculateMaintainabilityIndex(): number {
-  const {
-    maintainabilityIndexAverage,
-    staticAnalysisCoverage,
-    sastAdoptionRate,
-  } = AU_SECURITY_BENCHMARKS
-  const coverageFactor = (staticAnalysisCoverage + sastAdoptionRate) / 2
-  return maintainabilityIndexAverage * coverageFactor
-}
-
-/** Calculate Next.js optimization score (0‑1) */
-export function calculateNextJsOptimizationScore(
-  streamingSsrEnabled: boolean,
-): number {
-  const {
-    bundleSizeReduction,
-    streamingSsrTtfbImprovement,
-    concurrentFeaturesReRenderReduction,
-  } = NEXTJS_OPTIMIZATION_BENCHMARKS
-  const ssrFactor = streamingSsrEnabled ? streamingSsrTtfbImprovement : 0
-  return (bundleSizeReduction + ssrFactor + concurrentFeaturesReRenderReduction) / 3
-}
-
-/** Assemble a full TechHealthScore based on current benchmarks */
-export function computeTechHealthScore(
-  streamingSsrEnabled: boolean,
-  cicdQualityGateIntegration: boolean,
-): TechHealthScore {
-  const infrastructureModernity = calculateInfrastructureModernity()
-  const securityCompliance = calculateSecurityCompliance()
-  const maintainabilityIndex = calculateMaintainabilityIndex()
-  const nextJsOptimizationScore = calculateNextJsOptimizationScore(streamingSsrEnabled)
-  const overallScore = (
-    infrastructureModernity +
-    securityCompliance +
-    maintainabilityIndex / 100 +
-    nextJsOptimizationScore
-  ) / 4
+/**
+ * Evaluates the security posture of an AU startup against the 2026 benchmarks.
+ * @param current Current security scores
+ * @returns Analysis of compliance gaps
+ */
+export function evaluateSecurityPosture(current: SecurityComplianceScore) {
   return {
-    securityCompliance,
-    maintainabilityIndex,
-    infrastructureModernity,
-    overallScore,
-    essentialEightMaturity: AU_SECURITY_BENCHMARKS.essentialEightPatchLevel3,
-    owaspAdoptionRate: AU_SECURITY_BENCHMARKS.owaspTop10AdoptionRate,
-    sastCoverage: AU_SECURITY_BENCHMARKS.sastAdoptionRate,
-    cicdQualityGateIntegration,
-    nextJsOptimizationScore,
-    streamingSsrEnabled,
-    bundleSizeReductionPercentage: NEXTJS_OPTIMIZATION_BENCHMARKS.bundleSizeReduction,
-  }
+    essentialEightGap: AU_SECURITY_BENCHMARKS_2026.essentialEightSmeCompliance - current.essentialEightCompliance,
+    patchingGap: AU_SECURITY_BENCHMARKS_2026.patchingLevel3Compliance - (current.patchingMaturityLevel >= 3 ? 1 : 0),
+    owaspGap: (AU_SECURITY_BENCHMARKS_2026.owaspTop10AdoptionRate * 10) - current.owaspControlsIntegrated,
+    sastStatus: current.sastEnabled ? 'Aligned' : 'Below Market Average',
+    qualityGateStatus: current.qualityGatesEnabled ? 'Aligned' : 'Below Market Average',
+  };
 }
 
-/** Adjust a TechStackCost projection by applying adoption weightings */
-export function applyAdoptionWeightings(cost: TechStackCost): TechStackCost {
-  const weightingMap: Record<string, number> = {
-    infra: calculateInfrastructureModernity(),
-    service: TECH_ADOPTION_BENCHMARKS.developerExperience.aiAssistantUsage,
-    tool: AU_SECURITY_BENCHMARKS.cicdQualityGateIntegrationRate,
-    ai_model: 0.5,
-  }
-  const factor = weightingMap[cost.category] ?? 1
-  const adjustedItems = cost.items.map(item => ({
-    ...item,
-    monthlyCost: Math.round(item.monthlyCost * factor * 100) / 100,
-  }))
-  const monthlyCost = adjustedItems.reduce((sum, i) => sum + i.monthlyCost, 0)
-  return { ...cost, items: adjustedItems, monthlyCost }
+/**
+ * Estimates the reduction in client-side JavaScript bundle size when migrating 
+ * to Next.js 16 Server Components.
+ * @param currentBundleSize Size in KB
+ * @returns Projected size in KB
+ */
+export function estimateBundleReduction(currentBundleSize: number): number {
+  const reductionRate = 0.42;
+  return currentBundleSize * (1 - reductionRate);
 }
 
-/** Project a 12‑month budget using adjusted TechStackCost objects */
-export function project12MonthBudget(
-  costs: TechStackCost[],
+/**
+ * Calculates the total project cost across all phases.
+ * @param phases Array of development phases
+ * @returns Total cost in AUD
+ */
+export function calculateTotalDevCost(phases: DevelopmentCost[]): number {
+  return phases.reduce((acc, phase) => acc + phase.totalCost, 0);
+}
+
+/**
+ * Generates a 12-month budget projection based on initial monthly costs and growth multipliers.
+ * @param initialCosts Initial monthly spend per category
+ * @param growthMultiplier Monthly growth factor (e.g., 1.05 for 5% growth)
+ * @returns TechBudgetProjection
+ */
+export function generateBudgetProjection(
+  initialCosts: Record<string, number>,
+  growthMultiplier: number = 1.0
 ): TechBudgetProjection {
-  const months: TechBudgetMonth[] = []
-  for (let m = 1; m <= 12; m++) {
-    const monthLabel = new Date(2025, m - 1).toLocaleString('en-AU', {
-      month: 'short',
-      year: 'numeric',
-    })
-    const infra = costs
-      .filter(c => c.category === 'infra')
-      .reduce((sum, c) => sum + c.monthlyCost, 0)
-    const development = costs
-      .filter(c => c.category === 'service')
-      .reduce((sum, c) => sum + c.monthlyCost, 0)
-    const aiModels = costs
-      .filter(c => c.category === 'ai_model')
-      .reduce((sum, c) => sum + c.monthlyCost, 0)
-    const tools = costs
-      .filter(c => c.category === 'tool')
-      .reduce((sum, c) => sum + c.monthlyCost, 0)
-    const total = infra + development + aiModels + tools
-    months.push({
-      month: m,
-      label: monthLabel,
-      infra,
-      development,
-      aiModels,
-      tools,
-      total,
-    })
+  const months: TechBudgetMonth[] = [];
+  let totals = { infra: 0, dev: 0, ai: 0, tools: 0, security: 0 };
+
+  for (let i = 1; i <= 12; i++) {
+    const multiplier = Math.pow(growthMultiplier, i - 1);
+    const monthData: TechBudgetMonth = {
+      month: i,
+      label: `Month ${i}`,
+      infra: (initialCosts.infra || 0) * multiplier,
+      development: (initialCosts.development || 0) * multiplier,
+      aiModels: (initialCosts.aiModels || 0) * multiplier,
+      tools: (initialCosts.tools || 0) * multiplier,
+      security: (initialCosts.security || 0) * multiplier,
+    };
+    months.push(monthData);
+    totals.infra += monthData.infra;
+    totals.dev += monthData.development;
+    totals.ai += monthData.aiModels;
+    totals.tools += monthData.tools;
+    totals.security += monthData.security;
   }
-  const totalInfra12 = months.reduce((s, m) => s + m.infra, 0)
-  const totalDev12 = months.reduce((s, m) => s + m.development, 0)
-  const totalAI12 = months.reduce((s, m) => s + m.aiModels, 0)
-  const totalTools12 = months.reduce((s, m) => s + m.tools, 0)
-  const grandTotal12 = months.reduce((s, m) => s + m.total, 0)
+
   return {
     months,
-    totalInfra12,
-    totalDev12,
-    totalAI12,
-    totalTools12,
-    grandTotal12,
-  }
+    totalInfra12: totals.infra,
+    totalDev12: totals.dev,
+    totalAI12: totals.ai,
+    totalTools12: totals.tools,
+    totalSecurity12: totals.security,
+    grandTotal12: totals.infra + totals.dev + totals.ai + totals.tools + totals.security,
+  };
 }
