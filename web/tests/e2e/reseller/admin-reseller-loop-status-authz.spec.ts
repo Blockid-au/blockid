@@ -389,6 +389,42 @@ test.describe("Admin reseller-loop status — P10 wave-5 row 173 happy path", ()
           `tick_history frontier_computed row.frontier_count should be typeof number (reseller-goal-loop.mjs:287 writes frontier.length): ${JSON.stringify(row).slice(0, 200)}`,
         ).toBe("number");
       }
+      // Writer schema pin (tick 240 option y2 — second conditional-by-stage
+      // pin, symmetric with the frontier_computed pattern landed tick 239).
+      // scripts/cron/reseller-goal-loop.mjs:301 writes
+      // `log({ stage: 'phase_failed', label: result.label, status: result.status })`
+      // where `result` is the return value of dispatchToClaude() at mjs:190-205
+      // which constructs `{ status: res.status ?? -1, elapsed_ms, signal, label }`.
+      // `label` is threaded in at mjs:298 as `${entry.track}:${entry.phase}` —
+      // a template literal over string keys from computeFrontier() (mjs:147:
+      // `frontier.push({ track: t, phase: name, ... })` where t/name come from
+      // Object.keys(goal.tracks) + Object.entries(...phases)). So `label` is a
+      // schema-level typeof=string guarantee. `status` is `res.status ?? -1`
+      // where `res` is the spawnSync result — `.status` is `number | null` and
+      // the ?? -1 fallback narrows it to a JSON number every time. Landing a
+      // stage-guarded pin catches (a) a writer regression that renamed either
+      // key on the log envelope; (b) a dispatchToClaude() regression that
+      // dropped the ?? -1 fallback so status could land as null; (c) a
+      // label-composition regression that swapped the template literal for an
+      // object shape. No value pin — labels vary per frontier entry; the -1
+      // status is a legitimate observation of a spawn that failed to launch.
+      // Skipped on hosts where the loop has never taken the `if
+      // (result.status !== 0)` branch at mjs:300 — the pin has no effect on
+      // green-path hosts, same natural side effect as the tick 239 frontier_
+      // computed guard. Matches the tick 239 "one stage per pass" amortisation
+      // note — future ticks can land the remaining ~17 stage-specific extras
+      // (auto_deploy_finished, idle, phase_dispatched, delegated_dispatch,
+      // etc.) as similar two-line conditional blocks without partitioning.
+      if (tickRow.stage === "phase_failed") {
+        expect(
+          typeof tickRow.label,
+          `tick_history phase_failed row.label should be typeof string (reseller-goal-loop.mjs:298 threads \`\${entry.track}:\${entry.phase}\` through dispatchToClaude → mjs:301 spread): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("string");
+        expect(
+          typeof tickRow.status,
+          `tick_history phase_failed row.status should be typeof number (reseller-goal-loop.mjs:204 dispatchToClaude returns \`res.status ?? -1\` → mjs:301 spread): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("number");
+      }
     }
     expect(
       typeof body.generated_at === "string" &&
