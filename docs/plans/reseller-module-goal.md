@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.275
+version: 2026-07-23.276
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,173 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 276
+    ran_at: 2026-07-23
+    action: p10_reseller_requests_list_readback_decision_at_iso_pin_option_a
+    result: |
+      Landed tick 275's "natural next pick" option (a) as a null-or-ISO
+      tightening on row.decision_at in the reseller-scoped GET happy path of
+      reseller-requests-list-authz.spec.ts. Sibling companion to the tick-275
+      created_at ISO pin on the same spec — closes the second nullable
+      timestamptz column on the reseller-scoped GET envelope after tick 275
+      closed the NOT NULL twin. Cross-surface parity: the same decision_at
+      ISO shape now fires on both the admin patch read-back surface (via the
+      tick 265 pin at admin-requests-patch-authz.spec.ts:801-804) and the
+      reseller-scoped list surface (via this pin) so a projection-side or
+      serialisation-side regression on reseller_requests.decision_at surfaces
+      on both admin and reseller lenses simultaneously.
+
+      Writer-schema justification:
+        - 0095_reseller_requests.sql:35 declares
+          `decision_at timestamptz` (nullable). The ck_decision_shape CHECK
+          at 0095:41-45 further constrains decision_at IS NOT NULL whenever
+          status ∈ ('approved','denied','cancelled') and permits NULL only
+          when status='pending'. The wave-3 row 155 seeded pending
+          over_budget_approval row therefore carries decision_at=NULL on the
+          wire — the ===null branch fires on every green CI run today; the
+          typeof-string+ISO branch would fire whenever a future approve/deny
+          fixture seeds a decided row that this GET returns.
+        - Reseller-scoped list route at /api/reseller/requests/route.ts:169-
+          173 projects decision_at as the fifth column of the SELECT list.
+          A projection drop would surface as the existing null-or-typeof-
+          string guard failing (undefined is neither null nor a string), but
+          a column-type flip from timestamptz to say a bigint decision_at_ms
+          clock migration would surface as a number and be caught by the
+          existing typeof pin too. This tick catches a serialisation drift
+          the typeof pin cannot: PostgREST returning an epoch integer
+          stringified as "1735689600", or a column swap to a text field that
+          stores freeform values would pass the typeof-string guard but fail
+          this ISO regex tightening.
+
+      Design choice — mirror the tick-275 created_at ISO pin layout:
+        - Reuses the module-scope ISO_TIMESTAMP_RE constant hoisted at
+          tick 275 (line 118-119) — no ninth module-scope constant needed;
+          the identical
+          `/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/`
+          shape captures both the Z suffix (Date.prototype.toISOString()
+          format) and offset suffixes (PostgREST default timezone format)
+          so a serialisation config change between the two is a benign no-
+          op. Same source-of-truth invariant as the sibling admin pin at
+          admin-requests-patch-authz.spec.ts:460-461.
+        - Three-part layered guard (matches ticks 265-275 layering
+          discipline verbatim):
+          (a) preserved null-or-typeof-string pin at line 440-443 (landed
+              at tick 224) fires first so a projection drop surfaces before
+              the new ISO shape check;
+          (b) new null-or-(typeof-string-AND-ISO_TIMESTAMP_RE-match) pin
+              fires only after the typeof-string guard passes — the
+              short-circuit && ensures the regex is only tested when the
+              value is a string;
+          (c) reused ===null branch preserves the pending-row happy path
+              (wave-3 row 155 pending over_budget_approval carries
+              decision_at=NULL on the wire per ck_decision_shape).
+        - No new inline type-shape field — row.decision_at already carries
+          `decision_at?: string | null;` in the readback envelope declaration
+          at line 278, so this pin lands as a pure four-line assertion + a
+          six-line block-scope comment citing the module-scope doc-block
+          for the rationale.
+
+      Coverage-per-guard posture:
+        - Green-path fixture loadTempReseller("active_wholesale") + wave-3
+          row 155 seeded pending over_budget_approval row guarantee at
+          least one row with decision_at=NULL is returned from the GET on
+          every green CI run, so the ===null branch exercises on every
+          wave-4 row 161 pass. The typeof-string+ISO branch has zero-
+          coverage on the wire today because no approve/deny fixture seeds
+          a decided reseller_requests row that this GET would return — but
+          the pin still closes the writer contract so a serialisation
+          regression across the null-or-string surface would surface on the
+          next CI pass whenever a decide-fixture seeds a row (matches the
+          tick 261 zero-coverage-per-guard rationale).
+        - Fresh hosts (where row 155 has not run) return an empty
+          body.requests[] and the for-loop skips — but the module-scope
+          doc-block still ships, so a downstream tick that seeds more
+          variants (P8.5-unblock or an expanded fixture matrix) picks up
+          the pin without further wiring.
+
+      Diagnostic delta of the pass:
+        - Zero new module-scope constants (ISO_TIMESTAMP_RE reused from
+          tick 275 hoist at line 118-119).
+        - One new inline assertion block (four-line
+          null-or-typeof-string-AND-ISO regex guard added immediately after
+          the preserved null-or-typeof-string pin at line 440-443) inside
+          the per-row for-loop of the active_wholesale happy GET block.
+          Six-line block-scope comment citing 0095:35 as the column
+          declaration source, 0095:41-45 as the ck_decision_shape source,
+          route.ts:169-173 as the projection source, and the admin-side
+          tick 265 pin as the sibling-surface companion.
+        - Module-scope doc-comment block above ISO_TIMESTAMP_RE extended
+          with a new tick-276 paragraph describing the pin's writer-schema
+          justification + the three-part guard breakdown + the ck_decision
+          _shape null/non-null split + the tick 265 sibling-pin lineage.
+        - No production code touched, no fixture change, no route change,
+          no new imports (the regex is reused from tick 275's hoist).
+          Matches ticks 234-275 discipline: tighten one dimension (in this
+          case add the ISO shape pin to the reseller-scoped GET list
+          surface's decision_at column) with zero net new imports.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: 11 R-01 files + 31 R-03 routes
+          scanned, 3 exemptions, 0 violations
+        - npx vitest run: 75 files 954/954 pass (unchanged — Playwright
+          specs are excluded from vitest by design)
+
+      Files:
+        - web/tests/e2e/reseller/reseller-requests-list-authz.spec.ts
+          (module-scope tick-276 doc-comment block prepended above the
+          tick-275 comment; per-row for-loop of the active_wholesale happy
+          GET block gains a null-or-typeof-string-AND-ISO_TIMESTAMP_RE
+          assertion immediately after the existing null-or-typeof-string
+          pin on row.decision_at at line 440-443, with a block-scope
+          comment citing 0095:35 as the column declaration source,
+          0095:41-45 as the ck_decision_shape source, route.ts:169-173 as
+          the projection source, and the admin-side tick 265 pin as the
+          sibling-surface companion.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.275 → 2026-07-23.276; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no production-code touch, no
+          new import, no widening of the guards on existing pins.
+          Consistent with ticks 234-275's incremental-pin pattern.
+        - Cross-surface parity — mirrors the admin-side tick 265 pin
+          verbatim onto the reseller-scoped GET list surface so a
+          decision_at serialisation drift surfaces on both admin and
+          reseller lenses simultaneously. Second cross-surface companion
+          pin after tick 275's created_at cross-surface pin.
+
+      Next natural picks on tick 277:
+        (a) decision_reason length ≤ REASON_MAX tightening on the reseller-
+        scoped GET (nullable per 0095:36 so the tightening runs as null-or-
+        string+length check against the existing null-or-typeof-string pin
+        at line 407-410; sibling companion to the payload.notes and
+        payload.reason length pins already landed at tick 261; the same
+        REASON_MAX=200 constant hoisted at line 91 is reused; sibling
+        surface admin-requests-patch-authz.spec.ts already pins the same
+        column at tick 272 so parity mirror ready);
+        (b) status enum value pin on the reseller-scoped GET (hoisting a
+        shared ALLOWED_STATUS_VALUES constant for symmetry with the admin-
+        side tick 270 pattern — the existing typeof-string +
+        `["pending","approved","denied","cancelled"].includes(...)` pin at
+        line 299-300 already closes both parts as an inline literal, but
+        hoisting to a module-scope constant matches the admin-side
+        ALLOWED_STATUS_VALUES hoist so a schema-side enum extension lands
+        as a single spec edit);
+        (c) request_type enum value pin on the reseller-scoped GET (same
+        as option b but for the request_type enum at line 296-298 — hoist
+        a shared ALLOWED_REQUEST_TYPES constant for symmetry with the
+        admin-side tick 269 pattern);
+        (d) extending the tick-274 resellers-join projection pin onto the
+        reseller-scoped GET (needs a route-file audit — the reseller-scoped
+        SELECT at /api/reseller/requests/route.ts:169-173 does NOT include
+        a `resellers(code, display_name)` embed since the reseller
+        already knows its own identity via the scopedReseller() gate, so
+        this pick would need a route-side embed addition before the pin
+        could land; skippable pending that route change).
+
   - tick: 275
     ran_at: 2026-07-23
     action: p10_reseller_requests_list_readback_created_at_iso_pin_option_a
