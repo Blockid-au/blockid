@@ -118,6 +118,31 @@ const UUID_RE =
 // on this table today — PATCH callers at /api/admin/resellers/[code]
 // are responsible for stamping updated_at=now() on write) surfaces
 // at the read layer too.
+//
+// Tick 286 — commission_share_pct numeric wire-shape pin, natural
+// next-pick option (b) from tick 285. resellers.commission_share_pct
+// is the last-remaining column on the resellers row with real business-
+// invariant backing that has no Playwright pin. Column declared at
+// 0091:38 as `commission_share_pct numeric(5,2) NOT NULL DEFAULT
+// 40.00` — no DB CHECK, but the admin PATCH validator at
+// web/src/lib/reseller/admin-validator.ts:114-118 enforces the
+// [0, 100] invariant on every write path (rejects with
+// commission_share_pct_out_of_range when out of band), so the wire
+// value is bounded by the write-side gate rather than the schema. The
+// pin below asserts typeof number + Number.isFinite + within [0, 100]
+// — a value-tighten rather than a shape-only pin because the semantic
+// invariant (commission is a percentage share) is stricter than the
+// raw numeric(5,2) column type. Fresh-column rotation rather than
+// another surface mirror — landed on the list surface first (this pin)
+// with a companion cross-surface mirror onto admin-reseller-detail-
+// authz.spec.ts in the same tick so both admin resellers-family
+// surfaces (list + detail) carry the pin from tick 286 onward. A
+// PostgREST serialisation regression that flipped numeric onto the
+// wire as a string, a schema-side type flip from numeric(5,2) to
+// text, an admin-validator drift that stopped rejecting out-of-band
+// values, or a projection-side drop from route.ts:41-44 select("*")
+// would surface here on the next CI pass whenever any resellers row
+// is returned.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 
@@ -209,6 +234,7 @@ test.describe("Admin resellers list — P10 wave-5 row 164 happy path", () => {
         status?: unknown;
         created_at?: unknown;
         updated_at?: unknown;
+        commission_share_pct?: unknown;
       }>;
     };
     expect(
@@ -287,6 +313,31 @@ test.describe("Admin resellers list — P10 wave-5 row 164 happy path", () => {
       expect(
         ISO_TIMESTAMP_RE.test(row.updated_at as string),
         `reseller.updated_at '${String(row.updated_at)}' should match ISO 8601 shape (timestamptz NOT NULL DEFAULT now() per 0091:44 serialised via PostgREST); a drift to a non-ISO string, a number, or null would surface here: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      // Tick 286 — commission_share_pct numeric wire-shape + [0, 100]
+      // value-tightening. See module-scope doc-block (tick 286 paragraph)
+      // for the rationale. Column source 0091:38
+      // `commission_share_pct numeric(5,2) NOT NULL DEFAULT 40.00` — no
+      // DB CHECK, but the admin PATCH validator at
+      // web/src/lib/reseller/admin-validator.ts:114-118 rejects any write
+      // outside [0, 100] so the wire value is bounded by the write-side
+      // gate. NOT NULL discipline → single typeof-number + finite +
+      // range-in-[0,100] assert; nullable columns would layer a
+      // null-or-number two-part guard which is not needed here. A
+      // PostgREST serialisation regression that returned numeric as a
+      // string, a schema-side type flip, an admin-validator drift that
+      // stopped rejecting out-of-band writes, or a projection-side drop
+      // from route.ts:41-44 select("*") would surface here on the next
+      // CI pass whenever any resellers row is returned.
+      expect(typeof row.commission_share_pct).toBe("number");
+      expect(
+        Number.isFinite(row.commission_share_pct as number),
+        `reseller.commission_share_pct '${String(row.commission_share_pct)}' should be a finite number (numeric(5,2) NOT NULL DEFAULT 40.00 per 0091:38 serialised via PostgREST); a drift to NaN, Infinity, string, or null would surface here: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        (row.commission_share_pct as number) >= 0 &&
+          (row.commission_share_pct as number) <= 100,
+        `reseller.commission_share_pct '${String(row.commission_share_pct)}' should be within [0, 100] (admin-validator.ts:114-118 rejects out-of-band writes with commission_share_pct_out_of_range); a schema-side drift or a validator-side drop of the [0, 100] guard would surface here: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
     }
   });

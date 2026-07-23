@@ -133,6 +133,25 @@ const UUID_RE =
 // (after list ticks 283/284); the reseller-loop-status surface uses an
 // on-disk snapshot envelope so it has no timestamptz projection to
 // mirror against.
+//
+// Tick 286 — commission_share_pct numeric wire-shape + [0, 100] value
+// pin, cross-surface mirror of the sibling pin landed on
+// admin-resellers-list-authz.spec.ts in the same tick. Column source
+// 0091:38 `commission_share_pct numeric(5,2) NOT NULL DEFAULT 40.00` —
+// no DB CHECK, but the admin PATCH validator at
+// web/src/lib/reseller/admin-validator.ts:114-118 enforces the [0, 100]
+// invariant on every write path (rejects with
+// commission_share_pct_out_of_range when out of band). Fresh-column
+// rotation on this surface (mirrors option (b) from tick 285) — the
+// detail surface has never carried this pin, so the two admin
+// resellers-family surfaces (list + detail) come up to parity in the
+// same tick, avoiding an asymmetry window. NOT-NULL discipline → single
+// typeof-number + finite + range-in-[0,100] assert per column, matches
+// the list-surface posture verbatim. A PostgREST serialisation
+// regression, a schema-side type flip, an admin-validator drift that
+// stopped rejecting out-of-band values, or a projection-side drop from
+// route.ts:47-48 select("*") would surface on both admin
+// resellers-family surfaces (list + detail) on the same CI pass.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Uppercase-alphanumeric invariant for promotion_codes[].code — matches the
@@ -314,6 +333,7 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         status?: unknown;
         created_at?: unknown;
         updated_at?: unknown;
+        commission_share_pct?: unknown;
       };
       promotion_codes?: Array<{
         id?: unknown;
@@ -385,6 +405,29 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
     expect(
       ISO_TIMESTAMP_RE.test(body.reseller?.updated_at as string),
       `reseller.updated_at '${String(body.reseller?.updated_at)}' should match ISO 8601 shape (timestamptz NOT NULL DEFAULT now() per 0091:44 serialised via PostgREST); a drift to a non-ISO string, a number, or null would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe(true);
+
+    // Tick 286 — commission_share_pct numeric wire-shape + [0, 100]
+    // value pin, cross-surface mirror of the sibling pin landed on
+    // admin-resellers-list-authz.spec.ts in the same tick. Column source
+    //   - 0091:38 `commission_share_pct numeric(5,2) NOT NULL DEFAULT 40.00`
+    // Projected via route.ts:47-48 select("*"). NOT-NULL discipline →
+    // single typeof-number + finite + range-in-[0,100] assert, matches
+    // the list-surface posture verbatim. See module-scope doc-block
+    // above ISO_TIMESTAMP_RE (tick 286 paragraph) for the rationale.
+    // A PostgREST serialisation regression, a schema-side type flip, an
+    // admin-validator drift that stopped rejecting out-of-band values,
+    // or a projection-side drop from route.ts:47-48 select("*") would
+    // surface here on the next CI pass.
+    expect(typeof body.reseller?.commission_share_pct).toBe("number");
+    expect(
+      Number.isFinite(body.reseller?.commission_share_pct as number),
+      `reseller.commission_share_pct '${String(body.reseller?.commission_share_pct)}' should be a finite number (numeric(5,2) NOT NULL DEFAULT 40.00 per 0091:38 serialised via PostgREST); a drift to NaN, Infinity, string, or null would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe(true);
+    expect(
+      (body.reseller?.commission_share_pct as number) >= 0 &&
+        (body.reseller?.commission_share_pct as number) <= 100,
+      `reseller.commission_share_pct '${String(body.reseller?.commission_share_pct)}' should be within [0, 100] (admin-validator.ts:114-118 rejects out-of-band writes with commission_share_pct_out_of_range); a schema-side drift or a validator-side drop of the [0, 100] guard would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
     ).toBe(true);
 
     // Related-rows arrays — do NOT pin length; each row-shape pin catches
