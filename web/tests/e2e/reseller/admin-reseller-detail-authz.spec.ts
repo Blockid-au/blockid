@@ -1815,6 +1815,121 @@ const UUID_RE =
 //   (d) idle — the frontier remains tight (P1.5 + P8.5 HUMAN-
 //   BLOCKED, P11 never_completes, Track B closed, P10 continues
 //   accepting incremental pin-tightening ticks).
+//
+// Tick 332 — promotion_codes[] cross-column tier→stripe-id summary
+// close-out. Executes tick 331 next-pick option (a) verbatim: hoist
+// the ck_stripe_objects_by_tier disjunction that already lives inline
+// at rows 2616-2662 (the per-row if/else that pins
+// stripe_coupon_id + stripe_promotion_code_id null/non-null against
+// row.tier_pct) into a module-scope doc-block summary. The individual
+// per-column doc-blocks at ticks 301 (stripe_coupon_id) + 302
+// (stripe_promotion_code_id) each already narrate the tier-coupling
+// clause of the disjunction, but the SUMMARY view — one paragraph
+// that names both halves of the disjunction, both columns, and the
+// single CHECK constraint they both key off — has never lived at
+// module-scope in a form a future rotation can lift from without
+// re-reading ticks 301 + 302 in full. Hoisting closes the promotion_
+// codes[] child-row cluster (opened at tick 299, per-column pins
+// landed 299-303, per-column messages refreshed at tick 324) into
+// its symmetric summary state, matching the admins[] cluster which
+// tick 326 closed with the status ⇔ revoked_at cross-column
+// lifecycle invariant summary. No new imports, no new module-scope
+// const, no per-row assert added — the inline if/else at rows
+// 2616-2662 is already the runtime enforcement; this hoist is a
+// documentation-only close-out lift.
+//
+// Cross-column invariant summary — promotion_codes[].{stripe_coupon
+// _id, stripe_promotion_code_id} ⇔ promotion_codes[].tier_pct
+//   Writer-side source: reseller_promotion_codes DB CHECK
+//   ck_stripe_objects_by_tier at
+//   web/supabase/migrations/0091_reseller_module_foundations.sql:98-102
+//   enforces the disjunction
+//     (tier_pct = 0
+//        AND stripe_coupon_id IS NULL
+//        AND stripe_promotion_code_id IS NULL)
+//     OR
+//     (tier_pct > 0
+//        AND stripe_coupon_id IS NOT NULL
+//        AND stripe_promotion_code_id IS NOT NULL)
+//   Application write path: decideCodeMint() at
+//   web/src/lib/reseller/promotion-code-mint.ts dispatches on
+//   tier_pct at the P9.4 admin-approve branch — tier 0 → attribution-
+//   only insert (both stripe ids stamped NULL, ensureStripeCoupon +
+//   ensureStripePromotionCode are skipped); tier > 0 → Stripe mint
+//   branch (ensureStripeCoupon deterministic id res_<uuid8>_t<tier>
+//   layered under stripe.promotionCodes.create; both stripe ids
+//   stamped non-null before the reseller_promotion_codes INSERT
+//   fires). Neither branch has a per-column CHECK — the disjunction-
+//   level CHECK is the sole DB enforcement layer, so a mint-branch
+//   drift that stopped writing one of the two ids for a tier > 0
+//   row, a tier 0 branch bypass that stamped a non-null id, a DB
+//   CHECK drop, or a PostgREST serialisation regression on either
+//   column would surface here.
+//   Read path: projected via select("id, tier_pct, code,
+//   stripe_coupon_id, stripe_promotion_code_id, active, created_at")
+//   on the promotion_codes Promise.all leg of loadReseller() at
+//   web/src/app/api/admin/resellers/[code]/route.ts:83-88. Detail-
+//   route only — the admin-resellers-list route does NOT project
+//   promotion_codes.
+//   Runtime enforcement in this spec: for-loop at rows 2616-2662
+//   iterates promotion_codes[]; per-row the tier-coupled if/else
+//   branches on row.tier_pct === 0 vs row.tier_pct > 0 and asserts
+//   the matching null / typeof-string shape for BOTH stripe_coupon
+//   _id (rows 2629-2638) AND stripe_promotion_code_id (rows 2652-
+//   2661). Each branch carries a bespoke failure message pointing
+//   at 0091:98-102 as the DB CHECK source and at ensureStripeCoupon
+//   / ensureStripePromotionCode as the mint-branch source (message
+//   copy landed with ticks 301 + 302).
+//   Coverage-per-guard posture: fires on every green CI run because
+//   seed-qa-reseller.mjs mints per-cohort promotion_codes rows
+//   covering BOTH tier 0 (attribution-only, null branch) AND tier
+//   > 0 (Stripe-minted, string branch); on hosts without seeded
+//   codes the for-loop is a no-op so the pin never fires.
+//   Symmetric-cluster posture: this summary hoist mirrors the tick
+//   326 admins[] status ⇔ revoked_at cross-column lifecycle
+//   summary — both are per-cluster close-out summaries that name a
+//   single CHECK/write-path invariant coupling two projected
+//   columns. Together with tick 319's attributions_summary triple-
+//   pin summary (total + active + by_source), the three detail-
+//   route child-row / aggregate clusters now each carry a hoisted
+//   invariant summary at module-scope.
+//
+// Rotation rationale:
+//   - Closes the promotion_codes[] child-row cluster symmetrically
+//     into its summary form. The per-column doc-blocks (299-303 +
+//     324) already carry per-column rationale; this hoist gives a
+//     single module-scope entry a future frontier tick can lift
+//     from without re-reading two ticks in full.
+//   - No new imports, no new module-scope const, no fixture
+//     change, no route change, no per-row assert added — pure
+//     documentation-only close-out lift. Continues the P10
+//     hardening posture per ticks 234-331 (comment-only tightening
+//     ticks are the accepted P10 rotation shape while P8.5 remains
+//     HUMAN-BLOCKED on Stripe env vars).
+//
+// Natural next-pick tick 333 candidates:
+//   (a) rotate to reseller_attributions[] child-row column-pin
+//   sweep close-out (subject_type / subject_user_id / project_id
+//   / source / attributed_at / opted_out) — several columns are
+//   still on the tick-1710 baseline single-part typeof-string
+//   discipline while the sibling admins[] cluster (321-326) has
+//   moved on to per-column two-expect + cross-column lifecycle
+//   pins; this is the last child-row cluster on the detail
+//   surface that has not yet moved onto the labelled two-expect
+//   discipline.
+//   (b) rotate to admins[].linked_at / admins[].revoked_at ISO-
+//   8601 shape refresh (ticks 306-307 already carry tick-numbered
+//   labelled messages so this rotation would be a shape refresh
+//   rather than a lift).
+//   (c) rotate to the cross-surface twin spec (admin-resellers-
+//   list-authz.spec.ts) — the list projection does not fan out
+//   to promotion_codes but does project the resellers-row shape,
+//   and a cross-surface refresh could keep the twin discipline
+//   coherent on any resellers-row column whose message prose has
+//   drifted between the two surfaces since tick 331.
+//   (d) idle — the frontier remains tight (P1.5 + P8.5 HUMAN-
+//   BLOCKED, P11 never_completes, Track B closed, P10 continues
+//   accepting incremental pin-tightening ticks).
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Tick 309 — Stripe invoice ID shape regex. Matches the modern Stripe
