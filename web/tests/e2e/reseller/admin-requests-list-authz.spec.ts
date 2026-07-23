@@ -295,6 +295,32 @@ test.describe("Admin reseller-requests list — P10 wave-5 row 174 happy path", 
       expect(
         r.decision_reason === null || typeof r.decision_reason === "string",
       ).toBe(true);
+      // Tick 234 — payload plain-object shape pin per tick 233 next-pick
+      // option (p) sibling-audit outcome. Route SELECT at route.ts:44 echoes
+      // the payload jsonb column straight through with no normalisation. The
+      // DB column is `payload jsonb NOT NULL DEFAULT '{}'` per 0095:33 so
+      // every row carries a plain object (never null, never array). Pre-tick
+      // this file left `payload?: unknown` on the row type (line 209) with
+      // ZERO shape assertion, while two twin surfaces already pin the same
+      // column to the three-part plain-object guard:
+      //   - requests-validation.spec.ts:340-343 (reseller-side happy GET)
+      //   - reseller-requests-list-authz.spec.ts:279-282 (reseller-side list)
+      // Both twins call out the jsonb NOT NULL DEFAULT '{}' invariant and
+      // both use the same `!== null && typeof === "object" && !Array.isArray`
+      // three-part shape guard chosen over expect.objectContaining(...) for
+      // spec-local consistency. This admin surface reads the same underlying
+      // reseller_requests rows via the admin GET (default status='pending'),
+      // so a PostgREST view that mistyped the column or a route regression
+      // that swapped payload for a raw string / array would surface across
+      // the three list surfaces simultaneously — landing this pin here keeps
+      // the admin lens carrying the same shape coverage as its two reseller-
+      // side twins.
+      expect(
+        r.payload !== null &&
+          typeof r.payload === "object" &&
+          !Array.isArray(r.payload),
+        `admin happy GET row.payload should be a plain object (jsonb NOT NULL DEFAULT '{}' per 0095:33; a PostgREST view that mistyped the column would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
       // Tick 222 — resellers(code, display_name) nested-join shape pin per
       // tick 221 next-pick option (b). Route SELECT at route.ts:44 embeds a
       // Supabase nested select on the parent resellers row via the

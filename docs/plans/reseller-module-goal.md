@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.233
+version: 2026-07-23.234
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,199 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 234
+    ran_at: 2026-07-23
+    action: p10_admin_requests_list_payload_plain_object_pin_option_p_sibling_audit
+    result: |
+      Landed tick 233 "natural next pick" option (p) after a sibling-surface
+      audit. The original (p) audit target — reseller_id / target_user_id /
+      request_id UUID_RE tightening on admin-requests-list-authz.spec.ts —
+      was confirmed a NON-candidate this tick because every ID-shaped column
+      already carries the UUID_RE pin (r.id at :215, r.reseller_id at :217,
+      r.requested_by at :240, r.decision_by / linked_credit_transaction_id /
+      linked_promotion_code_id all null-or-UUID_RE at :247-270). Route
+      SELECT at web/src/app/api/admin/resellers/requests/route.ts:44 does
+      not return a target_user_id or request_id column at all — those live
+      inside the payload jsonb.
+
+      But the same audit surfaced a legitimate sibling twin-tightening
+      opportunity: admin-requests-list-authz.spec.ts declared payload on
+      the row type (line 209) but left it with ZERO shape assertion, while
+      two sibling surfaces on the reseller side both pin the same jsonb
+      column to a three-part plain-object guard (jsonb NOT NULL DEFAULT '{}'
+      per 0095:33). Landing the shape pin here keeps the admin lens
+      carrying the same coverage as its two twins.
+
+      Audit outcome:
+        - r.id / r.reseller_id / r.requested_by — ALREADY UUID_RE pinned
+          on line 215 / 217 / 240. Not a candidate.
+        - r.decision_by / r.linked_credit_transaction_id /
+          r.linked_promotion_code_id — ALREADY null-or-UUID_RE pinned on
+          lines 247-270 (tick 221 FK-echo pins). Not a candidate.
+        - r.resellers embed — ALREADY plain-object + code UUID_RE +
+          display_name typeof string pinned on lines 314-334 (ticks 222 +
+          231 nested-join + resellers.code value pins). Not a candidate.
+        - r.request_type / r.status — ALREADY REQUEST_TYPES /
+          REQUEST_STATUSES Set-membership pinned on lines 273-279. Not a
+          candidate.
+        - r.status === "pending" — ALREADY value-pinned on line 285 (route
+          default status filter). Not a candidate.
+        - r.created_at / r.decision_at / r.decision_reason — pinned typeof
+          string / null-or-typeof-string on lines 286-297. The header
+          comment at :287-291 explicitly says "Do NOT pin their values;
+          only their presence-or-null-ness" — the "value can drift" rule
+          from tick 230 applies to timestamps by convention. NOT a
+          tightening candidate this tick (option (n) still calls for a
+          header-rewrite-first if the ISO shape ever gets pinned).
+        - r.payload — pre-tick: DECLARED on row type at line 209, but ZERO
+          shape assertion in the loop. Route SELECT at route.ts:44 echoes
+          the column straight through, schema is jsonb NOT NULL DEFAULT
+          '{}' per 0095:33 so every row carries a plain object (never
+          null, never array). Two twin surfaces on the reseller side
+          already pin the same shape:
+            requests-validation.spec.ts:340-343 (reseller happy GET)
+            reseller-requests-list-authz.spec.ts:279-282 (reseller list)
+          Both use the same three-part guard (`!== null && typeof ===
+          "object" && !Array.isArray`) chosen over
+          expect.objectContaining(...) for spec-local consistency; both
+          cite jsonb NOT NULL DEFAULT '{}' per 0095:33. THIS is the
+          legitimate twin-symmetric tightening — the admin lens was the
+          only one of the three list surfaces reading reseller_requests
+          without a payload shape pin.
+
+      Shape pin landed:
+        expect(
+          r.payload !== null &&
+            typeof r.payload === "object" &&
+            !Array.isArray(r.payload),
+          `admin happy GET row.payload should be a plain object (jsonb NOT NULL DEFAULT '{}' per 0095:33; ...): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe(true);
+
+      Regression coverage tightened:
+        - PRE-tick: a PostgREST view or route regression that swapped
+          reseller_requests.payload for a raw string, an array, or null
+          would silently pass admin-requests-list-authz (payload had no
+          assertion) even though it would fail the two reseller-side
+          twins. The admin visual-QA lens (/admin/resellers/requests
+          inbox) would carry the mismatch alone.
+        - POST-tick: all three list surfaces green-and-fail together on
+          any payload column shape drift. The admin lens now carries the
+          same coverage as the reseller twins for the jsonb NOT NULL
+          DEFAULT '{}' invariant. The three-part guard also catches an
+          approve-branch regression that would set payload to null on
+          decision (0095:33 forbids NULL so this should never happen —
+          but if the CHECK were dropped in a future migration and the
+          approve path zeroed the payload, the pin would surface it).
+
+      Twin-symmetrisation posture — the admin list surface now advances
+      into shape parity with its two reseller-side siblings, matching the
+      cross-surface single-source-of-truth discipline that ticks 222
+      (resellers embed nested-join), 231 (resellers.code RESELLER_CODE_RE),
+      232 (promotion_codes[].code PROMO_CODE_RE), and 233 (drawer overview
+      .masked_email MASKED_EMAIL_RE) enforced across their respective
+      spec pairs. Only ONE spec file edited this tick because the two
+      twins already carry the pin — landing it here symmetrises the
+      three-surface trio in a single tick rather than doubling the diff.
+
+      Trade-off accepted:
+        - The three-part plain-object guard is coupled to the current
+          jsonb NOT NULL DEFAULT '{}' invariant at 0095:33. A future
+          migration that dropped the CHECK, made payload nullable, or
+          switched the column type to json / text would force a
+          coordinated bump across three spec surfaces + the underlying
+          libraries that read the column (validateResellerRequestBody at
+          web/src/lib/reseller/requests.ts, the P9.3 admin approve
+          branch at /api/admin/resellers/requests/[id]/route.ts:88-197).
+        - Accepted because the coupling reflects the same load-bearing
+          invariant discipline that the two twin surfaces already
+          codified — the shape is not accidental, it's a schema-level
+          contract that the three list envelopes now check identically.
+
+      Diagnostic delta of the pass:
+        - Added 1 new expect block in admin-requests-list-authz.spec.ts
+          (twin-symmetric with two existing pins).
+        - No production code touched, no fixture change, no route
+          change, no new imports, no vitest / Playwright runtime
+          posture change, no new module-scope constant (the three-part
+          guard is spec-local per the twin precedent).
+        - Comment block added citing the tick 234 landing + the 0095:33
+          schema invariant + the two twin surfaces (file paths + line
+          numbers) + the PostgREST-drift + approve-branch regression
+          classes the pin catches.
+
+      Files:
+        - web/tests/e2e/reseller/admin-requests-list-authz.spec.ts
+          (payload plain-object shape pin added at the tail of the happy
+          path row loop with inline comment block referencing the two
+          twin surfaces at requests-validation.spec.ts:340-343 and
+          reseller-requests-list-authz.spec.ts:279-282.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.233 → 2026-07-23.234; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Shape pin only. No new spec-local constant (the three-part
+          guard is inlined per twin precedent — MASKED_EMAIL_RE,
+          RESELLER_CODE_RE, and PROMO_CODE_RE are hoisted because they
+          are regex literals; the plain-object guard is a compound
+          typeof/Array.isArray expression that reads clearly inline).
+          No fixture-file delta, no seed-script change, no P8.5-gated
+          code_request work (option (c) still blocked), no production-
+          code touch. Matches ticks 223-233 discipline: tighten one
+          dimension, symmetrise across siblings, single tick.
+
+      Verified:
+        - tsc clean (npx tsc --noEmit; no output = success).
+        - npm run lint:reseller: R-01 scanned 11 file(s), R-03 scanned
+          31 manifest route(s); 3 exemption(s), 0 violation(s). The
+          edited spec file lives under web/tests/e2e/**, not in the
+          reseller manifest, so R-01/R-03 do not fire on the edited
+          file.
+        - reseller vitest 449/449 pass (unchanged; no production code
+          or lib touched — Playwright specs are excluded from vitest
+          by design).
+
+      Frontier after tick 234: unchanged shape — Track A HUMAN-BLOCKED
+      on P8.5 Stripe env vars + P1.5 InfoVision seed on H.20 ABN + GST;
+      Track B COMPLETE; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 234 does NOT unblock: P8.5 STRIPE_PRICE_ADDON_SHARE_MGMT_*
+      env vars still human-gated; P1.5 InfoVision ABN + GST still
+      human-gated per H.20 (Auschain existing counsel or LegalVision
+      AU).
+
+      Natural next pick for tick 235:
+        (q) audit whether the admin-reseller-loop-status-authz.spec.ts
+            monitor_history / tick_history row plain-object guards
+            (lines 211-222) could be extended with per-row content
+            pins — e.g. monitor_history rows should carry a `ts` or
+            `timestamp` field, tick_history rows should carry `tick`
+            and `ran_at` — that echo the on-disk JSONL schema at
+            web/content/reports/reseller-monitor.jsonl and reseller-
+            goal-history.jsonl. Twin surface: none (this endpoint is
+            singleton — no reseller-side or paired validation spec).
+        (r) audit whether the admin-requests-list-authz newly-pinned
+            payload plain-object guard could be extended to per-key
+            content pins for the three request_type variants
+            (code_request: tier_pct + optional suggested_suffix;
+            over_budget_approval: target_user_id + requested_amount;
+            collateral_approval: collateral_url + purpose). Trade-off:
+            reseller-side twins do NOT carry per-key pins today, so a
+            per-key admin pin would BREAK the three-surface symmetry
+            established this tick — either land per-key pins across
+            all three surfaces in one tick (bigger diff), or defer.
+        (n) audit whether admin-requests-patch-authz.spec.ts approve
+            branch decision_at pin could be tightened from typeof
+            string to an ISO-8601 regex — trade-off called out in tick
+            230 (the header comment explicitly says "assert typeof
+            string only so the value can drift"). Landing the ISO
+            regex would contradict the header, so this is a header-
+            rewrite-first option (i.e. update the "assert typeof
+            string only" comment before pinning ISO shape).
+        (c) mirror row 179 shape+helper alignment onto row 175 approve+
+            deny+cancel code_request branches once P8.5 unblocks.
+            P8.5-blocked, no available today.
+    commit: (this tick)
+
   - tick: 233
     ran_at: 2026-07-23
     action: p10_drawer_pair_masked_email_shape_pin_option_m_reclassified
