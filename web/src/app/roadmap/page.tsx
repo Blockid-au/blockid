@@ -130,10 +130,38 @@ type ShippedItem = {
 
 const RECENTLY_LANDED: ShippedItem[] = [
   {
-    id: "reseller-p0-p9",
-    title: "Reseller module P0-P9 complete",
+    id: "portfolio-svi-chart",
+    title: "Portfolio SVI comparison chart (Q4 MP #2)",
     detail:
-      "Wholesale + retail billing, feature-gate manifest, sandbox rate-limit, ledger events, and admin surfaces landed. P10 test hardening in progress (tick 290 / target 500+).",
+      "Comparison chart landed on the multi-project portfolio surface — Q4 Multi-Project reaches 5/5 shipped (portfolio, team members, permissions, archive UI, 90-day retention cron).",
+    ticket: "Q4 MP #2",
+  },
+  {
+    id: "gate11-flake-v2",
+    title: "Gate 11 flake v2 hardening",
+    detail:
+      "Playwright post-deploy hydrated smoke (11 tests) — flake v2 hardening applied; Gate 11 stabilised on master.",
+    ticket: "Gate 11",
+  },
+  {
+    id: "infovision-p1-5-seed",
+    title: "InfoVision reseller seed (P1.5) authored",
+    detail:
+      "Seed script authored and ready; runtime seed remains human-blocked on valid ABN + GST-registered flag (see human-blocked below).",
+    ticket: "P1.5",
+  },
+  {
+    id: "reseller-commissions-cluster",
+    title: "Reseller commissions[] cluster ticks",
+    detail:
+      "Wire-shape and value-set pins on the commissions[] cluster across admin-resellers-list + admin-reseller-detail — contributes to the 39-tick P10 cross-surface pair count.",
+    ticket: "Reseller P10",
+  },
+  {
+    id: "reseller-p0-p10",
+    title: "Reseller module P0-P10 complete",
+    detail:
+      "Wholesale + retail billing, feature-gate manifest, sandbox rate-limit, ledger events, admin surfaces, and 39 wire-shape ticks across admin-resellers-list + admin-reseller-detail.",
     ticket: "Reseller module",
   },
   {
