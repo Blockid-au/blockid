@@ -238,6 +238,43 @@ const UUID_RE =
 // drop of decision_reason there would still let the PATCH echo the value
 // back on the write envelope but would fail the read-back here.
 //
+// Tick 270 — status enum value pin added as the sixth per-column pin on the
+// same three post-PATCH read-back rows (deny + cancel + approve).
+// reseller_requests.status is a NOT NULL text column DEFAULT 'pending'
+// (0095:31-32) with a CHECK constraint pinning it to one of four enum values
+// ('pending','approved','denied','cancelled'); the validator side mirrors the
+// terminal three at web/src/lib/reseller/requests.ts:17-21 (ResellerRequestStatus
+// union) and the admin route mirrors all four at /api/admin/resellers/requests/
+// route.ts:13 (ALLOWED_STATUS set). New eighth module-scope constant
+// ALLOWED_STATUS_VALUES echoes all three source-of-truth sites verbatim so a
+// widening/narrowing of the enum at any site surfaces here on the next CI
+// pass. Three-part guard: (a) typeof-string (catches a column-type flip from
+// text to something else, or a route regression that stripped status from the
+// list SELECT's column projection at route.ts:44 — which would fail the guard
+// because undefined is not a string), (b) ALLOWED_STATUS_VALUES.has() set
+// membership (catches a DB-level enum drift where the CHECK constraint at
+// 0095:32 gains a fifth value that the spec did not track, or a route
+// regression that returned a stale/mismatched status value), (c) exact-string
+// equality against the block-specific expected value ('denied'/'cancelled'/
+// 'approved' per the branch). Complements the existing PATCH-response pins at
+// line 469 (deny) / 843 (cancel) / 1231 (approve) by closing the same contract
+// against the list route's SELECT + .eq('status', status) filter path at
+// /api/admin/resellers/requests/route.ts:39+46 — a route regression that
+// silently ignored the ?status= filter and returned rows with mixed statuses
+// would echo the correct value on the PATCH write envelope but would fail the
+// exact-equality check here whenever the list returned a wrong-status row for
+// the matching id (typically zero-probability since the row was PATCHed just
+// before, but this pin still catches the ?status= filter contract for any
+// regression that broke it). Fires ONLY after the tick-269 request_type
+// enum pin has passed on the same read-back row so tighter existing pins
+// surface first. Zero-coverage-per-guard posture: green-path fixtures never
+// exercise status='pending' on the read-back path (pending is the pre-PATCH
+// state; the three read-back surfaces filter for denied/cancelled/approved
+// respectively) so the pending enum value is never actually pinned here on
+// the wire, but the ALLOWED_STATUS_VALUES set still forbids a
+// route-regression drift to a non-enum string, which is what the pin
+// catches.
+//
 // Tick 269 — request_type enum value pin added as the fifth per-column pin
 // on the same three post-PATCH read-back rows (deny + cancel + approve).
 // reseller_requests.request_type is a NOT NULL text column (0095:29-30) with
@@ -283,6 +320,12 @@ const ALLOWED_REQUEST_TYPES = new Set([
   "code_request",
   "over_budget_approval",
   "collateral_approval",
+]);
+const ALLOWED_STATUS_VALUES = new Set([
+  "pending",
+  "approved",
+  "denied",
+  "cancelled",
 ]);
 
 test.describe("Admin reseller requests PATCH pre-write authorization — P10 dry-run", () => {
@@ -674,6 +717,29 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
       ALLOWED_REQUEST_TYPES.has(readbackRow.request_type as string),
       `read-back row.request_type '${String(readbackRow.request_type)}' not in {code_request, over_budget_approval, collateral_approval} per 0095:29-30 + requests.ts:12-15: ${JSON.stringify(readbackRow).slice(0, 200)}`,
     ).toBe(true);
+    // Tick 270 — status enum value pin, sixth per-column pin on the deny-
+    // branch read-back row. reseller_requests.status is a NOT NULL text
+    // column DEFAULT 'pending' (0095:31-32) with CHECK IN ('pending',
+    // 'approved','denied','cancelled'), mirrored by ResellerRequestStatus
+    // at requests.ts:17-21 and ALLOWED_STATUS at
+    // /api/admin/resellers/requests/route.ts:13. Three-part guard: typeof-
+    // string (catches a projection drop of status from the list SELECT at
+    // route.ts:44, which would fail the guard because undefined is not a
+    // string) + ALLOWED_STATUS_VALUES.has() set membership (catches a
+    // DB-level CHECK widening or a route regression that returned a
+    // stale/mismatched enum value) + exact-string equality against
+    // "denied" (catches a route regression that broke the ?status=denied
+    // filter contract at route.ts:39+46 by returning rows whose status
+    // does not match the filter, or an UPDATE regression at route.ts:305-
+    // 320 that stamped the wrong status literal). Fires ONLY after the
+    // tick-269 request_type pin has passed on the same read-back row so
+    // tighter existing pins surface first.
+    expect(typeof readbackRow.status).toBe("string");
+    expect(
+      ALLOWED_STATUS_VALUES.has(readbackRow.status as string),
+      `read-back row.status '${String(readbackRow.status)}' not in {pending, approved, denied, cancelled} per 0095:31-32 + requests.ts:17-21 + route.ts:13: ${JSON.stringify(readbackRow).slice(0, 200)}`,
+    ).toBe(true);
+    expect(readbackRow.status).toBe("denied");
     // Two-part guard per nullable key: (a) `x === null` short-circuit +
     // (b) typeof-string + regex/length check. Same shape as the tick
     // 259/260/261 pins. TYPEOF + VALUE-tighten pins per key so a rename OR
@@ -1062,6 +1128,23 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
       ALLOWED_REQUEST_TYPES.has(readbackRow.request_type as string),
       `read-back row.request_type '${String(readbackRow.request_type)}' not in {code_request, over_budget_approval, collateral_approval} per 0095:29-30 + requests.ts:12-15: ${JSON.stringify(readbackRow).slice(0, 200)}`,
     ).toBe(true);
+    // Tick 270 — status enum value pin mirrored from the deny-block onto
+    // the cancel-block surface so the NOT NULL text column with CHECK IN
+    // ('pending','approved','denied','cancelled') at 0095:31-32 is content-
+    // pinned on the second of the three post-PATCH read-back rows too.
+    // Same three-part guard as the deny surface: typeof-string +
+    // ALLOWED_STATUS_VALUES.has() set membership + exact-string equality
+    // against "cancelled" (branch-specific expected value — action='cancel'
+    // folds to status='cancelled' at requests.ts:301-303 and the UPDATE at
+    // route.ts:305-320 stamps that literal). See the deny-block block-
+    // scope comment above and the module-scope tick-270 comment for full
+    // rationale.
+    expect(typeof readbackRow.status).toBe("string");
+    expect(
+      ALLOWED_STATUS_VALUES.has(readbackRow.status as string),
+      `read-back row.status '${String(readbackRow.status)}' not in {pending, approved, denied, cancelled} per 0095:31-32 + requests.ts:17-21 + route.ts:13: ${JSON.stringify(readbackRow).slice(0, 200)}`,
+    ).toBe(true);
+    expect(readbackRow.status).toBe("cancelled");
     // Two-part guard per nullable key: (a) `x === null` short-circuit +
     // (b) typeof-string + regex/length check. Same shape as the tick
     // 259/260/261/262 pins. TYPEOF + VALUE-tighten pins per key so a rename
@@ -1515,6 +1598,23 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
       ALLOWED_REQUEST_TYPES.has(readbackRow.request_type as string),
       `read-back row.request_type '${String(readbackRow.request_type)}' not in {code_request, over_budget_approval, collateral_approval} per 0095:29-30 + requests.ts:12-15: ${JSON.stringify(readbackRow).slice(0, 200)}`,
     ).toBe(true);
+    // Tick 270 — status enum value pin mirrored from the deny-block +
+    // cancel-block onto the approve-block surface so the NOT NULL text
+    // column with CHECK IN ('pending','approved','denied','cancelled') at
+    // 0095:31-32 is now content-pinned on all three post-PATCH read-back
+    // rows. Same three-part guard: typeof-string +
+    // ALLOWED_STATUS_VALUES.has() set membership + exact-string equality
+    // against "approved" (branch-specific expected value — action='approve'
+    // folds to status='approved' at requests.ts:301-303 after the fan-out
+    // at route.ts:200-293 completes, and the UPDATE at route.ts:305-320
+    // stamps that literal). See the deny-block block-scope comment above
+    // and the module-scope tick-270 comment for full rationale.
+    expect(typeof readbackRow.status).toBe("string");
+    expect(
+      ALLOWED_STATUS_VALUES.has(readbackRow.status as string),
+      `read-back row.status '${String(readbackRow.status)}' not in {pending, approved, denied, cancelled} per 0095:31-32 + requests.ts:17-21 + route.ts:13: ${JSON.stringify(readbackRow).slice(0, 200)}`,
+    ).toBe(true);
+    expect(readbackRow.status).toBe("approved");
     // Two-part guard per nullable key: (a) `x === null` short-circuit +
     // (b) typeof-string + regex/length check. Same shape as the tick
     // 259/260/261/262/263 pins. TYPEOF + VALUE-tighten pins per key so a
