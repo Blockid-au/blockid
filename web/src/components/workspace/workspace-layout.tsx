@@ -18,6 +18,7 @@ import { NotificationBell } from "@/components/notifications/notification-bell";
 import { TrialBanner } from "@/components/workspace/trial-banner";
 import { ProductTour } from "@/components/workspace/product-tour";
 import { ResellerPill } from "@/components/workspace/reseller-pill";
+import { SandboxBanner } from "@/components/workspace/sandbox-banner";
 import { TrialDayWatcher } from "@/components/upsell/trial-day-watcher";
 import { UpgradeModal } from "@/components/upsell/upgrade-modal";
 import { UpgradeBanner } from "@/components/upsell/upgrade-banner";
@@ -38,6 +39,12 @@ interface WorkspaceLayoutProps {
   notificationCount?: number;
   /** Current startup phase (0-5). Controls which sidebar groups are highlighted vs dimmed. */
   currentPhase?: number;
+  /**
+   * True when the active project has `reseller_sandbox_id` set. Server parents
+   * resolve this via `getCurrentProjectIsSandbox()` in `@/lib/projects`. When
+   * true, the `SandboxBanner` renders above `TrialBanner` per CLO D4-CLO-06.
+   */
+  isSandbox?: boolean;
 }
 
 /**
@@ -139,7 +146,7 @@ function resolveGroup(
   return resolved;
 }
 
-export function WorkspaceLayout({ children, user, startupName, currentPhase = 0 }: Omit<WorkspaceLayoutProps, "notificationCount">) {
+export function WorkspaceLayout({ children, user, startupName, currentPhase = 0, isSandbox = false }: Omit<WorkspaceLayoutProps, "notificationCount">) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const [mobileOpen, setMobileOpen] = React.useState(false);
@@ -334,6 +341,11 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0 
             </form>
           </div>
         </header>
+
+        {/* Reseller sandbox notice — persistent, non-dismissable warning that
+            the reseller-admin must not paste real customer PI here (CLO
+            D4-CLO-06). Component is a no-op when `isSandbox` is false. */}
+        <SandboxBanner isSandbox={isSandbox} />
 
         {/* Trial-state banner — self-hiding when not in trial */}
         <TrialBanner />
