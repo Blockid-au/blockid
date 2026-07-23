@@ -162,11 +162,26 @@ const UUID_RE =
 // ?status=approved filter path — completing three of the four ALLOWED_STATUS
 // enum values (pending covered by the three list surfaces, denied +
 // cancelled + approved covered by the three PATCH-branch read-backs).
+//
+// Tick 265 — sixth module-scope constant ISO_TIMESTAMP_RE mirrors the shape
+// PostgREST serialises the reseller_requests.decision_at timestamptz column
+// into on the wire (see admin-reseller-loop-status-authz.spec.ts:85-86 for
+// the sibling ISO_RE precedent). Landed alongside a decision_at typeof-string
+// + regex pin added to each of the three post-PATCH read-back rows (deny +
+// cancel + approve) so a drift in the column type from timestamptz to
+// something else (e.g. a text column, a Unix epoch integer, a dropped column)
+// surfaces on the same six list surfaces the tick 262/263/264 payload pins
+// already cover. Regex intentionally permits both the `Z` UTC suffix and the
+// `+00:00` numeric offset suffix so a PostgREST config change from `.toISOString`
+// (Z suffix) to timezone-offset serialisation does NOT trip this pin —
+// tightening beyond that would false-positive on a benign wire-format toggle.
 const ALLOWED_TIER_PCT_VALUES = new Set([0, 10, 20, 30, 40]);
 const SUFFIX_RE = /^[A-Z0-9]{1,16}$/;
 const HTTPS_URL_RE = /^https:\/\/[a-zA-Z0-9.-]+(\/.*)?$/;
 const REASON_MAX = 200;
 const PURPOSE_MAX = 500;
+const ISO_TIMESTAMP_RE =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
 test.describe("Admin reseller requests PATCH pre-write authorization — P10 dry-run", () => {
   test("unauthenticated — PATCH with no session returns 401 no_user", async ({
@@ -446,6 +461,7 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
           request_type?: unknown;
           status?: unknown;
           payload?: unknown;
+          decision_at?: unknown;
         }
       | undefined;
     if (!readbackRow) {
@@ -467,6 +483,22 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
         typeof readbackRow.payload === "object" &&
         !Array.isArray(readbackRow.payload),
       `read-back row.payload should be a plain object (jsonb NOT NULL DEFAULT '{}' per 0095:33): ${JSON.stringify(readbackRow).slice(0, 200)}`,
+    ).toBe(true);
+    // Tick 265 — decision_at ISO-8601 wire-shape pin on the list read-back
+    // row. Complements the payload jsonb discriminated-union pin above by
+    // closing the wire contract on the timestamptz column (0095:35). The
+    // deny branch just stamped decision_at at route.ts:98 via new Date()
+    // .toISOString() so the pending-then-denied row now carries a non-null
+    // value here. Two-part guard: typeof-string (a column-type flip from
+    // timestamptz to say bigint would surface as a number here) + ISO regex
+    // (a stringify format drift from ISO to say a locale-formatted date
+    // string would surface as a non-match). Regex permits Z or +HH:MM
+    // offset suffixes so a PostgREST config change from `.toISOString`-style
+    // Z serialisation to timezone-offset serialisation is a benign no-op.
+    expect(typeof readbackRow.decision_at).toBe("string");
+    expect(
+      ISO_TIMESTAMP_RE.test(readbackRow.decision_at as string),
+      `read-back row.decision_at '${String(readbackRow.decision_at)}' should match ISO 8601 shape (timestamptz per 0095:35 serialised via PostgREST); a drift to a non-ISO string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
     ).toBe(true);
     // Two-part guard per nullable key: (a) `x === null` short-circuit +
     // (b) typeof-string + regex/length check. Same shape as the tick
@@ -761,6 +793,7 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
           request_type?: unknown;
           status?: unknown;
           payload?: unknown;
+          decision_at?: unknown;
         }
       | undefined;
     if (!readbackRow) {
@@ -782,6 +815,19 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
         typeof readbackRow.payload === "object" &&
         !Array.isArray(readbackRow.payload),
       `read-back row.payload should be a plain object (jsonb NOT NULL DEFAULT '{}' per 0095:33): ${JSON.stringify(readbackRow).slice(0, 200)}`,
+    ).toBe(true);
+    // Tick 265 — decision_at ISO-8601 wire-shape pin mirrored from the
+    // tick-262 deny-block addition onto the cancel-block surface so the
+    // timestamptz column shape (0095:35) is content-pinned on the second of
+    // the three post-PATCH read-back rows too. Same two-part guard: typeof-
+    // string + ISO regex; same rationale for permitting Z or +HH:MM
+    // suffixes. The cancel branch just stamped decision_at at route.ts:98
+    // (identical route line to deny + approve) so the pending-then-cancelled
+    // row now carries a non-null value here.
+    expect(typeof readbackRow.decision_at).toBe("string");
+    expect(
+      ISO_TIMESTAMP_RE.test(readbackRow.decision_at as string),
+      `read-back row.decision_at '${String(readbackRow.decision_at)}' should match ISO 8601 shape (timestamptz per 0095:35 serialised via PostgREST); a drift to a non-ISO string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
     ).toBe(true);
     // Two-part guard per nullable key: (a) `x === null` short-circuit +
     // (b) typeof-string + regex/length check. Same shape as the tick
@@ -1108,6 +1154,7 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
           request_type?: unknown;
           status?: unknown;
           payload?: unknown;
+          decision_at?: unknown;
         }
       | undefined;
     if (!readbackRow) {
@@ -1130,6 +1177,28 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
         typeof readbackRow.payload === "object" &&
         !Array.isArray(readbackRow.payload),
       `read-back row.payload should be a plain object (jsonb NOT NULL DEFAULT '{}' per 0095:33): ${JSON.stringify(readbackRow).slice(0, 200)}`,
+    ).toBe(true);
+    // Tick 265 — decision_at ISO-8601 wire-shape pin mirrored from the
+    // tick-262 deny-block + tick-263 cancel-block additions onto the
+    // approve-block surface so the timestamptz column shape (0095:35) is now
+    // content-pinned on all three post-PATCH read-back rows. Same two-part
+    // guard: typeof-string + ISO regex; same rationale for permitting Z or
+    // +HH:MM suffixes. The approve branch just stamped decision_at at
+    // route.ts:98 (identical route line to deny + cancel; the approve fan-out
+    // at route.ts:200-293 does not touch the timestamp column separately) so
+    // the pending-then-approved row now carries a non-null value here. The
+    // 0095:43-45 CHECK constraint further guarantees decision_at IS NOT NULL
+    // whenever status ∈ ('approved','denied','cancelled'), so this pin is
+    // now backed by a database-level invariant across all three PATCH
+    // branches — a route regression that returned status='approved' with a
+    // null decision_at would violate the CHECK and fail the UPDATE before
+    // ever reaching this read-back, but the read-back still catches a
+    // read-path regression (e.g. a SELECT that stripped decision_at from the
+    // list route's column projection).
+    expect(typeof readbackRow.decision_at).toBe("string");
+    expect(
+      ISO_TIMESTAMP_RE.test(readbackRow.decision_at as string),
+      `read-back row.decision_at '${String(readbackRow.decision_at)}' should match ISO 8601 shape (timestamptz per 0095:35 serialised via PostgREST); a drift to a non-ISO string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
     ).toBe(true);
     // Two-part guard per nullable key: (a) `x === null` short-circuit +
     // (b) typeof-string + regex/length check. Same shape as the tick
