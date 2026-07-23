@@ -1169,6 +1169,43 @@ const UUID_RE =
 // module-scope const needed (typeof/isInteger/>=0 are all bare-JS). See
 // module-scope doc-block above ISO_TIMESTAMP_RE (tick 318 paragraph)
 // for the total parallel discipline this tick mirrors.
+//
+// Tick 320 — promotion_codes[].id UUID two-part wire-shape pin, SCOPE
+// ROTATION back onto the promotion_codes[] child-row cluster after the
+// tick 313 (by_source) + tick 318 (total) + tick 319 (active) triple pin
+// on attributions_summary. Tick 319 next-pick option (a) taken verbatim.
+// Column source: `reseller_promotion_codes.id uuid PRIMARY KEY DEFAULT
+// gen_random_uuid()` at 0091:89, projected via select("id, tier_pct,
+// code, stripe_coupon_id, stripe_promotion_code_id, active, created_at")
+// on the Promise.all leg at web/src/app/api/admin/resellers/[code]/
+// route.ts:83-88. Wire type is UUID NOT NULL.
+//
+// Prior baseline landed a single BARE combined pin at row 1825
+// `typeof row.id === "string" && UUID_RE.test(row.id as string)` with a
+// generic "should be UUID" message — the two failure modes (schema-side
+// type flip to bigserial vs. projection-side drop from route.ts:83-88
+// SELECT returning null|undefined vs. a truncated non-UUID slug) all
+// collapse into the same undifferentiated failure. This tick promotes
+// the pin to the two-part shape matching the tick 308 commission_id
+// posture verbatim: (a) typeof-string preserves the raw-type discipline;
+// catches a PostgREST regression that returned null|undefined, a
+// schema-side NOT NULL drop, or a projection-side drop from the SELECT
+// tuple. (b) UUID_RE.test() shape assert catches a schema-side type flip
+// to bigserial rendering a stringified integer, a bigint-serialised-as-
+// string sequence id, or a truncated non-UUID slug. Each half carries a
+// bespoke failure message pointing at 0091:89 as the writer-schema
+// source.
+//
+// Detail-surface only per the same posture as ticks 299-319 — the
+// admin-resellers-list route projects only the resellers-row shape and
+// does not fan out to reseller_promotion_codes; the Promise.all leg
+// that pulls the promotion_codes rows is unique to the detail route.
+// Fires on every green CI run because the QAPROBEWHOLESALEACTIVE seed
+// row has 2 minted promotion codes (tier 20 + tier 40 per seed-qa-
+// reseller.mjs); on hosts without seeded codes the for-loop is a no-op
+// so the pin never fires. No new module-scope const needed — UUID_RE
+// already lives at row 111. Continues the P10 hardening posture — no
+// fixture change, no route change, no new imports.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Tick 309 — Stripe invoice ID shape regex. Matches the modern Stripe
@@ -1821,9 +1858,22 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
       `promotion_codes should be an array: ${JSON.stringify(body).slice(0, 200)}`,
     ).toBe(true);
     for (const row of body.promotion_codes ?? []) {
+      // Tick 320 — promotion_codes[].id UUID two-part wire-shape pin.
+      // Lifts the prior baseline bare combined pin into two labelled
+      // asserts matching the tick 308 commission_id posture verbatim.
+      // Column source `reseller_promotion_codes.id uuid PRIMARY KEY
+      // DEFAULT gen_random_uuid()` at 0091:89, projected via route.ts:
+      // 83-88 select("id, tier_pct, code, stripe_coupon_id,
+      // stripe_promotion_code_id, active, created_at"). See module-scope
+      // doc-block above ISO_TIMESTAMP_RE (tick 320 paragraph) for the
+      // rationale.
       expect(
-        typeof row.id === "string" && UUID_RE.test(row.id as string),
-        `promotion_codes[].id should be UUID: ${JSON.stringify(row).slice(0, 200)}`,
+        typeof row.id === "string",
+        `promotion_codes[].id '${String(row.id)}' should be a string (uuid PRIMARY KEY DEFAULT gen_random_uuid() per 0091:89; a schema-side type flip to bigserial, a projection-side drop from route.ts:83-88 select, or a PostgREST serialisation regression that returned null|undefined would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        UUID_RE.test(row.id as string),
+        `promotion_codes[].id '${String(row.id)}' should match UUID shape (uuid PRIMARY KEY per 0091:89); a projection-side drop from route.ts:83-88 select that replaced id with a stringified integer id, a bigint-serialised-as-string sequence id, or a truncated non-UUID slug would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
       // Tick 303 — tighten from bare typeof-number to full value-set enum
       // guard against ck_reseller_promotion_codes tier_pct CHECK at

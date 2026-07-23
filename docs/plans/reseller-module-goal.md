@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.319
+version: 2026-07-23.320
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -651,6 +651,96 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 320
+    ran_at: 2026-07-23
+    action: p10_promotion_codes_id_uuid_two_part_pin_on_admin_reseller_detail
+    result: |
+      SCOPE ROTATION back onto the promotion_codes[] child-row cluster
+      after the tick 313 (by_source) + tick 318 (total) + tick 319 (active)
+      triple pin on attributions_summary. Tick 319 next-pick option (a)
+      taken verbatim — lifts the prior baseline bare combined pin at
+      `typeof row.id === "string" && UUID_RE.test(row.id as string)` into
+      the two-part shape matching the tick 308 commissions[].commission_id
+      posture verbatim.
+
+      Writer-schema justification:
+        - 0091_reseller_module_foundations.sql:89 declares
+          `id uuid PRIMARY KEY DEFAULT gen_random_uuid()` on the base
+          reseller_promotion_codes row.
+        - Application read path: selected on the Promise.all leg at
+          web/src/app/api/admin/resellers/[code]/route.ts:83-88 as the
+          1st column in the reseller_promotion_codes tuple
+          .select("id, tier_pct, code, stripe_coupon_id,
+          stripe_promotion_code_id, active, created_at").
+
+      Design choice — two-part guard mirroring the tick 308
+      commissions[].commission_id posture verbatim:
+        - (a) typeof-string preserves the NOT-NULL raw-type discipline;
+          catches a PostgREST regression that returned null|undefined, a
+          schema-side NOT NULL drop, or a projection-side drop from the
+          route.ts:83-88 SELECT tuple.
+        - (b) UUID_RE.test() shape assert catches a schema-side type flip
+          to bigserial rendering a stringified integer, a bigint-
+          serialised-as-string sequence id, or a truncated non-UUID slug.
+
+      Rotation rationale:
+        - Closes the attributions_summary object cluster left open at
+          tick 319 (total + active + by_source now all three-part-guarded)
+          and rotates back onto the promotion_codes[] child-row cluster
+          where six tuple columns (id / tier_pct / code / stripe_coupon_id
+          / stripe_promotion_code_id / active / created_at) sit selected
+          on the Promise.all leg. Column-by-column pinning of the
+          promotion_codes[] cluster starts here at column 0 (id) to
+          mirror the tick 308 commissions[] cluster discipline.
+        - No new imports, no new module-scope const needed — UUID_RE
+          already lives at row 111.
+
+      Coverage-per-guard posture:
+        - Detail surface: wave-5 row 167 single-row GET fires the two-
+          part pin up to N times per test, once per promotion_codes[] row
+          on the QAPROBEWHOLESALEACTIVE seed reseller.
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 320 paragraph) added below
+              the tick 319 paragraph above ISO_TIMESTAMP_RE.
+            + bare row 1862 combined pin replaced with two-part guard:
+              typeof-string + UUID_RE.test — each with a bespoke failure
+              message pointing at route.ts:83-88 as the write-path source.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope const. Matches
+          ticks 234-319 discipline.
+
+      Verification:
+        - tsc --noEmit: production tree clean (exit 0).
+        - npm run lint:reseller: R-01 scanned 11 files, R-03 scanned
+          32 manifest routes, R-04 scanned 8 stripe files; 6 exemptions,
+          0 violations — unchanged from tick 319 baseline.
+        - vitest full tree: 92 files / 1145 pass — Playwright specs
+          are excluded from vitest by design.
+
+      Frontier after tick 320: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+
+      Next natural picks on tick 321:
+        (a) rotate to promotion_codes[].code — bare typeof-string +
+        PROMO_CODE_RE pin at row 1891-1892 that could be lifted to a
+        labelled tick-numbered pin matching the tick 320 two-expect
+        posture (row currently uses expect(typeof row.code).toBe(
+        "string"); expect(row.code as string).toMatch(PROMO_CODE_RE);
+        which is already two-part but lacks the tick-numbered labelled
+        message shape — natural continuation of the cluster).
+        (b) rotate to admins[].id / admins[].user_id — same bare
+        UUID_RE posture at rows 1971-1978 that could be lifted to
+        labelled tick-numbered pins matching the tick 320 posture.
+        (c) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks.
+    commit: (this tick)
+
   - tick: 319
     ran_at: 2026-07-23
     action: p10_attributions_summary_active_int_non_negative_pin_on_admin_reseller_detail
