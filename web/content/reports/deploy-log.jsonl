@@ -953,3 +953,5 @@
 {"ts":"2026-07-23T16:13:00.818Z","event":"github-push-master","detail":"Blockid-au: test(reseller): P10 tick 308 — commissions[].commission_id UUID wire-shape pin on admin reseller detail (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T16:13:11.569Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-23T16-05-01-220Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T16:19:08Z","status":"success","gates":"10/10","pid":"38484","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-23T16:19:35.068Z","event":"github-push-master","detail":"Blockid-au: chore(deploy): iteration-7 live retry — release Mzzh5pwFURHvrhivSP_QQ (sha 01e3db6d) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T16:19:47.696Z","event":"github-push-master","detail":"Blockid-au: test(reseller): P10 tick 309 — commissions[].stripe_invoice_id text NOT NULL wire-shape pin on admin reseller detail (1 commits)","source":"github-webhook"}
