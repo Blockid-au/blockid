@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.228
+version: 2026-07-23.229
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,110 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 229
+    ran_at: 2026-07-23
+    action: p10_requests_pair_stale_header_comment_cleanup_option_e
+    result: |
+      Landed tick 228 "natural next pick" option (e) verbatim: purged the
+      stale "Do NOT pin decision_at / decision_reason" clause from both
+      requests-validation.spec.ts:217-227 and reseller-requests-list-
+      authz.spec.ts:172-182 header comment blocks so the doc-narrative
+      matches the inline pins landed at ticks 223 (row 156 in
+      requests-validation.spec.ts) and 224 (row 161 in reseller-requests-
+      list-authz.spec.ts). Pure comment cleanup — no assertion added, no
+      assertion removed, no production code touched, no fixture change.
+
+      Drift diagnosed:
+        - Both header blocks were written pre-tick-223 with a "Do NOT pin"
+          discipline appropriate for the initial narrow SELECT-shape pass.
+        - Ticks 223 + 224 subsequently tightened both rows to also pin
+          row.decision_at + row.decision_reason with null-or-typeof-string
+          `x === null || typeof x === "string"` discipline (matching
+          nullable-in-schema-per-0095:35-36, NULL on pending rows per
+          ck_decision_shape at 0095:41-45, string once P9.3 approve/deny
+          lands a decision).
+        - Headers were not synchronised at ticks 223/224, so a reader
+          diff-ing header intent against inline expects would see the
+          contradiction and treat one or the other as the source of
+          truth. Cleanup resolves the ambiguity by aligning header to
+          inline (inline wins because it is the authoritative test
+          contract; header is documentation only).
+
+      Cleanup rewrite chosen:
+        - Both headers now read "Pin decision_at / decision_reason with
+          null-or-typeof-string discipline" and cite the 0095 schema
+          references + tick number of the inline landing (tick 223 for
+          requests-validation, tick 224 for reseller-requests-list-authz).
+        - Kept the "Do NOT pin the array length" clause (still accurate —
+          neither spec pins .length; both use isNonEmpty gate + per-row
+          iteration).
+        - Kept the twin-row / non-Stripe / non-GST discipline notes
+          verbatim — those remain accurate and load-bearing.
+
+      Diagnostic delta of the pass:
+        - Comment-only edit. No behavioural change on either spec file.
+        - No new spec-local constant, no fixture-file delta, no import
+          rewrite, no test.describe rename, no vitest / Playwright
+          runtime posture change.
+        - Twin-symmetrisation posture maintained — both header blocks
+          rewritten in the same tick with mirrored language, matching
+          the ticks 223/224, 225/226, 226/227, 227/228 twin discipline
+          on the requests + drawer spec pairs.
+
+      Files:
+        - web/tests/e2e/reseller/requests-validation.spec.ts (header
+          block at :217-227 rewritten; inline expects unchanged.)
+        - web/tests/e2e/reseller/reseller-requests-list-authz.spec.ts
+          (header block at :172-182 rewritten; inline expects unchanged.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.228 → 2026-07-23.229; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Comment cleanup only — the "safest possible pick" per tick 228's
+          option list. No shape assertion adjustment, no VALUE assertion
+          tightening (option (h) still deferred per its stability note),
+          no P8.5-gated code_request twin work (option (c) still blocked).
+        - Preserves the tick 218-228 preference for shape-pinning over
+          VALUE-pinning by staying strictly out of the assertion body.
+
+      Verified:
+        - tsc clean.
+        - npm run lint:reseller: 11 R-01 files + 31 R-03 routes scanned,
+          3 exemptions, 0 violations (both spec files live under
+          web/tests/e2e/**, not in the reseller manifest so R-01/R-03 do
+          not fire on the edited files).
+
+      Frontier after tick 229: unchanged shape — Track A HUMAN-BLOCKED on
+      P8.5 Stripe env vars + P1.5 InfoVision seed on H.20 ABN + GST;
+      Track B COMPLETE; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 229 does NOT unblock: P8.5 STRIPE_PRICE_ADDON_SHARE_MGMT_*
+      env vars still human-gated; P1.5 InfoVision ABN + GST still
+      human-gated per H.20 (Auschain existing counsel or LegalVision AU).
+
+      Natural next pick for tick 230:
+        (h) tighten the signup-row triple across both drawer rows
+            (drawer-authz.spec.ts row 146 + drawer-validation.spec.ts
+            row 147) from null-or-typeof pins to VALUE equality:
+            expect(phase).toBe(1) + expect(chapterSlug).toBe("01-vision")
+            + expect(href).toBe("/guide/01-vision"). Trade-off called
+            out in tick 228: pin catches PHASE_BY_KIND[signup] regression
+            exactly but couples the spec to the 01-vision slug so a
+            future phase-1 rename forces a synchronised bump. Given the
+            shape-pinning preference is now well-established over
+            ticks 218-229, option (h) can ship as the next tightening
+            step if the twin-symmetrisation loop wants a VALUE pin.
+        (c) mirror row 179 shape+helper alignment onto row 175 approve+
+            deny+cancel code_request branches once P8.5 unblocks.
+            P8.5-blocked, no available today.
+        (i) audit whether other spec files in web/tests/e2e/reseller/**
+            carry similar header-vs-inline drift now that the tick 229
+            precedent exists — grep pattern "Do NOT pin" across the
+            reseller spec dir would surface any additional stale
+            headers. Comment-cleanup follow-up in the same discipline
+            as this tick.
+    commit: (this tick)
+
   - tick: 228
     ran_at: 2026-07-23
     action: p10_drawer_pair_progression_optional_field_shape_pins_option_f

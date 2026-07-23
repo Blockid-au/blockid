@@ -218,13 +218,16 @@ test.describe("Reseller requests input validation — P10 dry-run", () => {
 // body.requests) + when the array is non-empty, EVERY row has string id +
 // string request_type + string status + string created_at. Do NOT pin the
 // array length (fresh hosts may have zero rows; hosts where row 155 has
-// run in prior CI passes will have ≥1 pending rows accumulated). Do NOT
-// pin decision_at / decision_reason (both nullable in the schema and null
-// for pending rows). The per-row shape pins catch (a) a route regression
-// that dropped a field from the SELECT list (route.ts:170-173), (b) a
-// route regression that returned the wrong id type (bigint from a stale
-// migration rather than UUID string), and (c) a route regression that
-// returned a non-array envelope (e.g. wrapping in { requests: { rows: [] } }).
+// run in prior CI passes will have ≥1 pending rows accumulated). Pin
+// decision_at / decision_reason with null-or-typeof-string discipline
+// (both nullable in the schema per 0095:35-36; NULL on pending rows per
+// ck_decision_shape at 0095:41-45 but string once P9.3 approve/deny lands
+// a decision) — see inline expects below at row 156 rationale for the
+// tightening landed at tick 223. The per-row shape pins catch (a) a route
+// regression that dropped a field from the SELECT list (route.ts:170-173),
+// (b) a route regression that returned the wrong id type (bigint from a
+// stale migration rather than UUID string), and (c) a route regression
+// that returned a non-array envelope (e.g. wrapping in { requests: { rows: [] } }).
 //
 // Twin-row accounting vs row 155 (active_wholesale × happy POST 201): row
 // 155 pins the INSERT envelope (body.request.id + request_type + status);
