@@ -4,6 +4,8 @@
 
 import Link from "next/link";
 
+import { CanonicalStageBadge } from "@/components/showcase/canonical-stage-badge";
+
 export const dynamic = "force-dynamic";
 
 interface Milestone {
@@ -288,9 +290,12 @@ export default function AtlassianShowcasePage() {
           <div className="space-y-6">
             {phaseOrder.map((p) => (
               <div key={p} className="rounded-lg border border-surface-200 bg-white p-4">
-                <h3 className="mb-3 text-base font-semibold text-ink-900">
-                  Phase {p} · {PHASE_NAMES[p]}
-                </h3>
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <h3 className="text-base font-semibold text-ink-900">
+                    Phase {p} · {PHASE_NAMES[p]}
+                  </h3>
+                  <CanonicalStageBadge phase={p} />
+                </div>
                 <ul className="space-y-3">
                   {byPhase.get(p)!.map((m, i) => (
                     <li
