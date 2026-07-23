@@ -231,6 +231,25 @@ test.describe("Admin reseller-loop status — P10 wave-5 row 173 happy path", ()
         typeof monitorRow.head_sha,
         `monitor_history row.head_sha should be typeof string (reseller-monitor.sh:60 writer schema; falls back to "unknown" when git rev-parse fails): ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe("string");
+      // Writer schema pin (tick 236 option s) — reseller-monitor.sh:55-57
+      // sets `last_log_obj = json.loads(last_log) if last_log.strip() else {}`
+      // inside a try/except that also falls back to `{}` on parse error, then
+      // reseller-monitor.sh:62 spreads `"last_log": last_log_obj` into every
+      // appended row. `last_log` is therefore a schema-level guarantee from the
+      // writer — always present, always a plain object (never null, never
+      // array, never a scalar). Landing a plain-object pin catches a writer
+      // regression that renamed the key, replaced the `{}` fallback with
+      // None/null, or a python-side crash that produced an empty row. No
+      // per-key content pins on last_log — its shape mirrors whatever the
+      // reseller-goal-loop.mjs last-line schema happens to be at read time, and
+      // that is already pinned on the tick_history rows above. No twin surface
+      // (singleton endpoint), same rationale as monitor_ts + head_sha.
+      expect(
+        monitorRow.last_log !== null &&
+          typeof monitorRow.last_log === "object" &&
+          !Array.isArray(monitorRow.last_log),
+        `monitor_history row.last_log should be a plain object (reseller-monitor.sh:55-57 last_log_obj fallback + reseller-monitor.sh:62 spread): ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
     }
     for (const row of (body.tick_history as unknown[]) ?? []) {
       expect(
