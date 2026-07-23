@@ -757,6 +757,50 @@ const UUID_RE =
 // Next-tick frontier rotates OUT of the admins[] cluster to
 // reseller_attributions[] / reseller_commissions[] fan-outs which
 // have larger per-row column counts still to pin.
+//
+// Tick 308 — commissions[].commission_id UUID wire-shape pin, first
+// column pinned in the reseller_commissions_current[] child-row
+// cluster. Opens the commissions[] cluster per tick 307 next-pick —
+// picked commissions[] over reseller_attributions[] because commissions
+// carries an 8-column projection tuple (commission_id, stripe_invoice_
+// id, list_price_aud_cents, discount_pct, commission_aud_cents,
+// net_owed_cents, status, created_at) vs. attributions' 5 (id,
+// subject_type, status, source, attributed_at), so the commissions
+// cluster amortises the module-scope const cost (no new const needed
+// for UUID_RE — reused from row 665) across more per-row pins. Column
+// source: reseller_commissions_current view at 0094:133-178 exposes
+// `rc.id AS commission_id` where the underlying reseller_commissions.
+// id is `uuid PRIMARY KEY DEFAULT gen_random_uuid()` at 0094:34 — so
+// the wire type is UUID NOT NULL. Projected via select("commission_id,
+// stripe_invoice_id, list_price_aud_cents, discount_pct, commission_
+// aud_cents, net_owed_cents, status, created_at") on the Promise.all
+// fan-out at web/src/app/api/admin/resellers/[code]/route.ts:99-105.
+// Two-part guard mirroring the tick 285/292 UUID posture: (a) typeof-
+// string preserves the raw-type discipline; (b) UUID_RE.test() shape
+// assert catches a projection-side drop from the SELECT tuple that
+// replaced commission_id with a stringified integer id, a bigint-
+// serialised-as-string sequence id, or a truncated non-UUID slug. A
+// schema-side migration that swapped rc.id to bigserial, a view-side
+// column drop, or a PostgREST serialisation regression that returned
+// null|undefined would surface here on the first offending row.
+// Detail-surface only because the admin-resellers-list route projects
+// only the resellers-row shape (list route SELECT at web/src/app/api/
+// admin/resellers/route.ts does not fan out to
+// reseller_commissions_current); the Promise.all leg that pulls the
+// commissions rows is unique to the detail route. Fires on every
+// green CI run only where the seeded reseller has attributed founders
+// with paid Stripe invoices in the last 50 rows; on hosts without
+// seeded commission events the for-loop is a no-op so the pin never
+// fires. Continues the P10 hardening posture — no fixture change,
+// no route change, no new imports, no new module-scope constants
+// (UUID_RE reused). Opens the commissions[] child-row column-pin
+// cluster; remaining un-tightened columns after this tick are
+// stripe_invoice_id (text nullable), list_price_aud_cents (int
+// non-negative), discount_pct (numeric [0,100]), commission_aud_cents
+// (int non-negative), net_owed_cents (int, may be negative on clawback),
+// status (value-set enum {cleared, pending_clearance, clawed_back,
+// dispute_open, partially_refunded} per view CASE at 0094:150-172),
+// and created_at (ISO-8601 shape).
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Uppercase-alphanumeric invariant for promotion_codes[].code — matches the
@@ -1012,7 +1056,9 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         active?: unknown;
         by_source?: unknown;
       };
-      commissions?: unknown;
+      commissions?: Array<{
+        commission_id?: unknown;
+      }>;
     };
 
     expect(
@@ -1547,5 +1593,24 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
       Array.isArray(body.commissions),
       `commissions should be an array: ${JSON.stringify(body).slice(0, 200)}`,
     ).toBe(true);
+    for (const row of body.commissions ?? []) {
+      // Tick 308 — commissions[].commission_id UUID wire-shape pin.
+      // Column source: view `rc.id AS commission_id` at 0094:135,
+      // underlying reseller_commissions.id `uuid PRIMARY KEY DEFAULT
+      // gen_random_uuid()` at 0094:34. Two-part guard: (a) typeof-
+      // string preserves the raw-type discipline; (b) UUID_RE.test()
+      // shape assert catches a projection-side drop, schema-side type
+      // flip (bigserial), or PostgREST serialisation regression that
+      // returned null|undefined. See module-scope doc-block above
+      // ISO_TIMESTAMP_RE (tick 308 paragraph) for the rationale.
+      expect(
+        typeof row.commission_id === "string",
+        `commissions[].commission_id '${String(row.commission_id)}' should be a string (view alias for reseller_commissions.id uuid PRIMARY KEY DEFAULT gen_random_uuid() per 0094:34/135; a schema-side type flip to bigserial, a view-side column drop, or a PostgREST serialisation regression that returned null|undefined would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        UUID_RE.test(row.commission_id as string),
+        `commissions[].commission_id '${String(row.commission_id)}' should match UUID shape (uuid PRIMARY KEY per 0094:34); a projection-side drop from route.ts:99-105 select that replaced commission_id with a stringified integer id, a bigint-serialised-as-string sequence id, or a truncated non-UUID slug would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+    }
   });
 });

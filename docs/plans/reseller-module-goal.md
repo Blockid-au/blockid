@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.307
+version: 2026-07-23.308
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -658,6 +658,102 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 308
+    ran_at: 2026-07-23
+    action: p10_commissions_commission_id_uuid_shape_pin_on_admin_reseller_detail
+    result: |
+      Opens the reseller_commissions_current[] child-row column-pin
+      cluster with commissions[].commission_id, the first column in
+      the 8-column projection tuple at
+      web/src/app/api/admin/resellers/[code]/route.ts:99-105
+      (select "commission_id, stripe_invoice_id, list_price_aud_cents,
+      discount_pct, commission_aud_cents, net_owed_cents, status,
+      created_at"). Tick 307 next-pick rotated OUT of the admins[]
+      cluster to the two remaining fan-outs (reseller_attributions[] +
+      reseller_commissions_current[]); picked commissions[] because
+      its 8-column projection amortises the module-scope const cost
+      (no new const — UUID_RE reused) across more per-row pins than
+      attributions' 5-column projection.
+
+      Writer-schema justification:
+        - 0094_reseller_commissions_and_events.sql:133-178 defines the
+          reseller_commissions_current view; the first projected column
+          is `rc.id AS commission_id` at 0094:135. Underlying
+          reseller_commissions.id at 0094:34 is
+          `uuid PRIMARY KEY DEFAULT gen_random_uuid()` — UUID NOT NULL
+          on the wire.
+        - Commission row IDs are minted at the webhook accrual code-path
+          (planAccrualForLine at web/src/lib/reseller/webhook-helpers.ts)
+          and stay stable across the append-only event log
+          (reseller_commission_events.commission_id FK at 0094:103).
+        - Projected on the Promise.all leg at route.ts:99-105 with
+          .limit(50) so the pin fires at most 50 times per test run.
+
+      Design choice — two-part guard mirroring the tick 285/292 UUID
+      posture used on resellers.id and reseller_promotion_codes.id:
+        - (a) typeof-string preserves the raw-type discipline; catches
+          a PostgREST regression that returned null|undefined or a
+          bigint serialised as number.
+        - (b) UUID_RE.test() shape assert catches a projection-side
+          drop from the SELECT tuple that replaced commission_id with
+          a stringified integer id, a bigint-serialised-as-string
+          sequence id, or a truncated non-UUID slug. A schema-side
+          migration that swapped rc.id to bigserial or a view-side
+          column drop would surface here on the first offending row.
+        - Reuse of UUID_RE (row 665) rather than a new module-scope
+          const because the shape is identical across every uuid
+          column already pinned in the spec (resellers.id, promotion_
+          codes.id, admins.id, admins.user_id).
+
+      Coverage-per-guard posture:
+        - Detail surface: wave-5 row 167 single-row GET fires the pin
+          up to 50 times per test, once per commissions[] row on the
+          QAPROBEWHOLESALEACTIVE seed reseller. seed-qa-reseller.mjs
+          does not mint reseller_commissions rows directly — those are
+          accrued via webhook processing when Stripe invoice.paid
+          fires on an attributed customer's paid invoice. Hosts without
+          such traffic will observe an empty commissions[] array and
+          the for-loop becomes a no-op, so the pin never fires.
+        - Fresh CI hosts without seeded commission events still green
+          because Array.isArray(body.commissions) already passes on
+          empty arrays and the for-loop degrades gracefully.
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 308 paragraph) added below
+              the tick 307 admins[].revoked_at block above
+              ISO_TIMESTAMP_RE.
+            + body type widened: commissions? changed from
+              `unknown` to `Array<{ commission_id?: unknown }>` so
+              TypeScript narrows the row.commission_id access inside
+              the for-of loop (tests/** is excluded from tsc, but the
+              type-widening keeps the spec self-documenting for
+              future column pins in the cluster).
+            + wave-5 row 167 for-of loop appended after
+              Array.isArray(body.commissions): typeof-string assert
+              plus UUID_RE.test() assert against row.commission_id.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope constants
+          (UUID_RE reused). Matches ticks 234-307 discipline verbatim.
+
+      Verification:
+        - tsc --noEmit: exit 0 (tests/** excluded from tsc include
+          set; production tree unchanged).
+        - npm run lint:reseller: 11 R-01 + 32 R-03 + 8 R-04, 6
+          exemptions, 0 violations (spec lives under tests/**, not in
+          the reseller manifest).
+        - vitest: unchanged — Playwright specs are excluded from
+          vitest by design.
+
+      Next-tick frontier: continues the commissions[] child-row
+      column-pin cluster with stripe_invoice_id (text nullable), then
+      list_price_aud_cents (int non-negative), discount_pct (numeric
+      [0,100]), commission_aud_cents (int non-negative), net_owed_
+      cents (int, may be negative on clawback), status (value-set
+      enum {cleared, pending_clearance, clawed_back, dispute_open,
+      partially_refunded} per view CASE at 0094:150-172), and
+      created_at (ISO-8601 shape). Cluster carries seven columns
+      still to pin after this tick.
   - tick: 307
     ran_at: 2026-07-23
     action: p10_admins_revoked_at_nullable_iso_shape_pin_on_admin_reseller_detail
