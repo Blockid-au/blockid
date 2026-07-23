@@ -15,7 +15,8 @@
     "test:e2e": "playwright test tests/e2e --reporter=list",
     "e2e": "playwright test",
     "e2e:smoke": "playwright test tests/e2e/**/smoke*.spec.ts --reporter=list",
-    "e2e:a11y": "playwright test tests/e2e/a11y/ --reporter=list"
+    "e2e:a11y": "playwright test tests/e2e/a11y/ --reporter=list",
+    "e2e:post-deploy": "PLAYWRIGHT_BASE_URL=${PLAYWRIGHT_BASE_URL:-https://blockid.au} playwright test tests/e2e/smoke/post-deploy.spec.ts --reporter=list"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.0",
