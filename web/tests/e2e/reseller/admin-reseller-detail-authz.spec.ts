@@ -495,6 +495,44 @@ const UUID_RE =
 // resellers-row shape); the Promise.all fan-out that pulls the child
 // rows is unique to the detail surface, matching the tick 299 detail-
 // only posture.
+//
+// Tick 301 — promotion_codes[].stripe_coupon_id text nullable wire-shape
+// pin, third column pinned in the promotion_codes[] child-row cluster
+// opened at tick 299 per that tick's next-tick option (i). Column declared
+// at 0091:92 as `stripe_coupon_id text` (nullable) on the
+// reseller_promotion_codes table with NO standalone CHECK, but coupled to
+// tier_pct via ck_stripe_objects_by_tier at 0091:98-102 which enforces
+// `(tier_pct = 0 AND stripe_coupon_id IS NULL AND stripe_promotion_code_id
+// IS NULL) OR (tier_pct > 0 AND stripe_coupon_id IS NOT NULL AND
+// stripe_promotion_code_id IS NOT NULL)` — tier 0 rows are attribution-
+// only, tier > 0 rows require a real Stripe coupon minted via
+// stripe.coupons.create at web/src/lib/reseller/promotion-code-mint.ts
+// (ensureStripeCoupon, deterministic id res_<uuid8>_t<tier>). Projected
+// via select("id, tier_pct, code, stripe_coupon_id,
+// stripe_promotion_code_id, active, created_at") on the same Promise.all
+// leg at web/src/app/api/admin/resellers/[code]/route.ts:83-88, so a
+// projection-side drop or PostgREST serialisation regression on this
+// column would surface here on the first offending row. Two-part guard
+// mirroring the tick 294 abn / tick 296 primary_color posture rather than
+// the tick 295 logo_url / tick 297 contact_email / tick 298 notes single-
+// guard posture, because this column carries a semantic dimension (tier-
+// coupling) beyond raw type: (a) null-or-typeof-string — preserves the
+// nullable-text posture; catches a schema-side type flip or a PostgREST
+// regression that returned a non-null/non-string wire value; (b) tier-
+// coupled invariant matching ck_stripe_objects_by_tier — tier_pct === 0
+// rows must carry stripe_coupon_id===null and tier_pct > 0 rows must
+// carry typeof stripe_coupon_id === 'string'; a DB CHECK drop or a
+// promotion-code-mint drift that stopped minting the Stripe coupon for
+// tier > 0 rows (or a tier 0 branch bypass that stamped a non-null id)
+// would surface here on the first offending row. Fires on every green CI
+// run because seed-qa-reseller.mjs mints per-cohort code rows covering
+// both tier 0 (attribution-only, null branch) and tier > 0 (Stripe-minted,
+// string branch); on hosts without seeded codes the for-loop is a no-op
+// so the pin never fires. Detail-only tick because the admin-resellers-
+// list surface does NOT project promotion_codes (list route selects only
+// the resellers-row shape); the Promise.all fan-out that pulls the child
+// rows is unique to the detail surface, matching the tick 299/300 detail-
+// only posture.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Uppercase-alphanumeric invariant for promotion_codes[].code — matches the
@@ -714,6 +752,7 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         id?: unknown;
         tier_pct?: unknown;
         code?: unknown;
+        stripe_coupon_id?: unknown;
         active?: unknown;
         created_at?: unknown;
       }>;
@@ -1096,6 +1135,30 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         ISO_TIMESTAMP_RE.test(row.created_at as string),
         `promotion_codes[].created_at '${String(row.created_at)}' should match ISO 8601 shape (timestamptz NOT NULL DEFAULT now() per 0091:95); a drift to a non-ISO string, a Unix epoch number rendered as string, or a truncated date-only value would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
+      // Tick 301 — promotion_codes[].stripe_coupon_id text nullable wire-
+      // shape pin. Column 0091:92 `stripe_coupon_id text` (nullable) with
+      // no standalone CHECK, coupled to tier_pct via ck_stripe_objects_by_
+      // tier at 0091:98-102 (tier 0 → NULL, tier > 0 → NOT NULL). Two-part
+      // guard: (a) null-or-typeof-string preserves the nullable-text
+      // posture; (b) tier-coupled invariant mirrors the DB CHECK — tier 0
+      // rows require stripe_coupon_id===null, tier > 0 rows require
+      // typeof===string. See module-scope doc-block above ISO_TIMESTAMP_RE
+      // (tick 301 paragraph) for the rationale.
+      expect(
+        row.stripe_coupon_id === null || typeof row.stripe_coupon_id === "string",
+        `promotion_codes[].stripe_coupon_id '${String(row.stripe_coupon_id)}' should be null or a string (nullable text per 0091:92; NULL for tier 0 attribution-only rows, string for tier > 0 rows carrying the Stripe coupon id minted via ensureStripeCoupon at web/src/lib/reseller/promotion-code-mint.ts). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      if (typeof row.tier_pct === "number" && row.tier_pct === 0) {
+        expect(
+          row.stripe_coupon_id === null,
+          `promotion_codes[].stripe_coupon_id should be null when tier_pct === 0 per ck_stripe_objects_by_tier at 0091:98-102 (tier 0 rows are attribution-only; ensureStripeCoupon is skipped at the promotion-code-mint decideCodeMint branch). Row: ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe(true);
+      } else if (typeof row.tier_pct === "number" && row.tier_pct > 0) {
+        expect(
+          typeof row.stripe_coupon_id === "string",
+          `promotion_codes[].stripe_coupon_id should be a string when tier_pct > 0 per ck_stripe_objects_by_tier at 0091:98-102 (tier > 0 rows require a real Stripe coupon minted via ensureStripeCoupon at web/src/lib/reseller/promotion-code-mint.ts; a DB CHECK drop or a mint-branch bypass would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe(true);
+      }
     }
 
     expect(
