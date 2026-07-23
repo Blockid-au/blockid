@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.315
+version: 2026-07-23.316
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -651,6 +651,120 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 316
+    ran_at: 2026-07-23
+    action: p10_commissions_status_value_set_enum_pin_on_admin_reseller_detail
+    result: |
+      Sixth column tightened in the reseller_commissions_current[] child-row
+      cluster opened at tick 308 — commissions[].status. Tick 315 next-pick
+      option (a) taken verbatim — rotates to the status column using a NEW
+      module-scope Set const ALLOWED_COMMISSION_STATUSES kept adjacent to
+      the existing ALLOWED_ADMIN_ROLES / ALLOWED_ADMIN_STATUSES /
+      ALLOWED_TIER_VALUES / ALLOWED_ATTRIBUTION_SOURCES cluster.
+
+      Writer-schema justification:
+        - 0094_reseller_commissions_and_events.sql:150-172 derives the
+          reseller_commissions_current.status column via a CASE expression
+          that returns one of five literals based on the presence/absence
+          of specific event_type rows in reseller_commission_events:
+            (a) 'clawed_back' when any refund_full / dispute_lost / void
+                event exists;
+            (b) 'dispute_open' when a dispute_opened event exists without
+                a matching dispute_won or dispute_lost;
+            (c) 'partially_refunded' when a refund_partial event exists;
+            (d) 'cleared' when a cleared event exists;
+            (e) 'pending_clearance' as the ELSE branch when none of the
+                above match.
+        - The value is view-computed rather than a stored column, so the
+          CASE expression is the SOLE enforcement layer — there is no DB
+          CHECK on status because the value never lives in a base table.
+          The five-literal enumeration is therefore only bounded by the
+          view definition.
+        - Application read path: selected on the Promise.all leg at
+          web/src/app/api/admin/resellers/[code]/route.ts:99-105 as the
+          7th column in the reseller_commissions_current tuple.
+
+      Design choice — two-part guard mirroring the tick 304/305
+      ALLOWED_ADMIN_ROLES / ALLOWED_ADMIN_STATUSES value-set posture
+      verbatim:
+        - (a) typeof-string preserves the NOT-NULL raw-type discipline;
+          catches a PostgREST regression that returned null|undefined,
+          a view-definition drift that dropped the ELSE branch of the
+          CASE (leaving the column nullable when no event_type matches),
+          or a projection-side drop from the route.ts:99-105 SELECT
+          tuple.
+        - (b) ALLOWED_COMMISSION_STATUSES.has() membership assert
+          catches a view-definition drift that introduced a new status
+          literal outside the enumeration (e.g. adding a
+          'partially_disputed' branch without extending the Set-side
+          allowlist) or a schema-side edit that added a new event_type
+          without extending the CASE (leaving rows falling through to
+          an unexpected branch such as pending_clearance instead of the
+          intended new state).
+
+      NARROWER than the resellers-row STATUSES Set {active, paused,
+      terminated} at row 1059 because reseller_commissions.status is a
+      settlement-lifecycle enum (five states tracking the commission's
+      clearance journey), not the business-lifecycle enum used on the
+      resellers table.
+
+      Coverage-per-guard posture:
+        - Detail surface: wave-5 row 167 single-row GET fires the two-
+          part pin up to 50 times per test, once per commissions[] row
+          on the QAPROBEWHOLESALEACTIVE seed reseller. Hosts without
+          seeded commission rows still green because the for-loop
+          degrades gracefully to a no-op.
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-authz.spec.ts:
+            + NEW module-scope const ALLOWED_COMMISSION_STATUSES added
+              adjacent to ALLOWED_ATTRIBUTION_SOURCES (row 1100 cluster),
+              with a doc-block above summarising the view CASE branches.
+            + module-scope doc-block (tick 316 paragraph) added below
+              the tick 315 net_owed_cents paragraph above ISO_TIMESTAMP_RE.
+            + body type widened: commissions? row shape extended with
+              status?: unknown so TypeScript narrows the row.status
+              access inside the for-of loop.
+            + wave-5 row 167 for-of loop pin appended after the tick
+              315 net_owed_cents guard: typeof-string assert plus
+              ALLOWED_COMMISSION_STATUSES.has() membership assert
+              against row.status.
+        - No production code touched, no fixture change, no route
+          change, no new imports. Matches ticks 234-315 discipline.
+
+      Verification:
+        - tsc --noEmit: production tree clean (exit 0).
+        - npm run lint:reseller: R-01 scanned 11 files, R-03 scanned
+          32 manifest routes, R-04 scanned 8 stripe files; 6 exemptions,
+          0 violations — unchanged from tick 315 baseline.
+        - vitest src/lib/reseller: no delta expected — Playwright specs
+          are excluded from vitest by design.
+
+      Next natural picks on tick 317:
+        (a) rotate to the created_at column of commissions[]
+        (timestamptz NOT NULL at 0094:44 projected via rc.created_at
+        at 0094:149) — two-part typeof-string + ISO_TIMESTAMP_RE
+        assert; reuses the module-scope ISO_TIMESTAMP_RE with no new
+        const needed.
+        (b) rotate to the amount_paid_aud_cents column (int NOT NULL
+        at 0094:40 projected via rc.amount_paid_aud_cents at 0094:146)
+        — three-part typeof-number + Number.isInteger + >= 0 assert,
+        mirrors tick 314 commission_aud_cents posture verbatim.
+        (c) rotate forward to attributions_summary.total /
+        attributions_summary.active — refine the existing typeof-number
+        asserts with Number.isInteger + >= 0 tail asserts matching the
+        posture applied to by_source values at tick 313.
+        (d) rotate to promotion_codes[].stripe_coupon_id (text nullable
+        at 0091:97 projected via route.ts:80-89 select) — two-part
+        typeof-string-or-null wire-shape pin, extends the tick 301
+        posture already carried on the promotion_codes[] cluster with
+        a fresh column.
+        (e) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks.
+    commit: (this tick)
+
   - tick: 315
     ran_at: 2026-07-23
     action: p10_commissions_net_owed_cents_int_may_be_negative_pin_on_admin_reseller_detail

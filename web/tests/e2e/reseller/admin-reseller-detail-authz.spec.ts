@@ -1018,6 +1018,48 @@ const UUID_RE =
 // Promise.all leg is unique to the detail route. No new module-scope
 // const needed. Continues the P10 hardening posture — no fixture change,
 // no route change, no new imports.
+//
+// Tick 316 — commissions[].status text NOT NULL value-set enum pin.
+// Continues the reseller_commissions_current[] child-row cluster after
+// the tick 315 net_owed_cents pin. Tick 315 next-pick option (a) taken
+// verbatim — rotates to the status column using a NEW module-scope Set
+// const ALLOWED_COMMISSION_STATUSES kept adjacent to the existing
+// ALLOWED_ADMIN_ROLES / ALLOWED_ADMIN_STATUSES / ALLOWED_TIER_VALUES /
+// ALLOWED_ATTRIBUTION_SOURCES cluster. Column source: the
+// reseller_commissions_current view derives the status via the CASE
+// expression at 0094:150-172, which returns one of the five values
+// {clawed_back, dispute_open, partially_refunded, cleared,
+// pending_clearance} based on the presence/absence of specific event_type
+// rows in reseller_commission_events (see the ALLOWED_COMMISSION_STATUSES
+// doc-block above for the per-branch semantics). The value is view-
+// computed rather than a stored column so the CASE expression is the
+// sole enforcement layer — there is no DB CHECK on status because the
+// value never lives in a base table. Selected on the Promise.all leg at
+// web/src/app/api/admin/resellers/[code]/route.ts:99-105 as the 7th
+// column in the reseller_commissions_current tuple.
+//
+// Design choice — two-part guard mirroring the tick 304/305
+// ALLOWED_ADMIN_ROLES / ALLOWED_ADMIN_STATUSES value-set posture verbatim:
+// (a) typeof-string preserves the NOT-NULL raw-type discipline; catches
+// a PostgREST regression that returned null|undefined, a view-definition
+// drift that dropped the ELSE branch of the CASE (leaving the column
+// nullable when no event_type match), or a projection-side drop from the
+// route.ts:99-105 SELECT tuple. (b) ALLOWED_COMMISSION_STATUSES.has()
+// membership assert catches a view-definition drift that introduced a
+// new status literal outside the enumeration (e.g. adding a
+// 'partially_disputed' branch without extending the Set-side allowlist)
+// or a schema-side edit that added a new event_type without extending
+// the CASE expression (leaving rows falling through to an unexpected
+// branch). Detail-surface only per the same posture as ticks 299-315 —
+// the commissions Promise.all leg is unique to the detail route.
+//
+// Coverage-per-guard posture: wave-5 row 167 single-row GET fires the
+// two-part pin up to 50 times per test, once per commissions[] row on
+// the QAPROBEWHOLESALEACTIVE seed reseller. Hosts without seeded
+// commission rows still green because the for-loop degrades gracefully
+// to a no-op. Continues the P10 hardening posture — no fixture change,
+// no route change, no new imports; adds ONE new module-scope const
+// (ALLOWED_COMMISSION_STATUSES).
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Tick 309 — Stripe invoice ID shape regex. Matches the modern Stripe
@@ -1101,6 +1143,36 @@ const ALLOWED_ATTRIBUTION_SOURCES = new Set([
   "code",
   "provisioned",
   "admin_manual",
+]);
+// Tick 316 — value set for commissions[].status element membership. Mirrors
+// the CASE expression at 0094:150-172 in the reseller_commissions_current
+// view, which derives the status from the presence/absence of specific
+// event_type rows in reseller_commission_events: (a) 'clawed_back' when any
+// refund_full / dispute_lost / void event exists; (b) 'dispute_open' when a
+// dispute_opened event exists without a matching dispute_won or dispute_lost;
+// (c) 'partially_refunded' when a refund_partial event exists; (d) 'cleared'
+// when a cleared event exists; (e) 'pending_clearance' as the ELSE branch
+// when none of the above match. The status is view-computed rather than a
+// stored column, so the CASE expression is the sole enforcement layer — a
+// schema-side edit that added a new event_type WITHOUT extending the CASE
+// (leaving a partially-refunded-then-cleared row falling through to the
+// pending_clearance ELSE branch, for example), or a view-definition drift
+// that introduced a new status literal outside the enumeration, would land
+// straight through PostgREST onto the wire — which this Set catches on the
+// first offending row. NARROWER than the resellers-row STATUSES Set
+// {active, paused, terminated} at row 1059 because reseller_commissions.
+// status is a settlement-lifecycle enum (five states tracking the
+// commission's clearance journey), not the business-lifecycle enum used on
+// the resellers table. Kept adjacent to the existing ALLOWED_ADMIN_ROLES /
+// ALLOWED_ADMIN_STATUSES / ALLOWED_TIER_VALUES / ALLOWED_ATTRIBUTION_SOURCES
+// cluster so a future value-set tick lands next to its siblings without
+// scattering.
+const ALLOWED_COMMISSION_STATUSES = new Set([
+  "cleared",
+  "pending_clearance",
+  "clawed_back",
+  "dispute_open",
+  "partially_refunded",
 ]);
 
 test.describe("Admin reseller GET pre-read authorization — P10 dry-run", () => {
@@ -1308,6 +1380,7 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         discount_pct?: unknown;
         commission_aud_cents?: unknown;
         net_owed_cents?: unknown;
+        status?: unknown;
       }>;
     };
 
@@ -1997,6 +2070,26 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
       expect(
         Number.isInteger(row.net_owed_cents),
         `commissions[].net_owed_cents '${String(row.net_owed_cents)}' should be an integer (view-computed int at 0094:173-177 summing int commission_aud_cents + int delta_aud_cents; a PostgREST bigint-as-string serialisation regression, a fractional-cents value from a proration edge, or NaN/Infinity from a reducer refactor would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      // Tick 316 — commissions[].status text NOT NULL value-set enum pin.
+      // Column source: reseller_commissions_current view derives status
+      // via CASE at 0094:150-172, returning one of {clawed_back,
+      // dispute_open, partially_refunded, cleared, pending_clearance}
+      // based on the presence/absence of specific event_type rows in
+      // reseller_commission_events. Two-part guard mirroring the tick
+      // 304/305 ALLOWED_ADMIN_ROLES / ALLOWED_ADMIN_STATUSES value-set
+      // posture: (a) typeof-string preserves the NOT-NULL raw-type
+      // discipline; (b) ALLOWED_COMMISSION_STATUSES.has() membership
+      // assert against the new module-scope Set const kept adjacent to
+      // the ALLOWED_* cluster. See module-scope doc-block above
+      // ISO_TIMESTAMP_RE (tick 316 paragraph) for the full rationale.
+      expect(
+        typeof row.status === "string",
+        `commissions[].status '${String(row.status)}' should be a string (view-computed text NOT NULL via CASE at 0094:150-172; a view-definition drift that dropped the ELSE branch leaving the column nullable, a projection-side drop from route.ts:99-105 select, or a PostgREST serialisation regression that returned null|undefined would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        ALLOWED_COMMISSION_STATUSES.has(row.status as string),
+        `commissions[].status '${String(row.status)}' should be one of {cleared, pending_clearance, clawed_back, dispute_open, partially_refunded} (CASE at 0094:150-172 in the reseller_commissions_current view; a view-definition drift that introduced a new status literal outside the enumeration or a schema-side edit that added a new event_type without extending the CASE would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
     }
   });
