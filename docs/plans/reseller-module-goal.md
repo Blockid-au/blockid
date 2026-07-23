@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.284
+version: 2026-07-23.285
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,177 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 285
+    ran_at: 2026-07-23
+    action: p10_admin_reseller_detail_created_at_updated_at_iso_pin_mirror_from_admin_resellers_list_283_284
+    result: |
+      Cross-surface mirror per tick 284 next-pick option (a) verbatim —
+      reseller.created_at + reseller.updated_at ISO wire-shape pins landed
+      on admin-reseller-detail-authz.spec.ts, extending the tick 283/284
+      lineage from the admin-resellers-list surface onto the third admin
+      resellers-family surface (single-row GET on /api/admin/resellers/
+      [code]). Pre-tick posture pinned body.reseller.id (UUID) / .code
+      (=== fixture.code uppercased) / .display_name (typeof string) /
+      .billing_model (enum) / .status (enum) but left the two timestamptz
+      columns silent even though the route projects them via select("*")
+      at route.ts:47-48.
+
+      Eleventh pin in the tick 275-285 lineage; both cross-surface mirror
+      (echoes ticks 283 + 284 pins from admin-resellers-list-authz onto
+      admin-reseller-detail-authz) AND a two-column bundle in one tick
+      (created_at + updated_at land together rather than the usual one-
+      pin-per-tick discipline) because the detail surface has never
+      carried EITHER pin — landing both in a single tick brings the
+      detail surface up to parity with the list surface's tick 284 state
+      in one pass, avoiding an unnecessary two-tick asymmetry window.
+
+      Writer-schema justification:
+        - 0091_reseller_module_foundations.sql:43 declares
+          `created_at timestamptz NOT NULL DEFAULT now()` on the
+          resellers table.
+        - 0091_reseller_module_foundations.sql:44 declares
+          `updated_at timestamptz NOT NULL DEFAULT now()` on the
+          resellers table — no touch-updated trigger (verified by tick
+          284's grep across web/supabase/migrations/) so PATCH callers
+          at /api/admin/resellers/[code]:132-208 are responsible for
+          stamping updated_at=now() on write; on fresh INSERTs
+          updated_at === created_at.
+        - Both NON-NULL columns → single typeof-string + regex assert
+          per column, mirrors tick 283 (created_at) + tick 284
+          (updated_at) posture verbatim.
+        - PostgREST serialises timestamptz to ISO-8601 on the wire
+          (same library behaviour ticks 275/280/283/284 exercise on
+          reseller_requests.created_at / admin-requests created_at /
+          resellers.created_at / resellers.updated_at on the list
+          surface).
+        - Admin-scoped route at /api/admin/resellers/[code]/route.ts:
+          43-53 projects the resellers row via select("*") — so a
+          route regression that swapped select("*") for a column-list
+          missing either timestamptz column would surface here.
+
+      Design choice — mirror the list surface tick 283 + 284 pins verbatim:
+        - Introduces one new module-scope constant ISO_TIMESTAMP_RE (same
+          shape as the list surface hoisted constant tick 283 shipped);
+          the detail spec had no prior ISO regex, so the constant is
+          new-to-this-file but syntactically identical to the list spec.
+        - Single-part guard per column (matches tick 283 + 284 NOT-NULL
+          discipline verbatim): typeof-string assert fires first,
+          ISO_TIMESTAMP_RE match fires immediately after so a projection
+          drop surfaces on the typeof check before the regex runs.
+        - Both asserts land as a single logical block immediately after
+          the existing status enum pin, so the shape-pins on the
+          reseller row form a contiguous chain (id → code → display_name
+          → billing_model → status → created_at → updated_at) with no
+          intervening cross-column asserts.
+
+      Coverage-per-guard posture:
+        - Green-path fixture wave-5 row 167 seeds an ACTIVATED admin
+          harness (qa-admin-1@blockid.au) so the requireAdmin() gate
+          passes; loadTempReseller('active_wholesale') resolves the
+          QAPROBEWHOLESALEACTIVE seed row so the detail GET fires
+          against a real resellers row.
+        - Single-row GET — the asserts run ONCE per test (no per-row
+          for-loop) which is equivalent to the list surface's per-row
+          for-loop iterating exactly one seeded row.
+        - Fresh CI hosts without the QA reseller seed still green
+          because test.skip() fires when loadTempReseller returns null
+          (spec.ts:259-262).
+        - No fixture that seeds a PATCH-diverged updated_at row today,
+          so the pin exercises the "updated_at === created_at" branch
+          on wave-5 row 167 only; the diverged-branch coverage waits
+          on a future PATCH-fixture seed (matches tick 284's rationale
+          verbatim — the pin still closes the serialisation contract
+          so a drift surfaces on the next CI pass whenever the wave-5
+          row 167 happy GET returns).
+
+      Diagnostic delta of the pass:
+        - One new module-scope constant ISO_TIMESTAMP_RE (matches list
+          surface tick 283 constant; the detail spec had no prior ISO
+          regex hoisted).
+        - New doc-block above ISO_TIMESTAMP_RE citing 0091:43-44 as the
+          column sources, the no-touch-trigger observation from tick 284,
+          the cross-surface-mirror rationale, and the two-column-in-one-
+          tick rationale.
+        - One new inline assertion block (four assertions: typeof-string
+          + ISO_TIMESTAMP_RE.test() per column × 2 columns) inside the
+          wave-5 row 167 happy GET test, immediately after the existing
+          status enum pin. Block-scope comment cites 0091:43-44 and the
+          tick 283 + tick 284 sibling posture.
+        - Two-line addition to the body.reseller row interface
+          (created_at?: unknown; updated_at?: unknown;) so tsc still
+          resolves the shape.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no widening of existing guards.
+          Matches ticks 234-284 discipline: tighten one surface (add
+          ISO wire-shape asserts on resellers.created_at +
+          resellers.updated_at on the DETAIL surface) with zero net
+          new imports.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: 11 R-01 files + 31 R-03 routes
+          scanned, 3 exemptions, 0 violations
+        - Playwright specs excluded from vitest by design; the two
+          new asserts fire when `npx playwright test admin-reseller-
+          detail-authz` runs (wave-5 row 167 skips on CI hosts
+          lacking loadAdminHarness / loadTempReseller seeds).
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-detail-authz.spec.ts
+          (module-scope doc-block + ISO_TIMESTAMP_RE constant added
+          immediately after UUID_RE; body.reseller row interface gains
+          created_at?: unknown + updated_at?: unknown; wave-5 row 167
+          happy GET body gains a typeof-string + ISO_TIMESTAMP_RE.test()
+          block on both body.reseller.created_at and .updated_at
+          immediately after the existing status enum pin, with a
+          block-scope comment citing 0091:43-44 as the column sources
+          and the tick 283 + 284 sibling posture.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.284 → 2026-07-23.285; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no production-code touch, no
+          new import, no widening of the guards on existing pins.
+          Consistent with ticks 234-284's incremental-pin pattern.
+        - Cross-surface mirror rather than same-column-fresh-row —
+          echoes ticks 283 + 284 ISO_TIMESTAMP_RE pins onto the
+          detail-GET surface so a PostgREST serialisation regression
+          on either resellers.created_at OR resellers.updated_at
+          surfaces on BOTH admin resellers-family surfaces (list +
+          detail) on the same CI pass. Third admin resellers-family
+          surface to carry the pin (admin-reseller-loop-status uses
+          an on-disk snapshot envelope with no timestamptz projection
+          so it does not join the pin family).
+
+      Next natural picks on tick 286:
+        (a) mirror tick 285's created_at + updated_at ISO pins onto
+        the resellers row inside admin-reseller-patch-authz.spec.ts's
+        happy-path row if it projects the resellers row via
+        select("*") on the PATCH response (needs a quick spec read to
+        confirm PATCH response shape includes the timestamptz columns).
+        Same schema source (0091:43-44), same regex, same NOT-NULL
+        discipline. Would complete the admin resellers-family pin
+        symmetrisation across list + detail + patch surfaces.
+        (b) rotate to a fresh non-timestamp column pin on the resellers
+        row — commission_share_pct (numeric(5,2) NOT NULL DEFAULT 40.00
+        at 0091:38) is the natural pick per tick 284 option (b); assert
+        typeof-number + within [0, 100] range on both the list surface
+        and the detail surface so a schema-side drift or a projection
+        swap surfaces at the read layer.
+        (c) rotate to the reseller-side /api/reseller/me/route.ts
+        surface if it projects reseller row created_at / updated_at
+        (needs a quick route read to confirm the projection first).
+        Carried over unchanged from tick 284 option (c).
+        (d) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks while the two HUMAN-BLOCKED leaves await external
+        unblock signals (H.20 InfoVision ABN + GST confirmation
+        OR Stripe add-on price env vars).
+    commit: (this tick)
+
   - tick: 284
     ran_at: 2026-07-23
     action: p10_admin_resellers_list_updated_at_iso_pin_fresh_column_rotation
