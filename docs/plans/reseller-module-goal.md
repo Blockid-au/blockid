@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.253
+version: 2026-07-23.254
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,152 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 254
+    ran_at: 2026-07-23
+    action: p10_loop_status_tick_row_auto_commit_failed_error_one_pin_option_y11
+    result: |
+      Landed tick 253's "natural next pick" option (y11) as the fifteenth
+      conditional-by-stage schema pin on tick_history rows in admin-
+      reseller-loop-status-authz.spec.ts happy path. Closes the safety-net
+      commit catch branch (mjs:328-341) writer contract by pinning the
+      `error: String(err)` cast — one-pin single-guard shape restoring the
+      one-pin cadence after tick 253's four-pin delegated_dispatch guard,
+      symmetric with tick 244's `error` stage guard which pinned the same
+      `String(err)` cast pattern for the top-level readGoal() catch branch.
+
+      Writer-schema justification:
+        - scripts/cron/reseller-goal-loop.mjs:340 writes
+          `log({ stage: 'auto_commit_failed', error: String(err) })`
+          inside the try/catch at mjs:328-341 that wraps the entire
+          safety-net commit block (git status + git add + git commit +
+          git push). Only fires when one of those spawnSync calls or the
+          surrounding await log() throws — bounded by the try/catch
+          envelope, so this row is very rare in CI runs (coverage-per-
+          guard effectively zero on green-path runs). The pin still
+          closes the writer contract for the safety-net failure path so
+          a future writer-side rename (e.g. `error` → `err` or payload
+          restructure) surfaces as a test failure rather than silent
+          drift.
+        - `error` is `String(err)` at mjs:340 — the `String()` cast
+          narrows any throwable (Error subclass, string throw, non-
+          Error object, undefined, null) to a JSON-serialisable string,
+          so this row is a schema-level typeof=string guarantee. Matches
+          tick 244's error-stage rationale verbatim (mjs:218 uses the
+          same `String(err)` cast for the readGoal() catch branch).
+
+      Design choice — one-pin single guard:
+        - Sits in its own conditional-by-stage guard matching the tick
+          240-253 convention. Comes AFTER the tick 253 delegated_dispatch
+          guard so future guards land in monotonic tick-order.
+        - TYPEOF pin only (not value) per the tick 230 "typeof only so
+          the value can drift" convention. Value pin would require a
+          moving-target regex against arbitrary throw messages.
+        - One pin because the writer contract at mjs:340 emits exactly
+          one field beyond the log() helper's fixed tick_id/ts/
+          human_review_minutes_7d prefix — matches the tick 241 idle +
+          tick 243 auto_commit_started precedent for single-field rows.
+
+      Diagnostic delta of the pass:
+        - Added 1 stage-guarded one-pin expect block (~46 lines: ~40
+          lines of justifying comment + ~6 lines of guard + one expect
+          statement) inside the tick_history row loop, immediately after
+          the tick 253 delegated_dispatch guard.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no vitest/Playwright runtime posture
+          change, no new module-scope constant. Matches ticks 223-253
+          discipline: tighten one dimension (in this case close the
+          safety-net commit failure writer contract), single tick.
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-loop-status-authz.spec.ts
+          (one conditional-by-stage one-pin guard added after the tick
+          253 delegated_dispatch guard, citing reseller-goal-loop.mjs:340
+          as the auto_commit_failed writer site and mjs:328-341 as the
+          bounding try/catch envelope.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.253 → 2026-07-23.254; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local constant, no fixture-file
+          delta, no seed-script change, no P8.5-gated code_request work
+          (option (c) still blocked), no production-code touch.
+          Consistent with ticks 239-253's stage-guard pattern.
+
+      Verified:
+        - reseller-goal-loop.mjs:340 grepped to confirm exactly one
+          `stage: 'auto_commit_failed'` writer site; mjs:328-341 confirms
+          the try/catch envelope shape unchanged.
+        - tsc clean (npx tsc --noEmit in web/, exit 0, no output).
+        - npm run lint:reseller: R-01 scanned 11 file(s), R-03 scanned
+          31 manifest route(s); 3 exemptions, 0 violations.
+        - The tick 254 pin sits directly above the closing brace of the
+          tick_history row loop — matches the monotonic tick-order
+          convention.
+
+      Frontier after tick 254: unchanged shape — Track A HUMAN-BLOCKED
+      on P8.5 Stripe env vars + P1.5 InfoVision seed on H.20 ABN + GST;
+      Track B COMPLETE; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 254 does NOT unblock: P8.5 STRIPE_PRICE_ADDON_SHARE_MGMT_*
+      env vars still human-gated; P1.5 InfoVision ABN + GST still
+      human-gated per H.20. Safety-net commit failure writer contract now
+      pinned — combined with tick 244's readGoal() error stage, both of
+      the mjs-side `String(err)` catch-branch writer sites in the
+      top-level main() flow are schema-guarded. Remaining unpinned
+      error-cast branches: human_blocked_snapshot_failed (mjs:234, option
+      y12) + cron_removal_failed (mjs:259, option y19) — both extremely
+      low-coverage on green-path CI (only fire on inner-try throws within
+      already-rare branches).
+
+      Natural next pick for tick 255:
+        (y12) land `human_blocked_snapshot_failed` (mjs:234) row's
+             `error` key — `String(err)` cast pattern identical to tick
+             244 + tick 254. Only fires when extractHumanBlockedSnapshot
+             throws, which is bounded by the try/catch at mjs:226-235.
+             Very rare in CI runs. One-pin candidate.
+        (y13) land `cron_removal` (mjs:257) row's `status` key —
+             spawnSync `stop.status ?? -1` (number guaranteed). Only
+             fires when the goal file's top-level status is 'done',
+             which by design should be the FINAL tick of the entire loop
+             — coverage-per-guard is zero on green-path CI runs, but the
+             pin closes the writer contract for the completion path.
+             One-pin candidate.
+        (y19) land `cron_removal_failed` (mjs:259) row's `error` key —
+             `String(err)` cast pattern identical to tick 244 + tick
+             254. Only fires when the crontab -l | grep -v pipeline
+             throws inside the goal-completion detector. Coverage-per-
+             guard is effectively zero on green-path CI runs. One-pin
+             candidate.
+        (y20) land `goal_completed` (mjs:242) row's `message` and
+             `completion_marker` keys — both bare string literals at
+             mjs:244-245 so a value pin would also be valid, but typeof-
+             only matches the drift convention. Two-pin candidate. Only
+             fires on the FINAL tick of the loop, so coverage-per-guard
+             is zero on green-path CI runs.
+        (u) audit whether the admin-requests-list-authz per-key content
+            pins deferred at tick 234's option (r) could land as a three-
+            surface change (reseller-side twin + admin-side list + admin-
+            side patch spec) in a single bigger-diff tick. Available;
+            deferred at ticks 235-253.
+        (r) audit whether the admin-requests-list-authz newly-pinned
+            payload plain-object guard could be extended to per-key
+            content pins for the three request_type variants. Still
+            available; deferred at ticks 235-253.
+        (n) audit whether admin-requests-patch-authz.spec.ts approve
+            branch decision_at pin could be tightened from typeof string
+            to an ISO-8601 regex — header-rewrite-first option
+            (contradicts existing "assert typeof string only" header
+            comment from tick 230). Still available; deferred at 235-253.
+        (x) audit format-shape pins for now_utc / next_utc (HH:MM:SS /
+            HH:MM regex) / seconds_until (0..3600 range) / tick_state
+            (enum of 4 branches) — header-rewrite option (contradicts
+            existing "typeof-string only so the value can drift"
+            comment).
+        (c) mirror row 179 shape+helper alignment onto row 175 approve+
+            deny+cancel code_request branches once P8.5 unblocks.
+            P8.5-blocked, no available today.
+    commit: (this tick)
+
   - tick: 253
     ran_at: 2026-07-23
     action: p10_loop_status_tick_row_delegated_dispatch_four_pin_option_y6

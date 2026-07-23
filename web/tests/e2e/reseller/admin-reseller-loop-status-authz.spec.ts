@@ -1048,6 +1048,60 @@ test.describe("Admin reseller-loop status — P10 wave-5 row 173 happy path", ()
           `tick_history delegated_dispatch row.signal should be null OR typeof string (reseller-goal-loop.mjs:198 threads res.signal from spawnSync — Node.js child_process contract is \`string | null\`: null on clean exit, string like 'SIGTERM' on kill-signal termination → mjs:319 spread): ${JSON.stringify(row).slice(0, 200)}`,
         ).toBe(true);
       }
+      // tick 254 — auto_commit_failed stage schema pin (option y11 from
+      // tick 253's natural-next-picks — the safety-net commit catch
+      // branch's `error` key). One-pin candidate — the only field the
+      // writer at scripts/cron/reseller-goal-loop.mjs:340 spreads
+      // beyond the log() helper's own tick_id/ts/human_review_minutes_7d
+      // is the bare `error: String(err)` cast. Restores the one-pin
+      // cadence after tick 253's four-pin delegated_dispatch guard, and
+      // symmetrises against the tick 244 `error` stage guard which
+      // pinned the same `String(err)` cast pattern for the top-level
+      // readGoal() catch branch.
+      //
+      // Writer-schema justification:
+      //   - scripts/cron/reseller-goal-loop.mjs:340 writes
+      //     `log({ stage: 'auto_commit_failed', error: String(err) })`
+      //     inside the try/catch at mjs:328-341 that wraps the entire
+      //     safety-net commit block (git status + git add + git commit
+      //     + git push). Only fires when one of those spawnSync calls
+      //     or the surrounding await log() throws — bounded by the
+      //     try/catch envelope, so this row is very rare in CI runs
+      //     (coverage-per-guard is effectively zero on green-path
+      //     runs). The pin still closes the writer contract for the
+      //     safety-net failure path so a future writer-side rename
+      //     (e.g. renaming the key from `error` → `err` or restructuring
+      //     the payload) surfaces as a test failure rather than a
+      //     silent drift.
+      //   - `error` is `String(err)` at mjs:340 — the `String()` cast
+      //     narrows any throwable (Error subclass, string throw, non-
+      //     Error object, undefined, null) to a JSON-serialisable
+      //     string, so this row is a schema-level typeof=string
+      //     guarantee. Matches the tick 244 error-stage rationale
+      //     verbatim (mjs:218 uses the same `String(err)` cast for the
+      //     readGoal() catch branch). Bare `typeof === 'string'` pin.
+      //
+      // Design choice — one-pin single guard:
+      //   - Sits in its own conditional-by-stage guard matching the
+      //     tick 240-253 convention. Comes AFTER the tick 253
+      //     delegated_dispatch guard so future guards land in
+      //     monotonic tick-order.
+      //   - TYPEOF pin only (not value) — `error` varies per throw
+      //     site (message text, stack trace snippet, arbitrary
+      //     throwable). Value pins would require a moving-target
+      //     regex, matching tick 244's typeof-only convention verbatim.
+      //   - One pin because the writer contract at mjs:340 emits
+      //     exactly one field beyond the log() helper's fixed
+      //     tick_id/ts/human_review_minutes_7d prefix — no additional
+      //     fields to pair with, so the one-pin single-guard shape
+      //     matches the tick 241 idle + tick 243 auto_commit_started
+      //     precedent for single-field rows.
+      if (tickRow.stage === "auto_commit_failed") {
+        expect(
+          typeof tickRow.error,
+          `tick_history auto_commit_failed row.error should be typeof string (reseller-goal-loop.mjs:340 writes \`String(err)\` — narrows any throwable from the safety-net commit try/catch at mjs:328-341 to a JSON string): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("string");
+      }
     }
     expect(
       typeof body.generated_at === "string" &&
