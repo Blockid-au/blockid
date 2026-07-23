@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.306
+version: 2026-07-23.307
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -658,6 +658,108 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 307
+    ran_at: 2026-07-23
+    action: p10_admins_revoked_at_nullable_iso_shape_pin_on_admin_reseller_detail
+    result: |
+      Fourth (and closing) column tightened in the reseller_admins[]
+      child-row cluster opened at tick 304 — admins[].revoked_at. Tick
+      306 next-pick option (a) taken verbatim. Closes the admins[]
+      child-row column-pin cluster because revoked_at was the last
+      un-tightened column in the projection tuple
+      select("id, user_id, role, status, linked_at, revoked_at") at
+      web/src/app/api/admin/resellers/[code]/route.ts:89-93.
+
+      Writer-schema justification:
+        - 0091_reseller_module_foundations.sql:76 declares
+          `revoked_at timestamptz` (nullable, NO NOT NULL clause) on
+          reseller_admins. Standalone column with no CHECK; semantically
+          joined to status via the link-lifecycle discipline
+          (status === 'revoked' ⇔ revoked_at IS NOT NULL, enforced only
+          at the app-layer revoke code-path — no DB CHECK yet).
+        - Application write path stamps revoked_at = now() at the
+          revoke-admin RPC boundary; the column stays NULL for the
+          entire active lifetime of the link.
+        - Projected on the same Promise.all leg at
+          web/src/app/api/admin/resellers/[code]/route.ts:89-93.
+
+      Design choice — combine the tick 301 nullable-text posture
+      (null-or-typeof-string) with the tick 300/306 ISO shape assert:
+        - (a) null-or-typeof-string preserves the nullable-timestamptz
+          posture; catches a schema-side NOT NULL addition that broke
+          seeded null rows or a PostgREST regression that returned a
+          non-null/non-string wire value.
+        - (b) conditional ISO_TIMESTAMP_RE.test() shape assert on the
+          non-null branch only — a drift to a non-ISO string, a Unix
+          epoch number rendered as string, or a truncated date-only
+          value would surface here on the first offending row.
+        - Reuse of ISO_TIMESTAMP_RE rather than a new module-scope
+          const because the shape is identical across every timestamptz
+          column already pinned in the spec.
+
+      Coverage-per-guard posture:
+        - Detail surface: wave-5 row 167 single-row GET fires the pin
+          N times per test, once per admins[] row on the
+          QAPROBEWHOLESALEACTIVE seed reseller. seed-qa-reseller.mjs
+          mints per-variant admins rows; active rows exercise the null
+          branch, revoked rows (if seeded) exercise the ISO shape
+          branch.
+        - Fresh CI hosts without the QA reseller seed still green
+          because the for-loop is a no-op on zero rows.
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 307 paragraph) added below
+              the tick 306 linked_at block above ISO_TIMESTAMP_RE.
+            + wave-5 row 167 for-of loop over body.admins: null-or-
+              typeof-string assert plus conditional ISO_TIMESTAMP_RE
+              assert appended after the tick 306 linked_at guard.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope constants
+          (ISO_TIMESTAMP_RE reused). Matches ticks 234-306 discipline
+          verbatim.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: unchanged from tick 306 baseline
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-detail-authz.spec.ts
+          (module-scope doc-block extended with tick 307 paragraph;
+          admins[] for-loop tick 306 linked_at pin followed by a new
+          tick 307 nullable-ISO two-part pin on revoked_at.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.306 → 2026-07-23.307; this review_history entry
+          prepended noting the fourth-column tightening that closes
+          the reseller_admins[] child-row cluster.)
+
+      Design fidelity:
+        - Additive-plus-tighten only. No new spec-local test case, no
+          fixture-file delta, no seed-script change, no production-code
+          touch, no new imports, no new module-scope constants (regex
+          reused from tick 283/285/300/306). Consistent with ticks
+          234-306's incremental-pin pattern.
+        - Detail-only tick — fourth (and closing) column tightened in
+          the reseller_admins[] child-row cluster (0091:68-76). List
+          surface not touched because the list route doesn't project
+          admins at all.
+
+      Next natural picks on tick 308:
+        (a) rotate to reseller_attributions[] cluster — larger fan-out
+        with more per-row columns; same pinning discipline.
+        (b) rotate to reseller_commissions[] cluster — similar large
+        fan-out with per-row columns still to pin.
+        (c) link-lifecycle invariant assert coupling revoked_at IS NOT
+        NULL ⇔ status === 'revoked' — cross-column semantic invariant
+        rather than per-column shape pin; would complete the admins[]
+        cluster with a link-lifecycle discipline pin.
+        (d) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening ticks
+        while the two HUMAN-BLOCKED leaves await external unblock
+        signals.
+    commit: (this tick)
+
   - tick: 306
     ran_at: 2026-07-23
     action: p10_admins_linked_at_iso_shape_pin_on_admin_reseller_detail
