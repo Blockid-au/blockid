@@ -238,6 +238,45 @@ const UUID_RE =
 // drop of decision_reason there would still let the PATCH echo the value
 // back on the write envelope but would fail the read-back here.
 //
+// Tick 273 — linked_credit_transaction_id UUID wire-shape pin added as the
+// ninth per-column pin. Unlike tick 265-272's symmetric-across-three-surfaces
+// pins, this one is ASYMMETRIC single-surface: only the approve-block read-
+// back carries a non-null UUID here. The deny + cancel blocks already pin
+// `linked_credit_transaction_id === null` at line 575 + 1038 respectively per
+// the ck_credit_link CHECK at 0095:48-51 which permits a non-null value ONLY
+// when request_type='over_budget_approval' AND status='approved'. The
+// PATCH-response envelope at route.ts:317-319 already pins the same UUID via
+// linkedTxId at line 1494-1496 (typeof-string + UUID_RE); this pin closes
+// the same contract against the list route's SELECT column projection at
+// /api/admin/resellers/requests/route.ts:44 — a projection drop of
+// linked_credit_transaction_id there would still let the PATCH echo the
+// value back on the write envelope but would fail the read-back here.
+// Reuses the module-scope UUID_RE (line 139-140) rather than adding a ninth
+// constant — same invariant as the tick-266 decision_by + tick-271
+// reseller_id + tick-272 requested_by pins (all four are uuid columns per
+// 0095:27-28 + 0095:34 + 0095:37; all four stamp UUID strings via PostgREST
+// serialisation). Two-part guard mirrors the sibling UUID pins: typeof-
+// string (catches a column-type flip from uuid to say a bigint would surface
+// as a number here, or a route regression that stripped
+// linked_credit_transaction_id from the list SELECT's column projection
+// where it is the tenth column — would fail the guard because undefined is
+// not a string) + UUID_RE (a drift in the uuid serialisation shape from
+// PostgREST or a route regression that returned a placeholder-string value
+// would fail the regex match). Pin fires ONLY after the tick-272
+// requested_by pin has passed on the same read-back row so tighter existing
+// pins surface first. The 0095:37 ON DELETE SET NULL semantics mean the
+// referenced credit_transactions row COULD vanish mid-fixture leaving the
+// linked_credit_transaction_id null again — but the fixture's
+// attachApproveTarget() snapshot-restore posture (see line 78-84 module-
+// scope block) guarantees the credit_transactions row lives from the PATCH
+// through the very next GET in the same test, so a null read-back here
+// would surface a bona-fide route or projection regression rather than a
+// fixture race. Coverage-per-guard posture: green-path fixtures only seed
+// over_budget_approval approve targets today (code_request approve is
+// blocked on Stripe test-mode wiring per line 72-74) so this pin exercises
+// exactly the branch the ck_credit_link CHECK permits — the enum
+// exclusivity is verified by the deny + cancel null pins at line 575 + 1038.
+//
 // Tick 272 — requested_by UUID wire-shape pin added as the eighth per-column
 // pin on the same three post-PATCH read-back rows (deny + cancel + approve).
 // reseller_requests.requested_by is a `uuid NOT NULL REFERENCES
@@ -1595,6 +1634,7 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
           decision_by?: unknown;
           decision_reason?: unknown;
           created_at?: unknown;
+          linked_credit_transaction_id?: unknown;
         }
       | undefined;
     if (!readbackRow) {
@@ -1763,6 +1803,28 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
     expect(
       UUID_RE.test(readbackRow.requested_by as string),
       `read-back row.requested_by '${String(readbackRow.requested_by)}' should match UUID shape (uuid NOT NULL per 0095:28, populated at INSERT time and untouched by any PATCH branch); a drift to a non-UUID string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
+    ).toBe(true);
+    // Tick 273 — linked_credit_transaction_id UUID wire-shape pin (asymmetric
+    // single-surface, approve-block only). The ck_credit_link CHECK at
+    // 0095:48-51 permits a non-null value ONLY when request_type=
+    // 'over_budget_approval' AND status='approved' — the deny + cancel blocks
+    // pin `linked_credit_transaction_id === null` at line 575 + 1038
+    // respectively for the same reason. The approve fan-out at route.ts:200-
+    // 293 stamps this column with the credit_transactions.id it just inserted
+    // (see route.ts:269+303) so the wire value here mirrors that INSERT. The
+    // PATCH-response envelope at route.ts:317-319 already pins the same UUID
+    // via linkedTxId at line 1494-1496; this read-back closes the same
+    // contract against the list route's SELECT column projection at
+    // /api/admin/resellers/requests/route.ts:44 — a projection drop of
+    // linked_credit_transaction_id there would still let the PATCH echo the
+    // value back on the write envelope but would fail the read-back here.
+    // Two-part guard mirrors the sibling UUID pins: typeof-string + UUID_RE.
+    // See the module-scope tick-273 comment for full rationale including the
+    // ON DELETE SET NULL / fixture snapshot-restore fixture-race analysis.
+    expect(typeof readbackRow.linked_credit_transaction_id).toBe("string");
+    expect(
+      UUID_RE.test(readbackRow.linked_credit_transaction_id as string),
+      `read-back row.linked_credit_transaction_id '${String(readbackRow.linked_credit_transaction_id)}' should match UUID shape (uuid per 0095:37, populated by the approve fan-out at route.ts:269+303); a drift to a non-UUID string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
     ).toBe(true);
     // Two-part guard per nullable key: (a) `x === null` short-circuit +
     // (b) typeof-string + regex/length check. Same shape as the tick

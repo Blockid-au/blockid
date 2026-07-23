@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.272
+version: 2026-07-23.273
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,182 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 273
+    ran_at: 2026-07-23
+    action: p10_admin_requests_patch_readback_linked_credit_transaction_id_uuid_pin_option_b
+    result: |
+      Landed tick 272's "natural next pick" option (b) as a
+      linked_credit_transaction_id UUID wire-shape pin on the approve-block
+      post-PATCH read-back of admin-requests-patch-authz.spec.ts. Ninth per-
+      column pin on the PATCH-branch read-back surfaces after ticks 265-272,
+      and the FIRST asymmetric single-surface pin in that sequence (all
+      previous ticks 265-272 landed symmetric-across-three-surfaces pins on
+      deny + cancel + approve simultaneously; tick 273 lands on the approve
+      surface only because the ck_credit_link CHECK at 0095:48-51 permits a
+      non-null value ONLY when request_type='over_budget_approval' AND
+      status='approved' — the deny + cancel blocks already pin the column as
+      null at line 575 + 1038 respectively so the enum-exclusivity is
+      verified end-to-end).
+
+      Writer-schema justification:
+        - 0095_reseller_requests.sql:37 declares
+          `linked_credit_transaction_id uuid REFERENCES public
+          .credit_transactions(id) ON DELETE SET NULL`. The nullable-uuid +
+          FK-with-SET-NULL combination means a fixture-race in which the
+          referenced credit_transactions row vanishes between the PATCH and
+          the read-back would surface as a null read-back — but the
+          attachApproveTarget() fixture (see line 78-84 module-scope block)
+          uses a snapshot-restore posture that guarantees the credit_
+          transactions row lives from the PATCH through the very next GET in
+          the same test, so a null here would surface a bona-fide route or
+          projection regression rather than a fixture race.
+        - Admin list route at /api/admin/resellers/requests/route.ts:44
+          projects linked_credit_transaction_id as the tenth column of the
+          SELECT list. A drop from that projection would surface as a
+          typeof-string guard failure on this pin (undefined is not a
+          string).
+        - Approve fan-out at route.ts:200-293 stamps the column with the
+          credit_transactions.id it just inserted (route.ts:269+303), so the
+          read-back value must be a non-null UUID on every green-path CI run
+          against an over_budget_approval approve target.
+
+      Design choice — reuse UUID_RE + single-surface asymmetric pin:
+        - Reuses the module-scope UUID_RE constant (line 139-140) rather
+          than adding a ninth module-scope constant — same invariant as the
+          tick-266 decision_by + tick-271 reseller_id + tick-272 requested_by
+          pins (all four are uuid columns per 0095:27-28 + 0095:34 + 0095:37;
+          all four stamp UUID strings via PostgREST serialisation).
+        - Two-part guard shape (matches tick 271 reseller_id + tick 272
+          requested_by pins verbatim): (a) typeof-string (catches a column-
+          type flip from uuid to say a bigint would surface as a number
+          here — and catches a projection drop of linked_credit_transaction
+          _id from the SELECT at route.ts:44, which would fail the guard
+          because undefined is not a string), (b) UUID_RE (catches a drift
+          in the uuid serialisation shape from PostgREST or a route
+          regression that returned a placeholder-string value).
+        - ASYMMETRIC single-surface (approve block only) — first
+          departure from the tick 265-272 symmetric-three-surface pattern.
+          The ck_credit_link CHECK at 0095:48-51 restricts non-null values
+          to (over_budget_approval, approved) so any symmetric pin would
+          fail on deny + cancel. The deny + cancel null-pins at line
+          575 + 1038 verify the exclusion side; this new pin verifies the
+          inclusion side.
+        - Pin fires ONLY after the tick-272 requested_by UUID pin has
+          passed on the same read-back row so tighter existing pins
+          surface first (matches tick 265→266→267→268→269→270→271→272
+          layering discipline verbatim).
+        - readbackRow inline type shape gains a new
+          `linked_credit_transaction_id?: unknown;` field on the approve-
+          block declaration only — first asymmetric type-shape addition
+          after eight symmetric ones. Placed at the end of the type shape
+          to keep the projection-order-mirroring convention of the deny +
+          cancel blocks (which do not carry this key in their type shape
+          because their pins consume the field via the outer patchBody
+          type shape, not the readbackRow type shape).
+
+      Coverage-per-guard posture:
+        - Only the approve PATCH branch (over_budget_approval) exercises
+          this pin on green-path CI runs — the reseller-side POST seeder
+          via attachApproveTarget() inserts a row that the approve fan-out
+          then stamps with a non-null credit_transactions.id. The pin
+          catches a projection drop or column-type flip on that surface.
+        - Zero-coverage-per-guard risk on the deny + cancel surfaces is
+          handled by the existing null-pins at line 575 + 1038 — those
+          pins guarantee the column is null when status ∈ (denied,
+          cancelled) which is the DB-CHECK exclusion side. A route
+          regression that leaked an approve-branch ledger insert into the
+          deny or cancel path would fail those null-pins BEFORE this pin
+          fires on the approve read-back.
+        - The code_request approve branch is deferred pending Stripe
+          test-mode wiring (P8.5 human_blocked) so linked_promotion_code_id
+          remains zero-coverage on the wire — that natural next pick
+          option (c) is intentionally skipped this tick per the tick 272
+          "skippable pending a code_request approve fixture" annotation.
+
+      Diagnostic delta of the pass:
+        - Zero new module-scope constants (reuses UUID_RE from line
+          139-140). One new field on the approve-block readbackRow inline
+          type shape (`linked_credit_transaction_id?: unknown;` added
+          after `created_at?: unknown;` to keep the projection-order
+          mirroring at route.ts:44 where linked_credit_transaction_id is
+          the tenth column). One new two-line assertion pair (typeof-
+          string + UUID_RE) inside the approve-block read-back after the
+          tick-272 requested_by pin.
+        - Module-scope doc-comment block above the constants extended
+          with a new tick-273 paragraph describing the pin's writer-
+          schema justification + the UUID_RE reuse + the asymmetric
+          single-surface rationale + the ON DELETE SET NULL / fixture
+          snapshot-restore fixture-race analysis.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no vitest/Playwright runtime posture
+          change. Matches ticks 223-272 discipline: tighten one
+          dimension (in this case add a new column pin to the linked_
+          credit_transaction_id uuid column on the single surface that
+          the ck_credit_link CHECK permits it to be non-null) with zero
+          net new imports.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: 11 R-01 files + 31 R-03 routes
+          scanned, 3 exemptions, 0 violations
+        - npx vitest run: 75 files 954/954 pass (unchanged — Playwright
+          specs are excluded from vitest by design)
+
+      Files:
+        - web/tests/e2e/reseller/admin-requests-patch-authz.spec.ts
+          (module-scope constants doc-comment block gains a tick-273
+          paragraph describing the linked_credit_transaction_id UUID pin
+          + the UUID_RE reuse justification + the asymmetric single-
+          surface rationale; approve-block readbackRow inline type shape
+          gains a `linked_credit_transaction_id?: unknown;` field after
+          `created_at?: unknown;` mirroring the projection order at
+          route.ts:44; approve-block read-back gains a typeof-string +
+          UUID_RE assertion pair after the tick-272 requested_by pin,
+          with a block-scope comment citing 0095:37 as the column
+          declaration source, 0095:48-51 as the ck_credit_link CHECK
+          source, and route.ts:269+303 as the writer surface.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.272 → 2026-07-23.273; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no production-code touch, no
+          new import, no widening of the guards on existing pins.
+          Consistent with ticks 234-272's incremental-pin pattern.
+        - Single surface (option b design was for an asymmetric single-
+          surface pin — the ck_credit_link CHECK at 0095:48-51 makes
+          any symmetric-across-three-surfaces pin fail on deny +
+          cancel, so the natural pin is on the approve surface only,
+          complemented by the pre-existing null pins on deny + cancel
+          at line 575 + 1038 which verify the DB-CHECK exclusion side).
+
+      Next natural picks on tick 274:
+        (a) extending the same read-back pin to the reseller-scoped GET
+        list route (still-outstanding tick 266/268/269/270/271/272
+        option a — the reseller-scoped list route at /api/reseller/
+        requests/route.ts has its own SELECT + filter logic that today
+        only has the tick 260/261 default-pending read-back pinned),
+        (b) adding a linked_promotion_code_id UUID pin to the approve-
+        block read-back (still-outstanding tick 272 option c —
+        asymmetric single-surface pin, deny + cancel null this column
+        per the ck_promo_link CHECK so only the approve-code_request
+        surface would carry it; but green-path fixtures only seed
+        over_budget_approval requests so this pin would be zero-coverage
+        on the wire; skippable pending a code_request approve fixture
+        which is P8.5-blocked on Stripe test-mode wiring),
+        (c) adding a resellers-join projection pin on the list route's
+        embedded `resellers(code, display_name)` (0095:44 admin route
+        SELECT clause) — a shape pin catches a route regression that
+        stripped the join,
+        (d) extending the same linked_credit_transaction_id UUID pin to
+        the PATCH-response envelope at line 1494-1496 (currently pinned
+        only via typeof-string + UUID_RE on the write envelope but not
+        the read-back column projection; the tick-273 pin closes the
+        read-back gap so the PATCH-response pin could now be tightened
+        with the same block-scope comment citing 0095:37 as the column
+        source and the ck_credit_link exclusion analysis).
+
   - tick: 272
     ran_at: 2026-07-23
     action: p10_admin_requests_patch_readback_requested_by_uuid_pin_option_c
