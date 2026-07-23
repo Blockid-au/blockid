@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.324
+version: 2026-07-23.325
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,100 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 325
+    ran_at: 2026-07-23
+    action: p10_reseller_id_uuid_two_part_labelled_pin_on_admin_reseller_detail
+    result: |
+      SCOPE ROTATION out of the child-row clusters (promotion_codes[] +
+      admins[] + commissions[] all pinned across ticks 299-324) INTO
+      the top-level reseller row shape. Tick 324 recommendation set
+      pointed at admins[].linked_at/revoked_at ISO refresh (a),
+      attributions[].* row-shape pins (b), or idle (c) — all three
+      declined for a stronger next-pick: the reseller.id UUID PRIMARY
+      KEY on the top-level parent row was still carrying the prior
+      baseline single-line combined pin
+      `typeof body.reseller?.id === "string" && UUID_RE.test(...)`
+      with a generic 'should be UUID' message and no tick-numbered
+      doc-block, while the three child-row UUID PKs
+      (promotion_codes[].id / admins[].id / commissions[].commission_id)
+      had already been lifted at ticks 320/321/308. Lifting the
+      top-level parent's UUID PK closes the UUID PRIMARY KEY column-
+      pin cluster on the detail payload symmetrically — the four UUID
+      PKs on the wire (top-level reseller + three child rows) now
+      share one tick-numbered labelled pinning discipline.
+
+      Writer-schema justification:
+        - 0091_reseller_module_foundations.sql:23 declares
+          `id uuid PRIMARY KEY DEFAULT gen_random_uuid()` on the
+          resellers base table.
+        - Application read path: projected via route.ts:47-48
+          select("*") on the loadReseller() single-row lookup, then
+          surfaced as the top-level `reseller` field on the detail
+          payload body at web/src/app/api/admin/resellers/[code]/
+          route.ts:122-129.
+
+      Design choice — two-part guard mirroring the tick 308/320/321
+      posture verbatim:
+        - (a) typeof-string preserves the NOT-NULL raw-type
+          discipline; catches a PostgREST regression that returned
+          null|undefined, a schema-side NOT NULL drop, or a
+          projection-side drop from the route.ts:47-48 SELECT tuple.
+        - (b) UUID_RE.test() shape assert catches a schema-side type
+          flip to bigserial rendering a stringified integer, a
+          bigint-serialised-as-string sequence id, or a truncated
+          non-UUID slug.
+
+      Rotation rationale:
+        - Closes the UUID PRIMARY KEY column-pin sweep symmetrically.
+          Four of the four UUID PKs on the detail payload
+          (reseller.id + three child-row .id/.commission_id columns)
+          now carry the two-expect labelled shape.
+        - No new imports, no new module-scope const needed — UUID_RE
+          already lives at row 111.
+
+      Coverage-per-guard posture:
+        - Detail surface: wave-5 row 167 single-row GET fires the
+          two-part pin at least once per test on the
+          QAPROBEWHOLESALEACTIVE seed reseller (top-level parent row
+          is always present when loadReseller() returns row-not-null).
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 325 paragraph) added below
+              the tick 324 paragraph above ISO_TIMESTAMP_RE.
+            + bare reseller.id single-line combined pin replaced with
+              tick-numbered labelled two-expect guard: typeof-string
+              + UUID_RE.test — each with a bespoke failure message
+              pointing at 0091:23 as the writer-schema source and
+              route.ts:47-48 select("*") + 122-129 body surface as
+              the application read path.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope const. Matches
+          ticks 234-324 discipline.
+
+      Verification:
+        - tsc --noEmit: production tree clean (exit 0).
+        - Playwright specs excluded from vitest by design.
+
+      Frontier after tick 325: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+
+      Next natural picks on tick 326:
+        (a) rotate to reseller.display_name text NOT NULL two-part
+        lift (the baseline single-part typeof-string with no
+        diagnostic message and no tick-numbered doc-block at row
+        1710 is a clean lift candidate).
+        (b) rotate to reseller.billing_model / reseller.status
+        single-part Set.has() pins into two-part typeof-string +
+        Set.has() shape matching the tick 304/305/312/316 value-set
+        posture verbatim.
+        (c) rotate to reseller.code text NOT NULL UNIQUE tick-
+        numbered labelled shape lift (currently bare
+        `.toBe(fixture.code)` equality with no per-half diagnostic).
+    commit: (this tick)
+
   - tick: 324
     ran_at: 2026-07-23
     action: p10_promotion_codes_code_promo_code_re_two_part_labelled_pin_on_admin_reseller_detail

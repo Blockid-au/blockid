@@ -1366,6 +1366,65 @@ const UUID_RE =
 // attributions_summary cluster closed at tick 319, (c) idle — the
 // frontier remains tight (P1.5 + P8.5 HUMAN-BLOCKED, P11
 // never_completes, Track B closed).
+//
+// Tick 325 — reseller.id UUID PRIMARY KEY two-part wire-shape pin.
+// SCOPE ROTATION out of the child-row clusters (promotion_codes[] +
+// admins[] + commissions[] all pinned across ticks 299-324) INTO the
+// top-level reseller row shape. Lifts the prior baseline single-line
+// combined pin at
+//   `typeof body.reseller?.id === "string" && UUID_RE.test(body.reseller!.id as string)`
+// (single expect with a generic 'should be UUID' message and no per-
+// half diagnostic) into the two-expect labelled shape matching the
+// tick 308 commissions[].commission_id + tick 320 promotion_codes[].id
+// + tick 321 admins[].id posture verbatim. Closes the UUID PRIMARY
+// KEY column-pin cluster on the detail payload symmetrically — the
+// four UUID PKs on the wire (top-level reseller + three child rows)
+// now share one tick-numbered labelled pinning discipline.
+//
+// Writer-schema justification:
+//   - 0091_reseller_module_foundations.sql:23 declares
+//     `id uuid PRIMARY KEY DEFAULT gen_random_uuid()` on the resellers
+//     base table.
+//   - Application read path: projected via route.ts:47-48 select("*")
+//     on the loadReseller() single-row lookup, then surfaced as the
+//     top-level `reseller` field on the detail payload body at
+//     web/src/app/api/admin/resellers/[code]/route.ts:122-129.
+//
+// Design choice — two-part guard mirroring the tick 308/320/321
+// posture verbatim:
+//   - (a) typeof-string preserves the NOT-NULL raw-type discipline;
+//     catches a PostgREST regression that returned null|undefined, a
+//     schema-side NOT NULL drop, or a projection-side drop from the
+//     route.ts:47-48 SELECT tuple.
+//   - (b) UUID_RE.test() shape assert catches a schema-side type flip
+//     to bigserial rendering a stringified integer, a bigint-
+//     serialised-as-string sequence id, or a truncated non-UUID slug.
+//
+// Coverage-per-guard posture:
+//   - Detail surface: wave-5 row 167 single-row GET fires the two-part
+//     pin at least once per test on the QAPROBEWHOLESALEACTIVE seed
+//     reseller (top-level parent row is always present when
+//     loadReseller() returns row-not-null).
+//
+// Rotation rationale:
+//   - Closes the UUID PRIMARY KEY column-pin sweep symmetrically. Four
+//     of the four UUID PKs on the detail payload (reseller.id + three
+//     child-row .id/.commission_id columns) now carry the two-expect
+//     labelled shape.
+//   - No new imports, no new module-scope const needed — UUID_RE
+//     already lives at row 111.
+//
+// Natural next-pick tick 326 candidates: (a) rotate to
+// reseller.display_name text NOT NULL two-part lift (the tick 1710
+// baseline `expect(typeof body.reseller?.display_name).toBe("string")`
+// is a single-part typeof-string with no diagnostic message and no
+// tick-numbered doc-block); (b) rotate to reseller.billing_model /
+// reseller.status single-part BILLING_MODELS.has() / STATUSES.has()
+// pins into two-part typeof-string + Set.has() shape matching the
+// tick 304/305/312/316 value-set posture verbatim; (c) rotate to
+// reseller.code text NOT NULL UNIQUE tick-numbered labelled shape
+// lift (currently bare `.toBe(fixture.code)` equality with no per-
+// half diagnostic).
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Tick 309 — Stripe invoice ID shape regex. Matches the modern Stripe
@@ -1698,10 +1757,22 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
 
     // Reseller row shape — reads resellers.* (route.ts:37-41).
     expect(body.reseller, "body.reseller should be present").toBeTruthy();
+    // Tick 325 — reseller.id UUID PRIMARY KEY two-part wire-shape pin.
+    // Lifts the prior baseline single-line combined pin into two
+    // labelled asserts matching the tick 308 commissions[].commission_id
+    // + tick 320 promotion_codes[].id + tick 321 admins[].id posture
+    // verbatim. Column source `resellers.id uuid PRIMARY KEY DEFAULT
+    // gen_random_uuid()` at 0091:23, projected via route.ts:47-48
+    // select("*") and surfaced at route.ts:122-129. See module-scope
+    // doc-block above ISO_TIMESTAMP_RE (tick 325 paragraph) for the
+    // rationale.
     expect(
-      typeof body.reseller?.id === "string" &&
-        UUID_RE.test(body.reseller!.id as string),
-      `reseller.id should be UUID: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+      typeof body.reseller?.id === "string",
+      `reseller.id '${String(body.reseller?.id)}' should be a string (uuid PRIMARY KEY DEFAULT gen_random_uuid() per 0091:23; a schema-side type flip to bigserial, a projection-side drop from route.ts:47-48 select("*"), or a PostgREST serialisation regression that returned null|undefined would surface here). Reseller: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe(true);
+    expect(
+      UUID_RE.test(body.reseller?.id as string),
+      `reseller.id '${String(body.reseller?.id)}' should match UUID shape (uuid PRIMARY KEY per 0091:23); a schema-side type flip that replaced id with a stringified integer, a bigint-serialised-as-string sequence id, or a truncated non-UUID slug would surface here. Reseller: ${JSON.stringify(body.reseller).slice(0, 200)}`,
     ).toBe(true);
     expect(
       body.reseller?.code,
