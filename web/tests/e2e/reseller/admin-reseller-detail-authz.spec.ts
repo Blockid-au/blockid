@@ -688,6 +688,37 @@ const UUID_RE =
 // child-row column-pin cluster — remaining un-tightened columns after
 // this tick are linked_at (ISO-8601 shape) and revoked_at (nullable
 // ISO-8601 shape).
+//
+// Tick 306 — admins[].linked_at ISO-8601 timestamptz wire-shape pin,
+// third column pinned in the reseller_admins[] child-row cluster opened
+// at tick 304 per tick 305 next-pick option (a). Rotates from value-set
+// enum tightening (ticks 304-305: role, status) to timestamp shape
+// tightening, using the same ISO_TIMESTAMP_RE that closed the
+// promotion_codes[].created_at column at tick 300. Column declared at
+// 0091:75 as `linked_at timestamptz NOT NULL DEFAULT now()` on the
+// reseller_admins table — NOT-NULL discipline with ISO 8601 shape →
+// two-part typeof-string + ISO_TIMESTAMP_RE assert; mirrors the
+// promotion_codes[].created_at tick 300 posture verbatim and the
+// resellers.created_at tick 283/285 shape assert. The stamp captures
+// when a user was linked to a reseller as owner|admin|viewer; a schema-
+// side widening (NOT NULL drop), a PostgREST serialisation regression
+// that returned null|undefined, a projection-side drop from the
+// route.ts:89-93 select tuple, or a drift to a non-ISO string / Unix
+// epoch number rendered as string / truncated date-only value would
+// surface here on the first offending row. Detail-surface only per the
+// same posture as ticks 299-305 — the admin-resellers-list route
+// projects the resellers-row shape only and does not fan out to
+// reseller_admins; the Promise.all leg that pulls admins rows is
+// unique to the detail route at web/src/app/api/admin/resellers/[code]/
+// route.ts:89-93 (select("id, user_id, role, status, linked_at,
+// revoked_at")). Fires on every green CI run because seed-qa-reseller.
+// mjs mints per-variant admins rows per reseller cohort; on hosts
+// without seeded admins the for-loop is a no-op so the pin never
+// fires. Continues the admins[] child-row column-pin cluster — only
+// remaining un-tightened column after this tick is revoked_at
+// (nullable ISO-8601 shape, matches the promotion_codes[].stripe_coupon
+// _id nullable posture at tick 301 combined with the tick 300 ISO
+// shape helper).
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Uppercase-alphanumeric invariant for promotion_codes[].code — matches the
@@ -1424,6 +1455,21 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
       expect(
         ALLOWED_ADMIN_STATUSES.has(row.status as string),
         `admins[].status '${String(row.status)}' should be in the enum {active,revoked} per ck_reseller_admins status CHECK at 0091:73-74; a DB CHECK drop, a legacy INSERT that stamped a status outside the enumeration ('disabled', 'pending'), or a PostgREST serialisation regression that returned a mixed-case slug ('Active') would surface here. NOTE: this enum is narrower than the resellers-row STATUSES set — reseller_admins.status is a link-lifecycle enum (active|revoked), not a business-lifecycle enum. Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      // Tick 306 — admins[].linked_at timestamptz wire-shape pin. Column
+      // 0091:75 `linked_at timestamptz NOT NULL DEFAULT now()`. NOT-NULL
+      // discipline with ISO 8601 shape → two-part typeof-string +
+      // ISO_TIMESTAMP_RE assert; mirrors the promotion_codes[].created_at
+      // tick 300 posture verbatim and the resellers.created_at tick
+      // 283/285 shape assert. See module-scope doc-block above
+      // ISO_TIMESTAMP_RE (tick 306 paragraph) for the rationale.
+      expect(
+        typeof row.linked_at === "string",
+        `admins[].linked_at '${String(row.linked_at)}' should be a string (timestamptz NOT NULL DEFAULT now() per 0091:75 serialised via PostgREST as an ISO 8601 string; a schema-side widening, a PostgREST serialisation regression that returned null|undefined, or a projection-side drop from route.ts:89-93 select would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        ISO_TIMESTAMP_RE.test(row.linked_at as string),
+        `admins[].linked_at '${String(row.linked_at)}' should match ISO 8601 shape (timestamptz NOT NULL DEFAULT now() per 0091:75); a drift to a non-ISO string, a Unix epoch number rendered as string, or a truncated date-only value would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
     }
 
