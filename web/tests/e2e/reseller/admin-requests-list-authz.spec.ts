@@ -120,6 +120,42 @@ const HTTPS_URL_RE = /^https:\/\/[a-zA-Z0-9.-]+(\/.*)?$/;
 const REASON_MAX = 200;
 const PURPOSE_MAX = 500;
 
+// Tick 280 — created_at ISO-8601 wire-shape pin mirrored back from the
+// reseller-side tick 275 pin at reseller-requests-list-authz.spec.ts:188-189
+// onto the admin-scoped GET at /api/admin/resellers/requests/route.ts:44
+// (created_at is the eighth column of the admin SELECT projection).
+// reseller_requests.created_at is a `timestamptz NOT NULL DEFAULT now()`
+// column per 0095:39, serialised by PostgREST to an ISO-8601 string on the
+// wire regardless of row status. Pre-tick-280 posture pinned only
+// typeof-string on created_at at line ~303, leaving the ISO shape silent
+// on the admin surface — a route regression that projected created_at from
+// a different column (say `updated_at bigint` in a downstream migration)
+// would still greenlight the typeof-string guard. Post-tick the admin
+// surface carries the same ISO regex tightening as the reseller-scoped
+// list (see the tick 275 module-scope doc-block at
+// reseller-requests-list-authz.spec.ts:164-187 for the invariant
+// derivation).
+//
+// Two-part guard (matches ticks 265-279 layering discipline verbatim):
+//   (a) preserved typeof-string pin at line ~303 fires first so a
+//       projection drop surfaces before the new regex check;
+//   (b) new ISO_TIMESTAMP_RE match fires only after the typeof-string
+//       guard passes — a column type flip from timestamptz to bigint
+//       created_at_ms or a serialisation drift to a locale-formatted
+//       date string would surface here.
+//
+// Regex sourced from reseller-requests-list-authz.spec.ts:189 verbatim
+// (same source-of-truth invariant); accepts fractional seconds and either
+// the trailing Z or a ±HH:MM offset, matching Postgres timestamptz
+// serialisation shape.
+//
+// Sibling-surface parity: sixth cross-surface companion pin in the
+// ticks 275-280 lineage — a projection-side or serialisation-side
+// regression on reseller_requests.created_at now surfaces on both admin
+// and reseller list lenses simultaneously.
+const ISO_TIMESTAMP_RE =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+
 test.describe("Admin reseller-requests list pre-read authorization — P10 dry-run", () => {
   test("unauthenticated — GET with no session returns 401 no_user", async ({
     request,
@@ -301,6 +337,23 @@ test.describe("Admin reseller-requests list — P10 wave-5 row 174 happy path", 
       // envelope.
       expect(r.status).toBe("pending");
       expect(typeof r.created_at).toBe("string");
+      // Tick 280 — ISO_TIMESTAMP_RE tightening on created_at mirrored back
+      // from the reseller-side tick 275 pin at
+      // reseller-requests-list-authz.spec.ts:485-489. See module-scope
+      // doc-block above ISO_TIMESTAMP_RE for the derivation. Two-part guard
+      // preserves the typeof-string pin above so a projection drop still
+      // surfaces before the regex check; the ISO match here catches a
+      // column type flip from timestamptz or a serialisation drift on the
+      // PostgREST side that emits a locale-formatted date instead of the
+      // wire shape. Green-path fixture wave-3 row 155 seeds a pending
+      // over_budget_approval row so this pin fires on every green CI run
+      // where the harness is provisioned; fresh hosts with zero pending
+      // rows still green cleanly because the for-loop skips over an empty
+      // envelope. Sixth cross-surface companion pin in the 275-280 lineage.
+      expect(
+        ISO_TIMESTAMP_RE.test(r.created_at as string),
+        `admin happy GET row.created_at '${String(r.created_at)}' should match ISO 8601 shape (timestamptz NOT NULL DEFAULT now() per 0095:39 serialised via PostgREST); a drift to a non-ISO string, a number, or null would surface here: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
       // decision_at / decision_reason are both nullable for pending rows
       // (only populated by the PATCH branch at route.ts, which flips the
       // status to approved / denied / cancelled). Do NOT pin their values;
