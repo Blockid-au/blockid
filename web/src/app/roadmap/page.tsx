@@ -189,7 +189,7 @@ const RECENTLY_LANDED: ShippedItem[] = [
     id: "journey-vocab",
     title: `Canonical 8-stage startup vocabulary v${JOURNEY_VOCAB_VERSION}`,
     detail:
-      "web/src/lib/journey-vocabulary.ts replaces four overlapping legacy taxonomies (SVI-8, Growth-12, SCN-5, roadmap-8). Legacy surfaces still migrating.",
+      "web/src/lib/journey-vocabulary.ts replaces four overlapping legacy taxonomies (SVI-8, Growth-12, Startup Compass 5-dimension, roadmap-8). Legacy surfaces still migrating.",
     ticket: "Vocab v1.0.0",
   },
   {
@@ -218,9 +218,9 @@ const IN_PROGRESS: UpcomingItem[] = [
   },
   {
     id: "vocab-migration",
-    title: "Migrate SVI / Growth / SCN surfaces to canonical vocabulary",
+    title: "Migrate SVI / Growth / Startup Compass surfaces to canonical vocabulary",
     detail:
-      "Replace SVI-8, Growth-12, and SCN-5 labels with CANONICAL_STAGE_LABELS. Reports, dashboards, and guide chapters affected.",
+      "Replace SVI-8, Growth-12, and Startup Compass 5-dimension labels with CANONICAL_STAGE_LABELS. Reports, dashboards, and guide chapters affected.",
     status: "in_progress",
   },
   {

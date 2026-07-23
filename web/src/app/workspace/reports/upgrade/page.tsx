@@ -14,7 +14,7 @@ export default function ReportUpgradePage({
     "Direction Plan — Top 3 next actions",
     "Capital Readiness — Funding score",
     "Risk Assessment",
-    "All SCN report sections",
+    "All Startup Compass report sections (Sean Ellis / T2D3 / Porter / JTBD / BVP)",
   ];
 
   const premiumFeatures = [

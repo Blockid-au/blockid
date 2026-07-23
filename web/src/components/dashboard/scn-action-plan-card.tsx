@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
   ArrowRight,
   Calendar,
@@ -73,7 +74,7 @@ function YourNumberHero({ yn, maturity, cohort }: {
     <div className="rounded-2xl border border-blue-200 dark:border-blue-800/40 bg-gradient-to-br from-blue-50 via-emerald-50 to-amber-50 dark:from-blue-950/30 dark:via-emerald-950/20 dark:to-amber-950/20 p-6 sm:p-8 shadow-sm">
       <div className="flex items-center gap-2 text-[11px] font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-[0.18em] mb-3">
         <Sparkles className="h-3.5 w-3.5" />
-        Your Number · SCN Framework
+        Your Number · Startup Compass
       </div>
 
       {maturity?.isEstablished && (
@@ -298,13 +299,13 @@ export function ScnActionPlanCard({ analysis }: Props) {
       {/* This week focus */}
       <ThisWeekHero action={plan.thisWeekFocus} />
 
-      {/* SCN journey layers */}
+      {/* Startup Compass journey layers */}
       <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
             <h3 className="text-base font-bold flex items-center gap-2">
               <Compass className="h-4 w-4 text-blue-500" />
-              Your SCN Journey
+              Your Startup Compass Journey
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               Validation → Position → Value → Direction → Capital
@@ -318,6 +319,16 @@ export function ScnActionPlanCard({ analysis }: Props) {
         <div className="space-y-3">
           {plan.layers.map((layer) => <LayerCard key={layer.code} layer={layer} />)}
         </div>
+
+        <p className="mt-2 border-t border-border pt-3 text-[10px] leading-relaxed text-muted-foreground">
+          Startup Compass synthesises Sean Ellis 40% Rule (Validation), Porter Five Forces
+          (Position), T2D3 &amp; Bessemer BVP (Value), Christensen JTBD (Direction), and
+          YC / BVP canonical stages (Capital) —{" "}
+          <Link href="/guide/scn" className="underline decoration-dotted hover:text-blue-600">
+            see framework citations
+          </Link>
+          .
+        </p>
       </div>
 
       {/* 30/60/90 Day Plan */}
