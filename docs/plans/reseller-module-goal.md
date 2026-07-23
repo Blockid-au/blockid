@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.342
+version: 2026-07-23.344
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -28,8 +28,8 @@ resellers_seeded_intent:
     display_name: InfoVision
     billing_model: wholesale
     allowed_tiers: [0, 10, 20, 30, 40]
-    gst_registered: TBD_verify_at_creation
-    abn: TBD_verify_at_creation
+    gst_registered: true  # Founder-approved 2026-07-23 (P1.5 unblock); ABN + contact_email still placeholder in 0106 until admin apply
+    abn: REPLACE_BEFORE_APPLY  # Placeholder '00 000 000 000' in migration 0106; admin swaps real 11-digit ABN before docker exec psql
     monthly_credit_budget: 20000
     monthly_sandbox_credits: 500
     can_create_startups: true
@@ -92,7 +92,7 @@ tracks:
             "web/src/lib/reseller/attribution.test.ts"
           ]}
           P1.4_docker_apply: {status: done, tick: 41, completed_at: 2026-07-21, action: "docker exec psql applied 0091 + 0092 + 0093 + 0094 + 0095 + 0096 + 0097; NOTIFY pgrst reload succeeded; reseller-reports storage bucket created (private, 10MB cap, text/csv only). Gap discovered + fixed inline: (a) reseller_audit_log had no migration despite being written by P4.1/P4.2/P6.3/P6.4/P7.2/P9.3 route code — authored 0093_reseller_audit_log.sql (append-only via mutation triggers, default-deny RLS, mirrors audit_events convention from 0076); (b) 0092 index revenue_events_reseller_month_idx referenced non-existent column occurred_at (revenue_events uses ts) — corrected to ts DESC before re-apply. Verified: 10 reseller_* tables + 1 view + 13 extension columns landed."}
-          P1.5_infovision_seed: {status: human_blocked, action: "INSERT INTO resellers with billing_model=wholesale, gst_registered=true, abn (H.20 confirm)", blocker: "resellers_seeded_intent.gst_registered + abn are both TBD_verify_at_creation — per goal file rule, TBD on required attribute means human intervention required. Insert is otherwise a single SQL statement — unblock by confirming Auschain's InfoVision ABN + GST status per H.20 (Auschain existing counsel or LegalVision AU)."}
+          P1.5_infovision_seed: {status: authored, tick: 289, authored_at: 2026-07-23, action: "SQL authored at web/supabase/migrations/0106_infovision_seed.sql; ABN + contact_email placeholders must be filled before admin applies", note: "Founder unblocked 2026-07-23 (gst_registered=true confirmed). Migration 0106 inserts 1 resellers row (INFOVISION, wholesale, allowed_tiers [0,10,20,30,40], commission 40%) + 3 reseller_promotion_codes rows (tiers 0/20/40). ON CONFLICT DO NOTHING throughout for re-run safety. REPLACE-BEFORE-APPLY items: (a) resellers.abn placeholder '00 000 000 000', (b) resellers.contact_email placeholder 'partnerships@infovision.example', (c) tier 20/40 stripe_coupon_id + stripe_promotion_code_id placeholders 'coupon_pending_*' / 'promo_pending_*' (real IDs minted in P8.5). Apply command: docker exec -i supabase-db psql -U postgres -d postgres < web/supabase/migrations/0106_infovision_seed.sql. Not auto-applied per reference_db_migrations."}
         exit_criteria: [
           "0091 + 0092 applied via docker exec psql",
           "NOTIFY pgrst reload succeeded",
