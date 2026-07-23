@@ -78,6 +78,23 @@ const ROUTE = `/api/reseller/customers/${PLACEHOLDER_CUSTOMER_ID}/drawer`;
 const DRAWER_ROUTE = (customerId: string) =>
   `/api/reseller/customers/${customerId}/drawer`;
 
+// Deterministic mask shape produced by maskEmail() at
+// web/src/lib/reseller/customer-reveal.ts:34-42 — the sole normaliser on the
+// drawer route's overview.masked_email write path (buildOverviewSummary at
+// web/src/lib/reseller/customer-drawer.ts pipes app_users.email through
+// maskEmail before the wire). Shape is `<1-2 non-@ chars>***@<domain>` per
+// the branch split at customer-reveal.ts:40-41 (local.length <= 2 → 1 char;
+// local.length > 2 → 2 chars). Existing pins on this row already assert
+// typeof string + .toContain("@") + .toMatch(/\*/) which are strictly weaker
+// than MASKED_EMAIL_RE; landing the shape pin catches a regression that
+// leaked plaintext through the drawer route (e.g. a bypass of maskEmail in
+// buildOverviewSummary) or that changed the mask envelope shape without
+// updating this pin. Landed tick 233 in the same twin-symmetrisation
+// discipline as tick 231 option (j) + tick 232 option (l) — hoist the shape
+// invariant to a module-scope constant so both drawer spec files (authz +
+// validation) point at the same literal.
+const MASKED_EMAIL_RE = /^[^@\s]{1,2}\*\*\*@[^@\s]+$/;
+
 test.describe("Reseller customer-drawer pre-read authorization — P10 dry-run", () => {
   test("unauthenticated — GET with no session returns 401 unauthorised", async ({
     request,
@@ -242,6 +259,14 @@ test.describe("Reseller customer-drawer — P10 wave-2 happy path", () => {
     expect(typeof body.overview?.masked_email).toBe("string");
     expect(body.overview?.masked_email ?? "").toContain("@");
     expect(body.overview?.masked_email ?? "").toMatch(/\*/);
+    // Tick 233 — tighten from loose `contains @ + matches *` to the exact
+    // shape emitted by maskEmail() (see MASKED_EMAIL_RE above). Catches a
+    // regression that leaked a plaintext email through the drawer route or
+    // that changed the mask envelope (e.g. widened the prefix from 1-2 chars
+    // to 3+, dropped the '@' separator, or swapped '***' for another
+    // literal). Twin sibling landed same tick at
+    // drawer-validation.spec.ts:masked_email row 147.
+    expect(body.overview?.masked_email ?? "").toMatch(MASKED_EMAIL_RE);
     expect(typeof body.overview?.signup_at).toBe("string");
     expect(typeof body.overview?.credits_balance).toBe("number");
     // Tick 225 — extend row 146 with shape pins on the five previously-silent
