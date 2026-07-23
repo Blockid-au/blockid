@@ -770,6 +770,41 @@ test.describe("Admin reseller-loop status — P10 wave-5 row 173 happy path", ()
           `tick_history auto_deploy_skipped row.head should be typeof string (reseller-goal-loop.mjs:369 threads the same \`headSha\` from mjs:358-359 as the tick 247/248 auto_deploy_triggered/finished guards): ${JSON.stringify(row).slice(0, 200)}`,
         ).toBe("string");
       }
+      // tick 250 — auto_deploy_failed stage schema pin (option y17;
+      // one-pin shape matching tick 244's error stage convention).
+      // scripts/cron/reseller-goal-loop.mjs:372 writes
+      // `log({ stage: 'auto_deploy_failed', error: String(err) })`
+      // inside the catch branch at mjs:371-373 that wraps the whole
+      // auto-deploy hook (mjs:348-373) — fires only when the
+      // last-good-build.json read, the git rev-parse, or the
+      // deploy-live.sh --quick spawnSync throws before the else-branch
+      // at mjs:368 has a chance to emit auto_deploy_skipped. Closes
+      // the auto_deploy_* family cluster completely alongside ticks
+      // 247 (triggered) + 248 (finished) + 249 (skipped) — after this
+      // tick every writer branch of the mjs:348-373 auto-deploy hook
+      // carries a pinned shape guard. One-pin because the writer
+      // only emits a single `error` key beyond the stage discriminator
+      // (no head, no last_deployed — those are scoped inside the try
+      // block above the throw point) and `String(err)` is a value cast
+      // with no drift-safe literal to value-pin against, matching tick
+      // 244's error stage convention verbatim. TYPEOF pin (not value)
+      // because `String(err)` is unbounded — any Node.js Error subclass
+      // or string thrown from within the try block reaches here, so
+      // the value legitimately drifts per throw-site. Fires only on
+      // the catch branch — coverage-per-guard is low on green-path CI
+      // runs (the try body is deterministic under normal conditions
+      // and the read/spawn/write chain rarely throws) but the pin
+      // closes the last writer contract of the auto_deploy_* family
+      // so a refactor that renames the error key or drops the
+      // String() cast lights up this guard. Comes AFTER the tick 249
+      // auto_deploy_skipped guard so future guards land in monotonic
+      // tick-order.
+      if (tickRow.stage === "auto_deploy_failed") {
+        expect(
+          typeof tickRow.error,
+          `tick_history auto_deploy_failed row.error should be typeof string (reseller-goal-loop.mjs:372 writes \`String(err)\` from the catch branch wrapping the mjs:348-373 auto-deploy hook — any Node.js Error subclass or string thrown from the try body is coerced via String() so the value legitimately drifts per throw-site but the type is invariant): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("string");
+      }
     }
     expect(
       typeof body.generated_at === "string" &&
