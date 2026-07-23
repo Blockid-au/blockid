@@ -9,6 +9,7 @@
     "cache:purge": "bash scripts/purge-cloudflare-cache.sh",
     "lint": "eslint",
     "lint:reseller": "node scripts/ci/reseller-lints.mjs",
+    "lint:audit": "node scripts/ci/audit-lint.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
