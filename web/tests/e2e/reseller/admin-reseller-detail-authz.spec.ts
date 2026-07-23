@@ -622,6 +622,34 @@ const UUID_RE =
 // every column in the projection tuple now carries a wire-shape pin;
 // next-tick frontier rotates to the reseller_admins[] child-row cluster
 // (0091:68-76) per tick 302 next-pick option (b).
+//
+// Tick 304 — admins[].role value-set enum tightening, opening the
+// reseller_admins[] child-row column-pin cluster per tick 303 next-pick
+// option (a). Column declared at 0091:71-72 as `role text NOT NULL
+// DEFAULT 'admin' CHECK (role IN ('owner','admin','viewer'))` on the
+// reseller_admins table — the CHECK fully enumerates the legal value
+// set (three discrete strings), matching the pattern already used at
+// 0091:73-74 for status and at 0091:90 for tier_pct. Prior baseline
+// landed only a bare `expect(typeof row.role).toBe("string")`; this
+// tick promotes the guard to a two-part shape: (a) typeof-string
+// preserving the raw-type discipline the baseline pin already covered;
+// (b) ALLOWED_ADMIN_ROLES.has() membership assert against a new module-
+// scope Set mirroring the CHECK enumeration. A schema-side CHECK drop,
+// a PostgREST serialisation regression that returned a mixed-case or
+// aliased role slug ('Owner', 'root', 'member'), or a legacy write path
+// that stamped a role value outside the enumeration would surface here
+// on the first offending row. Detail-surface only per the same posture
+// as ticks 299-303 — the admin-resellers-list route projects the
+// resellers-row shape only and does not fan out to reseller_admins; the
+// Promise.all leg that pulls admins rows is unique to the detail route
+// at web/src/app/api/admin/resellers/[code]/route.ts:89-93
+// (select("id, user_id, role, status, linked_at, revoked_at")). Fires
+// on every green CI run because seed-qa-reseller.mjs mints per-variant
+// admins rows per reseller cohort; on hosts without seeded admins the
+// for-loop is a no-op so the pin never fires. First column tightened
+// in the admins[] child-row cluster — remaining un-tightened columns
+// are status (value-set enum), linked_at (ISO-8601 shape), and
+// revoked_at (nullable ISO-8601 shape).
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Uppercase-alphanumeric invariant for promotion_codes[].code — matches the
@@ -658,6 +686,14 @@ const STATUSES = new Set(["active", "paused", "terminated"]);
 // but has no DB CHECK on element membership so the invariant lives on
 // the application write path.
 const ALLOWED_TIER_VALUES = new Set([0, 10, 20, 30, 40]);
+// Tick 304 — value set for admins[].role element membership. Mirrors the
+// DB CHECK at 0091:71-72 `role IN ('owner','admin','viewer')` on the
+// reseller_admins table. The application write path has no separate
+// enum guard on role writes — the CHECK is the sole enforcement layer —
+// so a schema-side CHECK drop or a legacy INSERT that stamped a role
+// outside the enumeration would land straight through PostgREST onto
+// the wire, which this Set catches on the first offending row.
+const ALLOWED_ADMIN_ROLES = new Set(["owner", "admin", "viewer"]);
 
 test.describe("Admin reseller GET pre-read authorization — P10 dry-run", () => {
   test("unauthenticated — GET with no session returns 401 no_user", async ({
@@ -1305,7 +1341,22 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         typeof row.user_id === "string" && UUID_RE.test(row.user_id as string),
         `admins[].user_id should be UUID: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
-      expect(typeof row.role).toBe("string");
+      // Tick 304 — admins[].role value-set enum tightening. Column
+      // source 0091:71-72 declares `role text NOT NULL DEFAULT 'admin'
+      // CHECK (role IN ('owner','admin','viewer'))`. Two-part shape:
+      // (a) typeof-string preserves the raw-type discipline the
+      // baseline pin already covered; (b) ALLOWED_ADMIN_ROLES.has()
+      // membership assert against the module-scope Set mirrors the DB
+      // CHECK enumeration. See the tick 304 doc paragraph above
+      // ISO_TIMESTAMP_RE for the full rationale.
+      expect(
+        typeof row.role === "string",
+        `admins[].role '${String(row.role)}' should be a string (text NOT NULL per 0091:71; a schema-side widening, a PostgREST serialisation regression that returned null|undefined, or a projection-side drop from route.ts:89-93 select would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        ALLOWED_ADMIN_ROLES.has(row.role as string),
+        `admins[].role '${String(row.role)}' should be in the enum {owner,admin,viewer} per ck_reseller_admins role CHECK at 0091:71-72; a DB CHECK drop, a legacy INSERT that stamped a role outside the enumeration, or a PostgREST serialisation regression that returned a mixed-case slug ('Owner') would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
       expect(typeof row.status).toBe("string");
     }
 

@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.303
+version: 2026-07-23.304
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -658,6 +658,133 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 304
+    ran_at: 2026-07-23
+    action: p10_admins_role_value_set_enum_tightening_on_admin_reseller_detail
+    result: |
+      First column tightened in the reseller_admins[] child-row cluster
+      opened at tick 303's next-tick option (a) after the promotion_codes[]
+      cluster closed at tick 303. Frontier rotation lands the same
+      value-set enum discipline that closed the promotion_codes[] cluster
+      onto the admins[] projection tuple select("id, user_id, role,
+      status, linked_at, revoked_at") at
+      web/src/app/api/admin/resellers/[code]/route.ts:89-93.
+
+      Writer-schema justification:
+        - 0091_reseller_module_foundations.sql:71-72 declares
+          `role text NOT NULL DEFAULT 'admin' CHECK (role IN
+          ('owner','admin','viewer'))` on reseller_admins — the CHECK
+          fully enumerates the legal value set at the DB layer, matching
+          the same discipline used at 0091:73-74 for status and
+          0091:90 for reseller_promotion_codes.tier_pct.
+        - The application write path has NO separate enum guard on
+          admin role writes — the CHECK is the sole enforcement layer,
+          unlike tier_pct which is double-guarded by STARTUP_TIER_STEPS
+          + admin-validator.ts. A schema-side CHECK drop or a legacy
+          INSERT that stamped an out-of-enum role slug lands straight
+          through PostgREST onto the wire.
+        - Projected on the same Promise.all leg at route.ts:89-93 — a
+          projection-side drop or PostgREST serialisation regression on
+          this column would surface on the first offending row.
+
+      Design choice — promote the baseline bare typeof-string guard
+      `expect(typeof row.role).toBe("string")` at spec.ts row 1308 to a
+      full two-part shape:
+        - (a) typeof-string preserves the raw-type discipline the
+          baseline pin already covered; catches a schema-side widening
+          or a PostgREST regression that returned null|undefined.
+        - (b) ALLOWED_ADMIN_ROLES.has() membership assert against a new
+          module-scope Set mirroring the CHECK enumeration. A DB CHECK
+          drop, a legacy INSERT that stamped an out-of-enum role
+          ('root', 'member'), or a PostgREST serialisation regression
+          that returned a mixed-case slug ('Owner') would surface here
+          on the first offending row.
+        - Layered on the same shape as the promotion_codes[].tier_pct
+          two-part pin from tick 303 so the discipline stays consistent
+          across the two child-row clusters.
+
+      Coverage-per-guard posture:
+        - Detail surface: wave-5 row 167 single-row GET fires the pin
+          N times per test, once per admins[] row on the
+          QAPROBEWHOLESALEACTIVE seed reseller. seed-qa-reseller.mjs
+          mints per-variant admins rows per reseller cohort so at least
+          one row exercises the enum on every green CI run.
+        - Fresh CI hosts without the QA reseller seed still green
+          because the for-loop is a no-op on zero rows (matches
+          tick 299/300/301/302/303 posture).
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 304 paragraph) above
+              ISO_TIMESTAMP_RE citing 0091:71-72 as the column source.
+            + new module-scope const ALLOWED_ADMIN_ROLES = new Set([
+              "owner", "admin", "viewer"]) placed after
+              ALLOWED_TIER_VALUES with a per-const doc-comment.
+            + wave-5 row 167 for-of loop over body.admins: bare
+              `expect(typeof row.role).toBe("string")` replaced by a
+              two-part assert — typeof-string guard followed by
+              ALLOWED_ADMIN_ROLES.has() enum membership assert.
+        - No production code touched, no fixture change, no route
+          change, no new imports. Matches ticks 234-303 discipline
+          verbatim.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: R-01 + R-03 + R-04 unchanged from
+          tick 303 (11 R-01 + 31 R-03 + 8 R-04, 6 exemptions, 0
+          violations)
+        - npx vitest run: 88 files 1058/1058 pass (Playwright specs
+          excluded from vitest by design; the new asserts fire when
+          `npx playwright test admin-reseller-detail-authz` runs on a
+          seeded host)
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-detail-authz.spec.ts
+          (module-scope doc-block extended with tick 304 paragraph;
+          module-scope const ALLOWED_ADMIN_ROLES added after
+          ALLOWED_TIER_VALUES; admins[] for-loop row 1308 bare
+          typeof-string assert replaced by two-part typeof-string +
+          ALLOWED_ADMIN_ROLES.has() enum guard.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.303 → 2026-07-23.304; this review_history entry
+          prepended noting the OPENING of the reseller_admins[] child-
+          row column-pin cluster.)
+
+      Design fidelity:
+        - Additive-plus-tighten only. No new spec-local test case, no
+          fixture-file delta, no seed-script change, no production-code
+          touch, no new imports. Consistent with ticks 234-303's
+          incremental-pin pattern.
+        - Detail-only tick — first column tightened in the
+          reseller_admins[] child-row cluster (0091:68-76). List surface
+          not touched because the list route doesn't project admins at
+          all.
+
+      Next natural picks on tick 305:
+        (a) continue the reseller_admins[] cluster with admins[].status
+        value-set enum tightening — 0091:73-74 `status text NOT NULL
+        DEFAULT 'active' CHECK (status IN ('active','revoked'))`. Same
+        two-part typeof-string + ALLOWED_ADMIN_STATUSES.has() shape as
+        this tick, mirroring the two-column-enum posture the DB CHECK
+        already couples via the shared migration source. Detail-surface
+        only per the same posture as this tick.
+        (b) continue with admins[].linked_at ISO-8601 timestamp shape
+        pin — 0091:75 `linked_at timestamptz NOT NULL DEFAULT now()`.
+        Reuse the module-scope ISO_TIMESTAMP_RE already used for
+        promotion_codes[].created_at at tick 300.
+        (c) continue with admins[].revoked_at nullable ISO-8601 shape
+        pin — 0091:76 `revoked_at timestamptz` (no NOT NULL). Nullable
+        variant of the linked_at shape.
+        (d) rotate to reseller_attributions[] or reseller_commissions[]
+        clusters — larger fan-outs with more per-row columns; same
+        pinning discipline.
+        (e) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening ticks
+        while the two HUMAN-BLOCKED leaves await external unblock
+        signals.
+    commit: (this tick)
+
   - tick: 303
     ran_at: 2026-07-23
     action: p10_promotion_codes_tier_pct_value_set_enum_tightening_on_admin_reseller_detail
