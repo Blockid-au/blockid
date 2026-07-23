@@ -980,6 +980,44 @@ const UUID_RE =
 // detail route. No new module-scope const needed — Number.isInteger is a
 // built-in. Continues the P10 hardening posture — no fixture change, no
 // route change, no new imports.
+//
+// Tick 315 — commissions[].net_owed_cents int wire-shape pin (may be
+// negative), continues the reseller_commissions_current[] child-row
+// cluster after the tick 314 commission_aud_cents pin. Tick 314 next-pick
+// option (a) taken verbatim — rotates to the next un-tightened column,
+// net_owed_cents. Column source: the reseller_commissions_current view
+// computes `rc.commission_aud_cents + COALESCE(SUM(delta_aud_cents), 0)
+// AS net_owed_cents` at 0094:173-177 by folding the base commission over
+// every non-accrued/non-cleared/non-dispute_opened/non-dispute_won event
+// from reseller_commission_events (i.e. refund_full, refund_partial,
+// dispute_lost, void — all of which stamp a NEGATIVE delta_aud_cents to
+// unwind the accrual). The wire type is therefore number (int), NOT NULL
+// on the view projection (COALESCE guarantees non-null even when the
+// commission has zero events), and the value MAY be negative when the
+// event sum exceeds the base commission (e.g. a partial refund that
+// happened after a small commission accrued, or a schema-side reducer
+// drift). Selected on the Promise.all leg at web/src/app/api/admin/
+// resellers/[code]/route.ts:99-105.
+//
+// Design choice — TWO-PART guard rather than three-part: mirrors the
+// tick 311 / tick 314 list_price_aud_cents / commission_aud_cents posture
+// on parts (a) + (b) but INTENTIONALLY drops the sign tail assert used
+// there. Rationale: parts (a) typeof-number and (b) Number.isInteger()
+// still preserve the raw-type + integer-shape discipline (catches
+// PostgREST null|undefined, bigint-as-string, fractional cents, NaN,
+// Infinity), but a `>= 0` or `> 0` tail assert would false-positive on
+// EVERY row that has been fully or partially refunded — the whole point
+// of net_owed_cents is to expose a signed running balance so the reseller
+// console can render clawback exposure. A `>= 0` tail here would surface
+// exactly on the rows a P10 hardening reader most needs to see
+// undistorted. The write path invariants that guard the value's realism
+// (event kind enumeration, delta_aud_cents sign discipline, view SUM
+// aggregation) all live in the schema — the spec's job is to catch a
+// wire regression, not to duplicate the arithmetic invariant. Detail-
+// surface only per the same posture as ticks 299-314 — the commissions
+// Promise.all leg is unique to the detail route. No new module-scope
+// const needed. Continues the P10 hardening posture — no fixture change,
+// no route change, no new imports.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Tick 309 — Stripe invoice ID shape regex. Matches the modern Stripe
@@ -1269,6 +1307,7 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         list_price_aud_cents?: unknown;
         discount_pct?: unknown;
         commission_aud_cents?: unknown;
+        net_owed_cents?: unknown;
       }>;
     };
 
@@ -1937,6 +1976,27 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
       expect(
         (row.commission_aud_cents as number) >= 0,
         `commissions[].commission_aud_cents '${String(row.commission_aud_cents)}' should be non-negative (CHECK (commission_aud_cents >= 0) per 0094:41; a schema-side CHECK constraint drop or a webhook processor drift that stamped negative cents would surface here — clawback/refund deltas live in reseller_commission_events, the base column is always non-negative). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      // Tick 315 — commissions[].net_owed_cents int (may be negative)
+      // wire-shape pin. Column source: the reseller_commissions_current
+      // view computes net_owed_cents at 0094:173-177 as `rc.commission_
+      // aud_cents + COALESCE(SUM(delta_aud_cents), 0)` over every non-
+      // accrued/non-cleared/non-dispute_opened/non-dispute_won event; the
+      // sum MAY be negative when a refund/clawback delta exceeds the base
+      // commission. Two-part guard (no sign tail assert): (a) typeof-
+      // number preserves the raw-type discipline; (b) Number.isInteger()
+      // catches bigint-as-string / fractional cents / NaN / Infinity.
+      // See module-scope doc-block above ISO_TIMESTAMP_RE (tick 315
+      // paragraph) for the full rationale — the omitted sign assert is
+      // intentional because a `>= 0` tail would false-positive on every
+      // fully or partially refunded row.
+      expect(
+        typeof row.net_owed_cents === "number",
+        `commissions[].net_owed_cents '${String(row.net_owed_cents)}' should be a number (view-computed int at 0094:173-177; a projection-side drop from route.ts:99-105 select or a PostgREST serialisation regression that returned null|undefined|stringified-int would surface here — COALESCE guarantees non-null on the view side). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        Number.isInteger(row.net_owed_cents),
+        `commissions[].net_owed_cents '${String(row.net_owed_cents)}' should be an integer (view-computed int at 0094:173-177 summing int commission_aud_cents + int delta_aud_cents; a PostgREST bigint-as-string serialisation regression, a fractional-cents value from a proration edge, or NaN/Infinity from a reducer refactor would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
     }
   });
