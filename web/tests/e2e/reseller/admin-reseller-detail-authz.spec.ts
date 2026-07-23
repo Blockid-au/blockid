@@ -871,6 +871,37 @@ const UUID_RE =
 // hosts without seeded commission events the for-loop is a no-op so the
 // pin never fires. Continues the P10 hardening posture — no fixture
 // change, no route change, no new imports, no new module-scope constants.
+//
+// Tick 312 — commissions[].discount_pct int NOT NULL value-set enum pin,
+// fourth column pinned in the reseller_commissions_current[] child-row
+// cluster opened at tick 308. Tick 311 next-pick option (a) taken
+// verbatim — rotates to the discount_pct column using the ALLOWED_TIER_
+// VALUES Set already introduced at tick 288 for allowed_tiers[] element
+// membership on the resellers row (natural reuse — same {0,10,20,30,40}
+// set enforced by admin-validator.ts on write and by the DB CHECK at
+// 0094:38). Column source: reseller_commissions.discount_pct `int NOT
+// NULL CHECK (discount_pct IN (0,10,20,30,40))` at 0094:38, projected
+// verbatim through the reseller_commissions_current view at 0094:144
+// (rc.discount_pct alias) and selected on the Promise.all leg at
+// web/src/app/api/admin/resellers/[code]/route.ts:99-105. Wire type is
+// therefore number NOT NULL restricted to the STARTUP_TIER_STEPS set.
+// Two-part guard mirroring the tick 304/305 ALLOWED_ADMIN_ROLES /
+// ALLOWED_ADMIN_STATUSES value-set posture: (a) typeof-number preserves
+// the NOT-NULL raw-type discipline; (b) ALLOWED_TIER_VALUES.has()
+// membership assert catches a schema-side CHECK constraint drop or a
+// webhook-processor drift that stamped a discount_pct outside the
+// enumeration (e.g. 5, 15, or a stringified "20"). No new module-scope
+// const needed — ALLOWED_TIER_VALUES already lives at row 918 for the
+// resellers-row allowed_tiers[] pin at row 1258/1492. Detail-surface
+// only per the same posture as ticks 299-311 — the admin-resellers-list
+// route projects only the resellers-row shape and does not fan out to
+// reseller_commissions_current; the Promise.all leg that pulls the
+// commissions rows is unique to the detail route. Fires on every green
+// CI run only where the seeded reseller has attributed founders with
+// paid Stripe invoices in the last 50 rows; on hosts without seeded
+// commission events the for-loop is a no-op so the pin never fires.
+// Continues the P10 hardening posture — no fixture change, no route
+// change, no new imports, no new module-scope constants.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Tick 309 — Stripe invoice ID shape regex. Matches the modern Stripe
@@ -1139,6 +1170,7 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         commission_id?: unknown;
         stripe_invoice_id?: unknown;
         list_price_aud_cents?: unknown;
+        discount_pct?: unknown;
       }>;
     };
 
@@ -1733,6 +1765,25 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
       expect(
         (row.list_price_aud_cents as number) > 0,
         `commissions[].list_price_aud_cents '${String(row.list_price_aud_cents)}' should be strictly positive (CHECK (list_price_aud_cents > 0) per 0094:37; a schema-side CHECK constraint drop or a webhook processor drift that stamped 0 or negative cents would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      // Tick 312 — commissions[].discount_pct int NOT NULL value-set enum
+      // pin. Column source: reseller_commissions.discount_pct `int NOT
+      // NULL CHECK (discount_pct IN (0,10,20,30,40))` at 0094:38, projected
+      // via view alias rc.discount_pct at 0094:144. Two-part guard mirroring
+      // the tick 304/305 ALLOWED_ADMIN_ROLES / ALLOWED_ADMIN_STATUSES value-
+      // set posture: (a) typeof-number preserves the NOT-NULL raw-type
+      // discipline; (b) ALLOWED_TIER_VALUES.has() membership assert reuses
+      // the module-scope Set already introduced at row 918 for the
+      // resellers-row allowed_tiers[] pin and enforces the {0,10,20,30,40}
+      // enumeration. See module-scope doc-block above ISO_TIMESTAMP_RE
+      // (tick 312 paragraph) for the full rationale.
+      expect(
+        typeof row.discount_pct === "number",
+        `commissions[].discount_pct '${String(row.discount_pct)}' should be a number (int NOT NULL per 0094:38; view alias rc.discount_pct at 0094:144; a schema-side NOT NULL drop, a projection-side drop from route.ts:99-105 select, or a PostgREST serialisation regression that returned null|undefined|stringified-int would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        ALLOWED_TIER_VALUES.has(row.discount_pct as number),
+        `commissions[].discount_pct '${String(row.discount_pct)}' should be one of {0,10,20,30,40} (CHECK (discount_pct IN (0,10,20,30,40)) per 0094:38; a schema-side CHECK constraint drop or a webhook processor drift that stamped a discount_pct outside the STARTUP_TIER_STEPS enumeration would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
     }
   });
