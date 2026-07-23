@@ -1202,6 +1202,58 @@ test.describe("Admin reseller-loop status — P10 wave-5 row 173 happy path", ()
           `tick_history cron_removal_failed row.error should be typeof string (reseller-goal-loop.mjs:259 writes \`String(err)\` — narrows any throwable from the goal-completion cron-removal try/catch at mjs:252-260 to a JSON string): ${JSON.stringify(row).slice(0, 200)}`,
         ).toBe("string");
       }
+      // tick 257 — cron_removal stage schema pin (option y13 from tick 256's
+      // natural-next-picks — the goal-completion-branch happy-path cron
+      // removal row's `status` key). One-pin candidate — the only field the
+      // writer at scripts/cron/reseller-goal-loop.mjs:257 spreads beyond the
+      // log() helper's own tick_id/ts/human_review_minutes_7d is the bare
+      // `status: stop.status ?? -1` expression. Sibling of the tick 256
+      // cron_removal_failed guard within the same mjs:252-260 try/catch
+      // envelope, so lands naturally next in monotonic tick-order.
+      //
+      // Writer-schema justification:
+      //   - scripts/cron/reseller-goal-loop.mjs:257 writes
+      //     `log({ stage: 'cron_removal', status: stop.status ?? -1 })`
+      //     inside the try block at mjs:252-257 that wraps the
+      //     `crontab -l | grep -v 'reseller-goal-loop.mjs' | crontab -`
+      //     spawnSync inside the goal-completion detector at mjs:241-266.
+      //     Only fires on the FINAL tick of the entire loop (when the goal
+      //     file's top-level status is 'done') AND when the spawnSync
+      //     call itself does NOT throw — coverage-per-guard is zero on
+      //     green-path CI runs, but the pin still closes the writer
+      //     contract for the completion-path happy branch so a future
+      //     writer-side rename (e.g. `status` → `exit_code` or payload
+      //     restructure) surfaces as a test failure rather than silent
+      //     drift.
+      //   - `status` is `stop.status ?? -1` at mjs:257 — spawnSync returns
+      //     an object whose `.status` is either the numeric exit code or
+      //     `null` when the subprocess was killed by a signal / failed to
+      //     spawn. The `?? -1` nullish-coalesce narrows null/undefined to
+      //     -1, so the field is guaranteed typeof=number at the writer.
+      //     Matches the tick 253 rc/status-code narrowing convention.
+      //
+      // Design choice — one-pin single guard:
+      //   - Sits in its own conditional-by-stage guard matching the tick
+      //     240-256 convention. Comes AFTER the tick 256 cron_removal_failed
+      //     guard so future guards land in monotonic tick-order.
+      //   - TYPEOF pin only (not value) per the tick 230 "typeof only so
+      //     the value can drift" convention. Value pin would require
+      //     coupling to `crontab` binary's exact exit-code taxonomy across
+      //     GNU vs. BSD variants (0 success, 1 syntax error, various
+      //     platform-specific codes for missing crontab) which is not a
+      //     writer-contract invariant.
+      //   - One pin because the writer contract at mjs:257 emits exactly
+      //     one field beyond the log() helper's fixed tick_id/ts/
+      //     human_review_minutes_7d prefix — matches the tick 241 idle +
+      //     tick 243 auto_commit_started + tick 254 auto_commit_failed +
+      //     tick 255 human_blocked_snapshot_failed + tick 256
+      //     cron_removal_failed precedent for single-field rows.
+      if (tickRow.stage === "cron_removal") {
+        expect(
+          typeof tickRow.status,
+          `tick_history cron_removal row.status should be typeof number (reseller-goal-loop.mjs:257 writes \`stop.status ?? -1\` — narrows null/undefined spawnSync exit-code to -1 so the field is number-typed): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("number");
+      }
     }
     expect(
       typeof body.generated_at === "string" &&

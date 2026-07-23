@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.256
+version: 2026-07-23.257
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,143 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 257
+    ran_at: 2026-07-23
+    action: p10_loop_status_tick_row_cron_removal_status_one_pin_option_y13
+    result: |
+      Landed tick 256's "natural next pick" option (y13) as the eighteenth
+      conditional-by-stage schema pin on tick_history rows in admin-
+      reseller-loop-status-authz.spec.ts happy path. Closes the goal-
+      completion cron-removal happy-branch (mjs:252-257) writer contract
+      by pinning the `status: stop.status ?? -1` expression as
+      typeof=number — one-pin single-guard shape continuing the tick 254
+      + 255 + 256 one-pin cadence, symmetric with tick 253's rc/status-
+      code narrowing convention (nullish-coalesce to sentinel integer so
+      the field is number-typed at the writer).
+
+      Writer-schema justification:
+        - scripts/cron/reseller-goal-loop.mjs:257 writes
+          `log({ stage: 'cron_removal', status: stop.status ?? -1 })`
+          inside the try block at mjs:252-257 that wraps the
+          `crontab -l | grep -v 'reseller-goal-loop.mjs' | crontab -`
+          spawnSync inside the goal-completion detector at mjs:241-266.
+          Only fires on the FINAL tick of the entire loop (when the
+          goal file's top-level status is 'done') AND when the
+          spawnSync call itself does NOT throw — coverage-per-guard is
+          zero on green-path CI runs, but the pin still closes the
+          writer contract for the completion-path happy branch so a
+          future writer-side rename (e.g. `status` → `exit_code`) shows
+          up as a test failure rather than silent drift.
+        - `status` is `stop.status ?? -1` at mjs:257 — spawnSync
+          returns an object whose `.status` is either the numeric exit
+          code or `null` when the subprocess was killed by a signal /
+          failed to spawn. The `?? -1` nullish-coalesce narrows null/
+          undefined to -1, so the field is guaranteed typeof=number at
+          the writer. Matches the tick 253 rc/status-code narrowing
+          rationale verbatim.
+
+      Design choice — one-pin single guard:
+        - Sits in its own conditional-by-stage guard matching the tick
+          240-256 convention. Comes AFTER the tick 256
+          cron_removal_failed guard so future guards land in monotonic
+          tick-order.
+        - TYPEOF pin only (not value) per the tick 230 "typeof only so
+          the value can drift" convention. Value pin would couple the
+          test to `crontab` binary's exact exit-code taxonomy across
+          GNU vs. BSD variants (0 success, 1 syntax error, various
+          platform-specific codes for missing crontab) which is not a
+          writer-contract invariant.
+        - One pin because the writer contract at mjs:257 emits exactly
+          one field beyond the log() helper's fixed tick_id/ts/
+          human_review_minutes_7d prefix — matches the tick 241 idle +
+          tick 243 auto_commit_started + tick 254 auto_commit_failed +
+          tick 255 human_blocked_snapshot_failed + tick 256
+          cron_removal_failed precedent for single-field rows.
+
+      Diagnostic delta of the pass:
+        - Added 1 stage-guarded one-pin expect block (~60 lines: ~54
+          lines of justifying comment + ~6 lines of guard + one expect
+          statement) inside the tick_history row loop, immediately
+          after the tick 256 cron_removal_failed guard.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no vitest/Playwright runtime posture
+          change, no new module-scope constant. Matches ticks 223-256
+          discipline: tighten one dimension (in this case close the
+          goal-completion cron-removal happy-branch writer contract),
+          single tick.
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-loop-status-authz.spec.ts
+          (one conditional-by-stage one-pin guard added after the tick
+          256 cron_removal_failed guard, citing reseller-goal-loop.mjs:257
+          as the cron_removal writer site and mjs:252-257 as the
+          bounding try envelope.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.256 → 2026-07-23.257; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local constant, no fixture-file
+          delta, no seed-script change, no P8.5-gated code_request work
+          (option (c) still blocked), no production-code touch.
+          Consistent with ticks 239-256's stage-guard pattern.
+
+      Verified:
+        - reseller-goal-loop.mjs:257 grepped to confirm exactly one
+          `stage: 'cron_removal'` writer site; mjs:252-257 confirms the
+          try envelope shape unchanged.
+        - tsc clean (npx tsc --noEmit in web/, exit 0, no output).
+        - npm run lint:reseller: R-01 scanned 11 file(s), R-03 scanned
+          31 manifest route(s); 3 exemptions, 0 violations.
+        - The tick 257 pin sits directly above the closing brace of
+          the tick_history row loop — matches the monotonic tick-order
+          convention.
+
+      Frontier after tick 257: unchanged shape — Track A HUMAN-BLOCKED
+      on P8.5 Stripe env vars + P1.5 InfoVision seed on H.20 ABN + GST;
+      Track B COMPLETE; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 257 does NOT unblock: P8.5 STRIPE_PRICE_ADDON_SHARE_MGMT_*
+      env vars still human-gated; P1.5 InfoVision ABN + GST still
+      human-gated per H.20. cron_removal happy-branch writer contract
+      now pinned — combined with tick 256's cron_removal_failed guard,
+      BOTH branches of the goal-completion cron-removal try/catch at
+      mjs:252-260 are schema-guarded. Zero unpinned branches remain in
+      the mjs:241-266 goal-completion detector except the goal_completed
+      row itself (option y20).
+
+      Natural next pick for tick 258:
+        (y20) land `goal_completed` (mjs:242) row's `message` and
+             `completion_marker` keys — both bare string literals at
+             mjs:244-245 so a value pin would also be valid, but typeof-
+             only matches the drift convention. Two-pin candidate. Only
+             fires on the FINAL tick of the loop, so coverage-per-guard
+             is zero on green-path CI runs. Would close the last
+             unpinned row within the mjs:241-266 goal-completion
+             detector.
+        (u) audit whether the admin-requests-list-authz per-key content
+            pins deferred at tick 234's option (r) could land as a three-
+            surface change (reseller-side twin + admin-side list + admin-
+            side patch spec) in a single bigger-diff tick. Available;
+            deferred at ticks 235-256.
+        (r) audit whether the admin-requests-list-authz newly-pinned
+            payload plain-object guard could be extended to per-key
+            content pins for the three request_type variants. Still
+            available; deferred at ticks 235-256.
+        (n) audit whether admin-requests-patch-authz.spec.ts approve
+            branch decision_at pin could be tightened from typeof string
+            to an ISO-8601 regex — header-rewrite-first option
+            (contradicts existing "assert typeof string only" header
+            comment from tick 230). Still available; deferred at 235-256.
+        (x) audit format-shape pins for now_utc / next_utc (HH:MM:SS /
+            HH:MM regex) / seconds_until (0..3600 range) / tick_state
+            (enum of 4 branches) — header-rewrite option (contradicts
+            existing "typeof-string only so the value can drift"
+            comment).
+        (c) mirror row 179 shape+helper alignment onto row 175 approve+
+            deny+cancel code_request branches once P8.5 unblocks.
+            P8.5-blocked, no available today.
+    commit: (this tick)
+
   - tick: 256
     ran_at: 2026-07-23
     action: p10_loop_status_tick_row_cron_removal_failed_error_one_pin_option_y19
