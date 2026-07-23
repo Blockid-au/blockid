@@ -409,6 +409,7 @@ test.describe("Admin reseller GET input validation — P10 wave-5 row 168 happy 
         list_price_aud_cents?: unknown;
         discount_pct?: unknown;
         commission_aud_cents?: unknown;
+        net_owed_cents?: unknown;
       }>;
     };
 
@@ -862,6 +863,62 @@ test.describe("Admin reseller GET input validation — P10 wave-5 row 168 happy 
       expect(
         (row.commission_aud_cents as number) >= 0,
         `commissions[].commission_aud_cents '${String(row.commission_aud_cents)}' should be non-negative (CHECK (commission_aud_cents >= 0) per 0094:41 — DB CHECK is the sole schema backstop; an ALTER CHECK DROP, a superuser INSERT bypass, or a webhook-processor drift that stamped negative cents would slip out-of-band cents straight past the schema. Clawback / refund deltas live in reseller_commission_events with negative delta_aud_cents, but the base reseller_commissions.commission_aud_cents column itself is always non-negative per the 0094:41 CHECK. Note '>= 0' not '> 0' because wholesale rows always stamp commission_aud_cents = 0 per the ck_commission_split CHECK at 0094:52-60 — a strict positive tail would false-positive on every wholesale commission row of the QAPROBEWHOLESALEACTIVE seed reseller). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      // Tick 347 — commissions[].net_owed_cents two-part typeof-number +
+      // Number.isInteger wire-shape pin, sixth column pinned in the
+      // reseller_commissions_current[] child-row cluster on this
+      // detail-validation spec (opened tick 342 with commission_id UUID;
+      // tightened tick 343 with list_price_aud_cents strictly-positive int;
+      // extended tick 344 with stripe_invoice_id STRIPE_INVOICE_ID_RE;
+      // extended tick 345 with discount_pct ALLOWED_TIER_PCTS set-membership;
+      // extended tick 346 with commission_aud_cents three-part non-negative int).
+      // Executes tick 346 next-pick option (a) verbatim: propagates the tick 315
+      // pin already carried on the sibling admin-reseller-detail-authz.spec.ts
+      // (rows 3606-3626). Column source: the reseller_commissions_current view
+      // computes net_owed_cents at web/supabase/migrations/0094_reseller_
+      // commissions_and_events.sql:173-177 as `rc.commission_aud_cents +
+      // COALESCE(SUM(delta_aud_cents), 0)` over every non-accrued/non-cleared/
+      // non-dispute_opened/non-dispute_won event, projected verbatim through
+      // the SELECT tuple at web/src/app/api/admin/resellers/[code]/route.ts:98-
+      // 105.
+      //
+      // Design choice — TWO-part guard rather than three-part (mirrors the tick
+      // 315 posture on the sibling spec verbatim): NO sign tail assert because
+      // net_owed_cents MAY be negative on clawback rows when a refund/clawback
+      // delta exceeds the base commission (the whole point of net_owed_cents is
+      // to expose a signed running balance so the reseller knows what is owed
+      // AFTER refunds have been netted out). A `>= 0` tail here would false-
+      // positive on every fully or partially refunded row. Guard parts:
+      //   (a) typeof-number half labelled with diagnostic prose preserves the
+      //       raw-type discipline — the COALESCE guarantees non-null on the
+      //       view side, but a projection-side drop from route.ts:98-105 or a
+      //       PostgREST serialisation regression that returned null|undefined|
+      //       stringified-int would surface here. Separated from the
+      //       isInteger check below so a raw-type flip does not hide behind a
+      //       shape-based diagnostic.
+      //   (b) Number.isInteger() half catches a bigint-as-string serialisation
+      //       regression from PostgREST, a fractional-cents value from a
+      //       proration edge, or NaN / Infinity from a reducer refactor that
+      //       widened int → float via Number(...) coercion. The view sums
+      //       int commission_aud_cents + int delta_aud_cents so the wire type
+      //       is a clean integer — any non-integer here indicates upstream
+      //       drift.
+      // No new module-scope const needed — Number.isInteger is a built-in.
+      // Continues the P10 hardening posture on this spec: no fixture change,
+      // no route change, no new imports, no new module-scope const (tick 342/
+      // 345/346 precedent). Bypass-write model: a webhook-processor drift that
+      // widened int → float on the delta_aud_cents INSERT, a reducer refactor
+      // that used Number(...) parsing instead of parseInt(...), or a
+      // PostgREST bigint overflow when cents > 2^53 would slip past both the
+      // view COALESCE and the typeof-number guard above but surface here on
+      // the first offending row of the QAPROBEWHOLESALEACTIVE seed reseller.
+      expect(
+        typeof row.net_owed_cents,
+        `commissions[].net_owed_cents '${String(row.net_owed_cents)}' should be a number (view-computed int at web/supabase/migrations/0094_reseller_commissions_and_events.sql:173-177 as rc.commission_aud_cents + COALESCE(SUM(delta_aud_cents), 0); a projection-side drop from the SELECT tuple at web/src/app/api/admin/resellers/[code]/route.ts:98-105 or a PostgREST serialisation regression that returned null|undefined|stringified-int would surface here — COALESCE guarantees non-null on the view side, separated from the isInteger check below so a raw-type flip does not hide behind a shape-based diagnostic). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("number");
+      expect(
+        Number.isInteger(row.net_owed_cents),
+        `commissions[].net_owed_cents '${String(row.net_owed_cents)}' should be an integer (view-computed int at 0094:173-177 summing int commission_aud_cents + int delta_aud_cents; a PostgREST bigint-as-string serialisation regression, a fractional-cents value from a proration edge, or NaN/Infinity from a reducer refactor that widened int → float via Number(...) coercion would surface here. NO sign tail assert per tick 315 rationale on the sibling detail-authz spec — net_owed_cents MAY be negative on clawback rows when a refund/clawback delta exceeds the base commission; a '>= 0' tail would false-positive on every fully or partially refunded row). Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
     }
   });
