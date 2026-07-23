@@ -18,6 +18,8 @@
 
 import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import type { StageKey } from "@/lib/journey-vocabulary";
+import { deriveCanonicalStage } from "./customer-journey";
 import type { ScopedResellerSession } from "./scope";
 
 export interface AttributedCustomerRow {
@@ -27,6 +29,13 @@ export interface AttributedCustomerRow {
   created_at: string;
   last_login_at: string | null;
   onboarding_completed: boolean | null;
+  /**
+   * Derived canonical VC-journey stage (Idea → Public/Exit). Computed at
+   * query-transform time from the customer's latest SVI score — pure
+   * function, no DB migration. See
+   * docs/plans/real-world-workflow-parity-audit-2026-07-23.md gap #3.
+   */
+  canonical_stage: StageKey;
 }
 
 export interface PromotionCodeRow {
@@ -90,6 +99,30 @@ export function resellerSupabase(scope: ScopedResellerSession) {
         .select("id, email, display_name, created_at, last_login_at, onboarding_completed")
         .in("id", allowedIds);
       if (error) throw error;
+
+      // Second query — latest SVI score per customer, used to derive the
+      // canonical VC-journey stage. Purely additive; we degrade gracefully
+      // if svi_analyses is empty or the query fails (missing scores map to
+      // the safe 'idea' bucket via deriveCanonicalStage).
+      const latestScoreByUser = new Map<string, number>();
+      try {
+        const { data: sviRows } = await supabase
+          .from("svi_analyses")
+          .select("user_id, total_svi, created_at")
+          .in("user_id", allowedIds)
+          .order("created_at", { ascending: true });
+        for (const row of sviRows ?? []) {
+          const r = row as { user_id: string; total_svi: number | null };
+          if (typeof r.total_svi === "number") {
+            // ascending order → last write wins → latest score
+            latestScoreByUser.set(r.user_id, r.total_svi);
+          }
+        }
+      } catch {
+        // Non-fatal — customers still render, canonical_stage falls back to
+        // 'idea' for everyone whose score we couldn't read.
+      }
+
       return (data ?? []).map((u: {id: string; email: string; display_name: string | null; created_at: string; last_login_at: string | null; onboarding_completed: boolean | null;}) => ({
         user_id: u.id,
         email: u.email,
@@ -97,6 +130,7 @@ export function resellerSupabase(scope: ScopedResellerSession) {
         created_at: u.created_at,
         last_login_at: u.last_login_at,
         onboarding_completed: u.onboarding_completed,
+        canonical_stage: deriveCanonicalStage(latestScoreByUser.get(u.id) ?? null),
       }));
     },
 
