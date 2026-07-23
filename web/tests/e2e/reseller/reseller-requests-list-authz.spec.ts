@@ -230,6 +230,49 @@ const ALLOWED_STATUS_VALUES = new Set([
   "cancelled",
 ]);
 
+// Tick 279 — request_type enum value pin hoisted as a shared module-scope
+// constant on the reseller-scoped GET at /api/reseller/requests/route.ts:169-173
+// (second column of the SELECT projection). Natural next pick option (a) from
+// tick 278. reseller_requests.request_type is a NOT NULL text column with a
+// CHECK constraint pinning it to one of three enum values ('code_request',
+// 'over_budget_approval', 'collateral_approval') at 0095:29-30; the validator
+// side mirrors the same set at web/src/lib/reseller/requests.ts:12-15
+// (ResellerRequestType union) and the invalid_request_type gate at
+// requests.ts:218-221. Pre-tick-279 posture pinned the enum via an inline
+// `["code_request","over_budget_approval","collateral_approval"].toContain(...)`
+// literal at line ~408 which closed the enum-value invariant but not the
+// module-scope symmetry with the sibling admin surface.
+// admin-requests-patch-authz.spec.ts:462-466 already hoists the same set as
+// ALLOWED_REQUEST_TYPES (landed at tick 269); this tick mirrors that hoist
+// verbatim onto the reseller-scoped list surface so a schema-side enum
+// extension (CHECK widening at 0095:30 or a validator widening at
+// requests.ts:12-15) lands as a single spec edit on both admin and reseller
+// lenses simultaneously — matches the source-of-truth hoist discipline used
+// for ALLOWED_TIER_PCT_VALUES / SUFFIX_RE / HTTPS_URL_RE / REASON_MAX /
+// PURPOSE_MAX at tick 261, ISO_TIMESTAMP_RE at tick 275, and
+// ALLOWED_STATUS_VALUES at tick 278. Two-part guard: (a) preserved
+// typeof-string pin at line ~407 fires first (matches ticks 265-278 layering
+// discipline verbatim), (b) new ALLOWED_REQUEST_TYPES.has() set-membership
+// pin fires only after the typeof-string guard passes so tighter existing
+// pins surface first. Coverage-per-guard posture: green-path wave-4 row 161
+// exercises the 'over_budget_approval' enum value on every green CI run
+// (wave-3 row 155 seeds the pending over_budget_approval fixture); the
+// code_request/collateral_approval enum values have zero-coverage on the wire
+// today because no fixture seeds those variants that this GET would return —
+// matches the tick 261 zero-coverage-per-guard rationale (the set still
+// closes the writer contract so a route regression that returned a non-enum
+// request_type would surface on the next CI pass whenever any row is
+// seeded). Sibling-surface parity: fifth cross-surface companion pin after
+// tick 275's created_at ISO pin, tick 276's decision_at ISO pin, tick 277's
+// decision_reason length pin, and tick 278's status enum hoist — a
+// request_type enum extension now lands as a single spec edit on both admin
+// and reseller lenses simultaneously.
+const ALLOWED_REQUEST_TYPES = new Set([
+  "code_request",
+  "over_budget_approval",
+  "collateral_approval",
+]);
+
 test.describe("Reseller requests list pre-read authorization — P10 dry-run", () => {
   test("unauthenticated — GET with no session returns 401 unauthorised", async ({
     request,
@@ -405,9 +448,20 @@ test.describe("Reseller requests list — P10 wave-4 happy path", () => {
       expect(typeof row.id).toBe("string");
       expect(row.id ?? "").toMatch(UUID_RE);
       expect(typeof row.request_type).toBe("string");
-      expect(["code_request", "over_budget_approval", "collateral_approval"]).toContain(
-        row.request_type,
-      );
+      // Tick 279 — ALLOWED_REQUEST_TYPES.has() set-membership pin replacing
+      // the pre-tick-279 inline `["code_request","over_budget_approval",
+      // "collateral_approval"].toContain(...)` literal. See module-scope
+      // doc-block above ALLOWED_REQUEST_TYPES for the source-of-truth
+      // rationale (0095:29-30 CHECK + requests.ts:12-15 union +
+      // requests.ts:218-221 invalid_request_type gate). Fires ONLY after
+      // the typeof-string guard above passes so tighter existing pins
+      // surface first. Mirrors the admin-side tick 269 hoist verbatim so
+      // a schema-side enum extension lands as a single spec edit on both
+      // admin and reseller lenses simultaneously.
+      expect(
+        ALLOWED_REQUEST_TYPES.has(row.request_type as string),
+        `active_wholesale + happy GET row.request_type '${String(row.request_type)}' not in {code_request, over_budget_approval, collateral_approval} per 0095:29-30 + requests.ts:12-15 + requests.ts:218-221; a schema-side CHECK widening or a route regression that returned a stale/mismatched request_type value would surface here: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
       expect(typeof row.status).toBe("string");
       // Tick 278 — ALLOWED_STATUS_VALUES.has() set-membership pin replacing
       // the pre-tick-278 inline `["pending","approved","denied","cancelled"]
