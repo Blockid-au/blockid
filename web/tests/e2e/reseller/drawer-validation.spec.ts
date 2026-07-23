@@ -251,8 +251,23 @@ test.describe("Reseller customer-drawer — P10 wave-2 uuid_in_scope happy", () 
     ).toBe(200);
     const body = (await resp.json()) as {
       ok: boolean;
-      overview?: unknown;
-      progression?: Array<{ kind: string }>;
+      overview?: {
+        display_name: string | null;
+        masked_email: string;
+        signup_at: string;
+        last_active_at: string | null;
+        onboarding_completed: boolean;
+        plan_label: string | null;
+        credits_balance: number;
+        mrr_aud_cents: number;
+      };
+      progression?: Array<{
+        kind: string;
+        ts: string;
+        label: string;
+        detail?: string | null;
+        phase?: number | null;
+      }>;
       svi_curve?: unknown;
       reports?: unknown;
       reason?: string;
@@ -262,7 +277,37 @@ test.describe("Reseller customer-drawer — P10 wave-2 uuid_in_scope happy", () 
       `uuid_in_scope + happy body.ok should be true: ${JSON.stringify(body)}`,
     ).toBe(true);
     expect(body.overview, "overview missing").toBeDefined();
+    // Tick 226 — mirror tick 225's row 146 OverviewSummary + progression[0]
+    // shape pins onto drawer-validation row 147 so the twin discipline
+    // established at drawer-authz row 146 stays coherent across the drawer
+    // spec pair. Same 7 new expects, same position, same null-or-typeof-
+    // string discipline as tick 223 row 161 + tick 224 row 156 + tick 225
+    // row 146. Shape pins only — no VALUE assertions on fields that drift
+    // across staging seed rewrites. See drawer-authz.spec.ts:245-283 for
+    // the parallel rationale (nullable-string columns in app_users, `!!`
+    // coercion on onboarding_completed at customer-drawer.ts:282, mrr
+    // accumulator at customer-drawer.ts:263+285, signup event ts+label
+    // pushed at customer-drawer.ts:122-126).
+    expect(
+      body.overview?.display_name === null ||
+        typeof body.overview?.display_name === "string",
+    ).toBe(true);
+    expect(typeof body.overview?.masked_email).toBe("string");
+    expect(typeof body.overview?.signup_at).toBe("string");
+    expect(
+      body.overview?.last_active_at === null ||
+        typeof body.overview?.last_active_at === "string",
+    ).toBe(true);
+    expect(typeof body.overview?.onboarding_completed).toBe("boolean");
+    expect(
+      body.overview?.plan_label === null ||
+        typeof body.overview?.plan_label === "string",
+    ).toBe(true);
+    expect(typeof body.overview?.credits_balance).toBe("number");
+    expect(typeof body.overview?.mrr_aud_cents).toBe("number");
     expect(Array.isArray(body.progression)).toBe(true);
     expect((body.progression ?? []).length).toBeGreaterThan(0);
+    expect(typeof body.progression?.[0]?.ts).toBe("string");
+    expect(typeof body.progression?.[0]?.label).toBe("string");
   });
 });
