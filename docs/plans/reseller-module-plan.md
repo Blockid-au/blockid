@@ -1,5 +1,7 @@
 # BlockID.au — Reseller / Affiliate Module: Feature Plan
 
+> **Source of truth: [SOURCE-OF-TRUTH.md](./SOURCE-OF-TRUTH.md)** — this file is a specialised view; consult the source-of-truth first for status.
+
 > **Plan-mode file.** Upon approval, move to `docs/plans/reseller-module-plan.md` (the founder-requested location). No code changes in this session; every citation is `path:line` for future execution.
 
 ---

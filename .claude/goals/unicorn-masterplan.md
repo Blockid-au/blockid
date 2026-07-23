@@ -1,5 +1,7 @@
 # UNICORN MASTER PLAN — BlockID.au
 
+> **Source of truth: [docs/plans/SOURCE-OF-TRUTH.md](../../docs/plans/SOURCE-OF-TRUTH.md)** — this file is a specialised view; consult the source-of-truth first for status.
+
 ## Mission
 **Build BlockID.au into Australia's first AI-native Unicorn (A$1B+ valuation) from Sydney, NSW.** Every role in the organization — from Founder to individual contributor — aligns toward this single goal. Every agent self-researches, self-upgrades, and self-optimizes to get there.
 

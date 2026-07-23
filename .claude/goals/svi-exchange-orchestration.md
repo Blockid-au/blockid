@@ -1,5 +1,7 @@
 # Goal: SVI Exchange Orchestration — autonomous C-Level execution
 
+> **Source of truth: [docs/plans/SOURCE-OF-TRUTH.md](../../docs/plans/SOURCE-OF-TRUTH.md)** — this file is a specialised view; consult the source-of-truth first for status.
+
 > Created: 2026-06-18 · Owner: CEO · Status: in_progress
 > Drives ship cadence for startupvalueindex.com from v0.1 → v0.9 per `/home/dovanlong/startupvalueindex.com/GOAL.md`.
 
