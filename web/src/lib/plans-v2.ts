@@ -202,7 +202,7 @@ const INVESTOR: Plan[] = [
 // ─── Accelerator ──────────────────────────────────────────────────────────
 const ACCELERATOR: Plan[] = [
   {
-    id: "accel_starter",
+    id: "accelerator_starter",
     segment: "accelerator",
     name: "Cohort Starter",
     monthly_aud: 500,
@@ -219,7 +219,7 @@ const ACCELERATOR: Plan[] = [
     ],
   },
   {
-    id: "accel_growth",
+    id: "accelerator_growth",
     segment: "accelerator",
     name: "Cohort Growth",
     monthly_aud: 1500,
@@ -237,9 +237,9 @@ const ACCELERATOR: Plan[] = [
     ],
   },
   {
-    id: "accel_scale",
+    id: "accelerator_enterprise",
     segment: "accelerator",
-    name: "Cohort Scale",
+    name: "Cohort Enterprise",
     monthly_aud: 3500,
     annual_aud: 35000,
     trial_days: 7,

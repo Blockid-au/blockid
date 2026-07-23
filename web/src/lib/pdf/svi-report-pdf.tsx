@@ -5,6 +5,7 @@ import {
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { SVI_STAGE_LABELS, SVI_BENCHMARKS } from "@/lib/svi-analysis";
 import { estimateValuation, formatAUD } from "@/lib/valuation";
+import type { BrandSettings } from "@/lib/branding/load";
 import * as path from "path";
 import * as fs from "fs";
 
@@ -20,12 +21,14 @@ const LOGO_SRC = fs.existsSync(LOGO_PATH)
   ? `data:image/png;base64,${fs.readFileSync(LOGO_PATH).toString("base64")}`
   : null;
 
-// TODO(pdf-branding): read the saved brand_settings row (logoUrl, primaryColor,
-// accentColor, reportHeader, footerText) for the owning user and thread it
-// into `C` + `LOGO_SRC` when the user's plan grants pdf_branding. Follow-up
-// after the feature-gate + settings-form slice. See
-// web/src/lib/branding/gate.ts (canUsePdfBranding) and
-// web/src/app/api/branding/route.ts.
+/* White-label wire-in — the SVIReportPDF component accepts an optional
+ * `branding` prop (see BrandSettings in `@/lib/branding/load`). The caller
+ * (web/src/app/api/svi/pdf/route.ts) loads brand_settings via
+ * `loadBrandSettings(userId, planCode)`, which returns `null` for locked
+ * plans, so the feature-gate is enforced BEFORE branding ever reaches the
+ * renderer. When `branding` is `null` (or the row is missing fields) the
+ * renderer falls back to this default `C` palette + built-in logo.
+ * See web/src/lib/branding/gate.ts (canUsePdfBranding). */
 /* ─── Brand Palette ─────────────────────────────────────────────────────── */
 const C = {
   brand700: "#1d4ed8",
@@ -341,18 +344,31 @@ function getSectionTitle(id: string): string {
 
 /* ─── Shared Components ─────────────────────────────────────────────────── */
 
-function HeaderBar() {
-  return <View style={s.headerBar} fixed />;
+function HeaderBar({ color }: { color?: string } = {}) {
+  // Palette override lands as an inline background — s.headerBar's default is
+  // still C.brand600, but the inline style wins when `color` is supplied.
+  return <View style={[s.headerBar, color ? { backgroundColor: color } : undefined]} fixed />;
 }
 
-function Footer({ disclaimer }: { disclaimer?: boolean }) {
+function Footer({
+  logoSrc,
+  brandText,
+}: {
+  logoSrc?: string | null;
+  brandText?: string | null;
+} = {}) {
+  // logoSrc may be a remote URL (Supabase storage) — passed straight through
+  // to @react-pdf/renderer which handles the fetch itself. If unset / falsy
+  // we fall back to the embedded BlockID logo (LOGO_SRC data URI).
+  const src = logoSrc || LOGO_SRC;
+  const leftText = brandText && brandText.trim().length > 0 ? brandText : "Confidential";
   return (
     <View style={s.footer} fixed>
-      <Text style={s.footerText}>Confidential</Text>
+      <Text style={s.footerText}>{leftText}</Text>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
         {/* eslint-disable-next-line jsx-a11y/alt-text */}
-        {LOGO_SRC && <Image src={LOGO_SRC} style={{ width: 56, height: 13 }} />}
-        {!LOGO_SRC && <Text style={s.footerBrand}>BlockID.au</Text>}
+        {src && <Image src={src} style={{ width: 56, height: 13 }} />}
+        {!src && <Text style={s.footerBrand}>BlockID.au</Text>}
       </View>
       <Text
         style={s.footerText}
@@ -1168,6 +1184,16 @@ interface SVIReportPDFProps {
     actions?: string[];
   }>;
   charts?: Map<string, string>;
+  /** Optional saved brand_settings for paid tiers (Growth+/Scale/Enterprise).
+   *  The caller must already have run `loadBrandSettings(...)`, which returns
+   *  null for locked plans — do NOT bypass the feature-gate here. */
+  branding?: BrandSettings | null;
+}
+
+/** Basic hex validator — rejects malformed strings so we never poison
+ *  @react-pdf's colour parser. Accepts #RGB / #RRGGBB (with or without #). */
+function isValidHexColor(v: unknown): v is string {
+  return typeof v === "string" && /^#?[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(v.trim());
 }
 
 export function SVIReportPDF({
@@ -1178,7 +1204,20 @@ export function SVIReportPDF({
   reportDate,
   sections,
   charts,
+  branding,
 }: SVIReportPDFProps) {
+  // Resolve branded values with safe fallbacks. `branding` is null when the
+  // plan gate is closed OR no row was saved — either way, defaults apply.
+  const brandPrimary = branding && isValidHexColor(branding.primaryColor)
+    ? branding.primaryColor.startsWith("#") ? branding.primaryColor : `#${branding.primaryColor}`
+    : C.brand600;
+  // Remote URL is passed straight to @react-pdf — never fetch synchronously
+  // in the Node server (would block the event loop + leak PII on log).
+  const brandLogoSrc: string | null =
+    branding?.logoUrl && typeof branding.logoUrl === "string" && branding.logoUrl.trim().length > 0
+      ? branding.logoUrl.trim()
+      : LOGO_SRC;
+  const brandFooterText: string | null = branding?.footerText?.trim() || null;
   const isPaid = tier === "premium" || tier === "deep_dive";
   const date =
     reportDate ||
@@ -1253,7 +1292,7 @@ export function SVIReportPDF({
        *  PAGE 0: HOOK — Problem + Position Hero (opens with first-principles)
        * ──────────────────────────────────────────────────────────────────── */}
       <Page size="A4" style={s.page}>
-        <HeaderBar />
+        <HeaderBar color={brandPrimary} />
 
         {/* First-principles hook question */}
         <View style={{ marginBottom: 20, backgroundColor: C.brand50, borderRadius: 8, padding: 16, borderLeftWidth: 4, borderLeftColor: C.brand600 }}>
@@ -1352,7 +1391,7 @@ export function SVIReportPDF({
           </Text>
         </View>
 
-        <Footer />
+        <Footer logoSrc={brandLogoSrc} brandText={brandFooterText} />
       </Page>
 
       {/* ────────────────────────────────────────────────────────────────────
@@ -1362,7 +1401,7 @@ export function SVIReportPDF({
         {/* Dark blue header block */}
         <View
           style={{
-            backgroundColor: C.brand700,
+            backgroundColor: brandPrimary,
             height: 260,
             paddingHorizontal: 52,
             paddingTop: 48,
@@ -1373,8 +1412,8 @@ export function SVIReportPDF({
           {/* Logo */}
           <View style={{ position: "absolute", top: 28, left: 52 }}>
             {/* eslint-disable-next-line jsx-a11y/alt-text */}
-            {LOGO_SRC && <Image src={LOGO_SRC} style={{ width: 100, height: 23, opacity: 0.9 }} />}
-            {!LOGO_SRC && (
+            {brandLogoSrc && <Image src={brandLogoSrc} style={{ width: 100, height: 23, opacity: 0.9 }} />}
+            {!brandLogoSrc && (
               <Text style={{ fontSize: 14, fontFamily: "Helvetica-Bold", color: C.white }}>
                 BlockID.au
               </Text>
@@ -1497,7 +1536,7 @@ export function SVIReportPDF({
           </View>
         </View>
 
-        <Footer />
+        <Footer logoSrc={brandLogoSrc} brandText={brandFooterText} />
       </Page>
 
       {/* ────────────────────────────────────────────────────────────────────
@@ -1505,9 +1544,9 @@ export function SVIReportPDF({
        * ──────────────────────────────────────────────────────────────────── */}
       {(analysis.inputSummary || analysis.deepValuation) && (
         <Page size="A4" style={s.page}>
-          <HeaderBar />
+          <HeaderBar color={brandPrimary} />
           <DeepAnalysisPage analysis={analysis} />
-          <Footer />
+          <Footer logoSrc={brandLogoSrc} brandText={brandFooterText} />
         </Page>
       )}
 
@@ -1516,13 +1555,13 @@ export function SVIReportPDF({
        * ──────────────────────────────────────────────────────────────────── */}
       {analysis.scnActionPlan && (
         <Page size="A4" style={s.page}>
-          <HeaderBar />
+          <HeaderBar color={brandPrimary} />
           <ScnActionPlanPage
             plan={analysis.scnActionPlan}
             maturity={analysis.maturitySignal}
             cohort={analysis.cohortPercentile}
           />
-          <Footer />
+          <Footer logoSrc={brandLogoSrc} brandText={brandFooterText} />
         </Page>
       )}
 
@@ -1531,9 +1570,9 @@ export function SVIReportPDF({
        * ──────────────────────────────────────────────────────────────────── */}
       {analysis.acceleratorReadiness && analysis.acceleratorReadiness.sources.length > 0 && (
         <Page size="A4" style={s.page}>
-          <HeaderBar />
+          <HeaderBar color={brandPrimary} />
           <AcceleratorChecklistPage readiness={analysis.acceleratorReadiness} />
-          <Footer />
+          <Footer logoSrc={brandLogoSrc} brandText={brandFooterText} />
         </Page>
       )}
 
@@ -1541,7 +1580,7 @@ export function SVIReportPDF({
        *  PAGE 2: EXECUTIVE SUMMARY
        * ──────────────────────────────────────────────────────────────────── */}
       <Page size="A4" style={s.page}>
-        <HeaderBar />
+        <HeaderBar color={brandPrimary} />
         <ScnBanner index="01" label="Validation" question="Am I solving the right problem?" color={SCN_COLORS[0]} />
 
         {/* 4 metric cards */}
@@ -1644,14 +1683,14 @@ export function SVIReportPDF({
           </Text>
         </View>
 
-        <Footer />
+        <Footer logoSrc={brandLogoSrc} brandText={brandFooterText} />
       </Page>
 
       {/* ────────────────────────────────────────────────────────────────────
        *  SCN 02 — POSITION ("Where am I?")
        * ──────────────────────────────────────────────────────────────────── */}
       <Page size="A4" style={s.page}>
-        <HeaderBar />
+        <HeaderBar color={brandPrimary} />
         <ScnBanner index="02" label="Position" question="Where am I?" color={SCN_COLORS[1]} />
 
         {/* Index + stage + percentile + value */}
@@ -1712,14 +1751,14 @@ export function SVIReportPDF({
           </Text>
         </View>
 
-        <Footer />
+        <Footer logoSrc={brandLogoSrc} brandText={brandFooterText} />
       </Page>
 
       {/* ────────────────────────────────────────────────────────────────────
        *  SCN 03 — VALUE ("What's my startup worth?") + 8-dimension scorecard
        * ──────────────────────────────────────────────────────────────────── */}
       <Page size="A4" style={s.page}>
-        <HeaderBar />
+        <HeaderBar color={brandPrimary} />
         <ScnBanner index="03" label="Value" question="What's my startup worth?" color={SCN_COLORS[2]} />
 
         {/* Indicative valuation range */}
@@ -1822,7 +1861,7 @@ export function SVIReportPDF({
           </Text>
         </View>
 
-        <Footer />
+        <Footer logoSrc={brandLogoSrc} brandText={brandFooterText} />
       </Page>
 
       {/* ────────────────────────────────────────────────────────────────────
@@ -1838,7 +1877,7 @@ export function SVIReportPDF({
 
         return (
           <Page key={`section-${idx}`} size="A4" style={s.page}>
-            <HeaderBar />
+            <HeaderBar color={brandPrimary} />
 
             {/* Section badge + title */}
             <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 14, marginBottom: 16 }}>
@@ -1888,7 +1927,7 @@ export function SVIReportPDF({
               </View>
             )}
 
-            <Footer />
+            <Footer logoSrc={brandLogoSrc} brandText={brandFooterText} />
           </Page>
         );
       })}
@@ -1897,7 +1936,7 @@ export function SVIReportPDF({
        *  SCN 04 — DIRECTION ("What do I do next?") — Google-Maps-style route
        * ──────────────────────────────────────────────────────────────────── */}
       <Page size="A4" style={s.page}>
-        <HeaderBar />
+        <HeaderBar color={brandPrimary} />
         <ScnBanner index="04" label="Direction" question="What do I do next?" color={SCN_COLORS[3]} />
 
         {/* You are here */}
@@ -1985,14 +2024,14 @@ export function SVIReportPDF({
           </Text>
         </View>
 
-        <Footer />
+        <Footer logoSrc={brandLogoSrc} brandText={brandFooterText} />
       </Page>
 
       {/* ────────────────────────────────────────────────────────────────────
        *  RISK LANDSCAPE
        * ──────────────────────────────────────────────────────────────────── */}
       <Page size="A4" style={s.page}>
-        <HeaderBar />
+        <HeaderBar color={brandPrimary} />
         <PageTitle title="Risk Landscape" subtitle="Risk Assessment & Mitigation Strategies" />
 
         {analysis.riskPenalties.length > 0 ? (
@@ -2109,14 +2148,14 @@ export function SVIReportPDF({
           </View>
         )}
 
-        <Footer />
+        <Footer logoSrc={brandLogoSrc} brandText={brandFooterText} />
       </Page>
 
       {/* ────────────────────────────────────────────────────────────────────
        *  PAGE 11: 90-DAY GROWTH ROADMAP
        * ──────────────────────────────────────────────────────────────────── */}
       <Page size="A4" style={s.page}>
-        <HeaderBar />
+        <HeaderBar color={brandPrimary} />
         <PageTitle title="Your 90-Day Growth Roadmap" subtitle="Prioritised Action Plan for Measurable Progress" />
 
         {/* Three columns */}
@@ -2279,14 +2318,14 @@ export function SVIReportPDF({
           </Text>
         </View>
 
-        <Footer />
+        <Footer logoSrc={brandLogoSrc} brandText={brandFooterText} />
       </Page>
 
       {/* ────────────────────────────────────────────────────────────────────
        *  PAGE 12: FINAL PAGE — NEXT STEPS & BRANDING
        * ──────────────────────────────────────────────────────────────────── */}
       <Page size="A4" style={s.page}>
-        <HeaderBar />
+        <HeaderBar color={brandPrimary} />
         <ScnBanner index="05" label="Capital" question="How do I grow faster?" color={SCN_COLORS[4]} />
 
         {/* Stage journey */}
@@ -2419,13 +2458,18 @@ export function SVIReportPDF({
           }}
         >
           {/* eslint-disable-next-line jsx-a11y/alt-text */}
-          {LOGO_SRC && <Image src={LOGO_SRC} style={{ width: 100, height: 23, marginBottom: 6 }} />}
-          {!LOGO_SRC && (
-            <Text style={{ fontSize: 14, fontFamily: "Helvetica-Bold", color: C.brand600, marginBottom: 6 }}>
+          {brandLogoSrc && <Image src={brandLogoSrc} style={{ width: 100, height: 23, marginBottom: 6 }} />}
+          {!brandLogoSrc && (
+            <Text style={{ fontSize: 14, fontFamily: "Helvetica-Bold", color: brandPrimary, marginBottom: 6 }}>
               BlockID.au
             </Text>
           )}
           <Text style={{ fontSize: 8, color: C.ink500 }}>blockid.au</Text>
+          {brandFooterText && (
+            <Text style={{ fontSize: 7, color: C.ink500, marginTop: 4, textAlign: "center", maxWidth: 420 }}>
+              {brandFooterText}
+            </Text>
+          )}
           <Text style={{ fontSize: 7, color: C.ink400, marginTop: 4 }}>
             Auschain PTY LTD | ACN 659 615 111 | ABN 79 659 615 111 | Sydney, NSW, Australia
           </Text>
@@ -2448,7 +2492,7 @@ export function SVIReportPDF({
           </Text>
         </View>
 
-        <Footer />
+        <Footer logoSrc={brandLogoSrc} brandText={brandFooterText} />
       </Page>
     </Document>
   );
