@@ -127,10 +127,10 @@ export function PortfolioComparisonChart({ rows }: PortfolioComparisonChartProps
                 borderRadius: "8px",
                 fontSize: "12px",
               }}
-              labelFormatter={(label: string) => formatDate(label)}
-              formatter={(value: number, key: string) => {
-                const s = series.find((x) => x.id === key);
-                return [value, s?.name ?? key];
+              labelFormatter={(label) => formatDate(String(label))}
+              formatter={(value, key) => {
+                const s = series.find((x) => x.id === String(key));
+                return [value as number, s?.name ?? String(key)];
               }}
             />
             <Legend
