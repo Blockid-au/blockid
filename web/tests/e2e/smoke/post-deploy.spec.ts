@@ -90,8 +90,12 @@ test.describe("Post-deploy hydrated smoke", () => {
       // Once hydration processes the NEXT_REDIRECT template the URL must
       // settle on /auth/login (anonymous session).
       await page.waitForURL(/\/auth\/login/, { timeout: PAGE_TIMEOUT });
+      // Next.js 16 emits `next=` with the raw path (not percent-encoded), but
+      // some intermediate proxies may re-encode `/`. Accept either form so
+      // this stays a behavior assertion, not an encoding assertion.
+      const encoded = path.replace(/\//g, "%2F");
       expect(page.url()).toMatch(
-        new RegExp(`/auth/login.*next=.*${path.replace(/\//g, "%2F")}`),
+        new RegExp(`/auth/login.*next=.*(?:${path}|${encoded})`),
       );
     });
   }
