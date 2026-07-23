@@ -1,5 +1,7 @@
 # BlockID.au v2.0 — Pricing & Positioning Upgrade Master Plan
 
+> **Source of truth: [plans/SOURCE-OF-TRUTH.md](./plans/SOURCE-OF-TRUTH.md)** — this file is a specialised view; consult the source-of-truth first for status.
+
 **Version:** v2.0 · **Date:** 2026-07-16 · **Status:** IN PROGRESS
 **Trigger:** Investor feedback prompt `BlockID_Pricing_ResearchBuild_Prompt.md`
 **Research brief:** `.claude/research/pricing-upgrade-research-2026-07-16.md`

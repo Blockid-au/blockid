@@ -1,5 +1,7 @@
 # BlockID.au Feature Upgrade Roadmap v2 — Post Go-Live
 
+> **Source of truth: [docs/plans/SOURCE-OF-TRUTH.md](../../docs/plans/SOURCE-OF-TRUTH.md)** — this file is a specialised view; consult the source-of-truth first for status.
+
 ## Current Status (May 2026)
 - 455+ goal items completed
 - Platform live at blockid.au

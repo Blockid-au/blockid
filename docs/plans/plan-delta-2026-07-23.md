@@ -1,5 +1,7 @@
 # Reseller Module — Plan Delta 2026-07-23 (P0 pre-flight aggregation)
 
+> **Source of truth: [SOURCE-OF-TRUTH.md](./SOURCE-OF-TRUTH.md)** — this file is a specialised view; consult the source-of-truth first for status.
+
 > **Status: P1 BLOCKED** — 4 C-Level blocking reviewers (CTO, CFO, CISO, CLO) returned `verdict: revise`. This delta consolidates their findings into concrete plan-file amendments that must be merged before P1.1 (migrations 0091+) is authorised to fire.
 
 **Reviewers.** Ran 2026-07-23 (autonomous P0 tick 1):

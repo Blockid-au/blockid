@@ -1,9 +1,11 @@
 # Reseller Module — Machine-Readable Goal File (autonomous loop source of truth)
 
+> **Source of truth: [SOURCE-OF-TRUTH.md](./SOURCE-OF-TRUTH.md)** — this file is a specialised view; consult the source-of-truth first for status.
+
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.290
+version: 2026-07-23.291
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +658,158 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 291
+    ran_at: 2026-07-23
+    action: p10_can_create_startups_bool_wire_shape_pin_cross_surface_pair_on_admin_resellers_list_plus_admin_reseller_detail
+    result: |
+      Fresh-column rotation per tick 290 next-pick option (a) —
+      resellers.can_create_startups bool wire-shape pin landed on BOTH
+      admin-resellers-list-authz.spec.ts AND
+      admin-reseller-detail-authz.spec.ts in the same tick, extending
+      the tick 286+287+288+289+290 discipline of bringing both admin
+      resellers-family surfaces up to parity in one pass.
+
+      Seventeenth pin in the tick 275-291 lineage; sixth consecutive
+      single-tick cross-surface pair (commission_share_pct at 286,
+      gst_registered at 287, allowed_tiers at 288, monthly_credit_budget
+      at 289, monthly_sandbox_credits at 290, can_create_startups at
+      291). Rotates back to a bool column after the tick 289+290 int
+      pair — same single typeof-boolean assert shape as tick 287
+      gst_registered because the write-side invariant shape is
+      identical (bool NOT NULL, no finite / range dimension). Sibling
+      bool column to gst_registered on the resellers row (bool NOT
+      NULL DEFAULT false at 0091:31 — controls whether a reseller can
+      create attributed startup profiles per the reseller U.15 module
+      design).
+
+      Writer-schema justification:
+        - 0091_reseller_module_foundations.sql:31 declares
+          `can_create_startups bool NOT NULL DEFAULT false` on the
+          resellers table.
+        - No DB CHECK — bool NOT NULL is the entire invariant surface.
+          Application-side gating (whether the reseller UI exposes the
+          "create startup" branch) lives on the write path but has no
+          wire-side echo distinct from the bool value itself.
+        - The two admin resellers-family GET surfaces project the
+          column via select("*"):
+            list: route.ts:41-44 select("*").order("created_at", …)
+            detail: route.ts:47-48 select("*").eq("code", code)
+        - PostgREST returns bool columns as JS boolean on the wire so
+          the typeof-boolean pin below reflects the actual serialisation
+          contract. A schema-side flip from bool to text/int would
+          surface on the typeof-boolean layer; a PostgREST regression
+          that returned booleans as "true"/"false" strings would also
+          surface on the typeof-boolean layer.
+
+      Design choice — verbatim single-guard mirror of tick 287:
+        - typeof-boolean fires ONCE per row. Bool has no finite / range
+          / integer dimension so no second guard is layered — matches
+          the tick 287 gst_registered posture verbatim rather than the
+          two-part (tick 283/284 ISO), three-part (tick 286 numeric
+          range, tick 288 array element-set), or four-part (tick 289
+          /290 int + non-negative + integer) guards used for scalar
+          columns with a semantic dimension beyond raw type.
+        - Non-null column → single guard without a null-or-boolean
+          outer layer (matches ticks 283-290's NOT-NULL posture
+          verbatim).
+
+      Coverage-per-guard posture:
+        - List surface: wave-5 row 164 admin harness iterates every
+          returned resellers row inside the per-row for-loop, so
+          seeded hosts holding ≥7 cohort rows from seed-qa-reseller.mjs
+          exercise the pin on every green CI run (seed-qa-reseller.mjs
+          uses the DEFAULT false so the pin exercises the false
+          branch).
+        - Detail surface: wave-5 row 167 single-row GET fires the pin
+          ONCE per test against the QAPROBEWHOLESALEACTIVE seed row —
+          equivalent to the list surface's per-row loop iterating
+          exactly one row.
+        - Fresh CI hosts without the QA reseller seed still green
+          because test.skip() fires when the fixture returns null (list
+          surface's for-loop is a no-op on zero rows).
+
+      Diagnostic delta of the pass:
+        - admin-resellers-list-authz.spec.ts:
+            + module-scope doc-block (tick 291 paragraph) above
+              ISO_TIMESTAMP_RE citing 0091:31 as the column source.
+            + row interface widened with can_create_startups?:
+              unknown.
+            + Single typeof-boolean assert inside the wave-5 row 164
+              per-row for-loop, immediately after the tick 290
+              monthly_sandbox_credits four-part guard block.
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 291 paragraph) above
+              ISO_TIMESTAMP_RE citing the same schema source.
+            + body.reseller row interface widened with
+              can_create_startups?: unknown.
+            + Single typeof-boolean assert inside the wave-5 row 167
+              happy GET test, immediately after the tick 290
+              monthly_sandbox_credits four-part guard block.
+        - No production code touched, no fixture change, no route
+          change, no new imports. Matches ticks 234-290 discipline:
+          tighten one column across two surfaces with zero net new
+          imports and zero production-code touches.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: R-01 scanned 11 files + R-03 scanned
+          31 manifest routes, 3 exemptions, 0 violations
+        - Playwright specs excluded from vitest by design; the two
+          new asserts (1 per surface) fire when `npx playwright test
+          admin-resellers-list-authz admin-reseller-detail-authz` runs
+          on a seeded host (wave-5 row 164/167 skip on CI hosts lacking
+          loadAdminHarness / loadTempReseller seeds).
+
+      Files:
+        - web/tests/e2e/reseller/admin-resellers-list-authz.spec.ts
+          (module-scope doc-block extended with tick 291 paragraph;
+          per-row shape interface gains can_create_startups?:
+          unknown; wave-5 row 164 for-loop body gains a single
+          typeof-boolean assert immediately after the tick 290
+          monthly_sandbox_credits four-part guard block.)
+        - web/tests/e2e/reseller/admin-reseller-detail-authz.spec.ts
+          (module-scope doc-block extended with tick 291 paragraph;
+          body.reseller row interface gains can_create_startups?:
+          unknown; wave-5 row 167 happy GET body gains a single
+          typeof-boolean assert immediately after the tick 290
+          monthly_sandbox_credits four-part guard block.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.290 → 2026-07-23.291; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no production-code touch, no
+          new imports, no widening of the guards on existing pins.
+          Consistent with ticks 234-290's incremental-pin pattern.
+        - Cross-surface pair rather than staggered mirror — the
+          list-surface + detail-surface pins land in the same tick so
+          the two admin resellers-family GET lenses carry the same
+          bool wire-shape pin on can_create_startups simultaneously.
+          Matches tick 286+287+288+289+290 cross-surface pair
+          discipline rotated onto the sibling bool column.
+
+      Next natural picks on tick 292:
+        (a) rotate to remaining bool columns on the resellers row —
+        can_grant_credits bool NOT NULL DEFAULT false at 0091:32 or
+        collateral_approval_required bool NOT NULL DEFAULT true at
+        0091:35 (both bool NOT NULL, each takes a single typeof-boolean
+        assert per surface — same shape as tick 287 gst_registered
+        and tick 291 can_create_startups).
+        (b) rotate to the abn text column at 0091:37 — nullable so
+        needs a null-or-string / null-or-string+regex two-part guard
+        matching the ck_abn_format CHECK (if declared) and the
+        ABN_RE at admin-validator.ts:87-97.
+        (c) rotate to logo_url or primary_color text columns at
+        0091:26-27 — both nullable free text, so a two-part null-or-
+        string guard would land.
+        (d) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks while the two HUMAN-BLOCKED leaves await external
+        unblock signals.
+    commit: (this tick)
+
   - tick: 290
     ran_at: 2026-07-23
     action: p10_monthly_sandbox_credits_int_wire_shape_plus_non_negative_plus_integer_pin_cross_surface_pair_on_admin_resellers_list_plus_admin_reseller_detail

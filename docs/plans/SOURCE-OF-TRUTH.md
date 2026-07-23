@@ -1,0 +1,234 @@
+# BlockID.au — SOURCE OF TRUTH
+
+> **Version:** 2026-07-23 · **Owner:** CEO (Do Van Long) · **Consumer:** founders, human team, autonomous loop agents.
+> **Rule:** Consult this file BEFORE any specialised plan doc. Every specialised plan carries a top-of-file back-link to this one.
+> **Entity:** Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111 · Sydney NSW.
+
+---
+
+## 1. Active Goals
+
+### G1 — Reseller module v1
+- **Source:** [`docs/plans/reseller-module-goal.md`](./reseller-module-goal.md) · plan [`docs/plans/reseller-module-plan.md`](./reseller-module-plan.md) · delta [`docs/plans/plan-delta-2026-07-23.md`](./plan-delta-2026-07-23.md)
+- **Tick:** 290 · **Track A focus:** `P2_redemption_attribution` (P0/P1/P2 landed, P3/P4/P5/P6/P7/P8 shipped except P8.5, P10 pin-hardening in-flight). **Track B focus:** `done` (B1..B10 shipped).
+- **Status:** in-progress; C-Level blocking reviewers all approved; advisory notes closed at tick 68.
+- **Next action:** P10 wire-shape pin cross-surface pairs continue (auto-loop). Track A HUMAN-BLOCKED on P1.5 (InfoVision seed) + P8.5 (Stripe env vars).
+- **Blocker:** H.20 InfoVision ABN + GST status; `STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL` env mint.
+
+### G2 — Real-world workflow parity
+- **Source:** [`docs/plans/real-world-workflow-parity-audit-2026-07-23.md`](./real-world-workflow-parity-audit-2026-07-23.md)
+- **Status:** audit-only; 10 remediation items ranked, 0 shipped.
+- **Top-10 remediation (ranked):**
+  1. Publish canonical 8-stage vocabulary (`architecture-designer`, S) — founder sign-off.
+  2. Wire 12↔8 bucket map `web/src/lib/journey-map.ts` (`typescript-pro`, M) — ship-now.
+  3. Extend data-room to 60+ items with AU compliance (`au-compliance`, M) — founder review.
+  4. Add Tax + AU-Compliance sections to template library (`au-compliance`, M) — ship-now.
+  5. Overlay canonical-stage badges on 4 showcase cases (`react-expert`, S) — ship-now.
+  6. Add Airwallex + Culture Amp showcases (`deep-research` → `react-expert`, L) — founder review.
+  7. Reseller `customer_stage` tracking (`db-migrate` + `fullstack-guardian`, M) — founder review.
+  8. Add Step 6 "Create first startup" to onboarding wizard (`nextjs-developer`, S) — ship-now.
+  9. Rename SCN externally + cite framework overlays (`code-documenter`, S) — ship-now.
+  10. "Real founder was here" callouts across 12 guide chapters (`deep-research` + `typescript-pro`, L) — founder review.
+- **Next action:** loop picks #1 + #2 (both ship-now, small scope, no founder gate) next off-peak tick.
+- **Blocker:** items 3, 6, 7, 10 need founder sign-off on wording/scope.
+
+### G3 — SVI Exchange (SVI EXC)
+- **Source:** [`.claude/goals/svi-exchange-orchestration.md`](../../.claude/goals/svi-exchange-orchestration.md) · queue `web/content/reports/svi-exchange-tasks.json`
+- **T_SVI_EXC_0001** Watchlist table + API (v0.2) — **DONE** (`shipped_v2.18`).
+- **T_SVI_EXC_0012** Founder-side secondary offer intake form (v0.5) — **DONE** (tick shipped 2026-07-23, commit `bfd7a5bf`).
+- **T_SVI_EXC_0013** Investor EOI book (v0.6) — **DONE** (`shipped_v0.4.0_ujveHxHJR157`).
+- **T_SVI_EXC_0014** Institutional API tier — pricing + auth (v0.9) — **DONE** (`marked_deployed`).
+- **Next action:** orchestrator (6-hour cron) picks next pending T_SVI_EXC_xxxx from queue.
+- **Blocker:** none (four EXC anchors closed).
+
+### G4 — Feature-upgrade roadmap v2
+- **Source:** [`.claude/goals/feature-upgrade-roadmap-v2.md`](../../.claude/goals/feature-upgrade-roadmap-v2.md)
+- **Status:** Q3 2026 in-flight (partially shipped; 21 sections).
+- **Top-5 open Q3 items:**
+  1. Enterprise tier + team features ($499/mo) — `cro` + `cto`.
+  2. Accelerator partnership pricing ($20K/year per cohort) — `cro` + `cmo`.
+  3. PDF branding customisation for paid plans — `cpo` + `ui-ux-pro-max`.
+  4. Dashboard personalisation (pin/reorder widgets) — `react-expert`.
+  5. ProductHunt launch campaign — `cmo` + `media-studio`.
+- **Next action:** CRO agent to spec Enterprise tier SKU + pricing.csv entry.
+- **Blocker:** none.
+
+### G5 — Pricing upgrade v2
+- **Source:** [`docs/pricing-upgrade-plan-2026-07-16.md`](../pricing-upgrade-plan-2026-07-16.md)
+- **Status:** Phase-3 (impl) partially shipped; 12-SKU tier matrix defined.
+- **Top-3 open lanes:**
+  1. Investor/Advisor per-seat SKUs (Angel A$79, Advisor A$149, VC Small A$349, VC Enterprise custom) — `cro` + `typescript-pro`.
+  2. Accelerator cohort SKUs (A$500 / A$1,500 / A$3,500 tiers) — `cro` + `nextjs-developer`.
+  3. Equity-for-solution workflow (compliance-gated) — `clo` + `au-compliance` + `blockchain-expert`.
+- **Next action:** ship investor-side per-seat SKUs (largest ARR wedge, no legal gate).
+- **Blocker:** #3 legal-review gate `legal_review_passed=true`.
+
+### G6 — Unicorn masterplan
+- **Source:** [`.claude/goals/unicorn-masterplan.md`](../../.claude/goals/unicorn-masterplan.md)
+- **Pillars (1-sentence status each):**
+  - **Revenue trajectory** — 2026 H2 A$60K ARR target; SVI credits + subscriptions live, reseller channel booked (2027 A$150K → 2030 A$8M).
+  - **Cap-table & Fundraise** — Pre-Seed A$500K target; deck v1.1 shipped with Channel-Economics slide; data-room GTM one-pager shipped.
+  - **Product roadmap (8 phases)** — Phases 1-3 shipped; Phase 4 (Equity/Cap Table) in-flight via reseller add-on (P8) + Share Management drawer.
+  - **C-Level self-upgrade** — 11 C-Level agents on cron; CTO/CFO/CISO/CLO advisory notes closed tick 68.
+  - **Blockchain (CBO)** — Private EVM (Anvil chainId 420) + Otterscan live at `:5173`; ping.pub reserved for Cosmos testnet.
+  - **Governance & Compliance (CLO/CISO)** — APP 5 notice + reseller agreement template shipped; SOC2 lite backlog open.
+  - **Team/ESOP (CHRO)** — Div 83A qualifying-tests checklist landed tick 2026-07-23; ESOP scheme placeholder in ch08.
+
+---
+
+## 2. Requirements Register
+
+| ID | Source | Category | Status | Owner (skill) | Ship commit |
+|---|---|---|---|---|---|
+| D1-CTO-01 | plan-delta-2026-07-23 | data-model | shipped | database-optimizer | migration 0091 |
+| D1-CTO-02 | plan-delta-2026-07-23 | data-model | shipped | database-optimizer | migration 0091 |
+| D1-CTO-04 | plan-delta-2026-07-23 | ledger | shipped | database-optimizer | 0091 events table |
+| D1-CTO-05 | plan-delta-2026-07-23 | seed | human_blocked | db-migrate | — (H.20 ABN/GST) |
+| D2-CFO-01 | plan-delta-2026-07-23 | tax/AU | shipped | au-compliance | 0092 gst_registered+abn |
+| D2-CFO-03 | plan-delta-2026-07-23 | refund-GST | shipped | typescript-pro | 3-part reversal |
+| D2-CFO-04 | plan-delta-2026-07-23 | economics | shipped | typescript-pro | `web/src/lib/reseller/cogs.ts` |
+| D2-CFO-06 | plan-delta-2026-07-23 | GST-invariant | shipped | au-compliance | G.2 rewrite |
+| D2-CFO-07 | plan-delta-2026-07-23 | KPI | shipped | typescript-pro | C.6 CSV schema |
+| D2-CFO-08 | plan-delta-2026-07-23 | sandbox-cap | shipped | secure-code-guardian | tick 290 pins |
+| D3-CISO-01 | plan-delta-2026-07-23 | RLS | shipped | secure-code-guardian | `reseller/supabase.ts` |
+| D3-CISO-02 | plan-delta-2026-07-23 | feature-gates | shipped | secure-code-guardian | manifest tick 44 |
+| D3-CISO-03 | plan-delta-2026-07-23 | k-anonymity | shipped | secure-code-guardian | progression queries |
+| D3-CISO-04 | plan-delta-2026-07-23 | redaction | shipped | secure-code-guardian | reseller view |
+| D3-CISO-05 | plan-delta-2026-07-23 | sandbox-cap | shipped | secure-code-guardian | tick 290 |
+| D3-CISO-06 | plan-delta-2026-07-23 | Stripe-portal | shipped | secure-code-guardian | `fd4a1eb3` |
+| D3-CISO-07 | plan-delta-2026-07-23 | hash-metadata | shipped | secure-code-guardian | `reseller/hash.ts` |
+| D3-CISO-08 | plan-delta-2026-07-23 | CI-lints | shipped | test-master | R-01..R-09 |
+| D4-CLO-01 | plan-delta-2026-07-23 | APP 5 notice | shipped | au-compliance | EN+VI |
+| D4-CLO-02 | plan-delta-2026-07-23 | legal-agreement | human_blocked | clo | requires counsel |
+| RES-U.4 | reseller-module-plan §U | wholesale | shipped | fullstack-guardian | P4 console |
+| RES-U.7 | reseller-module-plan §U | progression | shipped | react-expert | drawer overview |
+| RES-U.8 | reseller-module-plan §U | guide-ch1-12 | shipped | typescript-pro | ticks 48/49/50 |
+| RES-U.9 | reseller-module-plan §U | auto-DataRoom | shipped | fullstack-guardian | phase snapshot |
+| AUD-R1 | real-world-audit §6 | taxonomy | open | architecture-designer | — |
+| AUD-R2 | real-world-audit §6 | 12↔8 map | open | typescript-pro | — |
+| AUD-R3 | real-world-audit §6 | data-room AU | open | au-compliance | — |
+| AUD-R7 | real-world-audit §6 | reseller-stage | open | fullstack-guardian | — |
+| PRC-INV | pricing-upgrade-plan | per-seat SKU | open | cro | — |
+| PRC-ACC | pricing-upgrade-plan | accelerator SKU | open | cro | — |
+| PRC-EQ | pricing-upgrade-plan | equity-for-solution | blocked | clo | legal_review_passed=false |
+| EXC-0001 | svi-exchange-tasks | watchlist | shipped | fullstack-guardian | v2.18 |
+| EXC-0012 | svi-exchange-tasks | founder-side offer | shipped | nextjs-developer | `bfd7a5bf` |
+| EXC-0013 | svi-exchange-tasks | investor EOI book | shipped | fullstack-guardian | v0.4.0 |
+| EXC-0014 | svi-exchange-tasks | institutional API tier | shipped | typescript-pro | marked_deployed |
+
+---
+
+## 3. Shipped Log (last 24h)
+
+**Total commits in window:** 294 (154 substantive `feat/fix/docs`; 140 `chore(loop)` autonomous ticks). Sample below capped at 40.
+
+### Reseller module (P10 pin-hardening — 74 substantive commits)
+- Admin/reseller list + detail wire-shape pins (ticks 219–290): `commission_share_pct`, `gst_registered`, `allowed_tiers`, `monthly_credit_budget`, `monthly_sandbox_credits`, `created_at`, `updated_at`, `decision_at`, `decision_reason`, `decision_by`, `requested_by`, `linked_credit_transaction_id`, `reseller_id`, `status`, `request_type`, `payload`, `resellers(code,display_name)` embed, `progression[0]`, `masked_email`, `promo_code`, `reseller.code`.
+- Loop-status observability schema pins (ticks 235–258): `human_review_minutes_7d`, `last_log`, `phase_dispatched`, `delegated_dispatch`, `auto_deploy_{triggered,skipped,finished,failed}`, `auto_commit_{started,finished,failed}`, `phase_failed`, `human_blocked_snapshot`, `cron_removal`, `goal_completed`, `frontier_computed`, `tick_start_end`, `idle`, `error`.
+- Wave-3 credit-grant chain: rows 152 → 156c four-chain HTTP + DB companion (ticks 200–213).
+- Wave-5 audit-log strict-equality tightening (ticks 214–217).
+- Fix: split `node:crypto` out of `attribution.ts` (client bundle) — `7eca0c95`.
+- Fix: remove `/admin/resellers/[slug]` route (conflicts with `[code]`) — `d19c777e`.
+- Advisory: Customer-Success VI translation for Grant modal + Customer drawer — `6cf9400f`.
+- P12.9 Playwright E2E for user management — `3b676853`.
+
+### Security / compliance
+- CISO D3-CISO-06 — block Stripe customer portal for wholesale-provisioned founders (`fd4a1eb3`).
+
+### ESOP / HR
+- CHRO Div 83A qualifying-tests checklist in API + knowledge base (`6213d649`).
+
+### SVI Exchange
+- T_SVI_EXC_0012 v0.5 founder-side secondary offer intake page (`bfd7a5bf`).
+
+### Content / SEO
+- Auto SEO article publish via cron (`db66d18b`).
+
+### Docs / audit
+- Real-world workflow parity audit (`442d5fba`).
+- CRO Share-Mgmt remove-path finding marked resolved at tick 56 (`95d71d9c`).
+
+### Orchestrator
+- Platform auto-upgrade 2026-07-23 (`6b81bf40`).
+- Reports-snapshot before parallel-agent burst (`f61540fa`).
+
+---
+
+## 4. Skills → Areas Map
+
+| Skill | Owns |
+|---|---|
+| `typescript-pro` | shared libs (`web/src/lib/**`), types, pure helpers (commission, cogs, hash, scope) |
+| `react-expert` | workspace/dashboard/drawer components, `share-mgmt-drawer`, sidebar, radar/line charts |
+| `nextjs-developer` | routes, RSC, `generateMetadata`, App-Router segments, redirects |
+| `secure-code-guardian` | auth, hashing, RLS, feature-gate manifest, Stripe-portal gate, CI R-01..R-09 |
+| `au-compliance` | APP 5 notice, ATO/GST wording, ESIC/AFSL/AsIC disclaimers, Div 83A |
+| `test-master` | vitest suites, Playwright specs, wire-shape pin patterns |
+| `database-optimizer` / `db-migrate` | Supabase migrations (0091-0097), indexes, NOTIFY pgrst reload |
+| `fullstack-guardian` | end-to-end features (data-room UI ↔ API ↔ DB), console + drawer + API + DB together |
+| `code-documenter` | JSDoc, SCN rename, framework-overlay citations |
+| `deep-research` | showcase RESEARCH.md authoring (Airwallex, Culture Amp), competitor rows |
+| `architecture-designer` | canonical taxonomy publication, 12↔8 bucket-map spec, ADRs |
+| `blockchain-expert` | Anvil chainId 420, Otterscan, SVToken, equity-for-solution contracts |
+| `media-studio` | pitch videos, ProductHunt assets, thumbnails |
+| `investor-relations` | pitch deck slides, data-room one-pagers, GTM memos |
+| `customer-success` | onboarding wizard, VI translations, welcome emails |
+| `senior-pm` | portfolio health, WSJF prioritisation on this SOT |
+| `qa-lead` | release readiness, go-live checklist |
+| **Pairs** | `react-expert` + `au-compliance` for consent modals; `db-migrate` + `secure-code-guardian` for RLS-heavy migrations |
+
+---
+
+## 5. Human-blocked Queue
+
+| Item | What's blocked | What's needed | Ping |
+|---|---|---|---|
+| InfoVision seed (P1.5) | Reseller module row-1 insert | Auschain's InfoVision ABN + GST status (H.20) | Founder → LegalVision AU or existing counsel |
+| Stripe env vars (P8.5) | Share-Management add-on Playwright green | Mint `STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY` + `STRIPE_PRICE_ADDON_SHARE_MGMT_ANNUAL` in Stripe dashboard | Founder (Stripe account owner) |
+| Stripe dashboard owner email | U.1 gap — record `stripe.account_owner_email` | Confirm at `dashboard.stripe.com` (`info@` vs `admin@blockid.au`) + verify ABN + `statement_descriptor` + payout bank | Founder |
+| Reseller agreement executed (D4-CLO-02) | P3 go-live formality | Sign InfoVision-Auschain deed (template `docs/legal/reseller-agreement-template.md`) | Founder + human counsel |
+| Equity-for-solution (PRC-EQ) | Pricing plan Phase 3 lane | `legal_review_passed=true` flag flip on jurisdiction gate | Founder + CLO agent + human counsel |
+| Audit remediation #3/#6/#7/#10 | Real-world audit ship-list | Founder sign-off on wording/tone/vocabulary | Founder |
+| Founder tier labels (audit #1) | Canonical 8-stage vocab publication | Founder to approve final EN+VI labels for 8 stages | Founder |
+
+---
+
+## 6. Sync-back rules
+
+When you (loop agent) ship a task, you MUST — in the same commit or the immediately-following one:
+
+1. **Update this doc's §3 shipped-log** with the commit SHA + area.
+2. **Update the specific plan file's status** (e.g. flip a `- [ ]` to `- [x]`, bump `tick:`, update `current_focus:`, close a requirement row in §2 with the ship commit).
+3. **If the task maps to a public surface** (roadmap page `/roadmap`, team page `/team`, status page `/status`, stats page `/stats`, pricing page `/pricing`, showcase page `/showcase/*`) — leave a marker in §7 for the next `update-status`/`update-roadmap` agent tick to sync.
+4. **If the task closes a phase (Pn → done)** — spawn the `senior-pm` skill or leave a `[MARKER: phase-close]` in §7 so the next tick reviews cross-surface impact.
+5. **If the task changes pricing or SKU shape** — update `web/src/config/pricing/plans.csv` AND `docs/pricing-upgrade-plan-2026-07-16.md` AND this doc's §2 in the same commit.
+6. **If the task changes a public copy string** — ship EN + VI parity in one commit (never English-only).
+7. **If the task is a security fix** — add a `- [ ]` line under a new §8 that this doc auto-appends on next SOT-refresh tick.
+8. **Never delete rows from §2 or §3.** Requirements move to `shipped`; shipped-log rows stay.
+
+---
+
+## 7. Cross-repo sync markers
+
+Live markers for downstream update agents. Consume by grepping this section for `[MARKER: …]`.
+
+- `[MARKER: update /roadmap when a P{n} phase closes]` — reseller P8.5, audit R1-R10 land, pricing Investor SKUs land.
+- `[MARKER: update /team when a C-Level agent ships a milestone]` — CHRO Div 83A, CISO D3-CISO-06 already shipped in window.
+- `[MARKER: update /status when human-blocked item unblocks]` — H.20 InfoVision ABN, STRIPE_PRICE_ADDON_* env.
+- `[MARKER: update /stats when a shipped-log entry crosses a bucket boundary]` — reseller tick crosses 300, roadmap Q3 closes >80%.
+- `[MARKER: update /pricing when plans.csv changes]` — Investor SKUs (Angel/Advisor/VC), Accelerator SKUs.
+- `[MARKER: update /showcase when a new case ships]` — Airwallex + Culture Amp (audit #6).
+- `[MARKER: update /guide when a chapter callout ships]` — audit #10, 12-chapter arc.
+- `[MARKER: update-status agent should consume §3 shipped-log commit count 294 for this cycle]`.
+- `[MARKER: update-roadmap agent should consume §1 Top-5 open Q3 items list].`
+- `[MARKER: phase-close]` — none this tick.
+- `[MARKER: security-fix]` — `fd4a1eb3` (Stripe portal wholesale gate).
+
+---
+
+## Appendix A. Change log for this file
+
+| When | Who | What |
+|---|---|---|
+| 2026-07-23 | loop agent (SOT consolidation task) | Initial consolidation. §1–§7 authored; back-links applied to reseller-plan + unicorn-masterplan; memory pointer added. |
+

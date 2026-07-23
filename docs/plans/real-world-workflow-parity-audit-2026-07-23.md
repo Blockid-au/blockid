@@ -1,5 +1,7 @@
 # Real-World Workflow Parity Audit — 2026-07-23
 
+> **Source of truth: [SOURCE-OF-TRUTH.md](./SOURCE-OF-TRUTH.md)** — this file is a specialised view; consult the source-of-truth first for status.
+
 Founder brief: every demo, workflow, and per-startup process must mirror real deployments (Atlassian, Canva, Airwallex, Xero, Culture Amp), not stylised invented journeys. This is an audit only — no feature code touched.
 
 ---
