@@ -3,6 +3,10 @@
 import * as React from "react";
 import { MessageSquare, Search, Sparkles } from "lucide-react";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { SandboxScopeChip } from "@/components/admin/sandbox-scope-chip";
+// D3-CISO-05: sandbox scope chip is display-only on /admin/feedback —
+// user_feedback rows have no sandbox column.
+// no sandbox column on user_feedback — chip is display-only for future consistency
 
 export interface FeedbackRow {
   id: string;
@@ -63,6 +67,11 @@ export function FeedbackClient({ user, initialRows, stats }: Props) {
             <p className="text-sm text-ink-600">AI-graded feedback &amp; credits granted (last 30 days)</p>
           </div>
         </header>
+
+        <SandboxScopeChip
+          scope="all"
+          note="Chip-only — user_feedback has no sandbox column."
+        />
 
         <section className="grid grid-cols-2 md:grid-cols-6 gap-3">
           <Stat label="Total (30d)" value={stats.total} />

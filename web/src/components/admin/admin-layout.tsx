@@ -194,6 +194,17 @@ export function AdminLayout({ children, user }: AdminLayoutProps) {
           ))}
         </nav>
 
+        {/* D3-CISO-05 sandbox scope hint: the 🧪 Sandbox / Live filter chip
+            is now available on 12 admin tables (credits, users, users/[id],
+            funnel, sales, growth, pricing-metrics, ops, notifications,
+            feedback, affiliate, resellers/requests). Filter is per-page. */}
+        {sidebarOpen && (
+          <div className="mx-2 mb-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[10px] leading-tight text-amber-800">
+            <span className="font-semibold">🧪 Scope filter</span>
+            <span className="ml-1 text-amber-700">available on table pages (all/live/sandbox)</span>
+          </div>
+        )}
+
         {/* Bottom: home link */}
         <div className="px-2 pb-3 border-t border-surface-200 pt-3 space-y-0.5">
           <Link

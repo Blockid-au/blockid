@@ -5,6 +5,10 @@ import { getCurrentUser, ADMIN_EMAIL} from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { Logo } from "@/components/brand/logo";
 import { ArrowLeft, Shield, Bell, Mail, MailOpen } from "lucide-react";
+import { SandboxScopeChip } from "@/components/admin/sandbox-scope-chip";
+// D3-CISO-05: sandbox scope chip is display-only on /admin/notifications
+// — svi_notifications does not carry a sandbox flag today.
+// no sandbox column on svi_notifications — chip is display-only for future consistency
 
 export const metadata: Metadata = {
   title: "Notifications — Admin",
@@ -133,6 +137,10 @@ export default async function NotificationsPage() {
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+        <SandboxScopeChip
+          scope="all"
+          note="Chip-only — svi_notifications has no sandbox column."
+        />
         {/* Overview stats */}
         <section className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-white border border-surface-200 rounded-lg p-4">
