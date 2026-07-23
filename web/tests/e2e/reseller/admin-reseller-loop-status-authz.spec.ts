@@ -425,6 +425,36 @@ test.describe("Admin reseller-loop status — P10 wave-5 row 173 happy path", ()
           `tick_history phase_failed row.status should be typeof number (reseller-goal-loop.mjs:204 dispatchToClaude returns \`res.status ?? -1\` → mjs:301 spread): ${JSON.stringify(row).slice(0, 200)}`,
         ).toBe("number");
       }
+      // Writer schema pin (tick 241 option y4 — third conditional-by-stage pin,
+      // symmetric with the frontier_computed pattern landed tick 239 and the
+      // phase_failed pattern landed tick 240). scripts/cron/reseller-goal-loop.mjs:290
+      // writes `log({ stage: 'idle', reason: 'no unblocked phases' })` inside the
+      // `if (frontier.length === 0)` branch that guards the early-exit when
+      // computeFrontier() returns no unblocked entries. `reason` is a bare string
+      // literal at the call site — schema-level typeof=string guarantee (never
+      // null, never object, never absent). The log() helper at mjs:52-58 prepends
+      // tick_id/ts/human_review_minutes_7d then spreads `...row` — the
+      // `reason: 'no unblocked phases'` keyval flows through untouched. Landing a
+      // stage-guarded pin catches (a) a writer regression that renamed the key
+      // (e.g. reason → cause); (b) a call-site regression that swapped the string
+      // literal for a non-string (e.g. an Error object or an array). No value pin
+      // — the reason wording may drift as future ticks add other early-exit
+      // branches (e.g. all-human-blocked snapshot with a different reason string)
+      // and the pin should tolerate that drift per tick 230's "assert typeof
+      // string only so the value can drift" convention. Skipped on hosts where
+      // the loop has never taken the frontier-empty branch — the pin has no
+      // effect on hosts with an active frontier, same natural side effect as the
+      // tick 239 frontier_computed guard + tick 240 phase_failed guard. Simplest
+      // stage-specific extras remaining (single-key, single-typeof guarantee,
+      // no writer-side conditional narrowing needed) so it lands as a two-line
+      // conditional block without additional audit — writer contract is
+      // trivially inspectable at mjs:290.
+      if (tickRow.stage === "idle") {
+        expect(
+          typeof tickRow.reason,
+          `tick_history idle row.reason should be typeof string (reseller-goal-loop.mjs:290 writes bare string literal 'no unblocked phases'): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("string");
+      }
     }
     expect(
       typeof body.generated_at === "string" &&
