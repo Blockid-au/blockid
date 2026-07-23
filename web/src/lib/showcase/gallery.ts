@@ -3,7 +3,13 @@
 // bins them by phase_at_generation (1..12 + "cross-cutting" bucket for null).
 // No I/O; caller supplies the rows. Kept separate so the page component stays
 // thin and the section layout is unit-testable.
+//
+// H.21: callers may pass `{ bucketToCanonical: true }` to display the
+// bucketed canonical 8-stage label instead of the fine-grained 12-phase
+// label. The DB (`phase_at_generation`) stays fine-grained — this is a
+// pure display-time collapse via `web/src/lib/journey-map.ts`.
 
+import { phaseToStageLabel } from "../journey-map";
 import type { DataRoomShowcaseRow, ShowcaseAgent } from "./report-tagging";
 
 export const PHASE_COUNT = 12;
@@ -41,9 +47,24 @@ export interface GallerySection {
   rows: DataRoomShowcaseRow[];
 }
 
+export interface BuildGallerySectionsOptions {
+  /**
+   * H.21 — when true, section labels are replaced with the canonical 8-stage
+   * bucket label (English + Vietnamese, drawn from
+   * `journey-vocabulary.ts:CANONICAL_STAGE_LABELS`). Rows are still keyed by
+   * the fine-grained 12-phase ordinal so DB pagination + deep-links remain
+   * stable. Defaults to `false` — legacy 12-phase headings.
+   */
+  bucketToCanonical?: boolean;
+}
+
 // Groups gallery rows by phase_at_generation. Empty phases are omitted so the
 // UI doesn't render placeholder headings that confuse first-time visitors.
-export function buildGallerySections(rows: DataRoomShowcaseRow[]): GallerySection[] {
+export function buildGallerySections(
+  rows: DataRoomShowcaseRow[],
+  options: BuildGallerySectionsOptions = {},
+): GallerySection[] {
+  const { bucketToCanonical = false } = options;
   const byPhase = new Map<number | "null", DataRoomShowcaseRow[]>();
   for (const row of rows) {
     const key = row.phase_at_generation ?? "null";
@@ -61,7 +82,9 @@ export function buildGallerySections(rows: DataRoomShowcaseRow[]): GallerySectio
     sections.push({
       key: `phase-${phase}`,
       phase,
-      label: PHASE_LABELS[phase],
+      label: bucketToCanonical
+        ? canonicalLabelForPhase(phase)
+        : PHASE_LABELS[phase],
       rows: bucket,
     });
   }
@@ -75,6 +98,15 @@ export function buildGallerySections(rows: DataRoomShowcaseRow[]): GallerySectio
     });
   }
   return sections;
+}
+
+// Canonical-bucket label lookup. `phaseToStageLabel` returns null only when
+// the ordinal is out of range — the loop above already skips those phases,
+// so the fallback to PHASE_LABELS is defensive.
+function canonicalLabelForPhase(phase: number): PhaseLabel {
+  const badge = phaseToStageLabel(phase);
+  if (!badge) return PHASE_LABELS[phase];
+  return { en: badge.label_en, vi: badge.label_vi };
 }
 
 // Agent slug → display name used in the row card. Mirrors the C-Level slug set
@@ -116,8 +148,11 @@ export interface GallerySummary {
   latest_generated_at: string | null;
 }
 
-export function summariseGallery(rows: DataRoomShowcaseRow[]): GallerySummary {
-  const sections = buildGallerySections(rows);
+export function summariseGallery(
+  rows: DataRoomShowcaseRow[],
+  options: BuildGallerySectionsOptions = {},
+): GallerySummary {
+  const sections = buildGallerySections(rows, options);
   const agents = new Set<ShowcaseAgent>();
   let latest: string | null = null;
   for (const row of rows) {
