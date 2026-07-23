@@ -45,6 +45,7 @@ export type Feature =
   | "blockchain.sync"
   | "advisor_portal"
   | "white_label"
+  | "pdf_branding"
   | "sso"
   | "api"
   | "api.access"
@@ -127,6 +128,7 @@ const LEGACY_FEATURE_FALLBACK: Record<string, Feature[]> = {
     "investor_links",
     "investor_links.premium",
     "profile.multi",
+    "pdf_branding",
     "equity_offer.request",
   ],
   founder_scale: [
@@ -148,6 +150,7 @@ const LEGACY_FEATURE_FALLBACK: Record<string, Feature[]> = {
     "blockchain.sync",
     "advisor_portal",
     "white_label",
+    "pdf_branding",
     "equity_offer.request",
   ],
   founder_enterprise: [
@@ -169,6 +172,7 @@ const LEGACY_FEATURE_FALLBACK: Record<string, Feature[]> = {
     "blockchain.sync",
     "advisor_portal",
     "white_label",
+    "pdf_branding",
     "sso",
     "api",
     "api.access",
