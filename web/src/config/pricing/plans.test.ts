@@ -128,8 +128,30 @@ describe("PRC-INV — 12-SKU pricing matrix", () => {
     expect(accel).toHaveLength(3);
     const ids = accel.map((p) => p.id);
     expect(ids).toEqual(
-      expect.arrayContaining(["accel_starter", "accel_growth", "accel_scale"]),
+      expect.arrayContaining([
+        "accelerator_starter",
+        "accelerator_growth",
+        "accelerator_enterprise",
+      ]),
     );
+  });
+
+  it("Accelerator SKU ids in plans-v2 match the canonical ids in plans.generated", () => {
+    const marketingIds = new Set(
+      plansForSegment("accelerator").map((p) => p.id),
+    );
+    const generatedIds = new Set(
+      GENERATED_PLANS.filter((p) => p.segment === "accelerator").map(
+        (p) => p.id,
+      ),
+    );
+    expect([...marketingIds].sort()).toEqual([...generatedIds].sort());
+    // Regression guard: legacy accel_* ids must not leak back into the
+    // marketing catalogue (see iter-8 task #2).
+    for (const id of marketingIds) {
+      expect(id.startsWith("accel_")).toBe(false);
+      expect(id.startsWith("accelerator_")).toBe(true);
+    }
   });
 
   it("Advisor tab reuses the Investor catalogue with the Advisor SKU highlighted", () => {
