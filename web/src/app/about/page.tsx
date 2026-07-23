@@ -26,12 +26,12 @@ export const metadata: Metadata = {
 };
 
 const STATS = [
-  { num: "272+", label: "TypeScript files" },
-  { num: "57", label: "Pages" },
-  { num: "70", label: "API endpoints" },
-  { num: "41", label: "Database tables" },
-  { num: "10", label: "Free tools" },
-  { num: "8", label: "AI agents" },
+  { num: "v3.2", label: "Platform version" },
+  { num: "39", label: "Reseller wire-shape ticks" },
+  { num: "12", label: "Audit-log wired routes" },
+  { num: "8", label: "Canonical journey stages" },
+  { num: "10", label: "C-Level AI agents" },
+  { num: "102", label: "Data-room documents" },
 ];
 
 const APPROACH_ITEMS = [
@@ -198,8 +198,19 @@ export default function AboutPage() {
             <p className="text-base leading-relaxed text-ink-600">
               The result: a platform that would typically require a team of 20+
               engineers, delivered with the speed and precision of AI-native
-              development. The entire platform — 340+ TypeScript files, 65+ pages,
-              90+ API endpoints, 47 database tables, 11 AI agents, 40+ free models — was built in 30 days.
+              development. The current build — v3.2.0 — spans 340+ TypeScript
+              files, 65+ pages, 90+ API endpoints, 47 database tables, 11 AI
+              agents, and 40+ free models. Recent shipping includes the full
+              reseller / wholesale module (P0–P10, 39 wire-shape ticks), Q4
+              multi-project workspace (5/5 shipped: portfolio, team members,
+              permissions, archive UI, 90-day retention cron), Q3 UX (widget
+              grid personalization, audit-log viewer, archived listing), a
+              SOC2-lite audit-log surface across 12 wired routes, the
+              real-world workflow parity audit (7/10 items shipped — canonical
+              vocabulary, 12↔8 bucket maps, showcase 8-stage badges,
+              onboarding Step 6, SCN→Startup Compass, 102-doc data-room),
+              PDF branding with a 3-layer gate and renderer wire-in, and the
+              Playwright post-deploy hydrated smoke (Gate 11, 11 tests).
             </p>
           </section>
 

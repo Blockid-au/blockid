@@ -103,6 +103,23 @@ const GROWTH_PHASES = [
 
 const VERSION_HISTORY = [
   {
+    version: "3.2.0",
+    date: "2026-07-23",
+    title: "Reseller P0-P10, Q4 Multi-Project 5/5, Workflow Parity 7/10",
+    changes: [
+      "Reseller / wholesale module P0-P10 complete (39 wire-shape ticks across admin-resellers-list + admin-reseller-detail)",
+      "Q4 Multi-Project workspace fully shipped (5/5): portfolio, team members, permissions, archive UI, 90-day retention cron",
+      "Portfolio SVI comparison chart landed as part of Q4 MP #2",
+      "Q3 UX: widget-grid personalization, audit-log viewer, archived listing surface",
+      "SOC2-lite audit log — 12 wired routes with manifest lint",
+      "Real-world workflow parity audit — 7/10 items shipped (canonical vocab v1.0.0, 12↔8 bucket maps, showcase 8-stage badges, onboarding Step 6, SCN→Startup Compass, 102-doc data-room)",
+      "PDF branding — 3-layer gate + renderer wire-in",
+      "Playwright post-deploy hydrated smoke — Gate 11 with 11 tests + flake v2 hardening",
+      "InfoVision reseller seed (P1.5) authored (blocked on ABN + GST)",
+      "Commissions[] cluster reseller ticks",
+    ],
+  },
+  {
     version: "2.6.0",
     date: "2026-06-21",
     title: "Auto-Discover Free Models + Codex Removed",
