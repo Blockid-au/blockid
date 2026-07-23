@@ -188,6 +188,48 @@ const PURPOSE_MAX = 500;
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
+// Tick 278 — status enum value pin hoisted as a shared module-scope constant on
+// the reseller-scoped GET at /api/reseller/requests/route.ts:169-173 (third
+// column of the SELECT projection). Natural next pick option (a) from tick 277.
+// reseller_requests.status is a NOT NULL text column DEFAULT 'pending'
+// (0095:31-32) with a CHECK constraint pinning it to one of four enum values
+// ('pending','approved','denied','cancelled'); the validator side mirrors the
+// terminal three at web/src/lib/reseller/requests.ts:17-21 (ResellerRequestStatus
+// union) and the admin route mirrors all four at
+// /api/admin/resellers/requests/route.ts:13 (ALLOWED_STATUS set). Pre-tick-278
+// posture pinned the enum via an inline `["pending","approved","denied",
+// "cancelled"].toContain(...)` literal at line ~370 which closed the enum-value
+// invariant but not the module-scope symmetry with the sibling admin surface.
+// admin-requests-patch-authz.spec.ts:467-472 already hoists the same set as
+// ALLOWED_STATUS_VALUES (landed at tick 270); this tick mirrors that hoist
+// verbatim onto the reseller-scoped list surface so a schema-side enum
+// extension (CHECK widening at 0095:32 or a validator widening at
+// requests.ts:17-21) lands as a single spec edit on both admin and reseller
+// lenses simultaneously — matches the source-of-truth hoist discipline used
+// for ALLOWED_TIER_PCT_VALUES / SUFFIX_RE / HTTPS_URL_RE / REASON_MAX /
+// PURPOSE_MAX at tick 261 and ISO_TIMESTAMP_RE at tick 275. Two-part guard:
+// (a) preserved typeof-string pin at line ~369 fires first (matches ticks
+// 265-277 layering discipline verbatim), (b) new ALLOWED_STATUS_VALUES.has()
+// set-membership pin fires only after the typeof-string guard passes so
+// tighter existing pins surface first. Coverage-per-guard posture: green-path
+// wave-4 row 161 exercises the 'pending' enum value on every green CI run
+// (wave-3 row 155 seeds the pending over_budget_approval fixture); the
+// approved/denied/cancelled enum values have zero-coverage on the wire today
+// because no decide-fixture seeds a decided row that this GET would return —
+// matches the tick 261 zero-coverage-per-guard rationale (the set still closes
+// the writer contract so a route regression that returned a non-enum status
+// would surface on the next CI pass whenever any row is seeded). Sibling-
+// surface parity: fourth cross-surface companion pin after tick 275's
+// created_at ISO pin, tick 276's decision_at ISO pin, and tick 277's
+// decision_reason length pin — a status enum extension now lands as a single
+// spec edit on both admin and reseller lenses simultaneously.
+const ALLOWED_STATUS_VALUES = new Set([
+  "pending",
+  "approved",
+  "denied",
+  "cancelled",
+]);
+
 test.describe("Reseller requests list pre-read authorization — P10 dry-run", () => {
   test("unauthenticated — GET with no session returns 401 unauthorised", async ({
     request,
@@ -367,7 +409,19 @@ test.describe("Reseller requests list — P10 wave-4 happy path", () => {
         row.request_type,
       );
       expect(typeof row.status).toBe("string");
-      expect(["pending", "approved", "denied", "cancelled"]).toContain(row.status);
+      // Tick 278 — ALLOWED_STATUS_VALUES.has() set-membership pin replacing
+      // the pre-tick-278 inline `["pending","approved","denied","cancelled"]
+      // .toContain(...)` literal. See module-scope doc-block above
+      // ALLOWED_STATUS_VALUES for the source-of-truth rationale (0095:31-32
+      // CHECK + requests.ts:17-21 union + route.ts:13 ALLOWED_STATUS). Fires
+      // ONLY after the typeof-string guard above passes so tighter existing
+      // pins surface first. Mirrors the admin-side tick 270 hoist verbatim so
+      // a schema-side enum extension lands as a single spec edit on both
+      // admin and reseller lenses simultaneously.
+      expect(
+        ALLOWED_STATUS_VALUES.has(row.status as string),
+        `active_wholesale + happy GET row.status '${String(row.status)}' not in {pending, approved, denied, cancelled} per 0095:31-32 + requests.ts:17-21 + route.ts:13; a schema-side CHECK widening or a route regression that returned a stale/mismatched status value would surface here: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
       expect(typeof row.created_at).toBe("string");
       // Tick 275 — ISO_TIMESTAMP_RE tightening on created_at. See module-
       // scope doc-block above ISO_TIMESTAMP_RE for the rationale. Mirrors

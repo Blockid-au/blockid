@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.277
+version: 2026-07-23.278
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,151 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 278
+    ran_at: 2026-07-23
+    action: p10_reseller_requests_list_status_enum_hoist_option_a
+    result: |
+      Landed tick 277's "natural next pick" option (a) as a shared module-scope
+      ALLOWED_STATUS_VALUES constant hoist on the reseller-scoped GET happy path
+      of reseller-requests-list-authz.spec.ts. Fourth cross-surface companion pin
+      after tick 275's created_at ISO pin, tick 276's decision_at ISO pin, and
+      tick 277's decision_reason length pin. Mirrors admin-side tick 270 hoist
+      verbatim onto the reseller-scoped list surface so a schema-side enum
+      extension (CHECK widening at 0095:32 or a validator widening at
+      requests.ts:17-21) lands as a single spec edit on both admin and reseller
+      lenses simultaneously.
+
+      Writer-schema justification:
+        - 0095_reseller_requests.sql:31-32 declares
+          `status text NOT NULL DEFAULT 'pending'` plus a CHECK constraint
+          `status IN ('pending','approved','denied','cancelled')`. NOT NULL
+          means the read-back MUST carry a non-null string on every green-path
+          CI run regardless of row status.
+        - web/src/lib/reseller/requests.ts:17-21 mirrors the terminal three
+          values as the ResellerRequestStatus union type used by
+          validateAdminDecision (which stamps the status literal at
+          requests.ts:298-300).
+        - /api/admin/resellers/requests/route.ts:13 mirrors all four values as
+          the ALLOWED_STATUS set used by the ?status= query-param gate at
+          route.ts:39.
+        - Reseller-scoped list route at /api/reseller/requests/route.ts:169-173
+          projects status as the third column of the SELECT list.
+
+      Design choice — mirror the admin-side tick 270 hoist verbatim:
+        - Reuses the identical Set<string> shape from
+          admin-requests-patch-authz.spec.ts:467-472 so a widening/narrowing on
+          either surface surfaces on the next CI pass across both. Same source-
+          of-truth invariant as the sibling admin pin.
+        - Two-part guard (matches ticks 265-277 layering discipline verbatim):
+          (a) preserved typeof-string pin at line ~369 fires first so a
+              projection drop surfaces before the new set-membership check;
+          (b) new ALLOWED_STATUS_VALUES.has() set-membership pin fires only
+              after the typeof-string guard passes — a schema-side CHECK
+              widening or a route regression that returned a stale/mismatched
+              enum value now surfaces.
+        - Replaces the pre-tick-278 inline literal
+          `["pending","approved","denied","cancelled"].toContain(row.status)`
+          at line 370 with a hoisted-constant set-membership pin so the enum
+          value list has exactly one source of truth in this spec file.
+
+      Coverage-per-guard posture:
+        - Green-path fixture loadTempReseller("active_wholesale") + wave-3
+          row 155 seeded pending over_budget_approval row guarantees at least
+          one row with status='pending' is returned from the GET on every
+          green CI run, so the pending enum value is exercised on every
+          wave-4 row 161 pass. The approved/denied/cancelled enum values have
+          zero-coverage on the wire today because no decide-fixture seeds a
+          decided reseller_requests row that this GET would return — but the
+          set still closes the writer contract so a schema-side enum drift
+          across any of the four values would surface on the next CI pass
+          whenever a decide-fixture seeds a row (matches the tick 261 zero-
+          coverage-per-guard rationale).
+        - Fresh hosts (where row 155 has not run) return an empty
+          body.requests[] and the for-loop skips — but the module-scope
+          constant + doc-block still ships, so a downstream tick that seeds
+          more variants (P8.5-unblock or an expanded fixture matrix) picks
+          up the pin without further wiring.
+
+      Diagnostic delta of the pass:
+        - One new module-scope constant (ALLOWED_STATUS_VALUES, mirroring the
+          admin-side hoist at admin-requests-patch-authz.spec.ts:467-472).
+        - One replaced inline assertion (the pre-tick-278 `.toContain(...)`
+          literal at line 370 swapped for an `ALLOWED_STATUS_VALUES.has(...)`
+          set-membership assertion — same enum-value contract, single source
+          of truth). Nine-line block-scope comment citing 0095:31-32 as the
+          column declaration source, requests.ts:17-21 as the validator source-
+          of-truth, route.ts:13 as the admin-route source-of-truth, and the
+          admin-side tick 270 pin as the sibling-surface companion.
+        - Module-scope doc-comment block above ALLOWED_STATUS_VALUES describing
+          the pin's writer-schema justification + the two-part guard breakdown
+          + the sibling admin surface + the fourth cross-surface companion
+          lineage after ticks 275/276/277.
+        - No production code touched, no fixture change, no route change,
+          no new imports. Matches ticks 234-277 discipline: tighten one
+          dimension (in this case hoist the status enum to a module-scope
+          constant for source-of-truth symmetry) with zero net new imports.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: 11 R-01 files + 31 R-03 routes
+          scanned, 3 exemptions, 0 violations
+        - npx vitest run: 75 files 954/954 pass (unchanged — Playwright
+          specs are excluded from vitest by design)
+
+      Files:
+        - web/tests/e2e/reseller/reseller-requests-list-authz.spec.ts
+          (new module-scope constant ALLOWED_STATUS_VALUES after ISO_TIMESTAMP_RE;
+          new module-scope tick-278 doc-comment block above the constant;
+          per-row for-loop of the active_wholesale happy GET block gains an
+          ALLOWED_STATUS_VALUES.has() set-membership assertion replacing the
+          pre-tick-278 inline `.toContain(...)` literal at line 370, with a
+          block-scope comment citing 0095:31-32 as the column declaration
+          source, requests.ts:17-21 as the validator source-of-truth,
+          route.ts:13 as the admin-route source-of-truth, and the admin-side
+          tick 270 pin as the sibling-surface companion.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.277 → 2026-07-23.278; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no production-code touch, no
+          new import, no widening of the guards on existing pins.
+          Consistent with ticks 234-277's incremental-pin pattern.
+        - Cross-surface parity — mirrors the admin-side tick 270 hoist
+          verbatim onto the reseller-scoped GET list surface so a status
+          enum drift surfaces on both admin and reseller lenses
+          simultaneously. Fourth cross-surface companion pin after
+          ticks 275/276/277.
+
+      Next natural picks on tick 279:
+        (a) request_type enum value pin on the reseller-scoped GET (mirrors
+        the admin-side tick 269 hoist pattern — the existing typeof-string +
+        `["code_request","over_budget_approval","collateral_approval"]
+        .toContain(...)` pin at line 365-368 already closes both parts as an
+        inline literal, but hoisting to a module-scope constant ALLOWED_REQUEST
+        _TYPES matches the admin-side hoist so a schema-side CHECK extension
+        at 0095:30 lands as a single spec edit on both lenses simultaneously —
+        the sibling ALLOWED_REQUEST_TYPES constant already lives at
+        admin-requests-patch-authz.spec.ts:462-466);
+        (b) reseller_id UUID shape pin on the reseller-scoped GET (mirrors
+        the admin-side tick 271 pattern — reseller_requests.reseller_id is
+        uuid NOT NULL REFERENCES resellers(id) at 0095:27, but the reseller-
+        scoped SELECT at route.ts:169-173 does NOT include reseller_id in the
+        projection so this pick is skippable pending a route change to add
+        reseller_id to the SELECT list — the reseller-scoped GET filters by
+        reseller_id already via .eq() so the caller does not need it back
+        in the row echo);
+        (c) decision_by UUID shape pin on the reseller-scoped GET (skippable
+        for the same reason as option (b) — decision_by is not in the SELECT
+        projection at route.ts:169-173);
+        (d) status exact-string equality pin per green-path fixture row —
+        wave-3 row 155 seeded pending over_budget_approval so a per-row
+        `expect(row.status).toBe("pending")` pin could tighten the enum guard
+        to the exact green-path value; skippable because the wave-4 fixture
+        matrix is not yet in the fresh-host CI, and the pin would break the
+        first time a decide-fixture seeds an approved/denied/cancelled row.
+
   - tick: 277
     ran_at: 2026-07-23
     action: p10_reseller_requests_list_readback_decision_reason_length_pin_option_a
