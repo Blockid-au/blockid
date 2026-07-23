@@ -8,14 +8,21 @@ import { describe, expect, it } from "vitest";
 import { CANONICAL_STAGES, type StageKey } from "./journey-vocabulary";
 import {
   ALL_PHASE_KEYS,
+  GROWTH_PHASE_IDS,
+  GROWTH_PHASE_TO_STAGE,
+  growthPhaseToStage,
+  growthPhaseToStageLabel,
   PHASE_TO_STAGE,
   phaseToStage,
   phaseToStageLabel,
   STAGE_ORDER,
+  stageToGrowthPhases,
   stageToPhases,
+  type GrowthPhaseId,
   type PhaseKey,
 } from "./journey-map";
 import { PHASE_COUNT, PHASE_LABELS } from "./showcase/gallery";
+import { GROWTH_PHASES } from "./startup-growth-phases";
 
 const CANONICAL_SET = new Set<StageKey>(CANONICAL_STAGES);
 
@@ -113,6 +120,105 @@ describe("journey-map — STAGE_ORDER and label helper", () => {
       const badge = phaseToStageLabel(phase);
       expect(badge).not.toBeNull();
       expect(badge!.stage).toBe(PHASE_TO_STAGE[phase]);
+      expect(badge!.label_en.length).toBeGreaterThan(0);
+      expect(badge!.label_vi.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+// ─── Second 12-phase taxonomy: startup-growth-phases string ids ────────────
+
+describe("journey-map — growth-phase (string id) forward mapping", () => {
+  it("covers every id declared in startup-growth-phases:GROWTH_PHASES", () => {
+    const sourceIds = GROWTH_PHASES.map((p) => p.id);
+    expect(sourceIds).toHaveLength(GROWTH_PHASE_IDS.length);
+    for (const id of sourceIds) {
+      expect(GROWTH_PHASE_TO_STAGE).toHaveProperty(id);
+    }
+  });
+
+  it("maps every GrowthPhaseId to a canonical StageKey", () => {
+    for (const id of GROWTH_PHASE_IDS) {
+      const stage = GROWTH_PHASE_TO_STAGE[id];
+      expect(CANONICAL_SET.has(stage)).toBe(true);
+    }
+  });
+
+  it("growthPhaseToStage handles null / undefined / unknown as 'idea'", () => {
+    expect(growthPhaseToStage(null)).toBe("idea");
+    expect(growthPhaseToStage(undefined)).toBe("idea");
+    expect(growthPhaseToStage("")).toBe("idea");
+    expect(growthPhaseToStage("not_a_phase")).toBe("idea");
+  });
+
+  it("growthPhaseToStage matches GROWTH_PHASE_TO_STAGE for every valid id", () => {
+    for (const id of GROWTH_PHASE_IDS) {
+      expect(growthPhaseToStage(id)).toBe(GROWTH_PHASE_TO_STAGE[id]);
+    }
+  });
+
+  it("is deterministic — same input yields same output on repeat calls", () => {
+    for (const id of GROWTH_PHASE_IDS) {
+      const first = growthPhaseToStage(id);
+      const second = growthPhaseToStage(id);
+      const third = growthPhaseToStage(id);
+      expect(first).toBe(second);
+      expect(second).toBe(third);
+    }
+  });
+});
+
+describe("journey-map — growth-phase reverse mapping (8-stage → string ids)", () => {
+  it("contains no orphaned canonical stages — every stage owns >=1 phase id", () => {
+    for (const stage of CANONICAL_STAGES) {
+      const ids = stageToGrowthPhases(stage);
+      expect(ids.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("reverse lookup returns ids in declaration order (deterministic)", () => {
+    for (const stage of CANONICAL_STAGES) {
+      const ids = stageToGrowthPhases(stage);
+      const declarationOrder = [...ids].sort(
+        (a, b) => GROWTH_PHASE_IDS.indexOf(a) - GROWTH_PHASE_IDS.indexOf(b),
+      );
+      expect(ids).toEqual(declarationOrder);
+    }
+  });
+
+  it("is a proper inverse — every id appears in exactly one reverse bucket", () => {
+    const seen = new Map<GrowthPhaseId, StageKey>();
+    for (const stage of CANONICAL_STAGES) {
+      for (const id of stageToGrowthPhases(stage)) {
+        expect(seen.has(id)).toBe(false);
+        seen.set(id, stage);
+      }
+    }
+    expect(seen.size).toBe(GROWTH_PHASE_IDS.length);
+    for (const id of GROWTH_PHASE_IDS) {
+      expect(seen.get(id)).toBe(GROWTH_PHASE_TO_STAGE[id]);
+    }
+  });
+
+  it("unknown stage strings return an empty phase id list (type-cast escape hatch)", () => {
+    const result = stageToGrowthPhases("not_a_stage" as StageKey);
+    expect(result).toEqual([]);
+  });
+});
+
+describe("journey-map — growthPhaseToStageLabel", () => {
+  it("returns null for null / undefined / unknown ids", () => {
+    expect(growthPhaseToStageLabel(null)).toBeNull();
+    expect(growthPhaseToStageLabel(undefined)).toBeNull();
+    expect(growthPhaseToStageLabel("")).toBeNull();
+    expect(growthPhaseToStageLabel("not_a_phase")).toBeNull();
+  });
+
+  it("returns both English + Vietnamese copy for every declared id", () => {
+    for (const id of GROWTH_PHASE_IDS) {
+      const badge = growthPhaseToStageLabel(id);
+      expect(badge).not.toBeNull();
+      expect(badge!.stage).toBe(GROWTH_PHASE_TO_STAGE[id]);
       expect(badge!.label_en.length).toBeGreaterThan(0);
       expect(badge!.label_vi.length).toBeGreaterThan(0);
     }
