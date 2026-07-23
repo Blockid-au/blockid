@@ -347,7 +347,8 @@ function getSectionTitle(id: string): string {
 function HeaderBar({ color }: { color?: string } = {}) {
   // Palette override lands as an inline background — s.headerBar's default is
   // still C.brand600, but the inline style wins when `color` is supplied.
-  return <View style={[s.headerBar, color ? { backgroundColor: color } : undefined]} fixed />;
+  const override = color ? { backgroundColor: color } : {};
+  return <View style={[s.headerBar, override]} fixed />;
 }
 
 function Footer({
