@@ -864,3 +864,6 @@
 {"ts":"2026-07-23T11:39:13.521Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-23T11-35-01-170Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T11:43:59Z","status":"success","gates":"8/8","pid":"3301764","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-23T11:48:49.750Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 285 — P10 admin-reseller-detail created_at + updated_at ISO pin mirror from admin-resellers-list 283/284 (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T11:48:57.663Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-23T11-45-01-720Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T11:53:55Z","status":"success","gates":"8/8","pid":"3334759","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-23T12:00:14.614Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 286 — P10 commission_share_pct numeric wire-shape + [0,100] value pin cross-surface pair on admin-resellers-list + admin-reseller-detail (1 commits)","source":"github-webhook"}
