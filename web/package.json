@@ -12,7 +12,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test tests/e2e --reporter=list"
+    "test:e2e": "playwright test tests/e2e --reporter=list",
+    "e2e": "playwright test",
+    "e2e:smoke": "playwright test tests/e2e/**/smoke*.spec.ts --reporter=list"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.0",
@@ -49,6 +51,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.0",
