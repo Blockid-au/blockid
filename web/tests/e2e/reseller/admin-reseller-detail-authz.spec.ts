@@ -308,6 +308,36 @@ const UUID_RE =
 // projection-side drop from route.ts:47-48 select("*") would each
 // surface on both admin resellers-family surfaces (list + detail) on
 // the same CI pass.
+//
+// Tick 294 — abn text nullable wire-shape pin, cross-surface mirror of
+// the sibling pin landed on admin-resellers-list-authz.spec.ts in the
+// same tick. Rotates off the bool cluster (ticks 287/291/292/293) onto
+// the first nullable text column on the resellers row. Column declared
+// at 0091:37 as `abn text` with no NOT NULL constraint (nullable) and
+// a DB CHECK ck_abn_format at 0091:52-54 (`abn IS NULL OR abn ~
+// '^\d{2} \d{3} \d{3} \d{3}$'`) — the spaced ABN format `NN NNN NNN
+// NNN`, mirrored on the application write path by ABN_RE at
+// web/src/lib/reseller/admin-validator.ts:52 (validator rejects
+// patch.abn writes that fail the same regex with reason='abn_bad_
+// format'). The column is additionally tied to the wholesale
+// invariant CHECK ck_wholesale_gst_required at 0091:47-50
+// (`billing_model = 'retail' OR (billing_model = 'wholesale' AND
+// gst_registered = true AND abn IS NOT NULL)`) — retail rows may
+// legally carry a NULL abn, wholesale rows must carry a non-NULL abn.
+// The QAPROBEWHOLESALEACTIVE seed row is wholesale so it exercises the
+// null-or-string+ABN_RE branch on every green CI run; retail probe
+// variants exercise the null branch. Nullable discipline → two-part
+// guard: (a) null-or-typeof-string preserving the tick 275 posture for
+// nullable text columns, (b) null-or-(typeof-string AND ABN_RE.test())
+// tightening onto the DB CHECK + validator regex. Detail-row asserts
+// run ONCE per test (single object) — equivalent to a list-surface
+// loop iterating exactly one row. A schema-side type flip from text to
+// non-string, a PostgREST serialisation regression that returned NULL
+// as the literal string "null", a DB CHECK constraint drop, an admin-
+// validator drift that stopped enforcing ABN_RE, or a projection-side
+// drop from route.ts:47-48 select("*") would each surface at a
+// distinct assertion failure mode on both admin resellers-family
+// surfaces (list + detail) on the same CI pass.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Uppercase-alphanumeric invariant for promotion_codes[].code — matches the
@@ -322,6 +352,13 @@ const ISO_TIMESTAMP_RE =
 // 232 in the same twin-symmetrisation discipline as tick 231 option (j)
 // which pinned resellers.code across the admin-list surfaces.
 const PROMO_CODE_RE = /^[A-Z0-9]+$/;
+// Tick 294 — AU ABN spaced-format regex. Matches both the DB CHECK
+// constraint ck_abn_format at 0091:52-54 (`abn ~ '^\d{2} \d{3} \d{3}
+// \d{3}$'`) and the application write-path guard ABN_RE at
+// web/src/lib/reseller/admin-validator.ts:52. Only the spaced form
+// (NN NNN NNN NNN, e.g. "79 659 615 111") is legal on the wire —
+// unspaced (11-digit) or hyphenated forms are rejected on write.
+const ABN_RE = /^\d{2} \d{3} \d{3} \d{3}$/;
 const BILLING_MODELS = new Set(["retail", "wholesale"]);
 const STATUSES = new Set(["active", "paused", "terminated"]);
 // Tick 288 — value set for allowed_tiers[] element membership. Matches
@@ -503,6 +540,7 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         can_create_startups?: unknown;
         can_grant_credits?: unknown;
         collateral_approval_required?: unknown;
+        abn?: unknown;
       };
       promotion_codes?: Array<{
         id?: unknown;
@@ -742,6 +780,30 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
       typeof body.reseller?.collateral_approval_required,
       `reseller.collateral_approval_required '${String(body.reseller?.collateral_approval_required)}' should be a boolean (bool NOT NULL DEFAULT true per 0091:35 serialised via PostgREST); a drift to a string, number, or null would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
     ).toBe("boolean");
+
+    // Tick 294 — abn text nullable wire-shape pin, cross-surface mirror
+    // of the sibling pin landed on admin-resellers-list-authz.spec.ts
+    // in the same tick. See module-scope doc-block (tick 294 paragraph)
+    // for the rationale. Column source 0091:37 `abn text` (nullable)
+    // with DB CHECK ck_abn_format at 0091:52-54 (`abn IS NULL OR abn ~
+    // '^\d{2} \d{3} \d{3} \d{3}$'`) and application write-path guard
+    // ABN_RE at admin-validator.ts:52. Two-part guard: (a) null-or-
+    // typeof-string preserving the tick 275 posture for nullable text,
+    // (b) null-or-(typeof-string AND ABN_RE.test()) tightening onto the
+    // DB CHECK + validator regex. QAPROBEWHOLESALEACTIVE seed row is
+    // wholesale so it exercises the null-or-string+ABN_RE branch on
+    // every green CI run; retail probe variants exercise the null
+    // branch.
+    expect(
+      body.reseller?.abn === null || typeof body.reseller?.abn === "string",
+      `reseller.abn '${String(body.reseller?.abn)}' should be null or a string (nullable text per 0091:37; NULL on retail rows without an ABN populated, string on wholesale rows per ck_wholesale_gst_required at 0091:47-50). Row: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe(true);
+    expect(
+      body.reseller?.abn === null ||
+        (typeof body.reseller?.abn === "string" &&
+          ABN_RE.test(body.reseller!.abn as string)),
+      `reseller.abn '${String(body.reseller?.abn)}' should be null or an AU ABN string in the spaced format 'NN NNN NNN NNN' (DB CHECK ck_abn_format at 0091:52-54 + admin-validator.ts:52 ABN_RE); a drift to an unspaced 11-digit string, a hyphenated form, or any other shape would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe(true);
 
     // Related-rows arrays — do NOT pin length; each row-shape pin catches
     // a SELECT-column drift on the route-side Promise.all (route.ts:74-97).
