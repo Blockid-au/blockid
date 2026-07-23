@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
 
 // POST /api/stripe/reactivate
 // Reactivates a subscription that was previously scheduled for cancellation
 // (cancel_at_period_end = true). Clears the cancellation so the subscription
 // continues normally after the current period.
 
-export async function POST() {
+export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -87,6 +88,23 @@ export async function POST() {
     console.log(
       `[blockid:stripe] reactivated subscription ${pendingCancelSub.id} for user ${user.id}`,
     );
+
+    // SOC2-lite audit — plan lookup key only (not raw Stripe price/customer
+    // id in fields). subject_id keeps the subscription id as an opaque ref.
+    const plan =
+      pendingCancelSub.items.data[0]?.price?.lookup_key ??
+      pendingCancelSub.items.data[0]?.price?.id ??
+      null;
+    await logUserAction({
+      userId: user.id,
+      action: "stripe.subscription.reactivated",
+      subjectType: "subscription",
+      subjectId: pendingCancelSub.id,
+      fields: { plan },
+      route: "/api/stripe/reactivate",
+      ip: extractIp(request.headers),
+      ua: extractUserAgent(request.headers),
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err) {

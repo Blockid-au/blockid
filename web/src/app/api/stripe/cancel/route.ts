@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { sendCancellationEmail } from "@/lib/email";
+import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
 
 // Whitelist of save-offer coupons the cancel-flow may apply. Blocks users
 // from replaying admin/internal coupon codes via the save_offer payload.
@@ -213,6 +214,24 @@ export async function POST(request: Request) {
     console.log(
       `[blockid:stripe] subscription ${activeSub.id} scheduled for cancellation at ${periodEnd} for user ${user.id}`,
     );
+
+    // SOC2-lite audit — record the cancel-at-period-end event. Fields
+    // carry only the plan lookup key + boolean flag. Reason / feedback
+    // remain in churn_events (owned by the growth loop, not the audit
+    // trail) so free-text customer input never lands in audit rows.
+    await logUserAction({
+      userId: user.id,
+      action: "stripe.subscription.canceled",
+      subjectType: "subscription",
+      subjectId: activeSub.id,
+      fields: {
+        plan: currentPlan,
+        at_period_end: true,
+      },
+      route: "/api/stripe/cancel",
+      ip: extractIp(request.headers),
+      ua: extractUserAgent(request.headers),
+    });
 
     return NextResponse.json({ ok: true, activeUntil: periodEnd });
   } catch (err) {
