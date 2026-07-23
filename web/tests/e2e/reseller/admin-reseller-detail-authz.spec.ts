@@ -409,6 +409,37 @@ const UUID_RE =
 // "null", or a projection-side drop from route.ts:47-48 select("*")
 // would each surface on both admin resellers-family surfaces (list +
 // detail) on the same CI pass.
+//
+// Tick 298 — notes text nullable wire-shape pin, cross-surface mirror of
+// the sibling pin landed on admin-resellers-list-authz.spec.ts in the
+// same tick, closing the resellers-row column-pin project. Column
+// declared at 0091:42 as `notes text` with no NOT NULL constraint
+// (nullable) and NO DB CHECK — free-form admin ops notes on the
+// reseller org, consumed by the admin detail surface only. Same posture
+// as tick 295 logo_url + tick 297 contact_email: there is NO
+// application write-path format regex or format-validator guard on this
+// column at web/src/lib/reseller/admin-validator.ts:144-146 — the
+// validator only String()s the input (no trim, since notes may
+// legitimately contain leading/trailing whitespace as paragraph
+// structure) or nulls when empty. Nullable discipline with no format
+// layer → single-guard null-or-typeof-string assert, matching the tick
+// 295 logo_url and tick 297 contact_email posture verbatim rather than
+// the tick 294/296 two-part guard used when a format layer exists.
+// Detail-row assert runs ONCE per test (single object). The
+// QAPROBEWHOLESALEACTIVE seed row carries notes=NULL by default
+// (seed-qa-reseller.mjs never populates the column) so the null branch
+// is exercised on every green CI run; a populated production reseller
+// row (INFOVISION when P1.5 clears H.20) would exercise the null-or-
+// string branch instead. A schema-side type flip from text to non-
+// string, a PostgREST serialisation regression that returned NULL as
+// the literal string "null", or a projection-side drop from route.ts:
+// 47-48 select("*") would each surface on both admin resellers-family
+// surfaces (list + detail) on the same CI pass. Closes the resellers-
+// row column-pin project entirely — notes is the final nullable-text
+// column with no format regex on the resellers row (0091:22-42
+// enumerates every column; all bool/int/uuid/text columns from that
+// block now carry a wire-shape pin on both admin-list + admin-detail
+// surfaces).
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Uppercase-alphanumeric invariant for promotion_codes[].code — matches the
@@ -622,6 +653,7 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         logo_url?: unknown;
         primary_color?: unknown;
         contact_email?: unknown;
+        notes?: unknown;
       };
       promotion_codes?: Array<{
         id?: unknown;
@@ -941,6 +973,25 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
       body.reseller?.contact_email === null ||
         typeof body.reseller?.contact_email === "string",
       `reseller.contact_email '${String(body.reseller?.contact_email)}' should be null or a string (nullable text per 0091:41; NULL when no contact address is populated, string when a reseller has registered a contact address — no DB CHECK, no admin-validator format guard). Row: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe(true);
+
+    // Tick 298 — notes text nullable wire-shape pin, cross-surface mirror
+    // of the sibling pin landed on admin-resellers-list-authz.spec.ts in
+    // the same tick, closing the resellers-row column-pin project. See
+    // module-scope doc-block (tick 298 paragraph) for the rationale.
+    // Column source 0091:42 `notes text` (nullable) with NO DB CHECK and
+    // NO application write-path format guard (admin-validator.ts:144-146
+    // only String()s or nulls when empty; no length or shape rule).
+    // Nullable discipline with no format layer → single-guard null-or-
+    // typeof-string assert, matching the tick 295 logo_url and tick 297
+    // contact_email posture verbatim rather than the tick 294/296 two-
+    // part guard because there is no format regex to layer on top. The
+    // QAPROBEWHOLESALEACTIVE seed row carries notes=NULL by default so
+    // the null branch is exercised on every green CI run.
+    expect(
+      body.reseller?.notes === null ||
+        typeof body.reseller?.notes === "string",
+      `reseller.notes '${String(body.reseller?.notes)}' should be null or a string (nullable text per 0091:42; NULL when no admin ops notes have been captured, string when an admin has populated the free-form notes field via the PATCH surface — no DB CHECK, no admin-validator format guard). Row: ${JSON.stringify(body.reseller).slice(0, 200)}`,
     ).toBe(true);
 
     // Related-rows arrays — do NOT pin length; each row-shape pin catches
