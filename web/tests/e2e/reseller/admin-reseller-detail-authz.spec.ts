@@ -1093,6 +1093,46 @@ const UUID_RE =
 // Continues the P10 hardening posture — no fixture change, no route
 // change, no new imports; no new module-scope const needed
 // (ISO_TIMESTAMP_RE already lives at row 1063).
+//
+// Tick 318 — attributions_summary.total int non-negative wire-shape
+// tightening. SCOPE ROTATION out of the reseller_commissions_current[]
+// child-row cluster (which is now fully pinned column-by-column from
+// tick 308 through tick 317: commission_id / stripe_invoice_id /
+// list_price_aud_cents / discount_pct / commission_aud_cents /
+// net_owed_cents / status / created_at — all eight tuple columns
+// selected on the route.ts:99-105 Promise.all leg now carry a wire-
+// shape pin) back onto the aggregate attributions_summary shape that
+// tick 313 opened for by_source. Column source: route.ts:113-120
+// materialises the aggregate as `attributions_summary: { total,
+// active, by_source }` where `total: attributions.length` reads the
+// length of the reseller_attributions rows array selected on
+// route.ts:94-97 with .select("id, subject_type, status, source,
+// attributed_at").eq("reseller_id", row.id). By JS Array.length
+// invariant the value is a non-negative int32 in [0, 2^32-1]; the
+// wave-5 row 167 QAPROBEWHOLESALEACTIVE seed reseller has 0
+// attributions by default so the value is trivially 0 on green runs.
+//
+// Design choice — three-part guard mirroring the tick 313 by_source
+// count guard shape verbatim so total + active + by_source counts all
+// share the same tail-invariant discipline: (a) typeof-number
+// preserves the raw-type discipline the existing bare row 1940 pin
+// already covered; (b) Number.isInteger() catches a JS regression
+// that stamped a stringified count (`String(attributions.length)`
+// under a refactor to `.toString()`), a floating-point value from an
+// accidental `attributions.reduce((n) => n + 0.5, 0)` refactor, or
+// NaN/Infinity from a divide-by-zero edge; (c) >= 0 assert catches a
+// signed-int wraparound or a reducer refactor that stamped a
+// negative counter (e.g. `attributions.filter(...).length - 1` under
+// an off-by-one refactor). Rotates out of the commissions[] cluster
+// intentionally: eight sequential ticks on the same row shape risks
+// drift on the aggregate summary object, and the by_source value
+// guard (tick 313) already established the tail invariant for
+// counts inside the same summary — extending it to total (this tick)
+// + active (natural next pick option (a) for tick 319) closes the
+// summary object out symmetrically. No new imports, no new module-
+// scope const needed (typeof/isInteger/>=0 are all bare-JS). See
+// module-scope doc-block above ISO_TIMESTAMP_RE (tick 313 paragraph)
+// for the by_source parallel discipline this tick mirrors.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Tick 309 — Stripe invoice ID shape regex. Matches the modern Stripe
@@ -1937,7 +1977,27 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
       body.attributions_summary,
       `attributions_summary should be present: ${JSON.stringify(body).slice(0, 200)}`,
     ).toBeTruthy();
-    expect(typeof body.attributions_summary?.total).toBe("number");
+    // Tick 318 — attributions_summary.total int non-negative wire-shape
+    // tightening. Three-part guard mirroring the tick 313 by_source count
+    // guard shape verbatim: (a) typeof-number preserves the raw-type
+    // discipline; (b) Number.isInteger() catches a JS regression that
+    // stamped a stringified count, floating-point value, or NaN/Infinity;
+    // (c) >= 0 assert catches a signed-int wraparound or a reducer
+    // refactor that stamped a negative counter. See module-scope doc-
+    // block above ISO_TIMESTAMP_RE (tick 318 paragraph) for the full
+    // rationale.
+    expect(
+      typeof body.attributions_summary?.total === "number",
+      `attributions_summary.total '${String(body.attributions_summary?.total)}' should be a number (route.ts:114 stamps 'total: attributions.length' which is a non-negative JS array length; a JS regression that stringified the count via .toString() or an undefined-branch reducer refactor would surface here). attributions_summary: ${JSON.stringify(body.attributions_summary).slice(0, 200)}`,
+    ).toBe(true);
+    expect(
+      Number.isInteger(body.attributions_summary?.total),
+      `attributions_summary.total '${String(body.attributions_summary?.total)}' should be an integer (route.ts:114 reads Array.length which is a non-negative int32 in [0, 2^32-1]; a floating-point value from an accidental reducer refactor, NaN from divide-by-zero, or Infinity would surface here). attributions_summary: ${JSON.stringify(body.attributions_summary).slice(0, 200)}`,
+    ).toBe(true);
+    expect(
+      (body.attributions_summary?.total as number) >= 0,
+      `attributions_summary.total '${String(body.attributions_summary?.total)}' should be non-negative (route.ts:114 stamps Array.length; a signed-int wraparound or a reducer refactor that stamped a negative counter via off-by-one would surface here). attributions_summary: ${JSON.stringify(body.attributions_summary).slice(0, 200)}`,
+    ).toBe(true);
     expect(typeof body.attributions_summary?.active).toBe("number");
     expect(
       body.attributions_summary?.by_source !== null &&
