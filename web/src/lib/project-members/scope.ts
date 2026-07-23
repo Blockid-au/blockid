@@ -438,9 +438,16 @@ export async function revokeMember(
     throw new ProjectMemberScopeError("member not found", "not_found");
   }
 
-  // Owner check — reads the projects row to confirm the requester owns
-  // the project this member belongs to.
-  await assertProjectOwner(existing.project_id as string, requesterUserId);
+  // Admin-perm check — owner OR accepted admin members may revoke. This
+  // is the same guard mounted on the /members POST + DELETE routes, so
+  // "admin" here means the caller can invite AND revoke collaborators.
+  // Editors/viewers/non-members are rejected with `forbidden`; a missing
+  // project surfaces `not_found` from assertProjectMemberCan.
+  await assertProjectMemberCan(
+    existing.project_id as string,
+    requesterUserId,
+    "admin",
+  );
 
   if (existing.status === "revoked") {
     return mapMember(existing); // idempotent no-op
