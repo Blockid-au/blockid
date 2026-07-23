@@ -407,6 +407,8 @@ test.describe("Admin reseller GET input validation — P10 wave-5 row 168 happy 
         commission_id?: unknown;
         stripe_invoice_id?: unknown;
         list_price_aud_cents?: unknown;
+        discount_pct?: unknown;
+        commission_aud_cents?: unknown;
       }>;
     };
 
@@ -796,6 +798,70 @@ test.describe("Admin reseller GET input validation — P10 wave-5 row 168 happy 
       expect(
         ALLOWED_TIER_PCTS.has(row.discount_pct as number),
         `commissions[].discount_pct '${String(row.discount_pct)}' should be one of {0,10,20,30,40} (0094:38 discount_pct int NOT NULL CHECK (discount_pct IN (0,10,20,30,40)) — DB CHECK is the sole schema backstop; an ALTER CHECK DROP, a superuser INSERT bypass, or a webhook-processor drift that stamped a non-tier pct (e.g. 15, 25, 50, 100) would slip an out-of-band pct straight past the schema. Reuses ALLOWED_TIER_PCTS at row 140 — the {0,10,20,30,40} set is identical between reseller_promotion_codes.tier_pct at 0091:90 and reseller_commissions.discount_pct at 0094:38 by design because the accrual write path copies the resolved tier percentage from the promo code into the commission row verbatim). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      // Tick 346 — commissions[].commission_aud_cents three-part typeof-number
+      // + Number.isInteger + >= 0 non-negative wire-shape pin, fifth column
+      // pinned in the reseller_commissions_current[] child-row cluster on this
+      // detail-validation spec (opened tick 342 with commission_id UUID;
+      // tightened tick 343 with list_price_aud_cents strictly-positive int;
+      // extended tick 344 with stripe_invoice_id STRIPE_INVOICE_ID_RE;
+      // extended tick 345 with discount_pct ALLOWED_TIER_PCTS set-membership).
+      // Executes tick 345 next-pick option (a) verbatim: propagates the tick 314
+      // pin already carried on the sibling admin-reseller-detail-authz.spec.ts
+      // (rows 3594-3605). Column source: reseller_commissions.commission_aud_cents
+      // declared at web/supabase/migrations/0094_reseller_commissions_and_events.sql:41
+      // as `commission_aud_cents int NOT NULL CHECK (commission_aud_cents >= 0)`,
+      // projected verbatim through the reseller_commissions_current view alias
+      // rc.commission_aud_cents at 0094:147 and selected on the Promise.all leg
+      // at web/src/app/api/admin/resellers/[code]/route.ts:98-105.
+      //
+      // Design choice — THREE-part guard rather than two-part (mirrors the tick
+      // 343 list_price_aud_cents posture verbatim but with a `>= 0` tail assert
+      // rather than `> 0`): wholesale rows always stamp commission_aud_cents = 0
+      // per the ck_commission_split CHECK at 0094:52-60 (wholesale branch
+      // requires commission_aud_cents = 0), so a strict `> 0` tail here would
+      // false-positive on every wholesale commission row on the seed reseller
+      // (QAPROBEWHOLESALEACTIVE is billing_model='wholesale', so all its
+      // commissions rows carry commission_aud_cents = 0 by design). Guard parts:
+      //   (a) typeof-number half labelled with diagnostic prose preserves the
+      //       NOT-NULL raw-type discipline — catches a schema-side NOT NULL
+      //       drop, a view-side column drop from 0094:147, a projection-side
+      //       drop from the SELECT tuple at route.ts:98-105, or a PostgREST
+      //       serialisation regression that returned null|undefined|stringified-
+      //       int. Separated from the isInteger + range checks below so a raw-
+      //       type flip does not hide behind an out-of-band diagnostic.
+      //   (b) Number.isInteger() half catches a bigint-as-string serialisation
+      //       regression from PostgREST, a fractional-cents value from a
+      //       proration edge, or NaN / Infinity from a webhook processor drift
+      //       that widened int → float via Number(...) coercion.
+      //   (c) >= 0 range half catches a schema-side CHECK DROP or a webhook
+      //       processor drift that stamped negative cents — clawback / refund
+      //       events live in reseller_commission_events with negative
+      //       delta_aud_cents, but the BASE reseller_commissions.commission_
+      //       aud_cents column itself is always non-negative per the 0094:41
+      //       CHECK constraint. Note '>= 0' NOT '> 0' per the intentional
+      //       wholesale-carveout rationale above — a strict positive tail would
+      //       fire on every wholesale commission row.
+      // No new module-scope const needed — Number.isInteger is a built-in.
+      // Continues the P10 hardening posture on this spec: no fixture change,
+      // no route change, no new imports, no new module-scope const (tick 342/345
+      // precedent). Bypass-write model: a legacy admin_manual INSERT that
+      // stamped commission_aud_cents = -1 to represent an unresolved chargeback,
+      // or a webhook accrual that mistakenly wrote a proration-flavoured
+      // -0.5 cent value, would slip past both PostgREST NOT NULL serialisation
+      // AND the projection guard above but surface here on the first offending
+      // row of the QAPROBEWHOLESALEACTIVE seed reseller.
+      expect(
+        typeof row.commission_aud_cents,
+        `commissions[].commission_aud_cents '${String(row.commission_aud_cents)}' should be a number (int NOT NULL CHECK (commission_aud_cents >= 0) per web/supabase/migrations/0094_reseller_commissions_and_events.sql:41; view alias rc.commission_aud_cents at 0094:147; a schema-side NOT NULL drop, a view-side column drop, a projection-side drop from the SELECT tuple at web/src/app/api/admin/resellers/[code]/route.ts:98-105, or a PostgREST serialisation regression that returned null|undefined|stringified-int would surface here — separated from the isInteger + range checks below so a raw-type flip does not hide behind an out-of-band diagnostic). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("number");
+      expect(
+        Number.isInteger(row.commission_aud_cents),
+        `commissions[].commission_aud_cents '${String(row.commission_aud_cents)}' should be an integer (int NOT NULL per 0094:41; a PostgREST bigint-as-string serialisation regression, a fractional-cents value from a proration edge, or NaN/Infinity from a webhook processor drift that widened int → float via Number(...) coercion would surface here — separated from the range check below so a shape flip does not hide behind an out-of-band range diagnostic). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        (row.commission_aud_cents as number) >= 0,
+        `commissions[].commission_aud_cents '${String(row.commission_aud_cents)}' should be non-negative (CHECK (commission_aud_cents >= 0) per 0094:41 — DB CHECK is the sole schema backstop; an ALTER CHECK DROP, a superuser INSERT bypass, or a webhook-processor drift that stamped negative cents would slip out-of-band cents straight past the schema. Clawback / refund deltas live in reseller_commission_events with negative delta_aud_cents, but the base reseller_commissions.commission_aud_cents column itself is always non-negative per the 0094:41 CHECK. Note '>= 0' not '> 0' because wholesale rows always stamp commission_aud_cents = 0 per the ck_commission_split CHECK at 0094:52-60 — a strict positive tail would false-positive on every wholesale commission row of the QAPROBEWHOLESALEACTIVE seed reseller). Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
     }
   });
