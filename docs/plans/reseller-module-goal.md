@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.238
+version: 2026-07-23.239
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,180 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 239
+    ran_at: 2026-07-23
+    action: p10_loop_status_tick_row_frontier_computed_conditional_pin_option_y
+    result: |
+      Landed tick 238's "natural next pick" option (y) as the first
+      conditional-by-stage schema pin on tick_history rows in admin-
+      reseller-loop-status-authz.spec.ts happy path. Adds a typeof=number
+      pin for `frontier_count` guarded by `stage === 'frontier_computed'`.
+
+      Writer-schema justification:
+        - scripts/cron/reseller-goal-loop.mjs:287 writes
+          `log({ stage: 'frontier_computed', frontier_count: frontier.length,
+          frontier })`. `frontier` is the return value of computeFrontier()
+          (an Array), so `frontier.length` is a schema-level typeof=number
+          guarantee on every frontier_computed row (never null, never
+          string, never undefined).
+        - The log() helper at reseller-goal-loop.mjs:52-58 prepends
+          tick_id/ts/human_review_minutes_7d then spreads `...row` — the
+          `frontier_count: frontier.length` keyval from :287 flows through
+          untouched.
+
+      Design choice — conditional pin, not universal pin:
+        - Prior ticks (235-238) landed universal-per-row pins on writer-
+          guaranteed top-level fields (monitor_ts, head_sha, last_log +
+          the 8 --json state keys on monitor_history rows; tick_id + ts +
+          stage + human_review_minutes_7d on tick_history rows). Those
+          fields are present on EVERY row regardless of stage.
+        - frontier_count is present ONLY on `stage === 'frontier_computed'`
+          rows. Landing a universal pin would fail on every non-
+          frontier_computed row (tick_start, tick_end, delegated_dispatch,
+          auto_deploy_*, phase_dispatched, etc. — none of which populate
+          frontier_count).
+        - The `if (tickRow.stage === 'frontier_computed')` guard is the
+          minimum viable syntax for a stage-specific pin. It reads clearly
+          inline and mirrors the writer's stage-dispatched schema.
+
+      Audit outcome (option (y) — what other stages carry extras):
+        - tick_start (mjs:212): `{}` — no extras beyond tick_id/ts/
+          human_review_minutes_7d/stage. NO conditional pin possible.
+        - tick_end (mjs:375): `{}` — no extras. NO conditional pin.
+        - error (mjs:218): `{ where, error }`. Both strings.
+        - human_blocked_snapshot (mjs:228-232): `{ snapshot }`.
+        - goal_completed (mjs:242-246): shape TBD (needs re-read).
+        - cron_removal (mjs:257): `{ status }` — number.
+        - frontier_computed (mjs:287): `{ frontier_count, frontier }` —
+          pinned this tick.
+        - idle (mjs:290): `{ reason }` — string.
+        - phase_dispatched (mjs:299): spreads dispatchToClaude result —
+          shape covers label + status + elapsed_ms (from mjs:109-derived
+          convention).
+        - phase_failed (mjs:301): `{ label, status }`.
+        - delegated_dispatch (mjs:319): spreads dispatchToClaude result
+          (same shape family as phase_dispatched).
+        - auto_commit_started (mjs:332): `{ dirty_files }` — number.
+        - auto_commit_finished (mjs:337): `{ commit_status, push_status }`
+          — numbers.
+        - auto_commit_failed (mjs:340): `{ error }` — string.
+        - auto_deploy_triggered (mjs:361): `{ head, last_deployed }` —
+          strings.
+        - auto_deploy_finished (mjs:367): `{ status, head }`.
+        - auto_deploy_skipped (mjs:369): `{ reason, head, last_deployed }`.
+        - auto_deploy_failed (mjs:372): `{ error }`.
+        - fatal (mjs:379): `{ error, stack }`.
+
+        Nineteen distinct stages, most carrying stage-specific extras.
+        Landing conditional pins for all of them in one tick would be a
+        ~19-branch diff; option (y) is naturally amortised across future
+        ticks with one stage per pass. This tick lands the first one —
+        the frontier_computed row's numeric field — because it's the
+        cheapest pin (single-key, guaranteed typeof=number via .length)
+        and the one whose writer contract is the most stable (removing
+        the frontier_count key would be a load-bearing telemetry
+        regression that the /admin/reseller-loop dashboard also cares
+        about, so the pin doubles as a wire-side echo of a UI-facing
+        contract).
+
+      Trade-off accepted:
+        - Conditional pins introduce a new spec pattern (stage-guarded
+          typeof) that the last four ticks (235-238) did NOT use. Future
+          per-stage pins should follow this pattern (single `if (stage
+          === '<name>')` guard, one typeof pin per stage-specific key,
+          inline writer-line citation) rather than gathering multiple
+          stages into a switch — keeps each future tick as a two-line
+          insertion + one comment block.
+        - The pin does not fire on hosts where the loop has not yet run
+          a `frontier_computed` stage (e.g. a fresh CI host where the
+          history file starts empty or contains only fatal rows). That
+          is a natural side effect of the conditional guard and does
+          not weaken regression coverage on hosts where the writer has
+          appended at least one frontier_computed row — which is every
+          host that has run a tick since ticks 3-4 shipped
+          computeFrontier().
+
+      Diagnostic delta of the pass:
+        - Added 1 new expect block in admin-reseller-loop-status-authz
+          .spec.ts (inside the tick_history row loop, immediately after
+          the human_review_minutes_7d pin), guarded by the stage
+          equality check. Inline citation of reseller-goal-loop.mjs:287.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no vitest / Playwright runtime
+          posture change, no new module-scope constant. Matches ticks
+          223-238 discipline: tighten one dimension, symmetrise against
+          known invariants, single tick.
+        - One comment block added citing the tick 239 landing + the
+          writer-script line + the "conditional-by-stage" rationale +
+          the "amortised across future ticks" note.
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-loop-status-authz.spec.ts
+          (one stage-guarded typeof=number pin added after the human_
+          review_minutes_7d pin with an inline writer-schema comment
+          pointing to reseller-goal-loop.mjs:287.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.238 → 2026-07-23.239; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Schema pin only. No new spec-local constant (the stage-guard
+          + typeof pin reads clearly inline; hoisting would obscure the
+          tie-back to the specific writer line in each expect message).
+          No fixture-file delta, no seed-script change, no P8.5-gated
+          code_request work (option (c) still blocked), no production-
+          code touch.
+
+      Verified:
+        - tsc clean (npx tsc --noEmit; no output = success).
+        - npm run lint:reseller: R-01 scanned 11 file(s), R-03 scanned
+          31 manifest route(s); 3 exemption(s), 0 violation(s). The
+          edited spec file lives under web/tests/e2e/**, not in the
+          reseller manifest, so R-01/R-03 do not fire on the edited
+          file.
+        - reseller vitest suite unchanged (no production code or lib
+          touched — Playwright specs are excluded from vitest by design).
+
+      Frontier after tick 239: unchanged shape — Track A HUMAN-BLOCKED
+      on P8.5 Stripe env vars + P1.5 InfoVision seed on H.20 ABN + GST;
+      Track B COMPLETE; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 239 does NOT unblock: P8.5 STRIPE_PRICE_ADDON_SHARE_MGMT_*
+      env vars still human-gated; P1.5 InfoVision ABN + GST still
+      human-gated per H.20.
+
+      Natural next pick for tick 240:
+        (y2) audit the next stage row in the option (y) inventory — most
+             natural pick is `phase_failed` (mjs:301) which carries
+             `{ label, status }` — landing a stage-guarded pin for
+             typeof=string on label + typeof=number on status. Symmetric
+             with this tick's shape.
+        (y3) or land the `auto_deploy_finished` (mjs:367) row's
+             `{ status, head }` — same shape family.
+        (y4) or land the simpler `idle` (mjs:290) row's `{ reason }` —
+             typeof=string only.
+        (u) audit whether the admin-requests-list-authz per-key content
+            pins deferred at tick 234's option (r) could land as a
+            three-surface change (reseller-side twin + admin-side list +
+            admin-side patch spec) in a single bigger-diff tick.
+            Available; deferred at ticks 235-238.
+        (r) audit whether the admin-requests-list-authz newly-pinned
+            payload plain-object guard could be extended to per-key
+            content pins for the three request_type variants. Still
+            available; deferred at ticks 235-238.
+        (n) audit whether admin-requests-patch-authz.spec.ts approve
+            branch decision_at pin could be tightened from typeof string
+            to an ISO-8601 regex — header-rewrite-first option
+            (contradicts existing "assert typeof string only" header
+            comment from tick 230). Still available; deferred at 235-238.
+        (x) audit format-shape pins for now_utc / next_utc (HH:MM:SS /
+            HH:MM regex) / seconds_until (0..3600 range) / tick_state
+            (enum of 4 branches) — header-rewrite option (contradicts
+            existing "typeof-string only so the value can drift" comment).
+        (c) mirror row 179 shape+helper alignment onto row 175 approve+
+            deny+cancel code_request branches once P8.5 unblocks.
+            P8.5-blocked, no available today.
+    commit: (this tick)
+
   - tick: 238
     ran_at: 2026-07-23
     action: p10_loop_status_monitor_row_state_spread_8_key_set_pin_option_w

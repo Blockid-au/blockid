@@ -359,6 +359,36 @@ test.describe("Admin reseller-loop status — P10 wave-5 row 173 happy path", ()
         typeof tickRow.human_review_minutes_7d,
         `tick_history row.human_review_minutes_7d should be typeof number (reseller-goal-loop.mjs:44 default 0 + :57 spread guarantee): ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe("number");
+      // Writer schema pin (tick 239 option y — first conditional-by-stage
+      // pin). scripts/cron/reseller-goal-loop.mjs:287 writes
+      // `log({ stage: 'frontier_computed', frontier_count: frontier.length,
+      // frontier })` — frontier_count is `Array.prototype.length` on the
+      // return value of computeFrontier() so it is a schema-level number
+      // guarantee (never null, never string, never absent) on every
+      // frontier_computed row. Landing a conditional pin — narrow to the
+      // one stage — catches (a) a writer regression that renamed the key
+      // (e.g. frontier_count → frontier_len) and (b) a call-site regression
+      // that dropped the frontier_count field from the spread. Departs from
+      // the singleton-endpoint convention only in the sense that this pin
+      // is guarded by `if (stage === 'frontier_computed')` — the writer
+      // contract is stage-specific, so the pin has to be too. Other stages
+      // (tick_start, tick_end, delegated_dispatch, auto_deploy_*, etc.)
+      // carry their own stage-specific extras; per-stage audit closure of
+      // option (y) is deferred to future ticks — this one starts the
+      // pattern by landing the frontier_computed guarantee (the only stage
+      // whose row we know computeFrontier() populates deterministically
+      // via .length). No value pin — the count varies per goal state; the
+      // frontier field itself is a plain array whose shape is documented
+      // inline at buildPhaseBrief in mjs:296-303 but not pinned here to
+      // keep the diff bounded to the numeric field. No twin surface
+      // (singleton endpoint), same rationale as tick_id + ts + stage +
+      // human_review_minutes_7d.
+      if (tickRow.stage === "frontier_computed") {
+        expect(
+          typeof tickRow.frontier_count,
+          `tick_history frontier_computed row.frontier_count should be typeof number (reseller-goal-loop.mjs:287 writes frontier.length): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("number");
+      }
     }
     expect(
       typeof body.generated_at === "string" &&
