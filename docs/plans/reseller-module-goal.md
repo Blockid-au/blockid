@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.325
+version: 2026-07-23.327
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,122 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 327
+    ran_at: 2026-07-23
+    action: p10_reseller_display_name_text_not_null_two_part_labelled_pin_on_admin_reseller_detail
+    result: |
+      Executes tick 326 next-pick option (c) verbatim: the top-level
+      reseller.display_name column on the detail payload was still
+      carrying the tick-1710 baseline bare
+      `expect(typeof body.reseller?.display_name).toBe("string")`
+      single-line combined pin with no diagnostic message and no
+      tick-numbered doc-block, while its neighbour columns on the
+      reseller-row projection tuple (id UUID at tick 325, created_at
+      / updated_at ISO at ticks 283/285, commission_share_pct
+      numeric at tick 286, gst_registered bool at tick 287, code at
+      tick 231) had all moved on to two-part labelled discipline.
+      Lifting display_name closes the top-level reseller-row wire-
+      shape sweep one column tighter and stays in the same P10 pin-
+      tightening posture as ticks 320-326.
+
+      Writer-schema justification:
+        - 0091_reseller_module_foundations.sql:25 declares
+          `display_name text NOT NULL`. The DB carries NO CHECK
+          constraint against blank/whitespace-only strings — an
+          unvalidated INSERT could stamp display_name='' and the
+          database would accept it.
+        - Application write path: admin-validator.ts:66-70 REJECTS
+          patch.display_name that trims to empty with
+          reason='display_name_blank'; a P9 create-branch that
+          bypasses the validator (or a future non-admin write path
+          that forgot to route through validateAdminResellerPatch)
+          could still slip an empty-string value into the column
+          since the DB has no CHECK constraint to backstop the
+          validator.
+        - Application read path: projected via route.ts:47-48
+          select("*") on the loadReseller() single-row lookup, then
+          surfaced as the top-level `reseller` field on the detail
+          payload body at route.ts:122-129 — same read-path leg as
+          the tick 325 UUID PK pin one row above.
+
+      Design choice — two-part guard mirroring the tick 325 posture
+      but with a length-based shape half rather than a regex (matches
+      admin-validator.ts:66-70 write-path invariant):
+        - (a) typeof-string preserves the NOT-NULL raw-type
+          discipline; catches a PostgREST regression that returned
+          null|undefined, a schema-side NOT NULL drop, or a
+          projection-side drop from the route.ts:47-48 SELECT tuple.
+        - (b) String(...).trim().length > 0 shape assert catches an
+          unvalidated INSERT / bypass write path that stamped
+          display_name='' or display_name='   ' straight past the
+          validator's display_name_blank guard.
+
+      Rotation rationale:
+        - Closes the tick-1710 baseline single-part typeof-string pin
+          that has been the last outstanding bare column on the top-
+          level reseller-row wire-shape sweep since the tick 325 lift
+          closed the UUID PK cluster.
+        - No new imports, no new module-scope const needed — pure
+          typeof + String().trim().length inline check.
+
+      Coverage-per-guard posture:
+        - Detail surface: wave-5 row 167 single-row GET fires the
+          two-part pin at least once per test on the
+          QAPROBEWHOLESALEACTIVE seed reseller (top-level parent row
+          is always present when loadReseller() returns row-not-null;
+          seed fixture stamps a non-empty display_name so the shape
+          half passes on every green CI run).
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 327 paragraph) added
+              below the tick 326 paragraph above ISO_TIMESTAMP_RE.
+            + bare display_name single-line combined pin replaced
+              with tick-numbered labelled two-expect guard: typeof-
+              string + String(...).trim().length > 0 — each with a
+              bespoke failure message pointing at 0091:25 as the
+              writer-schema source and admin-validator.ts:66-70 as
+              the application write-path invariant.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope const. Matches
+          ticks 234-326 discipline.
+
+      Verification:
+        - tsc --noEmit: whole tree clean (exit 0).
+        - Playwright specs excluded from vitest by design.
+
+      Frontier after tick 327: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5
+      clears. Top-level reseller-row wire-shape column-pin sweep now
+      symmetrically closed: id (325) + code (231) + display_name
+      (327) + billing_model (bare Set.has, still open) + status
+      (bare Set.has, still open) + created_at/updated_at (285) +
+      commission_share_pct (286) + gst_registered (287) all
+      projected via route.ts:47-48 select("*") on the same detail
+      surface.
+
+      Next natural picks on tick 328:
+        (a) rotate to reseller.billing_model / reseller.status
+        single-part BILLING_MODELS.has() / STATUSES.has() pins into
+        two-part typeof-string + Set.has() shape matching the tick
+        304/305/312/316 value-set posture verbatim (refreshes tick
+        326 option (b) into a lift).
+        (b) rotate to reseller.code text NOT NULL UNIQUE tick-
+        numbered labelled shape lift (currently bare
+        `.toBe(fixture.code)` equality with no per-half diagnostic).
+        (c) rotate to promotion_codes[] cross-column pin summary
+        comment (tier 0 → stripe ids null / tier > 0 → stripe ids
+        non-null already lives inline at ticks 301-302 — a symmetric
+        close-out summary comment could hoist it into module-scope
+        doc-block form).
+        (d) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks.
+    commit: (this tick)
+
   - tick: 326
     ran_at: 2026-07-23
     action: p10_admins_status_revoked_at_cross_column_lifecycle_invariant_pin_on_admin_reseller_detail

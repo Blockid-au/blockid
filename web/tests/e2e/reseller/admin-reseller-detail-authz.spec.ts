@@ -1502,6 +1502,100 @@ const UUID_RE =
 // tight (P1.5 + P8.5 HUMAN-BLOCKED, P11 never_completes, Track B
 // closed, P10 continues accepting incremental pin-tightening
 // ticks).
+//
+// Tick 327 — reseller.display_name text NOT NULL two-part labelled
+// lift on the tick-1710 baseline single-part typeof-string pin.
+// Executes tick 325/326 next-pick option (c) verbatim: the top-level
+// reseller.display_name column on the detail payload was still
+// carrying the bare single-line
+// `expect(typeof body.reseller?.display_name).toBe("string")` pin
+// with no diagnostic message and no tick-numbered doc-block, while
+// its neighbour columns (id UUID at tick 325, created_at/updated_at
+// ISO at ticks 283/285, commission_share_pct numeric at tick 286,
+// gst_registered bool at tick 287, code at tick 231) have all moved
+// on to two-part labelled discipline. Lifting display_name closes
+// the top-level reseller-row wire-shape sweep one column tighter and
+// stays in the same P10 pin-tightening posture as ticks 320-326.
+//
+// Writer-schema justification:
+//   - 0091_reseller_module_foundations.sql:25 declares
+//     `display_name text NOT NULL`. The DB carries NO CHECK
+//     constraint against blank/whitespace-only strings — an
+//     unvalidated INSERT could stamp display_name='' and the
+//     database would accept it.
+//   - Application write path: admin-validator.ts:66-70 REJECTS
+//     patch.display_name that trims to empty with
+//     reason='display_name_blank' (see validateAdminResellerPatch
+//     branch); a P9 create-branch that bypasses the validator (or a
+//     future non-admin write path that forgot to route through
+//     validateAdminResellerPatch) could still slip an empty-string
+//     value into the column since the DB has no CHECK constraint to
+//     backstop the validator.
+//   - Application read path: projected via route.ts:47-48
+//     select("*") on the loadReseller() single-row lookup, then
+//     surfaced as the top-level `reseller` field on the detail
+//     payload body at web/src/app/api/admin/resellers/[code]/
+//     route.ts:122-129 — same read-path leg as the tick 325 UUID PK
+//     pin one row above, the tick 285 created_at/updated_at ISO
+//     pins one row below, and the tick 286 commission_share_pct
+//     numeric pin two rows below.
+//
+// Design choice — two-part guard mirroring the tick 325 posture but
+// with a length-based shape half rather than a regex, matching the
+// admin-validator.ts:66-70 write-path invariant (String(x).trim()
+// must be non-empty):
+//   - (a) typeof-string preserves the NOT-NULL raw-type discipline;
+//     catches a PostgREST regression that returned null|undefined, a
+//     schema-side NOT NULL drop, or a projection-side drop from the
+//     route.ts:47-48 SELECT tuple.
+//   - (b) String(...).trim().length > 0 shape assert catches an
+//     unvalidated INSERT / bypass write path that stamped
+//     display_name='' or display_name='   ' straight past the
+//     validator's display_name_blank guard; the DB has no CHECK
+//     constraint against blank strings, so the invariant lives ONLY
+//     on the application write path (admin-validator.ts:66-70) plus
+//     the Playwright wire-shape pin.
+//
+// Coverage-per-guard posture:
+//   - Detail surface: wave-5 row 167 single-row GET fires the two-
+//     part pin at least once per test on the QAPROBEWHOLESALEACTIVE
+//     seed reseller (top-level parent row is always present when
+//     loadReseller() returns row-not-null; seed fixture stamps a
+//     non-empty display_name so the shape half passes on every green
+//     CI run).
+//
+// Rotation rationale:
+//   - Closes the tick-1710 baseline single-part typeof-string pin
+//     that has been the last outstanding column on the top-level
+//     reseller-row wire-shape sweep since the tick 325 lift closed
+//     the UUID PK cluster; the remaining bare pins on the reseller-
+//     row shape are the code equality assert (still bare
+//     `.toBe(fixture.code)` — deliberate identity check, not a
+//     wire-shape pin) and the billing_model/status Set.has() pins
+//     (tick 326 next-pick option (b) — still open for a future tick).
+//   - No new imports, no new module-scope const needed — pure typeof
+//     + String().trim().length inline check.
+//   - Continues the P10 hardening posture per ticks 234-326 — no
+//     production code touched, no fixture change, no route change,
+//     no new imports, no new module-scope const.
+//
+// Natural next-pick tick 328 candidates:
+//   (a) rotate to reseller.billing_model / reseller.status single-
+//   part BILLING_MODELS.has() / STATUSES.has() pins into two-part
+//   typeof-string + Set.has() shape matching the tick 304/305/312/
+//   316 value-set posture verbatim (tick 326 option (b) refreshed).
+//   (b) rotate to reseller.code text NOT NULL UNIQUE tick-numbered
+//   labelled shape lift (currently bare `.toBe(fixture.code)`
+//   equality with no per-half diagnostic — refreshes the identity
+//   check into a two-part typeof-string + toBe(fixture.code) shape).
+//   (c) rotate to promotion_codes[] cross-column pin summary
+//   comment (tier 0 → stripe ids null / tier > 0 → stripe ids non-
+//   null already lives inline at ticks 301-302 — a symmetric close-
+//   out summary comment could hoist it into module-scope doc-block
+//   form; matches the tick 326 next-pick option (a)).
+//   (d) idle — the frontier remains tight (P1.5 + P8.5 HUMAN-
+//   BLOCKED, P11 never_completes, Track B closed, P10 continues
+//   accepting incremental pin-tightening ticks).
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Tick 309 — Stripe invoice ID shape regex. Matches the modern Stripe
@@ -1855,7 +1949,24 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
       body.reseller?.code,
       `reseller.code should equal fixture.code (uppercase form): ${JSON.stringify(body.reseller).slice(0, 200)}`,
     ).toBe(fixture.code);
-    expect(typeof body.reseller?.display_name).toBe("string");
+    // Tick 327 — reseller.display_name text NOT NULL two-part labelled
+    // lift on the tick-1710 baseline single-part typeof-string pin.
+    // Column source `resellers.display_name text NOT NULL` at 0091:25,
+    // projected via route.ts:47-48 select("*") and surfaced at
+    // route.ts:122-129. Application write-path guarantee: admin-
+    // validator.ts:66-70 rejects trimmed-empty patches with
+    // reason='display_name_blank', but the DB carries no CHECK
+    // constraint so a bypass write path could still slip an empty
+    // string past. See module-scope doc-block above ISO_TIMESTAMP_RE
+    // (tick 327 paragraph) for the rationale.
+    expect(
+      typeof body.reseller?.display_name === "string",
+      `reseller.display_name '${String(body.reseller?.display_name)}' should be a string (text NOT NULL per 0091:25; a schema-side NOT NULL drop, a projection-side drop from route.ts:47-48 select("*"), or a PostgREST serialisation regression that returned null|undefined would surface here). Reseller: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe(true);
+    expect(
+      String(body.reseller?.display_name ?? "").trim().length > 0,
+      `reseller.display_name '${String(body.reseller?.display_name)}' should be a non-blank string (admin-validator.ts:66-70 rejects trimmed-empty writes with reason='display_name_blank' but the DB has no CHECK constraint against blank/whitespace-only values — a bypass write path that INSERTed display_name='' or display_name='   ' straight past validateAdminResellerPatch would surface here). Reseller: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe(true);
     expect(
       BILLING_MODELS.has(body.reseller?.billing_model as string),
       `reseller.billing_model should be retail|wholesale: ${JSON.stringify(body.reseller).slice(0, 200)}`,
