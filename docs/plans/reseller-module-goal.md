@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.287
+version: 2026-07-23.288
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,172 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 288
+    ran_at: 2026-07-23
+    action: p10_allowed_tiers_int_array_wire_shape_plus_value_set_pin_cross_surface_pair_on_admin_resellers_list_plus_admin_reseller_detail
+    result: |
+      Fresh-column rotation per tick 287 next-pick option (a) verbatim —
+      resellers.allowed_tiers int[] wire-shape + value-set pin landed on
+      BOTH admin-resellers-list-authz.spec.ts AND
+      admin-reseller-detail-authz.spec.ts in the same tick, extending
+      the tick 286+287 discipline of bringing multiple admin resellers-
+      family surfaces up to parity in one pass.
+
+      Fourteenth pin in the tick 275-288 lineage; third consecutive
+      single-tick cross-surface pair (commission_share_pct at 286,
+      gst_registered at 287, allowed_tiers at 288). First pin to land
+      on a non-scalar column (int[]) — the array-typed column widens
+      the pin from a two/three-part scalar guard to a three-part array
+      guard (Array.isArray + every-elem typeof-number + every-elem ∈
+      value-set). Both surfaces come up to parity in one tick so a
+      schema-side or projection-side regression on allowed_tiers
+      surfaces on BOTH admin resellers-family GETs on the same CI pass.
+
+      Writer-schema justification:
+        - 0091_reseller_module_foundations.sql:30 declares
+          `allowed_tiers int[] NOT NULL DEFAULT ARRAY[0,10,20,30,40]`
+          on the resellers table.
+        - No DB CHECK on element membership — the invariant that each
+          element ∈ {0,10,20,30,40} lives on the application write path
+          via RESELLER_TIER_VALUES in
+          web/src/lib/reseller/admin-validator.ts. STARTUP_TIER_STEPS
+          shared with the SVI tier taxonomy.
+        - The two admin resellers-family GET surfaces project the
+          column via select("*"):
+            list: route.ts:41-44 select("*").order("created_at", …)
+            detail: route.ts:47-48 select("*").eq("code", code)
+        - PostgREST returns int[] columns as JS array-of-number on the
+          wire (rather than a text encoding like "{0,10,20,30,40}") so
+          the Array.isArray + typeof-number pins below reflect the
+          actual serialisation contract. A schema-side flip from int[]
+          to text[] would surface on the typeof-number layer; a
+          PostgREST serialisation regression would surface on the
+          Array.isArray layer; a validator drift or schema widening
+          would surface on the value-set layer.
+
+      Design choice — three-part array guard rather than shape-only:
+        - Array.isArray fires first so a PostgREST regression that
+          returned int[] as a text string surfaces before the element
+          walkers run.
+        - every-elem typeof-number + Number.isFinite fires second so a
+          schema-side type flip from int[] to text[] surfaces before
+          the value-set check runs.
+        - every-elem ∈ {0,10,20,30,40} fires third so a validator
+          drift that let an out-of-set write land, or a schema-side
+          widening to arbitrary int values, surfaces at the value-set
+          layer rather than at the type layer.
+        - Non-null column → three guards without a null-or-array
+          outer layer (matches ticks 283-287's NOT-NULL posture
+          verbatim).
+
+      Coverage-per-guard posture:
+        - List surface: wave-5 row 164 admin harness iterates every
+          returned resellers row inside the per-row for-loop, so
+          seeded hosts holding ≥7 cohort rows from seed-qa-reseller.mjs
+          exercise the pin on every green CI run (seed-qa-reseller.mjs
+          uses the ARRAY[0,10,20,30,40] default so the pin exercises
+          the full 5-element branch).
+        - Detail surface: wave-5 row 167 single-row GET fires the pin
+          ONCE per test against the QAPROBEWHOLESALEACTIVE seed row
+          (loadTempReseller('active_wholesale')) — equivalent to the
+          list surface's per-row loop iterating exactly one row.
+        - Fresh CI hosts without the QA reseller seed still green
+          because test.skip() fires when the fixture returns null (list
+          surface's for-loop is a no-op on zero rows).
+
+      Diagnostic delta of the pass:
+        - admin-resellers-list-authz.spec.ts:
+            + module-scope doc-block (tick 288 paragraph) above
+              ISO_TIMESTAMP_RE citing 0091:30 as the column source and
+              admin-validator.ts as the element-membership invariant
+              source.
+            + ALLOWED_TIER_VALUES = new Set([0,10,20,30,40]) constant
+              added alongside BILLING_MODELS / STATUSES.
+            + row interface widened with allowed_tiers?: unknown.
+            + Three-part array-guard assertion block inside the wave-5
+              row 164 per-row for-loop, immediately after the tick 287
+              gst_registered typeof-boolean pin.
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 288 paragraph) above
+              ISO_TIMESTAMP_RE citing the same schema sources plus the
+              wholesale fixture rationale.
+            + ALLOWED_TIER_VALUES set constant added alongside
+              BILLING_MODELS / STATUSES.
+            + body.reseller row interface widened with allowed_tiers?:
+              unknown.
+            + Three-part array-guard assertion block inside the wave-5
+              row 167 happy GET test, immediately after the tick 287
+              gst_registered typeof-boolean pin.
+        - No production code touched, no fixture change, no route
+          change, no new imports beyond the local Set constant.
+          Matches ticks 234-287 discipline: tighten one column across
+          two surfaces with zero net new imports and zero production-
+          code touches.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: R-01 scanned 11 files + R-03 scanned
+          31 manifest routes, 3 exemptions, 0 violations
+        - Playwright specs excluded from vitest by design; the six new
+          asserts (3 per surface) fire when `npx playwright test
+          admin-resellers-list-authz admin-reseller-detail-authz` runs
+          on a seeded host (wave-5 row 164/167 skip on CI hosts lacking
+          loadAdminHarness / loadTempReseller seeds).
+
+      Files:
+        - web/tests/e2e/reseller/admin-resellers-list-authz.spec.ts
+          (module-scope doc-block extended with tick 288 paragraph;
+          ALLOWED_TIER_VALUES Set constant added; per-row shape
+          interface gains allowed_tiers?: unknown; wave-5 row 164
+          for-loop body gains a three-part array-guard assert block
+          immediately after the tick 287 gst_registered typeof-boolean
+          pin.)
+        - web/tests/e2e/reseller/admin-reseller-detail-authz.spec.ts
+          (module-scope doc-block extended with tick 288 paragraph;
+          ALLOWED_TIER_VALUES Set constant added; body.reseller row
+          interface gains allowed_tiers?: unknown; wave-5 row 167
+          happy GET body gains a three-part array-guard assert block
+          immediately after the tick 287 gst_registered typeof-boolean
+          pin.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.287 → 2026-07-23.288; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no production-code touch, no
+          new imports (Set is a built-in), no widening of the guards
+          on existing pins. Consistent with ticks 234-287's
+          incremental-pin pattern.
+        - Cross-surface pair rather than staggered mirror — the
+          list-surface + detail-surface pins land in the same tick so
+          the two admin resellers-family GET lenses carry the same
+          int[] wire-shape + value-set pin on allowed_tiers
+          simultaneously. Matches tick 286+287 cross-surface pair
+          discipline rotated onto a fresh non-scalar column.
+
+      Next natural picks on tick 289:
+        (a) rotate to remaining bool columns on the resellers row —
+        can_create_startups + can_grant_credits at 0091:31-32 or
+        collateral_approval_required at 0091:35 (all bool NOT NULL,
+        each takes a single typeof-boolean assert per surface).
+        (b) rotate to the abn text column at 0091:37 — nullable so
+        needs a null-or-string / null-or-string+regex two-part guard
+        matching the ck_abn_format CHECK at 0091:52-54
+        (`^\d{2} \d{3} \d{3} \d{3}$`); wholesale rows gated by CHECK
+        ck_wholesale_gst_required exercise the non-null branch on the
+        detail surface.
+        (c) rotate to the reseller-side /api/reseller/me/route.ts
+        surface if it projects reseller row columns (carries over
+        from ticks 285-287 option (c)).
+        (d) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks while the two HUMAN-BLOCKED leaves await external
+        unblock signals (H.20 InfoVision ABN + GST confirmation OR
+        Stripe add-on price env vars).
+    commit: (this tick)
+
   - tick: 287
     ran_at: 2026-07-23
     action: p10_gst_registered_bool_wire_shape_pin_cross_surface_pair_on_admin_resellers_list_plus_admin_reseller_detail

@@ -166,6 +166,25 @@ const UUID_RE =
 // CI pass. NOT-NULL discipline → single typeof-boolean assert; bool has
 // no finite / range dimension so no second guard is layered, matching
 // the list-surface posture verbatim.
+//
+// Tick 288 — allowed_tiers int[] wire-shape + value-set pin, cross-
+// surface mirror of the sibling pin landed on admin-resellers-list-
+// authz.spec.ts in the same tick. Column source 0091:30 `allowed_tiers
+// int[] NOT NULL DEFAULT ARRAY[0,10,20,30,40]`; element-membership
+// invariant (each element ∈ {0,10,20,30,40}) enforced by
+// RESELLER_TIER_VALUES in web/src/lib/reseller/admin-validator.ts on
+// every admin PATCH — no DB CHECK on element membership so the wire
+// value is bounded by the write-side gate. Detail-row asserts run ONCE
+// per test (single object, not per-row for-loop) — equivalent to a
+// list-surface loop iterating exactly one row. Fresh-column rotation
+// on this surface — three-part guard (Array.isArray + every-elem
+// typeof-number + every-elem ∈ {0,10,20,30,40}) matches the list-
+// surface posture verbatim. A PostgREST serialisation regression that
+// returned int[] as a text string like "{0,10,20,30,40}", a schema-side
+// flip from int[] to text[], an admin-validator drift that stopped
+// rejecting out-of-set writes, or a projection-side drop from
+// route.ts:47-48 select("*") would surface on both admin resellers-
+// family surfaces (list + detail) on the same CI pass.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Uppercase-alphanumeric invariant for promotion_codes[].code — matches the
@@ -182,6 +201,12 @@ const ISO_TIMESTAMP_RE =
 const PROMO_CODE_RE = /^[A-Z0-9]+$/;
 const BILLING_MODELS = new Set(["retail", "wholesale"]);
 const STATUSES = new Set(["active", "paused", "terminated"]);
+// Tick 288 — value set for allowed_tiers[] element membership. Matches
+// STARTUP_TIER_STEPS = [0,10,20,30,40] enforced by admin-validator.ts on
+// write; column source 0091:30 declares the ARRAY[0,10,20,30,40] default
+// but has no DB CHECK on element membership so the invariant lives on
+// the application write path.
+const ALLOWED_TIER_VALUES = new Set([0, 10, 20, 30, 40]);
 
 test.describe("Admin reseller GET pre-read authorization — P10 dry-run", () => {
   test("unauthenticated — GET with no session returns 401 no_user", async ({
@@ -349,6 +374,7 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         updated_at?: unknown;
         commission_share_pct?: unknown;
         gst_registered?: unknown;
+        allowed_tiers?: unknown;
       };
       promotion_codes?: Array<{
         id?: unknown;
@@ -460,6 +486,31 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
       typeof body.reseller?.gst_registered,
       `reseller.gst_registered '${String(body.reseller?.gst_registered)}' should be a boolean (bool NOT NULL DEFAULT false per 0091:36 serialised via PostgREST; wholesale rows gated true by CHECK ck_wholesale_gst_required at 0091:47-50); a drift to a string, number, or null would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
     ).toBe("boolean");
+
+    // Tick 288 — allowed_tiers int[] wire-shape + value-set pin, cross-
+    // surface mirror of the sibling pin landed on admin-resellers-list-
+    // authz.spec.ts in the same tick. See module-scope doc-block (tick
+    // 288 paragraph) for the rationale. Column source 0091:30
+    // `allowed_tiers int[] NOT NULL DEFAULT ARRAY[0,10,20,30,40]`;
+    // element-membership invariant enforced by RESELLER_TIER_VALUES in
+    // admin-validator.ts on write (no DB CHECK on element membership).
+    // Projected via route.ts:47-48 select("*"). NOT-NULL array →
+    // three-part guard (Array.isArray + every-elem typeof-number +
+    // every-elem ∈ {0,10,20,30,40}) matches the list-surface posture
+    // verbatim. Detail-row assert runs ONCE per test (single object).
+    expect(
+      Array.isArray(body.reseller?.allowed_tiers),
+      `reseller.allowed_tiers '${String(body.reseller?.allowed_tiers)}' should be an array (int[] NOT NULL DEFAULT ARRAY[0,10,20,30,40] per 0091:30 serialised via PostgREST); a drift to a string like "{0,10,20,30,40}", a number, or null would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe(true);
+    const allowedTiers = body.reseller?.allowed_tiers as unknown[];
+    expect(
+      allowedTiers.every((t) => typeof t === "number" && Number.isFinite(t)),
+      `reseller.allowed_tiers every element should be a finite number (int[] per 0091:30); a schema-side flip from int[] to text[] would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe(true);
+    expect(
+      allowedTiers.every((t) => ALLOWED_TIER_VALUES.has(t as number)),
+      `reseller.allowed_tiers every element should be ∈ {0,10,20,30,40} (STARTUP_TIER_STEPS enforced by admin-validator.ts on write; no DB CHECK on element membership); an admin-validator drift or a schema-side widening would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe(true);
 
     // Related-rows arrays — do NOT pin length; each row-shape pin catches
     // a SELECT-column drift on the route-side Promise.all (route.ts:74-97).
