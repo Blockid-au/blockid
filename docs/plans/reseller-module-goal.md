@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.288
+version: 2026-07-23.289
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,164 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 289
+    ran_at: 2026-07-23
+    action: p10_monthly_credit_budget_int_wire_shape_plus_non_negative_plus_integer_pin_cross_surface_pair_on_admin_resellers_list_plus_admin_reseller_detail
+    result: |
+      Fresh-column rotation per tick 288 next-pick option (b) analogue —
+      resellers.monthly_credit_budget int wire-shape + non-negative +
+      integer pin landed on BOTH admin-resellers-list-authz.spec.ts AND
+      admin-reseller-detail-authz.spec.ts in the same tick, extending
+      the tick 286+287+288 discipline of bringing multiple admin
+      resellers-family surfaces up to parity in one pass.
+
+      Fifteenth pin in the tick 275-289 lineage; fourth consecutive
+      single-tick cross-surface pair (commission_share_pct at 286,
+      gst_registered at 287, allowed_tiers at 288, monthly_credit_budget
+      at 289). Rotates back to a scalar column (int) after the tick 288
+      non-scalar detour (int[]). First pin to land on an INT-typed
+      column with a Math.floor()-backed integer invariant — the guard
+      widens from a two/three-part scalar guard to a four-part guard
+      (typeof-number + Number.isFinite + Number.isInteger + value >= 0)
+      to catch both the raw wire-type drift and the semantic
+      Math.floor() drop.
+
+      Writer-schema justification:
+        - 0091_reseller_module_foundations.sql:33 declares
+          `monthly_credit_budget int NOT NULL DEFAULT 0` on the
+          resellers table.
+        - No DB CHECK on non-negativity — the invariant lives on the
+          application write path via admin-validator.ts:100-105 which
+          rejects any write with !Number.isFinite || value < 0 (reason
+          'budget_negative') and Math.floor()s the accepted value so
+          the wire integer is bounded by the write-side gate.
+        - The two admin resellers-family GET surfaces project the
+          column via select("*"):
+            list: route.ts:41-44 select("*").order("created_at", …)
+            detail: route.ts:47-48 select("*").eq("code", code)
+        - PostgREST returns int columns as JS number on the wire so
+          the typeof-number pin below reflects the actual serialisation
+          contract. A schema-side flip from int to numeric/text would
+          surface on the Number.isInteger layer; a PostgREST
+          serialisation regression that flipped int onto the wire as a
+          string would surface on the typeof-number layer; a validator
+          drift that stopped rejecting negative writes would surface on
+          the value >= 0 layer.
+
+      Design choice — four-part guard rather than three-part:
+        - typeof-number fires first so a PostgREST regression that
+          returned int as a text string surfaces before the value
+          walkers run.
+        - Number.isFinite fires second so a NaN/Infinity drift surfaces
+          before the integer check.
+        - Number.isInteger fires third so a schema widening from int
+          to numeric (which would let 40.5 land) or a Math.floor()
+          drop on admin-validator.ts:104 surfaces before the range
+          check.
+        - value >= 0 fires fourth so a validator drift that stopped
+          rejecting negative writes with reason 'budget_negative'
+          surfaces at the value layer.
+        - Non-null column → four guards without a null-or-number outer
+          layer (matches ticks 283-288's NOT-NULL posture verbatim).
+
+      Coverage-per-guard posture:
+        - List surface: wave-5 row 164 admin harness iterates every
+          returned resellers row inside the per-row for-loop, so
+          seeded hosts holding ≥7 cohort rows from seed-qa-reseller.mjs
+          exercise the pin on every green CI run (seed-qa-reseller.mjs
+          uses the DEFAULT 0 so the pin exercises the zero-branch).
+        - Detail surface: wave-5 row 167 single-row GET fires the pin
+          ONCE per test against the QAPROBEWHOLESALEACTIVE seed row —
+          equivalent to the list surface's per-row loop iterating
+          exactly one row.
+        - Fresh CI hosts without the QA reseller seed still green
+          because test.skip() fires when the fixture returns null (list
+          surface's for-loop is a no-op on zero rows).
+
+      Diagnostic delta of the pass:
+        - admin-resellers-list-authz.spec.ts:
+            + module-scope doc-block (tick 289 paragraph) above
+              ISO_TIMESTAMP_RE citing 0091:33 as the column source and
+              admin-validator.ts:100-105 as the non-negativity /
+              Math.floor() invariant source.
+            + row interface widened with monthly_credit_budget?:
+              unknown.
+            + Four-part guard assertion block inside the wave-5 row
+              164 per-row for-loop, immediately after the tick 288
+              allowed_tiers three-part array-guard block.
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 289 paragraph) above
+              ISO_TIMESTAMP_RE citing the same schema sources.
+            + body.reseller row interface widened with
+              monthly_credit_budget?: unknown.
+            + Four-part guard assertion block inside the wave-5 row
+              167 happy GET test, immediately after the tick 288
+              allowed_tiers three-part array-guard block.
+        - No production code touched, no fixture change, no route
+          change, no new imports. Matches ticks 234-288 discipline:
+          tighten one column across two surfaces with zero net new
+          imports and zero production-code touches.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: R-01 scanned 11 files + R-03 scanned
+          31 manifest routes, 3 exemptions, 0 violations
+        - Playwright specs excluded from vitest by design; the eight
+          new asserts (4 per surface) fire when `npx playwright test
+          admin-resellers-list-authz admin-reseller-detail-authz` runs
+          on a seeded host (wave-5 row 164/167 skip on CI hosts lacking
+          loadAdminHarness / loadTempReseller seeds).
+
+      Files:
+        - web/tests/e2e/reseller/admin-resellers-list-authz.spec.ts
+          (module-scope doc-block extended with tick 289 paragraph;
+          per-row shape interface gains monthly_credit_budget?:
+          unknown; wave-5 row 164 for-loop body gains a four-part guard
+          assert block immediately after the tick 288 allowed_tiers
+          three-part array-guard block.)
+        - web/tests/e2e/reseller/admin-reseller-detail-authz.spec.ts
+          (module-scope doc-block extended with tick 289 paragraph;
+          body.reseller row interface gains monthly_credit_budget?:
+          unknown; wave-5 row 167 happy GET body gains a four-part
+          guard assert block immediately after the tick 288
+          allowed_tiers three-part array-guard block.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.288 → 2026-07-23.289; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no production-code touch, no
+          new imports (Number.isFinite / Number.isInteger are
+          built-ins), no widening of the guards on existing pins.
+          Consistent with ticks 234-288's incremental-pin pattern.
+        - Cross-surface pair rather than staggered mirror — the
+          list-surface + detail-surface pins land in the same tick so
+          the two admin resellers-family GET lenses carry the same int
+          wire-shape + non-negative + integer pin on
+          monthly_credit_budget simultaneously. Matches tick
+          286+287+288 cross-surface pair discipline rotated onto a
+          fresh scalar int column.
+
+      Next natural picks on tick 290:
+        (a) rotate to the sibling monthly_sandbox_credits int NOT NULL
+        DEFAULT 500 column at 0091:34 — same shape (int, non-negative,
+        Math.floor()-backed via admin-validator.ts:107-112 reason
+        'sandbox_negative'); same four-part guard applies verbatim.
+        (b) rotate to remaining bool columns on the resellers row —
+        can_create_startups + can_grant_credits at 0091:31-32 or
+        collateral_approval_required at 0091:35 (all bool NOT NULL,
+        each takes a single typeof-boolean assert per surface).
+        (c) rotate to the abn text column at 0091:37 — nullable so
+        needs a null-or-string / null-or-string+regex two-part guard
+        matching the ck_abn_format CHECK at 0091:52-54.
+        (d) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks while the two HUMAN-BLOCKED leaves await external
+        unblock signals.
+    commit: (this tick)
+
   - tick: 288
     ran_at: 2026-07-23
     action: p10_allowed_tiers_int_array_wire_shape_plus_value_set_pin_cross_surface_pair_on_admin_resellers_list_plus_admin_reseller_detail

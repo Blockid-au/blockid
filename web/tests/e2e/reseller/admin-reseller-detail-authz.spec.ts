@@ -185,6 +185,30 @@ const UUID_RE =
 // rejecting out-of-set writes, or a projection-side drop from
 // route.ts:47-48 select("*") would surface on both admin resellers-
 // family surfaces (list + detail) on the same CI pass.
+//
+// Tick 289 — monthly_credit_budget int wire-shape + non-negative +
+// integer pin, cross-surface mirror of the sibling pin landed on
+// admin-resellers-list-authz.spec.ts in the same tick. Column source
+// 0091:33 `monthly_credit_budget int NOT NULL DEFAULT 0`; no DB CHECK,
+// but the admin PATCH validator at
+// web/src/lib/reseller/admin-validator.ts:100-105 rejects any write
+// with !Number.isFinite || value < 0 (reason 'budget_negative') and
+// Math.floor()s the accepted value so the wire integer is bounded by
+// the write-side gate. Projected via route.ts:47-48 select("*").
+// NOT-NULL + integer invariant → four-part guard (typeof-number +
+// Number.isFinite + Number.isInteger + value >= 0) matches the list-
+// surface posture verbatim. Detail-row asserts run ONCE per test
+// (single object) — equivalent to a list-surface loop iterating
+// exactly one row. Fresh-column rotation on this surface — the two
+// admin resellers-family surfaces (list + detail) come up to parity
+// in the same tick, avoiding an asymmetry window. A PostgREST
+// serialisation regression that flipped int onto the wire as a
+// string, a schema-side type flip from int to numeric/text, an
+// admin-validator drift that stopped rejecting negative writes, a
+// Math.floor() drop that let a fractional value land, or a
+// projection-side drop from route.ts:47-48 select("*") would each
+// surface on both admin resellers-family surfaces (list + detail) on
+// the same CI pass.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Uppercase-alphanumeric invariant for promotion_codes[].code — matches the
@@ -375,6 +399,7 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         commission_share_pct?: unknown;
         gst_registered?: unknown;
         allowed_tiers?: unknown;
+        monthly_credit_budget?: unknown;
       };
       promotion_codes?: Array<{
         id?: unknown;
@@ -510,6 +535,34 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
     expect(
       allowedTiers.every((t) => ALLOWED_TIER_VALUES.has(t as number)),
       `reseller.allowed_tiers every element should be ∈ {0,10,20,30,40} (STARTUP_TIER_STEPS enforced by admin-validator.ts on write; no DB CHECK on element membership); an admin-validator drift or a schema-side widening would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe(true);
+
+    // Tick 289 — monthly_credit_budget int wire-shape + non-negative +
+    // integer pin, cross-surface mirror of the sibling pin landed on
+    // admin-resellers-list-authz.spec.ts in the same tick. See module-
+    // scope doc-block (tick 289 paragraph) for the rationale. Column
+    // source 0091:33 `monthly_credit_budget int NOT NULL DEFAULT 0`;
+    // admin PATCH validator at admin-validator.ts:100-105 rejects
+    // !Number.isFinite || value < 0 with reason 'budget_negative' and
+    // Math.floor()s the accepted value. Projected via route.ts:47-48
+    // select("*"). NOT-NULL + integer invariant → four-part guard
+    // (typeof-number + Number.isFinite + Number.isInteger + value >= 0)
+    // matches the list-surface posture verbatim.
+    expect(
+      typeof body.reseller?.monthly_credit_budget,
+      `reseller.monthly_credit_budget '${String(body.reseller?.monthly_credit_budget)}' should be a number (int NOT NULL DEFAULT 0 per 0091:33 serialised via PostgREST); a drift to a string, boolean, or null would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe("number");
+    expect(
+      Number.isFinite(body.reseller?.monthly_credit_budget as number),
+      `reseller.monthly_credit_budget '${String(body.reseller?.monthly_credit_budget)}' should be a finite number (int NOT NULL DEFAULT 0 per 0091:33); a drift to NaN or Infinity would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe(true);
+    expect(
+      Number.isInteger(body.reseller?.monthly_credit_budget as number),
+      `reseller.monthly_credit_budget '${String(body.reseller?.monthly_credit_budget)}' should be an integer (int per 0091:33; admin-validator.ts:104 Math.floor()s writes); a schema widening from int to numeric or a Math.floor() drop would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe(true);
+    expect(
+      (body.reseller?.monthly_credit_budget as number) >= 0,
+      `reseller.monthly_credit_budget '${String(body.reseller?.monthly_credit_budget)}' should be >= 0 (admin-validator.ts:100-105 rejects value < 0 with reason 'budget_negative'); a validator drift or a schema-side drop of the non-negative invariant would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
     ).toBe(true);
 
     // Related-rows arrays — do NOT pin length; each row-shape pin catches
