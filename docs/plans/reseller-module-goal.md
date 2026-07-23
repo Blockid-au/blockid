@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.323
+version: 2026-07-23.324
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,104 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 324
+    ran_at: 2026-07-23
+    action: p10_promotion_codes_code_promo_code_re_two_part_labelled_pin_on_admin_reseller_detail
+    result: |
+      Sibling-column continuation of the promotion_codes[] child-row
+      cluster opened at tick 320 (id / column 0 of the route.ts:83-88
+      select tuple). Tick 322 next-pick option (a) taken verbatim —
+      lifts the prior tick 232 baseline bare two-part pin at
+      `expect(typeof row.code).toBe("string"); expect(row.code as
+      string).toMatch(PROMO_CODE_RE);` (already two-part but lacks the
+      tick-numbered labelled message shape used by the tick 320 lift)
+      into the two-expect labelled shape matching the tick 320
+      promotion_codes[].id + tick 321 admins[].id + tick 322
+      admins[].user_id posture verbatim.
+
+      Writer-schema justification:
+        - 0091_reseller_module_foundations.sql:91 declares
+          `code text NOT NULL UNIQUE` on the reseller_promotion_codes
+          base table. UNIQUE + NOT NULL text column with the uppercase-
+          alphanumeric invariant living on the application write path
+          only (buildPromoCodeName at
+          web/src/lib/reseller/promotion-code-mint.ts:41-58 — uppercase
+          + <=40 chars, composed from normaliseResellerCode() output +
+          optional SUFFIX_RE-vetted tier suffix). No DB CHECK, so a raw
+          / lowercase / punctuated INSERT bypassing buildPromoCodeName
+          would land silently at the schema layer and only surface at
+          visual QA.
+        - Application read path: selected on the Promise.all leg at
+          web/src/app/api/admin/resellers/[code]/route.ts:83-88 as the
+          3rd column in the reseller_promotion_codes tuple .select(
+          "id, tier_pct, code, stripe_coupon_id,
+          stripe_promotion_code_id, active, created_at").
+
+      Design choice — two-part guard mirroring the tick 320 posture
+      verbatim:
+        - (a) typeof-string preserves the NOT-NULL raw-type discipline;
+          catches a PostgREST regression that returned null|undefined,
+          a schema-side NOT NULL drop, or a projection-side drop from
+          the route.ts:83-88 SELECT tuple.
+        - (b) PROMO_CODE_RE.test() shape assert catches a P9.4 approve-
+          branch bypass that INSERTed a raw / lowercase / punctuated
+          code straight past buildPromoCodeName, or a write-path drift
+          widening the SUFFIX_RE-vetted tier suffix.
+
+      Rotation rationale:
+        - Continues the promotion_codes[] child-row column-pin polish
+          sweep opened at tick 320. Two of the seven tuple positions
+          (id, code) now carry the tick-numbered two-part labelled
+          discipline; tier_pct enum (tick 303) / active bool
+          (tick 299) / created_at (tick 300) / stripe_coupon_id
+          (tick 301) / stripe_promotion_code_id (tick 302) already
+          carry bespoke labelled messages, so the cluster is nearing
+          symmetric close-out on the next rotation.
+        - No new imports, no new module-scope const needed —
+          PROMO_CODE_RE already lives at row 1328.
+
+      Coverage-per-guard posture:
+        - Detail surface: wave-5 row 167 single-row GET fires the two-
+          part pin at least once per test on the QAPROBEWHOLESALEACTIVE
+          seed reseller (per-variant promotion_codes row minted by
+          seed-qa-reseller.mjs).
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 324 paragraph) added below
+              the tick 322 paragraph above ISO_TIMESTAMP_RE.
+            + bare promotion_codes[].code two-part pin replaced with
+              tick-numbered labelled two-expect guard: typeof-string +
+              PROMO_CODE_RE.test — each with a bespoke failure message
+              pointing at 0091:91 as the writer-schema source and
+              promotion-code-mint.ts:41-58 as the application
+              invariant.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope const. Matches
+          ticks 234-322 discipline.
+
+      Verification:
+        - tsc --noEmit: production tree clean (exit 0).
+        - Playwright specs excluded from vitest by design.
+
+      Frontier after tick 324: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+
+      Next natural picks on tick 325:
+        (a) rotate to admins[].linked_at / admins[].revoked_at ISO-
+        8601 shape refresh (ticks 306-307 already carry tick-numbered
+        labelled messages so this rotation would be a shape refresh
+        rather than a lift).
+        (b) rotate to attributions[].* row-shape pins now that the
+        aggregate attributions_summary cluster closed at tick 319.
+        (c) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks.
+    commit: (this tick)
+
   - tick: 322
     ran_at: 2026-07-23
     action: p10_admins_user_id_uuid_two_part_pin_on_admin_reseller_detail
