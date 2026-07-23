@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.274
+version: 2026-07-23.275
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,145 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 275
+    ran_at: 2026-07-23
+    action: p10_reseller_requests_list_readback_created_at_iso_pin_option_a
+    result: |
+      Landed tick 274's "natural next pick" option (a) as an ISO_TIMESTAMP_RE
+      wire-shape pin on row.created_at in the reseller-scoped GET happy path
+      of reseller-requests-list-authz.spec.ts. Mirrors the admin-side tick 267
+      created_at ISO pin (admin-requests-patch-authz.spec.ts read-back rows)
+      onto the reseller-scoped GET list surface at /api/reseller/requests
+      /route.ts:169-173. Sibling-surface parity: the same ISO shape now fires
+      on both the admin list route (via the tick 267 pin) and the reseller-
+      scoped list route (via this pin) so a projection-side or serialisation-
+      side regression on reseller_requests.created_at surfaces on both admin
+      and reseller lenses simultaneously.
+
+      Writer-schema justification:
+        - 0095_reseller_requests.sql:39 declares
+          `created_at timestamptz NOT NULL DEFAULT now()`. NOT NULL means the
+          read-back MUST carry a non-null value on every green-path CI run
+          regardless of row status (pending / approved / denied / cancelled).
+          Populated at INSERT time and never touched by any PATCH branch so
+          the pin fires uniformly across all rows the reseller-scoped GET
+          returns.
+        - Reseller-scoped list route at web/src/app/api/reseller/requests
+          /route.ts:169-173 projects created_at as the tail column of the
+          SELECT list (seventh column). A projection drop would surface as
+          the existing typeof-string guard failing (undefined is not a
+          string), but a column-type flip from timestamptz to say a bigint
+          created_at_ms clock migration would already surface as a number
+          on the existing typeof pin too. This tick catches a serialisation
+          drift the typeof pin cannot: PostgREST returning an epoch integer
+          stringified as "1735689600", or a column swap to a text field
+          that stores freeform values would pass the typeof-string guard
+          but fail this ISO regex match.
+
+      Design choice — mirror the admin-side tick 267 pin onto the reseller
+      surface:
+        - Reuses the module-scope pattern from admin-requests-patch-authz
+          .spec.ts:460-461: the ISO_TIMESTAMP_RE regex is defined verbatim
+          `/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/`
+          as a new module-scope constant after PURPOSE_MAX. Same source-of-
+          truth invariant so a widening/narrowing on either surface surfaces
+          on the next CI pass.
+        - Two-part guard shape matches the admin-side tick 267 pattern:
+          (a) typeof-string (already at line 274 pre-tick) + (b)
+          ISO_TIMESTAMP_RE match (new at ~line 306 after the existing
+          typeof pin). Fires ONLY after the typeof-string guard passes so
+          tighter existing pins surface first (matches ticks 265-274
+          layering discipline verbatim).
+        - No new inline type-shape field — row.created_at already carries
+          `created_at?: string;` in the readback envelope declaration at
+          line 253, so this pin lands as a pure two-line assertion + a
+          three-line block-scope comment citing the module-scope doc-block
+          for the rationale.
+
+      Coverage-per-guard posture:
+        - Green-path fixture loadTempReseller("active_wholesale") + wave-3
+          row 155 seeded pending over_budget_approval row guarantee at
+          least one row is returned from the GET on every green CI run, so
+          the pin exercises created_at on every wave-4 row 161 pass.
+        - Fresh hosts (where row 155 has not run) return an empty
+          body.requests[] and the for-loop skips — but the module-scope
+          constant + doc-block still ships, so a downstream tick that seeds
+          more variants (P8.5-unblock or an expanded fixture matrix) picks
+          up the pin without further wiring.
+
+      Diagnostic delta of the pass:
+        - One new module-scope constant (ISO_TIMESTAMP_RE, mirroring the
+          admin-side hoist at admin-requests-patch-authz.spec.ts:460-461).
+        - One new inline assertion pair (typeof-string is preserved at line
+          274; ISO_TIMESTAMP_RE match added immediately after) inside the
+          per-row for-loop of the active_wholesale happy GET block. Comment
+          citing 0095:39 as the column declaration source, route.ts:169-173
+          as the projection source, and the admin-side tick 267 pin as the
+          sibling-surface companion.
+        - Module-scope doc-comment block above ISO_TIMESTAMP_RE describing
+          the pin's writer-schema justification + the admin-side sibling
+          reference + the two-part guard breakdown.
+        - No production code touched, no fixture change, no route change,
+          no new imports (the regex is inlined as a module-scope constant).
+          Matches ticks 234-274 discipline: tighten one dimension (in this
+          case add the ISO shape pin to the reseller-scoped GET list
+          surface's created_at column) with zero net new imports.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: 11 R-01 files + 31 R-03 routes
+          scanned, 3 exemptions, 0 violations
+        - npx vitest run: 75 files 954/954 pass (unchanged — Playwright
+          specs are excluded from vitest by design)
+
+      Files:
+        - web/tests/e2e/reseller/reseller-requests-list-authz.spec.ts
+          (new module-scope constant ISO_TIMESTAMP_RE after PURPOSE_MAX;
+          new module-scope tick-275 doc-comment block above the constant;
+          per-row for-loop of the active_wholesale happy GET block gains
+          a typeof-string-plus-ISO_TIMESTAMP_RE assertion pair immediately
+          after the existing typeof-string pin on row.created_at at
+          line 274, with a block-scope comment citing 0095:39 as the
+          column declaration source, route.ts:169-173 as the projection
+          source, and the admin-side tick 267 pin as the sibling-surface
+          companion.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.274 → 2026-07-23.275; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no production-code touch, no
+          new import, no widening of the guards on existing pins.
+          Consistent with ticks 234-274's incremental-pin pattern.
+        - Cross-surface parity — mirrors the admin-side tick 267 pin
+          verbatim onto the reseller-scoped GET list surface so a
+          created_at serialisation drift surfaces on both admin and
+          reseller lenses simultaneously. Completes the first cross-
+          surface companion pin after nine consecutive same-surface
+          per-column pins on the admin-requests-patch-authz spec.
+
+      Next natural picks on tick 276:
+        (a) decision_at ISO tightening on the reseller-scoped GET (nullable
+        per 0095:35 so the tightening runs as null-or-string+ISO_TIMESTAMP_RE
+        against the existing null-or-typeof-string pin at line 404-406);
+        (b) decision_reason length ≤ REASON_MAX tightening on the reseller-
+        scoped GET (nullable per 0095:36 so the tightening runs as null-or-
+        string+length check against the existing null-or-typeof-string pin
+        at line 407-410);
+        (c) status enum value pin on the reseller-scoped GET (mirrors
+        admin-side tick 270 pattern — the existing typeof-string +
+        `["pending","approved","denied","cancelled"].includes(...)` pin at
+        line 272-273 already closes both parts, so this natural next pick
+        is effectively a no-op unless we hoist a shared ALLOWED_STATUS_VALUES
+        constant for symmetry with admin side);
+        (d) request_type enum value pin on the reseller-scoped GET (mirrors
+        admin-side tick 269 pattern — the existing typeof-string +
+        `["code_request","over_budget_approval","collateral_approval"].contains`
+        pin at line 268-271 already closes both parts, so this natural next
+        pick is also a no-op unless we hoist a shared ALLOWED_REQUEST_TYPES
+        constant for symmetry).
+
   - tick: 274
     ran_at: 2026-07-23
     action: p10_admin_requests_patch_readback_resellers_join_projection_pin_option_c
