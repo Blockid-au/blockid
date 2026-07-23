@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.330
+version: 2026-07-23.331
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,155 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 331
+    ran_at: 2026-07-23
+    action: p10_reseller_code_message_symmetry_lift_on_admin_resellers_list_two_part_typeof_string_plus_regex_pin
+    result: |
+      Executes tick 330 next-pick option (c) verbatim: rotate to the
+      cross-surface twin spec (admin-resellers-list-authz.spec.ts) —
+      the list-side reseller.code column was already carrying a two-
+      part typeof-string + RESELLER_CODE_RE.test() pin from tick 231
+      option (j), but the diagnostic messages were empty/minimal
+      (`expect(typeof row.code).toBe("string")` +
+      `expect(row.code as string).toMatch(RESELLER_CODE_RE)` with NO
+      per-half bespoke failure messages), while the detail-side tick
+      329 shipped full labelled two-expect diagnostic prose pointing
+      at 0091:24 as the writer-schema source and at
+      normaliseResellerCode() as the uppercase-alphanumeric invariant
+      source. Lifting the list-side onto the same message-prose shape
+      restores full prose-symmetry across the admin-resellers-family
+      surfaces so a shape-defect regression on either lens surfaces
+      the same bespoke wording on the next CI pass.
+
+      Writer-schema justification (mirrors tick 329 detail-side notes
+      verbatim to keep the twin diagnostic messages symmetric):
+        - 0091_reseller_module_foundations.sql:24 declares `code text
+          NOT NULL UNIQUE` on the resellers base table. The DB has no
+          CHECK constraint against mixed-case or non-alphanumeric
+          slugs — UPPERCASE-alphanumeric discipline is enforced ONLY
+          on the application write path via normaliseResellerCode() at
+          web/src/lib/reseller/attribution.ts:29 (trim →
+          toUpperCase() → replace(/[^A-Z0-9]/g, "")). A legacy INSERT
+          that bypassed the normaliser could still land a lowercase /
+          punctuated code straight through PostgREST onto the wire.
+        - Application read path: projected via route.ts:41-44
+          select("*") on the /api/admin/resellers list endpoint,
+          echoed as the `code` column on every row of the resellers[]
+          array on the wire.
+
+      Design choice — two-part guard mirroring the tick 329 detail-
+      side prose posture verbatim so the two admin-resellers-family
+      surfaces carry parity messages, not just parity structure. The
+      key difference vs the detail lens: the list iterates a cohort
+      of rows so the second-half assert is a regex against
+      RESELLER_CODE_RE rather than an equality against fixture.code
+      (each row's code is not a known fixture constant):
+        - (a) typeof-string preserves the NOT-NULL raw-type
+          discipline; catches a PostgREST regression that returned
+          null|undefined, a schema-side NOT NULL drop, or a
+          projection-side drop from route.ts:41-44 select("*") SELECT
+          tuple. Without the typeof-string half, a serialisation
+          regression that returned row.code=null would fail the
+          RESELLER_CODE_RE.test() check with a `test(undefined)`
+          diagnostic that hides the raw-type flip behind the pattern
+          mismatch; the per-half split surfaces the shape defect
+          directly.
+        - (b) RESELLER_CODE_RE.test() shape assert against the
+          normaliseResellerCode() invariant catches a normaliser
+          drift at admin-create time (route.ts:86 currently invokes
+          the normaliser), a legacy INSERT that stamped a mixed-case
+          or punctuated slug bypassing the write path, or a PostgREST
+          serialisation regression that returned a lower-cased slug.
+
+      Rotation rationale:
+        - Closes the message-prose asymmetry between the list-side
+          row.code pin (bare `expect(typeof row.code).toBe("string")`
+          + `expect(row.code as string).toMatch(RESELLER_CODE_RE)`
+          from tick 231) and the detail-side reseller.code pin (tick
+          329 full labelled two-expect discipline).
+        - Symmetric close-out of the top-level resellers-row column-
+          pin PROSE cluster: id (325) + code (list 331 / detail 329)
+          + display_name (327) + billing_model (list 330 / detail
+          328) + status (list 330 / detail 328) now all carry the
+          tick-numbered labelled two-expect discipline on BOTH
+          diagnostic messages AND assertion structure across BOTH
+          admin-resellers-family surfaces.
+        - No new imports, no new module-scope const needed —
+          RESELLER_CODE_RE already hoisted at
+          admin-resellers-list-authz.spec.ts:563.
+
+      Coverage-per-guard posture:
+        - List surface: wave-5 row 164 all-rows GET iterates the
+          resellers[] array in a for-loop; on seeded hosts (≥7
+          cohort rows from seed-qa-reseller.mjs) each two-part pin
+          fires at least seven times per test with a mix of code
+          values (QAPROBEWHOLESALEACTIVE + variants + INFOVISION
+          when P1.5 clears H.20). Fresh CI hosts with zero rows
+          still green because the pin lives inside the per-row
+          for-loop.
+
+      Diagnostic delta of the pass:
+        - admin-resellers-list-authz.spec.ts:
+            + module-scope doc-block (tick 331 paragraph) added
+              below the tick 330 paragraph above ISO_TIMESTAMP_RE.
+            + bare `expect(typeof row.code).toBe("string")` pin
+              lifted to tick-numbered labelled two-expect guard:
+              typeof-string with a bespoke failure message pointing
+              at 0091:24 as the writer-schema source and noting
+              separation from the regex half below so a raw-type
+              flip does not hide behind a pattern mismatch
+              diagnostic.
+            + bare `expect(row.code as string).toMatch(...)` pin
+              lifted to `expect(RESELLER_CODE_RE.test(...))` with a
+              bespoke failure message pointing at
+              normaliseResellerCode() at
+              web/src/lib/reseller/attribution.ts:29 as the
+              uppercase-alphanumeric invariant source and at
+              route.ts:86 as the admin-create-time write-path guard.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope const. Matches
+          ticks 234-330 discipline.
+
+      Verification:
+        - tsc --noEmit: whole tree clean (exit 0).
+        - npm run lint:reseller: R-01 11 files + R-03 32 routes +
+          R-04 8 stripe files; 6 exemptions, 0 violations.
+        - Playwright specs excluded from vitest by design.
+
+      Frontier after tick 331: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5
+      clears. Top-level resellers-row wire-shape column-pin sweep
+      now carries the tick-numbered labelled two-expect discipline
+      on BOTH structure AND diagnostic prose across BOTH surfaces
+      (list + detail) for every projected column: id + code +
+      display_name + billing_model + status + created_at/updated_at
+      + commission_share_pct + gst_registered.
+
+      Next natural picks on tick 332:
+        (a) rotate to promotion_codes[] cross-column pin summary
+        comment (tier 0 → stripe ids null / tier > 0 → stripe ids
+        non-null already lives inline at ticks 301-302 — a symmetric
+        close-out summary comment could hoist it into module-scope
+        doc-block form).
+        (b) rotate to reseller_attributions[] child-row column-pin
+        sweep close-out (subject_type / subject_user_id / project_id
+        / source / attributed_at / opted_out) — several columns are
+        still on the tick-1710 baseline single-part typeof-string
+        discipline while the sibling admins[] cluster (321-326) has
+        moved on to per-column two-expect + cross-column lifecycle
+        pins.
+        (c) rotate to admins[].linked_at / admins[].revoked_at ISO-
+        8601 shape refresh (ticks 306-307 already carry tick-numbered
+        labelled messages so this rotation would be a shape refresh
+        rather than a lift).
+        (d) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks.
+    commit: (this tick)
+
   - tick: 330
     ran_at: 2026-07-23
     action: p10_reseller_billing_model_status_two_part_typeof_string_set_has_twin_symmetry_lift_on_admin_resellers_list
