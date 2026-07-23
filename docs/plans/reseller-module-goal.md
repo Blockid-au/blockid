@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.230
+version: 2026-07-23.231
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,166 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 231
+    ran_at: 2026-07-23
+    action: p10_admin_list_pair_reseller_code_value_pin_option_j
+    result: |
+      Landed tick 230 "natural next pick" option (j) verbatim: audited
+      whether the reveal-email / requests / credit-grant spec pairs
+      carried single-source-of-truth VALUE pin opportunities and found
+      one legitimate twin-symmetric tightening: the resellers.code shape
+      pin on the two admin-side list surfaces. Tightened both files in
+      the same tick to keep the twin-symmetrisation discipline the last
+      ~15 ticks have enforced.
+
+      Audit outcome:
+        - reveal-email pair (authz row 148 + validation row 149) — the
+          plaintext-vs-mask contract is intentionally asymmetric per the
+          load-bearing rationale at reveal-email-validation.spec.ts:194-
+          203 (row 148 owns the '*'-negation pin so a plaintext contract
+          change forces one spec edit, not two). NOT a tightening
+          candidate.
+        - requests pair (requests-authz row 155 + requests-validation
+          row 156 + reseller-requests-list-authz row 161) — the enum
+          value pins for request_type + status are already twin-
+          symmetrised via .toContain([...]) on the list-authz + list-
+          validation siblings and via direct .toBe("over_budget_
+          approval") + .toBe("pending") on the POST-happy row 155. NOT a
+          tightening candidate.
+        - credit-grant pair (credit-grant-authz row 152 + credit-grant-
+          validation row 152) — tick 219 already twin-symmetrised the
+          month_key + remaining_budget + balance FK-echo shape pins
+          across both files. NOT a tightening candidate.
+        - admin surfaces resellers.code (admin-resellers-list-authz row
+          176 + admin-requests-list-authz row 312) — BOTH echo the same
+          resellers.code column (direct SELECT + nested resellers(code,
+          display_name) embed respectively) and BOTH stopped at typeof
+          string despite the normaliseResellerCode() invariant at
+          web/src/lib/reseller/attribution.ts:29 guaranteeing UPPERCASE
+          alphanumeric only. This IS a legitimate tightening candidate.
+
+      Value pins landed (twin, same tick):
+        expect(row.code as string).toMatch(RESELLER_CODE_RE);
+        expect(embed.code as string).toMatch(RESELLER_CODE_RE);
+      where RESELLER_CODE_RE = /^[A-Z0-9]+$/ hoisted to module scope in
+      each spec (matches the UUID_RE hoisting pattern used across the
+      reseller e2e suite).
+
+      Regression coverage tightened:
+        - normaliseResellerCode() at attribution.ts:29-30 is the only
+          normaliser on the admin-create write path (route.ts:86 —
+          `const code = normaliseResellerCode(body.code)`). A route
+          regression that skipped it and inserted body.code directly
+          would land a lowercase / punctuated / whitespace-carrying row
+          into resellers.code. Both admin-list surfaces would then
+          echo the un-normalised value.
+        - PRE-tick: typeof string pins passed regardless of case /
+          punctuation, so the regression would only surface at visual
+          QA of /admin/resellers + /admin/resellers/requests.
+        - POST-tick: both list surfaces fail the RESELLER_CODE_RE match
+          on the first offending row, catching the regression at the
+          Playwright layer instead of the visual QA layer.
+
+      Twin-symmetrisation posture — both admin surfaces advance
+      together in a single tick, matching ticks 223/224 (requests spec
+      pair FK-echo pins) + ticks 225/226/227/228/229/230 (drawer spec
+      pair progression pins) twin discipline. Both surfaces read
+      resellers.code — direct via SELECT on route.ts:31-37 for
+      admin-resellers-list, nested via resellers(code, display_name)
+      embed on route.ts:44 for admin-requests-list — so tightening one
+      without the other would leave the visual QA lens carrying the
+      other surface's coverage.
+
+      Trade-off accepted:
+        - VALUE pin couples both specs to the RESELLER_CODE_RE literal
+          /^[A-Z0-9]+$/. A future change to normaliseResellerCode()
+          that widened the accepted character set (e.g. allowing '-' or
+          '_') would force a synchronised bump across attribution.ts:29
+          + attribution.test.ts:11-20 (already pinned) + these two
+          admin specs.
+        - Accepted because the coupling reflects the same single-
+          source-of-truth discipline enforced across the reseller
+          module: normaliseResellerCode() is called at 8 sites (via
+          attribution.ts + attribution-server.ts + admin route +
+          onboarding step + login-form + auth.ts) so a normaliser
+          widening would require a coordinated review across all of
+          those anyway. The spec pin surfaces the mismatch at the
+          Playwright layer rather than at production.
+        - display_name has no such invariant (free text per 0091:25) so
+          it stays typeof string only on both surfaces. Preserves the
+          shape-pin discipline where the underlying column allows free
+          text.
+
+      Diagnostic delta of the pass:
+        - Added 1 new module-scope constant per file (RESELLER_CODE_RE
+          hoisted to match UUID_RE pattern).
+        - Added 1 new expect per file (2 total, twin-symmetric).
+        - No production code touched, no fixture change, no route
+          change, no new imports, no vitest / Playwright runtime
+          posture change.
+        - Comment blocks added in both files to cite the tick 231
+          landing + the normaliseResellerCode() invariant reference +
+          the cross-surface single-source-of-truth chain.
+
+      Files:
+        - web/tests/e2e/reseller/admin-resellers-list-authz.spec.ts
+          (RESELLER_CODE_RE hoisted at module scope; row 176 embed.code
+          shape pin extended with .toMatch(RESELLER_CODE_RE) + inline
+          comment block referencing the twin sibling.)
+        - web/tests/e2e/reseller/admin-requests-list-authz.spec.ts
+          (RESELLER_CODE_RE hoisted at module scope; row 312 embed.code
+          shape pin extended with .toMatch(RESELLER_CODE_RE) + inline
+          comment block referencing the twin sibling.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.230 → 2026-07-23.231; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Value pin tightening only. No new spec-local constant beyond
+          RESELLER_CODE_RE (one per file, hoisted to module scope), no
+          fixture-file delta, no seed-script change, no P8.5-gated
+          code_request work (option (c) still blocked), no production-
+          code touch. Matches ticks 223/224/225/226/227/228/229/230
+          discipline: tighten one dimension, symmetrise across the
+          pair, single tick.
+
+      Verified:
+        - tsc clean (npx tsc --noEmit; no output = success).
+        - npm run lint:reseller: R-01 scanned 11 file(s), R-03 scanned
+          31 manifest route(s); 3 exemption(s), 0 violation(s). Both
+          spec files live under web/tests/e2e/**, not in the reseller
+          manifest so R-01/R-03 do not fire on the edited files.
+
+      Frontier after tick 231: unchanged shape — Track A HUMAN-BLOCKED
+      on P8.5 Stripe env vars + P1.5 InfoVision seed on H.20 ABN + GST;
+      Track B COMPLETE; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 231 does NOT unblock: P8.5 STRIPE_PRICE_ADDON_SHARE_MGMT_*
+      env vars still human-gated; P1.5 InfoVision ABN + GST still
+      human-gated per H.20 (Auschain existing counsel or LegalVision
+      AU).
+
+      Natural next pick for tick 232:
+        (k) admin-requests-patch-authz.spec.ts approve branch (line
+            654+) currently pins body.request.status === "approved" +
+            linked_credit_transaction_id typeof string + matches
+            UUID_RE. The linked_promotion_code_id null pin (line 668)
+            is a legitimate value pin. Consider whether the sibling
+            deny branch (line 334-335) linked_credit_transaction_id
+            null pin + linked_promotion_code_id null pin can be
+            extended with an additional column echo. Investigation-only
+            — the admin-requests-patch spec is a single-file spec, not
+            a pair, so twin-symmetrisation does not apply.
+        (c) mirror row 179 shape+helper alignment onto row 175 approve+
+            deny+cancel code_request branches once P8.5 unblocks.
+            P8.5-blocked, no available today.
+        (l) audit whether the resellers.code UPPERCASE invariant is
+            worth pinning across the READ side of admin-reseller-
+            detail-authz.spec.ts + admin-reseller-detail-validation.
+            spec.ts (both surface resellers.code in the single-row GET
+            envelope). Would be a follow-up twin tightening in the same
+            option (j) discipline landed this tick.
+    commit: (this tick)
+
   - tick: 230
     ran_at: 2026-07-23
     action: p10_drawer_pair_signup_phase1_triple_value_pin_option_h
