@@ -176,10 +176,13 @@ test.describe("Reseller requests list pre-read authorization — P10 dry-run", (
 // status: string ∈ {pending, approved, denied, cancelled}, created_at:
 // string}. Do NOT pin the array length (fresh hosts may have zero rows;
 // hosts where row 155 has run in prior CI passes will have ≥1 pending rows).
-// Do NOT pin decision_at / decision_reason (both nullable in the schema and
-// null for pending rows). Same per-row shape pins as row 156 — the twin
-// posture is intentional so a route regression that dropped a field from
-// the SELECT list surfaces across both spec files simultaneously.
+// Pin decision_at / decision_reason with null-or-typeof-string discipline
+// (both nullable per 0095:35-36; NULL on pending rows per ck_decision_shape
+// at 0095:41-45 but string once P9.3 approve/deny lands a decision) — see
+// inline expects below for the tightening landed at tick 224. Same per-row
+// shape pins as row 156 — the twin posture is intentional so a route
+// regression that dropped a field from the SELECT list surfaces across
+// both spec files simultaneously.
 //
 // Non-Stripe / non-GST discipline: the GET requests route reads
 // reseller_requests only. No promotion_code lookup, no credit_balances /
