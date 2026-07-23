@@ -431,6 +431,38 @@ const UUID_RE =
 // (list + detail) carry the pin simultaneously, matching the tick
 // 286-295 discipline of bringing both surfaces up to parity in one
 // pass.
+//
+// Tick 297 — contact_email text nullable wire-shape pin, rotating off
+// the two-part guard (tick 296 primary_color HEX_COLOR_RE) back onto
+// the single-guard shape (tick 295 logo_url) for the third nullable
+// text column on the resellers row. resellers.contact_email declared
+// at 0091:41 as `contact_email text` with no NOT NULL constraint
+// (nullable) and NO DB CHECK constraint — free text field storing the
+// reseller org's primary contact address consumed by the admin detail
+// surface and the InfoVision seed row. Unlike primary_color (tick 296)
+// there is NO application write-path format regex or format-validator
+// guard on this column at web/src/lib/reseller/admin-validator.ts:141-
+// 143 — the validator only String()s+trim()s the input or nulls when
+// empty; it does NOT enforce an RFC 5322 or similar email-shape regex.
+// A validator-side widening that let a non-string INSERT past PostgREST
+// would surface here on the next CI pass. Nullable discipline with no
+// format layer → single-guard null-or-typeof-string assert, matching
+// the tick 295 logo_url posture verbatim rather than the two-part
+// (tick 276/277/294/296) guard used when a format layer exists. Fires
+// ONLY when contact_email is non-null so the wave-5 cohort rows (seed-
+// qa-reseller.mjs seeds contact_email=NULL by default across all seven
+// probe variants) pass cleanly on the null branch on every green CI
+// run; a real production reseller row (INFOVISION when P1.5 clears
+// H.20) with a populated contact address would exercise the null-or-
+// string branch instead. A schema-side type flip from text to non-
+// string, a PostgREST serialisation regression that returned NULL as
+// the literal string "null", or a projection-side drop from route.ts:
+// 41-44 select("*") would each surface at a distinct assertion failure
+// mode. Cross-surface pair with the companion pin landed on admin-
+// reseller-detail-authz.spec.ts in the same tick so the two admin
+// resellers-family surfaces (list + detail) carry the pin
+// simultaneously, matching the tick 286-296 discipline of bringing
+// both surfaces up to parity in one pass.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 
@@ -553,6 +585,7 @@ test.describe("Admin resellers list — P10 wave-5 row 164 happy path", () => {
         abn?: unknown;
         logo_url?: unknown;
         primary_color?: unknown;
+        contact_email?: unknown;
       }>;
     };
     expect(
@@ -874,6 +907,24 @@ test.describe("Admin resellers list — P10 wave-5 row 164 happy path", () => {
           (typeof row.primary_color === "string" &&
             HEX_COLOR_RE.test(row.primary_color as string)),
         `reseller.primary_color '${String(row.primary_color)}' should be null or a hex colour string matching /^#[0-9a-fA-F]{6}$/ (admin-validator.ts:53 HEX_COLOR_RE rejects other shapes with reason 'primary_color_bad_format'); a drift to a 3-digit hex, unhashed hex, rgba() string, or any other shape would surface here: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      // Tick 297 — contact_email text nullable wire-shape pin, cross-
+      // surface pair with the sibling pin landed on admin-reseller-
+      // detail-authz.spec.ts in the same tick. See module-scope doc-
+      // block (tick 297 paragraph) for the rationale. Column source
+      // 0091:41 `contact_email text` (nullable) with NO DB CHECK and
+      // NO application write-path format guard (admin-validator.ts:141-
+      // 143 only String()s+trim()s or nulls when empty; no email-shape
+      // regex is enforced). Nullable discipline with no format layer →
+      // single-guard null-or-typeof-string assert, looser than the tick
+      // 294/296 two-part guard because there is no format regex to
+      // layer on top. Seed cohort rows carry contact_email=NULL by
+      // default so the null branch is exercised on every green CI run;
+      // a populated production reseller row (INFOVISION when P1.5
+      // clears H.20) would exercise the null-or-string branch.
+      expect(
+        row.contact_email === null || typeof row.contact_email === "string",
+        `reseller.contact_email '${String(row.contact_email)}' should be null or a string (nullable text per 0091:41; NULL when no contact address is populated, string when a reseller has registered a contact address — no DB CHECK, no admin-validator format guard). Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
     }
   });
