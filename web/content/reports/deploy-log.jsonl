@@ -942,3 +942,8 @@
 {"ts":"2026-07-23T15:39:11.777Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-23T15-35-01-335Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T15:45:01Z","status":"success","gates":"8/8","pid":"4115000","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-23T15:47:53.523Z","event":"github-push-master","detail":"Blockid-au: test(reseller): P10 tick 305 — admins[].status value-set enum tightening on admin reseller detail (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T15:48:07.586Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-23T15-45-01-642Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T15:52:58.054Z","event":"github-push-master","detail":"Blockid-au: feat(pricing): seed Accelerator per-cohort SKUs (Starter/Growth/Enterprise) with placeholder Stripe IDs (PRC-ACC) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T15:53:29Z","status":"success","gates":"8/8","pid":"4144980","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-23T15:57:56.899Z","event":"github-push-master","detail":"Blockid-au: feat(branding): PDF branding feature-gate + settings form (Growth+/Scale/Enterprise) — renderer wire in follow-up (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T15:58:32.825Z","event":"github-push-master","detail":"Blockid-au: test(reseller): P10 tick 306 — admins[].linked_at ISO-8601 shape pin on admin reseller detail (1 commits)","source":"github-webhook"}
