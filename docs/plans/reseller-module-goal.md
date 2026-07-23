@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.264
+version: 2026-07-23.265
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,154 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 265
+    ran_at: 2026-07-23
+    action: p10_admin_requests_patch_readback_decision_at_iso_timestamp_shape_pin_option_b
+    result: |
+      Landed tick 264's "natural next pick" option (b) as a decision_at
+      ISO-8601 timestamp wire-shape pin on all THREE post-PATCH read-back
+      rows of admin-requests-patch-authz.spec.ts (deny + cancel + approve
+      blocks). Complements the tick 262/263/264 payload jsonb per-key
+      content pins by closing the wire contract on the reseller_requests
+      .decision_at timestamptz column (0095:35) — the sixth reseller_
+      requests column to gain a spec-level shape pin after id / status /
+      request_type / payload / linked_credit_transaction_id / linked_
+      promotion_code_id already-pinned in prior ticks.
+
+      Writer-schema justification:
+        - 0095_reseller_requests.sql:35 declares
+          `decision_at timestamptz` — nullable while status='pending',
+          non-null once status ∈ ('approved','denied','cancelled') per
+          the CHECK at 0095:43-45. All three PATCH branches (deny at
+          route.ts:296-322, cancel at same code path, approve at
+          route.ts:200-293) flip status away from 'pending', so the
+          read-back row on each of the three surfaces MUST carry a
+          non-null decision_at.
+        - Route stamps decision_at at
+          /api/admin/resellers/requests/[id]/route.ts:98 via
+          `const now = new Date().toISOString()` and writes it into the
+          UPDATE at route.ts:310 — identical stamp for all three branches.
+          The list route SELECT at /api/admin/resellers/requests/
+          route.ts:43-44 includes decision_at in the column projection so
+          the PostgREST serialisation of timestamptz shows up in the
+          read-back row.
+        - PostgREST serialises timestamptz in ISO 8601 format with
+          either a `Z` suffix (UTC, matching the JS Date.toISOString()
+          output the route wrote) or a numeric offset like `+00:00`
+          (default PostgreSQL timestamptz cast). Regex permits both so a
+          benign PostgREST config toggle does not trip the pin —
+          tightening to just `Z` would false-positive on a wire-format
+          change that is not a semantic drift.
+
+      Design choice — module-scope constant + three-block reuse:
+        - New sixth module-scope constant ISO_TIMESTAMP_RE mirrors the
+          sibling ISO_RE from admin-reseller-loop-status-authz.spec.ts:85-86
+          (verbatim regex) so both specs share one ISO-8601 shape
+          definition — a future tightening or loosening of the regex
+          only needs a two-file edit. Named ISO_TIMESTAMP_RE (not ISO_RE)
+          in this file for consistency with the existing descriptive
+          naming (ALLOWED_TIER_PCT_VALUES / SUFFIX_RE / HTTPS_URL_RE /
+          REASON_MAX / PURPOSE_MAX).
+        - Header doc-comment above the constants block extended to
+          describe the new sixth constant + its purpose + the design
+          call to permit both Z and +HH:MM suffixes.
+        - decision_at pin fires ONLY after the existing payload plain-
+          object precondition assertion passes so a regression in the
+          jsonb NOT NULL DEFAULT '{}' invariant surfaces at the tighter
+          existing pin before the timestamp check even runs.
+        - Same two-part guard shape as the payload discriminated-union
+          pins: (a) typeof-string check (catches a column-type flip from
+          timestamptz to say bigint that would surface as a number) +
+          (b) regex value pin (catches a serialisation drift that would
+          surface as a non-match). TYPEOF alone would miss a "not-a-date"
+          string; regex alone would miss a numeric epoch.
+        - readbackRow type shape extended with `decision_at?: unknown;`
+          in all three inline type declarations (deny/cancel/approve)
+          so the pin does not require a `(row as any)` cast.
+
+      Coverage-per-guard posture:
+        - All three PATCH branches (deny + cancel + approve) exercise
+          decision_at on green-path CI runs — the fixture/seed rows for
+          each branch structurally guarantee a status flip to non-
+          pending, so the CHECK constraint at 0095:43-45 guarantees a
+          non-null decision_at on the read-back row. Zero-coverage
+          branches from the payload pin (code_request + collateral_
+          approval on green path) do NOT apply to the decision_at pin
+          because decision_at is populated regardless of request_type.
+        - The three read-back surfaces (?status=denied /
+          ?status=cancelled / ?status=approved) each carry the same pin
+          so a regression in any one of the three ALLOWED_STATUS filter
+          paths that dropped decision_at from the SELECT would surface
+          on that specific surface only — matches the tick 262/263/264
+          one-surface-at-a-time discipline.
+
+      Diagnostic delta of the pass:
+        - One new module-scope constant (ISO_TIMESTAMP_RE), one new
+          field on each of the three inline readbackRow type shapes
+          (decision_at?: unknown), and one new two-line assertion pair
+          (typeof-string + regex) inside each of the three read-back
+          blocks after the payload plain-object precondition.
+        - Header doc-comment above the module-scope constants block
+          expanded from "Tick 262 + 263 + 264 — per-key payload content
+          invariants" to include a tick-265 note describing the new
+          sixth constant and the decision_at pin coverage.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no vitest/Playwright runtime posture
+          change. Matches ticks 223-264 discipline: tighten one
+          dimension (in this case add a new wire-shape pin to the
+          reseller_requests.decision_at column across three surfaces
+          simultaneously) with zero net new imports.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: 11 R-01 files + 31 R-03 routes
+          scanned, 3 exemptions, 0 violations
+        - npx vitest run: 75 files 954/954 pass (unchanged — Playwright
+          specs are excluded from vitest by design)
+
+      Files:
+        - web/tests/e2e/reseller/admin-requests-patch-authz.spec.ts
+          (module-scope constants block gains ISO_TIMESTAMP_RE with a
+          header doc-comment section describing the tick-265 addition;
+          three inline readbackRow type shapes each extended with
+          `decision_at?: unknown;`; three read-back blocks each gain a
+          typeof-string + ISO_TIMESTAMP_RE.test() assertion pair after
+          the existing payload plain-object precondition, each with a
+          brief block-scope comment citing 0095:35 as the column
+          declaration source and route.ts:98 as the write site.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.264 → 2026-07-23.265; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no production-code touch, no
+          new import. Consistent with ticks 234-264's incremental-pin
+          pattern.
+        - Three surfaces at once (option b design was for a single
+          new pin type applied uniformly to all three read-back rows —
+          the tick 262/263/264 sequence already established the three
+          read-back rows share the same shape contract for the payload
+          jsonb column; extending that contract to include decision_at
+          is a single logical unit rather than three separate ticks).
+          Next natural picks on tick 266: (a) extending the same read-
+          back to the reseller-scoped GET list route for ?status=denied
+          or ?status=cancelled or ?status=approved (the tick 264 option
+          a — still worth doing since the reseller-scoped list route at
+          /api/reseller/requests/route.ts has its own SELECT + filter
+          logic that today only has the tick 260/261 default-pending
+          read-back pinned), or (b) adding a decision_by UUID shape pin
+          (typeof-string + UUID_RE) to the read-back rows so a drift
+          in the reseller_requests.decision_by column from uuid to
+          something else surfaces (companion to the decision_at pin
+          landed this tick — decision_by is also a column that flips
+          from null to a value on the three PATCH branches), or (c)
+          adding a created_at ISO-8601 pin to the read-back rows for
+          symmetry with the tick 265 decision_at pin (created_at is
+          populated at row-insert time so it has coverage on every
+          read-back row regardless of PATCH branch, whereas decision_at
+          only populates after a status flip away from pending).
+
   - tick: 264
     ran_at: 2026-07-23
     action: p10_admin_requests_patch_approve_post_readback_per_key_payload_content_pins_option_s3
