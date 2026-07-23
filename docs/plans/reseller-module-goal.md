@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.237
+version: 2026-07-23.238
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,212 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 238
+    ran_at: 2026-07-23
+    action: p10_loop_status_monitor_row_state_spread_8_key_set_pin_option_w
+    result: |
+      Landed tick 237's "natural next pick" option (w) as an eight-field
+      set pin on every monitor_history row in admin-reseller-loop-status-
+      authz.spec.ts happy path. Closes the last un-audited surface of the
+      reseller-monitor.jsonl writer schema — every writer-guaranteed key is
+      now covered by a wire-side presence + type pin.
+
+      Audit outcome:
+        - scripts/cron/reseller-monitor.sh:43 captures STATE_JSON from
+          `bash show-next-reseller-tick.sh --json`.
+        - show-next-reseller-tick.sh:137-138 emits a fixed 8-key printf
+          block: {"now_utc":"%s","next_utc":"%s","seconds_until":%d,
+          "tick_state":"%s","last_tick_id":"%s","last_dispatch_ms":%s,
+          "last_deploy_stage":"%s","last_deploy_status":%s}. The printf
+          template shape guarantees ALL EIGHT keys are always present.
+        - reseller-monitor.sh:47-64 python block spreads `**state` into
+          every appended row (line 61) alongside monitor_ts/head_sha/
+          last_log. Under the normal writer path (cron entry present,
+          DONE_MARKER absent) all 8 --json keys are schema-level
+          guarantees.
+        - Confirmed on-disk against web/content/reports/reseller-monitor.
+          jsonl — sampled head and tail rows both carry all 11 keys
+          (monitor_ts + head_sha + last_log + these 8) with the types
+          python type() reports as {str, str, str, str, str, str, str,
+          str, dict, int, int, int} — matching the printf %d for
+          seconds_until and %s-unquoted for last_dispatch_ms /
+          last_deploy_status which JSON parses as numbers.
+        - Timestamp value pinning — per tick 230's "assert typeof string
+          only so the value can drift" convention, now_utc / next_utc /
+          tick_state / last_tick_id are NOT regex-pinned this tick. Only
+          presence + type is the schema contract; the value drifts with
+          the writer clock (now_utc / next_utc), the loop state machine
+          (tick_state), and the append cadence of reseller-goal-history
+          .jsonl (last_tick_id — empty string on fresh hosts).
+        - Twin surface — none (this endpoint is singleton; no reseller-
+          side or paired validation spec reads reseller-monitor.jsonl).
+          Landing the pins is justified by the writer-script schema
+          guarantees documented inline in the pin comments (file paths +
+          line numbers so a future refactor of either writer surfaces a
+          coupled diff obligation).
+
+      Set-of-8 pin justification (departure from single-field convention
+      of ticks 235/236/237):
+        - Option (w) explicitly framed this as "pinning as a set" —
+          which distinguishes it from the singleton-field discipline of
+          the last three ticks.
+        - All 8 keys share the same writer contract source
+          (show-next-reseller-tick.sh --json printf format), so
+          partitioning across 8 ticks would fragment one audit into
+          eight and lose the single-source coupling.
+        - Set size is manageable (8 inline expect blocks with matching
+          comments), diff stays within a single spec file, no fixture
+          delta, no new module-scope constant, no lib touch.
+        - Landing as a set closes the audit definitively — a future tick
+          need not re-audit the same --json state block.
+
+      Shape pins landed (inside the pre-existing plain-object row loop
+      so each pin is a two-line insertion after the last_log pin):
+
+        for (const row of monitor_history) {
+          expect(plain-object-guard).toBe(true)
+          expect(typeof monitor_ts).toBe("string")           // tick 235
+          expect(typeof head_sha).toBe("string")             // tick 235
+          expect(last_log plain-object).toBe(true)           // tick 236
+          // + now_utc               typeof string
+          // + next_utc              typeof string
+          // + seconds_until         typeof number
+          // + tick_state            typeof string
+          // + last_tick_id          typeof string
+          // + last_dispatch_ms      typeof number
+          // + last_deploy_stage     typeof string
+          // + last_deploy_status    typeof number
+        }
+
+      Regression coverage tightened:
+        - PRE-tick: a writer regression that renamed any of the 8
+          --json state keys, dropped a field from the printf template,
+          or a python-side change that stopped spreading `**state` into
+          the row would silently pass admin-reseller-loop-status-authz —
+          the monitor_ts + head_sha + last_log pins only cover the three
+          top-level writer-appended fields, not the 8 keys spread from
+          --json. The admin visual-QA lens (/admin/reseller-loop
+          dashboard) would carry the mismatch alone.
+        - POST-tick: every writer-guaranteed key on the monitor_history
+          row is now covered by a presence + type pin at the wire, so a
+          rename / drop / type-flip on any of the 11 columns surfaces
+          here.
+
+      Trade-off accepted:
+        - The 8 typeof pins are coupled to the printf format at show-
+          next-reseller-tick.sh:137-138 + the `**state` spread at
+          reseller-monitor.sh:61. A writer refactor that migrated the
+          --json output to a nested envelope like {v:2, state:{...}} or
+          replaced individual fields with a single opaque state blob
+          would force a coordinated bump across both writer scripts +
+          this spec.
+        - Accepted because the coupling reflects the schema contract
+          between show-next-reseller-tick.sh, reseller-monitor.sh, and
+          the /admin/reseller-loop dashboard renderer. The dashboard
+          already reads several of these keys (tick_state, next_utc,
+          last_dispatch_ms) so a rename that broke the wire pins would
+          also break the dashboard UI — landing the spec pins keeps the
+          wire lens in step with the UI consumer.
+        - Edge case NOT covered: goal_complete row shape at reseller-
+          monitor.sh:29 (written when DONE_MARKER present) carries only
+          {ts, stage, completed_at} — none of the 11 pinned keys. But
+          that row also fails the monitor_ts / head_sha pins already
+          landed at tick 235, so the edge case is already
+          transitively-excluded by pre-existing pins. This tick does not
+          worsen the goal_complete edge-case posture.
+
+      Diagnostic delta of the pass:
+        - Added 8 new expect blocks in admin-reseller-loop-status-authz
+          .spec.ts (inside the monitor_history row loop, immediately
+          after the last_log pin), each with an inline citation of the
+          writer-script line number.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no vitest / Playwright runtime
+          posture change, no new module-scope constant (typeof pins are
+          inline literals matching ticks 235-237 convention).
+        - One comment block added citing the tick 238 landing + the two
+          writer-script line ranges (show-next-reseller-tick.sh:137-138
+          + reseller-monitor.sh:43,47-64) + the "as a set" audit
+          rationale + the singleton-endpoint-no-twin-surface rationale.
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-loop-status-authz.spec.ts
+          (eight typeof pins added inside the existing monitor row loop
+          with an inline writer-schema comment pointing to
+          show-next-reseller-tick.sh:137-138 + reseller-monitor.sh:43,
+          47-64.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.237 → 2026-07-23.238; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Schema pins only. No new spec-local constant (the field-
+          presence + typeof pins read clearly inline; hoisting would
+          obscure the tie-back to the specific writer line number in
+          each expect message). No fixture-file delta, no seed-script
+          change, no P8.5-gated code_request work (option (c) still
+          blocked), no production-code touch. Matches ticks 223-237
+          discipline: tighten one dimension, symmetrise against known
+          invariants, single tick — this tick's "one dimension" is the
+          --json state spread audit closed as a set.
+
+      Verified:
+        - tsc clean (npx tsc --noEmit; no output = success).
+        - npm run lint:reseller: R-01 scanned 11 file(s), R-03 scanned
+          31 manifest route(s); 3 exemption(s), 0 violation(s). The
+          edited spec file lives under web/tests/e2e/**, not in the
+          reseller manifest, so R-01/R-03 do not fire on the edited
+          file.
+        - reseller vitest suite unchanged (no production code or lib
+          touched — Playwright specs are excluded from vitest by design).
+        - On-disk data verified via python3 type() against
+          web/content/reports/reseller-monitor.jsonl tail: 11 keys with
+          types {str × 8, dict × 1, int × 3} — matches the pin set.
+
+      Frontier after tick 238: unchanged shape — Track A HUMAN-BLOCKED
+      on P8.5 Stripe env vars + P1.5 InfoVision seed on H.20 ABN + GST;
+      Track B COMPLETE; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 238 does NOT unblock: P8.5 STRIPE_PRICE_ADDON_SHARE_MGMT_*
+      env vars still human-gated; P1.5 InfoVision ABN + GST still
+      human-gated per H.20.
+
+      Natural next pick for tick 239:
+        (x) audit whether the corresponding reseller-monitor.jsonl values
+            could carry inner-shape pins for now_utc / next_utc (HH:MM
+            format from date +%H:%M:%S), seconds_until (0..3600 range
+            from arithmetic bounded by cron step), tick_state (enum-like
+            from show-next-reseller-tick.sh:124-131 four-branch match).
+            Value pins beyond typeof — would tighten to specific format
+            matchers. Consider header-rewrite implications since existing
+            comment says "assert typeof string only so the value can
+            drift".
+        (u) audit whether the admin-requests-list-authz per-key content
+            pins deferred at tick 234's option (r) could land as a
+            three-surface change (reseller-side twin + admin-side list +
+            admin-side patch spec) in a single bigger-diff tick.
+            Available; deferred at ticks 235/236/237.
+        (r) audit whether the admin-requests-list-authz newly-pinned
+            payload plain-object guard could be extended to per-key
+            content pins for the three request_type variants. Still
+            available; deferred at ticks 235/236/237.
+        (n) audit whether admin-requests-patch-authz.spec.ts approve
+            branch decision_at pin could be tightened from typeof string
+            to an ISO-8601 regex — header-rewrite-first option
+            (contradicts existing "assert typeof string only" header
+            comment from tick 230). Still available; deferred at 235/
+            236/237.
+        (y) audit whether reseller-goal-history.jsonl (the source of
+            tick_history rows at /api/admin/reseller-loop/status) has
+            call-site rows beyond the already-pinned tick_id/ts/stage/
+            human_review_minutes_7d — specifically the tick_start row
+            at reseller-goal-loop.mjs likely carries additional keys
+            (elapsed_ms, exit_code, dispatch_ms) that surface only on
+            certain stages. Would require conditional pinning by stage.
+        (c) mirror row 179 shape+helper alignment onto row 175 approve+
+            deny+cancel code_request branches once P8.5 unblocks.
+            P8.5-blocked, no available today.
+    commit: (this tick)
+
   - tick: 237
     ran_at: 2026-07-23
     action: p10_loop_status_tick_row_human_review_minutes_7d_number_pin_option_v

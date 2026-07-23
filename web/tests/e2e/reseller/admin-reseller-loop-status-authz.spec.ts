@@ -250,6 +250,63 @@ test.describe("Admin reseller-loop status — P10 wave-5 row 173 happy path", ()
           !Array.isArray(monitorRow.last_log),
         `monitor_history row.last_log should be a plain object (reseller-monitor.sh:55-57 last_log_obj fallback + reseller-monitor.sh:62 spread): ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
+      // Writer schema pin (tick 238 option w) — reseller-monitor.sh:43
+      // captures STATE_JSON from `bash show-next-reseller-tick.sh --json`
+      // which prints a fixed 8-key printf at show-next-reseller-tick.sh:137-138
+      // (now_utc, next_utc, seconds_until, tick_state, last_tick_id,
+      // last_dispatch_ms, last_deploy_stage, last_deploy_status). The
+      // python block at reseller-monitor.sh:47-64 spreads that state via
+      // `**state` into every appended row (line 61), so under the
+      // normal writer path (cron entry present, DONE_MARKER absent) all
+      // 8 keys are schema-level guarantees. Confirmed on-disk against
+      // reseller-monitor.jsonl — every row (head + tail sampled) carries
+      // all 11 keys (monitor_ts + head_sha + last_log + these 8).
+      // typeof-string only for now_utc / next_utc / tick_state /
+      // last_tick_id per tick 230's "assert typeof string only so the
+      // value can drift" convention (timestamps + free-form state
+      // strings + variable-length id). typeof-number for seconds_until /
+      // last_dispatch_ms / last_deploy_status because the printf at
+      // show-next-reseller-tick.sh:137 uses %d specifiers so those
+      // fields are JSON numbers not strings. last_deploy_stage has a
+      // ${LAST_DEPLOY_STAGE:-none} default at show-next-reseller-tick.sh:138
+      // so it is always a non-empty string ("none" fallback). No twin
+      // surface (singleton endpoint), same rationale as monitor_ts +
+      // head_sha + last_log. Closes audit option (w) as a set — all 8
+      // state-spread fields pinned in one tick since they all share
+      // the same conditional-on-json-path-success guarantee and the
+      // set is small enough to land coherently without partitioning.
+      expect(
+        typeof monitorRow.now_utc,
+        `monitor_history row.now_utc should be typeof string (show-next-reseller-tick.sh:137 printf %s from date -u +%H:%M:%S): ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("string");
+      expect(
+        typeof monitorRow.next_utc,
+        `monitor_history row.next_utc should be typeof string (show-next-reseller-tick.sh:137 printf %s from date -u -d @NEXT_TS_UTC +%H:%M): ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("string");
+      expect(
+        typeof monitorRow.seconds_until,
+        `monitor_history row.seconds_until should be typeof number (show-next-reseller-tick.sh:137 printf %d from arithmetic SECS_UNTIL): ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("number");
+      expect(
+        typeof monitorRow.tick_state,
+        `monitor_history row.tick_state should be typeof string (show-next-reseller-tick.sh:124-131 TICK_STATE always assigned "idle" / "RUNNING..." / "last tick deploy FAILED..." / "idle — last tick ended cleanly"): ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("string");
+      expect(
+        typeof monitorRow.last_tick_id,
+        `monitor_history row.last_tick_id should be typeof string (show-next-reseller-tick.sh:137 printf %s from LAST_TICK_ID; empty string when no history rows yet): ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("string");
+      expect(
+        typeof monitorRow.last_dispatch_ms,
+        `monitor_history row.last_dispatch_ms should be typeof number (show-next-reseller-tick.sh:138 printf %s of \${LAST_DISPATCH_ELAPSED:-0} — bare integer coalesces to JSON number since printf format is %s but the value slot is unquoted): ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("number");
+      expect(
+        typeof monitorRow.last_deploy_stage,
+        `monitor_history row.last_deploy_stage should be typeof string (show-next-reseller-tick.sh:138 printf %s of \${LAST_DEPLOY_STAGE:-none} — always a non-empty string, "none" fallback): ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("string");
+      expect(
+        typeof monitorRow.last_deploy_status,
+        `monitor_history row.last_deploy_status should be typeof number (show-next-reseller-tick.sh:138 printf %s of \${LAST_DEPLOY_STATUS:-0} — bare integer coalesces to JSON number): ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("number");
     }
     for (const row of (body.tick_history as unknown[]) ?? []) {
       expect(
