@@ -869,3 +869,8 @@
 {"ts":"2026-07-23T08:30:02Z","endpoint":"agent-auto-improve","status":"error","duration_ms":244946,"detail":"curl exit 52 (timeout or connection refused)"}
 {"ts":"2026-07-23T08:40:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2741,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (234384444 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274946088 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
 {"ts":"2026-07-23T08:45:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16541,"detail":""}
+{"ts":"2026-07-23T08:50:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2643,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 15, \"raw\": \"15% used (236119760 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274946084 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-07-23T09:00:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":709,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (233945848 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274946036 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-07-23T09:00:01Z","endpoint":"ai-health","status":"ok","duration_ms":4994,"detail":"{\"provider\": \"groq\", \"model\": \"gemma-4-31b\", \"response\": \"OK\"}"}
+{"ts":"2026-07-23T09:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":17081,"detail":""}
+{"ts":"2026-07-23T09:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16490,"detail":""}
