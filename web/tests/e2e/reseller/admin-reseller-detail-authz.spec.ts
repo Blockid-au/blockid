@@ -1206,6 +1206,50 @@ const UUID_RE =
 // so the pin never fires. No new module-scope const needed — UUID_RE
 // already lives at row 111. Continues the P10 hardening posture — no
 // fixture change, no route change, no new imports.
+//
+// Tick 321 — admins[].id UUID two-part wire-shape pin, SCOPE ROTATION
+// out of the promotion_codes[] child-row cluster (tick 320 opened the
+// two-part UUID posture at column 0 / id) INTO the reseller_admins[]
+// child-row cluster. Tick 320 next-pick option (b) taken verbatim —
+// lifts the prior baseline bare combined pin at
+// `typeof row.id === "string" && UUID_RE.test(row.id as string)` into
+// the two-part shape matching the tick 308 commissions[].commission_id
+// + tick 320 promotion_codes[].id posture verbatim.
+//
+// Writer-schema justification:
+//   - 0091_reseller_module_foundations.sql:68 declares
+//     `id uuid PRIMARY KEY DEFAULT gen_random_uuid()` on the
+//     reseller_admins base table.
+//   - Application read path: selected on the Promise.all leg at
+//     web/src/app/api/admin/resellers/[code]/route.ts:89-93 as the 1st
+//     column in the reseller_admins tuple
+//     .select("id, user_id, role, status, linked_at, revoked_at").
+//
+// Design choice — two-part guard mirroring the tick 308 / tick 320
+// posture verbatim: (a) typeof-string preserves the NOT-NULL raw-type
+// discipline; catches a PostgREST regression that returned
+// null|undefined, a schema-side NOT NULL drop, or a projection-side
+// drop from the route.ts:89-93 SELECT tuple. (b) UUID_RE.test() shape
+// assert catches a schema-side type flip to bigserial rendering a
+// stringified integer, a bigint-serialised-as-string sequence id, or a
+// truncated non-UUID slug. Each half carries a bespoke failure message
+// pointing at 0091:68 as the writer-schema source.
+//
+// Detail-surface only per the same posture as ticks 299-320 — the
+// admin-resellers-list route projects only the resellers-row shape and
+// does not fan out to reseller_admins; the Promise.all leg that pulls
+// admins rows is unique to the detail route. Fires on every green CI
+// run because seed-qa-reseller.mjs mints per-variant reseller_admins
+// rows per reseller cohort; on hosts without seeded admins the for-
+// loop is a no-op so the pin never fires. No new module-scope const
+// needed — UUID_RE already lives at row 111. Continues the P10
+// hardening posture — no fixture change, no route change, no new
+// imports. Opens the admins[] child-row column-pin polish sweep;
+// natural next-pick tick 322 candidates: (a) admins[].user_id UUID
+// two-part lift (identical posture to this tick, sibling column at
+// route.ts:89-93 select tuple position 1), (b) promotion_codes[].code
+// tick-numbered labelled message shape lift on the already-two-part
+// row 1891-1892 pin.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Tick 309 — Stripe invoice ID shape regex. Matches the modern Stripe
@@ -1981,9 +2025,22 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
       `admins should be an array: ${JSON.stringify(body).slice(0, 200)}`,
     ).toBe(true);
     for (const row of body.admins ?? []) {
+      // Tick 321 — admins[].id UUID two-part wire-shape pin. Lifts the
+      // prior baseline bare combined pin into two labelled asserts
+      // matching the tick 308 commissions[].commission_id + tick 320
+      // promotion_codes[].id posture verbatim. Column source
+      // `reseller_admins.id uuid PRIMARY KEY DEFAULT gen_random_uuid()`
+      // at 0091:68, projected via route.ts:89-93 select("id, user_id,
+      // role, status, linked_at, revoked_at"). See module-scope doc-
+      // block above ISO_TIMESTAMP_RE (tick 321 paragraph) for the
+      // rationale.
       expect(
-        typeof row.id === "string" && UUID_RE.test(row.id as string),
-        `admins[].id should be UUID: ${JSON.stringify(row).slice(0, 200)}`,
+        typeof row.id === "string",
+        `admins[].id '${String(row.id)}' should be a string (uuid PRIMARY KEY DEFAULT gen_random_uuid() per 0091:68; a schema-side type flip to bigserial, a projection-side drop from route.ts:89-93 select, or a PostgREST serialisation regression that returned null|undefined would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        UUID_RE.test(row.id as string),
+        `admins[].id '${String(row.id)}' should match UUID shape (uuid PRIMARY KEY per 0091:68); a projection-side drop from route.ts:89-93 select that replaced id with a stringified integer id, a bigint-serialised-as-string sequence id, or a truncated non-UUID slug would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
       expect(
         typeof row.user_id === "string" && UUID_RE.test(row.user_id as string),
