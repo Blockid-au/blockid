@@ -153,6 +153,52 @@ const PURPOSE_MAX = 500;
 // ticks 275-280 lineage — a projection-side or serialisation-side
 // regression on reseller_requests.created_at now surfaces on both admin
 // and reseller list lenses simultaneously.
+//
+// Tick 281 — decision_at ISO-8601 wire-shape tightening on the admin-scoped
+// GET at /api/admin/resellers/requests/route.ts:44 (decision_at is the seventh
+// column of the admin SELECT projection: id, reseller_id, request_type,
+// status, payload, decision_by, decision_at, ...). Natural next pick option
+// (a) from tick 280 — sibling companion to the tick-280 created_at ISO pin
+// above, and admin-surface mirror of the reseller-side tick 276 pin at
+// reseller-requests-list-authz.spec.ts:629-634. reseller_requests.decision_at
+// is a `timestamptz` NULLABLE column per 0095:35 governed by the
+// ck_decision_shape CHECK at 0095:41-45 which requires decision_at NON-NULL
+// when status ∈ ('approved','denied','cancelled') and permits NULL only when
+// status='pending'. Pre-tick-281 posture pinned only null-or-typeof-string at
+// line ~362-364 leaving the ISO shape silent whenever decision_at is
+// non-null on the admin lens — a route regression that dropped decision_at
+// from the SELECT would surface as undefined (fails both the ===null branch
+// and the typeof-string branch), but a serialisation drift (PostgREST
+// returning an epoch integer stringified as "1735689600", or a column swap
+// to a text field storing freeform values) would pass the typeof-string
+// guard but fail this ISO regex tightening.
+//
+// Three-part guard (matches the reseller-side tick 276 layering verbatim):
+//   (a) preserved null-or-typeof-string pin at line ~362-364 fires first so
+//       a projection drop still surfaces before the new regex check;
+//   (b) new null-or-(typeof-string AND ISO_TIMESTAMP_RE match) pin fires
+//       only after the null-or-string guard passes so tighter existing pins
+//       surface first;
+//   (c) reuses the ISO_TIMESTAMP_RE module-scope constant hoisted by tick
+//       280 above — no additional module-scope constant needed.
+//
+// Coverage-per-guard posture: the wave-3 row 155 seeded pending
+// over_budget_approval row exercises the NULL branch of the null-or-ISO
+// guard on every green CI run (pending rows carry decision_at IS NULL per
+// ck_decision_shape); the NON-NULL ISO branch has zero-coverage on the wire
+// today because no approve/deny fixture seeds a decided reseller_requests
+// row that this default status='pending' GET would return — matches the
+// tick 261/276 zero-coverage-per-guard rationale (the pin still closes the
+// writer contract so a serialisation regression across the null-or-string
+// surface would surface on the next CI pass whenever a decide-fixture seeds
+// a row and a future ?status= filter change surfaces the decided rows via
+// this spec).
+//
+// Sibling-surface parity: seventh cross-surface companion pin in the
+// ticks 275-281 lineage — a projection-side or serialisation-side regression
+// on reseller_requests.decision_at now surfaces on the admin patch read-back
+// (tick 265), reseller-scoped list (tick 276), and admin-scoped list (this
+// tick) lenses simultaneously.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
@@ -362,6 +408,23 @@ test.describe("Admin reseller-requests list — P10 wave-5 row 174 happy path", 
       expect(r.decision_at === null || typeof r.decision_at === "string").toBe(
         true,
       );
+      // Tick 281 — ISO_TIMESTAMP_RE tightening on decision_at, sibling
+      // companion to the tick-280 created_at ISO pin above and admin-surface
+      // mirror of the reseller-side tick 276 pin at
+      // reseller-requests-list-authz.spec.ts:629-634. See the tick-281
+      // module-scope doc-block above ISO_TIMESTAMP_RE for the
+      // ck_decision_shape + PostgREST serialisation rationale. Fires ONLY
+      // when decision_at is non-null so the wave-3 row 155 pending fixture's
+      // decision_at=NULL still passes cleanly through the null branch; a
+      // decided-row fixture (future approve/deny seed) would exercise the
+      // ISO regex branch. Seventh cross-surface companion pin in the
+      // 275-281 lineage.
+      expect(
+        r.decision_at === null ||
+          (typeof r.decision_at === "string" &&
+            ISO_TIMESTAMP_RE.test(r.decision_at as string)),
+        `admin happy GET row.decision_at '${String(r.decision_at)}' should be null or an ISO 8601 timestamp string (timestamptz per 0095:35 serialised via PostgREST; NULL on pending rows per ck_decision_shape at 0095:41-45); a drift to a non-ISO string, an epoch number stringified, or a locale-formatted date would surface here: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
       expect(
         r.decision_reason === null || typeof r.decision_reason === "string",
       ).toBe(true);
