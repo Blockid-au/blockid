@@ -48,12 +48,12 @@
 
 ### Investor / advisor side (per-seat)
 
-| Tier | AUD/seat/mo | Fit |
-|---|---|---|
-| Angel | A$79 | Solo angel; watchlist 25, SVI feed, 5 diligence packs/mo |
-| Advisor | A$149 | Lawyer/accountant/consultant; cohort 25, white-label |
-| VC Small | A$349 (5-seat min) | Micro-VC/family office; portfolio, LP export |
-| VC Enterprise | Custom (from A$2,500/mo) | Multi-fund; API, custom benchmarks |
+| Tier | AUD/seat/mo | Fit | PRC-INV status |
+|---|---|---|---|
+| Angel | A$79 | Solo angel; watchlist 25, SVI feed, 5 diligence packs/mo | ✅ Shipped with placeholder Stripe ID (2026-07-23, iter-6 #4). Real `STRIPE_PRICE_INVESTOR_ANGEL` deferred to P8.5 human-blocked task. |
+| Advisor | A$149 | Lawyer/accountant/consultant; cohort 25, white-label | ✅ Shipped with placeholder Stripe ID (2026-07-23, iter-6 #4). Real `STRIPE_PRICE_INVESTOR_ADVISOR` deferred to P8.5. |
+| VC Small | A$349 (5-seat min) | Micro-VC/family office; portfolio, LP export | ✅ Shipped with placeholder Stripe ID + `usage_limits.seats=5` seat-min guard (2026-07-23, iter-6 #4). Real `STRIPE_PRICE_INVESTOR_VC_SMALL` deferred to P8.5. |
+| VC Enterprise | Custom (from A$2,500/mo) | Multi-fund; API, custom benchmarks | ✅ Shipped with placeholder Stripe ID + "Contact sales" CTA per `investor_vc_ent` row (interval=custom, seats=-1). Real `STRIPE_PRICE_INVESTOR_VC_ENT` deferred to P8.5. |
 
 ### Accelerator / program side
 
