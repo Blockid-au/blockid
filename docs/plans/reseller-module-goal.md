@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.321
+version: 2026-07-23.322
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -651,6 +651,99 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 322
+    ran_at: 2026-07-23
+    action: p10_admins_user_id_uuid_two_part_pin_on_admin_reseller_detail
+    result: |
+      Sibling-column continuation of the reseller_admins[] child-row
+      cluster opened at tick 321 (id / column 0 of the route.ts:89-93
+      select tuple). Tick 321 next-pick option (a) taken verbatim —
+      lifts the prior baseline bare combined pin at
+      `typeof row.user_id === "string" && UUID_RE.test(row.user_id as
+      string)` (single-line combined guard with a generic message) into
+      the two-part shape matching the tick 308 commissions[].
+      commission_id + tick 320 promotion_codes[].id + tick 321
+      admins[].id posture verbatim.
+
+      Writer-schema justification:
+        - 0091_reseller_module_foundations.sql:69 declares
+          `user_id uuid NOT NULL REFERENCES app_users(id) ON DELETE
+          CASCADE` on the reseller_admins base table. NOT-NULL FK to
+          app_users.id (uuid PRIMARY KEY DEFAULT gen_random_uuid() per
+          0005 app_users schema); therefore user_id shares the same
+          UUID shape invariant as admins[].id.
+        - Application read path: selected on the Promise.all leg at
+          web/src/app/api/admin/resellers/[code]/route.ts:89-93 as the
+          2nd column in the reseller_admins tuple
+          .select("id, user_id, role, status, linked_at, revoked_at").
+
+      Design choice — two-part guard mirroring the tick 321 posture
+      verbatim:
+        - (a) typeof-string preserves the NOT-NULL raw-type discipline;
+          catches a PostgREST regression that returned null|undefined,
+          a schema-side NOT NULL drop, a projection-side drop from the
+          route.ts:89-93 SELECT tuple, or an ON DELETE CASCADE race
+          that briefly rendered the row after the FK target was purged.
+        - (b) UUID_RE.test() shape assert catches a schema-side type
+          flip to bigserial rendering a stringified integer, a bigint-
+          serialised-as-string sequence id, or a truncated non-UUID
+          slug.
+
+      Rotation rationale:
+        - Continues the admins[] child-row column-pin polish sweep
+          opened at tick 321 on the same admin-reseller-detail
+          Promise.all leg. Two of six tuple positions (id, user_id)
+          now carry the tick-numbered two-part labelled pinning
+          discipline; role/status enum pins (ticks 304-305) and
+          linked_at/revoked_at ISO pins (ticks 306-307) already
+          carried tick-numbered labelled messages so the sweep can
+          close symmetrically on the next rotation.
+        - No new imports, no new module-scope const needed — UUID_RE
+          already lives at row 111.
+
+      Coverage-per-guard posture:
+        - Detail surface: wave-5 row 167 single-row GET fires the two-
+          part pin at least once per test on the QAPROBEWHOLESALEACTIVE
+          seed reseller (per-variant admins row minted by
+          seed-qa-reseller.mjs).
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 322 paragraph) added below
+              the tick 321 paragraph above ISO_TIMESTAMP_RE.
+            + bare admins[].user_id combined pin replaced with two-
+              part guard: typeof-string + UUID_RE.test — each with a
+              bespoke failure message pointing at 0091:69 as the
+              write-path source.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope const. Matches
+          ticks 234-321 discipline.
+
+      Verification:
+        - tsc --noEmit: production tree clean (exit 0).
+        - Playwright specs excluded from vitest by design.
+
+      Frontier after tick 322: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+
+      Next natural picks on tick 323:
+        (a) rotate to promotion_codes[].code tick-numbered labelled
+        message shape lift on the already-two-part row 1891-1892 pin
+        (typeof-string + PROMO_CODE_RE.test which is already two-part
+        but lacks the tick-numbered labelled message shape used by the
+        tick 320-322 lift).
+        (b) rotate to admins[].linked_at / admins[].revoked_at ISO-
+        8601 two-part guards (ticks 306-307 already carry tick-
+        numbered labelled messages so this rotation would be a shape
+        refresh rather than a lift).
+        (c) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks.
+    commit: (this tick)
+
   - tick: 321
     ran_at: 2026-07-23
     action: p10_admins_id_uuid_two_part_pin_on_admin_reseller_detail

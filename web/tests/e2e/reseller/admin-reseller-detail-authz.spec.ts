@@ -1250,6 +1250,59 @@ const UUID_RE =
 // route.ts:89-93 select tuple position 1), (b) promotion_codes[].code
 // tick-numbered labelled message shape lift on the already-two-part
 // row 1891-1892 pin.
+//
+// Tick 322 — admins[].user_id UUID two-part wire-shape pin, sibling-
+// column continuation of the reseller_admins[] child-row cluster
+// opened at tick 321 (id / column 0 of the route.ts:89-93 select
+// tuple). Tick 321 next-pick option (a) taken verbatim — lifts the
+// prior baseline bare combined pin at
+// `typeof row.user_id === "string" && UUID_RE.test(row.user_id as
+// string)` (single-line combined guard with a generic message) into
+// the two-part shape matching the tick 308 commissions[].commission_id
+// + tick 320 promotion_codes[].id + tick 321 admins[].id posture
+// verbatim.
+//
+// Writer-schema justification:
+//   - 0091_reseller_module_foundations.sql:69 declares
+//     `user_id uuid NOT NULL REFERENCES app_users(id) ON DELETE
+//     CASCADE` on the reseller_admins base table — NOT-NULL FK to
+//     app_users.id (which is itself uuid PRIMARY KEY DEFAULT
+//     gen_random_uuid() per 0005 app_users schema); therefore
+//     user_id shares the same UUID shape invariant as admins[].id.
+//   - Application read path: selected on the Promise.all leg at
+//     web/src/app/api/admin/resellers/[code]/route.ts:89-93 as the
+//     2nd column in the reseller_admins tuple
+//     .select("id, user_id, role, status, linked_at, revoked_at").
+//
+// Design choice — two-part guard mirroring the tick 321 posture
+// verbatim: (a) typeof-string preserves the NOT-NULL raw-type
+// discipline; catches a PostgREST regression that returned
+// null|undefined, a schema-side NOT NULL drop, a projection-side
+// drop from the route.ts:89-93 SELECT tuple, or an ON DELETE CASCADE
+// race that briefly rendered the row after the FK target was purged.
+// (b) UUID_RE.test() shape assert catches a schema-side type flip to
+// bigserial rendering a stringified integer, a bigint-serialised-as-
+// string sequence id, or a truncated non-UUID slug. Each half carries
+// a bespoke failure message pointing at 0091:69 as the writer-schema
+// source.
+//
+// Detail-surface only per the same posture as ticks 299-321 — the
+// admin-resellers-list route projects only the resellers-row shape
+// and does not fan out to reseller_admins; the Promise.all leg that
+// pulls admins rows is unique to the detail route. Fires on every
+// green CI run because seed-qa-reseller.mjs mints per-variant
+// reseller_admins rows per reseller cohort; on hosts without seeded
+// admins the for-loop is a no-op so the pin never fires. No new
+// module-scope const needed — UUID_RE already lives at row 111.
+// Continues the P10 hardening posture — no fixture change, no route
+// change, no new imports. Continues the admins[] child-row column-
+// pin polish sweep opened at tick 321; natural next-pick tick 323
+// candidates: (a) promotion_codes[].code tick-numbered labelled
+// message shape lift on the already-two-part row 1891-1892 pin,
+// (b) admins[].role / admins[].status already-two-part labelled
+// message ticks (roles + statuses of the enum guards) or a rotation
+// back to the promotion_codes[] column-pin cluster on the remaining
+// tuple positions.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Tick 309 — Stripe invoice ID shape regex. Matches the modern Stripe
@@ -2042,9 +2095,23 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         UUID_RE.test(row.id as string),
         `admins[].id '${String(row.id)}' should match UUID shape (uuid PRIMARY KEY per 0091:68); a projection-side drop from route.ts:89-93 select that replaced id with a stringified integer id, a bigint-serialised-as-string sequence id, or a truncated non-UUID slug would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
+      // Tick 322 — admins[].user_id UUID two-part wire-shape pin.
+      // Lifts the prior baseline bare combined pin into two labelled
+      // asserts matching the tick 308 commissions[].commission_id +
+      // tick 320 promotion_codes[].id + tick 321 admins[].id posture
+      // verbatim. Column source `reseller_admins.user_id uuid NOT
+      // NULL REFERENCES app_users(id) ON DELETE CASCADE` at 0091:69,
+      // projected via route.ts:89-93 select("id, user_id, role,
+      // status, linked_at, revoked_at"). See module-scope doc-block
+      // above ISO_TIMESTAMP_RE (tick 322 paragraph) for the
+      // rationale.
       expect(
-        typeof row.user_id === "string" && UUID_RE.test(row.user_id as string),
-        `admins[].user_id should be UUID: ${JSON.stringify(row).slice(0, 200)}`,
+        typeof row.user_id === "string",
+        `admins[].user_id '${String(row.user_id)}' should be a string (uuid NOT NULL REFERENCES app_users(id) ON DELETE CASCADE per 0091:69; a schema-side NOT NULL drop, a projection-side drop from route.ts:89-93 select, an ON DELETE CASCADE race that briefly rendered the row after the FK target was purged, or a PostgREST serialisation regression that returned null|undefined would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        UUID_RE.test(row.user_id as string),
+        `admins[].user_id '${String(row.user_id)}' should match UUID shape (uuid NOT NULL REFERENCES app_users(id) per 0091:69; a projection-side drop from route.ts:89-93 select that replaced user_id with a stringified integer id, a bigint-serialised-as-string sequence id, or a truncated non-UUID slug would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
       // Tick 304 — admins[].role value-set enum tightening. Column
       // source 0091:71-72 declares `role text NOT NULL DEFAULT 'admin'
