@@ -654,6 +654,136 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 326
+    ran_at: 2026-07-23
+    action: p10_admins_status_revoked_at_cross_column_lifecycle_invariant_pin_on_admin_reseller_detail
+    result: |
+      Logical close-out of the reseller_admins[] child-row cluster
+      opened at tick 321 (id UUID two-part), continued through tick
+      322 (user_id UUID two-part), ticks 304-305 (role / status
+      value-set enum), and ticks 306-307 (linked_at / revoked_at ISO
+      shape). Tick 324 next-pick option (a) taken as a LOGICAL close-
+      out rather than a shape refresh — the per-column shape pins on
+      the six-column projection tuple select("id, user_id, role,
+      status, linked_at, revoked_at") are all already labelled, so
+      the last remaining defence lens is the cross-column invariant
+      that tick 307 documented aspirationally
+      ("status === 'revoked' ⇔ revoked_at IS NOT NULL, active for
+      live links, revoked for tombstoned admins whose revoked_at
+      timestamp is set") but no per-column pin can enforce alone.
+
+      NOTE ON TICK NUMBER: Tick 325 was already burned by a parallel
+      loop that landed a reseller.id UUID PRIMARY KEY two-part pin
+      (commit 633a5812) — my sibling tick landed at 326 after
+      resolving a merge conflict in the module-scope doc-block region
+      (kept both tick 325 + tick 326 paragraphs; my inline expect
+      block landed cleanly at the tick 307 revoked_at footer without
+      touching theirs at line 1836).
+
+      Writer-schema justification:
+        - 0091_reseller_module_foundations.sql:73-76 declares
+          `status text NOT NULL DEFAULT 'active'
+          CHECK (status IN ('active','revoked'))` and
+          `revoked_at timestamptz` (nullable). The DB has NO CHECK
+          constraint tying the two — the lifecycle invariant lives
+          on the application write path only.
+        - Application write path: no revoke code-path currently
+          ships in tree (grep -rn "revoked_at" web/src/lib/reseller/
+          web/src/app/api/reseller/ web/src/app/api/admin/resellers/
+          returns only the detail route's SELECT projection).
+          Therefore every green-CI admins[] row today has
+          status='active' + revoked_at=null under the current app
+          write-path posture; the pin is defensive against a future
+          revoke-mutation path that forgets to stamp revoked_at when
+          flipping status → 'revoked', or a resurrect-mutation path
+          that flips status back to 'active' but forgets to null
+          revoked_at.
+        - Application read path: two columns co-projected on the
+          same Promise.all leg at
+          web/src/app/api/admin/resellers/[code]/route.ts:89-93
+          .select("id, user_id, role, status, linked_at,
+          revoked_at").
+
+      Design choice — two-branch cross-column guard:
+        - (a) status === 'active' branch asserts revoked_at === null;
+          catches a legacy INSERT that stamped a revoked_at value on
+          an active row (violates the "active for live links" half
+          of the tick 307 invariant), or a future resurrect path
+          that flipped status back to 'active' but forgot to null
+          revoked_at.
+        - (b) status === 'revoked' branch asserts
+          typeof revoked_at === 'string' (already pinned as ISO 8601
+          shape at tick 307 on the non-null branch); catches a
+          future revoke path that flipped status → 'revoked' but
+          forgot to stamp revoked_at with now() (violates the
+          "revoked for tombstoned admins whose revoked_at timestamp
+          is set" half of the tick 307 invariant).
+        - Guarded by the tick 305 ALLOWED_ADMIN_STATUSES membership
+          pin already firing above so a rogue enum value
+          ('disabled') would surface at the status pin rather than
+          as a spurious lifecycle failure here.
+
+      Rotation rationale:
+        - Every projected column on the reseller_admins[] tuple now
+          carries a per-column pin PLUS this cross-column lifecycle
+          pin — the cluster is symmetrically closed.
+        - No new imports, no new module-scope const needed. No
+          regex, no Set. The invariant lives entirely on the row's
+          status + revoked_at value comparisons.
+
+      Coverage-per-guard posture:
+        - Detail surface: wave-5 row 167 single-row GET fires the
+          cross-column pin at least once per test on the
+          QAPROBEWHOLESALEACTIVE seed reseller (per-variant
+          reseller_admins row minted by seed-qa-reseller.mjs).
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 326 paragraph) added
+              below the tick 325 paragraph above ISO_TIMESTAMP_RE.
+            + cross-column expect block added after the tick 307
+              revoked_at ISO-shape pin — two branches (status ===
+              'active' → revoked_at === null; status === 'revoked'
+              → typeof revoked_at === 'string') each with a bespoke
+              failure message pointing at tick 307's lifecycle
+              invariant documentation as the aspirational source.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope const.
+          Matches ticks 234-325 discipline.
+
+      Verification:
+        - tsc --noEmit: spec-file clean (pre-existing errors under
+          web/src/app/dashboard/portfolio/ are untracked WIP per
+          `git status` and predate this tick — my file adds no new
+          errors).
+        - Playwright specs excluded from vitest by design.
+
+      Frontier after tick 326: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5
+      clears. reseller_admins[] child-row cluster (ticks 304-307 +
+      321-322 + 326) now symmetrically closed.
+
+      Next natural picks on tick 327:
+        (a) rotate to promotion_codes[] cross-column pin summary
+        comment (tier 0 → stripe ids null / tier > 0 → stripe ids
+        non-null already lives inline at ticks 301-302 — a symmetric
+        close-out summary comment could hoist it into module-scope
+        doc-block form).
+        (b) rotate to a NEW cluster on the reseller-row column-level
+        ISO shape refresh on created_at / updated_at now that the
+        ticks 283/285/294/296 posture has drifted further from the
+        current two-part labelled discipline used by ticks 320-325.
+        (c) tick 325 option (a) — reseller.display_name text NOT
+        NULL two-part lift on the tick 1710 baseline single-part
+        typeof-string pin.
+        (d) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks.
+    commit: (this tick)
+
   - tick: 325
     ran_at: 2026-07-23
     action: p10_reseller_id_uuid_two_part_labelled_pin_on_admin_reseller_detail

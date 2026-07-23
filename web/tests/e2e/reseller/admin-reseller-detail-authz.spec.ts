@@ -1425,6 +1425,83 @@ const UUID_RE =
 // reseller.code text NOT NULL UNIQUE tick-numbered labelled shape
 // lift (currently bare `.toBe(fixture.code)` equality with no per-
 // half diagnostic).
+//
+// Tick 326 — admins[] status ⇔ revoked_at cross-column lifecycle
+// invariant pin, closing the reseller_admins[] child-row cluster
+// opened at tick 321 (id) and continued through tick 322 (user_id) /
+// ticks 304-307 (role / status / linked_at / revoked_at). Extends
+// tick 324's option (a) refresh into a LOGICAL close-out because the
+// per-column shape pins on the six-column projection tuple
+// select("id, user_id, role, status, linked_at, revoked_at") are all
+// already labelled — the last remaining defence lens is the cross-
+// column invariant that tick 307 documented aspirationally
+// ("status === 'revoked' ⇔ revoked_at IS NOT NULL, active for live
+// links, revoked for tombstoned admins whose revoked_at timestamp is
+// set") but no per-column pin can enforce alone.
+//
+// Writer-schema justification:
+//   - 0091_reseller_module_foundations.sql:73-76 declares status text
+//     NOT NULL CHECK IN ('active','revoked') + revoked_at timestamptz
+//     nullable. The DB has NO CHECK constraint tying the two — the
+//     lifecycle invariant lives on the application write path only.
+//   - Application write path: no revoke code-path currently ships in
+//     tree (grep -rn "revoked_at" web/src/lib/reseller/ web/src/app/
+//     api/reseller/ web/src/app/api/admin/resellers/ returns only the
+//     detail route's SELECT projection). Therefore every green-CI
+//     admins[] row today has status='active' + revoked_at=null; the
+//     pin is defensive against a future revoke-mutation path that
+//     forgets to stamp revoked_at when flipping status → 'revoked',
+//     or a resurrect-mutation path that flips status back to 'active'
+//     but forgets to null revoked_at.
+//   - Application read path: two columns co-projected on the same
+//     Promise.all leg at web/src/app/api/admin/resellers/[code]/
+//     route.ts:89-93 select("id, user_id, role, status, linked_at,
+//     revoked_at").
+//
+// Design choice — two-branch cross-column guard:
+//   - (a) status === 'active' branch: revoked_at should be null;
+//     catches a legacy INSERT that stamped a revoked_at value on an
+//     active row (violates the "active for live links" half of the
+//     tick 307 invariant), or a future resurrect path that flipped
+//     status back to 'active' but forgot to null revoked_at.
+//   - (b) status === 'revoked' branch: revoked_at should be a string
+//     (already pinned as ISO 8601 shape at tick 307 on the non-null
+//     branch); catches a future revoke path that flipped status →
+//     'revoked' but forgot to stamp revoked_at with now() (violates
+//     the "revoked for tombstoned admins whose revoked_at timestamp
+//     is set" half of the tick 307 invariant).
+//   - Guarded by the tick 305 ALLOWED_ADMIN_STATUSES membership pin
+//     already firing above so a rogue enum value ('disabled') would
+//     surface at the status pin rather than as a spurious lifecycle
+//     failure here.
+//
+// Detail-surface only per the same posture as ticks 299-325 — the
+// admin-resellers-list route projects only the resellers-row shape
+// and does not fan out to reseller_admins; the Promise.all leg that
+// pulls admins rows is unique to the detail route. Fires on every
+// green CI run because seed-qa-reseller.mjs mints per-variant
+// reseller_admins rows per reseller cohort (all status='active' +
+// revoked_at=null under the current app write-path posture); on
+// hosts without seeded admins the for-loop is a no-op so the pin
+// never fires. No new module-scope const needed — no regex, no Set,
+// no imports. Continues the P10 hardening posture — no fixture
+// change, no route change, no new imports. Symmetrically closes the
+// reseller_admins[] child-row cluster: every projected column now
+// carries a per-column pin PLUS the cross-column lifecycle pin.
+// Natural next-pick tick 327 candidates: (a) rotate to
+// promotion_codes[] cross-column pin (tier 0 → stripe ids null,
+// tier > 0 → stripe ids non-null already lives inline at
+// ticks 301-302 — a symmetric close-out summary comment could hoist
+// it into module-scope doc-block form), (b) rotate to a new cluster
+// on the reseller-row column-level ISO shape refresh on created_at
+// / updated_at now that the ticks 283/285/294/296 posture has
+// drifted further from the current two-part labelled discipline
+// used by ticks 320-325, (c) tick 325 option (a) — the
+// reseller.display_name text NOT NULL two-part lift on the tick
+// 1710 baseline pin (still open), (d) idle — the frontier remains
+// tight (P1.5 + P8.5 HUMAN-BLOCKED, P11 never_completes, Track B
+// closed, P10 continues accepting incremental pin-tightening
+// ticks).
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Tick 309 — Stripe invoice ID shape regex. Matches the modern Stripe
@@ -2319,6 +2396,27 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         expect(
           ISO_TIMESTAMP_RE.test(row.revoked_at as string),
           `admins[].revoked_at '${String(row.revoked_at)}' should match ISO 8601 shape when non-null (nullable timestamptz per 0091:76 serialised via PostgREST as an ISO 8601 string on the tombstoned branch); a drift to a non-ISO string, a Unix epoch number rendered as string, or a truncated date-only value would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe(true);
+      }
+      // Tick 326 — admins[] status ⇔ revoked_at cross-column lifecycle
+      // invariant pin. Closes the reseller_admins[] child-row cluster
+      // opened at tick 321. No DB CHECK ties status to revoked_at
+      // (0091:73-76 declares each column independently) — the invariant
+      // lives on the application write path only, so a wire-shape pin
+      // is the sole guard against a future revoke path that flips
+      // status → 'revoked' but forgets to stamp revoked_at, or a
+      // resurrect path that flips status back to 'active' but forgets
+      // to null revoked_at. See module-scope doc-block above
+      // ISO_TIMESTAMP_RE (tick 326 paragraph) for the rationale.
+      if (row.status === "active") {
+        expect(
+          row.revoked_at === null,
+          `admins[].revoked_at '${String(row.revoked_at)}' should be null when status === 'active' per the lifecycle invariant documented at tick 307 ('status === "revoked" ⇔ revoked_at IS NOT NULL, active for live links, revoked for tombstoned admins'); a legacy INSERT that stamped a revoked_at value on an active row, or a future resurrect path that flipped status back to 'active' but forgot to null revoked_at, would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe(true);
+      } else if (row.status === "revoked") {
+        expect(
+          typeof row.revoked_at === "string",
+          `admins[].revoked_at '${String(row.revoked_at)}' should be a non-null ISO 8601 string when status === 'revoked' per the lifecycle invariant documented at tick 307 ('status === "revoked" ⇔ revoked_at IS NOT NULL'); a future revoke path that flipped status → 'revoked' but forgot to stamp revoked_at with now() would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
         ).toBe(true);
       }
     }
