@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.235
+version: 2026-07-23.236
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,149 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 236
+    ran_at: 2026-07-23
+    action: p10_loop_status_monitor_row_last_log_plain_object_pin_option_s
+    result: |
+      Landed tick 235's "natural next pick" option (s): a single plain-object
+      pin for the `last_log` field on every monitor_history row in admin-
+      reseller-loop-status-authz.spec.ts happy path.
+
+      Writer-schema justification:
+        - scripts/cron/reseller-monitor.sh:55-57 sets `last_log_obj = json.
+          loads(last_log) if last_log.strip() else {}` inside a try/except that
+          also falls back to `{}` on parse error. reseller-monitor.sh:62 then
+          spreads `"last_log": last_log_obj` into every appended row.
+        - `last_log` is therefore a schema-level guarantee from the writer:
+          always present, always a plain object (never null, never array,
+          never a scalar).
+        - Landing a plain-object pin catches (a) a writer regression that
+          renamed the key; (b) a python-side change that swapped the `{}`
+          fallback for None/null; (c) a python-side crash that produced an
+          empty row (defensive against silent regressions in the try/except
+          fallbacks at reseller-monitor.sh:52-57).
+
+      Symmetric convention (per tick 235):
+        - Same insertion pattern as monitor_ts + head_sha: two-line pin
+          after the plain-object row guard, with an inline citation of the
+          writer-script path + line number so a future refactor of either
+          side (writer or spec) surfaces a coupled diff obligation.
+        - No per-key content pins on last_log — its shape mirrors whatever
+          reseller-goal-history.jsonl.last-line happens to look like at
+          read time, and those keys are ALREADY pinned as tick_row.tick_id
+          + ts + stage on the tick_history side (tick 235). Landing per-key
+          pins on last_log too would double-count the same writer contract.
+        - No twin surface (singleton endpoint) — same rationale as tick 235.
+
+      Regression coverage tightened:
+        - PRE-tick: a writer regression that renamed last_log → prev_log,
+          swapped `{}` for None (which serialises to JSON null), or dropped
+          the spread entirely would silently pass admin-reseller-loop-
+          status-authz — the monitor_ts + head_sha + plain-object row pins
+          only cover the two top-level keys and the row shape itself, not
+          the last_log nested guarantee. The admin visual-QA lens (/admin/
+          reseller-loop dashboard) would carry the mismatch alone.
+        - POST-tick: the last_log plain-object guarantee is now covered by
+          a presence + shape pin at the wire, so any of the three regression
+          modes above surfaces here.
+
+      Trade-off accepted:
+        - The plain-object pin is coupled to reseller-monitor.sh:55-57 +
+          reseller-monitor.sh:62. A writer refactor that migrated last_log
+          to a versioned envelope like {v:2, tick_id, ts, ...} would still
+          pass (versioned envelope is still a plain object) — the pin only
+          guards the shape, not the schema of the nested keys. That is
+          intentional: last_log inherits reseller-goal-history.jsonl schema
+          at read time and is not owned by reseller-monitor.sh.
+        - Accepted because the coupling reflects the writer contract at
+          the outer envelope level (last_log is a plain object) while
+          leaving the inner-schema evolution unconstrained. If a future
+          tick wants to pin inner keys, it can land per-key content pins
+          on last_log matching whatever guarantees the reseller-goal-loop.
+          mjs writer already provides for tick_history rows.
+
+      Diagnostic delta of the pass:
+        - Added 1 new expect block in admin-reseller-loop-status-authz.
+          spec.ts (inside the monitor_history row loop, immediately after
+          monitor_ts + head_sha), with an inline citation of reseller-
+          monitor.sh:55-57 + :62.
+        - No production code touched, no fixture change, no route change,
+          no new imports, no vitest / Playwright runtime posture change,
+          no new module-scope constant (the pin is an inline literal
+          matching tick 235's convention).
+        - One comment block added citing the tick 236 landing + the two
+          writer-script line ranges + the "no per-key content pins" +
+          the "singleton-endpoint-no-twin-surface" rationale.
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-loop-status-authz.spec.ts
+          (one plain-object pin added after the monitor_ts + head_sha pins
+          with an inline writer-schema comment pointing to reseller-
+          monitor.sh:55-57 and reseller-monitor.sh:62.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.235 → 2026-07-23.236; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Schema pin only. No new spec-local constant (the field-presence
+          + plain-object pin reads clearly inline; hoisting would obscure
+          the tie-back to the specific writer line numbers in the expect
+          message). No fixture-file delta, no seed-script change, no P8.5-
+          gated code_request work (option (c) still blocked), no
+          production-code touch. Matches ticks 223-235 discipline:
+          tighten one dimension, symmetrise against known invariants,
+          single tick.
+
+      Verified:
+        - tsc clean (npx tsc --noEmit; no output = success).
+        - npm run lint:reseller: R-01 scanned 11 file(s), R-03 scanned
+          31 manifest route(s); 3 exemption(s), 0 violation(s). The
+          edited spec file lives under web/tests/e2e/**, not in the
+          reseller manifest, so R-01/R-03 do not fire on the edited
+          file.
+        - reseller vitest 449/449 pass (unchanged; no production code
+          or lib touched — Playwright specs are excluded from vitest
+          by design).
+
+      Frontier after tick 236: unchanged shape — Track A HUMAN-BLOCKED
+      on P8.5 Stripe env vars + P1.5 InfoVision seed on H.20 ABN + GST;
+      Track B COMPLETE; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 236 does NOT unblock: P8.5 STRIPE_PRICE_ADDON_SHARE_MGMT_*
+      env vars still human-gated; P1.5 InfoVision ABN + GST still
+      human-gated per H.20.
+
+      Natural next pick for tick 237:
+        (t) audit whether the admin-reseller-loop-status happy row's
+            `snapshot` field could be extended from typeof-string to a
+            length-cap pin — reseller-monitor.sh:41 writes /tmp/blockid-
+            reseller-monitor.txt via show-next-reseller-tick.sh redirect,
+            and the route at web/src/app/api/admin/reseller-loop/status/
+            route.ts safeReads MONITOR_TXT with a bounded read. If the
+            route caps snapshot at N bytes, that N is a route-code
+            contract worth pinning. Read route.ts first to confirm the
+            cap exists before landing.
+        (u) audit whether the admin-requests-list-authz per-key content
+            pins deferred at tick 234's option (r) could land as a
+            three-surface change (reseller-side twin + admin-side list +
+            admin-side patch spec) in a single bigger-diff tick. Tick 234
+            explicitly deferred this ("per-key admin pin would BREAK the
+            three-surface symmetry either land per-key pins across all
+            three surfaces in one tick — bigger diff — or defer"). Would
+            close option (r) for good.
+        (r) audit whether the admin-requests-list-authz newly-pinned
+            payload plain-object guard could be extended to per-key
+            content pins for the three request_type variants. Still
+            available; deferred at tick 235.
+        (n) audit whether admin-requests-patch-authz.spec.ts approve
+            branch decision_at pin could be tightened from typeof
+            string to an ISO-8601 regex — header-rewrite-first option
+            (contradicts existing "assert typeof string only" header
+            comment from tick 230). Still available; deferred at 235.
+        (c) mirror row 179 shape+helper alignment onto row 175 approve+
+            deny+cancel code_request branches once P8.5 unblocks.
+            P8.5-blocked, no available today.
+    commit: (this tick)
+
   - tick: 235
     ran_at: 2026-07-23
     action: p10_loop_status_row_field_schema_pins_option_q_reclassified
