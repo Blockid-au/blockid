@@ -11,9 +11,16 @@ import {
   ArrowRight,
   CheckCircle2,
   Circle,
+  Clock,
   Dot,
+  Hourglass,
   Sparkles,
 } from "lucide-react";
+import {
+  CANONICAL_STAGE_LABELS,
+  CANONICAL_STAGES,
+  JOURNEY_VOCAB_VERSION,
+} from "@/lib/journey-vocabulary";
 
 export const dynamic = "force-dynamic";
 
@@ -105,6 +112,163 @@ const PLATFORM_PHASES: Phase[] = [
 ];
 
 const CURRENT_PLATFORM_PHASE = 5;
+
+// ---------------------------------------------------------------------------
+// Snapshot as of 2026-07-23. Source: docs/plans/plan-delta-2026-07-23.md,
+// docs/plans/real-world-workflow-parity-audit-2026-07-23.md, and recent git
+// log. Refresh on each roadmap sync tick.
+// ---------------------------------------------------------------------------
+
+const SNAPSHOT_DATE = "2026-07-23";
+
+type ShippedItem = {
+  id: string;
+  title: string;
+  detail: string;
+  ticket?: string;
+};
+
+const RECENTLY_LANDED: ShippedItem[] = [
+  {
+    id: "reseller-p0-p9",
+    title: "Reseller module P0-P9 complete",
+    detail:
+      "Wholesale + retail billing, feature-gate manifest, sandbox rate-limit, ledger events, and admin surfaces landed. P10 test hardening in progress (tick 290 / target 500+).",
+    ticket: "Reseller module",
+  },
+  {
+    id: "svi-exc-0012",
+    title: "SVI EXC 0012 — founder secondary-offer intake",
+    detail:
+      "Founder-side secondary offer intake page shipped with SVI evidence link and legal review handoff.",
+    ticket: "T_SVI_EXC_0012 v0.5",
+  },
+  {
+    id: "ciso-06",
+    title: "Stripe portal wholesale gate",
+    detail:
+      "Server-side 403 on /api/stripe/portal for wholesale-provisioned founders — customer-portal exposure closed.",
+    ticket: "D3-CISO-06",
+  },
+  {
+    id: "ciso-07",
+    title: "Stripe metadata UUID hashing",
+    detail:
+      "hashUserId() helper + reseller-lints CI rule — subject_startup_user_id no longer leaks raw UUID into Stripe metadata.",
+    ticket: "D3-CISO-07",
+  },
+  {
+    id: "chro-div83a",
+    title: "CHRO Div 83A qualifying-tests checklist",
+    detail:
+      "Employee-share-scheme eligibility checklist wired into ESOP API + knowledge base for start-up concession tests.",
+    ticket: "CHRO advisory",
+  },
+  {
+    id: "cs-vi-loc",
+    title: "Customer-Success VI localization for reseller UI",
+    detail:
+      "Vietnamese translations for Grant modal + Customer drawer on the reseller admin surface.",
+    ticket: "Customer-Success advisory",
+  },
+  {
+    id: "clo-sandbox-banner",
+    title: "CLO sandbox banner + AUP",
+    detail:
+      "In-workspace banner warning against real PI in sandbox with link to Acceptable Use Policy (component wired; policy copy in flight).",
+    ticket: "D4-CLO-06",
+  },
+  {
+    id: "real-world-audit",
+    title: "Real-world workflow parity audit",
+    detail:
+      "Audit committed at docs/plans/real-world-workflow-parity-audit-2026-07-23.md — Atlassian / Canva / Airwallex / Xero / Culture Amp benchmarked against every BlockID surface.",
+    ticket: "docs/plans",
+  },
+  {
+    id: "journey-vocab",
+    title: `Canonical 8-stage startup vocabulary v${JOURNEY_VOCAB_VERSION}`,
+    detail:
+      "web/src/lib/journey-vocabulary.ts replaces four overlapping legacy taxonomies (SVI-8, Growth-12, SCN-5, roadmap-8). Legacy surfaces still migrating.",
+    ticket: "Vocab v1.0.0",
+  },
+  {
+    id: "data-room-60",
+    title: "Data-room 60+ items with Tax + AU-Compliance sections",
+    detail:
+      "Expanded data-room checklist across corporate, financial, product, IP, contracts, and AU-specific ATO / ESIC / AFSL / Fair Work rows (in flight).",
+    ticket: "Data-room v2",
+  },
+];
+
+type UpcomingItem = {
+  id: string;
+  title: string;
+  detail: string;
+  status: "in_progress" | "planned";
+};
+
+const IN_PROGRESS: UpcomingItem[] = [
+  {
+    id: "reseller-p10",
+    title: "Reseller P10 — test hardening to 500+ ticks",
+    detail:
+      "Wire-shape and value-set pins across admin-resellers-list + admin-reseller-detail, chain-of-audit and RLS-bypass negatives.",
+    status: "in_progress",
+  },
+  {
+    id: "vocab-migration",
+    title: "Migrate SVI / Growth / SCN surfaces to canonical vocabulary",
+    detail:
+      "Replace SVI-8, Growth-12, and SCN-5 labels with CANONICAL_STAGE_LABELS. Reports, dashboards, and guide chapters affected.",
+    status: "in_progress",
+  },
+  {
+    id: "data-room-audit",
+    title: "Data-room v2 — AU-compliance + tax rows",
+    detail:
+      "Extend workspace data-room from 21 to 60+ items adding ATO, ESIC, AFSL, Fair Work and tax categories to reach Series-A parity.",
+    status: "in_progress",
+  },
+  {
+    id: "share-mgmt-prices",
+    title: "Share Management add-on Stripe prices",
+    detail:
+      "Wire Stripe price IDs for share-management add-on; blocked on env vars (see human-blocked).",
+    status: "planned",
+  },
+  {
+    id: "showcase-canonical",
+    title: "Showcase re-tagging with canonical stages",
+    detail:
+      "Re-map Atlassian / Canva / Xero / SafetyCulture showcase timelines from 12-phase to canonical 8-stage vocabulary.",
+    status: "planned",
+  },
+];
+
+type HumanBlockedItem = {
+  id: string;
+  title: string;
+  detail: string;
+  owner: string;
+};
+
+const HUMAN_BLOCKED: HumanBlockedItem[] = [
+  {
+    id: "infovision-abn-gst",
+    title: "InfoVision reseller seed — ABN + GST registration",
+    detail:
+      "resellers row for InfoVision can't be seeded until a valid ABN and GST-registered flag are provided. Reseller agreement (D4-CLO-02) also awaits execution.",
+    owner: "Human — CFO / CLO",
+  },
+  {
+    id: "stripe-env-share-mgmt",
+    title: "Stripe env vars for Share Management add-on prices",
+    detail:
+      "STRIPE_PRICE_SHARE_MGMT_* env vars needed for the Share Management add-on tier. Deploy is blocked on human provisioning of price IDs in Stripe dashboard.",
+    owner: "Human — Ops",
+  },
+];
 
 type QuarterPhase = {
   id: string;
@@ -321,6 +485,154 @@ export default function RoadmapPage() {
             deploy will populate this panel.
           </p>
         )}
+      </MarketingSection>
+
+      {/* Recently landed */}
+      <MarketingSection
+        title="Recently landed"
+        kicker={`Snapshot ${SNAPSHOT_DATE}`}
+      >
+        <p className="text-sm text-[var(--fintech-ink-muted)]">
+          Ships since the last roadmap sync. Sourced from
+          <code className="mx-1 rounded bg-[var(--fintech-surface)] px-1 py-0.5 text-xs">docs/plans/plan-delta-2026-07-23.md</code>
+          and the git log on master.
+        </p>
+        <ul className="mt-6 grid gap-3 md:grid-cols-2">
+          {RECENTLY_LANDED.map((item) => (
+            <li
+              key={item.id}
+              className="flex items-start gap-3 rounded-xl border border-[var(--fintech-border)] bg-[var(--fintech-surface)] p-4"
+            >
+              <CheckCircle2
+                aria-hidden="true"
+                className="mt-0.5 h-5 w-5 shrink-0 text-[var(--fintech-accent)]"
+              />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-[var(--fintech-ink)]">
+                  {item.title}
+                  {item.ticket ? (
+                    <span className="ml-2 text-[11px] font-medium uppercase tracking-wider text-[var(--fintech-ink-muted)]">
+                      {item.ticket}
+                    </span>
+                  ) : null}
+                </p>
+                <p className="mt-1 text-sm text-[var(--fintech-ink-muted)]">
+                  {item.detail}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </MarketingSection>
+
+      {/* Next up / In progress */}
+      <MarketingSection
+        tone="elevated"
+        title="Next up"
+        kicker="In flight"
+      >
+        <p className="text-sm text-[var(--fintech-ink-muted)]">
+          Top active goals mirrored from the plan-delta and reseller module
+          plan. Order reflects the earliest exit-criterion still open.
+        </p>
+        <ul className="mt-6 space-y-3">
+          {IN_PROGRESS.map((item) => (
+            <li
+              key={item.id}
+              className="flex items-start gap-3 rounded-xl border border-[var(--fintech-border)] bg-[var(--fintech-surface)] p-4"
+            >
+              {item.status === "in_progress" ? (
+                <Circle
+                  aria-hidden="true"
+                  className="mt-0.5 h-5 w-5 shrink-0 text-[var(--fintech-accent-hot)]"
+                />
+              ) : (
+                <Clock
+                  aria-hidden="true"
+                  className="mt-0.5 h-5 w-5 shrink-0 text-[var(--fintech-ink-muted)]"
+                />
+              )}
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-[var(--fintech-ink)]">
+                  {item.title}
+                  <span className="ml-2 text-[11px] font-medium uppercase tracking-wider text-[var(--fintech-ink-muted)]">
+                    {item.status === "in_progress" ? "In progress" : "Planned"}
+                  </span>
+                </p>
+                <p className="mt-1 text-sm text-[var(--fintech-ink-muted)]">
+                  {item.detail}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </MarketingSection>
+
+      {/* Human-blocked / Waiting */}
+      <MarketingSection
+        title="Human-blocked"
+        kicker="Waiting on humans"
+      >
+        <p className="text-sm text-[var(--fintech-ink-muted)]">
+          Work with runnable code that cannot ship until a human unblocks a
+          real-world credential, contract, or provisioning step.
+        </p>
+        <ul className="mt-6 space-y-3">
+          {HUMAN_BLOCKED.map((item) => (
+            <li
+              key={item.id}
+              className="flex items-start gap-3 rounded-xl border border-[var(--fintech-border)] bg-[var(--fintech-surface)] p-4"
+            >
+              <Hourglass
+                aria-hidden="true"
+                className="mt-0.5 h-5 w-5 shrink-0 text-[var(--fintech-accent-hot)]"
+              />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-[var(--fintech-ink)]">
+                  {item.title}
+                  <span className="ml-2 text-[11px] font-medium uppercase tracking-wider text-[var(--fintech-ink-muted)]">
+                    {item.owner}
+                  </span>
+                </p>
+                <p className="mt-1 text-sm text-[var(--fintech-ink-muted)]">
+                  {item.detail}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </MarketingSection>
+
+      {/* The canonical 8-stage startup journey */}
+      <MarketingSection
+        title="The 8-stage startup journey"
+        kicker={`Canonical vocabulary v${JOURNEY_VOCAB_VERSION}`}
+      >
+        <p className="text-sm text-[var(--fintech-ink-muted)]">
+          Every SVI report, dashboard, and data-room row now lines up with the
+          same 8 stages a VC or accelerator would recognise — Idea, Validation,
+          MVP / Early Revenue, Seed, Series A, Series B / C, Late-stage, and
+          Public / Exit. Reference cases: Atlassian, Canva, Airwallex, Xero,
+          Culture Amp.
+        </p>
+        <ol className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {CANONICAL_STAGES.map((key, idx) => (
+            <li
+              key={key}
+              className="rounded-xl border border-[var(--fintech-border)] bg-[var(--fintech-surface)] p-4"
+            >
+              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--fintech-accent)]">
+                Stage {idx + 1}
+              </span>
+              <p className="mt-2 font-display text-base font-semibold text-[var(--fintech-ink)]">
+                {CANONICAL_STAGE_LABELS[key].label_en}
+              </p>
+              <p className="mt-1 text-xs text-[var(--fintech-ink-muted)]">
+                VI · {CANONICAL_STAGE_LABELS[key].label_vi}
+              </p>
+            </li>
+          ))}
+        </ol>
       </MarketingSection>
 
       {/* The 8 platform phases */}

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// R-01 + R-03 CI enforcement.
+// R-01 + R-03 + R-04 CI enforcement.
 //
 // R-01 — every /api/reseller/** route that uses getSupabaseAdmin must also
 // import scopedReseller (chokepoint) or resellerSupabase (typed wrapper).
@@ -11,6 +11,14 @@
 // its body, with <key> matching the manifest's required_feature. Handlers
 // may opt out with `// r-03-exempt: <reason>` immediately above the
 // export declaration.
+//
+// R-04 — files under web/src/app/api/stripe/** may not write a raw UUID
+// (`user.id`, `promo.reseller_id`, …) into a Stripe `metadata:` object
+// literal. The value must be wrapped in `hashUserId(...)` from
+// `@/lib/reseller/hash`, OR the same block must contain a peer `_hash:`
+// key (transition-window pattern), OR the block must be opted out with
+// `// r-04-exempt: <reason>` immediately above the `metadata: {` opener.
+// Enforces CISO D3-CISO-07 (docs/plans/plan-delta-2026-07-23.md § D.3).
 //
 // Canonical analyzers: web/src/lib/reseller/reseller-lints.ts (unit-tested).
 // The regexes below duplicate those on purpose so this CLI stays plain
@@ -25,6 +33,7 @@ import { join, relative, resolve } from "node:path";
 const WEB_ROOT = resolve(new URL("../..", import.meta.url).pathname);
 const REPO_ROOT = resolve(WEB_ROOT, "..");
 const RESELLER_SCAN_ROOT = join(WEB_ROOT, "src", "app", "api", "reseller");
+const STRIPE_SCAN_ROOT = join(WEB_ROOT, "src", "app", "api", "stripe");
 const APP_ROOT = join(WEB_ROOT, "src", "app");
 const MANIFEST_PATH = join(WEB_ROOT, "src", "lib", "feature-gates.manifest.ts");
 
@@ -225,6 +234,129 @@ function analyzeR03(file, content, requiredFeature) {
   return findings;
 }
 
+// ---- R-04 -----------------------------------------------------------------
+
+const R04_EXEMPT_PRAGMA = /\/\/\s*r-04-exempt:\s*(.*)$/;
+const R04_RAW_UUID_ENTRY =
+  /(\b\w*(?:user|reseller|subject|paying|blockid)\w*_id)\s*:\s*([^,\n}]+)/i;
+
+function locateMetadataBlocks(content) {
+  const out = [];
+  const re = /\bmetadata\s*[:=]\s*\{/g;
+  let m;
+  while ((m = re.exec(content)) !== null) {
+    const openOffset = m.index + m[0].length - 1;
+    let depth = 0;
+    let closeOffset = -1;
+    for (let i = openOffset; i < content.length; i++) {
+      const ch = content[i];
+      if (ch === "{") depth++;
+      else if (ch === "}") {
+        depth--;
+        if (depth === 0) {
+          closeOffset = i;
+          break;
+        }
+      }
+    }
+    if (closeOffset === -1) continue;
+    out.push({
+      openLine: lineFromOffset(content, openOffset),
+      openOffset,
+      closeOffset,
+    });
+  }
+  return out;
+}
+
+function analyzeR04(file, content) {
+  const findings = [];
+  const lines = content.split("\n");
+  const blocks = locateMetadataBlocks(content);
+
+  for (const block of blocks) {
+    const bodyText = content.slice(block.openOffset + 1, block.closeOffset);
+
+    const offenders = [];
+    let searchFrom = 0;
+    while (searchFrom < bodyText.length) {
+      const sub = bodyText.slice(searchFrom);
+      const match = R04_RAW_UUID_ENTRY.exec(sub);
+      if (!match) break;
+      const value = match[2].trim();
+      const isHashed = /\bhashUserId\s*\(/.test(value);
+      const isHashKey = /_hash\b/.test(match[1]);
+      const isRawIdRef = /\.\s*(id|[a-zA-Z_]*_id)\b/.test(value);
+      if (isRawIdRef && !isHashed && !isHashKey) {
+        const absOffset = block.openOffset + 1 + searchFrom + match.index;
+        offenders.push({
+          line: lineFromOffset(content, absOffset),
+          snippet: `${match[1]}: ${value.split(/\s*,/)[0].slice(0, 60)}`,
+        });
+      }
+      searchFrom += match.index + match[0].length;
+    }
+
+    if (offenders.length === 0) continue;
+
+    const hasPeerHash =
+      /\b\w*(?:user|reseller|subject|paying|blockid)\w*_hash\s*:/i.test(bodyText);
+
+    let exemptReason = null;
+    for (let back = 1; back <= 3; back++) {
+      const idx = block.openLine - 1 - back;
+      if (idx < 0) break;
+      const pm = lines[idx].match(R04_EXEMPT_PRAGMA);
+      if (pm) {
+        exemptReason = (pm[1] ?? "").trim();
+        break;
+      }
+    }
+
+    if (exemptReason !== null) {
+      if (exemptReason === "") {
+        findings.push({
+          rule: "R-04",
+          file,
+          line: block.openLine,
+          severity: "error",
+          message:
+            "R-04: `// r-04-exempt:` pragma above `metadata:` requires a non-empty reason.",
+        });
+      } else {
+        findings.push({
+          rule: "R-04",
+          file,
+          line: block.openLine,
+          severity: "exempt",
+          message: "R-04 exemption",
+          reason: exemptReason,
+        });
+      }
+      continue;
+    }
+
+    if (hasPeerHash) continue;
+
+    for (const off of offenders) {
+      findings.push({
+        rule: "R-04",
+        file,
+        line: off.line,
+        severity: "error",
+        message:
+          `R-04: raw UUID reference \`${off.snippet}\` written into Stripe ` +
+          `\`metadata:\` — wrap the value with \`hashUserId(...)\` from ` +
+          `\`@/lib/reseller/hash\`, add a peer \`_hash\` key, or place ` +
+          `\`// r-04-exempt: <reason>\` above the \`metadata: {\` opener. ` +
+          `(D3-CISO-07)`,
+      });
+    }
+  }
+
+  return findings;
+}
+
 // ---- Manifest parser ------------------------------------------------------
 
 // Read FEATURE_GATES entries from the manifest source (plain node, no tsx).
@@ -304,6 +436,23 @@ for (const entry of manifest) {
   }
 }
 
+// ---- R-04 pass ------------------------------------------------------------
+
+const r04Files = [];
+walk(STRIPE_SCAN_ROOT, r04Files);
+
+let r04Scanned = 0;
+for (const abs of r04Files) {
+  if (abs.endsWith(".test.ts") || abs.endsWith(".test.tsx")) continue;
+  const rel = relative(REPO_ROOT, abs);
+  const content = readFileSync(abs, "utf8");
+  r04Scanned++;
+  for (const f of analyzeR04(rel, content)) {
+    if (f.severity === "error") errors.push(f);
+    else exemptions.push(f);
+  }
+}
+
 // ---- Report ---------------------------------------------------------------
 
 if (exemptions.length > 0) {
@@ -321,12 +470,12 @@ if (errors.length > 0) {
     console.error(`  [${e.rule}] ${e.file}:${e.line}${tail}\n    ${e.message}`);
   }
   console.error(
-    `\nScanned ${r01Files.length} reseller file(s) for R-01 + ${r03Scanned} manifest route(s) for R-03. Failing.`,
+    `\nScanned ${r01Files.length} reseller file(s) for R-01 + ${r03Scanned} manifest route(s) for R-03 + ${r04Scanned} stripe file(s) for R-04. Failing.`,
   );
   process.exit(1);
 }
 
 console.log(
-  `\nOK — R-01 scanned ${r01Files.length} file(s), R-03 scanned ${r03Scanned} manifest route(s); ` +
+  `\nOK — R-01 scanned ${r01Files.length} file(s), R-03 scanned ${r03Scanned} manifest route(s), R-04 scanned ${r04Scanned} stripe file(s); ` +
     `${exemptions.length} exemption(s), 0 violations.`,
 );

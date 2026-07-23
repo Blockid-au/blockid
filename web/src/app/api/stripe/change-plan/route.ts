@@ -10,6 +10,7 @@ import {
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { getPlan } from "@/lib/plans";
 import { buildAddonRemovalSchedulePhases } from "@/lib/stripe/addon-schedule";
+import { hashUserId } from "@/lib/reseller/hash";
 
 // POST /api/stripe/change-plan
 // Body (three modes):
@@ -248,8 +249,10 @@ export async function POST(request: Request) {
       line_items: [{ price: newPriceId, quantity: 1 }],
       success_url: `${siteUrl}/checkout/success?plan=${newPlanId}`,
       cancel_url: `${siteUrl}/#pricing`,
+      // r-04-exempt: transition window — raw kept alongside hash for webhook back-compat (D3-CISO-07 phase 1)
       metadata: {
         blockid_user_id: user.id,
+        blockid_user_hash: hashUserId(user.id),
         blockid_plan: newPlanId,
       },
     });

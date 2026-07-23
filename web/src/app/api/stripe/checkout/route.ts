@@ -6,6 +6,7 @@ import { getPlan, isGrowthEarlyBird } from "@/lib/plans";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { normaliseResellerCode } from "@/lib/reseller/attribution";
 import { viaClientReferenceId } from "@/lib/reseller/attribution-server";
+import { hashUserId } from "@/lib/reseller/hash";
 
 // POST /api/stripe/checkout
 // Body: { plan, couponCode? }
@@ -118,8 +119,16 @@ export async function POST(request: Request) {
 
   const isRecurring = plan.cadence === "monthly" || plan.cadence === "yearly";
 
+  // Per CISO D3-CISO-07: hash raw user UUIDs before writing to Stripe metadata
+  // so a metadata dump can't be joined against app_users directly. During the
+  // backward-compat transition we ALSO keep the raw `user_id` field so
+  // in-flight webhooks (which look up app_users.id from metadata) keep
+  // working; a follow-up ticket drops the raw column once the webhook is
+  // migrated to hash-lookup or customer_email fallback.
+  // r-04-exempt: transition window — raw kept alongside hash for webhook back-compat (D3-CISO-07 phase 1)
   const customerMetadata: Record<string, string> = {
     user_id: user.id,
+    user_id_hash: hashUserId(user.id),
     plan_id: planId,
   };
   if (userSegment) customerMetadata.segment = userSegment;
@@ -164,7 +173,9 @@ export async function POST(request: Request) {
               stripe_promotion_code_id: (promo.stripe_promotion_code_id as string | null) ?? null,
             };
             customerMetadata.reseller_code = promo.code as string;
+            // r-04-exempt: transition window — raw kept alongside hash for webhook back-compat (D3-CISO-07 phase 1)
             customerMetadata.reseller_id = promo.reseller_id as string;
+            customerMetadata.reseller_id_hash = hashUserId(promo.reseller_id as string);
             customerMetadata.reseller_display_name = resellerAttribution.display_name;
             customerMetadata.tier_at_signup = String(promo.tier_pct);
           }
@@ -181,8 +192,10 @@ export async function POST(request: Request) {
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: `${siteUrl}/checkout/success?plan=${planId}`,
     cancel_url: `${siteUrl}/#pricing`,
+    // r-04-exempt: transition window — raw kept alongside hash for webhook back-compat (D3-CISO-07 phase 1)
     metadata: {
       blockid_user_id: user.id,
+      blockid_user_hash: hashUserId(user.id),
       blockid_plan: planId,
       ...(userSegment ? { blockid_segment: userSegment } : {}),
     },
@@ -236,10 +249,12 @@ export async function POST(request: Request) {
       delete sessionParams.allow_promotion_codes;
     }
     // Also stamp session-level metadata so checkout.session.completed sees it.
+    // r-04-exempt: transition window — raw kept alongside hash for webhook back-compat (D3-CISO-07 phase 1)
     sessionParams.metadata = {
       ...(sessionParams.metadata ?? {}),
       reseller_code: resellerAttribution.code,
       reseller_id: resellerAttribution.reseller_id,
+      reseller_id_hash: hashUserId(resellerAttribution.reseller_id),
       reseller_display_name: resellerAttribution.display_name,
       tier_at_signup: String(resellerAttribution.tier_pct),
     };
