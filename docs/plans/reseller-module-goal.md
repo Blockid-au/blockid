@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.312
+version: 2026-07-23.313
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -651,6 +651,111 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 313
+    ran_at: 2026-07-23
+    action: p10_attributions_summary_by_source_value_set_enum_pin_on_admin_reseller_detail_SCOPE_ROTATION
+    result: |
+      SCOPE ROTATION out of the reseller_commissions_current[] child-row
+      cluster (opened at tick 308, four columns pinned across ticks
+      308/309/311/312 — commission_id, stripe_invoice_id,
+      list_price_aud_cents, discount_pct) INTO the reseller_attributions
+      aggregate summary surfaced on the admin-reseller-detail route.
+      Chosen over rotating to the raw reseller_attributions[] cluster
+      because the detail route deliberately projects an AGGREGATE object
+      (attributions_summary at route.ts:113-120) rather than the raw
+      attributions rows — the raw list is neither on the wire nor
+      available to a Playwright client, so the aggregate shape is the
+      only legal pinning surface. Pin coverage: attributions_summary.
+      by_source is a Record<enum, number> whose KEY set must match
+      ALLOWED_ATTRIBUTION_SOURCES {'code','provisioned','admin_manual'}
+      and whose VALUE set must be non-negative integers.
+
+      Writer-schema justification:
+        - 0091_reseller_module_foundations.sql:123 declares
+          `source text NOT NULL CHECK (source IN
+          ('code','provisioned','admin_manual'))` on
+          reseller_attributions. The DB CHECK is the SOLE enforcement
+          layer — no application write-path enum guard on source writes
+          (attribution.ts stamps the value based on the linking flow,
+          not a Zod-validated field), so a schema-side CHECK drop or a
+          legacy INSERT stamping a rogue source would land straight
+          through PostgREST into the reducer.
+        - Route computation: attributions_summary.by_source is computed
+          at web/src/app/api/admin/resellers/[code]/route.ts:116-119 as
+          `attributions.reduce<Record<string, number>>((acc, a) =>
+          { acc[a.source] = (acc[a.source] ?? 0) + 1; return acc; }, {})`
+          — the accumulator keys directly on the raw source column so a
+          rogue source flows through as a rogue key.
+
+      Design choice — four-part guard extending the tick 305 / tick 312
+      value-set enum posture across an ITERABLE Record rather than a
+      scalar column:
+        - (a) KEY membership: ALLOWED_ATTRIBUTION_SOURCES.has() assert
+          on each `Object.entries` iteration — catches the schema-CHECK-
+          drop / rogue-source-INSERT path.
+        - (b) VALUE typeof-number preserves the raw-type discipline —
+          catches a stringified count.
+        - (c) VALUE Number.isInteger() catches NaN, Infinity, and
+          floating-point drift from a reducer refactor.
+        - (d) VALUE >= 0 assert catches a negative counter from a signed-
+          int wraparound or reducer refactor.
+        - Empty by_source `{}` (when the reseller has no attributions
+          rows) trivially satisfies all four asserts via Object.entries
+          returning zero iterations — vacuous truth, no pin fires.
+
+      Coverage-per-guard posture:
+        - Detail surface: wave-5 row 167 single-row GET fires the four-
+          part pin on EVERY green CI run (attributions_summary is always
+          present on the wire, even if by_source is empty {}). Hosts with
+          seeded attribution rows exercise the KEY / VALUE asserts; hosts
+          without still green because Object.entries({}) is a no-op.
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 313 paragraph) added below
+              the tick 312 discount_pct paragraph above ISO_TIMESTAMP_RE.
+            + NEW module-scope const ALLOWED_ATTRIBUTION_SOURCES added
+              adjacent to ALLOWED_ADMIN_STATUSES cluster (row 969).
+            + body type widened: attributions_summary.by_source? changed
+              from `unknown` to `Record<string, unknown>` so
+              Object.entries narrows the [source, count] tuple.
+            + wave-5 row 167 assertion block appended after the existing
+              by_source-is-plain-object shape assert: for-of over
+              Object.entries with four-part guard on each [key, value]
+              pair.
+        - No production code touched, no fixture change, no route
+          change, no new imports. Matches ticks 234-312 discipline —
+          one new module-scope const permitted per value-set-enum
+          scope entry (mirrors the tick 304 ALLOWED_ADMIN_ROLES /
+          tick 305 ALLOWED_ADMIN_STATUSES entries).
+
+      Verification:
+        - tsc --noEmit: exit 0 (tests/** excluded from tsc include
+          set; production tree unchanged).
+        - npm run lint:reseller: unchanged from tick 312 baseline
+          (spec lives under tests/**, not in the reseller manifest).
+        - vitest src/lib/reseller: no delta expected — Playwright
+          specs are excluded from vitest by design.
+
+      Next natural picks on tick 314:
+        (a) rotate BACK to the commissions[] cluster to continue the
+        remaining columns — commission_aud_cents (int NOT NULL CHECK
+        >= 0 at 0094:41, three-part numeric pin), net_owed_cents (int,
+        may be negative on clawback — two-part typeof/isInteger only),
+        status (view CASE at 0094:150-172 exposing {cleared,
+        pending_clearance, clawed_back, dispute_open, partially_refunded}
+        — value-set enum with NEW module-scope Set
+        ALLOWED_COMMISSION_STATUSES), created_at (ISO-8601 shape).
+        (b) rotate forward to attributions_summary.total /
+        attributions_summary.active — refine the existing typeof-number
+        asserts with Number.isInteger + >= 0 tail asserts matching the
+        posture applied to by_source values in this tick.
+        (c) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks.
+    commit: (this tick)
+
   - tick: 312
     ran_at: 2026-07-23
     action: p10_commissions_discount_pct_value_set_enum_pin_on_admin_reseller_detail

@@ -902,6 +902,53 @@ const UUID_RE =
 // commission events the for-loop is a no-op so the pin never fires.
 // Continues the P10 hardening posture — no fixture change, no route
 // change, no new imports, no new module-scope constants.
+//
+// Tick 313 — attributions_summary.by_source Record<enum, number> value-set
+// enum tightening, SCOPE ROTATION out of the reseller_commissions_current[]
+// child-row cluster (opened at tick 308, four columns pinned across ticks
+// 308/309/311/312) INTO the reseller_attributions aggregate summary
+// surfaced on admin-reseller-detail. Chosen over rotating to the raw
+// reseller_attributions[] cluster because the detail route deliberately
+// projects an AGGREGATE object (attributions_summary at route.ts:113-120)
+// rather than the raw attributions rows — the raw list is neither on the
+// wire nor available to a Playwright client, so the aggregate shape is
+// the only legal pinning surface. Column source: computed by route.ts:
+// 116-119 as `attributions.reduce<Record<string, number>>((acc, a) =>
+// { acc[a.source] = (acc[a.source] ?? 0) + 1; return acc; }, {})`, where
+// `a.source` is `reseller_attributions.source text NOT NULL CHECK
+// (source IN ('code','provisioned','admin_manual'))` at 0091:123. The
+// DB CHECK is the SOLE enforcement layer — no application-write-path
+// enum guard on source writes (attribution.ts stamps the value based on
+// the linking flow, not a Zod-validated field), so a schema-side CHECK
+// drop or a legacy INSERT that stamped a source outside the enumeration
+// would flow straight through PostgREST into the reduce accumulator and
+// land as a rogue key on the wire. This tick pins BOTH halves of that
+// invariant: (a) every KEY of by_source must be in the
+// ALLOWED_ATTRIBUTION_SOURCES value set {'code','provisioned',
+// 'admin_manual'} — catches the schema-CHECK-drop / rogue-source-INSERT
+// path; (b) every VALUE must be typeof-number + Number.isInteger + >= 0
+// — catches a JavaScript regression in the reducer that stamped a
+// stringified count, NaN from a divide-by-zero, or a negative value
+// from a reducer refactor. Also carries the tick 305/312 value-set
+// discipline into a NEW module-scope Set (ALLOWED_ATTRIBUTION_SOURCES)
+// mirroring the existing ALLOWED_ADMIN_ROLES / ALLOWED_ADMIN_STATUSES /
+// ALLOWED_TIER_VALUES cluster, kept adjacent to the ALLOWED_ADMIN_*
+// constants at row 969. Detail-surface only — the admin-resellers-list
+// route projects only the resellers-row shape (route.ts) and does not
+// compute an attributions_summary; the aggregate is unique to the
+// detail route's Promise.all leg. Fires on every green CI run because
+// the summary object is ALWAYS present on the wire regardless of
+// whether the attributions array is empty (an empty reduce returns
+// `{}`, which trivially satisfies the KEY-membership assert as a
+// vacuous truth and skips the VALUE assert). Continues the P10
+// hardening posture — no fixture change, no route change, no new
+// imports; adds ONE new module-scope const (ALLOWED_ATTRIBUTION_SOURCES).
+// The tick also opens the door for a future tick 314+ to rotate BACK
+// to the commissions[] cluster's remaining columns (commission_aud_cents
+// >= 0, net_owed_cents integer, status enum, created_at ISO shape) OR
+// forward to a raw reseller_attributions[] cluster if the detail route
+// is ever widened to fan out the raw rows (per U.15.1 the raw fan-out
+// remains behind attributions_summary today).
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Tick 309 — Stripe invoice ID shape regex. Matches the modern Stripe
@@ -967,6 +1014,25 @@ const ALLOWED_ADMIN_ROLES = new Set(["owner", "admin", "viewer"]);
 // outside the enumeration would land straight through PostgREST onto
 // the wire, which this Set catches on the first offending row.
 const ALLOWED_ADMIN_STATUSES = new Set(["active", "revoked"]);
+// Tick 313 — value set for attributions_summary.by_source keys. Mirrors
+// the DB CHECK at 0091:123 `source IN ('code','provisioned','admin_manual')`
+// on the reseller_attributions table, which is the sole enforcement layer
+// (no application write-path enum guard on source writes — attribution.ts
+// stamps the value based on the linking flow rather than a Zod-validated
+// field). The route's attributions_summary.by_source reducer at
+// route.ts:116-119 keys the accumulator directly on the raw
+// reseller_attributions.source column, so a schema-side CHECK drop or a
+// legacy INSERT that stamped a source outside the enumeration would
+// surface as a rogue key on the wire — which this Set catches on the
+// first offending key. NARROWER than the three-value admin-source enum
+// because the attribution flow is strictly one of the three enumerated
+// origins: user-typed promotion code, reseller-provisioned link, or
+// admin-manual override.
+const ALLOWED_ATTRIBUTION_SOURCES = new Set([
+  "code",
+  "provisioned",
+  "admin_manual",
+]);
 
 test.describe("Admin reseller GET pre-read authorization — P10 dry-run", () => {
   test("unauthenticated — GET with no session returns 401 no_user", async ({
@@ -1164,7 +1230,7 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
       attributions_summary?: {
         total?: unknown;
         active?: unknown;
-        by_source?: unknown;
+        by_source?: Record<string, unknown>;
       };
       commissions?: Array<{
         commission_id?: unknown;
@@ -1701,6 +1767,39 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         !Array.isArray(body.attributions_summary?.by_source),
       `attributions_summary.by_source should be a plain object: ${JSON.stringify(body.attributions_summary).slice(0, 200)}`,
     ).toBe(true);
+    // Tick 313 — attributions_summary.by_source Record<enum, number>
+    // value-set enum tightening. SCOPE ROTATION out of the
+    // reseller_commissions_current[] cluster into the aggregate
+    // attributions_summary shape. Two-part guard: (a) every KEY must be
+    // in ALLOWED_ATTRIBUTION_SOURCES {'code','provisioned','admin_manual'}
+    // — catches a schema-side CHECK drop at 0091:123 or a legacy INSERT
+    // that stamped a rogue source; (b) every VALUE must be typeof-number
+    // + Number.isInteger + >= 0 — catches a JS regression in the
+    // route.ts:116-119 reducer that stamped a stringified count, NaN,
+    // or a negative counter. Empty by_source `{}` (when the reseller has
+    // no attributions rows) trivially satisfies both asserts as a vacuous
+    // truth via Object.entries → no iterations. See module-scope doc-block
+    // above ISO_TIMESTAMP_RE (tick 313 paragraph) for the rationale.
+    for (const [source, count] of Object.entries(
+      body.attributions_summary?.by_source ?? {},
+    )) {
+      expect(
+        ALLOWED_ATTRIBUTION_SOURCES.has(source),
+        `attributions_summary.by_source key '${source}' should be in the enum {code,provisioned,admin_manual} per ck_reseller_attributions_source CHECK at 0091:123; a DB CHECK drop, a legacy INSERT that stamped a source outside the enumeration ('referral', 'partner'), or a route.ts:116-119 reducer refactor that keyed on a non-source column would surface here. by_source: ${JSON.stringify(body.attributions_summary?.by_source).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        typeof count === "number",
+        `attributions_summary.by_source['${source}'] value '${String(count)}' should be a number (route.ts:116-119 reducer accumulates integer counts; a JS regression that stamped a stringified count or an undefined branch would surface here). by_source: ${JSON.stringify(body.attributions_summary?.by_source).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        Number.isInteger(count),
+        `attributions_summary.by_source['${source}'] value '${String(count)}' should be an integer (route.ts:116-119 reducer counts by +1 per row; a NaN from divide-by-zero, a floating-point count from a reducer refactor, or Infinity would surface here). by_source: ${JSON.stringify(body.attributions_summary?.by_source).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        (count as number) >= 0,
+        `attributions_summary.by_source['${source}'] value '${String(count)}' should be non-negative (route.ts:116-119 reducer only accumulates +1 per row; a reducer refactor that stamped a negative counter or a signed-int wraparound would surface here). by_source: ${JSON.stringify(body.attributions_summary?.by_source).slice(0, 200)}`,
+      ).toBe(true);
+    }
 
     expect(
       Array.isArray(body.commissions),
