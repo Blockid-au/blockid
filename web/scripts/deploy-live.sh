@@ -818,7 +818,11 @@ sleep 5
 # the hydrated smoke exercises so RSC + CDN caches are hot before the
 # browser probes them. Never fatal — a transient CDN miss must not
 # block deploy, so per-URL failures simply move on.
-WARMUP_URLS=(/ /pricing /roadmap /dashboard/portfolio)
+# iter-19: also warm the `?tier=accelerator` deep-link surface so its
+# distinct dynamic-render cache entry is hot before the deterministic
+# first-render smoke assertion probes it (Next 16 keys the RSC cache on
+# the full URL including searchParams).
+WARMUP_URLS=(/ /pricing "/pricing?tier=accelerator" /roadmap /dashboard/portfolio)
 echo "  ℹ  Warming up ${#WARMUP_URLS[@]} routes before hydrated smoke..."
 for url in "${WARMUP_URLS[@]}"; do
   for i in {1..3}; do
