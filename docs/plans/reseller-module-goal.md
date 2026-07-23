@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.261
+version: 2026-07-23.262
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,197 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 262
+    ran_at: 2026-07-23
+    action: p10_admin_requests_patch_post_readback_per_key_payload_content_pins_option_s
+    result: |
+      Landed tick 261's "natural next pick" option (s) as per-key payload
+      content pins on admin-requests-patch-authz.spec.ts deny-branch post-
+      PATCH read-back GET. Mirrors the tick 259/260/261 discriminated-union
+      guard verbatim from admin-requests-list-authz.spec.ts:341-432 onto a
+      fourth surface — the admin list route under the non-default
+      ?status=denied filter path (route.ts:39 branches on the query param
+      via ALLOWED_STATUS.has()). The prior three ticks all exercised the
+      default status='pending' path so a route regression that broke the
+      ?status= param parse or the .eq("status", status) filter at
+      route.ts:46 would surface only on this fourth surface. Payload jsonb
+      per-type shape contract is now content-pinned on all four list read
+      surfaces (admin GET pending tick 259 + reseller GET pending tick 260
+      + reseller GET route tick 261 + admin GET denied tick 262)
+      simultaneously.
+
+      Writer-schema justification:
+        - requests.ts:41-44 defines the ResellerRequestPayload
+          discriminated union: code_request | over_budget_approval |
+          collateral_approval. The POST route at
+          /api/reseller/requests/route.ts writes the validator's
+          `{...res.value}` output (requests.ts:229-233 / 243-246 /
+          253-256) into reseller_requests.payload (jsonb NOT NULL
+          DEFAULT '{}' per 0095:33).
+        - The PATCH response envelope at
+          /api/admin/resellers/requests/[id]/route.ts:317-319 only echoes
+          id/status/decision_at/decision_reason/linked_credit_transaction_id
+          /linked_promotion_code_id — payload is NOT re-emitted by the
+          UPDATE ... SELECT. To close the writer contract on the payload
+          jsonb column for the now-flipped row, the tick 262 addition
+          re-reads via the list route with ?status=denied and locates the
+          row by id in the returned array.
+        - The deny branch flips ONLY status + decision_by + decision_at +
+          decision_reason + linked_credit_transaction_id +
+          linked_promotion_code_id (route.ts:305-320) — payload is
+          untouched so the read-back reflects exactly what the POST
+          validator wrote.
+        - Per-branch key shape mirrors the tick 259/260/261 pin verbatim
+          (same 3 branches, same 5 module-scope constants, same source-
+          line citations):
+            - code_request → tier_pct (∈ {0,10,20,30,40}), suggested_
+              suffix (null or /^[A-Z0-9]{1,16}$/), notes (null or
+              string length ≤ 200)
+            - over_budget_approval → target_user_id (UUID), requested_
+              amount (positive integer), reason (null or string ≤ 200),
+              remaining_budget_snapshot (null or non-negative integer)
+            - collateral_approval → collateral_url (https URL),
+              purpose (string ≤ 500)
+
+      Design choice — post-PATCH read-back + module-scope constants:
+        - Constants ALLOWED_TIER_PCT_VALUES / SUFFIX_RE / HTTPS_URL_RE /
+          REASON_MAX / PURPOSE_MAX hoisted to spec-level module scope
+          per the tick 259/260/261 precedent (which itself follows the
+          tick 231 RESELLER_CODE_RE precedent). Each carries a source-
+          line citation in its doc-comment so a future validator drift
+          surfaces across every surface that echoes the column.
+        - Read-back GET fires ONLY after the existing deny-branch PATCH
+          assertions all pass (200 + status=denied + decision_reason +
+          both linked_* null) so a regression in the PATCH envelope
+          would surface at the tighter existing pins before the read-
+          back is even attempted.
+        - Row locator by id in the ?status=denied returned array (not
+          by position or count) so parallel CI workers denying multiple
+          rows do not race — each spec run only asserts on the row it
+          just flipped.
+        - Missing-row branch surfaces as test.skip with an explicit
+          pointer at the concurrent-worker cleanup scenario rather than
+          a bare undefined-access crash — matches the other skip-with-
+          pointer patterns already in this describe block (loginAs
+          throw, empty pending list).
+        - Two-part guard per nullable key: (a) `x === null` short-
+          circuit + (b) typeof-string + regex/length check. Same shape
+          as the tick 259/260/261 pins.
+        - TYPEOF + VALUE-tighten pins per key. Value pin uses the same
+          set/regex the validator uses so a rename OR a shape drift
+          both surface — matches tick 259/260/261 rationale.
+
+      Coverage-per-guard posture:
+        - The row that gets denied on green-path CI runs is seeded by
+          wave-3 row 155 as over_budget_approval, so that branch is
+          exercised on this new fourth surface as well as the three
+          prior surfaces. code_request + collateral_approval branches
+          depend on future QA seeding to fire, so coverage-per-guard is
+          zero on those two branches today. The pin still closes the
+          writer contract for both branches so a route regression that
+          dropped a key from the SELECT (route.ts:44 echoes payload
+          jsonb straight through) or a validator regression that swapped
+          a key shape at requests.ts would surface across all four list
+          surfaces on the next CI pass — matches the tick 259/260/261
+          zero-coverage-per-guard rationale.
+
+      Diagnostic delta of the pass:
+        - Added 5 module-scope constants (~20 lines with doc-comment).
+        - Added 1 post-PATCH read-back block (~150 lines: ~70 lines of
+          justifying comment + ~80 lines of GET + row locator +
+          plain-object guard + discriminated-union switch + per-key
+          expects) inside the deny describe block, immediately after
+          the existing linked_promotion_code_id null assertion.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no vitest/Playwright runtime posture
+          change. Matches ticks 223-261 discipline: tighten one
+          dimension (in this case extend content-pin coverage to the
+          admin list route's non-default ?status=denied filter path)
+          plus the required module-scope hoist.
+
+      Files:
+        - web/tests/e2e/reseller/admin-requests-patch-authz.spec.ts
+          (5 module-scope constants added below UUID_RE; post-PATCH
+          read-back GET + discriminated-union payload guard added after
+          the deny block's linked_promotion_code_id null assertion,
+          citing requests.ts:41-44 as the union source, requests.ts:63-67
+          + validator body ranges as the per-key invariant source, and
+          route.ts:317-319 / 305-320 as the reason a read-back GET is
+          needed rather than pinning the PATCH response body directly.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.261 → 2026-07-23.262; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no P8.5-gated code_request work
+          (option (c) still blocked), no production-code touch.
+          Consistent with ticks 234-261's incremental-pin pattern.
+        - Deny block only. Cancel + approve blocks intentionally
+          untouched — extending the same read-back onto those two
+          blocks is options (s2) + (s3) available on future ticks,
+          following the same one-surface-at-a-time discipline the
+          tick 259/260/261 sequence used across the list surfaces.
+
+      Verified:
+        - requests.ts:41-44 grepped to confirm the ResellerRequestPayload
+          union shape unchanged; requests.ts:63-67 confirms the five
+          validator-side constants match the spec-side hoist verbatim.
+        - /api/admin/resellers/requests/route.ts:44 grepped to confirm
+          the SELECT still echoes `payload` in the column list; :39-46
+          grepped to confirm the ?status= param parse via ALLOWED_STATUS.
+        - /api/admin/resellers/requests/[id]/route.ts:317-319 grepped
+          to confirm the PATCH .select() only carries the six response-
+          echo columns (no payload) — motivates the read-back approach.
+        - tsc clean (npx tsc --noEmit in web/, exit 0, no output).
+        - npm run lint:reseller: R-01 scanned 11 file(s), R-03 scanned
+          31 manifest route(s); 3 exemptions, 0 violations.
+        - vitest 75 files 954/954 pass (Playwright specs are excluded
+          from vitest by design so the count is unchanged from tick 261).
+        - The tick 262 read-back sits directly after the deny block's
+          linked_promotion_code_id null assertion and before the CANCEL
+          describe block — matches the field-order convention where the
+          per-block reads sit at the end of their owning block.
+
+      Frontier after tick 262: unchanged shape — Track A HUMAN-BLOCKED
+      on P8.5 Stripe env vars + P1.5 InfoVision seed on H.20 ABN + GST;
+      Track B COMPLETE; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 262 does NOT unblock: P8.5 STRIPE_PRICE_ADDON_SHARE_MGMT_*
+      env vars still human-gated; P1.5 InfoVision ABN + GST still
+      human-gated per H.20. payload jsonb per-type shape contract now
+      pinned on ALL four list read surfaces (admin GET pending tick 259
+      + reseller GET pending tick 260 + reseller GET route tick 261 +
+      admin GET denied tick 262 via post-PATCH read-back); the fourth
+      surface additionally exercises the ?status= param parse path in
+      the admin list route which the prior three surfaces do not touch.
+
+      Natural next pick for tick 263:
+        (s2) mirror the tick 262 post-PATCH read-back discriminated-
+             union payload guard onto admin-requests-patch-authz.spec.ts
+             CANCEL branch — same read-back shape (?status=cancelled),
+             same three payload branches, same five module-scope
+             constants (reused, not re-hoisted). Closes the read-back
+             coverage on the cancel status flip.
+        (s3) mirror the same read-back onto the APPROVE branch —
+             ?status=approved read-back, additionally exercises the
+             non-null linked_credit_transaction_id path echoed in the
+             payload row (though the linked field is already pinned in
+             the PATCH response envelope, so the read-back's added
+             signal is on payload only).
+        (n) audit whether admin-requests-patch-authz.spec.ts approve
+             branch decision_at pin could be tightened from typeof
+             string to an ISO-8601 regex — header-rewrite-first option
+             (contradicts existing "assert typeof string only" header
+             comment from tick 230). Still available.
+        (x) audit format-shape pins for now_utc / next_utc / seconds_until
+             / tick_state in loop-status — header-rewrite option
+             (contradicts existing "typeof-string only so the value can
+             drift" comment).
+        (c) mirror row 179 shape+helper alignment onto row 175 approve+
+             deny+cancel code_request branches once P8.5 unblocks.
+             P8.5-blocked, no available today.
+    commit: (this tick)
+
   - tick: 261
     ran_at: 2026-07-23
     action: p10_reseller_requests_list_per_key_payload_content_pins_option_r3
