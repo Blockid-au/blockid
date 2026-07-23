@@ -455,6 +455,43 @@ test.describe("Admin reseller-loop status — P10 wave-5 row 173 happy path", ()
           `tick_history idle row.reason should be typeof string (reseller-goal-loop.mjs:290 writes bare string literal 'no unblocked phases'): ${JSON.stringify(row).slice(0, 200)}`,
         ).toBe("string");
       }
+      // Writer schema pin (tick 242 option y5 — fourth conditional-by-stage pin,
+      // symmetric two-pin shape matching tick 240's phase_failed guard). scripts/
+      // cron/reseller-goal-loop.mjs:337 writes `log({ stage: 'auto_commit_
+      // finished', commit_status: c.status ?? -1, push_status: p.status ?? -1 })`
+      // inside the safety-net commit branch at mjs:328-341 that fires whenever
+      // the Claude CLI subprocess landed dirty files but did not commit them.
+      // Both `c` and `p` are spawnSync results from `git commit` / `git push`
+      // (mjs:335-336) so `.status` is `number | null` on the Node.js contract —
+      // the `?? -1` fallback narrows both to a JSON number every time. Schema-
+      // level typeof=number guarantee on both keys. The log() helper at
+      // mjs:52-58 prepends tick_id/ts/human_review_minutes_7d then spreads
+      // `...row` — both keyvals flow through untouched. Landing a stage-guarded
+      // two-pin block catches (a) a writer regression that renamed either key
+      // on the log envelope; (b) a mjs:335 or :336 spawnSync regression that
+      // dropped the `?? -1` fallback so either status could land as null; (c) a
+      // call-site regression that swapped the spread for a bare object shape.
+      // No value pin — the status codes drift with git subprocess outcomes
+      // (0 on success, 1 on nothing-to-commit, other non-zero on push failure,
+      // -1 when spawnSync itself fails to launch git). Skipped on hosts where
+      // the loop has never taken the dirty-tree branch — the pin has no effect
+      // on hosts where every phase committed inline, same natural side effect
+      // as the tick 239 frontier_computed guard + tick 240 phase_failed guard +
+      // tick 241 idle guard. Two pins in one guard because commit_status +
+      // push_status share the same conditional at mjs:331 — they always land
+      // together on the same row, so the guard cost is amortised (matches tick
+      // 240's phase_failed two-pin rationale verbatim except for the stage
+      // literal + spawnSync source line citations).
+      if (tickRow.stage === "auto_commit_finished") {
+        expect(
+          typeof tickRow.commit_status,
+          `tick_history auto_commit_finished row.commit_status should be typeof number (reseller-goal-loop.mjs:337 writes \`c.status ?? -1\` from spawnSync git commit at mjs:335): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("number");
+        expect(
+          typeof tickRow.push_status,
+          `tick_history auto_commit_finished row.push_status should be typeof number (reseller-goal-loop.mjs:337 writes \`p.status ?? -1\` from spawnSync git push at mjs:336): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("number");
+      }
     }
     expect(
       typeof body.generated_at === "string" &&
