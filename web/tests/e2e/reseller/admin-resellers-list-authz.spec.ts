@@ -213,6 +213,32 @@ const UUID_RE =
 // because the pin lives inside the per-row for-loop; seeded hosts
 // exercise the default 0 branch on every green CI run
 // (seed-qa-reseller.mjs uses the default).
+//
+// Tick 290 — monthly_sandbox_credits int wire-shape + non-negative +
+// integer pin, natural next-pick option (a) from tick 289.
+// resellers.monthly_sandbox_credits is the sibling scalar int column to
+// monthly_credit_budget (pinned at tick 289) — same Math.floor()-backed
+// integer invariant, same NOT-NULL discipline. Column declared at
+// 0091:34 as `monthly_sandbox_credits int NOT NULL DEFAULT 500` — no DB
+// CHECK, but the admin PATCH validator at
+// web/src/lib/reseller/admin-validator.ts:107-112 rejects any write with
+// !Number.isFinite || value < 0 (reason 'sandbox_negative') and
+// Math.floor()s the accepted value so the wire integer is bounded by
+// the write-side gate. NOT-NULL + integer invariant → four-part guard:
+// typeof-number + Number.isFinite + Number.isInteger + value >= 0.
+// A PostgREST serialisation regression that flipped int onto the wire
+// as a string, a schema-side type flip from int to numeric/text, an
+// admin-validator drift that stopped rejecting negative writes, a
+// Math.floor() drop that let a fractional value land, or a
+// projection-side drop from route.ts:41-44 select("*") would each
+// surface at a distinct assertion failure mode. Cross-surface pair with
+// the companion pin landed on admin-reseller-detail-authz.spec.ts in
+// the same tick so the two admin resellers-family surfaces (list +
+// detail) carry the pin simultaneously, matching the tick 286+287+288+
+// 289 discipline of bringing both surfaces up to parity in one pass.
+// Fresh CI hosts with zero rows still green because the pin lives
+// inside the per-row for-loop; seeded hosts exercise the default 500
+// branch on every green CI run (seed-qa-reseller.mjs uses the default).
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 
@@ -314,6 +340,7 @@ test.describe("Admin resellers list — P10 wave-5 row 164 happy path", () => {
         gst_registered?: unknown;
         allowed_tiers?: unknown;
         monthly_credit_budget?: unknown;
+        monthly_sandbox_credits?: unknown;
       }>;
     };
     expect(
@@ -488,6 +515,36 @@ test.describe("Admin resellers list — P10 wave-5 row 164 happy path", () => {
       expect(
         (row.monthly_credit_budget as number) >= 0,
         `reseller.monthly_credit_budget '${String(row.monthly_credit_budget)}' should be >= 0 (admin-validator.ts:100-105 rejects value < 0 with reason 'budget_negative'); a validator drift or a schema-side drop of the non-negative invariant would surface here: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      // Tick 290 — monthly_sandbox_credits int wire-shape + non-negative +
+      // integer pin. See module-scope doc-block (tick 290 paragraph) for
+      // the rationale. Column source 0091:34 `monthly_sandbox_credits int
+      // NOT NULL DEFAULT 500`; admin PATCH validator at
+      // admin-validator.ts:107-112 rejects !Number.isFinite || value < 0
+      // with reason 'sandbox_negative' and Math.floor()s the accepted
+      // value so the wire integer is bounded by the write-side gate.
+      // NOT-NULL + integer invariant → four-part guard: typeof-number
+      // (a PostgREST regression flipping int onto the wire as a string
+      // would fail here) + Number.isFinite (a NaN/Infinity drift would
+      // fail here) + Number.isInteger (a Math.floor() drop or a schema
+      // widening from int to numeric would fail here) + value >= 0 (a
+      // validator drift that stopped rejecting negative writes would
+      // fail here).
+      expect(
+        typeof row.monthly_sandbox_credits,
+        `reseller.monthly_sandbox_credits '${String(row.monthly_sandbox_credits)}' should be a number (int NOT NULL DEFAULT 500 per 0091:34 serialised via PostgREST); a drift to a string, boolean, or null would surface here: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("number");
+      expect(
+        Number.isFinite(row.monthly_sandbox_credits as number),
+        `reseller.monthly_sandbox_credits '${String(row.monthly_sandbox_credits)}' should be a finite number (int NOT NULL DEFAULT 500 per 0091:34); a drift to NaN or Infinity would surface here: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        Number.isInteger(row.monthly_sandbox_credits as number),
+        `reseller.monthly_sandbox_credits '${String(row.monthly_sandbox_credits)}' should be an integer (int per 0091:34; admin-validator.ts:111 Math.floor()s writes); a schema widening from int to numeric or a Math.floor() drop would surface here: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        (row.monthly_sandbox_credits as number) >= 0,
+        `reseller.monthly_sandbox_credits '${String(row.monthly_sandbox_credits)}' should be >= 0 (admin-validator.ts:107-112 rejects value < 0 with reason 'sandbox_negative'); a validator drift or a schema-side drop of the non-negative invariant would surface here: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
     }
   });
