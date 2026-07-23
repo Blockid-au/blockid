@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.300
+version: 2026-07-23.301
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -658,6 +658,137 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 301
+    ran_at: 2026-07-23
+    action: p10_promotion_codes_stripe_coupon_id_text_nullable_wire_shape_pin_on_admin_reseller_detail
+    result: |
+      Third column pinned in the promotion_codes[] child-row cluster
+      opened at tick 299 per that tick's next-tick option (i). Detail-
+      only tick because the admin-resellers-list route selects only the
+      resellers-row shape; the promotion_codes fan-out at
+      web/src/app/api/admin/resellers/[code]/route.ts:83-88 is unique
+      to the detail surface (matches tick 299/300 detail-only posture).
+
+      Writer-schema justification:
+        - 0091_reseller_module_foundations.sql:92 declares
+          `stripe_coupon_id text` on reseller_promotion_codes
+          (nullable, no standalone CHECK).
+        - 0091:98-102 declares CHECK ck_stripe_objects_by_tier which
+          couples the column to tier_pct:
+            (tier_pct = 0 AND stripe_coupon_id IS NULL AND
+             stripe_promotion_code_id IS NULL)
+            OR
+            (tier_pct > 0 AND stripe_coupon_id IS NOT NULL AND
+             stripe_promotion_code_id IS NOT NULL)
+          — tier 0 rows are attribution-only, tier > 0 rows require a
+          real Stripe coupon.
+        - Application write path enforces the coupling at
+          web/src/lib/reseller/promotion-code-mint.ts via decideCodeMint
+          (tier 0 branch skips ensureStripeCoupon and inserts nulls;
+          tier > 0 branch calls ensureStripeCoupon → stripe.coupons
+          retrieve/create with deterministic id res_<uuid8>_t<tier>
+          before insert).
+        - Projected via select("id, tier_pct, code, stripe_coupon_id,
+          stripe_promotion_code_id, active, created_at") on the same
+          Promise.all leg at route.ts:83-88 — a projection-side drop or
+          PostgREST serialisation regression on this column would
+          surface on the first offending row.
+
+      Design choice — two-part guard shape matching the tick 294 abn /
+      tick 296 primary_color posture rather than the tick 295 logo_url /
+      tick 297 contact_email / tick 298 notes single-guard posture:
+        - (a) null-or-typeof-string — preserves the tick 275+ nullable-
+          text posture; catches a schema-side type flip or a PostgREST
+          regression that returned a non-null/non-string value.
+        - (b) tier-coupled invariant matching ck_stripe_objects_by_tier
+          — tier_pct === 0 rows must carry stripe_coupon_id === null,
+          tier_pct > 0 rows must carry typeof === 'string'; a DB CHECK
+          drop or a promotion-code-mint drift (tier 0 branch that
+          started stamping a non-null id, or a tier > 0 mint-branch
+          bypass) would surface on the first offending row.
+        - Two-part shape rather than the single null-or-string guard
+          used at ticks 295/297/298 because the column has a semantic
+          dimension (tier-coupling) beyond raw type, analogous to the
+          tick 294 abn regex-format layer and tick 296 primary_color
+          HEX_COLOR_RE layer.
+
+      Coverage-per-guard posture:
+        - Detail surface: wave-5 row 167 single-row GET fires the pin
+          N times per test, once per promotion_codes[] row on the
+          QAPROBEWHOLESALEACTIVE seed reseller. seed-qa-reseller.mjs
+          mints per-cohort code rows covering both tier 0 (attribution-
+          only, null branch) and tier > 0 (Stripe-minted, string
+          branch) so both branches of the tier-coupled invariant are
+          exercised on every green CI run.
+        - Fresh CI hosts without the QA reseller seed still green
+          because the for-loop is a no-op on zero rows (matches
+          tick 299/300 posture).
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 301 paragraph) above
+              ISO_TIMESTAMP_RE citing 0091:92 + 0091:98-102 + the
+              promotion-code-mint write-path source.
+            + promotion_codes[] row interface widened with
+              stripe_coupon_id?: unknown.
+            + Two-part guard added inside the wave-5 row 167 for-of
+              loop over body.promotion_codes: raw null-or-typeof-string
+              assert plus a tier-coupled branch (tier 0 → null,
+              tier > 0 → string) mirroring ck_stripe_objects_by_tier.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope constants.
+          Matches ticks 234-300 discipline verbatim.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: R-01 + R-03 + R-04 unchanged from
+          tick 300 (11 R-01 + 31 R-03 + 8 R-04, 6 exemptions, 0
+          violations)
+        - npx vitest run: 87 files 1053/1053 pass (Playwright specs
+          excluded from vitest by design; the two new asserts fire when
+          `npx playwright test admin-reseller-detail-authz` runs on a
+          seeded host)
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-detail-authz.spec.ts
+          (module-scope doc-block extended with tick 301 paragraph;
+          promotion_codes[] row interface gains stripe_coupon_id?:
+          unknown; wave-5 row 167 for-of loop body gains a two-part
+          guard immediately after the tick 300 created_at asserts.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.300 → 2026-07-23.301; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no production-code touch, no
+          new imports, no widening of existing guards. Consistent with
+          ticks 234-300's incremental-pin pattern.
+        - Detail-only tick — rotates onto the third column of the
+          promotion_codes[] child-row cluster (after active at 299 and
+          created_at at 300). List surface not touched because the
+          list route doesn't project promotion_codes at all.
+
+      Next natural picks on tick 302:
+        (a) rotate to promotion_codes[].stripe_promotion_code_id text
+        nullable at 0091:93 — twin column to stripe_coupon_id under the
+        same ck_stripe_objects_by_tier coupling. Same two-part guard
+        shape would land (null-or-string + tier-coupled null/string
+        branch); the natural symmetry after tick 301.
+        (b) tighten promotion_codes[].tier_pct at row 1065 from bare
+        typeof-number to enum guard against the ck_reseller_promotion_
+        codes tier_pct CHECK at 0091:90 (tier_pct IN (0,10,20,30,40)).
+        Would layer onto the existing typeof-number assert.
+        (c) rotate to a fresh admins[] or attributions[] child-row
+        column pin — different fan-out leg, expands the wire-shape
+        coverage past promotion_codes.
+        (d) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening ticks
+        while the two HUMAN-BLOCKED leaves await external unblock
+        signals.
+    commit: (this tick)
+
   - tick: 295
     ran_at: 2026-07-23
     action: p10_logo_url_text_nullable_wire_shape_pin_cross_surface_pair_on_admin_resellers_list_plus_admin_reseller_detail
