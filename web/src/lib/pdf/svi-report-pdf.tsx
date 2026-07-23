@@ -20,6 +20,12 @@ const LOGO_SRC = fs.existsSync(LOGO_PATH)
   ? `data:image/png;base64,${fs.readFileSync(LOGO_PATH).toString("base64")}`
   : null;
 
+// TODO(pdf-branding): read the saved brand_settings row (logoUrl, primaryColor,
+// accentColor, reportHeader, footerText) for the owning user and thread it
+// into `C` + `LOGO_SRC` when the user's plan grants pdf_branding. Follow-up
+// after the feature-gate + settings-form slice. See
+// web/src/lib/branding/gate.ts (canUsePdfBranding) and
+// web/src/app/api/branding/route.ts.
 /* ─── Brand Palette ─────────────────────────────────────────────────────── */
 const C = {
   brand700: "#1d4ed8",
