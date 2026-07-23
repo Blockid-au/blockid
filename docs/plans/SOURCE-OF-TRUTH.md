@@ -109,7 +109,7 @@
 | AUD-R3 | real-world-audit §6 | data-room AU | open | au-compliance | — |
 | AUD-R7 | real-world-audit §6 | reseller-stage | open | fullstack-guardian | — |
 | PRC-INV | pricing-upgrade-plan | per-seat SKU | open | cro | — |
-| PRC-ACC | pricing-upgrade-plan | accelerator SKU | open | cro | — |
+| PRC-ACC | pricing-upgrade-plan | accelerator SKU | shipped | cro | placeholder Stripe IDs, iter-7 |
 | PRC-EQ | pricing-upgrade-plan | equity-for-solution | blocked | clo | legal_review_passed=false |
 | EXC-0001 | svi-exchange-tasks | watchlist | shipped | fullstack-guardian | v2.18 |
 | EXC-0012 | svi-exchange-tasks | founder-side offer | shipped | nextjs-developer | `bfd7a5bf` |
