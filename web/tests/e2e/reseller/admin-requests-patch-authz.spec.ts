@@ -192,6 +192,24 @@ const UUID_RE =
 // route.ts:309 for all three branches, and no admin-delete fires between
 // the PATCH and the very next GET in the same test, so the read-back MUST
 // carry a non-null UUID here.
+//
+// Tick 267 — created_at ISO-8601 wire-shape pin added as the third
+// "row-timestamp" column pin (companion to the tick-265 decision_at + tick-
+// 266 decision_by pins). reseller_requests.created_at is a `timestamptz NOT
+// NULL DEFAULT now()` column (0095:39) that is populated on INSERT and
+// never touched by the PATCH branches — so unlike decision_at (populated at
+// PATCH time only, non-null iff status ∈ approved/denied/cancelled per the
+// 0095:43-45 CHECK) it is always non-null on every read-back regardless of
+// which PATCH branch fired. Reuses the module-scope ISO_TIMESTAMP_RE (line
+// 200-201) rather than adding an eighth constant. Pin catches a route
+// regression that strips created_at from the list SELECT's column projection
+// at route.ts:44 (see 0058-0060 idx `reseller_requests_pending_idx` which is
+// keyed on `created_at DESC WHERE status='pending'` — a projection drop
+// would still let that idx serve the pending-list query but would break the
+// approved/denied/cancelled surfaces this spec exercises), as well as a
+// column-type flip from timestamptz to something else (e.g. a bigint
+// created_at_ms clock migration would surface as a number here). Two-part
+// guard mirrors the decision_at pin: typeof-string + ISO_TIMESTAMP_RE.
 const ALLOWED_TIER_PCT_VALUES = new Set([0, 10, 20, 30, 40]);
 const SUFFIX_RE = /^[A-Z0-9]{1,16}$/;
 const HTTPS_URL_RE = /^https:\/\/[a-zA-Z0-9.-]+(\/.*)?$/;
@@ -480,6 +498,7 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
           payload?: unknown;
           decision_at?: unknown;
           decision_by?: unknown;
+          created_at?: unknown;
         }
       | undefined;
     if (!readbackRow) {
@@ -537,6 +556,20 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
     expect(
       UUID_RE.test(readbackRow.decision_by as string),
       `read-back row.decision_by '${String(readbackRow.decision_by)}' should match UUID shape (uuid per 0095:34, stamped from user.id at route.ts:309); a drift to a non-UUID string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
+    ).toBe(true);
+    // Tick 267 — created_at ISO-8601 wire-shape pin, companion to the tick-
+    // 265 decision_at + tick-266 decision_by pins on the deny surface. The
+    // reseller_requests.created_at column (0095:39) is `timestamptz NOT NULL
+    // DEFAULT now()` and is populated at INSERT time only — the deny PATCH
+    // branch does NOT touch this column, so the wire value here mirrors
+    // whatever row 155's insert stamped. Same two-part guard as the
+    // decision_at pin: typeof-string + ISO_TIMESTAMP_RE (Z or +HH:MM
+    // suffixes both permitted). See the module-scope tick-267 comment block
+    // above for the full rationale.
+    expect(typeof readbackRow.created_at).toBe("string");
+    expect(
+      ISO_TIMESTAMP_RE.test(readbackRow.created_at as string),
+      `read-back row.created_at '${String(readbackRow.created_at)}' should match ISO 8601 shape (timestamptz per 0095:39 serialised via PostgREST); a drift to a non-ISO string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
     ).toBe(true);
     // Two-part guard per nullable key: (a) `x === null` short-circuit +
     // (b) typeof-string + regex/length check. Same shape as the tick
@@ -833,6 +866,7 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
           payload?: unknown;
           decision_at?: unknown;
           decision_by?: unknown;
+          created_at?: unknown;
         }
       | undefined;
     if (!readbackRow) {
@@ -880,6 +914,20 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
     expect(
       UUID_RE.test(readbackRow.decision_by as string),
       `read-back row.decision_by '${String(readbackRow.decision_by)}' should match UUID shape (uuid per 0095:34, stamped from user.id at route.ts:309); a drift to a non-UUID string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
+    ).toBe(true);
+    // Tick 267 — created_at ISO-8601 wire-shape pin mirrored from the deny-
+    // block onto the cancel-block surface so the timestamptz INSERT-time
+    // column shape (0095:39) is content-pinned on the second of the three
+    // post-PATCH read-back rows too. Same two-part guard as the deny surface:
+    // typeof-string + ISO_TIMESTAMP_RE. The cancel PATCH branch does not
+    // touch created_at (only decision_at + decision_by + status +
+    // decision_reason move on cancel), so the wire value mirrors whatever
+    // row 155-b's insert stamped. See the module-scope tick-267 comment
+    // block above for the full rationale.
+    expect(typeof readbackRow.created_at).toBe("string");
+    expect(
+      ISO_TIMESTAMP_RE.test(readbackRow.created_at as string),
+      `read-back row.created_at '${String(readbackRow.created_at)}' should match ISO 8601 shape (timestamptz per 0095:39 serialised via PostgREST); a drift to a non-ISO string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
     ).toBe(true);
     // Two-part guard per nullable key: (a) `x === null` short-circuit +
     // (b) typeof-string + regex/length check. Same shape as the tick
@@ -1208,6 +1256,7 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
           payload?: unknown;
           decision_at?: unknown;
           decision_by?: unknown;
+          created_at?: unknown;
         }
       | undefined;
     if (!readbackRow) {
@@ -1273,6 +1322,26 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
     expect(
       UUID_RE.test(readbackRow.decision_by as string),
       `read-back row.decision_by '${String(readbackRow.decision_by)}' should match UUID shape (uuid per 0095:34, stamped from user.id at route.ts:309); a drift to a non-UUID string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
+    ).toBe(true);
+    // Tick 267 — created_at ISO-8601 wire-shape pin mirrored from the tick-
+    // 267 deny-block + cancel-block additions onto the approve-block surface
+    // so the timestamptz INSERT-time column shape (0095:39) is now content-
+    // pinned on all three post-PATCH read-back rows. Same two-part guard:
+    // typeof-string + ISO_TIMESTAMP_RE. Unlike decision_at, created_at is
+    // NOT touched by any PATCH branch — the approve fan-out at
+    // route.ts:200-293 writes credit_balances + credit_transactions +
+    // reseller_credit_grants + reseller_promotion_codes but leaves
+    // reseller_requests.created_at untouched — so the wire value here
+    // mirrors whatever the attachApproveTarget() fixture stamped at INSERT
+    // time. The 0095:39 NOT NULL DEFAULT now() constraint further guarantees
+    // created_at IS NOT NULL on every row regardless of status, so this pin
+    // is backed by a database-level invariant across all three PATCH
+    // branches AND the pending-list surface (unlike decision_at, which is
+    // only non-null once a decision has been stamped).
+    expect(typeof readbackRow.created_at).toBe("string");
+    expect(
+      ISO_TIMESTAMP_RE.test(readbackRow.created_at as string),
+      `read-back row.created_at '${String(readbackRow.created_at)}' should match ISO 8601 shape (timestamptz per 0095:39 serialised via PostgREST); a drift to a non-ISO string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
     ).toBe(true);
     // Two-part guard per nullable key: (a) `x === null` short-circuit +
     // (b) typeof-string + regex/length check. Same shape as the tick
