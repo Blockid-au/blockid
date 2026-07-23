@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.336
+version: 2026-07-23.337
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,193 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 337
+    ran_at: 2026-07-23
+    action: p10_reseller_created_updated_at_and_commission_share_pct_message_prose_refresh_on_admin_reseller_detail_typeof_asserts
+    result: |
+      Executes tick 336 next-pick option (a) verbatim: rotate to
+      reseller.created_at / reseller.updated_at ISO pin message-prose
+      refresh on the detail side + additionally sweep the tick 286
+      reseller.commission_share_pct typeof-number bare assert while
+      the surrounding file window is already loaded. The detail-side
+      tick 285 pins at rows 2760/2765 were still carrying the bare
+      `expect(typeof body.reseller?.created_at).toBe("string")` /
+      `expect(typeof body.reseller?.updated_at).toBe("string")` with
+      no diagnostic message, and the tick 286 pin at row 2783 was
+      still carrying the bare `expect(typeof body.reseller?.
+      commission_share_pct).toBe("number")` with no diagnostic
+      message — all three sat below trailing shape halves (ISO regex
+      / finite / range-in-[0,100]) that already carried labelled
+      bespoke failure prose. Lift closes the three last outstanding
+      tick-1710 baseline bare typeof asserts on the top-level
+      reseller-row cluster on the detail surface — every raw-type
+      half of every two/three-part guard on this spec now carries
+      the tick 320+ two-part labelled discipline. Mirrors the
+      list-side tick 336 display_name lift + tick 331 code lift
+      posture verbatim so the two admin-resellers-family lenses now
+      carry symmetric prose + assertion shape across every projected
+      column of the resellers-row cluster.
+
+      Shape lifted (mirrors list-side tick 336 posture verbatim):
+        - Writer-side sources:
+          - reseller.created_at declared at 0091:43 as `created_at
+            timestamptz NOT NULL DEFAULT now()`; the DB carries no
+            CHECK constraint against non-ISO shape because
+            timestamptz is not a text column — the shape invariant
+            is a PostgREST serialisation contract (returns ISO 8601
+            with a Z or ±HH:MM tail) rather than a schema-level
+            invariant.
+          - reseller.updated_at declared at 0091:44 as `updated_at
+            timestamptz NOT NULL DEFAULT now()`; same PostgREST
+            contract. Application write path in admin-validator.ts
+            stamps updated_at on every PATCH via a trigger-free
+            assignment so the column always advances on write.
+          - reseller.commission_share_pct declared at 0091:38 as
+            `commission_share_pct numeric(5,2) NOT NULL DEFAULT
+            40.00`; DB has no CHECK constraint against out-of-band
+            values, but admin-validator.ts:114-118 rejects
+            commission_share_pct outside [0, 100] with
+            reason='commission_share_pct_out_of_range' inside
+            validateAdminResellerPatch. PostgREST serialises numeric
+            (5,2) as a JS number (raw double) rather than a
+            text-serialised "40.00" because every value in [0, 100]
+            with 2 decimal places fits into IEEE 754 without
+            precision loss.
+        - Application read path: projected via select("*") on the
+          detail route at web/src/app/api/admin/resellers/[code]/
+          route.ts:47-48 — loadReseller() single-row lookup then
+          payload stamp at route.ts:122-129 surfaces all three
+          columns on every detail GET.
+        - Runtime enforcement in this spec (per column):
+          - (a) created_at / updated_at typeof-string half labelled
+            with diagnostic prose naming the writer schema source
+            (0091:43 / 0091:44 `timestamptz NOT NULL DEFAULT now()`),
+            the PostgREST ISO 8601 text contract, and the concrete
+            failure modes (epoch integer serialisation, null on
+            NOT-NULL, projection-side drop from route.ts:47-48).
+            Preserves the NOT-NULL raw-type discipline separated
+            from the ISO regex second half so a raw-type flip does
+            not hide behind a pattern-mismatch diagnostic.
+          - (b) commission_share_pct typeof-number half labelled
+            with diagnostic prose naming the writer schema source
+            (0091:38 `numeric(5,2) NOT NULL DEFAULT 40.00`), the
+            PostgREST raw-number contract for values that fit into
+            IEEE 754 without precision loss (every value in
+            [0, 100] with 2 decimal places qualifies), and the
+            concrete failure modes (PostgREST text-serialising
+            numeric, schema-side type flip, null on NOT-NULL,
+            projection-side drop from route.ts:47-48). Preserves
+            the NOT-NULL raw-type discipline separated from the
+            finite and range-in-[0,100] halves so a raw-type flip
+            does not hide behind a Number.isFinite(NaN) or
+            out-of-range diagnostic.
+
+      Rotation rationale:
+        - Closes the last three outstanding tick-1710 baseline bare
+          typeof asserts on the top-level reseller-row cluster on
+          the detail surface per tick 336 option (a) verbatim. The
+          list-side lifted the resellers-row cluster at ticks 331 +
+          336; the detail-side had the tick 285 + 286 typeof halves
+          as the last outstanding bare baseline pins on the
+          top-level reseller row. Restores the tick 231-232 twin-
+          symmetrisation discipline across the two admin-resellers-
+          family lenses so a future non-blank / range-check
+          invariant refactor cannot leave one lens unpinned.
+        - Distinct from tick 336 (list-side display_name lift) in
+          ONE dimension: tick 336 was a cohort-lens lift over
+          resellers[] rows on the list; this tick is a single-row-
+          lens lift over body.reseller on the detail. Both share
+          the two-part labelled discipline and mirror the same
+          failure-mode-labelled prose.
+        - No new imports, no new module-scope const, no fixture
+          change, no route change. Matches ticks 234-336 discipline
+          (comment-only tightening ticks are the accepted P10
+          rotation shape while P8.5 remains HUMAN-BLOCKED on
+          Stripe env vars).
+
+      Coverage-per-guard posture: the three-part pin cluster fires
+      once per test on the single-row GET; the wave-5 row 167
+      QAPROBEWHOLESALEACTIVE seed reseller surfaces populated
+      timestamptz values on both created_at + updated_at and a
+      numeric(5,2) value on commission_share_pct so all three
+      halves pass on hosts where the seed has fired. On fresh
+      hosts without seeded fixtures the single-row GET returns
+      404 and the pin block is skipped upstream.
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-authz.spec.ts:
+            + tick 337 module-scope doc-block inserted between tick
+              334's closing paragraph and the `const ISO_TIMESTAMP_
+              RE` declaration at the same module-scope-comment
+              position pattern used by ticks 320-334. Summary
+              paragraph names the writer schema sources (0091:43 /
+              0091:44 / 0091:38), the PostgREST serialisation
+              contracts (ISO 8601 text for timestamptz, raw number
+              for numeric(5,2) in the [0, 100] range), the
+              application write-path validator branches (admin-
+              validator.ts:114-118 commission_share_pct_out_of_
+              range), the detail read-path projection at
+              route.ts:47-48, and the labelled failure-mode prose
+              embedded in each refreshed typeof half.
+            + inline pin at rows 2760/2765 (tick 285) lifted from
+              bare `expect(typeof body.reseller?.<col>).toBe(
+              "string")` to a labelled typeof half with tick 320+
+              two-part discipline prose. Preserves the ISO regex
+              second half verbatim.
+            + inline pin at row 2783 (tick 286) lifted from bare
+              `expect(typeof body.reseller?.commission_share_pct).
+              toBe("number")` to a labelled typeof half with tick
+              320+ two-part discipline prose. Preserves the
+              Number.isFinite second half and [0, 100] third half
+              verbatim.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope const, no
+          per-row assert added beyond the labelled discipline
+          message prose. Matches ticks 234-336 discipline.
+
+      Verification:
+        - `cd web && npx tsc --noEmit`: exit 0 (whole tree clean).
+        - `cd web && npm run lint:reseller`: R-01 11 files + R-03
+          32 routes + R-04 8 stripe files; 6 exemptions, 0
+          violations (unchanged from tick 336).
+        - Playwright specs excluded from vitest by design.
+
+      Frontier after tick 337: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5
+      clears. Detail-side reseller-row wire-shape sweep now COMPLETE
+      across every projected column typeof half — every raw-type
+      half of every two/three-part guard on this spec carries the
+      tick-numbered labelled discipline (this tick closes created_at,
+      updated_at, and commission_share_pct — the last three
+      outstanding tick-1710 bare baseline pins on the top-level
+      reseller-row cluster on the detail surface).
+
+      Next natural picks on tick 338:
+        (a) rotate to the sibling admin-reseller-patch-authz /
+        admin-reseller-detail-validation surfaces which have their
+        own pre-tick 320+ bare typeof asserts (grep confirms 4+
+        bare typeof-string / typeof-number / typeof-boolean
+        asserts remain on those two surfaces).
+        (b) rotate to attributions_summary.by_source enum-tightening
+        exhaustiveness pass — the current pin accepts arbitrary
+        subsets of ALLOWED_ATTRIBUTION_SOURCES; a stronger pin
+        would assert every enum value present on hosts where the
+        wave-5 seed cohort exercises all three sources.
+        (c) rotate to reseller_commissions_current[] cross-column
+        lifecycle summary cross-surface twin on
+        admin-reseller-loop-status-authz spec — the tick 334
+        detail-side commissions[] summary landed on
+        admin-reseller-detail-authz.spec.ts only; the loop-status
+        spec has no commissions references today so this would be
+        a fresh column-set introduction rather than a mirror.
+        (d) idle — frontier remains tight: P1.5 + P8.5 HUMAN-
+        BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks.
+    commit: (this tick)
+
   - tick: 336
     ran_at: 2026-07-23
     action: p10_reseller_display_name_message_symmetry_lift_on_admin_resellers_list_two_part_typeof_non_blank_pin
