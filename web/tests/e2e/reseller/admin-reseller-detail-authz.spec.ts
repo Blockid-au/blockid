@@ -801,8 +801,58 @@ const UUID_RE =
 // status (value-set enum {cleared, pending_clearance, clawed_back,
 // dispute_open, partially_refunded} per view CASE at 0094:150-172),
 // and created_at (ISO-8601 shape).
+//
+// Tick 309 — commissions[].stripe_invoice_id text NOT NULL wire-shape
+// pin, second column pinned in the reseller_commissions_current[] child-
+// row cluster opened at tick 308. Tick 308 next-pick option (first
+// remaining un-tightened column) taken verbatim. Note tick 308's forward-
+// plan noted "(text nullable)" — that was an on-write projection error;
+// the underlying reseller_commissions.stripe_invoice_id column is
+// actually declared `text NOT NULL` at 0094:34, with a UNIQUE-ish idx
+// at 0094:70-71 (reseller_commissions_invoice_idx). Wire type is
+// therefore string NOT NULL (never null|undefined). Real values are
+// minted by the webhook processor from Stripe invoice.paid events on
+// attributed customers' paid invoices; canonical Stripe invoice ID
+// shape is `in_<24-32 alphanumerics>` (per Stripe API docs for the
+// modern in_ prefix; the legacy in_test_ prefix is a subset match).
+// Projected via select("commission_id, stripe_invoice_id,
+// list_price_aud_cents, discount_pct, commission_aud_cents,
+// net_owed_cents, status, created_at") at web/src/app/api/admin/
+// resellers/[code]/route.ts:99-105. Two-part guard mirroring the tick
+// 306/307 timestamptz posture (typeof-string + shape regex) but with
+// STRIPE_INVOICE_ID_RE as a new module-scope const rather than an
+// existing regex — no existing pin covers the Stripe `in_` prefix
+// invariant; stripe_coupon_id at ticks 301/302 was pinned as bare null-
+// or-typeof-string with no shape assert (nullable text, no DB CHECK).
+// The invariant lives ONLY at the write path (Stripe minted the id,
+// the webhook processor stores it verbatim); a schema-side type flip
+// to bigserial, a projection-side drop, a webhook-processor drift that
+// stamped a stringified integer, a truncated slug, or a PostgREST
+// serialisation regression that returned null|undefined would surface
+// here on the first offending row. Detail-surface only per the same
+// posture as ticks 299-308 — the admin-resellers-list route projects
+// only the resellers-row shape and does not fan out to
+// reseller_commissions_current; the Promise.all leg that pulls the
+// commissions rows is unique to the detail route. Fires on every green
+// CI run only where the seeded reseller has attributed founders with
+// paid Stripe invoices in the last 50 rows; on hosts without seeded
+// commission events the for-loop is a no-op so the pin never fires.
+// Continues the P10 hardening posture — no fixture change, no route
+// change, no new imports; adds ONE new module-scope const
+// (STRIPE_INVOICE_ID_RE) matching the discipline of ISO_TIMESTAMP_RE,
+// UUID_RE, PROMO_CODE_RE, ABN_RE, HEX_COLOR_RE that already sit in the
+// module-scope regex cluster.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
+// Tick 309 — Stripe invoice ID shape regex. Matches the modern Stripe
+// `in_<alphanumeric>` prefix pattern used by every invoice minted by
+// the Stripe API and stored verbatim by the webhook processor into
+// reseller_commissions.stripe_invoice_id (text NOT NULL, 0094:34).
+// Length lower-bound of 8 chars protects against a truncated slug
+// regression; alphanumeric-only body matches Stripe's canonical
+// id charset (no punctuation, no dashes). Kept broad enough that
+// live-mode (in_1XXXXXXXXX) and test-mode (in_1XXXtestXXX) both pass.
+const STRIPE_INVOICE_ID_RE = /^in_[A-Za-z0-9]{8,}$/;
 // Uppercase-alphanumeric invariant for promotion_codes[].code — matches the
 // buildPromoCodeName write-path guarantee at
 // web/src/lib/reseller/promotion-code-mint.ts:41-58 (uppercase + <=40 chars,
@@ -1058,6 +1108,7 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
       };
       commissions?: Array<{
         commission_id?: unknown;
+        stripe_invoice_id?: unknown;
       }>;
     };
 
@@ -1610,6 +1661,26 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
       expect(
         UUID_RE.test(row.commission_id as string),
         `commissions[].commission_id '${String(row.commission_id)}' should match UUID shape (uuid PRIMARY KEY per 0094:34); a projection-side drop from route.ts:99-105 select that replaced commission_id with a stringified integer id, a bigint-serialised-as-string sequence id, or a truncated non-UUID slug would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      // Tick 309 — commissions[].stripe_invoice_id text NOT NULL wire-
+      // shape pin. Column source: reseller_commissions.stripe_invoice_id
+      // `text NOT NULL` at 0094:34, projected verbatim through the
+      // reseller_commissions_current view at 0094:139 and selected on
+      // the Promise.all leg at web/src/app/api/admin/resellers/[code]/
+      // route.ts:99-105. Two-part guard: (a) typeof-string preserves the
+      // NOT-NULL raw-type discipline; (b) STRIPE_INVOICE_ID_RE shape
+      // assert catches a webhook-processor drift stamping a non-Stripe
+      // id, a projection-side drop that swapped columns, a truncated
+      // slug, or a PostgREST serialisation regression that returned
+      // null|undefined. See module-scope doc-block above
+      // STRIPE_INVOICE_ID_RE (tick 309 paragraph) for the rationale.
+      expect(
+        typeof row.stripe_invoice_id === "string",
+        `commissions[].stripe_invoice_id '${String(row.stripe_invoice_id)}' should be a string (text NOT NULL per 0094:34; view alias rc.stripe_invoice_id at 0094:139; a schema-side NOT NULL drop, a projection-side drop from route.ts:99-105 select, or a PostgREST serialisation regression that returned null|undefined would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        STRIPE_INVOICE_ID_RE.test(row.stripe_invoice_id as string),
+        `commissions[].stripe_invoice_id '${String(row.stripe_invoice_id)}' should match Stripe invoice id shape /^in_[A-Za-z0-9]{8,}$/ (write-path invariant: minted by Stripe API and stored verbatim by the webhook processor from invoice.paid events); a webhook-processor drift that stamped a stringified integer, a truncated slug, or a legacy non-in_ prefix would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
     }
   });
