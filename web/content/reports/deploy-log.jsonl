@@ -1006,3 +1006,5 @@
 {"ts":"2026-07-23T18:24:47.211Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-23T18-20-01-850Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T18:31:34.617Z","event":"github-push-master","detail":"Blockid-au: feat(projects): archive/unarchive UI + endpoint (Q4 Multi-project #5) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T18:34:02.366Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): P10 tick 325 — reseller.id UUID two-part labelled pin on admin reseller detail (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T18:47:02.403Z","event":"github-push-master","detail":"Blockid-au: feat(audit): app_user_audit_log (SOC2-lite) — table + helper + /workspace/audit-log viewer + 3 mutation wire-ins (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T18:50:30.682Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): P10 tick 326 — admins[] status↔revoked_at cross-column lifecycle invariant pin on admin reseller detail (1 commits)","source":"github-webhook"}
