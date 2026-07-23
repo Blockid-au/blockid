@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.232
+version: 2026-07-23.233
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,212 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 233
+    ran_at: 2026-07-23
+    action: p10_drawer_pair_masked_email_shape_pin_option_m_reclassified
+    result: |
+      Landed tick 232 "natural next pick" option (m) after an audit-driven
+      reclassification. The original (m) audit target — reveal-email spec
+      pair pinning a masked-email response body — was confirmed a
+      NON-candidate this tick because the reveal-email route ONLY returns
+      plaintext email (route.ts:95 `200 { ok:true, email }` reads
+      app_users.email straight through with no mask). The masked
+      form lives exclusively in the DRAWER route's overview.masked_email
+      column, not in reveal-email. But the same audit surfaced a
+      legitimate sibling twin-tightening opportunity: the drawer spec
+      pair's overview.masked_email shape pin was asymmetric across authz
+      vs validation. Tightened both files this tick to stay inside the
+      twin-symmetrisation discipline.
+
+      Audit outcome:
+        - reveal-email-authz.spec.ts + reveal-email-validation.spec.ts
+          masked-email — NON-candidate. Route reference
+          web/src/app/api/reseller/customers/[id]/reveal-email/route.ts:95
+          returns app_users.email plaintext for the 200 branch. The 401 /
+          400 / 403 branches return `{ ok:false, reason }` with no email
+          field. maskEmail() at web/src/lib/reseller/customer-reveal.ts:34
+          is consumed only by the reseller/customers/page.tsx SSR paint
+          and the reseller/credits/page.tsx customer picker — never by
+          any /api/reseller/**/route.ts handler that returns a JSON body.
+          So option (m) as originally framed has zero attack surface at
+          the wire.
+        - drawer-authz.spec.ts row 146 (line 242-244) already pinned
+          overview.masked_email to typeof string + .toContain("@") +
+          .toMatch(/\*/). Route reference
+          web/src/app/api/reseller/customers/[id]/drawer/route.ts fans
+          out via buildOverviewSummary at
+          web/src/lib/reseller/customer-drawer.ts which pipes
+          app_users.email through maskEmail() before the wire.
+          buildOverviewSummary is the ONLY normaliser on the write path;
+          a regression that bypassed maskEmail() would leak plaintext
+          through the drawer route (identical failure mode to a
+          hypothetical reveal-email regression that skipped the mask).
+          THIS is the real chokepoint — reclassified as the tightening
+          candidate.
+        - drawer-validation.spec.ts row 147 (line 297) pinned
+          overview.masked_email to typeof string ONLY. Strictly weaker
+          than the drawer-authz twin sibling — a regression that swapped
+          '***' for another literal, or dropped the '@' separator, or
+          widened the 1-2 char prefix, would slip past validation and
+          only be caught by authz. This IS a legitimate twin-symmetric
+          tightening — same shape as tick 231 option (j) which pinned
+          resellers.code across the admin-list surfaces + tick 232
+          option (l) which pinned promotion_codes[].code across the
+          admin-reseller-detail surfaces.
+
+      Shape pin landed (twin, same tick):
+        expect(body.overview?.masked_email ?? "").toMatch(MASKED_EMAIL_RE);
+      where MASKED_EMAIL_RE = /^[^@\s]{1,2}\*\*\*@[^@\s]+$/ hoisted to
+      module scope in each spec (matches the UUID_RE + RESELLER_CODE_RE +
+      PROMO_CODE_RE hoisting pattern used across the reseller e2e suite,
+      matches ticks 231 + 232 twin discipline).
+
+      Regression coverage tightened:
+        - maskEmail() at customer-reveal.ts:40-41 is the only normaliser
+          on the drawer's overview.masked_email write path
+          (buildOverviewSummary at customer-drawer.ts fans out
+          app_users.email → maskEmail() → overview.masked_email). A
+          route regression that skipped maskEmail() and returned the raw
+          app_users.email column would leak plaintext at the wire — the
+          drawer authz spec would catch it via .toContain("@") +
+          .toMatch(/\*/) failing, but the drawer validation spec would
+          silently pass because typeof string still holds.
+        - The seed script at web/scripts/seed-qa-reseller.mjs plants
+          DEFAULT_ATTRIBUTED_FOUNDER_EMAIL (qa-founder-attributed-1@
+          blockid.au) whose local length > 2 so maskEmail() produces
+          "qa***@blockid.au" — matches /^[^@\s]{1,2}\*\*\*@[^@\s]+$/
+          against the 2-char branch. A single-char local (edge case in
+          maskEmail() at :40 for local.length <= 2) would produce
+          "a***@blockid.au" — also matches via the {1,2} quantifier.
+        - PRE-tick: drawer-authz caught the plaintext-leak regression
+          via the loose `contains @ + matches *` pair; drawer-validation
+          did not (typeof string only).
+        - POST-tick: both drawer specs fail the MASKED_EMAIL_RE match
+          on the first offending row. The tightening also catches a
+          NEW class of regression that the loose pair could not — a
+          change to the mask envelope shape (e.g. widening the prefix
+          to 3+ chars, swapping '***' for another literal like '###',
+          or dropping the '@' separator inside the mask) — because the
+          loose `.toMatch(/\*/)` just checks for ANY '*' anywhere in
+          the string, but MASKED_EMAIL_RE anchors the exact position +
+          count of the '***' literal + '@' separator.
+
+      Twin-symmetrisation posture — both drawer spec surfaces advance
+      together in a single tick, matching ticks 223/224 (requests spec
+      pair FK-echo pins) + ticks 225-230 (drawer spec pair progression
+      pins) + tick 231 (admin-list resellers.code RESELLER_CODE_RE pins)
+      + tick 232 (admin-reseller-detail promotion_codes[].code
+      PROMO_CODE_RE pins) twin discipline. Both drawer surfaces read
+      overview.masked_email from the same
+      /api/reseller/customers/[id]/drawer route (customer-drawer.ts
+      buildOverviewSummary fan-out), so tightening one without the other
+      would leave the visual QA lens carrying the other surface's
+      coverage.
+
+      Trade-off accepted:
+        - Shape pin couples both specs to the MASKED_EMAIL_RE literal
+          /^[^@\s]{1,2}\*\*\*@[^@\s]+$/. A future change to maskEmail()
+          that widened the accepted prefix length (e.g. showing 3 chars
+          instead of 2) would force a synchronised bump across
+          customer-reveal.ts + these two drawer specs + the
+          customer-reveal.test.ts vitest cases.
+        - Accepted because the coupling reflects the same single-
+          source-of-truth discipline that ticks 231 + 232 accepted for
+          RESELLER_CODE_RE + PROMO_CODE_RE: maskEmail() is the sole
+          write-path normaliser and its output shape is a load-bearing
+          H.10 chokepoint invariant ("masked in list; reveal-on-click
+          logs to reseller_audit_log" per plan §H.10 + goal file
+          open_questions_resolved). A widening would already require a
+          coordinated review across those surfaces; the spec pin
+          surfaces the mismatch at the Playwright layer rather than at
+          production.
+        - Preserves the shape-pin discipline where the underlying
+          column allows free text: signup_at, last_active_at, plan_label
+          stay typeof-string (or null-or-typeof-string) only on both
+          surfaces — no invariant to pin.
+
+      Diagnostic delta of the pass:
+        - Added 1 new module-scope constant per file (MASKED_EMAIL_RE
+          hoisted to match UUID_RE + RESELLER_CODE_RE + PROMO_CODE_RE
+          pattern).
+        - Added 1 new expect per file (2 total, twin-symmetric).
+        - No production code touched, no fixture change, no route
+          change, no new imports, no vitest / Playwright runtime
+          posture change.
+        - Comment blocks added in both files to cite the tick 233
+          landing + the maskEmail() invariant reference + the
+          cross-surface single-source-of-truth chain + the
+          bypass-maskEmail regression the pin catches + the new
+          mask-envelope-shape regression class the loose pair could
+          not catch.
+
+      Files:
+        - web/tests/e2e/reseller/drawer-authz.spec.ts
+          (MASKED_EMAIL_RE hoisted at module scope with comment block;
+          overview.masked_email shape pin extended with
+          .toMatch(MASKED_EMAIL_RE) + inline comment block referencing
+          the twin sibling + the new regression class.)
+        - web/tests/e2e/reseller/drawer-validation.spec.ts
+          (MASKED_EMAIL_RE hoisted at module scope with comment block;
+          overview.masked_email shape pin extended with
+          .toMatch(MASKED_EMAIL_RE) + inline comment block referencing
+          the drawer-authz twin.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.232 → 2026-07-23.233; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Value pin tightening only. No new spec-local constant beyond
+          MASKED_EMAIL_RE (one per file, hoisted to module scope), no
+          fixture-file delta, no seed-script change, no P8.5-gated
+          code_request work (option (c) still blocked), no production-
+          code touch. Matches ticks 223-232 discipline: tighten one
+          dimension, symmetrise across the pair, single tick.
+
+      Verified:
+        - tsc clean (npx tsc --noEmit; no output = success).
+        - npm run lint:reseller: R-01 scanned 11 file(s), R-03 scanned
+          31 manifest route(s); 3 exemption(s), 0 violation(s). Both
+          drawer spec files live under web/tests/e2e/**, not in the
+          reseller manifest, so R-01/R-03 do not fire on the edited
+          files.
+        - reseller vitest 449/449 pass (unchanged; no production code
+          or lib touched).
+
+      Frontier after tick 233: unchanged shape — Track A HUMAN-BLOCKED
+      on P8.5 Stripe env vars + P1.5 InfoVision seed on H.20 ABN + GST;
+      Track B COMPLETE; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 233 does NOT unblock: P8.5 STRIPE_PRICE_ADDON_SHARE_MGMT_*
+      env vars still human-gated; P1.5 InfoVision ABN + GST still
+      human-gated per H.20 (Auschain existing counsel or LegalVision
+      AU).
+
+      Natural next pick for tick 234:
+        (o) audit whether the credits page's masked_email server-render
+            has any wire-facing surface (currently reseller/credits/
+            page.tsx maps masked_email onto the picker rows — but the
+            HTML is SSR-rendered, not JSON — so this is a QA-only
+            regression surface, not a Playwright candidate). Skip if
+            audit confirms no wire path.
+        (p) audit whether admin-requests-list-authz.spec.ts response
+            body pins any reseller_id / target_user_id / request_id
+            columns to loose typeof string that could be tightened to
+            UUID_RE (same shape as ticks 231 + 232 mid-column pins).
+            Twin surface: admin-reseller-loop-status-authz.spec.ts if
+            it exists as a paired spec.
+        (n) audit whether admin-requests-patch-authz.spec.ts approve
+            branch decision_at pin could be tightened from typeof
+            string to an ISO-8601 regex — trade-off called out in tick
+            230 (the header comment explicitly says "assert typeof
+            string only so the value can drift"). Landing the ISO
+            regex would contradict the header, so this is a header-
+            rewrite-first option (i.e. update the "assert typeof
+            string only" comment before pinning ISO shape).
+        (c) mirror row 179 shape+helper alignment onto row 175 approve+
+            deny+cancel code_request branches once P8.5 unblocks.
+            P8.5-blocked, no available today.
+    commit: (this tick)
+
   - tick: 232
     ran_at: 2026-07-23
     action: p10_admin_reseller_detail_pair_promo_code_shape_pin_option_l_extended

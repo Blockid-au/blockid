@@ -107,6 +107,23 @@ const INVALID_ID_SEGMENT = "not-a-uuid";
 const DRAWER_ROUTE = (customerId: string) =>
   `/api/reseller/customers/${customerId}/drawer`;
 
+// Deterministic mask shape produced by maskEmail() at
+// web/src/lib/reseller/customer-reveal.ts:34-42 — the sole normaliser on the
+// drawer route's overview.masked_email write path (buildOverviewSummary at
+// web/src/lib/reseller/customer-drawer.ts pipes app_users.email through
+// maskEmail before the wire). Shape is `<1-2 non-@ chars>***@<domain>` per
+// the branch split at customer-reveal.ts:40-41 (local.length <= 2 → 1 char;
+// local.length > 2 → 2 chars). Pre-tick this row pinned masked_email only
+// to typeof string (line 297) — strictly weaker than the twin sibling at
+// drawer-authz.spec.ts:242-244 which pinned typeof string + .toContain("@")
+// + .toMatch(/\*/). Landed tick 233 in the same twin-symmetrisation
+// discipline as tick 231 option (j) + tick 232 option (l) — hoist the shape
+// invariant to a module-scope constant matching the drawer-authz twin so
+// both files point at the same literal. A regression that leaked plaintext
+// through the drawer route or that changed the mask envelope surfaces on
+// the first offending row instead of at visual QA.
+const MASKED_EMAIL_RE = /^[^@\s]{1,2}\*\*\*@[^@\s]+$/;
+
 test.describe("Reseller customer-drawer input validation — P10 dry-run", () => {
   const harness = loadResellerHarness();
   test.skip(!harness, harnessSkipReason());
@@ -295,6 +312,15 @@ test.describe("Reseller customer-drawer — P10 wave-2 uuid_in_scope happy", () 
         typeof body.overview?.display_name === "string",
     ).toBe(true);
     expect(typeof body.overview?.masked_email).toBe("string");
+    // Tick 233 — tighten from typeof-string-only to the exact shape emitted
+    // by maskEmail() (see MASKED_EMAIL_RE above). Strictly stronger than the
+    // pre-tick typeof-string pin and matches the drawer-authz.spec.ts:245
+    // twin landing this tick so both drawer spec files hold masked_email to
+    // the same envelope. Catches a regression that leaked a plaintext email
+    // through the drawer route or that changed the mask envelope (e.g.
+    // widened the prefix from 1-2 chars to 3+, dropped the '@' separator,
+    // or swapped '***' for another literal).
+    expect(body.overview?.masked_email ?? "").toMatch(MASKED_EMAIL_RE);
     expect(typeof body.overview?.signup_at).toBe("string");
     expect(
       body.overview?.last_active_at === null ||
