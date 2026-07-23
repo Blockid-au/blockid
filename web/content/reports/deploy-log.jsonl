@@ -977,3 +977,7 @@
 {"ts":"2026-07-23T17:04:36.345Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-23T17-00-01-438Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T17:09:47Z","status":"success","gates":"8/8","pid":"210884","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-23T17:14:51.073Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): P10 tick 316 — commissions[].status value-set enum pin on admin reseller detail (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T17:15:00.672Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-23T17-10-01-241Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T17:20:08Z","status":"success","gates":"8/8","pid":"245636","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-23T17:28:59.202Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): P10 tick 317 — commissions[].created_at timestamptz ISO 8601 pin on admin reseller detail (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T17:29:04.429Z","event":"github-push-master","detail":"Blockid-au: feat(admin): sandbox scope chip on remaining 6 admin pages + nav hint (D3-CISO-05 / D2-CFO-08) (1 commits)","source":"github-webhook"}
