@@ -1,6 +1,6 @@
 # BlockID.au — SOURCE OF TRUTH
 
-> **Version:** 2026-07-23 · **Owner:** CEO (Do Van Long) · **Consumer:** founders, human team, autonomous loop agents.
+> **Version:** 2026-07-23 (rev.317) · **Owner:** CEO (Do Van Long) · **Consumer:** founders, human team, autonomous loop agents.
 > **Rule:** Consult this file BEFORE any specialised plan doc. Every specialised plan carries a top-of-file back-link to this one.
 > **Entity:** Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111 · Sydney NSW.
 
@@ -10,27 +10,27 @@
 
 ### G1 — Reseller module v1
 - **Source:** [`docs/plans/reseller-module-goal.md`](./reseller-module-goal.md) · plan [`docs/plans/reseller-module-plan.md`](./reseller-module-plan.md) · delta [`docs/plans/plan-delta-2026-07-23.md`](./plan-delta-2026-07-23.md)
-- **Tick:** 290 · **Track A focus:** `P2_redemption_attribution` (P0/P1/P2 landed, P3/P4/P5/P6/P7/P8 shipped except P8.5, P10 pin-hardening in-flight). **Track B focus:** `done` (B1..B10 shipped).
+- **Tick:** 317 · **Track A focus:** `P2_redemption_attribution` (P0/P1/P2 landed, P3/P4/P5/P6/P7/P8 shipped except P8.5, P10 pin-hardening in-flight). **Track B focus:** `done` (B1..B10 shipped).
 - **Status:** in-progress; C-Level blocking reviewers all approved; advisory notes closed at tick 68.
 - **Next action:** P10 wire-shape pin cross-surface pairs continue (auto-loop). Track A HUMAN-BLOCKED on P1.5 (InfoVision seed) + P8.5 (Stripe env vars).
 - **Blocker:** H.20 InfoVision ABN + GST status; `STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL` env mint.
 
 ### G2 — Real-world workflow parity
 - **Source:** [`docs/plans/real-world-workflow-parity-audit-2026-07-23.md`](./real-world-workflow-parity-audit-2026-07-23.md)
-- **Status:** audit-only; 10 remediation items ranked, 0 shipped.
+- **Status:** audit remediation in-flight; 7/10 shipped this session, 3 remain founder-review-blocked.
 - **Top-10 remediation (ranked):**
-  1. Publish canonical 8-stage vocabulary (`architecture-designer`, S) — founder sign-off.
-  2. Wire 12↔8 bucket map `web/src/lib/journey-map.ts` (`typescript-pro`, M) — ship-now.
-  3. Extend data-room to 60+ items with AU compliance (`au-compliance`, M) — founder review.
-  4. Add Tax + AU-Compliance sections to template library (`au-compliance`, M) — ship-now.
-  5. Overlay canonical-stage badges on 4 showcase cases (`react-expert`, S) — ship-now.
+  1. Publish canonical 8-stage vocabulary (`architecture-designer`, S) — **shipped** (`7f499264`).
+  2. Wire 12↔8 bucket map `web/src/lib/journey-map.ts` (`typescript-pro`, M) — **shipped** (`c4b70877` + `a1bf4542`).
+  3. Extend data-room to 60+ items with AU compliance (`au-compliance`, M) — **shipped** (`b0ae8d8b`).
+  4. Add Tax + AU-Compliance sections to template library (`au-compliance`, M) — **shipped** (`b0ae8d8b`).
+  5. Overlay canonical-stage badges on 4 showcase cases (`react-expert`, S) — **shipped** (`b9ee0b7f`; dashboard parity `29c00fe1`).
   6. Add Airwallex + Culture Amp showcases (`deep-research` → `react-expert`, L) — founder review.
   7. Reseller `customer_stage` tracking (`db-migrate` + `fullstack-guardian`, M) — founder review.
-  8. Add Step 6 "Create first startup" to onboarding wizard (`nextjs-developer`, S) — ship-now.
-  9. Rename SCN externally + cite framework overlays (`code-documenter`, S) — ship-now.
+  8. Add Step 6 "Create first startup" to onboarding wizard (`nextjs-developer`, S) — **shipped** (`41ab0cfc`; Stripe-return route fix `b176ffea`).
+  9. Rename SCN externally + cite framework overlays (`code-documenter`, S) — **shipped** (`9e5d71e8`).
   10. "Real founder was here" callouts across 12 guide chapters (`deep-research` + `typescript-pro`, L) — founder review.
-- **Next action:** loop picks #1 + #2 (both ship-now, small scope, no founder gate) next off-peak tick.
-- **Blocker:** items 3, 6, 7, 10 need founder sign-off on wording/scope.
+- **Next action:** items #6, #7, #10 await founder sign-off on wording/scope; no unblocked audit lane this window.
+- **Blocker:** items 6, 7, 10 need founder sign-off on wording/scope.
 
 ### G3 — SVI Exchange (SVI EXC)
 - **Source:** [`.claude/goals/svi-exchange-orchestration.md`](../../.claude/goals/svi-exchange-orchestration.md) · queue `web/content/reports/svi-exchange-tasks.json`
@@ -47,7 +47,7 @@
 - **Top-5 open Q3 items:**
   1. Enterprise tier + team features ($499/mo) — `cro` + `cto`.
   2. Accelerator partnership pricing ($20K/year per cohort) — `cro` + `cmo`.
-  3. PDF branding customisation for paid plans — `cpo` + `ui-ux-pro-max`.
+  3. PDF branding customisation for paid plans — **shipped** (feature-gate + settings form `26678366`; renderer wire `880df71c`).
   4. Dashboard personalisation (pin/reorder widgets) — `react-expert`.
   5. ProductHunt launch campaign — `cmo` + `media-studio`.
 - **Next action:** CRO agent to spec Enterprise tier SKU + pricing.csv entry.
@@ -89,12 +89,12 @@
 | D2-CFO-04 | plan-delta-2026-07-23 | economics | shipped | typescript-pro | `web/src/lib/reseller/cogs.ts` |
 | D2-CFO-06 | plan-delta-2026-07-23 | GST-invariant | shipped | au-compliance | G.2 rewrite |
 | D2-CFO-07 | plan-delta-2026-07-23 | KPI | shipped | typescript-pro | C.6 CSV schema |
-| D2-CFO-08 | plan-delta-2026-07-23 | sandbox-cap | shipped | secure-code-guardian | tick 290 pins |
+| D2-CFO-08 | plan-delta-2026-07-23 | sandbox-cap | shipped | secure-code-guardian | tick 317 pins |
 | D3-CISO-01 | plan-delta-2026-07-23 | RLS | shipped | secure-code-guardian | `reseller/supabase.ts` |
 | D3-CISO-02 | plan-delta-2026-07-23 | feature-gates | shipped | secure-code-guardian | manifest tick 44 |
 | D3-CISO-03 | plan-delta-2026-07-23 | k-anonymity | shipped | secure-code-guardian | progression queries |
 | D3-CISO-04 | plan-delta-2026-07-23 | redaction | shipped | secure-code-guardian | reseller view |
-| D3-CISO-05 | plan-delta-2026-07-23 | sandbox-cap | shipped | secure-code-guardian | tick 290 |
+| D3-CISO-05 | plan-delta-2026-07-23 | sandbox-cap | shipped | secure-code-guardian | tick 317 |
 | D3-CISO-06 | plan-delta-2026-07-23 | Stripe-portal | shipped | secure-code-guardian | `fd4a1eb3` |
 | D3-CISO-07 | plan-delta-2026-07-23 | hash-metadata | shipped | secure-code-guardian | `reseller/hash.ts` |
 | D3-CISO-08 | plan-delta-2026-07-23 | CI-lints | shipped | test-master | R-01..R-09 |
@@ -104,10 +104,15 @@
 | RES-U.7 | reseller-module-plan §U | progression | shipped | react-expert | drawer overview |
 | RES-U.8 | reseller-module-plan §U | guide-ch1-12 | shipped | typescript-pro | ticks 48/49/50 |
 | RES-U.9 | reseller-module-plan §U | auto-DataRoom | shipped | fullstack-guardian | phase snapshot |
-| AUD-R1 | real-world-audit §6 | taxonomy | open | architecture-designer | — |
-| AUD-R2 | real-world-audit §6 | 12↔8 map | open | typescript-pro | — |
-| AUD-R3 | real-world-audit §6 | data-room AU | open | au-compliance | — |
-| AUD-R7 | real-world-audit §6 | reseller-stage | open | fullstack-guardian | — |
+| AUD-R1 | real-world-audit §6 | taxonomy | shipped | architecture-designer | `7f499264` |
+| AUD-R2 | real-world-audit §6 | 12↔8 map | shipped | typescript-pro | `c4b70877` + `a1bf4542` |
+| AUD-R3 | real-world-audit §6 | data-room AU | shipped | au-compliance | `b0ae8d8b` |
+| AUD-R4 | real-world-audit §6 | Tax+AU template | shipped | au-compliance | `b0ae8d8b` |
+| AUD-R5 | real-world-audit §6 | showcase badges | shipped | react-expert | `b9ee0b7f` + `29c00fe1` |
+| AUD-R7 | real-world-audit §6 | reseller-stage | founder_blocked | fullstack-guardian | — |
+| AUD-R8 | real-world-audit §6 | onboarding step 6 | shipped | nextjs-developer | `41ab0cfc` + `b176ffea` |
+| AUD-R9 | real-world-audit §6 | SCN rename | shipped | code-documenter | `9e5d71e8` |
+| Q3-PDF-BRAND | feature-upgrade-roadmap-v2 | PDF branding | shipped | cpo + ui-ux-pro-max | `26678366` + `880df71c` |
 | PRC-INV | pricing-upgrade-plan | per-seat SKU | open | cro | — |
 | PRC-ACC | pricing-upgrade-plan | accelerator SKU | shipped | cro | placeholder Stripe IDs, iter-7 |
 | PRC-EQ | pricing-upgrade-plan | equity-for-solution | blocked | clo | legal_review_passed=false |
@@ -147,6 +152,21 @@
 ### Docs / audit
 - Real-world workflow parity audit (`442d5fba`).
 - CRO Share-Mgmt remove-path finding marked resolved at tick 56 (`95d71d9c`).
+
+### Audit remediation (iteration 5-9)
+- AUD-R1 canonical 8-stage vocabulary published (`7f499264`).
+- AUD-R2 12-phase ↔ 8-stage bucket map (`c4b70877`); startup-growth-phases bridged (`a1bf4542`).
+- AUD-R3 + AUD-R4 data-room expanded to 60+ items with Tax + AU-Compliance sections (`b0ae8d8b`).
+- AUD-R5 canonical 8-stage badges on Atlassian/Canva/Xero/SafetyCulture showcase timelines (`b9ee0b7f`); parity on founder dashboard + SCN payloads (`29c00fe1`).
+- AUD-R8 Step 6 "Create first startup" onboarding wizard (`41ab0cfc`); Stripe-hosted checkout return route fix (`b176ffea`).
+- AUD-R9 SCN renamed externally to "Startup Compass"; Sean Ellis/T2D3/Porter/JTBD/BVP framework overlays cited (`9e5d71e8`).
+
+### Product / branding
+- PDF branding feature-gate + settings form for Growth+/Scale/Enterprise (`26678366`); brand_settings threaded into SVI report renderer (`880df71c`).
+- Showcase OG + Twitter card images for /showcase/blockid (`05d30fe2`).
+
+### QA / infra
+- `@axe-core/playwright` installed; a11y CI lens unlocked (`f9c04c7c`).
 
 ### Orchestrator
 - Platform auto-upgrade 2026-07-23 (`6b81bf40`).
@@ -231,4 +251,5 @@ Live markers for downstream update agents. Consume by grepping this section for 
 | When | Who | What |
 |---|---|---|
 | 2026-07-23 | loop agent (SOT consolidation task) | Initial consolidation. §1–§7 authored; back-links applied to reseller-plan + unicorn-masterplan; memory pointer added. |
+| 2026-07-23 | qa/regression sweep | Iteration 5-9 sync: G1 tick 290 → 317; G2 audit #1/2/3/4/5/8/9 flipped to shipped with commit SHAs (#6/7/10 remain founder-review-blocked); G4 Top-5 #3 PDF branding flipped to shipped; requirements register rows added for AUD-R1/2/3/4/5/8/9 + Q3-PDF-BRAND; §3 shipped-log expanded with audit-remediation, product/branding, QA/infra subsections. |
 
