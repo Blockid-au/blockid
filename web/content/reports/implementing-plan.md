@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v3.1.0  ·  **Updated:** 2026-07-22T14:00:02.174Z  ·  **Decided by:** ceo (2026-07-22T12:04:02.983Z)
+**Version:** v3.1.0  ·  **Updated:** 2026-07-23T12:04:03.208Z  ·  **Decided by:** ceo (2026-07-23T12:04:03.207Z)
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -17,6 +17,9 @@
 | T0165 | CFO | Implement Multi-Method Valuation Engine | minor | ⬜ pending |
 | T0166 | CFO | Build TAM/SAM/SOM Calculation Framework | minor | ⬜ pending |
 | T0167 | CFO | Sector-Specific Revenue Multiple Library | patch | ⬜ pending |
+| T0169 | CFO | Integrate Australian R&D Tax Incentive data into the Multi-Method Valuation Engine | minor | ⬜ pending |
+| T0170 | CRO | Implement Funding Readiness Scoring (CAPITAL framework) with automated recommendations | minor | ⬜ pending |
+| T0171 | RND | Add a new AI insight provider (e.g., GPT‑4o) to the AI provider chain for founder narrative generation | minor | ⬜ pending |
 
 ## Recently shipped
 - ✅ `T0236` **RND** — T0111 AI Idea Lab — sector-aware angle generator
