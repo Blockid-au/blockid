@@ -76,7 +76,14 @@ test.describe("Post-deploy hydrated smoke", () => {
   // leak — the client runtime honours the template and lands on
   // /auth/login. This hydrated smoke asserts the visible behaviour so
   // the false-positive from the iter-12 curl-only gate can't recur.
-  for (const path of ["/workspace/audit-log", "/workspace/projects"] as const) {
+  // /dashboard/portfolio (iter-14, shipped 7ed825be) shares the same
+  // getCurrentUser()→redirect() auth-gate pattern, so it lives in the
+  // same loop.
+  for (const path of [
+    "/workspace/audit-log",
+    "/workspace/projects",
+    "/dashboard/portfolio",
+  ] as const) {
     test(`${path} — anonymous lands on /auth/login (hydrated)`, async ({
       page,
       context,
@@ -99,6 +106,22 @@ test.describe("Post-deploy hydrated smoke", () => {
       );
     });
   }
+
+  test("/dashboard/portfolio — post-redirect login shell hydrates", async ({
+    page,
+    context,
+  }) => {
+    // After the auth-gate redirect, the /auth/login page must render its
+    // canonical hero shell — protects the empty-state / column layout on
+    // /dashboard/portfolio from a silent regression that turns the redirect
+    // into a blank page (e.g. a broken WorkspaceLayout import).
+    await context.clearCookies();
+    await page.goto("/dashboard/portfolio", { waitUntil: "domcontentloaded" });
+    await page.waitForURL(/\/auth\/login/, { timeout: PAGE_TIMEOUT });
+    await expect(
+      page.getByRole("heading", { name: /sign in to blockid/i }),
+    ).toBeVisible({ timeout: PAGE_TIMEOUT });
+  });
 
   test("/showcase/blockid — opengraph-image returns image/png", async ({
     request,
