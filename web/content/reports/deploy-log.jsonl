@@ -981,3 +981,6 @@
 {"ts":"2026-07-23T17:20:08Z","status":"success","gates":"8/8","pid":"245636","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-23T17:28:59.202Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): P10 tick 317 — commissions[].created_at timestamptz ISO 8601 pin on admin reseller detail (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T17:29:04.429Z","event":"github-push-master","detail":"Blockid-au: feat(admin): sandbox scope chip on remaining 6 admin pages + nav hint (D3-CISO-05 / D2-CFO-08) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T17:34:28Z","status":"success","gates":"8/8","pid":"294349","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-23T17:39:12.097Z","event":"github-push-master","detail":"Blockid-au: fix(qa,sot): iteration 5-9 regression sweep + SOURCE-OF-TRUTH sync — 0 code fixes, 12 SOT updates (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T17:39:36.370Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): P10 tick 318 — attributions_summary.total int non-negative pin on admin reseller detail (1 commits)","source":"github-webhook"}

@@ -117,6 +117,26 @@ describe("applySandboxScopeToQuery", () => {
     const returned = applySandboxScopeToQuery(query, "sandbox");
     expect(returned).toBe(query);
   });
+
+  // Regression: iteration-9 admin isSandbox fanout added a display-only
+  // scope chip to /admin/credits. Migration 0103 lands the
+  // credit_transactions.sandbox boolean so the helper's default column
+  // name ("sandbox") lines up 1:1 — no per-caller override needed. This
+  // case pins that relationship so a future rename of either side breaks
+  // the test loudly instead of silently.
+  it("filters credit_transactions.sandbox via the default column (0103)", () => {
+    const { query: qSandbox, calls: sandboxCalls } = fakeQuery();
+    applySandboxScopeToQuery(qSandbox, "sandbox");
+    expect(sandboxCalls).toEqual([{ column: "sandbox", value: true }]);
+
+    const { query: qLive, calls: liveCalls } = fakeQuery();
+    applySandboxScopeToQuery(qLive, "live");
+    expect(liveCalls).toEqual([{ column: "sandbox", value: false }]);
+
+    const { query: qAll, calls: allCalls } = fakeQuery();
+    applySandboxScopeToQuery(qAll, "all");
+    expect(allCalls).toEqual([]);
+  });
 });
 
 // ---------------------------------------------------------------------------
